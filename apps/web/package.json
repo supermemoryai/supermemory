@@ -1,0 +1,49 @@
+{
+    "name": "web",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "next build",
+        "db:push": "drizzle-kit push:sqlite",
+        "db:studio": "drizzle-kit studio",
+        "dev": "next dev",
+        "lint": "next lint",
+        "start": "next start"
+    },
+    "dependencies": {
+        "@auth/drizzle-adapter": "^0.3.6",
+        "@libsql/client": "^0.5.1",
+        "@t3-oss/env-nextjs": "^0.7.1",
+        "better-sqlite3": "^9.0.0",
+        "bun": "^1.0.28",
+        "drizzle-orm": "^0.29.3",
+        "next": "^14.0.4",
+        "next-auth": "^4.24.5",
+        "react": "^18.2.0",
+        "react-dom": "18.2.0",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@types/better-sqlite3": "^7.6.6",
+        "@types/eslint": "^8.44.7",
+        "@types/node": "^18.17.0",
+        "@types/react": "^18.2.37",
+        "@types/react-dom": "^18.2.15",
+        "@typescript-eslint/eslint-plugin": "^6.11.0",
+        "@typescript-eslint/parser": "^6.11.0",
+        "autoprefixer": "^10.4.14",
+        "drizzle-kit": "^0.20.14",
+        "eslint": "^8.54.0",
+        "eslint-config-next": "^14.0.4",
+        "postcss": "^8.4.31",
+        "prettier": "^3.1.0",
+        "prettier-plugin-tailwindcss": "^0.5.7",
+        "tailwindcss": "^3.3.5",
+        "typescript": "^5.1.6",
+        "tsconfig": "workspace:*"
+    },
+    "ct3aMetadata": {
+        "initVersion": "7.26.0"
+    }
+}
