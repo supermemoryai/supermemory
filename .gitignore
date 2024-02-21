@@ -1,6 +1,6 @@
 .turbo
 *.sqlite
-bun.lockb
+*.lockb
 
 # dependencies
 /node_modules
