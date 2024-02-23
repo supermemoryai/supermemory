@@ -1,1 +1,1 @@
-{"version":1,"functions":{}}
+{"version":1,"functions":{"/api/auth/[...nextauth]":{},"/api/store":{},"/":{}}}

@@ -1,6 +1,9 @@
 .turbo
 *.sqlite
 *.lockb
+.next
+
+node_modules
 
 # dependencies
 /node_modules

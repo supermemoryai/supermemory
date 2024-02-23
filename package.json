@@ -22,17 +22,20 @@
     "@types/react-dom": "^18.2.15",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",
-    "autoprefixer": "^10.4.14",
+    "autoprefixer": "^10.4.17",
     "drizzle-kit": "^0.20.14",
     "eslint": "^8.54.0",
     "eslint-config-next": "^14.0.4",
-    "postcss": "^8.4.31",
+    "postcss": "^8.4.35",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
-    "tailwindcss": "^3.3.5",
+    "tailwindcss": "^3.4.1",
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "dotenv-cli": "^7.3.0"
+    "@cloudflare/next-on-pages-next-dev": "^0.0.1",
+    "@types/chrome": "^0.0.261",
+    "dotenv-cli": "^7.3.0",
+    "eslint-plugin-next-on-pages": "^1.9.0"
   }
 }

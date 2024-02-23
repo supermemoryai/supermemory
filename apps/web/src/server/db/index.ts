@@ -1,12 +1,8 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { drizzle } from 'drizzle-orm/d1';
 
-import { env } from "@/env.js";
 import * as schema from "./schema";
 
 export const db = drizzle(
-  new Database(env.DATABASE_URL, {
-    fileMustExist: false,
-  }),
+  process.env!.D1Database! as unknown as D1Database,
   { schema }
 );

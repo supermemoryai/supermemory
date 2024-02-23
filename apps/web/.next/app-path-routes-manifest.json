@@ -1,1 +1,1 @@
-{"/_not-found":"/_not-found","/account/page":"/account","/api/auth/[...nextauth]/route":"/api/auth/[...nextauth]","/api/store/route":"/api/store","/page":"/"}
+{"/_not-found":"/_not-found","/api/auth/[...nextauth]/route":"/api/auth/[...nextauth]","/page":"/","/api/store/route":"/api/store"}

@@ -1,0 +1,9 @@
+name = "anycontext"
+main = "src/index.ts"
+compatibility_date = "2022-11-07"
+node_compat = true
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "dev-d1-anycontext"
+database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
