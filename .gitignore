@@ -2,6 +2,9 @@
 *.sqlite
 *.lockb
 .next
+wrangler.toml
+.wrangler
+drizzle/
 
 node_modules
 

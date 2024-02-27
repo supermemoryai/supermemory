@@ -2,7 +2,9 @@ import { drizzle } from 'drizzle-orm/d1';
 
 import * as schema from "./schema";
 
+console.log(process.env.DATABASE);
+
 export const db = drizzle(
-  process.env!.D1Database! as unknown as D1Database,
-  { schema }
+  process.env.DATABASE,
+  { schema, logger: true }
 );

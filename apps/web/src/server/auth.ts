@@ -1,18 +1,17 @@
 import { env } from "@/env";
-import { DrizzleAdapter } from "@auth/drizzle-adapter";
-import NextAuth, { DefaultSession } from "next-auth";
-import { Adapter } from "next-auth/adapters";
+import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import { db } from "./db";
-import { createTable } from "./db/schema";
 
 export const {
   handlers: { GET, POST },
   auth,
 } = NextAuth({
   secret: env.NEXTAUTH_SECRET,
+  trustHost: true,
   callbacks: {
-    session: ({session, token}) => ({
+    session: ({ session, token }) => ({
       ...session,
       user: {
         ...session.user,
@@ -21,17 +20,11 @@ export const {
       },
     })
   },
-  adapter: DrizzleAdapter(db, createTable) as Adapter,
+  adapter: DrizzleAdapter(db),
   providers: [
     Google({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
-      authorization: {
-        params: {
-          prompt: "consent",
-          response_type: "code",
-        },
-      },
     }),
   ],
 });

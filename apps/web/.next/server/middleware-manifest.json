@@ -2,21 +2,41 @@
   "sortedMiddleware": [],
   "middleware": {},
   "functions": {
-    "/api/auth/[...nextauth]/route": {
+    "/api/[...nextauth]/route": {
       "files": [
         "server/middleware-build-manifest.js",
         "server/middleware-react-loadable-manifest.js",
         "server/next-font-manifest.js",
         "prerender-manifest.js",
         "server/edge-runtime-webpack.js",
-        "server/app/api/auth/[...nextauth]/route.js"
+        "server/app/api/[...nextauth]/route.js"
       ],
-      "name": "app/api/auth/[...nextauth]/route",
-      "page": "/api/auth/[...nextauth]/route",
+      "name": "app/api/[...nextauth]/route",
+      "page": "/api/[...nextauth]/route",
       "matchers": [
         {
-          "regexp": "^/api/auth/(?<nextauth>.+?)$",
-          "originalSource": "/api/auth/[...nextauth]"
+          "regexp": "^/api/(?<nextauth>.+?)$",
+          "originalSource": "/api/[...nextauth]"
+        }
+      ],
+      "wasm": [],
+      "assets": []
+    },
+    "/api/hello/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "prerender-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/hello/route.js"
+      ],
+      "name": "app/api/hello/route",
+      "page": "/api/hello/route",
+      "matchers": [
+        {
+          "regexp": "^/api/hello$",
+          "originalSource": "/api/hello"
         }
       ],
       "wasm": [],
@@ -39,6 +59,28 @@
         {
           "regexp": "^/$",
           "originalSource": "/"
+        }
+      ],
+      "wasm": [],
+      "assets": []
+    },
+    "/_not-found": {
+      "files": [
+        "server/server-reference-manifest.js",
+        "server/app/_not-found_client-reference-manifest.js",
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "prerender-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/_not-found.js"
+      ],
+      "name": "app/_not-found",
+      "page": "/_not-found",
+      "matchers": [
+        {
+          "regexp": "^/_not\\-found$",
+          "originalSource": "/_not-found"
         }
       ],
       "wasm": [],
