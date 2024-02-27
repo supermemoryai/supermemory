@@ -66,21 +66,21 @@
       "wasm": [],
       "assets": []
     },
-    "/api/store/route": {
+    "/api/query/route": {
       "files": [
         "server/middleware-build-manifest.js",
         "server/middleware-react-loadable-manifest.js",
         "server/next-font-manifest.js",
         "prerender-manifest.js",
         "server/edge-runtime-webpack.js",
-        "server/app/api/store/route.js"
+        "server/app/api/query/route.js"
       ],
-      "name": "app/api/store/route",
-      "page": "/api/store/route",
+      "name": "app/api/query/route",
+      "page": "/api/query/route",
       "matchers": [
         {
-          "regexp": "^/api/store$",
-          "originalSource": "/api/store"
+          "regexp": "^/api/query$",
+          "originalSource": "/api/query"
         }
       ],
       "wasm": [],
@@ -101,6 +101,26 @@
         {
           "regexp": "^/api/hello$",
           "originalSource": "/api/hello"
+        }
+      ],
+      "wasm": [],
+      "assets": []
+    },
+    "/api/store/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "prerender-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/store/route.js"
+      ],
+      "name": "app/api/store/route",
+      "page": "/api/store/route",
+      "matchers": [
+        {
+          "regexp": "^/api/store$",
+          "originalSource": "/api/store"
         }
       ],
       "wasm": [],
