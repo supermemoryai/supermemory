@@ -3,7 +3,8 @@
   "/api/[...nextauth]/route": "app/api/[...nextauth]/route.js",
   "/_not-found": "app/_not-found.js",
   "/page": "app/page.js",
-  "/api/query/route": "app/api/query/route.js",
+  "/api/me/route": "app/api/me/route.js",
   "/api/hello/route": "app/api/hello/route.js",
-  "/api/store/route": "app/api/store/route.js"
+  "/api/store/route": "app/api/store/route.js",
+  "/api/query/route": "app/api/query/route.js"
 }

@@ -6,9 +6,10 @@ import { Component } from "@/components/component";
 export const runtime = 'edge';
 
 export default function Home() {
+  const token = cookies().get('next-auth.session-token')?.value ?? cookies().get("__Secure-authjs.session-token")?.value ?? cookies().get("authjs.session-token")?.value
   return (
     <main>
-      <MessagePoster jwt={cookies().get('next-auth.session-token')?.value!} />
+      {token && <MessagePoster jwt={token} />}
       <Component/>
     </main>
   );

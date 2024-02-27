@@ -14,20 +14,23 @@ function App() {
         const jwt = response.jwt;
         const loginButton = document.getElementById('login');
 
-        if (loginButton)
+        if (loginButton) {
+          console.log('JWT', jwt);
           if (jwt) {
-            fetch('http://localhost:3000/api/store', {
+            console.log('DOING STUFF AND JWT');
+            fetch('http://localhost:3000/api/me', {
               headers: {
                 Authorization: `Bearer ${jwt}`,
               },
             })
               .then((res) => res.json())
               .then((data) => {
-                const user = userObj.safeParse(data);
-                if (user.success) {
-                  setUserData(user.data);
+                console.log(data);
+                const d = userObj.safeParse(data);
+                if (d.success) {
+                  setUserData(d.data);
                 } else {
-                  console.error(user.error);
+                  console.error(d.error);
                 }
               });
             loginButton.style.display = 'none';
@@ -39,14 +42,11 @@ function App() {
               });
             });
           }
+        }
       });
     };
 
     doStuff();
-    // Set event listerner for storage change
-    chrome.storage.onChanged.addListener(() => {
-      doStuff();
-    });
   }, [count]);
 
   return (
@@ -58,12 +58,12 @@ function App() {
             <img
               width={40}
               className="rounded-full"
-              src={userData.data.user.image!}
+              src={userData.data[0].user.image!}
               alt=""
             />
             <div>
-              <h3>{userData.data.user.name}</h3>
-              <p>{userData.data.user.email}</p>
+              <h3>{userData.data[0].user.name}</h3>
+              <p>{userData.data[0].user.email}</p>
             </div>
           </div>
         )}

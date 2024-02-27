@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev-arch": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "pages:build": "pnpm next-on-pages",
-    "preview": "pnpm pages:build && wrangler pages dev .vercel/output/static --port=3000",
+    "dev": "pnpm pages:build && wrangler pages dev .vercel/output/static --port=3000",
     "deploy": "pnpm pages:build && wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
