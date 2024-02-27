@@ -22,21 +22,23 @@
       "wasm": [],
       "assets": []
     },
-    "/api/hello/route": {
+    "/_not-found": {
       "files": [
+        "server/server-reference-manifest.js",
+        "server/app/_not-found_client-reference-manifest.js",
         "server/middleware-build-manifest.js",
         "server/middleware-react-loadable-manifest.js",
         "server/next-font-manifest.js",
         "prerender-manifest.js",
         "server/edge-runtime-webpack.js",
-        "server/app/api/hello/route.js"
+        "server/app/_not-found.js"
       ],
-      "name": "app/api/hello/route",
-      "page": "/api/hello/route",
+      "name": "app/_not-found",
+      "page": "/_not-found",
       "matchers": [
         {
-          "regexp": "^/api/hello$",
-          "originalSource": "/api/hello"
+          "regexp": "^/_not\\-found$",
+          "originalSource": "/_not-found"
         }
       ],
       "wasm": [],
@@ -64,28 +66,6 @@
       "wasm": [],
       "assets": []
     },
-    "/_not-found": {
-      "files": [
-        "server/server-reference-manifest.js",
-        "server/app/_not-found_client-reference-manifest.js",
-        "server/middleware-build-manifest.js",
-        "server/middleware-react-loadable-manifest.js",
-        "server/next-font-manifest.js",
-        "prerender-manifest.js",
-        "server/edge-runtime-webpack.js",
-        "server/app/_not-found.js"
-      ],
-      "name": "app/_not-found",
-      "page": "/_not-found",
-      "matchers": [
-        {
-          "regexp": "^/_not\\-found$",
-          "originalSource": "/_not-found"
-        }
-      ],
-      "wasm": [],
-      "assets": []
-    },
     "/api/store/route": {
       "files": [
         "server/middleware-build-manifest.js",
@@ -101,6 +81,26 @@
         {
           "regexp": "^/api/store$",
           "originalSource": "/api/store"
+        }
+      ],
+      "wasm": [],
+      "assets": []
+    },
+    "/api/hello/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "prerender-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/hello/route.js"
+      ],
+      "name": "app/api/hello/route",
+      "page": "/api/hello/route",
+      "matchers": [
+        {
+          "regexp": "^/api/hello$",
+          "originalSource": "/api/hello"
         }
       ],
       "wasm": [],

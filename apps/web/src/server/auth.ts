@@ -14,9 +14,9 @@ export const {
     session: ({ session, token }) => ({
       ...session,
       user: {
-        ...session.user,
+        // ...session.user,
         id: token.id as string,
-        token
+        token: token,
       },
     })
   },

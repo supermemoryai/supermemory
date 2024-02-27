@@ -7,7 +7,7 @@ export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
     try {
-        const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
+        const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("__Secure-authjs.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
 
         console.log(token ? token : 'token not found lol')
         console.log(process.env.DATABASE)

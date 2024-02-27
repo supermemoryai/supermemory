@@ -1,1 +1,1 @@
-{"/favicon.ico/route":"/favicon.ico","/api/[...nextauth]/route":"/api/[...nextauth]","/api/hello/route":"/api/hello","/page":"/","/_not-found":"/_not-found","/api/store/route":"/api/store"}
+{"/favicon.ico/route":"/favicon.ico","/api/[...nextauth]/route":"/api/[...nextauth]","/_not-found":"/_not-found","/page":"/","/api/store/route":"/api/store","/api/hello/route":"/api/hello"}
