@@ -45,6 +45,8 @@
     "dotenv-cli": "^7.3.0",
     "drizzle-orm": "^0.29.4",
     "eslint-plugin-next-on-pages": "^1.9.0",
+    "html-metadata": "^1.7.1",
+    "html-metadata-parser": "^2.0.4",
     "next-auth": "beta"
   }
 }

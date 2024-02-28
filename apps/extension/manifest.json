@@ -12,7 +12,8 @@
             ],
             "matches": [
                 "http://localhost:3000/*",
-                "https://anycontext.dhr.wtf/*"
+                "https://anycontext.dhr.wtf/*",
+                "<all_urls>"
             ]
         }
     ],

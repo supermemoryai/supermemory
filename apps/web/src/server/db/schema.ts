@@ -5,8 +5,9 @@ import {
   primaryKey,
   sqliteTableCreator,
   text,
+  integer,
+  unique
 } from "drizzle-orm/sqlite-core";
-import { type AdapterAccount } from "next-auth/adapters";
 
 /**
  * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
@@ -32,7 +33,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const accounts = createTable(
   "account",
   {
-    id: text("id", { length: 255 }).notNull().primaryKey(),
+    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
     userId: text("userId", { length: 255 }).notNull().references(() => users.id),
     type: text("type", { length: 255 }).notNull(),
     provider: text("provider", { length: 255 }).notNull(),
@@ -55,7 +56,7 @@ export const accounts = createTable(
 export const sessions = createTable(
   "session",
   {
-    id: text("id", { length: 255 }).notNull().primaryKey(),
+    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
     sessionToken: text("sessionToken", { length: 255 }).notNull(),
     userId: text("userId", { length: 255 }).notNull().references(() => users.id),
     expires: int("expires", { mode: "timestamp" }).notNull(),
@@ -74,5 +75,36 @@ export const verificationTokens = createTable(
   },
   (vt) => ({
     compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  })
+);
+
+export const userStoredContent = createTable(
+  "userStoredContent",
+  {
+    userId: text("userId").notNull().references(() => users.id),
+    contentId: integer("contentId").notNull().references(() => storedContent.id),
+  },
+  (usc) => ({
+    userContentIdx: index("userStoredContent_idx").on(usc.userId, usc.contentId),
+    uniqueUserContent: unique("unique_user_content").on(usc.userId, usc.contentId),
+  })
+);
+
+export const storedContent = createTable(
+  "storedContent",
+  {
+    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
+    content: text("content").notNull(),
+    title: text("title", { length: 255 }),
+    description: text("description", { length: 255 }),
+    url: text("url").notNull().unique(),
+    savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
+    baseUrl: text("baseUrl", { length: 255 }),
+    image: text("image", { length: 255 }),
+  },
+  (sc) => ({
+    urlIdx: index("storedContent_url_idx").on(sc.url),
+    savedAtIdx: index("storedContent_savedAt_idx").on(sc.savedAt),
+    titleInx: index("storedContent_title_idx").on(sc.title),
   })
 );

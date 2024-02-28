@@ -6,14 +6,15 @@ import type {
 
 import {
 	CloudflareVectorizeStore,
-	CloudflareWorkersAIEmbeddings,
 } from "@langchain/cloudflare";
 import { Ai } from '@cloudflare/ai';
+import { OpenAIEmbeddings } from "./OpenAIEmbedder";
 
 export interface Env {
 	VECTORIZE_INDEX: VectorizeIndex;
 	AI: Fetcher;
-	SECURITY_KEY: string
+	SECURITY_KEY: string;
+	OPENAI_API_KEY: string;
 }
 
 
@@ -28,17 +29,18 @@ export default {
 		}
 
 		const pathname = new URL(request.url).pathname;
-		const embeddings = new CloudflareWorkersAIEmbeddings({
-			binding: env.AI,
-			modelName: "@cf/baai/bge-small-en-v1.5",
+		const embeddings = new OpenAIEmbeddings({
+			apiKey: env.OPENAI_API_KEY,
+			modelName: 'text-embedding-3-small',
 		});
+
 		const store = new CloudflareVectorizeStore(embeddings, {
 			index: env.VECTORIZE_INDEX,
 		});
 		const ai = new Ai(env.AI)
 
-
 		if (pathname === "/add" && request.method === "POST") {
+
 			const body = await request.json() as {
 				pageContent: string,
 				title?: string,
@@ -47,14 +49,16 @@ export default {
 				user: string
 			};
 
+
 			if (!body.pageContent || !body.url) {
 				return new Response(JSON.stringify({ message: "Invalid Page Content" }), { status: 400 });
 			}
+			const newPageContent = `Title: ${body.title}\nDescription: ${body.description}\nURL: ${body.url}\nContent: ${body.pageContent}`
 
 
 			await store.addDocuments([
 				{
-					pageContent: body.pageContent,
+					pageContent: newPageContent,
 					metadata: {
 						title: body.title ?? "",
 						description: body.description ?? "",
@@ -88,7 +92,7 @@ export default {
 
 			const resp = await store.similaritySearch(query, topK, filter)
 
-			if (resp.length ===0) {
+			if (resp.length === 0) {
 				return new Response(JSON.stringify({ message: "No Results Found" }), { status: 400 });
 			}
 
@@ -96,7 +100,13 @@ export default {
 				prompt: `You are an agent that summarizes a page based on the query. Be direct and concise, don't say 'based on the context'.\n\n Context:\n${JSON.stringify(resp)} \nAnswer this question based on the context. Question: ${query}`,
 			})
 
-			return new Response(JSON.stringify(output), { status: 200 });
+			const cleanCitations = resp.map(
+				({ metadata }) => ({ url: metadata.url, title: metadata.title, description: metadata.description })
+			)
+
+			return new Response(JSON.stringify({
+				output, citations: cleanCitations
+			}), { status: 200 });
 		}
 	},
 };

@@ -10,16 +10,16 @@ export const {
 } = NextAuth({
   secret: env.NEXTAUTH_SECRET,
   trustHost: true,
-  callbacks: {
-    session: ({ session, token }) => ({
-      ...session,
-      user: {
-        // ...session.user,
-        id: token.id as string,
-        token: token,
-      },
-    })
-  },
+  // callbacks: {
+  //   session: ({ session, token }) => ({
+  //     ...session,
+  //     user: {
+  //       // ...session.user,
+  //       id: token.id as string,
+  //       token: token,
+  //     },
+  //   })
+  // },
   adapter: DrizzleAdapter(db),
   providers: [
     Google({

@@ -9,16 +9,19 @@ export const runtime = "edge";
 export async function GET(req: NextRequest) {
     const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("__Secure-authjs.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
 
-    const session = await db.select().from(sessions).where(eq(sessions.sessionToken, token!))
-        .leftJoin(users, eq(sessions.userId, users.id)).limit(1)
+    const sessionData = await db.select().from(sessions).where(eq(sessions.sessionToken, token!))
 
-    if (!session || session.length === 0) {
+    if (!sessionData || sessionData.length === 0) {
         return new Response(JSON.stringify({ message: "Invalid Key, session not found." }), { status: 404 });
     }
 
-    if (!session[0].user) {
-        return new Response(JSON.stringify({ message: "Invalid Key, session not found." }), { status: 404 });
+    const user = await db.select().from(users).where(eq(users.id, sessionData[0].userId)).limit(1)
+
+    if (!user || user.length === 0) {
+        return NextResponse.json({ message: "Invalid Key, session not found." }, { status: 404 });
     }
+
+    const session = {session: sessionData[0], user: user[0]}
 
     const query = new URL(req.url).searchParams.get("q");
 
@@ -26,8 +29,7 @@ export async function GET(req: NextRequest) {
         return new Response(JSON.stringify({ message: "Invalid query" }), { status: 400 });
     }
 
-    console.log(session[0].user)
-    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session[0].user.email ?? session[0].user.name}`, {
+    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session.user.email ?? session.user.name}`, {
         headers: {
             "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
         }

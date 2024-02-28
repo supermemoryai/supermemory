@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export const userObj = z.object({
   message: z.string(),
-  data: z.array(z.object({
+  data: z.object({
     session: z.object({
       sessionToken: z.string(),
       userId: z.string(),
@@ -15,5 +15,5 @@ export const userObj = z.object({
       emailVerified: z.string().nullable(),
       image: z.string().nullable().optional()
     })
-  }))
+  })
 })
