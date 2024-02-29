@@ -10,7 +10,6 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   else if (request.type === "urlChange") {
     const content = request.content;
     const url = request.url;
-    console.log(content);
 
     (async () => {
       chrome.storage.local.get(["jwt"], ({ jwt }) => {

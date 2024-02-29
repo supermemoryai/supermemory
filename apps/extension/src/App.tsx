@@ -13,9 +13,7 @@ function App() {
       const loginButton = document.getElementById('login');
 
       if (loginButton) {
-        console.log('JWT', jwt);
         if (jwt) {
-          console.log('DOING STUFF AND JWT');
           fetch('http://localhost:3000/api/me', {
             headers: {
               Authorization: `Bearer ${jwt}`,
@@ -23,7 +21,6 @@ function App() {
           })
             .then((res) => res.json())
             .then((data) => {
-              console.log(data);
               const d = userObj.safeParse(data);
               if (d.success) {
                 setUserData(d.data);

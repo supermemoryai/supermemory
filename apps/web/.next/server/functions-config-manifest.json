@@ -1,1 +1,1 @@
-{"version":1,"functions":{"/api/[...nextauth]":{},"/_not-found":{},"/api/query":{},"/api/store":{},"/api/hello":{},"/api/me":{},"/":{}}}
+{"version":1,"functions":{"/api/[...nextauth]":{},"/_not-found":{},"/api/query":{},"/api/hello":{},"/api/me":{},"/api/store":{},"/":{}}}

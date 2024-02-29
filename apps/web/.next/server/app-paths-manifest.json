@@ -1,10 +1,10 @@
 {
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/_not-found": "app/_not-found.js",
   "/api/[...nextauth]/route": "app/api/[...nextauth]/route.js",
+  "/_not-found": "app/_not-found.js",
   "/api/me/route": "app/api/me/route.js",
   "/api/hello/route": "app/api/hello/route.js",
-  "/api/query/route": "app/api/query/route.js",
   "/page": "app/page.js",
+  "/api/query/route": "app/api/query/route.js",
   "/api/store/route": "app/api/store/route.js"
 }

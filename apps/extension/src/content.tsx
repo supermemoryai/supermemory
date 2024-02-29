@@ -17,29 +17,21 @@ window.addEventListener('message', (event) => {
       return;
     }
 
-    chrome.storage.local.set({ jwt }, () => {
-      console.log('JWT saved to local storage', jwt);
-    });
+    chrome.storage.local.set({ jwt }, () => {});
   }
 });
-// Run when the URL changes, including hash changes
-window.onpopstate = sendUrlToAPI;
 
-// Also run when the page loads
-sendUrlToAPI();
+const appContainer = document.createElement('div');
+appContainer.id = 'anycontext-app-container';
 
-function sendUrlToAPI() {
-  // get the current URL
-  const url = window.location.href;
+// First in the body, above the content
+document.body.insertBefore(appContainer, document.body.firstChild);
 
-  const blacklist = ['localhost:3000', 'anycontext.dhr.wtf'];
-  // check if the URL is blacklisted
-  if (blacklist.some((blacklisted) => url.includes(blacklisted))) {
-    console.log('URL is blacklisted');
-    return;
-  } else {
-    // const content = Entire page content, but cleaned up for the LLM. No ads, no scripts, no styles, just the text. if article, just the importnat info abou tit.
-    const content = document.documentElement.innerText;
-    chrome.runtime.sendMessage({ type: 'urlChange', content, url });
-  }
-}
+appContainer.style.zIndex = '9999';
+
+import ReactDOM from 'react-dom/client';
+import SideBar from './SideBar';
+
+ReactDOM.createRoot(
+  document.getElementById('anycontext-app-container')!,
+).render(<SideBar />);

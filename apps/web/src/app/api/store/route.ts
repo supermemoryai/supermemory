@@ -10,8 +10,9 @@ export const runtime = "edge";
 export async function POST(req: NextRequest) {
     const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("__Secure-authjs.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
 
-    console.log(token ? token : 'token not found lol')
-    console.log(process.env.DATABASE)
+    if (!token) {
+        return new Response(JSON.stringify({ message: "Invalid Key, session not found." }), { status: 404 });
+    }
 
     const sessionData = await db.select().from(sessions).where(eq(sessions.sessionToken, token!))
 
@@ -64,8 +65,6 @@ export async function POST(req: NextRequest) {
         console.log(e);
     }
 
-    console.log({ ...data, user: session.user.email })
-
     const res = await Promise.race([
         fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
             method: "POST",
@@ -80,7 +79,6 @@ export async function POST(req: NextRequest) {
     ]) as Response
 
     const _ = await res.text();
-    console.log(_)
 
     if (res.status !== 200) {
         return NextResponse.json({ message: "Error", error: "Error in CF function" }, { status: 500 });
