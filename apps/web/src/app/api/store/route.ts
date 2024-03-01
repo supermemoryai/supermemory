@@ -80,6 +80,8 @@ export async function POST(req: NextRequest) {
 
     const _ = await res.text();
 
+    console.log(_)
+
     if (res.status !== 200) {
         return NextResponse.json({ message: "Error", error: "Error in CF function" }, { status: 500 });
     }

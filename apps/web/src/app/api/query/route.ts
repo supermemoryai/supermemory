@@ -24,22 +24,26 @@ export async function GET(req: NextRequest) {
     const session = {session: sessionData[0], user: user[0]}
 
     const query = new URL(req.url).searchParams.get("q");
+    const sourcesOnly = new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
 
     if (!query) {
         return new Response(JSON.stringify({ message: "Invalid query" }), { status: 400 });
     }
 
-    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session.user.email ?? session.user.name}`, {
+    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}`, {
         headers: {
             "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
         }
     })
 
-    const data = await resp.json()
-
-    if (resp.status !== 200) {
-        return new Response(JSON.stringify({ message: "Error in CF function", error: data }), { status: resp.status });
+    if (resp.status !== 200 || !resp.ok) {
+        const errorData = await resp.json();
+        return new Response(JSON.stringify({ message: "Error in CF function", error: errorData }), { status: resp.status });
     }
 
-    return new Response(JSON.stringify({ message: "OK", data: data }), { status: 200 });
+    // Stream the response back to the client
+    const { readable, writable } = new TransformStream();
+    resp && resp.body!.pipeTo(writable);
+
+    return new Response(readable, { status: 200 });
 }

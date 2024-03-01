@@ -1,11 +1,17 @@
 {
     "manifest_version": 3,
-    "name": "Extension",
+    "name": "SuperMemory",
     "version": "1.0.0",
     "action": {
         "default_popup": "index.html"
     },
-    "content_scripts"   : [
+    "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "content_scripts": [
         {
             "js": [
                 "src/content.tsx"
@@ -25,5 +31,5 @@
     ],
     "background": {
         "service_worker": "src/background.ts"
-      }
+    }
 }

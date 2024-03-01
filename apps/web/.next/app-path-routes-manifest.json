@@ -1,1 +1,1 @@
-{"/favicon.ico/route":"/favicon.ico","/api/[...nextauth]/route":"/api/[...nextauth]","/_not-found":"/_not-found","/api/me/route":"/api/me","/api/hello/route":"/api/hello","/page":"/","/api/query/route":"/api/query","/api/store/route":"/api/store"}
+{"/favicon.ico/route":"/favicon.ico","/api/[...nextauth]/route":"/api/[...nextauth]","/api/ask/route":"/api/ask","/_not-found":"/_not-found","/api/query/route":"/api/query","/api/store/route":"/api/store","/api/me/route":"/api/me","/page":"/"}

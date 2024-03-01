@@ -32,6 +32,13 @@ appContainer.style.zIndex = '9999';
 import ReactDOM from 'react-dom/client';
 import SideBar from './SideBar';
 
-ReactDOM.createRoot(
-  document.getElementById('anycontext-app-container')!,
-).render(<SideBar />);
+// get JWT from local storage
+const jwt = chrome.storage.local.get('jwt').then((data) => {
+  return data.jwt;
+}) as Promise<string>
+
+jwt.then((jwt) => {
+  ReactDOM.createRoot(
+    document.getElementById('anycontext-app-container')!,
+  ).render(<SideBar jwt={jwt} />);
+});

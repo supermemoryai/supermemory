@@ -9,6 +9,7 @@ import {
 } from "@langchain/cloudflare";
 import { Ai } from '@cloudflare/ai';
 import { OpenAIEmbeddings } from "./OpenAIEmbedder";
+import { AiTextGenerationOutput } from "@cloudflare/ai/dist/tasks/text-generation";
 
 export interface Env {
 	VECTORIZE_INDEX: VectorizeIndex;
@@ -65,8 +66,10 @@ export default {
 						url: body.url,
 						user: body.user,
 					},
-				}
-			])
+				},
+			], {
+				ids: [`${body.url}`]
+			})
 
 			return new Response(JSON.stringify({ message: "Document Added" }), { status: 200 });
 		}
@@ -76,6 +79,9 @@ export default {
 			const query = queryparams.get("q");
 			const topK = parseInt(queryparams.get("topK") ?? "5");
 			const user = queryparams.get("user")
+
+			const sourcesOnly = (queryparams.get("sourcesOnly") ?? "false")
+
 			if (!user) {
 				return new Response(JSON.stringify({ message: "Invalid User" }), { status: 400 });
 			}
@@ -90,23 +96,67 @@ export default {
 				}
 			}
 
-			const resp = await store.similaritySearch(query, topK, filter)
+			const queryAsVector = await embeddings.embedQuery(query);
 
-			if (resp.length === 0) {
+			const resp = await env.VECTORIZE_INDEX.query(queryAsVector, {
+				topK,
+				filter
+			});
+
+			if (resp.count === 0) {
 				return new Response(JSON.stringify({ message: "No Results Found" }), { status: 400 });
 			}
 
-			const output = await ai.run('@cf/meta/llama-2-7b-chat-int8', {
-				prompt: `You are an agent that summarizes a page based on the query. Be direct and concise, don't say 'based on the context'.\n\n Context:\n${JSON.stringify(resp)} \nAnswer this question based on the context. Question: ${query}`,
-			})
+			const highScoreIds = resp.matches.filter(({ score }) => score > 0.3).map(({ id }) => id)
 
-			const cleanCitations = resp.map(
-				({ metadata }) => ({ url: metadata.url, title: metadata.title, description: metadata.description })
-			)
+			if (sourcesOnly === "true") {
+				return new Response(JSON.stringify({ ids: highScoreIds }), { status: 200 });
+			}
 
-			return new Response(JSON.stringify({
-				output, citations: cleanCitations
-			}), { status: 200 });
+			const vec = await env.VECTORIZE_INDEX.getByIds(highScoreIds)
+
+			if (vec.length === 0 || !vec[0].metadata) {
+				return new Response(JSON.stringify({ message: "No Results Found" }), { status: 400 });
+			}
+
+			const metadatas = vec.map(({ metadata }) => metadata)
+
+			console.log(metadatas)
+
+			// TODO: TAKE ALL THE HIGH SCORED IDS INTO CONSIDERATION
+			const output: AiTextGenerationOutput = await ai.run('@hf/thebloke/mistral-7b-instruct-v0.1-awq', {
+				prompt: `You are an agent that summarizes a page based on the query. Be direct and concise, don't say 'based on the context'.\n\n Context:\n${vec[0].metadata!.text} \nAnswer this question based on the context. Question: ${query}\nAnswer:`,
+				stream: true
+			}) as ReadableStream
+
+
+			return new Response(output, {
+				headers: {
+					"content-type": "text/event-stream",
+				},
+			});
+		}
+
+		else if (pathname === "/ask" && request.method === "POST") {
+			const body = await request.json() as {
+				query: string
+			};
+
+			if (!body.query) {
+				return new Response(JSON.stringify({ message: "Invalid Page Content" }), { status: 400 });
+			}
+
+			const output: AiTextGenerationOutput = await ai.run('@hf/thebloke/mistral-7b-instruct-v0.1-awq', {
+				prompt: `You are an agent that answers a question based on the query. Be direct and concise, don't say 'based on the context'.\n\n Context:\n${body.query} \nAnswer this question based on the context. Question: ${body.query}\nAnswer:`,
+				stream: true
+			}) as ReadableStream
+
+
+			return new Response(output, {
+				headers: {
+					"content-type": "text/event-stream",
+				},
+			});
 		}
 	},
 };
