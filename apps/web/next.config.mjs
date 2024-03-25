@@ -1,3 +1,4 @@
+import MillionLint from '@million/lint';
 import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
 
 // Here we use the @cloudflare/next-on-pages next-dev module to allow us to use bindings during local development
@@ -9,5 +10,6 @@ if (process.env.NODE_ENV === 'development') {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {};
-
-export default nextConfig;
+export default MillionLint.next({
+  rsc: true
+})(nextConfig);
