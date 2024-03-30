@@ -2,46 +2,6 @@
   "sortedMiddleware": [],
   "middleware": {},
   "functions": {
-    "/not-found": {
-      "files": [
-        "server/server-reference-manifest.js",
-        "server/app/not-found_client-reference-manifest.js",
-        "server/middleware-build-manifest.js",
-        "server/middleware-react-loadable-manifest.js",
-        "server/next-font-manifest.js",
-        "server/edge-runtime-webpack.js",
-        "server/app/not-found.js"
-      ],
-      "name": "app/not-found",
-      "page": "/not-found",
-      "matchers": [
-        {
-          "regexp": "^/not\\-found$",
-          "originalSource": "/not-found"
-        }
-      ],
-      "wasm": [],
-      "assets": []
-    },
-    "/api/[...nextauth]/route": {
-      "files": [
-        "server/middleware-build-manifest.js",
-        "server/middleware-react-loadable-manifest.js",
-        "server/next-font-manifest.js",
-        "server/edge-runtime-webpack.js",
-        "server/app/api/[...nextauth]/route.js"
-      ],
-      "name": "app/api/[...nextauth]/route",
-      "page": "/api/[...nextauth]/route",
-      "matchers": [
-        {
-          "regexp": "^/api/(?<nextauth>.+?)$",
-          "originalSource": "/api/[...nextauth]"
-        }
-      ],
-      "wasm": [],
-      "assets": []
-    },
     "/page": {
       "files": [
         "server/server-reference-manifest.js",
