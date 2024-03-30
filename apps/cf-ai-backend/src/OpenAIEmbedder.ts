@@ -1,4 +1,4 @@
-import { AiTextEmbeddings } from "@cloudflare/ai/dist/tasks/text-embeddings";
+import { AiTextGenerationOutput } from "@cloudflare/ai/dist/ai/tasks/text-generation";
 
 interface OpenAIEmbeddingsParams {
 	apiKey: string;
