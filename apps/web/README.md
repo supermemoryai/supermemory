@@ -52,7 +52,17 @@ In order to enable the example:
   ```
   # KV Example:
   ```
+- If you're using TypeScript run the `build-cf-types` script to update the `env.d.ts` file:
+  ```bash
+  npm run build-cf-types
+  # or
+  yarn build-cf-types
+  # or
+  pnpm build-cf-types
+  # or
+  bun build-cf-types
+  ```
 
 After doing this you can run the `dev` or `preview` script and visit the `/api/hello` route to see the example in action.
 
-Finally, if you also want to see the example work in the deployed application make sure to add a `MY_KV` binding to your Pages application in its [dashboard kv bindings settings section](https://dash.cloudflare.com/?to=/:account/pages/view/:pages-project/settings/functions#kv_namespace_bindings_section). After having configured it make sure to re-deploy your application.
+Finally, if you also want to see the example work in the deployed application make sure to add a `MY_KV_NAMESPACE` binding to your Pages application in its [dashboard kv bindings settings section](https://dash.cloudflare.com/?to=/:account/pages/view/:pages-project/settings/functions#kv_namespace_bindings_section). After having configured it make sure to re-deploy your application.
