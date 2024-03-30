@@ -9,7 +9,7 @@ import {
 } from "@langchain/cloudflare";
 import { Ai } from '@cloudflare/ai';
 import { OpenAIEmbeddings } from "./OpenAIEmbedder";
-import { AiTextGenerationOutput } from "@cloudflare/ai/dist/tasks/text-generation";
+import { AiTextGenerationOutput } from "@cloudflare/ai/dist/ai/tasks/text-generation";
 
 export interface Env {
 	VECTORIZE_INDEX: VectorizeIndex;
@@ -158,5 +158,8 @@ export default {
 				},
 			});
 		}
+
+		return new Response(JSON.stringify({ message: "Invalid Request" }), { status: 400 });
+
 	},
 };
