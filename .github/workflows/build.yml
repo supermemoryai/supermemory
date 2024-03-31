@@ -15,6 +15,14 @@ jobs:
   build-app:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+            
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
       - name: Deploy to Cloudflare Workers with Wrangler
         uses: cloudflare/wrangler-action@v3.4.1
         with:
