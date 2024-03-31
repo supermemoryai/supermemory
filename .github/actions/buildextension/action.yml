@@ -26,4 +26,4 @@ runs:
       uses: actions/upload-artifact@v3
       with:
         name: extension-${{ github.sha }}
-        path: apps/extension/extension-${{ github.sha }}.zip
+        path: extension-${{ github.sha }}.zip
