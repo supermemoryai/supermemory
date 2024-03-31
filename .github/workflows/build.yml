@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-            
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
@@ -28,3 +28,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           packageManager: bun
+          buildCommand: bun run build
+          buildDirectory: apps/web/.vercel/output/static

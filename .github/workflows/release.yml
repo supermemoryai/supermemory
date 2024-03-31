@@ -23,8 +23,8 @@ jobs:
         uses: ExtensionNinja/extension-publish@main
         with:
           action: upload
-          extensionID: INSERT_YOUR_EXTENSION_ID
+          extensionID: afpgkkipfdpeaflnpoaffkcankadgjfc
           clientID: ${{ secrets.GOOGLE_CLIENT_ID }}
           clientSecret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           clientRefreshToken: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          extensionFile: apps/extension/extension-${{ github.event.pull_request.head.sha }}.zip
+          extensionFile: apps/extension/extension-${{ github.sha }}.zip

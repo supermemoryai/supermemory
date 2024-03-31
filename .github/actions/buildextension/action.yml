@@ -19,11 +19,11 @@ runs:
 
     - name: Pack extension
       working-directory: apps/extension/dist
-      run: zip -r ../../extension-${{ github.event.pull_request.head.sha }}.zip *
+      run: zip -r ../../extension-${{ github.sha }}.zip *
       shell: bash
 
     - name: Upload extension archive
       uses: actions/upload-artifact@v3
       with:
         name: extension-${{ github.sha }}
-        path: apps/extension/extension-${{ github.event.pull_request.head.sha }}.zip
+        path: apps/extension/extension-${{ github.sha }}.zip
