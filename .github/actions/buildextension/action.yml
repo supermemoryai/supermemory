@@ -1,0 +1,30 @@
+name: 'Build Chrome extension'
+description: 'Builds the chrome extension into a ZIP'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install packages
+      run: npm ci
+      working-directory: apps/extension
+      shell: bash
+
+    - name: Build extension
+      run: npm run build
+      working-directory: apps/extension
+      shell: bash
+
+    - name: Pack extension
+      working-directory: apps/extension/dist
+      run: zip -r ../../extension-${{ github.event.pull_request.head.sha }}.zip *
+      shell: bash
+
+    - name: Upload extension archive
+      uses: actions/upload-artifact@v3
+      with:
+        name: extension-${{ github.sha }}
+        path: apps/extension/extension-${{ github.event.pull_request.head.sha }}.zip
