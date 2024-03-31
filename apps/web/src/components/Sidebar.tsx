@@ -134,7 +134,7 @@ export const ListItem: React.FC<{ item: StoredContent }> = ({ item }) => {
             <Edit3 className="mr-2 h-4 w-4  " strokeWidth={1.5} />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400">
+          <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
             <Trash2 className="mr-2 h-4 w-4 " strokeWidth={1.5} />
             Delete
           </DropdownMenuItem>
