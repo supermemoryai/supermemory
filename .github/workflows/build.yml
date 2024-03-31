@@ -28,5 +28,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           packageManager: bun
-          buildCommand: bun run build
-          buildDirectory: apps/web/.vercel/output/static
+          workingDirectory: apps/web
+          command: bun run build
