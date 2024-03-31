@@ -27,4 +27,4 @@ jobs:
           clientID: ${{ secrets.GOOGLE_CLIENT_ID }}
           clientSecret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           clientRefreshToken: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          extensionFile: apps/extension/extension-${{ github.sha }}.zip
+          extensionFile: apps/extension/dist/extension-${{ github.sha }}.zip
