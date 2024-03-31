@@ -28,7 +28,7 @@ jobs:
         shell: bash
 
       - name: Build app
-        run: bun run build
+        run: bun run pages:build
         working-directory: apps/web
         shell: bash
 
