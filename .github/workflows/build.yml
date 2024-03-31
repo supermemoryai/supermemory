@@ -23,10 +23,21 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Deploy to Cloudflare Workers with Wrangler
-        uses: cloudflare/wrangler-action@v3.4.1
+      - name: Install packages
+        run: bun i
+        shell: bash
+
+      - name: Build app
+        run: bun run build
+        working-directory: apps/web
+        shell: bash
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          packageManager: bun
-          workingDirectory: apps/web
-          command: bun run build
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: apps/web/.vercel/output/static
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
