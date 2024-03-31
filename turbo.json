@@ -15,7 +15,7 @@
       ]
     },
     "db:push": {},
-    "db:studio" :{},
+    "db:studio": {},
     "test": {
       "dependsOn": [
         "build"

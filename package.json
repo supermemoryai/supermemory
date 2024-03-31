@@ -10,7 +10,7 @@
   "packageManager": "bun@1.0.28",
   "scripts": {
     "build": "dotenv -- turbo run build",
-    "dev": "dotenv -- turbo run dev",
+    "dev": "dotenv -- turbo run dev --filter=!cf-ai-backend",
     "lint": "dotenv -- turbo run lint",
     "start": "dotenv -- turbo run start"
   },
@@ -26,6 +26,7 @@
     "drizzle-kit": "beta",
     "eslint": "^8.54.0",
     "eslint-config-next": "^14.0.4",
+    "if-env": "^1.0.4",
     "postcss": "^8.4.35",
     "prettier": "^3.1.0",
     "prettier-plugin-tailwindcss": "^0.5.7",
