@@ -1,18 +1,27 @@
-name: Build
+name: Build and deploy changes
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/extension/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/extension/**'
 
 jobs:
   build-extension:
+    if: contains(github.event.head_commit.modified, 'apps/extension/') || contains(github.event.head_commit.added, 'apps/extension/') || contains(github.event.head_commit.removed, 'apps/extension/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/buildextension
+
   build-app:
+    if: contains(github.event.head_commit.modified, 'apps/web/') || contains(github.event.head_commit.added, 'apps/web/') || contains(github.event.head_commit.removed, 'apps/web/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
