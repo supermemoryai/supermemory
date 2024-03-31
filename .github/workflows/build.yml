@@ -50,9 +50,27 @@ jobs:
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
           directory: apps/web/.vercel/output/static
           branch: main
+
+  deploy-cf-worker:
+    if: contains(github.event.head_commit.modified, 'apps/cf-ai-backend/') || contains(github.event.head_commit.added, 'apps/cf-ai-backend/') || contains(github.event.head_commit.removed, 'apps/cf-ai-backend/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@1.2.0
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          script: wrangler publish
+          working-directory: apps/cf-ai-backend
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SECURITY_KEY: ${{ secrets.BACKEND_SECURITY_KEY }}
