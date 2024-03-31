@@ -9,7 +9,7 @@ runs:
         node-version: 18
 
     - name: Install packages
-      run: npm i
+      run: npm i --force
       working-directory: apps/extension
       shell: bash
 
