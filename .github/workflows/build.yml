@@ -12,3 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/buildextension
+  build-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Cloudflare Workers with Wrangler
+        uses: cloudflare/wrangler-action@v3.4.1
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          packageManger: bun
