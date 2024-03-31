@@ -3,17 +3,17 @@ description: 'Builds the chrome extension into a ZIP'
 runs:
   using: 'composite'
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
       with:
-        node-version: 18
+        bun-version: latest
 
     - name: Install packages
-      run: npm i --force
+      run: bun i
       shell: bash
 
     - name: Build extension
-      run: npm run build
+      run: bun run build
       working-directory: apps/extension
       shell: bash
 
