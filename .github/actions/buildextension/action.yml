@@ -10,7 +10,6 @@ runs:
 
     - name: Install packages
       run: npm i --force
-      working-directory: apps/extension
       shell: bash
 
     - name: Build extension
