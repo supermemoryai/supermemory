@@ -1,5 +1,3 @@
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { CardContent, Card } from '@/components/ui/card';
 import { db } from '@/server/db';
 import {
@@ -11,9 +9,9 @@ import {
 import { eq, inArray } from 'drizzle-orm';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import QueryAI from '@/components/QueryAI';
+import MessagePoster from './MessagePoster';
 
 export const runtime = 'edge';
 
@@ -90,6 +88,8 @@ export default async function Home() {
       </div>
 
       <QueryAI />
+
+      <MessagePoster jwt={token} />
 
       {/* TODO: LABEL THE WEBSITES USING A CLASSIFICATION MODEL */}
       {/* <nav className="flex space-x-2 my-4">
