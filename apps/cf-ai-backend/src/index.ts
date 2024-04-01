@@ -38,11 +38,11 @@ export default {
 		const store = new CloudflareVectorizeStore(embeddings, {
 			index: env.VECTORIZE_INDEX,
 		});
-		// const ai = new Ai(env.AI)
 
 		const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
 		const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
+		// TODO: Add /chat endpoint to chat with the AI in a conversational manner
 		if (pathname === "/add" && request.method === "POST") {
 
 			const body = await request.json() as {
