@@ -31,7 +31,7 @@ jobs:
           echo "cf_ai_backend_changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q 'apps/cf-ai-backend/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
   build-extension:
-    needs: check-modified-paths
+    needs: prepare
     if: needs.prepare.outputs.extension_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -39,6 +39,7 @@ jobs:
       - uses: ./.github/actions/buildextension
 
   build-app:
+    needs: prepare
     if: needs.prepare.outputs.web_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -77,6 +78,7 @@ jobs:
           branch: main
 
   deploy-cf-worker:
+    needs: prepare
     if: needs.prepare.outputs.cf_ai_backend_changed == 'true'
     runs-on: ubuntu-latest
     steps:
