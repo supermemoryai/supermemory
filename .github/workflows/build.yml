@@ -58,17 +58,17 @@ jobs:
           directory: apps/web/.vercel/output/static
           branch: main
 
-  deploy-cf-worker:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+  # deploy-cf-worker:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v3
 
-      - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@1.2.0
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          workingDirectory: apps/cf-ai-backend
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          SECURITY_KEY: ${{ secrets.BACKEND_SECURITY_KEY }}
+  #     - name: Deploy to Cloudflare Workers
+  #       uses: cloudflare/wrangler-action@1.2.0
+  #       with:
+  #         apiToken: ${{ secrets.CF_API_TOKEN }}
+  #         workingDirectory: apps/cf-ai-backend
+  #       env:
+  #         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  #         SECURITY_KEY: ${{ secrets.BACKEND_SECURITY_KEY }}
