@@ -68,8 +68,7 @@ jobs:
         uses: cloudflare/wrangler-action@1.2.0
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          script: wrangler publish
-          working-directory: apps/cf-ai-backend
+          workingDirectory: apps/cf-ai-backend
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SECURITY_KEY: ${{ secrets.BACKEND_SECURITY_KEY }}
