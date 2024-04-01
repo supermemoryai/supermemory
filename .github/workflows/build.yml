@@ -6,15 +6,41 @@ on:
     paths:
       - 'apps/web/**'
       - 'apps/extension/**'
+      - 'apps/cf-ai-backend/**'
   pull_request:
     branches: [main]
     paths:
       - 'apps/web/**'
       - 'apps/extension/**'
+      - 'apps/cf-ai-backend/**'
 
 jobs:
+  check-modified-paths:
+    runs-on: ubuntu-latest
+    outputs:
+      web_changed: ${{ steps.set-outputs.outputs.web_changed }}
+      extension_changed: ${{ steps.set-outputs.outputs.extension_changed }}
+      cf_ai_backend_changed: ${{ steps.set-outputs.outputs.cf_ai_backend_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Check modified paths
+        id: set-outputs
+        run: |
+          echo "Checking modified paths..."
+          # Custom script to check if specific paths were modified
+          # You might need to adjust the script based on your requirements
+          WEB_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'apps/web/' && echo 'true' || echo 'false')
+          EXTENSION_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'apps/extension/' && echo 'true' || echo 'false')
+          CF_AI_BACKEND_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'apps/cf-ai-backend/' && echo 'true' || echo 'false')
+          echo "::set-output name=web_changed::$WEB_CHANGED"
+          echo "::set-output name=extension_changed::$EXTENSION_CHANGED"
+          echo "::set-output name=cf_ai_backend_changed::$CF_AI_BACKEND_CHANGED"
+
   build-extension:
-    if: contains(github.event.head_commit.modified, 'apps/extension/') || contains(github.event.head_commit.added, 'apps/extension/') || contains(github.event.head_commit.removed, 'apps/extension/')
+    needs: check-modified-paths
+    if: needs.check-modified-paths.outputs.extension_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
