@@ -1,10 +1,18 @@
-name: Build
+name: Build and Deploy Changes
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/extension/**'
+      - 'apps/cf-ai-backend/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/extension/**'
+      - 'apps/cf-ai-backend/**'
 
 jobs:
   build-extension:
@@ -12,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/buildextension
+
   build-app:
     runs-on: ubuntu-latest
     steps:
@@ -41,9 +50,25 @@ jobs:
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
           directory: apps/web/.vercel/output/static
           branch: main
+
+  # deploy-cf-worker:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repo
+  #       uses: actions/checkout@v3
+
+  #     - name: Deploy to Cloudflare Workers
+  #       uses: cloudflare/wrangler-action@1.2.0
+  #       with:
+  #         apiToken: ${{ secrets.CF_API_TOKEN }}
+  #         workingDirectory: apps/cf-ai-backend
+  #       env:
+  #         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  #         SECURITY_KEY: ${{ secrets.BACKEND_SECURITY_KEY }}

@@ -8,7 +8,7 @@ window.addEventListener('message', (event) => {
     if (
       !(
         window.location.hostname === 'localhost' ||
-        window.location.hostname === 'anycontext.dhr.wtf'
+        window.location.hostname.endsWith('dhr.wtf')
       )
     ) {
       console.log(
