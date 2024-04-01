@@ -31,7 +31,7 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
-export const ListItem: React.FC<{ item: StoredContent }> = ({ item }) => {
+export const PageItem: React.FC<{ item: StoredContent }> = ({ item }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
