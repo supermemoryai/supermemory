@@ -15,52 +15,13 @@ on:
       - 'apps/cf-ai-backend/**'
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      web_changed: ${{ steps.detect_changes.outputs.web_changed }}
-      extension_changed: ${{ steps.detect_changes.outputs.extension_changed }}
-      cf_ai_backend_changed: ${{ steps.detect_changes.outputs.cf_ai_backend_changed }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Fetching all history for all tags and branches
-        run: git fetch --no-tags --prune --depth=1 origin +refs/heads/*:refs/remotes/origin/*
-      - name: Detect Changes
-        id: detect_changes
-        run: |
-          WEB_CHANGED="false"
-          EXTENSION_CHANGED="false"
-          CF_AI_BACKEND_CHANGED="false"
-          if [ "${{ github.event_name }}" = "push" ]; then
-            DIFF_REF="${{ github.event.before }} ${{ github.sha }}"
-          else
-            DIFF_REF="${{ github.base_ref }}...${{ github.head_ref }}"
-          fi
-          if git diff --name-only $DIFF_REF | grep -q 'apps/web/'; then
-            WEB_CHANGED="true"
-          fi
-          if git diff --name-only $DIFF_REF | grep -q 'apps/extension/'; then
-            EXTENSION_CHANGED="true"
-          fi
-          if git diff --name-only $DIFF_REF | grep -q 'apps/cf-ai-backend/'; then
-            CF_AI_BACKEND_CHANGED="true"
-          fi
-          echo "web_changed=$WEB_CHANGED" >> $GITHUB_OUTPUT
-          echo "extension_changed=$EXTENSION_CHANGED" >> $GITHUB_OUTPUT
-          echo "cf_ai_backend_changed=$CF_AI_BACKEND_CHANGED" >> $GITHUB_OUTPUT
-          echo "Differences detected: WEB=$WEB_CHANGED, EXTENSION=$EXTENSION_CHANGED, CF_AI_BACKEND=$CF_AI_BACKEND_CHANGED"
-          
   build-extension:
-    needs: prepare
-    if: needs.prepare.outputs.extension_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/buildextension
 
   build-app:
-    needs: prepare
-    if: needs.prepare.outputs.web_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -98,8 +59,6 @@ jobs:
           branch: main
 
   deploy-cf-worker:
-    needs: prepare
-    if: needs.prepare.outputs.cf_ai_backend_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
