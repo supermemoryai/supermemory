@@ -136,7 +136,7 @@ export default {
 							const encodedChunk = converter.encode("data: " + JSON.stringify({ "response": chunkText }) + "\n\n");
 							controller.enqueue(encodedChunk);
 						}
-						const doneChunk = converter.encode("data: [DONE]");
+						const doneChunk = converter.encode("[DONE]");
 						controller.enqueue(doneChunk);
 						controller.close();
 					}
@@ -167,7 +167,7 @@ export default {
 							const encodedChunk = converter.encode("data: " + JSON.stringify({ "response": chunkText }) + "\n\n");
 							controller.enqueue(encodedChunk);
 						}
-						const doneChunk = converter.encode("data: [DONE]");
+						const doneChunk = converter.encode("[DONE]");
 						controller.enqueue(doneChunk);
 						controller.close();
 					}
