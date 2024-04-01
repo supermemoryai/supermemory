@@ -1,3 +1,6 @@
+@import "@radix-ui/colors/gray";
+@import "@radix-ui/colors/gray-dark";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,13 +20,14 @@
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  @apply bg-rgray-1 text-rgray-11;
+  /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
       transparent,
       rgb(var(--background-end-rgb))
     )
-    rgb(var(--background-start-rgb));
+    rgb(var(--background-start-rgb)); */
 }
 
 @layer utilities {
