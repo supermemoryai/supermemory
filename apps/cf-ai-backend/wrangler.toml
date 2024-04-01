@@ -9,6 +9,7 @@ index_name = "any-vector"
 [ai]
 binding = "AI"
 
+
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables
