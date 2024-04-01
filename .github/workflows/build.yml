@@ -1,4 +1,4 @@
-name: Build and deploy changes
+name: Build and Deploy Changes
 
 on:
   push:
@@ -15,39 +15,31 @@ on:
       - 'apps/cf-ai-backend/**'
 
 jobs:
-  check-modified-paths:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      web_changed: ${{ steps.set-outputs.outputs.web_changed }}
-      extension_changed: ${{ steps.set-outputs.outputs.extension_changed }}
-      cf_ai_backend_changed: ${{ steps.set-outputs.outputs.cf_ai_backend_changed }}
+      web_changed: ${{ steps.set_outputs.outputs.web_changed }}
+      extension_changed: ${{ steps.set_outputs.outputs.extension_changed }}
+      cf_ai_backend_changed: ${{ steps.set_outputs.outputs.cf_ai_backend_changed }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      
-      - name: Check modified paths
-        id: set-outputs
+      - uses: actions/checkout@v3
+      - name: Set Outputs
+        id: set_outputs
         run: |
-          echo "Checking modified paths..."
-          # Custom script to check if specific paths were modified
-          # You might need to adjust the script based on your requirements
-          WEB_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'apps/web/' && echo 'true' || echo 'false')
-          EXTENSION_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'apps/extension/' && echo 'true' || echo 'false')
-          CF_AI_BACKEND_CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep 'apps/cf-ai-backend/' && echo 'true' || echo 'false')
-          echo "::set-output name=web_changed::$WEB_CHANGED"
-          echo "::set-output name=extension_changed::$EXTENSION_CHANGED"
-          echo "::set-output name=cf_ai_backend_changed::$CF_AI_BACKEND_CHANGED"
+          echo "web_changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q 'apps/web/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "extension_changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q 'apps/extension/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "cf_ai_backend_changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q 'apps/cf-ai-backend/' && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
   build-extension:
     needs: check-modified-paths
-    if: needs.check-modified-paths.outputs.extension_changed == 'true'
+    if: needs.prepare.outputs.extension_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/buildextension
 
   build-app:
-    if: contains(github.event.head_commit.modified, 'apps/web/') || contains(github.event.head_commit.added, 'apps/web/') || contains(github.event.head_commit.removed, 'apps/web/')
+    if: needs.prepare.outputs.web_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -85,7 +77,7 @@ jobs:
           branch: main
 
   deploy-cf-worker:
-    if: contains(github.event.head_commit.modified, 'apps/cf-ai-backend/') || contains(github.event.head_commit.added, 'apps/cf-ai-backend/') || contains(github.event.head_commit.removed, 'apps/cf-ai-backend/')
+    if: needs.prepare.outputs.cf_ai_backend_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
