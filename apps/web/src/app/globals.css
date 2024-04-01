@@ -20,7 +20,7 @@
 }
 
 body {
-  @apply bg-rgray-1 text-rgray-11;
+  @apply bg-rgray-2 text-rgray-11;
   /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -28,6 +28,10 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb)); */
+}
+
+[vaul-drawer-wrapper] {
+  @apply bg-rgray-1;
 }
 
 @layer utilities {

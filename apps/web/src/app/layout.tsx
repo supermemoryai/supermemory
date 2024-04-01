@@ -16,7 +16,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={roboto.className}>{children}</body>
+      <body className={roboto.className}>
+        <div vaul-drawer-wrapper="" className="min-w-screen overflow-x-hidden">
+          {children}
+        </div>
+      </body>
     </html>
   );
 }

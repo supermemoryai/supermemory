@@ -1,4 +1,4 @@
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/Sidebar/index";
 
 export default async function Home() {
   return (
