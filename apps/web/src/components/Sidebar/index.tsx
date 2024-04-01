@@ -1,6 +1,6 @@
 "use server";
 import { StoredContent } from "@/server/db/schema";
-import { AddNewPagePopover, ListItem } from "./ListItem";
+import { AddNewPagePopover, PageItem } from "./PagesItem";
 
 export default async function Sidebar() {
   const pages: StoredContent[] = [
@@ -38,7 +38,7 @@ export default async function Sidebar() {
           <AddNewPagePopover />
         </h1>
         {pages.map((item) => (
-          <ListItem key={item.id} item={item} />
+          <PageItem key={item.id} item={item} />
         ))}
       </div>
     </aside>
