@@ -31,7 +31,7 @@ body {
 }
 
 [vaul-drawer-wrapper] {
-  @apply bg-rgray-1;
+  @apply bg-rgray-2;
 }
 
 @layer utilities {

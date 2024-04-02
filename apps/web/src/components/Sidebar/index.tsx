@@ -2,6 +2,8 @@
 import { StoredContent } from "@/server/db/schema";
 import { AddNewPagePopover, PageItem } from "./PagesItem";
 import { CategoryItem } from "./CategoryItem";
+import { MemoryIcon } from "../../assets/Memories";
+import { Trash2, User2 } from "lucide-react";
 
 export default async function Sidebar() {
   const pages: StoredContent[] = [
@@ -28,30 +30,28 @@ export default async function Sidebar() {
   ];
 
   return (
-    <aside className="bg-rgray-3 flex h-screen w-[25%] flex-col items-start py-5 font-light">
-      <div className="flex items-center justify-center gap-1 px-5 text-xl font-normal">
-        <img src="/brain.png" alt="logo" className="h-10 w-10" />
-        SuperMemory
-      </div>
-      <div className="flex h-1/3 w-full flex-col items-start justify-center p-2">
-        <h1 className="mb-1 flex w-full items-center justify-center px-3 font-normal">
-          Pages
-          <AddNewPagePopover />
-        </h1>
-        {pages.map((item) => (
-          <PageItem key={item.id} item={item} />
-        ))}
-      </div>
-      <div className="flex h-1/2 w-full flex-col items-start  p-2">
-        <h1 className="mb-1 flex w-full items-center justify-center px-3 font-normal">
-          Categories
-          <AddNewPagePopover />
-        </h1>
-        {pages.map((item) => (
-          <CategoryItem key={item.id} item={item} />
-        ))}
-      </div>
-      <button>y</button>
+    <aside className="bg-rgray-2 border-rgray-6 flex h-screen w-max flex-col items-center border-r px-3 py-5 font-light">
+      <button
+        // data-state-on="true"
+        className="on:opacity-100 on:bg-rgray-3 dark:on:bg-rgray-1 focus-visible:ring-rgray-7 flex w-full flex-col items-center justify-center rounded-md px-4 py-3 opacity-50 ring-2 ring-transparent transition hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+      >
+        <MemoryIcon className="h-14 w-14" />
+        <span className="">Memories</span>
+      </button>
+      <button
+        // data-state-on="true"
+        className="on:opacity-100 on:bg-rgray-3 dark:on:bg-rgray-1 focus-visible:ring-rgray-7 mt-auto flex w-full flex-col items-center justify-center gap-1 rounded-md p-4 opacity-50 ring-2 ring-transparent transition hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+      >
+        <Trash2 strokeWidth={1.3} className="h-8 w-8" />
+        <span className="">Trash</span>
+      </button>
+      <button
+        // data-state-on="true"
+        className="on:opacity-100 on:bg-rgray-3 dark:on:bg-rgray-1 focus-visible:ring-rgray-7 flex w-full flex-col items-center justify-center gap-1 rounded-md p-3 px-4 py-4 opacity-50 ring-2 ring-transparent transition hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+      >
+        <User2 strokeWidth={1.3} className="h-8 w-8" />
+        <span className="">Profile</span>
+      </button>
     </aside>
   );
 }
