@@ -1,18 +1,21 @@
 "use client";
 import { StoredContent } from "@/server/db/schema";
 import { MemoryIcon } from "../../assets/Memories";
-import { Trash2, User2 } from "lucide-react";
+import { Search, Trash2, User2 } from "lucide-react";
 import React, { useState } from "react";
+import { InputWithIcon } from "../ui/input";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
   label: string;
+  content?: React.FC;
 };
 
 const menuItemsTop: Array<MenuItem> = [
   {
     icon: <MemoryIcon className="h-10 w-10" />,
     label: "Memories",
+    content: MemoriesBar,
   },
 ];
 
@@ -32,15 +35,19 @@ export default function Sidebar({
 }: {
   onSelectChange?: (selectedItem: string | null) => void;
 }) {
+  const menuItems = [...menuItemsTop, ...menuItemsBottom];
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   React.useEffect(() => {
     onSelectChange?.(selectedItem);
   }, [selectedItem]);
 
+  const Subbar =
+    menuItems.find((i) => i.label === selectedItem)?.content ?? (() => <></>);
+
   return (
     <>
-      <aside className="bg-rgray-2 border-rgray-6 flex h-screen max-h-screen w-max flex-col items-center border-r px-2 py-5 text-sm font-light">
+      <div className="bg-rgray-2 border-r-rgray-6 flex h-screen max-h-screen w-max flex-col items-center border-r px-2 py-5 text-sm font-light">
         {menuItemsTop.map((item, index) => (
           <MenuItem
             key={index}
@@ -58,8 +65,12 @@ export default function Sidebar({
             setSelectedItem={setSelectedItem}
           />
         ))}
-      </aside>
-      {selectedItem && <SubSidebar />}
+      </div>
+      {selectedItem && (
+        <SubSidebar>
+          <Subbar />
+        </SubSidebar>
+      )}
     </>
   );
 }
@@ -83,31 +94,23 @@ const MenuItem = ({
   </button>
 );
 
-export function SubSidebar() {
-  const pages: StoredContent[] = [
-    {
-      id: 1,
-      content: "",
-      title: "Visual Studio Code",
-      url: "https://code.visualstudio.com",
-      description: "",
-      image: "https://code.visualstudio.com/favicon.ico",
-      baseUrl: "https://code.visualstudio.com",
-      savedAt: new Date(),
-    },
-    {
-      id: 2,
-      content: "",
-      title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-      url: "https://github.com/yxshv/vscode",
-      description: "",
-      image: "https://github.com/favicon.ico",
-      baseUrl: "https://github.com",
-      savedAt: new Date(),
-    },
-  ];
-
+export function SubSidebar({ children }: { children?: React.ReactNode }) {
   return (
-    <aside className="bg-rgray-3 border-rgray-6 flex h-screen w-[50vw] flex-col items-center border-r px-3 py-5 font-light"></aside>
+    <div className="bg-rgray-3 border-r-rgray-6 flex h-screen w-[50vw] flex-col items-center border-r p-8 font-light">
+      {children}
+    </div>
+  );
+}
+
+export function MemoriesBar() {
+  return (
+    <div className="text-rgray-11 flex  w-full flex-col items-start text-left">
+      <h1 className="text-2xl">Your Memories</h1>
+      <InputWithIcon
+        placeholder="Search"
+        icon={<Search className="h-5 w-5" />}
+        className="mt-2"
+      />
+    </div>
   );
 }
