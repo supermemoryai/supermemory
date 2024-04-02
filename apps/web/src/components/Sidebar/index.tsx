@@ -47,7 +47,7 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="bg-rgray-2 border-r-rgray-6 flex h-screen max-h-screen w-max flex-col items-center border-r px-2 py-5 text-sm font-light">
+      <div className="bg-rgray-2 border-r-rgray-6 hidden h-screen max-h-screen w-max flex-col items-center border-r px-2 py-5 text-sm font-light md:flex">
         {menuItemsTop.map((item, index) => (
           <MenuItem
             key={index}
@@ -96,7 +96,7 @@ const MenuItem = ({
 
 export function SubSidebar({ children }: { children?: React.ReactNode }) {
   return (
-    <div className="bg-rgray-3 border-r-rgray-6 flex h-screen w-[50vw] flex-col items-center border-r font-light">
+    <div className="bg-rgray-3 border-r-rgray-6 hidden h-screen w-[50vw] flex-col items-center border-r font-light md:flex">
       {children}
     </div>
   );
