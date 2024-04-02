@@ -1,9 +1,9 @@
 "use client";
 import { StoredContent } from "@/server/db/schema";
 import { MemoryIcon } from "../../assets/Memories";
-import { Search, Trash2, User2 } from "lucide-react";
+import { Trash2, User2 } from "lucide-react";
 import React, { useState } from "react";
-import { InputWithIcon } from "../ui/input";
+import { MemoriesBar } from "./MemoriesBar";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -96,21 +96,8 @@ const MenuItem = ({
 
 export function SubSidebar({ children }: { children?: React.ReactNode }) {
   return (
-    <div className="bg-rgray-3 border-r-rgray-6 flex h-screen w-[50vw] flex-col items-center border-r p-8 font-light">
+    <div className="bg-rgray-3 border-r-rgray-6 flex h-screen w-[50vw] flex-col items-center border-r font-light">
       {children}
-    </div>
-  );
-}
-
-export function MemoriesBar() {
-  return (
-    <div className="text-rgray-11 flex  w-full flex-col items-start text-left">
-      <h1 className="text-2xl">Your Memories</h1>
-      <InputWithIcon
-        placeholder="Search"
-        icon={<Search className="h-5 w-5" />}
-        className="mt-2"
-      />
     </div>
   );
 }

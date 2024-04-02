@@ -18,6 +18,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           placeholder: "Ask your SuperMemory...",
           className: "text-lg p-2 text-rgray-11",
           value,
+          autoFocus: true,
           onChange: (e) => setValue(e.target.value),
         }}
       >

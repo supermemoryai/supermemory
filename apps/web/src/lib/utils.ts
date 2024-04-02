@@ -16,3 +16,11 @@ export function cleanUrl(url: string) {
       ? url.slice(7)
       : url;
 }
+
+export function generateId() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
+export function svgId(prefix: string, id: string) {
+  return `${prefix}-${id}`;
+}
