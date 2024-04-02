@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FilterCombobox } from "./Sidebar/FilterCombobox";
 import { Textarea2 } from "./ui/textarea";
 import { ArrowRight } from "lucide-react";
@@ -10,12 +10,26 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [value, setValue] = useState("");
   const { width } = useViewport();
 
+  const textArea = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    function onResize() {
+      if (!textArea.current || !window.visualViewport) return;
+
+      const visualViewportHeight = window.visualViewport.height;
+    }
+
+    window.visualViewport?.addEventListener("resize", onResize);
+    return () => window.visualViewport?.removeEventListener("resize", onResize);
+  }, []);
+
   return (
     <main
       data-sidebar-open={sidebarOpen}
-      className="flex h-screen max-h-screen w-full items-end justify-center px-5 py-40 md:items-center md:px-60 md:[&[data-sidebar-open='true']]:px-20"
+      className="flex h-screen max-h-screen w-full items-end justify-center px-5 pb-[20vh] pt-5 md:items-center md:px-60 md:[&[data-sidebar-open='true']]:px-20"
     >
       <Textarea2
+        ref={textArea}
         className="h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
         textAreaProps={{
           placeholder: "Ask your SuperMemory...",
