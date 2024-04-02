@@ -1,6 +1,7 @@
 "use server";
 import { StoredContent } from "@/server/db/schema";
 import { AddNewPagePopover, PageItem } from "./PagesItem";
+import { CategoryItem } from "./CategoryItem";
 
 export default async function Sidebar() {
   const pages: StoredContent[] = [
@@ -27,12 +28,12 @@ export default async function Sidebar() {
   ];
 
   return (
-    <aside className="bg-rgray-3 flex h-screen w-[25%] flex-col items-start justify-between py-5 pb-[50vh] font-light">
+    <aside className="bg-rgray-3 flex h-screen w-[25%] flex-col items-start py-5 font-light">
       <div className="flex items-center justify-center gap-1 px-5 text-xl font-normal">
         <img src="/brain.png" alt="logo" className="h-10 w-10" />
         SuperMemory
       </div>
-      <div className="flex w-full flex-col items-start justify-center p-2">
+      <div className="flex h-1/3 w-full flex-col items-start justify-center p-2">
         <h1 className="mb-1 flex w-full items-center justify-center px-3 font-normal">
           Pages
           <AddNewPagePopover />
@@ -41,6 +42,16 @@ export default async function Sidebar() {
           <PageItem key={item.id} item={item} />
         ))}
       </div>
+      <div className="flex h-1/2 w-full flex-col items-start  p-2">
+        <h1 className="mb-1 flex w-full items-center justify-center px-3 font-normal">
+          Categories
+          <AddNewPagePopover />
+        </h1>
+        {pages.map((item) => (
+          <CategoryItem key={item.id} item={item} />
+        ))}
+      </div>
+      <button>y</button>
     </aside>
   );
 }
