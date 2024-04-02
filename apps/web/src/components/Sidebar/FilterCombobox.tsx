@@ -35,7 +35,9 @@ const spaces = [
   },
 ];
 
-export function FilterCombobox() {
+export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+
+export function FilterCombobox({ className, ...props }: Props) {
   const [open, setOpen] = React.useState(false);
   const [values, setValues] = React.useState<string[]>([]);
 
@@ -44,7 +46,11 @@ export function FilterCombobox() {
       <PopoverTrigger asChild>
         <button
           data-state-on={open}
-          className="text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none"
+          className={cn(
+            "text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none",
+            className,
+          )}
+          {...props}
         >
           <SpaceIcon className="mr-1 h-5 w-5" />
           Filter
