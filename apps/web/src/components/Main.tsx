@@ -4,11 +4,14 @@ import { FilterCombobox } from "./Sidebar/FilterCombobox";
 import { Textarea2 } from "./ui/textarea";
 import { ArrowRight } from "lucide-react";
 
-export default function Main() {
+export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [value, setValue] = useState("");
 
   return (
-    <main className="flex h-screen w-full items-center justify-center px-60">
+    <main
+      data-sidebar-open={sidebarOpen}
+      className="flex h-screen w-full items-center justify-center px-60 [&[data-sidebar-open='true']]:px-20"
+    >
       <Textarea2
         className="h-[20vh]"
         textAreaProps={{

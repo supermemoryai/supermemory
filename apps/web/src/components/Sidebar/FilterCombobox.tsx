@@ -71,13 +71,13 @@ export function FilterCombobox() {
           <CommandInput placeholder="Filter spaces..." />
           <CommandList>
             <CommandEmpty>Nothing found</CommandEmpty>
+            {/* bug: doesn't work on clicking with mouse only keyboard, weird */}
             <CommandGroup>
               {spaces.map((space) => (
                 <CommandItem
                   key={space.value}
                   value={space.value}
                   onSelect={(val) => {
-                    console.log(val, "selected");
                     setValues((prev) =>
                       prev.includes(val)
                         ? prev.filter((v) => v !== val)
