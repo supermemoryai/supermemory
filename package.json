@@ -39,6 +39,7 @@
     "@cloudflare/ai": "^1.0.52",
     "@cloudflare/next-on-pages-next-dev": "^0.0.1",
     "@crxjs/vite-plugin": "^1.0.14",
+    "@google/generative-ai": "^0.3.1",
     "@heroicons/react": "^2.1.1",
     "@langchain/cloudflare": "^0.0.3",
     "@radix-ui/colors": "^3.0.0",
