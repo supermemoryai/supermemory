@@ -11,7 +11,8 @@
     "preview": "bun pages:build && wrangler pages dev .vercel/output/static",
     "deploy": "bun pages:build && wrangler pages deploy .vercel/output/static",
     "build-cf-types": "wrangler types --env-interface CloudflareEnv env.d.ts",
-    "prepare-local-db": "drizzle-kit generate:sqlite --out db/prepare.sql && wrangler d1 execute dev-d1-anycontext --local --file=db/prepare.sql"
+    "prepare-local-db": "drizzle-kit generate:sqlite --out db/prepare.sql && wrangler d1 execute dev-d1-anycontext --local --file=db/prepare.sql",
+    "schema-change": "drizzle-kit generate:sqlite --out db/schema-change.sql && wrangler d1 execute dev-d1-anycontext --local --file=db/schema-change.sql"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",

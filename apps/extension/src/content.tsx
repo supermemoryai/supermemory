@@ -8,7 +8,8 @@ window.addEventListener('message', (event) => {
     if (
       !(
         window.location.hostname === 'localhost' ||
-        window.location.hostname === 'anycontext.dhr.wtf'
+        window.location.hostname === 'anycontext.dhr.wtf' ||
+        window.location.hostname === 'supermemory.dhr.wtf'
       )
     ) {
       console.log(
@@ -35,7 +36,7 @@ import SideBar from './SideBar';
 // get JWT from local storage
 const jwt = chrome.storage.local.get('jwt').then((data) => {
   return data.jwt;
-}) as Promise<string>
+}) as Promise<string>;
 
 jwt.then((jwt) => {
   ReactDOM.createRoot(

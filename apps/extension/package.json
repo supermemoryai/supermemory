@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package": "zip -r extension.zip dist/"
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.0.7",

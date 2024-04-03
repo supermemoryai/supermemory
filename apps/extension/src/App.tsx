@@ -14,7 +14,7 @@ function App() {
 
       if (loginButton) {
         if (jwt) {
-          fetch('https://anycontext.dhr.wtf/api/me', {
+          fetch('https://supermemory.dhr.wtf/api/me', {
             headers: {
               Authorization: `Bearer ${jwt}`,
             },
@@ -43,7 +43,7 @@ function App() {
       <button
         onClick={() =>
           chrome.tabs.create({
-            url: 'https://anycontext.dhr.wtf/api/auth/signin',
+            url: 'https://supermemory.dhr.wtf/api/auth/signin',
           })
         }
         id="login"

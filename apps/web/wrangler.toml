@@ -10,11 +10,3 @@ index_name = "anycontext-idx"
 binding = "DATABASE"
 database_name = "dev-d1-anycontext"
 database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
-
-
-[vars]
-GOOGLE_CLIENT_ID="872261398704-lntqrjrprbq3bih3cvv9o60huh0pf3l2.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="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"
-NEXTAUTH_SECRET="sec"
-NEXTAUTH_URL="https://opulent-funicular-94rx4v9w775f96q-3000.app.github.dev/"
-BACKEND_SECURITY_KEY="XP1FNh+rTYghq2TmrFbMLCCBy+eBAvi8iuoMuV9zDUc="

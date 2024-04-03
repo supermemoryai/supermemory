@@ -50,6 +50,7 @@ const pages: StoredContent[] = [
     image: "https://code.visualstudio.com/favicon.ico",
     baseUrl: "https://code.visualstudio.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 2,
@@ -60,6 +61,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 3,
@@ -70,6 +72,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 4,
@@ -80,6 +83,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 5,
@@ -90,6 +94,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 6,
@@ -100,6 +105,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 7,
@@ -110,6 +116,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 8,
@@ -120,6 +127,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
   {
     id: 9,
@@ -130,6 +138,7 @@ const pages: StoredContent[] = [
     image: "https://github.com/favicon.ico",
     baseUrl: "https://github.com",
     savedAt: new Date(),
+    space: ""
   },
 ];
 export const CategoryItem: React.FC<{ item: StoredContent }> = ({ item }) => {

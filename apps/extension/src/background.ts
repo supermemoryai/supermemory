@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.error("No JWT found");
           return;
         }
-        fetch("https://anycontext.dhr.wtf/api/store", {
+        fetch("https://supermemory.dhr.wtf/api/store", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${jwt}`,
@@ -33,7 +33,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const jwt = request.jwt;
 
     (async () => {
-      await fetch("https://anycontext.dhr.wtf/api/ask", {
+      await fetch("https://supermemory.dhr.wtf/api/ask", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${jwt}`,

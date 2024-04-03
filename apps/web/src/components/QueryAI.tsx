@@ -82,6 +82,11 @@ function QueryAI() {
 
     const response = await fetch(`/api/query?q=${input}`);
 
+    if (response.status !== 200) {
+      setIsAiLoading(false);
+      return;
+    }
+
     if (response.body) {
       let reader = response.body.getReader();
       let decoder = new TextDecoder('utf-8');
