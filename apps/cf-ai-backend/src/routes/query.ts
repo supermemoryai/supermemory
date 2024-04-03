@@ -21,15 +21,11 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	}
 
 	const filter: VectorizeVectorMetadataFilter = {
-		user: {
-			$eq: user
-		}
+		user
 	}
 
 	if (space) {
-		filter.space = {
-			$eq: space
-		}
+		filter.space
 	}
 
 	const queryAsVector = await embeddings.embedQuery(query);
