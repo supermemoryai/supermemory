@@ -32,14 +32,14 @@ const Textarea2 = React.forwardRef<HTMLTextAreaElement, Textarea2Props>(
     return (
       <div
         className={cn(
-          "border-rgray-6 text-rgray-11 focus-within:ring-rgray-7 flex h-auto min-h-[80px] w-full flex-col items-start justify-center rounded-md border bg-transparent px-3 py-2 text-sm transition focus-within:outline-none focus-within:ring-2",
+          "border-rgray-6 text-rgray-11 has-[textarea:focus-visible]:ring-rgray-7 flex h-auto min-h-[80px] w-full flex-col items-start justify-center rounded-md border bg-transparent px-3 py-2 text-sm transition has-[textarea:focus-visible]:ring-2",
           className,
         )}
         {...props}
       >
         <textarea
           className={cn(
-            "placeholder:text-rgray-11/70 h-full w-full resize-none bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+            "text-rgray-11 h-full w-full resize-none bg-transparent placeholder:text-white/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
             textAreaClassName,
           )}
           ref={ref}

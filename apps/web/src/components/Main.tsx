@@ -5,6 +5,7 @@ import { Textarea2 } from "./ui/textarea";
 import { ArrowRight } from "lucide-react";
 import { MemoryDrawer } from "./MemoryDrawer";
 import useViewport from "@/hooks/useViewport";
+import { motion } from "framer-motion";
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [value, setValue] = useState("");
@@ -24,10 +25,13 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   }, []);
 
   return (
-    <main
+    <motion.main
       data-sidebar-open={sidebarOpen}
-      className="flex h-screen max-h-screen w-full items-end justify-center px-5 pb-[20vh] pt-5 md:items-center md:px-60 md:[&[data-sidebar-open='true']]:px-20"
+      className="flex h-screen max-h-screen w-full flex-col items-end justify-center gap-5 px-5 pb-[20vh] pt-5 transition-[padding] delay-200 duration-200 md:items-center md:px-72 [&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)] [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 "
     >
+      <h1 className="text-rgray-11 text-center text-3xl">
+        Ask your Second brain
+      </h1>
       <Textarea2
         ref={textArea}
         className="h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
@@ -51,6 +55,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         </div>
       </Textarea2>
       {width <= 768 && <MemoryDrawer />}
-    </main>
+    </motion.main>
   );
 }

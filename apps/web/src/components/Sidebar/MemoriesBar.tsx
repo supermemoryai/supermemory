@@ -2,98 +2,98 @@ import {
   MemoryWithImage,
   MemoryWithImages3,
   MemoryWithImages2,
-} from '@/assets/MemoryWithImages';
-import { type Space } from '../../../types/memory';
-import { InputWithIcon } from '../ui/input';
-import { Search } from 'lucide-react';
+} from "@/assets/MemoryWithImages";
+import { type Space } from "../../../types/memory";
+import { InputWithIcon } from "../ui/input";
+import { MoreHorizontal, Search } from "lucide-react";
 
 export function MemoriesBar() {
   const spaces: Space[] = [
     {
       id: 1,
-      title: 'Cool Tech',
-      description: 'Really cool mind blowing tech',
+      title: "Cool Tech",
+      description: "Really cool mind blowing tech",
       content: [
         {
           id: 1,
-          title: 'Perplexity',
-          description: 'A good ui',
-          content: '',
-          image: 'https://perplexity.ai/favicon.ico',
-          url: 'https://perplexity.ai',
+          title: "Perplexity",
+          description: "A good ui",
+          content: "",
+          image: "https://perplexity.ai/favicon.ico",
+          url: "https://perplexity.ai",
           savedAt: new Date(),
-          baseUrl: 'https://perplexity.ai',
-          space: 'Cool tech',
+          baseUrl: "https://perplexity.ai",
+          space: "Cool tech",
         },
         {
           id: 2,
-          title: 'Pi.ai',
-          description: 'A good ui',
-          content: '',
-          image: 'https://pi.ai/pi-logo-192.png?v=2',
-          url: 'https://pi.ai',
+          title: "Pi.ai",
+          description: "A good ui",
+          content: "",
+          image: "https://pi.ai/pi-logo-192.png?v=2",
+          url: "https://pi.ai",
           savedAt: new Date(),
-          baseUrl: 'https://pi.ai',
-          space: 'Cool tech',
+          baseUrl: "https://pi.ai",
+          space: "Cool tech",
         },
         {
           id: 3,
-          title: 'Visual Studio Code',
-          description: 'A good ui',
-          content: '',
-          image: 'https://code.visualstudio.com/favicon.ico',
-          url: 'https://code.visualstudio.com',
+          title: "Visual Studio Code",
+          description: "A good ui",
+          content: "",
+          image: "https://code.visualstudio.com/favicon.ico",
+          url: "https://code.visualstudio.com",
           savedAt: new Date(),
-          baseUrl: 'https://code.visualstudio.com',
-          space: 'Cool tech',
+          baseUrl: "https://code.visualstudio.com",
+          space: "Cool tech",
         },
       ],
     },
     {
       id: 2,
-      title: 'Cool Courses',
-      description: 'Amazng',
+      title: "Cool Courses",
+      description: "Amazng",
       content: [
         {
           id: 1,
-          title: 'Animation on the web',
-          description: 'A good ui',
-          content: '',
-          image: 'https://animations.dev/favicon.ico',
-          url: 'https://animations.dev',
+          title: "Animation on the web",
+          description: "A good ui",
+          content: "",
+          image: "https://animations.dev/favicon.ico",
+          url: "https://animations.dev",
           savedAt: new Date(),
-          baseUrl: 'https://animations.dev',
-          space: 'Cool courses',
+          baseUrl: "https://animations.dev",
+          space: "Cool courses",
         },
         {
           id: 2,
-          title: 'Tailwind Course',
-          description: 'A good ui',
-          content: '',
+          title: "Tailwind Course",
+          description: "A good ui",
+          content: "",
           image:
-            'https://tailwindcss.com/_next/static/media/tailwindcss-mark.3c5441fc7a190fb1800d4a5c7f07ba4b1345a9c8.svg',
-          url: 'https://tailwindcss.com',
+            "https://tailwindcss.com/_next/static/media/tailwindcss-mark.3c5441fc7a190fb1800d4a5c7f07ba4b1345a9c8.svg",
+          url: "https://tailwindcss.com",
           savedAt: new Date(),
-          baseUrl: 'https://tailwindcss.com',
-          space: 'Cool courses',
+          baseUrl: "https://tailwindcss.com",
+          space: "Cool courses",
         },
       ],
     },
     {
       id: 3,
-      title: 'Cool Libraries',
-      description: 'Really cool mind blowing tech',
+      title: "Cool Libraries",
+      description: "Really cool mind blowing tech",
       content: [
         {
           id: 1,
-          title: 'Perplexity',
-          description: 'A good ui',
-          content: '',
-          image: 'https://yashverma.me/logo.jpg',
-          url: 'https://perplexity.ai',
+          title: "Perplexity",
+          description: "A good ui",
+          content: "",
+          image: "https://yashverma.me/logo.jpg",
+          url: "https://perplexity.ai",
           savedAt: new Date(),
-          baseUrl: 'https://perplexity.ai',
-          space: 'Cool libraries',
+          baseUrl: "https://perplexity.ai",
+          space: "Cool libraries",
         },
       ],
     },
@@ -121,7 +121,16 @@ export function MemoriesBar() {
 export function Space({ title, description, content, id }: Space) {
   console.log(title, content.map((c) => c.image).reverse());
   return (
-    <button className="hover:bg-rgray-2 focus-visible:bg-rgray-2 focus-visible:ring-rgray-7 flex flex-col items-center justify-center rounded-md p-2 text-center ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+    <div className="hover:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 [&:hover>[data-more-button]]:opacity-100">
+      <button data-space-text className="focus-visible:outline-none">
+        {title}
+      </button>
+      <button
+        data-more-button
+        className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute right-2 top-2 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2"
+      >
+        <MoreHorizontal className="text-rgray-11 h-5 w-5" />
+      </button>
       {content.length > 2 ? (
         <MemoryWithImages3
           className="h-24 w-24"
@@ -141,7 +150,6 @@ export function Space({ title, description, content, id }: Space) {
           images={content.map((c) => c.image).reverse() as string[]}
         />
       )}
-      <span>{title}</span>
-    </button>
+    </div>
   );
 }

@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 
 function getViewport() {
-  const { innerWidth: width, innerHeight: height } = window;
+  const { innerWidth: width, innerHeight: height } = window ?? {
+    innerWidth: 0,
+    innerHeight: 0,
+  };
   return {
     width,
     height,

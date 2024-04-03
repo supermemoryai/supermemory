@@ -4,6 +4,7 @@ import { MemoryIcon } from "../../assets/Memories";
 import { Trash2, User2 } from "lucide-react";
 import React, { useState } from "react";
 import { MemoriesBar } from "./MemoriesBar";
+import { AnimatePresence, motion } from "framer-motion";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -47,30 +48,34 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="bg-rgray-2 border-r-rgray-6 hidden h-screen max-h-screen w-max flex-col items-center border-r px-2 py-5 text-sm font-light md:flex">
-        {menuItemsTop.map((item, index) => (
-          <MenuItem
-            key={index}
-            item={item}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-          />
-        ))}
-        <div className="mt-auto" />
-        {menuItemsBottom.map((item, index) => (
-          <MenuItem
-            key={index}
-            item={item}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
-          />
-        ))}
+      <div className="relative hidden h-screen max-h-screen w-max flex-col items-center text-sm font-light md:flex">
+        <div className="bg-rgray-2 border-r-rgray-6 relative z-[10000] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
+          {menuItemsTop.map((item, index) => (
+            <MenuItem
+              key={index}
+              item={item}
+              selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+            />
+          ))}
+          <div className="mt-auto" />
+          {menuItemsBottom.map((item, index) => (
+            <MenuItem
+              key={index}
+              item={item}
+              selectedItem={selectedItem}
+              setSelectedItem={setSelectedItem}
+            />
+          ))}
+        </div>
+        <AnimatePresence>
+          {selectedItem && (
+            <SubSidebar>
+              <Subbar />
+            </SubSidebar>
+          )}
+        </AnimatePresence>
       </div>
-      {selectedItem && (
-        <SubSidebar>
-          <Subbar />
-        </SubSidebar>
-      )}
     </>
   );
 }
@@ -87,7 +92,7 @@ const MenuItem = ({
   <button
     data-state-on={selectedItem === label}
     onClick={() => setSelectedItem((prev) => (prev === label ? null : label))}
-    className="on:opacity-100 on:bg-rgray-4 focus-visible:ring-rgray-7 flex w-full flex-col items-center justify-center rounded-md px-3 py-3 opacity-80 ring-2 ring-transparent transition hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+    className="on:opacity-100 on:bg-rgray-4 focus-visible:ring-rgray-7 relative z-[100] flex w-full flex-col items-center justify-center rounded-md px-3 py-3 opacity-80 ring-2 ring-transparent transition hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
   >
     {icon}
     <span className="">{label}</span>
@@ -96,8 +101,30 @@ const MenuItem = ({
 
 export function SubSidebar({ children }: { children?: React.ReactNode }) {
   return (
-    <div className="bg-rgray-3 border-r-rgray-6 hidden h-screen w-[50vw] flex-col items-center border-r font-light md:flex">
-      {children}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, x: "-100%" }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{
+        opacity: 0,
+        x: "-100%",
+        transition: { delay: 0.2 },
+      }}
+      transition={{
+        duration: 0.2,
+      }}
+      className="bg-rgray-3 border-r-rgray-6 absolute left-[100%] top-0 z-[10] hidden h-screen w-[30vw] items-start justify-center overflow-x-hidden border-r font-light md:flex"
+    >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, transition: { delay: 0 } }}
+        transition={{
+          delay: 0.2,
+        }}
+        className="z-[10] flex h-full w-full min-w-full flex-col items-center opacity-0"
+      >
+        {children}
+      </motion.div>
+    </motion.div>
   );
 }
