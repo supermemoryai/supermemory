@@ -114,7 +114,7 @@ export const storedContent = createTable(
     title: text("title", { length: 255 }),
     description: text("description", { length: 255 }),
     url: text("url").notNull().unique(),
-    category: text("category", { length: 255 }),
+    space: text("space", { length: 255 }),
     savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
     baseUrl: text("baseUrl", { length: 255 }),
     image: text("image", { length: 255 }),
@@ -123,7 +123,7 @@ export const storedContent = createTable(
     urlIdx: index("storedContent_url_idx").on(sc.url),
     savedAtIdx: index("storedContent_savedAt_idx").on(sc.savedAt),
     titleInx: index("storedContent_title_idx").on(sc.title),
-    categoryIdx: index("storedContent_category_idx").on(sc.category),
+    spaceIdx: index("storedContent_space_idx").on(sc.space),
   }),
 );
 

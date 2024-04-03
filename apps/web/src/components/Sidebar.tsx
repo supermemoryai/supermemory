@@ -27,7 +27,7 @@ export default function Sidebar() {
       image: 'https://code.visualstudio.com/favicon.ico',
       baseUrl: 'https://code.visualstudio.com',
       savedAt: new Date(),
-      category: 'Development',
+      space: 'Development',
     },
     {
       id: 1,
@@ -38,7 +38,7 @@ export default function Sidebar() {
       image: 'https://github.com/favicon.ico',
       baseUrl: 'https://github.com',
       savedAt: new Date(),
-      category: 'Development',
+      space: 'Development',
     },
   ];
 

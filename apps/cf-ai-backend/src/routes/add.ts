@@ -6,7 +6,7 @@ export async function POST(request: Request, store: CloudflareVectorizeStore) {
 		pageContent: string,
 		title?: string,
 		description?: string,
-		category?: string,
+		space?: string,
 		url: string,
 		user: string
 	};
@@ -23,7 +23,7 @@ export async function POST(request: Request, store: CloudflareVectorizeStore) {
 			metadata: {
 				title: body.title ?? "",
 				description: body.description ?? "",
-				category: body.category ?? "",
+				space: body.space ?? "",
 				url: body.url,
 				user: body.user,
 			},

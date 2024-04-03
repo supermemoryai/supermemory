@@ -8,7 +8,7 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	const query = queryparams.get("q");
 	const topK = parseInt(queryparams.get("topK") ?? "5");
 	const user = queryparams.get("user")
-	const category = queryparams.get("category")
+	const space = queryparams.get("space")
 
 	const sourcesOnly = (queryparams.get("sourcesOnly") ?? "false")
 
@@ -26,9 +26,9 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 		}
 	}
 
-	if (category) {
-		filter.category = {
-			$eq: category
+	if (space) {
+		filter.space = {
+			$eq: space
 		}
 	}
 

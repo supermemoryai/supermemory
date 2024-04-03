@@ -11,17 +11,11 @@ type RouteHandler = (request: Request, store: CloudflareVectorizeStore, embeddin
 
 const routeMap = new Map<string, Record<string, RouteHandler>>();
 
-routeMap.set('/add', {
-	POST: apiAdd.POST,
-});
+routeMap.set('/add', apiAdd);
 
-routeMap.set('/query', {
-	GET: apiQuery.GET,
-});
+routeMap.set('/query', apiQuery);
 
-routeMap.set('/ask', {
-	POST: apiAsk.POST,
-});
+routeMap.set('/ask', apiAsk);
 
 // Add more route mappings as needed
 // routeMap.set('/api/otherRoute', { ... });
