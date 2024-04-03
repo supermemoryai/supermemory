@@ -15,12 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={roboto.className}>
-        <div
-          id="d"
-          className="fixed left-0 top-0 h-[5px] w-screen bg-red-500"
-        ></div>
         <div vaul-drawer-wrapper="" className="min-w-screen overflow-x-hidden">
           {children}
         </div>
