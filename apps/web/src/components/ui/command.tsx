@@ -15,7 +15,7 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      "bg-rgray-3 text-rgray-11 flex h-full w-full flex-col overflow-hidden rounded-md",
+      "bg-rgray-3 text-rgray-11 flex h-full w-full flex-col overflow-hidden rounded-md focus-visible:outline-none [&>[cmdk-list-sizer]]:max-h-[250px] [&>[cmdk-list-sizer]]:overflow-y-scroll",
       className,
     )}
     {...props}
@@ -120,7 +120,7 @@ const CommandItem = React.forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      "aria-selected:bg-rgray-5 aria-selected:text-rgray-12 relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "aria-selected:bg-rgray-5 aria-selected:text-rgray-12 relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm opacity-70 outline-none data-[disabled='true']:pointer-events-none data-[disabled='true']:opacity-50",
       className,
     )}
     {...props}

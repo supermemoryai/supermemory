@@ -115,7 +115,7 @@ export function MemoriesBar() {
 export function Space({ title, description, content, id }: Space) {
   console.log(title, content.map((c) => c.image).reverse());
   return (
-    <button className="hover:bg-rgray-2 focus-visible:bg-rgray-2 focus-visible:ring-rgray-7 flex flex-col items-center justify-center rounded-md p-2 text-center ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+    <button className="hover:bg-rgray-2 focus-visible:bg-rgray-2 focus-visible:ring-rgray-7 flex flex-col items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
       {content.length > 2 ? (
         <MemoryWithImages3
           className="h-24 w-24"
