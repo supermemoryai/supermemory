@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   content: [
@@ -58,6 +59,11 @@ const config: Config = {
     },
   },
   darkMode: "class",
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    plugin(function ({ addVariant }) {
+      addVariant("on", "&[data-state-on='true']");
+    }),
+  ],
 };
 export default config;

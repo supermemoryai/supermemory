@@ -20,7 +20,7 @@
 }
 
 body {
-  @apply bg-rgray-2 text-rgray-11;
+  @apply bg-rgray-2 text-rgray-11 max-h-screen overflow-y-hidden;
   /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -31,7 +31,7 @@ body {
 }
 
 [vaul-drawer-wrapper] {
-  @apply bg-rgray-1;
+  @apply bg-rgray-2;
 }
 
 @layer utilities {

@@ -36,7 +36,7 @@ export const PageItem: React.FC<{ item: StoredContent }> = ({ item }) => {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
 
   return (
-    <div className="hover:bg-rgray-5 focus-within:bg-rgray-5 flex w-full items-center rounded-full py-1 pl-3 pr-2 transition [&:hover>a>div>[data-upright-icon]]:scale-125 [&:hover>a>div>[data-upright-icon]]:opacity-100 [&:hover>a>div>[data-upright-icon]]:delay-150 [&:hover>a>div>img]:scale-75 [&:hover>a>div>img]:opacity-0 [&:hover>a>div>img]:delay-0 [&:hover>button]:opacity-100">
+    <div className="hover:bg-rgray-5  has-[a:focus]:bg-rgray-5 flex w-full items-center rounded-full py-1 pl-3 pr-2 transition [&:hover>a>div>[data-icon]]:scale-125 [&:hover>a>div>[data-icon]]:opacity-100 [&:hover>a>div>[data-icon]]:delay-150 [&:hover>a>div>img]:scale-75 [&:hover>a>div>img]:opacity-0 [&:hover>a>div>img]:delay-0 [&:hover>button]:opacity-100">
       <a
         href={item.url}
         target="_blank"
@@ -49,7 +49,7 @@ export const PageItem: React.FC<{ item: StoredContent }> = ({ item }) => {
             className="z-1 h-4 w-4 transition-[transform,opacity] delay-150 duration-150"
           />
           <ArrowUpRight
-            data-upright-icon
+            data-icon
             className="absolute left-1/2 top-1/2 z-[2] h-4 w-4 min-w-4 -translate-x-1/2 -translate-y-1/2 scale-75 opacity-0 transition-[transform,opacity] duration-150"
             strokeWidth={1.5}
           />
