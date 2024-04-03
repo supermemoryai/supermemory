@@ -30,6 +30,7 @@ CREATE TABLE `storedContent` (
 	`title` text(255),
 	`description` text(255),
 	`url` text NOT NULL,
+	`category` text(255),
 	`savedAt` integer NOT NULL,
 	`baseUrl` text(255),
 	`image` text(255)
@@ -63,5 +64,6 @@ CREATE UNIQUE INDEX `storedContent_url_unique` ON `storedContent` (`url`);--> st
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint
 CREATE INDEX `storedContent_savedAt_idx` ON `storedContent` (`savedAt`);--> statement-breakpoint
 CREATE INDEX `storedContent_title_idx` ON `storedContent` (`title`);--> statement-breakpoint
+CREATE INDEX `storedContent_category_idx` ON `storedContent` (`category`);--> statement-breakpoint
 CREATE INDEX `userStoredContent_idx` ON `userStoredContent` (`userId`,`contentId`);--> statement-breakpoint
 CREATE UNIQUE INDEX `unique_user_content` ON `userStoredContent` (`userId`,`contentId`);
