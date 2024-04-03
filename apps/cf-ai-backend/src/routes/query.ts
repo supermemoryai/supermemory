@@ -8,6 +8,7 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	const query = queryparams.get("q");
 	const topK = parseInt(queryparams.get("topK") ?? "5");
 	const user = queryparams.get("user")
+	const category = queryparams.get("category")
 
 	const sourcesOnly = (queryparams.get("sourcesOnly") ?? "false")
 
@@ -22,6 +23,12 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	const filter: VectorizeVectorMetadataFilter = {
 		user: {
 			$eq: user
+		}
+	}
+
+	if (category) {
+		filter.category = {
+			$eq: category
 		}
 	}
 
