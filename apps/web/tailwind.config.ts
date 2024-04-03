@@ -30,10 +30,19 @@ const config: Config = {
             transformOrigin: "var(--radix-popover-content-transform-origin)",
           },
         },
+        "fade-in": {
+          "0%": {
+            opacity: "0",
+          },
+          "100%": {
+            opacity: "1",
+          },
+        },
       },
       animation: {
         "scale-in": "scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         "scale-out": "scale-out 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+        "fade-in": "fade-in 0.2s 0.5s forwards cubic-bezier(0.16, 1, 0.3, 1)",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -58,6 +67,7 @@ const config: Config = {
       },
     },
   },
+  safelist: ["text-rgray-11/70"],
   darkMode: "class",
   plugins: [
     require("tailwindcss-animate"),
