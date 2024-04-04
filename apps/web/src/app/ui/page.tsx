@@ -1,14 +1,17 @@
-"use client";
-import Main from "@/components/Main";
-import Sidebar from "@/components/Sidebar/index";
-import { useState } from "react";
+import Main from '@/components/Main';
+import Sidebar from '@/components/Sidebar/index';
+import { cookies } from 'next/headers';
 
 export default function Home() {
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const selectedItem = cookies().get('selectedItem')?.value;
+  const setSelectedItem = async (selectedItem: string | null) => {
+    'use server';
+    cookies().set('selectedItem', selectedItem!);
+  };
 
   return (
     <div className="flex w-screen">
-      <Sidebar onSelectChange={setSelectedItem} />
+      <Sidebar selectChange={setSelectedItem} />
       <Main sidebarOpen={selectedItem !== null} />
     </div>
   );
