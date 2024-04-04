@@ -1,14 +1,21 @@
 import { useState, useEffect } from "react";
 
 function getViewport() {
-  const { innerWidth: width, innerHeight: height } = window ?? {
-    innerWidth: 0,
-    innerHeight: 0,
-  };
-  return {
-    width,
-    height,
-  };
+  try {
+    const { innerWidth: width, innerHeight: height } = window ?? {
+      innerWidth: 0,
+      innerHeight: 0,
+    };
+    return {
+      width,
+      height,
+    };
+  } catch {
+    return {
+      width: 0,
+      height: 0,
+    };
+  }
 }
 
 export default function useViewport() {
