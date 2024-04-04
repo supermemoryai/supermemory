@@ -6,37 +6,66 @@ import { ArrowRight } from "lucide-react";
 import { MemoryDrawer } from "./MemoryDrawer";
 import useViewport from "@/hooks/useViewport";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
+  const [hide, setHide] = useState(false);
   const [value, setValue] = useState("");
   const { width } = useViewport();
 
   const textArea = useRef<HTMLTextAreaElement>(null);
+  const main = useRef<HTMLDivElement>(null);
 
   console.log("main px", sidebarOpen);
 
   useEffect(() => {
     function onResize() {
-      if (!textArea.current || !window.visualViewport) return;
-
-      const visualViewportHeight = window.visualViewport.height;
+      if (!main.current || !window.visualViewport) return;
+      // setValue(
+      //   (prev) =>
+      //     prev +
+      //     " changed to " +
+      //     window.visualViewport?.height +
+      //     " " +
+      //     window.innerHeight,
+      // );
+      if (
+        window.visualViewport.height < window.innerHeight + 20 &&
+        window.visualViewport.height > window.innerHeight - 20
+      ) {
+        setHide(false);
+        window.scrollTo(0, 0);
+      } else {
+        setHide(true);
+        window.scrollTo(0, document.body.scrollHeight);
+      }
     }
 
     window.visualViewport?.addEventListener("resize", onResize);
-    return () => window.visualViewport?.removeEventListener("resize", onResize);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", onResize);
+    };
   }, []);
 
   return (
     <motion.main
       data-sidebar-open={sidebarOpen}
-      className="flex h-screen max-h-screen w-full flex-col items-end justify-center gap-5 px-5 pb-[20vh] pt-5 transition-[padding] delay-200 duration-200 md:items-center md:px-72 [&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)] [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 "
+      ref={main}
+      className={cn(
+        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
+        hide
+          ? "pb-5"
+          : CSS.supports("height: 100dvh")
+            ? "pb-[13vh]"
+            : "pb-[20vh]",
+      )}
     >
-      <h1 className="text-rgray-11 text-center text-3xl">
+      <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl">
         Ask your Second brain
       </h1>
       <Textarea2
         ref={textArea}
-        className="h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
         textAreaProps={{
           placeholder: "Ask your SuperMemory...",
           className:
@@ -56,7 +85,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           </button>
         </div>
       </Textarea2>
-      {width <= 768 && <MemoryDrawer />}
+      {width <= 768 && <MemoryDrawer hide={hide} />}
     </motion.main>
   );
 }

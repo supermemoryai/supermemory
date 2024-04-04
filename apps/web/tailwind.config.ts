@@ -63,7 +63,7 @@ const config: Config = {
       },
     },
   },
-  safelist: ["text-rgray-11/70"],
+  safelist: ["pb-[20vh]", "pb-5"],
   darkMode: "class",
   plugins: [
     require("tailwindcss-animate"),
