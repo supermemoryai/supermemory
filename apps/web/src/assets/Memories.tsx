@@ -1,5 +1,3 @@
-import { svgId } from "@/lib/utils";
-
 export const MemoryIcon: React.FC<React.SVGAttributes<SVGElement>> = (
   props,
 ) => (

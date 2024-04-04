@@ -2,9 +2,10 @@
 import { StoredContent } from "@/server/db/schema";
 import { MemoryIcon } from "../../assets/Memories";
 import { Trash2, User2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MemoriesBar } from "./MemoriesBar";
 import { AnimatePresence, motion } from "framer-motion";
+import { Bin } from "@/assets/Bin";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -39,34 +40,46 @@ export default function Sidebar({
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    onSelectChange?.(selectedItem);
-  }, [selectedItem]);
-
   const Subbar =
     menuItems.find((i) => i.label === selectedItem)?.content ?? (() => <></>);
+
+  useEffect(() => {
+    onSelectChange?.(selectedItem);
+  }, [selectedItem]);
 
   return (
     <>
       <div className="relative hidden h-screen max-h-screen w-max flex-col items-center text-sm font-light md:flex">
-        <div className="bg-rgray-2 border-r-rgray-6 relative z-[10000] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
-          {menuItemsTop.map((item, index) => (
-            <MenuItem
-              key={index}
-              item={item}
-              selectedItem={selectedItem}
-              setSelectedItem={setSelectedItem}
-            />
-          ))}
+        <div className="bg-rgray-2 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
+          <MenuItem
+            item={{
+              label: "Memories",
+              icon: <MemoryIcon className="h-10 w-10" />,
+              content: MemoriesBar,
+            }}
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
+          />
+
           <div className="mt-auto" />
-          {menuItemsBottom.map((item, index) => (
-            <MenuItem
-              key={index}
-              item={item}
-              selectedItem={selectedItem}
-              setSelectedItem={setSelectedItem}
-            />
-          ))}
+
+          <MenuItem
+            item={{
+              label: "Trash",
+              icon: <Bin id="trash" className="z-[300] h-7 w-7" />,
+            }}
+            selectedItem={selectedItem}
+            id='trash-button'
+            setSelectedItem={setSelectedItem}
+          />
+          <MenuItem
+            item={{
+              label: "Profile",
+              icon: <User2 strokeWidth={1.3} className="h-7 w-7" />,
+            }}
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
+          />
         </div>
         <AnimatePresence>
           {selectedItem && (
@@ -84,7 +97,8 @@ const MenuItem = ({
   item: { icon, label },
   selectedItem,
   setSelectedItem,
-}: {
+  ...props
+}: React.HTMLAttributes<HTMLButtonElement> & {
   item: MenuItem;
   selectedItem: string | null;
   setSelectedItem: React.Dispatch<React.SetStateAction<string | null>>;
@@ -93,6 +107,7 @@ const MenuItem = ({
     data-state-on={selectedItem === label}
     onClick={() => setSelectedItem((prev) => (prev === label ? null : label))}
     className="on:opacity-100 on:bg-rgray-4 focus-visible:ring-rgray-7 relative z-[100] flex w-full flex-col items-center justify-center rounded-md px-3 py-3 opacity-80 ring-2 ring-transparent transition hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none"
+    {...props}
   >
     {icon}
     <span className="">{label}</span>

@@ -13,6 +13,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   const textArea = useRef<HTMLTextAreaElement>(null);
 
+  console.log("main px", sidebarOpen);
+
   useEffect(() => {
     function onResize() {
       if (!textArea.current || !window.visualViewport) return;
