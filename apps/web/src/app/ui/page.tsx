@@ -1,10 +1,18 @@
-import { MemoryProvider } from "@/contexts/MemoryContext";
-import Content from "./content";
+import Main from "@/components/Main";
+import Sidebar from "@/components/Sidebar/index";
+import { cookies } from "next/headers";
 
 export default function Home() {
+  const selectedItem = cookies().get("selectedItem")?.value;
+  const setSelectedItem = async (selectedItem: string | null) => {
+    "use server";
+    cookies().set("selectedItem", selectedItem!);
+  };
+
   return (
-    <MemoryProvider spaces={[]}>
-      <Content />
-    </MemoryProvider>
+    <div className="flex w-screen">
+      {/* <Sidebar selectChange={setSelectedItem} spaces={spaces} /> */}
+      <Main sidebarOpen={selectedItem !== null} />
+    </div>
   );
 }

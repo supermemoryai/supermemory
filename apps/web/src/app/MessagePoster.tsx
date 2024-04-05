@@ -8,11 +8,7 @@ function MessagePoster({ jwt }: { jwt: string }) {
     window.postMessage({ jwt }, '*');
   }, [jwt]);
 
-  return (
-    <button onClick={() => window.postMessage({ jwt }, '*')}>
-      Send auth token to extension
-    </button>
-  );
+  return null;
 }
 
 export default MessagePoster;

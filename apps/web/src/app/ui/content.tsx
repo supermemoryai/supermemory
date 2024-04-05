@@ -8,7 +8,7 @@ export default function Content() {
 
   return (
     <div className="flex w-screen">
-      <Sidebar onSelectChange={setSelectedItem} />
+      {/* <Sidebar selectChange={setSelectedItem} /> */}
       <Main sidebarOpen={selectedItem !== null} />
     </div>
   );

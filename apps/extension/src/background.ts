@@ -1,3 +1,7 @@
+import { getEnv } from "./util";
+
+const backendUrl = getEnv() === "development" ? "http://localhost:3000" : "https://supermemory.dhr.wtf";
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "getJwt") {
     chrome.storage.local.get(["jwt"], ({ jwt }) => {
@@ -17,7 +21,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.error("No JWT found");
           return;
         }
-        fetch("https://supermemory.dhr.wtf/api/store", {
+        fetch(`${backendUrl}/api/store`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${jwt}`,
@@ -33,7 +37,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const jwt = request.jwt;
 
     (async () => {
-      await fetch("https://supermemory.dhr.wtf/api/ask", {
+      await fetch(`${backendUrl}/api/ask`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${jwt}`,

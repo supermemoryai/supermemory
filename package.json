@@ -58,6 +58,7 @@
     "html-metadata-parser": "^2.0.4",
     "lucide-react": "^0.343.0",
     "next-auth": "beta",
+    "nuqs": "^1.17.1",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0",
     "tailwindcss-animate": "^1.0.7"
