@@ -8,6 +8,14 @@ import useViewport from "@/hooks/useViewport";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+function supportsDVH() {
+  try {
+    return CSS.supports("height: 100dvh");
+  } catch {
+    return false;
+  }
+}
+
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [hide, setHide] = useState(false);
   const [value, setValue] = useState("");
@@ -16,19 +24,9 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const textArea = useRef<HTMLTextAreaElement>(null);
   const main = useRef<HTMLDivElement>(null);
 
-  console.log("main px", sidebarOpen);
-
   useEffect(() => {
     function onResize() {
       if (!main.current || !window.visualViewport) return;
-      // setValue(
-      //   (prev) =>
-      //     prev +
-      //     " changed to " +
-      //     window.visualViewport?.height +
-      //     " " +
-      //     window.innerHeight,
-      // );
       if (
         window.visualViewport.height < window.innerHeight + 20 &&
         window.visualViewport.height > window.innerHeight - 20
@@ -52,20 +50,16 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       data-sidebar-open={sidebarOpen}
       ref={main}
       className={cn(
-        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
-        hide
-          ? "pb-5"
-          : CSS.supports("height: 100dvh")
-            ? "pb-[13vh]"
-            : "pb-[20vh]",
+        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
+        hide ? "pb-5" : supportsDVH() ? "pb-[13vh]" : "pb-[20vh]",
       )}
     >
-      <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl">
+      <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
         Ask your Second brain
       </h1>
       <Textarea2
         ref={textArea}
-        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
         textAreaProps={{
           placeholder: "Ask your SuperMemory...",
           className:
