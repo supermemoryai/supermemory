@@ -12,7 +12,7 @@ import { useMemory } from "@/contexts/MemoryContext";
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
   label: string;
-  content?: React.ReactElement;
+  content?: React.ReactNode;
 };
 
 const menuItemsBottom: Array<MenuItem> = [
@@ -43,8 +43,9 @@ export default function Sidebar({
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
-  const Subbar =
-    menuItems.find((i) => i.label === selectedItem)?.content ?? (() => <></>);
+  const Subbar = menuItems.find((i) => i.label === selectedItem)?.content ?? (
+    <></>
+  );
 
   useEffect(() => {
     void selectChange?.(selectedItem);
@@ -85,10 +86,6 @@ export default function Sidebar({
           />
         </div>
         <AnimatePresence>
-          {/* @yxshv idk why this is giving typeerror
-            when used as <Subbar/> it says it's not valid element type
-          */}
-          {/* @ts-ignore */}
           {selectedItem && <SubSidebar>{Subbar}</SubSidebar>}
         </AnimatePresence>
       </div>
