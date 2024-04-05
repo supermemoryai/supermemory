@@ -1,15 +1,16 @@
+"use client";
 import React from "react";
-import { Space } from "../../types/memory";
+import { CollectedSpaces } from "../../types/memory";
 
 // temperory (will change)
 export const MemoryContext = React.createContext<{
-  spaces: Space[];
+  spaces: CollectedSpaces[];
 }>({
   spaces: [],
 });
 
 export const MemoryProvider: React.FC<
-  { spaces: Space[] } & React.PropsWithChildren
+  { spaces: CollectedSpaces[] } & React.PropsWithChildren
 > = ({ children, spaces }) => {
   return (
     <MemoryContext.Provider value={{ spaces }}>

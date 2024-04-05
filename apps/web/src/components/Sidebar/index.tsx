@@ -7,6 +7,7 @@ import { MemoriesBar } from "./MemoriesBar";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bin } from "@/assets/Bin";
 import { CollectedSpaces } from "../../../types/memory";
+import { useMemory } from "@/contexts/MemoryContext";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -27,11 +28,11 @@ const menuItemsBottom: Array<MenuItem> = [
 
 export default function Sidebar({
   selectChange,
-  spaces,
 }: {
-  selectChange?: (selectedItem: string | null) => Promise<void>;
-  spaces: CollectedSpaces[];
+  selectChange?: (selectedItem: string | null) => void;
 }) {
+  const { spaces } = useMemory();
+
   const menuItemsTop: Array<MenuItem> = [
     {
       icon: <MemoryIcon className="h-10 w-10" />,

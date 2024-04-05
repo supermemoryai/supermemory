@@ -4,11 +4,11 @@ import Sidebar from "@/components/Sidebar/index";
 import { useState } from "react";
 
 export default function Content() {
-  const [selectedItem, setSelectedItem] = useState<string | null>();
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   return (
     <div className="flex w-screen">
-      {/* <Sidebar selectChange={setSelectedItem} /> */}
+      <Sidebar selectChange={setSelectedItem} />
       <Main sidebarOpen={selectedItem !== null} />
     </div>
   );
