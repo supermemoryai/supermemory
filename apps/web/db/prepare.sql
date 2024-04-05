@@ -24,23 +24,25 @@ CREATE TABLE `session` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `spaces` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`name` text DEFAULT 'all' NOT NULL,
+	`description` text(255)
+);
+--> statement-breakpoint
 CREATE TABLE `storedContent` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`content` text NOT NULL,
 	`title` text(255),
 	`description` text(255),
 	`url` text NOT NULL,
-	`space` text(255),
+	`space` text(255) DEFAULT 'all',
 	`savedAt` integer NOT NULL,
 	`baseUrl` text(255),
-	`image` text(255)
-);
---> statement-breakpoint
-CREATE TABLE `userStoredContent` (
-	`userId` text NOT NULL,
-	`contentId` integer NOT NULL,
-	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`contentId`) REFERENCES `storedContent`(`id`) ON UPDATE no action ON DELETE no action
+	`image` text(255),
+	`user` text(255),
+	FOREIGN KEY (`space`) REFERENCES `spaces`(`name`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `user` (
@@ -60,10 +62,9 @@ CREATE TABLE `verificationToken` (
 --> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`userId`);--> statement-breakpoint
 CREATE INDEX `session_userId_idx` ON `session` (`userId`);--> statement-breakpoint
-CREATE UNIQUE INDEX `storedContent_url_unique` ON `storedContent` (`url`);--> statement-breakpoint
+CREATE INDEX `spaces_name_idx` ON `spaces` (`name`);--> statement-breakpoint
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint
 CREATE INDEX `storedContent_savedAt_idx` ON `storedContent` (`savedAt`);--> statement-breakpoint
 CREATE INDEX `storedContent_title_idx` ON `storedContent` (`title`);--> statement-breakpoint
 CREATE INDEX `storedContent_space_idx` ON `storedContent` (`space`);--> statement-breakpoint
-CREATE INDEX `userStoredContent_idx` ON `userStoredContent` (`userId`,`contentId`);--> statement-breakpoint
-CREATE UNIQUE INDEX `unique_user_content` ON `userStoredContent` (`userId`,`contentId`);
+CREATE INDEX `storedContent_user_idx` ON `storedContent` (`user`);

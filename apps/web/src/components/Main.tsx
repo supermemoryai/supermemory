@@ -1,22 +1,22 @@
-"use client";
-import { useEffect, useRef, useState } from "react";
-import { FilterCombobox } from "./Sidebar/FilterCombobox";
-import { Textarea2 } from "./ui/textarea";
-import { ArrowRight } from "lucide-react";
-import { MemoryDrawer } from "./MemoryDrawer";
-import useViewport from "@/hooks/useViewport";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import { FilterCombobox } from './Sidebar/FilterCombobox';
+import { Textarea2 } from './ui/textarea';
+import { ArrowRight } from 'lucide-react';
+import { MemoryDrawer } from './MemoryDrawer';
+import useViewport from '@/hooks/useViewport';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [hide, setHide] = useState(false);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState('');
   const { width } = useViewport();
 
   const textArea = useRef<HTMLTextAreaElement>(null);
   const main = useRef<HTMLDivElement>(null);
 
-  console.log("main px", sidebarOpen);
+  console.log('main px', sidebarOpen);
 
   useEffect(() => {
     function onResize() {
@@ -41,9 +41,9 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       }
     }
 
-    window.visualViewport?.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener('resize', onResize);
     return () => {
-      window.visualViewport?.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener('resize', onResize);
     };
   }, []);
 
@@ -54,10 +54,10 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       className={cn(
         "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
         hide
-          ? "pb-5"
-          : CSS.supports("height: 100dvh")
-            ? "pb-[13vh]"
-            : "pb-[20vh]",
+          ? 'pb-5'
+          : CSS.supports('height: 100dvh')
+            ? 'pb-[13vh]'
+            : 'pb-[20vh]',
       )}
     >
       <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl">
@@ -67,9 +67,9 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         ref={textArea}
         className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
         textAreaProps={{
-          placeholder: "Ask your SuperMemory...",
+          placeholder: 'Ask your SuperMemory...',
           className:
-            "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
+            'h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]',
           value,
           autoFocus: true,
           onChange: (e) => setValue(e.target.value),

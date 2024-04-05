@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { eq } from "drizzle-orm";
-import { sessions, storedContent, userStoredContent, users } from "@/server/db/schema";
+import { sessions, storedContent, users } from "@/server/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
 import { getMetaData } from "@/server/helpers";
@@ -38,32 +38,19 @@ export async function POST(req: NextRequest) {
 
     let id: number | undefined = undefined;
 
-    const storedCont = await db.select().from(storedContent).where(eq(storedContent.url, data.url)).limit(1)
+    const storedContentId = await db.insert(storedContent).values({
+        content: data.pageContent,
+        title: metadata.title,
+        description: metadata.description,
+        url: data.url,
+        baseUrl: metadata.baseUrl,
+        image: metadata.image,
+        savedAt: new Date(),
+        space: "all",
+        user: session.user.id
+    })
 
-    if (storedCont.length > 0) {
-        id = storedCont[0].id;
-    } else {
-        const storedContentId = await db.insert(storedContent).values({
-            content: data.pageContent,
-            title: metadata.title,
-            description: metadata.description,
-            url: data.url,
-            baseUrl: metadata.baseUrl,
-            image: metadata.image,
-            savedAt: new Date()
-        })
-
-        id = storedContentId.meta.last_row_id;
-    }
-
-    try {
-        await db.insert(userStoredContent).values({
-            userId: session.user.id,
-            contentId: id
-        });
-    } catch (e) {
-        console.log(e);
-    }
+    id = storedContentId.meta.last_row_id;
 
     const res = await Promise.race([
         fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
@@ -77,10 +64,6 @@ export async function POST(req: NextRequest) {
             setTimeout(() => reject(new Error('Request timed out')), 40000)
         )
     ]) as Response
-
-    const _ = await res.text();
-
-    console.log(_)
 
     if (res.status !== 200) {
         return NextResponse.json({ message: "Error", error: "Error in CF function" }, { status: 500 });

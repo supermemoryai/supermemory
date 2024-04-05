@@ -11,7 +11,7 @@ export default function Home() {
 
   return (
     <div className="flex w-screen">
-      <Sidebar selectChange={setSelectedItem} />
+      {/* <Sidebar selectChange={setSelectedItem} spaces={spaces} /> */}
       <Main sidebarOpen={selectedItem !== null} />
     </div>
   );

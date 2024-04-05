@@ -2,24 +2,17 @@
 import { StoredContent } from '@/server/db/schema';
 import { MemoryIcon } from '../../assets/Memories';
 import { Trash2, User2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { ElementType, useEffect, useState } from 'react';
 import { MemoriesBar } from './MemoriesBar';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bin } from '@/assets/Bin';
+import { CollectedSpaces } from '../../../types/memory';
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
   label: string;
-  content?: React.FC;
+  content?: React.ReactElement;
 };
-
-const menuItemsTop: Array<MenuItem> = [
-  {
-    icon: <MemoryIcon className="h-10 w-10" />,
-    label: 'Memories',
-    content: MemoriesBar,
-  },
-];
 
 const menuItemsBottom: Array<MenuItem> = [
   {
@@ -34,9 +27,18 @@ const menuItemsBottom: Array<MenuItem> = [
 
 export default function Sidebar({
   selectChange,
+  spaces,
 }: {
   selectChange?: (selectedItem: string | null) => Promise<void>;
+  spaces: CollectedSpaces[];
 }) {
+  const menuItemsTop: Array<MenuItem> = [
+    {
+      icon: <MemoryIcon className="h-10 w-10" />,
+      label: 'Memories',
+      content: <MemoriesBar spaces={spaces} />,
+    },
+  ];
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
@@ -55,7 +57,7 @@ export default function Sidebar({
             item={{
               label: 'Memories',
               icon: <MemoryIcon className="h-10 w-10" />,
-              content: MemoriesBar,
+              content: <MemoriesBar spaces={spaces} />,
             }}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
@@ -82,11 +84,11 @@ export default function Sidebar({
           />
         </div>
         <AnimatePresence>
-          {selectedItem && (
-            <SubSidebar>
-              <Subbar />
-            </SubSidebar>
-          )}
+          {/* @yxshv idk why this is giving typeerror
+            when used as <Subbar/> it says it's not valid element type
+          */}
+          {/* @ts-ignore */}
+          {selectedItem && <SubSidebar>{Subbar}</SubSidebar>}
         </AnimatePresence>
       </div>
     </>

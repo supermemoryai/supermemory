@@ -1,24 +1,24 @@
-import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import {
   MemoryWithImage,
   MemoryWithImages3,
   MemoryWithImages2,
-} from "@/assets/MemoryWithImages";
-import { type Space } from "../../../types/memory";
-import { InputWithIcon } from "../ui/input";
+} from '@/assets/MemoryWithImages';
+import { type CollectedSpaces } from '../../../types/memory';
+import { InputWithIcon } from '../ui/input';
 import {
   ArrowUpRight,
   Edit3,
   MoreHorizontal,
   Search,
   Trash2,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from '../ui/dropdown-menu';
 import {
   animate,
   AnimatePresence,
@@ -26,105 +26,15 @@ import {
   motion,
   useAnimate,
   Variant,
-} from "framer-motion";
-import { useRef, useState } from "react";
+} from 'framer-motion';
+import { useRef, useState } from 'react';
 
-const spaces: Space[] = [
-  {
-    id: 1,
-    title: "Cool Tech",
-    description: "Really cool mind blowing tech",
-    content: [
-      {
-        id: 1,
-        title: "Perplexity",
-        description: "A good ui",
-        content: "",
-        image: "https://perplexity.ai/favicon.ico",
-        url: "https://perplexity.ai",
-        savedAt: new Date(),
-        baseUrl: "https://perplexity.ai",
-        space: "Cool tech",
-      },
-      {
-        id: 2,
-        title: "Pi.ai",
-        description: "A good ui",
-        content: "",
-        image: "https://pi.ai/pi-logo-192.png?v=2",
-        url: "https://pi.ai",
-        savedAt: new Date(),
-        baseUrl: "https://pi.ai",
-        space: "Cool tech",
-      },
-      {
-        id: 3,
-        title: "Visual Studio Code",
-        description: "A good ui",
-        content: "",
-        image: "https://code.visualstudio.com/favicon.ico",
-        url: "https://code.visualstudio.com",
-        savedAt: new Date(),
-        baseUrl: "https://code.visualstudio.com",
-        space: "Cool tech",
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Cool Courses",
-    description: "Amazng",
-    content: [
-      {
-        id: 1,
-        title: "Animation on the web",
-        description: "A good ui",
-        content: "",
-        image: "https://animations.dev/favicon.ico",
-        url: "https://animations.dev",
-        savedAt: new Date(),
-        baseUrl: "https://animations.dev",
-        space: "Cool courses",
-      },
-      {
-        id: 2,
-        title: "Tailwind Course",
-        description: "A good ui",
-        content: "",
-        image:
-          "https://tailwindcss.com/_next/static/media/tailwindcss-mark.3c5441fc7a190fb1800d4a5c7f07ba4b1345a9c8.svg",
-        url: "https://tailwindcss.com",
-        savedAt: new Date(),
-        baseUrl: "https://tailwindcss.com",
-        space: "Cool courses",
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "Cool Libraries",
-    description: "Really cool mind blowing tech",
-    content: [
-      {
-        id: 1,
-        title: "Perplexity",
-        description: "A good ui",
-        content: "",
-        image: "https://yashverma.me/logo.jpg",
-        url: "https://perplexity.ai",
-        savedAt: new Date(),
-        baseUrl: "https://perplexity.ai",
-        space: "Cool libraries",
-      },
-    ],
-  },
-];
 
-export function MemoriesBar() {
+export function MemoriesBar({ spaces }: { spaces: CollectedSpaces[] }) {
   const [parent, enableAnimations] = useAutoAnimate();
   const [currentSpaces, setCurrentSpaces] = useState(spaces);
 
-  console.log("currentSpaces: ", currentSpaces);
+  console.log('currentSpaces: ', currentSpaces);
 
   return (
     <div className="text-rgray-11 flex w-full flex-col items-start py-8 text-left">
@@ -157,8 +67,8 @@ export function MemoriesBar() {
 const SpaceExitVariant: Variant = {
   opacity: 0,
   scale: 0,
-  borderRadius: "50%",
-  background: "var(--gray-1)",
+  borderRadius: '50%',
+  background: 'var(--gray-1)',
   transition: {
     duration: 0.2,
   },
@@ -170,7 +80,7 @@ export function SpaceItem({
   content,
   id,
   onDelete,
-}: Space & { onDelete: () => void }) {
+}: CollectedSpaces & { onDelete: () => void }) {
   const [itemRef, animateItem] = useAnimate();
 
   return (
@@ -184,22 +94,22 @@ export function SpaceItem({
       <SpaceMoreButton
         onDelete={() => {
           if (!itemRef.current) return;
-          const trash = document.querySelector("#trash")! as HTMLDivElement;
-          const trashBin = document.querySelector("#trash-button")!;
+          const trash = document.querySelector('#trash')! as HTMLDivElement;
+          const trashBin = document.querySelector('#trash-button')!;
           const trashRect = trashBin.getBoundingClientRect();
           const scopeRect = itemRef.current.getBoundingClientRect();
-          const el = document.createElement("div");
-          el.style.position = "fixed";
-          el.style.top = "0";
-          el.style.left = "0";
-          el.style.width = "15px";
-          el.style.height = "15px";
-          el.style.backgroundColor = "var(--gray-7)";
-          el.style.zIndex = "60";
-          el.style.borderRadius = "50%";
-          el.style.transform = "scale(5)";
-          el.style.opacity = "0";
-          trash.dataset["open"] = "true";
+          const el = document.createElement('div');
+          el.style.position = 'fixed';
+          el.style.top = '0';
+          el.style.left = '0';
+          el.style.width = '15px';
+          el.style.height = '15px';
+          el.style.backgroundColor = 'var(--gray-7)';
+          el.style.zIndex = '60';
+          el.style.borderRadius = '50%';
+          el.style.transform = 'scale(5)';
+          el.style.opacity = '0';
+          trash.dataset['open'] = 'true';
           const initial = {
             x: scopeRect.left + scopeRect.width / 2,
             y: scopeRect.top + scopeRect.height / 2,
@@ -224,35 +134,35 @@ export function SpaceItem({
           animateItem(itemRef.current, SpaceExitVariant, {
             duration: 0.2,
           }).then(() => {
-            itemRef.current.style.scale = "0";
+            itemRef.current.style.scale = '0';
             onDelete();
           });
           document.body.appendChild(el);
           el.animate(
             {
-              transform: ["scale(5)", "scale(1)"],
+              transform: ['scale(5)', 'scale(1)'],
               opacity: [0, 0.3, 1],
             },
             {
               duration: 200,
-              easing: "cubic-bezier(0.64, 0.57, 0.67, 1.53)",
-              fill: "forwards",
+              easing: 'cubic-bezier(0.64, 0.57, 0.67, 1.53)',
+              fill: 'forwards',
             },
           );
           el.animate(
             {
-              offsetDistance: ["0%", "100%"],
+              offsetDistance: ['0%', '100%'],
             },
             {
               duration: 2000,
-              easing: "cubic-bezier(0.64, 0.57, 0.67, 1.53)",
-              fill: "forwards",
+              easing: 'cubic-bezier(0.64, 0.57, 0.67, 1.53)',
+              fill: 'forwards',
               delay: 200,
             },
           ).onfinish = () => {
             el.animate(
-              { transform: "scale(0)", opacity: 0 },
-              { duration: 200, fill: "forwards" },
+              { transform: 'scale(0)', opacity: 0 },
+              { duration: 200, fill: 'forwards' },
             ).onfinish = () => {
               el.remove();
             };
