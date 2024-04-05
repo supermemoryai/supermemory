@@ -17,8 +17,8 @@
                 "src/content.tsx"
             ],
             "matches": [
-                "http://localhost:3000/*",
-                "https://anycontext.dhr.wtf/*",
+                "http://localhost:3000/",
+                "https://anycontext.dhr.wtf/",
                 "<all_urls>"
             ]
         }
