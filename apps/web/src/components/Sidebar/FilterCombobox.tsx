@@ -20,141 +20,17 @@ import {
 } from "@/components/ui/popover";
 import { SpaceIcon } from "@/assets/Memories";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-
-const spaces = [
-  {
-    value: "1",
-    label: "Cool Tech",
-  },
-  {
-    value: "2",
-    label: "Cool Courses",
-  },
-  {
-    value: "3",
-    label: "Cool Libraries",
-  },
-  {
-    value: "4",
-    label: "Cool People",
-  },
-  {
-    value: "5",
-    label: "Cool Projects",
-  },
-  {
-    value: "6",
-    label: "Cool Tools",
-  },
-  {
-    value: "7",
-    label: "Cool Websites",
-  },
-  {
-    value: "8",
-    label: "Cool Books",
-  },
-  {
-    value: "9",
-    label: "Cool Videos",
-  },
-  {
-    value: "10",
-    label: "Cool Podcasts",
-  },
-  {
-    value: "11",
-    label: "Cool Articles",
-  },
-  {
-    value: "12",
-    label: "Cool Blogs",
-  },
-  {
-    value: "13",
-    label: "Cool News",
-  },
-  {
-    value: "14",
-    label: "Cool Forums",
-  },
-  {
-    value: "15",
-    label: "Cool Communities",
-  },
-  {
-    value: "16",
-    label: "Cool Events",
-  },
-  {
-    value: "17",
-    label: "Cool Jobs",
-  },
-  {
-    value: "18",
-    label: "Cool Companies",
-  },
-  {
-    value: "19",
-    label: "Cool Startups",
-  },
-  {
-    value: "20",
-    label: "Cool Investors",
-  },
-  {
-    value: "21",
-    label: "Cool Funds",
-  },
-  {
-    value: "22",
-    label: "Cool Incubators",
-  },
-  {
-    value: "23",
-    label: "Cool Accelerators",
-  },
-  {
-    value: "24",
-    label: "Cool Hackathons",
-  },
-  {
-    value: "25",
-    label: "Cool Conferences",
-  },
-  {
-    value: "26",
-    label: "Cool Workshops",
-  },
-  {
-    value: "27",
-    label: "Cool Seminars",
-  },
-  {
-    value: "28",
-    label: "Cool Webinars",
-  },
-  {
-    value: "29",
-    label: "Cool Courses",
-  },
-  {
-    value: "30",
-    label: "Cool Bootcamps",
-  },
-  {
-    value: "31",
-    label: "Cool Certifications",
-  },
-];
+import { useMemory } from "@/contexts/MemoryContext";
 
 export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
 
 export function FilterCombobox({ className, ...props }: Props) {
-  const [open, setOpen] = React.useState(false);
-  const [values, setValues] = React.useState<string[]>([]);
+  const { spaces, addSpace } = useMemory();
 
-  const sortedSpaces = spaces.sort(({ value: a }, { value: b }) =>
+  const [open, setOpen] = React.useState(false);
+  const [values, setValues] = React.useState<number[]>([]);
+
+  const sortedSpaces = spaces.sort(({ id: a }, { id: b }) =>
     values.includes(a) && !values.includes(b)
       ? -1
       : values.includes(b) && !values.includes(a)
@@ -192,8 +68,8 @@ export function FilterCombobox({ className, ...props }: Props) {
             <Command
               filter={(val, search) =>
                 spaces
-                  .find((s) => s.value === val)
-                  ?.label.toLowerCase()
+                  .find((s) => s.id.toString() === val)
+                  ?.title.toLowerCase()
                   .includes(search.toLowerCase().trim())
                   ? 1
                   : 0
@@ -206,13 +82,13 @@ export function FilterCombobox({ className, ...props }: Props) {
                   <CommandGroup>
                     {sortedSpaces.map((space) => (
                       <CommandItem
-                        key={space.value}
-                        value={space.value}
+                        key={space.id}
+                        value={space.id.toString()}
                         onSelect={(val) => {
                           setValues((prev) =>
-                            prev.includes(val)
-                              ? prev.filter((v) => v !== val)
-                              : [...prev, val],
+                            prev.includes(parseInt(val))
+                              ? prev.filter((v) => v !== parseInt(val))
+                              : [...prev, parseInt(val)],
                           );
                         }}
                         asChild
@@ -222,14 +98,14 @@ export function FilterCombobox({ className, ...props }: Props) {
                           animate={{ opacity: 1, transition: { delay: 0.05 } }}
                           transition={{ duration: 0.15 }}
                           layout
-                          layoutId={`space-combobox-${space.value}`}
+                          layoutId={`space-combobox-${space.id}`}
                           className="text-rgray-11"
                         >
                           <SpaceIcon className="mr-2 h-4 w-4" />
-                          {space.label}
-                          {values.includes(space.value)}
+                          {space.title}
+                          {values.includes(space.id)}
                           <Check
-                            data-state-on={values.includes(space.value)}
+                            data-state-on={values.includes(space.id)}
                             className={cn(
                               "on:opacity-100 ml-auto h-4 w-4 opacity-0",
                             )}
