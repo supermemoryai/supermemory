@@ -8,7 +8,16 @@ function MessagePoster({ jwt }: { jwt: string }) {
     window.postMessage({ jwt }, '*');
   }, [jwt]);
 
-  return null;
+  return (
+    <button
+      onClick={() => {
+        if (typeof window === 'undefined') return;
+        window.postMessage({ jwt }, '*');
+      }}
+    >
+      Send message
+    </button>
+  );
 }
 
 export default MessagePoster;

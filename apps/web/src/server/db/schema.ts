@@ -87,7 +87,6 @@ export const storedContent = createTable(
     title: text("title", { length: 255 }),
     description: text("description", { length: 255 }),
     url: text("url").notNull(),
-    space: text("space", { length: 255 }).references(() => spaces.name).default('all'),
     savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
     baseUrl: text("baseUrl", { length: 255 }),
     image: text("image", { length: 255 }),
@@ -97,20 +96,31 @@ export const storedContent = createTable(
     urlIdx: index("storedContent_url_idx").on(sc.url),
     savedAtIdx: index("storedContent_savedAt_idx").on(sc.savedAt),
     titleInx: index("storedContent_title_idx").on(sc.title),
-    spaceIdx: index("storedContent_space_idx").on(sc.space),
     userIdx: index("storedContent_user_idx").on(sc.user),
   }),
 );
 
-export const spaces = createTable(
-  "spaces",
+export const contentToSpace = createTable(
+  "contentToSpace",
+  {
+    contentId: integer("contentId").notNull().references(() => storedContent.id),
+    spaceId: integer("spaceId").notNull().references(() => space.id),
+  },
+  (cts) => ({
+    compoundKey: primaryKey({ columns: [cts.contentId, cts.spaceId] }),
+  }),
+);
+
+export const space = createTable(
+  "space",
   {
     id: integer("id").notNull().primaryKey({ autoIncrement: true }),
     name: text('name').notNull().default('all'),
-    description: text("description", { length: 255 }),
+    user: text("user", { length: 255 }).references(() => users.id),
   },
   (space) => ({
     nameIdx: index("spaces_name_idx").on(space.name),
+    userIdx: index("spaces_user_idx").on(space.user),
   }),
 );
 

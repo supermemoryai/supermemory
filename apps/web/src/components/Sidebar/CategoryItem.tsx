@@ -1,13 +1,13 @@
-"use client";
-import { cleanUrl } from "@/lib/utils";
-import { StoredContent } from "@/server/db/schema";
+'use client';
+import { cleanUrl } from '@/lib/utils';
+import { StoredContent } from '@/server/db/schema';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "../ui/dropdown-menu";
-import { Label } from "../ui/label";
+} from '../ui/dropdown-menu';
+import { Label } from '../ui/label';
 import {
   ArrowUpRight,
   MoreHorizontal,
@@ -19,8 +19,8 @@ import {
   ChevronRight,
   Plus,
   Minus,
-} from "lucide-react";
-import { useState } from "react";
+} from 'lucide-react';
+import { useState } from 'react';
 import {
   Drawer,
   DrawerContent,
@@ -29,116 +29,107 @@ import {
   DrawerDescription,
   DrawerFooter,
   DrawerClose,
-} from "../ui/drawer";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+} from '../ui/drawer';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import {
   AnimatePresence,
   motion,
   Reorder,
   useMotionValue,
-} from "framer-motion";
+} from 'framer-motion';
 
 const pages: StoredContent[] = [
   {
     id: 1,
-    content: "",
-    title: "Visual Studio Code",
-    url: "https://code.visualstudio.com",
-    description: "",
-    image: "https://code.visualstudio.com/favicon.ico",
-    baseUrl: "https://code.visualstudio.com",
+    content: '',
+    title: 'Visual Studio Code',
+    url: 'https://code.visualstudio.com',
+    description: '',
+    image: 'https://code.visualstudio.com/favicon.ico',
+    baseUrl: 'https://code.visualstudio.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 2,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 3,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 4,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 5,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 6,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 7,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 8,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
   {
     id: 9,
-    content: "",
+    content: '',
     title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-    url: "https://github.com/yxshv/vscode",
-    description: "",
-    image: "https://github.com/favicon.ico",
-    baseUrl: "https://github.com",
+    url: 'https://github.com/yxshv/vscode',
+    description: '',
+    image: 'https://github.com/favicon.ico',
+    baseUrl: 'https://github.com',
     savedAt: new Date(),
-    space: ""
   },
 ];
 export const CategoryItem: React.FC<{ item: StoredContent }> = ({ item }) => {
@@ -162,13 +153,13 @@ export const CategoryItem: React.FC<{ item: StoredContent }> = ({ item }) => {
             />
             <ChevronDown
               data-down-icon
-              className={`absolute left-1/2 top-1/2 z-[2] h-4 w-4 min-w-4 -translate-x-1/2 -translate-y-1/2 scale-75 opacity-0 transition-[transform,opacity] duration-150 ${isExpanded ? "rotate-180" : "rotate-0"}`}
+              className={`absolute left-1/2 top-1/2 z-[2] h-4 w-4 min-w-4 -translate-x-1/2 -translate-y-1/2 scale-75 opacity-0 transition-[transform,opacity] duration-150 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
               strokeWidth={1.5}
             />
           </div>
 
           <span className="w-full truncate text-nowrap text-left">
-            {item.title ?? "Untitled website"}
+            {item.title ?? 'Untitled website'}
           </span>
         </button>
         <Drawer
@@ -187,7 +178,7 @@ export const CategoryItem: React.FC<{ item: StoredContent }> = ({ item }) => {
                 href={item.url}
                 className="text-rgray-11/90 bg-rgray-3 text-md absolute right-0 top-0 flex w-min translate-y-1/2 items-center justify-center gap-1 rounded-full px-5 py-1"
               >
-                <img src={item.image ?? "/brain.png"} className="h-4 w-4" />
+                <img src={item.image ?? '/brain.png'} className="h-4 w-4" />
                 {cleanUrl(item.url)}
               </a>
             </DrawerHeader>
@@ -197,16 +188,16 @@ export const CategoryItem: React.FC<{ item: StoredContent }> = ({ item }) => {
               <Input
                 className=""
                 required
-                value={item.title ?? ""}
-                placeholder={item.title ?? "Enter the title for the page"}
+                value={item.title ?? ''}
+                placeholder={item.title ?? 'Enter the title for the page'}
               />
             </div>
             <div className="mt-5">
               <Label>Additional Context</Label>
               <Textarea
                 className=""
-                value={item.content ?? ""}
-                placeholder={"Enter additional context for this page"}
+                value={item.content ?? ''}
+                placeholder={'Enter additional context for this page'}
               />
             </div>
             <DrawerFooter className="flex flex-row-reverse items-center justify-end px-0 pt-5">
@@ -233,7 +224,7 @@ export const CategoryItem: React.FC<{ item: StoredContent }> = ({ item }) => {
             onReorder={setItems}
             as="div"
             initial={{ height: 0 }}
-            animate={{ height: "auto" }}
+            animate={{ height: 'auto' }}
             exit={{
               height: 0,
               transition: {},
@@ -281,8 +272,8 @@ export const CategoryPage: React.FC<{
       >
         <div className="relative h-4 min-w-4">
           <img
-            src={item.image ?? "/brain.png"}
-            alt={item.title ?? "Untitiled website"}
+            src={item.image ?? '/brain.png'}
+            alt={item.title ?? 'Untitiled website'}
             className="z-1 h-4 w-4 transition-[transform,opacity] delay-150 duration-150"
           />
           <ArrowUpRight
@@ -293,7 +284,7 @@ export const CategoryPage: React.FC<{
         </div>
 
         <span className="w-full truncate text-nowrap">
-          {item.title ?? "Untitled website"}
+          {item.title ?? 'Untitled website'}
         </span>
       </a>
       <button

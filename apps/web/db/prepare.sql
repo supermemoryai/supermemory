@@ -16,6 +16,14 @@ CREATE TABLE `account` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `contentToSpace` (
+	`contentId` integer NOT NULL,
+	`spaceId` integer NOT NULL,
+	PRIMARY KEY(`contentId`, `spaceId`),
+	FOREIGN KEY (`contentId`) REFERENCES `storedContent`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`spaceId`) REFERENCES `space`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `session` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`sessionToken` text(255) NOT NULL,
@@ -24,10 +32,11 @@ CREATE TABLE `session` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `spaces` (
+CREATE TABLE `space` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text DEFAULT 'all' NOT NULL,
-	`description` text(255)
+	`user` text(255),
+	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `storedContent` (
@@ -36,12 +45,10 @@ CREATE TABLE `storedContent` (
 	`title` text(255),
 	`description` text(255),
 	`url` text NOT NULL,
-	`space` text(255) DEFAULT 'all',
 	`savedAt` integer NOT NULL,
 	`baseUrl` text(255),
 	`image` text(255),
 	`user` text(255),
-	FOREIGN KEY (`space`) REFERENCES `spaces`(`name`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -62,9 +69,9 @@ CREATE TABLE `verificationToken` (
 --> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`userId`);--> statement-breakpoint
 CREATE INDEX `session_userId_idx` ON `session` (`userId`);--> statement-breakpoint
-CREATE INDEX `spaces_name_idx` ON `spaces` (`name`);--> statement-breakpoint
+CREATE INDEX `spaces_name_idx` ON `space` (`name`);--> statement-breakpoint
+CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint
 CREATE INDEX `storedContent_savedAt_idx` ON `storedContent` (`savedAt`);--> statement-breakpoint
 CREATE INDEX `storedContent_title_idx` ON `storedContent` (`title`);--> statement-breakpoint
-CREATE INDEX `storedContent_space_idx` ON `storedContent` (`space`);--> statement-breakpoint
 CREATE INDEX `storedContent_user_idx` ON `storedContent` (`user`);

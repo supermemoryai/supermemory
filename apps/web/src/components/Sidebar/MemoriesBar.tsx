@@ -76,7 +76,6 @@ const SpaceExitVariant: Variant = {
 
 export function SpaceItem({
   title,
-  description,
   content,
   id,
   onDelete,
