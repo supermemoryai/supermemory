@@ -1,5 +1,12 @@
 import { db } from '@/server/db';
-import { sessions, storedContent, users } from '@/server/db/schema';
+import {
+  contentToSpace,
+  sessions,
+  space,
+  StoredContent,
+  storedContent,
+  users,
+} from '@/server/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -47,12 +54,15 @@ export default async function Home() {
     return redirect('/api/auth/signin');
   }
 
-  const posts = await db
+  // Fetch all content for the user
+  const contents = await db
     .select()
     .from(storedContent)
-    .where(eq(storedContent.user, userData.id));
+    .where(eq(storedContent.user, userData.id))
+    .all();
 
-  const collectedSpaces = transformContent(posts);
+  const collectedSpaces =
+    contents.length > 0 ? await transformContent(contents) : [];
 
   return (
     <div className="flex w-screen">

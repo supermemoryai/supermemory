@@ -28,10 +28,13 @@ const menuItemsBottom: Array<MenuItem> = [
 
 export default function Sidebar({
   selectChange,
+  spaces
 }: {
   selectChange?: (selectedItem: string | null) => void;
+  spaces: CollectedSpaces[];
 }) {
-  const { spaces } = useMemory();
+  // TODO: @yxshv, put spaces in context here
+  // const { spaces } = useMemory();
 
   const menuItemsTop: Array<MenuItem> = [
     {
