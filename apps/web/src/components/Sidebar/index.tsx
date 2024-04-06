@@ -28,19 +28,14 @@ const menuItemsBottom: Array<MenuItem> = [
 
 export default function Sidebar({
   selectChange,
-  spaces
 }: {
   selectChange?: (selectedItem: string | null) => void;
-  spaces: CollectedSpaces[];
 }) {
-  // TODO: @yxshv, put spaces in context here
-  // const { spaces } = useMemory();
-
   const menuItemsTop: Array<MenuItem> = [
     {
       icon: <MemoryIcon className="h-10 w-10" />,
       label: "Memories",
-      content: <MemoriesBar spaces={spaces} />,
+      content: <MemoriesBar />,
     },
   ];
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
@@ -62,7 +57,7 @@ export default function Sidebar({
             item={{
               label: "Memories",
               icon: <MemoryIcon className="h-10 w-10" />,
-              content: <MemoriesBar spaces={spaces} />,
+              content: <MemoriesBar />,
             }}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}

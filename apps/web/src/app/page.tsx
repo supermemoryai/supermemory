@@ -1,4 +1,4 @@
-import { db } from '@/server/db';
+import { db } from "@/server/db";
 import {
   contentToSpace,
   sessions,
@@ -6,34 +6,29 @@ import {
   StoredContent,
   storedContent,
   users,
-} from '@/server/db/schema';
-import { eq, inArray } from 'drizzle-orm';
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import Sidebar from '@/components/Sidebar/index';
-import Main from '@/components/Main';
-import MessagePoster from './MessagePoster';
-import { transformContent } from '../../types/memory';
+} from "@/server/db/schema";
+import { eq, inArray } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import Sidebar from "@/components/Sidebar/index";
+import Main from "@/components/Main";
+import MessagePoster from "./MessagePoster";
+import { transformContent } from "../../types/memory";
+import { MemoryProvider } from "@/contexts/MemoryContext";
+import Content from "./content";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export default async function Home() {
   const token =
-    cookies().get('next-auth.session-token')?.value ??
-    cookies().get('__Secure-authjs.session-token')?.value ??
-    cookies().get('authjs.session-token')?.value ??
-    headers().get('Authorization')?.replace('Bearer ', '');
+    cookies().get("next-auth.session-token")?.value ??
+    cookies().get("__Secure-authjs.session-token")?.value ??
+    cookies().get("authjs.session-token")?.value ??
+    headers().get("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    return redirect('/api/auth/signin');
+    return redirect("/api/auth/signin");
   }
-
-  const selectedItem = cookies().get('selectedItem')?.value;
-
-  const setSelectedItem = async (selectedItem: string | null) => {
-    'use server';
-    cookies().set('selectedItem', selectedItem!);
-  };
 
   const session = await db
     .select()
@@ -41,7 +36,7 @@ export default async function Home() {
     .where(eq(sessions.sessionToken, token!));
 
   if (!session || session.length === 0) {
-    return redirect('/api/auth/signin');
+    return redirect("/api/auth/signin");
   }
 
   const [userData] = await db
@@ -51,7 +46,7 @@ export default async function Home() {
     .limit(1);
 
   if (!userData) {
-    return redirect('/api/auth/signin');
+    return redirect("/api/auth/signin");
   }
 
   // Fetch all content for the user
@@ -65,10 +60,8 @@ export default async function Home() {
     contents.length > 0 ? await transformContent(contents) : [];
 
   return (
-    <div className="flex w-screen">
-      <Sidebar selectChange={setSelectedItem} spaces={collectedSpaces} />
-      <Main sidebarOpen={selectedItem !== null} />
-      <MessagePoster jwt={token} />
-    </div>
+    <MemoryProvider spaces={collectedSpaces}>
+      <Content />
+    </MemoryProvider>
   );
 }
