@@ -86,7 +86,10 @@ export function MemoriesBar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <AddMemoryModal state={addMemoryState} />
+      <AddMemoryModal
+        state={addMemoryState}
+        onStateChange={setAddMemoryState}
+      />
       <div
         ref={parent}
         className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
@@ -271,64 +274,68 @@ export function SpaceMoreButton({ onDelete }: { onDelete?: () => void }) {
 
 export function AddMemoryModal({
   state,
+  onStateChange,
 }: {
   state: "page" | "note" | "space" | null;
+  onStateChange: (state: "page" | "note" | "space" | null) => void;
 }) {
   return (
     <>
-    <Dialog open={state === "page"}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add a web page to memory</DialogTitle>
-          <DialogDescription>
-            This will take you the web page you are trying to add to memory,
-            where the extension will save the page to memory
-          </DialogDescription>
-        </DialogHeader>
-        <Label className="mt-5">URL</Label>
-        <Input
-          autoFocus
-          placeholder="Enter the URL of the page"
-          type="url"
-          className="bg-rgray-4 mt-2 w-full"
-        />
-        <DialogFooter>
-          <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-            Add
-          </DialogClose>
-          <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-            Cancel
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    <Dialog open={state === "note"}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add a web page to memory</DialogTitle>
-          <DialogDescription>
-            This will take you the web page you are trying to add to memory,
-            where the extension will save the page to memory
-          </DialogDescription>
-        </DialogHeader>
-        <Label className="mt-5">URL</Label>
-        <Input
-          autoFocus
-          placeholder="Enter the URL of the page"
-          type="url"
-          className="bg-rgray-4 mt-2 w-full"
-        />
-        <DialogFooter>
-          <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-            Add
-          </DialogClose>
-          <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-            Cancel
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    
+      <Dialog
+        open={state === "page"}
+        onOpenChange={(open) => onStateChange(open ? "page" : null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add a web page to memory</DialogTitle>
+            <DialogDescription>
+              This will take you the web page you are trying to add to memory,
+              where the extension will save the page to memory
+            </DialogDescription>
+          </DialogHeader>
+          <Label className="mt-5">URL</Label>
+          <Input
+            autoFocus
+            placeholder="Enter the URL of the page"
+            type="url"
+            className="bg-rgray-4 mt-2 w-full"
+          />
+          <DialogFooter>
+            <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+              Add
+            </DialogClose>
+            <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+              Cancel
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={state === "note"}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add a web page to memory</DialogTitle>
+            <DialogDescription>
+              This will take you the web page you are trying to add to memory,
+              where the extension will save the page to memory
+            </DialogDescription>
+          </DialogHeader>
+          <Label className="mt-5">URL</Label>
+          <Input
+            autoFocus
+            placeholder="Enter the URL of the page"
+            type="url"
+            className="bg-rgray-4 mt-2 w-full"
+          />
+          <DialogFooter>
+            <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+              Add
+            </DialogClose>
+            <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+              Cancel
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
