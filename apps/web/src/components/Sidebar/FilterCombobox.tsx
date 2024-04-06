@@ -38,8 +38,6 @@ export function FilterCombobox({ className, ...props }: Props) {
         : 0,
   );
 
-  console.log(sortedSpaces, values);
-
   return (
     <AnimatePresence mode="popLayout">
       <LayoutGroup>

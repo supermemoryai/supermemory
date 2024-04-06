@@ -5,10 +5,12 @@ import { CollectedSpaces } from "../../types/memory";
 // temperory (will change)
 export const MemoryContext = React.createContext<{
   spaces: CollectedSpaces[];
+  deleteSpace: (id: number) => Promise<void>;
   addSpace: (space: CollectedSpaces) => Promise<void>;
 }>({
   spaces: [],
   addSpace: async (space) => {},
+  deleteSpace: async (id) => {},
 });
 
 export const MemoryProvider: React.FC<
@@ -22,9 +24,15 @@ export const MemoryProvider: React.FC<
     },
     [spaces],
   );
+  const deleteSpace = useCallback(
+    async (id: number) => {
+      setSpaces((prev) => prev.filter((s) => s.id !== id));
+    },
+    [spaces],
+  );
 
   return (
-    <MemoryContext.Provider value={{ spaces, addSpace }}>
+    <MemoryContext.Provider value={{ spaces, addSpace, deleteSpace }}>
       {children}
     </MemoryContext.Provider>
   );

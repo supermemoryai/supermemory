@@ -5,12 +5,15 @@ import {
   MemoryWithImages2,
 } from "@/assets/MemoryWithImages";
 import { type CollectedSpaces } from "../../../types/memory";
-import { InputWithIcon } from "../ui/input";
+import { Input, InputWithIcon } from "../ui/input";
 import {
   ArrowUpRight,
   Edit3,
   MoreHorizontal,
+  Plus,
   Search,
+  Sparkles,
+  Text,
   Trash2,
 } from "lucide-react";
 import {
@@ -21,10 +24,28 @@ import {
 } from "../ui/dropdown-menu";
 import { useState } from "react";
 import { Variant, useAnimate, motion } from "framer-motion";
+import { useMemory } from "@/contexts/MemoryContext";
+import { SpaceIcon } from "@/assets/Memories";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+  DialogFooter,
+  DialogClose,
+} from "../ui/dialog";
+import { Label } from "../ui/label";
+import { DialogTrigger } from "@radix-ui/react-dialog";
 
-export function MemoriesBar({ spaces }: { spaces: CollectedSpaces[] }) {
+export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
-  const [currentSpaces, setCurrentSpaces] = useState(spaces);
+  const { spaces, deleteSpace } = useMemory();
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [addMemoryState, setAddMemoryState] = useState<
+    "page" | "note" | "space" | null
+  >(null);
 
   return (
     <div className="text-rgray-11 flex w-full flex-col items-start py-8 text-left">
@@ -36,15 +57,43 @@ export function MemoriesBar({ spaces }: { spaces: CollectedSpaces[] }) {
           className="bg-rgray-4 mt-2 w-full"
         />
       </div>
+      <div className="mt-2 flex w-full px-8">
+        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 hover:bg-rgray-4 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2">
+              <Plus className="mr-2 h-5 w-5" />
+              Add
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem
+              onClick={() => {
+                setIsDropdownOpen(false);
+                setAddMemoryState("page");
+              }}
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Page to Memory
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Text className="mr-2 h-4 w-4" />
+              Note
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <SpaceIcon className="mr-2 h-4 w-4" />
+              Space
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <AddMemoryModal state={addMemoryState} />
       <div
         ref={parent}
         className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
       >
-        {currentSpaces.map((space) => (
+        {spaces.map((space) => (
           <SpaceItem
-            onDelete={() =>
-              setCurrentSpaces((prev) => prev.filter((s) => s.id !== space.id))
-            }
+            onDelete={() => deleteSpace(space.id)}
             key={space.id}
             {...space}
           />
@@ -66,7 +115,6 @@ const SpaceExitVariant: Variant = {
 
 export function SpaceItem({
   title,
-  description,
   content,
   id,
   onDelete,
@@ -191,7 +239,7 @@ export function SpaceMoreButton({ onDelete }: { onDelete?: () => void }) {
         <DropdownMenuTrigger asChild>
           <button
             data-more-button
-            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute  right-2 top-2 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2"
+            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 rounded-md ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2"
           >
             <MoreHorizontal className="text-rgray-11 h-5 w-5" />
           </button>
@@ -217,6 +265,70 @@ export function SpaceMoreButton({ onDelete }: { onDelete?: () => void }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+    </>
+  );
+}
+
+export function AddMemoryModal({
+  state,
+}: {
+  state: "page" | "note" | "space" | null;
+}) {
+  return (
+    <>
+    <Dialog open={state === "page"}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a web page to memory</DialogTitle>
+          <DialogDescription>
+            This will take you the web page you are trying to add to memory,
+            where the extension will save the page to memory
+          </DialogDescription>
+        </DialogHeader>
+        <Label className="mt-5">URL</Label>
+        <Input
+          autoFocus
+          placeholder="Enter the URL of the page"
+          type="url"
+          className="bg-rgray-4 mt-2 w-full"
+        />
+        <DialogFooter>
+          <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+            Add
+          </DialogClose>
+          <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+            Cancel
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={state === "note"}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a web page to memory</DialogTitle>
+          <DialogDescription>
+            This will take you the web page you are trying to add to memory,
+            where the extension will save the page to memory
+          </DialogDescription>
+        </DialogHeader>
+        <Label className="mt-5">URL</Label>
+        <Input
+          autoFocus
+          placeholder="Enter the URL of the page"
+          type="url"
+          className="bg-rgray-4 mt-2 w-full"
+        />
+        <DialogFooter>
+          <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+            Add
+          </DialogClose>
+          <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+            Cancel
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    
     </>
   );
 }
