@@ -51,7 +51,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       ref={main}
       className={cn(
         "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
-        hide ? "pb-5" : supportsDVH() ? "pb-[13vh]" : "pb-[20vh]",
+        hide ? "" : "main-hidden",
       )}
     >
       <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">

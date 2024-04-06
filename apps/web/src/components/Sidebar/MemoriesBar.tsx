@@ -36,7 +36,7 @@ import {
   DialogClose,
 } from "../ui/dialog";
 import { Label } from "../ui/label";
-import { DialogTrigger } from "@radix-ui/react-dialog";
+import useViewport from "@/hooks/useViewport";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -123,6 +123,7 @@ export function SpaceItem({
   onDelete,
 }: CollectedSpaces & { onDelete: () => void }) {
   const [itemRef, animateItem] = useAnimate();
+  const { width } = useViewport();
 
   return (
     <motion.div
@@ -134,7 +135,10 @@ export function SpaceItem({
       </button>
       <SpaceMoreButton
         onDelete={() => {
-          if (!itemRef.current) return;
+          if (!itemRef.current || width < 768) {
+            onDelete();
+            return;
+          }
           const trash = document.querySelector("#trash")! as HTMLDivElement;
           const trashBin = document.querySelector("#trash-button")!;
           const trashRect = trashBin.getBoundingClientRect();
@@ -242,7 +246,7 @@ export function SpaceMoreButton({ onDelete }: { onDelete?: () => void }) {
         <DropdownMenuTrigger asChild>
           <button
             data-more-button
-            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 rounded-md ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2"
+            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute  right-2 top-2 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2"
           >
             <MoreHorizontal className="text-rgray-11 h-5 w-5" />
           </button>

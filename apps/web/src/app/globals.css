@@ -46,3 +46,13 @@ body {
   max-height: 100vh;
   max-height: 100dvh;
 }
+
+.DrawerContent {
+  padding-top: 5vh;
+  padding-top: 5dvh;
+}
+
+.main-hidden {
+  padding-bottom: 20vh;
+  padding-bottom: 15dvh;
+}

@@ -59,6 +59,23 @@ export default async function Home() {
   const collectedSpaces =
     contents.length > 0 ? await transformContent(contents) : [];
 
+  collectedSpaces.push({
+    id: 1,
+    title: "Test",
+    content: [
+      {
+        id: 1,
+        content: "Test",
+        title: "Vscode",
+        description: "Test",
+        url: "https://vscode-remake.vercel.app/",
+        savedAt: new Date(),
+        baseUrl: "https://vscode-remake.vercel.app/",
+        image: "https://vscode-remake.vercel.app/favicon.svg",
+      },
+    ],
+  });
+
   return (
     <MemoryProvider spaces={collectedSpaces}>
       <Content />
