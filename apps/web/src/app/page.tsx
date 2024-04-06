@@ -61,12 +61,8 @@ export default async function Home() {
     .where(eq(storedContent.user, userData.id))
     .all();
 
-  console.log(contents);
-
   const collectedSpaces =
     contents.length > 0 ? await transformContent(contents) : [];
-
-  console.log('collected', collectedSpaces);
 
   return (
     <div className="flex w-screen">

@@ -1,49 +1,54 @@
-'use client';
-import { StoredContent } from '@/server/db/schema';
-import { MemoryIcon } from '../../assets/Memories';
-import { Trash2, User2 } from 'lucide-react';
-import React, { ElementType, useEffect, useState } from 'react';
-import { MemoriesBar } from './MemoriesBar';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Bin } from '@/assets/Bin';
-import { CollectedSpaces } from '../../../types/memory';
+"use client";
+import { StoredContent } from "@/server/db/schema";
+import { MemoryIcon } from "../../assets/Memories";
+import { Trash2, User2 } from "lucide-react";
+import React, { ElementType, useEffect, useState } from "react";
+import { MemoriesBar } from "./MemoriesBar";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bin } from "@/assets/Bin";
+import { CollectedSpaces } from "../../../types/memory";
+import { useMemory } from "@/contexts/MemoryContext";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
   label: string;
-  content?: React.ReactElement;
+  content?: React.ReactNode;
 };
 
 const menuItemsBottom: Array<MenuItem> = [
   {
     icon: <Trash2 strokeWidth={1.3} className="h-6 w-6" />,
-    label: 'Trash',
+    label: "Trash",
   },
   {
     icon: <User2 strokeWidth={1.3} className="h-6 w-6" />,
-    label: 'Profile',
+    label: "Profile",
   },
 ];
 
 export default function Sidebar({
   selectChange,
-  spaces,
+  spaces
 }: {
-  selectChange?: (selectedItem: string | null) => Promise<void>;
+  selectChange?: (selectedItem: string | null) => void;
   spaces: CollectedSpaces[];
 }) {
+  // TODO: @yxshv, put spaces in context here
+  // const { spaces } = useMemory();
+
   const menuItemsTop: Array<MenuItem> = [
     {
       icon: <MemoryIcon className="h-10 w-10" />,
-      label: 'Memories',
+      label: "Memories",
       content: <MemoriesBar spaces={spaces} />,
     },
   ];
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
-  const Subbar =
-    menuItems.find((i) => i.label === selectedItem)?.content ?? (() => <></>);
+  const Subbar = menuItems.find((i) => i.label === selectedItem)?.content ?? (
+    <></>
+  );
 
   useEffect(() => {
     void selectChange?.(selectedItem);
@@ -55,7 +60,7 @@ export default function Sidebar({
         <div className="bg-rgray-2 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
           <MenuItem
             item={{
-              label: 'Memories',
+              label: "Memories",
               icon: <MemoryIcon className="h-10 w-10" />,
               content: <MemoriesBar spaces={spaces} />,
             }}
@@ -67,7 +72,7 @@ export default function Sidebar({
 
           <MenuItem
             item={{
-              label: 'Trash',
+              label: "Trash",
               icon: <Bin id="trash" className="z-[300] h-7 w-7" />,
             }}
             selectedItem={selectedItem}
@@ -76,7 +81,7 @@ export default function Sidebar({
           />
           <MenuItem
             item={{
-              label: 'Profile',
+              label: "Profile",
               icon: <User2 strokeWidth={1.3} className="h-7 w-7" />,
             }}
             selectedItem={selectedItem}
@@ -84,10 +89,6 @@ export default function Sidebar({
           />
         </div>
         <AnimatePresence>
-          {/* @yxshv idk why this is giving typeerror
-            when used as <Subbar/> it says it's not valid element type
-          */}
-          {/* @ts-ignore */}
           {selectedItem && <SubSidebar>{Subbar}</SubSidebar>}
         </AnimatePresence>
       </div>
@@ -119,11 +120,11 @@ const MenuItem = ({
 export function SubSidebar({ children }: { children?: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: '-100%' }}
+      initial={{ opacity: 0, x: "-100%" }}
       animate={{ opacity: 1, x: 0 }}
       exit={{
         opacity: 0,
-        x: '-100%',
+        x: "-100%",
         transition: { delay: 0.2 },
       }}
       transition={{
