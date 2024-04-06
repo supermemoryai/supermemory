@@ -25,8 +25,9 @@ export function MemoryDrawer({ className, hide = false, ...props }: Props) {
     >
       <DrawerContent
         overlay={false}
+        data-expanded={activeSnapPoint === 0.9}
         className={cn(
-          "border-rgray-6 DrawerContent h-full w-screen border focus-visible:outline-none",
+          "border-rgray-6 DrawerContent data-[expanded=true]:bg-rgray-3 h-full w-screen border transition-[background] focus-visible:outline-none",
           hide ? "hidden" : "",
         )}
         handle={false}

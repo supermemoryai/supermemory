@@ -37,6 +37,7 @@ import {
 } from "../ui/dialog";
 import { Label } from "../ui/label";
 import useViewport from "@/hooks/useViewport";
+import useTouchHold from "@/hooks/useTouchHold";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -125,15 +126,26 @@ export function SpaceItem({
   const [itemRef, animateItem] = useAnimate();
   const { width } = useViewport();
 
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
+
+  const touchEventProps = useTouchHold({
+    onHold() {
+      setMoreDropdownOpen(true);
+    },
+  });
+
   return (
     <motion.div
       ref={itemRef}
-      className="hover:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 [&:hover>[data-more-button]]:opacity-100"
+      {...touchEventProps}
+      className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
     >
       <button data-space-text className="focus-visible:outline-none">
         {title}
       </button>
       <SpaceMoreButton
+        isOpen={moreDropdownOpen}
+        setIsOpen={setMoreDropdownOpen}
         onDelete={() => {
           if (!itemRef.current || width < 768) {
             onDelete();
@@ -237,21 +249,27 @@ export function SpaceItem({
   );
 }
 
-export function SpaceMoreButton({ onDelete }: { onDelete?: () => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-
+export function SpaceMoreButton({
+  onDelete,
+  isOpen,
+  setIsOpen,
+}: {
+  onDelete?: () => void;
+  isOpen?: boolean;
+  setIsOpen?: (open: boolean) => void;
+}) {
   return (
     <>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
             data-more-button
-            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute  right-2 top-2 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2"
+            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute right-2 top-2 scale-0 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 md:block md:scale-100 md:bg-transparent"
           >
             <MoreHorizontal className="text-rgray-11 h-5 w-5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
+        <DropdownMenuContent align="start">
           <DropdownMenuItem>
             <ArrowUpRight
               className="mr-2 h-4 w-4 scale-125"
