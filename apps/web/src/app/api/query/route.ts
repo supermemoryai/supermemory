@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ message: "Invalid Key, session not found." }, { status: 404 });
     }
 
-    const session = {session: sessionData[0], user: user[0]}
+    const session = { session: sessionData[0], user: user[0] }
 
     const query = new URL(req.url).searchParams.get("q");
     const sourcesOnly = new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
@@ -36,8 +36,11 @@ export async function GET(req: NextRequest) {
         }
     })
 
+    console.log(resp.status)
+
     if (resp.status !== 200 || !resp.ok) {
         const errorData = await resp.json();
+        console.log(errorData)
         return new Response(JSON.stringify({ message: "Error in CF function", error: errorData }), { status: resp.status });
     }
 

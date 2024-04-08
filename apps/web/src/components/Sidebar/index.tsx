@@ -1,13 +1,12 @@
-"use client";
-import { StoredContent } from "@/server/db/schema";
-import { MemoryIcon } from "../../assets/Memories";
-import { Trash2, User2 } from "lucide-react";
-import React, { ElementType, useEffect, useState } from "react";
-import { MemoriesBar } from "./MemoriesBar";
-import { AnimatePresence, motion } from "framer-motion";
-import { Bin } from "@/assets/Bin";
-import { CollectedSpaces } from "../../../types/memory";
-import { useMemory } from "@/contexts/MemoryContext";
+'use client';
+import { MemoryIcon } from '../../assets/Memories';
+import { Trash2, User2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { MemoriesBar } from './MemoriesBar';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Bin } from '@/assets/Bin';
+import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
+import { useSession } from 'next-auth/react';
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -15,29 +14,48 @@ export type MenuItem = {
   content?: React.ReactNode;
 };
 
-const menuItemsBottom: Array<MenuItem> = [
-  {
-    icon: <Trash2 strokeWidth={1.3} className="h-6 w-6" />,
-    label: "Trash",
-  },
-  {
-    icon: <User2 strokeWidth={1.3} className="h-6 w-6" />,
-    label: "Profile",
-  },
-];
-
 export default function Sidebar({
   selectChange,
 }: {
   selectChange?: (selectedItem: string | null) => void;
 }) {
+  const { data: session } = useSession();
   const menuItemsTop: Array<MenuItem> = [
     {
       icon: <MemoryIcon className="h-10 w-10" />,
-      label: "Memories",
+      label: 'Memories',
       content: <MemoriesBar />,
     },
   ];
+
+  const menuItemsBottom: Array<MenuItem> = [
+    {
+      icon: <Trash2 strokeWidth={1.3} className="h-6 w-6" />,
+      label: 'Trash',
+    },
+    {
+      icon: (
+        <div>
+          <Avatar>
+            {session?.user?.image ? (
+              <AvatarImage
+                className="h-6 w-6 rounded-full"
+                src={session?.user?.image}
+                alt="user pfp"
+              />
+            ) : (
+              <User2 strokeWidth={1.3} className="h-6 w-6" />
+            )}
+            <AvatarFallback>
+              {session?.user?.name?.split(' ').map((n) => n[0])}{' '}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+      ),
+      label: 'Profile',
+    },
+  ];
+
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
@@ -55,7 +73,7 @@ export default function Sidebar({
         <div className="bg-rgray-2 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
           <MenuItem
             item={{
-              label: "Memories",
+              label: 'Memories',
               icon: <MemoryIcon className="h-10 w-10" />,
               content: <MemoriesBar />,
             }}
@@ -67,7 +85,7 @@ export default function Sidebar({
 
           <MenuItem
             item={{
-              label: "Trash",
+              label: 'Trash',
               icon: <Bin id="trash" className="z-[300] h-7 w-7" />,
             }}
             selectedItem={selectedItem}
@@ -76,8 +94,25 @@ export default function Sidebar({
           />
           <MenuItem
             item={{
-              label: "Profile",
-              icon: <User2 strokeWidth={1.3} className="h-7 w-7" />,
+              label: 'Profile',
+              icon: (
+                <div className="mb-2">
+                  <Avatar>
+                    {session?.user?.image ? (
+                      <AvatarImage
+                        className="h-6 w-6 rounded-full"
+                        src={session?.user?.image}
+                        alt="@shadcn"
+                      />
+                    ) : (
+                      <User2 strokeWidth={1.3} className="h-6 w-6" />
+                    )}
+                    <AvatarFallback>
+                      {session?.user?.name?.split(' ').map((n) => n[0])}{' '}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              ),
             }}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
@@ -115,11 +150,11 @@ const MenuItem = ({
 export function SubSidebar({ children }: { children?: React.ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: "-100%" }}
+      initial={{ opacity: 0, x: '-100%' }}
       animate={{ opacity: 1, x: 0 }}
       exit={{
         opacity: 0,
-        x: "-100%",
+        x: '-100%',
         transition: { delay: 0.2 },
       }}
       transition={{
