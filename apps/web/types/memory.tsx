@@ -5,7 +5,8 @@ import { eq, inArray, or } from 'drizzle-orm';
 export const transformContent = async (
   content: StoredContent[],
 ): Promise<CollectedSpaces[]> => {
-  const collectedSpaces = await db
+  // Retrieve spaces and their associated content from the database
+  const spacesWithContent = await db
     .select({
       id: space.id,
       name: space.name,
@@ -21,13 +22,30 @@ export const transformContent = async (
     )
     .all();
 
-  const result = collectedSpaces.map((s) => ({
-    id: s.id,
-    title: s.name,
-    content: content.filter((c) => c.id === s.contentId),
-  }));
+  // Group content by id
+  const contentById = content.reduce(
+    (acc, c) => {
+      acc[c.id] = acc[c.id] || [];
+      acc[c.id].push(c);
+      return acc;
+    },
+    {} as { [key: number]: StoredContent[] },
+  );
 
-  return result;
+  // Aggregate content for each space
+  const aggregatedSpaces = spacesWithContent.reduce(
+    (acc, space) => {
+      if (!acc[space.id]) {
+        acc[space.id] = { id: space.id, title: space.name, content: [] };
+      }
+      acc[space.id].content.push(...contentById[space.contentId!]);
+      return acc;
+    },
+    {} as { [key: number]: CollectedSpaces },
+  );
+
+  // Convert the aggregated spaces object to an array
+  return Object.values(aggregatedSpaces);
 };
 
 export type CollectedSpaces = {

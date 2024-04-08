@@ -1,6 +1,6 @@
-"use client";
-import React, { useCallback } from "react";
-import { CollectedSpaces } from "../../types/memory";
+'use client';
+import React, { useCallback } from 'react';
+import { CollectedSpaces } from '../../types/memory';
 
 // temperory (will change)
 export const MemoryContext = React.createContext<{
@@ -31,6 +31,8 @@ export const MemoryProvider: React.FC<
     [spaces],
   );
 
+  console.log(spaces);
+
   return (
     <MemoryContext.Provider value={{ spaces, addSpace, deleteSpace }}>
       {children}
@@ -41,7 +43,7 @@ export const MemoryProvider: React.FC<
 export const useMemory = () => {
   const context = React.useContext(MemoryContext);
   if (context === undefined) {
-    throw new Error("useMemory must be used within a MemoryProvider");
+    throw new Error('useMemory must be used within a MemoryProvider');
   }
   return context;
 };
