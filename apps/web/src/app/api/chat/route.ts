@@ -31,10 +31,12 @@ export async function POST(req: NextRequest) {
         chatHistory: ChatHistory[]
     };
 
+    console.log("CHathistory", chatHistory)
 
     if (!query) {
         return new Response(JSON.stringify({ message: "Invalid query" }), { status: 400 });
     }
+
 
     const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}`, {
         headers: {
@@ -42,11 +44,12 @@ export async function POST(req: NextRequest) {
         },
         method: "POST",
         body: JSON.stringify({
-            chatHistory
+            chatHistory: chatHistory.chatHistory ?? []
         })
     })
 
     console.log(resp.status)
+    console.log(resp.statusText)
 
     if (resp.status !== 200 || !resp.ok) {
         const errorData = await resp.json();

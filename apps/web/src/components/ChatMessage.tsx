@@ -7,9 +7,11 @@ import Image from 'next/image';
 function ChatMessage({
   message,
   user,
+  sources,
 }: {
   message: string;
   user: User | 'ai';
+  sources?: string[];
 }) {
   return (
     <div className="flex flex-col gap-4">

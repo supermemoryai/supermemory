@@ -31,8 +31,6 @@ export const MemoryProvider: React.FC<
     [spaces],
   );
 
-  console.log(spaces);
-
   return (
     <MemoryContext.Provider value={{ spaces, addSpace, deleteSpace }}>
       {children}
