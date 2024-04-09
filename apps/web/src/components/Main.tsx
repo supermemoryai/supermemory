@@ -11,6 +11,7 @@ import SearchResults from './SearchResults';
 import { ChatHistory } from '../../types/memory';
 import { ChatMessage } from './ChatMessage';
 import { useSession } from 'next-auth/react';
+import { Card, CardContent } from './ui/card';
 
 function supportsDVH() {
   try {
@@ -21,8 +22,6 @@ function supportsDVH() {
 }
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
-  // return <Chat sidebarOpen={sidebarOpen} />;
-
   const [hide, setHide] = useState(false);
   const [value, setValue] = useState('');
   const { width } = useViewport();
@@ -37,7 +36,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   // TEMPORARY solution: Basically this is to just keep track of the sources used for each chat message
   // Not a great solution
   const [chatTextSourceDict, setChatTextSourceDict] = useState<
-    Record<string, string>
+    Record<string, string[]>
   >({});
 
   // helper function to append a new msg
@@ -168,6 +167,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     e.preventDefault();
     setIsAiLoading(true);
 
+    console.log(value);
+
     appendToChatHistory('user', value);
 
     const sourcesResponse = await fetch(
@@ -184,7 +185,9 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       ids: string[];
     };
 
-    setSearchResults(sourcesInJson.ids);
+    setSearchResults((prev) =>
+      Array.from(new Set([...prev, ...sourcesInJson.ids])),
+    );
 
     // TODO: PASS THE `SPACE` TO THE API
     const response = await fetch(`/api/chat?q=${value}`, {
@@ -209,6 +212,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         if (done) {
           setIsAiLoading(false);
           setToBeParsed('');
+          setValue('');
+
           return;
         }
 
@@ -220,7 +225,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   };
 
   return (
-    <main
+    <motion.main
       data-sidebar-open={sidebarOpen}
       ref={main}
       className={cn(
@@ -228,7 +233,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         hide ? '' : 'main-hidden',
       )}
     >
-      <div className="flex w-full flex-col">
+      <div className="flex flex-col w-full">
         {chatHistory.map((chat, index) => (
           <ChatMessage
             key={index}
@@ -236,75 +241,50 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             user={chat.role === 'model' ? 'ai' : session?.user!}
           />
         ))}
+        {searchResults.length > 0 && (
+          <div className="mt-4">
+            <h1>Related memories</h1>
+            <div className="grid gap-6">
+              {searchResults.map((value, index) => (
+                <Card key={index}>
+                  <CardContent className="space-y-2">{value}</CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
         Ask your Second brain
       </h1>
-
-      <Textarea2
-        ref={textArea}
-        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-        textAreaProps={{
-          placeholder: 'Ask your SuperMemory...',
-          className:
-            'h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]',
-          value,
-          autoFocus: true,
-          onChange: (e) => setValue(e.target.value),
-        }}
+      <form
+        className="mt-auto h-max min-h-[3em] w-full resize-y flex-row items-start justify-center overflow-none py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+        onSubmit={async (e) => await getSearchResults(e)}
       >
-        <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
-          <FilterCombobox className="hidden md:flex" />
-          <button
-            type="submit"
-            disabled={value.trim().length < 1}
-            className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </button>
-        </div>
-      </Textarea2>
-      {/* {searchResults && (
-        <SearchResults aiResponse={aiResponse} sources={searchResults} />
-      )} */}
+        <Textarea2
+          ref={textArea}
+          textAreaProps={{
+            placeholder: 'Ask your SuperMemory...',
+            className:
+              'h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 pt-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]',
+            value,
+            autoFocus: true,
+            onChange: (e) => setValue(e.target.value),
+          }}
+        >
+          <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
+            <FilterCombobox className="hidden md:flex" />
+            <button
+              type="submit"
+              disabled={value.trim().length < 1}
+              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
+            >
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </div>
+        </Textarea2>
+      </form>
       {width <= 768 && <MemoryDrawer hide={hide} />}
-    </main>
-  );
-}
-
-export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
-  const [value, setValue] = useState('');
-
-  return (
-    <main
-      data-sidebar-open={sidebarOpen}
-      className={cn(
-        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
-      )}
-    >
-      <Textarea2
-        // ref={textArea}
-        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-        textAreaProps={{
-          placeholder: 'Ask your SuperMemory...',
-          className:
-            'h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]',
-          value,
-          autoFocus: true,
-          onChange: (e) => setValue(e.target.value),
-        }}
-      >
-        <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
-          <FilterCombobox className="hidden md:flex" />
-          <button
-            type="submit"
-            disabled={value.trim().length < 1}
-            className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </button>
-        </div>
-      </Textarea2>
-    </main>
+    </motion.main>
   );
 }
