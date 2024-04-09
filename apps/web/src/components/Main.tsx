@@ -7,7 +7,6 @@ import { MemoryDrawer } from './MemoryDrawer';
 import useViewport from '@/hooks/useViewport';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import SearchResults from './SearchResults';
 import { ChatHistory } from '../../types/memory';
 import { ChatMessage } from './ChatMessage';
 import { useSession } from 'next-auth/react';
