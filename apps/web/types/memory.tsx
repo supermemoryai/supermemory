@@ -53,3 +53,8 @@ export type CollectedSpaces = {
   title: string;
   content: StoredContent[];
 };
+
+export type ChatHistory = {
+  role: 'user' | 'model';
+  parts: [{ text: string }];
+};

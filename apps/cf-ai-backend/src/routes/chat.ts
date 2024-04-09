@@ -1,9 +1,9 @@
-import { GenerativeModel } from "@google/generative-ai";
+import { Content, GenerativeModel } from "@google/generative-ai";
 import { OpenAIEmbeddings } from "../OpenAIEmbedder";
 import { CloudflareVectorizeStore } from "@langchain/cloudflare";
 import { Request } from "@cloudflare/workers-types";
 
-export async function GET(request: Request, _: CloudflareVectorizeStore, embeddings: OpenAIEmbeddings, model: GenerativeModel, env?: Env) {
+export async function POST(request: Request, _: CloudflareVectorizeStore, embeddings: OpenAIEmbeddings, model: GenerativeModel, env?: Env) {
 	const queryparams = new URL(request.url).searchParams;
 	const query = queryparams.get("q");
 	const topK = parseInt(queryparams.get("topK") ?? "5");
@@ -47,14 +47,30 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 
 	const vec = await env!.VECTORIZE_INDEX.getByIds(highScoreIds)
 
-	if (vec.length === 0 || !vec[0].metadata) {
-		return new Response(JSON.stringify({ message: "No Results Found" }), { status: 400 });
-	}
-
 	const preparedContext = vec.slice(0, 3).map(({ metadata }) => `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`).join("\n\n");
 
-	const prompt = `You are an agent that summarizes a page based on the query. Be direct and concise, don't say 'based on the context'.\n\n Context:\n${preparedContext} \nAnswer this question based on the context. Question: ${query}\nAnswer:`
-	const output = await model.generateContentStream(prompt);
+	const body = await request.json() as {
+		chatHistory?: Content[]
+	};
+
+	const defaultHistory = [
+		{
+			role: "user",
+			parts: [{ text: `You are an agent that summarizes a page based on the query. don't say 'based on the context'. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format` }],
+		},
+		{
+			role: "model",
+			parts: [{ text: "Ok, I am a personal assistant, and will act as a second brain to help with user's queries." }],
+		},
+	] as Content[];
+
+	const chat = model.startChat({
+		history: [...defaultHistory, ...(body.chatHistory ?? [])],
+	});
+
+	const prompt = `Context:\n${preparedContext}\n\nQuestion: ${query}\nAnswer:`;
+
+	const output = await chat.sendMessageStream(prompt);
 
 	const response = new Response(
 		new ReadableStream({
