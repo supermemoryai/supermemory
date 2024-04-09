@@ -5,10 +5,10 @@ import { Textarea2 } from "./ui/textarea";
 import { ArrowRight, ArrowUp } from "lucide-react";
 import { MemoryDrawer } from "./MemoryDrawer";
 import useViewport from "@/hooks/useViewport";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import { cn, countLines } from "@/lib/utils";
 import { ChatHistory } from "../../types/memory";
-import { ChatMessage } from "./ChatMessage";
+import { ChatAnswer, ChatQuestion } from "./ChatMessage";
 import { useSession } from "next-auth/react";
 import { Card, CardContent } from "./ui/card";
 
@@ -22,6 +22,7 @@ function supportsDVH() {
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [hide, setHide] = useState(false);
+  const [layout, setLayout] = useState<"chat" | "initial">("initial");
   const [value, setValue] = useState("");
   const { width } = useViewport();
   const [searchResults, setSearchResults] = useState<string[]>([]);
@@ -57,7 +58,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   const [toBeParsed, setToBeParsed] = useState("");
 
-  const textArea = useRef<HTMLTextAreaElement>(null);
+  const textArea = useRef<HTMLDivElement>(null);
   const main = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -162,8 +163,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     }
   }, [toBeParsed]);
 
-  const getSearchResults = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const getSearchResults = async () => {
     setIsAiLoading(true);
 
     console.log(value);
@@ -185,7 +185,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     };
 
     setSearchResults((prev) =>
-      Array.from(new Set([...prev, ...sourcesInJson.ids])),
+      Array.from(new Set([...prev, ...(sourcesInJson.ids ?? [])])),
     );
 
     // TODO: PASS THE `SPACE` TO THE API
@@ -223,73 +223,109 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     }
   };
 
+  const onSend = async () => {
+    setLayout("chat");
+    await getSearchResults();
+  };
+
   return (
-    <motion.main
-      data-sidebar-open={sidebarOpen}
-      ref={main}
-      className={cn(
-        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
-        hide ? "" : "main-hidden",
-      )}
-    >
-      <div className="flex w-full flex-col">
-        {chatHistory.map((chat, index) => (
-          <ChatMessage
-            key={index}
-            message={chat.parts.map((part) => part.text).join("")}
-            user={chat.role === "model" ? "ai" : session?.user!}
-          />
-        ))}
-        {searchResults.length > 0 && (
-          <div className="mt-4">
-            <h1>Related memories</h1>
-            <div className="grid gap-6">
-              {searchResults.map((value, index) => (
-                <Card key={index}>
-                  <CardContent className="space-y-2">{value}</CardContent>
-                </Card>
+    <>
+      <AnimatePresence mode="wait">
+        {layout === "chat" ? (
+          <Chat key="chat" sidebarOpen={sidebarOpen} />
+        ) : (
+          <main
+            data-sidebar-open={sidebarOpen}
+            ref={main}
+            className={cn(
+              "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
+              hide ? "" : "main-hidden",
+            )}
+          >
+            <div className="flex w-full flex-col">
+              {chatHistory.map((chat, index) => (
+                // <ChatMessage
+                //   key={index}
+                //   message={chat.parts.map((part) => part.text).join("")}
+                //   user={chat.role === "model" ? "ai" : session?.user!}
+                // />
               ))}
+              {searchResults.length > 0 && (
+                <div className="mt-4">
+                  <h1>Related memories</h1>
+                  <div className="grid gap-6">
+                    {searchResults.map((value, index) => (
+                      <Card key={index}>
+                        <CardContent className="space-y-2">{value}</CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
-      </div>
-      <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
-        Ask your Second brain
-      </h1>
-      <form
-        className="overflow-none mt-auto h-max min-h-[3em] w-full resize-y flex-row items-start justify-center py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-        onSubmit={async (e) => await getSearchResults(e)}
-      >
-        <Textarea2
-          ref={textArea}
-          textAreaProps={{
-            placeholder: "Ask your SuperMemory...",
-            className:
-              "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 pt-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
-            value,
-            autoFocus: true,
-            onChange: (e) => setValue(e.target.value),
-          }}
-        >
-          <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
-            <FilterCombobox className="hidden md:flex" />
-            <button
-              type="submit"
-              disabled={value.trim().length < 1}
-              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
+            <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
+              Ask your Second brain
+            </h1>
+
+            <Textarea2
+              ref={textArea}
+              exit={{
+                opacity: 0,
+                y: 50,
+              }}
+              transition={{
+                type: "tween",
+                duration: 0.2,
+              }}
+              textAreaProps={{
+                placeholder: "Ask your SuperMemory...",
+                className:
+                  "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 pt-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
+                value,
+                autoFocus: true,
+                onChange: (e) => setValue(e.target.value),
+                onKeyDown: (e) => {
+                  console.log(e.key, e.ctrlKey, e.metaKey);
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    onSend();
+                  }
+                },
+              }}
             >
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </div>
-        </Textarea2>
-      </form>
-      {width <= 768 && <MemoryDrawer hide={hide} />}
-    </motion.main>
+              <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
+                <FilterCombobox
+                  onClose={() => {
+                    textArea.current?.querySelector("textarea")?.focus();
+                  }}
+                  className="hidden md:flex"
+                />
+                <button
+                  onClick={onSend}
+                  disabled={value.trim().length < 1}
+                  className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+            </Textarea2>
+            {width <= 768 && <MemoryDrawer hide={hide} />}
+          </main>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
 export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
+  const textArea = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState("");
+
+  function onValueChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    setValue(value);
+    const lines = countLines(e.target);
+    e.target.rows = Math.min(5, lines);
+  }
 
   return (
     <main
@@ -298,52 +334,58 @@ export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
         "sidebar relative flex w-full flex-col items-end gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
       )}
     >
-      <div className="absolute bottom-5 left-5 w-full ">
-        {/* <Textarea2
-          // ref={textArea}
-          className="fixed bottom-5 mt-auto h-min max-h-[30em] min-h-[3em] w-[50%] resize-y flex-row items-start justify-center overflow-auto border-red-500 py-5 md:mt-0 md:h-[20vh] md:resize-none md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-          textAreaProps={{
-            placeholder: "Ask your SuperMemory...",
-            className:
-              "h-auto overflow-auto md:h-full border md:resize-none text-lg py-0 px-2 w-full md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
-            value,
-            autoFocus: true,
-            onChange: (e) => setValue(e.target.value),
-          }}
-        >
-          <div className="text-rgray-11/70 ml-auto flex h-full w-min items-center justify-center pl-0 md:p-2">
-            <button
-              type="submit"
-              disabled={value.trim().length < 1}
-              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:mt-0"
-            >
-              <ArrowUp className="h-5 w-5" />
-            </button>
-          </div>
-        </Textarea2> */}
-
-        <Textarea2
-          // ref={textArea}
-          className="fixed bottom-5 mt-auto h-[3em] max-h-[3em] w-[50%] resize-y flex-row items-start justify-center overflow-auto border-red-500 py-5 md:mt-0 md:h-[20vh] md:resize-none md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-          textAreaProps={{
-            placeholder: "Ask your SuperMemory...",
-            className:
-              "overflow-auto md:h-full h-[2em] max-h-[2em] p-0 border md:resize-none text-lg py-0 px-2 w-full md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
-            value,
-            autoFocus: true,
-            onChange: (e) => setValue(e.target.value),
-          }}
-        >
-          <div className="text-rgray-11/70 ml-auto flex h-full w-min items-center justify-center pl-0 md:p-2">
-            <button
-              type="submit"
-              disabled={value.trim().length < 1}
-              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:mt-0"
-            >
-              <ArrowUp className="h-5 w-5" />
-            </button>
-          </div>
-        </Textarea2>
+      <div className="min-h-[100%] w-full px-5 pt-10">
+        <ChatQuestion>who is dhravya</ChatQuestion>
+        <ChatAnswer>
+          Dhravya Shah is an 18-year-old full-stack developer based in Arizona,
+          USA. He is a passionate developer who focuses on creating products
+          that people love. Dhravya has a background in entrepreneurship, having
+          been a 2x acquired founder and a participant in various hackathons. He
+          is also involved in open-source contributions, content creation to
+          inspire others in coding, and has a growing community of developers.
+          Dhravya's work spans from creating AI-powered note-taking apps to
+          personalized music companions and educational tools. Additionally, he
+          is a guitarist, student, and active in sharing his experiences as a
+          developer and entrepreneur
+        </ChatAnswer>
+      </div>
+      <div
+        data-sidebar-open={sidebarOpen}
+        className="absolute flex w-full items-center justify-center"
+      >
+        <div className="animate-from-top fixed bottom-10 mt-auto flex w-[50%] flex-col items-start justify-center gap-2">
+          <FilterCombobox
+            onClose={() => {
+              textArea.current?.querySelector("textarea")?.focus();
+            }}
+            side="top"
+            align="start"
+            className="bg-white/5"
+          />
+          <Textarea2
+            ref={textArea}
+            className="h-auto w-full flex-row items-start justify-center overflow-auto px-3 md:items-center md:justify-center"
+            textAreaProps={{
+              placeholder: "Ask your SuperMemory...",
+              className:
+                "overflow-auto h-auto p-3 md:resize-none text-lg w-auto resize-y text-rgray-11 w-full",
+              value,
+              rows: 1,
+              autoFocus: true,
+              onChange: onValueChange,
+            }}
+          >
+            <div className="text-rgray-11/70 ml-auto mt-auto flex h-full w-min items-center justify-center pb-3 pr-2">
+              <button
+                type="submit"
+                disabled={value.trim().length < 1}
+                className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent transition-[filter] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </button>
+            </div>
+          </Textarea2>
+        </div>
       </div>
     </main>
   );

@@ -22,9 +22,19 @@ import { SpaceIcon } from "@/assets/Memories";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useMemory } from "@/contexts/MemoryContext";
 
-export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  side?: "top" | "bottom";
+  align?: "end" | "start" | "center";
+  onClose?: () => void;
+}
 
-export function FilterCombobox({ className, ...props }: Props) {
+export function FilterCombobox({
+  className,
+  side = "bottom",
+  align = "center",
+  onClose,
+  ...props
+}: Props) {
   const { spaces, addSpace } = useMemory();
 
   const [open, setOpen] = React.useState(false);
@@ -37,6 +47,12 @@ export function FilterCombobox({ className, ...props }: Props) {
         ? 1
         : 0,
   );
+
+  React.useEffect(() => {
+    if (!open) {
+      onClose?.();
+    }
+  }, [open]);
 
   return (
     <AnimatePresence mode="popLayout">
@@ -62,7 +78,12 @@ export function FilterCombobox({ className, ...props }: Props) {
               </div>
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-[200px] p-0">
+          <PopoverContent
+            onCloseAutoFocus={(e) => e.preventDefault()}
+            align={align}
+            side={side}
+            className="w-[200px] p-0"
+          >
             <Command
               filter={(val, search) =>
                 spaces

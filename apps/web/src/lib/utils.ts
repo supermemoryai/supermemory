@@ -25,3 +25,49 @@ export function generateId() {
 export function svgId(prefix: string, id: string) {
   return `${prefix}-${id}`;
 }
+
+export function countLines(textarea: HTMLTextAreaElement): number {
+  let _buffer: HTMLTextAreaElement | null = null;
+
+  if (_buffer == null) {
+    _buffer = document.createElement("textarea");
+    _buffer.style.border = "none";
+    _buffer.style.height = "0";
+    _buffer.style.overflow = "hidden";
+    _buffer.style.padding = "0";
+    _buffer.style.position = "absolute";
+    _buffer.style.left = "0";
+    _buffer.style.top = "0";
+    _buffer.style.zIndex = "-1";
+    document.body.appendChild(_buffer);
+  }
+
+  const cs = window.getComputedStyle(textarea);
+  const pl = parseInt(cs.paddingLeft as string);
+  const pr = parseInt(cs.paddingRight as string);
+  let lh = parseInt(cs.lineHeight as string);
+
+  // [cs.lineHeight] may return 'normal', which means line height = font size.
+  if (isNaN(lh)) lh = parseInt(cs.fontSize as string);
+
+  // Copy content width.
+  if (_buffer) {
+    _buffer.style.width = textarea.clientWidth - pl - pr + "px";
+
+    // Copy text properties.
+    _buffer.style.font = cs.font as string;
+    _buffer.style.letterSpacing = cs.letterSpacing as string;
+    _buffer.style.whiteSpace = cs.whiteSpace as string;
+    _buffer.style.wordBreak = cs.wordBreak as string;
+    _buffer.style.wordSpacing = cs.wordSpacing as string;
+    _buffer.style.wordWrap = cs.wordWrap as string;
+
+    // Copy value.
+    _buffer.value = textarea.value;
+
+    const result = Math.floor(_buffer.scrollHeight / lh);
+    return result > 0 ? result : 1;
+  }
+
+  return 0;
+}

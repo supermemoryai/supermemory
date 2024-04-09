@@ -1,4 +1,4 @@
-import { db } from '@/server/db';
+import { db } from "@/server/db";
 import {
   contentToSpace,
   sessions,
@@ -6,28 +6,28 @@ import {
   StoredContent,
   storedContent,
   users,
-} from '@/server/db/schema';
-import { eq, inArray } from 'drizzle-orm';
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import Sidebar from '@/components/Sidebar/index';
-import Main from '@/components/Main';
-import MessagePoster from './MessagePoster';
-import { transformContent } from '../../types/memory';
-import { MemoryProvider } from '@/contexts/MemoryContext';
-import Content from './content';
+} from "@/server/db/schema";
+import { eq, inArray } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import Sidebar from "@/components/Sidebar/index";
+import Main from "@/components/Main";
+import MessagePoster from "./MessagePoster";
+import { transformContent } from "../../types/memory";
+import { MemoryProvider } from "@/contexts/MemoryContext";
+import Content from "./content";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export default async function Home() {
   const token =
-    cookies().get('next-auth.session-token')?.value ??
-    cookies().get('__Secure-authjs.session-token')?.value ??
-    cookies().get('authjs.session-token')?.value ??
-    headers().get('Authorization')?.replace('Bearer ', '');
+    cookies().get("next-auth.session-token")?.value ??
+    cookies().get("__Secure-authjs.session-token")?.value ??
+    cookies().get("authjs.session-token")?.value ??
+    headers().get("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    return redirect('/api/auth/signin');
+    return redirect("/api/auth/signin");
   }
 
   const session = await db
@@ -36,7 +36,7 @@ export default async function Home() {
     .where(eq(sessions.sessionToken, token!));
 
   if (!session || session.length === 0) {
-    return redirect('/api/auth/signin');
+    return redirect("/api/auth/signin");
   }
 
   const [userData] = await db
@@ -46,7 +46,7 @@ export default async function Home() {
     .limit(1);
 
   if (!userData) {
-    return redirect('/api/auth/signin');
+    return redirect("/api/auth/signin");
   }
 
   // Fetch all content for the user
@@ -61,17 +61,17 @@ export default async function Home() {
 
   collectedSpaces.push({
     id: 2,
-    title: 'Test',
+    title: "Test",
     content: [
       {
         id: 1,
-        content: 'Test',
-        title: 'Vscode',
-        description: 'Test',
-        url: 'https://vscode-remake.vercel.app/',
+        content: "Test",
+        title: "Vscode",
+        description: "Test",
+        url: "https://vscode-remake.vercel.app/",
         savedAt: new Date(),
-        baseUrl: 'https://vscode-remake.vercel.app/',
-        image: 'https://vscode-remake.vercel.app/favicon.svg',
+        baseUrl: "https://vscode-remake.vercel.app/",
+        image: "https://vscode-remake.vercel.app/favicon.svg",
       },
     ],
   });
@@ -79,7 +79,7 @@ export default async function Home() {
   return (
     <MemoryProvider spaces={collectedSpaces}>
       <Content />
-      <MessagePoster jwt={token} />
+      {/* <MessagePoster jwt={token} /> */}
     </MemoryProvider>
   );
 }

@@ -34,11 +34,22 @@ const config: Config = {
             opacity: "1",
           },
         },
+        "from-top": {
+          "0%": {
+            transform: "translateY(-50px)",
+            opacity: "0",
+          },
+          "100%": {
+            transform: "translateY(0)",
+            opacity: "1",
+          },
+        },
       },
       animation: {
         "scale-in": "scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         "scale-out": "scale-out 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         "fade-in": "fade-in 0.2s 0.5s forwards cubic-bezier(0.16, 1, 0.3, 1)",
+        "from-top": "from-top 0.2s ease-in-out",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { HTMLMotionProps, motion } from "framer-motion";
 
 export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
@@ -21,16 +22,18 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 );
 Textarea.displayName = "Textarea";
 
-export interface Textarea2Props extends React.HTMLAttributes<HTMLDivElement> {
+export interface Textarea2Props extends HTMLMotionProps<"div"> {
   textAreaProps?: TextareaProps;
+  children: React.ReactNode | React.ReactNode[];
 }
 
-const Textarea2 = React.forwardRef<HTMLTextAreaElement, Textarea2Props>(
+const Textarea2 = React.forwardRef<HTMLDivElement, Textarea2Props>(
   ({ className, children, textAreaProps: _textAreaProps, ...props }, ref) => {
     const { className: textAreaClassName, ...textAreaProps } =
       _textAreaProps || {};
     return (
-      <div
+      <motion.div
+        ref={ref}
         className={cn(
           "border-rgray-6 text-rgray-11 has-[textarea:focus-visible]:ring-rgray-7 flex h-auto min-h-[80px] w-full flex-col items-start justify-center rounded-md border bg-transparent px-3 py-2 text-sm transition has-[textarea:focus-visible]:ring-2",
           className,
@@ -42,11 +45,10 @@ const Textarea2 = React.forwardRef<HTMLTextAreaElement, Textarea2Props>(
             "text-rgray-11 h-full w-full resize-none bg-transparent placeholder:text-white/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
             textAreaClassName,
           )}
-          ref={ref}
           {...textAreaProps}
         />
         {children}
-      </div>
+      </motion.div>
     );
   },
 );
