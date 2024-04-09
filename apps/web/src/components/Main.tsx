@@ -1,31 +1,33 @@
-'use client';
-import { useEffect, useRef, useState } from 'react';
-import { FilterCombobox } from './Sidebar/FilterCombobox';
-import { Textarea2 } from './ui/textarea';
-import { ArrowRight } from 'lucide-react';
-import { MemoryDrawer } from './MemoryDrawer';
-import useViewport from '@/hooks/useViewport';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
-import SearchResults from './SearchResults';
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { FilterCombobox } from "./Sidebar/FilterCombobox";
+import { Textarea2 } from "./ui/textarea";
+import { ArrowRight } from "lucide-react";
+import { MemoryDrawer } from "./MemoryDrawer";
+import useViewport from "@/hooks/useViewport";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import SearchResults from "./SearchResults";
 
 function supportsDVH() {
   try {
-    return CSS.supports('height: 100dvh');
+    return CSS.supports("height: 100dvh");
   } catch {
     return false;
   }
 }
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
+  return <Chat sidebarOpen={sidebarOpen} />;
+
   const [hide, setHide] = useState(false);
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const { width } = useViewport();
   const [searchResults, setSearchResults] = useState<string[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  const [aiResponse, setAIResponse] = useState('');
-  const [toBeParsed, setToBeParsed] = useState('');
+  const [aiResponse, setAIResponse] = useState("");
+  const [toBeParsed, setToBeParsed] = useState("");
 
   const textArea = useRef<HTMLTextAreaElement>(null);
   const main = useRef<HTMLDivElement>(null);
@@ -45,9 +47,9 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       }
     }
 
-    window.visualViewport?.addEventListener('resize', onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
     return () => {
-      window.visualViewport?.removeEventListener('resize', onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
     };
   }, []);
 
@@ -62,13 +64,13 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       // Attempt to parse the "toBeParsed" state as JSON
       try {
         // Split the accumulated data by the known delimiter "\n\n"
-        const parts = toBeParsed.split('\n\n');
-        let remainingData = '';
+        const parts = toBeParsed.split("\n\n");
+        let remainingData = "";
 
         // Process each part to extract JSON objects
         parts.forEach((part, index) => {
           try {
-            const parsedPart = JSON.parse(part.replace('data: ', '')); // Try to parse the part as JSON
+            const parsedPart = JSON.parse(part.replace("data: ", "")); // Try to parse the part as JSON
 
             // If the part is the last one and couldn't be parsed, keep it to  accumulate more data
             if (index === parts.length - 1 && !parsedPart) {
@@ -80,7 +82,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           } catch (error) {
             // If parsing fails and it's not the last part, it's a malformed JSON
             if (index !== parts.length - 1) {
-              console.error('Malformed JSON part: ', part);
+              console.error("Malformed JSON part: ", part);
             } else {
               // If it's the last part, it may be incomplete, so keep it
               remainingData = part;
@@ -93,7 +95,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           setToBeParsed(remainingData);
         }
       } catch (error) {
-        console.error('Error parsing accumulated data: ', error);
+        console.error("Error parsing accumulated data: ", error);
       }
     };
 
@@ -126,8 +128,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
     if (response.body) {
       let reader = response.body.getReader();
-      let decoder = new TextDecoder('utf-8');
-      let result = '';
+      let decoder = new TextDecoder("utf-8");
+      let result = "";
 
       // @ts-ignore
       reader.read().then(function processText({ done, value }) {
@@ -145,46 +147,82 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   };
 
   return (
-    <motion.main
+    <main
       data-sidebar-open={sidebarOpen}
       ref={main}
       className={cn(
         "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
-        hide ? '' : 'main-hidden',
+        hide ? "" : "main-hidden",
       )}
     >
       <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
         Ask your Second brain
       </h1>
-      <form onSubmit={async (e) => await getSearchResults(e)}>
-        <Textarea2
-          ref={textArea}
-          className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-          textAreaProps={{
-            placeholder: 'Ask your SuperMemory...',
-            className:
-              'h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]',
-            value,
-            autoFocus: true,
-            onChange: (e) => setValue(e.target.value),
-          }}
-        >
-          <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
-            <FilterCombobox className="hidden md:flex" />
-            <button
-              type="submit"
-              disabled={value.trim().length < 1}
-              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
-            >
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </div>
-        </Textarea2>
-      </form>
-      {searchResults && (
+
+      <Textarea2
+        ref={textArea}
+        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+        textAreaProps={{
+          placeholder: "Ask your SuperMemory...",
+          className:
+            "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
+          value,
+          autoFocus: true,
+          onChange: (e) => setValue(e.target.value),
+        }}
+      >
+        <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
+          <FilterCombobox className="hidden md:flex" />
+          <button
+            type="submit"
+            disabled={value.trim().length < 1}
+            className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        </div>
+      </Textarea2>
+      {/* {searchResults && (
         <SearchResults aiResponse={aiResponse} sources={searchResults} />
-      )}
+      )} */}
       {width <= 768 && <MemoryDrawer hide={hide} />}
-    </motion.main>
+    </main>
+  );
+}
+
+export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
+  const [value, setValue] = useState("");
+
+  return (
+    <main
+      data-sidebar-open={sidebarOpen}
+      className={cn(
+        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
+      )}
+    >
+      <Textarea2
+        // ref={textArea}
+        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+        textAreaProps={{
+          placeholder: "Ask your SuperMemory...",
+          className:
+            "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
+          value,
+          autoFocus: true,
+          onChange: (e) => setValue(e.target.value),
+        }}
+      >
+        <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
+          <FilterCombobox className="hidden md:flex" />
+          <button
+            type="submit"
+            disabled={value.trim().length < 1}
+            className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        </div>
+      </Textarea2>
+    </main>
   );
 }
