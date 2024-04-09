@@ -54,7 +54,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   // This is the streamed AI response we get from the server.
   const [aiResponse, setAIResponse] = useState('');
-  
+
   const [toBeParsed, setToBeParsed] = useState('');
 
   const textArea = useRef<HTMLTextAreaElement>(null);
@@ -105,7 +105,36 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
               remainingData = part;
             } else if (parsedPart && parsedPart.response) {
               // If the part is parsable and has the "response" field, update the AI response state
-              setAIResponse((prev) => prev + parsedPart.response);
+              // setAIResponse((prev) => prev + parsedPart.response);
+              // appendToChatHistory('model', parsedPart.response);
+
+              // Append to chat history in this way:
+              // If the last message was from the model, append to that message
+              // Otherwise, Start a new message from the model and append to that
+              if (
+                chatHistory.length > 0 &&
+                chatHistory[chatHistory.length - 1].role === 'model'
+              ) {
+                setChatHistory((prev: any) => {
+                  const lastMessage = prev[prev.length - 1];
+                  const newParts = [
+                    ...lastMessage.parts,
+                    { text: parsedPart.response },
+                  ];
+                  return [
+                    ...prev.slice(0, prev.length - 1),
+                    { ...lastMessage, parts: newParts },
+                  ];
+                });
+              } else {
+                setChatHistory((prev) => [
+                  ...prev,
+                  {
+                    role: 'model',
+                    parts: [{ text: parsedPart.response }],
+                  },
+                ]);
+              }
             }
           } catch (error) {
             // If parsing fails and it's not the last part, it's a malformed JSON
@@ -137,8 +166,16 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     e.preventDefault();
     setIsAiLoading(true);
 
+    appendToChatHistory('user', value);
+
     const sourcesResponse = await fetch(
-      `/api/query?sourcesOnly=true&q=${value}`,
+      `/api/chat?sourcesOnly=true&q=${value}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          chatHistory,
+        }),
+      },
     );
 
     const sourcesInJson = (await sourcesResponse.json()) as {
@@ -147,7 +184,13 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
     setSearchResults(sourcesInJson.ids);
 
-    const response = await fetch(`/api/query?q=${value}`);
+    // TODO: PASS THE `SPACE` TO THE API
+    const response = await fetch(`/api/chat?q=${value}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        chatHistory,
+      }),
+    });
 
     if (response.status !== 200) {
       setIsAiLoading(false);
@@ -162,8 +205,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       // @ts-ignore
       reader.read().then(function processText({ done, value }) {
         if (done) {
-          //   setSearchResults(JSON.parse(result.replace('data: ', '')));
-          //   setIsAiLoading(false);
+          setIsAiLoading(false);
+          setToBeParsed('');
           return;
         }
 
@@ -187,7 +230,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         {chatHistory.map((chat, index) => (
           <ChatMessage
             key={index}
-            message={chat.parts[0].text}
+            message={chat.parts.map((part) => part.text).join('')}
             user={chat.role === 'model' ? 'ai' : session?.user!}
           />
         ))}
