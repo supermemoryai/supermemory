@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FilterCombobox } from "./Sidebar/FilterCombobox";
 import { Textarea2 } from "./ui/textarea";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUp } from "lucide-react";
 import { MemoryDrawer } from "./MemoryDrawer";
 import useViewport from "@/hooks/useViewport";
 import { motion } from "framer-motion";
@@ -236,32 +236,56 @@ export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
     <main
       data-sidebar-open={sidebarOpen}
       className={cn(
-        "sidebar flex w-full flex-col items-end justify-center gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
+        "sidebar relative flex w-full flex-col items-end gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
       )}
     >
-      <Textarea2
-        // ref={textArea}
-        className="mt-auto h-max max-h-[30em] min-h-[3em] resize-y flex-row items-start justify-center overflow-auto py-5 md:mt-0 md:h-[20vh] md:resize-none md:flex-col md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
-        textAreaProps={{
-          placeholder: "Ask your SuperMemory...",
-          className:
-            "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
-          value,
-          autoFocus: true,
-          onChange: (e) => setValue(e.target.value),
-        }}
-      >
-        <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
-          <FilterCombobox className="hidden md:flex" />
-          <button
-            type="submit"
-            disabled={value.trim().length < 1}
-            className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:ml-auto md:mt-0"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </button>
-        </div>
-      </Textarea2>
+      <div className="absolute bottom-5 left-5 w-full ">
+        {/* <Textarea2
+          // ref={textArea}
+          className="fixed bottom-5 mt-auto h-min max-h-[30em] min-h-[3em] w-[50%] resize-y flex-row items-start justify-center overflow-auto border-red-500 py-5 md:mt-0 md:h-[20vh] md:resize-none md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+          textAreaProps={{
+            placeholder: "Ask your SuperMemory...",
+            className:
+              "h-auto overflow-auto md:h-full border md:resize-none text-lg py-0 px-2 w-full md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
+            value,
+            autoFocus: true,
+            onChange: (e) => setValue(e.target.value),
+          }}
+        >
+          <div className="text-rgray-11/70 ml-auto flex h-full w-min items-center justify-center pl-0 md:p-2">
+            <button
+              type="submit"
+              disabled={value.trim().length < 1}
+              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:mt-0"
+            >
+              <ArrowUp className="h-5 w-5" />
+            </button>
+          </div>
+        </Textarea2> */}
+
+        <Textarea2
+          // ref={textArea}
+          className="fixed bottom-5 mt-auto h-[3em] max-h-[3em] w-[50%] resize-y flex-row items-start justify-center overflow-auto border-red-500 py-5 md:mt-0 md:h-[20vh] md:resize-none md:items-center md:justify-center md:p-2 md:pb-2 md:pt-2"
+          textAreaProps={{
+            placeholder: "Ask your SuperMemory...",
+            className:
+              "overflow-auto md:h-full h-[2em] max-h-[2em] p-0 border md:resize-none text-lg py-0 px-2 w-full md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
+            value,
+            autoFocus: true,
+            onChange: (e) => setValue(e.target.value),
+          }}
+        >
+          <div className="text-rgray-11/70 ml-auto flex h-full w-min items-center justify-center pl-0 md:p-2">
+            <button
+              type="submit"
+              disabled={value.trim().length < 1}
+              className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:mt-0"
+            >
+              <ArrowUp className="h-5 w-5" />
+            </button>
+          </div>
+        </Textarea2>
+      </div>
     </main>
   );
 }
