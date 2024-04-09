@@ -71,3 +71,7 @@ export function countLines(textarea: HTMLTextAreaElement): number {
 
   return 0;
 }
+
+export function convertRemToPixels(rem: number) {
+  return rem * parseFloat(getComputedStyle(document.documentElement).fontSize);
+}

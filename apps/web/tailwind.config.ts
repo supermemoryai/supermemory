@@ -81,6 +81,7 @@ const config: Config = {
     plugin(function ({ addVariant }) {
       addVariant("on", "&[data-state-on='true']");
     }),
+    require("tailwind-scrollbar"),
   ],
 };
 export default config;

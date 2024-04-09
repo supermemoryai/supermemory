@@ -8,9 +8,35 @@ import useViewport from "@/hooks/useViewport";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn, countLines } from "@/lib/utils";
 import { ChatHistory } from "../../types/memory";
-import { ChatAnswer, ChatQuestion } from "./ChatMessage";
+import { ChatAnswer, ChatMessage, ChatQuestion } from "./ChatMessage";
 import { useSession } from "next-auth/react";
-import { Card, CardContent } from "./ui/card";
+
+const dummyChatHistory: ChatHistory = {
+  question: "What is the capital of France?",
+  answer: {
+    parts: [
+      {
+        text: "Paris",
+      },
+      {
+        text: "is",
+      },
+      {
+        text: "the",
+      },
+      {
+        text: "capital",
+      },
+      {
+        text: "of",
+      },
+      {
+        text: "France",
+      },
+    ],
+    sources: ["Wikipedia"],
+  },
+};
 
 function supportsDVH() {
   try {
@@ -38,20 +64,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const [chatTextSourceDict, setChatTextSourceDict] = useState<
     Record<string, string[]>
   >({});
-
-  // helper function to append a new msg
-  const appendToChatHistory = useCallback(
-    (role: "user" | "model", content: string) => {
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          role,
-          parts: [{ text: content }],
-        },
-      ]);
-    },
-    [],
-  );
 
   // This is the streamed AI response we get from the server.
   const [aiResponse, setAIResponse] = useState("");
@@ -112,10 +124,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
               // Append to chat history in this way:
               // If the last message was from the model, append to that message
               // Otherwise, Start a new message from the model and append to that
-              if (
-                chatHistory.length > 0 &&
-                chatHistory[chatHistory.length - 1].role === "model"
-              ) {
+              if (chatHistory.length > 0) {
                 setChatHistory((prev: any) => {
                   const lastMessage = prev[prev.length - 1];
                   const newParts = [
@@ -124,17 +133,16 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                   ];
                   return [
                     ...prev.slice(0, prev.length - 1),
-                    { ...lastMessage, parts: newParts },
+                    {
+                      ...lastMessage,
+                      answer: {
+                        parts: newParts,
+                        sources: lastMessage.answer.sources,
+                      },
+                    },
                   ];
                 });
               } else {
-                setChatHistory((prev) => [
-                  ...prev,
-                  {
-                    role: "model",
-                    parts: [{ text: parsedPart.response }],
-                  },
-                ]);
               }
             }
           } catch (error) {
@@ -166,12 +174,16 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const getSearchResults = async () => {
     setIsAiLoading(true);
 
-    console.log(value);
+    const _value = value.trim();
+    setValue("");
 
-    appendToChatHistory("user", value);
+    // @dhravya, this is using temporary dummy data remove this before testing
+    setChatHistory((prev) => [...prev, dummyChatHistory]);
+    setTimeout(() => setIsAiLoading(false), 5000);
+    return;
 
     const sourcesResponse = await fetch(
-      `/api/chat?sourcesOnly=true&q=${value}`,
+      `/api/chat?sourcesOnly=true&q=${_value}`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -189,7 +201,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     );
 
     // TODO: PASS THE `SPACE` TO THE API
-    const response = await fetch(`/api/chat?q=${value}`, {
+    const response = await fetch(`/api/chat?q=${_value}`, {
       method: "POST",
       body: JSON.stringify({
         chatHistory,
@@ -201,8 +213,19 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       return;
     }
 
+    setChatHistory((prev) => [
+      ...prev,
+      {
+        question: _value,
+        answer: {
+          parts: [],
+          sources: sourcesInJson.ids ?? [],
+        },
+      },
+    ]);
+
     if (response.body) {
-      let reader = response.body.getReader();
+      let reader = response.body?.getReader();
       let decoder = new TextDecoder("utf-8");
       let result = "";
 
@@ -218,7 +241,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
         handleStreamData(decoder.decode(value));
 
-        return reader.read().then(processText);
+        return reader?.read().then(processText);
       });
     }
   };
@@ -232,7 +255,15 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     <>
       <AnimatePresence mode="wait">
         {layout === "chat" ? (
-          <Chat key="chat" sidebarOpen={sidebarOpen} />
+          <Chat
+            key="chat"
+            isLoading={isAiLoading}
+            chatHistory={chatHistory}
+            sidebarOpen={sidebarOpen}
+            askQuestion={onSend}
+            setValue={setValue}
+            value={value}
+          />
         ) : (
           <main
             data-sidebar-open={sidebarOpen}
@@ -242,27 +273,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
               hide ? "" : "main-hidden",
             )}
           >
-            <div className="flex w-full flex-col">
-              {/* {chatHistory.map((chat, index) => (
-                <ChatMessage
-                  key={index}
-                  message={chat.parts.map((part) => part.text).join("")}
-                  user={chat.role === "model" ? "ai" : session?.user!}
-                />
-              ))} */}
-              {searchResults.length > 0 && (
-                <div className="mt-4">
-                  <h1>Related memories</h1>
-                  <div className="grid gap-6">
-                    {searchResults.map((value, index) => (
-                      <Card key={index}>
-                        <CardContent className="space-y-2">{value}</CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
             <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
               Ask your Second brain
             </h1>
@@ -316,9 +326,22 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   );
 }
 
-export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
+export function Chat({
+  sidebarOpen,
+  chatHistory,
+  isLoading = false,
+  askQuestion,
+  setValue,
+  value,
+}: {
+  sidebarOpen: boolean;
+  isLoading?: boolean;
+  chatHistory: ChatHistory[];
+  askQuestion: () => void;
+  setValue: (value: string) => void;
+  value: string;
+}) {
   const textArea = useRef<HTMLDivElement>(null);
-  const [value, setValue] = useState("");
 
   function onValueChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = e.target.value;
@@ -334,21 +357,20 @@ export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
         "sidebar relative flex w-full flex-col items-end gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
       )}
     >
-      <div className="min-h-[100%] w-full px-5 pt-10">
-        <ChatQuestion>who is dhravya</ChatQuestion>
-        <ChatAnswer>
-          Dhravya Shah is an 18-year-old full-stack developer based in Arizona,
-          USA. He is a passionate developer who focuses on creating products
-          that people love. Dhravya has a background in entrepreneurship, having
-          been a 2x acquired founder and a participant in various hackathons. He
-          is also involved in open-source contributions, content creation to
-          inspire others in coding, and has a growing community of developers.
-          Dhravya's work spans from creating AI-powered note-taking apps to
-          personalized music companions and educational tools. Additionally, he
-          is a guitarist, student, and active in sharing his experiences as a
-          developer and entrepreneur
-        </ChatAnswer>
+      <div className="scrollbar-none flex max-h-screen w-full flex-col overflow-y-auto px-5">
+        {chatHistory.map((msg, i) => (
+          <ChatMessage index={i} key={i} isLast={i === chatHistory.length - 1}>
+            <ChatQuestion>{msg.question}</ChatQuestion>
+            <ChatAnswer
+              loading={i === chatHistory.length - 1 ? isLoading : false}
+              sources={msg.answer.sources}
+            >
+              {msg.answer.parts.map((part) => part.text).join(" ")}
+            </ChatAnswer>
+          </ChatMessage>
+        ))}
       </div>
+      <div className="from-rgray-2 via-rgray-2 to-rgray-2/0 absolute bottom-0 left-0 h-[30%] w-full bg-gradient-to-t" />
       <div
         data-sidebar-open={sidebarOpen}
         className="absolute flex w-full items-center justify-center"
@@ -360,11 +382,11 @@ export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
             }}
             side="top"
             align="start"
-            className="bg-white/5"
+            className="bg-[#252525]"
           />
           <Textarea2
             ref={textArea}
-            className="h-auto w-full flex-row items-start justify-center overflow-auto px-3 md:items-center md:justify-center"
+            className="bg-rgray-2 h-auto w-full flex-row items-start justify-center overflow-auto px-3 md:items-center md:justify-center"
             textAreaProps={{
               placeholder: "Ask your SuperMemory...",
               className:
@@ -373,11 +395,16 @@ export function Chat({ sidebarOpen }: { sidebarOpen: boolean }) {
               rows: 1,
               autoFocus: true,
               onChange: onValueChange,
+              onKeyDown: (e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  askQuestion();
+                }
+              },
             }}
           >
             <div className="text-rgray-11/70 ml-auto mt-auto flex h-full w-min items-center justify-center pb-3 pr-2">
               <button
-                type="submit"
+                onClick={askQuestion}
                 disabled={value.trim().length < 1}
                 className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent transition-[filter] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >

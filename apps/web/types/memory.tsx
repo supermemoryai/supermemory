@@ -1,6 +1,6 @@
-import { db } from '@/server/db';
-import { contentToSpace, space, StoredContent } from '@/server/db/schema';
-import { eq, inArray, or } from 'drizzle-orm';
+import { db } from "@/server/db";
+import { contentToSpace, space, StoredContent } from "@/server/db/schema";
+import { eq, inArray, or } from "drizzle-orm";
 
 export const transformContent = async (
   content: StoredContent[],
@@ -55,6 +55,9 @@ export type CollectedSpaces = {
 };
 
 export type ChatHistory = {
-  role: 'user' | 'model';
-  parts: [{ text: string }];
+  question: string;
+  answer: {
+    parts: { text: string }[];
+    sources: string[];
+  };
 };
