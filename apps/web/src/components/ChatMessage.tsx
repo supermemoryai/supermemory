@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Globe } from "lucide-react";
 import { convertRemToPixels } from "@/lib/utils";
+import { SpaceIcon } from "@/assets/Memories";
 
 export function ChatAnswer({
   children: message,
@@ -19,11 +20,11 @@ export function ChatAnswer({
       ) : (
         <div className="w-full text-lg text-white/60">{message}</div>
       )}
-      {sources && sources?.length > 0 && (
+      {!loading && sources && sources?.length > 0 && (
         <>
-          <h1 className="animate-fade-in text-md flex items-center justify-center gap-1 opacity-0 [animation-duration:1s]">
-            <ArrowUpRight className="h-5 w-5" />
-            Sources
+          <h1 className="animate-fade-in text-rgray-12 text-md flex items-center justify-center gap-2 opacity-0 [animation-duration:1s]">
+            <SpaceIcon className="h-6 w-6 -translate-y-[2px]" />
+            Related Memories
           </h1>
           <div className="animate-fade-in -mt-3 flex items-center justify-start opacity-0 [animation-duration:1s]">
             {sources?.map((source) => (

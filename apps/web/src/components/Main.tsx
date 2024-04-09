@@ -10,31 +10,17 @@ import { cn, countLines } from "@/lib/utils";
 import { ChatHistory } from "../../types/memory";
 import { ChatAnswer, ChatMessage, ChatQuestion } from "./ChatMessage";
 import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const dummyChatHistory: ChatHistory = {
-  question: "What is the capital of France?",
+  question: "who is dhravya?",
   answer: {
     parts: [
       {
-        text: "Paris",
-      },
-      {
-        text: "is",
-      },
-      {
-        text: "the",
-      },
-      {
-        text: "capital",
-      },
-      {
-        text: "of",
-      },
-      {
-        text: "France",
+        text: "Dhravya Shah is an 18-year-old full-stack developer based in Arizona, USA. He is a passionate developer who focuses on creating products that people love. Dhravya has a background in entrepreneurship, having been a 2x acquired founder and a participant in various hackathons. He is also involved in open-source contributions, content creation to inspire others in coding, and has a growing community of developers. Dhravya's work spans from creating AI-powered note-taking apps to personalized music companions and educational tools. Additionally, he is a guitarist, student, and active in sharing his experiences as a developer and entrepreneur",
       },
     ],
-    sources: ["Wikipedia"],
+    sources: ["dhravya.dev"],
   },
 };
 
@@ -47,6 +33,9 @@ function supportsDVH() {
 }
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [hide, setHide] = useState(false);
   const [layout, setLayout] = useState<"chat" | "initial">("initial");
   const [value, setValue] = useState("");
@@ -72,6 +61,15 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   const textArea = useRef<HTMLDivElement>(null);
   const main = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const search = searchParams.get("q");
+    if (search && search.trim().length > 0) {
+      setValue(search);
+      onSend();
+      router.push("/");
+    }
+  }, []);
 
   useEffect(() => {
     function onResize() {
