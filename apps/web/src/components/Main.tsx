@@ -243,13 +243,13 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             )}
           >
             <div className="flex w-full flex-col">
-              {chatHistory.map((chat, index) => (
-                // <ChatMessage
-                //   key={index}
-                //   message={chat.parts.map((part) => part.text).join("")}
-                //   user={chat.role === "model" ? "ai" : session?.user!}
-                // />
-              ))}
+              {/* {chatHistory.map((chat, index) => (
+                <ChatMessage
+                  key={index}
+                  message={chat.parts.map((part) => part.text).join("")}
+                  user={chat.role === "model" ? "ai" : session?.user!}
+                />
+              ))} */}
               {searchResults.length > 0 && (
                 <div className="mt-4">
                   <h1>Related memories</h1>
