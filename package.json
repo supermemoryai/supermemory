@@ -13,8 +13,10 @@
     "dev": "dotenv -- turbo run dev --filter=!cf-ai-backend",
     "lint": "dotenv -- turbo run lint",
     "start": "dotenv -- turbo run start",
-    "format": "prettier --write . && git add -A .",
     "prepare": "husky"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.6",
@@ -59,6 +61,7 @@
     "html-metadata": "^1.7.1",
     "html-metadata-parser": "^2.0.4",
     "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
     "lucide-react": "^0.343.0",
     "next-auth": "beta",
     "nuqs": "^1.17.1",
