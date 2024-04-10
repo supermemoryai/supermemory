@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowUpRight, Globe } from "lucide-react";
-import { convertRemToPixels } from "@/lib/utils";
-import { SpaceIcon } from "@/assets/Memories";
+import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { ArrowUpRight, Globe } from 'lucide-react';
+import { convertRemToPixels } from '@/lib/utils';
+import { SpaceIcon } from '@/assets/Memories';
+import Markdown from 'react-markdown';
 
 export function ChatAnswer({
   children: message,
@@ -18,7 +19,9 @@ export function ChatAnswer({
       {loading ? (
         <MessageSkeleton />
       ) : (
-        <div className="w-full text-lg text-white/60">{message}</div>
+        <div className="w-full text-lg text-white/60">
+          <Markdown>{message}</Markdown>
+        </div>
       )}
       {!loading && sources && sources?.length > 0 && (
         <>
@@ -47,7 +50,7 @@ export function ChatAnswer({
 export function ChatQuestion({ children }: { children: string }) {
   return (
     <div
-      className={`text-rgray-12 w-full text-left ${children.length > 200 ? "text-xl" : "text-2xl"}`}
+      className={`text-rgray-12 w-full text-left ${children.length > 200 ? 'text-xl' : 'text-2xl'}`}
     >
       {children}
     </div>
@@ -68,13 +71,13 @@ export function ChatMessage({
   useEffect(() => {
     if (!isLast) return;
     console.log(
-      "last",
+      'last',
       messageRef.current?.offsetTop,
       messageRef.current?.parentElement,
     );
     messageRef.current?.parentElement?.scrollTo({
       top: messageRef.current?.offsetTop,
-      behavior: "smooth",
+      behavior: 'smooth',
     });
   }, []);
 
@@ -83,11 +86,11 @@ export function ChatMessage({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        type: "tween",
+        type: 'tween',
         duration: 0.5,
       }}
       ref={messageRef}
-      className={`${index === 0 ? "pt-16" : "pt-28"} flex w-full flex-col items-start justify-start gap-5 transition-[height] ${isLast ? "min-h-screen" : "h-auto"}`}
+      className={`${index === 0 ? 'pt-16' : 'pt-28'} flex w-full flex-col items-start justify-start gap-5 transition-[height] ${isLast ? 'min-h-screen' : 'h-auto'}`}
     >
       {children}
     </motion.div>
