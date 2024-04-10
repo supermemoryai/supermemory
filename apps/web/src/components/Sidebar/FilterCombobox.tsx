@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import * as React from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandEmpty,
@@ -12,38 +12,41 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { SpaceIcon } from "@/assets/Memories";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import { useMemory } from "@/contexts/MemoryContext";
+} from '@/components/ui/popover';
+import { SpaceIcon } from '@/assets/Memories';
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { useMemory } from '@/contexts/MemoryContext';
 
 export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  side?: "top" | "bottom";
-  align?: "end" | "start" | "center";
+  side?: 'top' | 'bottom';
+  align?: 'end' | 'start' | 'center';
   onClose?: () => void;
+  selectedSpaces: number[];
+  setSelectedSpaces: (spaces: number[] | ((prev: number[]) => number[])) => void;
 }
 
 export function FilterCombobox({
   className,
-  side = "bottom",
-  align = "center",
+  side = 'bottom',
+  align = 'center',
   onClose,
+  selectedSpaces,
+  setSelectedSpaces,
   ...props
 }: Props) {
   const { spaces, addSpace } = useMemory();
 
   const [open, setOpen] = React.useState(false);
-  const [values, setValues] = React.useState<number[]>([]);
 
   const sortedSpaces = spaces.sort(({ id: a }, { id: b }) =>
-    values.includes(a) && !values.includes(b)
+    selectedSpaces.includes(a) && !selectedSpaces.includes(b)
       ? -1
-      : values.includes(b) && !values.includes(a)
+      : selectedSpaces.includes(b) && !selectedSpaces.includes(a)
         ? 1
         : 0,
   );
@@ -62,7 +65,7 @@ export function FilterCombobox({
             <button
               data-state-on={open}
               className={cn(
-                "text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none",
+                'text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none',
                 className,
               )}
               {...props}
@@ -71,10 +74,10 @@ export function FilterCombobox({
               Filter
               <ChevronsUpDown className="h-4 w-4" />
               <div
-                data-state-on={values.length > 0}
+                data-state-on={selectedSpaces.length > 0}
                 className="on:flex text-rgray-11 border-rgray-6 bg-rgray-2 absolute left-0 top-0 hidden aspect-[1] h-4 w-4 -translate-x-1/3 -translate-y-1/3 items-center justify-center rounded-full border text-center text-[9px]"
               >
-                {values.length}
+                {selectedSpaces.length}
               </div>
             </button>
           </PopoverTrigger>
@@ -104,7 +107,7 @@ export function FilterCombobox({
                         key={space.id}
                         value={space.id.toString()}
                         onSelect={(val) => {
-                          setValues((prev) =>
+                          setSelectedSpaces((prev: number[]) =>
                             prev.includes(parseInt(val))
                               ? prev.filter((v) => v !== parseInt(val))
                               : [...prev, parseInt(val)],
@@ -122,11 +125,11 @@ export function FilterCombobox({
                         >
                           <SpaceIcon className="mr-2 h-4 w-4" />
                           {space.title}
-                          {values.includes(space.id)}
+                          {selectedSpaces.includes(space.id)}
                           <Check
-                            data-state-on={values.includes(space.id)}
+                            data-state-on={selectedSpaces.includes(space.id)}
                             className={cn(
-                              "on:opacity-100 ml-auto h-4 w-4 opacity-0",
+                              'on:opacity-100 ml-auto h-4 w-4 opacity-0',
                             )}
                           />
                         </motion.div>

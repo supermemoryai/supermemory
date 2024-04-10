@@ -10,6 +10,7 @@ import { cn, countLines } from '@/lib/utils';
 import { ChatHistory } from '../../types/memory';
 import { ChatAnswer, ChatMessage, ChatQuestion } from './ChatMessage';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemory } from '@/contexts/MemoryContext';
 
 function supportsDVH() {
   try {
@@ -29,6 +30,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const { width } = useViewport();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
+  const { spaces } = useMemory();
+
   // Variable to keep track of the chat history in this session
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
 
@@ -37,7 +40,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const textArea = useRef<HTMLDivElement>(null);
   const main = useRef<HTMLDivElement>(null);
 
-  const [selectedSpaces, setSelectedSpaces] = useState<string[]>([]);
+  const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
   useEffect(() => {
     const search = searchParams.get('q');
@@ -199,12 +202,19 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       ];
     });
 
-    const response = await fetch(`/api/chat?q=${_value}&spaces=${selectedSpaces.join(",")}`, {
-      method: 'POST',
-      body: JSON.stringify({
-        chatHistory: modifyChatHistory(chatHistory),
-      }),
-    });
+    const actualSelectedSpaces = selectedSpaces.map(
+      (space) => spaces.find((s) => s.id === space)?.title ?? '',
+    );
+
+    const response = await fetch(
+      `/api/chat?q=${_value}&spaces=${actualSelectedSpaces.join(',')}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          chatHistory: modifyChatHistory(chatHistory),
+        }),
+      },
+    );
 
     if (response.status !== 200) {
       setIsAiLoading(false);
@@ -294,6 +304,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                     textArea.current?.querySelector('textarea')?.focus();
                   }}
                   className="hidden md:flex"
+                  selectedSpaces={selectedSpaces}
+                  setSelectedSpaces={setSelectedSpaces}
                 />
                 <button
                   onClick={onSend}
@@ -369,6 +381,9 @@ export function Chat({
             side="top"
             align="start"
             className="bg-[#252525]"
+            // TODO: SPACES FILTER HERE
+            selectedSpaces={[]}
+            setSelectedSpaces={(spaces) => {}}
           />
           <Textarea2
             ref={textArea}
