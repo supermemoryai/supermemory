@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import './dist.css';
+import './ext.css';
 import {
   Tooltip,
   TooltipContent,

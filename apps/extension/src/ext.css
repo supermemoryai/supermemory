@@ -53,7 +53,7 @@
 
 .anycontext-open-button {
   color: white;
-  background-color: #7257ff;
+  background-color: #7257ff50; /* bg-indigo-600 */
   background-opacity: 75%;
   cursor: pointer;
   padding: 8px; /* px-4 py-2 */
@@ -68,7 +68,6 @@
   font-weight: 600; /* font-semibold */
   font-size: 1.25rem; /* text-xl */
   color: black;
-  
 }
 
 .anycontext-icon {
