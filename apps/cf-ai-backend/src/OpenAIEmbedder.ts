@@ -1,4 +1,4 @@
-import { AiTextGenerationOutput } from "@cloudflare/ai/dist/ai/tasks/text-generation";
+import { AiTextGenerationOutput } from '@cloudflare/ai/dist/ai/tasks/text-generation';
 
 interface OpenAIEmbeddingsParams {
 	apiKey: string;
@@ -15,7 +15,7 @@ export class OpenAIEmbeddings {
 	}
 
 	async embedDocuments(texts: string[]): Promise<number[][]> {
-		const responses = await Promise.all(texts.map(text => this.embedQuery(text)));
+		const responses = await Promise.all(texts.map((text) => this.embedQuery(text)));
 		return responses;
 	}
 
@@ -24,18 +24,18 @@ export class OpenAIEmbeddings {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${this.apiKey}`
+				Authorization: `Bearer ${this.apiKey}`,
 			},
 			body: JSON.stringify({
 				input: text,
-				model: this.modelName
-			})
+				model: this.modelName,
+			}),
 		});
 
-		const data = await response.json() as {
+		const data = (await response.json()) as {
 			data: {
-				embedding: number[]
-			}[]
+				embedding: number[];
+			}[];
 		};
 
 		return data.data[0].embedding;

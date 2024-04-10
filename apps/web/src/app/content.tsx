@@ -1,8 +1,8 @@
-'use client';
-import Main from '@/components/Main';
-import Sidebar from '@/components/Sidebar/index';
-import { SessionProvider } from 'next-auth/react';
-import { useState } from 'react';
+"use client";
+import Main from "@/components/Main";
+import Sidebar from "@/components/Sidebar/index";
+import { SessionProvider } from "next-auth/react";
+import { useState } from "react";
 
 export default function Content({ jwt }: { jwt: string }) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);

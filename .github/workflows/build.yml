@@ -4,15 +4,15 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/web/**'
-      - 'apps/extension/**'
-      - 'apps/cf-ai-backend/**'
+      - "apps/web/**"
+      - "apps/extension/**"
+      - "apps/cf-ai-backend/**"
   pull_request:
     branches: [main]
     paths:
-      - 'apps/web/**'
-      - 'apps/extension/**'
-      - 'apps/cf-ai-backend/**'
+      - "apps/web/**"
+      - "apps/extension/**"
+      - "apps/cf-ai-backend/**"
 
 jobs:
   build-extension:

@@ -5,6 +5,7 @@
 .next
 .wrangler
 drizzle/
+dist/
 
 node_modules
 

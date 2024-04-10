@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import React from 'react';
-import { Card, CardContent } from './ui/card';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm'
+import React from "react";
+import { Card, CardContent } from "./ui/card";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 function SearchResults({
   aiResponse,
@@ -17,11 +17,13 @@ function SearchResults({
       style={{
         backgroundImage: `linear-gradient(to right, #E5D9F2, #CDC1FF)`,
       }}
-      className="w-full max-w-2xl mx-auto px-4 py-6 space-y-6 border mt-4 rounded-xl"
+      className="mx-auto mt-4 w-full max-w-2xl space-y-6 rounded-xl border px-4 py-6"
     >
       <div className="text-start">
         <div className="text-xl text-black">
-          <Markdown remarkPlugins={[remarkGfm]}>{aiResponse.replace('</s>', '')}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {aiResponse.replace("</s>", "")}
+          </Markdown>
         </div>
       </div>
       <div className="grid gap-6">

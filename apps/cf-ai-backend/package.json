@@ -1,15 +1,15 @@
 {
-  "name": "cf-ai-backend",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "start": "wrangler dev"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240222.0",
-    "typescript": "^5.0.4",
-    "wrangler": "^3.0.0"
-  }
+	"name": "cf-ai-backend",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"start": "wrangler dev"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20240222.0",
+		"typescript": "^5.0.4",
+		"wrangler": "^3.0.0"
+	}
 }

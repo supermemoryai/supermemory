@@ -6,7 +6,7 @@ const config = {
     "next/core-web-vitals",
     "plugin:@typescript-eslint/recommended-type-checked",
     "plugin:@typescript-eslint/stylistic-type-checked",
-    "plugin:eslint-plugin-next-on-pages/recommended"
+    "plugin:eslint-plugin-next-on-pages/recommended",
   ],
   rules: {
     // These opinionated rules are enabled in stylistic-type-checked above.

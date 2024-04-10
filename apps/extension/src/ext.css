@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ext.css - Assuming this is your CSS file */
 .anycontext-overlay {
   position: fixed;
   top: 0;

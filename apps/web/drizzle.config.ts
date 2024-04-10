@@ -7,5 +7,5 @@ export default {
     wranglerConfigPath: "./wrangler.toml",
     dbName: "dev-d1-anycontext",
   },
-  out: 'drizzle'
+  out: "drizzle",
 } satisfies Config;

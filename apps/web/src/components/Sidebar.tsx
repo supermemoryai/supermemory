@@ -1,42 +1,42 @@
-'use client';
-import { StoredContent } from '@/server/db/schema';
+"use client";
+import { StoredContent } from "@/server/db/schema";
 import {
   Plus,
   MoreHorizontal,
   ArrowUpRight,
   Edit3,
   Trash2,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from "./ui/dropdown-menu";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 export default function Sidebar() {
   const websites: StoredContent[] = [
     {
       id: 1,
-      content: '',
-      title: 'Visual Studio Code',
-      url: 'https://code.visualstudio.com',
-      description: '',
-      image: 'https://code.visualstudio.com/favicon.ico',
-      baseUrl: 'https://code.visualstudio.com',
-      savedAt: new Date()
+      content: "",
+      title: "Visual Studio Code",
+      url: "https://code.visualstudio.com",
+      description: "",
+      image: "https://code.visualstudio.com/favicon.ico",
+      baseUrl: "https://code.visualstudio.com",
+      savedAt: new Date(),
     },
     {
       id: 1,
-      content: '',
+      content: "",
       title: "yxshv/vscode: An unofficial remake of vscode's landing page",
-      url: 'https://github.com/yxshv/vscode',
-      description: '',
-      image: 'https://github.com/favicon.ico',
-      baseUrl: 'https://github.com',
-      savedAt: new Date()
+      url: "https://github.com/yxshv/vscode",
+      description: "",
+      image: "https://github.com/favicon.ico",
+      baseUrl: "https://github.com",
+      savedAt: new Date(),
     },
   ];
 
@@ -86,8 +86,8 @@ export const ListItem: React.FC<{ item: StoredContent }> = ({ item }) => {
         ) : (
           <>
             <img
-              src={item.image ?? '/brain.png'}
-              alt={item.title ?? 'Untitiled website'}
+              src={item.image ?? "/brain.png"}
+              alt={item.title ?? "Untitiled website"}
               className="h-4 w-4"
             />
             <ArrowUpRight
@@ -102,13 +102,13 @@ export const ListItem: React.FC<{ item: StoredContent }> = ({ item }) => {
             ref={editInputRef}
             autoFocus
             className="text-rgray-12 w-full bg-transparent focus:outline-none"
-            placeholder={item.title ?? 'Untitled website'}
+            placeholder={item.title ?? "Untitled website"}
             onBlur={(e) => setIsEditing(false)}
-            onKeyDown={(e) => e.key === 'Escape' && setIsEditing(false)}
+            onKeyDown={(e) => e.key === "Escape" && setIsEditing(false)}
           />
         ) : (
           <span className="w-full truncate text-nowrap">
-            {item.title ?? 'Untitled website'}
+            {item.title ?? "Untitled website"}
           </span>
         )}
       </a>

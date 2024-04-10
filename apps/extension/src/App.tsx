@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react';
-import { z } from 'zod';
-import { userObj } from './types/zods';
-import { getEnv } from './util';
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { userObj } from "./types/zods";
+import { getEnv } from "./util";
 
-const backendUrl = getEnv() === "development" ? "http://localhost:3000" : "https://supermemory.dhr.wtf";
+const backendUrl =
+  getEnv() === "development"
+    ? "http://localhost:3000"
+    : "https://supermemory.dhr.wtf";
 
 function App() {
   const [userData, setUserData] = useState<z.infer<typeof userObj> | null>(
@@ -11,9 +14,9 @@ function App() {
   );
 
   const doStuff = () => {
-    chrome.runtime.sendMessage({ type: 'getJwt' }, (response) => {
+    chrome.runtime.sendMessage({ type: "getJwt" }, (response) => {
       const jwt = response.jwt;
-      const loginButton = document.getElementById('login');
+      const loginButton = document.getElementById("login");
 
       if (loginButton) {
         if (jwt) {
@@ -31,7 +34,7 @@ function App() {
                 console.error(d.error);
               }
             });
-          loginButton.style.display = 'none';
+          loginButton.style.display = "none";
         }
       }
     });

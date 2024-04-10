@@ -58,13 +58,13 @@ body {
 }
 
 .chat-answer pre {
-  @apply bg-rgray-3 rounded-md border border-rgray-5 p-3 text-sm my-5;
+  @apply bg-rgray-3 border-rgray-5 my-5 rounded-md border p-3 text-sm;
 }
 
 .chat-answer h1 {
-  @apply text-rgray-11 text-xl font-medium my-5;
+  @apply text-rgray-11 my-5 text-xl font-medium;
 }
 
 .chat-answer img {
-  @apply rounded-md font-medium my-5;
+  @apply my-5 rounded-md font-medium;
 }
