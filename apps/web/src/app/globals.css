@@ -56,3 +56,15 @@ body {
   padding-bottom: 20vh;
   padding-bottom: 15dvh;
 }
+
+.chat-answer pre {
+  @apply bg-rgray-3 rounded-md border border-rgray-5 p-3 text-sm my-5;
+}
+
+.chat-answer h1 {
+  @apply text-rgray-11 text-xl font-medium my-5;
+}
+
+.chat-answer img {
+  @apply rounded-md font-medium my-5;
+}

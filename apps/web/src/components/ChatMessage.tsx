@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowUpRight, Globe } from 'lucide-react';
-import { convertRemToPixels } from '@/lib/utils';
-import { SpaceIcon } from '@/assets/Memories';
-import Markdown from 'react-markdown';
+import React, { useEffect } from "react";
+import { motion } from "framer-motion";
+import { ArrowUpRight, Globe } from "lucide-react";
+import { convertRemToPixels } from "@/lib/utils";
+import { SpaceIcon } from "@/assets/Memories";
+import Markdown from "react-markdown";
 
 export function ChatAnswer({
   children: message,
@@ -15,11 +15,11 @@ export function ChatAnswer({
   loading?: boolean;
 }) {
   return (
-    <div className="flex w-full flex-col items-start gap-5">
+    <div className="flex h-max w-full flex-col items-start gap-5">
       {loading ? (
         <MessageSkeleton />
       ) : (
-        <div className="w-full text-lg text-white/60">
+        <div className="chat-answer h-full w-full text-lg text-white/60">
           <Markdown>{message}</Markdown>
         </div>
       )}
@@ -50,7 +50,7 @@ export function ChatAnswer({
 export function ChatQuestion({ children }: { children: string }) {
   return (
     <div
-      className={`text-rgray-12 w-full text-left ${children.length > 200 ? 'text-xl' : 'text-2xl'}`}
+      className={`text-rgray-12 h-max w-full text-left ${children.length > 200 ? "text-xl" : "text-2xl"}`}
     >
       {children}
     </div>
@@ -70,14 +70,9 @@ export function ChatMessage({
 
   useEffect(() => {
     if (!isLast) return;
-    console.log(
-      'last',
-      messageRef.current?.offsetTop,
-      messageRef.current?.parentElement,
-    );
     messageRef.current?.parentElement?.scrollTo({
       top: messageRef.current?.offsetTop,
-      behavior: 'smooth',
+      behavior: "smooth",
     });
   }, []);
 
@@ -86,11 +81,11 @@ export function ChatMessage({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        type: 'tween',
+        type: "tween",
         duration: 0.5,
       }}
       ref={messageRef}
-      className={`${index === 0 ? 'pt-16' : 'pt-28'} flex w-full flex-col items-start justify-start gap-5 transition-[height] ${isLast ? 'min-h-screen' : 'h-auto'}`}
+      className={`${index === 0 ? "pt-16" : "pt-28"} flex h-max w-full resize-y flex-col items-start justify-start gap-5 transition-[height] ${isLast ? "min-h-screen pb-[40vh]" : "h-max"}`}
     >
       {children}
     </motion.div>
