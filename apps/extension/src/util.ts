@@ -9,5 +9,5 @@ export const getEnv = () => {
     // })
 
     // return null
-    return 'development'
+    return 'production'
 }

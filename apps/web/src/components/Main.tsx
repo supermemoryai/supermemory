@@ -315,7 +315,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                 autoFocus: true,
                 onChange: (e) => setValue(e.target.value),
                 onKeyDown: (e) => {
-                  console.log(e.key, e.ctrlKey, e.metaKey);
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                     onSend();
                   }

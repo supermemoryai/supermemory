@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Bin } from '@/assets/Bin';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 import { useSession } from 'next-auth/react';
+import MessagePoster from '@/app/MessagePoster';
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -16,8 +17,10 @@ export type MenuItem = {
 
 export default function Sidebar({
   selectChange,
+  jwt
 }: {
   selectChange?: (selectedItem: string | null) => void;
+  jwt: string;
 }) {
   const { data: session } = useSession();
   const menuItemsTop: Array<MenuItem> = [
@@ -117,6 +120,7 @@ export default function Sidebar({
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
           />
+          <MessagePoster jwt={jwt} />
         </div>
         <AnimatePresence>
           {selectedItem && <SubSidebar>{Subbar}</SubSidebar>}

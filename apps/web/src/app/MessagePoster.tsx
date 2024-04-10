@@ -15,7 +15,7 @@ function MessagePoster({ jwt }: { jwt: string }) {
         window.postMessage({ jwt }, '*');
       }}
     >
-      Send message
+      Extension Auth
     </button>
   );
 }
