@@ -13,7 +13,8 @@
     "dev": "dotenv -- turbo run dev --filter=!cf-ai-backend",
     "lint": "dotenv -- turbo run lint",
     "start": "dotenv -- turbo run start",
-    "format": "prettier --write . && git add -A ."
+    "format": "prettier --write . && git add -A .",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.6",
