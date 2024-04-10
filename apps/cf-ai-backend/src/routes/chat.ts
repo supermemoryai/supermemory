@@ -8,7 +8,8 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	const query = queryparams.get("q");
 	const topK = parseInt(queryparams.get("topK") ?? "5");
 	const user = queryparams.get("user")
-	const space = queryparams.get("space")
+	const spaces = queryparams.get("spaces")
+	const spacesArray = spaces ? spaces.split(",") : undefined
 
 	const sourcesOnly = (queryparams.get("sourcesOnly") ?? "false")
 
@@ -19,27 +20,48 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	if (!query) {
 		return new Response(JSON.stringify({ message: "Invalid Query" }), { status: 400 });
 	}
-
 	const filter: VectorizeVectorMetadataFilter = {
 		user
 	}
 
-	if (space) {
-		filter.space
+	const responses: VectorizeMatches = { matches: [], count: 0 };
+
+	if (spacesArray) {
+		for (const space of spacesArray) {
+			filter.space = space;
+
+			const queryAsVector = await embeddings.embedQuery(query);
+
+			const resp = await env!.VECTORIZE_INDEX.query(queryAsVector, {
+				topK,
+				filter
+			});
+
+			if (resp.count > 0) {
+				responses.matches.push(...resp.matches)
+				responses.count += resp.count
+			}
+		}
+	} else {
+		const queryAsVector = await embeddings.embedQuery(query);
+		const resp = await env!.VECTORIZE_INDEX.query(queryAsVector, {
+			topK,
+			filter: {
+				user
+			}
+		});
+
+		if (resp.count > 0) {
+			responses.matches.push(...resp.matches)
+			responses.count += resp.count
+		}
 	}
 
-	const queryAsVector = await embeddings.embedQuery(query);
+	// if (responses.count === 0) {
+	// 	return new Response(JSON.stringify({ message: "No Results Found" }), { status: 404 });
+	// }
 
-	const resp = await env!.VECTORIZE_INDEX.query(queryAsVector, {
-		topK,
-		filter
-	});
-
-	if (resp.count === 0) {
-		return new Response(JSON.stringify({ message: "No Results Found" }), { status: 404 });
-	}
-
-	const highScoreIds = resp.matches.filter(({ score }) => score > 0.3).map(({ id }) => id)
+	const highScoreIds = responses.matches.filter(({ score }) => score > 0.35).map(({ id }) => id)
 
 	if (sourcesOnly === "true") {
 		return new Response(JSON.stringify({ ids: highScoreIds }), { status: 200 });
@@ -47,7 +69,7 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 
 	const vec = await env!.VECTORIZE_INDEX.getByIds(highScoreIds)
 
-	const preparedContext = vec.slice(0, 3).map(({ metadata }) => `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`).join("\n\n");
+	const preparedContext = vec.map(({ metadata }) => `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`).join("\n\n");
 
 	const body = await request.json() as {
 		chatHistory?: Content[]

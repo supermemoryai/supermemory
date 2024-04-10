@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
     const session = { session: sessionData[0], user: user[0] }
 
     const query = new URL(req.url).searchParams.get("q");
+    const spaces = new URL(req.url).searchParams.get("spaces");
+
     const sourcesOnly = new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
 
     const chatHistory = await req.json() as {
@@ -38,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
 
-    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}`, {
+    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`, {
         headers: {
             "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
         },

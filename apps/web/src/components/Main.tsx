@@ -37,6 +37,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const textArea = useRef<HTMLDivElement>(null);
   const main = useRef<HTMLDivElement>(null);
 
+  const [selectedSpaces, setSelectedSpaces] = useState<string[]>([]);
+
   useEffect(() => {
     const search = searchParams.get('q');
     if (search && search.trim().length > 0) {
@@ -182,7 +184,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       ids: string[];
     };
 
-    setIsAiLoading(false)
+    setIsAiLoading(false);
     setChatHistory((prev) => {
       const lastMessage = prev[prev.length - 1];
       return [
@@ -197,8 +199,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       ];
     });
 
-    // TODO: PASS THE `SPACE` TO THE API
-    const response = await fetch(`/api/chat?q=${_value}`, {
+    const response = await fetch(`/api/chat?q=${_value}&spaces=${selectedSpaces.join(",")}`, {
       method: 'POST',
       body: JSON.stringify({
         chatHistory: modifyChatHistory(chatHistory),
