@@ -1,0 +1,3 @@
+#!/bin/sh
+. "$(dirname "$0")/husky.sh"
+bun run lint-staged
