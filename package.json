@@ -12,7 +12,8 @@
     "build": "dotenv -- turbo run build",
     "dev": "dotenv -- turbo run dev --filter=!cf-ai-backend",
     "lint": "dotenv -- turbo run lint",
-    "start": "dotenv -- turbo run start"
+    "start": "dotenv -- turbo run start",
+    "format": "prettier --write . && git add -A ."
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.6",
@@ -56,6 +57,7 @@
     "framer-motion": "^11.0.6",
     "html-metadata": "^1.7.1",
     "html-metadata-parser": "^2.0.4",
+    "husky": "^9.0.11",
     "lucide-react": "^0.343.0",
     "next-auth": "beta",
     "nuqs": "^1.17.1",
