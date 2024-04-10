@@ -12,8 +12,7 @@
     "build": "dotenv -- turbo run build",
     "dev": "dotenv -- turbo run dev --filter=!cf-ai-backend",
     "lint": "dotenv -- turbo run lint",
-    "start": "dotenv -- turbo run start",
-    "prepare": "husky"
+    "start": "dotenv -- turbo run start"
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
