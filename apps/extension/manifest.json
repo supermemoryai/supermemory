@@ -18,6 +18,7 @@
             ],
             "matches": [
                 "http://localhost:3000/*",
+                "https://opulent-funicular-94rx4v9w775f96q-3000.app.github.dev/*",
                 "https://anycontext.dhr.wtf/*",
                 "<all_urls>"
             ]
@@ -27,6 +28,7 @@
         "activeTab",
         "storage",
         "http://localhost:3000/*",
+        "https://opulent-funicular-94rx4v9w775f96q-3000.app.github.dev/*",
         "https://anycontext.dhr.wtf/*"
     ],
     "background": {

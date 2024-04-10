@@ -79,6 +79,9 @@ function SideBar({ jwt }: { jwt: string }) {
 
         // Process each part to extract JSON objects
         parts.forEach((part, index) => {
+          if (part.startsWith('data: [DONE]data: ')) {
+            part = part.replace('data: [DONE]data: ', 'data: ');
+          }
           try {
             const parsedPart = JSON.parse(part.replace('data: ', '')); // Try to parse the part as JSON
 

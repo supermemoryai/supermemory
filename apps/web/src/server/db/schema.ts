@@ -6,15 +6,9 @@ import {
   sqliteTableCreator,
   text,
   integer,
-  unique,
+  unique
 } from "drizzle-orm/sqlite-core";
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
 export const createTable = sqliteTableCreator((name) => `${name}`);
 
 export const users = createTable("user", {
@@ -84,27 +78,6 @@ export const verificationTokens = createTable(
   }),
 );
 
-export const userStoredContent = createTable(
-  "userStoredContent",
-  {
-    userId: text("userId")
-      .notNull()
-      .references(() => users.id),
-    contentId: integer("contentId")
-      .notNull()
-      .references(() => storedContent.id),
-  },
-  (usc) => ({
-    userContentIdx: index("userStoredContent_idx").on(
-      usc.userId,
-      usc.contentId,
-    ),
-    uniqueUserContent: unique("unique_user_content").on(
-      usc.userId,
-      usc.contentId,
-    ),
-  }),
-);
 
 export const storedContent = createTable(
   "storedContent",
@@ -113,18 +86,42 @@ export const storedContent = createTable(
     content: text("content").notNull(),
     title: text("title", { length: 255 }),
     description: text("description", { length: 255 }),
-    url: text("url").notNull().unique(),
-    space: text("space", { length: 255 }),
+    url: text("url").notNull(),
     savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
     baseUrl: text("baseUrl", { length: 255 }),
     image: text("image", { length: 255 }),
+    user: text("user", { length: 255 }).references(() => users.id),
   },
   (sc) => ({
     urlIdx: index("storedContent_url_idx").on(sc.url),
     savedAtIdx: index("storedContent_savedAt_idx").on(sc.savedAt),
     titleInx: index("storedContent_title_idx").on(sc.title),
-    spaceIdx: index("storedContent_space_idx").on(sc.space),
+    userIdx: index("storedContent_user_idx").on(sc.user),
   }),
 );
 
-export type StoredContent = typeof storedContent.$inferSelect;
+export const contentToSpace = createTable(
+  "contentToSpace",
+  {
+    contentId: integer("contentId").notNull().references(() => storedContent.id),
+    spaceId: integer("spaceId").notNull().references(() => space.id),
+  },
+  (cts) => ({
+    compoundKey: primaryKey({ columns: [cts.contentId, cts.spaceId] }),
+  }),
+);
+
+export const space = createTable(
+  "space",
+  {
+    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
+    name: text('name').notNull().default('all'),
+    user: text("user", { length: 255 }).references(() => users.id),
+  },
+  (space) => ({
+    nameIdx: index("spaces_name_idx").on(space.name),
+    userIdx: index("spaces_user_idx").on(space.user),
+  }),
+);
+
+export type StoredContent = Omit<typeof storedContent.$inferSelect, 'user'>

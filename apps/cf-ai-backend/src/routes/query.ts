@@ -21,15 +21,11 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	}
 
 	const filter: VectorizeVectorMetadataFilter = {
-		user: {
-			$eq: user
-		}
+		user
 	}
 
 	if (space) {
-		filter.space = {
-			$eq: space
-		}
+		filter.space
 	}
 
 	const queryAsVector = await embeddings.embedQuery(query);
@@ -40,7 +36,7 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	});
 
 	if (resp.count === 0) {
-		return new Response(JSON.stringify({ message: "No Results Found" }), { status: 400 });
+		return new Response(JSON.stringify({ message: "No Results Found" }), { status: 404 });
 	}
 
 	const highScoreIds = resp.matches.filter(({ score }) => score > 0.3).map(({ id }) => id)

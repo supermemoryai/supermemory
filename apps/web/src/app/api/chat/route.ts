@@ -3,10 +3,11 @@ import { eq } from "drizzle-orm";
 import { sessions, users } from "@/server/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
+import { ChatHistory } from "../../../../types/memory";
 
 export const runtime = "edge";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
     const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("__Secure-authjs.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
 
     const sessionData = await db.select().from(sessions).where(eq(sessions.sessionToken, token!))
@@ -24,19 +25,33 @@ export async function GET(req: NextRequest) {
     const session = { session: sessionData[0], user: user[0] }
 
     const query = new URL(req.url).searchParams.get("q");
+    const spaces = new URL(req.url).searchParams.get("spaces");
+
     const sourcesOnly = new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
+
+    const chatHistory = await req.json() as {
+        chatHistory: ChatHistory[]
+    };
+
+    console.log("CHathistory", chatHistory)
 
     if (!query) {
         return new Response(JSON.stringify({ message: "Invalid query" }), { status: 400 });
     }
 
-    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}`, {
+
+    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`, {
         headers: {
             "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-        }
+        },
+        method: "POST",
+        body: JSON.stringify({
+            chatHistory: chatHistory.chatHistory ?? []
+        })
     })
 
     console.log(resp.status)
+    console.log(resp.statusText)
 
     if (resp.status !== 200 || !resp.ok) {
         const errorData = await resp.json();

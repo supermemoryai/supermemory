@@ -20,7 +20,7 @@
 }
 
 body {
-  @apply bg-rgray-1 text-rgray-11;
+  @apply bg-rgray-2 text-rgray-11 max-h-screen overflow-y-hidden;
   /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -30,8 +30,41 @@ body {
     rgb(var(--background-start-rgb)); */
 }
 
+[vaul-drawer-wrapper] {
+  @apply bg-rgray-2;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.sidebar {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+
+.DrawerContent {
+  padding-top: 5vh;
+  padding-top: 5dvh;
+}
+
+.main-hidden {
+  padding-bottom: 20vh;
+  padding-bottom: 15dvh;
+}
+
+.chat-answer pre {
+  @apply bg-rgray-3 rounded-md border border-rgray-5 p-3 text-sm my-5;
+}
+
+.chat-answer h1 {
+  @apply text-rgray-11 text-xl font-medium my-5;
+}
+
+.chat-answer img {
+  @apply rounded-md font-medium my-5;
 }

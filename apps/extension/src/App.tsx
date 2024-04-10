@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { userObj } from './types/zods';
+import { getEnv } from './util';
+
+const backendUrl = getEnv() === "development" ? "http://localhost:3000" : "https://supermemory.dhr.wtf";
 
 function App() {
   const [userData, setUserData] = useState<z.infer<typeof userObj> | null>(
@@ -14,7 +17,7 @@ function App() {
 
       if (loginButton) {
         if (jwt) {
-          fetch('https://supermemory.dhr.wtf/api/me', {
+          fetch(`${backendUrl}/api/me`, {
             headers: {
               Authorization: `Bearer ${jwt}`,
             },
@@ -43,7 +46,7 @@ function App() {
       <button
         onClick={() =>
           chrome.tabs.create({
-            url: 'https://supermemory.dhr.wtf/api/auth/signin',
+            url: `${backendUrl}/api/auth/signin`,
           })
         }
         id="login"

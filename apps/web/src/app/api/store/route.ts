@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
-import { eq } from "drizzle-orm";
-import { sessions, storedContent, userStoredContent, users } from "@/server/db/schema";
+import { and, eq } from "drizzle-orm";
+import { contentToSpace, sessions, storedContent, users, space } from "@/server/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
 import { getMetaData } from "@/server/helpers";
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const data = await req.json() as {
         pageContent: string,
         url: string,
+        space?: string
     };
 
     const metadata = await getMetaData(data.url);
@@ -38,32 +39,46 @@ export async function POST(req: NextRequest) {
 
     let id: number | undefined = undefined;
 
-    const storedCont = await db.select().from(storedContent).where(eq(storedContent.url, data.url)).limit(1)
+    let storeToSpace = data.space
 
-    if (storedCont.length > 0) {
-        id = storedCont[0].id;
-    } else {
-        const storedContentId = await db.insert(storedContent).values({
-            content: data.pageContent,
-            title: metadata.title,
-            description: metadata.description,
-            url: data.url,
-            baseUrl: metadata.baseUrl,
-            image: metadata.image,
-            savedAt: new Date()
+    if (!storeToSpace) {
+        storeToSpace = 'all'
+    }
+
+    const storedContentId = await db.insert(storedContent).values({
+        content: data.pageContent,
+        title: metadata.title,
+        description: metadata.description,
+        url: data.url,
+        baseUrl: metadata.baseUrl,
+        image: metadata.image,
+        savedAt: new Date(),
+        user: session.user.id
+    })
+
+    id = storedContentId.meta.last_row_id;
+
+    if (!id) {
+        return NextResponse.json({ message: "Error", error: "Error in CF function" }, { status: 500 });
+    }
+
+    let spaceID = 0;
+
+    const spaceData = await db.select().from(space).where(and(eq(space.name, storeToSpace), eq(space.user, session.user.id))).limit(1)
+    spaceID = spaceData[0]?.id
+
+    if (!spaceData || spaceData.length === 0) {
+        const spaceId = await db.insert(space).values({
+            name: storeToSpace,
+            user: session.user.id
         })
-
-        id = storedContentId.meta.last_row_id;
+        spaceID = spaceId.meta.last_row_id;
     }
 
-    try {
-        await db.insert(userStoredContent).values({
-            userId: session.user.id,
-            contentId: id
-        });
-    } catch (e) {
-        console.log(e);
-    }
+    await db.insert(contentToSpace).values({
+        contentId: id as number,
+        spaceId: spaceID
+    })
 
     const res = await Promise.race([
         fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
@@ -77,10 +92,6 @@ export async function POST(req: NextRequest) {
             setTimeout(() => reject(new Error('Request timed out')), 40000)
         )
     ]) as Response
-
-    const _ = await res.text();
-
-    console.log(_)
 
     if (res.status !== 200) {
         return NextResponse.json({ message: "Error", error: "Error in CF function" }, { status: 500 });
