@@ -5,6 +5,30 @@ const backendUrl =
     ? "http://localhost:3000"
     : "https://supermemory.dhr.wtf";
 
+// TODO: Implement getting bookmarks from API directly
+// let authorizationHeader: string | null = null;
+// let csrfToken: string | null = null;
+// let cookies: string | null = null;
+
+// chrome.webRequest.onBeforeSendHeaders.addListener(
+//   (details) => {
+//     for (let i = 0; i < details.requestHeaders!.length; ++i) {
+//       const header = details.requestHeaders![i];
+//       if (header.name.toLowerCase() === 'authorization') {
+//         authorizationHeader = header.value || null;
+//       } else if (header.name.toLowerCase() === 'x-csrf-token') {
+//         csrfToken = header.value || null;
+//       } else if (header.name.toLowerCase() === 'cookie') {
+//         cookies = header.value || null;
+//       }
+
+//       console.log(header, authorizationHeader, csrfToken, cookies)
+//     }
+//   },
+//   { urls: ['https://twitter.com/*', 'https://x.com/*'] },
+//   ['requestHeaders']
+// );
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "getJwt") {
     chrome.storage.local.get(["jwt"], ({ jwt }) => {
@@ -73,4 +97,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     })();
   }
+  // TODO: Implement getting bookmarks from API directly
+  // else if (request.action === 'getAuthData') {
+  //   sendResponse({
+  //     authorizationHeader: authorizationHeader,
+  //     csrfToken: csrfToken,
+  //     cookies: cookies
+  //   });
+  // }
 });
