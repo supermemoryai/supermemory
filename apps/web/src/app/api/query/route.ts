@@ -7,46 +7,72 @@ import { env } from "@/env";
 export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
-    const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("__Secure-authjs.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
+  const token =
+    req.cookies.get("next-auth.session-token")?.value ??
+    req.cookies.get("__Secure-authjs.session-token")?.value ??
+    req.cookies.get("authjs.session-token")?.value ??
+    req.headers.get("Authorization")?.replace("Bearer ", "");
 
-    const sessionData = await db.select().from(sessions).where(eq(sessions.sessionToken, token!))
+  const sessionData = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.sessionToken, token!));
 
-    if (!sessionData || sessionData.length === 0) {
-        return new Response(JSON.stringify({ message: "Invalid Key, session not found." }), { status: 404 });
-    }
+  if (!sessionData || sessionData.length === 0) {
+    return new Response(
+      JSON.stringify({ message: "Invalid Key, session not found." }),
+      { status: 404 },
+    );
+  }
 
-    const user = await db.select().from(users).where(eq(users.id, sessionData[0].userId)).limit(1)
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, sessionData[0].userId))
+    .limit(1);
 
-    if (!user || user.length === 0) {
-        return NextResponse.json({ message: "Invalid Key, session not found." }, { status: 404 });
-    }
+  if (!user || user.length === 0) {
+    return NextResponse.json(
+      { message: "Invalid Key, session not found." },
+      { status: 404 },
+    );
+  }
 
-    const session = { session: sessionData[0], user: user[0] }
+  const session = { session: sessionData[0], user: user[0] };
 
-    const query = new URL(req.url).searchParams.get("q");
-    const sourcesOnly = new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
+  const query = new URL(req.url).searchParams.get("q");
+  const sourcesOnly =
+    new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
 
-    if (!query) {
-        return new Response(JSON.stringify({ message: "Invalid query" }), { status: 400 });
-    }
+  if (!query) {
+    return new Response(JSON.stringify({ message: "Invalid query" }), {
+      status: 400,
+    });
+  }
 
-    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}`, {
-        headers: {
-            "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-        }
-    })
+  const resp = await fetch(
+    `https://cf-ai-backend.dhravya.workers.dev/query?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}`,
+    {
+      headers: {
+        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+      },
+    },
+  );
 
-    console.log(resp.status)
+  console.log(resp.status);
 
-    if (resp.status !== 200 || !resp.ok) {
-        const errorData = await resp.json();
-        console.log(errorData)
-        return new Response(JSON.stringify({ message: "Error in CF function", error: errorData }), { status: resp.status });
-    }
+  if (resp.status !== 200 || !resp.ok) {
+    const errorData = await resp.json();
+    console.log(errorData);
+    return new Response(
+      JSON.stringify({ message: "Error in CF function", error: errorData }),
+      { status: resp.status },
+    );
+  }
 
-    // Stream the response back to the client
-    const { readable, writable } = new TransformStream();
-    resp && resp.body!.pipeTo(writable);
+  // Stream the response back to the client
+  const { readable, writable } = new TransformStream();
+  resp && resp.body!.pipeTo(writable);
 
-    return new Response(readable, { status: 200 });
+  return new Response(readable, { status: 200 });
 }

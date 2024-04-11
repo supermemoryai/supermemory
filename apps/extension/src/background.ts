@@ -1,6 +1,9 @@
 import { getEnv } from "./util";
 
-const backendUrl = getEnv() === "development" ? "http://localhost:3000" : "https://supermemory.dhr.wtf";
+const backendUrl =
+  getEnv() === "development"
+    ? "http://localhost:3000"
+    : "https://supermemory.dhr.wtf";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === "getJwt") {
@@ -9,9 +12,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
 
     return true;
-  }
-
-  else if (request.type === "urlChange") {
+  } else if (request.type === "urlChange") {
     const content = request.content;
     const url = request.url;
 
@@ -24,15 +25,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         fetch(`${backendUrl}/api/store`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${jwt}`,
+            Authorization: `Bearer ${jwt}`,
           },
           body: JSON.stringify({ pageContent: content, url }),
-        }).then(ers => console.log(ers.status))
+        }).then((ers) => console.log(ers.status));
       });
     })();
-  }
-
-  else if (request.type === "queryApi") {
+  } else if (request.type === "queryApi") {
     const input = request.input;
     const jwt = request.jwt;
 
@@ -40,12 +39,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       await fetch(`${backendUrl}/api/ask`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${jwt}`,
+          Authorization: `Bearer ${jwt}`,
         },
         body: JSON.stringify({
           query: input,
         }),
-      }).then(async response => {
+      }).then(async (response) => {
         if (!response.body) {
           throw new Error("No response body");
         }
@@ -59,8 +58,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           if (done) break;
           // For simplicity, we're sending chunks as they come.
           // This might need to be adapted based on your data and needs.
-          const chunkAsString = new TextDecoder('utf-8').decode(value).replace("data: ", "")
-          chrome.tabs.sendMessage(sender.tab.id, { action: "streamData", data: chunkAsString });
+          const chunkAsString = new TextDecoder("utf-8")
+            .decode(value)
+            .replace("data: ", "");
+          chrome.tabs.sendMessage(sender.tab.id, {
+            action: "streamData",
+            data: chunkAsString,
+          });
         }
         // Notify the content script that the stream is complete.
         chrome.tabs.sendMessage(sender.tab.id, { action: "streamEnd" });

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import * as React from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -12,28 +12,30 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { SpaceIcon } from '@/assets/Memories';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { useMemory } from '@/contexts/MemoryContext';
+} from "@/components/ui/popover";
+import { SpaceIcon } from "@/assets/Memories";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { useMemory } from "@/contexts/MemoryContext";
 
 export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  side?: 'top' | 'bottom';
-  align?: 'end' | 'start' | 'center';
+  side?: "top" | "bottom";
+  align?: "end" | "start" | "center";
   onClose?: () => void;
   selectedSpaces: number[];
-  setSelectedSpaces: (spaces: number[] | ((prev: number[]) => number[])) => void;
+  setSelectedSpaces: (
+    spaces: number[] | ((prev: number[]) => number[]),
+  ) => void;
 }
 
 export function FilterCombobox({
   className,
-  side = 'bottom',
-  align = 'center',
+  side = "bottom",
+  align = "center",
   onClose,
   selectedSpaces,
   setSelectedSpaces,
@@ -65,7 +67,7 @@ export function FilterCombobox({
             <button
               data-state-on={open}
               className={cn(
-                'text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none',
+                "text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none",
                 className,
               )}
               {...props}
@@ -129,7 +131,7 @@ export function FilterCombobox({
                           <Check
                             data-state-on={selectedSpaces.includes(space.id)}
                             className={cn(
-                              'on:opacity-100 ml-auto h-4 w-4 opacity-0',
+                              "on:opacity-100 ml-auto h-4 w-4 opacity-0",
                             )}
                           />
                         </motion.div>

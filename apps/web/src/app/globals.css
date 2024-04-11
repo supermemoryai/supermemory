@@ -20,7 +20,7 @@
 }
 
 body {
-  @apply bg-rgray-2 text-rgray-11 max-h-screen overflow-y-hidden;
+  @apply text-rgray-11 max-h-screen overflow-y-hidden bg-white;
   /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
@@ -66,7 +66,7 @@ body {
 }
 
 .chat-answer h1 {
-  @apply text-rgray-11 text-xl font-medium my-5;
+  @apply text-rgray-11 my-5 text-xl font-medium;
 }
 
 .chat-answer img {

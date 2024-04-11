@@ -11,6 +11,7 @@ import { ChatHistory } from "../../types/memory";
 import { ChatAnswer, ChatMessage, ChatQuestion } from "./ChatMessage";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemory } from "@/contexts/MemoryContext";
+import WordMark from "./WordMark";
 
 function supportsDVH() {
   try {
@@ -293,8 +294,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
               hide ? "" : "main-hidden",
             )}
           >
-            <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl md:mt-0">
-              Ask your Second brain
+            <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl font-bold tracking-tight md:mt-0">
+              Ask your second brain
             </h1>
 
             <Textarea2
@@ -308,14 +309,13 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                 duration: 0.2,
               }}
               textAreaProps={{
-                placeholder: "Ask your SuperMemory...",
+                placeholder: "Ask your second brain...",
                 className:
                   "h-auto overflow-auto md:h-full md:resize-none text-lg py-0 px-2 pt-2 md:py-0 md:p-5 resize-y text-rgray-11 w-full min-h-[1em]",
                 value,
                 autoFocus: true,
                 onChange: (e) => setValue(e.target.value),
                 onKeyDown: (e) => {
-                  console.log(e.key, e.ctrlKey, e.metaKey);
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                     onSend();
                   }

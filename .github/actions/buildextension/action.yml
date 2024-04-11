@@ -1,7 +1,7 @@
-name: 'Build Chrome extension'
-description: 'Builds the chrome extension into a ZIP'
+name: "Build Chrome extension"
+description: "Builds the chrome extension into a ZIP"
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Setup Bun
       uses: oven-sh/setup-bun@v1

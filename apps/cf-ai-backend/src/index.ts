@@ -1,15 +1,9 @@
-import type {
-	VectorizeIndex,
-	Fetcher,
-	Request,
-} from "@cloudflare/workers-types";
+import type { VectorizeIndex, Fetcher, Request } from '@cloudflare/workers-types';
 
-import {
-	CloudflareVectorizeStore,
-} from "@langchain/cloudflare";
-import { OpenAIEmbeddings } from "./OpenAIEmbedder";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import routeMap from "./routes";
+import { CloudflareVectorizeStore } from '@langchain/cloudflare';
+import { OpenAIEmbeddings } from './OpenAIEmbedder';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import routeMap from './routes';
 
 function isAuthorized(request: Request, env: Env): boolean {
 	return request.headers.get('X-Custom-Auth-Key') === env.SECURITY_KEY;
@@ -32,7 +26,7 @@ export default {
 
 		const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
 
-		const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+		const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
 		const url = new URL(request.url);
 		const path = url.pathname;

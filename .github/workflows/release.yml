@@ -2,7 +2,7 @@ name: Upload to Web Store
 on:
   push:
     tags:
-      - '*'
+      - "*"
 jobs:
   build-extension:
     runs-on: ubuntu-latest

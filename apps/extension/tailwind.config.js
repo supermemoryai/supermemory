@@ -1,13 +1,13 @@
-import tailwindcssAnimate from 'tailwindcss-animate';
+import tailwindcssAnimate from "tailwindcss-animate";
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
   content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
-    'index.html'
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+    "index.html",
   ],
   prefix: "anycontext-",
   theme: {
@@ -36,4 +36,7 @@ export default {
     },
   },
   plugins: [tailwindcssAnimate],
-}
+  corePlugins: {
+    preflight: false,
+  },
+};

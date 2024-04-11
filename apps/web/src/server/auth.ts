@@ -1,7 +1,7 @@
 import { env } from "@/env";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { DrizzleAdapter } from "@auth/drizzle-adapter"
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
 
 export const {
@@ -15,9 +15,9 @@ export const {
       ...session,
       user: {
         ...session.user,
-        id: user.id
+        id: user.id,
       },
-    })
+    }),
   },
   adapter: DrizzleAdapter(db),
   providers: [

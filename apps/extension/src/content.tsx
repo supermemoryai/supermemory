@@ -1,4 +1,4 @@
-window.addEventListener('message', (event) => {
+window.addEventListener("message", (event) => {
   if (event.source !== window) {
     return;
   }
@@ -7,13 +7,13 @@ window.addEventListener('message', (event) => {
   if (jwt) {
     if (
       !(
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === 'anycontext.dhr.wtf' ||
-        window.location.hostname === 'supermemory.dhr.wtf'
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "anycontext.dhr.wtf" ||
+        window.location.hostname === "supermemory.dhr.wtf"
       )
     ) {
       console.log(
-        'JWT is only allowed to be used on localhost or anycontext.dhr.wtf',
+        "JWT is only allowed to be used on localhost or anycontext.dhr.wtf",
       );
       return;
     }
@@ -22,24 +22,24 @@ window.addEventListener('message', (event) => {
   }
 });
 
-const appContainer = document.createElement('div');
-appContainer.id = 'anycontext-app-container';
+const appContainer = document.createElement("div");
+appContainer.id = "anycontext-app-container";
 
 // First in the body, above the content
 document.body.insertBefore(appContainer, document.body.firstChild);
 
-appContainer.style.zIndex = '9999';
+appContainer.style.zIndex = "9999";
 
-import ReactDOM from 'react-dom/client';
-import SideBar from './SideBar';
+import ReactDOM from "react-dom/client";
+import SideBar from "./SideBar";
 
 // get JWT from local storage
-const jwt = chrome.storage.local.get('jwt').then((data) => {
+const jwt = chrome.storage.local.get("jwt").then((data) => {
   return data.jwt;
 }) as Promise<string>;
 
-jwt.then((jwt) => {
+jwt.then(() => {
   ReactDOM.createRoot(
-    document.getElementById('anycontext-app-container')!,
-  ).render(<SideBar jwt={jwt} />);
+    document.getElementById("anycontext-app-container")!,
+  ).render(<SideBar />);
 });

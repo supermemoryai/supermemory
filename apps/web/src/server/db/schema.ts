@@ -6,7 +6,7 @@ import {
   sqliteTableCreator,
   text,
   integer,
-  unique
+  unique,
 } from "drizzle-orm/sqlite-core";
 
 export const createTable = sqliteTableCreator((name) => `${name}`);
@@ -78,7 +78,6 @@ export const verificationTokens = createTable(
   }),
 );
 
-
 export const storedContent = createTable(
   "storedContent",
   {
@@ -103,8 +102,12 @@ export const storedContent = createTable(
 export const contentToSpace = createTable(
   "contentToSpace",
   {
-    contentId: integer("contentId").notNull().references(() => storedContent.id),
-    spaceId: integer("spaceId").notNull().references(() => space.id),
+    contentId: integer("contentId")
+      .notNull()
+      .references(() => storedContent.id),
+    spaceId: integer("spaceId")
+      .notNull()
+      .references(() => space.id),
   },
   (cts) => ({
     compoundKey: primaryKey({ columns: [cts.contentId, cts.spaceId] }),
@@ -115,7 +118,7 @@ export const space = createTable(
   "space",
   {
     id: integer("id").notNull().primaryKey({ autoIncrement: true }),
-    name: text('name').notNull().default('all'),
+    name: text("name").notNull().default("all"),
     user: text("user", { length: 255 }).references(() => users.id),
   },
   (space) => ({
@@ -124,4 +127,4 @@ export const space = createTable(
   }),
 );
 
-export type StoredContent = Omit<typeof storedContent.$inferSelect, 'user'>
+export type StoredContent = Omit<typeof storedContent.$inferSelect, "user">;

@@ -14,6 +14,9 @@
     "lint": "dotenv -- turbo run lint",
     "start": "dotenv -- turbo run start"
   },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.6",
     "@types/eslint": "^8.44.7",
@@ -56,6 +59,8 @@
     "framer-motion": "^11.0.6",
     "html-metadata": "^1.7.1",
     "html-metadata-parser": "^2.0.4",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
     "lucide-react": "^0.343.0",
     "next-auth": "beta",
     "nuqs": "^1.17.1",

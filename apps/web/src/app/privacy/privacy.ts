@@ -46,4 +46,4 @@ If you have any questions about this Privacy Policy, the practices of this site,
 
 - Email: dhravyashah@gmail.com
 
-This document was last updated on March 2, 2024.`
+This document was last updated on March 2, 2024.`;

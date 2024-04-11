@@ -7,42 +7,62 @@ import { env } from "@/env";
 export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
-    const token = req.cookies.get("next-auth.session-token")?.value ?? req.cookies.get("__Secure-authjs.session-token")?.value ?? req.cookies.get("authjs.session-token")?.value ?? req.headers.get("Authorization")?.replace("Bearer ", "");
+  const token =
+    req.cookies.get("next-auth.session-token")?.value ??
+    req.cookies.get("__Secure-authjs.session-token")?.value ??
+    req.cookies.get("authjs.session-token")?.value ??
+    req.headers.get("Authorization")?.replace("Bearer ", "");
 
-    const sessionData = await db.select().from(sessions).where(eq(sessions.sessionToken, token!))
+  const sessionData = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.sessionToken, token!));
 
-    if (!sessionData || sessionData.length === 0) {
-        return new Response(JSON.stringify({ message: "Invalid Key, session not found." }), { status: 404 });
-    }
+  if (!sessionData || sessionData.length === 0) {
+    return new Response(
+      JSON.stringify({ message: "Invalid Key, session not found." }),
+      { status: 404 },
+    );
+  }
 
-    const user = await db.select().from(users).where(eq(users.id, sessionData[0].userId)).limit(1)
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, sessionData[0].userId))
+    .limit(1);
 
-    if (!user || user.length === 0) {
-        return NextResponse.json({ message: "Invalid Key, session not found." }, { status: 404 });
-    }
+  if (!user || user.length === 0) {
+    return NextResponse.json(
+      { message: "Invalid Key, session not found." },
+      { status: 404 },
+    );
+  }
 
-    const body = await req.json() as {
-        query: string;
-    }
+  const body = (await req.json()) as {
+    query: string;
+  };
 
-    const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/ask`, {
-        headers: {
-            "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-        },
-        method: "POST",
-        body: JSON.stringify({
-            query: body.query,
-        }),
-    })
+  const resp = await fetch(`https://cf-ai-backend.dhravya.workers.dev/ask`, {
+    headers: {
+      "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+    },
+    method: "POST",
+    body: JSON.stringify({
+      query: body.query,
+    }),
+  });
 
-    if (resp.status !== 200 || !resp.ok) {
-        const errorData = await resp.json();
-        return new Response(JSON.stringify({ message: "Error in CF function", error: errorData }), { status: resp.status });
-    }
+  if (resp.status !== 200 || !resp.ok) {
+    const errorData = await resp.json();
+    return new Response(
+      JSON.stringify({ message: "Error in CF function", error: errorData }),
+      { status: resp.status },
+    );
+  }
 
-    // Stream the response back to the client
-    const { readable, writable } = new TransformStream();
-    resp && resp.body!.pipeTo(writable);
+  // Stream the response back to the client
+  const { readable, writable } = new TransformStream();
+  resp && resp.body!.pipeTo(writable);
 
-    return new Response(readable, { status: 200 });
+  return new Response(readable, { status: 200 });
 }
