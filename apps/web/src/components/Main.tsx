@@ -295,8 +295,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             )}
           >
             <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl font-bold tracking-tight md:mt-0">
-              Never forget anything. You are now{" "}
-              <span className="text-[#C9AC3E]">Smort</span>er.
+              Ask your second brain
             </h1>
 
             <Textarea2

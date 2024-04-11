@@ -77,23 +77,15 @@ export default function Sidebar({
     <>
       <div className="relative hidden h-screen max-h-screen w-max flex-col items-center text-sm font-light md:flex">
         <div className="bg-rgray-3 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
-          <MenuItem
-            item={{
-              label: "Smort",
-              icon: (
-                <Image
-                  className="rounded-md"
-                  src="/icons/logo_without_bg.png"
-                  alt="Smort logo"
-                  width={50}
-                  height={50}
-                />
-              ),
-              labelDisplay: <WordMark />,
-            }}
-            selectedItem={selectedItem}
-            setSelectedItem={setSelectedItem}
+          <Image
+            className="mb-4 rounded-md"
+            src="/icons/logo_bw_without_bg.png"
+            alt="Smort logo"
+            width={50}
+            height={50}
           />
+
+          <div className="bg-rgray-6 mb-8 h-[1px] w-full" />
 
           <MenuItem
             item={{
@@ -104,9 +96,7 @@ export default function Sidebar({
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
           />
-
           <div className="mt-auto" />
-
           <MenuItem
             item={{
               label: "Trash",
