@@ -5,9 +5,7 @@ import {
   MemoryWithImages3,
   MemoryWithImages2,
 } from "@/assets/MemoryWithImages";
-import { type CollectedSpaces }
-
-from "../../../types/memory";
+import { type CollectedSpaces } from "../../../types/memory";
 import { Input, InputWithIcon } from "../ui/input";
 import {
   ArrowUpRight,
@@ -42,7 +40,7 @@ import { Label } from "../ui/label";
 import useViewport from "@/hooks/useViewport";
 import useTouchHold from "@/hooks/useTouchHold";
 import { DialogTrigger } from "@radix-ui/react-dialog";
-import AddMemoryPage from "./AddMemoryDialog";
+import { AddMemoryPage, NoteAddPage } from "./AddMemoryDialog";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -319,32 +317,30 @@ export function AddMemoryModal({
       <DialogContent
         onOpenAutoFocus={(e) => {
           e.preventDefault();
+          const novel = document.querySelector('[contenteditable="true"]') as
+            | HTMLDivElement
+            | undefined;
+          if (novel) {
+            novel.autofocus = false;
+            novel.onfocus = () => {
+              (
+                document.querySelector("[data-modal-autofocus]") as
+                  | HTMLInputElement
+                  | undefined
+              )?.focus();
+              novel.onfocus = null;
+            };
+          }
           (
-            document.querySelector("[data-autofocus]") as
+            document.querySelector("[data-modal-autofocus]") as
               | HTMLInputElement
               | undefined
           )?.focus();
         }}
+        className="w-max max-w-[auto]"
       >
         {type === "page" && <AddMemoryPage />}
-        {type === "note" && (
-          <>
-            <Input
-              className="w-full border-none p-0 text-xl ring-0 placeholder:text-white/30 focus-visible:ring-0"
-              placeholder="Name of the note"
-              data-autofocus
-            />
-            <Editor />
-            <DialogFooter>
-              <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-                Add
-              </DialogClose>
-              <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-                Cancel
-              </DialogClose>
-            </DialogFooter>
-          </>
-        )}
+        {type === "note" && <NoteAddPage />}
       </DialogContent>
     </Dialog>
   );
