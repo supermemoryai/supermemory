@@ -86,7 +86,7 @@ export const ListItem: React.FC<{ item: StoredContent }> = ({ item }) => {
         ) : (
           <>
             <img
-              src={item.image ?? "/brain.png"}
+              src={item.image ?? "/icons/brain.png"}
               alt={item.title ?? "Untitiled website"}
               className="h-4 w-4"
             />

@@ -20,7 +20,7 @@
 }
 
 body {
-  @apply bg-rgray-2 text-rgray-11 max-h-screen overflow-y-hidden;
+  @apply text-rgray-11 max-h-screen overflow-y-hidden bg-white;
   /* color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,

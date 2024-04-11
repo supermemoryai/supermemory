@@ -8,11 +8,14 @@ import { Bin } from "@/assets/Bin";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { useSession } from "next-auth/react";
 import MessagePoster from "@/app/MessagePoster";
+import Image from "next/image";
+import WordMark from "../WordMark";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
   label: string;
   content?: React.ReactNode;
+  labelDisplay?: React.ReactNode;
 };
 
 export default function Sidebar({
@@ -73,7 +76,25 @@ export default function Sidebar({
   return (
     <>
       <div className="relative hidden h-screen max-h-screen w-max flex-col items-center text-sm font-light md:flex">
-        <div className="bg-rgray-2 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
+        <div className="bg-rgray-3 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
+          <MenuItem
+            item={{
+              label: "Smort",
+              icon: (
+                <Image
+                  className="rounded-md"
+                  src="/icons/logo_without_bg.png"
+                  alt="Smort logo"
+                  width={50}
+                  height={50}
+                />
+              ),
+              labelDisplay: <WordMark />,
+            }}
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
+          />
+
           <MenuItem
             item={{
               label: "Memories",
@@ -131,7 +152,7 @@ export default function Sidebar({
 }
 
 const MenuItem = ({
-  item: { icon, label },
+  item: { icon, label, labelDisplay },
   selectedItem,
   setSelectedItem,
   ...props
@@ -147,7 +168,7 @@ const MenuItem = ({
     {...props}
   >
     {icon}
-    <span className="">{label}</span>
+    <span className="">{labelDisplay ?? label}</span>
   </button>
 );
 
