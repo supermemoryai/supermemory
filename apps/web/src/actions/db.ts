@@ -7,10 +7,36 @@ import {
   StoredContent,
   storedContent,
   users,
+	space
 } from "@/server/db/schema";
-import { like, eq, and } from "drizzle-orm";
+import { like, eq, and, sql } from "drizzle-orm";
+import { union } from "drizzle-orm/sqlite-core"
 import { auth as authOptions } from "@/server/auth";
 
+// @todo: (future) pagination not yet needed
+export async function searchMemoriesAndSpaces(userId: string, query: string) {
+	const searchMemoriesQuery = db.select({
+		type: sql<string>`'memory'`,
+		space: sql`NULL`,
+		memory: storedContent as any
+	}).from(storedContent).where(and(
+		eq(storedContent.user, userId),
+		like(storedContent.title, `%${query}%`)
+	))
+
+	const searchSpacesQuery = db.select({
+		type: sql<string>`'space'`,
+		space: space as any,
+		memory: sql`NULL`,
+	}).from(space).where(
+		and(
+			eq(space.user, userId),
+			like(space.name, `%${query}%`)
+		)
+	)
+
+	return await union(searchMemoriesQuery, searchSpacesQuery)
+}
 
 async function getUser() {
   const token =

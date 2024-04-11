@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { fetchContentForSpace, fetchFreeMemories, transformContent } from "../../types/memory";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
+import { searchMemoriesAndSpaces } from "@/actions/db";
 
 export const runtime = "edge";
 
@@ -67,6 +68,11 @@ export default async function Home() {
 
 	// freeMemories
 	const freeMemories = await fetchFreeMemories(userData.id)
+
+	// @dhravya test these 3 functions
+	fetchFreeMemories
+	fetchContentForSpace
+	searchMemoriesAndSpaces
 
   collectedSpaces.push({
     id: 1,
