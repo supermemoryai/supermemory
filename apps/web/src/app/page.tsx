@@ -77,7 +77,7 @@ export default async function Home() {
   // });
 
   return (
-    <MemoryProvider spaces={collectedSpaces}>
+    <MemoryProvider spaces={collectedSpaces} freeMemories={[]}>
       <Content jwt={token} />
       {/* <MessagePoster jwt={token} /> */}
     </MemoryProvider>

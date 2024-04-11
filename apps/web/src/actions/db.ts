@@ -1,21 +1,55 @@
 "use server";
+import { cookies, headers } from "next/headers";
 import { db } from "@/server/db";
 import {
   contentToSpace,
+  sessions,
   StoredContent,
   storedContent,
+  users,
 } from "@/server/db/schema";
 import { like, eq, and } from "drizzle-orm";
 import { auth as authOptions } from "@/server/auth";
-import { getSession } from "next-auth/react";
+
+
+async function getUser() {
+  const token =
+    cookies().get("next-auth.session-token")?.value ??
+    cookies().get("__Secure-authjs.session-token")?.value ??
+    cookies().get("authjs.session-token")?.value ??
+    headers().get("Authorization")?.replace("Bearer ", "");
+
+  if (!token) {
+    return null
+  }
+
+  const session = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.sessionToken, token!));
+
+  if (!session || session.length === 0) {
+    return null
+  }
+
+  const [userData] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session[0].userId))
+    .limit(1);
+
+  if (!userData) {
+    return null
+  }
+
+  return userData
+}
 
 export async function getMemory(title: string) {
-  const session = await getSession();
+  const user = await getUser();
 
-  console.log(session?.user?.name);
-
-  if (!session || !session.user) {
-    return null;
+  if (!user) {
+    return null
   }
 
   return await db
@@ -23,7 +57,7 @@ export async function getMemory(title: string) {
     .from(storedContent)
     .where(
       and(
-        eq(storedContent.user, session.user.id!),
+        eq(storedContent.user, user.id),
         like(storedContent.title, `%${title}%`),
       ),
     );
@@ -33,12 +67,13 @@ export async function addMemory(
   content: typeof storedContent.$inferInsert,
   spaces: number[],
 ) {
-  const session = await getSession();
+  
+  const user = await getUser();
 
-  if (!session || !session.user) {
-    return null;
+  if (!user) {
+    return null
   }
-  content.user = session.user.id;
+  content.user = user.id;
 
   const _content = (
     await db.insert(storedContent).values(content).returning()
