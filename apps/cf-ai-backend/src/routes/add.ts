@@ -30,7 +30,7 @@ export async function POST(request: Request, store: CloudflareVectorizeStore) {
 			},
 		],
 		{
-			ids: [`${body.url}`],
+			ids: [`${body.url}-${body.user}`],
 		},
 	);
 

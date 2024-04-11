@@ -88,6 +88,9 @@ export const storedContent = createTable(
     url: text("url").notNull(),
     savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
     baseUrl: text("baseUrl", { length: 255 }),
+    type: text("type", { enum: ["note", "page", "twitter-bookmark"] }).default(
+      "page",
+    ),
     image: text("image", { length: 255 }),
     user: text("user", { length: 255 }).references(() => users.id),
   },
@@ -118,7 +121,7 @@ export const space = createTable(
   "space",
   {
     id: integer("id").notNull().primaryKey({ autoIncrement: true }),
-    name: text("name").notNull().default("all"),
+    name: text("name").notNull().unique().default("none"),
     user: text("user", { length: 255 }).references(() => users.id),
   },
   (space) => ({

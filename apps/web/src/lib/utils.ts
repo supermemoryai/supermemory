@@ -18,6 +18,11 @@ export function cleanUrl(url: string) {
       : url;
 }
 
+export function getIdsFromSource(sourceIds: string[]) {
+  // This function converts an id from a form of `websiteURL-userID` to just the websiteURL
+  return sourceIds.map((id) => id.split("-").slice(0, -1).join("-"));
+}
+
 export function generateId() {
   return Math.random().toString(36).slice(2, 9);
 }

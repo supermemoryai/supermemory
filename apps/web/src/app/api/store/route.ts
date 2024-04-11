@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   let storeToSpace = data.space;
 
   if (!storeToSpace) {
-    storeToSpace = "all";
+    storeToSpace = "none";
   }
 
   const storedContentId = await db.insert(storedContent).values({

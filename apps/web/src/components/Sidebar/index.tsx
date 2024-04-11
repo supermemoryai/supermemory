@@ -13,6 +13,7 @@ export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
   label: string;
   content?: React.ReactNode;
+  labelDisplay?: React.ReactNode;
 };
 
 export default function Sidebar({
@@ -73,7 +74,7 @@ export default function Sidebar({
   return (
     <>
       <div className="relative hidden h-screen max-h-screen w-max flex-col items-center text-sm font-light md:flex">
-        <div className="bg-rgray-2 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
+        <div className="bg-rgray-3 border-r-rgray-6 relative z-[50] flex h-full w-full flex-col items-center justify-center border-r px-2 py-5 ">
           <MenuItem
             item={{
               label: "Memories",
@@ -83,9 +84,7 @@ export default function Sidebar({
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
           />
-
           <div className="mt-auto" />
-
           <MenuItem
             item={{
               label: "Trash",
@@ -131,7 +130,7 @@ export default function Sidebar({
 }
 
 const MenuItem = ({
-  item: { icon, label },
+  item: { icon, label, labelDisplay },
   selectedItem,
   setSelectedItem,
   ...props
@@ -147,7 +146,7 @@ const MenuItem = ({
     {...props}
   >
     {icon}
-    <span className="">{label}</span>
+    <span className="">{labelDisplay ?? label}</span>
   </button>
 );
 

@@ -37,7 +37,7 @@ export function ChatAnswer({
                 href={source}
               >
                 <Globe className="h-4 w-4" />
-                {source}
+                {cleanUrl(source)}
               </a>
             ))}
           </div>
@@ -102,4 +102,18 @@ function MessageSkeleton() {
       <div className="bg-rgray-5 h-6 w-[70%] animate-pulse rounded-md text-lg"></div>
     </div>
   );
+}
+
+function cleanUrl(url: string) {
+  if (url.startsWith("https://")) {
+    url = url.slice(8);
+  } else if (url.startsWith("http://")) {
+    url = url.slice(7);
+  }
+
+  if (url.endsWith("/")) {
+    url = url.slice(0, -1);
+  }
+
+  return url;
 }
