@@ -40,7 +40,7 @@ import { Label } from "../ui/label";
 import useViewport from "@/hooks/useViewport";
 import useTouchHold from "@/hooks/useTouchHold";
 import { DialogTrigger } from "@radix-ui/react-dialog";
-import { AddMemoryPage, NoteAddPage } from "./AddMemoryDialog";
+import { AddMemoryPage, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -91,10 +91,16 @@ export function MemoriesBar() {
                   Note
                 </DropdownMenuItem>
               </DialogTrigger>
-              <DropdownMenuItem>
-                <SpaceIcon className="mr-2 h-4 w-4" />
-                Space
-              </DropdownMenuItem>
+              <DialogTrigger className="block w-full">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAddMemoryState("space");
+                  }}
+                >
+                  <SpaceIcon className="mr-2 h-4 w-4" />
+                  Space
+                </DropdownMenuItem>
+              </DialogTrigger>
             </DropdownMenuContent>
           </DropdownMenu>
         </AddMemoryModal>
@@ -343,6 +349,8 @@ export function AddMemoryModal({
           <AddMemoryPage />
         ) : type === "note" ? (
           <NoteAddPage closeDialog={() => setIsDialogOpen(false)} />
+        ) : type === "space" ? (
+          <SpaceAddPage closeDialog={() => setIsDialogOpen(false)} />
         ) : (
           <></>
         )}

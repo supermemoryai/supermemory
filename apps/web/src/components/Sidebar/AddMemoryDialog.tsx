@@ -10,13 +10,17 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Markdown } from "tiptap-markdown";
 import { useEffect, useRef, useState } from "react";
-import { FilterCombobox } from "./FilterCombobox";
+import { FilterSpaces } from "./FilterCombobox";
+import { useMemory } from "@/contexts/MemoryContext";
 
 export function AddMemoryPage() {
+  const { addMemory } = useMemory();
+
+  const [url, setUrl] = useState("");
   const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
 
   return (
-    <div className="md:w-[40vw]">
+    <form className="md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add a web page to memory</DialogTitle>
         <DialogDescription>
@@ -30,25 +34,41 @@ export function AddMemoryPage() {
         type="url"
         data-modal-autofocus
         className="bg-rgray-4 mt-2 w-full"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
       />
       <DialogFooter>
-        <FilterCombobox
+        <FilterSpaces
           selectedSpaces={selectedSpacesId}
           setSelectedSpaces={setSelectedSpacesId}
           className="hover:bg-rgray-5 mr-auto bg-white/5"
           name={"Spaces"}
         />
-        <DialogClose
-          type={undefined}
+        <button
+          type={"submit"}
+          onClick={async () => {
+            // @Dhravya this is adding a memory with insufficient information fix pls
+            await addMemory(
+              {
+                title: url,
+                content: "",
+                type: "page",
+                url: url,
+                image: "/icons/logo_without_bg.png",
+                savedAt: new Date(),
+              },
+              selectedSpacesId,
+            );
+          }}
           className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
         >
           Add
-        </DialogClose>
+        </button>
         <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
           Cancel
         </DialogClose>
       </DialogFooter>
-    </div>
+    </form>
   );
 }
 
@@ -60,16 +80,15 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function check() {
+  function check(): boolean {
     const data = {
       name: name.trim(),
       content,
     };
-    console.log(name);
     if (!data.name || data.name.length < 1) {
       if (!inputRef.current) {
         alert("Please enter a name for the note");
-        return;
+        return false;
       }
       inputRef.current.value = "";
       inputRef.current.placeholder = "Please enter a title for the note";
@@ -79,7 +98,9 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
         inputRef.current!.dataset["error"] = "false";
       }, 500);
       inputRef.current.focus();
+      return false;
     }
+    return true;
   }
 
   return (
@@ -87,7 +108,7 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
       <Input
         ref={inputRef}
         data-error="false"
-        className="w-full border-none p-0 text-xl ring-0 placeholder:text-white/30 placeholder:transition placeholder:duration-200 focus-visible:ring-0 data-[error=true]:placeholder:text-red-400"
+        className="w-full border-none p-0 text-xl ring-0 placeholder:text-white/30 placeholder:transition placeholder:duration-500 focus-visible:ring-0 data-[error=true]:placeholder:text-red-400"
         placeholder="Title of the note"
         data-modal-autofocus
         value={name}
@@ -104,7 +125,7 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
         className="novel-editor bg-rgray-4 border-rgray-7 dark mt-5 max-h-[60vh] min-h-[40vh] w-[50vw] overflow-y-auto rounded-lg border [&>div>div]:p-5"
       />
       <DialogFooter>
-        <FilterCombobox
+        <FilterSpaces
           selectedSpaces={selectedSpacesId}
           setSelectedSpaces={setSelectedSpacesId}
           className="hover:bg-rgray-5 mr-auto bg-white/5"
@@ -112,7 +133,9 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
         />
         <button
           onClick={() => {
-            check();
+            if (check()) {
+              closeDialog();
+            }
           }}
           className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
         >
@@ -137,7 +160,7 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function check() {
+  function check(): boolean {
     const data = {
       name: name.trim(),
       content,
@@ -146,7 +169,7 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
     if (!data.name || data.name.length < 1) {
       if (!inputRef.current) {
         alert("Please enter a name for the note");
-        return;
+        return false;
       }
       inputRef.current.value = "";
       inputRef.current.placeholder = "Please enter a title for the note";
@@ -156,49 +179,32 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
         inputRef.current!.dataset["error"] = "false";
       }, 500);
       inputRef.current.focus();
+      return false;
     }
+    return true;
   }
 
   return (
-    <div>
+    <div className="md:w-[40vw]">
+      <DialogHeader>
+        <DialogTitle>Add a space</DialogTitle>
+      </DialogHeader>
+      <Label className="mt-5 block">Name</Label>
       <Input
-        ref={inputRef}
-        data-error="false"
-        className="w-full border-none p-0 text-xl ring-0 placeholder:text-white/30 placeholder:transition placeholder:duration-200 focus-visible:ring-0 data-[error=true]:placeholder:text-red-400"
-        placeholder="Title of the note"
+        placeholder="Enter the name of the space"
+        type="url"
         data-modal-autofocus
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        className="bg-rgray-4 mt-2 w-full"
       />
-      <Editor
-        disableLocalStorage
-        defaultValue={""}
-        onUpdate={(editor) => {
-          if (!editor) return;
-          setContent(editor.storage.markdown.getMarkdown());
-        }}
-        extensions={[Markdown]}
-        className="novel-editor bg-rgray-4 border-rgray-7 dark mt-5 max-h-[60vh] min-h-[40vh] w-[50vw] overflow-y-auto rounded-lg border [&>div>div]:p-5"
-      />
+      <Label className="mt-5 block">Memories</Label>
       <DialogFooter>
-        <FilterCombobox
-          selectedSpaces={selectedSpacesId}
-          setSelectedSpaces={setSelectedSpacesId}
-          className="hover:bg-rgray-5 mr-auto bg-white/5"
-          name={"Spaces"}
-        />
-        <button
-          onClick={() => {
-            check();
-          }}
+        <DialogClose
+          type={undefined}
           className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
         >
           Add
-        </button>
-        <DialogClose
-          type={undefined}
-          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
-        >
+        </DialogClose>
+        <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
           Cancel
         </DialogClose>
       </DialogFooter>

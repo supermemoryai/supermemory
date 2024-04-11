@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FilterCombobox } from "./Sidebar/FilterCombobox";
+import { FilterSpaces } from "./Sidebar/FilterCombobox";
 import { Textarea2 } from "./ui/textarea";
 import { ArrowRight, ArrowUp } from "lucide-react";
 import { MemoryDrawer } from "./MemoryDrawer";
@@ -307,7 +307,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
               }}
             >
               <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
-                <FilterCombobox
+                <FilterSpaces
                   name={"Filter"}
                   onClose={() => {
                     textArea.current?.querySelector("textarea")?.focus();
@@ -383,7 +383,7 @@ export function Chat({
         className="absolute flex w-full items-center justify-center"
       >
         <div className="animate-from-top fixed bottom-10 mt-auto flex w-[50%] flex-col items-start justify-center gap-2">
-          <FilterCombobox
+          <FilterSpaces
             name={"Filter"}
             onClose={() => {
               textArea.current?.querySelector("textarea")?.focus();
