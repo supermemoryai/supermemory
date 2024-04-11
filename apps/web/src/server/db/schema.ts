@@ -21,6 +21,8 @@ export const users = createTable("user", {
   image: text("image", { length: 255 }),
 });
 
+export type User = typeof users.$inferSelect
+
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
   sessions: many(sessions),

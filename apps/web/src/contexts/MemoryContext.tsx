@@ -2,7 +2,14 @@
 import React, { useCallback } from "react";
 import { CollectedSpaces } from "../../types/memory";
 import { StoredContent, storedContent, StoredSpace } from "@/server/db/schema";
-import { addMemory } from "@/actions/db";
+import { addMemory, searchMemoriesAndSpaces } from "@/actions/db";
+import { User } from "next-auth";
+
+export type SearchResult = {
+	type: "memory" | "space",
+	space: StoredSpace,
+	memory: StoredContent
+}
 
 // temperory (will change)
 export const MemoryContext = React.createContext<{
@@ -15,6 +22,7 @@ export const MemoryContext = React.createContext<{
     spaces?: number[],
   ) => Promise<void>;
   cachedMemories: StoredContent[];
+	search: (query: string) => Promise<SearchResult[]>;
 }>({
   spaces: [],
   freeMemories: [],
@@ -22,15 +30,17 @@ export const MemoryContext = React.createContext<{
   addSpace: async () => {},
   deleteSpace: async () => {},
   cachedMemories: [],
+	search: async () => []
 });
 
 export const MemoryProvider: React.FC<
   {
     spaces: StoredSpace[];
     freeMemories: StoredContent[];
-		cachedMemories: StoredContent[]
+		cachedMemories: StoredContent[];
+		user: User;
   } & React.PropsWithChildren
-> = ({ children, spaces: initalSpaces, freeMemories: initialFreeMemories, cachedMemories: initialCachedMemories }) => {
+> = ({ children, user, spaces: initalSpaces, freeMemories: initialFreeMemories, cachedMemories: initialCachedMemories }) => {
 
   const [spaces, setSpaces] = React.useState<StoredSpace[]>(initalSpaces);
   const [freeMemories, setFreeMemories] =
@@ -40,37 +50,37 @@ export const MemoryProvider: React.FC<
     initialCachedMemories
   );
 
-  const addSpace = useCallback(
-    async (space: StoredSpace) => {
-      setSpaces((prev) => [...prev, space]);
-    },
-    [spaces],
-  );
-  const deleteSpace = useCallback(
-    async (id: number) => {
-      setSpaces((prev) => prev.filter((s) => s.id !== id));
-    },
-    [spaces],
-  );
+  const addSpace = async (space: StoredSpace) => {
+		setSpaces((prev) => [...prev, space]);
+	}
+	
+	const deleteSpace = async (id: number) => {
+		setSpaces((prev) => prev.filter((s) => s.id !== id));
+	}
+
+	const search = async (query: string) => {
+		if (!user.id) {
+			throw new Error('user id is not define')
+		}
+		const data = await searchMemoriesAndSpaces(user.id, query)
+		return data as SearchResult[]
+	}
 
   // const fetchMemories = useCallback(async (query: string) => {
   //   const response = await fetch(`/api/memories?${query}`);
   // }, []);
 
-  const _addMemory = useCallback(
-    async (
-      memory: typeof storedContent.$inferInsert,
-      spaces: number[] = [],
-    ) => {
-      const content = await addMemory(memory, spaces);
-      console.log(content);
-    },
-    [freeMemories, spaces],
-  );
+  const _addMemory =  async (
+		memory: typeof storedContent.$inferInsert,
+		spaces: number[] = [],
+	) => {
+		const content = await addMemory(memory, spaces);
+	}
 
   return (
     <MemoryContext.Provider
       value={{
+				search,
         spaces,
         addSpace,
         deleteSpace,

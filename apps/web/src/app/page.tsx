@@ -81,7 +81,7 @@ export default async function Home() {
   });
 
   return (
-    <MemoryProvider spaces={collectedSpaces} freeMemories={freeMemories} cachedMemories={contents}>
+    <MemoryProvider user={userData} spaces={collectedSpaces} freeMemories={freeMemories} cachedMemories={contents}>
       <Content jwt={token} />
       {/* <MessagePoster jwt={token} /> */}
     </MemoryProvider>
