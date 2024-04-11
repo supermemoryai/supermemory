@@ -57,8 +57,12 @@ body {
   padding-bottom: 15dvh;
 }
 
-.chat-answer pre {
-  @apply bg-rgray-3 border-rgray-5 my-5 rounded-md border p-3 text-sm;
+.chat-answer pre  {
+  @apply bg-rgray-3 rounded-md border border-rgray-5 p-3 text-sm my-5;
+}
+
+.novel-editor pre {
+  @apply bg-rgray-3 rounded-md border border-rgray-5 p-4 text-sm text-rgray-11;
 }
 
 .chat-answer h1 {
@@ -66,5 +70,52 @@ body {
 }
 
 .chat-answer img {
-  @apply my-5 rounded-md font-medium;
+  @apply rounded-md font-medium my-5;
+}
+
+.tippy-box {
+  @apply bg-rgray-3 text-rgray-11 border border-rgray-5 rounded-md py-0;
+}
+
+.tippy-content #slash-command {
+  @apply text-rgray-11 bg-transparent border-none;
+}
+
+#slash-command button {
+  @apply text-rgray-11 py-2;
+}
+
+#slash-command button div:first-child {
+  @apply text-rgray-11 bg-rgray-4 border-rgray-5 ;
+}
+
+#slash-command button.novel-bg-stone-100 {
+  @apply bg-rgray-1;
+}
+
+.novel-editor [data-type=taskList] > li {
+  @apply my-0;
+}
+
+.novel-editor input[type=checkbox] {
+  @apply accent-rgray-4 rounded-md;
+
+  background: var(--gray-4) !important;
+  border: 1px solid var(--gray-10) !important;
+}
+
+.novel-editor .is-editor-empty::before {
+  content: 'Press \'/\' for commands' !important;
+}
+
+.novel-editor h1 {
+  @apply text-2xl;
+}
+
+.novel-editor h2 {
+  @apply text-xl;
+}
+
+.novel-editor h3 {
+  @apply text-lg;
 }

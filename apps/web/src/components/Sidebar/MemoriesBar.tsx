@@ -1,3 +1,4 @@
+import { Editor } from "novel";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   MemoryWithImage,
@@ -22,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Variant, useAnimate, motion } from "framer-motion";
 import { useMemory } from "@/contexts/MemoryContext";
 import { SpaceIcon } from "@/assets/Memories";
@@ -38,6 +39,8 @@ import {
 import { Label } from "../ui/label";
 import useViewport from "@/hooks/useViewport";
 import useTouchHold from "@/hooks/useTouchHold";
+import { DialogTrigger } from "@radix-ui/react-dialog";
+import { AddMemoryPage, NoteAddPage } from "./AddMemoryDialog";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -59,38 +62,43 @@ export function MemoriesBar() {
         />
       </div>
       <div className="mt-2 flex w-full px-8">
-        <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
-          <DropdownMenuTrigger asChild>
-            <button className="focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 hover:bg-rgray-4 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2">
-              <Plus className="mr-2 h-5 w-5" />
-              Add
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem
-              onClick={() => {
-                setIsDropdownOpen(false);
-                setAddMemoryState("page");
-              }}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              Page to Memory
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Text className="mr-2 h-4 w-4" />
-              Note
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <SpaceIcon className="mr-2 h-4 w-4" />
-              Space
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <AddMemoryModal isOpen={isDropdownOpen} type={addMemoryState}>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <button className="focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 hover:bg-rgray-4 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2">
+                <Plus className="mr-2 h-5 w-5" />
+                Add
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent onCloseAutoFocus={(e) => e.preventDefault()}>
+              <DialogTrigger className="block w-full">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAddMemoryState("page");
+                  }}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Page to Memory
+                </DropdownMenuItem>
+              </DialogTrigger>
+              <DialogTrigger className="block w-full">
+                <DropdownMenuItem
+                  onClick={() => {
+                    setAddMemoryState("note");
+                  }}
+                >
+                  <Text className="mr-2 h-4 w-4" />
+                  Note
+                </DropdownMenuItem>
+              </DialogTrigger>
+              <DropdownMenuItem>
+                <SpaceIcon className="mr-2 h-4 w-4" />
+                Space
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </AddMemoryModal>
       </div>
-      <AddMemoryModal
-        state={addMemoryState}
-        onStateChange={setAddMemoryState}
-      />
       <div
         ref={parent}
         className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
@@ -295,69 +303,45 @@ export function SpaceMoreButton({
 }
 
 export function AddMemoryModal({
-  state,
-  onStateChange,
+  type,
+  children,
+  isOpen,
 }: {
-  state: "page" | "note" | "space" | null;
-  onStateChange: (state: "page" | "note" | "space" | null) => void;
+  type: "page" | "note" | "space" | null;
+  children?: React.ReactNode | React.ReactNode[];
+  isOpen: boolean;
 }) {
   return (
-    <>
-      <Dialog
-        open={state === "page"}
-        onOpenChange={(open) => onStateChange(open ? "page" : null)}
+    <Dialog>
+      {children}
+      <DialogContent
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          const novel = document.querySelector('[contenteditable="true"]') as
+            | HTMLDivElement
+            | undefined;
+          if (novel) {
+            novel.autofocus = false;
+            novel.onfocus = () => {
+              (
+                document.querySelector("[data-modal-autofocus]") as
+                  | HTMLInputElement
+                  | undefined
+              )?.focus();
+              novel.onfocus = null;
+            };
+          }
+          (
+            document.querySelector("[data-modal-autofocus]") as
+              | HTMLInputElement
+              | undefined
+          )?.focus();
+        }}
+        className="w-max max-w-[auto]"
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add a web page to memory</DialogTitle>
-            <DialogDescription>
-              This will take you the web page you are trying to add to memory,
-              where the extension will save the page to memory
-            </DialogDescription>
-          </DialogHeader>
-          <Label className="mt-5">URL</Label>
-          <Input
-            autoFocus
-            placeholder="Enter the URL of the page"
-            type="url"
-            className="bg-rgray-4 mt-2 w-full"
-          />
-          <DialogFooter>
-            <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-              Add
-            </DialogClose>
-            <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-              Cancel
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={state === "note"}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add a web page to memory</DialogTitle>
-            <DialogDescription>
-              This will take you the web page you are trying to add to memory,
-              where the extension will save the page to memory
-            </DialogDescription>
-          </DialogHeader>
-          <Label className="mt-5">URL</Label>
-          <Input
-            autoFocus
-            placeholder="Enter the URL of the page"
-            type="url"
-            className="bg-rgray-4 mt-2 w-full"
-          />
-          <DialogFooter>
-            <DialogClose className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-              Add
-            </DialogClose>
-            <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
-              Cancel
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        {type === "page" && <AddMemoryPage />}
+        {type === "note" && <NoteAddPage />}
+      </DialogContent>
+    </Dialog>
   );
 }
