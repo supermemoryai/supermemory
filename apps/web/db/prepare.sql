@@ -34,7 +34,7 @@ CREATE TABLE `session` (
 --> statement-breakpoint
 CREATE TABLE `space` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`name` text DEFAULT 'all' NOT NULL,
+	`name` text DEFAULT 'none' NOT NULL,
 	`user` text(255),
 	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
 );
@@ -47,6 +47,7 @@ CREATE TABLE `storedContent` (
 	`url` text NOT NULL,
 	`savedAt` integer NOT NULL,
 	`baseUrl` text(255),
+	`type` text DEFAULT 'page',
 	`image` text(255),
 	`user` text(255),
 	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
@@ -69,6 +70,7 @@ CREATE TABLE `verificationToken` (
 --> statement-breakpoint
 CREATE INDEX `account_userId_idx` ON `account` (`userId`);--> statement-breakpoint
 CREATE INDEX `session_userId_idx` ON `session` (`userId`);--> statement-breakpoint
+CREATE UNIQUE INDEX `space_name_unique` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_name_idx` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint

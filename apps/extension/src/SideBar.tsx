@@ -25,20 +25,176 @@ function sendUrlToAPI() {
 }
 
 function SideBar() {
+  // TODO: Implement getting bookmarks from API directly
+  // chrome.runtime.onMessage.addListener(function (request) {
+  //   if (request.action === 'showProgressIndicator') {
+  //     // TODO: SHOW PROGRESS INDICATOR
+  //     // showProgressIndicator();
+  //   } else if (request.action === 'hideProgressIndicator') {
+  //     // hideProgressIndicator();
+  //   }
+  // });
+
   const [savedWebsites, setSavedWebsites] = useState<string[]>([]);
 
   const [isSendingData, setIsSendingData] = useState(false);
 
+  interface TweetData {
+    tweetText: string;
+    postUrl: string;
+    authorName: string;
+    handle: string;
+    time: string;
+  }
+
+  const fetchBookmarks = () => {
+    const tweets: TweetData[] = []; // Initialize an empty array to hold all tweet elements
+
+    const scrollInterval = 1000;
+    const scrollStep = 5000; // Pixels to scroll on each step
+
+    let previousTweetCount = 0;
+    let unchangedCount = 0;
+
+    const scrollToEndIntervalID = setInterval(() => {
+      window.scrollBy(0, scrollStep);
+      const currentTweetCount = tweets.length;
+      if (currentTweetCount === previousTweetCount) {
+        unchangedCount++;
+        if (unchangedCount >= 2) {
+          // Stop if the count has not changed 5 times
+          console.log("Scraping complete");
+          console.log("Total tweets scraped: ", tweets.length);
+          console.log("Downloading tweets as JSON...");
+          clearInterval(scrollToEndIntervalID); // Stop scrolling
+          observer.disconnect(); // Stop observing DOM changes
+          downloadTweetsAsJson(tweets); // Download the tweets list as a JSON file
+        }
+      } else {
+        unchangedCount = 0; // Reset counter if new tweets were added
+      }
+      previousTweetCount = currentTweetCount; // Update previous count for the next check
+    }, scrollInterval);
+
+    function updateTweets() {
+      document
+        .querySelectorAll('article[data-testid="tweet"]')
+        .forEach((tweetElement) => {
+          const authorName = (
+            tweetElement.querySelector(
+              '[data-testid="User-Name"]',
+            ) as HTMLElement
+          )?.innerText;
+
+          const handle = (
+            tweetElement.querySelector('[role="link"]') as HTMLLinkElement
+          ).href
+            .split("/")
+            .pop();
+
+          const tweetText = (
+            tweetElement.querySelector(
+              '[data-testid="tweetText"]',
+            ) as HTMLElement
+          )?.innerText;
+          const time = (
+            tweetElement.querySelector("time") as HTMLTimeElement
+          ).getAttribute("datetime");
+          const postUrl = (
+            tweetElement.querySelector(
+              ".css-175oi2r.r-18u37iz.r-1q142lx a",
+            ) as HTMLLinkElement
+          )?.href;
+
+          const isTweetNew = !tweets.some((tweet) => tweet.postUrl === postUrl);
+          if (isTweetNew) {
+            tweets.push({
+              authorName,
+              handle: handle ?? "",
+              tweetText,
+              time: time ?? "",
+              postUrl,
+            });
+            console.log("Tweets capturados: ", tweets.length);
+          }
+        });
+    }
+
+    // Initially populate the tweets array
+    updateTweets();
+
+    // Create a MutationObserver to observe changes in the DOM
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length) {
+          updateTweets(); // Call updateTweets whenever new nodes are added to the DOM
+        }
+      });
+    });
+
+    // Start observing the document body for child list changes
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    function downloadTweetsAsJson(tweetsArray: TweetData[]) {
+      const jsonData = JSON.stringify(tweetsArray); // Convert the array to JSON
+
+      // TODO: SEND jsonData to server
+      console.log(jsonData);
+    }
+  };
+
   return (
     <>
       <TooltipProvider>
-        <div className="anycontext-flex anycontext-flex-col anycontext-gap-2 anycontext-fixed anycontext-bottom-12 anycontext-right-0 anycontext-z-[99999] anycontext-font-sans">
-          {/* <Tooltip delayDuration={300}>
-            <TooltipContent side="left">
-              <p>Open Sidebar</p>
-            </TooltipContent>
-          </Tooltip> */}
+        <div className="anycontext-flex anycontext-group anycontext-flex-col anycontext-gap-2 anycontext-fixed anycontext-bottom-12 anycontext-right-0 anycontext-z-[99999] anycontext-font-sans">
+          {window.location.href.includes("twitter.com") ||
+          window.location.href.includes("x.com") ? (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger
+                className="anycontext-bg-transparent
+                        anycontext-border-none anycontext-m-0 anycontext-p-0"
+              >
+                <button
+                  onClick={() => {
+                    if (window.location.href.endsWith("/i/bookmarks/all")) {
+                      fetchBookmarks();
+                    } else {
+                      window.location.href =
+                        "https://twitter.com/i/bookmarks/all";
 
+                      setTimeout(() => {
+                        fetchBookmarks();
+                      }, 2500);
+                    }
+                  }}
+                  className="anycontext-open-button disabled:anycontext-opacity-30 anycontext-bg-transparent
+                          anycontext-border-none anycontext-m-0 anycontext-p-0"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="anycontext-w-6 anycontext-h-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
+                    />
+                  </svg>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="anycontext-p-0" side="left">
+                <p className="anycontext-p-0 anycontext-m-0">
+                  Import twitter bookmarks
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <></>
+          )}
           <Tooltip delayDuration={300}>
             <TooltipTrigger
               className="anycontext-bg-transparent
