@@ -1,40 +1,47 @@
 "use client";
 import React, { useCallback } from "react";
 import { CollectedSpaces } from "../../types/memory";
-import { StoredContent, storedContent } from "@/server/db/schema";
-import { useSession } from "next-auth/react";
+import { StoredContent, storedContent, StoredSpace } from "@/server/db/schema";
 import { addMemory } from "@/actions/db";
 
 // temperory (will change)
 export const MemoryContext = React.createContext<{
-  spaces: CollectedSpaces[];
+  spaces: StoredSpace[];
   deleteSpace: (id: number) => Promise<void>;
   freeMemories: StoredContent[];
-  addSpace: (space: CollectedSpaces) => Promise<void>;
+  addSpace: (space: StoredSpace) => Promise<void>;
   addMemory: (
     memory: typeof storedContent.$inferInsert,
     spaces?: number[],
   ) => Promise<void>;
+  cachedMemories: StoredContent[];
 }>({
   spaces: [],
   freeMemories: [],
   addMemory: async () => {},
   addSpace: async () => {},
   deleteSpace: async () => {},
+  cachedMemories: [],
 });
 
 export const MemoryProvider: React.FC<
   {
-    spaces: CollectedSpaces[];
+    spaces: StoredSpace[];
     freeMemories: StoredContent[];
+		cachedMemories: StoredContent[]
   } & React.PropsWithChildren
-> = ({ children, spaces: initalSpaces, freeMemories: initialFreeMemories }) => {
-  const [spaces, setSpaces] = React.useState<CollectedSpaces[]>(initalSpaces);
+> = ({ children, spaces: initalSpaces, freeMemories: initialFreeMemories, cachedMemories: initialCachedMemories }) => {
+
+  const [spaces, setSpaces] = React.useState<StoredSpace[]>(initalSpaces);
   const [freeMemories, setFreeMemories] =
     React.useState<StoredContent[]>(initialFreeMemories);
 
+  const [cachedMemories, setCachedMemories] = React.useState<StoredContent[]>(
+    initialCachedMemories
+  );
+
   const addSpace = useCallback(
-    async (space: CollectedSpaces) => {
+    async (space: StoredSpace) => {
       setSpaces((prev) => [...prev, space]);
     },
     [spaces],
@@ -68,6 +75,7 @@ export const MemoryProvider: React.FC<
         addSpace,
         deleteSpace,
         freeMemories,
+        cachedMemories,
         addMemory: _addMemory,
       }}
     >

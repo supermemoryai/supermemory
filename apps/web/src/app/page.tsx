@@ -7,13 +7,10 @@ import {
   storedContent,
   users,
 } from "@/server/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, not } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import Sidebar from "@/components/Sidebar/index";
-import Main from "@/components/Main";
-import MessagePoster from "./MessagePoster";
-import { transformContent } from "../../types/memory";
+import { fetchContentForSpace, fetchFreeMemories, transformContent } from "../../types/memory";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
 
@@ -49,35 +46,36 @@ export default async function Home() {
     return redirect("/api/auth/signin");
   }
 
-  // Fetch all content for the user
-  const contents = await db
+
+  const collectedSpaces = await db
     .select()
-    .from(storedContent)
-    .where(eq(storedContent.user, userData.id))
-    .all();
+    .from(space)
+    .where(
+      and(eq(storedContent.user, userData.id), not(eq(space.name, "none"))),
+    );
 
-  const collectedSpaces =
-    contents.length > 0 ? await transformContent(contents) : [];
 
-  // collectedSpaces.push({
-  //   id: 2,
-  //   title: "Test",
-  //   content: [
-  //     {
-  //       id: 1,
-  //       content: "Test",
-  //       title: "Vscode",
-  //       description: "Test",
-  //       url: "https://vscode-remake.vercel.app/",
-  //       savedAt: new Date(),
-  //       baseUrl: "https://vscode-remake.vercel.app/",
-  //       image: "https://vscode-remake.vercel.app/favicon.svg",
-  //     },
-  //   ],
-  // });
+  // Fetch only first 3 content of each spaces
+  let contents: typeof storedContent.$inferSelect[] = []
+	
+	await Promise.all([collectedSpaces.forEach(async (space) => {
+		contents = [...contents, ...(await fetchContentForSpace(space.id, {
+			offset: 0,
+			limit: 3
+		}))]
+	})])
+
+	// freeMemories
+	const freeMemories = await fetchFreeMemories(userData.id)
+
+  collectedSpaces.push({
+    id: 1,
+    name: "Cool tech",
+    user: null,
+  });
 
   return (
-    <MemoryProvider spaces={collectedSpaces} freeMemories={[]}>
+    <MemoryProvider spaces={collectedSpaces} freeMemories={freeMemories} cachedMemories={contents}>
       <Content jwt={token} />
       {/* <MessagePoster jwt={token} /> */}
     </MemoryProvider>

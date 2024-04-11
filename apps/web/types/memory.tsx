@@ -1,12 +1,62 @@
 import { db } from "@/server/db";
-import { contentToSpace, space, StoredContent } from "@/server/db/schema";
-import { eq, inArray, or } from "drizzle-orm";
+import {
+  contentToSpace,
+  space,
+  storedContent,
+  StoredContent,
+} from "@/server/db/schema";
+import { asc, and, eq, inArray, notExists } from "drizzle-orm";
+
+export async function fetchContentForSpace(
+  spaceId: number,
+  range?: {
+    offset: number;
+    limit: number;
+  },
+) {
+
+  const query = db
+    .select()
+    .from(storedContent)
+    .where(
+      inArray(
+        storedContent.id,
+        db.select().from(space).where(eq(space.id, spaceId)),
+      ),
+    ).orderBy(asc(storedContent.title))
+
+	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+}
+
+export async function fetchFreeMemories(
+	userId: string,
+	range?: {
+		offset: number;
+		limit: number;
+	}
+) {
+	const query = db
+    .select()
+    .from(storedContent)
+    .where(
+			and(
+				notExists(
+					db.select().from(contentToSpace).where(eq(contentToSpace.contentId, storedContent.id)),
+				),
+				eq(storedContent.user, userId),
+			)
+      
+    ).orderBy(asc(storedContent.title))
+
+	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+}
 
 export const transformContent = async (
   content: StoredContent[],
+  limit?: number,
 ): Promise<CollectedSpaces[]> => {
   // Retrieve spaces and their associated content from the database
-  const spacesWithContent = await db
+  const query = db
     .select({
       id: space.id,
       name: space.name,
@@ -19,8 +69,11 @@ export const transformContent = async (
         contentToSpace.contentId,
         content.map((c: StoredContent) => c.id),
       ),
-    )
-    .all();
+    );
+
+  const spacesWithContent = limit
+    ? await query.limit(limit)
+    : await query.all();
 
   // Group content by id
   const contentById = content.reduce(

@@ -41,6 +41,8 @@ import useViewport from "@/hooks/useViewport";
 import useTouchHold from "@/hooks/useTouchHold";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { AddMemoryPage, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
+import { ExpandedSpace } from "./ExpandedSpace";
+import { StoredSpace } from "@/server/db/schema";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -50,6 +52,17 @@ export function MemoriesBar() {
   const [addMemoryState, setAddMemoryState] = useState<
     "page" | "note" | "space" | null
   >(null);
+
+  const [expandedSpace, setExpandedSpace] = useState<number | null>(null);
+
+  if (expandedSpace) {
+    return (
+      <ExpandedSpace
+        spaceId={expandedSpace}
+        // close={() => setExpandedSpace(null)}
+      />
+    );
+  }
 
   return (
     <div className="text-rgray-11 flex w-full flex-col items-start py-8 text-left">
@@ -113,6 +126,7 @@ export function MemoriesBar() {
           <SpaceItem
             onDelete={() => deleteSpace(space.id)}
             key={space.id}
+            onClick={() => setExpandedSpace(space.id)}
             {...space}
           />
         ))}
@@ -132,11 +146,11 @@ const SpaceExitVariant: Variant = {
 };
 
 export function SpaceItem({
-  title,
-  content,
+  name,
   id,
   onDelete,
-}: CollectedSpaces & { onDelete: () => void }) {
+  onClick,
+}: StoredSpace & { onDelete: () => void, onClick?: () => void }) {
   const [itemRef, animateItem] = useAnimate();
   const { width } = useViewport();
 
@@ -152,10 +166,11 @@ export function SpaceItem({
     <motion.div
       ref={itemRef}
       {...touchEventProps}
+      onClick={onClick}
       className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
     >
       <button data-space-text className="focus-visible:outline-none">
-        {title}
+        {name}
       </button>
       <SpaceMoreButton
         isOpen={moreDropdownOpen}
