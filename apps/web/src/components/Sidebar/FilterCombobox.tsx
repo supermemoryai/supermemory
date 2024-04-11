@@ -30,6 +30,7 @@ export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   setSelectedSpaces: (
     spaces: number[] | ((prev: number[]) => number[]),
   ) => void;
+  name: string;
 }
 
 export function FilterCombobox({
@@ -39,10 +40,10 @@ export function FilterCombobox({
   onClose,
   selectedSpaces,
   setSelectedSpaces,
+  name,
   ...props
 }: Props) {
-  const { spaces, addSpace } = useMemory();
-
+  const { spaces } = useMemory();
   const [open, setOpen] = React.useState(false);
 
   const sortedSpaces = spaces.sort(({ id: a }, { id: b }) =>
@@ -65,6 +66,7 @@ export function FilterCombobox({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
+              type={undefined}
               data-state-on={open}
               className={cn(
                 "text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none",
@@ -73,7 +75,7 @@ export function FilterCombobox({
               {...props}
             >
               <SpaceIcon className="mr-1 h-5 w-5" />
-              Filter
+              {name}
               <ChevronsUpDown className="h-4 w-4" />
               <div
                 data-state-on={selectedSpaces.length > 0}

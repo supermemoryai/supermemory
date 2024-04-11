@@ -339,9 +339,12 @@ export function AddMemoryModal({
         }}
         className="w-max max-w-[auto]"
       >
-        {type === "page" && <AddMemoryPage />}
-        {type === "note" && (
+        {type === "page" ? (
+          <AddMemoryPage />
+        ) : type === "note" ? (
           <NoteAddPage closeDialog={() => setIsDialogOpen(false)} />
+        ) : (
+          <></>
         )}
       </DialogContent>
     </Dialog>

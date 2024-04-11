@@ -308,6 +308,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             >
               <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
                 <FilterCombobox
+                  name={"Filter"}
                   onClose={() => {
                     textArea.current?.querySelector("textarea")?.focus();
                   }}
@@ -383,6 +384,7 @@ export function Chat({
       >
         <div className="animate-from-top fixed bottom-10 mt-auto flex w-[50%] flex-col items-start justify-center gap-2">
           <FilterCombobox
+            name={"Filter"}
             onClose={() => {
               textArea.current?.querySelector("textarea")?.focus();
             }}
