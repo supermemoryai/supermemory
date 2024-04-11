@@ -62,7 +62,7 @@ export function MemoriesBar() {
         />
       </div>
       <div className="mt-2 flex w-full px-8">
-        <AddMemoryModal isOpen={isDropdownOpen} type={addMemoryState}>
+        <AddMemoryModal type={addMemoryState}>
           <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <button className="focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 hover:bg-rgray-4 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2">
@@ -305,14 +305,14 @@ export function SpaceMoreButton({
 export function AddMemoryModal({
   type,
   children,
-  isOpen,
 }: {
   type: "page" | "note" | "space" | null;
   children?: React.ReactNode | React.ReactNode[];
-  isOpen: boolean;
 }) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       {children}
       <DialogContent
         onOpenAutoFocus={(e) => {
@@ -339,8 +339,13 @@ export function AddMemoryModal({
         }}
         className="w-max max-w-[auto]"
       >
-        {type === "page" && <AddMemoryPage />}
-        {type === "note" && <NoteAddPage />}
+        {type === "page" ? (
+          <AddMemoryPage />
+        ) : type === "note" ? (
+          <NoteAddPage closeDialog={() => setIsDialogOpen(false)} />
+        ) : (
+          <></>
+        )}
       </DialogContent>
     </Dialog>
   );

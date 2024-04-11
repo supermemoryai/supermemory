@@ -44,12 +44,24 @@ const config: Config = {
             opacity: "1",
           },
         },
+        "input-error": {
+          "0%": {
+            color: "var(--gray-11)",
+          },
+          "50%": {
+            color: "red",
+          },
+          "100%": {
+            color: "var(--gray-11)",
+          },
+        },
       },
       animation: {
         "scale-in": "scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         "scale-out": "scale-out 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
         "fade-in": "fade-in 0.2s 0.5s forwards cubic-bezier(0.16, 1, 0.3, 1)",
         "from-top": "from-top 0.2s ease-in-out",
+        "input-error": "input-error 5s",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

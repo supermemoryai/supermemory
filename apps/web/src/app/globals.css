@@ -104,7 +104,7 @@ body {
   border: 1px solid var(--gray-10) !important;
 }
 
-.novel-editor .is-editor-empty::before {
+.novel-editor .is-empty::before {
   content: 'Press \'/\' for commands' !important;
 }
 
@@ -118,4 +118,8 @@ body {
 
 .novel-editor h3 {
   @apply text-lg;
+}
+
+.novel-editor .drag-handle {
+  @apply hidden;
 }

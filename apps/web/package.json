@@ -31,7 +31,9 @@
     "react": "^18",
     "react-dom": "^18",
     "tailwind-merge": "^2.2.1",
+    "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
+    "tiptap-markdown": "^0.8.10",
     "vaul": "^0.9.0"
   },
   "devDependencies": {
@@ -46,7 +48,6 @@
     "eslint-plugin-next-on-pages": "^1.11.0",
     "postcss": "^8",
     "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.3.0",
     "typescript": "^5",
     "vercel": "^33.6.2",
     "wrangler": "^3.41.0"
