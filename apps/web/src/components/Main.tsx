@@ -6,7 +6,7 @@ import { ArrowRight, ArrowUp } from "lucide-react";
 import { MemoryDrawer } from "./MemoryDrawer";
 import useViewport from "@/hooks/useViewport";
 import { AnimatePresence, motion } from "framer-motion";
-import { cn, countLines } from "@/lib/utils";
+import { cn, countLines, getIdsFromSource } from "@/lib/utils";
 import { ChatHistory } from "../../types/memory";
 import { ChatAnswer, ChatMessage, ChatQuestion } from "./ChatMessage";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -198,7 +198,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           ...lastMessage,
           answer: {
             parts: lastMessage.answer.parts,
-            sources: sourcesInJson.ids ?? [],
+            sources: getIdsFromSource(sourcesInJson.ids) ?? [],
           },
         },
       ];
