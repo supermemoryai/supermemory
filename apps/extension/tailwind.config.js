@@ -1,7 +1,7 @@
 import tailwindcssAnimate from "tailwindcss-animate";
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["class"],
+  //darkMode: "prefe",
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -35,7 +35,9 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [
+		tailwindcssAnimate,
+	],
   corePlugins: {
     preflight: false,
   },

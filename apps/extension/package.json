@@ -11,7 +11,10 @@
     "package": "zip -r extension.zip dist/"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-popover": "^1.0.7",
     "@radix-ui/react-tooltip": "^1.0.7",
+    "cmdk": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
