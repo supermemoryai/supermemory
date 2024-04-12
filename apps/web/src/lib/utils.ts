@@ -19,8 +19,14 @@ export function cleanUrl(url: string) {
 }
 
 export function getIdsFromSource(sourceIds: string[]) {
-  // This function converts an id from a form of `websiteURL-userID` to just the websiteURL
-  return sourceIds.map((id) => id.split("-").slice(0, -1).join("-"));
+  return sourceIds.map((id) => {
+    const parts = id.split("-");
+    if (parts.length > 1) {
+      return parts.slice(0, -1).join("-");
+    } else {
+      return id;
+    }
+  });
 }
 
 export function generateId() {
