@@ -185,14 +185,11 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       },
     );
 
-    console.log(await sourcesResponse.json());
+    const sourcesInJson = (await sourcesResponse.json()) as {
+      ids: string[];
+    };
 
-    // const sourcesInJson = (await sourcesResponse.json()) as {
-    //   ids: string[];
-    // };
-
-    // console.log(sourcesInJson)
-    const sourcesInJson = { ids: [] };
+    console.log(sourcesInJson);
 
     setIsAiLoading(false);
     setChatHistory((prev) => {

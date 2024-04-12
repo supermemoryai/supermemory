@@ -8,8 +8,9 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	const query = queryparams.get('q');
 	const topK = parseInt(queryparams.get('topK') ?? '5');
 	const user = queryparams.get('user');
-	const spaces = queryparams.get('spaces');
-	const spacesArray = spaces ? spaces.split(',') : undefined;
+	const spaces = queryparams.get('spaces') ?? undefined;
+	const sp = spaces === 'null' ? undefined : spaces;
+	const spacesArray = sp ? sp.split(',') : undefined;
 
 	const sourcesOnly = queryparams.get('sourcesOnly') ?? 'false';
 
@@ -60,9 +61,10 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	// if (responses.count === 0) {
 	// 	return new Response(JSON.stringify({ message: "No Results Found" }), { status: 404 });
 	// }
-	console.log(responses.matches);
 
 	const highScoreIds = responses.matches.filter(({ score }) => score > 0.3).map(({ id }) => id);
+
+	console.log('highscoreIds', highScoreIds);
 
 	if (sourcesOnly === 'true') {
 		return new Response(JSON.stringify({ ids: highScoreIds }), { status: 200 });

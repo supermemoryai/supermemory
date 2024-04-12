@@ -72,8 +72,13 @@ export async function POST(req: NextRequest) {
     },
   );
 
-  console.log(resp.status);
-  console.log(resp.statusText);
+  console.log("sourcesOnly", sourcesOnly);
+
+  if (sourcesOnly == "true") {
+    const data = await resp.json();
+    console.log("data", data);
+    return new Response(JSON.stringify(data), { status: 200 });
+  }
 
   if (resp.status !== 200 || !resp.ok) {
     const errorData = await resp.json();
