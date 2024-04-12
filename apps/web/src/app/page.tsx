@@ -10,7 +10,11 @@ import {
 import { and, eq, inArray, not } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { fetchContentForSpace, fetchFreeMemories, transformContent } from "../../types/memory";
+import {
+  fetchContentForSpace,
+  fetchFreeMemories,
+  transformContent,
+} from "../../types/memory";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
 import { searchMemoriesAndSpaces } from "@/actions/db";
@@ -47,32 +51,35 @@ export default async function Home() {
     return redirect("/api/auth/signin");
   }
 
+  console.log(storedContent.user.name);
 
   const collectedSpaces = await db
     .select()
     .from(space)
-    .where(
-      and(eq(storedContent.user, userData.id), not(eq(space.name, "none"))),
-    );
-
+    .where(and(eq(space.user, userData.id), not(eq(space.name, "none"))));
 
   // Fetch only first 3 content of each spaces
-  let contents: typeof storedContent.$inferSelect[] = []
-	
-	await Promise.all([collectedSpaces.forEach(async (space) => {
-		contents = [...contents, ...(await fetchContentForSpace(space.id, {
-			offset: 0,
-			limit: 3
-		}))]
-	})])
+  let contents: (typeof storedContent.$inferSelect)[] = [];
 
-	// freeMemories
-	const freeMemories = await fetchFreeMemories(userData.id)
+  await Promise.all([
+    collectedSpaces.forEach(async (space) => {
+      contents = [
+        ...contents,
+        ...(await fetchContentForSpace(space.id, {
+          offset: 0,
+          limit: 3,
+        })),
+      ];
+    }),
+  ]);
 
-	// @dhravya test these 3 functions
-	fetchFreeMemories
-	fetchContentForSpace
-	searchMemoriesAndSpaces
+  // freeMemories
+  const freeMemories = await fetchFreeMemories(userData.id);
+
+  // @dhravya test these 3 functions
+  fetchFreeMemories;
+  fetchContentForSpace;
+  searchMemoriesAndSpaces;
 
   collectedSpaces.push({
     id: 1,
@@ -81,7 +88,12 @@ export default async function Home() {
   });
 
   return (
-    <MemoryProvider user={userData} spaces={collectedSpaces} freeMemories={freeMemories} cachedMemories={contents}>
+    <MemoryProvider
+      user={userData}
+      spaces={collectedSpaces}
+      freeMemories={freeMemories}
+      cachedMemories={contents}
+    >
       <Content jwt={token} />
       {/* <MessagePoster jwt={token} /> */}
     </MemoryProvider>

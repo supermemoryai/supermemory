@@ -150,7 +150,7 @@ export function SpaceItem({
   id,
   onDelete,
   onClick,
-}: StoredSpace & { onDelete: () => void, onClick?: () => void }) {
+}: StoredSpace & { onDelete: () => void; onClick?: () => void }) {
   const [itemRef, animateItem] = useAnimate();
   const { width } = useViewport();
 
@@ -255,7 +255,7 @@ export function SpaceItem({
           };
         }}
       />
-      {content.length > 2 ? (
+      {/* {content.length > 2 ? (
         <MemoryWithImages3
           className="h-24 w-24"
           id={id.toString()}
@@ -273,7 +273,7 @@ export function SpaceItem({
           id={id.toString()}
           images={content.map((c) => c.image).reverse() as string[]}
         />
-      )}
+      )} */}
     </motion.div>
   );
 }

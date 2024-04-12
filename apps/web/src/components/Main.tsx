@@ -185,9 +185,14 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       },
     );
 
-    const sourcesInJson = (await sourcesResponse.json()) as {
-      ids: string[];
-    };
+    console.log(await sourcesResponse.json());
+
+    // const sourcesInJson = (await sourcesResponse.json()) as {
+    //   ids: string[];
+    // };
+
+    // console.log(sourcesInJson)
+    const sourcesInJson = { ids: [] };
 
     setIsAiLoading(false);
     setChatHistory((prev) => {
@@ -205,7 +210,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     });
 
     const actualSelectedSpaces = selectedSpaces.map(
-      (space) => spaces.find((s) => s.id === space)?.title ?? "",
+      (space) => spaces.find((s) => s.id === space)?.name ?? "",
     );
 
     const response = await fetch(

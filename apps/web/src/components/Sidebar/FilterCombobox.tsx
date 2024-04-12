@@ -95,7 +95,7 @@ export function FilterSpaces({
               filter={(val, search) =>
                 spaces
                   .find((s) => s.id.toString() === val)
-                  ?.title.toLowerCase()
+                  ?.name.toLowerCase()
                   .includes(search.toLowerCase().trim())
                   ? 1
                   : 0
@@ -128,7 +128,7 @@ export function FilterSpaces({
                           className="text-rgray-11"
                         >
                           <SpaceIcon className="mr-2 h-4 w-4" />
-                          {space.title}
+                          {space.name}
                           {selectedSpaces.includes(space.id)}
                           <Check
                             data-state-on={selectedSpaces.includes(space.id)}
@@ -212,7 +212,7 @@ export function FilterMemories({
               filter={(val, search) =>
                 spaces
                   .find((s) => s.id.toString() === val)
-                  ?.title.toLowerCase()
+                  ?.name.toLowerCase()
                   .includes(search.toLowerCase().trim())
                   ? 1
                   : 0
@@ -245,7 +245,7 @@ export function FilterMemories({
                           className="text-rgray-11"
                         >
                           <SpaceIcon className="mr-2 h-4 w-4" />
-                          {space.title}
+                          {space.name}
                           {selectedSpaces.includes(space.id)}
                           <Check
                             data-state-on={selectedSpaces.includes(space.id)}
