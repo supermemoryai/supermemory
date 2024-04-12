@@ -13,6 +13,14 @@ export async function GET(req: NextRequest) {
     req.cookies.get("authjs.session-token")?.value ??
     req.headers.get("Authorization")?.replace("Bearer ", "");
 
+  const { success } = await process.env.RATELIMITER.limit({ key: token });
+
+  if (!success) {
+    return new Response(JSON.stringify({ message: "Rate limit exceeded" }), {
+      status: 429,
+    });
+  }
+
   const sessionData = await db
     .select()
     .from(sessions)

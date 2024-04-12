@@ -10,3 +10,11 @@ index_name = "anycontext-idx"
 binding = "DATABASE"
 database_name = "dev-d1-anycontext"
 database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+
+[[unsafe.bindings]]
+name = "RATELIMITER"
+type = "ratelimit"
+namespace_id = "1001" 
+
+# 25 requests per 10 seconds
+simple = { limit = 25, period = 10 }

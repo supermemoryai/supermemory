@@ -5,6 +5,7 @@ declare global {
       DATABASE: D1Database;
       VECTORIZE_INDEX: VectorizeIndex;
       AI: any;
+      RATELIMITER: any;
     }
   }
 }
