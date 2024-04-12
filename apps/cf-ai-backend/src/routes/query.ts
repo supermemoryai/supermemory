@@ -42,7 +42,8 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 	const highScoreIds = resp.matches.filter(({ score }) => score > 0.3).map(({ id }) => id);
 
 	if (sourcesOnly === 'true') {
-		return new Response(JSON.stringify({ ids: highScoreIds }), { status: 200 });
+		const idsAsStrings = highScoreIds.map((id) => env?.KV.get(id.toString()) ?? id.toString());
+		return new Response(JSON.stringify({ ids: idsAsStrings }), { status: 200 });
 	}
 
 	const vec = await env!.VECTORIZE_INDEX.getByIds(highScoreIds);

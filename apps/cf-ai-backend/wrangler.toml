@@ -13,6 +13,10 @@ binding = "AI"
  queue = "batch-vector-queue"
  binding = "MY_QUEUE"
 
+[[kv_namespaces]]
+binding = "KV"
+id = "37a90353da63401e84e20e71165531d0"
+
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables

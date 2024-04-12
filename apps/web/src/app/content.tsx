@@ -8,11 +8,13 @@ export default function Content({ jwt }: { jwt: string }) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   return (
-    <SessionProvider>
-      <div className="flex w-screen">
-        <Sidebar jwt={jwt} selectChange={setSelectedItem} />
-        <Main sidebarOpen={selectedItem !== null} />
-      </div>
-    </SessionProvider>
+    <div>
+      <SessionProvider>
+        <div className="flex w-screen">
+          <Sidebar jwt={jwt} selectChange={setSelectedItem} />
+          <Main sidebarOpen={selectedItem !== null} />
+        </div>
+      </SessionProvider>
+    </div>
   );
 }

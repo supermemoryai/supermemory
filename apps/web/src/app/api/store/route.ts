@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   contentToSpace,
   sessions,
@@ -80,6 +80,16 @@ export async function POST(req: NextRequest) {
     storeToSpace = "none";
   }
 
+  // Count the number of stored content of the user
+  const count = await db
+    .select({
+      count: sql<number>`count(*)`.mapWith(Number),
+    })
+    .from(storedContent)
+    .where(eq(storedContent.user, session.user.id));
+
+  console.log(count[0].count);
+
   const storedContentId = await db.insert(storedContent).values({
     content: data.pageContent,
     title: metadata.title,
@@ -136,6 +146,7 @@ export async function POST(req: NextRequest) {
   ])) as Response;
 
   if (res.status !== 200) {
+    console.log(res.status, res.statusText);
     return NextResponse.json(
       { message: "Error", error: "Error in CF function" },
       { status: 500 },
