@@ -66,6 +66,8 @@ export const queue = async (batch: MessageBatch, env: Env): Promise<void> => {
 		});
 	});
 
+	console.log(collectedDocsUUIDs);
+
 	await store.addDocuments(
 		collectedDocsUUIDs.map(({ document }) => document),
 		{
@@ -81,7 +83,10 @@ export const queue = async (batch: MessageBatch, env: Env): Promise<void> => {
 		body: JSON.stringify(messages),
 	});
 
+	console.log(res.status, res.statusText);
+
 	if (res.status !== 200) {
+		console.log(await res.json());
 		console.error('Error adding tweets to db');
 	}
 

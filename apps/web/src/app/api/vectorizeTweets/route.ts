@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as TweetData[];
 
+  console.log(body);
+
   const resp = await fetch(
     `https://cf-ai-backend.dhravya.workers.dev/batchUploadTweets`,
     {
