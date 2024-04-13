@@ -354,19 +354,19 @@ export function SpaceItem({
         <MemoryWithImages3
           className="h-24 w-24"
           id={id.toString()}
-          images={spaceMemories.map((c) => c.image).reverse() as string[]}
+          images={spaceMemories.map((c) => c.type === 'note' ? '/note.svg' : c.image).reverse() as string[]}
         />
       ) : spaceMemories.length > 1 ? (
 				<MemoryWithImages2
           className="h-24 w-24"
           id={id.toString()}
-          images={spaceMemories.map((c) => c.image).reverse() as string[]}
+          images={spaceMemories.map((c) => c.type === 'note' ? '/note.svg' : c.image).reverse() as string[]}
         />
 			) : spaceMemories.length === 1 ? (
         <MemoryWithImage
           className="h-24 w-24"
           id={id.toString()}
-          image={spaceMemories[0].image!}
+          image={spaceMemories[0].type === 'note' ? '/note.svg' : spaceMemories[0].image!}
         />
       ) : (
 				<div className="bg-rgray-4 opacity-30 rounded-full w-24 h-24 scale-50 shadow-">

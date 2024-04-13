@@ -313,15 +313,15 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
   );
 }
 
-export function MemorySelectedItem({ id, title, url, image, onRemove }: StoredContent & { onRemove: () => void; }) {
+export function MemorySelectedItem({ id, title, url, type, image, onRemove }: StoredContent & { onRemove: () => void; }) {
 	return (
 		<div className="flex justify-start gap-2 p-1 px-2 w-full items-center text-sm rounded-md hover:bg-rgray-4 focus-within-bg-rgray-4 [&:hover>[data-icon]]:block [&:hover>img]:hidden">
-			<img src={image ?? "/icons/logo_without_bg.png"} className="h-5 w-5" />
+			<img src={type === 'note'? '/note.svg' : image ?? "/icons/logo_without_bg.png"} className="h-5 w-5" />
 			<button onClick={onRemove} data-icon className="w-5 h-5 p-0 m-0 hidden focus-visible:outline-none">
 				<X className="w-5 h-5 scale-90" />
 			</button>
 			<span>{title}</span>
-			<span className="ml-auto block opacity-50">{cleanUrl(url)}</span>
+			<span className="ml-auto block opacity-50">{type ==='note' ? 'Note' : cleanUrl(url)}</span>
 		</div>
 	)
 }

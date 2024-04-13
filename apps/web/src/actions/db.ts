@@ -31,7 +31,7 @@ export async function searchMemoriesAndSpaces(query: string, opts?: { filter?: {
 		}).from(storedContent).where(and(
 			eq(storedContent.user, user.id),
 			like(storedContent.title, `%${query}%`)
-		));
+		)).orderBy(asc(storedContent.savedAt));
 
 		const searchSpacesQuery = db.select({
 			type: sql<string>`'space'`,
@@ -42,9 +42,11 @@ export async function searchMemoriesAndSpaces(query: string, opts?: { filter?: {
 				eq(space.user, user.id),
 				like(space.name, `%${query}%`)
 			)
-		);
+		).orderBy(asc(space.name));
 	
 		let queries = [];
+
+		console.log('adding');
 
 		[undefined, true].includes(opts?.filter?.memories) && queries.push(searchMemoriesQuery);
 		[undefined, true].includes(opts?.filter?.spaces) && queries.push(searchSpacesQuery);
@@ -56,6 +58,8 @@ export async function searchMemoriesAndSpaces(query: string, opts?: { filter?: {
 		}
 
 		const data = await Promise.all(queries)
+
+		console.log('resp', data)
 		
 		return data.reduce((acc, i) => [...acc, ...i]) as SearchResult[]
 	} catch {
@@ -231,12 +235,13 @@ export async function deleteSpace(id: number) {
 		return null
 	}
 
+	await db.delete(contentToSpace)
+		.where(eq(contentToSpace.spaceId, id));
+
 	const [deleted] = await db.delete(space)
 		.where(and(eq(space.user, user.id), eq(space.id, id)))
 		.returning();
 
-	await db.delete(contentToSpace)
-		.where(eq(contentToSpace.spaceId, id));
 
 	return deleted
 
@@ -252,12 +257,12 @@ export async function deleteMemory(id: number) {
 		return null
 	}
 
+	await db.delete(contentToSpace)
+		.where(eq(contentToSpace.contentId, id));
+
 	const [deleted] = await db.delete(storedContent)
 		.where(and(eq(storedContent.user, user.id), eq(storedContent.id, id)))
 		.returning();
-
-	await db.delete(contentToSpace)
-		.where(eq(contentToSpace.contentId, id));
 
 	return deleted
 
