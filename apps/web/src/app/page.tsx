@@ -56,7 +56,10 @@ export default async function Home() {
   const collectedSpaces = await db
     .select()
     .from(space)
-    .where(and(eq(space.user, userData.id), not(eq(space.name, "none"))));
+    .where(eq(space.user, userData.id))
+		.all();
+
+	console.log(collectedSpaces)
 
   // Fetch only first 3 content of each spaces
   let contents: (typeof storedContent.$inferSelect)[] = [];

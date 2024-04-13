@@ -1,4 +1,5 @@
 import { getEnv } from "./util";
+import { Space } from "./types/memory"
 
 const backendUrl =
   getEnv() === "development"
@@ -37,8 +38,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true;
   } else if (request.type === "urlChange") {
+
     const content = request.content;
     const url = request.url;
+		const spaces = request.spaces
 
     (async () => {
       chrome.storage.local.get(["jwt"], ({ jwt }) => {
@@ -51,10 +54,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           headers: {
             Authorization: `Bearer ${jwt}`,
           },
-          body: JSON.stringify({ pageContent: content, url }),
+          body: JSON.stringify({ pageContent: content, url, spaces }),
         }).then((ers) => console.log(ers.status));
       });
     })();
+  } else if (request.type === "fetchSpaces") {
+
+			const run = () => chrome.storage.local.get(["jwt"], async ({ jwt }) => {
+				if (!jwt) {
+					console.error("No JWT found");
+					return;
+				}
+				const resp = await fetch(`${backendUrl}/api/spaces`, {
+					headers: {
+						Authorization: `Bearer ${jwt}`,
+					},
+				})
+
+				const data: {
+					message: "OK" | string;
+					data: Space[] | undefined;
+				} = await resp.json();
+		
+				if (data.message === "OK" && data.data) {
+					sendResponse(data.data)
+				}
+					
+			});
+
+			run()
+
+
+			return true;
+
+
   } else if (request.type === "queryApi") {
     const input = request.input;
     const jwt = request.jwt;

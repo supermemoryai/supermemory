@@ -18,8 +18,9 @@ import {
   DialogFooter,
   DialogClose,
 } from "./components/ui/dialog";
+import { Space } from "./types/memory";
 
-function sendUrlToAPI() {
+function sendUrlToAPI(spaces: number[]) {
   // get the current URL
   const url = window.location.href;
 
@@ -46,11 +47,14 @@ function SideBar() {
   //   }
   // });
 
+
   const [savedWebsites, setSavedWebsites] = useState<string[]>([]);
 
   const [isSendingData, setIsSendingData] = useState(false);
 
-  const [selectedSpaces, setSelectedSpaces] = useState<number[]>([0, 1]);
+	const [loading, setLoading] = useState(false)
+	const [spaces, setSpaces] = useState<Space[]>();
+  const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
   interface TweetData {
     tweetText: string;
@@ -59,6 +63,15 @@ function SideBar() {
     handle: string;
     time: string;
   }
+
+	const fetchSpaces = async () => {
+		setLoading(true)
+    chrome.runtime.sendMessage({ type: "fetchSpaces" }, (resp) => {
+			console.log(resp)
+			setSpaces(resp)
+			setLoading(false)
+		});
+	}
 
   const fetchBookmarks = () => {
     const tweets: TweetData[] = []; // Initialize an empty array to hold all tweet elements
@@ -205,7 +218,7 @@ function SideBar() {
           ) : (
             <></>
           )}
-          <Dialog>
+          <Dialog onOpenChange={open => open === true && fetchSpaces()}>
             <Tooltip delayDuration={300}>
               <TooltipTrigger
                 className="anycontext-bg-transparent
@@ -215,15 +228,7 @@ function SideBar() {
                 <DialogTrigger asChild>
                   <button
                     onClick={() => {
-                      sendUrlToAPI();
-                      setIsSendingData(true);
-                      setTimeout(() => {
-                        setIsSendingData(false);
-                        setSavedWebsites([
-                          ...savedWebsites,
-                          window.location.href,
-                        ]);
-                      }, 1000);
+											return;
                     }}
                     disabled={savedWebsites.includes(window.location.href)}
                     className="anycontext-open-button disabled:anycontext-opacity-30 anycontext-bg-transparent
@@ -276,23 +281,27 @@ function SideBar() {
               </DialogHeader>
 
               <FilterSpaces
+								loading={loading}
                 className="anycontext-mr-auto"
                 selectedSpaces={selectedSpaces}
                 setSelectedSpaces={setSelectedSpaces}
                 name={"Add to Spaces"}
-                spaces={[
-                  {
-                    name: "cool tech",
-                    id: 0,
-                  },
-                  {
-                    name: "cool libs",
-                    id: 1,
-                  },
-                ]}
+                spaces={spaces ?? []}
               />
               <DialogFooter className="anycontext-w-full anycontext-text-sm">
-                <DialogClose>Add</DialogClose>
+                <DialogClose
+									onClick={() => {
+										sendUrlToAPI(selectedSpaces);
+										setIsSendingData(true);
+										setTimeout(() => {
+											setIsSendingData(false);
+											setSavedWebsites([
+												...savedWebsites,
+												window.location.href,
+											]);
+										}, 1000);
+									}}
+								>Add</DialogClose>
                 <DialogClose>Cancel</DialogClose>
               </DialogFooter>
             </DialogContent>

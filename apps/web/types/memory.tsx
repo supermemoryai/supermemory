@@ -5,7 +5,7 @@ import {
   storedContent,
   StoredContent,
 } from "@/server/db/schema";
-import { asc, and, eq, inArray, notExists } from "drizzle-orm";
+import { asc, and, eq, inArray, notExists, sql, exists } from "drizzle-orm";
 
 export async function fetchContentForSpace(
   spaceId: number,
@@ -19,9 +19,8 @@ export async function fetchContentForSpace(
     .select()
     .from(storedContent)
     .where(
-      inArray(
-        storedContent.id,
-        db.select().from(space).where(eq(space.id, spaceId)),
+      exists(
+        db.select().from(contentToSpace).where(and(eq(contentToSpace.spaceId, spaceId), eq(contentToSpace.contentId, storedContent.id))),
       ),
     ).orderBy(asc(storedContent.title))
 
