@@ -17,17 +17,19 @@ export async function getMetaData(url: string) {
     ? descriptionMatch[1]
     : "Description not found";
 
-  // Extract Open Graph image
-  const imageMatch = html.match(
-    /<meta property="og:image" content="(.*?)"\s*\/?>/,
+  // Extract favicon
+  const faviconMatch = html.match(
+    /<link rel="(?:icon|shortcut icon)" href="(.*?)"\s*\/?>/,
   );
-  const image = imageMatch ? imageMatch[1] : "Image not found";
+  const favicon = faviconMatch
+    ? faviconMatch[1]
+    : "https://supermemory.dhr.wtf/web.svg";
 
   // Prepare the metadata object
   const metadata = {
     title,
     description,
-    image,
+    image: favicon,
     baseUrl,
   };
   return metadata;

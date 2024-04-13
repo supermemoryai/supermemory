@@ -32,12 +32,12 @@ function sendUrlToAPI(spaces: number[]) {
   } else {
     // const content = Entire page content, but cleaned up for the LLM. No ads, no scripts, no styles, just the text. if article, just the importnat info abou tit.
     const content = document.documentElement.innerText;
-    chrome.runtime.sendMessage({ type: "urlChange", content, url });
+    chrome.runtime.sendMessage({ type: "urlChange", content, url, spaces });
   }
 }
 
-function SideBar() {
-  // TODO: Implement getting bookmarks from API directly
+function SideBar({ jwt }: { jwt: string }) {
+  // TODO: Implement getting bookmarks from Twitter API directly
   // chrome.runtime.onMessage.addListener(function (request) {
   //   if (request.action === 'showProgressIndicator') {
   //     // TODO: SHOW PROGRESS INDICATOR
@@ -56,12 +56,25 @@ function SideBar() {
 	const [spaces, setSpaces] = useState<Space[]>();
   const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
+  const [isImportingTweets, setIsImportingTweets] = useState(false);
+
+  const [log, setLog] = useState<string[]>([]);
+
   interface TweetData {
     tweetText: string;
     postUrl: string;
     authorName: string;
     handle: string;
     time: string;
+    saveToUser: string;
+  }
+
+  function sendBookmarkedTweetsToAPI(tweets: TweetData[], token: string) {
+    chrome.runtime.sendMessage({
+      type: "sendBookmarkedTweets",
+      jwt: token,
+      tweets,
+    });
   }
 
 	const fetchSpaces = async () => {
@@ -76,6 +89,9 @@ function SideBar() {
   const fetchBookmarks = () => {
     const tweets: TweetData[] = []; // Initialize an empty array to hold all tweet elements
 
+    setIsImportingTweets(true);
+    console.log("Importing tweets");
+
     const scrollInterval = 1000;
     const scrollStep = 5000; // Pixels to scroll on each step
 
@@ -88,10 +104,12 @@ function SideBar() {
       if (currentTweetCount === previousTweetCount) {
         unchangedCount++;
         if (unchangedCount >= 2) {
-          // Stop if the count has not changed 5 times
-          console.log("Scraping complete");
-          console.log("Total tweets scraped: ", tweets.length);
-          console.log("Downloading tweets as JSON...");
+          setLog([
+            ...log,
+            "Scraping complete",
+            `Total tweets scraped: ${tweets.length}`,
+            "Downloading tweets as JSON...",
+          ]);
           clearInterval(scrollToEndIntervalID); // Stop scrolling
           observer.disconnect(); // Stop observing DOM changes
           downloadTweetsAsJson(tweets); // Download the tweets list as a JSON file
@@ -140,8 +158,10 @@ function SideBar() {
               tweetText,
               time: time ?? "",
               postUrl,
+              saveToUser: jwt,
             });
-            console.log("Tweets capturados: ", tweets.length);
+
+            setLog([...log, `Scraped tweet: ${tweets.length}`]);
           }
         });
     }
@@ -162,15 +182,43 @@ function SideBar() {
     observer.observe(document.body, { childList: true, subtree: true });
 
     function downloadTweetsAsJson(tweetsArray: TweetData[]) {
-      const jsonData = JSON.stringify(tweetsArray); // Convert the array to JSON
-
-      // TODO: SEND jsonData to server
-      console.log(jsonData);
+      setLog([...log, "Saving the tweets to our database..."]);
+      sendBookmarkedTweetsToAPI(tweetsArray, jwt);
+      setIsImportingTweets(false);
     }
   };
 
   return (
     <>
+      {isImportingTweets && (
+        <div className="anycontext-overlay anycontext-fixed anycontext-font-sans anycontext-inset-0 anycontext-bg-black anycontext-bg-opacity-50">
+          <div className="anycontext-flex anycontext-items-center anycontext-justify-center anycontext-h-screen">
+            <div className="anycontext-flex anycontext-flex-col anycontext-items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="anycontext-w-10 anycontext-h-10 anycontext-animate-spin"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
+                />
+              </svg>
+              <p className="anycontext-mt-2">Importing your tweets...</p>
+              <div className="anycontext-mt-2">
+                {log.map((message, index) => (
+                  <p key={index}>{message}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <TooltipProvider>
         <div className="anycontext-flex anycontext-group anycontext-flex-col anycontext-gap-2 anycontext-fixed anycontext-bottom-12 anycontext-right-0 anycontext-z-[99999] anycontext-font-sans">
           {window.location.href.includes("twitter.com") ||
@@ -227,9 +275,6 @@ function SideBar() {
               >
                 <DialogTrigger asChild>
                   <button
-                    onClick={() => {
-											return;
-                    }}
                     disabled={savedWebsites.includes(window.location.href)}
                     className="anycontext-open-button disabled:anycontext-opacity-30 anycontext-bg-transparent
 											anycontext-border-none anycontext-m-0 anycontext-p-0"

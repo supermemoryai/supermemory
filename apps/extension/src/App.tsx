@@ -44,7 +44,7 @@ function App() {
     getUserData();
   }, []);
 
-  // TODO: Implement getting bookmarks from API directly
+  // TODO: Implement getting bookmarks from Twitter API directly
   // const [status, setStatus] = useState('');
   // const [bookmarks, setBookmarks] = useState<TweetData[]>([]);
 
@@ -149,7 +149,7 @@ function App() {
   );
 }
 
-// TODO: Implement getting bookmarks from API directly
+// TODO: Implement getting bookmarks from Twitter API directly
 // async function fetchAllBookmarks(
 //   authorizationHeader: string,
 //   csrfToken: string,

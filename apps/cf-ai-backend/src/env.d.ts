@@ -4,7 +4,7 @@ interface Env {
 	SECURITY_KEY: string;
 	OPENAI_API_KEY: string;
 	GOOGLE_AI_API_KEY: string;
-	MY_QUEUE: Queue<TweetData>;
+	MY_QUEUE: Queue<TweetData[]>;
 	KV: KVNamespace;
 }
 
@@ -14,4 +14,5 @@ interface TweetData {
 	authorName: string;
 	handle: string;
 	time: string;
+	saveToUser: string;
 }
