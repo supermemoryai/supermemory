@@ -69,7 +69,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
   } else if (request.type === "fetchSpaces") {
 
-			const run = () => chrome.storage.local.get(["jwt"], async ({ jwt }) => {
+			chrome.storage.local.get(["jwt"], async ({ jwt }) => {
 				if (!jwt) {
 					console.error("No JWT found");
 					return;
@@ -90,9 +90,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				}
 					
 			});
-
-			run()
-
 
 			return true;
 

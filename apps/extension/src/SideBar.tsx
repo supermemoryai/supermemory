@@ -80,7 +80,7 @@ function SideBar({ jwt }: { jwt: string }) {
 	const fetchSpaces = async () => {
 		setLoading(true)
     chrome.runtime.sendMessage({ type: "fetchSpaces" }, (resp) => {
-			console.log(resp)
+			console.log('response',resp)
 			setSpaces(resp)
 			setLoading(false)
 		});
