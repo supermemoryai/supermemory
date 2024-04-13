@@ -3,8 +3,9 @@ import { sessions, space, users } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export const runtime = "edge";
 
+export async function GET(req: NextRequest) {
   const token =
     req.cookies.get("next-auth.session-token")?.value ??
     req.cookies.get("__Secure-authjs.session-token")?.value ??
@@ -53,18 +54,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
-	const user = userData[0]
+  const user = userData[0];
 
-	
-	const spaces = await db
-		.select()
-		.from(space)
-		.where(eq(space.user, user.id))
-		.all()
+  const spaces = await db
+    .select()
+    .from(space)
+    .where(eq(space.user, user.id))
+    .all();
 
-	return NextResponse.json({
-		message: "OK",
-		data: spaces
-	}, { status: 200 })
-
+  return NextResponse.json(
+    {
+      message: "OK",
+      data: spaces,
+    },
+    { status: 200 },
+  );
 }
