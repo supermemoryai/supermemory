@@ -49,7 +49,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     if (search && search.trim().length > 0) {
       setValue(search);
       onSend();
-      router.push("/");
+      //router.push("/");
     }
   }, []);
 

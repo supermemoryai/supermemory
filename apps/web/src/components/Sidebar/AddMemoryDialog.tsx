@@ -26,7 +26,7 @@ export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
   const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
 
   return (
-    <form className="md:w-[40vw]">
+    <div className="md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add a web page to memory</DialogTitle>
         <DialogDescription>
@@ -95,7 +95,7 @@ export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
           Cancel
         </DialogClose>
       </DialogFooter>
-    </form>
+    </div>
   );
 }
 
