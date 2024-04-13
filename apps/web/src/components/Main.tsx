@@ -380,7 +380,10 @@ export function Chat({
               loading={i === chatHistory.length - 1 ? isLoading : false}
               sources={msg.answer.sources}
             >
-              {msg.answer.parts.map((part) => part.text).join(" ")}
+              {msg.answer.parts
+                .map((part) => part.text)
+                .join("")
+                .replace("</s>", "")}
             </ChatAnswer>
           </ChatMessage>
         ))}

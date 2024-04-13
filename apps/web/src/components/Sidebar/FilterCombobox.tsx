@@ -24,7 +24,8 @@ import { SearchResult, useMemory } from "@/contexts/MemoryContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { StoredContent } from "@/server/db/schema";
 
-export interface FilterSpacesProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface FilterSpacesProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   side?: "top" | "bottom";
   align?: "end" | "start" | "center";
   onClose?: () => void;
@@ -153,7 +154,7 @@ export type FilterMemoriesProps = {
   onClose?: () => void;
   selected: StoredContent[];
   setSelected: React.Dispatch<React.SetStateAction<StoredContent[]>>;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>
+} & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export function FilterMemories({
   className,
@@ -164,40 +165,39 @@ export function FilterMemories({
   setSelected,
   ...props
 }: FilterMemoriesProps) {
-
-	const { search } = useMemory();
+  const { search } = useMemory();
 
   const [open, setOpen] = React.useState(false);
-	const [searchQuery, setSearchQuery] = React.useState("");
-	const query = useDebounce(searchQuery, 500)
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const query = useDebounce(searchQuery, 500);
 
-	const [searchResults, setSearchResults] = React.useState<SearchResult[]>([]);
-	const [isSearching, setIsSearching] = React.useState(false)
+  const [searchResults, setSearchResults] = React.useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
 
-	const results = React.useMemo(() => {
-		return searchResults.map(r => r.memory)
-	}, [searchResults])
+  const results = React.useMemo(() => {
+    return searchResults.map((r) => r.memory);
+  }, [searchResults]);
 
-	console.log('memoized', results)
+  console.log("memoized", results);
 
-	React.useEffect(() => {
-		const q = query.trim()
-		if (q.length > 0) {
-			setIsSearching(true);
-			(async () => {
-				const results = await search(q, {
-					filter: {
-						memories: true,
-						spaces: false
-					}
-				})
-				setSearchResults(results)
-				setIsSearching(false)
-			})();
-		} else {
-			setSearchResults([])
-		}
-	}, [query])
+  React.useEffect(() => {
+    const q = query.trim();
+    if (q.length > 0) {
+      setIsSearching(true);
+      (async () => {
+        const results = await search(q, {
+          filter: {
+            memories: true,
+            spaces: false,
+          },
+        });
+        setSearchResults(results);
+        setIsSearching(false);
+      })();
+    } else {
+      setSearchResults([]);
+    }
+  }, [query]);
 
   React.useEffect(() => {
     if (!open) {
@@ -205,7 +205,7 @@ export function FilterMemories({
     }
   }, [open]);
 
-	console.log(searchResults);
+  console.log(searchResults);
   return (
     <AnimatePresence mode="popLayout">
       <LayoutGroup>
@@ -220,7 +220,7 @@ export function FilterMemories({
               )}
               {...props}
             >
-							{props.children}
+              {props.children}
             </button>
           </PopoverTrigger>
           <PopoverContent
@@ -229,43 +229,58 @@ export function FilterMemories({
             side={side}
             className="w-[200px] p-0"
           >
-            <Command
-							shouldFilter={false}
-            >
-              <CommandInput isSearching={isSearching} value={searchQuery} onValueChange={setSearchQuery} placeholder="Filter memories..." />
+            <Command shouldFilter={false}>
+              <CommandInput
+                isSearching={isSearching}
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+                placeholder="Filter memories..."
+              />
               <CommandList>
-								<CommandGroup>
-									<CommandEmpty className="text-rgray-11 text-sm text-center py-5">{isSearching ? "Searching..." : query.trim().length > 0 ? "Nothing Found" : "Search something"}</CommandEmpty>
-									{results.map((m) => (
-										<CommandItem
-											key={m.id}
-											value={m.id.toString()}
-											onSelect={(val) => {
-												setSelected((prev) =>
-													prev.find(p => p.id === parseInt(val))
-														? prev.filter((v) => v.id !== parseInt(val))
-														: [...prev, m],
-												);
-											}}
-											asChild
-										>
-											<div
-												className="text-rgray-11"
-											>
-												<img src={m.type === 'note' ? '/note.svg' : m.image ?? "/icons/logo_without_bg.png"} className="mr-2 h-4 w-4" />
-												{m.title}
-												<Check
-													data-state-on={selected.find(i => i.id === m.id) !== undefined}
-													className={cn(
-														"on:opacity-100 ml-auto h-4 w-4 opacity-0",
-													)}
-												/>
-											</div>
-										</CommandItem>
-									))}
-
-								</CommandGroup>
-							</CommandList>
+                <CommandGroup>
+                  <CommandEmpty className="text-rgray-11 py-5 text-center text-sm">
+                    {isSearching
+                      ? "Searching..."
+                      : query.trim().length > 0
+                        ? "Nothing Found"
+                        : "Search something"}
+                  </CommandEmpty>
+                  {results.map((m) => (
+                    <CommandItem
+                      key={m.id}
+                      value={m.id.toString()}
+                      onSelect={(val) => {
+                        setSelected((prev) =>
+                          prev.find((p) => p.id === parseInt(val))
+                            ? prev.filter((v) => v.id !== parseInt(val))
+                            : [...prev, m],
+                        );
+                      }}
+                      asChild
+                    >
+                      <div className="text-rgray-11">
+                        <img
+                          src={
+                            m.type === "note"
+                              ? "/note.svg"
+                              : m.image ?? "/icons/logo_without_bg.png"
+                          }
+                          className="mr-2 h-4 w-4"
+                        />
+                        {m.title}
+                        <Check
+                          data-state-on={
+                            selected.find((i) => i.id === m.id) !== undefined
+                          }
+                          className={cn(
+                            "on:opacity-100 ml-auto h-4 w-4 opacity-0",
+                          )}
+                        />
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
             </Command>
           </PopoverContent>
         </Popover>

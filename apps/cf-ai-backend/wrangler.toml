@@ -1,6 +1,7 @@
 name = "cf-ai-backend"
 main = "src/index.ts"
 compatibility_date = "2024-02-23"
+compatibility_flags = ['nodejs_compat']
 
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
@@ -19,6 +20,13 @@ binding = "AI"
 [[kv_namespaces]]
 binding = "KV"
 id = "37a90353da63401e84e20e71165531d0"
+preview_id = "c58b6202814f4224acea97627d0c18aa"
+
+[browser]
+binding = "MYBROWSER"
+
+[placement]
+mode = "smart"
 
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.

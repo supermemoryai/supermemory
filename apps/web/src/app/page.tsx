@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import {
-    ChachedSpaceContent,
+  ChachedSpaceContent,
   contentToSpace,
   sessions,
   space,
@@ -57,37 +57,36 @@ export default async function Home() {
     .select()
     .from(space)
     .where(eq(space.user, userData.id))
-		.all();
+    .all();
 
-	console.log(collectedSpaces)
+  console.log(collectedSpaces);
 
   // Fetch only first 3 content of each spaces
   let contents: ChachedSpaceContent[] = [];
 
-	//console.log(await db.select().from(storedContent).)
-	
+  //console.log(await db.select().from(storedContent).)
+
   await Promise.all([
     collectedSpaces.forEach(async (space) => {
-			console.log("fetching ")
-			const data = (await fetchContentForSpace(space.id, {
-				offset: 0,
-				limit: 3,
-			})).map(data => ({
-				...data,
-				space: space.id
-			}))
-      contents = [
-        ...contents,
+      console.log("fetching ");
+      const data = (
+        await fetchContentForSpace(space.id, {
+          offset: 0,
+          limit: 3,
+        })
+      ).map((data) => ({
         ...data,
-      ];
+        space: space.id,
+      }));
+      contents = [...contents, ...data];
     }),
   ]);
 
-	console.log(contents)
+  console.log(contents);
 
   // freeMemories
   const freeMemories = await fetchFreeMemories(userData.id);
-	console.log('free',freeMemories)
+  console.log("free", freeMemories);
 
   return (
     <MemoryProvider

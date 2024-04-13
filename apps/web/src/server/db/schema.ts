@@ -21,7 +21,7 @@ export const users = createTable("user", {
   image: text("image", { length: 255 }),
 });
 
-export type User = typeof users.$inferSelect
+export type User = typeof users.$inferSelect;
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -34,7 +34,7 @@ export const accounts = createTable(
     id: integer("id").notNull().primaryKey({ autoIncrement: true }),
     userId: text("userId", { length: 255 })
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: "cascade" }),
     type: text("type", { length: 255 }).notNull(),
     provider: text("provider", { length: 255 }).notNull(),
     providerAccountId: text("providerAccountId", { length: 255 }).notNull(),
@@ -60,7 +60,7 @@ export const sessions = createTable(
     sessionToken: text("sessionToken", { length: 255 }).notNull(),
     userId: text("userId", { length: 255 })
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: "cascade" }),
     expires: int("expires", { mode: "timestamp" }).notNull(),
   },
   (session) => ({
@@ -94,7 +94,9 @@ export const storedContent = createTable(
       "page",
     ),
     image: text("image", { length: 255 }),
-    user: text("user", { length: 255 }).references(() => users.id, { onDelete: 'cascade' }),
+    user: text("user", { length: 255 }).references(() => users.id, {
+      onDelete: "cascade",
+    }),
   },
   (sc) => ({
     urlIdx: index("storedContent_url_idx").on(sc.url),
@@ -109,10 +111,10 @@ export const contentToSpace = createTable(
   {
     contentId: integer("contentId")
       .notNull()
-      .references(() => storedContent.id, { onDelete: 'cascade' }),
+      .references(() => storedContent.id, { onDelete: "cascade" }),
     spaceId: integer("spaceId")
       .notNull()
-      .references(() => space.id, { onDelete: 'cascade' }),
+      .references(() => space.id, { onDelete: "cascade" }),
   },
   (cts) => ({
     compoundKey: primaryKey({ columns: [cts.contentId, cts.spaceId] }),
@@ -124,7 +126,9 @@ export const space = createTable(
   {
     id: integer("id").notNull().primaryKey({ autoIncrement: true }),
     name: text("name").notNull().unique().default("none"),
-    user: text("user", { length: 255 }).references(() => users.id, { onDelete: 'cascade' }),
+    user: text("user", { length: 255 }).references(() => users.id, {
+      onDelete: "cascade",
+    }),
   },
   (space) => ({
     nameIdx: index("spaces_name_idx").on(space.name),
@@ -135,5 +139,5 @@ export const space = createTable(
 export type StoredContent = Omit<typeof storedContent.$inferSelect, "user">;
 export type StoredSpace = typeof space.$inferSelect;
 export type ChachedSpaceContent = StoredContent & {
-	space: number;
-}
+  space: number;
+};

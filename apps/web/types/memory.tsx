@@ -14,40 +14,55 @@ export async function fetchContentForSpace(
     limit: number;
   },
 ) {
-
   const query = db
     .select()
     .from(storedContent)
     .where(
       exists(
-        db.select().from(contentToSpace).where(and(eq(contentToSpace.spaceId, spaceId), eq(contentToSpace.contentId, storedContent.id))),
+        db
+          .select()
+          .from(contentToSpace)
+          .where(
+            and(
+              eq(contentToSpace.spaceId, spaceId),
+              eq(contentToSpace.contentId, storedContent.id),
+            ),
+          ),
       ),
-    ).orderBy(asc(storedContent.title))
+    )
+    .orderBy(asc(storedContent.title));
 
-	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+  return range
+    ? await query.limit(range.limit).offset(range.offset)
+    : await query.all();
 }
 
 export async function fetchFreeMemories(
-	userId: string,
-	range?: {
-		offset: number;
-		limit: number;
-	}
+  userId: string,
+  range?: {
+    offset: number;
+    limit: number;
+  },
 ) {
-	const query = db
+  const query = db
     .select()
     .from(storedContent)
     .where(
-			and(
-				notExists(
-					db.select().from(contentToSpace).where(eq(contentToSpace.contentId, storedContent.id)),
-				),
-				eq(storedContent.user, userId),
-			)
-      
-    ).orderBy(asc(storedContent.title))
+      and(
+        notExists(
+          db
+            .select()
+            .from(contentToSpace)
+            .where(eq(contentToSpace.contentId, storedContent.id)),
+        ),
+        eq(storedContent.user, userId),
+      ),
+    )
+    .orderBy(asc(storedContent.title));
 
-	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+  return range
+    ? await query.limit(range.limit).offset(range.offset)
+    : await query.all();
 }
 
 export const transformContent = async (

@@ -2,6 +2,8 @@ import { Content, GenerativeModel } from '@google/generative-ai';
 import { OpenAIEmbeddings } from '../OpenAIEmbedder';
 import { CloudflareVectorizeStore } from '@langchain/cloudflare';
 import { Request } from '@cloudflare/workers-types';
+import { AiTextGenerationOutput } from '@cloudflare/ai/dist/ai/tasks/text-generation';
+import { Ai } from '@cloudflare/ai';
 
 export async function POST(request: Request, _: CloudflareVectorizeStore, embeddings: OpenAIEmbeddings, model: GenerativeModel, env?: Env) {
 	const queryparams = new URL(request.url).searchParams;
@@ -112,28 +114,40 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 		},
 	] as Content[];
 
-	const chat = model.startChat({
-		history: [...defaultHistory, ...(body.chatHistory ?? [])],
-	});
+	// const chat = model.startChat({
+	// 	history: [...defaultHistory, ...(body.chatHistory ?? [])],
+	// });
 
 	const prompt = `Context:\n${preparedContext ?? ''}\n\nQuestion: ${query}\nAnswer:`;
 
-	const output = await chat.sendMessageStream(prompt);
+	// const output = await chat.sendMessageStream(prompt);
 
-	const response = new Response(
-		new ReadableStream({
-			async start(controller) {
-				const converter = new TextEncoder();
-				for await (const chunk of output.stream) {
-					const chunkText = await chunk.text();
-					const encodedChunk = converter.encode('data: ' + JSON.stringify({ response: chunkText }) + '\n\n');
-					controller.enqueue(encodedChunk);
-				}
-				const doneChunk = converter.encode('data: [DONE]');
-				controller.enqueue(doneChunk);
-				controller.close();
-			},
-		}),
-	);
-	return response;
+	// const response = new Response(
+	// 	new ReadableStream({
+	// 		async start(controller) {
+	// 			const converter = new TextEncoder();
+	// 			for await (const chunk of output.stream) {
+	// 				const chunkText = await chunk.text();
+	// 				const encodedChunk = converter.encode('data: ' + JSON.stringify({ response: chunkText }) + '\n\n');
+	// 				controller.enqueue(encodedChunk);
+	// 			}
+	// 			const doneChunk = converter.encode('data: [DONE]');
+	// 			controller.enqueue(doneChunk);
+	// 			controller.close();
+	// 		},
+	// 	}),
+	// );
+	// return response;
+	const ai = new Ai(env?.AI);
+	// @ts-ignore
+	const output: AiTextGenerationOutput = (await ai.run('@hf/mistralai/mistral-7b-instruct-v0.2', {
+		prompt,
+		stream: true,
+	})) as ReadableStream;
+
+	return new Response(output, {
+		headers: {
+			'content-type': 'text/event-stream',
+		},
+	});
 }

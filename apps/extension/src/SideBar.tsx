@@ -47,13 +47,12 @@ function SideBar({ jwt }: { jwt: string }) {
   //   }
   // });
 
-
   const [savedWebsites, setSavedWebsites] = useState<string[]>([]);
 
   const [isSendingData, setIsSendingData] = useState(false);
 
-	const [loading, setLoading] = useState(false)
-	const [spaces, setSpaces] = useState<Space[]>();
+  const [loading, setLoading] = useState(false);
+  const [spaces, setSpaces] = useState<Space[]>();
   const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
   const [isImportingTweets, setIsImportingTweets] = useState(false);
@@ -77,14 +76,14 @@ function SideBar({ jwt }: { jwt: string }) {
     });
   }
 
-	const fetchSpaces = async () => {
-		setLoading(true)
+  const fetchSpaces = async () => {
+    setLoading(true);
     chrome.runtime.sendMessage({ type: "fetchSpaces" }, (resp) => {
-			console.log('response',resp)
-			setSpaces(resp)
-			setLoading(false)
-		});
-	}
+      console.log("response", resp);
+      setSpaces(resp);
+      setLoading(false);
+    });
+  };
 
   const fetchBookmarks = () => {
     const tweets: TweetData[] = []; // Initialize an empty array to hold all tweet elements
@@ -266,7 +265,7 @@ function SideBar({ jwt }: { jwt: string }) {
           ) : (
             <></>
           )}
-          <Dialog onOpenChange={open => open === true && fetchSpaces()}>
+          <Dialog onOpenChange={(open) => open === true && fetchSpaces()}>
             <Tooltip delayDuration={300}>
               <TooltipTrigger
                 className="anycontext-bg-transparent
@@ -326,7 +325,7 @@ function SideBar({ jwt }: { jwt: string }) {
               </DialogHeader>
 
               <FilterSpaces
-								loading={loading}
+                loading={loading}
                 className="anycontext-mr-auto"
                 selectedSpaces={selectedSpaces}
                 setSelectedSpaces={setSelectedSpaces}
@@ -335,18 +334,20 @@ function SideBar({ jwt }: { jwt: string }) {
               />
               <DialogFooter className="anycontext-w-full anycontext-text-sm">
                 <DialogClose
-									onClick={() => {
-										sendUrlToAPI(selectedSpaces);
-										setIsSendingData(true);
-										setTimeout(() => {
-											setIsSendingData(false);
-											setSavedWebsites([
-												...savedWebsites,
-												window.location.href,
-											]);
-										}, 1000);
-									}}
-								>Add</DialogClose>
+                  onClick={() => {
+                    sendUrlToAPI(selectedSpaces);
+                    setIsSendingData(true);
+                    setTimeout(() => {
+                      setIsSendingData(false);
+                      setSavedWebsites([
+                        ...savedWebsites,
+                        window.location.href,
+                      ]);
+                    }, 1000);
+                  }}
+                >
+                  Add
+                </DialogClose>
                 <DialogClose>Cancel</DialogClose>
               </DialogFooter>
             </DialogContent>

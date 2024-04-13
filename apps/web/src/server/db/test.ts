@@ -1,10 +1,6 @@
-import { db } from "."
-import { space, user } from "./schema"
+import { db } from ".";
+import { space, user } from "./schema";
 
-const user = await db.select(user).all()
+const user = await db.select(user).all();
 
-await db.insert(space).values([
-	{
-
-	}
-])
+await db.insert(space).values([{}]);
