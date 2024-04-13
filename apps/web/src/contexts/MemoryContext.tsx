@@ -22,7 +22,7 @@ export const MemoryContext = React.createContext<{
     spaces?: number[],
   ) => Promise<void>;
   cachedMemories: ChachedSpaceContent[];
-	search: (query: string) => Promise<SearchResult[]>;
+	search: typeof searchMemoriesAndSpaces;
 }>({
   spaces: [],
   freeMemories: [],
@@ -57,15 +57,7 @@ export const MemoryProvider: React.FC<
 	const deleteSpace = async (id: number) => {
 		setSpaces((prev) => prev.filter((s) => s.id !== id));
 	}
-
-	const search = async (query: string) => {
-		if (!user.id) {
-			throw new Error('user id is not define')
-		}
-		const data = await searchMemoriesAndSpaces(query)
-		return data as SearchResult[]
-	}
-
+	
   // const fetchMemories = useCallback(async (query: string) => {
   //   const response = await fetch(`/api/memories?${query}`);
   // }, []);
@@ -80,7 +72,7 @@ export const MemoryProvider: React.FC<
   return (
     <MemoryContext.Provider
       value={{
-				search,
+				search: searchMemoriesAndSpaces,
         spaces,
         addSpace,
         deleteSpace,

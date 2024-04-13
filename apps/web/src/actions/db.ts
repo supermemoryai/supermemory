@@ -15,7 +15,7 @@ import { like, eq, and, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/sqlite-core"
 
 // @todo: (future) pagination not yet needed
-export async function searchMemoriesAndSpaces(query: string): Promise<SearchResult[]> {
+export async function searchMemoriesAndSpaces(query: string, opts?: { filter?: { memories?: boolean, spaces?: boolean }, range?: { offset: number, limit: number } }): Promise<SearchResult[]> {
 
 	const user = await getUser()
 
@@ -31,7 +31,7 @@ export async function searchMemoriesAndSpaces(query: string): Promise<SearchResu
 		}).from(storedContent).where(and(
 			eq(storedContent.user, user.id),
 			like(storedContent.title, `%${query}%`)
-		)).all()
+		));
 
 		const searchSpacesQuery = db.select({
 			type: sql<string>`'space'`,
@@ -42,9 +42,20 @@ export async function searchMemoriesAndSpaces(query: string): Promise<SearchResu
 				eq(space.user, user.id),
 				like(space.name, `%${query}%`)
 			)
-		).all()
+		);
+	
+		let queries = [];
 
-		const data = await Promise.all([searchSpacesQuery, searchMemoriesQuery])
+		[undefined, true].includes(opts?.filter?.memories) && queries.push(searchMemoriesQuery);
+		[undefined, true].includes(opts?.filter?.spaces) && queries.push(searchSpacesQuery);
+
+		if (opts?.range) {
+			queries = queries.map(q => q.offset(opts.range!.offset).limit(opts.range!.limit))
+		} else {
+			queries = queries.map(q => q.all())
+		}
+
+		const data = await Promise.all(queries)
 		
 		return data.reduce((acc, i) => [...acc, ...i]) as SearchResult[]
 	} catch {

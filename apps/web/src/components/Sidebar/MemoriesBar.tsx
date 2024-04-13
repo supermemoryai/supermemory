@@ -60,7 +60,7 @@ export function MemoriesBar() {
   const [expandedSpace, setExpandedSpace] = useState<number | null>(null);
 	const [searchQuery, setSearcyQuery] = useState("");
 	const [searchLoading, setSearchLoading] = useState(false)
-	const query = useDebounce(searchQuery, 1000)
+	const query = useDebounce(searchQuery, 500)
 
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([])
 
@@ -148,7 +148,7 @@ export function MemoriesBar() {
         ref={parent}
         className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
       >
-				{searchQuery.trim().length > 0 ? (
+				{query.trim().length > 0 ? (
 					<>
 						{searchResults.map(({ type, space, memory }, i) => (
 							<>
