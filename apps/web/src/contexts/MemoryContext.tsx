@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback } from "react";
 import { CollectedSpaces } from "../../types/memory";
-import { StoredContent, storedContent, StoredSpace } from "@/server/db/schema";
+import { ChachedSpaceContent, StoredContent, storedContent, StoredSpace } from "@/server/db/schema";
 import { addMemory, searchMemoriesAndSpaces } from "@/actions/db";
 import { User } from "next-auth";
 
@@ -21,7 +21,7 @@ export const MemoryContext = React.createContext<{
     memory: typeof storedContent.$inferInsert,
     spaces?: number[],
   ) => Promise<void>;
-  cachedMemories: StoredContent[];
+  cachedMemories: ChachedSpaceContent[];
 	search: (query: string) => Promise<SearchResult[]>;
 }>({
   spaces: [],
@@ -37,7 +37,7 @@ export const MemoryProvider: React.FC<
   {
     spaces: StoredSpace[];
     freeMemories: StoredContent[];
-		cachedMemories: StoredContent[];
+		cachedMemories: ChachedSpaceContent[];
 		user: User;
   } & React.PropsWithChildren
 > = ({ children, user, spaces: initalSpaces, freeMemories: initialFreeMemories, cachedMemories: initialCachedMemories }) => {
@@ -46,7 +46,7 @@ export const MemoryProvider: React.FC<
   const [freeMemories, setFreeMemories] =
     React.useState<StoredContent[]>(initialFreeMemories);
 
-  const [cachedMemories, setCachedMemories] = React.useState<StoredContent[]>(
+  const [cachedMemories, setCachedMemories] = React.useState<ChachedSpaceContent[]>(
     initialCachedMemories
   );
 

@@ -134,3 +134,6 @@ export const space = createTable(
 
 export type StoredContent = Omit<typeof storedContent.$inferSelect, "user">;
 export type StoredSpace = typeof space.$inferSelect;
+export type ChachedSpaceContent = StoredContent & {
+	space: number;
+}

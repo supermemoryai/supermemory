@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Variant, useAnimate, motion } from "framer-motion";
 import { useMemory } from "@/contexts/MemoryContext";
 import { SpaceIcon } from "@/assets/Memories";
@@ -42,11 +42,12 @@ import useTouchHold from "@/hooks/useTouchHold";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { AddMemoryPage, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
 import { ExpandedSpace } from "./ExpandedSpace";
-import { StoredSpace } from "@/server/db/schema";
+import { StoredContent, StoredSpace } from "@/server/db/schema";
+import Image from "next/image"
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
-  const { spaces, deleteSpace } = useMemory();
+  const { spaces, deleteSpace, freeMemories } = useMemory();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [addMemoryState, setAddMemoryState] = useState<
@@ -124,12 +125,15 @@ export function MemoriesBar() {
       >
         {spaces.map((space) => (
           <SpaceItem
-            onDelete={() => deleteSpace(space.id)}
+            onDelete={() => {}}
             key={space.id}
-            onClick={() => setExpandedSpace(space.id)}
+            //onClick={() => setExpandedSpace(space.id)}
             {...space}
           />
         ))}
+				{freeMemories.map(m => (
+					<MemoryItem {...m} key={m.id} />
+				))}
       </div>
     </div>
   );
@@ -145,12 +149,40 @@ const SpaceExitVariant: Variant = {
   },
 };
 
+export function MemoryItem({
+	id,
+	title,
+	image
+}: StoredContent) {
+	return (
+		<div
+
+      className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
+		>
+			<button data-space-text className="focus-visible:outline-none">
+        {title}
+      </button>
+			
+			<div className="w-24 h-24 flex justify-center items-center">
+				<img
+					className="h-16 w-16"
+					id={id.toString()}
+					src={image!}
+				/>
+			</div>
+		</div>
+	)
+}
+
 export function SpaceItem({
   name,
   id,
   onDelete,
   onClick,
 }: StoredSpace & { onDelete: () => void; onClick?: () => void }) {
+
+	const { cachedMemories } = useMemory();
+
   const [itemRef, animateItem] = useAnimate();
   const { width } = useViewport();
 
@@ -161,6 +193,10 @@ export function SpaceItem({
       setMoreDropdownOpen(true);
     },
   });
+
+	const spaceMemories = useMemo(() => {
+		return cachedMemories.filter(m => m.space === id)
+	}, [cachedMemories])
 
   return (
     <motion.div
@@ -176,104 +212,106 @@ export function SpaceItem({
         isOpen={moreDropdownOpen}
         setIsOpen={setMoreDropdownOpen}
         onDelete={() => {
+					onDelete()
+					return;
           if (!itemRef.current || width < 768) {
             onDelete();
             return;
           }
-          const trash = document.querySelector("#trash")! as HTMLDivElement;
-          const trashBin = document.querySelector("#trash-button")!;
-          const trashRect = trashBin.getBoundingClientRect();
-          const scopeRect = itemRef.current.getBoundingClientRect();
-          const el = document.createElement("div");
-          el.style.position = "fixed";
-          el.style.top = "0";
-          el.style.left = "0";
-          el.style.width = "15px";
-          el.style.height = "15px";
-          el.style.backgroundColor = "var(--gray-7)";
-          el.style.zIndex = "60";
-          el.style.borderRadius = "50%";
-          el.style.transform = "scale(5)";
-          el.style.opacity = "0";
-          trash.dataset["open"] = "true";
-          const initial = {
-            x: scopeRect.left + scopeRect.width / 2,
-            y: scopeRect.top + scopeRect.height / 2,
-          };
-          const delta = {
-            x:
-              trashRect.left +
-              trashRect.width / 2 -
-              scopeRect.left +
-              scopeRect.width / 2,
-            y:
-              trashRect.top +
-              trashRect.height / 4 -
-              scopeRect.top +
-              scopeRect.height / 2,
-          };
-          const end = {
-            x: trashRect.left + trashRect.width / 2,
-            y: trashRect.top + trashRect.height / 4,
-          };
-          el.style.offsetPath = `path('M ${initial.x} ${initial.y} Q ${delta.x * 0.01} ${delta.y * 0.01} ${end.x} ${end.y}`;
-          animateItem(itemRef.current, SpaceExitVariant, {
-            duration: 0.2,
-          }).then(() => {
-            itemRef.current.style.scale = "0";
-            onDelete();
-          });
-          document.body.appendChild(el);
-          el.animate(
-            {
-              transform: ["scale(5)", "scale(1)"],
-              opacity: [0, 0.3, 1],
-            },
-            {
-              duration: 200,
-              easing: "cubic-bezier(0.64, 0.57, 0.67, 1.53)",
-              fill: "forwards",
-            },
-          );
-          el.animate(
-            {
-              offsetDistance: ["0%", "100%"],
-            },
-            {
-              duration: 2000,
-              easing: "cubic-bezier(0.64, 0.57, 0.67, 1.53)",
-              fill: "forwards",
-              delay: 200,
-            },
-          ).onfinish = () => {
-            el.animate(
-              { transform: "scale(0)", opacity: 0 },
-              { duration: 200, fill: "forwards" },
-            ).onfinish = () => {
-              el.remove();
-            };
-          };
+      //  const trash = document.querySelector("#trash")! as HTMLDivElement;
+      //  const trashBin = document.querySelector("#trash-button")!;
+      //  const trashRect = trashBin.getBoundingClientRect();
+      //  const scopeRect = itemRef.current.getBoundingClientRect();
+      //  const el = document.createElement("div");
+      //  el.style.position = "fixed";
+      //  el.style.top = "0";
+      //  el.style.left = "0";
+      //  el.style.width = "15px";
+      //  el.style.height = "15px";
+      //  el.style.backgroundColor = "var(--gray-7)";
+      //  el.style.zIndex = "60";
+      //  el.style.borderRadius = "50%";
+      //  el.style.transform = "scale(5)";
+      //  el.style.opacity = "0";
+      //  trash.dataset["open"] = "true";
+      //  const initial = {
+      //    x: scopeRect.left + scopeRect.width / 2,
+      //    y: scopeRect.top + scopeRect.height / 2,
+      //  };
+      //  const delta = {
+      //    x:
+      //      trashRect.left +
+      //      trashRect.width / 2 -
+      //      scopeRect.left +
+      //      scopeRect.width / 2,
+      //    y:
+      //      trashRect.top +
+      //      trashRect.height / 4 -
+      //      scopeRect.top +
+      //      scopeRect.height / 2,
+      //  };
+      //  const end = {
+      //    x: trashRect.left + trashRect.width / 2,
+      //    y: trashRect.top + trashRect.height / 4,
+      //  };
+      //  el.style.offsetPath = `path('M ${initial.x} ${initial.y} Q ${delta.x * 0.01} ${delta.y * 0.01} ${end.x} ${end.y}`;
+      //  animateItem(itemRef.current, SpaceExitVariant, {
+      //    duration: 0.2,
+      //  }).then(() => {
+      //    itemRef.current.style.scale = "0";
+      //    onDelete();
+      //  });
+      //  document.body.appendChild(el);
+      //  el.animate(
+      //    {
+      //      transform: ["scale(5)", "scale(1)"],
+      //      opacity: [0, 0.3, 1],
+      //    },
+      //    {
+      //      duration: 200,
+      //      easing: "cubic-bezier(0.64, 0.57, 0.67, 1.53)",
+      //      fill: "forwards",
+      //    },
+      //  );
+      //  el.animate(
+      //    {
+      //      offsetDistance: ["0%", "100%"],
+      //    },
+      //    {
+      //      duration: 2000,
+      //      easing: "cubic-bezier(0.64, 0.57, 0.67, 1.53)",
+      //      fill: "forwards",
+      //      delay: 200,
+      //    },
+      //  ).onfinish = () => {
+      //    el.animate(
+      //      { transform: "scale(0)", opacity: 0 },
+      //      { duration: 200, fill: "forwards" },
+      //    ).onfinish = () => {
+      //      el.remove();
+      //    };
+      //  };
         }}
       />
-      {/* {content.length > 2 ? (
+      {spaceMemories.length > 2 ? (
         <MemoryWithImages3
           className="h-24 w-24"
           id={id.toString()}
-          images={content.map((c) => c.image).reverse() as string[]}
+          images={spaceMemories.map((c) => c.image).reverse() as string[]}
         />
-      ) : content.length === 1 ? (
+      ) : spaceMemories.length === 1 ? (
         <MemoryWithImage
           className="h-24 w-24"
           id={id.toString()}
-          image={content[0].image!}
+          image={spaceMemories[0].image!}
         />
       ) : (
         <MemoryWithImages2
           className="h-24 w-24"
           id={id.toString()}
-          images={content.map((c) => c.image).reverse() as string[]}
+          images={spaceMemories.map((c) => c.image).reverse() as string[]}
         />
-      )} */}
+      )}
     </motion.div>
   );
 }
@@ -288,7 +326,7 @@ export function SpaceMoreButton({
   setIsOpen?: (open: boolean) => void;
 }) {
   return (
-    <>
+    <Dialog>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -310,16 +348,36 @@ export function SpaceMoreButton({
             <Edit3 className="mr-2 h-4 w-4" strokeWidth={1.5} />
             Edit
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={onDelete}
-            className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10"
-          >
-            <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Move to Trash
-          </DropdownMenuItem>
+					<DialogTrigger asChild>
+						<DropdownMenuItem
+							onClick={onDelete}
+							className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10"
+						>
+							<Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
+							Move to Trash
+						</DropdownMenuItem>
+					</DialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
-    </>
+			<DialogContent>
+				<DialogTitle className='text-xl'>Are you sure?</DialogTitle>
+				<DialogDescription className='text-md'>You will not be able to recover this space</DialogDescription>
+				<DialogFooter>
+					<DialogClose 
+						type={undefined}
+						onClick={onDelete}
+						className="bg-red-500/40 focus-visible:bg-red-500/60 focus-visible:ring-red-500 hover:bg-red-500/60 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2"
+					>
+						Delete
+					</DialogClose>
+					<DialogClose
+						className="focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 hover:bg-rgray-4 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2"
+					>
+						Cancel
+					</DialogClose>
+				</DialogFooter>
+			</DialogContent>
+    </Dialog>
   );
 }
 

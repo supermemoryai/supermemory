@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import {
+    ChachedSpaceContent,
   contentToSpace,
   sessions,
   space,
@@ -18,6 +19,7 @@ import {
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
 import { searchMemoriesAndSpaces } from "@/actions/db";
+import { getMetaData } from "@/server/helpers";
 
 export const runtime = "edge";
 
@@ -62,18 +64,20 @@ export default async function Home() {
 	console.log(collectedSpaces)
 
   // Fetch only first 3 content of each spaces
-  let contents: (typeof storedContent.$inferSelect)[] = [];
+  let contents: ChachedSpaceContent[] = [];
 
 	//console.log(await db.select().from(storedContent).)
-
+	
   await Promise.all([
     collectedSpaces.forEach(async (space) => {
 			console.log("fetching ")
-			const data = await fetchContentForSpace(space.id, {
+			const data = (await fetchContentForSpace(space.id, {
 				offset: 0,
 				limit: 3,
-			})
-			console.log(data)
+			})).map(data => ({
+				...data,
+				space: space.id
+			}))
       contents = [
         ...contents,
         ...data,
@@ -85,6 +89,7 @@ export default async function Home() {
 
   // freeMemories
   const freeMemories = await fetchFreeMemories(userData.id);
+	console.log('free',freeMemories)
 
   return (
     <MemoryProvider
