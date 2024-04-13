@@ -13,6 +13,7 @@ import {
   fetchContentForSpace,
   deleteSpace,
   deleteMemory,
+  fetchFreeMemories,
 } from "@/actions/db";
 import { User } from "next-auth";
 
@@ -71,6 +72,8 @@ export const MemoryProvider: React.FC<
     setSpaces((prev) => prev.filter((i) => i.id !== deleted.id));
     setCachedMemories((prev) => prev.filter((i) => i.space !== deleted.id));
 
+    setFreeMemories(await fetchFreeMemories());
+
     return deleted;
   };
 
@@ -78,7 +81,7 @@ export const MemoryProvider: React.FC<
     const deleted = (await deleteMemory(...params))!;
 
     setCachedMemories((prev) => prev.filter((i) => i.id !== deleted.id));
-    setFreeMemories((prev) => prev.filter((i) => i.id !== deleted.id));
+    setFreeMemories(await fetchFreeMemories());
 
     return deleted;
   };
@@ -99,6 +102,8 @@ export const MemoryProvider: React.FC<
     ).map((m) => ({ ...m, space: addedSpace.id }));
 
     setCachedMemories((prev) => [...prev, ...cachedMemories]);
+
+    setFreeMemories(await fetchFreeMemories());
 
     return {
       space: addedSpace,

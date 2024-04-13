@@ -419,10 +419,7 @@ export function SpaceMoreButton({
             Edit
           </DropdownMenuItem>
           <DialogTrigger asChild>
-            <DropdownMenuItem
-              onClick={onDelete}
-              className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10"
-            >
+            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
               <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Delete
             </DropdownMenuItem>
