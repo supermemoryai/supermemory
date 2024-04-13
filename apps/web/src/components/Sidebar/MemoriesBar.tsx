@@ -215,6 +215,9 @@ export function MemoryItem({
 						className="h-16 w-16"
 						id={id.toString()}
 						src={image!}
+						onError={(e) => {
+							(e.target as HTMLImageElement).src = "/icons/white_without_bg.png"
+						}}
 					/>
 				): type === "note" ? (
 					<div className="shadow-md rounded-md bg-rgray-4 p-2 flex justify-center items-center">
@@ -414,7 +417,7 @@ export function SpaceMoreButton({
 							className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10"
 						>
 							<Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
-							Move to Trash
+							Delete
 						</DropdownMenuItem>
 					</DialogTrigger>
         </DropdownMenuContent>
@@ -479,7 +482,7 @@ export function AddMemoryModal({
         className="w-max max-w-[auto]"
       >
         {type === "page" ? (
-          <AddMemoryPage />
+          <AddMemoryPage closeDialog={() => setIsDialogOpen(false)} />
         ) : type === "note" ? (
           <NoteAddPage closeDialog={() => setIsDialogOpen(false)} />
         ) : type === "space" ? (
