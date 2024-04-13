@@ -5,6 +5,7 @@ interface Env {
 	OPENAI_API_KEY: string;
 	GOOGLE_AI_API_KEY: string;
 	MY_QUEUE: Queue<TweetData>;
+	KV: KVNamespace;
 }
 
 interface TweetData {

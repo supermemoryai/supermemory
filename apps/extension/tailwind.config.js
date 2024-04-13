@@ -35,9 +35,7 @@ export default {
       },
     },
   },
-  plugins: [
-		tailwindcssAnimate,
-	],
+  plugins: [tailwindcssAnimate],
   corePlugins: {
     preflight: false,
   },

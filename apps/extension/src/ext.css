@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 .anycontext-combobox-button {
-	padding: 0.5rem 1rem;
-	display: flex;
-	flex-direction: row;
-	justify-items: center;
-	align-items: center;
-	gap: 0.5rem;
-	@apply anycontext-rounded-md dark:anycontext-bg-white/5 anycontext-bg-black/5;
+  padding: 0.5rem 1rem;
+  display: flex;
+  flex-direction: row;
+  justify-items: center;
+  align-items: center;
+  gap: 0.5rem;
+  @apply anycontext-rounded-md dark:anycontext-bg-white/5 anycontext-bg-black/5;
 }
 
 .anycontext-overlay {
