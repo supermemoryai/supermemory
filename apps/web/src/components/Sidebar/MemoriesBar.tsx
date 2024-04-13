@@ -194,7 +194,8 @@ const SpaceExitVariant: Variant = {
 export function MemoryItem({
 	id,
 	title,
-	image
+	image,
+	type
 }: StoredContent) {
 
 	const name = title ? title.length > 10 ? title.slice(0, 10) + "..." : title : '<no title>';
@@ -209,11 +210,19 @@ export function MemoryItem({
       </button>
 			
 			<div className="w-24 h-24 flex justify-center items-center">
-				<img
-					className="h-16 w-16"
-					id={id.toString()}
-					src={image!}
-				/>
+				{type === "page" ? (
+					<img
+						className="h-16 w-16"
+						id={id.toString()}
+						src={image!}
+					/>
+				): type === "note" ? (
+					<div className="shadow-md rounded-md bg-rgray-4 p-2 flex justify-center items-center">
+						<Text className="w-10 h-10" />
+					</div>
+				) : (
+					<></>
+				)}
 			</div>
 		</div>
 	)

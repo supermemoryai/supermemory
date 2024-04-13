@@ -77,6 +77,9 @@ export function AddMemoryPage() {
 }
 
 export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
+	
+	const { addMemory } = useMemory()
+
   const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -116,6 +119,7 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
         placeholder="Title of the note"
         data-modal-autofocus
         value={name}
+				disabled={loading}
         onChange={(e) => setName(e.target.value)}
       />
       <Editor
@@ -138,16 +142,39 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
         <button
           onClick={() => {
             if (check()) {
-              closeDialog();
+							setLoading(true)
+							addMemory({
+								content,
+								title: name,
+								type: "note",
+								url: "https://notes.supermemory.dhr.wtf/",
+								image: '',
+								savedAt: new Date()
+							}, selectedSpacesId).then(closeDialog)
             }
           }}
-          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
+					disabled={loading}
+          className="relative disabled:opacity-70 disabled:cursor-not-allowed bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
         >
-          Add
+					
+					<motion.div 
+						initial={{ x: '-50%', y: '-100%' }}
+						animate={loading && { y: '-50%', x: '-50%', opacity: 1 }}
+						className="opacity-0 absolute top-1/2 left-1/2 translate-y-[-100%] -translate-x-1/2"
+					>
+						<Loader className="w-5 h-5 animate-spin text-rgray-11" />
+					</motion.div>
+					<motion.div
+						initial={{ y: '0%' }}
+						animate={loading && { opacity: 0, y: '30%' }}
+					>
+						Add
+					</motion.div>
         </button>
         <DialogClose
           type={undefined}
-          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
+					disabled={loading}
+          className="disabled:opacity-70 disabled:cursor-not-allowed hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
         >
           Cancel
         </DialogClose>

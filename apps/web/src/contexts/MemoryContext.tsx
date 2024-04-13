@@ -16,16 +16,13 @@ export const MemoryContext = React.createContext<{
   deleteSpace: (id: number) => Promise<void>;
   freeMemories: StoredContent[];
   addSpace: typeof addSpace;
-  addMemory: (
-    memory: typeof storedContent.$inferInsert,
-    spaces?: number[],
-  ) => Promise<void>;
+  addMemory: typeof addMemory;
   cachedMemories: ChachedSpaceContent[];
 	search: typeof searchMemoriesAndSpaces;
 }>({
   spaces: [],
   freeMemories: [],
-  addMemory: async () => {},
+  addMemory: (() => {}) as unknown as (typeof addMemory),
   addSpace: (async () => {}) as unknown as (typeof addSpace),
   deleteSpace: async () => {},
   cachedMemories: [],
@@ -57,12 +54,6 @@ export const MemoryProvider: React.FC<
   //   const response = await fetch(`/api/memories?${query}`);
   // }, []);
 
-  const _addMemory =  async (
-		memory: typeof storedContent.$inferInsert,
-		spaces: number[] = [],
-	) => {
-		const content = await addMemory(memory, spaces);
-	}
 	
 	const _addSpace: typeof addSpace = async (...params) => {
 		const { space: addedSpace, addedMemories } = (await addSpace(...params))!;
@@ -77,6 +68,23 @@ export const MemoryProvider: React.FC<
 
 		return {
 			space: addedSpace, addedMemories
+		}
+	}
+
+	const _addMemory: typeof addMemory = async (...params) => {
+		const { memory: addedMemory, addedToSpaces } = (await addMemory(...params))!;
+
+		addedToSpaces.length > 0 ? setCachedMemories(prev => [
+			...prev,
+			...addedToSpaces.map(s => ({
+				...addedMemory,
+				space: s.spaceId
+			}))
+		]) : setFreeMemories(prev => [...prev, addedMemory])
+
+		return {
+			memory: addedMemory,
+			addedToSpaces
 		}
 	}
 

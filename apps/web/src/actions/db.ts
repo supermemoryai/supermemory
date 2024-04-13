@@ -115,28 +115,6 @@ export async function getMemory(title: string) {
     );
 }
 
-export async function addMemory(
-  content: typeof storedContent.$inferInsert,
-  spaces: number[],
-) {
-  
-  const user = await getUser();
-
-  if (!user) {
-    return null
-  }
-  content.user = user.id;
-
-  const _content = (
-    await db.insert(storedContent).values(content).returning()
-  )[0];
-  await Promise.all(
-    spaces.map((spaceId) =>
-      db.insert(contentToSpace).values({ contentId: _content.id, spaceId }),
-    ),
-  );
-  return _content;
-}
 
 export async function addSpace(name: string, memories: number[]) {
 
@@ -213,5 +191,34 @@ export async function fetchFreeMemories(
     ).orderBy(asc(storedContent.title))
 
 	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+
+}
+
+export async function addMemory(content: typeof storedContent.$inferInsert, spaces: number[]) {
+
+	const user = await getUser()
+
+	if (!user) {
+		return null
+	}
+
+	const [addedMemory] = await db.insert(storedContent)
+		.values({
+			user: user.id,
+			...content
+		})
+		.returning();
+
+	const addedToSpaces = spaces.length > 0 ? await db.insert(contentToSpace)
+		.values(spaces.map(s => ({
+			contentId: addedMemory.id,
+			spaceId: s,
+		})))
+		.returning() : [];
+
+	return {
+		memory: addedMemory,
+		addedToSpaces
+	}
 
 }
