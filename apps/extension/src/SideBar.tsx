@@ -65,6 +65,14 @@ function SideBar({ jwt }: { jwt: string }) {
     saveToUser: string;
   }
 
+  function sendBookmarkedTweetsToAPI(tweets: TweetData[], token: string) {
+    chrome.runtime.sendMessage({
+      type: "sendBookmarkedTweets",
+      jwt: token,
+      tweets,
+    });
+  }
+
   const fetchBookmarks = () => {
     const tweets: TweetData[] = []; // Initialize an empty array to hold all tweet elements
 
@@ -161,11 +169,9 @@ function SideBar({ jwt }: { jwt: string }) {
     observer.observe(document.body, { childList: true, subtree: true });
 
     function downloadTweetsAsJson(tweetsArray: TweetData[]) {
+      setLog([...log, "Saving the tweets to our database..."]);
+      sendBookmarkedTweetsToAPI(tweetsArray, jwt);
       setIsImportingTweets(false);
-      const jsonData = JSON.stringify(tweetsArray); // Convert the array to JSON
-
-      // TODO: send jsonData to the API
-      console.log(jsonData);
     }
   };
 

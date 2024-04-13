@@ -5,6 +5,15 @@ const backendUrl =
     ? "http://localhost:3000"
     : "https://supermemory.dhr.wtf";
 
+interface TweetData {
+  tweetText: string;
+  postUrl: string;
+  authorName: string;
+  handle: string;
+  time: string;
+  saveToUser: string;
+}
+
 // TODO: Implement getting bookmarks from Twitter API directly
 // let authorizationHeader: string | null = null;
 // let csrfToken: string | null = null;
@@ -105,4 +114,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   //     cookies: cookies
   //   });
   // }
+  else if (request.type === "sendBookmarkedTweets") {
+    const jwt = request.jwt;
+    const tweets = request.tweets as TweetData[];
+
+    (async () => {
+      await fetch(`${backendUrl}/api/vectorizeTweets`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify(tweets),
+      }).then(async (response) => {
+        return response.json();
+      });
+    })();
+
+    return true;
+  }
 });
