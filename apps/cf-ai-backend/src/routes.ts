@@ -4,6 +4,7 @@ import * as apiQuery from './routes/query';
 import * as apiAsk from './routes/ask';
 import * as apiChat from './routes/chat';
 import * as apiBatchUploadTweets from './routes/batchUploadTweets';
+import * as apiGetPageContent from './routes/getPageContent';
 import { OpenAIEmbeddings } from './OpenAIEmbedder';
 import { GenerativeModel } from '@google/generative-ai';
 import { Request } from '@cloudflare/workers-types';
@@ -28,6 +29,7 @@ routeMap.set('/ask', apiAsk);
 routeMap.set('/chat', apiChat);
 
 routeMap.set('/batchUploadTweets', apiBatchUploadTweets);
+routeMap.set('/getPageContent', apiGetPageContent);
 
 // Add more route mappings as needed
 // routeMap.set('/api/otherRoute', { ... });

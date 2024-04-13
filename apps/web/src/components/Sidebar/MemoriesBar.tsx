@@ -210,7 +210,15 @@ export function MemoryItem({ id, title, image, type }: StoredContent) {
 
       <div className="flex h-24 w-24 items-center justify-center">
         {type === "page" ? (
-          <img className="h-16 w-16" id={id.toString()} src={image!} />
+          <img
+            className="h-16 w-16"
+            id={id.toString()}
+            src={image!}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "/icons/white_without_bg.png";
+            }}
+          />
         ) : type === "note" ? (
           <div className="bg-rgray-4 flex items-center justify-center rounded-md p-2 shadow-md">
             <Text className="h-10 w-10" />
@@ -406,7 +414,7 @@ export function SpaceMoreButton({
               className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10"
             >
               <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
-              Move to Trash
+              Delete
             </DropdownMenuItem>
           </DialogTrigger>
         </DropdownMenuContent>
@@ -471,7 +479,7 @@ export function AddMemoryModal({
         className="w-max max-w-[auto]"
       >
         {type === "page" ? (
-          <AddMemoryPage />
+          <AddMemoryPage closeDialog={() => setIsDialogOpen(false)} />
         ) : type === "note" ? (
           <NoteAddPage closeDialog={() => setIsDialogOpen(false)} />
         ) : type === "space" ? (

@@ -6,6 +6,7 @@ interface Env {
 	GOOGLE_AI_API_KEY: string;
 	MY_QUEUE: Queue<TweetData[]>;
 	KV: KVNamespace;
+	MYBROWSER: BrowserWorker;
 }
 
 interface TweetData {

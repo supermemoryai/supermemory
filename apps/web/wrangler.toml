@@ -18,3 +18,6 @@ namespace_id = "1001"
 
 # 25 requests per 10 seconds
 simple = { limit = 25, period = 10 }
+
+[placement]
+mode = "smart"

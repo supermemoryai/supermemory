@@ -16,10 +16,12 @@ import { Loader, Plus, X } from "lucide-react";
 import { StoredContent } from "@/server/db/schema";
 import { cleanUrl } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { getMetaData } from "@/server/helpers";
 
-export function AddMemoryPage() {
+export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
   const { addMemory } = useMemory();
 
+  const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState("");
   const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
 
@@ -37,38 +39,59 @@ export function AddMemoryPage() {
         placeholder="Enter the URL of the page"
         type="url"
         data-modal-autofocus
-        className="bg-rgray-4 mt-2 w-full"
+        className="bg-rgray-4 mt-2 w-full disabled:cursor-not-allowed disabled:opacity-70"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
+        disabled={loading}
       />
       <DialogFooter>
         <FilterSpaces
           selectedSpaces={selectedSpacesId}
           setSelectedSpaces={setSelectedSpacesId}
-          className="hover:bg-rgray-5 mr-auto bg-white/5"
+          className="hover:bg-rgray-5 mr-auto bg-white/5 disabled:cursor-not-allowed disabled:opacity-70"
           name={"Spaces"}
+          disabled={loading}
         />
         <button
           type={"submit"}
+          disabled={loading}
           onClick={async () => {
-            // @Dhravya this is adding a memory with insufficient information fix pls
+            setLoading(true);
+            const metadata = await getMetaData(url);
             await addMemory(
               {
-                title: url,
+                title: metadata.title,
+                description: metadata.description,
                 content: "",
                 type: "page",
                 url: url,
-                image: "/icons/logo_without_bg.png",
+                image: metadata.image,
                 savedAt: new Date(),
               },
               selectedSpacesId,
             );
+            closeDialog();
           }}
-          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
+          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Add
+          <motion.div
+            initial={{ x: "-50%", y: "-100%" }}
+            animate={loading && { y: "-50%", x: "-50%", opacity: 1 }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[-100%] opacity-0"
+          >
+            <Loader className="text-rgray-11 h-5 w-5 animate-spin" />
+          </motion.div>
+          <motion.div
+            initial={{ y: "0%" }}
+            animate={loading && { opacity: 0, y: "30%" }}
+          >
+            Add
+          </motion.div>
         </button>
-        <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+        <DialogClose
+          disabled={loading}
+          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+        >
           Cancel
         </DialogClose>
       </DialogFooter>
