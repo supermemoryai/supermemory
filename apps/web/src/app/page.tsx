@@ -18,8 +18,6 @@ import {
 } from "../../types/memory";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
-import { searchMemoriesAndSpaces } from "@/actions/db";
-import { getMetaData } from "@/server/helpers";
 
 export const runtime = "edge";
 

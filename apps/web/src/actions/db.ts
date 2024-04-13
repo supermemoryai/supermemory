@@ -159,7 +159,7 @@ export async function fetchContentForSpace(
       exists(
         db.select().from(contentToSpace).where(and(eq(contentToSpace.spaceId, spaceId), eq(contentToSpace.contentId, storedContent.id))),
       ),
-    ).orderBy(asc(storedContent.title))
+    ).orderBy(asc(storedContent.savedAt))
 
 	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
 }
@@ -188,7 +188,7 @@ export async function fetchFreeMemories(
 				eq(storedContent.user, user.id),
 			)
       
-    ).orderBy(asc(storedContent.title))
+    ).orderBy(asc(storedContent.savedAt))
 
 	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
 
