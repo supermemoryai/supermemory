@@ -19,6 +19,8 @@ export async function getMetaData(url: string) {
 	let favicon = _favicon.trim().length > 0 ? _favicon.trim() : 'https://supermemory.dhr.wtf/web.svg'
 	if (favicon.startsWith("/")) {
 		favicon = baseUrl + favicon
+	} else if (favicon.startsWith("./")) {
+		favicon = baseUrl + favicon.slice(1)
 	}
 
   // Prepare the metadata object
