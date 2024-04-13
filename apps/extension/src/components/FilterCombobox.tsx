@@ -62,7 +62,7 @@ export function FilterSpaces({
     <div className="anycontext-flex anycontext-flex-wrap anycontext-gap-1 anycontext-text-sm anycontext-">
       {selectedSpaces.map((spaceid) => {
         const space = spaces.find((s) => s.id === spaceid)!;
-        return <SpaceItem {...space} key={spaceid} onRemove={() => {}} />;
+        return <SpaceItem {...space} key={spaceid} />;
       })}
     </div>
   );
@@ -143,7 +143,7 @@ export function FilterSpaces({
   );
 }
 
-function SpaceItem({ name, onRemove }: { onRemove: () => void } & Space) {
+function SpaceItem({ name }: Space) {
   return (
     <div className="anycontext-flex anycontext-justify-center anycontext-items-center anycontext-gap-2 anycontext-p-1 anycontext-pl-2 anycontext-pr-3 anycontext-rounded-full anycontext-bg-black/5 dark:anycontext-bg-white/5 anycontext-border-white/20 dark:anycontext-border-black/20 border">
       <button className="anycontext-flex hover:anycontext-bg-transparent anycontext-justify-center anycontext-scale-110 anycontext-items-center focus-visible:anycontext-outline-none anycontext-rounded-full anycontext-w-3 anycontext-bg-black/5 dark:anycontext-bg-white/5 anycontext-h-3 anycontext-text-transparent hover:anycontext-text-black dark:hover:anycontext-text-white">
