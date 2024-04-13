@@ -62,7 +62,7 @@ export const MemoryProvider: React.FC<
 		if (!user.id) {
 			throw new Error('user id is not define')
 		}
-		const data = await searchMemoriesAndSpaces(user.id, query)
+		const data = await searchMemoriesAndSpaces(query)
 		return data as SearchResult[]
 	}
 

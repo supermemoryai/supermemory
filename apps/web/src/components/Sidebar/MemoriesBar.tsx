@@ -10,6 +10,7 @@ import { Input, InputWithIcon } from "../ui/input";
 import {
   ArrowUpRight,
   Edit3,
+  Loader,
   MoreHorizontal,
   Plus,
   Search,
@@ -25,7 +26,7 @@ import {
 } from "../ui/dropdown-menu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Variant, useAnimate, motion } from "framer-motion";
-import { useMemory } from "@/contexts/MemoryContext";
+import { SearchResult, useMemory } from "@/contexts/MemoryContext";
 import { SpaceIcon } from "@/assets/Memories";
 import {
   Dialog,
@@ -44,10 +45,12 @@ import { AddMemoryPage, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
 import { ExpandedSpace } from "./ExpandedSpace";
 import { StoredContent, StoredSpace } from "@/server/db/schema";
 import Image from "next/image"
+import { useDebounce } from "@/hooks/useDebounce";
+import { searchMemoriesAndSpaces } from "@/actions/db";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
-  const { spaces, deleteSpace, freeMemories } = useMemory();
+  const { spaces, deleteSpace, freeMemories, search } = useMemory();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [addMemoryState, setAddMemoryState] = useState<
@@ -55,6 +58,11 @@ export function MemoriesBar() {
   >(null);
 
   const [expandedSpace, setExpandedSpace] = useState<number | null>(null);
+	const [searchQuery, setSearcyQuery] = useState("");
+	const [searchLoading, setSearchLoading] = useState(false)
+	const query = useDebounce(searchQuery, 1000)
+
+	const [searchResults, setSearchResults] = useState<SearchResult[]>([])
 
   if (expandedSpace) {
     return (
@@ -65,14 +73,31 @@ export function MemoriesBar() {
     );
   }
 
+	useEffect(() => {
+		const q = query.trim()
+		if (q.length < 1) {
+			setSearchResults([])
+			return
+		}
+
+		setSearchLoading(true);
+
+		(async () => {
+			setSearchResults(await search(q))
+			setSearchLoading(false)
+		})();
+	}, [query])
+
   return (
     <div className="text-rgray-11 flex w-full flex-col items-start py-8 text-left">
       <div className="w-full px-8">
         <h1 className="w-full text-2xl">Your Memories</h1>
         <InputWithIcon
           placeholder="Search"
-          icon={<Search className="text-rgray-11 h-5 w-5 opacity-50" />}
+          icon={searchLoading ? <Loader className="text-rgray-11 h-5 w-5 opacity-50 animate-spin" /> : <Search className="text-rgray-11 h-5 w-5 opacity-50" />}
           className="bg-rgray-4 mt-2 w-full"
+					value={searchQuery}
+					onChange={(e) => setSearcyQuery(e.target.value)}
         />
       </div>
       <div className="mt-2 flex w-full px-8">
@@ -123,17 +148,34 @@ export function MemoriesBar() {
         ref={parent}
         className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
       >
-        {spaces.map((space) => (
-          <SpaceItem
-            onDelete={() => {}}
-            key={space.id}
-            //onClick={() => setExpandedSpace(space.id)}
-            {...space}
-          />
-        ))}
-				{freeMemories.map(m => (
-					<MemoryItem {...m} key={m.id} />
-				))}
+				{searchQuery.trim().length > 0 ? (
+					<>
+						{searchResults.map(({ type, space, memory }, i) => (
+							<>
+								{type === "memory" && (
+									<MemoryItem {...memory!} key={i} />
+								)}
+								{type === "space" && (
+									<SpaceItem {...space!} key={i} onDelete={() => {}} />
+								)}
+							</>
+						))}
+					</>
+				): (
+					<>
+						{spaces.map((space) => (
+							<SpaceItem
+								onDelete={() => {}}
+								key={space.id}
+								//onClick={() => setExpandedSpace(space.id)}
+								{...space}
+							/>
+						))}
+						{freeMemories.map(m => (
+							<MemoryItem {...m} key={m.id} />
+						))}
+					</>
+				)}
       </div>
     </div>
   );
