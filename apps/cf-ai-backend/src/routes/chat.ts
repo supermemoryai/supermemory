@@ -139,7 +139,8 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	// );
 	// return response;
 	const ai = new Ai(env?.AI);
-	const output: AiTextGenerationOutput = (await ai.run('@hf/thebloke/mistral-7b-instruct-v0.1-awq', {
+	// @ts-ignore
+	const output: AiTextGenerationOutput = (await ai.run('@hf/mistralai/mistral-7b-instruct-v0.2', {
 		prompt,
 		stream: true,
 	})) as ReadableStream;
