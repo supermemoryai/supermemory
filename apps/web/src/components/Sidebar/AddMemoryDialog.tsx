@@ -324,12 +324,18 @@ export function MemorySelectedItem({
   id,
   title,
   url,
+  type,
   image,
   onRemove,
 }: StoredContent & { onRemove: () => void }) {
   return (
     <div className="hover:bg-rgray-4 focus-within-bg-rgray-4 flex w-full items-center justify-start gap-2 rounded-md p-1 px-2 text-sm [&:hover>[data-icon]]:block [&:hover>img]:hidden">
-      <img src={image ?? "/icons/logo_without_bg.png"} className="h-5 w-5" />
+      <img
+        src={
+          type === "note" ? "/note.svg" : image ?? "/icons/logo_without_bg.png"
+        }
+        className="h-5 w-5"
+      />
       <button
         onClick={onRemove}
         data-icon
@@ -338,7 +344,9 @@ export function MemorySelectedItem({
         <X className="h-5 w-5 scale-90" />
       </button>
       <span>{title}</span>
-      <span className="ml-auto block opacity-50">{cleanUrl(url)}</span>
+      <span className="ml-auto block opacity-50">
+        {type === "note" ? "Note" : cleanUrl(url)}
+      </span>
     </div>
   );
 }

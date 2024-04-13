@@ -41,7 +41,8 @@ export async function searchMemoriesAndSpaces(
           eq(storedContent.user, user.id),
           like(storedContent.title, `%${query}%`),
         ),
-      );
+      )
+      .orderBy(asc(storedContent.savedAt));
 
     const searchSpacesQuery = db
       .select({
@@ -50,9 +51,12 @@ export async function searchMemoriesAndSpaces(
         memory: sql`NULL`,
       })
       .from(space)
-      .where(and(eq(space.user, user.id), like(space.name, `%${query}%`)));
+      .where(and(eq(space.user, user.id), like(space.name, `%${query}%`)))
+      .orderBy(asc(space.name));
 
     let queries = [];
+
+    console.log("adding");
 
     [undefined, true].includes(opts?.filter?.memories) &&
       queries.push(searchMemoriesQuery);
@@ -68,6 +72,8 @@ export async function searchMemoriesAndSpaces(
     }
 
     const data = await Promise.all(queries);
+
+    console.log("resp", data);
 
     return data.reduce((acc, i) => [...acc, ...i]) as SearchResult[];
   } catch {
@@ -183,7 +189,7 @@ export async function fetchContentForSpace(
           ),
       ),
     )
-    .orderBy(asc(storedContent.title));
+    .orderBy(asc(storedContent.savedAt));
 
   return range
     ? await query.limit(range.limit).offset(range.offset)
@@ -214,7 +220,7 @@ export async function fetchFreeMemories(range?: {
         eq(storedContent.user, user.id),
       ),
     )
-    .orderBy(asc(storedContent.title));
+    .orderBy(asc(storedContent.savedAt));
 
   return range
     ? await query.limit(range.limit).offset(range.offset)
@@ -256,4 +262,38 @@ export async function addMemory(
     memory: addedMemory,
     addedToSpaces,
   };
+}
+
+export async function deleteSpace(id: number) {
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  await db.delete(contentToSpace).where(eq(contentToSpace.spaceId, id));
+
+  const [deleted] = await db
+    .delete(space)
+    .where(and(eq(space.user, user.id), eq(space.id, id)))
+    .returning();
+
+  return deleted;
+}
+
+export async function deleteMemory(id: number) {
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  await db.delete(contentToSpace).where(eq(contentToSpace.contentId, id));
+
+  const [deleted] = await db
+    .delete(storedContent)
+    .where(and(eq(storedContent.user, user.id), eq(storedContent.id, id)))
+    .returning();
+
+  return deleted;
 }

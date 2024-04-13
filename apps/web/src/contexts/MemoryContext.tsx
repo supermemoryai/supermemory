@@ -11,6 +11,8 @@ import {
   searchMemoriesAndSpaces,
   addSpace,
   fetchContentForSpace,
+  deleteSpace,
+  deleteMemory,
 } from "@/actions/db";
 import { User } from "next-auth";
 
@@ -23,20 +25,22 @@ export type SearchResult = {
 // temperory (will change)
 export const MemoryContext = React.createContext<{
   spaces: StoredSpace[];
-  deleteSpace: (id: number) => Promise<void>;
   freeMemories: StoredContent[];
   addSpace: typeof addSpace;
   addMemory: typeof addMemory;
   cachedMemories: ChachedSpaceContent[];
   search: typeof searchMemoriesAndSpaces;
+  deleteSpace: typeof deleteSpace;
+  deleteMemory: typeof deleteMemory;
 }>({
   spaces: [],
   freeMemories: [],
   addMemory: (() => {}) as unknown as typeof addMemory,
   addSpace: (async () => {}) as unknown as typeof addSpace,
-  deleteSpace: async () => {},
   cachedMemories: [],
   search: async () => [],
+  deleteMemory: (() => {}) as unknown as typeof deleteMemory,
+  deleteSpace: (() => {}) as unknown as typeof deleteSpace,
 });
 
 export const MemoryProvider: React.FC<
@@ -61,8 +65,22 @@ export const MemoryProvider: React.FC<
     ChachedSpaceContent[]
   >(initialCachedMemories);
 
-  const deleteSpace = async (id: number) => {
-    setSpaces((prev) => prev.filter((s) => s.id !== id));
+  const _deleteSpace: typeof deleteSpace = async (...params) => {
+    const deleted = (await deleteSpace(...params))!;
+
+    setSpaces((prev) => prev.filter((i) => i.id !== deleted.id));
+    setCachedMemories((prev) => prev.filter((i) => i.space !== deleted.id));
+
+    return deleted;
+  };
+
+  const _deleteMemory: typeof deleteMemory = async (...params) => {
+    const deleted = (await deleteMemory(...params))!;
+
+    setCachedMemories((prev) => prev.filter((i) => i.id !== deleted.id));
+    setFreeMemories((prev) => prev.filter((i) => i.id !== deleted.id));
+
+    return deleted;
   };
 
   // const fetchMemories = useCallback(async (query: string) => {
@@ -115,9 +133,10 @@ export const MemoryProvider: React.FC<
         search: searchMemoriesAndSpaces,
         spaces,
         addSpace: _addSpace,
-        deleteSpace,
+        deleteSpace: _deleteSpace,
         freeMemories,
         cachedMemories,
+        deleteMemory: _deleteMemory,
         addMemory: _addMemory,
       }}
     >

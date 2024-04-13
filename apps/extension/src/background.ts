@@ -52,12 +52,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const spaces = request.spaces(
       // eslint-disable-next-line no-unexpected-multiline
       async () => {
-        chrome.storage.local.get(["jwt"], async ({ jwt }) => {
+        chrome.storage.local.get(["jwt"], ({ jwt }) => {
           if (!jwt) {
             console.error("No JWT found");
             return;
           }
-          await fetch(`${backendUrl}/api/spaces`, {
+          fetch(`${backendUrl}/api/store`, {
+            method: "POST",
             headers: {
               Authorization: `Bearer ${jwt}`,
             },
@@ -67,29 +68,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       },
     )();
   } else if (request.type === "fetchSpaces") {
-    const run = () =>
-      chrome.storage.local.get(["jwt"], async ({ jwt }) => {
-        if (!jwt) {
-          console.error("No JWT found");
-          return;
-        }
-        const resp = await fetch(`${backendUrl}/api/spaces`, {
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
-        });
-
-        const data: {
-          message: "OK" | string;
-          data: Space[] | undefined;
-        } = await resp.json();
-
-        if (data.message === "OK" && data.data) {
-          sendResponse(data.data);
-        }
+    chrome.storage.local.get(["jwt"], async ({ jwt }) => {
+      if (!jwt) {
+        console.error("No JWT found");
+        return;
+      }
+      const resp = await fetch(`${backendUrl}/api/spaces`, {
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+        },
       });
 
-    run();
+      const data: {
+        message: "OK" | string;
+        data: Space[] | undefined;
+      } = await resp.json();
+
+      if (data.message === "OK" && data.data) {
+        sendResponse(data.data);
+      }
+    });
 
     return true;
   } else if (request.type === "queryApi") {

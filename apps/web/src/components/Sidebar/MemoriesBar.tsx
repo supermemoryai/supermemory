@@ -46,7 +46,6 @@ import { ExpandedSpace } from "./ExpandedSpace";
 import { StoredContent, StoredSpace } from "@/server/db/schema";
 import Image from "next/image";
 import { useDebounce } from "@/hooks/useDebounce";
-import { searchMemoriesAndSpaces } from "@/actions/db";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -169,7 +168,7 @@ export function MemoriesBar() {
           <>
             {spaces.map((space) => (
               <SpaceItem
-                onDelete={() => {}}
+                onDelete={() => deleteSpace(space.id)}
                 key={space.id}
                 //onClick={() => setExpandedSpace(space.id)}
                 {...space}
@@ -255,7 +254,6 @@ export function SpaceItem({
   }, [cachedMemories]);
 
   const _name = name.length > 10 ? name.slice(0, 10) + "..." : name;
-
   return (
     <motion.div
       ref={itemRef}
@@ -355,19 +353,31 @@ export function SpaceItem({
         <MemoryWithImages3
           className="h-24 w-24"
           id={id.toString()}
-          images={spaceMemories.map((c) => c.image).reverse() as string[]}
+          images={
+            spaceMemories
+              .map((c) => (c.type === "note" ? "/note.svg" : c.image))
+              .reverse() as string[]
+          }
         />
       ) : spaceMemories.length > 1 ? (
         <MemoryWithImages2
           className="h-24 w-24"
           id={id.toString()}
-          images={spaceMemories.map((c) => c.image).reverse() as string[]}
+          images={
+            spaceMemories
+              .map((c) => (c.type === "note" ? "/note.svg" : c.image))
+              .reverse() as string[]
+          }
         />
       ) : spaceMemories.length === 1 ? (
         <MemoryWithImage
           className="h-24 w-24"
           id={id.toString()}
-          image={spaceMemories[0].image!}
+          image={
+            spaceMemories[0].type === "note"
+              ? "/note.svg"
+              : spaceMemories[0].image!
+          }
         />
       ) : (
         <div className="bg-rgray-4 shadow- h-24 w-24 scale-50 rounded-full opacity-30"></div>

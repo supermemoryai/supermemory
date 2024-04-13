@@ -180,7 +180,6 @@ export function FilterMemories({
   const [isSearching, setIsSearching] = React.useState(false);
 
   const results = React.useMemo(() => {
-    console.log("use memo");
     return searchResults.map((r) => r.memory);
   }, [searchResults]);
 
@@ -266,7 +265,11 @@ export function FilterMemories({
                     >
                       <div className="text-rgray-11">
                         <img
-                          src={m.image ?? "/icons/logo_without_bg.png"}
+                          src={
+                            m.type === "note"
+                              ? "/note.svg"
+                              : m.image ?? "/icons/logo_without_bg.png"
+                          }
                           className="mr-2 h-4 w-4"
                         />
                         {m.title}
