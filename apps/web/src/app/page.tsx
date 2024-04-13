@@ -64,31 +64,27 @@ export default async function Home() {
   // Fetch only first 3 content of each spaces
   let contents: (typeof storedContent.$inferSelect)[] = [];
 
+	//console.log(await db.select().from(storedContent).)
+
   await Promise.all([
     collectedSpaces.forEach(async (space) => {
+			console.log("fetching ")
+			const data = await fetchContentForSpace(space.id, {
+				offset: 0,
+				limit: 3,
+			})
+			console.log(data)
       contents = [
         ...contents,
-        ...(await fetchContentForSpace(space.id, {
-          offset: 0,
-          limit: 3,
-        })),
+        ...data,
       ];
     }),
   ]);
 
+	console.log(contents)
+
   // freeMemories
   const freeMemories = await fetchFreeMemories(userData.id);
-
-  // @dhravya test these 3 functions
-  fetchFreeMemories;
-  fetchContentForSpace;
-  searchMemoriesAndSpaces;
-
-  collectedSpaces.push({
-    id: 1,
-    name: "Cool tech",
-    user: null,
-  });
 
   return (
     <MemoryProvider
