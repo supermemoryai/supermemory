@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   contentToSpace,
   sessions,
@@ -67,20 +67,18 @@ export async function POST(req: NextRequest) {
   const data = (await req.json()) as {
     pageContent: string;
     url: string;
-    space?: string;
+    spaces?: string[];
   };
 
   const metadata = await getMetaData(data.url);
 
-  let id: number | undefined = undefined;
+  let storeToSpaces = data.spaces;
 
-  let storeToSpace = data.space;
-
-  if (!storeToSpace) {
-    storeToSpace = "none";
+  if (!storeToSpaces) {
+    storeToSpaces = [];
   }
 
-  const storedContentId = await db.insert(storedContent).values({
+  const { id } = (await db.insert(storedContent).values({
     content: data.pageContent,
     title: metadata.title,
     description: metadata.description,
@@ -89,9 +87,7 @@ export async function POST(req: NextRequest) {
     image: metadata.image,
     savedAt: new Date(),
     user: session.user.id,
-  });
-
-  id = storedContentId.meta.last_row_id;
+  }).returning({ id: storedContent.id }))[0];
 
   if (!id) {
     return NextResponse.json(
@@ -100,27 +96,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let spaceID = 0;
-
   const spaceData = await db
     .select()
     .from(space)
-    .where(and(eq(space.name, storeToSpace), eq(space.user, session.user.id)))
-    .limit(1);
-  spaceID = spaceData[0]?.id;
+    .where(and(inArray(space.name, storeToSpaces), eq(space.user, session.user.id)))
+		.all()
 
-  if (!spaceData || spaceData.length === 0) {
-    const spaceId = await db.insert(space).values({
-      name: storeToSpace,
-      user: session.user.id,
-    });
-    spaceID = spaceId.meta.last_row_id;
-  }
-
-  await db.insert(contentToSpace).values({
-    contentId: id as number,
-    spaceId: spaceID,
-  });
+	await Promise.all([spaceData.forEach(async space => {
+		await db.insert(contentToSpace).values({ contentId: id, spaceId: space.id })
+	})])
 
   const res = (await Promise.race([
     fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
