@@ -222,3 +222,43 @@ export async function addMemory(content: typeof storedContent.$inferInsert, spac
 	}
 
 }
+
+export async function deleteSpace(id: number) {
+
+	const user = await getUser()
+
+	if (!user) {
+		return null
+	}
+
+	const [deleted] = await db.delete(space)
+		.where(and(eq(space.user, user.id), eq(space.id, id)))
+		.returning();
+
+	await db.delete(contentToSpace)
+		.where(eq(contentToSpace.spaceId, id));
+
+	return deleted
+
+}
+
+
+export async function deleteMemory(id: number) {
+
+
+	const user = await getUser()
+
+	if (!user) {
+		return null
+	}
+
+	const [deleted] = await db.delete(storedContent)
+		.where(and(eq(storedContent.user, user.id), eq(storedContent.id, id)))
+		.returning();
+
+	await db.delete(contentToSpace)
+		.where(eq(contentToSpace.contentId, id));
+
+	return deleted
+
+}

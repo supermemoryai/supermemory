@@ -46,7 +46,6 @@ import { ExpandedSpace } from "./ExpandedSpace";
 import { StoredContent, StoredSpace } from "@/server/db/schema";
 import Image from "next/image"
 import { useDebounce } from "@/hooks/useDebounce";
-import { searchMemoriesAndSpaces } from "@/actions/db";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -165,7 +164,7 @@ export function MemoriesBar() {
 					<>
 						{spaces.map((space) => (
 							<SpaceItem
-								onDelete={() => {}}
+								onDelete={() => deleteSpace(space.id)}
 								key={space.id}
 								//onClick={() => setExpandedSpace(space.id)}
 								{...space}
@@ -256,7 +255,6 @@ export function SpaceItem({
 	}, [cachedMemories])
 
 	const _name = name.length > 10 ? name.slice(0, 10) + "..." : name
-
   return (
     <motion.div
       ref={itemRef}
