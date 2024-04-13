@@ -75,6 +75,8 @@ export const queue = async (batch: MessageBatch, env: Env): Promise<void> => {
 		},
 	);
 
+	console.log(token);
+
 	const res = await fetch('https://supermemory.dhr.wtf/api/addTweetsToDb', {
 		method: 'POST',
 		headers: {

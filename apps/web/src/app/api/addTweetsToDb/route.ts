@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   if (!token) {
     return new Response(
-      JSON.stringify({ message: "Invalid Key, session not found." }),
+      JSON.stringify({ message: "Invalid Key, TOKEN not found." }),
       { status: 404 },
     );
   }
