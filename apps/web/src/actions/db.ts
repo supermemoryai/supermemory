@@ -7,35 +7,40 @@ import {
   StoredContent,
   storedContent,
   users,
-	space
+  space,
 } from "@/server/db/schema";
 import { like, eq, and, sql } from "drizzle-orm";
-import { union } from "drizzle-orm/sqlite-core"
+import { union } from "drizzle-orm/sqlite-core";
 import { auth as authOptions } from "@/server/auth";
+import { FormEvent } from "react";
+import { revalidatePath } from "next/cache";
 
 // @todo: (future) pagination not yet needed
 export async function searchMemoriesAndSpaces(userId: string, query: string) {
-	const searchMemoriesQuery = db.select({
-		type: sql<string>`'memory'`,
-		space: sql`NULL`,
-		memory: storedContent as any
-	}).from(storedContent).where(and(
-		eq(storedContent.user, userId),
-		like(storedContent.title, `%${query}%`)
-	))
+  const searchMemoriesQuery = db
+    .select({
+      type: sql<string>`'memory'`,
+      space: sql`NULL`,
+      memory: storedContent as any,
+    })
+    .from(storedContent)
+    .where(
+      and(
+        eq(storedContent.user, userId),
+        like(storedContent.title, `%${query}%`),
+      ),
+    );
 
-	const searchSpacesQuery = db.select({
-		type: sql<string>`'space'`,
-		space: space as any,
-		memory: sql`NULL`,
-	}).from(space).where(
-		and(
-			eq(space.user, userId),
-			like(space.name, `%${query}%`)
-		)
-	)
+  const searchSpacesQuery = db
+    .select({
+      type: sql<string>`'space'`,
+      space: space as any,
+      memory: sql`NULL`,
+    })
+    .from(space)
+    .where(and(eq(space.user, userId), like(space.name, `%${query}%`)));
 
-	return await union(searchMemoriesQuery, searchSpacesQuery)
+  return await union(searchMemoriesQuery, searchSpacesQuery);
 }
 
 async function getUser() {
@@ -46,7 +51,7 @@ async function getUser() {
     headers().get("Authorization")?.replace("Bearer ", "");
 
   if (!token) {
-    return null
+    return null;
   }
 
   const session = await db
@@ -55,7 +60,7 @@ async function getUser() {
     .where(eq(sessions.sessionToken, token!));
 
   if (!session || session.length === 0) {
-    return null
+    return null;
   }
 
   const [userData] = await db
@@ -65,17 +70,17 @@ async function getUser() {
     .limit(1);
 
   if (!userData) {
-    return null
+    return null;
   }
 
-  return userData
+  return userData;
 }
 
 export async function getMemory(title: string) {
   const user = await getUser();
 
   if (!user) {
-    return null
+    return null;
   }
 
   return await db
@@ -93,11 +98,10 @@ export async function addMemory(
   content: typeof storedContent.$inferInsert,
   spaces: number[],
 ) {
-  
   const user = await getUser();
 
   if (!user) {
-    return null
+    return null;
   }
   content.user = user.id;
 

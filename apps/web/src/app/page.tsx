@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import {
+  ChachedSpaceContent,
   contentToSpace,
   sessions,
   space,
@@ -18,6 +19,7 @@ import {
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
 import { searchMemoriesAndSpaces } from "@/actions/db";
+import { getMetaData } from "@/server/helpers";
 
 export const runtime = "edge";
 
@@ -56,36 +58,37 @@ export default async function Home() {
   const collectedSpaces = await db
     .select()
     .from(space)
-    .where(and(eq(space.user, userData.id), not(eq(space.name, "none"))));
+    .where(eq(space.user, userData.id))
+    .all();
+
+  console.log(collectedSpaces);
 
   // Fetch only first 3 content of each spaces
-  let contents: (typeof storedContent.$inferSelect)[] = [];
+  let contents: ChachedSpaceContent[] = [];
+
+  //console.log(await db.select().from(storedContent).)
 
   await Promise.all([
     collectedSpaces.forEach(async (space) => {
-      contents = [
-        ...contents,
-        ...(await fetchContentForSpace(space.id, {
+      console.log("fetching ");
+      const data = (
+        await fetchContentForSpace(space.id, {
           offset: 0,
           limit: 3,
-        })),
-      ];
+        })
+      ).map((data) => ({
+        ...data,
+        space: space.id,
+      }));
+      contents = [...contents, ...data];
     }),
   ]);
 
+  console.log(contents);
+
   // freeMemories
   const freeMemories = await fetchFreeMemories(userData.id);
-
-  // @dhravya test these 3 functions
-  fetchFreeMemories;
-  fetchContentForSpace;
-  searchMemoriesAndSpaces;
-
-  collectedSpaces.push({
-    id: 1,
-    name: "Cool tech",
-    user: null,
-  });
+  console.log("free", freeMemories);
 
   return (
     <MemoryProvider

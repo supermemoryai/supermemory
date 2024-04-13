@@ -1,15 +1,20 @@
 "use client";
 import React, { useCallback } from "react";
 import { CollectedSpaces } from "../../types/memory";
-import { StoredContent, storedContent, StoredSpace } from "@/server/db/schema";
+import {
+  ChachedSpaceContent,
+  StoredContent,
+  storedContent,
+  StoredSpace,
+} from "@/server/db/schema";
 import { addMemory, searchMemoriesAndSpaces } from "@/actions/db";
 import { User } from "next-auth";
 
 export type SearchResult = {
-	type: "memory" | "space",
-	space: StoredSpace,
-	memory: StoredContent
-}
+  type: "memory" | "space";
+  space: StoredSpace;
+  memory: StoredContent;
+};
 
 // temperory (will change)
 export const MemoryContext = React.createContext<{
@@ -21,8 +26,8 @@ export const MemoryContext = React.createContext<{
     memory: typeof storedContent.$inferInsert,
     spaces?: number[],
   ) => Promise<void>;
-  cachedMemories: StoredContent[];
-	search: (query: string) => Promise<SearchResult[]>;
+  cachedMemories: ChachedSpaceContent[];
+  search: (query: string) => Promise<SearchResult[]>;
 }>({
   spaces: [],
   freeMemories: [],
@@ -30,57 +35,62 @@ export const MemoryContext = React.createContext<{
   addSpace: async () => {},
   deleteSpace: async () => {},
   cachedMemories: [],
-	search: async () => []
+  search: async () => [],
 });
 
 export const MemoryProvider: React.FC<
   {
     spaces: StoredSpace[];
     freeMemories: StoredContent[];
-		cachedMemories: StoredContent[];
-		user: User;
+    cachedMemories: ChachedSpaceContent[];
+    user: User;
   } & React.PropsWithChildren
-> = ({ children, user, spaces: initalSpaces, freeMemories: initialFreeMemories, cachedMemories: initialCachedMemories }) => {
-
+> = ({
+  children,
+  user,
+  spaces: initalSpaces,
+  freeMemories: initialFreeMemories,
+  cachedMemories: initialCachedMemories,
+}) => {
   const [spaces, setSpaces] = React.useState<StoredSpace[]>(initalSpaces);
   const [freeMemories, setFreeMemories] =
     React.useState<StoredContent[]>(initialFreeMemories);
 
-  const [cachedMemories, setCachedMemories] = React.useState<StoredContent[]>(
-    initialCachedMemories
-  );
+  const [cachedMemories, setCachedMemories] = React.useState<
+    ChachedSpaceContent[]
+  >(initialCachedMemories);
 
   const addSpace = async (space: StoredSpace) => {
-		setSpaces((prev) => [...prev, space]);
-	}
-	
-	const deleteSpace = async (id: number) => {
-		setSpaces((prev) => prev.filter((s) => s.id !== id));
-	}
+    setSpaces((prev) => [...prev, space]);
+  };
 
-	const search = async (query: string) => {
-		if (!user.id) {
-			throw new Error('user id is not define')
-		}
-		const data = await searchMemoriesAndSpaces(user.id, query)
-		return data as SearchResult[]
-	}
+  const deleteSpace = async (id: number) => {
+    setSpaces((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const search = async (query: string) => {
+    if (!user.id) {
+      throw new Error("user id is not define");
+    }
+    const data = await searchMemoriesAndSpaces(user.id, query);
+    return data as SearchResult[];
+  };
 
   // const fetchMemories = useCallback(async (query: string) => {
   //   const response = await fetch(`/api/memories?${query}`);
   // }, []);
 
-  const _addMemory =  async (
-		memory: typeof storedContent.$inferInsert,
-		spaces: number[] = [],
-	) => {
-		const content = await addMemory(memory, spaces);
-	}
+  const _addMemory = async (
+    memory: typeof storedContent.$inferInsert,
+    spaces: number[] = [],
+  ) => {
+    const content = await addMemory(memory, spaces);
+  };
 
   return (
     <MemoryContext.Provider
       value={{
-				search,
+        search,
         spaces,
         addSpace,
         deleteSpace,

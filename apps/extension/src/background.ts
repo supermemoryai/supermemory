@@ -1,4 +1,5 @@
 import { getEnv } from "./util";
+import { Space } from "./types/memory";
 
 const backendUrl =
   getEnv() === "development"
@@ -48,22 +49,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.type === "urlChange") {
     const content = request.content;
     const url = request.url;
-
-    (async () => {
-      chrome.storage.local.get(["jwt"], ({ jwt }) => {
+    const spaces = request.spaces(
+      // eslint-disable-next-line no-unexpected-multiline
+      async () => {
+        chrome.storage.local.get(["jwt"], ({ jwt }) => {
+          if (!jwt) {
+            console.error("No JWT found");
+            return;
+          }
+          fetch(`${backendUrl}/api/store`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+            body: JSON.stringify({ pageContent: content, url, spaces }),
+          }).then((ers) => console.log(ers.status));
+        });
+      },
+    )();
+    return true;
+  } else if (request.type === "fetchSpaces") {
+    const run = () =>
+      chrome.storage.local.get(["jwt"], async ({ jwt }) => {
         if (!jwt) {
           console.error("No JWT found");
           return;
         }
-        fetch(`${backendUrl}/api/store`, {
-          method: "POST",
+        const resp = await fetch(`${backendUrl}/api/spaces`, {
           headers: {
             Authorization: `Bearer ${jwt}`,
           },
-          body: JSON.stringify({ pageContent: content, url }),
-        }).then((ers) => console.log(ers.status));
+        });
+
+        const data: {
+          message: "OK" | string;
+          data: Space[] | undefined;
+        } = await resp.json();
+
+        if (data.message === "OK" && data.data) {
+          sendResponse(data.data);
+        }
       });
-    })();
+
+    run();
+
+    return true;
   } else if (request.type === "queryApi") {
     const input = request.input;
     const jwt = request.jwt;

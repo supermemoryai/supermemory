@@ -7,19 +7,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./components/ui/tooltip";
-// import { FilterSpaces } from "./components/FilterCombobox";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogHeader,
-//   DialogTitle,
-//   DialogDescription,
-//   DialogTrigger,
-//   DialogFooter,
-//   DialogClose,
-// } from "./components/ui/dialog";
+import { FilterSpaces } from "./components/FilterCombobox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "./components/ui/dialog";
+import { Space } from "./types/memory";
 
-function sendUrlToAPI() {
+function sendUrlToAPI(spaces: number[]) {
   // get the current URL
   const url = window.location.href;
 
@@ -31,7 +32,7 @@ function sendUrlToAPI() {
   } else {
     // const content = Entire page content, but cleaned up for the LLM. No ads, no scripts, no styles, just the text. if article, just the importnat info abou tit.
     const content = document.documentElement.innerText;
-    chrome.runtime.sendMessage({ type: "urlChange", content, url });
+    chrome.runtime.sendMessage({ type: "urlChange", content, url, spaces });
   }
 }
 
@@ -50,7 +51,9 @@ function SideBar({ jwt }: { jwt: string }) {
 
   const [isSendingData, setIsSendingData] = useState(false);
 
-  // const [selectedSpaces, setSelectedSpaces] = useState<number[]>([0, 1]);
+  const [loading, setLoading] = useState(false);
+  const [spaces, setSpaces] = useState<Space[]>();
+  const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
   const [isImportingTweets, setIsImportingTweets] = useState(false);
 
@@ -72,6 +75,15 @@ function SideBar({ jwt }: { jwt: string }) {
       tweets,
     });
   }
+
+  const fetchSpaces = async () => {
+    setLoading(true);
+    chrome.runtime.sendMessage({ type: "fetchSpaces" }, (resp) => {
+      console.log(resp);
+      setSpaces(resp);
+      setLoading(false);
+    });
+  };
 
   const fetchBookmarks = () => {
     const tweets: TweetData[] = []; // Initialize an empty array to hold all tweet elements
@@ -253,67 +265,58 @@ function SideBar({ jwt }: { jwt: string }) {
           ) : (
             <></>
           )}
-          {/* <Dialog> */}
-          <Tooltip delayDuration={300}>
-            <TooltipTrigger
-              className="anycontext-bg-transparent
+          <Dialog onOpenChange={(open) => open === true && fetchSpaces()}>
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger
+                className="anycontext-bg-transparent
 									anycontext-border-none anycontext-m-0 anycontext-p-0
 								"
-            >
-              {/* <DialogTrigger asChild> */}
-              <button
-                onClick={() => {
-                  // return;
-                  sendUrlToAPI();
-                  setIsSendingData(true);
-                  setTimeout(() => {
-                    setIsSendingData(false);
-                    setSavedWebsites([...savedWebsites, window.location.href]);
-                  }, 1000);
-                }}
-                disabled={savedWebsites.includes(window.location.href)}
-                className="anycontext-open-button disabled:anycontext-opacity-30 anycontext-bg-transparent
-											anycontext-border-none anycontext-m-0 anycontext-p-0"
               >
-                {savedWebsites.includes(window.location.href) ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-file-check-2"
+                <DialogTrigger asChild>
+                  <button
+                    disabled={savedWebsites.includes(window.location.href)}
+                    className="anycontext-open-button disabled:anycontext-opacity-30 anycontext-bg-transparent
+											anycontext-border-none anycontext-m-0 anycontext-p-0"
                   >
-                    <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
-                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
-                    <path d="m3 15 2 2 4-4" />
-                  </svg>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className={`anycontext-w-5 anycontext-h-5 ${isSendingData ? "anycontext-animate-spin" : ""}`}
-                  >
-                    <path d="M15.98 1.804a1 1 0 0 0-1.96 0l-.24 1.192a1 1 0 0 1-.784.785l-1.192.238a1 1 0 0 0 0 1.962l1.192.238a1 1 0 0 1 .785.785l.238 1.192a1 1 0 0 0 1.962 0l.238-1.192a1 1 0 0 1 .785-.785l1.192-.238a1 1 0 0 0 0-1.962l-1.192-.238a1 1 0 0 1-.785-.785l-.238-1.192ZM6.949 5.684a1 1 0 0 0-1.898 0l-.683 2.051a1 1 0 0 1-.633.633l-2.051.683a1 1 0 0 0 0 1.898l2.051.684a1 1 0 0 1 .633.632l.683 2.051a1 1 0 0 0 1.898 0l.683-2.051a1 1 0 0 1 .633-.633l2.051-.683a1 1 0 0 0 0-1.898l-2.051-.683a1 1 0 0 1-.633-.633L6.95 5.684ZM13.949 13.684a1 1 0 0 0-1.898 0l-.184.551a1 1 0 0 1-.632.633l-.551.183a1 1 0 0 0 0 1.898l.551.183a1 1 0 0 1 .633.633l.183.551a1 1 0 0 0 1.898 0l.184-.551a1 1 0 0 1 .632-.633l.551-.183a1 1 0 0 0 0-1.898l-.551-.184a1 1 0 0 1-.633-.632l-.183-.551Z" />
-                  </svg>
-                )}
-              </button>
-              {/* </DialogTrigger> */}
-            </TooltipTrigger>
-            <TooltipContent className="anycontext-p-0" side="left">
-              <p className="anycontext-p-0 anycontext-m-0">
-                {savedWebsites.includes(window.location.href)
-                  ? "Added to memory"
-                  : "Add to memory"}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-          {/* <DialogContent>
+                    {savedWebsites.includes(window.location.href) ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="lucide lucide-file-check-2"
+                      >
+                        <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                        <path d="m3 15 2 2 4-4" />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                        className={`anycontext-w-5 anycontext-h-5 ${isSendingData ? "anycontext-animate-spin" : ""}`}
+                      >
+                        <path d="M15.98 1.804a1 1 0 0 0-1.96 0l-.24 1.192a1 1 0 0 1-.784.785l-1.192.238a1 1 0 0 0 0 1.962l1.192.238a1 1 0 0 1 .785.785l.238 1.192a1 1 0 0 0 1.962 0l.238-1.192a1 1 0 0 1 .785-.785l1.192-.238a1 1 0 0 0 0-1.962l-1.192-.238a1 1 0 0 1-.785-.785l-.238-1.192ZM6.949 5.684a1 1 0 0 0-1.898 0l-.683 2.051a1 1 0 0 1-.633.633l-2.051.683a1 1 0 0 0 0 1.898l2.051.684a1 1 0 0 1 .633.632l.683 2.051a1 1 0 0 0 1.898 0l.683-2.051a1 1 0 0 1 .633-.633l2.051-.683a1 1 0 0 0 0-1.898l-2.051-.683a1 1 0 0 1-.633-.633L6.95 5.684ZM13.949 13.684a1 1 0 0 0-1.898 0l-.184.551a1 1 0 0 1-.632.633l-.551.183a1 1 0 0 0 0 1.898l.551.183a1 1 0 0 1 .633.633l.183.551a1 1 0 0 0 1.898 0l.184-.551a1 1 0 0 1 .632-.633l.551-.183a1 1 0 0 0 0-1.898l-.551-.184a1 1 0 0 1-.633-.632l-.183-.551Z" />
+                      </svg>
+                    )}
+                  </button>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent className="anycontext-p-0" side="left">
+                <p className="anycontext-p-0 anycontext-m-0">
+                  {savedWebsites.includes(window.location.href)
+                    ? "Added to memory"
+                    : "Add to memory"}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+            <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add to Memory</DialogTitle>
                 <DialogDescription>
@@ -322,27 +325,33 @@ function SideBar({ jwt }: { jwt: string }) {
               </DialogHeader>
 
               <FilterSpaces
+                loading={loading}
                 className="anycontext-mr-auto"
                 selectedSpaces={selectedSpaces}
                 setSelectedSpaces={setSelectedSpaces}
                 name={"Add to Spaces"}
-                spaces={[
-                  {
-                    name: "cool tech",
-                    id: 0,
-                  },
-                  {
-                    name: "cool libs",
-                    id: 1,
-                  },
-                ]}
+                spaces={spaces ?? []}
               />
               <DialogFooter className="anycontext-w-full anycontext-text-sm">
-                <DialogClose>Add</DialogClose>
+                <DialogClose
+                  onClick={() => {
+                    sendUrlToAPI(selectedSpaces);
+                    setIsSendingData(true);
+                    setTimeout(() => {
+                      setIsSendingData(false);
+                      setSavedWebsites([
+                        ...savedWebsites,
+                        window.location.href,
+                      ]);
+                    }, 1000);
+                  }}
+                >
+                  Add
+                </DialogClose>
                 <DialogClose>Cancel</DialogClose>
               </DialogFooter>
             </DialogContent>
-          </Dialog> */}
+          </Dialog>
         </div>
       </TooltipProvider>
     </>

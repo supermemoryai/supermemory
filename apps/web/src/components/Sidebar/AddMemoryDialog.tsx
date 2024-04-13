@@ -153,37 +153,6 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
 }
 
 export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
-  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
-
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [name, setName] = useState("");
-  const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  function check(): boolean {
-    const data = {
-      name: name.trim(),
-      content,
-    };
-    console.log(name);
-    if (!data.name || data.name.length < 1) {
-      if (!inputRef.current) {
-        alert("Please enter a name for the note");
-        return false;
-      }
-      inputRef.current.value = "";
-      inputRef.current.placeholder = "Please enter a title for the note";
-      inputRef.current.dataset["error"] = "true";
-      setTimeout(() => {
-        inputRef.current!.placeholder = "Title of the note";
-        inputRef.current!.dataset["error"] = "false";
-      }, 500);
-      inputRef.current.focus();
-      return false;
-    }
-    return true;
-  }
-
   return (
     <div className="md:w-[40vw]">
       <DialogHeader>

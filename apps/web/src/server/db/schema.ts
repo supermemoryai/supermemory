@@ -21,7 +21,7 @@ export const users = createTable("user", {
   image: text("image", { length: 255 }),
 });
 
-export type User = typeof users.$inferSelect
+export type User = typeof users.$inferSelect;
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
@@ -134,3 +134,6 @@ export const space = createTable(
 
 export type StoredContent = Omit<typeof storedContent.$inferSelect, "user">;
 export type StoredSpace = typeof space.$inferSelect;
+export type ChachedSpaceContent = StoredContent & {
+  space: number;
+};
