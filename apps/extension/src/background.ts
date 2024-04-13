@@ -5,7 +5,7 @@ const backendUrl =
     ? "http://localhost:3000"
     : "https://supermemory.dhr.wtf";
 
-// TODO: Implement getting bookmarks from API directly
+// TODO: Implement getting bookmarks from Twitter API directly
 // let authorizationHeader: string | null = null;
 // let csrfToken: string | null = null;
 // let cookies: string | null = null;
@@ -97,7 +97,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     })();
   }
-  // TODO: Implement getting bookmarks from API directly
+  // TODO: Implement getting bookmarks from Twitter API directly
   // else if (request.action === 'getAuthData') {
   //   sendResponse({
   //     authorizationHeader: authorizationHeader,
