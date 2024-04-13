@@ -67,8 +67,21 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	console.log('highscoreIds', highScoreIds);
 
 	if (sourcesOnly === 'true') {
-		const idsAsStrings = highScoreIds.map((id) => env?.KV.get(id.toString()) ?? id.toString());
-		return new Response(JSON.stringify({ ids: idsAsStrings }), { status: 200 });
+		// Try await env.KV.get(id) for each id in a Promise.all
+		const idsAsStrings = highScoreIds.map(String);
+
+		const storedContent = await Promise.all(
+			idsAsStrings.map(async (id) => {
+				const stored = await env!.KV.get(id);
+				if (stored) {
+					return stored;
+				}
+				return id;
+			}),
+		);
+
+		console.log(storedContent);
+		return new Response(JSON.stringify({ ids: storedContent }), { status: 200 });
 	}
 
 	const vec = await env!.VECTORIZE_INDEX.getByIds(highScoreIds);
@@ -103,7 +116,7 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 		history: [...defaultHistory, ...(body.chatHistory ?? [])],
 	});
 
-	const prompt = `Context:\n${preparedContext}\n\nQuestion: ${query}\nAnswer:`;
+	const prompt = `Context:\n${preparedContext ?? ''}\n\nQuestion: ${query}\nAnswer:`;
 
 	const output = await chat.sendMessageStream(prompt);
 

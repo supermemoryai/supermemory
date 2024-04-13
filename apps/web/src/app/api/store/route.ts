@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
     storeToSpace = "none";
   }
 
-  // Count the number of stored content of the user
   const count = await db
     .select({
       count: sql<number>`count(*)`.mapWith(Number),
@@ -88,7 +87,7 @@ export async function POST(req: NextRequest) {
     .from(storedContent)
     .where(eq(storedContent.user, session.user.id));
 
-  console.log(count[0].count);
+  console.log("count", count[0].count);
 
   const storedContentId = await db.insert(storedContent).values({
     content: data.pageContent,

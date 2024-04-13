@@ -19,6 +19,7 @@ export function cleanUrl(url: string) {
 }
 
 export function getIdsFromSource(sourceIds: string[]) {
+  console.log(sourceIds);
   return sourceIds.map((id) => {
     const parts = id.split("-");
     if (parts.length > 1) {

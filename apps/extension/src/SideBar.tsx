@@ -215,7 +215,6 @@ function SideBar() {
                 <DialogTrigger asChild>
                   <button
                     onClick={() => {
-                      return;
                       sendUrlToAPI();
                       setIsSendingData(true);
                       setTimeout(() => {

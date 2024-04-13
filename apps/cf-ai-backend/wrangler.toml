@@ -4,7 +4,7 @@ compatibility_date = "2024-02-23"
 
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
-index_name = "any-vector"
+index_name = "supermem-vector"
 
 [ai]
 binding = "AI"

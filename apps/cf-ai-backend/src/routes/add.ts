@@ -20,7 +20,17 @@ export async function POST(request: Request, store: CloudflareVectorizeStore, _:
 
 	const ourID = `${body.url}-${body.user}`;
 
-	const uuid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+	// WHY? Because this helps us to prevent duplicate entries for the same URL and user
+	function seededRandom(seed: string) {
+		let x = [...seed].reduce((acc, cur) => acc + cur.charCodeAt(0), 0);
+		return () => {
+			x = (x * 9301 + 49297) % 233280;
+			return x / 233280;
+		};
+	}
+
+	const random = seededRandom(ourID);
+	const uuid = random().toString(36).substring(2, 15) + random().toString(36).substring(2, 15);
 
 	await env.KV.put(uuid, ourID);
 
