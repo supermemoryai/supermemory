@@ -372,7 +372,7 @@ export function Chat({
         "sidebar relative flex w-full flex-col items-end gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
       )}
     >
-      <div className="scrollbar-none h-screen w-full overflow-y-auto px-5">
+      <div className="scrollbar-none h-screen w-full overflow-y-auto px-2 md:px-5">
         {chatHistory.map((msg, i) => (
           <ChatMessage index={i} key={i} isLast={i === chatHistory.length - 1}>
             <ChatQuestion>{msg.question}</ChatQuestion>
@@ -393,7 +393,7 @@ export function Chat({
         data-sidebar-open={sidebarOpen}
         className="absolute flex w-full items-center justify-center"
       >
-        <div className="animate-from-top fixed bottom-10 left-1/2 -translate-x-1/2 mt-auto flex w-[90%] md:w-[50%] flex-col items-start justify-center gap-2">
+        <div className="animate-from-top fixed bottom-10 left-1/2 md:left-[auto] md:translate-x-0 -translate-x-1/2 mt-auto flex w-[90%] md:w-[50%] flex-col items-center justify-center gap-2">
           <FilterSpaces
             name={"Filter"}
             onClose={() => {
@@ -401,7 +401,7 @@ export function Chat({
             }}
             side="top"
             align="start"
-            className="bg-[#252525]"
+            className="bg-[#252525] mr-auto"
             selectedSpaces={selectedSpaces}
             setSelectedSpaces={setSelectedSpaces}
           />
