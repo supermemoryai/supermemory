@@ -196,13 +196,16 @@ export function MemoryItem({
 	title,
 	image
 }: StoredContent) {
+
+	const name = title ? title.length > 10 ? title.slice(0, 10) + "..." : title : '<no title>';
+
 	return (
 		<div
 
       className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
 		>
 			<button data-space-text className="focus-visible:outline-none">
-        {title}
+        {name}
       </button>
 			
 			<div className="w-24 h-24 flex justify-center items-center">
@@ -240,6 +243,8 @@ export function SpaceItem({
 		return cachedMemories.filter(m => m.space === id)
 	}, [cachedMemories])
 
+	const _name = name.length > 10 ? name.slice(0, 10) + "..." : name
+
   return (
     <motion.div
       ref={itemRef}
@@ -248,7 +253,7 @@ export function SpaceItem({
       className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
     >
       <button data-space-text className="focus-visible:outline-none">
-        {name}
+        {_name}
       </button>
       <SpaceMoreButton
         isOpen={moreDropdownOpen}
@@ -341,19 +346,23 @@ export function SpaceItem({
           id={id.toString()}
           images={spaceMemories.map((c) => c.image).reverse() as string[]}
         />
-      ) : spaceMemories.length === 1 ? (
+      ) : spaceMemories.length > 1 ? (
+				<MemoryWithImages2
+          className="h-24 w-24"
+          id={id.toString()}
+          images={spaceMemories.map((c) => c.image).reverse() as string[]}
+        />
+			) : spaceMemories.length === 1 ? (
         <MemoryWithImage
           className="h-24 w-24"
           id={id.toString()}
           image={spaceMemories[0].image!}
         />
       ) : (
-        <MemoryWithImages2
-          className="h-24 w-24"
-          id={id.toString()}
-          images={spaceMemories.map((c) => c.image).reverse() as string[]}
-        />
-      )}
+				<div className="bg-rgray-4 opacity-30 rounded-full w-24 h-24 scale-50 shadow-">
+
+				</div>
+			)}
     </motion.div>
   );
 }

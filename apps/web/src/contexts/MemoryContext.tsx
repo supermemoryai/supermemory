@@ -1,8 +1,7 @@
 "use client";
 import React, { useCallback } from "react";
-import { CollectedSpaces } from "../../types/memory";
 import { ChachedSpaceContent, StoredContent, storedContent, StoredSpace } from "@/server/db/schema";
-import { addMemory, searchMemoriesAndSpaces } from "@/actions/db";
+import { addMemory, searchMemoriesAndSpaces, addSpace, fetchContentForSpace } from "@/actions/db";
 import { User } from "next-auth";
 
 export type SearchResult = {
@@ -16,7 +15,7 @@ export const MemoryContext = React.createContext<{
   spaces: StoredSpace[];
   deleteSpace: (id: number) => Promise<void>;
   freeMemories: StoredContent[];
-  addSpace: (space: StoredSpace) => Promise<void>;
+  addSpace: typeof addSpace;
   addMemory: (
     memory: typeof storedContent.$inferInsert,
     spaces?: number[],
@@ -27,7 +26,7 @@ export const MemoryContext = React.createContext<{
   spaces: [],
   freeMemories: [],
   addMemory: async () => {},
-  addSpace: async () => {},
+  addSpace: (async () => {}) as unknown as (typeof addSpace),
   deleteSpace: async () => {},
   cachedMemories: [],
 	search: async () => []
@@ -49,10 +48,6 @@ export const MemoryProvider: React.FC<
   const [cachedMemories, setCachedMemories] = React.useState<ChachedSpaceContent[]>(
     initialCachedMemories
   );
-
-  const addSpace = async (space: StoredSpace) => {
-		setSpaces((prev) => [...prev, space]);
-	}
 	
 	const deleteSpace = async (id: number) => {
 		setSpaces((prev) => prev.filter((s) => s.id !== id));
@@ -68,13 +63,29 @@ export const MemoryProvider: React.FC<
 	) => {
 		const content = await addMemory(memory, spaces);
 	}
+	
+	const _addSpace: typeof addSpace = async (...params) => {
+		const { space: addedSpace, addedMemories } = (await addSpace(...params))!;
+
+		setSpaces(prev => [...prev, addedSpace])
+		const cachedMemories = (await fetchContentForSpace(addedSpace.id, {
+			offset: 0,
+			limit: 3
+		})).map(m => ({ ...m, space: addedSpace.id }))
+
+		setCachedMemories(prev => [...prev, ...cachedMemories])
+
+		return {
+			space: addedSpace, addedMemories
+		}
+	}
 
   return (
     <MemoryContext.Provider
       value={{
 				search: searchMemoriesAndSpaces,
         spaces,
-        addSpace,
+        addSpace: _addSpace,
         deleteSpace,
         freeMemories,
         cachedMemories,

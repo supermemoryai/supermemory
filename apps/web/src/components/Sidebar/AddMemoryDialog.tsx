@@ -12,9 +12,10 @@ import { Markdown } from "tiptap-markdown";
 import { useEffect, useRef, useState } from "react";
 import { FilterMemories, FilterSpaces } from "./FilterCombobox";
 import { useMemory } from "@/contexts/MemoryContext";
-import { Command, Plus, X } from "lucide-react";
+import { Loader, Plus, X } from "lucide-react";
 import { StoredContent } from "@/server/db/schema";
 import { cleanUrl } from "@/lib/utils";
+import { motion } from "framer-motion"
 
 export function AddMemoryPage() {
   const { addMemory } = useMemory();
@@ -157,8 +158,11 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
 
 export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
 
+	const { addSpace } = useMemory()
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
+
   const [loading, setLoading] = useState(false);
 
 	const [selected, setSelected] = useState<StoredContent[]>([]);
@@ -198,6 +202,7 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
         type="url"
         data-modal-autofocus
 				value={name}
+				disabled={loading}
 				onChange={e => setName(e.target.value)}
         className="bg-rgray-4 mt-2 w-full focus-visible:data-[error=true]:ring-red-500/10 data-[error=true]:placeholder:text-red-400 placeholder:transition placeholder:duration-500"
       />
@@ -219,7 +224,8 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
 				<FilterMemories
 					selected={selected}
 					setSelected={setSelected}
-					className="mr-auto bg-white/5 hover:bg-rgray-4 focus-visible:bg-rgray-4"
+					disabled={loading}
+					className="mr-auto bg-white/5 hover:bg-rgray-4 focus-visible:bg-rgray-4 disabled:opacity-70 disabled:cursor-not-allowed"
 				>
 					<Plus className="w-5 h-5" />
 					Memory
@@ -228,14 +234,28 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
           type={undefined}
 					onClick={() => {
 						if (check()) {
-
+							setLoading(true)
+							addSpace(name, selected.map(s => s.id)).then(() => closeDialog())
 						}
 					}}
-          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
+					disabled={loading}
+          className="relative disabled:opacity-70 disabled:cursor-not-allowed bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2"
         >
-          Add
+					<motion.div 
+						initial={{ x: '-50%', y: '-100%' }}
+						animate={loading && { y: '-50%', x: '-50%', opacity: 1 }}
+						className="opacity-0 absolute top-1/2 left-1/2 translate-y-[-100%] -translate-x-1/2"
+					>
+						<Loader className="w-5 h-5 animate-spin text-rgray-11" />
+					</motion.div>
+					<motion.div
+						initial={{ y: '0%' }}
+						animate={loading && { opacity: 0, y: '30%' }}
+					>
+						Add
+					</motion.div>
         </button>
-        <DialogClose className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
+        <DialogClose disabled={loading} className="disabled:opacity-70 disabled:cursor-not-allowed hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2">
           Cancel
         </DialogClose>
       </DialogFooter>

@@ -8,10 +8,10 @@ import {
   storedContent,
 	StoredSpace,
   users,
-	space
+	space,
 } from "@/server/db/schema";
 import { SearchResult } from "@/contexts/MemoryContext";
-import { like, eq, and, sql } from "drizzle-orm";
+import { like, eq, and, sql, exists, asc, notExists } from "drizzle-orm";
 import { union } from "drizzle-orm/sqlite-core"
 
 // @todo: (future) pagination not yet needed
@@ -136,4 +136,82 @@ export async function addMemory(
     ),
   );
   return _content;
+}
+
+export async function addSpace(name: string, memories: number[]) {
+
+	const user = await getUser();
+
+	if (!user) {
+		return null
+	}
+
+	const [addedSpace] = await db
+		.insert(space)
+		.values({
+			name: name,
+			user: user.id
+		}).returning();
+	
+	const addedMemories = memories.length > 0 ? await db.insert(contentToSpace)
+		.values(memories.map(m => ({
+			contentId: m,
+			spaceId: addedSpace.id
+		}))).returning() : []
+	
+	return {
+		space: addedSpace,
+		addedMemories
+	}
+}
+
+
+export async function fetchContentForSpace(
+  spaceId: number,
+  range?: {
+    offset: number;
+    limit: number;
+  },
+) {
+
+  const query = db
+    .select()
+    .from(storedContent)
+    .where(
+      exists(
+        db.select().from(contentToSpace).where(and(eq(contentToSpace.spaceId, spaceId), eq(contentToSpace.contentId, storedContent.id))),
+      ),
+    ).orderBy(asc(storedContent.title))
+
+	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+}
+
+export async function fetchFreeMemories(
+	range?: {
+		offset: number;
+		limit: number;
+	}
+) {
+
+	const user = await getUser()
+
+	if (!user) {
+		return []
+	}
+
+	const query = db
+    .select()
+    .from(storedContent)
+    .where(
+			and(
+				notExists(
+					db.select().from(contentToSpace).where(eq(contentToSpace.contentId, storedContent.id)),
+				),
+				eq(storedContent.user, user.id),
+			)
+      
+    ).orderBy(asc(storedContent.title))
+
+	return range ? await query.limit(range.limit).offset(range.offset) : await query.all()
+
 }
