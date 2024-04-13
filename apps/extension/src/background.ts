@@ -52,13 +52,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const spaces = request.spaces(
       // eslint-disable-next-line no-unexpected-multiline
       async () => {
-        chrome.storage.local.get(["jwt"], ({ jwt }) => {
+        chrome.storage.local.get(["jwt"], async ({ jwt }) => {
           if (!jwt) {
             console.error("No JWT found");
             return;
           }
-          fetch(`${backendUrl}/api/store`, {
-            method: "POST",
+          await fetch(`${backendUrl}/api/spaces`, {
             headers: {
               Authorization: `Bearer ${jwt}`,
             },
@@ -67,7 +66,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
       },
     )();
-    return true;
   } else if (request.type === "fetchSpaces") {
     const run = () =>
       chrome.storage.local.get(["jwt"], async ({ jwt }) => {

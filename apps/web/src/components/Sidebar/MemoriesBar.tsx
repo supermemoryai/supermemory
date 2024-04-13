@@ -10,6 +10,7 @@ import { Input, InputWithIcon } from "../ui/input";
 import {
   ArrowUpRight,
   Edit3,
+  Loader,
   MoreHorizontal,
   Plus,
   Search,
@@ -25,7 +26,7 @@ import {
 } from "../ui/dropdown-menu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Variant, useAnimate, motion } from "framer-motion";
-import { useMemory } from "@/contexts/MemoryContext";
+import { SearchResult, useMemory } from "@/contexts/MemoryContext";
 import { SpaceIcon } from "@/assets/Memories";
 import {
   Dialog,
@@ -44,10 +45,12 @@ import { AddMemoryPage, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
 import { ExpandedSpace } from "./ExpandedSpace";
 import { StoredContent, StoredSpace } from "@/server/db/schema";
 import Image from "next/image";
+import { useDebounce } from "@/hooks/useDebounce";
+import { searchMemoriesAndSpaces } from "@/actions/db";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
-  const { spaces, deleteSpace, freeMemories } = useMemory();
+  const { spaces, deleteSpace, freeMemories, search } = useMemory();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [addMemoryState, setAddMemoryState] = useState<
@@ -55,6 +58,11 @@ export function MemoriesBar() {
   >(null);
 
   const [expandedSpace, setExpandedSpace] = useState<number | null>(null);
+  const [searchQuery, setSearcyQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const query = useDebounce(searchQuery, 500);
+
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   if (expandedSpace) {
     return (
@@ -65,14 +73,37 @@ export function MemoriesBar() {
     );
   }
 
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+
+    (async () => {
+      setSearchResults(await search(q));
+      setSearchLoading(false);
+    })();
+  }, [query]);
+
   return (
     <div className="text-rgray-11 flex w-full flex-col items-start py-8 text-left">
       <div className="w-full px-8">
         <h1 className="w-full text-2xl">Your Memories</h1>
         <InputWithIcon
           placeholder="Search"
-          icon={<Search className="text-rgray-11 h-5 w-5 opacity-50" />}
+          icon={
+            searchLoading ? (
+              <Loader className="text-rgray-11 h-5 w-5 animate-spin opacity-50" />
+            ) : (
+              <Search className="text-rgray-11 h-5 w-5 opacity-50" />
+            )
+          }
           className="bg-rgray-4 mt-2 w-full"
+          value={searchQuery}
+          onChange={(e) => setSearcyQuery(e.target.value)}
         />
       </div>
       <div className="mt-2 flex w-full px-8">
@@ -123,17 +154,32 @@ export function MemoriesBar() {
         ref={parent}
         className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
       >
-        {spaces.map((space) => (
-          <SpaceItem
-            onDelete={() => {}}
-            key={space.id}
-            //onClick={() => setExpandedSpace(space.id)}
-            {...space}
-          />
-        ))}
-        {freeMemories.map((m) => (
-          <MemoryItem {...m} key={m.id} />
-        ))}
+        {query.trim().length > 0 ? (
+          <>
+            {searchResults.map(({ type, space, memory }, i) => (
+              <>
+                {type === "memory" && <MemoryItem {...memory!} key={i} />}
+                {type === "space" && (
+                  <SpaceItem {...space!} key={i} onDelete={() => {}} />
+                )}
+              </>
+            ))}
+          </>
+        ) : (
+          <>
+            {spaces.map((space) => (
+              <SpaceItem
+                onDelete={() => {}}
+                key={space.id}
+                //onClick={() => setExpandedSpace(space.id)}
+                {...space}
+              />
+            ))}
+            {freeMemories.map((m) => (
+              <MemoryItem {...m} key={m.id} />
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -149,15 +195,29 @@ const SpaceExitVariant: Variant = {
   },
 };
 
-export function MemoryItem({ id, title, image }: StoredContent) {
+export function MemoryItem({ id, title, image, type }: StoredContent) {
+  const name = title
+    ? title.length > 10
+      ? title.slice(0, 10) + "..."
+      : title
+    : "<no title>";
+
   return (
     <div className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
       <button data-space-text className="focus-visible:outline-none">
-        {title}
+        {name}
       </button>
 
       <div className="flex h-24 w-24 items-center justify-center">
-        <img className="h-16 w-16" id={id.toString()} src={image!} />
+        {type === "page" ? (
+          <img className="h-16 w-16" id={id.toString()} src={image!} />
+        ) : type === "note" ? (
+          <div className="bg-rgray-4 flex items-center justify-center rounded-md p-2 shadow-md">
+            <Text className="h-10 w-10" />
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </div>
   );
@@ -186,6 +246,8 @@ export function SpaceItem({
     return cachedMemories.filter((m) => m.space === id);
   }, [cachedMemories]);
 
+  const _name = name.length > 10 ? name.slice(0, 10) + "..." : name;
+
   return (
     <motion.div
       ref={itemRef}
@@ -194,7 +256,7 @@ export function SpaceItem({
       className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
     >
       <button data-space-text className="focus-visible:outline-none">
-        {name}
+        {_name}
       </button>
       <SpaceMoreButton
         isOpen={moreDropdownOpen}
@@ -287,6 +349,12 @@ export function SpaceItem({
           id={id.toString()}
           images={spaceMemories.map((c) => c.image).reverse() as string[]}
         />
+      ) : spaceMemories.length > 1 ? (
+        <MemoryWithImages2
+          className="h-24 w-24"
+          id={id.toString()}
+          images={spaceMemories.map((c) => c.image).reverse() as string[]}
+        />
       ) : spaceMemories.length === 1 ? (
         <MemoryWithImage
           className="h-24 w-24"
@@ -294,11 +362,7 @@ export function SpaceItem({
           image={spaceMemories[0].image!}
         />
       ) : (
-        <MemoryWithImages2
-          className="h-24 w-24"
-          id={id.toString()}
-          images={spaceMemories.map((c) => c.image).reverse() as string[]}
-        />
+        <div className="bg-rgray-4 shadow- h-24 w-24 scale-50 rounded-full opacity-30"></div>
       )}
     </motion.div>
   );
