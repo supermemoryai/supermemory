@@ -263,6 +263,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             askQuestion={onSend}
             setValue={setValue}
             value={value}
+						selectedSpaces={selectedSpaces}
+						setSelectedSpaces={setSelectedSpaces}
           />
         ) : (
           <main
@@ -342,6 +344,8 @@ export function Chat({
   askQuestion,
   setValue,
   value,
+	selectedSpaces,
+	setSelectedSpaces
 }: {
   sidebarOpen: boolean;
   isLoading?: boolean;
@@ -349,6 +353,8 @@ export function Chat({
   askQuestion: () => void;
   setValue: (value: string) => void;
   value: string;
+	selectedSpaces: number[];
+	setSelectedSpaces: React.Dispatch<React.SetStateAction<number[]>>;
 }) {
   const textArea = useRef<HTMLDivElement>(null);
 
@@ -387,7 +393,7 @@ export function Chat({
         data-sidebar-open={sidebarOpen}
         className="absolute flex w-full items-center justify-center"
       >
-        <div className="animate-from-top fixed bottom-10 mt-auto flex w-[50%] flex-col items-start justify-center gap-2">
+        <div className="animate-from-top fixed bottom-10 left-1/2 -translate-x-1/2 mt-auto flex w-[90%] md:w-[50%] flex-col items-start justify-center gap-2">
           <FilterSpaces
             name={"Filter"}
             onClose={() => {
@@ -396,9 +402,8 @@ export function Chat({
             side="top"
             align="start"
             className="bg-[#252525]"
-            // TODO: SPACES FILTER HERE
-            selectedSpaces={[]}
-            setSelectedSpaces={(spaces) => {}}
+            selectedSpaces={selectedSpaces}
+            setSelectedSpaces={setSelectedSpaces}
           />
           <Textarea2
             ref={textArea}
