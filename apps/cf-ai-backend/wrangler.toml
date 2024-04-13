@@ -13,6 +13,9 @@ binding = "AI"
  queue = "batch-vector-queue"
  binding = "MY_QUEUE"
 
+ [[queues.consumers]]
+ queue = "batch-vector-queue"
+
 [[kv_namespaces]]
 binding = "KV"
 id = "37a90353da63401e84e20e71165531d0"

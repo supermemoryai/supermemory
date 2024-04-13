@@ -4,6 +4,7 @@ import { CloudflareVectorizeStore } from '@langchain/cloudflare';
 import { OpenAIEmbeddings } from './OpenAIEmbedder';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import routeMap from './routes';
+import { queue } from './routes/queue';
 
 function isAuthorized(request: Request, env: Env): boolean {
 	return request.headers.get('X-Custom-Auth-Key') === env.SECURITY_KEY;
@@ -45,4 +46,5 @@ export default {
 		}
 		return await handler(request, store, embeddings, model, env, ctx);
 	},
+	queue,
 };

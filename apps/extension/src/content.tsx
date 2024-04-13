@@ -38,8 +38,8 @@ const jwt = chrome.storage.local.get("jwt").then((data) => {
   return data.jwt;
 }) as Promise<string>;
 
-jwt.then(() => {
+jwt.then((token) => {
   ReactDOM.createRoot(
     document.getElementById("anycontext-app-container")!,
-  ).render(<SideBar />);
+  ).render(<SideBar jwt={token} />);
 });

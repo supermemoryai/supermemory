@@ -35,7 +35,7 @@ function sendUrlToAPI() {
   }
 }
 
-function SideBar() {
+function SideBar({ jwt }: { jwt: string }) {
   // TODO: Implement getting bookmarks from Twitter API directly
   // chrome.runtime.onMessage.addListener(function (request) {
   //   if (request.action === 'showProgressIndicator') {
@@ -62,6 +62,7 @@ function SideBar() {
     authorName: string;
     handle: string;
     time: string;
+    saveToUser: string;
   }
 
   const fetchBookmarks = () => {
@@ -136,6 +137,7 @@ function SideBar() {
               tweetText,
               time: time ?? "",
               postUrl,
+              saveToUser: jwt,
             });
 
             setLog([...log, `Scraped tweet: ${tweets.length}`]);
@@ -162,7 +164,7 @@ function SideBar() {
       setIsImportingTweets(false);
       const jsonData = JSON.stringify(tweetsArray); // Convert the array to JSON
 
-      // TODO: SEND jsonData to server
+      // TODO: send jsonData to the API
       console.log(jsonData);
     }
   };
