@@ -37,7 +37,7 @@ export const queue = async (batch: MessageBatch, env: Env): Promise<void> => {
 	const collectedDocsUUIDs: {
 		document: {
 			pageContent: string;
-			metadata: { title: string; description: string; space: string; url: string; user: string };
+			metadata: { title: string; description: string; space?: string; url: string; user: string };
 			id: string;
 		};
 	}[] = [];
@@ -57,7 +57,6 @@ export const queue = async (batch: MessageBatch, env: Env): Promise<void> => {
 				metadata: {
 					title: 'Twitter Bookmark',
 					description: '',
-					space: 'Bookmarked Tweets',
 					url: message.postUrl,
 					user: limits.user,
 				},

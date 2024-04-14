@@ -13,15 +13,15 @@ CREATE TABLE `account` (
 	`session_state` text(255),
 	`oauth_token_secret` text,
 	`oauth_token` text,
-	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `contentToSpace` (
 	`contentId` integer NOT NULL,
 	`spaceId` integer NOT NULL,
 	PRIMARY KEY(`contentId`, `spaceId`),
-	FOREIGN KEY (`contentId`) REFERENCES `storedContent`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`spaceId`) REFERENCES `space`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`contentId`) REFERENCES `storedContent`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`spaceId`) REFERENCES `space`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `session` (
@@ -29,14 +29,14 @@ CREATE TABLE `session` (
 	`sessionToken` text(255) NOT NULL,
 	`userId` text(255) NOT NULL,
 	`expires` integer NOT NULL,
-	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `space` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text DEFAULT 'none' NOT NULL,
 	`user` text(255),
-	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `storedContent` (
@@ -50,7 +50,7 @@ CREATE TABLE `storedContent` (
 	`type` text DEFAULT 'page',
 	`image` text(255),
 	`user` text(255),
-	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `user` (

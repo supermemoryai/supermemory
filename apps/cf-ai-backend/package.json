@@ -5,7 +5,8 @@
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
-		"start": "wrangler dev"
+		"start": "wrangler dev",
+		"unsafe-reset-vector-db": "wrangler vectorize delete  supermem-vector && wrangler vectorize create --dimensions=1536 supermem-vector-1 --metric=cosine"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20240222.0",

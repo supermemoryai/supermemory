@@ -18,6 +18,15 @@ export async function POST(request: Request, store: CloudflareVectorizeStore, _:
 		return new Response(JSON.stringify({ message: 'Invalid Page Content' }), { status: 400 });
 	}
 
+	const { searchParams } = new URL(request.url);
+	const uniqueUrl = searchParams.get('uniqueUrl');
+
+	const toBeDeleted = `${uniqueUrl}-${body.user}`;
+	const tbduuid = await env.KV.get(toBeDeleted);
+	if (tbduuid) {
+		await store.delete({ ids: [tbduuid] });
+	}
+
 	// TODO: FIX THIS,BUT TEMPERORILY TRIM page content to 1000 words
 	body.pageContent = body.pageContent.split(' ').slice(0, 1000).join(' ');
 
