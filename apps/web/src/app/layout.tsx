@@ -8,6 +8,24 @@ const inter = Inter({ weight: ["300", "400", "500"], subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Supermemory - Your second brain",
   description: "Save your memories forever, build your own second brain.",
+  openGraph: {
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+    siteName: "Supermemory",
+    title: "Supermemory - Your second brain",
+    description: "Save your memories forever, build your own second brain.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "https://supermemory.dhr.wtf",
+    creator: "@dhravyashah",
+    description: "Save your memories forever, build your own second brain.",
+  },
 };
 
 export default function RootLayout({
