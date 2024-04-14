@@ -208,10 +208,10 @@ export function ProfileTab({ open }: { open: boolean }) {
 	}, [open])
 
 	return (
-		<div className="text-rgray-11 h-full flex w-full font-normal flex-col items-start py-8 text-left">
-      <div className="w-full px-8">
+		<div className="text-rgray-11 h-full flex w-full font-normal flex-col items-start py-3 md:py-8 text-left">
+      <div className="w-full px-6">
         <h1 className="w-full text-2xl font-medium">Profile</h1>
-				<div className="w-full mt-5 grid grid-cols-3">
+				<div className="w-full mt-5 grid gap-1 grid-cols-3">
 					<img
 						className="rounded-full"
 						src={session?.user?.image ?? "/icons/white_without_bg.png"}

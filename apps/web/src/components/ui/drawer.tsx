@@ -53,7 +53,7 @@ const DrawerContent = React.forwardRef<
       {...props}
     >
       {handle && (
-        <div className="bg-rgray-4 mx-auto mt-4 h-2 w-[100px] rounded-full " />
+        <div className="bg-rgray-4 mx-auto mb-1 h-2 w-[100px] rounded-full " />
       )}
       {children}
     </DrawerPrimitive.Content>

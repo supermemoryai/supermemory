@@ -14,6 +14,7 @@ import { useMemory } from "@/contexts/MemoryContext";
 
 import Image from "next/image";
 import { getMemoriesFromUrl } from "@/actions/db";
+import { ProfileDrawer } from "./ProfileDrawer";
 
 function supportsDVH() {
   try {
@@ -25,7 +26,6 @@ function supportsDVH() {
 
 export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const [hide, setHide] = useState(false);
   const [layout, setLayout] = useState<"chat" | "initial">("initial");
@@ -307,12 +307,17 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             )}
           >
             <Image
-              className="absolute right-10 top-10 rounded-md"
+              className="hidden md:block absolute right-10 top-10 rounded-md"
               src="/icons/logo_bw_without_bg.png"
               alt="Smort logo"
               width={50}
               height={50}
             />
+						<div
+              className="absolute block md:hidden right-10 top-10"
+						>
+							{width <= 768 && <ProfileDrawer hide={hide} />}
+						</div>
             <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl font-bold tracking-tight md:mt-0">
               Ask your second brain
             </h1>
@@ -446,6 +451,8 @@ export function Chat({
     const lines = countLines(e.target);
     e.target.rows = Math.min(5, lines);
   }
+	
+  const { width } = useViewport();
 
   return (
     <main
@@ -454,6 +461,12 @@ export function Chat({
         "sidebar relative flex w-full flex-col items-end gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
       )}
     >
+
+			<div
+				className="absolute block md:hidden z-[100] right-10 top-10"
+			>
+				{width <= 768 && <ProfileDrawer />}
+			</div>
       <div className="scrollbar-none h-[70vh] md:h-screen w-full overflow-y-auto px-2 md:px-5">
         {chatHistory.map((msg, i) => (
           <ChatMessage index={i} key={i} isLast={i === chatHistory.length - 1}>
