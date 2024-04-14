@@ -357,7 +357,7 @@ export async function addMemory(
 			.returning())[0]
 	}
 
-
+	console.log("adding with:", `${addedMemory.url}-${user.email}`)
   // Add to vectorDB
   const res = (await Promise.race([
     fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
@@ -421,6 +421,7 @@ export async function updateMemory(
 		...prev
 	}
 
+	console.log("adding with:", `${updated.url}-${user.email}`)
   // Add to vectorDB
   const res = (await Promise.race([
     fetch("https://cf-ai-backend.dhravya.workers.dev/edit?uniqueUrl="+updated.url , {
@@ -517,6 +518,7 @@ export async function deleteMemory(id: number) {
 
 	if (deleted) {
 		
+	console.log("adding with:", `${deleted.url}-${user.email}`)
   const res = (await Promise.race([
     fetch(`https://cf-ai-backend.dhravya.workers.dev/delete?websiteUrl=${deleted.url}&user=${user.email}` , {
       method: "DELETE",
