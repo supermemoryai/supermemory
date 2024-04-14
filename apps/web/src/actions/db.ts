@@ -250,12 +250,16 @@ export async function addMemory(
 
     const data = await resp.text();
 
+    console.log(data);
+
     content.content = data;
   }
 
   if (!content.content || content.content == "") {
     return null;
   }
+
+  console.log({ ...content, user: user.email });
 
   // Add to vectorDB
   const res = (await Promise.race([
@@ -264,17 +268,17 @@ export async function addMemory(
       headers: {
         "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
       },
-      body: JSON.stringify({ ...content, user: user.email }),
+      body: JSON.stringify({
+        pageContent: content.content,
+        url: content.url,
+        spaces,
+        user: user.email,
+      }),
     }),
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timed out")), 40000),
     ),
   ])) as Response;
-
-  if (res.status !== 200) {
-    console.log(res.status, res.statusText);
-    return null;
-  }
 
   const [addedMemory] = await db
     .insert(storedContent)
