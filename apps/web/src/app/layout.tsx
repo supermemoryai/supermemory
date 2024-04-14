@@ -41,6 +41,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <meta
+          name="og:image"
+          content="https://supermemory.dhr.wtf/og-image.png"
+        />
+      </head>
       <body className={inter.className}>
         <div vaul-drawer-wrapper="" className="min-w-screen overflow-x-hidden">
           {children}
