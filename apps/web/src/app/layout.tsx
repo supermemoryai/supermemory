@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     images: [
       {
-        url: "/og-image.png",
+        url: "https://supermemory.dhr.wtf/og-image.png",
         width: 1200,
         height: 630,
       },
