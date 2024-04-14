@@ -82,9 +82,19 @@ export async function POST(req: NextRequest) {
       count: sql<number>`count(*)`.mapWith(Number),
     })
     .from(storedContent)
-    .where(eq(storedContent.user, session.user.id));
+    .where(
+      and(
+        eq(storedContent.user, session.user.id),
+        eq(storedContent.type, "page"),
+      ),
+    );
 
-  console.log("count", count[0].count);
+  if (count[0].count > 100) {
+    return NextResponse.json(
+      { message: "Error", error: "Limit exceeded" },
+      { status: 499 },
+    );
+  }
 
   const { id } = (
     await db
