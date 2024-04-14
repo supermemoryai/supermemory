@@ -5,7 +5,7 @@ compatibility_flags = ['nodejs_compat']
 
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
-index_name = "supermem-vector"
+index_name = "supermem-vector-1"
 
 [ai]
 binding = "AI"
