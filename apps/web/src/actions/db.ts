@@ -13,6 +13,7 @@ import {
 import { SearchResult } from "@/contexts/MemoryContext";
 import { like, eq, and, sql, exists, asc, notExists } from "drizzle-orm";
 import { union } from "drizzle-orm/sqlite-core";
+import { env } from "@/env";
 
 // @todo: (future) pagination not yet needed
 export async function searchMemoriesAndSpaces(
@@ -234,6 +235,44 @@ export async function addMemory(
   const user = await getUser();
 
   if (!user) {
+    return null;
+  }
+
+  if (!content.content || content.content == "") {
+    const resp = await fetch(
+      `https://cf-ai-backend.dhravya.workers.dev/getPageContent?url=${content.url}`,
+      {
+        headers: {
+          "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+        },
+      },
+    );
+
+    const data = await resp.text();
+
+    content.content = data;
+  }
+
+  if (!content.content || content.content == "") {
+    return null;
+  }
+
+  // Add to vectorDB
+  const res = (await Promise.race([
+    fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
+      method: "POST",
+      headers: {
+        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+      },
+      body: JSON.stringify({ ...content, user: user.email }),
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), 40000),
+    ),
+  ])) as Response;
+
+  if (res.status !== 200) {
+    console.log(res.status, res.statusText);
     return null;
   }
 

@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
   };
 
   const metadata = await getMetaData(data.url);
-
   let storeToSpaces = data.spaces;
 
   if (!storeToSpaces) {
@@ -87,16 +86,21 @@ export async function POST(req: NextRequest) {
 
   console.log("count", count[0].count);
 
-  const { id } = (await db.insert(storedContent).values({
-    content: data.pageContent,
-    title: metadata.title,
-    description: metadata.description,
-    url: data.url,
-    baseUrl: metadata.baseUrl,
-    image: metadata.image,
-    savedAt: new Date(),
-    user: session.user.id,
-  }).returning({ id: storedContent.id }))[0];
+  const { id } = (
+    await db
+      .insert(storedContent)
+      .values({
+        content: data.pageContent,
+        title: metadata.title,
+        description: metadata.description,
+        url: data.url,
+        baseUrl: metadata.baseUrl,
+        image: metadata.image,
+        savedAt: new Date(),
+        user: session.user.id,
+      })
+      .returning({ id: storedContent.id })
+  )[0];
 
   if (!id) {
     return NextResponse.json(
@@ -108,12 +112,18 @@ export async function POST(req: NextRequest) {
   const spaceData = await db
     .select()
     .from(space)
-    .where(and(inArray(space.name, storeToSpaces), eq(space.user, session.user.id)))
-		.all()
+    .where(
+      and(inArray(space.name, storeToSpaces), eq(space.user, session.user.id)),
+    )
+    .all();
 
-	await Promise.all([spaceData.forEach(async space => {
-		await db.insert(contentToSpace).values({ contentId: id, spaceId: space.id })
-	})])
+  await Promise.all([
+    spaceData.forEach(async (space) => {
+      await db
+        .insert(contentToSpace)
+        .values({ contentId: id, spaceId: space.id });
+    }),
+  ]);
 
   const res = (await Promise.race([
     fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
