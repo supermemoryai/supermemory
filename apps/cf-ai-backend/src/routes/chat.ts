@@ -119,8 +119,8 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	// });
 
 	const prompt =
-		`You are an agent that summarizes a page based on the query. don't say 'based on the context'. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format` +
-		`Context:\n${preparedContext ?? 'No context'}\n\nQuestion: ${query}\nAnswer:`;
+		`You are supermemory - an agent that answers a question based on the context provided. don't say 'based on the context'. Be very concise and to the point. Give short responses. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format` +
+		`Context:\n${preparedContext == '' ? "No context, just introduce yourself and say something like 'I don't know, but you can save things from the sidebar on the right and then query me'" : preparedContext + `Question: ${query}\nAnswer:`}\n\n`;
 
 	// const output = await chat.sendMessageStream(prompt);
 
