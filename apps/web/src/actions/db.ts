@@ -272,7 +272,7 @@ export async function addMemory(
       },
       body: JSON.stringify({
         pageContent: content.content,
-        title: content.title,
+        title: content.title?.slice(0, 50),
         url: content.url,
         user: user.email,
       }),

@@ -17,6 +17,10 @@ export async function POST(request: Request, store: CloudflareVectorizeStore, _:
 	if (!body.pageContent || !body.url) {
 		return new Response(JSON.stringify({ message: 'Invalid Page Content' }), { status: 400 });
 	}
+
+	// TODO: FIX THIS,BUT TEMPERORILY TRIM page content to 1000 words
+	body.pageContent = body.pageContent.split(' ').slice(0, 1000).join(' ');
+
 	const newPageContent = `Title: ${body.title}\nDescription: ${body.description}\nURL: ${body.url}\nContent: ${body.pageContent}`;
 
 	const ourID = `${body.url}-${body.user}`;
@@ -31,7 +35,7 @@ export async function POST(request: Request, store: CloudflareVectorizeStore, _:
 			{
 				pageContent: newPageContent,
 				metadata: {
-					title: body.title ?? '',
+					title: body.title?.slice(0, 50) ?? '',
 					description: body.description ?? '',
 					space: body.space ?? '',
 					url: body.url,
