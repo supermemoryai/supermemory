@@ -4,14 +4,12 @@ import { db } from "@/server/db";
 import {
   contentToSpace,
   sessions,
-  StoredContent,
   storedContent,
-  StoredSpace,
   users,
   space,
 } from "@/server/db/schema";
 import { SearchResult } from "@/contexts/MemoryContext";
-import { like, eq, and, sql, exists, asc, notExists } from "drizzle-orm";
+import { like, eq, and, sql, exists, asc, notExists, inArray, notInArray } from "drizzle-orm";
 import { union } from "drizzle-orm/sqlite-core";
 import { env } from "@/env";
 
@@ -80,6 +78,22 @@ export async function searchMemoriesAndSpaces(
   } catch {
     return [];
   }
+}
+
+export async function getMemoriesFromUrl(urls: string[]) {
+
+  const user = await getUser();
+
+  if (!user) {
+    return [];
+  }
+
+	return urls.length > 0 ? await db.select()
+		.from(storedContent)
+		.where(and(
+			inArray(storedContent.url, urls),
+			eq(storedContent.user, user.id)
+		)).all() : []
 }
 
 async function getUser() {
@@ -167,6 +181,38 @@ export async function addSpace(name: string, memories: number[]) {
   };
 }
 
+export async function fetchContent(id: number) {
+	
+	
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+
+	const fetchedMemory = await db.select()
+		.from(storedContent)
+		.where(and(
+			eq(storedContent.id, id),
+			eq(storedContent.user, user.id)
+		));
+	
+	const memory = fetchedMemory.length > 0 ? fetchedMemory[0] : null
+	
+	const spaces = memory ? await db.select()
+		.from(contentToSpace)
+		.where(
+			eq(contentToSpace.contentId, memory.id)
+		) : []
+	
+
+	return {
+		memory,
+		spaces: spaces.map(s => s.spaceId)
+	}
+
+}
+
 export async function fetchContentForSpace(
   spaceId: number,
   range?: {
@@ -174,6 +220,13 @@ export async function fetchContentForSpace(
     limit: number;
   },
 ) {
+
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+
   const query = db
     .select()
     .from(storedContent)
@@ -184,9 +237,19 @@ export async function fetchContentForSpace(
           .from(contentToSpace)
           .where(
             and(
-              eq(contentToSpace.spaceId, spaceId),
-              eq(contentToSpace.contentId, storedContent.id),
-            ),
+							and(
+								eq(contentToSpace.spaceId, spaceId),
+								eq(contentToSpace.contentId, storedContent.id),
+							),
+							exists(
+								db.select()
+									.from(space)
+									.where(and(
+										eq(space.user, user.id),
+										eq(space.id, contentToSpace.spaceId)
+									))
+							)
+						)
           ),
       ),
     )
@@ -207,25 +270,30 @@ export async function fetchFreeMemories(range?: {
     return [];
   }
 
-  const query = db
-    .select()
-    .from(storedContent)
-    .where(
-      and(
-        notExists(
-          db
-            .select()
-            .from(contentToSpace)
-            .where(eq(contentToSpace.contentId, storedContent.id)),
-        ),
-        eq(storedContent.user, user.id),
-      ),
-    )
-    .orderBy(asc(storedContent.savedAt));
+	try {
+		const query = db
+			.select()
+			.from(storedContent)
+			.where(
+				and(
+					notExists(
+						db
+							.select()
+							.from(contentToSpace)
+							.where(eq(contentToSpace.contentId, storedContent.id)),
+					),
+					eq(storedContent.user, user.id),
+				),
+			)
+			.orderBy(asc(storedContent.savedAt));
 
-  return range
-    ? await query.limit(range.limit).offset(range.offset)
-    : await query.all();
+		return range
+			? await query.limit(range.limit).offset(range.offset)
+			: await query.all();
+	} catch {
+		return []
+	}
+
 }
 
 export async function addMemory(
@@ -238,7 +306,7 @@ export async function addMemory(
     return null;
   }
 
-  if (!content.content || content.content == "") {
+  if (!content.content || content.content.trim() === "") {
     const resp = await fetch(
       `https://cf-ai-backend.dhravya.workers.dev/getPageContent?url=${content.url}`,
       {
@@ -259,30 +327,7 @@ export async function addMemory(
     return null;
   }
 
-  console.log(content);
-
-  console.log({ ...content, user: user.email });
-
-  // Add to vectorDB
-  const res = (await Promise.race([
-    fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
-      method: "POST",
-      headers: {
-        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-      },
-      body: JSON.stringify({
-        pageContent: content.content,
-        title: content.title,
-        url: content.url,
-        user: user.email,
-      }),
-    }),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), 40000),
-    ),
-  ])) as Response;
-
-  const [addedMemory] = await db
+  let [addedMemory] = await db
     .insert(storedContent)
     .values({
       user: user.id,
@@ -303,9 +348,139 @@ export async function addMemory(
           .returning()
       : [];
 
+	if (content.type === 'note') {
+		addedMemory = (await db.update(storedContent)
+			.set({
+				url: addedMemory.url + addedMemory.id
+			})
+			.where(eq(storedContent.id, addedMemory.id))
+			.returning())[0]
+	}
+
+
+  // Add to vectorDB
+  const res = (await Promise.race([
+    fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
+      method: "POST",
+      headers: {
+        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+      },
+      body: JSON.stringify({
+        pageContent: addedMemory.content,
+        title: addedMemory.title,
+        url: addedMemory.url,
+        user: user.email,
+      }),
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), 40000),
+    ),
+  ])) as Response;
+
   return {
     memory: addedMemory,
     addedToSpaces,
+  };
+}
+
+
+export async function updateMemory(
+	id: number,
+	{ title, content, spaces }: {
+		title?: string;
+		content?: string;
+		spaces?: number[]
+	}
+) {
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+
+	console.log("updating")
+
+	const [prev] = await db.select()
+		.from(storedContent)
+		.where(and(
+			eq(storedContent.user, user.id),
+			eq(storedContent.id, id)
+		));
+	
+	if (!prev) {
+		return null
+	}
+
+	const newContent = {
+		...(title ? { title }: {}),
+		...(content ? { content }: {}),
+	}
+
+	const updated = {
+		...newContent,
+		...prev
+	}
+
+  // Add to vectorDB
+  const res = (await Promise.race([
+    fetch("https://cf-ai-backend.dhravya.workers.dev/edit?uniqueUrl="+updated.url , {
+      method: "POST",
+      headers: {
+        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+      },
+      body: JSON.stringify({
+        pageContent: updated.content,
+        title: updated.title,
+        url: updated.url,
+        user: user.email,
+      }),
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), 40000),
+    ),
+  ])) as Response;
+
+  const [updatedMemory] = await db
+    .update(storedContent)
+    .set(newContent)
+		.where(
+			eq(storedContent.id, id)
+		)
+    .returning();
+	
+	console.log(updatedMemory, newContent)
+
+	const removedFromSpaces = spaces ? 
+		spaces.length > 0 ? 
+			await db.delete(contentToSpace)
+				.where(and(
+					notInArray(contentToSpace.spaceId, spaces),
+					eq(contentToSpace.contentId, id)
+				)).returning()
+			: await db.delete(contentToSpace)
+				.where(
+					eq(contentToSpace.contentId, id)
+				)
+		: [];
+
+  const addedToSpaces =
+    (spaces && spaces.length > 0)
+      ? await db
+          .insert(contentToSpace)
+          .values(
+            spaces.map((s) => ({
+              contentId: id,
+              spaceId: s,
+            })),
+          )
+					.onConflictDoNothing()
+          .returning()
+      : [];
+
+  return {
+    memory: updatedMemory,
+    addedToSpaces,
+		removedFromSpaces
   };
 }
 
@@ -339,6 +514,21 @@ export async function deleteMemory(id: number) {
     .delete(storedContent)
     .where(and(eq(storedContent.user, user.id), eq(storedContent.id, id)))
     .returning();
+
+	if (deleted) {
+		
+  const res = (await Promise.race([
+    fetch(`https://cf-ai-backend.dhravya.workers.dev/delete?websiteUrl=${deleted.url}&user=${user.email}` , {
+      method: "DELETE",
+      headers: {
+        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+      }
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), 40000),
+    ),
+		])) as Response;
+	}
 
   return deleted;
 }

@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemory } from "@/contexts/MemoryContext";
 
 import Image from "next/image";
+import { getMemoriesFromUrl } from "@/actions/db";
 
 function supportsDVH() {
   try {
@@ -185,11 +186,25 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       },
     );
 
-    const sourcesInJson = (await sourcesResponse.json()) as {
-      ids: string[];
-    };
 
-    console.log(sourcesInJson);
+    const sourcesInJson = getIdsFromSource(((await sourcesResponse.json()) as {
+      ids: string[]
+    }).ids) ?? [];
+
+
+		const notesInSources = sourcesInJson.filter(
+			(urls) => urls.startsWith("https://notes.supermemory.dhr.wtf/")
+		)
+		const nonNotes = sourcesInJson.filter(
+			i => !notesInSources.includes(i)
+		)
+
+		const fetchedTitles = await getMemoriesFromUrl(notesInSources);
+		
+		const sources = [
+			...nonNotes.map(n => ({ isNote: false, source: n ?? "<unnamed>" })),
+			...fetchedTitles.map(n => ({ isNote: true, source: n.title ?? "<unnamed>" }))
+		]
 
     setIsAiLoading(false);
     setChatHistory((prev) => {
@@ -200,7 +215,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           ...lastMessage,
           answer: {
             parts: lastMessage.answer.parts,
-            sources: getIdsFromSource(sourcesInJson.ids) ?? [],
+						sources
           },
         },
       ];

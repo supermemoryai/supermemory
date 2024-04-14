@@ -37,15 +37,15 @@ import {
   DialogFooter,
   DialogClose,
 } from "../ui/dialog";
-import { Label } from "../ui/label";
 import useViewport from "@/hooks/useViewport";
 import useTouchHold from "@/hooks/useTouchHold";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { AddMemoryPage, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
 import { ExpandedSpace } from "./ExpandedSpace";
 import { StoredContent, StoredSpace } from "@/server/db/schema";
-import Image from "next/image";
 import { useDebounce } from "@/hooks/useDebounce";
+import { NoteEdit } from "./EditNoteDialog";
+import DeleteConfirmation from "./DeleteConfirmation";
 
 export function MemoriesBar() {
   const [parent, enableAnimations] = useAutoAnimate();
@@ -194,39 +194,58 @@ const SpaceExitVariant: Variant = {
   },
 };
 
-export function MemoryItem({ id, title, image, type }: StoredContent) {
+export function MemoryItem(props: StoredContent) {
+	
+	const { id, title, image, type } = props
+
   const name = title
     ? title.length > 10
       ? title.slice(0, 10) + "..."
       : title
     : "<no title>";
 
-  return (
-    <div className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
-      <button data-space-text className="focus-visible:outline-none">
-        {name}
-      </button>
+	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-      <div className="flex h-24 w-24 items-center justify-center">
-        {type === "page" ? (
-          <img
-            className="h-16 w-16"
-            id={id.toString()}
-            src={image!}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                "/icons/white_without_bg.png";
-            }}
-          />
-        ) : type === "note" ? (
-          <div className="bg-rgray-4 flex items-center justify-center rounded-md p-2 shadow-md">
-            <Text className="h-10 w-10" />
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
-    </div>
+  return (
+		<Dialog open={type === "note" ? isDialogOpen : false} onOpenChange={setIsDialogOpen}>
+			<div onClick={() => setIsDialogOpen(true)} className="cursor-pointer hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
+				{
+					type === "note" ?
+					(
+						<DialogTrigger asChild>
+							<button data-space-text className="focus-visible:outline-none">
+								{name}
+							</button>
+						</DialogTrigger>
+					) : (
+						<button data-space-text className="focus-visible:outline-none">
+							{name}
+						</button>
+					)
+				}
+
+				<div className="flex h-24 w-24 items-center justify-center">
+					{type === "page" ? (
+						<img
+							className="h-16 w-16"
+							id={id.toString()}
+							src={image!}
+							onError={(e) => {
+								(e.target as HTMLImageElement).src =
+									"/icons/white_without_bg.png";
+							}}
+						/>
+					) : type === "note" ? (
+						<Text className="h-16 w-16" />
+					) : (
+						<></>
+					)}
+				</div>
+			</div>
+			<DialogContent className="w-max max-w-[auto]">
+				<NoteEdit closeDialog={() => setIsDialogOpen(false)} memory={props} />
+			</DialogContent>
+		</Dialog>
   );
 }
 
@@ -254,6 +273,9 @@ export function SpaceItem({
   }, [cachedMemories]);
 
   const _name = name.length > 10 ? name.slice(0, 10) + "..." : name;
+
+	console.log(spaceMemories)
+
   return (
     <motion.div
       ref={itemRef}
@@ -396,7 +418,7 @@ export function SpaceMoreButton({
   setIsOpen?: (open: boolean) => void;
 }) {
   return (
-    <Dialog>
+		<DeleteConfirmation onDelete={onDelete} trigger={false}>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -426,25 +448,7 @@ export function SpaceMoreButton({
           </DialogTrigger>
         </DropdownMenuContent>
       </DropdownMenu>
-      <DialogContent>
-        <DialogTitle className="text-xl">Are you sure?</DialogTitle>
-        <DialogDescription className="text-md">
-          You will not be able to recover this space
-        </DialogDescription>
-        <DialogFooter>
-          <DialogClose
-            type={undefined}
-            onClick={onDelete}
-            className="ml-auto flex items-center justify-center rounded-md bg-red-500/40 px-3 py-2 transition hover:bg-red-500/60 focus-visible:bg-red-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-          >
-            Delete
-          </DialogClose>
-          <DialogClose className="focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 hover:bg-rgray-4 ml-auto flex items-center justify-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2">
-            Cancel
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DeleteConfirmation>
   );
 }
 

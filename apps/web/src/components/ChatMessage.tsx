@@ -1,9 +1,10 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Globe } from "lucide-react";
+import { ArrowUpRight, Globe, Text } from "lucide-react";
 import { convertRemToPixels } from "@/lib/utils";
 import { SpaceIcon } from "@/assets/Memories";
 import Markdown from "react-markdown";
+import { ChatHistory } from "../../types/memory";
 
 export function ChatAnswer({
   children: message,
@@ -11,7 +12,7 @@ export function ChatAnswer({
   loading = false,
 }: {
   children: string;
-  sources?: string[];
+  sources?: ChatHistory['answer']['sources'];
   loading?: boolean;
 }) {
   return (
@@ -29,15 +30,22 @@ export function ChatAnswer({
             <SpaceIcon className="h-6 w-6 -translate-y-[2px]" />
             Related Memories
           </h1>
-          <div className="animate-fade-in -mt-3 flex items-center justify-start opacity-0 [animation-duration:1s]">
-            {sources?.map((source) => (
+          <div className="animate-fade-in gap-1 -mt-3 flex items-center justify-start opacity-0 [animation-duration:1s]">
+            {sources?.map((source) => source.isNote ? (
+							<button
+                className="bg-rgray-3 flex items-center justify-center gap-2 rounded-full py-1 pl-2 pr-3 text-sm"
+							>
+								<Text className="w-4 h-4" />
+								{source.source}
+							</button>
+						) : (
               <a
                 className="bg-rgray-3 flex items-center justify-center gap-2 rounded-full py-1 pl-2 pr-3 text-sm"
-                key={source}
-                href={source}
+                key={source.source}
+                href={source.source}
               >
                 <Globe className="h-4 w-4" />
-                {cleanUrl(source)}
+                {cleanUrl(source.source)}
               </a>
             ))}
           </div>

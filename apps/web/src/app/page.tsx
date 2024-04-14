@@ -64,8 +64,6 @@ export default async function Home() {
   // Fetch only first 3 content of each spaces
   let contents: ChachedSpaceContent[] = [];
 
-  //console.log(await db.select().from(storedContent).)
-
   await Promise.all([
     collectedSpaces.forEach(async (space) => {
       console.log("fetching ");
@@ -82,7 +80,7 @@ export default async function Home() {
     }),
   ]);
 
-  console.log(contents);
+  console.log('contents', contents);
 
   // freeMemories
   const freeMemories = await fetchFreeMemories(userData.id);

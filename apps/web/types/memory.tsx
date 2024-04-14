@@ -125,6 +125,6 @@ export type ChatHistory = {
   question: string;
   answer: {
     parts: { text: string }[];
-    sources: string[];
+    sources: { isNote: boolean; source: string }[];
   };
 };

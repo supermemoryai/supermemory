@@ -90,6 +90,7 @@ export function FilterSpaces({
 				align={align}
 				side={side}
 				className="w-[200px] p-0"
+				onCloseAutoFocus={e => e.preventDefault()}
 			>
 				<Command
 					filter={(val, search) =>
@@ -128,7 +129,7 @@ export function FilterSpaces({
 											className="text-rgray-11"
 										>
 											<SpaceIcon className="mr-2 h-4 w-4" />
-											{space.name}
+											{space.name.length > 10 ? space.name.slice(0, 10) + "..." : space.name}
 											{selectedSpaces.includes(space.id)}
 											<Check
 												data-state-on={selectedSpaces.includes(space.id)}
@@ -267,7 +268,7 @@ export function FilterMemories({
                           }
                           className="mr-2 h-4 w-4"
                         />
-                        {m.title}
+												{(m.title && m.title?.length > 14) ? m.title?.slice(0, 14) + "..." : m.title}
                         <Check
                           data-state-on={
                             selected.find((i) => i.id === m.id) !== undefined

@@ -14,6 +14,7 @@ import {
   deleteSpace,
   deleteMemory,
   fetchFreeMemories,
+  updateMemory,
 } from "@/actions/db";
 import { User } from "next-auth";
 
@@ -33,6 +34,7 @@ export const MemoryContext = React.createContext<{
   search: typeof searchMemoriesAndSpaces;
   deleteSpace: typeof deleteSpace;
   deleteMemory: typeof deleteMemory;
+	updateMemory: typeof updateMemory;
 }>({
   spaces: [],
   freeMemories: [],
@@ -42,6 +44,7 @@ export const MemoryContext = React.createContext<{
   search: async () => [],
   deleteMemory: (() => {}) as unknown as typeof deleteMemory,
   deleteSpace: (() => {}) as unknown as typeof deleteSpace,
+  updateMemory: (() => {}) as unknown as typeof updateMemory,
 });
 
 export const MemoryProvider: React.FC<
@@ -98,7 +101,7 @@ export const MemoryProvider: React.FC<
       await fetchContentForSpace(addedSpace.id, {
         offset: 0,
         limit: 3,
-      })
+      }) ?? []
     ).map((m) => ({ ...m, space: addedSpace.id }));
 
     setCachedMemories((prev) => [...prev, ...cachedMemories]);
@@ -132,6 +135,40 @@ export const MemoryProvider: React.FC<
     };
   };
 
+	const _updateMemory: typeof updateMemory = async (id, _data) => {
+		const data = await updateMemory(id, _data);
+
+		console.log(data)
+
+		if (data) {
+			if (!_data.spaces) {
+				console.log("non spaces", freeMemories.map(i => i.id === data.memory.id ? data.memory : i ))
+				setCachedMemories(prev => prev.map(i => i.id === data.memory.id ? { ...data.memory, space: i.space } : i ))
+				setFreeMemories(prev => prev.map(i => i.id === data.memory.id ? data.memory : i ))
+				return data
+			}
+			setCachedMemories(prev => prev.filter(i => i.id !== data.memory.id))
+			setFreeMemories(prev => prev.filter(i => i.id !== data.memory.id))
+			if (_data.spaces.length > 0) {
+				console.log('has space')
+				setCachedMemories(
+					prev => [
+						...prev,
+						..._data.spaces!.map(s => ({
+							...data.memory,
+							space: s
+						}))
+					]
+				)
+			} else {
+				console.log('does nto have space')
+				setFreeMemories(prev => [...prev, data.memory])
+			}
+		}
+		
+		return data
+	}
+
   return (
     <MemoryContext.Provider
       value={{
@@ -143,6 +180,7 @@ export const MemoryProvider: React.FC<
         cachedMemories,
         deleteMemory: _deleteMemory,
         addMemory: _addMemory,
+				updateMemory: _updateMemory
       }}
     >
       {children}
