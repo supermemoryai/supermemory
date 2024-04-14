@@ -196,7 +196,9 @@ const SpaceExitVariant: Variant = {
 
 export function MemoryItem(props: StoredContent) {
 	
-	const { id, title, image, type } = props
+	const { id, title, image, type, url } = props
+
+	const { deleteMemory } = useMemory()
 
   const name = title
     ? title.length > 10
@@ -208,7 +210,7 @@ export function MemoryItem(props: StoredContent) {
 
   return (
 		<Dialog open={type === "note" ? isDialogOpen : false} onOpenChange={setIsDialogOpen}>
-			<div onClick={() => setIsDialogOpen(true)} className="cursor-pointer hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
+			<div className="relative cursor-pointer hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
 				{
 					type === "note" ?
 					(
@@ -218,15 +220,18 @@ export function MemoryItem(props: StoredContent) {
 							</button>
 						</DialogTrigger>
 					) : (
-						<button data-space-text className="focus-visible:outline-none">
+						<button onClick={() => window.open(url)} data-space-text className="focus-visible:outline-none">
 							{name}
 						</button>
 					)
 				}
 
+				{type === "page" ? <PageMoreButton onDelete={() => deleteMemory(id)} url={url} /> : type === "note" ? <NoteMoreButton onEdit={() => setIsDialogOpen(true)} onDelete={() => deleteMemory(id)} /> : null}
+
 				<div className="flex h-24 w-24 items-center justify-center">
 					{type === "page" ? (
 						<img
+							onClick={() => window.open(url)}
 							className="h-16 w-16"
 							id={id.toString()}
 							src={image!}
@@ -236,7 +241,7 @@ export function MemoryItem(props: StoredContent) {
 							}}
 						/>
 					) : type === "note" ? (
-						<Text className="h-16 w-16" />
+						<Text onClick={() => setIsDialogOpen(true)} className="h-16 w-16" />
 					) : (
 						<></>
 					)}
@@ -437,6 +442,87 @@ export function SpaceMoreButton({
             Open
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {}}>
+            <Edit3 className="mr-2 h-4 w-4" strokeWidth={1.5} />
+            Edit
+          </DropdownMenuItem>
+          <DialogTrigger asChild>
+            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
+              <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              Delete
+            </DropdownMenuItem>
+          </DialogTrigger>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </DeleteConfirmation>
+  );
+}
+
+export function PageMoreButton({
+  onDelete,
+  isOpen,
+  setIsOpen,
+	url
+}: {
+  onDelete?: () => void;
+  isOpen?: boolean;
+	url: string;
+  setIsOpen?: (open: boolean) => void;
+}) {
+  return (
+		<DeleteConfirmation onDelete={onDelete} trigger={false}>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            data-more-button
+            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute right-2 top-2 scale-0 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 md:block md:scale-100 md:bg-transparent"
+          >
+            <MoreHorizontal className="text-rgray-11 h-5 w-5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={() => window.open(url)}>
+            <ArrowUpRight
+              className="mr-2 h-4 w-4 scale-125"
+              strokeWidth={1.5}
+            />
+            Open
+          </DropdownMenuItem>
+          <DialogTrigger asChild>
+            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
+              <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              Delete
+            </DropdownMenuItem>
+          </DialogTrigger>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </DeleteConfirmation>
+  );
+}
+
+export function NoteMoreButton({
+  onDelete,
+  isOpen,
+  setIsOpen,
+	onEdit,
+}: {
+  onDelete?: () => void;
+  isOpen?: boolean;
+	onEdit?: () => void;
+  setIsOpen?: (open: boolean) => void;
+}) {
+  return (
+		<DeleteConfirmation onDelete={onDelete} trigger={false}>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            data-more-button
+            className="hover:bg-rgray-3 focus-visible:bg-rgray-3 focus-visible:ring-rgray-7 absolute right-2 top-2 scale-0 rounded-md p-1 opacity-0 ring-transparent transition focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 md:block md:scale-100 md:bg-transparent"
+          >
+            <MoreHorizontal className="text-rgray-11 h-5 w-5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onClick={onEdit}>
             <Edit3 className="mr-2 h-4 w-4" strokeWidth={1.5} />
             Edit
           </DropdownMenuItem>
