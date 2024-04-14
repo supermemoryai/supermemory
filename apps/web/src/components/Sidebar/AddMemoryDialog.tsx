@@ -165,12 +165,13 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
           onClick={() => {
             if (check()) {
               setLoading(true);
+              const randomId = Math.floor(Math.random() * 1000000);
               addMemory(
                 {
                   content,
                   title: name,
                   type: "note",
-                  url: "https://notes.supermemory.dhr.wtf/",
+                  url: `https://notes.supermemory.dhr.wtf/${randomId}`,
                   image: "",
                   savedAt: new Date(),
                 },

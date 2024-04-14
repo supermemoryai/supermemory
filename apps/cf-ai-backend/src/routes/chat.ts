@@ -118,7 +118,9 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	// 	history: [...defaultHistory, ...(body.chatHistory ?? [])],
 	// });
 
-	const prompt = `Context:\n${preparedContext ?? ''}\n\nQuestion: ${query}\nAnswer:`;
+	const prompt =
+		`You are an agent that summarizes a page based on the query. don't say 'based on the context'. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format` +
+		`Context:\n${preparedContext ?? 'No context'}\n\nQuestion: ${query}\nAnswer:`;
 
 	// const output = await chat.sendMessageStream(prompt);
 
@@ -140,7 +142,7 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	// return response;
 	const ai = new Ai(env?.AI);
 	// @ts-ignore
-	const output: AiTextGenerationOutput = (await ai.run('@hf/thebloke/mistral-7b-instruct-v0.1-awq', {
+	const output: AiTextGenerationOutput = (await ai.run('@hf/mistralai/mistral-7b-instruct-v0.2', {
 		prompt,
 		stream: true,
 	})) as ReadableStream;
