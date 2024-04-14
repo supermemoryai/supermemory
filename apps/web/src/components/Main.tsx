@@ -185,7 +185,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         }),
       },
     );
-
+		
+		console.log("sources", sourcesResponse)
 
     const sourcesInJson = getIdsFromSource(((await sourcesResponse.json()) as {
       ids: string[]

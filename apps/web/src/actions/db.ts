@@ -424,7 +424,7 @@ export async function updateMemory(
 	console.log("adding with:", `${updated.url}-${user.email}`)
   // Add to vectorDB
   const res = (await Promise.race([
-    fetch("https://cf-ai-backend.dhravya.workers.dev/edit?uniqueUrl="+updated.url , {
+    fetch("https://cf-ai-backend.dhravya.workers.dev/edit", {
       method: "POST",
       headers: {
         "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
@@ -434,6 +434,7 @@ export async function updateMemory(
         title: updated.title,
         url: updated.url,
         user: user.email,
+				uniqueUrl: updated.url,
       }),
     }),
     new Promise((_, reject) =>
@@ -520,11 +521,15 @@ export async function deleteMemory(id: number) {
 		
 	console.log("adding with:", `${deleted.url}-${user.email}`)
   const res = (await Promise.race([
-    fetch(`https://cf-ai-backend.dhravya.workers.dev/delete?websiteUrl=${deleted.url}&user=${user.email}` , {
+    fetch(`https://cf-ai-backend.dhravya.workers.dev/delete` , {
       method: "DELETE",
       headers: {
         "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-      }
+      },
+			body: JSON.stringify({
+				websiteUrl: deleted.url,
+				user: user.email
+			})
     }),
     new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Request timed out")), 40000),
