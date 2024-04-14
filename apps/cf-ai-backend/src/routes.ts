@@ -7,6 +7,7 @@ import * as apiBatchUploadTweets from './routes/batchUploadTweets';
 import * as apiGetPageContent from './routes/getPageContent';
 import * as apiDelete from './routes/delete';
 import * as apiEdit from './routes/edit';
+import * as apiWipeData from './routes/wipedata';
 import { OpenAIEmbeddings } from './OpenAIEmbedder';
 import { GenerativeModel } from '@google/generative-ai';
 import { Request } from '@cloudflare/workers-types';
@@ -35,6 +36,7 @@ routeMap.set('/getPageContent', apiGetPageContent);
 routeMap.set('/delete', apiDelete);
 routeMap.set('/edit', apiEdit);
 
+routeMap.set('/wipedata', apiWipeData);
 // Add more route mappings as needed
 // routeMap.set('/api/otherRoute', { ... });
 
