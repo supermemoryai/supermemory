@@ -232,9 +232,16 @@ export function MemoryItem(props: StoredContent & { onDelete?: () => void; remov
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+	const [moreDropdownOpen, setMoreDropdownOpen] = useState(false)
+
+  const touchEventProps = useTouchHold({
+    onHold() {
+      setMoreDropdownOpen(true);
+    },
+  });
   return (
 		<Dialog open={type === "note" ? isDialogOpen : false} onOpenChange={setIsDialogOpen}>
-			<div className="cursor-pointer hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
+			<div {...touchEventProps} className="cursor-pointer hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
 				{
 					type === "note" ?
 					(
@@ -250,7 +257,11 @@ export function MemoryItem(props: StoredContent & { onDelete?: () => void; remov
 					)
 				}
 
-				{type === "page" ? <PageMoreButton removeFromSpace={removeFromSpace} onDelete={() => { deleteMemory(id); onDelete?.() }} url={url} /> : type === "note" ? <NoteMoreButton removeFromSpace={removeFromSpace} onEdit={() => setIsDialogOpen(true)} onDelete={() => { deleteMemory(id); onDelete?.() }} /> : null}
+				{type === "page" ? 
+					<PageMoreButton isOpen={moreDropdownOpen} setIsOpen={setMoreDropdownOpen} removeFromSpace={removeFromSpace} onDelete={() => { deleteMemory(id); onDelete?.() }} url={url} /> : 
+					type === "note" ? 
+					<NoteMoreButton isOpen={moreDropdownOpen} setIsOpen={setMoreDropdownOpen} removeFromSpace={removeFromSpace} onEdit={() => setIsDialogOpen(true)} onDelete={() => { deleteMemory(id); onDelete?.() }} />
+				: null}
 
 				<div className="flex h-24 w-24 items-center justify-center">
 					{type === "page" ? (
