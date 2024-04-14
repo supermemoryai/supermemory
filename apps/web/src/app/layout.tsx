@@ -25,6 +25,13 @@ export const metadata: Metadata = {
     site: "https://supermemory.dhr.wtf",
     creator: "@dhravyashah",
     description: "Save your memories forever, build your own second brain.",
+    images: [
+      {
+        url: "https://supermemory.dhr.wtf/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
 };
 
