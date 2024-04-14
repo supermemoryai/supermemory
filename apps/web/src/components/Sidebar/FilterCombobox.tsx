@@ -155,6 +155,8 @@ export type FilterMemoriesProps = {
   onClose?: () => void;
   selected: StoredContent[];
   setSelected: React.Dispatch<React.SetStateAction<StoredContent[]>>;
+	fromSpaces?: number[];
+	notInSpaces?: number[];
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export function FilterMemories({
@@ -164,6 +166,8 @@ export function FilterMemories({
   onClose,
   selected,
   setSelected,
+	fromSpaces,
+	notInSpaces,
   ...props
 }: FilterMemoriesProps) {
   const { search } = useMemory();
@@ -191,6 +195,9 @@ export function FilterMemories({
             memories: true,
             spaces: false,
           },
+					memoriesRelativeToSpace: {
+						fromSpaces, notInSpaces
+					}
         });
         setSearchResults(results);
         setIsSearching(false);

@@ -58,7 +58,7 @@ body {
 }
 
 .chat-answer code  {
-  @apply bg-rgray-3 rounded-md border border-rgray-5 p-1 text-sm text-rgray-11;
+  @apply bg-rgray-3 text-wrap	rounded-md border border-rgray-5 p-1 text-sm text-rgray-11;
 }
 
 .novel-editor pre {

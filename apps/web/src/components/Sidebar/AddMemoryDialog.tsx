@@ -13,25 +13,24 @@ import { useEffect, useRef, useState } from "react";
 import { FilterMemories, FilterSpaces } from "./FilterCombobox";
 import { useMemory } from "@/contexts/MemoryContext";
 import { Loader, Plus, X } from "lucide-react";
-import { StoredContent } from "@/server/db/schema";
+import { StoredContent, StoredSpace } from "@/server/db/schema";
 import { cleanUrl } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { getMetaData } from "@/server/helpers";
 
-export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
+export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog: () => void, defaultSpaces?: number[], onAdd?: (addedData: StoredContent) => void }) {
   const { addMemory } = useMemory();
 
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState("");
-  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
+  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(defaultSpaces ?? []);
 
   return (
     <div className="md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add a web page to memory</DialogTitle>
         <DialogDescription>
-          This will take you the web page you are trying to add to memory, where
-          the extension will save the page to memory
+					This will fetch the content of the web page and add it to the memory
         </DialogDescription>
       </DialogHeader>
       <Label className="mt-5 block">URL</Label>
@@ -58,7 +57,7 @@ export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
           onClick={async () => {
             setLoading(true);
             const metadata = await getMetaData(url);
-            await addMemory(
+            const data = await addMemory(
               {
                 title: metadata.title,
                 description: metadata.description,
@@ -70,6 +69,7 @@ export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
               },
               selectedSpacesId,
             );
+						if (data) onAdd?.(data.memory)
             closeDialog();
           }}
           className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
@@ -99,10 +99,10 @@ export function AddMemoryPage({ closeDialog }: { closeDialog: () => void }) {
   );
 }
 
-export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
+export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog: () => void, defaultSpaces?: number[], onAdd?: (addedData: StoredContent) => void }) {
   const { addMemory } = useMemory();
 
-  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>([]);
+  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(defaultSpaces ?? []);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
@@ -175,7 +175,10 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
                   savedAt: new Date(),
                 },
                 selectedSpacesId,
-              ).then(closeDialog);
+              ).then((data) => {
+								if (data?.memory) onAdd?.(data.memory)
+								closeDialog()
+							});
             }
           }}
           disabled={loading}
@@ -207,7 +210,7 @@ export function NoteAddPage({ closeDialog }: { closeDialog: () => void }) {
   );
 }
 
-export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
+export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, onAdd?: (addedData: StoredSpace) => void }) {
   const { addSpace } = useMemory();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -289,7 +292,10 @@ export function SpaceAddPage({ closeDialog }: { closeDialog: () => void }) {
               addSpace(
                 name,
                 selected.map((s) => s.id),
-              ).then(() => closeDialog());
+              ).then((data) => {
+								if (data) onAdd?.(data.space)
+								closeDialog()
+							});
             }
           }}
           disabled={loading}
@@ -329,24 +335,115 @@ export function MemorySelectedItem({
   onRemove,
 }: StoredContent & { onRemove: () => void }) {
   return (
-    <div className="hover:bg-rgray-4 focus-within-bg-rgray-4 flex w-full items-center justify-start gap-2 rounded-md p-1 px-2 text-sm [&:hover>[data-icon]]:block [&:hover>img]:hidden">
-      <img
-        src={
-          type === "note" ? "/note.svg" : image ?? "/icons/logo_without_bg.png"
-        }
-        className="h-5 w-5"
-      />
+    <div className="hover:bg-rgray-4 focus-within-bg-rgray-4 flex w-full items-center justify-start gap-2 rounded-md p-2 px-3 text-sm [&:hover_[data-icon]]:block [&:hover_img]:hidden">
       <button
         onClick={onRemove}
-        data-icon
-        className="m-0 hidden h-5 w-5 p-0 focus-visible:outline-none"
+        className="m-0 h-5 w-5 p-0 [&:focus-visible>[data-icon]]:block [&:focus-visible>img]:hidden focus-visible:outline-none focus-visible:ring-2 ring-rgray-7 rounded-sm ring-offset-2 ring-offset-rgray-3"
       >
-        <X className="h-5 w-5 scale-90" />
+				<img
+					src={
+						type === "note" ? "/note.svg" : image ?? "/icons/logo_without_bg.png"
+					}
+					className="h-5 w-5"
+				/>
+        <X data-icon className="h-5 w-5 hidden scale-90" />
       </button>
       <span>{title}</span>
       <span className="ml-auto block opacity-50">
         {type === "note" ? "Note" : cleanUrl(url)}
       </span>
+    </div>
+  );
+}
+
+export function AddExistingMemoryToSpace({
+	space,
+	closeDialog,
+	fromSpaces,
+	notInSpaces,
+	onAdd
+}: { 
+	space: { title: string, id: number }, 
+	closeDialog: () => void,
+	fromSpaces?: number[],
+	notInSpaces?: number[],
+	onAdd?: () => void;
+}) {
+  const { addMemoriesToSpace } = useMemory();
+
+  const [loading, setLoading] = useState(false);
+
+  const [selected, setSelected] = useState<StoredContent[]>([]);
+
+  return (
+    <div className="md:w-[40vw]">
+      <DialogHeader>
+        <DialogTitle>Add an existing memory to {space.title}</DialogTitle>
+				<DialogDescription>
+					Pick the memories you want to add to this space
+				</DialogDescription>
+      </DialogHeader>
+      {selected.length > 0 && (
+        <>
+          <Label className="mt-5 block">Add Memories</Label>
+          <div className="flex min-h-5 flex-col items-center justify-center py-2">
+            {selected.map((i) => (
+              <MemorySelectedItem
+                key={i.id}
+                onRemove={() =>
+                  setSelected((prev) => prev.filter((p) => p.id !== i.id))
+                }
+                {...i}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      <DialogFooter>
+        <FilterMemories
+          selected={selected}
+          setSelected={setSelected}
+          disabled={loading}
+					fromSpaces={fromSpaces}
+					notInSpaces={notInSpaces}
+          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 mr-auto bg-white/5 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <Plus className="h-5 w-5" />
+          Memory
+        </FilterMemories>
+        <button
+          type={undefined}
+          onClick={() => {
+						setLoading(true);
+						addMemoriesToSpace(space.id, selected.map(i => i.id)).then(() => { 
+							onAdd?.()
+							closeDialog();
+						});
+          }}
+          disabled={loading}
+          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <motion.div
+            initial={{ x: "-50%", y: "-100%" }}
+            animate={loading && { y: "-50%", x: "-50%", opacity: 1 }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[-100%] opacity-0"
+          >
+            <Loader className="text-rgray-11 h-5 w-5 animate-spin" />
+          </motion.div>
+          <motion.div
+            initial={{ y: "0%" }}
+            animate={loading && { opacity: 0, y: "30%" }}
+          >
+            Add
+          </motion.div>
+        </button>
+        <DialogClose
+          disabled={loading}
+          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          Cancel
+        </DialogClose>
+      </DialogFooter>
     </div>
   );
 }

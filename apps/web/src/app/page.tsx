@@ -1,10 +1,8 @@
 import { db } from "@/server/db";
 import {
   ChachedSpaceContent,
-  contentToSpace,
   sessions,
   space,
-  StoredContent,
   storedContent,
   users,
 } from "@/server/db/schema";
@@ -14,8 +12,7 @@ import { redirect } from "next/navigation";
 import {
   fetchContentForSpace,
   fetchFreeMemories,
-  transformContent,
-} from "../../types/memory";
+} from "@/actions/db";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
 
@@ -71,7 +68,7 @@ export default async function Home() {
         await fetchContentForSpace(space.id, {
           offset: 0,
           limit: 3,
-        })
+        }) ?? []
       ).map((data) => ({
         ...data,
         space: space.id,
@@ -83,7 +80,7 @@ export default async function Home() {
   console.log('contents', contents);
 
   // freeMemories
-  const freeMemories = await fetchFreeMemories(userData.id);
+  const freeMemories = await fetchFreeMemories();
   console.log("free", freeMemories);
 
   return (

@@ -23,12 +23,16 @@ export default function Sidebar({
   selectChange?: (selectedItem: string | null) => void;
   jwt: string;
 }) {
+
   const { data: session } = useSession();
+
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+
   const menuItemsTop: Array<MenuItem> = [
     {
       icon: <MemoryIcon className="h-10 w-10" />,
       label: "Memories",
-      content: <MemoriesBar />,
+      content: <MemoriesBar isOpen={selectedItem !== null} />,
     },
   ];
 
@@ -61,7 +65,6 @@ export default function Sidebar({
   ];
 
   const menuItems = [...menuItemsTop, ...menuItemsBottom];
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   const Subbar = menuItems.find((i) => i.label === selectedItem)?.content ?? (
     <></>
@@ -79,7 +82,7 @@ export default function Sidebar({
             item={{
               label: "Memories",
               icon: <MemoryIcon className="h-10 w-10" />,
-              content: <MemoriesBar />,
+              content: <MemoriesBar isOpen={selectedItem !== null} />,
             }}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
@@ -174,7 +177,9 @@ export function SubSidebar({ children }: { children?: React.ReactNode }) {
         }}
         className="z-[10] flex h-full w-full min-w-full flex-col items-center opacity-0"
       >
-        {children}
+				<AnimatePresence>
+					{children}
+				</AnimatePresence>
       </motion.div>
     </motion.div>
   );

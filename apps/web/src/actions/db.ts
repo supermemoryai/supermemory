@@ -7,6 +7,7 @@ import {
   storedContent,
   users,
   space,
+  StoredContent,
 } from "@/server/db/schema";
 import { SearchResult } from "@/contexts/MemoryContext";
 import { like, eq, and, sql, exists, asc, notExists, inArray, notInArray } from "drizzle-orm";
@@ -19,6 +20,10 @@ export async function searchMemoriesAndSpaces(
   opts?: {
     filter?: { memories?: boolean; spaces?: boolean };
     range?: { offset: number; limit: number };
+		memoriesRelativeToSpace?: {
+			fromSpaces?: number[];
+			notInSpaces?: number[];
+		}
   },
 ): Promise<SearchResult[]> {
   const user = await getUser();
@@ -27,8 +32,29 @@ export async function searchMemoriesAndSpaces(
     return [];
   }
 
+	const defaultWhere = and(
+		eq(storedContent.user, user.id),
+		like(storedContent.title, `%${query}%`),
+	)
+	const extraWheres = []
+
+	if (opts?.memoriesRelativeToSpace) {
+		if (opts.memoriesRelativeToSpace.fromSpaces) {
+			extraWheres.push(exists(db.select().from(contentToSpace).where(and(
+				eq(contentToSpace.contentId, storedContent.id),
+				inArray(contentToSpace.spaceId, opts.memoriesRelativeToSpace.fromSpaces)
+			))))
+		}
+		if (opts.memoriesRelativeToSpace.notInSpaces) {
+			extraWheres.push(notExists(db.select().from(contentToSpace).where(and(
+				eq(contentToSpace.contentId, storedContent.id),
+				inArray(contentToSpace.spaceId, opts.memoriesRelativeToSpace.notInSpaces)
+			))))
+		}
+	}
+
   try {
-    const searchMemoriesQuery = db
+    let searchMemoriesQuery = db
       .select({
         type: sql<string>`'memory'`,
         space: sql`NULL`,
@@ -36,14 +62,12 @@ export async function searchMemoriesAndSpaces(
       })
       .from(storedContent)
       .where(
-        and(
-          eq(storedContent.user, user.id),
-          like(storedContent.title, `%${query}%`),
-        ),
+				extraWheres.length == 2 ? and(and(...extraWheres), defaultWhere) : 
+					extraWheres.length == 1 ? and(...extraWheres, defaultWhere) : defaultWhere
       )
       .orderBy(asc(storedContent.savedAt));
 
-    const searchSpacesQuery = db
+    let searchSpacesQuery = db
       .select({
         type: sql<string>`'space'`,
         space: space as any,
@@ -129,22 +153,21 @@ async function getUser() {
   return userData;
 }
 
-export async function getMemory(title: string) {
+export async function getSpace(id: number) {
+	
   const user = await getUser();
 
   if (!user) {
     return null;
   }
+	
+	return (await db.select()
+		.from(space)
+		.where(and(
+			eq(space.id, id),
+			eq(space.user, user.id)
+		)))[0]
 
-  return await db
-    .select()
-    .from(storedContent)
-    .where(
-      and(
-        eq(storedContent.user, user.id),
-        like(storedContent.title, `%${title}%`),
-      ),
-    );
 }
 
 export async function addSpace(name: string, memories: number[]) {
@@ -296,6 +319,22 @@ export async function fetchFreeMemories(range?: {
 
 }
 
+export async function updateSpaceTitle(id: number, title: string) {
+
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+
+	return (await db.update(space).set({ name: title }).where(
+		and(
+			eq(space.id, id),
+			eq(space.user, user.id)
+		)
+	).returning())[0];
+}
+
 export async function addMemory(
   content: typeof storedContent.$inferInsert,
   spaces: number[],
@@ -383,13 +422,30 @@ export async function addMemory(
   };
 }
 
+export async function addContentInSpaces(id: number, contents: number[]) {
+	
+  const user = await getUser();
+
+  if (!user) {
+    return null;
+  }
+	
+	const data = contents.length > 0 ? await db.insert(contentToSpace).values(contents.map(i => ({
+		spaceId: id,
+		contentId: i
+	}))).returning() : []
+
+	return data
+
+}
 
 export async function updateMemory(
 	id: number,
-	{ title, content, spaces }: {
+	{ title, content, spaces, removedFromSpaces: removeSpaces }: {
 		title?: string;
 		content?: string;
-		spaces?: number[]
+		spaces?: number[];
+		removedFromSpaces?: number[];
 	}
 ) {
   const user = await getUser();
@@ -398,7 +454,9 @@ export async function updateMemory(
     return null;
   }
 
-	console.log("updating")
+	let updatedMemory: StoredContent | null = null;
+
+	if (title && content) {
 
 	const [prev] = await db.select()
 		.from(storedContent)
@@ -442,28 +500,47 @@ export async function updateMemory(
     ),
   ])) as Response;
 
-  const [updatedMemory] = await db
+  [updatedMemory] = await db
     .update(storedContent)
     .set(newContent)
-		.where(
-			eq(storedContent.id, id)
-		)
+		.where(and(
+			eq(storedContent.id, id),
+			eq(storedContent.user, user.id)
+		))
     .returning();
-	
-	console.log(updatedMemory, newContent)
+		
+		console.log(updatedMemory, newContent)
+	}
 
-	const removedFromSpaces = spaces ? 
-		spaces.length > 0 ? 
-			await db.delete(contentToSpace)
-				.where(and(
-					notInArray(contentToSpace.spaceId, spaces),
-					eq(contentToSpace.contentId, id)
-				)).returning()
-			: await db.delete(contentToSpace)
-				.where(
-					eq(contentToSpace.contentId, id)
-				)
-		: [];
+	if (!updatedMemory) {
+		[updatedMemory] = await db
+			.select()
+			.from(storedContent)
+			.where(and(
+				eq(storedContent.id, id),
+				eq(storedContent.user, user.id)
+			))
+	}
+
+	const removedFromSpaces = removeSpaces ? 
+			removeSpaces.length > 0 ?
+				await db.delete(contentToSpace)
+					.where(and(
+						inArray(contentToSpace.spaceId, removeSpaces),
+						eq(contentToSpace.contentId, id)
+					)).returning() : []
+		:	spaces ? 
+			spaces.length > 0 ? 
+				await db.delete(contentToSpace)
+					.where(and(
+						notInArray(contentToSpace.spaceId, spaces),
+						eq(contentToSpace.contentId, id)
+					)).returning()
+				: await db.delete(contentToSpace)
+					.where(
+						eq(contentToSpace.contentId, id)
+					)
+			: [];
 
   const addedToSpaces =
     (spaces && spaces.length > 0)
@@ -479,10 +556,16 @@ export async function updateMemory(
           .returning()
       : [];
 
+	const resultedSpaces = (await db.select()
+		.from(contentToSpace)
+		.where(eq(contentToSpace.contentId, id))
+		.all()).map(i => i.spaceId) ?? [];
+
   return {
     memory: updatedMemory,
     addedToSpaces,
-		removedFromSpaces
+		removedFromSpaces,
+		resultedSpaces
   };
 }
 

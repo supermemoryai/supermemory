@@ -15,6 +15,8 @@ import {
   deleteMemory,
   fetchFreeMemories,
   updateMemory,
+  updateSpaceTitle,
+  addContentInSpaces,
 } from "@/actions/db";
 import { User } from "next-auth";
 
@@ -35,6 +37,8 @@ export const MemoryContext = React.createContext<{
   deleteSpace: typeof deleteSpace;
   deleteMemory: typeof deleteMemory;
 	updateMemory: typeof updateMemory;
+	updateSpace: typeof updateSpaceTitle;
+	addMemoriesToSpace: typeof addContentInSpaces;
 }>({
   spaces: [],
   freeMemories: [],
@@ -45,6 +49,8 @@ export const MemoryContext = React.createContext<{
   deleteMemory: (() => {}) as unknown as typeof deleteMemory,
   deleteSpace: (() => {}) as unknown as typeof deleteSpace,
   updateMemory: (() => {}) as unknown as typeof updateMemory,
+  updateSpace: (() => {}) as unknown as typeof updateSpaceTitle,
+	addMemoriesToSpace: (() => {}) as unknown as typeof addContentInSpaces,
 });
 
 export const MemoryProvider: React.FC<
@@ -138,40 +144,78 @@ export const MemoryProvider: React.FC<
 	const _updateMemory: typeof updateMemory = async (id, _data) => {
 		const data = await updateMemory(id, _data);
 
-		console.log(data)
+		let contents: ChachedSpaceContent[] = [];
 
-		if (data) {
-			if (!_data.spaces) {
-				console.log("non spaces", freeMemories.map(i => i.id === data.memory.id ? data.memory : i ))
-				setCachedMemories(prev => prev.map(i => i.id === data.memory.id ? { ...data.memory, space: i.space } : i ))
-				setFreeMemories(prev => prev.map(i => i.id === data.memory.id ? data.memory : i ))
-				return data
-			}
-			setCachedMemories(prev => prev.filter(i => i.id !== data.memory.id))
-			setFreeMemories(prev => prev.filter(i => i.id !== data.memory.id))
-			if (_data.spaces.length > 0) {
-				console.log('has space')
-				setCachedMemories(
-					prev => [
-						...prev,
-						..._data.spaces!.map(s => ({
-							...data.memory,
-							space: s
-						}))
-					]
-				)
-			} else {
-				console.log('does nto have space')
-				setFreeMemories(prev => [...prev, data.memory])
-			}
+		await Promise.all([
+			spaces.forEach(async (space) => {
+				console.log("fetching ");
+				const data = (
+					await fetchContentForSpace(space.id, {
+						offset: 0,
+						limit: 3,
+					}) ?? []
+				).map((data) => ({
+					...data,
+					space: space.id,
+				}));
+				contents = [...contents, ...data];
+			}),
+		]);
+
+		const freeMemories = await fetchFreeMemories();
+
+		setCachedMemories(contents)
+		setFreeMemories(freeMemories)
+
+	
+		return data
+	}
+
+	const _updateSpace: typeof updateSpaceTitle = async (...params) => {
+		const updatedSpace = await updateSpaceTitle(...params);
+
+		if (updatedSpace) {
+			setSpaces(prev => prev.map(
+				i => i.id === updatedSpace.id ? updatedSpace : i
+			))
 		}
-		
+
+		return updatedSpace
+	}
+
+	const addMemoriesToSpace: typeof addContentInSpaces = async (...params) => {
+		const data = await addContentInSpaces(...params);
+
+		let contents: ChachedSpaceContent[] = [];
+
+		await Promise.all([
+			spaces.forEach(async (space) => {
+				console.log("fetching ");
+				const data = (
+					await fetchContentForSpace(space.id, {
+						offset: 0,
+						limit: 3,
+					}) ?? []
+				).map((data) => ({
+					...data,
+					space: space.id,
+				}));
+				contents = [...contents, ...data];
+			}),
+		]);
+
+		const freeMemories = await fetchFreeMemories();
+
+		setCachedMemories(contents)
+		setFreeMemories(freeMemories)
+
 		return data
 	}
 
   return (
     <MemoryContext.Provider
       value={{
+				updateSpace: _updateSpace,
         search: searchMemoriesAndSpaces,
         spaces,
         addSpace: _addSpace,
@@ -180,7 +224,8 @@ export const MemoryProvider: React.FC<
         cachedMemories,
         deleteMemory: _deleteMemory,
         addMemory: _addMemory,
-				updateMemory: _updateMemory
+				updateMemory: _updateMemory,
+				addMemoriesToSpace,
       }}
     >
       {children}

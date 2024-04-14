@@ -17,7 +17,7 @@ import { isArraysEqual } from "@/lib/utils";
 import DeleteConfirmation from "./DeleteConfirmation";
 
 
-export function NoteEdit({ memory, closeDialog }: { memory: StoredContent, closeDialog: () => any }) {
+export function NoteEdit({ memory, closeDialog, onDelete }: { memory: StoredContent, closeDialog: () => any, onDelete?: () => void }) {
   const { updateMemory, deleteMemory } = useMemory();
 
 	const [initialSpaces, setInitialSpaces] = useState<number[]>([])
@@ -90,6 +90,7 @@ export function NoteEdit({ memory, closeDialog }: { memory: StoredContent, close
         />
 				<DeleteConfirmation onDelete={() => {
 					deleteMemory(memory.id)
+					onDelete?.()
 				}}>
 					<button
 						type={undefined}
@@ -104,7 +105,6 @@ export function NoteEdit({ memory, closeDialog }: { memory: StoredContent, close
             if (check()) {
               setLoading(true);
 							console.log(
-
 								{
 									title: name === memory.title ? undefined : name,
 									content: content === memory.content ? undefined : content,

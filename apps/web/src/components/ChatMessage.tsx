@@ -43,6 +43,7 @@ export function ChatAnswer({
                 className="bg-rgray-3 flex items-center justify-center gap-2 rounded-full py-1 pl-2 pr-3 text-sm"
                 key={source.source}
                 href={source.source}
+								target="_blank"
               >
                 <Globe className="h-4 w-4" />
                 {cleanUrl(source.source)}
