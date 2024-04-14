@@ -4,6 +4,7 @@ import { CloudflareVectorizeStore } from '@langchain/cloudflare';
 import { Request } from '@cloudflare/workers-types';
 import puppeteer from '@cloudflare/puppeteer';
 
+// TODO: THIS DOESN'T WORK PROPERLY. FOR EG, FOR THIS URL https://dev.to/challenges/cloudflare, IT DOESN'T RETURN FULL CONTENT
 export async function GET(request: Request, _: CloudflareVectorizeStore, embeddings: OpenAIEmbeddings, model: GenerativeModel, env?: Env) {
 	const { searchParams } = new URL(request.url);
 	let url = searchParams.get('url');
@@ -14,7 +15,8 @@ export async function GET(request: Request, _: CloudflareVectorizeStore, embeddi
 		const page = await browser.newPage();
 		await page.goto(url);
 
-		// Innertext of content
+		await page.waitForSelector('body');
+
 		const contentElement = await page.$('body');
 		const content = await page.evaluate((element) => element.innerText, contentElement);
 
