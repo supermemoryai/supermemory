@@ -26,7 +26,7 @@ export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDial
   const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(defaultSpaces ?? []);
 
   return (
-    <div className="md:w-[40vw]">
+    <div className="max-w-[80vw] w-[80vw] md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add a web page to memory</DialogTitle>
         <DialogDescription>
@@ -133,7 +133,7 @@ export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog
   }
 
   return (
-    <div>
+    <div className="w-[80vw] md:w-auto">
       <Input
         ref={inputRef}
         data-error="false"
@@ -152,7 +152,7 @@ export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog
           setContent(editor.storage.markdown.getMarkdown());
         }}
         extensions={[Markdown]}
-        className="novel-editor bg-rgray-4 border-rgray-7 dark mt-5 max-h-[60vh] min-h-[40vh] w-[50vw] overflow-y-auto rounded-lg border [&>div>div]:p-5"
+        className="novel-editor w-full bg-rgray-4 border-rgray-7 dark mt-5 max-h-[60vh] min-h-[40vh] md:w-[50vw] overflow-y-auto rounded-lg border [&>div>div]:p-5"
       />
       <DialogFooter>
         <FilterSpaces
@@ -243,7 +243,7 @@ export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, 
   }
 
   return (
-    <div className="md:w-[40vw]">
+    <div className="w-[80vw] md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add a space</DialogTitle>
       </DialogHeader>
@@ -376,7 +376,7 @@ export function AddExistingMemoryToSpace({
   const [selected, setSelected] = useState<StoredContent[]>([]);
 
   return (
-    <div className="md:w-[40vw]">
+    <div className="w-[80vw] md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add an existing memory to {space.title}</DialogTitle>
 				<DialogDescription>

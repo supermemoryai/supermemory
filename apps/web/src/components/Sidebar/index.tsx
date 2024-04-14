@@ -1,12 +1,12 @@
 "use client";
 import { MemoryIcon } from "../../assets/Memories";
-import { Trash2, User2 } from "lucide-react";
+import { Box, LogOut, Trash2, User2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { MemoriesBar } from "./MemoriesBar";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bin } from "@/assets/Bin";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import MessagePoster from "@/app/MessagePoster";
 
 export type MenuItem = {
@@ -61,6 +61,7 @@ export default function Sidebar({
         </div>
       ),
       label: "Profile",
+			content: <ProfileTab open={selectedItem !== null} />
     },
   ];
 
@@ -88,6 +89,7 @@ export default function Sidebar({
             setSelectedItem={setSelectedItem}
           />
           <div className="mt-auto" />
+					{/*
           <MenuItem
             item={{
               label: "Trash",
@@ -97,6 +99,7 @@ export default function Sidebar({
             id="trash-button"
             setSelectedItem={setSelectedItem}
           />
+					*/}
           <MenuItem
             item={{
               label: "Profile",
@@ -118,11 +121,12 @@ export default function Sidebar({
                   </Avatar>
                 </div>
               ),
+							content: <ProfileTab open={selectedItem !== null} />
             }}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
           />
-          <MessagePoster jwt={jwt} />
+          {/* <MessagePoster jwt={jwt} /> */}
         </div>
         <AnimatePresence>
           {selectedItem && <SubSidebar>{Subbar}</SubSidebar>}
@@ -183,4 +187,96 @@ export function SubSidebar({ children }: { children?: React.ReactNode }) {
       </motion.div>
     </motion.div>
   );
+}
+
+export function ProfileTab({ open }: { open: boolean }) {
+
+	const { data: session } = useSession()
+
+	const [tweetStat, setTweetStat] = useState<[number, number] | null>();
+	const [memoryStat, setMemoryStat] = useState<[number, number] | null>();
+
+	const [loading, setLoading] = useState(true)
+
+	useEffect(() => {
+		fetch("/api/getCount").then(async resp => {
+			const data = await resp.json() as any;
+			setTweetStat([data.tweetsCount, data.tweetsLimit])
+			setMemoryStat([data.pageCount, data.pageLimit])
+			setLoading(false)
+		})
+	}, [open])
+
+	return (
+		<div className="text-rgray-11 h-full flex w-full font-normal flex-col items-start py-8 text-left">
+      <div className="w-full px-8">
+        <h1 className="w-full text-2xl font-medium">Profile</h1>
+				<div className="w-full mt-5 grid grid-cols-3">
+					<img
+						className="rounded-full"
+						src={session?.user?.image ?? "/icons/white_without_bg.png"}
+						onError={(e) => {
+							(e.target as HTMLImageElement).src = "/icons/white_without_bg.png"
+						}}
+					/>
+					<div className="col-span-2 flex flex-col justify-center items-start">
+						<h1 className="text-xl font-medium">{session?.user?.name}</h1>
+						<span>
+							{session?.user?.email}
+						</span>
+						<button
+							onClick={() => signOut()}
+							className="flex justify-center mt-auto gap-2 items-center bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+						>
+							<LogOut className="w-4 h-4" />
+							Logout
+						</button>
+					</div>
+				</div>
+			</div>
+      <div className="w-full mt-auto pt-8 px-8 border-t border-rgray-5">
+        <h1 className="w-full text-xl flex items-center gap-2">
+					<Box className="w-6 h-6" />
+					Storage
+				</h1>
+				{loading ? (
+					<div className="flex w-full my-5 gap-5 flex-col justify-center items-center">
+						<div className="bg-rgray-5 h-6 w-full animate-pulse rounded-md text-lg"></div>
+						<div className="bg-rgray-5 h-6 w-full animate-pulse rounded-md text-lg"></div>
+					</div>
+				) : (
+					<>
+						<div className="my-5">
+							<h2 className="w-full text-md flex justify-between items-center">
+								Memories
+								<div className="flex rounded-md bg-rgray-4 px-2 py-2 text-white/50 text-xs">
+									{memoryStat?.join("/")}
+								</div>
+							</h2>
+							<div className="rounded-full overflow-hidden w-full h-5 bg-rgray-2 mt-2">
+								<div style={{ 
+									width: `${((memoryStat?.[0] ?? 0) / (memoryStat?.[1] ?? 100))*100}%`,
+									minWidth: memoryStat?.[0] ?? 0 > 0 ? '5%' : '0%'
+								}} className="rounded-full h-full bg-rgray-5" />
+							</div>
+						</div>
+						<div className="my-5">
+							<h2 className="w-full text-md flex justify-between items-center">
+								Tweets
+								<div className="flex rounded-md bg-rgray-4 px-2 py-2 text-white/50 text-xs">
+									{tweetStat?.join("/")}
+								</div>
+							</h2>
+							<div className="rounded-full overflow-hidden w-full h-5 bg-rgray-2 mt-2">
+								<div style={{ 
+									width: `${((tweetStat?.[0] ?? 0) / (tweetStat?.[1] ?? 100))*100}%` ,
+									minWidth: tweetStat?.[0] ?? 0 > 0 ? '5%' : '0%'
+								}} className="rounded-full h-full bg-rgray-5" />
+							</div>
+						</div>
+							</>
+						)}
+			</div>
+		</div>
+	)
 }

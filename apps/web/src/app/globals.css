@@ -57,6 +57,17 @@ body {
   padding-bottom: 15dvh;
 }
 
+.bottom-padding {
+	bottom: 20vh;
+	bottom: 20dvh;
+}
+
+@media (min-width: 768px) {
+	.bottom-padding {
+		bottom: 0;
+	}
+}
+
 .chat-answer code  {
   @apply bg-rgray-3 text-wrap	rounded-md border border-rgray-5 p-1 text-sm text-rgray-11;
 }

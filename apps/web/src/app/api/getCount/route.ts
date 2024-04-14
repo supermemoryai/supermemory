@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { sessions, storedContent, users } from "@/server/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
     .where(
       and(
         eq(storedContent.user, session.user.id),
-        eq(storedContent.type, "page"),
+        ne(storedContent.type, "twitter-bookmark"),
       ),
     );
 
