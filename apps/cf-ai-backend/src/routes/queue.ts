@@ -15,10 +15,10 @@ export const queue = async (batch: MessageBatch, env: Env): Promise<void> => {
 		headers: {
 			Authorization: `Bearer ${token}`,
 		},
-	}).then((res) => res.json())) as { limit: number; tweetsCount: number; user: string };
+	}).then((res) => res.json())) as { tweetsLimit: number; tweetsCount: number; user: string };
 
-	if (messages.length > limits.limit - limits.tweetsCount) {
-		messages.splice(limits.limit - limits.tweetsCount);
+	if (messages.length > limits.tweetsLimit - limits.tweetsCount) {
+		messages.splice(limits.tweetsLimit - limits.tweetsCount);
 	}
 
 	if (messages.length === 0) {

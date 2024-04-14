@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   const session = { session: sessionData[0], user: user[0] };
 
-  const count = await db
+  const tweetsCount = await db
     .select({
       count: sql<number>`count(*)`.mapWith(Number),
     })
@@ -58,9 +58,23 @@ export async function GET(req: NextRequest) {
       ),
     );
 
+  const pageCount = await db
+    .select({
+      count: sql<number>`count(*)`.mapWith(Number),
+    })
+    .from(storedContent)
+    .where(
+      and(
+        eq(storedContent.user, session.user.id),
+        eq(storedContent.type, "page"),
+      ),
+    );
+
   return NextResponse.json({
-    tweetsCount: count[0].count,
-    limit: 1000,
+    tweetsCount: tweetsCount[0].count,
+    tweetsLimit: 1000,
+    pageCount: pageCount[0].count,
+    pageLimit: 100,
     user: session.user.email,
   });
 }
