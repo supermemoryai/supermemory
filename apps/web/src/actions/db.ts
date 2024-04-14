@@ -259,6 +259,8 @@ export async function addMemory(
     return null;
   }
 
+  console.log(content);
+
   console.log({ ...content, user: user.email });
 
   // Add to vectorDB
@@ -270,8 +272,8 @@ export async function addMemory(
       },
       body: JSON.stringify({
         pageContent: content.content,
+        title: content.title,
         url: content.url,
-        spaces,
         user: user.email,
       }),
     }),
