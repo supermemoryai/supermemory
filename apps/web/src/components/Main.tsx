@@ -298,7 +298,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           />
         ) : (
           <main
-						key='intial'
+						key='initial'
             data-sidebar-open={sidebarOpen}
             ref={main}
             className={cn(
