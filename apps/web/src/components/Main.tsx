@@ -57,24 +57,24 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
   }, []);
 
   useEffect(() => {
-    function onResize() {
-      if (!main.current || !window.visualViewport) return;
-      if (
-        window.visualViewport.height < window.innerHeight + 20 &&
-        window.visualViewport.height > window.innerHeight - 20
-      ) {
-        setHide(false);
-        window.scrollTo(0, 0);
-      } else {
-        setHide(true);
-        window.scrollTo(0, document.body.scrollHeight);
-      }
-    }
+    // function onResize() {
+    //   if (!main.current || !window.visualViewport) return;
+    //   if (
+    //     window.visualViewport.height < window.innerHeight + 20 &&
+    //     window.visualViewport.height > window.innerHeight - 20
+    //   ) {
+    //     setHide(false);
+    //     window.scrollTo(0, 0);
+    //   } else {
+    //     setHide(true);
+    //     window.scrollTo(0, document.body.scrollHeight);
+    //   }
+    // }
 
-    window.visualViewport?.addEventListener("resize", onResize);
-    return () => {
-      window.visualViewport?.removeEventListener("resize", onResize);
-    };
+    // window.visualViewport?.addEventListener("resize", onResize);
+    // return () => {
+    //   window.visualViewport?.removeEventListener("resize", onResize);
+    // };
   }, []);
 
   useEffect(() => {
@@ -293,8 +293,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             askQuestion={onSend}
             setValue={setValue}
             value={value}
-						selectedSpaces={selectedSpaces}
-						setSelectedSpaces={setSelectedSpaces}
+		selectedSpaces={selectedSpaces}
+		setSelectedSpaces={setSelectedSpaces}
           />
         ) : (
           <main
