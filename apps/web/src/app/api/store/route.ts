@@ -119,21 +119,26 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const spaceData = await db
-    .select()
-    .from(space)
-    .where(
-      and(inArray(space.name, storeToSpaces), eq(space.user, session.user.id)),
-    )
-    .all();
+  if (storeToSpaces.length > 0) {
+    const spaceData = await db
+      .select()
+      .from(space)
+      .where(
+        and(
+          inArray(space.name, storeToSpaces ?? []),
+          eq(space.user, session.user.id),
+        ),
+      )
+      .all();
 
-  await Promise.all([
-    spaceData.forEach(async (space) => {
-      await db
-        .insert(contentToSpace)
-        .values({ contentId: id, spaceId: space.id });
-    }),
-  ]);
+    await Promise.all([
+      spaceData.forEach(async (space) => {
+        await db
+          .insert(contentToSpace)
+          .values({ contentId: id, spaceId: space.id });
+      }),
+    ]);
+  }
 
   const res = (await Promise.race([
     fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
