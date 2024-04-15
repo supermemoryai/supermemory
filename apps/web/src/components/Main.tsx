@@ -45,7 +45,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
   const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
-	const [isStreaming, setIsStreaming] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
     const search = searchParams.get("q");
@@ -70,7 +70,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     //     window.scrollTo(0, document.body.scrollHeight);
     //   }
     // }
-
     // window.visualViewport?.addEventListener("resize", onResize);
     // return () => {
     //   window.visualViewport?.removeEventListener("resize", onResize);
@@ -187,27 +186,32 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         }),
       },
     );
-		
-		console.log("sources", sourcesResponse)
 
-    const sourcesInJson = getIdsFromSource(((await sourcesResponse.json()) as {
-      ids: string[]
-    }).ids) ?? [];
+    console.log("sources", sourcesResponse);
 
+    const sourcesInJson =
+      getIdsFromSource(
+        (
+          (await sourcesResponse.json()) as {
+            ids: string[];
+          }
+        ).ids,
+      ) ?? [];
 
-		const notesInSources = sourcesInJson.filter(
-			(urls) => urls.startsWith("https://notes.supermemory.dhr.wtf/")
-		)
-		const nonNotes = sourcesInJson.filter(
-			i => !notesInSources.includes(i)
-		)
+    const notesInSources = sourcesInJson.filter((urls) =>
+      urls.startsWith("https://notes.supermemory.dhr.wtf/"),
+    );
+    const nonNotes = sourcesInJson.filter((i) => !notesInSources.includes(i));
 
-		const fetchedTitles = await getMemoriesFromUrl(notesInSources);
-		
-		const sources = [
-			...nonNotes.map(n => ({ isNote: false, source: n ?? "<unnamed>" })),
-			...fetchedTitles.map(n => ({ isNote: true, source: n.title ?? "<unnamed>" }))
-		]
+    const fetchedTitles = await getMemoriesFromUrl(notesInSources);
+
+    const sources = [
+      ...nonNotes.map((n) => ({ isNote: false, source: n ?? "<unnamed>" })),
+      ...fetchedTitles.map((n) => ({
+        isNote: true,
+        source: n.title ?? "<unnamed>",
+      })),
+    ];
 
     setIsAiLoading(false);
     setChatHistory((prev) => {
@@ -218,7 +222,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
           ...lastMessage,
           answer: {
             parts: lastMessage.answer.parts,
-						sources
+            sources,
           },
         },
       ];
@@ -243,7 +247,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
       return;
     }
 
-		setIsStreaming(true)
+    setIsStreaming(true);
 
     if (response.body) {
       let reader = response.body?.getReader();
@@ -263,12 +267,11 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
 
         return reader?.read().then(processText);
       });
-			
     }
   };
 
   const onSend = () => {
-		if (value.trim().length < 1) return
+    if (value.trim().length < 1) return;
     setLayout("chat");
     getSearchResults();
   };
@@ -279,7 +282,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
     const lines = countLines(e.target);
     e.target.rows = Math.min(5, lines);
   }
-
 
   return (
     <>
@@ -293,12 +295,12 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             askQuestion={onSend}
             setValue={setValue}
             value={value}
-		selectedSpaces={selectedSpaces}
-		setSelectedSpaces={setSelectedSpaces}
+            selectedSpaces={selectedSpaces}
+            setSelectedSpaces={setSelectedSpaces}
           />
         ) : (
           <main
-						key='intial'
+            key="intial"
             data-sidebar-open={sidebarOpen}
             ref={main}
             className={cn(
@@ -307,72 +309,69 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
             )}
           >
             <Image
-              className="hidden md:block absolute right-10 top-10 rounded-md"
+              className="absolute right-10 top-10 hidden rounded-md md:block"
               src="/icons/logo_bw_without_bg.png"
               alt="Smort logo"
               width={50}
               height={50}
             />
-						<div
-              className="absolute block md:hidden right-10 top-10"
-						>
-							{width <= 768 && <ProfileDrawer hide={hide} />}
-						</div>
+            <div className="absolute right-10 top-10 block md:hidden">
+              {width <= 768 && <ProfileDrawer hide={hide} />}
+            </div>
             <h1 className="text-rgray-11 mt-auto w-full text-center text-3xl font-bold tracking-tight md:mt-0">
               Ask your second brain
             </h1>
 
-						<FilterSpaces
-							name={"Filter"}
-							onClose={() => {
-								textArea.current?.querySelector("textarea")?.focus();
-							}}
-							side="top"
-							align="start"
-							className="bg-[#252525] mr-auto md:hidden"
-							selectedSpaces={selectedSpaces}
-							setSelectedSpaces={setSelectedSpaces}
-						/>
-						<Textarea2
-							ref={textArea}
-							className="bg-rgray-2 md:hidden h-auto w-full flex-row items-start justify-center overflow-auto px-3 md:items-center md:justify-center"
-							textAreaProps={{
-								placeholder: "Ask your SuperMemory...",
-								className:
-									"overflow-auto h-auto p-3 md:resize-none text-lg w-auto resize-y text-rgray-11 w-full",
-								value,
-								rows: 1,
-								autoFocus: true,
-								onChange: onValueChange,
-								onKeyDown: (e) => {
-									if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-										onSend();
-									}
-								},
-							}}
-						>
-							<div className="md:hidden text-rgray-11/70 ml-auto mt-auto flex h-full w-min items-center justify-center pb-3 pr-2">
+            <FilterSpaces
+              name={"Filter"}
+              onClose={() => {
+                textArea.current?.querySelector("textarea")?.focus();
+              }}
+              side="top"
+              align="start"
+              className="mr-auto bg-[#252525] md:hidden"
+              selectedSpaces={selectedSpaces}
+              setSelectedSpaces={setSelectedSpaces}
+            />
+            <Textarea2
+              ref={textArea}
+              className="bg-rgray-2 h-auto w-full flex-row items-start justify-center overflow-auto px-3 md:hidden md:items-center md:justify-center"
+              textAreaProps={{
+                placeholder: "Ask your SuperMemory...",
+                className:
+                  "overflow-auto h-auto p-3 md:resize-none text-lg w-auto resize-y text-rgray-11 w-full",
+                value,
+                rows: 1,
+                autoFocus: true,
+                onChange: onValueChange,
+                onKeyDown: (e) => {
+                  if (e.key === "Enter") {
+                    onSend();
+                  }
+                },
+              }}
+            >
+              <div className="text-rgray-11/70 ml-auto mt-auto flex h-full w-min items-center justify-center pb-3 pr-2 md:hidden">
+                <FilterSpaces
+                  name={"Filter"}
+                  onClose={() => {
+                    textArea.current?.querySelector("textarea")?.focus();
+                  }}
+                  className="hidden md:flex"
+                  selectedSpaces={selectedSpaces}
+                  setSelectedSpaces={setSelectedSpaces}
+                />
+                <button
+                  onClick={onSend}
+                  disabled={value.trim().length < 1}
+                  className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent transition-[filter] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ArrowUp className="h-5 w-5" />
+                </button>
+              </div>
+            </Textarea2>
 
-								<FilterSpaces
-									name={"Filter"}
-									onClose={() => {
-										textArea.current?.querySelector("textarea")?.focus();
-									}}
-									className="hidden md:flex"
-									selectedSpaces={selectedSpaces}
-									setSelectedSpaces={setSelectedSpaces}
-								/>
-								<button
-									onClick={onSend}
-									disabled={value.trim().length < 1}
-									className="text-rgray-11/70 bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-4 mt-auto flex items-center justify-center rounded-full p-2 ring-2 ring-transparent transition-[filter] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-								>
-									<ArrowUp className="h-5 w-5" />
-								</button>
-							</div>
-						</Textarea2>
-
-						<Textarea2
+            <Textarea2
               ref={textArea}
               exit={{
                 opacity: 0,
@@ -395,7 +394,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                   }
                 },
               }}
-							className="hidden md:flex"
+              className="hidden md:flex"
             >
               <div className="text-rgray-11/70 flex h-full w-fit items-center justify-center pl-0 md:w-full md:p-2">
                 <FilterSpaces
@@ -415,10 +414,10 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                   <ArrowRight className="h-5 w-5" />
                 </button>
               </div>
-            </Textarea2>          
-					</main>
+            </Textarea2>
+          </main>
         )}
-				{width <= 768 && <MemoryDrawer hide={hide} />}
+        {width <= 768 && <MemoryDrawer hide={hide} />}
       </AnimatePresence>
     </>
   );
@@ -431,8 +430,8 @@ export function Chat({
   askQuestion,
   setValue,
   value,
-	selectedSpaces,
-	setSelectedSpaces
+  selectedSpaces,
+  setSelectedSpaces,
 }: {
   sidebarOpen: boolean;
   isLoading?: boolean;
@@ -440,8 +439,8 @@ export function Chat({
   askQuestion: () => void;
   setValue: (value: string) => void;
   value: string;
-	selectedSpaces: number[];
-	setSelectedSpaces: React.Dispatch<React.SetStateAction<number[]>>;
+  selectedSpaces: number[];
+  setSelectedSpaces: React.Dispatch<React.SetStateAction<number[]>>;
 }) {
   const textArea = useRef<HTMLDivElement>(null);
 
@@ -451,7 +450,7 @@ export function Chat({
     const lines = countLines(e.target);
     e.target.rows = Math.min(5, lines);
   }
-	
+
   const { width } = useViewport();
 
   return (
@@ -461,13 +460,10 @@ export function Chat({
         "sidebar relative flex w-full flex-col items-end gap-5 px-5 pt-5 transition-[padding-left,padding-top,padding-right] delay-200 duration-200 md:items-center md:gap-10 md:px-72 [&[data-sidebar-open='true']]:pr-10 [&[data-sidebar-open='true']]:delay-0 md:[&[data-sidebar-open='true']]:pl-[calc(2.5rem+30vw)]",
       )}
     >
-
-			<div
-				className="absolute block md:hidden z-[100] right-10 top-10"
-			>
-				{width <= 768 && <ProfileDrawer />}
-			</div>
-      <div className="scrollbar-none h-[70vh] md:h-screen w-full overflow-y-auto px-2 md:px-5">
+      <div className="absolute right-10 top-10 z-[100] block md:hidden">
+        {width <= 768 && <ProfileDrawer />}
+      </div>
+      <div className="scrollbar-none h-[70vh] w-full overflow-y-auto px-2 md:h-screen md:px-5">
         {chatHistory.map((msg, i) => (
           <ChatMessage index={i} key={i} isLast={i === chatHistory.length - 1}>
             <ChatQuestion>{msg.question}</ChatQuestion>
@@ -488,7 +484,7 @@ export function Chat({
         data-sidebar-open={sidebarOpen}
         className="absolute flex w-full items-center justify-center"
       >
-        <div className="animate-from-top fixed bottom-padding md:bottom-10 left-1/2 md:left-[auto] md:translate-x-0 -translate-x-1/2 mt-auto flex w-[90%] md:w-[50%] flex-col items-center justify-center gap-2">
+        <div className="animate-from-top bottom-padding fixed left-1/2 mt-auto flex w-[90%] -translate-x-1/2 flex-col items-center justify-center gap-2 md:bottom-10 md:left-[auto] md:w-[50%] md:translate-x-0">
           <FilterSpaces
             name={"Filter"}
             onClose={() => {
@@ -496,7 +492,7 @@ export function Chat({
             }}
             side="top"
             align="start"
-            className="bg-[#252525] mr-auto"
+            className="mr-auto bg-[#252525]"
             selectedSpaces={selectedSpaces}
             setSelectedSpaces={setSelectedSpaces}
           />

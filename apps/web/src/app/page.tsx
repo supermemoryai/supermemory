@@ -9,10 +9,7 @@ import {
 import { and, eq, inArray, not } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  fetchContentForSpace,
-  fetchFreeMemories,
-} from "@/actions/db";
+import { fetchContentForSpace, fetchFreeMemories } from "@/actions/db";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
 
@@ -65,10 +62,10 @@ export default async function Home() {
     collectedSpaces.forEach(async (space) => {
       console.log("fetching ");
       const data = (
-        await fetchContentForSpace(space.id, {
+        (await fetchContentForSpace(space.id, {
           offset: 0,
           limit: 3,
-        }) ?? []
+        })) ?? []
       ).map((data) => ({
         ...data,
         space: space.id,
@@ -77,7 +74,7 @@ export default async function Home() {
     }),
   ]);
 
-  console.log('contents', contents);
+  console.log("contents", contents);
 
   // freeMemories
   const freeMemories = await fetchFreeMemories();
