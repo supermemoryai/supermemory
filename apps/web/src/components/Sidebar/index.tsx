@@ -23,7 +23,6 @@ export default function Sidebar({
   selectChange?: (selectedItem: string | null) => void;
   jwt: string;
 }) {
-
   const { data: session } = useSession();
 
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -61,7 +60,7 @@ export default function Sidebar({
         </div>
       ),
       label: "Profile",
-			content: <ProfileTab open={selectedItem !== null} />
+      content: <ProfileTab open={selectedItem !== null} />,
     },
   ];
 
@@ -89,7 +88,7 @@ export default function Sidebar({
             setSelectedItem={setSelectedItem}
           />
           <div className="mt-auto" />
-					{/*
+          {/*
           <MenuItem
             item={{
               label: "Trash",
@@ -121,12 +120,12 @@ export default function Sidebar({
                   </Avatar>
                 </div>
               ),
-							content: <ProfileTab open={selectedItem !== null} />
+              content: <ProfileTab open={selectedItem !== null} />,
             }}
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
           />
-          {/* <MessagePoster jwt={jwt} /> */}
+          <MessagePoster jwt={jwt} />
         </div>
         <AnimatePresence>
           {selectedItem && <SubSidebar>{Subbar}</SubSidebar>}
@@ -181,102 +180,104 @@ export function SubSidebar({ children }: { children?: React.ReactNode }) {
         }}
         className="z-[10] flex h-full w-full min-w-full flex-col items-center opacity-0"
       >
-				<AnimatePresence>
-					{children}
-				</AnimatePresence>
+        <AnimatePresence>{children}</AnimatePresence>
       </motion.div>
     </motion.div>
   );
 }
 
 export function ProfileTab({ open }: { open: boolean }) {
+  const { data: session } = useSession();
 
-	const { data: session } = useSession()
+  const [tweetStat, setTweetStat] = useState<[number, number] | null>();
+  const [memoryStat, setMemoryStat] = useState<[number, number] | null>();
 
-	const [tweetStat, setTweetStat] = useState<[number, number] | null>();
-	const [memoryStat, setMemoryStat] = useState<[number, number] | null>();
+  const [loading, setLoading] = useState(true);
 
-	const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    fetch("/api/getCount").then(async (resp) => {
+      const data = (await resp.json()) as any;
+      setTweetStat([data.tweetsCount, data.tweetsLimit]);
+      setMemoryStat([data.pageCount, data.pageLimit]);
+      setLoading(false);
+    });
+  }, [open]);
 
-	useEffect(() => {
-		fetch("/api/getCount").then(async resp => {
-			const data = await resp.json() as any;
-			setTweetStat([data.tweetsCount, data.tweetsLimit])
-			setMemoryStat([data.pageCount, data.pageLimit])
-			setLoading(false)
-		})
-	}, [open])
-
-	return (
-		<div className="text-rgray-11 h-full flex w-full font-normal flex-col items-start py-3 md:py-8 text-left">
+  return (
+    <div className="text-rgray-11 flex h-full w-full flex-col items-start py-3 text-left font-normal md:py-8">
       <div className="w-full px-6">
         <h1 className="w-full text-2xl font-medium">Profile</h1>
-				<div className="w-full mt-5 grid gap-1 grid-cols-3">
-					<img
-						className="rounded-full"
-						src={session?.user?.image ?? "/icons/white_without_bg.png"}
-						onError={(e) => {
-							(e.target as HTMLImageElement).src = "/icons/white_without_bg.png"
-						}}
-					/>
-					<div className="col-span-2 flex flex-col justify-center items-start">
-						<h1 className="text-xl font-medium">{session?.user?.name}</h1>
-						<span>
-							{session?.user?.email}
-						</span>
-						<button
-							onClick={() => signOut()}
-							className="flex justify-center mt-auto gap-2 items-center bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
-						>
-							<LogOut className="w-4 h-4" />
-							Logout
-						</button>
-					</div>
-				</div>
-			</div>
-      <div className="w-full mt-auto pt-8 px-8 border-t border-rgray-5">
-        <h1 className="w-full text-xl flex items-center gap-2">
-					<Box className="w-6 h-6" />
-					Storage
-				</h1>
-				{loading ? (
-					<div className="flex w-full my-5 gap-5 flex-col justify-center items-center">
-						<div className="bg-rgray-5 h-6 w-full animate-pulse rounded-md text-lg"></div>
-						<div className="bg-rgray-5 h-6 w-full animate-pulse rounded-md text-lg"></div>
-					</div>
-				) : (
-					<>
-						<div className="my-5">
-							<h2 className="w-full text-md flex justify-between items-center">
-								Memories
-								<div className="flex rounded-md bg-rgray-4 px-2 py-2 text-white/50 text-xs">
-									{memoryStat?.join("/")}
-								</div>
-							</h2>
-							<div className="rounded-full overflow-hidden w-full h-5 bg-rgray-2 mt-2">
-								<div style={{ 
-									width: `${((memoryStat?.[0] ?? 0) / (memoryStat?.[1] ?? 100))*100}%`,
-									minWidth: memoryStat?.[0] ?? 0 > 0 ? '5%' : '0%'
-								}} className="rounded-full h-full bg-rgray-5" />
-							</div>
-						</div>
-						<div className="my-5">
-							<h2 className="w-full text-md flex justify-between items-center">
-								Tweets
-								<div className="flex rounded-md bg-rgray-4 px-2 py-2 text-white/50 text-xs">
-									{tweetStat?.join("/")}
-								</div>
-							</h2>
-							<div className="rounded-full overflow-hidden w-full h-5 bg-rgray-2 mt-2">
-								<div style={{ 
-									width: `${((tweetStat?.[0] ?? 0) / (tweetStat?.[1] ?? 100))*100}%` ,
-									minWidth: tweetStat?.[0] ?? 0 > 0 ? '5%' : '0%'
-								}} className="rounded-full h-full bg-rgray-5" />
-							</div>
-						</div>
-							</>
-						)}
-			</div>
-		</div>
-	)
+        <div className="mt-5 grid w-full grid-cols-3 gap-1">
+          <img
+            className="rounded-full"
+            src={session?.user?.image ?? "/icons/white_without_bg.png"}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "/icons/white_without_bg.png";
+            }}
+          />
+          <div className="col-span-2 flex flex-col items-start justify-center">
+            <h1 className="text-xl font-medium">{session?.user?.name}</h1>
+            <span>{session?.user?.email}</span>
+            <button
+              onClick={() => signOut()}
+              className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative mt-auto flex items-center justify-center gap-2 rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="border-rgray-5 mt-auto w-full border-t px-8 pt-8">
+        <h1 className="flex w-full items-center gap-2 text-xl">
+          <Box className="h-6 w-6" />
+          Storage
+        </h1>
+        {loading ? (
+          <div className="my-5 flex w-full flex-col items-center justify-center gap-5">
+            <div className="bg-rgray-5 h-6 w-full animate-pulse rounded-md text-lg"></div>
+            <div className="bg-rgray-5 h-6 w-full animate-pulse rounded-md text-lg"></div>
+          </div>
+        ) : (
+          <>
+            <div className="my-5">
+              <h2 className="text-md flex w-full items-center justify-between">
+                Memories
+                <div className="bg-rgray-4 flex rounded-md px-2 py-2 text-xs text-white/50">
+                  {memoryStat?.join("/")}
+                </div>
+              </h2>
+              <div className="bg-rgray-2 mt-2 h-5 w-full overflow-hidden rounded-full">
+                <div
+                  style={{
+                    width: `${((memoryStat?.[0] ?? 0) / (memoryStat?.[1] ?? 100)) * 100}%`,
+                    minWidth: memoryStat?.[0] ?? 0 > 0 ? "5%" : "0%",
+                  }}
+                  className="bg-rgray-5 h-full rounded-full"
+                />
+              </div>
+            </div>
+            <div className="my-5">
+              <h2 className="text-md flex w-full items-center justify-between">
+                Tweets
+                <div className="bg-rgray-4 flex rounded-md px-2 py-2 text-xs text-white/50">
+                  {tweetStat?.join("/")}
+                </div>
+              </h2>
+              <div className="bg-rgray-2 mt-2 h-5 w-full overflow-hidden rounded-full">
+                <div
+                  style={{
+                    width: `${((tweetStat?.[0] ?? 0) / (tweetStat?.[1] ?? 100)) * 100}%`,
+                    minWidth: tweetStat?.[0] ?? 0 > 0 ? "5%" : "0%",
+                  }}
+                  className="bg-rgray-5 h-full rounded-full"
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
