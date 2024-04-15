@@ -18,7 +18,11 @@ Supermemory fixes this.
 
 Just go to [supermemory.dhr.wtf](https://supermemory.dhr.wtf) and sign in with your google account.
 
-To use the chrome extension, please download it from the [releases page](https://github.com/dhravya/supermemory/releases) and load it in chrome.
+To use the chrome extension,
+
+1. Get the chrome ext (click on the button)
+2. Click on the "Extension Auth" button so the extension knows who you are :)
+   ![chrome](https://i.dhr.wtf/r/Clipboard_Apr_15,_2024_at_10.47 AM.png)
 
 ## 👨‍💻 The Stack
 
