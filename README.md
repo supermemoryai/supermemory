@@ -46,7 +46,7 @@ Built with:
 - [TailwindCSS](https://tailwindcss.com)
 - [shadcn-ui](https://ui.shadcn.com)
 - And some other amazing open source projects like [Novel](https://novel.sh) and [vaul](https://vaul.emilkowal.ski/)
-- Hosted on Cloudflare Pages
+- Hosted on [Cloudflare Pages](https://pages.cloudflare.com/)
 
 #### `apps/extension`: Chrome extension
 
