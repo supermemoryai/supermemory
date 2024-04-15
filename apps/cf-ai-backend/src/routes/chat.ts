@@ -64,7 +64,7 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	// 	return new Response(JSON.stringify({ message: "No Results Found" }), { status: 404 });
 	// }
 
-	const highScoreIds = responses.matches.filter(({ score }) => score > 0.35).map(({ id }) => id);
+	const highScoreIds = responses.matches.filter(({ score }) => score > 0.4).map(({ id }) => id);
 
 	console.log('highscoreIds', highScoreIds);
 
