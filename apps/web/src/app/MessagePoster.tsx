@@ -10,6 +10,7 @@ function MessagePoster({ jwt }: { jwt: string }) {
 
   return (
     <button
+      className="p-2"
       onClick={() => {
         if (typeof window === "undefined") return;
         window.postMessage({ jwt }, "*");

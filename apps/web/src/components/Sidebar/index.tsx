@@ -8,6 +8,7 @@ import { Bin } from "@/assets/Bin";
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import { signOut, useSession } from "next-auth/react";
 import MessagePoster from "@/app/MessagePoster";
+import Chrome from "@/lib/icons";
 
 export type MenuItem = {
   icon: React.ReactNode | React.ReactNode[];
@@ -125,6 +126,12 @@ export default function Sidebar({
             selectedItem={selectedItem}
             setSelectedItem={setSelectedItem}
           />
+          <a
+            className="mb-4 flex items-center justify-center p-2 text-center text-sm text-sky-500"
+            href="https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?hl=en-GB&authuser=0"
+          >
+            <Chrome className="h-6 w-6" />
+          </a>
           <MessagePoster jwt={jwt} />
         </div>
         <AnimatePresence>
