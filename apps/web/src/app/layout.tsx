@@ -46,6 +46,11 @@ export default function RootLayout({
           name="og:image"
           content="https://supermemory.dhr.wtf/og-image.png"
         />
+        <script
+          async
+          src="https://u.dhr.wtf/script.js"
+          data-website-id="731dfc2e-b1c0-4696-a7b3-efd27b19dfdf"
+        ></script>
       </head>
       <body className={inter.className}>
         <div vaul-drawer-wrapper="" className="min-w-screen overflow-x-hidden">
