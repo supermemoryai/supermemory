@@ -259,7 +259,6 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
         if (done) {
           setIsAiLoading(false);
           setToBeParsed("");
-          setValue("");
 
           return;
         }
