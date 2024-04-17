@@ -88,7 +88,7 @@ Please see the [SETUP-GUIDE.md](SETUP-GUIDE.md) for setup instructions.
 Contributions are very welcome! A contribution can be as small as a ⭐ or even finding and creating issues.
 
 ## License
-This project is licensed under the GNU GENERAL PUBLIC LICENSE
+This project is licensed under the MIT LICENSE
 
 See the [LICENSE](LICENSE) file for details.
 
