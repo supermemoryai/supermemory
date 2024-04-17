@@ -6,7 +6,7 @@
 
 Build your own second brain with supermemory. It's a ChatGPT for your bookmarks. Import tweets or save websites and content using the [chrome extension](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?hl=en-GB&authuser=0) (the extension on webstore is not updated, please use the one in the repo)
 
-Well, here's the thing - me and @yxshv save a _lot_ of content on the internet.
+Well, here's the thing - me and [@yxshv](https://github.com/yxshv) save a _lot_ of content on the internet.
 
 Twitter bookmarks, websites, snippets, etc.
 
@@ -86,3 +86,14 @@ Please see the [SETUP-GUIDE.md](SETUP-GUIDE.md) for setup instructions.
 ### Contributing
 
 Contributions are very welcome! A contribution can be as small as a ⭐ or even finding and creating issues.
+
+## License
+This project is licensed under the GNU GENERAL PUBLIC LICENSE
+
+See the [LICENSE](LICENSE) file for details.
+
+## Thanks to our contributors
+
+<a href="https://github.com/Dhravya/supermemory/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Dhravya/supermemory" />
+</a>
