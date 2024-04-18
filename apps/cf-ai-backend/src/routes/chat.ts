@@ -114,42 +114,30 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 		},
 	] as Content[];
 
-	// const chat = model.startChat({
-	// 	history: [...defaultHistory, ...(body.chatHistory ?? [])],
-	// });
+	const chat = model.startChat({
+		history: [...defaultHistory, ...(body.chatHistory ?? [])],
+	});
 
 	const prompt =
-		`You are supermemory - an agent that answers a question based on the context provided. don't say 'based on the context'. Be very concise and to the point. Give short responses. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format` +
+		`You are supermemory - an agent that answers a question based on the context provided. don't say 'based on the context'. Be very concise and to the point. Give short responses. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format. Use bold, italics, bullet points` +
 		`Context:\n${preparedContext == '' ? "No context, just introduce yourself and say something like 'I don't know, but you can save things from the sidebar on the right and then query me'" : preparedContext + `Question: ${query}\nAnswer:`}\n\n`;
 
-	// const output = await chat.sendMessageStream(prompt);
+	const output = await chat.sendMessageStream(prompt);
 
-	// const response = new Response(
-	// 	new ReadableStream({
-	// 		async start(controller) {
-	// 			const converter = new TextEncoder();
-	// 			for await (const chunk of output.stream) {
-	// 				const chunkText = await chunk.text();
-	// 				const encodedChunk = converter.encode('data: ' + JSON.stringify({ response: chunkText }) + '\n\n');
-	// 				controller.enqueue(encodedChunk);
-	// 			}
-	// 			const doneChunk = converter.encode('data: [DONE]');
-	// 			controller.enqueue(doneChunk);
-	// 			controller.close();
-	// 		},
-	// 	}),
-	// );
-	// return response;
-	const ai = new Ai(env?.AI);
-	// @ts-ignore
-	const output: AiTextGenerationOutput = (await ai.run('@hf/mistralai/mistral-7b-instruct-v0.2', {
-		prompt: prompt.slice(0, 6144),
-		stream: true,
-	})) as ReadableStream;
-
-	return new Response(output, {
-		headers: {
-			'content-type': 'text/event-stream',
-		},
-	});
+	const response = new Response(
+		new ReadableStream({
+			async start(controller) {
+				const converter = new TextEncoder();
+				for await (const chunk of output.stream) {
+					const chunkText = await chunk.text();
+					const encodedChunk = converter.encode('data: ' + JSON.stringify({ response: chunkText }) + '\n\n');
+					controller.enqueue(encodedChunk);
+				}
+				const doneChunk = converter.encode('data: [DONE]');
+				controller.enqueue(doneChunk);
+				controller.close();
+			},
+		}),
+	);
+	return response;
 }
