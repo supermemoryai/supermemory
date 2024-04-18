@@ -388,7 +388,7 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                 autoFocus: true,
                 onChange: (e) => setValue(e.target.value),
                 onKeyDown: (e) => {
-                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     onSend();
                   }
                 },
@@ -507,7 +507,7 @@ export function Chat({
               autoFocus: true,
               onChange: onValueChange,
               onKeyDown: (e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   askQuestion();
                 }
               },
