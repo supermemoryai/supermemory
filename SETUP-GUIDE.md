@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - [bun](https://bun.sh/)
+- [turbo](https://turbo.build/repo/docs/installing)
 - [wrangler](https://developers.cloudflare.com/workers/cli-wrangler/install-update)
 
 ## Steps
@@ -52,12 +53,13 @@ If it runs, you can set up the cloud database as well by removing the `--local` 
 To do this, first edit the `.dev.vars` file in `apps/cf-ai-backend` with the following content:
 
 ```bash
-SECURITY_KEY ="veryrandomsecuritykey"
+SECURITY_KEY="veryrandomsecuritykey"
 // Why? to generate embeddings with 4000+ tokens
 OPENAI_API_KEY="sk-"
 ```
 
 6. Run this command to initialise vector database
+> Note: You need to use the workers paid plan to use vectorize for now.
 
 ```
 wrangler vectorize create --dimensions=1536 supermem-vector-1 --metric=cosine
