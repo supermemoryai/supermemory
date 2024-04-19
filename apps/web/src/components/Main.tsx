@@ -344,7 +344,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                 autoFocus: true,
                 onChange: onValueChange,
                 onKeyDown: (e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
                     onSend();
                   }
                 },
@@ -388,7 +389,8 @@ export default function Main({ sidebarOpen }: { sidebarOpen: boolean }) {
                 autoFocus: true,
                 onChange: (e) => setValue(e.target.value),
                 onKeyDown: (e) => {
-                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
                     onSend();
                   }
                 },
@@ -507,7 +509,8 @@ export function Chat({
               autoFocus: true,
               onChange: onValueChange,
               onKeyDown: (e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
                   askQuestion();
                 }
               },
