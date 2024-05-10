@@ -39,7 +39,6 @@
   "dependencies": {
     "@auth/d1-adapter": "^0.6.0",
     "@auth/drizzle-adapter": "^0.7.0",
-    "@cloudflare/ai": "^1.0.52",
     "@cloudflare/next-on-pages-next-dev": "^0.0.1",
     "@cloudflare/puppeteer": "^0.0.6",
     "@crxjs/vite-plugin": "^1.0.14",
