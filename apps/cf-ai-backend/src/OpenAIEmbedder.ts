@@ -1,5 +1,3 @@
-import { AiTextGenerationOutput } from '@cloudflare/ai/dist/ai/tasks/text-generation';
-
 interface OpenAIEmbeddingsParams {
 	apiKey: string;
 	modelName: string;

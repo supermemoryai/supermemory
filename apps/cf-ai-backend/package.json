@@ -9,7 +9,7 @@
 		"unsafe-reset-vector-db": "wrangler vectorize delete  supermem-vector && wrangler vectorize create --dimensions=1536 supermem-vector-1 --metric=cosine"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240222.0",
+		"@cloudflare/workers-types": "^4.20240502.0",
 		"typescript": "^5.0.4",
 		"wrangler": "^3.0.0"
 	}
