@@ -24,12 +24,14 @@
   ],
   "permissions": [
     "activeTab",
-    "storage",
+    "storage"
+  ],
+  "host_permissions": [
     "http://localhost:3000/*",
     "https://opulent-funicular-94rx4v9w775f96q-3000.app.github.dev/*",
     "https://anycontext.dhr.wtf/*"
   ],
   "background": {
-    "service_worker": "src/background.ts"
+    "scripts": ["src/background.ts"]
   }
 }
