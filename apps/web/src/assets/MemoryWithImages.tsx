@@ -20,7 +20,7 @@ export const MemoryWithImage: React.FC<
           width="72.207"
           height="72.207"
           rx="10"
-          fill="var(--gray-4)"
+          fill="white"
         />
       </g>
       <rect
@@ -116,7 +116,7 @@ export const MemoryWithImages2: React.FC<
             height="72.207"
             rx="10"
             transform="rotate(-24.1922 7 51.5427)"
-            fill="var(--gray-4)"
+            fill="#F4F3F2"
           />
         </g>
         <rect
@@ -135,7 +135,7 @@ export const MemoryWithImages2: React.FC<
             height="72.207"
             rx="10"
             transform="rotate(10.2301 59.9409 42.2124)"
-            fill="var(--gray-4)"
+            fill="#ffffff"
           />
         </g>
         <rect
@@ -294,7 +294,8 @@ export const MemoryWithImages3: React.FC<
             height="72.207"
             rx="10"
             transform="rotate(14.9009 53.5242 12)"
-            fill="var(--gray-4)"
+            fill="white"
+            className="shadow-md"
           />
         </g>
         <rect
@@ -313,7 +314,8 @@ export const MemoryWithImages3: React.FC<
             height="72.207"
             rx="10"
             transform="rotate(-24.1922 7 51.5427)"
-            fill="var(--gray-4)"
+            fill="#F4F3F2"
+            className="shadow-md"
           />
         </g>
         <rect
@@ -332,7 +334,8 @@ export const MemoryWithImages3: React.FC<
             height="72.207"
             rx="10"
             transform="rotate(10.2301 59.9409 42.2124)"
-            fill="var(--gray-4)"
+            fill="#E7E5E4"
+            className="shadow-md"
           />
         </g>
         <rect

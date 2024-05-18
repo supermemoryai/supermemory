@@ -1,16 +1,17 @@
 {
-	"name": "cf-ai-backend",
-	"version": "0.0.0",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"unsafe-reset-vector-db": "wrangler vectorize delete  supermem-vector && wrangler vectorize create --dimensions=1536 supermem-vector-1 --metric=cosine"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240222.0",
-		"typescript": "^5.0.4",
-		"wrangler": "^3.0.0"
-	}
+  "name": "new-cf-ai-backend",
+  "private": true,
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "jest --verbose",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "unsafe-reset-vector-db": "wrangler vectorize delete  supermem-vector && wrangler vectorize create --dimensions=1536 supermem-vector-1 --metric=cosine"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@hono/zod-validator": "^0.2.1"
+  }
 }

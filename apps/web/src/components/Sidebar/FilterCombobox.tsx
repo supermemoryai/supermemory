@@ -64,88 +64,90 @@ export function FilterSpaces({
   }, [open]);
 
   return (
-		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger asChild>
-				<button
-					type={undefined}
-					data-state-on={open}
-					className={cn(
-						"text-rgray-11/70 on:bg-rgray-3 focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none",
-						className,
-					)}
-					{...props}
-				>
-					<SpaceIcon className="mr-1 h-5 w-5" />
-					{name}
-					<ChevronsUpDown className="h-4 w-4" />
-					<div
-						data-state-on={selectedSpaces.length > 0}
-						className="on:flex text-rgray-11 border-rgray-6 bg-rgray-2 absolute left-0 top-0 hidden aspect-[1] h-4 w-4 -translate-x-1/3 -translate-y-1/3 items-center justify-center rounded-full border text-center text-[9px]"
-					>
-						{selectedSpaces.length}
-					</div>
-				</button>
-			</PopoverTrigger>
-			<PopoverContent
-				align={align}
-				side={side}
-				className="w-[200px] p-0"
-				onCloseAutoFocus={e => e.preventDefault()}
-			>
-				<Command
-					filter={(val, search) =>
-						spaces
-							.find((s) => s.id.toString() === val)
-							?.name.toLowerCase()
-							.includes(search.toLowerCase().trim())
-							? 1
-							: 0
-					}
-				>
-					<CommandInput placeholder="Filter spaces..." />
-					<CommandList asChild>
-						<motion.div layoutScroll>
-							<CommandEmpty>Nothing found</CommandEmpty>
-							<CommandGroup>
-								{sortedSpaces.map((space) => (
-									<CommandItem
-										key={space.id}
-										value={space.id.toString()}
-										onSelect={(val) => {
-											setSelectedSpaces((prev: number[]) =>
-												prev.includes(parseInt(val))
-													? prev.filter((v) => v !== parseInt(val))
-													: [...prev, parseInt(val)],
-											);
-										}}
-										asChild
-									>
-										<motion.div
-											initial={{ opacity: 0 }}
-											animate={{ opacity: 1, transition: { delay: 0.05 } }}
-											transition={{ duration: 0.15 }}
-											layout
-											layoutId={`space-combobox-${space.id}`}
-											className="text-rgray-11"
-										>
-											<SpaceIcon className="mr-2 h-4 w-4" />
-											{space.name.length > 10 ? space.name.slice(0, 10) + "..." : space.name}
-											{selectedSpaces.includes(space.id)}
-											<Check
-												data-state-on={selectedSpaces.includes(space.id)}
-												className={cn(
-													"on:opacity-100 ml-auto h-4 w-4 opacity-0",
-												)}
-											/>
-										</motion.div>
-									</CommandItem>
-								))}
-							</CommandGroup>
-						</motion.div>
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type={undefined}
+          data-state-on={open}
+          className={cn(
+            "focus-visible:ring-rgray-8 hover:bg-rgray-3 relative flex items-center justify-center gap-1 rounded-md px-3 py-1.5 ring-2 ring-transparent focus-visible:outline-none",
+            className,
+          )}
+          {...props}
+        >
+          <SpaceIcon className="mr-1 h-5 w-5" />
+          {name}
+          <ChevronsUpDown className="h-4 w-4" />
+          <div
+            data-state-on={selectedSpaces.length > 0}
+            className="on:flex text-rgray-11 border-rgray-6 bg-rgray-2 absolute left-0 top-0 hidden aspect-[1] h-4 w-4 -translate-x-1/3 -translate-y-1/3 items-center justify-center rounded-full border text-center text-[9px]"
+          >
+            {selectedSpaces.length}
+          </div>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align={align}
+        side={side}
+        className="w-[200px] p-0"
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <Command
+          filter={(val, search) =>
+            spaces
+              .find((s) => s.id.toString() === val)
+              ?.name.toLowerCase()
+              .includes(search.toLowerCase().trim())
+              ? 1
+              : 0
+          }
+        >
+          <CommandInput placeholder="Filter spaces..." />
+          <CommandList asChild>
+            <motion.div layoutScroll>
+              <CommandEmpty>Nothing found</CommandEmpty>
+              <CommandGroup>
+                {sortedSpaces.map((space) => (
+                  <CommandItem
+                    key={space.id}
+                    value={space.id.toString()}
+                    onSelect={(val) => {
+                      setSelectedSpaces((prev: number[]) =>
+                        prev.includes(parseInt(val))
+                          ? prev.filter((v) => v !== parseInt(val))
+                          : [...prev, parseInt(val)],
+                      );
+                    }}
+                    asChild
+                  >
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: { delay: 0.05 } }}
+                      transition={{ duration: 0.15 }}
+                      layout
+                      layoutId={`space-combobox-${space.id}`}
+                      className="text-rgray-11"
+                    >
+                      <SpaceIcon className="mr-2 h-4 w-4" />
+                      {space.name.length > 10
+                        ? space.name.slice(0, 10) + "..."
+                        : space.name}
+                      {selectedSpaces.includes(space.id)}
+                      <Check
+                        data-state-on={selectedSpaces.includes(space.id)}
+                        className={cn(
+                          "on:opacity-100 ml-auto h-4 w-4 opacity-0",
+                        )}
+                      />
+                    </motion.div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </motion.div>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -155,8 +157,8 @@ export type FilterMemoriesProps = {
   onClose?: () => void;
   selected: StoredContent[];
   setSelected: React.Dispatch<React.SetStateAction<StoredContent[]>>;
-	fromSpaces?: number[];
-	notInSpaces?: number[];
+  fromSpaces?: number[];
+  notInSpaces?: number[];
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export function FilterMemories({
@@ -166,8 +168,8 @@ export function FilterMemories({
   onClose,
   selected,
   setSelected,
-	fromSpaces,
-	notInSpaces,
+  fromSpaces,
+  notInSpaces,
   ...props
 }: FilterMemoriesProps) {
   const { search } = useMemory();
@@ -195,9 +197,10 @@ export function FilterMemories({
             memories: true,
             spaces: false,
           },
-					memoriesRelativeToSpace: {
-						fromSpaces, notInSpaces
-					}
+          memoriesRelativeToSpace: {
+            fromSpaces,
+            notInSpaces,
+          },
         });
         setSearchResults(results);
         setIsSearching(false);
@@ -275,7 +278,9 @@ export function FilterMemories({
                           }
                           className="mr-2 h-4 w-4"
                         />
-												{(m.title && m.title?.length > 14) ? m.title?.slice(0, 14) + "..." : m.title}
+                        {m.title && m.title?.length > 14
+                          ? m.title?.slice(0, 14) + "..."
+                          : m.title}
                         <Check
                           data-state-on={
                             selected.find((i) => i.id === m.id) !== undefined

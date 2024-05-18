@@ -1,8 +1,12 @@
-
 import { useRef, useState } from "react";
-import { Drawer, DrawerContent, DrawerOverlay, DrawerTrigger } from "./ui/drawer";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerOverlay,
+  DrawerTrigger,
+} from "./ui/drawer";
 import { cn } from "@/lib/utils";
-import { ProfileTab } from "./Sidebar";
+import { SettingsTab } from "./Sidebar/SettingsTab";
 import { useSession } from "next-auth/react";
 
 export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -10,27 +14,26 @@ export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function ProfileDrawer({ className, hide = false, ...props }: Props) {
+  const { data: session } = useSession();
 
-	const { data: session } = useSession();
-	
   return (
-    <Drawer
-			snapPoints={[0.9]}
-      shouldScaleBackground={false}
-    >
-			<DrawerTrigger>
-				<img src={session?.user?.image ?? "/icons/white_without_bg.png"} className="w-10 h-10 rounded-full" />
-			</DrawerTrigger>
+    <Drawer snapPoints={[0.9]} shouldScaleBackground={false}>
+      <DrawerTrigger>
+        <img
+          src={session?.user?.image ?? "/icons/white_without_bg.png"}
+          className="h-10 w-10 rounded-full"
+        />
+      </DrawerTrigger>
       <DrawerContent
         overlay={false}
         className={cn(
-          "border-rgray-6 z-[101] bg-rgray-3 DrawerContent data-[expanded=true]:bg-rgray-3 h-full w-screen border transition-[background] focus-visible:outline-none",
+          "border-rgray-6 DrawerContent data-[expanded=true]:bg-rgray-3 z-[101] h-full w-screen border bg-white transition-[background] focus-visible:outline-none",
           hide ? "hidden" : "",
         )}
       >
-				<div className="w-full h-[85vh] overflow-y-auto">
-					<ProfileTab open={true} />
-				</div>
+        <div className="h-[85vh] w-full overflow-y-auto">
+          <SettingsTab open={true} />
+        </div>
       </DrawerContent>
     </Drawer>
   );

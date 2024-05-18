@@ -53,7 +53,10 @@ export default function RootLayout({
         ></script>
       </head>
       <body className={inter.className}>
-        <div vaul-drawer-wrapper="" className="min-w-screen overflow-x-hidden">
+        <div
+          vaul-drawer-wrapper=""
+          className="min-w-screen overflow-x-hidden text-black"
+        >
           {children}
         </div>
       </body>

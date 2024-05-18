@@ -18,19 +18,29 @@ import { cleanUrl } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { getMetaData } from "@/server/helpers";
 
-export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog: () => void, defaultSpaces?: number[], onAdd?: (addedData: StoredContent) => void }) {
+export function AddMemoryPage({
+  closeDialog,
+  defaultSpaces,
+  onAdd,
+}: {
+  closeDialog: () => void;
+  defaultSpaces?: number[];
+  onAdd?: (addedData: StoredContent) => void;
+}) {
   const { addMemory } = useMemory();
 
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState("");
-  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(defaultSpaces ?? []);
+  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(
+    defaultSpaces ?? [],
+  );
 
   return (
-    <div className="max-w-[80vw] w-[80vw] md:w-[40vw]">
+    <div className="w-[80vw] max-w-[80vw] md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add a web page to memory</DialogTitle>
         <DialogDescription>
-					This will fetch the content of the web page and add it to the memory
+          This will fetch the content of the web page and add it to the memory
         </DialogDescription>
       </DialogHeader>
       <Label className="mt-5 block">URL</Label>
@@ -38,7 +48,7 @@ export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDial
         placeholder="Enter the URL of the page"
         type="url"
         data-modal-autofocus
-        className="bg-rgray-4 mt-2 w-full disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-2 w-full disabled:cursor-not-allowed disabled:opacity-70"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         disabled={loading}
@@ -47,7 +57,7 @@ export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDial
         <FilterSpaces
           selectedSpaces={selectedSpacesId}
           setSelectedSpaces={setSelectedSpacesId}
-          className="hover:bg-rgray-5 mr-auto bg-white/5 disabled:cursor-not-allowed disabled:opacity-70"
+          className="mr-auto bg-white/5 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
           name={"Spaces"}
           disabled={loading}
         />
@@ -69,10 +79,10 @@ export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDial
               },
               selectedSpacesId,
             );
-						if (data) onAdd?.(data.memory)
+            if (data) onAdd?.(data.memory);
             closeDialog();
           }}
-          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+          className="bg-rgray-4 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <motion.div
             initial={{ x: "-50%", y: "-100%" }}
@@ -90,7 +100,7 @@ export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDial
         </button>
         <DialogClose
           disabled={loading}
-          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+          className="focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition hover:bg-white focus-visible:bg-[#F4F3F2] focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
           Cancel
         </DialogClose>
@@ -99,10 +109,20 @@ export function AddMemoryPage({ closeDialog, defaultSpaces, onAdd }: { closeDial
   );
 }
 
-export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog: () => void, defaultSpaces?: number[], onAdd?: (addedData: StoredContent) => void }) {
+export function NoteAddPage({
+  closeDialog,
+  defaultSpaces,
+  onAdd,
+}: {
+  closeDialog: () => void;
+  defaultSpaces?: number[];
+  onAdd?: (addedData: StoredContent) => void;
+}) {
   const { addMemory } = useMemory();
 
-  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(defaultSpaces ?? []);
+  const [selectedSpacesId, setSelectedSpacesId] = useState<number[]>(
+    defaultSpaces ?? [],
+  );
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
@@ -137,7 +157,7 @@ export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog
       <Input
         ref={inputRef}
         data-error="false"
-        className="w-full border-none p-0 text-xl ring-0 placeholder:text-white/30 placeholder:transition placeholder:duration-500 focus-visible:ring-0 data-[error=true]:placeholder:text-red-400"
+        className="w-full border-none p-0 text-xl ring-0 placeholder:transition placeholder:duration-500 focus-visible:ring-0 data-[error=true]:placeholder:text-red-400"
         placeholder="Title of the note"
         data-modal-autofocus
         value={name}
@@ -152,7 +172,7 @@ export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog
           setContent(editor.storage.markdown.getMarkdown());
         }}
         extensions={[Markdown]}
-        className="novel-editor w-full bg-rgray-4 border-rgray-7 dark mt-5 max-h-[60vh] min-h-[40vh] md:w-[50vw] overflow-y-auto rounded-lg border [&>div>div]:p-5"
+        className="novel-editor border-rgray-7 dark mt-5 max-h-[60vh] min-h-[40vh] w-full overflow-y-auto rounded-lg border bg-white md:w-[50vw] [&>div>div]:p-5"
       />
       <DialogFooter>
         <FilterSpaces
@@ -176,13 +196,13 @@ export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog
                 },
                 selectedSpacesId,
               ).then((data) => {
-								if (data?.memory) onAdd?.(data.memory)
-								closeDialog()
-							});
+                if (data?.memory) onAdd?.(data.memory);
+                closeDialog();
+              });
             }
           }}
           disabled={loading}
-          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+          className="hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md bg-[#F4F3F2] px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <motion.div
             initial={{ x: "-50%", y: "-100%" }}
@@ -210,7 +230,13 @@ export function NoteAddPage({ closeDialog, defaultSpaces, onAdd }: { closeDialog
   );
 }
 
-export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, onAdd?: (addedData: StoredSpace) => void }) {
+export function SpaceAddPage({
+  closeDialog,
+  onAdd,
+}: {
+  closeDialog: () => void;
+  onAdd?: (addedData: StoredSpace) => void;
+}) {
   const { addSpace } = useMemory();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -256,7 +282,7 @@ export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, 
         value={name}
         disabled={loading}
         onChange={(e) => setName(e.target.value)}
-        className="bg-rgray-4 mt-2 w-full placeholder:transition placeholder:duration-500 data-[error=true]:placeholder:text-red-400 focus-visible:data-[error=true]:ring-red-500/10"
+        className="mt-2 w-full placeholder:transition placeholder:duration-500 data-[error=true]:placeholder:text-red-400 focus-visible:data-[error=true]:ring-red-500/10"
       />
       {selected.length > 0 && (
         <>
@@ -279,7 +305,7 @@ export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, 
           selected={selected}
           setSelected={setSelected}
           disabled={loading}
-          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 mr-auto bg-white/5 disabled:cursor-not-allowed disabled:opacity-70"
+          className="mr-auto bg-white/5 hover:hover:bg-slate-100 focus-visible:hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <Plus className="h-5 w-5" />
           Memory
@@ -293,13 +319,13 @@ export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, 
                 name,
                 selected.map((s) => s.id),
               ).then((data) => {
-								if (data) onAdd?.(data.space)
-								closeDialog()
-							});
+                if (data) onAdd?.(data.space);
+                closeDialog();
+              });
             }
           }}
           disabled={loading}
-          className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+          className="bg-rgray-4 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition hover:hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <motion.div
             initial={{ x: "-50%", y: "-100%" }}
@@ -317,7 +343,7 @@ export function SpaceAddPage({ closeDialog, onAdd }: { closeDialog: () => void, 
         </button>
         <DialogClose
           disabled={loading}
-          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+          className="focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition hover:bg-white focus-visible:bg-[#F4F3F2] focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
           Cancel
         </DialogClose>
@@ -338,15 +364,17 @@ export function MemorySelectedItem({
     <div className="hover:bg-rgray-4 focus-within-bg-rgray-4 flex w-full items-center justify-start gap-2 rounded-md p-2 px-3 text-sm [&:hover_[data-icon]]:block [&:hover_img]:hidden">
       <button
         onClick={onRemove}
-        className="m-0 h-5 w-5 p-0 [&:focus-visible>[data-icon]]:block [&:focus-visible>img]:hidden focus-visible:outline-none focus-visible:ring-2 ring-rgray-7 rounded-sm ring-offset-2 ring-offset-rgray-3"
+        className="ring-rgray-7 ring-offset-rgray-3 m-0 h-5 w-5 rounded-sm p-0 ring-offset-2 focus-visible:outline-none focus-visible:ring-2 [&:focus-visible>[data-icon]]:block [&:focus-visible>img]:hidden"
       >
-				<img
-					src={
-						type === "note" ? "/note.svg" : image ?? "/icons/logo_without_bg.png"
-					}
-					className="h-5 w-5"
-				/>
-        <X data-icon className="h-5 w-5 hidden scale-90" />
+        <img
+          src={
+            type === "note"
+              ? "/note.svg"
+              : image ?? "/icons/logo_without_bg.png"
+          }
+          className="h-5 w-5"
+        />
+        <X data-icon className="hidden h-5 w-5 scale-90" />
       </button>
       <span>{title}</span>
       <span className="ml-auto block opacity-50">
@@ -357,17 +385,17 @@ export function MemorySelectedItem({
 }
 
 export function AddExistingMemoryToSpace({
-	space,
-	closeDialog,
-	fromSpaces,
-	notInSpaces,
-	onAdd
-}: { 
-	space: { title: string, id: number }, 
-	closeDialog: () => void,
-	fromSpaces?: number[],
-	notInSpaces?: number[],
-	onAdd?: () => void;
+  space,
+  closeDialog,
+  fromSpaces,
+  notInSpaces,
+  onAdd,
+}: {
+  space: { title: string; id: number };
+  closeDialog: () => void;
+  fromSpaces?: number[];
+  notInSpaces?: number[];
+  onAdd?: () => void;
 }) {
   const { addMemoriesToSpace } = useMemory();
 
@@ -379,9 +407,9 @@ export function AddExistingMemoryToSpace({
     <div className="w-[80vw] md:w-[40vw]">
       <DialogHeader>
         <DialogTitle>Add an existing memory to {space.title}</DialogTitle>
-				<DialogDescription>
-					Pick the memories you want to add to this space
-				</DialogDescription>
+        <DialogDescription>
+          Pick the memories you want to add to this space
+        </DialogDescription>
       </DialogHeader>
       {selected.length > 0 && (
         <>
@@ -404,8 +432,8 @@ export function AddExistingMemoryToSpace({
           selected={selected}
           setSelected={setSelected}
           disabled={loading}
-					fromSpaces={fromSpaces}
-					notInSpaces={notInSpaces}
+          fromSpaces={fromSpaces}
+          notInSpaces={notInSpaces}
           className="hover:bg-rgray-4 focus-visible:bg-rgray-4 mr-auto bg-white/5 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <Plus className="h-5 w-5" />
@@ -414,11 +442,14 @@ export function AddExistingMemoryToSpace({
         <button
           type={undefined}
           onClick={() => {
-						setLoading(true);
-						addMemoriesToSpace(space.id, selected.map(i => i.id)).then(() => { 
-							onAdd?.()
-							closeDialog();
-						});
+            setLoading(true);
+            addMemoriesToSpace(
+              space.id,
+              selected.map((i) => i.id),
+            ).then(() => {
+              onAdd?.();
+              closeDialog();
+            });
           }}
           disabled={loading}
           className="bg-rgray-4 hover:bg-rgray-5 focus-visible:bg-rgray-5 focus-visible:ring-rgray-7 relative rounded-md px-4 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
@@ -439,7 +470,7 @@ export function AddExistingMemoryToSpace({
         </button>
         <DialogClose
           disabled={loading}
-          className="hover:bg-rgray-4 focus-visible:bg-rgray-4 focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
+          className="focus-visible:ring-rgray-7 rounded-md px-3 py-2 ring-transparent transition hover:bg-white focus-visible:bg-[#F4F3F2] focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
         >
           Cancel
         </DialogClose>

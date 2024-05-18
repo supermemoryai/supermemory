@@ -1,29 +1,26 @@
-name = "cf-ai-backend"
-main = "src/index.ts"
+name = "new-cf-ai-backend"
+main = "src/server.ts"
 compatibility_date = "2024-02-23"
-compatibility_flags = ['nodejs_compat']
+node_compat = true
 
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
-index_name = "supermem-vector-1"
+index_name = "supermem-vector"
 
 [ai]
 binding = "AI"
 
-[[queues.producers]]
- queue = "batch-vector-queue"
- binding = "MY_QUEUE"
+# [[queues.producers]]
+#  queue = "batch-vector-queue"
+#  binding = "MY_QUEUE"
 
- [[queues.consumers]]
- queue = "batch-vector-queue"
+#  [[queues.consumers]]
+#  queue = "batch-vector-queue"
 
 [[kv_namespaces]]
 binding = "KV"
 id = "37a90353da63401e84e20e71165531d0"
 preview_id = "c58b6202814f4224acea97627d0c18aa"
-
-[browser]
-binding = "MYBROWSER"
 
 [placement]
 mode = "smart"

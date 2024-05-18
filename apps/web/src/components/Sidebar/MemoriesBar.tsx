@@ -28,19 +28,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Variant, useAnimate, motion } from "framer-motion";
 import { SearchResult, useMemory } from "@/contexts/MemoryContext";
 import { SpaceIcon } from "@/assets/Memories";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-  DialogHeader,
-  DialogFooter,
-  DialogClose,
-} from "../ui/dialog";
+import { Dialog, DialogContent } from "../ui/dialog";
 import useViewport from "@/hooks/useViewport";
 import useTouchHold from "@/hooks/useTouchHold";
 import { DialogTrigger } from "@radix-ui/react-dialog";
-import { AddExistingMemoryToSpace, AddMemoryPage, MemorySelectedItem, NoteAddPage, SpaceAddPage } from "./AddMemoryDialog";
+import {
+  AddExistingMemoryToSpace,
+  AddMemoryPage,
+  NoteAddPage,
+  SpaceAddPage,
+} from "./AddMemoryDialog";
 import { ExpandedSpace } from "./ExpandedSpace";
 import { StoredContent, StoredSpace } from "@/server/db/schema";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -48,7 +45,6 @@ import { NoteEdit } from "./EditNoteDialog";
 import DeleteConfirmation from "./DeleteConfirmation";
 
 export function MemoriesBar({ isOpen }: { isOpen: boolean }) {
-
   const [parent, enableAnimations] = useAutoAnimate();
   const { spaces, deleteSpace, freeMemories, search } = useMemory();
 
@@ -80,17 +76,17 @@ export function MemoriesBar({ isOpen }: { isOpen: boolean }) {
     })();
   }, [query]);
 
-	useEffect(() => {
-		if (!isOpen) {
-			setExpandedSpace(null)
-		}
-	}, [isOpen])
+  useEffect(() => {
+    if (!isOpen) {
+      setExpandedSpace(null);
+    }
+  }, [isOpen]);
 
   if (expandedSpace) {
     return (
       <ExpandedSpace
         spaceId={expandedSpace}
-				back={() => setExpandedSpace(null)}
+        back={() => setExpandedSpace(null)}
         // close={() => setExpandedSpace(null)}
       />
     );
@@ -160,30 +156,34 @@ export function MemoriesBar({ isOpen }: { isOpen: boolean }) {
       </div>
       <div
         ref={parent}
-       className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
+        className="grid w-full grid-flow-row grid-cols-3 gap-1 px-2 py-5"
       >
         {query.trim().length > 0 ? (
           <>
             {searchResults.map(({ type, space, memory }, i) => (
               <>
                 {type === "memory" && (
-									<MemoryItem 
-										{...memory!}
-										key={i} 
-										onDelete={() => {
-											setSearchResults(prev => prev.filter(i => i.memory?.id !== memory.id))
-										}}
-									/>
-								)}
+                  <MemoryItem
+                    {...memory!}
+                    key={i}
+                    onDelete={() => {
+                      setSearchResults((prev) =>
+                        prev.filter((i) => i.memory?.id !== memory.id),
+                      );
+                    }}
+                  />
+                )}
                 {type === "space" && (
-                  <SpaceItem 
-										{...space!} 
-										key={i}
-										onDelete={() => {
-											setSearchResults(prev => prev.filter(i => i.space?.id !== space.id))
-											deleteSpace(space.id)
-										}}
-									/>
+                  <SpaceItem
+                    {...space!}
+                    key={i}
+                    onDelete={() => {
+                      setSearchResults((prev) =>
+                        prev.filter((i) => i.space?.id !== space.id),
+                      );
+                      deleteSpace(space.id);
+                    }}
+                  />
                 )}
               </>
             ))}
@@ -218,11 +218,15 @@ const SpaceExitVariant: Variant = {
   },
 };
 
-export function MemoryItem(props: StoredContent & { onDelete?: () => void; removeFromSpace?: () => Promise<void>; }) {
-	
-	const { id, title, image, type, url, onDelete, removeFromSpace } = props
+export function MemoryItem(
+  props: StoredContent & {
+    onDelete?: () => void;
+    removeFromSpace?: () => Promise<void>;
+  },
+) {
+  const { id, title, image, type, url, onDelete, removeFromSpace } = props;
 
-	const { deleteMemory } = useMemory()
+  const { deleteMemory } = useMemory();
 
   const name = title
     ? title.length > 10
@@ -230,9 +234,9 @@ export function MemoryItem(props: StoredContent & { onDelete?: () => void; remov
       : title
     : "<no title>";
 
-	const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-	const [moreDropdownOpen, setMoreDropdownOpen] = useState(false)
+  const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
 
   const touchEventProps = useTouchHold({
     onHold() {
@@ -240,52 +244,81 @@ export function MemoryItem(props: StoredContent & { onDelete?: () => void; remov
     },
   });
   return (
-		<Dialog open={type === "note" ? isDialogOpen : false} onOpenChange={setIsDialogOpen}>
-			<div {...touchEventProps} className="cursor-pointer hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100">
-				{
-					type === "note" ?
-					(
-						<DialogTrigger asChild>
-							<button data-space-text className="focus-visible:outline-none">
-								{name}
-							</button>
-						</DialogTrigger>
-					) : (
-						<button onClick={() => window.open(url)} data-space-text className="focus-visible:outline-none">
-							{name}
-						</button>
-					)
-				}
+    <Dialog
+      open={type === "note" ? isDialogOpen : false}
+      onOpenChange={setIsDialogOpen}
+    >
+      <div
+        {...touchEventProps}
+        className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex cursor-pointer select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
+      >
+        {type === "note" ? (
+          <DialogTrigger asChild>
+            <button data-space-text className="focus-visible:outline-none">
+              {name}
+            </button>
+          </DialogTrigger>
+        ) : (
+          <button
+            onClick={() => window.open(url)}
+            data-space-text
+            className="focus-visible:outline-none"
+          >
+            {name}
+          </button>
+        )}
 
-				{type === "page" ? 
-					<PageMoreButton isOpen={moreDropdownOpen} setIsOpen={setMoreDropdownOpen} removeFromSpace={removeFromSpace} onDelete={() => { deleteMemory(id); onDelete?.() }} url={url} /> : 
-					type === "note" ? 
-					<NoteMoreButton isOpen={moreDropdownOpen} setIsOpen={setMoreDropdownOpen} removeFromSpace={removeFromSpace} onEdit={() => setIsDialogOpen(true)} onDelete={() => { deleteMemory(id); onDelete?.() }} />
-				: null}
+        {type === "page" ? (
+          <PageMoreButton
+            isOpen={moreDropdownOpen}
+            setIsOpen={setMoreDropdownOpen}
+            removeFromSpace={removeFromSpace}
+            onDelete={() => {
+              deleteMemory(id);
+              onDelete?.();
+            }}
+            url={url}
+          />
+        ) : type === "note" ? (
+          <NoteMoreButton
+            isOpen={moreDropdownOpen}
+            setIsOpen={setMoreDropdownOpen}
+            removeFromSpace={removeFromSpace}
+            onEdit={() => setIsDialogOpen(true)}
+            onDelete={() => {
+              deleteMemory(id);
+              onDelete?.();
+            }}
+          />
+        ) : null}
 
-				<div className="flex h-24 w-24 items-center justify-center">
-					{type === "page" ? (
-						<img
-							onClick={() => window.open(url)}
-							className="h-16 w-16"
-							id={id.toString()}
-							src={image!}
-							onError={(e) => {
-								(e.target as HTMLImageElement).src =
-									"/icons/white_without_bg.png";
-							}}
-						/>
-					) : type === "note" ? (
-						<Text onClick={() => setIsDialogOpen(true)} className="h-16 w-16" />
-					) : (
-						<></>
-					)}
-				</div>
-			</div>
-			<DialogContent className="w-max max-w-[auto]">
-				<NoteEdit onDelete={onDelete} closeDialog={() => setIsDialogOpen(false)} memory={props} />
-			</DialogContent>
-		</Dialog>
+        <div className="flex h-24 w-24 items-center justify-center">
+          {type === "page" ? (
+            <img
+              onClick={() => window.open(url)}
+              className="h-16 w-16"
+              id={id.toString()}
+              src={image!}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "/icons/white_without_bg.png";
+              }}
+            />
+          ) : type === "note" ? (
+            <Text onClick={() => setIsDialogOpen(true)} className="h-16 w-16" />
+          ) : (
+            <></>
+          )}
+        </div>
+      </div>
+      <DialogContent className="w-max max-w-[auto]">
+        <NoteEdit
+          onDelete={onDelete}
+          closeDialog={() => setIsDialogOpen(false)}
+          memory={props}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -314,20 +347,23 @@ export function SpaceItem({
 
   const _name = name.length > 10 ? name.slice(0, 10) + "..." : name;
 
-
   return (
     <motion.div
       ref={itemRef}
       {...touchEventProps}
       className="hover:bg-rgray-2 has-[[data-state='true']]:bg-rgray-2 has-[[data-space-text]:focus-visible]:bg-rgray-2 has-[[data-space-text]:focus-visible]:ring-rgray-7 [&:has-[[data-space-text]:focus-visible]>[data-more-button]]:opacity-100 relative flex select-none flex-col-reverse items-center justify-center rounded-md p-2 pb-4 text-center font-normal ring-transparent transition has-[[data-space-text]:focus-visible]:outline-none has-[[data-space-text]:focus-visible]:ring-2 md:has-[[data-state='true']]:bg-transparent [&:hover>[data-more-button]]:opacity-100"
     >
-      <button onClick={onClick} data-space-text className="focus-visible:outline-none">
+      <button
+        onClick={onClick}
+        data-space-text
+        className="focus-visible:outline-none"
+      >
         {_name}
       </button>
       <SpaceMoreButton
         isOpen={moreDropdownOpen}
         setIsOpen={setMoreDropdownOpen}
-				onEdit={onClick}
+        onEdit={onClick}
         onDelete={() => {
           onDelete();
           return;
@@ -412,7 +448,7 @@ export function SpaceItem({
       />
       {spaceMemories.length > 2 ? (
         <MemoryWithImages3
-					onClick={onClick}
+          onClick={onClick}
           className="h-24 w-24"
           id={id.toString()}
           images={
@@ -423,7 +459,7 @@ export function SpaceItem({
         />
       ) : spaceMemories.length > 1 ? (
         <MemoryWithImages2
-					onClick={onClick}
+          onClick={onClick}
           className="h-24 w-24"
           id={id.toString()}
           images={
@@ -434,7 +470,7 @@ export function SpaceItem({
         />
       ) : spaceMemories.length === 1 ? (
         <MemoryWithImage
-					onClick={onClick}
+          onClick={onClick}
           className="h-24 w-24"
           id={id.toString()}
           image={
@@ -444,7 +480,10 @@ export function SpaceItem({
           }
         />
       ) : (
-        <div onClick={onClick} className="bg-rgray-4 shadow- h-24 w-24 scale-50 rounded-full opacity-30"></div>
+        <div
+          onClick={onClick}
+          className="bg-rgray-4 shadow- h-24 w-24 scale-50 rounded-full opacity-30"
+        ></div>
       )}
     </motion.div>
   );
@@ -454,15 +493,15 @@ export function SpaceMoreButton({
   onDelete,
   isOpen,
   setIsOpen,
-	onEdit,
+  onEdit,
 }: {
   onDelete?: () => void;
   isOpen?: boolean;
-	onEdit?: () => void;
+  onEdit?: () => void;
   setIsOpen?: (open: boolean) => void;
 }) {
   return (
-		<DeleteConfirmation onDelete={onDelete} trigger={false}>
+    <DeleteConfirmation onDelete={onDelete} trigger={false}>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -478,7 +517,7 @@ export function SpaceMoreButton({
             Edit
           </DropdownMenuItem>
           <DialogTrigger asChild>
-            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
+            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400">
               <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Delete
             </DropdownMenuItem>
@@ -493,17 +532,17 @@ export function PageMoreButton({
   onDelete,
   isOpen,
   setIsOpen,
-	url,
-	removeFromSpace
+  url,
+  removeFromSpace,
 }: {
   onDelete?: () => void;
   isOpen?: boolean;
-	url: string;
+  url: string;
   setIsOpen?: (open: boolean) => void;
-	removeFromSpace?: () => Promise<void>;
+  removeFromSpace?: () => Promise<void>;
 }) {
   return (
-		<DeleteConfirmation onDelete={onDelete} trigger={false}>
+    <DeleteConfirmation onDelete={onDelete} trigger={false}>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -521,14 +560,14 @@ export function PageMoreButton({
             />
             Open
           </DropdownMenuItem>
-					{removeFromSpace && (
-						<DropdownMenuItem onClick={removeFromSpace}>
-							<Minus className="mr-2 h-4 w-4" strokeWidth={1.5} />
-							Remove from space
-						</DropdownMenuItem>
-					)}
+          {removeFromSpace && (
+            <DropdownMenuItem onClick={removeFromSpace}>
+              <Minus className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              Remove from space
+            </DropdownMenuItem>
+          )}
           <DialogTrigger asChild>
-            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
+            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400">
               <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Delete
             </DropdownMenuItem>
@@ -543,17 +582,17 @@ export function NoteMoreButton({
   onDelete,
   isOpen,
   setIsOpen,
-	onEdit,
-	removeFromSpace
+  onEdit,
+  removeFromSpace,
 }: {
   onDelete?: () => void;
   isOpen?: boolean;
-	onEdit?: () => void;
+  onEdit?: () => void;
   setIsOpen?: (open: boolean) => void;
-	removeFromSpace?: () => Promise<void>;
+  removeFromSpace?: () => Promise<void>;
 }) {
   return (
-		<DeleteConfirmation onDelete={onDelete} trigger={false}>
+    <DeleteConfirmation onDelete={onDelete} trigger={false}>
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <button
@@ -568,14 +607,14 @@ export function NoteMoreButton({
             <Edit3 className="mr-2 h-4 w-4" strokeWidth={1.5} />
             Edit
           </DropdownMenuItem>
-					{removeFromSpace && (
-						<DropdownMenuItem onClick={removeFromSpace}>
-							<Minus className="mr-2 h-4 w-4" strokeWidth={1.5} />
-							Remove from space
-						</DropdownMenuItem>
-					)}
+          {removeFromSpace && (
+            <DropdownMenuItem onClick={removeFromSpace}>
+              <Minus className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              Remove from space
+            </DropdownMenuItem>
+          )}
           <DialogTrigger asChild>
-            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400 dark:focus:bg-red-100/10">
+            <DropdownMenuItem className="focus:bg-red-100 focus:text-red-400">
               <Trash2 className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Delete
             </DropdownMenuItem>
@@ -589,22 +628,22 @@ export function NoteMoreButton({
 export function AddMemoryModal({
   type,
   children,
-	defaultSpaces,
-	onAdd,
-	data
+  defaultSpaces,
+  onAdd,
+  data,
 }: {
   type: "page" | "note" | "space" | "existing-memory" | null;
   children?: React.ReactNode | React.ReactNode[];
-	defaultSpaces?: number[];
-	data?: {
-		space?: {
-			title: string,
-			id: number,
-		},
-		fromSpaces?: number[],
-		notInSpaces?: number[],
-	},
-	onAdd?: (data?: StoredSpace | StoredContent | StoredContent[]) => void,
+  defaultSpaces?: number[];
+  data?: {
+    space?: {
+      title: string;
+      id: number;
+    };
+    fromSpaces?: number[];
+    notInSpaces?: number[];
+  };
+  onAdd?: (data?: StoredSpace | StoredContent | StoredContent[]) => void;
 }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -637,14 +676,31 @@ export function AddMemoryModal({
         className="w-max max-w-[auto]"
       >
         {type === "page" ? (
-          <AddMemoryPage onAdd={onAdd} defaultSpaces={defaultSpaces} closeDialog={() => setIsDialogOpen(false)} />
+          <AddMemoryPage
+            onAdd={onAdd}
+            defaultSpaces={defaultSpaces}
+            closeDialog={() => setIsDialogOpen(false)}
+          />
         ) : type === "note" ? (
-          <NoteAddPage onAdd={onAdd} defaultSpaces={defaultSpaces} closeDialog={() => setIsDialogOpen(false)} />
+          <NoteAddPage
+            onAdd={onAdd}
+            defaultSpaces={defaultSpaces}
+            closeDialog={() => setIsDialogOpen(false)}
+          />
         ) : type === "space" ? (
-          <SpaceAddPage onAdd={onAdd} closeDialog={() => setIsDialogOpen(false)} />
+          <SpaceAddPage
+            onAdd={onAdd}
+            closeDialog={() => setIsDialogOpen(false)}
+          />
         ) : type === "existing-memory" ? (
-					<AddExistingMemoryToSpace onAdd={onAdd} fromSpaces={data?.fromSpaces} notInSpaces={data?.notInSpaces} space={data!.space!} closeDialog={() => setIsDialogOpen(false)} />
-				) : (
+          <AddExistingMemoryToSpace
+            onAdd={onAdd}
+            fromSpaces={data?.fromSpaces}
+            notInSpaces={data?.notInSpaces}
+            space={data!.space!}
+            closeDialog={() => setIsDialogOpen(false)}
+          />
+        ) : (
           <></>
         )}
       </DialogContent>

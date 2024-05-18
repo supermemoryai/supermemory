@@ -12,6 +12,8 @@ import { redirect } from "next/navigation";
 import { fetchContentForSpace, fetchFreeMemories } from "@/actions/db";
 import { MemoryProvider } from "@/contexts/MemoryContext";
 import Content from "./content";
+import Main from "@/components/Main";
+import { TailwindIndicator } from "@/components/dev/tailwindindicator";
 
 export const runtime = "edge";
 
@@ -88,6 +90,7 @@ export default async function Home() {
       cachedMemories={contents}
     >
       <Content jwt={token} />
+      <TailwindIndicator />
       {/* <MessagePoster jwt={token} /> */}
     </MemoryProvider>
   );
