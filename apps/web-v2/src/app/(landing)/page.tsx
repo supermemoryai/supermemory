@@ -29,7 +29,7 @@ export default function Home() {
       <div className="absolute left-0 top-0 z-[-1] h-full w-full">
         <div className="overflow-none">
           <div
-            className="overflow-none absolute left-0 h-32 w-full bg-[#369DFD] bg-opacity-70 blur-[337.4px]"
+            className="overflow-none absolute left-0 h-32 w-[95%] bg-[#369DFD] bg-opacity-70 blur-[337.4px]"
             style={{ transform: "rotate(-30deg)" }}
           />
         </div>
@@ -37,7 +37,7 @@ export default function Home() {
         {/* a blue gradient line that's slightly tilted with blur (a lotof blur)*/}
         <div className="overflow-none">
           <div
-            className="overflow-none absolute left-0 top-[100%] h-32 w-full bg-[#369DFD] bg-opacity-40 blur-[337.4px]"
+            className="overflow-none absolute left-0 top-[100%] h-32 w-[95%] bg-[#369DFD] bg-opacity-40 blur-[337.4px]"
             style={{ transform: "rotate(-30deg)" }}
           />
         </div>
@@ -89,7 +89,7 @@ export default function Home() {
           {/* a blue gradient line that's slightly tilted with blur (a lotof blur)*/}
           <div className="overflow-hidden">
             <div
-              className="absolute left-0 h-32 w-full overflow-hidden bg-[#369DFD] bg-opacity-70 blur-[337.4px]"
+              className="absolute left-0 h-32 w-[95%] overflow-hidden bg-[#369DFD] bg-opacity-70 blur-[337.4px]"
               style={{ transform: "rotate(-30deg)" }}
             />
           </div>
