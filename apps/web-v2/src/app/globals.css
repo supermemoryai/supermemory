@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+  --black-bg: #0f1114;
+  --soft-foreground: #ffffff;
+  --soft-foreground-text: #b2bcca;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(to bottom, transparent, var(--black-bg))
+    var(--black-bg);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg) translateX(130px); /* Adjust radius */
+  }
+  100% {
+    transform: rotate(360deg) translateX(130px); /* Adjust radius */
+  }
+}
+
+.icon-container {
+  animation: rotate 10s linear infinite;
+}
