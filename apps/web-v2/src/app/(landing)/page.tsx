@@ -7,7 +7,7 @@ import Logo from "@/../public/logo.svg";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center overflow-x-hidden">
+    <main className="flex min-h-screen flex-col items-center">
       <div className="fixed top-0 z-[99999] mt-12 hidden w-full px-24 text-sm md:flex">
         <nav className="flex w-full flex-row justify-between rounded-2xl bg-white/10 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] backdrop-blur-lg backdrop-filter">
           <div className="flex flex-row items-center p-3 opacity-50">
