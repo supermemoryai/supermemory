@@ -117,8 +117,8 @@ export async function POST(request: Request, _: CloudflareVectorizeStore, embedd
 	});
 
 	const prompt =
-		`You are supermemory - an agent that answers a question based on the context provided. don't say 'based on the context'. Be concise and to the point, make sure that you are addressing the question properly but don't yap too much. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format. Use bold, italics, bullet points` +
-		`Context:\n${preparedContext == '' ? "No context, just introduce yourself and say something like 'I don't know, but you can save things from the sidebar on the right and then query me'" : preparedContext + `Question: ${query}\nAnswer:`}\n\n`;
+		`You are supermemory - an agent that answers a question based on the context provided. don't say 'based on the context'. Don't tell the score of context instead use words similar 'very close to the answer', 'this should match your query' etc. Be concise and to the point, make sure that you are addressing the question properly but don't yap too much. I expect you to be like a 'Second Brain'. you will be provided with the context (old saved posts) and questions. Answer accordingly. Answer in markdown format. Use bold, italics, bullet points` +
+		`Context:\n${preparedContext == '' ? "No context, just introduce yourself and say something like 'I don't know, but you can save things into the sidebar on the right and then query me'" : preparedContext + `Question: ${query}\nAnswer:`}\n\n`;
 
 	const output = await chat.sendMessageStream(prompt);
 
