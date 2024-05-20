@@ -21,12 +21,12 @@ export default function Features() {
   }, []);
 
   return (
-    <section className="relative w-full overflow-hidden after:pointer-events-none after:absolute after:right-0 after:top-0 after:h-full after:w-96 after:bg-gradient-to-l after:from-[#369DFD30] max-lg:after:hidden">
-      <div className="py-12 md:py-20">
+    <section className="relative w-full overflow-hidden max-lg:after:hidden">
+      <div className="py-12 md:pb-32">
         {/* Carousel */}
         <div
           id="use-cases"
-          className="mx-auto max-w-xl px-4 sm:px-6 lg:max-w-6xl"
+          className="mx-auto max-w-xl px-4 sm:px-6 lg:max-w-6xl md:pt-40"
         >
           <div className="space-y-12 lg:flex lg:space-x-12 lg:space-y-0 xl:space-x-24">
             {/* Content */}
@@ -202,7 +202,7 @@ export default function Features() {
         {/* Features blocks */}
         <div
           id="features"
-          className="mx-auto mt-24 max-w-6xl px-4 sm:px-6 lg:mt-32"
+          className="mx-auto mt-24 max-w-6xl px-4 sm:px-6 md:pt-40"
         >
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-16">
             {/* Block #1 */}
@@ -320,6 +320,7 @@ export default function Features() {
             </div>
           </div>
         </div>
+        
       </div>
     </section>
   );
