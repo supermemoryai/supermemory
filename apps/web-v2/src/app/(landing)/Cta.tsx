@@ -6,7 +6,7 @@ function Cta() {
   return (
     <section
       id="try"
-      className="relative mb-32 mt-40  flex w-full flex-col items-center justify-center gap-8"
+      className="relative mb-44 mt-60 flex w-full flex-col items-center justify-center gap-8"
     >
       <div className="absolute left-0 z-[-1] h-full w-full">
         {/* a blue gradient line that's slightly tilted with blur (a lotof blur)*/}

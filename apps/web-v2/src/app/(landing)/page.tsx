@@ -4,6 +4,7 @@ import Navbar from "./Navbar";
 import Cta from "./Cta";
 import { Toaster } from "@/components/ui/toaster";
 import Features from "./Features";
+import Footer from "./footer";
 
 export const runtime = "edge";
 
@@ -50,14 +51,9 @@ export default function Home() {
 
       <Toaster />
 
-      <footer className="mt-16 flex w-full items-center justify-between gap-4 border-t border-zinc-200/50 px-8 py-8 text-sm text-zinc-500">
-        <p>© 2024 Supermemory.ai</p>
-        <div className="flex gap-4">
-          <a href="mailto:hi@dhravya.dev">Contact</a>
-          <a href="https://twitter.com/supermemoryai">Twitter</a>
-          <a href="https://github.com/dhravya/supermemory">Github</a>
-        </div>
-      </footer>
+      <Footer />
+
+
     </main>
   );
 }
