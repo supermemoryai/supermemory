@@ -3,6 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Twitter } from "@/utils/icons";
 import EmailInput from "./EmailInput";
+import LinkArrow from "./linkArrow";
 
 const slap = {
   initial: {
@@ -22,10 +23,11 @@ function Hero() {
     <>
       <section className="mt-24 flex max-w-xl flex-col items-center justify-center gap-10 md:mt-56">
         <a
-          className="flex items-center justify-center gap-4 rounded-full text-white/80 bg-white/10 px-4 py-2 text-sm"
+          className="group/anchor flex items-center justify-center gap-4 rounded-full text-white/80 bg-white/10 px-4 py-2 text-sm"
           href="https://twitter.com/supermemoryai"
+          target="_blank"
         >
-          <Twitter className="h-4 w-4 " /> Follow us on Twitter
+          <Twitter className="h-4 w-4" /><div className="flex"> Follow us on Twitter <LinkArrow classname=" scale-y-0 group-hover/anchor:scale-y-100 origin-bottom-left transition" stroke="#ffffff" /></div>
         </a>
         <motion.h1
           {...{
