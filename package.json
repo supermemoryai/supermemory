@@ -86,7 +86,7 @@
     "remark-gfm": "^4.0.0",
     "tailwind-scrollbar": "^3.1.0",
     "tailwindcss-animate": "^1.0.7",
-    "wrangler": "3.56.0",
+    "wrangler": "^3.57.0",
     "zod": "^3.23.8"
   }
 }

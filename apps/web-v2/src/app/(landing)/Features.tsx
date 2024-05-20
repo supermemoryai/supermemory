@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Transition } from "@headlessui/react";
 import Image from "next/image";
 import CarouselIllustration from "@/../public/images/carousel-illustration-01.png";
+import { X } from "@/utils/icons";
 
 export default function Features() {
   const [tab, setTab] = useState<number>(1);
@@ -23,7 +24,10 @@ export default function Features() {
     <section className="relative w-full overflow-hidden after:pointer-events-none after:absolute after:right-0 after:top-0 after:h-full after:w-96 after:bg-gradient-to-l after:from-[#369DFD30] max-lg:after:hidden">
       <div className="py-12 md:py-20">
         {/* Carousel */}
-        <div className="mx-auto max-w-xl px-4 sm:px-6 lg:max-w-6xl">
+        <div
+          id="use-cases"
+          className="mx-auto max-w-xl px-4 sm:px-6 lg:max-w-6xl"
+        >
           <div className="space-y-12 lg:flex lg:space-x-12 lg:space-y-0 xl:space-x-24">
             {/* Content */}
             <div className="lg:min-w-[524px] lg:max-w-none">
@@ -62,8 +66,9 @@ export default function Features() {
                       For Researchers
                     </div>
                     <div className="text-zinc-500">
-                      Save time and keep things consistent with reusable images,
-                      and 3D assets in shared libraries.
+                      Add content to collections and use it as a knowledge base
+                      for your research, link multiple sources together to get a
+                      better understanding of the topic.
                     </div>
                   </div>
                 </button>
@@ -87,8 +92,8 @@ export default function Features() {
                       For Content writers
                     </div>
                     <div className="text-zinc-500">
-                      Save time and keep things consistent with reusable images,
-                      and 3D assets in shared libraries.
+                      Save time and use the writing assistant to generate
+                      content based on your own saved collections and sources.
                     </div>
                   </div>
                 </button>
@@ -112,8 +117,8 @@ export default function Features() {
                       For Developers
                     </div>
                     <div className="text-zinc-500">
-                      Save time and keep things consistent with reusable images,
-                      and 3D assets in shared libraries.
+                      Talk to documentation websites, code snippets, etc. so you
+                      never have to google the same thing a hundred times.
                     </div>
                   </div>
                 </button>
@@ -195,26 +200,22 @@ export default function Features() {
         </div>
 
         {/* Features blocks */}
-        <div className="mx-auto mt-24 max-w-6xl px-4 sm:px-6 lg:mt-32">
+        <div
+          id="features"
+          className="mx-auto mt-24 max-w-6xl px-4 sm:px-6 lg:mt-32"
+        >
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-16">
             {/* Block #1 */}
             <div>
               <div className="mb-1 flex items-center">
-                <svg
-                  className="mr-2 fill-zinc-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                >
-                  <path d="M15 9a1 1 0 0 1 0 2c-.441 0-1.243.92-1.89 1.716.319 1.005.529 1.284.89 1.284a1 1 0 0 1 0 2 2.524 2.524 0 0 1-2.339-1.545A3.841 3.841 0 0 1 9 16a1 1 0 0 1 0-2c.441 0 1.243-.92 1.89-1.716C10.57 11.279 10.361 11 10 11a1 1 0 0 1 0-2 2.524 2.524 0 0 1 2.339 1.545A3.841 3.841 0 0 1 15 9Zm-5-1H7.51l-.02.142C6.964 11.825 6.367 16 3 16a3 3 0 0 1-3-3 1 1 0 0 1 2 0 1 1 0 0 0 1 1c1.49 0 1.984-2.48 2.49-6H3a1 1 0 1 1 0-2h2.793c.52-3.1 1.4-6 4.207-6a3 3 0 0 1 3 3 1 1 0 0 1-2 0 1 1 0 0 0-1-1C8.808 2 8.257 3.579 7.825 6H10a1 1 0 0 1 0 2Z" />
-                </svg>
+                <X className="mr-2" />
                 <h3 className="font-inter-tight font-semibold text-zinc-200">
-                  Discussions
+                  Import all your Twitter bookmarks
                 </h3>
               </div>
               <p className="text-sm text-zinc-500">
-                Keep workflows efficient with tools that give teams visibility
-                throughout the process.
+                Use all the knowledge you've saved on Twitter to train your own
+                supermemory.
               </p>
             </div>
             {/* Block #2 */}
@@ -229,35 +230,15 @@ export default function Features() {
                   <path d="M13 16c-.153 0-.306-.035-.447-.105l-3.851-1.926c-.231.02-.465.031-.702.031-4.411 0-8-3.14-8-7s3.589-7 8-7 8 3.14 8 7c0 1.723-.707 3.351-2 4.63V15a1.003 1.003 0 0 1-1 1Zm-4.108-4.054c.155 0 .308.036.447.105L12 13.382v-2.187c0-.288.125-.562.341-.752C13.411 9.506 14 8.284 14 7c0-2.757-2.691-5-6-5S2 4.243 2 7s2.691 5 6 5c.266 0 .526-.02.783-.048a1.01 1.01 0 0 1 .109-.006Z" />
                 </svg>
                 <h3 className="font-inter-tight font-semibold text-zinc-200">
-                  Team views
+                  Chat with collections
                 </h3>
               </div>
               <p className="text-sm text-zinc-500">
-                Keep workflows efficient with tools that give teams visibility
-                throughout the process.
+                Use collections to talk to specific knowledgebases like 'My
+                twitter bookmarks', or 'Learning web development'
               </p>
             </div>
             {/* Block #3 */}
-            <div>
-              <div className="mb-1 flex items-center">
-                <svg
-                  className="mr-2 fill-zinc-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="16"
-                >
-                  <path d="M13 0H1C.4 0 0 .4 0 1v14c0 .6.4 1 1 1h8l5-5V1c0-.6-.4-1-1-1ZM2 2h10v8H8v4H2V2Z" />
-                </svg>
-                <h3 className="font-inter-tight font-semibold text-zinc-200">
-                  Powerful search
-                </h3>
-              </div>
-              <p className="text-sm text-zinc-500">
-                Keep workflows efficient with tools that give teams visibility
-                throughout the process.
-              </p>
-            </div>
-            {/* Block #4 */}
             <div>
               <div className="mb-1 flex items-center">
                 <svg
@@ -269,12 +250,32 @@ export default function Features() {
                   <path d="M7 14c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7ZM7 2C4.243 2 2 4.243 2 7s2.243 5 5 5 5-2.243 5-5-2.243-5-5-5Zm8.707 12.293a.999.999 0 1 1-1.414 1.414L11.9 13.314a8.019 8.019 0 0 0 1.414-1.414l2.393 2.393Z" />
                 </svg>
                 <h3 className="font-inter-tight font-semibold text-zinc-200">
-                  Enhancing
+                  Powerful search
                 </h3>
               </div>
               <p className="text-sm text-zinc-500">
-                Keep workflows efficient with tools that give teams visibility
-                throughout the process.
+                Look up anything you've saved in your supermemory, and get the
+                information you need in seconds.
+              </p>
+            </div>
+            {/* Block #4 */}
+            <div>
+              <div className="mb-1 flex items-center">
+                <svg
+                  className="mr-2 fill-zinc-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="16"
+                >
+                  <path d="M13 0H1C.4 0 0 .4 0 1v14c0 .6.4 1 1 1h8l5-5V1c0-.6-.4-1-1-1ZM2 2h10v8H8v4H2V2Z" />
+                </svg>
+                <h3 className="font-inter-tight font-semibold text-zinc-200">
+                  Knowledge canvas
+                </h3>
+              </div>
+              <p className="text-sm text-zinc-500">
+                Arrange your saved information in a way that makes sense to you
+                in a 2d canvas.
               </p>
             </div>
             {/* Block #5 */}
@@ -289,32 +290,32 @@ export default function Features() {
                   <path d="M14.6.085 8 2.885 1.4.085c-.5-.2-1.4-.1-1.4.9v11c0 .4.2.8.6.9l7 3c.3.1.5.1.8 0l7-3c.4-.2.6-.5.6-.9v-11c0-1-.9-1.1-1.4-.9ZM2 2.485l5 2.1v8.8l-5-2.1v-8.8Zm12 8.8-5 2.1v-8.7l5-2.1v8.7Z" />
                 </svg>
                 <h3 className="font-inter-tight font-semibold text-zinc-200">
-                  Powerful search
+                  Just... bookmarks
                 </h3>
               </div>
               <p className="text-sm text-zinc-500">
-                Keep workflows efficient with tools that give teams visibility
-                throughout the process.
+                AI is cool, but sometimes you just need a place to save your
+                stuff. Supermemory is that place.
               </p>
             </div>
             {/* Block #6 */}
             <div>
               <div className="mb-1 flex items-center">
                 <svg
-                  className="mr-2 fill-zinc-400"
                   xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="16"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="mr-2 h-5 w-5 fill-zinc-400"
                 >
-                  <path d="M13 14a1 1 0 0 1 0 2H1a1 1 0 0 1 0-2h12Zm-6.707-2.293-5-5a1 1 0 0 1 1.414-1.414L6 8.586V1a1 1 0 1 1 2 0v7.586l3.293-3.293a1 1 0 1 1 1.414 1.414l-5 5a1 1 0 0 1-1.414 0Z" />
+                  <path d="m2.695 14.762-1.262 3.155a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.886L17.5 5.501a2.121 2.121 0 0 0-3-3L3.58 13.419a4 4 0 0 0-.885 1.343Z" />
                 </svg>
                 <h3 className="font-inter-tight font-semibold text-zinc-200">
-                  Team views
+                  Writing assistant
                 </h3>
               </div>
               <p className="text-sm text-zinc-500">
-                Keep workflows efficient with tools that give teams visibility
-                throughout the process.
+                Use our markdown editor to write content based on your saved
+                data, with the help of AI.
               </p>
             </div>
           </div>

@@ -4,6 +4,13 @@ compatibility_date = "2024-05-12"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
 
+# [[unsafe.bindings]]
+# name = "RATELIMITER"
+# type = "ratelimit"
+# namespace_id = "1011" 
+
+# simple = { limit = 25, period = 10 }
+
 # Automatically place your workloads in an optimal location to minimize latency.
 # If you are running back-end logic in a Pages Function, running it closer to your back-end infrastructure
 # rather than the end user may result in better performance.
