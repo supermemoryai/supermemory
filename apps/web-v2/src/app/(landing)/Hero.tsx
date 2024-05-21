@@ -3,6 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Twitter } from "@/utils/icons";
 import EmailInput from "./EmailInput";
+import LinkArrow from "./linkArrow";
 
 const slap = {
   initial: {
@@ -20,19 +21,20 @@ const slap = {
 function Hero() {
   return (
     <>
-      <section className="mt-24 flex max-w-xl flex-col items-center justify-center gap-8 md:mt-40">
+      <section className="mt-24 flex max-w-xl flex-col items-center justify-center gap-10 md:mt-56">
         <a
-          className="flex items-center justify-center gap-4 rounded-full bg-white/10 px-4 py-2 text-sm"
+          className="group/anchor pl-10 pr-6 flex items-center justify-center gap-4 rounded-full text-white/80 bg-white/10 py-2 text-sm"
           href="https://twitter.com/supermemoryai"
+          target="_blank"
         >
-          <Twitter className="h-4 w-4 text-white" /> Follow us on Twitter
+          <Twitter className="h-4 w-4" /><div className="flex"> Follow us on Twitter <LinkArrow classname="group-hover/anchor:opacity-100 opacity-0 transition" stroke="#ffffff" /></div>
         </a>
         <motion.h1
           {...{
             ...slap,
             transition: { ...slap.transition, delay: 0.2 },
           }}
-          className="text-center text-4xl font-light text-white md:text-5xl"
+          className="text-center text-4xl text-white/95 md:text-5xl tracking-normal font-semibold"
         >
           Build your own second brain with Supermemory
         </motion.h1>
@@ -58,7 +60,7 @@ function Hero() {
         width={1512}
         height={1405}
         draggable="false"
-        className="z-[-2] mt-16 h-full w-[80%] select-none"
+        className="z-[-2] mt-28 h-full w-[80%] select-none"
       />
     </>
   );

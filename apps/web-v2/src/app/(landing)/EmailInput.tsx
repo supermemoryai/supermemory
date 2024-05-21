@@ -39,7 +39,7 @@ function EmailInput() {
         <input
           type="email"
           name="email"
-          className={`transition-width flex w-full items-center rounded-2xl bg-[#37485E] px-4 py-2 duration-300 focus:outline-none`}
+          className={`transition-width flex w-full items-center rounded-2xl bg-[#37485E] px-4 py-2 duration-300 focus:outline-none outline-none`}
           placeholder="Enter your email"
           value={email}
           required
