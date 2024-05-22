@@ -19,7 +19,7 @@ export default function Features() {
       tabs.current.parentElement.style.height = `${tabs.current.clientHeight}px`;
   };
 
-  function handleClickIndex(tab:number){
+  function handleClickIndex(tab: number) {
     setTab(tab);
   }
 
@@ -33,7 +33,7 @@ export default function Features() {
         {/* Carousel */}
         <div
           id="use-cases"
-          className="mx-auto max-w-xl px-4 sm:px-6 lg:max-w-6xl md:pt-40"
+          className="mx-auto max-w-xl px-4 sm:px-6 md:pt-40 lg:max-w-6xl"
         >
           <div className="space-y-12 lg:flex lg:space-x-12 lg:space-y-0 xl:space-x-24">
             {/* Content */}
@@ -53,7 +53,11 @@ export default function Features() {
               </div>
               {/* Tabs buttons */}
               <div className="mb-8 space-y-2 md:mb-0">
-                <CardClick tab={tab}  items={features} handleClickIndex={handleClickIndex} />
+                <CardClick
+                  tab={tab}
+                  items={features}
+                  handleClickIndex={handleClickIndex}
+                />
               </div>
             </div>
 
@@ -252,7 +256,6 @@ export default function Features() {
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );

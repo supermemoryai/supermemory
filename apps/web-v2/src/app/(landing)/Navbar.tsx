@@ -11,7 +11,7 @@ function Navbar() {
         <Link href={"/"} className="flex items-center p-3 opacity-50">
           <Image src={Logo} alt="Supermemory logo" width={40} height={40} />
         </Link>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-8 p-3">
+        <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-8 p-3">
           <Link href={"#use-cases"} className="text-soft-foreground-text">
             Use cases
           </Link>

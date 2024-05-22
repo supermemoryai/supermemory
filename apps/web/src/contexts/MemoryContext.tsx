@@ -36,9 +36,9 @@ export const MemoryContext = React.createContext<{
   search: typeof searchMemoriesAndSpaces;
   deleteSpace: typeof deleteSpace;
   deleteMemory: typeof deleteMemory;
-	updateMemory: typeof updateMemory;
-	updateSpace: typeof updateSpaceTitle;
-	addMemoriesToSpace: typeof addContentInSpaces;
+  updateMemory: typeof updateMemory;
+  updateSpace: typeof updateSpaceTitle;
+  addMemoriesToSpace: typeof addContentInSpaces;
 }>({
   spaces: [],
   freeMemories: [],
@@ -50,7 +50,7 @@ export const MemoryContext = React.createContext<{
   deleteSpace: (() => {}) as unknown as typeof deleteSpace,
   updateMemory: (() => {}) as unknown as typeof updateMemory,
   updateSpace: (() => {}) as unknown as typeof updateSpaceTitle,
-	addMemoriesToSpace: (() => {}) as unknown as typeof addContentInSpaces,
+  addMemoriesToSpace: (() => {}) as unknown as typeof addContentInSpaces,
 });
 
 export const MemoryProvider: React.FC<
@@ -104,10 +104,10 @@ export const MemoryProvider: React.FC<
 
     setSpaces((prev) => [...prev, addedSpace]);
     const cachedMemories = (
-      await fetchContentForSpace(addedSpace.id, {
+      (await fetchContentForSpace(addedSpace.id, {
         offset: 0,
         limit: 3,
-      }) ?? []
+      })) ?? []
     ).map((m) => ({ ...m, space: addedSpace.id }));
 
     setCachedMemories((prev) => [...prev, ...cachedMemories]);
@@ -141,81 +141,80 @@ export const MemoryProvider: React.FC<
     };
   };
 
-	const _updateMemory: typeof updateMemory = async (id, _data) => {
-		const data = await updateMemory(id, _data);
+  const _updateMemory: typeof updateMemory = async (id, _data) => {
+    const data = await updateMemory(id, _data);
 
-		let contents: ChachedSpaceContent[] = [];
+    let contents: ChachedSpaceContent[] = [];
 
-		await Promise.all([
-			spaces.forEach(async (space) => {
-				console.log("fetching ");
-				const data = (
-					await fetchContentForSpace(space.id, {
-						offset: 0,
-						limit: 3,
-					}) ?? []
-				).map((data) => ({
-					...data,
-					space: space.id,
-				}));
-				contents = [...contents, ...data];
-			}),
-		]);
+    await Promise.all([
+      spaces.forEach(async (space) => {
+        console.log("fetching ");
+        const data = (
+          (await fetchContentForSpace(space.id, {
+            offset: 0,
+            limit: 3,
+          })) ?? []
+        ).map((data) => ({
+          ...data,
+          space: space.id,
+        }));
+        contents = [...contents, ...data];
+      }),
+    ]);
 
-		const freeMemories = await fetchFreeMemories();
+    const freeMemories = await fetchFreeMemories();
 
-		setCachedMemories(contents)
-		setFreeMemories(freeMemories)
+    setCachedMemories(contents);
+    setFreeMemories(freeMemories);
 
-	
-		return data
-	}
+    return data;
+  };
 
-	const _updateSpace: typeof updateSpaceTitle = async (...params) => {
-		const updatedSpace = await updateSpaceTitle(...params);
+  const _updateSpace: typeof updateSpaceTitle = async (...params) => {
+    const updatedSpace = await updateSpaceTitle(...params);
 
-		if (updatedSpace) {
-			setSpaces(prev => prev.map(
-				i => i.id === updatedSpace.id ? updatedSpace : i
-			))
-		}
+    if (updatedSpace) {
+      setSpaces((prev) =>
+        prev.map((i) => (i.id === updatedSpace.id ? updatedSpace : i)),
+      );
+    }
 
-		return updatedSpace
-	}
+    return updatedSpace;
+  };
 
-	const addMemoriesToSpace: typeof addContentInSpaces = async (...params) => {
-		const data = await addContentInSpaces(...params);
+  const addMemoriesToSpace: typeof addContentInSpaces = async (...params) => {
+    const data = await addContentInSpaces(...params);
 
-		let contents: ChachedSpaceContent[] = [];
+    let contents: ChachedSpaceContent[] = [];
 
-		await Promise.all([
-			spaces.forEach(async (space) => {
-				console.log("fetching ");
-				const data = (
-					await fetchContentForSpace(space.id, {
-						offset: 0,
-						limit: 3,
-					}) ?? []
-				).map((data) => ({
-					...data,
-					space: space.id,
-				}));
-				contents = [...contents, ...data];
-			}),
-		]);
+    await Promise.all([
+      spaces.forEach(async (space) => {
+        console.log("fetching ");
+        const data = (
+          (await fetchContentForSpace(space.id, {
+            offset: 0,
+            limit: 3,
+          })) ?? []
+        ).map((data) => ({
+          ...data,
+          space: space.id,
+        }));
+        contents = [...contents, ...data];
+      }),
+    ]);
 
-		const freeMemories = await fetchFreeMemories();
+    const freeMemories = await fetchFreeMemories();
 
-		setCachedMemories(contents)
-		setFreeMemories(freeMemories)
+    setCachedMemories(contents);
+    setFreeMemories(freeMemories);
 
-		return data
-	}
+    return data;
+  };
 
   return (
     <MemoryContext.Provider
       value={{
-				updateSpace: _updateSpace,
+        updateSpace: _updateSpace,
         search: searchMemoriesAndSpaces,
         spaces,
         addSpace: _addSpace,
@@ -224,8 +223,8 @@ export const MemoryProvider: React.FC<
         cachedMemories,
         deleteMemory: _deleteMemory,
         addMemory: _addMemory,
-				updateMemory: _updateMemory,
-				addMemoriesToSpace,
+        updateMemory: _updateMemory,
+        addMemoriesToSpace,
       }}
     >
       {children}

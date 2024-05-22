@@ -10,7 +10,17 @@ import {
   StoredContent,
 } from "@/server/db/schema";
 import { SearchResult } from "@/contexts/MemoryContext";
-import { like, eq, and, sql, exists, asc, notExists, inArray, notInArray } from "drizzle-orm";
+import {
+  like,
+  eq,
+  and,
+  sql,
+  exists,
+  asc,
+  notExists,
+  inArray,
+  notInArray,
+} from "drizzle-orm";
 import { union } from "drizzle-orm/sqlite-core";
 import { env } from "@/env";
 
@@ -20,10 +30,10 @@ export async function searchMemoriesAndSpaces(
   opts?: {
     filter?: { memories?: boolean; spaces?: boolean };
     range?: { offset: number; limit: number };
-		memoriesRelativeToSpace?: {
-			fromSpaces?: number[];
-			notInSpaces?: number[];
-		}
+    memoriesRelativeToSpace?: {
+      fromSpaces?: number[];
+      notInSpaces?: number[];
+    };
   },
 ): Promise<SearchResult[]> {
   const user = await getUser();
@@ -32,26 +42,50 @@ export async function searchMemoriesAndSpaces(
     return [];
   }
 
-	const defaultWhere = and(
-		eq(storedContent.user, user.id),
-		like(storedContent.title, `%${query}%`),
-	)
-	const extraWheres = []
+  const defaultWhere = and(
+    eq(storedContent.user, user.id),
+    like(storedContent.title, `%${query}%`),
+  );
+  const extraWheres = [];
 
-	if (opts?.memoriesRelativeToSpace) {
-		if (opts.memoriesRelativeToSpace.fromSpaces) {
-			extraWheres.push(exists(db.select().from(contentToSpace).where(and(
-				eq(contentToSpace.contentId, storedContent.id),
-				inArray(contentToSpace.spaceId, opts.memoriesRelativeToSpace.fromSpaces)
-			))))
-		}
-		if (opts.memoriesRelativeToSpace.notInSpaces) {
-			extraWheres.push(notExists(db.select().from(contentToSpace).where(and(
-				eq(contentToSpace.contentId, storedContent.id),
-				inArray(contentToSpace.spaceId, opts.memoriesRelativeToSpace.notInSpaces)
-			))))
-		}
-	}
+  if (opts?.memoriesRelativeToSpace) {
+    if (opts.memoriesRelativeToSpace.fromSpaces) {
+      extraWheres.push(
+        exists(
+          db
+            .select()
+            .from(contentToSpace)
+            .where(
+              and(
+                eq(contentToSpace.contentId, storedContent.id),
+                inArray(
+                  contentToSpace.spaceId,
+                  opts.memoriesRelativeToSpace.fromSpaces,
+                ),
+              ),
+            ),
+        ),
+      );
+    }
+    if (opts.memoriesRelativeToSpace.notInSpaces) {
+      extraWheres.push(
+        notExists(
+          db
+            .select()
+            .from(contentToSpace)
+            .where(
+              and(
+                eq(contentToSpace.contentId, storedContent.id),
+                inArray(
+                  contentToSpace.spaceId,
+                  opts.memoriesRelativeToSpace.notInSpaces,
+                ),
+              ),
+            ),
+        ),
+      );
+    }
+  }
 
   try {
     let searchMemoriesQuery = db
@@ -62,8 +96,11 @@ export async function searchMemoriesAndSpaces(
       })
       .from(storedContent)
       .where(
-				extraWheres.length == 2 ? and(and(...extraWheres), defaultWhere) : 
-					extraWheres.length == 1 ? and(...extraWheres, defaultWhere) : defaultWhere
+        extraWheres.length == 2
+          ? and(and(...extraWheres), defaultWhere)
+          : extraWheres.length == 1
+            ? and(...extraWheres, defaultWhere)
+            : defaultWhere,
       )
       .orderBy(asc(storedContent.savedAt));
 
@@ -105,19 +142,24 @@ export async function searchMemoriesAndSpaces(
 }
 
 export async function getMemoriesFromUrl(urls: string[]) {
-
   const user = await getUser();
 
   if (!user) {
     return [];
   }
 
-	return urls.length > 0 ? await db.select()
-		.from(storedContent)
-		.where(and(
-			inArray(storedContent.url, urls),
-			eq(storedContent.user, user.id)
-		)).all() : []
+  return urls.length > 0
+    ? await db
+        .select()
+        .from(storedContent)
+        .where(
+          and(
+            inArray(storedContent.url, urls),
+            eq(storedContent.user, user.id),
+          ),
+        )
+        .all()
+    : [];
 }
 
 async function getUser() {
@@ -154,20 +196,18 @@ async function getUser() {
 }
 
 export async function getSpace(id: number) {
-	
   const user = await getUser();
 
   if (!user) {
     return null;
   }
-	
-	return (await db.select()
-		.from(space)
-		.where(and(
-			eq(space.id, id),
-			eq(space.user, user.id)
-		)))[0]
 
+  return (
+    await db
+      .select()
+      .from(space)
+      .where(and(eq(space.id, id), eq(space.user, user.id)))
+  )[0];
 }
 
 export async function addSpace(name: string, memories: number[]) {
@@ -205,35 +245,30 @@ export async function addSpace(name: string, memories: number[]) {
 }
 
 export async function fetchContent(id: number) {
-	
-	
   const user = await getUser();
 
   if (!user) {
     return null;
   }
 
-	const fetchedMemory = await db.select()
-		.from(storedContent)
-		.where(and(
-			eq(storedContent.id, id),
-			eq(storedContent.user, user.id)
-		));
-	
-	const memory = fetchedMemory.length > 0 ? fetchedMemory[0] : null
-	
-	const spaces = memory ? await db.select()
-		.from(contentToSpace)
-		.where(
-			eq(contentToSpace.contentId, memory.id)
-		) : []
-	
+  const fetchedMemory = await db
+    .select()
+    .from(storedContent)
+    .where(and(eq(storedContent.id, id), eq(storedContent.user, user.id)));
 
-	return {
-		memory,
-		spaces: spaces.map(s => s.spaceId)
-	}
+  const memory = fetchedMemory.length > 0 ? fetchedMemory[0] : null;
 
+  const spaces = memory
+    ? await db
+        .select()
+        .from(contentToSpace)
+        .where(eq(contentToSpace.contentId, memory.id))
+    : [];
+
+  return {
+    memory,
+    spaces: spaces.map((s) => s.spaceId),
+  };
 }
 
 export async function fetchContentForSpace(
@@ -243,7 +278,6 @@ export async function fetchContentForSpace(
     limit: number;
   },
 ) {
-
   const user = await getUser();
 
   if (!user) {
@@ -260,19 +294,22 @@ export async function fetchContentForSpace(
           .from(contentToSpace)
           .where(
             and(
-							and(
-								eq(contentToSpace.spaceId, spaceId),
-								eq(contentToSpace.contentId, storedContent.id),
-							),
-							exists(
-								db.select()
-									.from(space)
-									.where(and(
-										eq(space.user, user.id),
-										eq(space.id, contentToSpace.spaceId)
-									))
-							)
-						)
+              and(
+                eq(contentToSpace.spaceId, spaceId),
+                eq(contentToSpace.contentId, storedContent.id),
+              ),
+              exists(
+                db
+                  .select()
+                  .from(space)
+                  .where(
+                    and(
+                      eq(space.user, user.id),
+                      eq(space.id, contentToSpace.spaceId),
+                    ),
+                  ),
+              ),
+            ),
           ),
       ),
     )
@@ -293,46 +330,45 @@ export async function fetchFreeMemories(range?: {
     return [];
   }
 
-	try {
-		const query = db
-			.select()
-			.from(storedContent)
-			.where(
-				and(
-					notExists(
-						db
-							.select()
-							.from(contentToSpace)
-							.where(eq(contentToSpace.contentId, storedContent.id)),
-					),
-					eq(storedContent.user, user.id),
-				),
-			)
-			.orderBy(asc(storedContent.savedAt));
+  try {
+    const query = db
+      .select()
+      .from(storedContent)
+      .where(
+        and(
+          notExists(
+            db
+              .select()
+              .from(contentToSpace)
+              .where(eq(contentToSpace.contentId, storedContent.id)),
+          ),
+          eq(storedContent.user, user.id),
+        ),
+      )
+      .orderBy(asc(storedContent.savedAt));
 
-		return range
-			? await query.limit(range.limit).offset(range.offset)
-			: await query.all();
-	} catch {
-		return []
-	}
-
+    return range
+      ? await query.limit(range.limit).offset(range.offset)
+      : await query.all();
+  } catch {
+    return [];
+  }
 }
 
 export async function updateSpaceTitle(id: number, title: string) {
-
   const user = await getUser();
 
   if (!user) {
     return null;
   }
 
-	return (await db.update(space).set({ name: title }).where(
-		and(
-			eq(space.id, id),
-			eq(space.user, user.id)
-		)
-	).returning())[0];
+  return (
+    await db
+      .update(space)
+      .set({ name: title })
+      .where(and(eq(space.id, id), eq(space.user, user.id)))
+      .returning()
+  )[0];
 }
 
 export async function addMemory(
@@ -387,16 +423,19 @@ export async function addMemory(
           .returning()
       : [];
 
-	if (content.type === 'note') {
-		addedMemory = (await db.update(storedContent)
-			.set({
-				url: addedMemory.url + addedMemory.id
-			})
-			.where(eq(storedContent.id, addedMemory.id))
-			.returning())[0]
-	}
+  if (content.type === "note") {
+    addedMemory = (
+      await db
+        .update(storedContent)
+        .set({
+          url: addedMemory.url + addedMemory.id,
+        })
+        .where(eq(storedContent.id, addedMemory.id))
+        .returning()
+    )[0];
+  }
 
-	console.log("adding with:", `${addedMemory.url}-${user.email}`)
+  console.log("adding with:", `${addedMemory.url}-${user.email}`);
   // Add to vectorDB
   const res = (await Promise.race([
     fetch("https://cf-ai-backend.dhravya.workers.dev/add", {
@@ -423,30 +462,41 @@ export async function addMemory(
 }
 
 export async function addContentInSpaces(id: number, contents: number[]) {
-	
   const user = await getUser();
 
   if (!user) {
     return null;
   }
-	
-	const data = contents.length > 0 ? await db.insert(contentToSpace).values(contents.map(i => ({
-		spaceId: id,
-		contentId: i
-	}))).returning() : []
 
-	return data
+  const data =
+    contents.length > 0
+      ? await db
+          .insert(contentToSpace)
+          .values(
+            contents.map((i) => ({
+              spaceId: id,
+              contentId: i,
+            })),
+          )
+          .returning()
+      : [];
 
+  return data;
 }
 
 export async function updateMemory(
-	id: number,
-	{ title, content, spaces, removedFromSpaces: removeSpaces }: {
-		title?: string;
-		content?: string;
-		spaces?: number[];
-		removedFromSpaces?: number[];
-	}
+  id: number,
+  {
+    title,
+    content,
+    spaces,
+    removedFromSpaces: removeSpaces,
+  }: {
+    title?: string;
+    content?: string;
+    spaces?: number[];
+    removedFromSpaces?: number[];
+  },
 ) {
   const user = await getUser();
 
@@ -454,96 +504,95 @@ export async function updateMemory(
     return null;
   }
 
-	let updatedMemory: StoredContent | null = null;
+  let updatedMemory: StoredContent | null = null;
 
-	if (title && content) {
+  if (title && content) {
+    const [prev] = await db
+      .select()
+      .from(storedContent)
+      .where(and(eq(storedContent.user, user.id), eq(storedContent.id, id)));
 
-	const [prev] = await db.select()
-		.from(storedContent)
-		.where(and(
-			eq(storedContent.user, user.id),
-			eq(storedContent.id, id)
-		));
-	
-	if (!prev) {
-		return null
-	}
+    if (!prev) {
+      return null;
+    }
 
-	const newContent = {
-		...(title ? { title }: {}),
-		...(content ? { content }: {}),
-	}
+    const newContent = {
+      ...(title ? { title } : {}),
+      ...(content ? { content } : {}),
+    };
 
-	const updated = {
-		...newContent,
-		...prev
-	}
+    const updated = {
+      ...newContent,
+      ...prev,
+    };
 
-	console.log("adding with:", `${updated.url}-${user.email}`)
-  // Add to vectorDB
-  const res = (await Promise.race([
-    fetch("https://cf-ai-backend.dhravya.workers.dev/edit", {
-      method: "POST",
-      headers: {
-        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-      },
-      body: JSON.stringify({
-        pageContent: updated.content,
-        title: updated.title,
-        url: updated.url,
-        user: user.email,
-				uniqueUrl: updated.url,
+    console.log("adding with:", `${updated.url}-${user.email}`);
+    // Add to vectorDB
+    const res = (await Promise.race([
+      fetch("https://cf-ai-backend.dhravya.workers.dev/edit", {
+        method: "POST",
+        headers: {
+          "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+        },
+        body: JSON.stringify({
+          pageContent: updated.content,
+          title: updated.title,
+          url: updated.url,
+          user: user.email,
+          uniqueUrl: updated.url,
+        }),
       }),
-    }),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), 40000),
-    ),
-  ])) as Response;
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out")), 40000),
+      ),
+    ])) as Response;
 
-  [updatedMemory] = await db
-    .update(storedContent)
-    .set(newContent)
-		.where(and(
-			eq(storedContent.id, id),
-			eq(storedContent.user, user.id)
-		))
-    .returning();
-		
-		console.log(updatedMemory, newContent)
-	}
+    [updatedMemory] = await db
+      .update(storedContent)
+      .set(newContent)
+      .where(and(eq(storedContent.id, id), eq(storedContent.user, user.id)))
+      .returning();
 
-	if (!updatedMemory) {
-		[updatedMemory] = await db
-			.select()
-			.from(storedContent)
-			.where(and(
-				eq(storedContent.id, id),
-				eq(storedContent.user, user.id)
-			))
-	}
+    console.log(updatedMemory, newContent);
+  }
 
-	const removedFromSpaces = removeSpaces ? 
-			removeSpaces.length > 0 ?
-				await db.delete(contentToSpace)
-					.where(and(
-						inArray(contentToSpace.spaceId, removeSpaces),
-						eq(contentToSpace.contentId, id)
-					)).returning() : []
-		:	spaces ? 
-			spaces.length > 0 ? 
-				await db.delete(contentToSpace)
-					.where(and(
-						notInArray(contentToSpace.spaceId, spaces),
-						eq(contentToSpace.contentId, id)
-					)).returning()
-				: await db.delete(contentToSpace)
-					.where(
-						eq(contentToSpace.contentId, id)
-					)
-			: [];
+  if (!updatedMemory) {
+    [updatedMemory] = await db
+      .select()
+      .from(storedContent)
+      .where(and(eq(storedContent.id, id), eq(storedContent.user, user.id)));
+  }
+
+  const removedFromSpaces = removeSpaces
+    ? removeSpaces.length > 0
+      ? await db
+          .delete(contentToSpace)
+          .where(
+            and(
+              inArray(contentToSpace.spaceId, removeSpaces),
+              eq(contentToSpace.contentId, id),
+            ),
+          )
+          .returning()
+      : []
+    : spaces
+      ? spaces.length > 0
+        ? await db
+            .delete(contentToSpace)
+            .where(
+              and(
+                notInArray(contentToSpace.spaceId, spaces),
+                eq(contentToSpace.contentId, id),
+              ),
+            )
+            .returning()
+        : await db
+            .delete(contentToSpace)
+            .where(eq(contentToSpace.contentId, id))
+      : [];
 
   const addedToSpaces =
-    (spaces && spaces.length > 0)
+    spaces && spaces.length > 0
       ? await db
           .insert(contentToSpace)
           .values(
@@ -552,20 +601,24 @@ export async function updateMemory(
               spaceId: s,
             })),
           )
-					.onConflictDoNothing()
+          .onConflictDoNothing()
           .returning()
       : [];
 
-	const resultedSpaces = (await db.select()
-		.from(contentToSpace)
-		.where(eq(contentToSpace.contentId, id))
-		.all()).map(i => i.spaceId) ?? [];
+  const resultedSpaces =
+    (
+      await db
+        .select()
+        .from(contentToSpace)
+        .where(eq(contentToSpace.contentId, id))
+        .all()
+    ).map((i) => i.spaceId) ?? [];
 
   return {
     memory: updatedMemory,
     addedToSpaces,
-		removedFromSpaces,
-		resultedSpaces
+    removedFromSpaces,
+    resultedSpaces,
   };
 }
 
@@ -600,25 +653,24 @@ export async function deleteMemory(id: number) {
     .where(and(eq(storedContent.user, user.id), eq(storedContent.id, id)))
     .returning();
 
-	if (deleted) {
-		
-	console.log("adding with:", `${deleted.url}-${user.email}`)
-  const res = (await Promise.race([
-    fetch(`https://cf-ai-backend.dhravya.workers.dev/delete` , {
-      method: "DELETE",
-      headers: {
-        "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-      },
-			body: JSON.stringify({
-				websiteUrl: deleted.url,
-				user: user.email
-			})
-    }),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), 40000),
-    ),
-		])) as Response;
-	}
+  if (deleted) {
+    console.log("adding with:", `${deleted.url}-${user.email}`);
+    const res = (await Promise.race([
+      fetch(`https://cf-ai-backend.dhravya.workers.dev/delete`, {
+        method: "DELETE",
+        headers: {
+          "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+        },
+        body: JSON.stringify({
+          websiteUrl: deleted.url,
+          user: user.email,
+        }),
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out")), 40000),
+      ),
+    ])) as Response;
+  }
 
   return deleted;
 }

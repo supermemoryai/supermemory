@@ -89,25 +89,23 @@ export function convertRemToPixels(rem: number) {
 }
 
 export function isArraysEqual(a: any[], b: any[]) {
-	if (a === b) return true;
+  if (a === b) return true;
   if (a == null || b == null) return false;
   if (a.length !== b.length) return false;
 
-	let isEqual = true;
-	
-	a.forEach(i => {
-		if (!isEqual) return
-		isEqual = b.includes(i)
-	})
+  let isEqual = true;
 
-	if (!isEqual)
-		return isEqual
+  a.forEach((i) => {
+    if (!isEqual) return;
+    isEqual = b.includes(i);
+  });
 
-	b.forEach(i => {
-		if (!isEqual) return
-		isEqual = a.includes(i)
-	})
+  if (!isEqual) return isEqual;
 
-	return isEqual
+  b.forEach((i) => {
+    if (!isEqual) return;
+    isEqual = a.includes(i);
+  });
 
+  return isEqual;
 }

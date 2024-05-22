@@ -1,7 +1,5 @@
 import { db } from "@/server/db";
-import {
-  StoredContent,
-} from "@/server/db/schema";
+import { StoredContent } from "@/server/db/schema";
 
 export type CollectedSpaces = {
   id: number;
