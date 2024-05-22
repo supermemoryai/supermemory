@@ -31,10 +31,7 @@ function Hero() {
           <div className="flex items-center">
             {" "}
             Follow us on Twitter{" "}
-            <LinkArrow
-              classname="group-hover/anchor:opacity-100 opacity-0 transition"
-              stroke="#ffffff"
-            />
+            <LinkArrow classname="group-hover/anchor:opacity-100 opacity-0 transition" />
           </div>
         </a>
         <motion.h1
