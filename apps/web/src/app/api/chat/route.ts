@@ -69,43 +69,41 @@ export async function POST(req: NextRequest) {
     });
   }
 
-	try {
-		const resp = await fetch(
-			`https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
-			{
-				headers: {
-					"X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
-				},
-				method: "POST",
-				body: JSON.stringify({
-					chatHistory: chatHistory.chatHistory ?? [],
-				}),
-			},
-		);
+  try {
+    const resp = await fetch(
+      `https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
+      {
+        headers: {
+          "X-Custom-Auth-Key": env.BACKEND_SECURITY_KEY,
+        },
+        method: "POST",
+        body: JSON.stringify({
+          chatHistory: chatHistory.chatHistory ?? [],
+        }),
+      },
+    );
 
-		console.log("sourcesOnly", sourcesOnly);
+    console.log("sourcesOnly", sourcesOnly);
 
-		if (sourcesOnly == "true") {
-			const data = await resp.json();
-			console.log("data", data);
-			return new Response(JSON.stringify(data), { status: 200 });
-		}
+    if (sourcesOnly == "true") {
+      const data = await resp.json();
+      console.log("data", data);
+      return new Response(JSON.stringify(data), { status: 200 });
+    }
 
-		if (resp.status !== 200 || !resp.ok) {
-			const errorData = await resp.json();
-			console.log(errorData);
-			return new Response(
-				JSON.stringify({ message: "Error in CF function", error: errorData }),
-				{ status: resp.status },
-			);
-		}
+    if (resp.status !== 200 || !resp.ok) {
+      const errorData = await resp.json();
+      console.log(errorData);
+      return new Response(
+        JSON.stringify({ message: "Error in CF function", error: errorData }),
+        { status: resp.status },
+      );
+    }
 
-		// Stream the response back to the client
-		const { readable, writable } = new TransformStream();
-		resp && resp.body!.pipeTo(writable);
+    // Stream the response back to the client
+    const { readable, writable } = new TransformStream();
+    resp && resp.body!.pipeTo(writable);
 
-		return new Response(readable, { status: 200 });
-	} catch {
-	}
-
+    return new Response(readable, { status: 200 });
+  } catch {}
 }

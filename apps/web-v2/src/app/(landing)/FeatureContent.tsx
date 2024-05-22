@@ -3,19 +3,19 @@ export const features = [
     title: "For Researchers",
     description:
       "Add content to collections and use it as a knowledge base for your research, link multiple sources together to get a better understanding of the topic.",
-    svg: <ResearchSvg />
+    svg: <ResearchSvg />,
   },
   {
     title: "For Content writers",
     description:
       "Save time and use the writing assistant to generate content based on your own saved collections and sources.",
-      svg: <ContentSvg />
+    svg: <ContentSvg />,
   },
   {
     title: "For Developers",
     description:
       "Talk to documentation websites, code snippets, etc. so you never have to google the same thing a hundred times.",
-    svg: <DeveloperSvg />
+    svg: <DeveloperSvg />,
   },
 ];
 

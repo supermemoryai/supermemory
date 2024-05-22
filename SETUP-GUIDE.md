@@ -59,7 +59,7 @@ OPENAI_API_KEY="sk-"
 ```
 
 6. Run this command to initialise vector database
-> Note: You need to use the workers paid plan to use vectorize for now.
+   > Note: You need to use the workers paid plan to use vectorize for now.
 
 ```
 wrangler vectorize create --dimensions=1536 supermem-vector-1 --metric=cosine
