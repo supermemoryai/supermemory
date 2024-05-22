@@ -164,7 +164,7 @@ export const Reddit = (props: SVGProps<SVGSVGElement>) => (
         <stop offset={0.82} stopColor="#172e35" />
       </radialGradient>
       <style>
-        {"\n            .snoo-cls-11{stroke-width:0;fill:#ffc49c}\n        "}
+        {"\n            .snoo-cls-11{strokeWidth:0;fill:#ffc49c}\n        "}
       </style>
     </defs>
     <path
