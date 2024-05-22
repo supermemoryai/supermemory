@@ -9,31 +9,26 @@ export const CardClick = ({
   handleClickIndex,
   items,
 }: {
-  tab: number,
-  handleClickIndex: (tab: number)=>void,
+  tab: number;
+  handleClickIndex: (tab: number) => void;
   items: {
     title: string;
     description: string;
-    svg: React.ReactNode
+    svg: React.ReactNode;
   }[];
 }) => {
-
   return (
-    <div
-      className={cn(
-        "flex flex-col",
-      )}
-    >
+    <div className={cn("flex flex-col")}>
       {items.map((item, idx) => (
         <div
           key={idx}
-          className="group relative  block h-full w-full p-2"
+          className="group relative  block h-full w-full cursor-pointer rounded-2xl p-2  transition-all hover:border"
           onMouseDown={() => handleClickIndex(idx)}
         >
           <AnimatePresence>
             {tab === idx && (
               <motion.span
-                className="absolute -z-[1] inset-0 block h-full w-full rounded-3xl [background:linear-gradient(#2E2E32,#2E2E32),linear-gradient(120deg,theme(colors.zinc.700),theme(colors.zinc.700/0),theme(colors.zinc.700))]"
+                className="absolute inset-0 -z-[1] block h-full w-full rounded-3xl [background:linear-gradient(#2E2E32,#2E2E32),linear-gradient(120deg,theme(colors.zinc.700),theme(colors.zinc.700/0),theme(colors.zinc.700))]"
                 layoutId="hoverBackground"
                 initial={{ opacity: 0 }}
                 animate={{
@@ -47,7 +42,11 @@ export const CardClick = ({
               />
             )}
           </AnimatePresence>
-          <Card title={item.title} description={item.description} svg={item.svg} />
+          <Card
+            title={item.title}
+            description={item.description}
+            svg={item.svg}
+          />
         </div>
       ))}
     </div>
@@ -57,7 +56,7 @@ export const CardClick = ({
 export const Card = ({
   title,
   description,
-  svg
+  svg,
 }: {
   title: string;
   description: string;
@@ -72,9 +71,7 @@ export const Card = ({
         <div className="font-inter-tight mb-1 text-lg font-semibold text-zinc-200">
           {title}
         </div>
-        <div className="text-zinc-500">
-          {description}
-        </div>
+        <div className="text-zinc-500">{description}</div>
       </div>
     </div>
   );
