@@ -5,8 +5,57 @@ import Cta from "./Cta";
 import { Toaster } from "@/components/ui/toaster";
 import Features from "./Features";
 import Footer from "./footer";
+import { Metadata } from "next";
 
 export const runtime = "edge";
+
+export const metadata: Metadata = {
+  title: "Supermemory - Your personal second brain.",
+  description:
+    "Bring saved information from all over the internet into one place where you can connect it, and ask AI about it",
+  openGraph: {
+    images: [
+      {
+        url: "https://supermemory.ai/og-image.png",
+        width: 1200,
+        height: 627,
+        alt: "Supermemory - Your personal second brain.",
+      },
+    ],
+  },
+  metadataBase: {
+    host: "https://supermemory.ai",
+    href: "/",
+    origin: "https://supermemory.ai",
+    password: "supermemory",
+    hash: "supermemory",
+    pathname: "/",
+    search: "",
+    username: "supermemoryai",
+    hostname: "supermemory.ai",
+    port: "",
+    protocol: "https:",
+    searchParams: new URLSearchParams(""),
+    toString: () => "https://supermemory.ai/",
+    toJSON: () => "https://supermemory.ai/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "https://supermemory.ai",
+    creator: "https://supermemory.ai",
+    title: "Supermemory - Your personal second brain.",
+    description:
+      "Bring saved information from all over the internet into one place where you can connect it, and ask AI about it",
+    images: [
+      {
+        url: "https://supermemory.ai/og-image.png",
+        width: 1200,
+        height: 627,
+        alt: "Supermemory - Your personal second brain.",
+      },
+    ],
+  },
+};
 
 export default function Home() {
   return (
