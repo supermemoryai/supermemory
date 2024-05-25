@@ -1,20 +1,19 @@
+import MillionLint from "@million/lint";
 import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
-
-// Here we use the @cloudflare/next-on-pages next-dev module to allow us to use bindings during local development
-// (when running the application with `next dev`), for more information see:
-// https://github.com/cloudflare/next-on-pages/blob/5712c57ea7/internal-packages/next-dev/README.md
-if (process.env.NODE_ENV === "development") {
-  await setupDevPlatform();
-}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreBuildErrors: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  transpilePackages: ["@repo/ui"],
 };
+export default MillionLint.next({
+  rsc: true,
+})(nextConfig);
 
-export default nextConfig;
+// we only need to use the utility during development so we can check NODE_ENV
+// (note: this check is recommended but completely optional)
+if (process.env.NODE_ENV === "development") {
+  // `await`ing the call is not necessary but it helps making sure that the setup has succeeded.
+  //  If you cannot use top level awaits you could use the following to avoid an unhandled rejection:
+  //  `setupDevPlatform().catch(e => console.error(e));`
+  await setupDevPlatform();
+}
