@@ -1,6 +1,5 @@
 import { ArrowRightIcon } from "@radix-ui/react-icons";
 import Logo from "../../public/logo.svg";
-import { Github } from "@repo/ui/src/components/icons";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
