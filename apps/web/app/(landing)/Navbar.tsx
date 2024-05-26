@@ -23,7 +23,7 @@ function Navbar() {
           </Link>
         </div>
         <Link
-          href="https://git.new/memory"
+          href="/signin"
           className="m-2 flex items-center gap-3 rounded-xl bg-white/20 px-4 text-center text-white group"
         >
           Login

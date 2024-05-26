@@ -2,9 +2,10 @@ import "./globals.css";
 
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ThemeScript } from "next-app-theme/theme-script";
 
 const inter = Inter({ subsets: ["latin"] });
+
+export const runtime = "edge";
 
 export const metadata: Metadata = {
   title: "Supermemory - Your personal second brain.",

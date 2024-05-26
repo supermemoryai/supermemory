@@ -9,7 +9,7 @@ export const {
   signOut,
   auth,
 } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+  secret: process.env.BACKEND_SECURITY_KEY,
   callbacks: {
     session: ({ session, token, user }) => ({
       ...session,
