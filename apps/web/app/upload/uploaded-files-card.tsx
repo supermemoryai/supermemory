@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { UploadedFile } from "@repo/shared-types";
+// import type { UploadedFile } from '@repo/shared-types';
 
 import {
   Card,
@@ -7,11 +7,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@repo/ui/src/card";
-import { ScrollArea, ScrollBar } from "@repo/ui/src/scroll-area";
+} from "@repo/ui/src/shadcn/card";
+import { ScrollArea, ScrollBar } from "@repo/ui/src/shadcn/scroll-area";
 
 interface UploadedFilesCardProps {
-  uploadedFiles: UploadedFile[];
+  uploadedFiles: any[];
 }
 
 import { ImageIcon } from "@radix-ui/react-icons";

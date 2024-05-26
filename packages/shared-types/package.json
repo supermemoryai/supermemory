@@ -1,15 +1,3 @@
 {
-  "name": "@repo/shared-types",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  },
-  "dependencies": {
-    "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
-    "@repo/tailwind-config": "*"
-  }
+  "name": "@repo/shared-types"
 }
