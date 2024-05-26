@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* :root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+} */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground: rgba(179, 188, 197, 1);
+    --foreground-menu: rgba(106, 115, 125, 1);
+    --background: rgba(23, 27, 31, 1);
+    --secondary: rgba(31, 36, 40, 1);
+    --primary: rgba(54, 157, 253, 1);
+    --border: rgba(51, 57, 67, 1);
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-size: 14px;
+}
+
+@layer base {
+  .all-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+.gradient-background {
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0)
+  );
+}

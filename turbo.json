@@ -1,22 +1,26 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
   "pipeline": {
     "build": {
+      "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
-    "deploy": {
-      "dependsOn": ["build", "test", "lint"]
+    "lint": {
+      "dependsOn": ["^lint"]
     },
-    "db:push": {},
-    "db:studio": {},
-    "test": {
-      "dependsOn": ["build"],
-      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"]
-    },
-    "lint": {},
-    "type-check": {},
+    "deploy": {},
     "dev": {
-      "env": ["NODE_ENV=development"],
+      "env": [
+        "NODE_ENV=development",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "NEXTAUTH_SECRET",
+        "R2_ENDPOINT",
+        "R2_ACCESS_ID",
+        "R2_SECRET_KEY",
+        "R2_BUCKET_NAME"
+      ],
       "cache": false,
       "persistent": true
     }

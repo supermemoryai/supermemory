@@ -1,14 +1,14 @@
 {
-  "name": "Supermemory - Your second brain",
-  "short_name": "Save your memories forever, build your own second brain.",
+  "name": "Supermemory - your second brain.",
+  "short_name": "Supermemory",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/icons/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/icons/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

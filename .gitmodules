@@ -1,6 +1,3 @@
-[submodule "apps/rowser-rendering"]
-	path = apps/rowser-rendering
-	url = https://github.com/dhravya/markdowner
 [submodule "apps/browser-rendering"]
 	path = apps/browser-rendering
 	url = https://github.com/dhravya/markdowner
