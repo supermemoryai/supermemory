@@ -28,20 +28,22 @@ async function Signin() {
           </p>
           <div className="flex items-center gap-4">
             <div
-              className={`transition-width z-20 rounded-2xl bg-gradient-to-br from-gray-200/70 to-transparent p-[0.7px] duration-300 ease-in-out w-full`}
+              className={`transition-width z-20 rounded-2xl bg-gradient-to-br from-gray-200/70 to-transparent p-[0.7px] duration-300 ease-in-out w-3/4`}
             >
               <form
                 action={async () => {
                   "use server";
-                  await signIn("google");
+                  await signIn("google", {
+                    redirectTo: "/home",
+                  });
                 }}
               >
                 <button
                   type="submit"
-                  className={`text-white transition-width flex justify-between w-full items-center rounded-2xl bg-[#37485E] px-6 py-4 outline-none duration-300 focus:outline-none`}
+                  className={`relative text-white transition-width flex justify-between w-full items-center rounded-2xl bg-[#37485E] px-6 py-4 outline-none duration-300 focus:outline-none`}
                 >
                   <Google />
-                  <span className="w-full self-start">
+                  <span className="relative w-full self-start">
                     Continue with Google
                   </span>
                 </button>
