@@ -61,9 +61,9 @@ export default function RootLayout({
 }): JSX.Element {
   return (
     <html lang="en">
-      <head>
+      {/* <head>
         <ThemeScript />
-      </head>
+      </head> */}
       {/* TODO: when lightmode support is added, remove the 'dark' class from the body tag */}
       <body className={`${inter.className} dark`}>{children}</body>
     </html>

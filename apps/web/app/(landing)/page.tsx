@@ -6,6 +6,7 @@ import { Toaster } from "@repo/ui/src/shadcn/toaster";
 import Features from "./Features";
 import Footer from "./footer";
 import { auth } from "../helpers/server/auth";
+import { redirect } from "next/navigation";
 
 export const runtime = "edge";
 
@@ -14,8 +15,12 @@ export default async function Home() {
 
   console.log(user);
 
+  if (user) {
+    // await redirect("/home")
+  }
+
   return (
-    <main className="dark flex min-h-screen flex-col items-center overflow-x-hidden px-2 md:px-0">
+    <main className="flex min-h-screen flex-col items-center overflow-x-hidden px-2 md:px-0">
       <Navbar />
 
       {/* Background gradients */}

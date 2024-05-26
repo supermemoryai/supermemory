@@ -1,3 +1,4 @@
+import { ArrowRightIcon } from "@radix-ui/react-icons";
 import Logo from "../../public/logo.svg";
 import { Github } from "@repo/ui/src/components/icons";
 import Image from "next/image";
@@ -24,10 +25,10 @@ function Navbar() {
         </div>
         <Link
           href="https://git.new/memory"
-          className="m-2 flex items-center gap-3 rounded-xl bg-white/20 px-4 text-center text-white"
+          className="m-2 flex items-center gap-3 rounded-xl bg-white/20 px-4 text-center text-white group"
         >
-          <Github className="h-4 w-4" />
-          Open source
+          Login
+          <ArrowRightIcon className="h-4 w-4 group-hover:translate-x-1 duration-100 ease-in-out" />
         </Link>
       </div>
     </nav>
