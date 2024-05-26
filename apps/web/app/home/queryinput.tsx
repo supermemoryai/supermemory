@@ -5,14 +5,14 @@ import Divider from "@repo/ui/src/shadcn/divider";
 
 function QueryInput() {
   return (
-    <div className="bg-secondary h- [68px] rounded-[24px] w-full mt-40">
+    <div className="bg-secondary rounded-[24px] w-full mt-40">
       {/* input and action button */}
       <div className="flex gap-4 p-3">
         <textarea
           name="query-input"
           cols={30}
-          rows={7}
-          className="bg-transparent pt-2.5 text-base text-[#989EA4] focus:text-foreground duration-200 tracking-[3%] outline-none resize-none w-full p-1"
+          rows={4}
+          className="bg-transparent pt-2.5 text-base text-[#989EA4] focus:text-foreground duration-200 tracking-[3%] outline-none resize-none w-full p-4"
           placeholder="Ask your second brain..."
         ></textarea>
 
