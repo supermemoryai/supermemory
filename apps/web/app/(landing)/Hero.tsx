@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Twitter } from "@repo/ui/src/components/icons";
+import { Twitter } from "@repo/ui/components/icons";
 import EmailInput from "./EmailInput";
 import LinkArrow from "./linkArrow";
 

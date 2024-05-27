@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import formSubmitAction from "./formSubmitAction";
-import { useToast } from "@repo/ui/src/shadcn/use-toast";
+import { useToast } from "@repo/ui/shadcn/use-toast";
 
 function EmailInput() {
   const [email, setEmail] = useState("");

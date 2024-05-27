@@ -2,7 +2,7 @@ import RotatingIcons from "./RotatingIcons";
 import Hero from "./Hero";
 import Navbar from "./Navbar";
 import Cta from "./Cta";
-import { Toaster } from "@repo/ui/src/shadcn/toaster";
+import { Toaster } from "@repo/ui/shadcn/toaster";
 import Features from "./Features";
 import Footer from "./footer";
 import { auth } from "../helpers/server/auth";

@@ -2,7 +2,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Logo from "../../public/logo.svg";
-import { AddIcon, ChatIcon } from "@repo/ui/src/icons";
+import { AddIcon, ChatIcon } from "@repo/ui/icons";
 
 function Header() {
   return (

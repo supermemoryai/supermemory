@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { X } from "@repo/ui/src/components/icons";
+import { X } from "@repo/ui/components/icons";
 
 import { features } from "./FeatureContent";
-import { CardClick } from "@repo/ui/src/components/cardClick";
+import { CardClick } from "@repo/ui/components/cardClick";
 
 export default function Features() {
   const [tab, setTab] = useState<number>(0);

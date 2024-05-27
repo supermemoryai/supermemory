@@ -23,11 +23,12 @@ const config = {
         foreground: "var(--foreground)",
         "foreground-menu": "var(--foreground-menu)",
         background: "var(--background)",
-        secondary: "var(--secondary)",
-        primary: "var(--primary)",
         border: "var(--border)",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        primary: "var(--primary)",
+        secondary: "var(--secondary)",
+
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",

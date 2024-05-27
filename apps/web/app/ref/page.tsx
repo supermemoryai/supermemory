@@ -1,4 +1,4 @@
-import { Button } from "@repo/ui/src/shadcn/button";
+import { Button } from "@repo/ui/shadcn/button";
 import { auth, signIn, signOut } from "../helpers/server/auth";
 import { db } from "../helpers/server/db";
 import { sql } from "drizzle-orm";
@@ -97,7 +97,9 @@ export default async function Page() {
                 await signOut();
               }}
             >
-              <Button className="mt-4">Sign out</Button>
+              <Button variant={"destructive"} className="mt-4">
+                Sign out
+              </Button>
             </form>
           </>
         ) : (

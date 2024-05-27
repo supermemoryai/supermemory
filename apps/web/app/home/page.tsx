@@ -2,8 +2,15 @@ import React from "react";
 import Menu from "./menu";
 import Header from "./header";
 import QueryInput from "./queryinput";
+import { homeSearchParamsCache } from "@/app/helpers/lib/searchParams";
 
-function Page() {
+function Page({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const { firstTime } = homeSearchParamsCache.parse(searchParams);
+
   return (
     <main className="h-screen flex flex-col p-4 relative">
       <Menu />
@@ -12,7 +19,7 @@ function Page() {
 
       <div className="max-w-3xl flex mx-auto w-full flex-col">
         {/* all content goes here */}
-        <div className=""></div>
+        {/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
 
         <div className="w-full h-96">
           <QueryInput />

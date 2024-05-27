@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Logo from "@/public/logo.svg";
 import { signIn } from "@/app/helpers/server/auth";
-import { Google } from "@repo/ui/src/components/icons";
+import { Google } from "@repo/ui/components/icons";
 
 export const runtime = "edge";
 
@@ -34,7 +34,7 @@ async function Signin() {
                 action={async () => {
                   "use server";
                   await signIn("google", {
-                    redirectTo: "/home",
+                    redirectTo: "/home?firstTime=true",
                   });
                 }}
               >

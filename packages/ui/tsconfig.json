@@ -4,5 +4,5 @@
     "outDir": "dist"
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["src"]
+  "include": ["shadcn", "icons", "hooks", "components"]
 }

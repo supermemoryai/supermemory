@@ -7,7 +7,7 @@ import {
   Notion,
   Reddit,
   Twitter,
-} from "@repo/ui/src/components/icons";
+} from "@repo/ui/components/icons";
 import Image from "next/image";
 
 const icons = [

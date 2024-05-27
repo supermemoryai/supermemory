@@ -14,9 +14,13 @@
   },
   "dependencies": {
     "@million/lint": "^1.0.0-rc.11",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-popover": "^1.0.7",
     "@repo/ui": "*",
+    "cmdk": "^1.0.0",
     "million": "^3.1.6",
     "next": "^14.1.1",
+    "nuqs": "^1.17.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -32,5 +36,10 @@
     "@types/react-dom": "^18.2.19",
     "eslint": "^8.57.0",
     "typescript": "^5.3.3"
-  }
+  },
+  "trustedDependencies": [
+    "esbuild",
+    "workerd",
+    "xycolors"
+  ]
 }
