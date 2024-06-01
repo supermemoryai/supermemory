@@ -1,6 +1,6 @@
 import RotatingIcons from "./RotatingIcons";
 import Hero from "./Hero";
-import Navbar from "./Navbar";
+import {Navbar}  from "./Navbar";
 import Cta from "./Cta";
 import { Toaster } from "@repo/ui/src/shadcn/toaster";
 import Features from "./Features";
