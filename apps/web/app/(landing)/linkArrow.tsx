@@ -1,9 +1,16 @@
 import React from "react";
 
-function LinkArrow({ classname }: { classname?: string }) {
+function LinkArrow({
+  classname,
+  stroke,
+}: {
+  classname?: string;
+  stroke?: string;
+}) {
   return (
     <svg
       className={classname}
+      stroke={stroke}
       width="24px"
       height="24px"
       viewBox="-2.4 -2.4 28.80 28.80"
