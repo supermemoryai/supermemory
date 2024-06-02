@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "vercel-build": "next build"
+  }
+}

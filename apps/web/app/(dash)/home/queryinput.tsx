@@ -2,10 +2,9 @@
 
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import Divider from "@repo/ui/shadcn/divider";
 import { MultipleSelector, Option } from "@repo/ui/shadcn/combobox";
-import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 const OPTIONS: Option[] = [
