@@ -1,4 +1,3 @@
-// import "./globals.css";
 import "@repo/tailwind-config/globals.css";
 
 import type { Metadata } from "next";

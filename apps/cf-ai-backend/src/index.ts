@@ -23,8 +23,11 @@ app.use("*", timing());
 app.use("*", logger());
 
 app.use("/api/", async (c, next) => {
-  const auth = bearerAuth({ token: c.env.SECURITY_KEY });
-  return auth(c, next);
+  if (c.env.NODE_ENV !== "development") {
+    const auth = bearerAuth({ token: c.env.SECURITY_KEY });
+    return auth(c, next);
+  }
+  return next();
 });
 // ------- MIDDLEWARES END -------
 
@@ -71,6 +74,11 @@ app.get(
   },
 );
 
+/* TODO: Eventually, we should not have to save each user's content in a seperate vector.
+Lowkey, it makes sense. The user may save their own version of a page - like selected text from twitter.com url.
+But, it's not scalable *enough*. How can we store the same vectors for the same content, without needing to duplicate for each uer?
+Hard problem to solve, Vectorize doesn't have an OR filter, so we can't just filter by URL and user.
+*/
 app.post(
   "/api/chat",
   zValidator(
@@ -99,23 +107,30 @@ app.post(
     const sourcesOnly = query.sourcesOnly === "true";
     const spaces = query.spaces?.split(",") || [undefined];
 
+    // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
 
     const filter: VectorizeVectorMetadataFilter = { user: query.user };
 
+    // Converting the query to a vector so that we can search for similar vectors
     const queryAsVector = await store.embeddings.embedQuery(query.query);
     const responses: VectorizeMatches = { matches: [], count: 0 };
 
-    for (const space of spaces) {
+    // SLICED to 5 to avoid too many queries
+    for (const space of spaces.slice(0, 5)) {
       if (space !== undefined) {
+        // it's possible for space list to be [undefined] so we only add space filter conditionally
         filter.space = space;
       }
 
+      // Because there's no OR operator in the filter, we have to make multiple queries
       const resp = await c.env.VECTORIZE_INDEX.query(queryAsVector, {
         topK: query.topK,
         filter,
+        returnMetadata: true,
       });
 
+      // Basically recreating the response object
       if (resp.count > 0) {
         responses.matches.push(...resp.matches);
         responses.count += resp.count;
@@ -125,6 +140,8 @@ app.post(
     const minScore = Math.min(...responses.matches.map(({ score }) => score));
     const maxScore = Math.max(...responses.matches.map(({ score }) => score));
 
+    // We are "normalising" the scores - if all of them are on top, we want to make sure that
+    // we have a way to filter out the noise.
     const normalizedData = responses.matches.map((data) => ({
       ...data,
       normalizedScore:
@@ -136,6 +153,9 @@ app.post(
     let highScoreData = normalizedData.filter(
       ({ normalizedScore }) => normalizedScore > 50,
     );
+
+    // If the normalsation is not done properly, we have a fallback to just get the
+    // top 3 scores
     if (highScoreData.length === 0) {
       highScoreData = normalizedData
         .sort((a, b) => b.score - a.score)
@@ -146,13 +166,16 @@ app.post(
       (a, b) => b.normalizedScore - a.normalizedScore,
     );
 
-    console.log(JSON.stringify(sortedHighScoreData));
-
+    // So this is kinda hacky, but the frontend needs to do 2 calls to get sources and chat.
+    // I think this is fine for now, but we can improve this later.
     if (sourcesOnly) {
       const idsAsStrings = sortedHighScoreData.map((dataPoint) =>
         dataPoint.id.toString(),
       );
 
+      // We are getting the content ID back, so that the frontend can show the actual sources properly.
+      // it IS a lot of DB calls, i completely agree.
+      // TODO: return metadata value here, so that the frontend doesn't have to re-fetch anything.
       const storedContent = await Promise.all(
         idsAsStrings.map(async (id) => await c.env.KV.get(id)),
       );
@@ -160,19 +183,21 @@ app.post(
       return c.json({ ids: storedContent });
     }
 
-    const vec = await c.env.VECTORIZE_INDEX.getByIds(
-      sortedHighScoreData.map(({ id }) => id),
-    );
+    const vec = responses.matches.map((data) => ({ metadata: data.metadata }));
 
     const vecWithScores = vec.map((v, i) => ({
       ...v,
       score: sortedHighScoreData[i].score,
+      normalisedScore: sortedHighScoreData[i].normalizedScore,
     }));
 
-    const preparedContext = vecWithScores.map(({ metadata, score }) => ({
-      context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
-      score,
-    }));
+    const preparedContext = vecWithScores.map(
+      ({ metadata, score, normalisedScore }) => ({
+        context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
+        score,
+        normalisedScore,
+      }),
+    );
 
     const initialMessages: CoreMessage[] = [
       { role: "user", content: systemPrompt },
@@ -193,7 +218,7 @@ app.post(
         ...((body.chatHistory || []) as CoreMessage[]),
         userMessage,
       ],
-      temperature: 0.4,
+      // temperature: 0.4,
     });
 
     return response.toTextStreamResponse();

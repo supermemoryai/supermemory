@@ -9,6 +9,7 @@ function Page({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
+  // TODO: use this to show a welcome page/modal
   const { firstTime } = homeSearchParamsCache.parse(searchParams);
 
   return (

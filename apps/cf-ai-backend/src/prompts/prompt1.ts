@@ -11,6 +11,7 @@ To generate your answer:
 - Provide a direct answer to the question
 - Use markdown formatting in your answer, including bold, italics, and bullet points as appropriate to improve readability and highlight key points
 - Give detailed and accurate responses for things like 'write a blog' or long-form questions.
+- The normalisedScore is a value in which the scores are 'balanced' to give a better representation of the relevance of the context, between 1 and 100, out of the top 10 results
 
 Provide your justification between <justification> tags and your final answer between <answer> tags, formatting both in markdown.
 
@@ -20,13 +21,14 @@ export const template = ({ contexts, question }) => {
   // Map over contexts to generate the context and score parts
   const contextParts = contexts
     .map(
-      ({ context, score }) => `
+      ({ context, score, normalisedScore }) => `
   <context>
   ${context}
   </context>
   
   <context_score>
-  ${score}
+  score: ${score}
+  normalisedScore: ${normalisedScore}
   </context_score>`,
     )
     .join("\n");

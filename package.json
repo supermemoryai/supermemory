@@ -62,6 +62,7 @@
     "compromise": "^14.13.0",
     "drizzle-orm": "^0.30.10",
     "framer-motion": "^11.2.6",
+    "lucide-react": "^0.379.0",
     "next-app-theme": "^0.1.10",
     "next-auth": "^5.0.0-beta.18",
     "random-js": "^2.1.0",

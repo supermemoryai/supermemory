@@ -10,6 +10,7 @@ export type Env = {
   KV: KVNamespace;
   MYBROWSER: unknown;
   ANTHROPIC_API_KEY: string;
+  NODE_ENV: string;
 };
 
 export interface TweetData {
