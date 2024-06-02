@@ -7,42 +7,44 @@ import Divider from "@repo/ui/shadcn/divider";
 import { MultipleSelector, Option } from "@repo/ui/shadcn/combobox";
 import { useRouter } from "next/navigation";
 
-const OPTIONS: Option[] = [
-  { label: "nextjs", value: "0" },
-  { label: "React", value: "1" },
-  { label: "Remix", value: "2" },
-  { label: "Vite", value: "3" },
-  { label: "Nuxt", value: "4" },
-  { label: "Vue", value: "5" },
-  { label: "Svelte", value: "6" },
-  { label: "Angular", value: "7" },
-  { label: "Ember", value: "8" },
-  { label: "Gatsby", value: "9" },
-];
-
 function QueryInput({
   initialQuery = "",
   initialSpaces = [],
   disabled = false,
 }: {
   initialQuery?: string;
-  initialSpaces?: number[];
+  initialSpaces?: { user: string | null; id: number; name: string }[];
   disabled?: boolean;
 }) {
   const [q, setQ] = useState(initialQuery);
 
-  const [selectedSpaces, setSelectedSpaces] = useState<number[]>(initialSpaces);
+  const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
   const { push } = useRouter();
 
   const parseQ = () => {
+    // preparedSpaces is list of spaces selected by user, with id and name
+    const preparedSpaces = initialSpaces
+      .filter((x) => selectedSpaces.includes(x.id))
+      .map((x) => {
+        return {
+          id: x.id,
+          name: x.name,
+        };
+      });
+
     const newQ =
       "/chat?q=" +
       encodeURI(q) +
-      (selectedSpaces ? "&spaces=" + selectedSpaces.join(",") : "");
+      (selectedSpaces ? "&spaces=" + JSON.stringify(preparedSpaces) : "");
 
     return newQ;
   };
+
+  const options = initialSpaces.map((x) => ({
+    label: x.name,
+    value: x.id.toString(),
+  }));
 
   return (
     <div>
@@ -81,7 +83,7 @@ function QueryInput({
       <div className="flex items-center gap-6 p-2 h-auto bg-secondary rounded-b-[24px]">
         <MultipleSelector
           disabled={disabled}
-          defaultOptions={OPTIONS}
+          defaultOptions={options}
           onChange={(e) => setSelectedSpaces(e.map((x) => parseInt(x.value)))}
           placeholder="Focus on specific spaces..."
           emptyIndicator={

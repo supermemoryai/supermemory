@@ -1,5 +1,5 @@
-import { chatSearchParamsCache } from "../../helpers/lib/searchParams";
 import ChatWindow from "./chatWindow";
+import { chatSearchParamsCache } from "../../helpers/lib/searchParams";
 
 function Page({
   searchParams,
@@ -8,7 +8,9 @@ function Page({
 }) {
   const { firstTime, q, spaces } = chatSearchParamsCache.parse(searchParams);
 
-  return <ChatWindow q={q} spaces={spaces ?? []} />;
+  console.log(spaces);
+
+  return <ChatWindow q={q} />;
 }
 
 export default Page;

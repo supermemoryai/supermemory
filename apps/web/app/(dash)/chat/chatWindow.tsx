@@ -7,7 +7,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-function ChatWindow({ q, spaces }: { q: string; spaces: number[] }) {
+function ChatWindow({ q }: { q: string }) {
   const [layout, setLayout] = useState<"chat" | "initial">("initial");
 
   const router = useRouter();
@@ -31,11 +31,7 @@ function ChatWindow({ q, spaces }: { q: string; spaces: number[] }) {
             className="max-w-3xl flex mx-auto w-full flex-col"
           >
             <div className="w-full h-96">
-              <QueryInput
-                initialQuery={q}
-                initialSpaces={spaces ?? []}
-                disabled
-              />
+              <QueryInput initialQuery={q} initialSpaces={[]} disabled />
             </div>
           </motion.div>
         ) : (

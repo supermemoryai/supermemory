@@ -4,7 +4,9 @@ import {
   parseAsString,
   parseAsBoolean,
   parseAsArrayOf,
+  parseAsJson,
 } from "nuqs/server";
+import { z } from "zod";
 
 export const homeSearchParamsCache = createSearchParamsCache({
   firstTime: parseAsBoolean.withDefault(false),
@@ -13,5 +15,12 @@ export const homeSearchParamsCache = createSearchParamsCache({
 export const chatSearchParamsCache = createSearchParamsCache({
   firstTime: parseAsBoolean.withDefault(false),
   q: parseAsString.withDefault(""),
-  spaces: parseAsArrayOf(parseAsInteger, ","),
+  spaces: parseAsArrayOf(
+    parseAsJson(() =>
+      z.object({
+        id: z.string(),
+        name: z.string(),
+      }),
+    ),
+  ).withDefault([]),
 });
