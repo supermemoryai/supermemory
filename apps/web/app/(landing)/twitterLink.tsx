@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 
 import { motion } from "framer-motion";
 import { cn } from "@repo/ui/lib/utils";
-import { Twitter } from "@repo/ui/src/components/icons";
+import { Twitter } from "@repo/ui/components/icons";
 import LinkArrow from "./linkArrow";
 
 export function TwitterBorder() {
@@ -55,6 +55,9 @@ export function HoverBorderGradient({
     const nextIndex = clockwise
       ? (currentIndex - 1 + directions.length) % directions.length
       : (currentIndex + 1) % directions.length;
+    if (!directions[nextIndex]) {
+      return directions[0]!;
+    }
     return directions[nextIndex];
   };
 
