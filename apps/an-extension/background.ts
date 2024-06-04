@@ -10,10 +10,6 @@ chrome.runtime.onInstalled.addListener(function () {
 
 chrome.contextMenus.onClicked.addListener(function (info, tab) {
   if (info.menuItemId === 'selection') {
-      console.log(info.pageUrl)
-      chrome.tabs.sendMessage(tab?.id || 1, info.selectionText);
-      console.log(info.selectionText)
-
       // you can add a link to a cf worker or whatever u want
       // fetch("", {
       //   method: "POST",
@@ -22,5 +18,8 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
       //     data: info.selectionText,
       //   }),
       // });
+
+      //so you first save it and then send the reponse to the screen
+      chrome.tabs.sendMessage(tab?.id || 1, info.selectionText);
   }
 });

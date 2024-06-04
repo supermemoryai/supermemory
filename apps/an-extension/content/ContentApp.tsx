@@ -1,44 +1,44 @@
 import React, { useEffect } from "react";
-import tailwindBg from "../public/tailwind_bg.png";
 
 export default function ContentApp() {
   const [text, setText] = React.useState("");
+  const [hover, setHover] = React.useState(false);
 
   useEffect(() => {
     const messageListener = (message: any) => {
       setText(message);
       setTimeout(() => setText(""), 2000);
     };
-
     chrome.runtime.onMessage.addListener(messageListener);
+
+    document.addEventListener('mousemove', (e)=> {
+      const percentageX = (e.clientX / window.innerWidth) * 100;
+      const percentageY = (e.clientY / window.innerHeight) * 100;
+
+      if (percentageX > 75 && percentageY > 75){
+        setHover(true)
+      } else {
+        setHover(false)
+      }
+    })
     return () => {
       chrome.runtime.onMessage.removeListener(messageListener);
     };
   }, []);
 
   return (
-    <div
-      className={`pointer-events-none ${text ? "opacity-100" : "opacity-0"} transition mx-auto max-w-7xl md:px-0 lg:px-6 lg:py-2`}
-    >
-      <div className="relative isolate overflow-hidden bg-gray-900 px-6 py-4 shadow-2xl lg:rounded-3xl md:pt-24 md:h-full sm:h-[100vh] lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
-        <div className="absolute z-20 top-0 inset-x-0 flex justify-center overflow-hidden pointer-events-none">
-          <div className="w-[108rem] flex-none flex justify-end">
-            <picture>
-              <img
-                src={tailwindBg}
-                alt=""
-                className="w-[90rem] flex-none max-w-none hidden dark:block"
-                decoding="async"
-              />
-            </picture>
-          </div>
-        </div>
-        <div className="mx-auto max-w-md text-center lg:py-12 lg:mx-0 lg:flex-auto lg:text-left">
-          <div className="flex items-center justify-center space-x-4 my-4 mx-auto"></div>
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Saved: {text}
-          </h2>
-        </div>
+    <div className="pointer-events-none flex justify-end items-end  h-screen w-full absolute z-99999">
+      <div className="h-[30vh] absolute flex justify-end items-center">
+        <div
+          className={`${hover && "opacity-100 "} transition bg-red-600 opacity-0 h-12 w-12 `}
+        ></div>
+      </div>
+
+      <div
+        className={`mx-4 my-2 flex flex-col gap-3 rounded-3xl bg-gray-900 text-xl py-4 px-6 overflow-hidden min-w-[20vw] min-h-24 max-w-96 max-h-40 ${text ? "translate-y-0 opacity-100" : "translate-y-[15%] opacity-0"} transition`}
+      >
+        <h2 className="text-2xl font-extrabold  text-white">Saved!</h2>
+        <h2 className="text-lg font-medium text-white">{text}</h2>
       </div>
     </div>
   );

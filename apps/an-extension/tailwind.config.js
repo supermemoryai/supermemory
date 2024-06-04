@@ -6,3 +6,4 @@ module.exports = {
   },
   plugins: []
 }
+module.exports = require("@repo/tailwind-config/tailwind.config");

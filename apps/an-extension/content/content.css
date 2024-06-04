@@ -1,6 +1,9 @@
 #extension-root {
+  pointer-events: none;
   position: fixed;
-  bottom: 0;
-  right: 0;
-  z-index: 99999;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100%;
+  z-index: 999999;
 }
