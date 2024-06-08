@@ -48,7 +48,7 @@ function QueryInput({
 
   return (
     <div>
-      <div className="bg-secondary rounded-t-[24px] w-full mt-40">
+      <div className="bg-secondary rounded-t-[24px]">
         {/* input and action button */}
         <form action={async () => push(parseQ())} className="flex gap-4 p-3">
           <textarea

@@ -24,7 +24,7 @@ function Menu() {
   return (
     <div className="absolute h-full p-4 flex items-center top-0 left-0">
       <div className="">
-        <div className="hover:rounded-2x group inline-flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] bg-secondary px-3 py-4 duration-200 hover:w-40">
+        <div className="group inline-flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] bg-secondary px-3 py-4 duration-200 hover:w-40">
           {menuItems.map((item) => (
             <div
               key={item.url}

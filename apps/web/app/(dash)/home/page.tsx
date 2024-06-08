@@ -16,7 +16,7 @@ async function Page({
   const spaces = await getSpaces();
 
   return (
-    <div className="max-w-3xl flex mx-auto w-full flex-col">
+    <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col">
       {/* all content goes here */}
       {/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
 
