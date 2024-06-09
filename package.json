@@ -72,6 +72,7 @@
     "react-dropzone": "^14.2.3",
     "react-hook-form": "^7.51.5",
     "sonner": "^1.4.41",
+    "tldraw": "^2.1.4",
     "uploadthing": "^6.10.4",
     "zod": "^3.23.8"
   },

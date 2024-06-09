@@ -1,0 +1,24 @@
+.tl-background {
+  background: #1F2428 !important;
+}
+
+.tlui-style-panel.tlui-style-panel__wrapper, .tlui-navigation-panel::before ,.tlui-menu-zone, .tlui-toolbar__tools, .tlui-popover__content, .tlui-menu, .tlui-button__help, .tlui-help-menu, .tlui-dialog__content {
+  background: #2C3439 !important;
+  border-top: #2C3439 !important;
+  border-right: #2C3439 !important;
+  border-bottom: #2C3439 !important;
+  border-left: #2C3439 !important;
+}
+
+.tlui-navigation-panel::before {
+  border-top: #2C3439 !important;
+  border-right: #2C3439 !important;
+}
+
+.tlui-minimap {
+  background: #2C3439 !important;
+}
+
+.tlui-minimap__canvas {
+  background: #1F2428 !important;
+}
