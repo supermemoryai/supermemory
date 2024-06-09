@@ -18,12 +18,15 @@
     "@radix-ui/react-popover": "^1.0.7",
     "@repo/ui": "*",
     "cmdk": "^1.0.0",
+    "lowlight": "^3.1.0",
     "million": "^3.1.6",
     "next": "^14.1.1",
+    "novel": "^0.4.2",
     "nuqs": "^1.17.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-resizable-panels": "^2.0.19"
+    "react-resizable-panels": "^2.0.19",
+    "use-debounce": "^10.0.1"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.1.1",

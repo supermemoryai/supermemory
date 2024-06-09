@@ -1,4 +1,4 @@
-import "../canvasStyles.css"
+import "../canvasStyles.css";
 
 export default function RootLayout({
   children,
@@ -6,7 +6,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div lang="en" className="bg-[#171B1F]">
+    <div lang="en" className="bg-[#151515]">
       <div>{children}</div>
     </div>
   );

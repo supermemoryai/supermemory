@@ -15,7 +15,6 @@ export function DynamicIsland() {
   const [visible, setVisible] = useState(true);
 
   useMotionValueEvent(scrollYProgress, "change", (current) => {
-    // Check if current is not undefined and is a number
     if (typeof current === "number") {
       let direction = current! - scrollYProgress.getPrevious()!;
 
@@ -63,9 +62,12 @@ function DynamicIslandContent() {
       {show ? (
         <div
           onClick={() => setshow(!show)}
-          className="bg-[#1F2428] p-2 rounded-3xl"
+          className="bg-[#1F2428] px-3 w-[2.23rem] overflow-hidden hover:w-[8.7rem] whitespace-nowrap py-2 rounded-3xl  transition-[width]" 
         >
+          <div className="flex gap-4 items-center">
           <Image src={AddIcon} alt="Add icon" />
+          Add Content
+          </div>
         </div>
       ) : (
         <div>

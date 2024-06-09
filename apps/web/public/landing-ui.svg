@@ -1,5 +1,5 @@
 <svg width="1364" height="804" viewBox="0 0 1364 804" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect x="1.39184" y="1.39184" width="1361.22" height="800.306" rx="32.0122" fill="#171B1F"/>
+<rect x="1.39184" y="1.39184" width="1361.22" height="800.306" rx="32.0122" fill="#151515"/>
 <rect x="1.39184" y="1.39184" width="1361.22" height="800.306" rx="32.0122" stroke="url(#paint0_linear_380_370)" stroke-width="2.78367"/>
 <g clip-path="url(#clip0_380_370)">
 <rect x="377.086" y="266.692" width="239.061" height="81.1905" rx="10.8254" fill="#1F2428"/>
@@ -54,7 +54,7 @@
 <stop offset="1" stop-color="#0F1114"/>
 </linearGradient>
 <linearGradient id="paint1_linear_380_370" x1="978.794" y1="307.287" x2="936.395" y2="307.287" gradientUnits="userSpaceOnUse">
-<stop stop-color="#171B1F"/>
+<stop stop-color="#151515"/>
 <stop offset="1" stop-color="#1F2428" stop-opacity="0"/>
 </linearGradient>
 <linearGradient id="paint2_linear_380_370" x1="762.744" y1="670.298" x2="768.028" y2="776.787" gradientUnits="userSpaceOnUse">

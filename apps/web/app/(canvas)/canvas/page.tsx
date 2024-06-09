@@ -5,11 +5,13 @@ import Canvas from "../canvas";
 import React, { useState } from "react";
 // import ReactTextareaAutosize from "react-textarea-autosize";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import {   DragSvg,
+import {
+  DragSvg,
   SettingsSvg,
   LinkSvg,
   ThreeDBlock,
-  TextLoadingSvg, } from "../svg";
+  TextLoadingSvg,
+} from "../svg";
 
 function page() {
   const [value, setValue] = useState("");
@@ -32,7 +34,7 @@ function page() {
                   }}
                   value={value}
                   // rows={1}
-                  className="w-full resize-none rounded-xl bg-[#171B1F] px-3 py-4 text-xl text-[#989EA4] outline-none focus:outline-none sm:max-h-52"
+                  className="w-full resize-none rounded-xl bg-[#151515] px-3 py-4 text-xl text-[#989EA4] outline-none focus:outline-none sm:max-h-52"
                 />
               </div>
               <div className="flex flex-col gap-10">

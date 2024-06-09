@@ -1,13 +1,14 @@
 import React from "react";
 import Image from "next/image";
 import { MemoriesIcon, ExploreIcon, HistoryIcon } from "@repo/ui/icons";
+import Link from "next/link";
 
 function Menu() {
   const menuItems = [
     {
       icon: MemoriesIcon,
       text: "Memories",
-      url: "/",
+      url: "/memories",
     },
     {
       icon: ExploreIcon,
@@ -26,7 +27,8 @@ function Menu() {
       <div className="">
         <div className="group inline-flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] bg-secondary px-3 py-4 duration-200 hover:w-40">
           {menuItems.map((item) => (
-            <div
+            <Link
+              href={item.url}
               key={item.url}
               className="flex w-full cursor-pointer items-center gap-3 px-1 duration-200 hover:scale-105 hover:brightness-150 active:scale-90"
             >
@@ -38,7 +40,7 @@ function Menu() {
               <p className="opacity-0 duration-200 group-hover:opacity-100">
                 {item.text}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
