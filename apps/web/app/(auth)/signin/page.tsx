@@ -21,7 +21,7 @@ async function Signin() {
 
         <div>
           <h1 className="text-5xl text-foreground mb-8">
-            Hello, <span className="text-white">human</span>{" "}
+            Hello, <span className="text-white">human</span>
           </h1>
           <p className="text-white mb-8 text-lg">
             Write, ideate, and learn with all the wisdom of your bookmarks.
@@ -40,10 +40,14 @@ async function Signin() {
               >
                 <button
                   type="submit"
-                  className={`relative text-white transition-width flex justify-between w-full items-center rounded-2xl bg-[#37485E] px-6 py-4 outline-none duration-300 focus:outline-none`}
+                  className={`relative text-white transition-width flex justify-between w-full items-center rounded-lg bg-[#37485E] px-6 py-4 outline-none duration-300 focus:outline-none`}
                 >
-                  <Google />
-                  <span className="relative w-full self-start">
+                  <div className=""/>
+
+                  <div className="-translate-y-0">
+                    <Google />
+                  </div>
+                  <span className="text-xl font-medium tracking-wide relative w-full self-start">
                     Continue with Google
                   </span>
                 </button>

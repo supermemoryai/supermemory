@@ -2,6 +2,7 @@ import "@repo/tailwind-config/globals.css";
 
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Toaster } from "@repo/ui/shadcn/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -66,7 +67,10 @@ export default function RootLayout({
         <ThemeScript />
       </head> */}
       {/* TODO: when lightmode support is added, remove the 'dark' class from the body tag */}
-      <body className={`${inter.className} dark`}>{children}</body>
+      <body className={`${inter.className} dark`}>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

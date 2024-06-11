@@ -162,8 +162,7 @@ pre {
     font-weight: 700;
   }
 }
-
-::-webkit-scrollbar-thumb, ::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar{
+  width: 0;
 }
 

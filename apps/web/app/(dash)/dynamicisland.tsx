@@ -4,7 +4,7 @@ import { AddIcon } from "@repo/ui/icons";
 import Image from "next/image";
 
 import { AnimatePresence, useMotionValueEvent, useScroll } from "framer-motion";
-import { useState } from "react";
+import {  useState } from "react";
 import { motion } from "framer-motion";
 import { Label } from "@repo/ui/shadcn/label";
 import { Input } from "@repo/ui/shadcn/input";
@@ -81,6 +81,7 @@ function DynamicIslandContent() {
 const fakeitems = ["spaces", "page", "note"];
 
 function ToolBar({cancelfn}: {cancelfn: ()=> void}) {
+
   const [index, setIndex] = useState(0);
   return (
     <div className="flex flex-col items-center">
@@ -147,7 +148,7 @@ function SpaceForm({cancelfn}: {cancelfn: ()=> void}) {
     <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
       <div >
         <Label className="text-[#858B92]" htmlFor="name">Name</Label>
-        <Input className="bg-[#2B3237] outline-none border-none focus:border-none focus:outline-none" id="name"/>
+        <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
       </div>
       <div className="flex justify-between">
         <a className="text-blue-500" href="">
@@ -164,11 +165,11 @@ function PageForm({cancelfn}: {cancelfn: ()=> void}) {
     <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
     <div >
       <Label className="text-[#858B92]" htmlFor="name">Space</Label>
-      <Input className="bg-[#2B3237] outline-none border-none focus:border-none focus:outline-none" id="name"/>
+      <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
     </div>
     <div >
       <Label className="text-[#858B92]" htmlFor="name">Page Url</Label>
-      <Input className="bg-[#2B3237] outline-none border-none focus:border-none focus:outline-none" id="name"/>
+      <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
     </div>
     <div className="flex justify-end">
       <div onClick={cancelfn} className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer">cancel</div>
@@ -182,11 +183,11 @@ function NoteForm({cancelfn}: {cancelfn: ()=> void}) {
     <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
     <div >
       <Label className="text-[#858B92]" htmlFor="name">Space</Label>
-      <Input className="bg-[#2B3237] outline-none border-none focus:border-none focus:outline-none" id="name"/>
+      <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
     </div>
     <div >
       <Label className="text-[#858B92]" htmlFor="name">Note</Label>
-      <Textarea cols={4} className="bg-[#2B3237] outline-none border-none resize-none" id="name"/>
+      <Textarea cols={4} className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0 resize-none" id="name"/>
     </div>
     <div className="flex justify-end">
       <div onClick={cancelfn} className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer">cancel</div>
