@@ -9,12 +9,12 @@ export const runtime = "edge";
 async function Signin() {
   return (
     <div className="flex items-center justify-between min-h-screen">
-      <div className="relative w-1/2 flex items-center min-h-screen bg-secondary p-8">
+      <div className="relative w-full lg:w-1/2 flex items-center justify-center lg:justify-start min-h-screen bg-secondary p-8">
         <div className="absolute top-0 left-0 p-8 text-white inline-flex gap-2 items-center">
           <Image
             src={Logo}
             alt="SuperMemory logo"
-            className="hover:brightness-125 duration-200"
+            className="brightness-100"
           />
           <span className="text-xl">SuperMemory.ai</span>
         </div>
@@ -28,7 +28,7 @@ async function Signin() {
           </p>
           <div className="flex items-center gap-4">
             <div
-              className={`transition-width z-20 rounded-2xl bg-gradient-to-br from-gray-200/70 to-transparent p-[0.7px] duration-300 ease-in-out w-3/4`}
+              className="w-3/4"
             >
               <form
                 action={async () => {
@@ -40,35 +40,30 @@ async function Signin() {
               >
                 <button
                   type="submit"
-                  className={`relative text-white transition-width flex justify-between w-full items-center rounded-lg bg-[#37485E] px-6 py-4 outline-none duration-300 focus:outline-none`}
+                  className={`text-white flex gap-3 justify-center bg-tranparent hover:border-transparent hover:bg-[#37485E] border-[#37485E] border-2 w-full py-3 items-center rounded-lg duration-100 hover:rounded-3xl`}
                 >
-                  <div className=""/>
-
-                  <div className="-translate-y-0">
+                  <div className="-translate-y-[1px]">
                     <Google />
                   </div>
-                  <span className="text-xl font-medium tracking-wide relative w-full self-start">
+                  <span className="text-xl font-medium tracking-wide relative ">
                     Continue with Google
                   </span>
                 </button>
               </form>
             </div>
           </div>
-          <div className="text-slate-500 mt-16">
-            By continuing, you agree to the
-            <Link href="/terms" className="text-slate-200">
-              {" "}
+          <div className="text-slate-100 absolute bottom-4  lg:left-8 lg:-translate-x-0 left-1/2 -translate-x-1/2 ">
+            <Link href="/terms" className="text-slate-300">
               Terms of Service
-            </Link>{" "}
-            and
-            <Link href="/privacy" className="text-slate-200">
+            </Link> |
+            <Link href="/privacy" className="text-slate-300">
               {" "}
               Privacy Policy
             </Link>
           </div>
         </div>
       </div>
-      <div className="w-1/2 flex flex-col items-center justify-center min-h-screen">
+      <div className="w-1/2 hidden lg:flex flex-col items-center justify-center min-h-screen">
         <span className="text-3xl leading-relaxed italic mb-8">
           Ready for your{" "}
           <span className="text-white font-bold">Second brain</span>?

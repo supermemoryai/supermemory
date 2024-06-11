@@ -4,7 +4,7 @@ import { AddIcon } from "@repo/ui/icons";
 import Image from "next/image";
 
 import { AnimatePresence, useMotionValueEvent, useScroll } from "framer-motion";
-import {  useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Label } from "@repo/ui/shadcn/label";
 import { Input } from "@repo/ui/shadcn/input";
@@ -54,19 +54,36 @@ export default DynamicIsland;
 
 function DynamicIslandContent() {
   const [show, setshow] = useState(true);
-  function cancelfn(){
+  function cancelfn() {
     setshow(true);
   }
+
+  const lastBtn = useRef<string>();
+  useEffect(() => {
+    console.log(show);
+  }, [show]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        setshow(true);
+      }
+      if (e.key === "a" && lastBtn.current === "Alt") {
+        setshow(false);
+      }
+      lastBtn.current = e.key;
+    });
+  }, []);
   return (
     <>
       {show ? (
         <div
           onClick={() => setshow(!show)}
-          className="bg-[#1F2428] px-3 w-[2.23rem] overflow-hidden hover:w-[8.7rem] whitespace-nowrap py-2 rounded-3xl  transition-[width]" 
+          className="bg-[#1F2428] px-3 w-[2.23rem] overflow-hidden hover:w-[9.2rem] whitespace-nowrap py-2 rounded-3xl  transition-[width] cursor-pointer"
         >
           <div className="flex gap-4 items-center">
-          <Image src={AddIcon} alt="Add icon" />
-          Add Content
+            <Image src={AddIcon} alt="Add icon" />
+            Add Content
           </div>
         </div>
       ) : (
@@ -80,25 +97,44 @@ function DynamicIslandContent() {
 
 const fakeitems = ["spaces", "page", "note"];
 
-function ToolBar({cancelfn}: {cancelfn: ()=> void}) {
-
+function ToolBar({ cancelfn }: { cancelfn: () => void }) {
   const [index, setIndex] = useState(0);
   return (
-    <div className="flex flex-col items-center">
-      <div className="bg-[#1F2428] py-[.35rem] px-[.6rem] rounded-2xl">
-        <HoverEffect
-          items={fakeitems}
-          index={index}
-          indexFn={(i) => setIndex(i)}
-        />
-      </div>
-      { index === 0 ?
-        <SpaceForm cancelfn={cancelfn} /> :
-        index === 1 ?
-        <PageForm  cancelfn={cancelfn} /> :
-        <NoteForm cancelfn={cancelfn} />
-      }
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 20,
+        }}
+        animate={{
+          y: 0,
+          opacity: 1,
+        }}
+        exit={{
+          opacity: 0,
+          y: 20,
+        }}
+        transition={{
+          duration: 0.2,
+        }}
+        className="flex flex-col items-center"
+      >
+        <div className="bg-[#1F2428] py-[.35rem] px-[.6rem] rounded-2xl">
+          <HoverEffect
+            items={fakeitems}
+            index={index}
+            indexFn={(i) => setIndex(i)}
+          />
+        </div>
+        {index === 0 ? (
+          <SpaceForm cancelfn={cancelfn} />
+        ) : index === 1 ? (
+          <PageForm cancelfn={cancelfn} />
+        ) : (
+          <NoteForm cancelfn={cancelfn} />
+        )}
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -112,7 +148,7 @@ export const HoverEffect = ({
   indexFn: (i: number) => void;
 }) => {
   return (
-    <div className={"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"}>
+    <div className={"flex"}>
       {items.map((item, idx) => (
         <button
           key={idx}
@@ -143,55 +179,96 @@ export const HoverEffect = ({
   );
 };
 
-function SpaceForm({cancelfn}: {cancelfn: ()=> void}) {
+function SpaceForm({ cancelfn }: { cancelfn: () => void }) {
   return (
     <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
-      <div >
-        <Label className="text-[#858B92]" htmlFor="name">Name</Label>
-        <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
+      <div>
+        <Label className="text-[#858B92]" htmlFor="name">
+          Name
+        </Label>
+        <Input
+          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
+          id="name"
+        />
       </div>
       <div className="flex justify-between">
         <a className="text-blue-500" href="">
           pull from store
         </a>
-        <div onClick={cancelfn} className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer">cancel</div>
+        <div
+          onClick={cancelfn}
+          className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
+        >
+          cancel
+        </div>
       </div>
     </div>
   );
 }
 
-function PageForm({cancelfn}: {cancelfn: ()=> void}) {
+function PageForm({ cancelfn }: { cancelfn: () => void }) {
   return (
     <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
-    <div >
-      <Label className="text-[#858B92]" htmlFor="name">Space</Label>
-      <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
+      <div>
+        <Label className="text-[#858B92]" htmlFor="name">
+          Space
+        </Label>
+        <Input
+          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
+          id="name"
+        />
+      </div>
+      <div>
+        <Label className="text-[#858B92]" htmlFor="name">
+          Page Url
+        </Label>
+        <Input
+          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
+          id="name"
+        />
+      </div>
+      <div className="flex justify-end">
+        <div
+          onClick={cancelfn}
+          className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
+        >
+          cancel
+        </div>
+      </div>
     </div>
-    <div >
-      <Label className="text-[#858B92]" htmlFor="name">Page Url</Label>
-      <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
-    </div>
-    <div className="flex justify-end">
-      <div onClick={cancelfn} className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer">cancel</div>
-    </div>
-  </div>
   );
 }
 
-function NoteForm({cancelfn}: {cancelfn: ()=> void}) {
+function NoteForm({ cancelfn }: { cancelfn: () => void }) {
   return (
     <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
-    <div >
-      <Label className="text-[#858B92]" htmlFor="name">Space</Label>
-      <Input  className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0" id="name"/>
+      <div>
+        <Label className="text-[#858B92]" htmlFor="name">
+          Space
+        </Label>
+        <Input
+          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
+          id="name"
+        />
+      </div>
+      <div>
+        <Label className="text-[#858B92]" htmlFor="name">
+          Note
+        </Label>
+        <Textarea
+          cols={4}
+          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0 resize-none"
+          id="name"
+        />
+      </div>
+      <div className="flex justify-end">
+        <div
+          onClick={cancelfn}
+          className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
+        >
+          cancel
+        </div>
+      </div>
     </div>
-    <div >
-      <Label className="text-[#858B92]" htmlFor="name">Note</Label>
-      <Textarea cols={4} className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0 resize-none" id="name"/>
-    </div>
-    <div className="flex justify-end">
-      <div onClick={cancelfn} className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer">cancel</div>
-    </div>
-  </div>
   );
 }
