@@ -1,7 +1,7 @@
 "use client";
 
 // import Canvas from "./_components/canvas";
-import Canvas from "../canvas";
+import {Canvas} from "../canvas";
 import React, { useState } from "react";
 // import ReactTextareaAutosize from "react-textarea-autosize";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -21,7 +21,7 @@ function page() {
     <div className={`h-screen w-full ${ !fullScreen && "px-4 py-6"} transition-all`}>
       <div>
         <PanelGroup className={` ${fullScreen ? "w-[calc(100vw-2rem)]" : "w-screen"} transition-all`} direction="horizontal">
-          <Panel onExpand={()=> {setFullScreen(false)}} onCollapse={()=> {setFullScreen(true)}} defaultSize={30} collapsible={true} minSize={22}>
+          <Panel onExpand={()=> {setTimeout(()=> setFullScreen(false), 50)}} onCollapse={()=> {setTimeout(()=> setFullScreen(true), 50)}} defaultSize={30} collapsible={true} minSize={22}>
             <div className={`flex transition-all rounded-2xl ${fullScreen ? "h-screen": "h-[calc(100vh-3rem)]"} w-full flex-col overflow-hidden bg-[#1F2428]`}>
               <div className="flex items-center justify-between bg-[#2C3439] px-4 py-2 text-lg font-medium text-[#989EA4]">
                 Change Filters
