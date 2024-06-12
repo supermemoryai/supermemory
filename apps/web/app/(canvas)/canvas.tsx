@@ -10,7 +10,7 @@ import { SaveStatus } from "./savesnap";
 
 
 
-export default function Canvas() {
+export default function Canvas(){
   const [storeWithStatus, setStoreWithStatus] = useState<TLStoreWithStatus>({
     status: "loading",
   });
@@ -39,7 +39,6 @@ export default function Canvas() {
   setUserPreferences({ id: "supermemory", isDarkMode: true });
   return (
     <Tldraw
-      className="rounded-2xl"
       components={components}
       store={storeWithStatus}
       shapeUtils={[twitterCardUtil]}
