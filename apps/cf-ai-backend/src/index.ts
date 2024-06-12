@@ -14,8 +14,11 @@ import { bearerAuth } from "hono/bearer-auth";
 import { zValidator } from "@hono/zod-validator";
 import chunkText from "./utils/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
+import { swaggerUI } from "@hono/swagger-ui";
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.get("/doc", swaggerUI({ url: "/doc" }));
 
 // ------- MIDDLEWARES -------
 app.use("*", poweredBy());

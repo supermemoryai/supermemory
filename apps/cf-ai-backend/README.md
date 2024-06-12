@@ -1,58 +1,50 @@
-# Hono minimal project
+baseURL: https://new-cf-ai-backend.dhravya.workers.dev
 
-This is a minimal project with [Hono](https://github.com/honojs/hono/) for Cloudflare Workers.
+Authentication:
+You must authenticate with a header and `Authorization: bearer token` for each request in `/api/*` routes.
 
-## Features
+### Add content:
 
-- Minimal
-- TypeScript
-- Wrangler to develop and deploy.
-- [Jest](https://jestjs.io/ja/) for testing.
-
-## Usage
-
-Initialize
+POST `/api/add` with
 
 ```
-npx create-cloudflare my-app https://github.com/honojs/hono-minimal
+body {
+  pageContent: z.string(),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  space: z.string().optional(),
+  url: z.string(),
+  user: z.string(),
+}
 ```
 
-Install
+### Query without user data
+
+GET `/api/ask` with
+query `?query=testing`
+
+(this is temp but works perfectly, will change soon for chat use cases specifically)
+
+### Query vectorize and get results in natural language
+
+POST `/api/chat` with
 
 ```
-yarn install
+query paramters (?query=...&" {
+      query: z.string(),
+      topK: z.number().optional().default(10),
+      user: z.string(),
+      spaces: z.string().optional(),
+      sourcesOnly: z.string().optional().default("false"),
+      model: z.string().optional().default("gpt-4o"),
+    }
+
+body z.object({
+  chatHistory: z.array(contentObj).optional(),
+});
 ```
 
-Develop
+### Delete vectors
 
-```
-yarn dev
-```
-
-Test
-
-```
-yarn test
-```
-
-Deploy
-
-```
-yarn deploy
-```
-
-## Examples
-
-See: <https://github.com/honojs/examples>
-
-## For more information
-
-See: <https://honojs.dev>
-
-## Author
-
-Yusuke Wada <https://github.com/yusukebe>
-
-## License
-
-MIT
+DELETE `/api/delete` with
+query param websiteUrl, user
