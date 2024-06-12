@@ -68,6 +68,7 @@ function DynamicIslandContent() {
       if (e.key === "Escape") {
         setshow(true);
       }
+      console.log(e.key, lastBtn.current);
       if (e.key === "a" && lastBtn.current === "Alt") {
         setshow(false);
       }

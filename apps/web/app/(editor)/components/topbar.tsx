@@ -1,29 +1,5 @@
 "use client";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import {
   AnimatePresence,
   useMotionValueEvent,
@@ -32,7 +8,13 @@ import {
 } from "framer-motion";
 import React, { useState } from "react";
 
-function Topbar({charsCount, saveStatus}: {charsCount: number | undefined;  saveStatus: string}) {
+function Topbar({
+  charsCount,
+  saveStatus,
+}: {
+  charsCount: number | undefined;
+  saveStatus: string;
+}) {
   const [visible, setVisible] = useState(true);
 
   const { scrollYProgress } = useScroll();

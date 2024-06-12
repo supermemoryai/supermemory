@@ -12,8 +12,8 @@ bucket_name = "dev-r2-anycontext"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "prod-d1-tutorial"
-database_id = "325fe40a-bdfc-43ec-837b-021bbcc570e8"
+database_name = "dev-d1-anycontext"
+database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
 
 # [[unsafe.bindings]]
 # name = "RATELIMITER"

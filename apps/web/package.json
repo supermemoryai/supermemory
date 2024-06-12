@@ -10,7 +10,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
     "pages:build": "bunx @cloudflare/next-on-pages",
     "preview": "bun pages:build && wrangler pages dev",
-    "deploy": "bun pages:build && wrangler pages deploy"
+    "deploy": "bun pages:build && wrangler pages deploy",
+    "schema-update": "bunx drizzle-orm"
   },
   "dependencies": {
     "@million/lint": "^1.0.0-rc.11",
