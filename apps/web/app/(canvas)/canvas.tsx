@@ -8,8 +8,9 @@ import createEmbedsFromUrl from "./lib/createEmbeds";
 import { loadRemoteSnapshot } from "./lib/loadSnap";
 import { SaveStatus } from "./savesnap";
 import { getAssetUrls } from '@tldraw/assets/selfHosted'
+import { memo } from 'react';
 
-export default function Canvas(){
+export const Canvas = memo(()=>{
   const [storeWithStatus, setStoreWithStatus] = useState<TLStoreWithStatus>({
     status: "loading",
   });
@@ -51,4 +52,4 @@ export default function Canvas(){
       </div>
     </Tldraw>
   );
-}
+})
