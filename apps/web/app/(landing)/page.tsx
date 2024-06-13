@@ -16,7 +16,7 @@ export default async function Home() {
   console.log(user);
 
   if (user) {
-    // await redirect("/home")
+    await redirect("/home");
   }
 
   return (
