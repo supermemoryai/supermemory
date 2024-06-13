@@ -23,7 +23,7 @@ function Menu() {
   ];
 
   return (
-    <div className="absolute h-screen pb-[25vh] w-full p-4 flex items-end justify-end lg:justify-start lg:items-center top-0 left-0 pointer-events-none">
+    <div className="fixed h-screen pb-[25vh] w-full p-4 flex items-end justify-end lg:justify-start lg:items-center top-0 left-0 pointer-events-none">
       <div className="">
         <div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] bg-secondary px-3 py-4 duration-200 hover:w-40">
           {menuItems.map((item) => (
