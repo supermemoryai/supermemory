@@ -1,7 +1,7 @@
 "use client";
 
 // import Canvas from "./_components/canvas";
-import Canvas from "../canvas";
+import {Canvas} from "../canvas";
 import React, { useState } from "react";
 // import ReactTextareaAutosize from "react-textarea-autosize";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -15,13 +15,14 @@ import {
 
 function page() {
   const [value, setValue] = useState("");
+  const [fullScreen, setFullScreen] = useState(false);
 
   return (
-    <div className="h-screen w-full px-4 py-6">
+    <div className={`h-screen w-full ${ !fullScreen && "px-4 py-6"} transition-all`}>
       <div>
-        <PanelGroup className="w-[calc(100vw-2rem)]" direction="horizontal">
-          <Panel defaultSize={30} collapsible={true} minSize={22}>
-            <div className="flex h-[calc(100vh-3rem)] w-full flex-col overflow-hidden rounded-2xl bg-[#1F2428]">
+        <PanelGroup className={` ${fullScreen ? "w-[calc(100vw-2rem)]" : "w-screen"} transition-all`} direction="horizontal">
+          <Panel onExpand={()=> {setTimeout(()=> setFullScreen(false), 50)}} onCollapse={()=> {setTimeout(()=> setFullScreen(true), 50)}} defaultSize={30} collapsible={true} minSize={22}>
+            <div className={`flex transition-all rounded-2xl ${fullScreen ? "h-screen": "h-[calc(100vh-3rem)]"} w-full flex-col overflow-hidden bg-[#1F2428]`}>
               <div className="flex items-center justify-between bg-[#2C3439] px-4 py-2 text-lg font-medium text-[#989EA4]">
                 Change Filters
                 <SettingsSvg />
@@ -77,15 +78,15 @@ function page() {
               </div>
             </div>
           </Panel>
-          <PanelResizeHandle className="relative flex items-center justify-center px-1">
+          <PanelResizeHandle className={`relative flex items-center transition-all justify-center ${!fullScreen && "px-1"}`}>
             {/* <div className="absolute z-[1000000]  top-1/2 -translate-y-1/2"> */}
-            <div className="rounded-lg bg-[#2F363B] px-1 py-2">
+            <div className={`rounded-lg bg-[#2F363B] ${!fullScreen && "px-1"} transition-all py-2`}>
               <DragSvg />
             </div>
             {/* </div> */}
           </PanelResizeHandle>
           <Panel className="relative" defaultSize={70} minSize={60}>
-            <div className="absolute inset-0 h-[calc(100vh-3rem)] w-full">
+            <div className={`absolute overflow-hidden transition-all inset-0 ${ fullScreen ? "h-screen " : "h-[calc(100vh-3rem)] rounded-2xl"} w-full`}>
               <Canvas />
             </div>
           </Panel>

@@ -7,10 +7,10 @@ import { twitterCardUtil } from "./twitterCard";
 import createEmbedsFromUrl from "./lib/createEmbeds";
 import { loadRemoteSnapshot } from "./lib/loadSnap";
 import { SaveStatus } from "./savesnap";
+import { getAssetUrls } from '@tldraw/assets/selfHosted'
+import { memo } from 'react';
 
-
-
-export default function Canvas() {
+export const Canvas = memo(()=>{
   const [storeWithStatus, setStoreWithStatus] = useState<TLStoreWithStatus>({
     status: "loading",
   });
@@ -37,9 +37,11 @@ export default function Canvas() {
   }, []);
 
   setUserPreferences({ id: "supermemory", isDarkMode: true });
+
+  const assetUrls = getAssetUrls()
   return (
     <Tldraw
-      className="rounded-2xl"
+      assetUrls={assetUrls}
       components={components}
       store={storeWithStatus}
       shapeUtils={[twitterCardUtil]}
@@ -50,4 +52,4 @@ export default function Canvas() {
       </div>
     </Tldraw>
   );
-}
+})
