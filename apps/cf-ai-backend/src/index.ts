@@ -100,34 +100,25 @@ app.post(
     const query = c.req.valid("query");
     const body = c.req.valid("json");
 
-    if (body.chatHistory) {
-      body.chatHistory = body.chatHistory.map((i) => ({
-        ...i,
-        content: i.parts
-          ? i.parts.length > 0
-            ? i.parts.join(" ")
-            : i.content
-          : i.content,
-      }));
-    }
-
     const sourcesOnly = query.sourcesOnly === "true";
-    const spaces = query.spaces?.split(",") ?? [undefined];
-
-    console.log(spaces);
+    const spaces = query.spaces?.split(",") ?? [""];
 
     // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
 
     const filter: VectorizeVectorMetadataFilter = { user: query.user };
+    console.log("Spaces", spaces);
 
     // Converting the query to a vector so that we can search for similar vectors
     const queryAsVector = await store.embeddings.embedQuery(query.query);
     const responses: VectorizeMatches = { matches: [], count: 0 };
 
+    console.log("hello world", spaces);
+
     // SLICED to 5 to avoid too many queries
     for (const space of spaces.slice(0, 5)) {
-      if (space !== undefined) {
+      console.log("space", space);
+      if (space !== "") {
         // it's possible for space list to be [undefined] so we only add space filter conditionally
         filter.space = space;
       }
