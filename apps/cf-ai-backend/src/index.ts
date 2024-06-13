@@ -88,8 +88,8 @@ app.post(
     "query",
     z.object({
       query: z.string(),
-      topK: z.number().optional().default(10),
       user: z.string(),
+      topK: z.number().optional().default(10),
       spaces: z.string().optional(),
       sourcesOnly: z.string().optional().default("false"),
       model: z.string().optional().default("gpt-4o"),
@@ -103,12 +103,18 @@ app.post(
     if (body.chatHistory) {
       body.chatHistory = body.chatHistory.map((i) => ({
         ...i,
-        content: i.parts.length > 0 ? i.parts.join(" ") : i.content,
+        content: i.parts
+          ? i.parts.length > 0
+            ? i.parts.join(" ")
+            : i.content
+          : i.content,
       }));
     }
 
     const sourcesOnly = query.sourcesOnly === "true";
-    const spaces = query.spaces?.split(",") || [undefined];
+    const spaces = query.spaces?.split(",") ?? [undefined];
+
+    console.log(spaces);
 
     // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
