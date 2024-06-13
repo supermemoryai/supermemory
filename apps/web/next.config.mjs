@@ -4,6 +4,7 @@ import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@repo/ui"],
+  reactStrictMode: false,
 };
 export default MillionLint.next({
   rsc: true,

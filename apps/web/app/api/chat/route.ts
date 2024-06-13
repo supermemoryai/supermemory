@@ -1,6 +1,11 @@
 import { type NextRequest } from "next/server";
-import { ChatHistory } from "@repo/shared-types";
+import {
+  ChatHistory,
+  ChatHistoryZod,
+  convertChatHistoryList,
+} from "@repo/shared-types";
 import { ensureAuth } from "../ensureAuth";
+import { z } from "zod";
 
 export const runtime = "edge";
 
@@ -15,59 +20,69 @@ export async function POST(req: NextRequest) {
     return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
   }
 
-  const query = new URL(req.url).searchParams.get("q");
-  const spaces = new URL(req.url).searchParams.get("spaces");
+  const url = new URL(req.url);
 
-  const sourcesOnly =
-    new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
+  const query = url.searchParams.get("q");
+  const spaces = url.searchParams.get("spaces");
 
-  const chatHistory = (await req.json()) as {
-    chatHistory: ChatHistory[];
-  };
+  const sourcesOnly = url.searchParams.get("sourcesOnly") ?? "false";
 
-  console.log("CHathistory", chatHistory);
+  const chatHistory = await req.json();
 
-  if (!query) {
+  if (!query || query.trim.length < 0) {
     return new Response(JSON.stringify({ message: "Invalid query" }), {
       status: 400,
     });
   }
 
-  try {
-    const resp = await fetch(
-      `https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
-      {
-        headers: {
-          "X-Custom-Auth-Key": process.env.BACKEND_SECURITY_KEY!,
-        },
-        method: "POST",
-        body: JSON.stringify({
-          chatHistory: chatHistory.chatHistory ?? [],
-        }),
-      },
+  const validated = z
+    .object({ chatHistory: z.array(ChatHistoryZod) })
+    .safeParse(chatHistory ?? []);
+
+  if (!validated.success) {
+    return new Response(
+      JSON.stringify({
+        message: "Invalid chat history",
+        error: validated.error,
+      }),
+      { status: 400 },
     );
+  }
 
-    console.log("sourcesOnly", sourcesOnly);
+  const modelCompatible = await convertChatHistoryList(
+    validated.data.chatHistory,
+  );
 
-    if (sourcesOnly == "true") {
-      const data = await resp.json();
-      console.log("data", data);
-      return new Response(JSON.stringify(data), { status: 200 });
-    }
+  const resp = await fetch(
+    `https://new-cf-ai-backend.dhravya.workers.dev/api/chat?query=${query}&user=${session.user.email}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.BACKEND_SECURITY_KEY}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({
+        chatHistory: modelCompatible,
+      }),
+    },
+  );
 
-    if (resp.status !== 200 || !resp.ok) {
-      const errorData = await resp.json();
-      console.log(errorData);
-      return new Response(
-        JSON.stringify({ message: "Error in CF function", error: errorData }),
-        { status: resp.status },
-      );
-    }
+  console.log("sourcesOnly", sourcesOnly);
 
-    // Stream the response back to the client
-    const { readable, writable } = new TransformStream();
-    resp && resp.body!.pipeTo(writable);
+  if (sourcesOnly == "true") {
+    const data = await resp.json();
+    console.log("data", data);
+    return new Response(JSON.stringify(data), { status: 200 });
+  }
 
-    return new Response(readable, { status: 200 });
-  } catch {}
+  if (resp.status !== 200 || !resp.ok) {
+    const errorData = await resp.text();
+    console.log(errorData);
+    return new Response(
+      JSON.stringify({ message: "Error in CF function", error: errorData }),
+      { status: resp.status },
+    );
+  }
+
+  return new Response(resp.body, { status: 200 });
 }
