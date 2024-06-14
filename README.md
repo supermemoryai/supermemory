@@ -56,7 +56,7 @@ The chrome extension is one of the most important part of the setup, but is not 
 
 ![Chrome extension preview](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_3.54 PM.png)
 
-You can also use it to import all your twitter bookmarks!
+You can also use it to import all your twitter bookmarks!<br>
 ![Import bookmarks](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_3.56 PM.png)
 
 Built with:
