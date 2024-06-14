@@ -52,7 +52,7 @@ Built with:
 
 #### `apps/extension`: Chrome extension
 
-The chrome extension is one of the most important part of the setup, but is not required.This is to easily add pages to your memory.
+The chrome extension is one of the most important part of the setup, but is not required. This is to easily add pages to your memory.
 
 ![Chrome extension preview](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_3.54 PM.png)
 
