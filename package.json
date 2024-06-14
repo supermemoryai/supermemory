@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=!an-extension",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "deploy": "turbo deploy"
@@ -28,7 +28,7 @@
     "readline-sync": "^1.4.10",
     "tailwindcss": "^3.4.3",
     "tailwindcss-animate": "^1.0.7",
-    "turbo": "latest",
+    "turbo": "2.0.3",
     "vercel": "^34.2.0"
   },
   "engines": {
