@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev --filter=!an-extension",
+    "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "deploy": "turbo deploy"
@@ -14,7 +14,6 @@
     "@cloudflare/next-on-pages": "1",
     "@cloudflare/workers-types": "^4.20240512.0",
     "@repo/eslint-config": "*",
-    "@repo/shared-types": "*",
     "@repo/tailwind-config": "*",
     "@repo/typescript-config": "*",
     "@repo/ui": "*",
