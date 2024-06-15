@@ -1,10 +1,11 @@
 import Header from "./header";
 import Menu from "./menu";
-import { ensureAuth } from "./actions";
 import { redirect } from "next/navigation";
+import { auth } from "../helpers/server/auth";
+import { Toaster } from "@repo/ui/shadcn/sonner";
 
 async function Layout({ children }: { children: React.ReactNode }) {
-  const info = await ensureAuth();
+  const info = await auth();
 
   if (!info) {
     return redirect("/signin");
@@ -17,6 +18,8 @@ async function Layout({ children }: { children: React.ReactNode }) {
       <Menu />
 
       {children}
+
+      <Toaster />
     </main>
   );
 }

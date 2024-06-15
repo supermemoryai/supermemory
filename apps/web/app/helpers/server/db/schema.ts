@@ -7,75 +7,88 @@ import {
   text,
   integer,
 } from "drizzle-orm/sqlite-core";
+import type { AdapterAccountType } from "next-auth/adapters";
 
 export const createTable = sqliteTableCreator((name) => `${name}`);
 
 export const users = createTable("user", {
-  id: text("id", { length: 255 }).notNull().primaryKey(),
-  name: text("name", { length: 255 }),
-  email: text("email", { length: 255 }).notNull(),
-  emailVerified: int("emailVerified", { mode: "timestamp" }).default(
-    sql`CURRENT_TIMESTAMP`,
-  ),
-  image: text("image", { length: 255 }),
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text("name"),
+  email: text("email").notNull(),
+  emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
+  image: text("image"),
 });
 
 export type User = typeof users.$inferSelect;
 
-export const usersRelations = relations(users, ({ many }) => ({
-  accounts: many(accounts),
-  sessions: many(sessions),
-}));
-
 export const accounts = createTable(
   "account",
   {
-    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
-    userId: text("userId", { length: 255 })
+    userId: text("userId")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    type: text("type", { length: 255 }).notNull(),
-    provider: text("provider", { length: 255 }).notNull(),
-    providerAccountId: text("providerAccountId", { length: 255 }).notNull(),
+    type: text("type").$type<AdapterAccountType>().notNull(),
+    provider: text("provider").notNull(),
+    providerAccountId: text("providerAccountId").notNull(),
     refresh_token: text("refresh_token"),
     access_token: text("access_token"),
-    expires_at: int("expires_at"),
-    token_type: text("token_type", { length: 255 }),
-    scope: text("scope", { length: 255 }),
+    expires_at: integer("expires_at"),
+    token_type: text("token_type"),
+    scope: text("scope"),
     id_token: text("id_token"),
-    session_state: text("session_state", { length: 255 }),
-    oauth_token_secret: text("oauth_token_secret"),
-    oauth_token: text("oauth_token"),
+    session_state: text("session_state"),
   },
   (account) => ({
-    userIdIdx: index("account_userId_idx").on(account.userId),
+    compoundKey: primaryKey({
+      columns: [account.provider, account.providerAccountId],
+    }),
   }),
 );
 
-export const sessions = createTable(
-  "session",
-  {
-    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
-    sessionToken: text("sessionToken", { length: 255 }).notNull(),
-    userId: text("userId", { length: 255 })
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    expires: int("expires", { mode: "timestamp" }).notNull(),
-  },
-  (session) => ({
-    userIdIdx: index("session_userId_idx").on(session.userId),
-  }),
-);
+export const sessions = createTable("session", {
+  sessionToken: text("sessionToken").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expires: integer("expires", { mode: "timestamp_ms" }).notNull(),
+});
 
 export const verificationTokens = createTable(
   "verificationToken",
   {
-    identifier: text("identifier", { length: 255 }).notNull(),
-    token: text("token", { length: 255 }).notNull(),
-    expires: int("expires", { mode: "timestamp" }).notNull(),
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: integer("expires", { mode: "timestamp_ms" }).notNull(),
   },
-  (vt) => ({
-    compoundKey: primaryKey({ columns: [vt.identifier, vt.token] }),
+  (verificationToken) => ({
+    compositePk: primaryKey({
+      columns: [verificationToken.identifier, verificationToken.token],
+    }),
+  }),
+);
+
+export const authenticators = createTable(
+  "authenticator",
+  {
+    credentialID: text("credentialID").notNull().unique(),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    providerAccountId: text("providerAccountId").notNull(),
+    credentialPublicKey: text("credentialPublicKey").notNull(),
+    counter: integer("counter").notNull(),
+    credentialDeviceType: text("credentialDeviceType").notNull(),
+    credentialBackedUp: integer("credentialBackedUp", {
+      mode: "boolean",
+    }).notNull(),
+    transports: text("transports"),
+  },
+  (authenticator) => ({
+    compositePK: primaryKey({
+      columns: [authenticator.userId, authenticator.credentialID],
+    }),
   }),
 );
 
@@ -94,7 +107,7 @@ export const storedContent = createTable(
       "page",
     ),
     image: text("image", { length: 255 }),
-    user: text("user", { length: 255 }).references(() => users.id, {
+    userId: int("user").references(() => users.id, {
       onDelete: "cascade",
     }),
   },
@@ -102,7 +115,7 @@ export const storedContent = createTable(
     urlIdx: index("storedContent_url_idx").on(sc.url),
     savedAtIdx: index("storedContent_savedAt_idx").on(sc.savedAt),
     titleInx: index("storedContent_title_idx").on(sc.title),
-    userIdx: index("storedContent_user_idx").on(sc.user),
+    userIdx: index("storedContent_user_idx").on(sc.userId),
   }),
 );
 
