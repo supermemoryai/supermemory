@@ -2,10 +2,11 @@
 
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Divider from "@repo/ui/shadcn/divider";
 import { MultipleSelector, Option } from "@repo/ui/shadcn/combobox";
 import { useRouter } from "next/navigation";
+import { getSpaces } from "@/app/actions/fetchers";
 
 function QueryInput({
   initialQuery = "",
@@ -13,7 +14,10 @@ function QueryInput({
   disabled = false,
 }: {
   initialQuery?: string;
-  initialSpaces?: { user: string | null; id: number; name: string }[];
+  initialSpaces?: {
+    id: number;
+    name: string;
+  }[];
   disabled?: boolean;
 }) {
   const [q, setQ] = useState(initialQuery);
@@ -41,10 +45,14 @@ function QueryInput({
     return newQ;
   };
 
-  const options = initialSpaces.map((x) => ({
-    label: x.name,
-    value: x.id.toString(),
-  }));
+  const options = useMemo(
+    () =>
+      initialSpaces.map((x) => ({
+        label: x.name,
+        value: x.id.toString(),
+      })),
+    [initialSpaces],
+  );
 
   return (
     <div>
@@ -82,6 +90,7 @@ function QueryInput({
       {/* selected sources */}
       <div className="flex items-center gap-6 p-2 h-auto bg-secondary rounded-b-[24px]">
         <MultipleSelector
+          key={options.length}
           disabled={disabled}
           defaultOptions={options}
           onChange={(e) => setSelectedSpaces(e.map((x) => parseInt(x.value)))}

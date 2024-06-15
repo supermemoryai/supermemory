@@ -9,6 +9,17 @@ import { motion } from "framer-motion";
 import { Label } from "@repo/ui/shadcn/label";
 import { Input } from "@repo/ui/shadcn/input";
 import { Textarea } from "@repo/ui/shadcn/textarea";
+import { createSpace } from "../actions/doers";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/shadcn/select";
+import { Space } from "../actions/types";
+import { getSpaces } from "../actions/fetchers";
+import { toast } from "sonner";
 
 export function DynamicIsland() {
   const { scrollYProgress } = useScroll();
@@ -80,7 +91,7 @@ function DynamicIslandContent() {
       {show ? (
         <div
           onClick={() => setshow(!show)}
-          className="bg-[#1F2428] px-3 w-[2.23rem] overflow-hidden hover:w-[9.2rem] whitespace-nowrap py-2 rounded-3xl  transition-[width] cursor-pointer"
+          className="bg-secondary px-3 w-[2.23rem] overflow-hidden hover:w-[9.2rem] whitespace-nowrap py-2 rounded-3xl  transition-[width] cursor-pointer"
         >
           <div className="flex gap-4 items-center">
             <Image src={AddIcon} alt="Add icon" />
@@ -99,7 +110,25 @@ function DynamicIslandContent() {
 const fakeitems = ["spaces", "page", "note"];
 
 function ToolBar({ cancelfn }: { cancelfn: () => void }) {
+  const [spaces, setSpaces] = useState<Space[]>([]);
+
   const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      let spaces = await getSpaces();
+
+      if (!spaces.success || !spaces.data) {
+        toast.warning("Unable to get spaces", {
+          richColors: true,
+        });
+        setSpaces([]);
+        return;
+      }
+      setSpaces(spaces.data);
+    })();
+  }, []);
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -120,7 +149,7 @@ function ToolBar({ cancelfn }: { cancelfn: () => void }) {
         }}
         className="flex flex-col items-center"
       >
-        <div className="bg-[#1F2428] py-[.35rem] px-[.6rem] rounded-2xl">
+        <div className="bg-secondary py-[.35rem] px-[.6rem] rounded-2xl">
           <HoverEffect
             items={fakeitems}
             index={index}
@@ -130,9 +159,9 @@ function ToolBar({ cancelfn }: { cancelfn: () => void }) {
         {index === 0 ? (
           <SpaceForm cancelfn={cancelfn} />
         ) : index === 1 ? (
-          <PageForm cancelfn={cancelfn} />
+          <PageForm cancelfn={cancelfn} spaces={spaces} />
         ) : (
-          <NoteForm cancelfn={cancelfn} />
+          <NoteForm cancelfn={cancelfn} spaces={spaces} />
         )}
       </motion.div>
     </AnimatePresence>
@@ -182,7 +211,10 @@ export const HoverEffect = ({
 
 function SpaceForm({ cancelfn }: { cancelfn: () => void }) {
   return (
-    <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
+    <form
+      action={createSpace}
+      className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3"
+    >
       <div>
         <Label className="text-[#858B92]" htmlFor="name">
           Name
@@ -190,34 +222,55 @@ function SpaceForm({ cancelfn }: { cancelfn: () => void }) {
         <Input
           className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
           id="name"
+          name="name"
         />
       </div>
       <div className="flex justify-between">
         <a className="text-blue-500" href="">
           pull from store
         </a>
-        <div
+        {/* <div
           onClick={cancelfn}
           className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
         >
           cancel
-        </div>
+        </div> */}
+        <button
+          type="submit"
+          className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
+        >
+          Submit
+        </button>
       </div>
-    </div>
+    </form>
   );
 }
 
-function PageForm({ cancelfn }: { cancelfn: () => void }) {
+function PageForm({
+  cancelfn,
+  spaces,
+}: {
+  cancelfn: () => void;
+  spaces: Space[];
+}) {
   return (
-    <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
+    <div className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
       <div>
-        <Label className="text-[#858B92]" htmlFor="name">
+        <Label className="text-[#858B92]" htmlFor="space">
           Space
         </Label>
-        <Input
-          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
-          id="name"
-        />
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="Space" />
+          </SelectTrigger>
+          <SelectContent className="bg-secondary text-white">
+            {spaces.map((space) => (
+              <SelectItem key={space.id} value={space.id.toString()}>
+                {space.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label className="text-[#858B92]" htmlFor="name">
@@ -240,17 +293,31 @@ function PageForm({ cancelfn }: { cancelfn: () => void }) {
   );
 }
 
-function NoteForm({ cancelfn }: { cancelfn: () => void }) {
+function NoteForm({
+  cancelfn,
+  spaces,
+}: {
+  cancelfn: () => void;
+  spaces: Space[];
+}) {
   return (
-    <div className="bg-[#1F2428] px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
+    <div className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
       <div>
         <Label className="text-[#858B92]" htmlFor="name">
           Space
         </Label>
-        <Input
-          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
-          id="name"
-        />
+        <Select>
+          <SelectTrigger>
+            <SelectValue placeholder="Space" />
+          </SelectTrigger>
+          <SelectContent className="bg-secondary text-white">
+            {spaces.map((space) => (
+              <SelectItem key={space.id} value={space.id.toString()}>
+                {space.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label className="text-[#858B92]" htmlFor="name">

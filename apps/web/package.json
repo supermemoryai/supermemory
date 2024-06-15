@@ -11,7 +11,8 @@
     "pages:build": "bunx @cloudflare/next-on-pages",
     "preview": "bun pages:build && wrangler pages dev",
     "deploy": "bun pages:build && wrangler pages deploy",
-    "schema-update": "bunx drizzle-orm"
+    "schema-update": "bunx drizzle-kit generate sqlite",
+    "update-local-db": "bunx wrangler d1 execute dev-d1-anycontext --local"
   },
   "dependencies": {
     "@million/lint": "^1.0.0-rc.11",

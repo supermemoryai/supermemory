@@ -9,7 +9,7 @@ import DynamicIsland from "./dynamicisland";
 function Header() {
   return (
     <div>
-      <div className="absolute left-0 w-full flex items-center justify-between z-10">
+      <div className="fixed left-0 w-full flex items-center justify-between z-10">
         <Link className="px-5" href="/home">
           <Image
             src={Logo}

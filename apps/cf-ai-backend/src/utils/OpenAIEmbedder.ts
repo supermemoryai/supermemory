@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 interface OpenAIEmbeddingsParams {
   apiKey: string;
   modelName: string;
@@ -32,12 +34,22 @@ export class OpenAIEmbeddings {
       }),
     });
 
-    const data = (await response.json()) as {
-      data: {
-        embedding: number[];
-      }[];
-    };
+    const data = await response.json();
 
-    return data.data[0].embedding;
+    const zodTypeExpected = z.object({
+      data: z.array(
+        z.object({
+          embedding: z.array(z.number()),
+        }),
+      ),
+    });
+
+    const json = zodTypeExpected.safeParse(data);
+
+    if (!json.success) {
+      throw new Error("Invalid response from OpenAI: " + json.error.message);
+    }
+
+    return json.data.data[0].embedding;
   }
 }
