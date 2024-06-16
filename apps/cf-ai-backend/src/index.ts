@@ -126,7 +126,18 @@ app.post(
 
     await batchCreateChunksAndEmbeddings({
       store,
-      body,
+      body: {
+        url: body.url,
+        user: body.user,
+        type: "image",
+        description:
+          imageDescriptions.length > 1
+            ? `A group of ${imageDescriptions.length} images on ${body.url}`
+            : imageDescriptions[0],
+        space: body.space,
+        pageContent: imageDescriptions.join("\n"),
+        title: "Image content from the web",
+      },
       chunks: [
         imageDescriptions,
         ...(body.text ? chunkText(body.text, 1536) : []),
