@@ -103,14 +103,13 @@ export async function batchCreateChunksAndEmbeddings({
   await deleteDocument({ url: body.url, user: body.user, c: context, store });
 
   const random = seededRandom(ourID);
+  const uuid =
+    random().toString(36).substring(2, 15) +
+    random().toString(36).substring(2, 15);
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const uuid =
-      random().toString(36).substring(2, 15) +
-      random().toString(36).substring(2, 15) +
-      "-" +
-      i;
+    const chunkId = `${uuid}-${i}`;
 
     const newPageContent = `Title: ${body.title}\nDescription: ${body.description}\nURL: ${body.url}\nContent: ${chunk}`;
 
@@ -129,7 +128,7 @@ export async function batchCreateChunksAndEmbeddings({
         },
       ],
       {
-        ids: [uuid],
+        ids: [chunkId],
       },
     );
 

@@ -18,7 +18,12 @@ import { swaggerUI } from "@hono/swagger-ui";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get("/doc", swaggerUI({ url: "/doc" }));
+app.get(
+  "/ui",
+  swaggerUI({
+    url: "/doc",
+  }),
+);
 
 // ------- MIDDLEWARES -------
 app.use("*", poweredBy());
@@ -33,6 +38,17 @@ app.use("/api/", async (c, next) => {
   return next();
 });
 // ------- MIDDLEWARES END -------
+
+const fileSchema = z
+  .instanceof(File)
+  .refine(
+    (file) => file.size <= 10 * 1024 * 1024,
+    "File size should be less than 10MB",
+  ) // Validate file size
+  .refine(
+    (file) => ["image/jpeg", "image/png", "image/gif"].includes(file.type),
+    "Invalid file type",
+  ); // Validate file type
 
 app.get("/", (c) => {
   return c.text("Supermemory backend API is running!");
@@ -56,6 +72,71 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 
   return c.json({ status: "ok" });
 });
+
+app.post(
+  "/api/add-with-image",
+  zValidator(
+    "form",
+    z.object({
+      images: z
+        .array(fileSchema)
+        .min(1, "At least one image is required")
+        .optional(),
+      "images[]": z
+        .array(fileSchema)
+        .min(1, "At least one image is required")
+        .optional(),
+      text: z.string().optional(),
+      space: z.string().optional(),
+      url: z.string(),
+      user: z.string(),
+    }),
+    (c) => {
+      console.log(c);
+    },
+  ),
+  async (c) => {
+    const body = c.req.valid("form");
+
+    const { store } = await initQuery(c);
+
+    if (!(body.images || body["images[]"])) {
+      return c.json({ status: "error", message: "No images found" }, 400);
+    }
+
+    const imagePromises = (body.images ?? body["images[]"]).map(
+      async (image) => {
+        const buffer = await image.arrayBuffer();
+        const input = {
+          image: [...new Uint8Array(buffer)],
+          prompt:
+            "What's in this image? caption everything you see in great detail",
+          max_tokens: 1024,
+        };
+        const response = await c.env.AI.run(
+          "@cf/llava-hf/llava-1.5-7b-hf",
+          input,
+        );
+        console.log(response.description);
+        return response.description;
+      },
+    );
+
+    const imageDescriptions = await Promise.all(imagePromises);
+
+    await batchCreateChunksAndEmbeddings({
+      store,
+      body,
+      chunks: [
+        imageDescriptions,
+        ...(body.text ? chunkText(body.text, 1536) : []),
+      ].flat(),
+      context: c,
+    });
+
+    return c.json({ status: "ok" });
+  },
+);
 
 app.get(
   "/api/ask",

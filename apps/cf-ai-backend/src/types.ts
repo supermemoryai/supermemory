@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export type Env = {
   VECTORIZE_INDEX: VectorizeIndex;
-  AI: Fetcher;
+  AI: Ai;
   SECURITY_KEY: string;
   OPENAI_API_KEY: string;
   GOOGLE_AI_API_KEY: string;

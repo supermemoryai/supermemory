@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["ES2020"],
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "downlevelIteration": true
   }
 }
