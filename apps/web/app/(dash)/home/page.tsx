@@ -2,7 +2,7 @@ import React from "react";
 import Menu from "../menu";
 import Header from "../header";
 import QueryInput from "./queryinput";
-import { homeSearchParamsCache } from "@/app/helpers/lib/searchParams";
+import { homeSearchParamsCache } from "@/lib/searchParams";
 import { getSpaces } from "@/app/actions/fetchers";
 
 async function Page({

@@ -19,7 +19,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { code, p } from "./markdownRenderHelpers";
-import { codeLanguageSubset } from "@/app/helpers/constants";
+import { codeLanguageSubset } from "@/lib/constants";
 
 function ChatWindow({
   q,

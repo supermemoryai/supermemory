@@ -1,5 +1,5 @@
 import ChatWindow from "./chatWindow";
-import { chatSearchParamsCache } from "../../helpers/lib/searchParams";
+import { chatSearchParamsCache } from "../../../lib/searchParams";
 // @ts-expect-error
 await import("katex/dist/katex.min.css");
 

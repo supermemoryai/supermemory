@@ -1,4 +1,4 @@
-import { db } from "@/app/helpers/server/db";
+import { db } from "@/server/db";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import {
   contentToSpace,
@@ -6,10 +6,12 @@ import {
   storedContent,
   users,
   space,
-} from "@/app/helpers/server/db/schema";
+} from "@/server/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
-import { getMetaData } from "@/app/helpers/lib/get-metadata";
+import { getMetaData } from "@/lib/get-metadata";
 import { ensureAuth } from "../ensureAuth";
+import { limit } from "@/app/actions/doers";
+import { LIMITS } from "@/lib/constants";
 
 export const runtime = "edge";
 
@@ -33,22 +35,13 @@ export async function POST(req: NextRequest) {
     storeToSpaces = [];
   }
 
-  const count = await db
-    .select({
-      count: sql<number>`count(*)`.mapWith(Number),
-    })
-    .from(storedContent)
-    .where(
-      and(
-        eq(storedContent.user, session.user.id),
-        eq(storedContent.type, "page"),
-      ),
-    );
-
-  if (count[0]!.count > 100) {
+  if (!(await limit(session.user.id))) {
     return NextResponse.json(
-      { message: "Error", error: "Limit exceeded" },
-      { status: 499 },
+      {
+        message: "Error: Ratelimit exceeded",
+        error: `You have exceeded the limit of ${LIMITS["page"]} pages.`,
+      },
+      { status: 429 },
     );
   }
 
@@ -62,7 +55,7 @@ export async function POST(req: NextRequest) {
       baseUrl: metadata.baseUrl,
       image: metadata.image,
       savedAt: new Date(),
-      user: session.user.id,
+      userId: session.user.id,
     })
     .returning({ id: storedContent.id });
 

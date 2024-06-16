@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   );
 
   const resp = await fetch(
-    `https://new-cf-ai-backend.dhravya.workers.dev/api/chat?query=${query}&user=${session.user.email}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
+    `${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.email}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
     {
       headers: {
         Authorization: `Bearer ${process.env.BACKEND_SECURITY_KEY}`,

@@ -103,11 +103,9 @@ export const storedContent = createTable(
     savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
     baseUrl: text("baseUrl", { length: 255 }),
     ogImage: text("ogImage", { length: 255 }),
-    type: text("type", { enum: ["note", "page", "twitter-bookmark"] }).default(
-      "page",
-    ),
+    type: text("type").default("page"),
     image: text("image", { length: 255 }),
-    userId: int("user").references(() => users.id, {
+    userId: text("user").references(() => users.id, {
       onDelete: "cascade",
     }),
   },
@@ -118,6 +116,8 @@ export const storedContent = createTable(
     userIdx: index("storedContent_user_idx").on(sc.userId),
   }),
 );
+
+export type Content = typeof storedContent.$inferSelect;
 
 export const contentToSpace = createTable(
   "contentToSpace",

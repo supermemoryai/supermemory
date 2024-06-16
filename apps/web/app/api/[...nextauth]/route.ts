@@ -1,2 +1,2 @@
-export { GET, POST } from "../../helpers/server/auth";
+export { GET, POST } from "../../../server/auth";
 export const runtime = "edge";
