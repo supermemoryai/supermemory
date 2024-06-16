@@ -19,6 +19,7 @@ NEXTAUTH_SECRET='nextauthsecret'
 DATABASE_URL='database.sqlite'
 NEXTAUTH_URL='http://localhost:3000'
 BACKEND_SECURITY_KEY='veryrandomsecuritykey'
+BACKEND_BASE_URL="where your backend is hosted"
 ```
 
 4. Setup the database:
@@ -46,7 +47,7 @@ Simply run this command in `apps/web`
 bunx wrangler d1 migrations apply <YOUR_DATABASE_NAME>
 ```
 
-If it runs, you can set up the cloud database as well by removing the `--local` flag, 
+If it runs, you can set up the cloud database as well by removing the `--local` flag,
 
 if you just want to contribute to frontend then just run `bun run dev` in the root of the project and done! (you won't be able to try ai stuff), otherwise continue...
 
