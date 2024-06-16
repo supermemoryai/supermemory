@@ -47,6 +47,7 @@
     "@aws-sdk/s3-request-presigner": "^3.577.0",
     "@cloudflare/puppeteer": "^0.0.8",
     "@headlessui/react": "^2.0.4",
+    "@heroicons/react": "^2.1.3",
     "@hono/swagger-ui": "^0.2.2",
     "@hookform/resolvers": "^3.4.2",
     "@iarna/toml": "^2.2.5",
