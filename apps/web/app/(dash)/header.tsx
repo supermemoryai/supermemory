@@ -8,7 +8,7 @@ import DynamicIsland from "./dynamicisland";
 
 function Header() {
   return (
-    <div className="p-4 relative z-10 h-16 flex items-center">
+    <div className="p-4 relative z-30 h-16 flex items-center">
 
       <div className="w-full flex items-center justify-between">
         <Link className="" href="/home">
