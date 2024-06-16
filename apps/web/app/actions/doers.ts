@@ -126,7 +126,7 @@ export const createMemory = async (input: {
       },
     });
     pageContent = await response.text();
-    metadata = await getMetaData(pageContent);
+    metadata = await getMetaData(input.content);
   } else if (type === "tweet") {
     const tweet = await getTweetData(input.content.split("/").pop() as string);
     pageContent = JSON.stringify(tweet);
@@ -157,6 +157,36 @@ export const createMemory = async (input: {
 
   if (!storeToSpaces) {
     storeToSpaces = [];
+  }
+
+  const vectorSaveResponse = await fetch(
+    `${process.env.BACKEND_BASE_URL}/api/add`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        pageContent,
+        title: metadata.title,
+        description: metadata.description,
+        url: metadata.baseUrl,
+        // TODO: now, in the vector store, we are only saving the first space. We need to save all spaces.
+        space: storeToSpaces[0],
+        user: data.user.id,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+      },
+    },
+  );
+
+  if (!vectorSaveResponse.ok) {
+    const errorData = await vectorSaveResponse.text();
+    console.log(errorData);
+    return {
+      success: false,
+      data: 0,
+      error: `Failed to save to vector store. Backend returned error: ${errorData}`,
+    };
   }
 
   // Insert into database
@@ -190,7 +220,13 @@ export const createMemory = async (input: {
       .select()
       .from(space)
       .where(
-        and(inArray(space.name, storeToSpaces), eq(space.user, data.user.id)),
+        and(
+          inArray(
+            space.id,
+            storeToSpaces.map((s) => parseInt(s)),
+          ),
+          eq(space.user, data.user.id),
+        ),
       )
       .all();
 
@@ -201,31 +237,6 @@ export const createMemory = async (input: {
           .values({ contentId: contentId, spaceId: space.id });
       }),
     );
-  }
-
-  const vectorSaveResponse = await fetch(
-    `${process.env.BACKEND_BASE_URL}/api/add`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        pageContent,
-        title: metadata.title,
-        description: metadata.description,
-        url: metadata.baseUrl,
-        // TODO: now, in the vector store, we are only saving the first space. We need to save all spaces.
-        space: storeToSpaces[0],
-        user: data.user.id,
-      }),
-    },
-  );
-
-  if (!vectorSaveResponse.ok) {
-    const errorData = await vectorSaveResponse.text();
-    return {
-      success: false,
-      data: 0,
-      error: `Failed to save to vector store. Backend returned error: ${errorData}`,
-    };
   }
 
   try {
