@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   );
 
   const resp = await fetch(
-    `${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.email}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
+    `${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.id}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
     {
       headers: {
         Authorization: `Bearer ${process.env.BACKEND_SECURITY_KEY}`,

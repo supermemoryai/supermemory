@@ -46,6 +46,18 @@ function ChatWindow({
   const router = useRouter();
 
   const getAnswer = async (query: string, spaces: string[]) => {
+    const sourcesFetch = await fetch(
+      `/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true`,
+      {
+        method: "POST",
+        body: JSON.stringify({ chatHistory }),
+      },
+    );
+
+    // TODO: handle this properly
+    const sources = await sourcesFetch.json();
+    console.log(sources);
+
     const resp = await fetch(`/api/chat?q=${query}&spaces=${spaces}`, {
       method: "POST",
       body: JSON.stringify({ chatHistory }),

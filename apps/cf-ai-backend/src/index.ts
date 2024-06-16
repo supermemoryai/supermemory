@@ -101,7 +101,7 @@ app.post(
     const body = c.req.valid("json");
 
     const sourcesOnly = query.sourcesOnly === "true";
-    const spaces = query.spaces?.split(",") ?? [""];
+    const spaces = query.spaces?.split(",") ?? [undefined];
 
     // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
@@ -118,7 +118,7 @@ app.post(
     // SLICED to 5 to avoid too many queries
     for (const space of spaces.slice(0, 5)) {
       console.log("space", space);
-      if (space !== "") {
+      if (!space && spaces.length > 1) {
         // it's possible for space list to be [undefined] so we only add space filter conditionally
         filter.space = space;
       }
@@ -183,19 +183,11 @@ app.post(
       return c.json({ ids: storedContent });
     }
 
-    const vec = responses.matches.map((data) => ({ metadata: data.metadata }));
-
-    const vecWithScores = vec.map((v, i) => ({
-      ...v,
-      score: sortedHighScoreData[i].score,
-      normalisedScore: sortedHighScoreData[i].normalizedScore,
-    }));
-
-    const preparedContext = vecWithScores.map(
-      ({ metadata, score, normalisedScore }) => ({
+    const preparedContext = normalizedData.map(
+      ({ metadata, score, normalizedScore }) => ({
         context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
         score,
-        normalisedScore,
+        normalizedScore,
       }),
     );
 
