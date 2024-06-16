@@ -46,4 +46,5 @@ export const vectorObj = z.object({
   space: z.string().optional(),
   url: z.string(),
   user: z.string(),
+  type: z.string().optional(),
 });

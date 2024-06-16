@@ -180,7 +180,9 @@ app.post(
         idsAsStrings.map(async (id) => await c.env.KV.get(id)),
       );
 
-      return c.json({ ids: storedContent });
+      const metadata = normalizedData.map((datapoint) => datapoint.metadata);
+
+      return c.json({ ids: storedContent, metadata });
     }
 
     const preparedContext = normalizedData.map(

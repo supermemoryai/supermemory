@@ -20,6 +20,8 @@ import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { code, p } from "./markdownRenderHelpers";
 import { codeLanguageSubset } from "@/lib/constants";
+import { z } from "zod";
+import { toast } from "sonner";
 
 function ChatWindow({
   q,
@@ -56,7 +58,23 @@ function ChatWindow({
 
     // TODO: handle this properly
     const sources = await sourcesFetch.json();
-    console.log(sources);
+
+    const sourcesZod = z.object({
+      ids: z.array(z.string()),
+      metadata: z.array(z.any()),
+    });
+
+    const sourcesParsed = sourcesZod.safeParse(sources);
+
+    if (!sourcesParsed.success) {
+      console.log(sources);
+      console.error(sourcesParsed.error);
+      toast.error("Something went wrong while getting the sources");
+      return;
+    }
+
+    console.log(sourcesParsed.data.ids);
+    console.log(sourcesParsed.data.metadata);
 
     const resp = await fetch(`/api/chat?q=${query}&spaces=${spaces}`, {
       method: "POST",
