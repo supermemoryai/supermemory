@@ -110,7 +110,7 @@ app.post(
         const input = {
           image: [...new Uint8Array(buffer)],
           prompt:
-            "What's in this image? caption everything you see in great detail",
+            "What's in this image? caption everything you see in great detail. If it has text, do an OCR and extract all of it.",
           max_tokens: 1024,
         };
         const response = await c.env.AI.run(
