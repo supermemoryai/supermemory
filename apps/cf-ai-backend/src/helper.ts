@@ -98,7 +98,7 @@ export async function batchCreateChunksAndEmbeddings({
   chunks: string[];
   context: Context<{ Bindings: Env }>;
 }) {
-  const ourID = `${body.url}-${body.user}`;
+  const ourID = `${body.url}/#supermemory-${body.user}`;
 
   await deleteDocument({ url: body.url, user: body.user, c: context, store });
 
