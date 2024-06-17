@@ -171,6 +171,7 @@ export const createMemory = async (input: {
         // TODO: now, in the vector store, we are only saving the first space. We need to save all spaces.
         space: storeToSpaces[0],
         user: data.user.id,
+        type,
       }),
       headers: {
         "Content-Type": "application/json",

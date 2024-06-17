@@ -22,6 +22,8 @@ import { code, p } from "./markdownRenderHelpers";
 import { codeLanguageSubset } from "@/lib/constants";
 import { z } from "zod";
 import { toast } from "sonner";
+import Link from "next/link";
+import { sources } from "next/dist/compiled/webpack/webpack";
 
 function ChatWindow({
   q,
@@ -77,11 +79,24 @@ function ChatWindow({
       const newChatHistory = [...prevChatHistory];
       const lastAnswer = newChatHistory[newChatHistory.length - 1];
       if (!lastAnswer) return prevChatHistory;
-      lastAnswer.answer.sources = sourcesParsed.data.metadata.map((source) => ({
+      const filteredSourceUrls = new Set(
+        sourcesParsed.data.metadata.map((source) => source.url),
+      );
+      const uniqueSources = sourcesParsed.data.metadata.filter((source) => {
+        if (filteredSourceUrls.has(source.url)) {
+          filteredSourceUrls.delete(source.url);
+          return true;
+        }
+        return false;
+      });
+      lastAnswer.answer.sources = uniqueSources.map((source) => ({
         title: source.title ?? "Untitled",
         type: source.type ?? "page",
         source: source.url ?? "https://supermemory.ai",
         content: source.content ?? "No content available",
+        numChunks: sourcesParsed.data.metadata.filter(
+          (f) => f.url === source.url,
+        ).length,
       }));
       return newChatHistory;
     });
@@ -191,15 +206,25 @@ function ChatWindow({
                               </>
                             ))}
                           {chat.answer.sources.map((source, idx) => (
-                            <div
+                            <Link
+                              href={source.source}
                               key={idx}
                               className="rounded-xl bg-secondary p-4 flex flex-col gap-2 min-w-72"
                             >
-                              <div className="text-foreground-menu">
-                                {source.type}
+                              <div className="flex justify-between text-foreground-menu text-sm">
+                                <span>{source.type}</span>
+
+                                {source.numChunks > 1 && (
+                                  <span>{source.numChunks} chunks</span>
+                                )}
                               </div>
-                              <div>{source.title}</div>
-                            </div>
+                              <div className="text-base">{source.title}</div>
+                              <div className="text-xs">
+                                {source.content.length > 100
+                                  ? source.content.slice(0, 100) + "..."
+                                  : source.content}
+                              </div>
+                            </Link>
                           ))}
                         </AccordionContent>
                       </AccordionItem>

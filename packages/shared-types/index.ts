@@ -10,6 +10,7 @@ export const ChatHistoryZod = z.object({
         source: z.string(),
         title: z.string(),
         content: z.string(),
+        numChunks: z.number().optional().default(1),
       }),
     ),
   }),
