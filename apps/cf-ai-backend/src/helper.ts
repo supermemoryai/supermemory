@@ -21,8 +21,6 @@ export async function initQuery(
     index: c.env.VECTORIZE_INDEX,
   });
 
-  const DEFAULT_MODEL = "gpt-4o";
-
   let selectedModel:
     | ReturnType<ReturnType<typeof createOpenAI>>
     | ReturnType<ReturnType<typeof createGoogleGenerativeAI>>
@@ -51,13 +49,7 @@ export async function initQuery(
       selectedModel = openai.chat("gpt-4o");
       break;
   }
-
-  if (!selectedModel) {
-    throw new Error(
-      `Model ${model} not found and default model ${DEFAULT_MODEL} is also not available.`,
-    );
-  }
-
+  
   return { store, model: selectedModel };
 }
 
