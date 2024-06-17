@@ -124,6 +124,7 @@ export async function batchCreateChunksAndEmbeddings({
             url: body.url,
             user: body.user,
             type: body.type ?? "page",
+            content: newPageContent,
           },
         },
       ],

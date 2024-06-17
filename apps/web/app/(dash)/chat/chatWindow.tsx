@@ -73,8 +73,18 @@ function ChatWindow({
       return;
     }
 
-    console.log(sourcesParsed.data.ids);
-    console.log(sourcesParsed.data.metadata);
+    setChatHistory((prevChatHistory) => {
+      const newChatHistory = [...prevChatHistory];
+      const lastAnswer = newChatHistory[newChatHistory.length - 1];
+      if (!lastAnswer) return prevChatHistory;
+      lastAnswer.answer.sources = sourcesParsed.data.metadata.map((source) => ({
+        title: source.title ?? "Untitled",
+        type: source.type ?? "page",
+        source: source.url ?? "https://supermemory.ai",
+        content: source.content ?? "No content available",
+      }));
+      return newChatHistory;
+    });
 
     const resp = await fetch(`/api/chat?q=${query}&spaces=${spaces}`, {
       method: "POST",
