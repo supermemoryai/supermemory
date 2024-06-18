@@ -23,7 +23,6 @@ import { codeLanguageSubset } from "@/lib/constants";
 import { z } from "zod";
 import { toast } from "sonner";
 import Link from "next/link";
-import { sources } from "next/dist/compiled/webpack/webpack";
 
 function ChatWindow({
   q,
@@ -47,6 +46,20 @@ function ChatWindow({
     },
   ]);
 
+  const removeJustificationFromText = (text: string) => {
+    // remove everything after the first "<justification>" word
+    const justificationLine = text.indexOf("<justification>");
+    if (justificationLine !== -1) {
+      // Add that justification to the last chat message
+      const lastChatMessage = chatHistory[chatHistory.length - 1];
+      if (lastChatMessage) {
+        lastChatMessage.answer.justification = text.slice(justificationLine);
+      }
+      return text.slice(0, justificationLine);
+    }
+    return text;
+  };
+
   const router = useRouter();
 
   const getAnswer = async (query: string, spaces: string[]) => {
@@ -55,7 +68,7 @@ function ChatWindow({
       {
         method: "POST",
         body: JSON.stringify({ chatHistory }),
-      },
+      }
     );
 
     // TODO: handle this properly
@@ -80,7 +93,7 @@ function ChatWindow({
       const lastAnswer = newChatHistory[newChatHistory.length - 1];
       if (!lastAnswer) return prevChatHistory;
       const filteredSourceUrls = new Set(
-        sourcesParsed.data.metadata.map((source) => source.url),
+        sourcesParsed.data.metadata.map((source) => source.url)
       );
       const uniqueSources = sourcesParsed.data.metadata.filter((source) => {
         if (filteredSourceUrls.has(source.url)) {
@@ -95,7 +108,7 @@ function ChatWindow({
         source: source.url ?? "https://supermemory.ai",
         content: source.content ?? "No content available",
         numChunks: sourcesParsed.data.metadata.filter(
-          (f) => f.url === source.url,
+          (f) => f.url === source.url
         ).length,
       }));
       return newChatHistory;
@@ -129,7 +142,7 @@ function ChatWindow({
     if (q.trim().length > 0) {
       getAnswer(
         q,
-        spaces.map((s) => s.id),
+        spaces.map((s) => s.id)
       );
       setTimeout(() => {
         setLayout("chat");
@@ -164,7 +177,7 @@ function ChatWindow({
               >
                 <h2
                   className={cn(
-                    "text-white transition-all transform translate-y-0 opacity-100 duration-500 ease-in-out font-semibold text-2xl",
+                    "text-white transition-all transform translate-y-0 opacity-100 duration-500 ease-in-out font-semibold text-2xl"
                   )}
                 >
                   {chat.question}
@@ -262,10 +275,38 @@ function ChatWindow({
                         }}
                         className="flex flex-col gap-2"
                       >
-                        {chat.answer.parts.map((part) => part.text).join("")}
+                        {removeJustificationFromText(
+                          chat.answer.parts.map((part) => part.text).join("")
+                        )}
                       </Markdown>
                     </div>
                   </div>
+
+                  {/* Justification */}
+                  {chat.answer.justification &&
+                    chat.answer.justification.length && (
+                      <div
+                        className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+                      >
+                        <Accordion defaultValue={""} type="single" collapsible>
+                          <AccordionItem value="justification">
+                            <AccordionTrigger className="text-foreground-menu">
+                              Justification
+                            </AccordionTrigger>
+                            <AccordionContent
+                              className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+                              defaultChecked
+                            >
+                              {chat.answer.justification.length > 0
+                                ? chat.answer.justification
+                                    .replaceAll("<justification>", "")
+                                    .replaceAll("</justification>", "")
+                                : "No justification provided."}
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
