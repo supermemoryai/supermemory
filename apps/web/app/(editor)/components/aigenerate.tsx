@@ -1,4 +1,4 @@
-import React, {  useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Magic from "./ui/magic";
 import CrazySpinner from "./ui/crazy-spinner";
 import Asksvg from "./ui/asksvg";
@@ -9,13 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Editor } from "@tiptap/core";
 import { useEditor } from "novel";
 
-
 function Aigenerate() {
   const [visible, setVisible] = useState(false);
   const [generating, setGenerating] = useState(false);
-  
-  // generating -> can be converted to false, so we need to make sure the generation gets cancelled
-  // visible 
 
   const { editor } = useEditor();
   const setGeneratingfn = (v: boolean) => setGenerating(v);
@@ -58,8 +54,8 @@ function Aigenerate() {
         }}
         className="absolute z-50 top-0"
       >
-        <ToolBar  setGeneratingfn={setGeneratingfn} editor={editor} />
-        <div className="h-8 w-18rem bg-blue-600  blur-[16rem]" />
+        <ToolBar setGeneratingfn={setGeneratingfn} editor={editor} />
+        <div className="h-8 w-18rem bg-blue-600 blur-[16rem]" />
       </motion.div>
     </div>
   );
@@ -101,7 +97,7 @@ function ToolBar({
                 onClick={() =>
                   AigenerateContent({ idx, editor, setGeneratingfn })
                 }
-                className="absolute select-none inset-0 block h-full w-full rounded-xl bg-[#33393D]"
+                className="absolute select-none inset-0 block h-full w-full rounded-xl bg-background-light"
                 layoutId="hoverBackground"
                 initial={{ opacity: 0 }}
                 animate={{
@@ -116,7 +112,7 @@ function ToolBar({
             )}
           </AnimatePresence>
           <div className="select-none flex items-center whitespace-nowrap gap-3 relative z-[60] pointer-events-none">
-          {item}
+            {item}
           </div>
         </div>
       ))}
@@ -135,43 +131,39 @@ async function AigenerateContent({
 }) {
   setGeneratingfn(true);
 
-  const {from, to} = editor.view.state.selection;
-  const content = editor.view.state.selection.content();
-  content.content.forEach((v, i)=> {
-    v.forEach((v, i)=> {
-      console.log(v.text)
-    })
+  const { from, to } = editor.view.state.selection;
+  
+  const slice = editor.state.selection.content();
+  const text = editor.storage.markdown.serializer.serialize(slice.content);
+
+  const request = [
+    "Translate to hindi written in english, do not write anything else",
+    "change tone, improve the way be more formal",
+    "ask, answer the question",
+    "continue this, maximum 30 characters, do not repeat just continue don't use ... to denote start",
+  ]
+
+  const res = await fetch("/api/editorai", {
+    method: "POST",
+    body: JSON.stringify({
+      context: text,
+      request: request[idx],
+    }),
   })
+  const {completion}: {completion: string} = await res.json();
+  console.log(completion)
 
-  const transaction = editor.state.tr
-  transaction.replaceRange(from, to, content)
-
-  editor.view.dispatch(transaction)
-
-  // console.log(content)
-  // content.map((v, i)=> console.log(v.content))
-
-  // const fragment = Fragment.fromArray(content);
-
-  // console.log(fragment)
-
-  // editor.view.state.selection.content().content.append(content)
+  if (idx === 0 || idx === 1){
+    const selectionLength = completion.length + from
+    editor.chain().focus()
+    .insertContentAt({from, to}, completion).setTextSelection({from, to: selectionLength})
+    .run();
+  } else {
+    const selectionLength = completion.length + to + 1
+    editor.chain().focus()
+    .insertContentAt(to+1, completion).setTextSelection({from, to: selectionLength})
+    .run();
+  }
 
   setGeneratingfn(false);
-
-
-
-  // const genAI = new GoogleGenerativeAI("AIzaSyDGwJCP9SH5gryyvh65LJ6xTZ0SOdNvzyY");
-  // const model = genAI.getGenerativeModel({ model: "gemini-pro"});
-
-  // const result = (await model.generateContent(`${ty}, ${query}`)).response.text();
-
-  // .insertContentAt(
-  //   {
-  //     from: from,
-  //     to: to,
-  //   },
-  //   result,
-  // )
-  // .run();
 }

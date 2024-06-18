@@ -341,7 +341,7 @@ app.get('/api/editorai', zValidator(
 
   const { model } = await initQuery(c);
 
-  const {text} = await generateText({ model, prompt: `${request}-${context}` });
+  const {text} = await generateText({ model, prompt: `${request}-${context}`, maxTokens: 224 });
   
   return c.json({completion: text});
 })
