@@ -43,7 +43,7 @@ export const vectorObj = z.object({
   pageContent: z.string(),
   title: z.string().optional(),
   description: z.string().optional(),
-  space: z.string().optional(),
+  spaces: z.array(z.string()).optional(),
   url: z.string(),
   user: z.string(),
   type: z.string().optional().default("page"),

@@ -87,7 +87,7 @@ app.post(
         .min(1, "At least one image is required")
         .optional(),
       text: z.string().optional(),
-      space: z.string().optional(),
+      spaces: z.array(z.string()).optional(),
       url: z.string(),
       user: z.string(),
     }),
@@ -134,7 +134,7 @@ app.post(
           imageDescriptions.length > 1
             ? `A group of ${imageDescriptions.length} images on ${body.url}`
             : imageDescriptions[0],
-        space: body.space,
+        spaces: body.spaces,
         pageContent: imageDescriptions.join("\n"),
         title: "Image content from the web",
       },
@@ -198,7 +198,9 @@ app.post(
     // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
 
-    const filter: VectorizeVectorMetadataFilter = { user: query.user };
+    const filter: VectorizeVectorMetadataFilter = {
+      [`user-${query.user}`]: 1,
+    };
     console.log("Spaces", spaces);
 
     // Converting the query to a vector so that we can search for similar vectors
@@ -212,7 +214,7 @@ app.post(
       console.log("space", space);
       if (!space && spaces.length > 1) {
         // it's possible for space list to be [undefined] so we only add space filter conditionally
-        filter.space = space;
+        filter[`space-${query.user}-${space}`] = 1;
       }
 
       // Because there's no OR operator in the filter, we have to make multiple queries
@@ -265,9 +267,6 @@ app.post(
         dataPoint.id.toString(),
       );
 
-      // We are getting the content ID back, so that the frontend can show the actual sources properly.
-      // it IS a lot of DB calls, i completely agree.
-      // TODO: return metadata value here, so that the frontend doesn't have to re-fetch anything.
       const storedContent = await Promise.all(
         idsAsStrings.map(async (id) => await c.env.KV.get(id)),
       );
