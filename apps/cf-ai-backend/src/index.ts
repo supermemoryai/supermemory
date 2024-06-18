@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Hono } from "hono";
-import { CoreMessage, streamText } from "ai";
+import { CoreMessage, generateText, streamText } from "ai";
 import { chatObj, Env, vectorObj } from "./types";
 import {
   batchCreateChunksAndEmbeddings,
@@ -330,5 +330,21 @@ app.delete(
     return c.json({ message: "Document deleted" });
   },
 );
+
+app.get('/api/editorai', zValidator(
+  "query",
+  z.object({
+    context: z.string(),
+    request: z.string(),
+  }),
+), async (c)=> {
+  const { context, request } = c.req.valid("query");
+
+  const { model } = await initQuery(c);
+
+  const {text} = await generateText({ model, prompt: `${request}-${context}` });
+  
+  return c.json({completion: text});
+})
 
 export default app;
