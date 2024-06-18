@@ -5,7 +5,7 @@ import Cta from "./Cta";
 import { Toaster } from "@repo/ui/shadcn/toaster";
 import Features from "./Features";
 import Footer from "./footer";
-import { auth } from "../helpers/server/auth";
+import { auth } from "../../server/auth";
 import { redirect } from "next/navigation";
 
 export const runtime = "edge";
@@ -16,7 +16,7 @@ export default async function Home() {
   console.log(user);
 
   if (user) {
-    // await redirect("/home")
+    await redirect("/home");
   }
 
   return (
