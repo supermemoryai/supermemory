@@ -65,6 +65,7 @@
     "@tldraw/assets": "^2.2.0",
     "@types/readline-sync": "^1.4.8",
     "ai": "^3.1.14",
+    "aws4fetch": "^1.0.18",
     "cheerio": "^1.0.0-rc.12",
     "compromise": "^14.13.0",
     "drizzle-orm": "^0.30.10",

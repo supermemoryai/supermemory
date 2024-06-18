@@ -50,10 +50,18 @@ export default async function createEmbedsFromUrl({url, point, sources, editor}:
           type: "url",
           url,
         });
-        const fetchWebsite = await (await fetch(`https://unfurl-bookmark.pruthvirajthinks.workers.dev/?url=${url}`)).json()
-        if (fetchWebsite.title) bookmarkAsset.props.title = fetchWebsite.title;
-        if (fetchWebsite.image) bookmarkAsset.props.image = fetchWebsite.image;
-        if (fetchWebsite.description) bookmarkAsset.props.description = fetchWebsite.description;
+        const fetchWebsite: {
+          title?: string;
+          image?: string;
+          description?: string;
+        } = await (await fetch(`/api/unfirlsite?website=${url}`, {
+          method: "POST"
+        })).json()
+        if (bookmarkAsset){
+          if (fetchWebsite.title) bookmarkAsset.props.title = fetchWebsite.title;
+          if (fetchWebsite.image) bookmarkAsset.props.image = fetchWebsite.image;
+          if (fetchWebsite.description) bookmarkAsset.props.description = fetchWebsite.description;
+        }
         if (!bookmarkAsset) throw Error("Could not create an asset");
         asset = bookmarkAsset;
       } catch (e) {
