@@ -168,8 +168,7 @@ export const createMemory = async (input: {
         title: metadata.title,
         description: metadata.description,
         url: metadata.baseUrl,
-        // TODO: now, in the vector store, we are only saving the first space. We need to save all spaces.
-        space: storeToSpaces[0],
+        spaces: storeToSpaces,
         user: data.user.id,
         type,
       }),
