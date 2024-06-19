@@ -121,7 +121,6 @@ function ChatWindow({
 
     const reader = resp.body?.getReader();
     let done = false;
-    let result = "";
     while (!done && reader) {
       const { value, done: d } = await reader.read();
       done = d;
@@ -134,8 +133,6 @@ function ChatWindow({
         return newChatHistory;
       });
     }
-
-    console.log(result);
   };
 
   useEffect(() => {

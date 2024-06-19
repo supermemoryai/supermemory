@@ -338,12 +338,13 @@ app.get('/api/editorai', zValidator(
   }),
 ), async (c)=> {
   const { context, request } = c.req.valid("query");
-
   const { model } = await initQuery(c);
 
-  const {text} = await generateText({ model, prompt: `${request}-${context}`, maxTokens: 224 });
-  
-  return c.json({completion: text});
+  const response = await streamText({ model, prompt: `${request}-${context}`, maxTokens: 224 });
+
+  const r = response.toTextStreamResponse();
+
+  return r;  
 })
 
 export default app;

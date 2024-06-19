@@ -97,7 +97,7 @@ function ToolBar({
                 onClick={() =>
                   AigenerateContent({ idx, editor, setGeneratingfn })
                 }
-                className="absolute select-none inset-0 block h-full w-full rounded-xl bg-background-light"
+                className="absolute select-none inset-0 block h-full w-full rounded-xl bg-[#33393D]"
                 layoutId="hoverBackground"
                 initial={{ opacity: 0 }}
                 animate={{
@@ -140,30 +140,66 @@ async function AigenerateContent({
     "Translate to hindi written in english, do not write anything else",
     "change tone, improve the way be more formal",
     "ask, answer the question",
-    "continue this, maximum 30 characters, do not repeat just continue don't use ... to denote start",
+    "continue this, minimum 80 characters, do not repeat just continue don't use ... to denote start",
   ]
 
-  const res = await fetch("/api/editorai", {
+  const resp = await fetch("/api/editorai", {
     method: "POST",
     body: JSON.stringify({
       context: text,
       request: request[idx],
     }),
-  })
-  const {completion}: {completion: string} = await res.json();
-  console.log(completion)
+  });
 
-  if (idx === 0 || idx === 1){
-    const selectionLength = completion.length + from
-    editor.chain().focus()
-    .insertContentAt({from, to}, completion).setTextSelection({from, to: selectionLength})
-    .run();
-  } else {
-    const selectionLength = completion.length + to + 1
-    editor.chain().focus()
-    .insertContentAt(to+1, completion).setTextSelection({from, to: selectionLength})
-    .run();
+  if (!resp.body) {
+    console.error("No response body");
+    return;
   }
+  const reader = resp.body.getReader();
+  // const decoder = new TextDecoder();
+  let done = false;
+  let position = to;
+
+  while (!done) {
+    const { value, done: readerDone } = await reader.read();
+    done = readerDone;
+
+    if (value) {
+      const chunk = new TextDecoder().decode(value)
+      // decoder.decode(value, { stream: true });
+      console.log(chunk);
+      // editor.chain().focus().insertContentAt(position + 1, chunk).run();
+      position += chunk.length
+    }
+  }
+  console.log("Stream complete");
+
+
+  // const reader = resp.body?.getReader();
+  // let done = false;
+  // let position = from;
+  // while (!done && reader) {
+  //   const { value, done: d } = await reader.read();
+  //   done = d;
+
+  //   const cont = new TextDecoder().decode(value)
+  //   console.log(cont);
+    // 
+  // }
+  // const {completion}: {completion: string} = await res.json();
+  // console.log(completion)
+
+  // if (idx === 0 || idx === 1){
+  //   const selectionLength = completion.length + from
+  //   editor.chain().focus()
+  //   .insertContentAt({from, to}, completion).setTextSelection({from, to: selectionLength})
+  //   .run();
+  // } else {
+  //   const selectionLength = completion.length + to + 1
+  //   editor.chain().focus()
+  //   .insertContentAt(to+1, completion).setTextSelection({from, to: selectionLength})
+  //   .run();
+  // }
 
   setGeneratingfn(false);
 }
