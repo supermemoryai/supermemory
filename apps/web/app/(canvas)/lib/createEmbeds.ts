@@ -2,8 +2,8 @@ import { AssetRecordType, Editor, TLAsset, TLAssetId, TLBookmarkShape, TLExterna
 
 export default async function createEmbedsFromUrl({url, point, sources, editor}: {
   url: string
-  point: VecLike | undefined
-  sources: TLExternalContentSource[] | undefined
+  point?: VecLike | undefined
+  sources?: TLExternalContentSource[] | undefined
   editor: Editor
 }){
 
@@ -85,6 +85,38 @@ export default async function createEmbedsFromUrl({url, point, sources, editor}:
         },
       ]);
     });
+}
+
+function isURL(str: string) {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
+export function handleExternalDroppedContent({text, editor}: {text:string, editor: Editor}){
+  const position = editor.inputs.shiftKey
+  ? editor.inputs.currentPagePoint
+  : editor.getViewportPageBounds().center;
+
+  if (isURL(text)){
+    createEmbedsFromUrl({editor, url: text})
+  } else{
+    editor.createShape({
+      type: "text",
+      x: position.x - 75,
+      y: position.y - 75,
+      props: {
+        text: text,
+        size: "s",
+        textAlign: "start",
+      },
+    });
+
+  }
 }
 
 function centerSelectionAroundPoint(editor: Editor, position: VecLike) {
