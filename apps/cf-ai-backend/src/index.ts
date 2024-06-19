@@ -330,6 +330,7 @@ app.delete(
   },
 );
 
+// ERROR #1 - this is the api that the editor uses, it is just a scrape off of /api/chat so you may check that out 
 app.get('/api/editorai', zValidator(
   "query",
   z.object({
@@ -342,9 +343,7 @@ app.get('/api/editorai', zValidator(
 
   const response = await streamText({ model, prompt: `${request}-${context}`, maxTokens: 224 });
 
-  const r = response.toTextStreamResponse();
-
-  return r;  
+  return response.toTextStreamResponse();
 })
 
 export default app;

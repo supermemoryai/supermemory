@@ -8,6 +8,8 @@ import Autocompletesvg from "./ui/autocompletesvg";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Editor } from "@tiptap/core";
 import { useEditor } from "novel";
+import { NodeSelection } from 'prosemirror-state'
+
 
 function Aigenerate() {
   const [visible, setVisible] = useState(false);
@@ -143,6 +145,7 @@ async function AigenerateContent({
     "continue this, minimum 80 characters, do not repeat just continue don't use ... to denote start",
   ]
 
+  // ERROR #3 - This is where we call the ai generate api
   const resp = await fetch("/api/editorai", {
     method: "POST",
     body: JSON.stringify({
@@ -151,30 +154,41 @@ async function AigenerateContent({
     }),
   });
 
-  if (!resp.body) {
-    console.error("No response body");
-    return;
-  }
-  const reader = resp.body.getReader();
-  // const decoder = new TextDecoder();
+  // this is the exact replica of your chatwindow code, I have 
+  // 2 more versions of these code commented below, but they also dont work
+  const reader = resp.body?.getReader();
   let done = false;
-  let position = to;
+  while (!done && reader) {
+    const { value, done: d } = await reader.read();
+    done = d;
 
-  while (!done) {
-    const { value, done: readerDone } = await reader.read();
-    done = readerDone;
-
-    if (value) {
-      const chunk = new TextDecoder().decode(value)
-      // decoder.decode(value, { stream: true });
-      console.log(chunk);
-      // editor.chain().focus().insertContentAt(position + 1, chunk).run();
-      position += chunk.length
-    }
+    console.log(new TextDecoder().decode(value))
   }
-  console.log("Stream complete");
+
+  // 2nd Method
+  // if (!resp.body) {
+  //   console.error("No response body");
+  //   return;
+  // }
+  // const reader = resp.body.getReader();
+  // const decoder = new TextDecoder();
+  // let done = false;
+  // let position = to;
+  
+  // while (!done) {
+  //   const { value, done: readerDone } = await reader.read();
+  //   done = readerDone;
+  //   if (value) {
+  //     const chunk = decoder.decode(value, { stream: true });
+  //     console.log(chunk);
+  //     editor.chain().focus().insertContentAt(position + 1, chunk).run();
+  //     position += chunk.length;
+  //   }
+  // }
+  // console.log("Stream complete");
 
 
+  // 3rd method
   // const reader = resp.body?.getReader();
   // let done = false;
   // let position = from;
@@ -184,22 +198,9 @@ async function AigenerateContent({
 
   //   const cont = new TextDecoder().decode(value)
   //   console.log(cont);
-    // 
   // }
   // const {completion}: {completion: string} = await res.json();
   // console.log(completion)
-
-  // if (idx === 0 || idx === 1){
-  //   const selectionLength = completion.length + from
-  //   editor.chain().focus()
-  //   .insertContentAt({from, to}, completion).setTextSelection({from, to: selectionLength})
-  //   .run();
-  // } else {
-  //   const selectionLength = completion.length + to + 1
-  //   editor.chain().focus()
-  //   .insertContentAt(to+1, completion).setTextSelection({from, to: selectionLength})
-  //   .run();
-  // }
 
   setGeneratingfn(false);
 }
