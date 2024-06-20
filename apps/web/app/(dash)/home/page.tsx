@@ -1,11 +1,12 @@
-import React from "react";
-import Menu from "../menu";
-import Header from "../header";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import { homeSearchParamsCache } from "@/lib/searchParams";
 import { getSpaces } from "@/app/actions/fetchers";
+import { useRouter } from "next/navigation";
 
-async function Page({
+function Page({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
@@ -13,12 +14,18 @@ async function Page({
   // TODO: use this to show a welcome page/modal
   const { firstTime } = homeSearchParamsCache.parse(searchParams);
 
-  let spaces = await getSpaces();
+  const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
-  if (!spaces.success) {
-    // TODO: handle this error properly.
-    spaces.data = [];
-  }
+  useEffect(() => {
+    getSpaces().then((res) => {
+      if (res.success && res.data) {
+        setSpaces(res.data);
+      }
+      // TODO: HANDLE ERROR
+    });
+  }, []);
+
+  const { push } = useRouter();
 
   return (
     <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col">
@@ -26,7 +33,17 @@ async function Page({
       {/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
 
       <div className="w-full h-96">
-        <QueryInput initialSpaces={spaces.data} />
+        <QueryInput
+          handleSubmit={(q, spaces) => {
+            const newQ =
+              "/chat?q=" +
+              encodeURI(q) +
+              (spaces ? "&spaces=" + JSON.stringify(spaces) : "");
+
+            push(newQ);
+          }}
+          initialSpaces={spaces}
+        />
       </div>
     </div>
   );
