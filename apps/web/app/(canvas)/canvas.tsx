@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, Tldraw, setUserPreferences, TLStoreWithStatus } from "tldraw";
 import { createAssetFromUrl } from "./lib/createAssetUrl";
 import "tldraw/tldraw.css";
@@ -7,10 +7,53 @@ import { twitterCardUtil } from "./twitterCard";
 import createEmbedsFromUrl from "./lib/createEmbeds";
 import { loadRemoteSnapshot } from "./lib/loadSnap";
 import { SaveStatus } from "./savesnap";
-import { getAssetUrls } from '@tldraw/assets/selfHosted'
-import { memo } from 'react';
+import { getAssetUrls } from "@tldraw/assets/selfHosted";
+import { memo } from "react";
+import DragContext from "./lib/context";
+import DropZone from "./dropComponent";
 
-export const Canvas = memo(()=>{
+export const Canvas = memo(() => {
+  const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
+  const Dragref = useRef<HTMLDivElement | null>(null)
+
+  const handleDragOver = (event: any) => {
+    event.preventDefault();
+    setIsDraggingOver(true);
+    console.log("entere")
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+    console.log("leaver")
+  };
+
+  useEffect(() => {
+    const divElement = Dragref.current;
+    if (divElement) {
+      divElement.addEventListener('dragover', handleDragOver);
+      divElement.addEventListener('dragleave', handleDragLeave);  
+    }
+    return () => {
+      if (divElement) {
+        divElement.removeEventListener('dragover', handleDragOver);
+        divElement.removeEventListener('dragleave', handleDragLeave);  
+      }
+    };
+  }, []);
+
+  return (
+    <DragContext.Provider value={{ isDraggingOver, setIsDraggingOver }}>
+    <div
+      ref={Dragref}
+      className="w-full h-full"
+    >
+      <TldrawComponent />
+    </div>
+    </DragContext.Provider>
+  );
+});
+
+const TldrawComponent =memo(() => {
   const [storeWithStatus, setStoreWithStatus] = useState<TLStoreWithStatus>({
     status: "loading",
   });
@@ -38,18 +81,22 @@ export const Canvas = memo(()=>{
 
   setUserPreferences({ id: "supermemory", isDarkMode: true });
 
-  const assetUrls = getAssetUrls()
+  const assetUrls = getAssetUrls();
   return (
-    <Tldraw
-      assetUrls={assetUrls}
-      components={components}
-      store={storeWithStatus}
-      shapeUtils={[twitterCardUtil]}
-      onMount={handleMount}
-    >
-      <div className="absolute left-1/2 top-0 z-[1000000] flex -translate-x-1/2 gap-2 bg-[#2C3439] text-[#B3BCC5]">
-        <SaveStatus />
-      </div>
-    </Tldraw>
+    <div className="w-full h-full">
+      <Tldraw
+        className="relative"
+        assetUrls={assetUrls}
+        components={components}
+        store={storeWithStatus}
+        shapeUtils={[twitterCardUtil]}
+        onMount={handleMount}
+      >
+        <div className="absolute left-1/2 top-0 z-[1000000] flex -translate-x-1/2 gap-2 bg-[#2C3439] text-[#B3BCC5]">
+          <SaveStatus />
+        </div>
+        <DropZone />
+      </Tldraw>
+    </div>
   );
 })

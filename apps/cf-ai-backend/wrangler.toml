@@ -5,7 +5,7 @@ node_compat = true
 
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
-index_name = "supermem-vector"
+index_name = "supermem-vector-dev"
 
 [ai]
 binding = "AI"

@@ -1,3 +1,9 @@
+export const LIMITS = {
+  page: 100,
+  tweet: 1000,
+  note: 1000,
+};
+
 export const codeLanguageSubset = [
   "python",
   "javascript",

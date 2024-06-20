@@ -4,12 +4,12 @@ import { AddIcon } from "@repo/ui/icons";
 import Image from "next/image";
 
 import { AnimatePresence, useMotionValueEvent, useScroll } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Label } from "@repo/ui/shadcn/label";
 import { Input } from "@repo/ui/shadcn/input";
 import { Textarea } from "@repo/ui/shadcn/textarea";
-import { createSpace } from "../actions/doers";
+import { createMemory, createSpace } from "../actions/doers";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
 import { Space } from "../actions/types";
 import { getSpaces } from "../actions/fetchers";
 import { toast } from "sonner";
+import { useFormStatus } from "react-dom";
 
 export function DynamicIsland() {
   const { scrollYProgress } = useScroll();
@@ -253,13 +254,39 @@ function PageForm({
   cancelfn: () => void;
   spaces: Space[];
 }) {
+  const [loading, setLoading] = useState(false);
+
+  const { pending } = useFormStatus();
   return (
-    <div className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
+    <form
+      action={async (e: FormData) => {
+        const content = e.get("content")?.toString();
+        const space = e.get("space")?.toString();
+        if (!content) {
+          toast.error("Content is required");
+          return;
+        }
+        setLoading(true);
+        const cont = await createMemory({
+          content: content,
+          spaces: space ? [space] : undefined,
+        });
+
+        console.log(cont);
+        setLoading(false);
+        if (cont.success) {
+          toast.success("Memory created");
+        } else {
+          toast.error("Memory creation failed");
+        }
+      }}
+      className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3"
+    >
       <div>
         <Label className="text-[#858B92]" htmlFor="space">
           Space
         </Label>
-        <Select>
+        <Select name="space">
           <SelectTrigger>
             <SelectValue placeholder="Space" />
           </SelectTrigger>
@@ -272,24 +299,28 @@ function PageForm({
           </SelectContent>
         </Select>
       </div>
+      <div key={`${loading}-${pending}`}>
+        {loading ? <div>Loading...</div> : "not loading"}
+      </div>
       <div>
         <Label className="text-[#858B92]" htmlFor="name">
           Page Url
         </Label>
         <Input
           className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
-          id="name"
+          id="input"
+          name="content"
         />
       </div>
       <div className="flex justify-end">
-        <div
-          onClick={cancelfn}
+        <button
+          type="submit"
           className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
         >
-          cancel
-        </div>
+          Submit
+        </button>
       </div>
-    </div>
+    </form>
   );
 }
 

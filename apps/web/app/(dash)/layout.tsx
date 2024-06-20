@@ -1,7 +1,7 @@
 import Header from "./header";
 import Menu from "./menu";
 import { redirect } from "next/navigation";
-import { auth } from "../helpers/server/auth";
+import { auth } from "../../server/auth";
 import { Toaster } from "@repo/ui/shadcn/sonner";
 
 async function Layout({ children }: { children: React.ReactNode }) {

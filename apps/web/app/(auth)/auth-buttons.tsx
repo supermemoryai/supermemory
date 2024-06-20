@@ -2,7 +2,7 @@
 
 import { Button } from "@repo/ui/shadcn/button";
 import React from "react";
-import { signIn } from "../helpers/server/auth";
+import { signIn } from "../../server/auth";
 
 function SignIn() {
   return (

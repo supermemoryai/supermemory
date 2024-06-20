@@ -24,7 +24,7 @@ function Cta() {
         height={1405}
         priority
         draggable="false"
-        className="absolute z-[-2] hidden select-none rounded-3xl bg-black md:block lg:w-[80%]"
+        className="absolute z-[-2] hidden select-none rounded-3xl bg-background md:block lg:w-[80%]"
       />
       <h1 className="z-20 mt-4 text-center text-5xl font-medium tracking-tight text-white">
         Your bookmarks are collecting dust.

@@ -18,13 +18,12 @@ export const template = ({ contexts, question }) => {
   // Map over contexts to generate the context and score parts
   const contextParts = contexts
     .map(
-      ({ context, score, normalisedScore }) => `
+      ({ context, normalisedScore }) => `
   <context>
   ${context}
   </context>
   
   <context_score>
-  score: ${score}
   normalisedScore: ${normalisedScore}
   </context_score>`,
     )

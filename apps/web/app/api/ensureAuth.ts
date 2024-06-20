@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { db } from "../helpers/server/db";
-import { sessions, users } from "../helpers/server/db/schema";
+import { db } from "../../server/db";
+import { sessions, users } from "../../server/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function ensureAuth(req: NextRequest) {

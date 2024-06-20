@@ -18,7 +18,7 @@ function page() {
   const [fullScreen, setFullScreen] = useState(false);
 
   return (
-    <div className={`h-screen w-full ${ !fullScreen && "px-4 py-6"} transition-all`}>
+    <div className={`h-screen w-full ${ !fullScreen ? "px-4 py-6": "bg-[#1F2428]"} transition-all`}>
       <div>
         <PanelGroup className={` ${fullScreen ? "w-[calc(100vw-2rem)]" : "w-screen"} transition-all`} direction="horizontal">
           <Panel onExpand={()=> {setTimeout(()=> setFullScreen(false), 50)}} onCollapse={()=> {setTimeout(()=> setFullScreen(true), 50)}} defaultSize={30} collapsible={true} minSize={22}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import QueryInput from "../home/queryinput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
@@ -19,7 +19,10 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { code, p } from "./markdownRenderHelpers";
-import { codeLanguageSubset } from "@/app/helpers/constants";
+import { codeLanguageSubset } from "@/lib/constants";
+import { z } from "zod";
+import { toast } from "sonner";
+import Link from "next/link";
 
 function ChatWindow({
   q,
@@ -33,19 +36,85 @@ function ChatWindow({
     {
       question: q,
       answer: {
-        parts: [
-          // {
-          //   text: `It seems like there might be a typo in your question. Could you please clarify or provide more context? If you meant "interesting," please let me know what specific information or topic you find interesting, and I can help you with that.`,
-          // },
-        ],
+        parts: [],
         sources: [],
       },
     },
   ]);
+  const [isAutoScroll, setIsAutoScroll] = useState(true);
+
+  const removeJustificationFromText = (text: string) => {
+    // remove everything after the first "<justification>" word
+    const justificationLine = text.indexOf("<justification>");
+    if (justificationLine !== -1) {
+      // Add that justification to the last chat message
+      const lastChatMessage = chatHistory[chatHistory.length - 1];
+      if (lastChatMessage) {
+        lastChatMessage.answer.justification = text.slice(justificationLine);
+      }
+      return text.slice(0, justificationLine);
+    }
+    return text;
+  };
 
   const router = useRouter();
 
   const getAnswer = async (query: string, spaces: string[]) => {
+    const sourcesFetch = await fetch(
+      `/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true`,
+      {
+        method: "POST",
+        body: JSON.stringify({ chatHistory }),
+      },
+    );
+
+    // TODO: handle this properly
+    const sources = await sourcesFetch.json();
+
+    const sourcesZod = z.object({
+      ids: z.array(z.string()),
+      metadata: z.array(z.any()),
+    });
+
+    const sourcesParsed = sourcesZod.safeParse(sources);
+
+    if (!sourcesParsed.success) {
+      console.log(sources);
+      console.error(sourcesParsed.error);
+      toast.error("Something went wrong while getting the sources");
+      return;
+    }
+
+    setChatHistory((prevChatHistory) => {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
+      const newChatHistory = [...prevChatHistory];
+      const lastAnswer = newChatHistory[newChatHistory.length - 1];
+      if (!lastAnswer) return prevChatHistory;
+      const filteredSourceUrls = new Set(
+        sourcesParsed.data.metadata.map((source) => source.url),
+      );
+      const uniqueSources = sourcesParsed.data.metadata.filter((source) => {
+        if (filteredSourceUrls.has(source.url)) {
+          filteredSourceUrls.delete(source.url);
+          return true;
+        }
+        return false;
+      });
+      lastAnswer.answer.sources = uniqueSources.map((source) => ({
+        title: source.title ?? "Untitled",
+        type: source.type ?? "page",
+        source: source.url ?? "https://supermemory.ai",
+        content: source.description ?? "No content available",
+        numChunks: sourcesParsed.data.metadata.filter(
+          (f) => f.url === source.url,
+        ).length,
+      }));
+      return newChatHistory;
+    });
+
     const resp = await fetch(`/api/chat?q=${query}&spaces=${spaces}`, {
       method: "POST",
       body: JSON.stringify({ chatHistory }),
@@ -53,7 +122,6 @@ function ChatWindow({
 
     const reader = resp.body?.getReader();
     let done = false;
-    let result = "";
     while (!done && reader) {
       const { value, done: d } = await reader.read();
       done = d;
@@ -62,23 +130,28 @@ function ChatWindow({
         const newChatHistory = [...prevChatHistory];
         const lastAnswer = newChatHistory[newChatHistory.length - 1];
         if (!lastAnswer) return prevChatHistory;
-        lastAnswer.answer.parts.push({ text: new TextDecoder().decode(value) });
+        const txt = new TextDecoder().decode(value);
+
+        if (isAutoScroll) {
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+
+        lastAnswer.answer.parts.push({ text: txt });
         return newChatHistory;
       });
     }
-
-    console.log(result);
   };
 
   useEffect(() => {
     if (q.trim().length > 0) {
+      setLayout("chat");
       getAnswer(
         q,
         spaces.map((s) => s.id),
       );
-      setTimeout(() => {
-        setLayout("chat");
-      }, 300);
     } else {
       router.push("/home");
     }
@@ -94,18 +167,23 @@ function ChatWindow({
             className="max-w-3xl h-full justify-center items-center flex mx-auto w-full flex-col"
           >
             <div className="w-full h-96">
-              <QueryInput initialQuery={q} initialSpaces={[]} disabled />
+              <QueryInput
+                handleSubmit={() => {}}
+                initialQuery={q}
+                initialSpaces={[]}
+                disabled
+              />
             </div>
           </motion.div>
         ) : (
           <div
-            className="max-w-3xl flex mx-auto w-full flex-col mt-24"
+            className="max-w-3xl relative flex mx-auto w-full flex-col mt-24 pb-32"
             key="chat"
           >
             {chatHistory.map((chat, idx) => (
               <div
                 key={idx}
-                className={`mt-8 ${idx != chatHistory.length - 1 ? "pb-2 border-b" : ""}`}
+                className={`mt-8 ${idx != chatHistory.length - 1 ? "pb-2 border-b border-b-gray-400" : ""}`}
               >
                 <h2
                   className={cn(
@@ -151,15 +229,25 @@ function ChatWindow({
                               </>
                             ))}
                           {chat.answer.sources.map((source, idx) => (
-                            <div
+                            <Link
+                              href={source.source}
                               key={idx}
                               className="rounded-xl bg-secondary p-4 flex flex-col gap-2 min-w-72"
                             >
-                              <div className="text-foreground-menu">
-                                {source.type}
+                              <div className="flex justify-between text-foreground-menu text-sm">
+                                <span>{source.type}</span>
+
+                                {source.numChunks > 1 && (
+                                  <span>{source.numChunks} chunks</span>
+                                )}
                               </div>
-                              <div>{source.title}</div>
-                            </div>
+                              <div className="text-base">{source.title}</div>
+                              <div className="text-xs">
+                                {source.content.length > 100
+                                  ? source.content.slice(0, 100) + "..."
+                                  : source.content}
+                              </div>
+                            </Link>
                           ))}
                         </AccordionContent>
                       </AccordionItem>
@@ -197,14 +285,67 @@ function ChatWindow({
                         }}
                         className="flex flex-col gap-2"
                       >
-                        {chat.answer.parts.map((part) => part.text).join("")}
+                        {removeJustificationFromText(
+                          chat.answer.parts.map((part) => part.text).join(""),
+                        )}
                       </Markdown>
                     </div>
                   </div>
-                  
+                  {/* Justification */}
+                  {chat.answer.justification &&
+                    chat.answer.justification.length && (
+                      <div
+                        className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+                      >
+                        <Accordion defaultValue={""} type="single" collapsible>
+                          <AccordionItem value="justification">
+                            <AccordionTrigger className="text-foreground-menu">
+                              Justification
+                            </AccordionTrigger>
+                            <AccordionContent
+                              className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+                              defaultChecked
+                            >
+                              {chat.answer.justification.length > 0
+                                ? chat.answer.justification
+                                    .replaceAll("<justification>", "")
+                                    .replaceAll("</justification>", "")
+                                : "No justification provided."}
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </div>
+                    )}
                 </div>
               </div>
             ))}
+
+            <div className="fixed bottom-0 w-full max-w-3xl pb-4">
+              <QueryInput
+                mini
+                className="w-full shadow-md"
+                initialQuery={""}
+                initialSpaces={[]}
+                handleSubmit={async (q, spaces) => {
+                  setChatHistory((prevChatHistory) => {
+                    return [
+                      ...prevChatHistory,
+                      {
+                        question: q,
+                        answer: {
+                          parts: [],
+                          sources: [],
+                        },
+                      },
+                    ];
+                  });
+                  await getAnswer(
+                    q,
+                    spaces.map((s) => `${s.id}`),
+                  );
+                }}
+              />
+            </div>
           </div>
         )}
       </AnimatePresence>
