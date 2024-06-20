@@ -39,7 +39,7 @@ export function DynamicIsland() {
   });
 
   return (
-    <div className="fixed z-40 left-1/2 -translate-x-1/2 top-12">
+    <div className="">
       <AnimatePresence mode="wait">
         <motion.div
           initial={{

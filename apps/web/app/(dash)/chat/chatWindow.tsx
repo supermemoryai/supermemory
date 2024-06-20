@@ -291,7 +291,6 @@ function ChatWindow({
                       </Markdown>
                     </div>
                   </div>
-
                   {/* Justification */}
                   {chat.answer.justification &&
                     chat.answer.justification.length && (
