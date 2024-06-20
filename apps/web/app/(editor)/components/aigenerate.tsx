@@ -8,8 +8,7 @@ import Autocompletesvg from "./ui/autocompletesvg";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Editor } from "@tiptap/core";
 import { useEditor } from "novel";
-import { NodeSelection } from 'prosemirror-state'
-
+import { NodeSelection } from "prosemirror-state";
 
 function Aigenerate() {
   const [visible, setVisible] = useState(false);
@@ -56,6 +55,7 @@ function Aigenerate() {
         }}
         className="absolute z-50 top-0"
       >
+        {/* TODO: handle Editor not initalised, maybe with a loading state. */}
         <ToolBar setGeneratingfn={setGeneratingfn} editor={editor} />
         <div className="h-8 w-18rem bg-blue-600 blur-[16rem]" />
       </motion.div>
@@ -66,10 +66,22 @@ function Aigenerate() {
 export default Aigenerate;
 
 const options = [
-  <><Translatesvg />Translate</>,
-  <><Rewritesvg />Change Tone</>,
-  <><Asksvg />Ask Gemini</>,
-  <><Autocompletesvg />Auto Complete</>
+  <>
+    <Translatesvg />
+    Translate
+  </>,
+  <>
+    <Rewritesvg />
+    Change Tone
+  </>,
+  <>
+    <Asksvg />
+    Ask Gemini
+  </>,
+  <>
+    <Autocompletesvg />
+    Auto Complete
+  </>,
 ];
 
 function ToolBar({
@@ -134,7 +146,7 @@ async function AigenerateContent({
   setGeneratingfn(true);
 
   const { from, to } = editor.view.state.selection;
-  
+
   const slice = editor.state.selection.content();
   const text = editor.storage.markdown.serializer.serialize(slice.content);
 
@@ -143,9 +155,8 @@ async function AigenerateContent({
     "change tone, improve the way be more formal",
     "ask, answer the question",
     "continue this, minimum 80 characters, do not repeat just continue don't use ... to denote start",
-  ]
+  ];
 
-  // ERROR #3 - This is where we call the ai generate api
   const resp = await fetch("/api/editorai", {
     method: "POST",
     body: JSON.stringify({
@@ -154,53 +165,22 @@ async function AigenerateContent({
     }),
   });
 
-  // this is the exact replica of your chatwindow code, I have 
-  // 2 more versions of these code commented below, but they also dont work
   const reader = resp.body?.getReader();
   let done = false;
+  let position = to;
   while (!done && reader) {
     const { value, done: d } = await reader.read();
     done = d;
 
-    console.log(new TextDecoder().decode(value))
+    const decoded = new TextDecoder().decode(value);
+    console.log(decoded);
+    editor
+      .chain()
+      .focus()
+      .insertContentAt(position + 1, decoded)
+      .run();
+    position += decoded.length;
   }
-
-  // 2nd Method
-  // if (!resp.body) {
-  //   console.error("No response body");
-  //   return;
-  // }
-  // const reader = resp.body.getReader();
-  // const decoder = new TextDecoder();
-  // let done = false;
-  // let position = to;
-  
-  // while (!done) {
-  //   const { value, done: readerDone } = await reader.read();
-  //   done = readerDone;
-  //   if (value) {
-  //     const chunk = decoder.decode(value, { stream: true });
-  //     console.log(chunk);
-  //     editor.chain().focus().insertContentAt(position + 1, chunk).run();
-  //     position += chunk.length;
-  //   }
-  // }
-  // console.log("Stream complete");
-
-
-  // 3rd method
-  // const reader = resp.body?.getReader();
-  // let done = false;
-  // let position = from;
-  // while (!done && reader) {
-  //   const { value, done: d } = await reader.read();
-  //   done = d;
-
-  //   const cont = new TextDecoder().decode(value)
-  //   console.log(cont);
-  // }
-  // const {completion}: {completion: string} = await res.json();
-  // console.log(completion)
 
   setGeneratingfn(false);
 }

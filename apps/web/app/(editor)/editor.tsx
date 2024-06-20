@@ -15,19 +15,20 @@ import Topbar from "./components/topbar";
 
 const Editor = () => {
   const [initialContent, setInitialContent] = useState<null | JSONContent>(
-    null
+    null,
   );
   const [saveStatus, setSaveStatus] = useState("Saved");
   const [charsCount, setCharsCount] = useState();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const content = window.localStorage.getItem("novel-content");
     if (content) setInitialContent(JSON.parse(content));
     else setInitialContent(defaultEditorContent);
   }, []);
 
-  if (!initialContent) return null;
+  if (!initialContent) return <>Loading...</>;
 
   return (
     <div className="relative w-full max-w-screen-xl">
