@@ -31,13 +31,18 @@ const icons = [
 const RotatingIcons: React.FC = () => {
   return (
     <div className="relative flex w-full flex-col items-center justify-center gap-8 px-4 sm:px-6">
-      <h3 className="font-inter-tight mb-4 mt-8 text-center text-3xl font-bold text-zinc-200">
-        Collect data from <br />{" "}
-        <span className="bg-gradient-to-r from-blue-500 to-blue-300 bg-clip-text italic text-transparent ">
-          any website{" "}
-        </span>{" "}
-        on the internet
-      </h3>
+      <motion.h1
+          {...{
+            transition: {delay: 0.2 },
+          }}
+          className="text-center max-w-2xl  mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-7xl"
+        >
+          Collect any data{" "}
+          <span className="bg-gradient-to-r from-zinc-300 to-blue-200 bg-clip-text text-transparent">
+          any website on the internet
+
+          </span>
+        </motion.h1>
       <div className="flex items-center justify-center">
         <div className="relative m-2 mx-auto h-96 w-96 scale-[70%] md:scale-100 ">
           <div className="relative h-full w-full rounded-full border border-gray-800">

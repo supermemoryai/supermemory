@@ -6,6 +6,9 @@ import { X } from "@repo/ui/components/icons";
 
 import { features } from "./FeatureContent";
 import { CardClick } from "@repo/ui/components/cardClick";
+import FUIFeatureSectionWithCards from "./FeatureCardContent";
+import { cn } from "@repo/ui/lib/utils";
+import { ArrowUpRight } from "lucide-react";
 
 export default function Features() {
   const [tab, setTab] = useState<number>(0);
@@ -27,11 +30,40 @@ export default function Features() {
 
   return (
     <section className="relative w-full overflow-hidden max-lg:after:hidden">
-      <div className="py-12 md:pb-32">
+      <img
+        src="https://tailwindcss.com/_next/static/media/docs@30.8b9a76a2.avif"
+        className="absolute -top-0 left-10 z-2 opacity-60"
+      />
+      <div className="relative bg-page-gradient ">
+        <div className="-z-1 absolute inset-x-0 -top-0 h-screen  w-full bg-transparent bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)]  bg-[size:6rem_4rem] opacity-5 [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+
+        <div className=" max-w-screen-xl mx-auto px-4 md:px-8  relative flex flex-col">
+          <div className="max-w-3xl mr-auto  space-y-4 text-left mb-10">
+            <h2 className="pt-16 text-4xl md:text-5xl lg:text-6xl  font-nomral tracking-tighter font-geist bg-gradient-to-tr from-zinc-400/50 via-white to-white/60 bg-clip-text text-transparent">
+              A Supermemory has all the memory saved for you 
+            </h2>
+            <p className="text-zinc-400">
+              Supermemory offers all the vital building blocks you need to transform
+              your idea into a great-looking startup.
+            </p>
+            <button className="group mt-4  w-fit px-10 font-geist bg-page-gradient tracking-tighter text-center rounded-md text-md bg-gradient-to-br from-zinc-400 to-zinc-700  py-2 text-lg text-zinc-50 ring-2 ring-zinc-500/50 ring-offset-1 ring-offset-zinc-950/5 transition-all hover:scale-[1.02] hover:ring-transparent active:scale-[0.98] active:ring-zinc-500/70 flex items-center justify-center gap-2">
+              Get Started
+              <div className="relative ml-1 h-5 w-5 overflow-hidden">
+                <ArrowUpRight className="absolute transition-all duration-500 group-hover:-translate-y-5 group-hover:translate-x-4" />
+                <ArrowUpRight className="absolute transition-all duration-500 -translate-y-5 group-hover:translate-y-0 -translate-x-4 group-hover:translate-x-0" />
+
+              </div>
+            </button>
+          </div>
+          <FUIFeatureSectionWithCards />
+        </div>
+      </div>
+
+      <div className="py-12 md:pb-32 pt-0">
         {/* Carousel */}
         <div
           id="use-cases"
-          className="mx-auto max-w-xl px-4 sm:px-6 md:pt-40 lg:max-w-6xl"
+          className="mx-auto max-w-3xl px-0 sm:px-4 lg:px-0  md:pt-10 lg:max-w-6xl relative"
         >
           <div className="space-y-12 lg:flex lg:space-x-12 lg:space-y-0 xl:space-x-24">
             {/* Content */}
@@ -40,7 +72,7 @@ export default function Features() {
                 <div className="mb-4 inline-flex rounded-full border border-transparent px-4 py-0.5 text-sm font-medium text-zinc-400 [background:linear-gradient(theme(colors.zinc.800),theme(colors.zinc.800))_padding-box,linear-gradient(120deg,theme(colors.zinc.700),theme(colors.zinc.700/0),theme(colors.zinc.700))_border-box]">
                   Use cases
                 </div>
-                <h3 className="font-inter-tight mb-4 text-3xl font-bold text-zinc-200">
+                <h3 className="font-normal mb-4 text-3xl tracking-tighter text-zinc-200">
                   Save time and keep things organised
                 </h3>
                 <p className="text-lg text-zinc-500">

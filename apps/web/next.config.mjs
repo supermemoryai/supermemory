@@ -4,6 +4,14 @@ import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@repo/ui"],
+  // images: {
+  //   remotePatterns: [
+  //     {
+  //       protocol: "https",
+  //       hostname: "github.com",
+  //     },
+  //   ],
+  // },
 };
 export default MillionLint.next({
   rsc: true,

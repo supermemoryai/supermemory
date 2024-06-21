@@ -7,6 +7,9 @@ import Features from "./Features";
 import Footer from "./footer";
 import { auth } from "../helpers/server/auth";
 import { redirect } from "next/navigation";
+import FUIPricingSectionWithBadge from "./Pricing";
+import Services from "./Features/index";
+import { Showcases } from "./Showcase";
 
 export const runtime = "edge";
 
@@ -20,7 +23,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center overflow-x-hidden px-2 md:px-0">
+    <main className="flex relative min-h-screen flex-col items-center overflow-x-hidden px-2 md:px-0 font-geistSans bg-hero-gradient">
       <Navbar />
 
       {/* Background gradients */}
@@ -35,7 +38,7 @@ export default async function Home() {
         {/* a blue gradient line that's slightly tilted with blur (a lotof blur)*/}
         <div className="overflow-x-hidden">
           <div
-            className="absolute left-0 top-[100%] h-32 w-[90%] overflow-x-hidden bg-[#369DFD] bg-opacity-40 blur-[337.4px]"
+            className="absolute left-0 top-[100%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-40 blur-[337.4px]"
             style={{ transform: "rotate(-30deg)" }}
           />
         </div>
@@ -47,10 +50,12 @@ export default async function Home() {
 
       {/* Hero section */}
       <Hero />
+      <Showcases />
+      <Services />
 
       {/* Features section */}
       <Features />
-
+      
       <RotatingIcons />
 
       <Cta />

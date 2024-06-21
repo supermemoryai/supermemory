@@ -39,7 +39,7 @@ function EmailInput() {
         <input
           type="email"
           name="email"
-          className={`transition-width flex w-full items-center rounded-2xl bg-[#37485E] px-4 py-2 outline-none duration-300 focus:outline-none`}
+          className={`transition-width py-4 bg-page-gradient flex w-full items-center rounded-xl border-white/20 bg-[#37485E] px-4 outline-none duration-300 focus:outline-none`}
           placeholder="Enter your email"
           value={email}
           required
@@ -53,7 +53,7 @@ function EmailInput() {
       {email && (
         <button
           type="submit"
-          className="transition-width rounded-xl bg-gray-700 p-2 text-white duration-300"
+          className="transition-width rounded-xl bg-gray-700 p-4 text-white duration-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
