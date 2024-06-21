@@ -14,6 +14,7 @@ function Cta() {
       className="relative  bg-page-gradient dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset] min-h-[600px] border-[1px] border-white/20 flex flex-col gap-8 justify-center items-center mt-60 mb-44 w-3/4 rounded-3xl py-10 px-8 mx-auto"
     >
       <div className="absolute -z-1 inset-0 rounded-3xl opacity-5   h-[600px] w-full bg-transparent  bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+      <div className="absolute top-0 z-0 w-screen  right-0 mx-auto h-[500px] overflow-hidden bg-inherit  bg-[radial-gradient(ellipse_20%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
 
       <div className="absolute left-0 w-full h-full z-[-1]">
         {/* a blue gradient line that's slightly tilted with blur (a lotof blur)*/}
@@ -45,7 +46,7 @@ function Cta() {
       <p className="z-20 text-center text-lg">
         Sign up for the waitlist and be the first to try Supermemory
       </p>
-      <div className="w-1/2 mx-auto">
+      <div className="md:w-1/2 lg:w-3/4 mx-auto">
         <EmailInput />
       </div>
     </section>

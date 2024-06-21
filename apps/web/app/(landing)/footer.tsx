@@ -3,7 +3,7 @@ import LinkArrow from "./linkArrow";
 
 function Footer() {
   return (
-    <footer className="mt-20 flex w-full overflow-y-hidden items-center justify-between gap-4 px-8 py-8 text-sm text-zinc-500 overflow-hidden">
+    <footer className="mt-20  flex w-full overflow-y-hidden items-center justify-between gap-4 px-8 py-8 text-sm text-zinc-500 overflow-hidden">
       <p>© 2024 Supermemory.ai</p>
       <div className="flex gap-5">
         <a

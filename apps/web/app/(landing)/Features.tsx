@@ -30,7 +30,7 @@ export default function Features() {
   }, []);
 
   return (
-    <section className="overflow-hidden relative w-full max-lg:after:hidden">
+    <section className="overflow-hidden relative w-full max-lg:after:hidden mt-10">
       {/* <img
         src="https://tailwindcss.com/_next/static/media/docs@30.8b9a76a2.avif"
         className="absolute -top-0 left-10 opacity-60 z-2"
