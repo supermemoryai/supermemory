@@ -40,7 +40,7 @@ function Cta() {
           <ChevronRight className="inline w-4 h-4 ml-2 group-hover:translate-x-1 duration-300" />
         </p>
       </h1>
-      <h1 className="z-20 mx-auto mt-0 max-w-xl font-normal tracking-tighter text-5xl md:text-6xl lg:text-7xl text-center text-white">
+      <h1 className="z-20 mx-auto mt-0 max-w-xl font-normal tracking-tighter text-5xl md:text-6xl lg:text-7xl text-center text-transparent bg-clip-text bg-gradient-to-tr from-zinc-400/50 to-white/60 via-white">
         Your bookmarks are collecting dust.
       </h1>
       <p className="z-20 text-center text-lg">
