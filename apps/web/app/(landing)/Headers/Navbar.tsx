@@ -29,7 +29,7 @@ const SlideTabs = () => {
       }}
       className="flex relative items-center py-3 px-5 mx-auto text-sm text-gray-200 bg-gradient-to-tr to-transparent rounded-full border-2 w-fit border-white/5 from-zinc-300/5 via-gray-400/5 shadow-[0px_2px_3px_-1px_rgba(0,0,0,0.1),0px_1px_0px_0px_rgba(25,28,33,0.02),0px_0px_0px_1px_rgba(25,28,33,0.08)] backdrop-blur-lg backdrop-filter"
     >
-      <Link href={"/"} className="flex items-start h-fit opacity-50 mr-4">
+      <Link href={"/"} className="flex items-start mr-4 opacity-50 h-fit">
         <Image src={Logo} alt="Supermemory logo" width={40} height={40} />
       </Link>
 
@@ -39,9 +39,12 @@ const SlideTabs = () => {
       <Tab setPosition={setPosition}>Docs</Tab>
       <Tab setPosition={setPosition}>Blog</Tab>
 
-      <button className="group ml-3 group inline-flex w-full bg-page-gradient justify-start items-start gap-x-2 border border-white/30 hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100 duration-200 sm:w-auto py-3 px-5 rounded-3xl text-md font-geistSans">
+      <button className="inline-flex gap-x-2 justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100">
         Join waitlist
-        <ArrowUpRight className="w-5 h-5 inline-flex justify-center items-center group-hover:-translate-y-1 transition-transform duration-400"/>
+        <div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
+          <ArrowUpRight className="absolute transition-all duration-500 group-hover:translate-x-4 group-hover:-translate-y-5" />
+          <ArrowUpRight className="absolute transition-all duration-500 -translate-x-4 -translate-y-5 group-hover:translate-x-0 group-hover:translate-y-0" />
+        </div>
       </button>
 
       <Cursor position={position} />

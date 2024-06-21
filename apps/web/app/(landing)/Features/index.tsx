@@ -87,8 +87,6 @@ const Services = () => {
                   <ChevronRight className="ml-2 w-4 h-4 duration-300 group-hover:translate-x-1" />
                 </a>
               </div>
-
-              {/* <PhotoChatMessage //> */}
             </div>
 
             <div
@@ -111,26 +109,14 @@ const Services = () => {
               <div className="overflow-hidden relative rounded-xl h-[20rem] md:h-[25rem]">
                 <img
                   src={
-                    // "/images/privacy.png"
                     "https://www.limitless.ai/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fvault.a0431de1.webp&w=1920&q=75"
-                    // "https://www.authkit.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbackground.896d177e.png&w=1920&q=75"
-                    // "https://www.authkit.com/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Fbackground.b48df3d6.png&w=828&q=75"
                   }
                   className="object-cover w-full h-full transition-all duration-500 ease-linear transform group-hover:rotate-3"
                   width={520}
                   height={400}
                   alt="Scary robot"
                 />
-
-                {/* <VideoBar /> */}
               </div>
-              {/* <div
-               className="absolute bottom-0 h-full"
-                style={{
-                  background:
-                    "linear-gradient(143.6deg, rgba(192, 132, 252, 0) 20.79%, rgba(232, 121, 249, 0.26) 40.92%, rgba(204, 171, 238, 0) 70.35%)",
-                }}
-              ></div> */}
 
               <Gradient opacity={5} />
             </div>
@@ -156,12 +142,10 @@ const Services = () => {
                 height={730}
                 src={"/images/github.webp"}
               />
-              {/* <div className="absolute left-0 rop-0 bg-black/20"></div> */}
             </div>
-            {/* <Gradient /> */}
 
             <div className="absolute right-0 left-0 bottom-5 mx-auto mt-20 text-center z-1">
-              <h4 className="mb-4 text-4xl font-bold tracking-tighter lg:text-5xl">
+              <h4 className="mb-4 text-4xl font-bold tracking-tighter text-white lg:text-5xl">
                 Proudly <br /> OpenSource
               </h4>
               <p className="text-lg body-2 mb-[3rem]">
