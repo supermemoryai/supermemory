@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import FUIPricingSectionWithBadge from "./Pricing";
 import Services from "./Features/index";
 import { Showcases } from "./Showcase";
+import { cn } from "@repo/ui/lib/utils";
 
 export const runtime = "edge";
 
@@ -23,11 +24,11 @@ export default async function Home() {
   }
 
   return (
-    <main className="flex relative min-h-screen flex-col items-center overflow-x-hidden px-2 md:px-0 font-geistSans bg-hero-gradient">
+    <main className="flex overflow-x-hidden relative flex-col items-center px-2 min-h-screen md:px-0 font-geistSans bg-hero-gradient">
       <Navbar />
 
       {/* Background gradients */}
-      <div className="absolute left-0 top-0 z-[-1] h-full w-full">
+      <div className="absolute top-0 left-0 w-full h-full z-[-1]">
         <div className="overflow-x-hidden">
           <div
             className="absolute left-0 h-32 w-[95%] overflow-x-hidden bg-[#369DFD] bg-opacity-70 blur-[337.4px]"
@@ -55,13 +56,11 @@ export default async function Home() {
 
       {/* Features section */}
       <Features />
-      
-      <RotatingIcons />
 
+      <RotatingIcons />
       <Cta />
 
       <Toaster />
-
       <Footer />
     </main>
   );

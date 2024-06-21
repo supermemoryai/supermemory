@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronRight, GithubIcon } from "lucide-react";
 import { Gradient } from "./features";
-
 import Generating from "./generating";
+
 const Services = () => {
   return (
     <div id="how-to-use">
@@ -127,7 +127,7 @@ const Services = () => {
               background:
                 "linear-gradient(143.6deg, rgba(192, 132, 252, 0) 20.79%, rgba(140, 121, 249, 0.2) 40.92%, rgba(140, 121, 249, 0) 80.35%)",
             }}
-            className="flex overflow-hidden relative items-center p-8 mt-10 mb-5 rounded-3xl border lg:p-20 bg-page-gradient z-1 h-[38rem] border-white/20 xl:h-[28rem] dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]"
+            className="flex overflow-hidden relative items-center p-8 mt-5 mb-5 rounded-3xl border lg:p-20 bg-page-gradient z-1 h-[38rem] border-white/20 xl:h-[28rem] dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]"
           >
             <img
               src="https://tailwindcss.com/_next/static/media/docs@30.8b9a76a2.avif"

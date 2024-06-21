@@ -35,7 +35,7 @@ const RotatingIcons: React.FC = () => {
           {...{
             transition: {delay: 0.2 },
           }}
-          className="text-center max-w-2xl  mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-7xl"
+          className="text-center max-w-2xl  mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl lg:text-6xl"
         >
           Collect any data{" "}
           <span className="bg-gradient-to-r from-zinc-300 to-blue-200 bg-clip-text text-transparent">

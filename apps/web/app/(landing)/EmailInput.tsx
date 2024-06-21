@@ -34,12 +34,12 @@ function EmailInput() {
       className="flex w-full items-center justify-center gap-2"
     >
       <div
-        className={`transition-width z-20 rounded-2xl bg-gradient-to-br from-gray-200/70 to-transparent p-[0.7px] duration-300 ease-in-out ${email ? "w-[90%] md:w-[42%]" : "w-full md:w-1/2"}`}
+        className={`transition-width z-20 rounded-2xl bg-gradient-to-br from-gray-200/70 to-transparent p-[0] duration-300 ease-in-out ${email ? "w-[90%] md:w-[42%]" : "w-full md:w-1/2"}`}
       >
         <input
           type="email"
           name="email"
-          className={`transition-width py-4 bg-page-gradient flex w-full items-center rounded-xl border-white/20 bg-[#37485E] px-4 outline-none duration-300 focus:outline-none`}
+          className={`transition-width py-4 bg-page-gradient flex w-full items-center rounded-xl border-white/5 bg-[#37485E] px-4 outline-none duration-300 focus:outline-none`}
           placeholder="Enter your email"
           value={email}
           required
