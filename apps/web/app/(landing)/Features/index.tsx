@@ -141,7 +141,7 @@ const Services = () => {
               background:
                 "linear-gradient(143.6deg, rgba(192, 132, 252, 0) 20.79%, rgba(140, 121, 249, 0.2) 40.92%, rgba(140, 121, 249, 0) 80.35%)",
             }}
-            className="flex overflow-hidden relative items-center p-8 mt-10 mb-5 rounded-3xl border lg:p-20 bg-page-gradient z-1 h-[38rem] border-white/20 xl:h-[28rem]"
+            className="flex overflow-hidden relative items-center p-8 mt-10 mb-5 rounded-3xl border lg:p-20 bg-page-gradient z-1 h-[38rem] border-white/20 xl:h-[28rem] dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]"
           >
             <img
               src="https://tailwindcss.com/_next/static/media/docs@30.8b9a76a2.avif"
@@ -150,7 +150,7 @@ const Services = () => {
 
             <div className="absolute top-0 right-0 left-0 mx-auto w-full h-full pointer-events-none xl:w-auto">
               <img
-                className="object-cover z-40 w-full h-full border-r-2 md:scale-100 border-r-white/5"
+                className="object-cover z-40 w-full h-full border-r-2 md:scale-110 border-r-white/5"
                 width={800}
                 alt="Github"
                 height={730}
