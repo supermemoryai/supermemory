@@ -2,10 +2,20 @@ import { PlayIcon } from "lucide-react";
 import ChatBubbleWing from "./chatbubble";
 import { cn } from "@repo/ui/lib/utils";
 
-export const Gradient = ({opacity = 50}: {opacity?:number}) => {
+export const Gradient = ({ opacity = 50 }: { opacity?: number }) => {
   return (
-    <div className={cn("absolute top-0 -left-[10rem] w-[56.625rem] h-[56.625rem]  mix-blend-color-dodge pointer-events-none" , `opacity-${opacity}`)}>
-      <img
+    <div
+      className={cn(
+        "absolute top-0 -left-[10rem] w-[56.625rem] h-[56.625rem]  mix-blend-color-dodge pointer-events-none",
+        `opacity-${opacity}`
+      )}
+    >
+      <div
+        className="top-0 -left-[10rem] w-[56.625rem] h-[56.625rem]   overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-40 blur-[337.4px]"
+        style={{ transform: "rotate(-30deg)" }}
+      />
+
+      {/* <img
         className="absolute top-1/2 left-1/2 w-[79.5625rem] max-w-[79.5625rem] h-[88.5625rem] -translate-x-1/2 -translate-y-1/2"
         // src="https://farmui.vercel.app/bg-back.png"
         src={
@@ -14,7 +24,7 @@ export const Gradient = ({opacity = 50}: {opacity?:number}) => {
         width={1417}
         height={1417}
         alt="Gradient"
-      />
+      /> */}
     </div>
   );
 };

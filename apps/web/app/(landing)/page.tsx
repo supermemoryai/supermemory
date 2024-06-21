@@ -36,16 +36,16 @@ export default async function Home() {
         </div>
 
         {/* a blue gradient line that's slightly tilted with blur (a lotof blur)*/}
-        <div className="overflow-x-hidden">
+        {/* <div className="overflow-x-hidden overflow-y-hidden">
           <div
             className="absolute left-0 top-[100%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-40 blur-[337.4px]"
             style={{ transform: "rotate(-30deg)" }}
           />
-        </div>
+        </div> */}
 
-        <div className="overflow-x-hidden">
+        {/* <div className="overflow-x-hidden overflow-y-hidden">
           <div className="absolute right-0 top-[145%] h-40 w-[17%] overflow-x-hidden bg-[#369DFD] bg-opacity-20 blur-[110px]" />
-        </div>
+        </div> */}
       </div>
 
       {/* Hero section */}

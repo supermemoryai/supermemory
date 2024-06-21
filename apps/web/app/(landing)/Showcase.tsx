@@ -1,13 +1,12 @@
-
 "use client";
 
 import { useId } from "react";
 import Image, { type ImageProps } from "next/image";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
-import clsx from "clsx"
-import TestImg from '../../public/images/carousel-illustration-01.png'
-import Search from '../../public/images/search.svg'
-import Memroy from '../../public/images/memory.svg'
+import clsx from "clsx";
+import TestImg from "../../public/images/carousel-illustration-01.png";
+import Search from "../../public/images/search.svg";
+import Memroy from "../../public/images/memory.svg";
 interface Feature {
   name: React.ReactNode;
   summary: string;
@@ -22,7 +21,7 @@ const features: Array<Feature> = [
     summary: "Stay on top of things with always up-to-date reporting features.",
     description:
       "We talked about reporting in the section above but we needed three items here, so mentioning it one more time for posterity.",
-    image: 'search.svg',
+    image: "search.svg",
     icon: function ReportingIcon() {
       let id = useId();
       return (
@@ -57,7 +56,7 @@ const features: Array<Feature> = [
       "Never lose track of what’s in stock with accurate inventory tracking.",
     description:
       "We don’t offer this as part of our software but that statement is inarguably true. Accurate inventory tracking would help you for sure.",
-    image: 'memory.svg',
+    image: "memory.svg",
     icon: function InventoryIcon() {
       return (
         <>
@@ -85,7 +84,7 @@ const features: Array<Feature> = [
       "Organize all of your contacts, service providers, and invoices in one place.",
     description:
       "This also isn’t actually a feature, it’s just some friendly advice. We definitely recommend that you do this, you’ll feel really organized and professional.",
-    image: 'search.svg',
+    image: "search.svg",
     icon: function ContactsIcon() {
       return (
         <>
@@ -151,11 +150,11 @@ function FeaturesMobile() {
         <div key={feature.summary}>
           <Feature feature={feature} className="mx-auto max-w-2xl" isActive />
           <div className="relative mt-10 pb-10">
-            <div className="absolute -inset-x-4 bottom-0 top-8 bg-slate-200 sm:-inset-x-6" />
-            <div className="relative mx-auto w-[52.75rem] overflow-hidden rounded-xl bg-white shadow-lg shadow-gray-200/5 ring-1 ring-slate-500/10">
+            <div className="absolute -inset-x-4 bottom-0 top-8 bg-page-gradient sm:-inset-x-6" />
+            <div className="relative mx-auto w-[52.75rem] overflow-hidden rounded-xl bg-glass-gradient shadow-lg shadow-gray-200/5 ring-1 ring-slate-500/10">
               <img
                 className="w-full"
-                src={"/images/carousel-illustration-01.png"}
+                src={`/images/${feature.image}`}
                 alt=""
                 sizes="52.75rem"
               />
@@ -247,10 +246,10 @@ export function Showcases() {
           height={1000}
           alt="back bg"
         /> */}
-        <div className="mr-auto max-w-3xl md:text-start">
+        <div className="mr-auto relative max-w-3xl md:text-start">
           <h2 className="font-display  text-4xl tracking-tight text-gray-200 sm:text-7xl">
             <span className="bg-gradient-to-br from-indigo-400 via-indigo-300 to-indigo-700 bg-clip-text text-transparent">
-              Supermemory{" "} <br />
+              Supermemory <br />
             </span>{" "}
             simplify AI ingestions.
           </h2>
@@ -258,6 +257,9 @@ export function Showcases() {
             Because you’d probably be a little confused if we suggested you
             complicate your everyday business tasks instead.
           </p>
+          <div className="overflow-x-hidden overflow-y-hidden">
+            <div className="absolute right-0 z-20 top-[0%] h-40 w-[17%] overflow-x-hidden bg-[#369DFD] bg-opacity-20 blur-[110px]" />
+          </div>
         </div>
         <FeaturesMobile />
         <FeaturesDesktop />
