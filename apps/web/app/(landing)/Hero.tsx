@@ -23,7 +23,7 @@ const slap = {
 function Hero() {
   return (
     <>
-      <section className="mt-24 flex max-w-3xl flex-col items-center justify-center gap-5 md:mt-32">
+      <section className="relative mt-24 flex max-w-3xl flex-col items-center justify-center gap-5 md:mt-32">
         <TwitterBorder />
         <motion.h1
           {...{
@@ -49,7 +49,9 @@ function Hero() {
         </motion.p>
         <EmailInput />
       </section>
+
       <AnimatedLogoCloud />
+      <div className="relative z-20">
 
       <motion.img
         {...{
@@ -61,8 +63,14 @@ function Hero() {
         width={1512}
         height={1405}
         draggable="false"
-        className="z-[20] md:mt-[-40px] h-full w-[80%] select-none "
+        className="z-40 md:mt-[-40px]  h-full w-[80%] md:w-full select-none "
       />
+      <div
+        className="absolute -z-10 left-0 top-[10%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-100  blur-[337.4px]"
+        style={{ transform: "rotate(-30deg)" }}
+      />
+      </div>
+
     </>
   );
 }
