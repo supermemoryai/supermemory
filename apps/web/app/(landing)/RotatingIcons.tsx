@@ -30,7 +30,7 @@ const icons = [
 
 const RotatingIcons: React.FC = () => {
   return (
-    <div className="relative flex w-full flex-col items-center justify-center gap-8 px-4 sm:px-6">
+    <div className="relative flex w-full flex-col items-center justify-center gap-8 px-4 sm:px-6 mt-10">
       <motion.h1
           {...{
             transition: {delay: 0.2 },

@@ -31,11 +31,11 @@ export default function Features() {
 
   return (
     <section className="overflow-hidden relative w-full max-lg:after:hidden mt-10">
-      {/* <img
+      <img
         src="https://tailwindcss.com/_next/static/media/docs@30.8b9a76a2.avif"
-        className="absolute -top-0 left-10 opacity-60 z-2"
-      /> */}
-            <div className="absolute top-0 z-0 w-screen left-0 right-0 mx-auto min-h-screen overflow-hidden bg-inherit  bg-[radial-gradient(ellipse_20%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+        className="absolute -top-0 left-10 opacity-40 z-2"
+      />
+      {/* <div className="absolute top-0 z-0 w-screen left-0 right-0 mx-auto min-h-screen overflow-hidden bg-inherit  bg-[radial-gradient(ellipse_20%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div> */}
       <div className="relative ">
         {/* <div className="-z-1 absolute inset-x-0 -top-0 h-screen  w-full bg-transparent bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)]  bg-[size:6rem_4rem] opacity-5 [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div> */}
 
@@ -60,21 +60,24 @@ export default function Features() {
           <FUIFeatureSectionWithCards />
           <div className="overflow-x-hidden overflow-y-hidden">
             <div
-              className="absolute left-0 top-[60%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-70  blur-[337.4px]"
+              className="absolute left-0 top-[60%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-20  blur-[337.4px]"
               style={{ transform: "rotate(-30deg)" }}
             />
           </div>
         </div>
       </div>
+    </section>
+  );
+}
 
-      <div className="py-12 pt-0 md:pb-32">
-        {/* Carousel */}
+/*
+
+<div className="py-12 pt-0 md:pb-32">
         <div
           id="use-cases"
           className="relative px-0 mx-auto max-w-3xl sm:px-4 md:pt-10 lg:px-0 lg:max-w-6xl"
         >
           <div className="space-y-12 lg:flex lg:space-y-0 lg:space-x-12 xl:space-x-24">
-            {/* Content */}
             <div className="lg:max-w-none lg:min-w-[524px]">
               <div className="mb-8">
                 <div className="mb-4 inline-flex rounded-full border border-transparent px-4 py-0.5 text-sm font-medium text-zinc-400 [background:linear-gradient(theme(colors.zinc.800),theme(colors.zinc.800))_padding-box,linear-gradient(120deg,theme(colors.zinc.700),theme(colors.zinc.700/0),theme(colors.zinc.700))_border-box]">
@@ -89,7 +92,6 @@ export default function Features() {
                   do more with it.
                 </p>
               </div>
-              {/* Tabs buttons */}
               <div className="mb-8 space-y-2 md:mb-0">
                 <CardClick
                   tab={tab}
@@ -99,16 +101,13 @@ export default function Features() {
               </div>
             </div>
 
-            {/* Tabs items */}
             <div className="relative lg:max-w-none">
               <div className="flex relative flex-col" ref={tabs}>
-                {/* Item 1 */}
                 <div
                   className="order-first transition-all duration-700 transform"
                   style={{
                     height: tab === 0 ? "auto" : 0,
                     opacity: tab === 0 ? 1 : 0,
-                    // transform: tab === 0 ? 'translateY(0)' : 'translateY(4rem)',
                   }}
                 >
                   <div>
@@ -121,7 +120,6 @@ export default function Features() {
                     />
                   </div>
                 </div>
-                {/* Item 2 */}
                 <div
                   className="order-first transition-all duration-700 transform"
                   style={{
@@ -140,7 +138,6 @@ export default function Features() {
                     />
                   </div>
                 </div>
-                {/* Item 3 */}
                 <div
                   className="order-first transition-all duration-700 transform"
                   style={{
@@ -164,13 +161,11 @@ export default function Features() {
           </div>
         </div>
 
-        {/* Features blocks */}
         <div
           id="features"
           className="px-4 mx-auto mt-24 max-w-6xl sm:px-6 md:pt-40"
         >
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-16">
-            {/* Block #1 */}
             <div>
               <div className="flex items-center mb-1">
                 <X className="mr-2" />
@@ -183,8 +178,6 @@ export default function Features() {
                 supermemory.
               </p>
             </div>
-            {/* Block #2 */}
-            <div>
               <div className="flex items-center mb-1">
                 <svg
                   className="mr-2 fill-zinc-400"
@@ -203,8 +196,6 @@ export default function Features() {
                 twitter bookmarks', or 'Learning web development'
               </p>
             </div>
-            {/* Block #3 */}
-            <div>
               <div className="flex items-center mb-1">
                 <svg
                   className="mr-2 fill-zinc-400"
@@ -223,7 +214,6 @@ export default function Features() {
                 information you need in seconds.
               </p>
             </div>
-            {/* Block #4 */}
             <div>
               <div className="flex items-center mb-1">
                 <svg
@@ -243,7 +233,6 @@ export default function Features() {
                 in a 2d canvas.
               </p>
             </div>
-            {/* Block #5 */}
             <div>
               <div className="flex items-center mb-1">
                 <svg
@@ -263,7 +252,6 @@ export default function Features() {
                 stuff. Supermemory is that place.
               </p>
             </div>
-            {/* Block #6 */}
             <div>
               <div className="flex items-center mb-1">
                 <svg
@@ -286,6 +274,4 @@ export default function Features() {
           </div>
         </div>
       </div>
-    </section>
-  );
-}
+    */
