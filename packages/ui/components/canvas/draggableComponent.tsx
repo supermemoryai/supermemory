@@ -58,7 +58,7 @@ function DraggableComponents({
       onDragEnd={handleDragEnd}
       onDragStart={handleDragStart}
       draggable
-      className={`flex gap-4 px-3 text-[#989EA4] border-2 transition ${isDragging ? "border-blue-600": "border-[#1F2428]"}`}
+      className={`flex gap-4 px-1 rounded-md text-[#989EA4] border-2 transition ${isDragging ? "border-blue-600": "border-[#1F2428]"}`}
     >
       <Image className="select-none" src={icon} alt={iconAlt} />
       <div className="flex flex-col gap-2">

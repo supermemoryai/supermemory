@@ -4,6 +4,7 @@ import { createAssetFromUrl } from "./lib/createAssetUrl";
 import "tldraw/tldraw.css";
 import { components } from "./enabledComp";
 import { twitterCardUtil } from "./twitterCard";
+import { textCardUtil } from "./textCard";
 import createEmbedsFromUrl from "./lib/createEmbeds";
 import { loadRemoteSnapshot } from "./lib/loadSnap";
 import { SaveStatus } from "./savesnap";
@@ -11,6 +12,7 @@ import { getAssetUrls } from "@tldraw/assets/selfHosted";
 import { memo } from "react";
 import DragContext from "./lib/context";
 import DropZone from "./dropComponent";
+import './canvas.css'
 
 export const Canvas = memo(() => {
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
@@ -82,7 +84,7 @@ const TldrawComponent =memo(() => {
         assetUrls={assetUrls}
         components={components}
         store={storeWithStatus}
-        shapeUtils={[twitterCardUtil]}
+        shapeUtils={[twitterCardUtil, textCardUtil]}
         onMount={handleMount}
       >
         <div className="absolute left-1/2 top-0 z-[1000000] flex -translate-x-1/2 gap-2 bg-[#2C3439] text-[#B3BCC5]">

@@ -96,6 +96,27 @@ function isURL(str: string) {
   }
 }
 
+function formatTextToRatio(text: string) {
+  const totalWidth = text.length;
+  const maxLineWidth = Math.floor(totalWidth / 10);
+
+  const words = text.split(" ");
+  let lines = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    if ((currentLine + word).length <= maxLineWidth) {
+      currentLine += (currentLine ? " " : "") + word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  });
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  return {height: (lines.length+1)*18, width: maxLineWidth*10};
+}
 
 export function handleExternalDroppedContent({text, editor}: {text:string, editor: Editor}){
   const position = editor.inputs.shiftKey
@@ -105,17 +126,23 @@ export function handleExternalDroppedContent({text, editor}: {text:string, edito
   if (isURL(text)){
     createEmbedsFromUrl({editor, url: text})
   } else{
+    // editor.createShape({
+    //   type: "text",
+    //   x: position.x - 75,
+    //   y: position.y - 75,
+    //   props: {
+    //     text: text,
+    //     size: "s",
+    //     textAlign: "start",
+    //   },
+    // });
+    const {height, width} =formatTextToRatio(text)
     editor.createShape({
-      type: "text",
-      x: position.x - 75,
-      y: position.y - 75,
-      props: {
-        text: text,
-        size: "s",
-        textAlign: "start",
-      },
+      type: "Textcard",
+      x: position.x - (width/2),
+      y: position.y - (height/2),
+      props: { content:text, extrainfo: "https://chatgpt.com/c/762cd44e-1752-495b-967a-aa3c23c6024a", w: width, h:height },
     });
-
   }
 }
 

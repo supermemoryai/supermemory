@@ -1,13 +1,14 @@
-import { createTLStore, defaultShapeUtils } from "tldraw";
+import { createTLStore, defaultShapeUtils, loadSnapshot } from "tldraw";
 import { twitterCardUtil } from "../twitterCard";
+import {textCardUtil} from "../textCard"
 export async function loadRemoteSnapshot() {
   const res = await fetch(
     "https://learning-cf.pruthvirajthinks.workers.dev/get/page3",
   );
   const snapshot = JSON.parse(await res.json());
   const newStore = createTLStore({
-    shapeUtils: [...defaultShapeUtils, twitterCardUtil],
+    shapeUtils: [...defaultShapeUtils, twitterCardUtil, textCardUtil],
   });
-  newStore.loadSnapshot(snapshot);
+  loadSnapshot(newStore, snapshot)
   return newStore;
 }
