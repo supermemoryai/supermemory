@@ -46,7 +46,7 @@ function Cta() {
       <p className="z-20 text-center text-lg">
         Sign up for the waitlist and be the first to try Supermemory
       </p>
-      <div className="md:w-1/2 lg:w-3/4 mx-auto">
+      <div className="w-full lg:w-3/4 mx-auto">
         <EmailInput />
       </div>
     </section>
