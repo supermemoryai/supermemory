@@ -11,16 +11,19 @@ async function Page({
 }) {
   const { firstTime, q, spaces } = chatSearchParamsCache.parse(searchParams);
 
-  const chat = await getFullChatThread(params.chatid);
+  let chat: Awaited<ReturnType<typeof getFullChatThread>>;
 
-  console.log(chat);
-
-  if (!chat.success || !chat.data) {
-    // TODO: handle this error
-    return <div>Chat not found</div>;
+  try {
+    chat = await getFullChatThread(params.chatid);
+  } catch (e) {
+    const error = e as Error;
+    return <div>This page errored out: {error.message}</div>;
   }
 
-  console.log(chat.data);
+  if (!chat.success || !chat.data) {
+    console.error(chat.error);
+    return <div>Chat not found. Check the console for more details.</div>;
+  }
 
   return (
     <ChatWindow

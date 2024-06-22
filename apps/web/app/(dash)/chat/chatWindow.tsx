@@ -91,7 +91,6 @@ function ChatWindow({
     const sourcesParsed = sourcesZod.safeParse(sources);
 
     if (!sourcesParsed.success) {
-      console.log(sources);
       console.error(sourcesParsed.error);
       toast.error("Something went wrong while getting the sources");
       return;
@@ -154,9 +153,7 @@ function ChatWindow({
       while (!done && reader) {
         const { value, done: d } = await reader.read();
         if (d) {
-          console.log(chatHistory);
           setChatHistory((prevChatHistory) => {
-            console.log(prevChatHistory);
             createChatObject(threadId, prevChatHistory);
             return prevChatHistory;
           });

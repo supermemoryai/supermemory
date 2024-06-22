@@ -71,16 +71,13 @@ function DynamicIslandContent() {
   }
 
   const lastBtn = useRef<string>();
-  useEffect(() => {
-    console.log(show);
-  }, [show]);
 
   useEffect(() => {
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         setshow(true);
       }
-      console.log(e.key, lastBtn.current);
+
       if (e.key === "a" && lastBtn.current === "Alt") {
         setshow(false);
       }
@@ -268,7 +265,6 @@ function PageForm({
           spaces: space ? [space] : undefined,
         });
 
-        console.log(cont);
         setLoading(false);
         if (cont.success) {
           toast.success("Memory created");

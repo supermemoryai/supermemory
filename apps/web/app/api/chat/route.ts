@@ -45,8 +45,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  console.log("validated.data.chatHistory", validated.data.chatHistory);
-
   const modelCompatible = await convertChatHistoryList(
     validated.data.chatHistory,
   );
@@ -65,11 +63,8 @@ export async function POST(req: NextRequest) {
     },
   );
 
-  console.log("sourcesOnly", sourcesOnly);
-
   if (sourcesOnly == "true") {
     const data = await resp.json();
-    console.log("data", data);
     return new Response(JSON.stringify(data), { status: 200 });
   }
 
