@@ -33,7 +33,7 @@ function Page({
       {/* all content goes here */}
       {/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
 
-      <div className="w-full h-96">
+      <div className="w-full pb-20">
         <QueryInput
           handleSubmit={async (q, spaces) => {
             const threadid = await createChatThread(q);

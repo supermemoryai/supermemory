@@ -205,3 +205,19 @@ body {
 .hljs-title {
   color: #f22c3d;
 }
+
+/* no scrollbar visibility */
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+}
+
+::-moz-selection {
+  /* Code for Firefox */
+  color: #369dfd;
+  background: #21303d;
+}
+
+::selection {
+  color: #369dfd;
+  background: #21303d;
+}

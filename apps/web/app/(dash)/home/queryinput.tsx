@@ -69,7 +69,7 @@ function QueryInput({
             name="q"
             cols={30}
             rows={mini ? 2 : 4}
-            className="bg-transparent pt-2.5 text-base text-[#989EA4] focus:text-foreground duration-200 tracking-[3%] outline-none resize-none w-full p-4"
+            className="bg-transparent pt-2.5 text-base placeholder:text-[#5D6165] text-[#9DA0A4] focus:text-gray-200 duration-200 tracking-[3%] outline-none resize-none w-full p-4"
             placeholder="Ask your second brain..."
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -85,6 +85,7 @@ function QueryInput({
 
           <button
             type="submit"
+            onClick={(e) => e.preventDefault()}
             disabled={disabled}
             className="h-12 w-12 rounded-[14px] bg-[#21303D] all-center shrink-0 hover:brightness-125 duration-200 outline-none focus:outline focus:outline-primary active:scale-90"
           >

@@ -24,6 +24,12 @@ import { z } from "zod";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
+import {
+  ClipboardIcon,
+  ShareIcon,
+  SpeakerWaveIcon,
+} from "@heroicons/react/24/outline";
+import { SendIcon } from "lucide-react";
 
 function ChatWindow({
   q,
@@ -48,7 +54,6 @@ function ChatWindow({
     initialChat.length > 1 ? "chat" : "initial",
   );
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
-  const [isAutoScroll, setIsAutoScroll] = useState(true);
 
   const removeJustificationFromText = (text: string) => {
     // remove everything after the first "<justification>" word
@@ -164,12 +169,10 @@ function ChatWindow({
           const lastAnswer = newChatHistory[newChatHistory.length - 1];
           if (!lastAnswer) return prevChatHistory;
 
-          if (isAutoScroll) {
-            window.scrollTo({
-              top: document.documentElement.scrollHeight,
-              behavior: "smooth",
-            });
-          }
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "smooth",
+          });
 
           lastAnswer.answer.parts.push({ text: txt });
           return newChatHistory;
@@ -218,151 +221,207 @@ function ChatWindow({
           </motion.div>
         ) : (
           <div
-            className="max-w-3xl relative flex mx-auto w-full flex-col mt-24 pb-32"
+            className="max-w-3xl z-10 mx-auto relative h-full overflow-y-auto no-scrollbar"
             key="chat"
           >
-            {chatHistory.map((chat, idx) => (
-              <div
-                key={idx}
-                className={`mt-8 ${idx != chatHistory.length - 1 ? "pb-2 border-b border-b-gray-400" : ""}`}
-              >
-                <h2
-                  className={cn(
-                    "text-white transition-all transform translate-y-0 opacity-100 duration-500 ease-in-out font-semibold text-2xl",
-                  )}
-                >
-                  {chat.question}
-                </h2>
-
-                <div className="flex flex-col gap-2 mt-2">
+            <div className="w-full pt-24 mb-40">
+              {chatHistory.map((chat, idx) => (
+                <div key={idx} className="space-y-16">
                   <div
-                    className={`${chat.answer.sources.length > 0 || chat.answer.parts.length === 0 ? "flex" : "hidden"}`}
+                    className={`mt-8 ${idx != chatHistory.length - 1 ? "pb-2 border-b border-b-gray-400" : ""}`}
                   >
-                    <Accordion
-                      defaultValue={
-                        idx === chatHistory.length - 1 ? "memories" : ""
-                      }
-                      type="single"
-                      collapsible
-                    >
-                      <AccordionItem value="memories">
-                        <AccordionTrigger className="text-foreground-menu">
-                          Related Memories
-                        </AccordionTrigger>
-                        {/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
-                        <AccordionContent
-                          className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
-                          defaultChecked
-                        >
-                          {/* Loading state */}
-                          {chat.answer.sources.length > 0 ||
-                            (chat.answer.parts.length === 0 && (
-                              <>
-                                {[1, 2, 3, 4].map((_, idx) => (
-                                  <div
-                                    key={`loadingState-${idx}`}
-                                    className="rounded-xl bg-secondary p-4 flex flex-col gap-2 min-w-72 animate-pulse"
-                                  >
-                                    <div className="bg-slate-700 h-2 rounded-full w-1/2"></div>
-                                    <div className="bg-slate-700 h-2 rounded-full w-full"></div>
-                                  </div>
-                                ))}
-                              </>
-                            ))}
-                          {chat.answer.sources.map((source, idx) => (
-                            <Link
-                              href={source.source}
-                              key={idx}
-                              className="rounded-xl bg-secondary p-4 flex flex-col gap-2 min-w-72"
-                            >
-                              <div className="flex justify-between text-foreground-menu text-sm">
-                                <span>{source.type}</span>
-
-                                {source.numChunks > 1 && (
-                                  <span>{source.numChunks} chunks</span>
-                                )}
-                              </div>
-                              <div className="text-base">{source.title}</div>
-                              <div className="text-xs">
-                                {source.content.length > 100
-                                  ? source.content.slice(0, 100) + "..."
-                                  : source.content}
-                              </div>
-                            </Link>
-                          ))}
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </div>
-
-                  {/* Summary */}
-                  <div>
-                    <div className="text-foreground-menu py-2">Summary</div>
-                    <div className="text-base">
-                      {chat.answer.parts.length === 0 && (
-                        <div className="animate-pulse flex space-x-4">
-                          <div className="flex-1 space-y-3 py-1">
-                            <div className="h-2 bg-slate-700 rounded"></div>
-                            <div className="h-2 bg-slate-700 rounded"></div>
-                          </div>
-                        </div>
+                    <h2
+                      className={cn(
+                        "text-white transition-all transform translate-y-0 opacity-100 duration-500 ease-in-out font-semibold text-xl",
                       )}
-                      <Markdown
-                        remarkPlugins={[remarkGfm, [remarkMath]]}
-                        rehypePlugins={[
-                          rehypeKatex,
-                          [
-                            rehypeHighlight,
-                            {
-                              detect: true,
-                              ignoreMissing: true,
-                              subset: codeLanguageSubset,
-                            },
-                          ],
-                        ]}
-                        components={{
-                          code: code as any,
-                          p: p as any,
-                        }}
-                        className="flex flex-col gap-2"
-                      >
-                        {removeJustificationFromText(
-                          chat.answer.parts.map((part) => part.text).join(""),
-                        )}
-                      </Markdown>
-                    </div>
-                  </div>
+                    >
+                      {chat.question}
+                    </h2>
 
-                  {/* Justification */}
-                  {chat.answer.justification &&
-                    chat.answer.justification.length && (
+                    <div className="flex flex-col">
+                      {/* Related memories */}
                       <div
-                        className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+                        className={`space-y-4 ${chat.answer.sources.length > 0 || chat.answer.parts.length === 0 ? "flex" : "hidden"}`}
                       >
-                        <Accordion defaultValue={""} type="single" collapsible>
-                          <AccordionItem value="justification">
+                        <Accordion
+                          defaultValue={
+                            idx === chatHistory.length - 1 ? "memories" : ""
+                          }
+                          type="single"
+                          collapsible
+                        >
+                          <AccordionItem value="memories">
                             <AccordionTrigger className="text-foreground-menu">
-                              Justification
+                              Related Memories
                             </AccordionTrigger>
+                            {/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
                             <AccordionContent
-                              className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+                              className="flex items-center no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
                               defaultChecked
                             >
-                              {chat.answer.justification.length > 0
-                                ? chat.answer.justification
-                                    .replaceAll("<justification>", "")
-                                    .replaceAll("</justification>", "")
-                                : "No justification provided."}
+                              {/* Loading state */}
+                              {chat.answer.sources.length > 0 ||
+                                (chat.answer.parts.length === 0 && (
+                                  <>
+                                    {[1, 2, 3, 4].map((_, idx) => (
+                                      <div
+                                        key={`loadingState-${idx}`}
+                                        className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary animate-pulse"
+                                      >
+                                        <div className="bg-slate-700 h-2 rounded-full w-1/2"></div>
+                                        <div className="bg-slate-700 h-2 rounded-full w-full"></div>
+                                      </div>
+                                    ))}
+                                  </>
+                                ))}
+                              {chat.answer.sources.map((source, idx) => (
+                                <Link
+                                  href={source.source}
+                                  key={idx}
+                                  className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary"
+                                >
+                                  <div className="flex justify-between text-foreground-menu text-sm">
+                                    <span>{source.type}</span>
+
+                                    {source.numChunks > 1 && (
+                                      <span>{source.numChunks} chunks</span>
+                                    )}
+                                  </div>
+                                  <div className="text-base">
+                                    {source.title}
+                                  </div>
+                                  <div className="text-xs line-clamp-2">
+                                    {source.content.length > 100
+                                      ? source.content.slice(0, 100) + "..."
+                                      : source.content}
+                                  </div>
+                                </Link>
+                              ))}
                             </AccordionContent>
                           </AccordionItem>
                         </Accordion>
                       </div>
-                    )}
-                </div>
-              </div>
-            ))}
 
-            <div className="fixed bottom-0 w-full max-w-3xl pb-4">
+                      {/* Summary */}
+                      <div>
+                        <div className="text-foreground-menu py-2">Summary</div>
+                        <div className="text-base">
+                          {/* Loading state */}
+                          {(chat.answer.parts.length === 0 ||
+                            chat.answer.parts.join("").length === 0) && (
+                            <div className="animate-pulse flex space-x-4">
+                              <div className="flex-1 space-y-3 py-1">
+                                <div className="h-2 bg-slate-700 rounded"></div>
+                                <div className="h-2 bg-slate-700 rounded"></div>
+                              </div>
+                            </div>
+                          )}
+
+                          <Markdown
+                            remarkPlugins={[remarkGfm, [remarkMath]]}
+                            rehypePlugins={[
+                              rehypeKatex,
+                              [
+                                rehypeHighlight,
+                                {
+                                  detect: true,
+                                  ignoreMissing: true,
+                                  subset: codeLanguageSubset,
+                                },
+                              ],
+                            ]}
+                            components={{
+                              code: code as any,
+                              p: p as any,
+                            }}
+                            className="flex flex-col gap-2 text-base"
+                          >
+                            {removeJustificationFromText(
+                              chat.answer.parts
+                                .map((part) => part.text)
+                                .join(""),
+                            )}
+                          </Markdown>
+
+                          <div className="mt-3 relative -left-2 flex items-center gap-1">
+                            {/* TODO: speak response */}
+                            {/* <button className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200">
+                              <SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
+                            </button> */}
+                            {/* copy response */}
+                            <button
+                              onClick={() =>
+                                navigator.clipboard.writeText(
+                                  chat.answer.parts
+                                    .map((part) => part.text)
+                                    .join(""),
+                                )
+                              }
+                              className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
+                            >
+                              <ClipboardIcon className="size-[18px] group-hover:text-primary" />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const isWebShareSupported =
+                                  navigator.share !== undefined;
+                                if (isWebShareSupported) {
+                                  try {
+                                    await navigator.share({
+                                      title: "Your Share Title",
+                                      text: "Your share text or description",
+                                      url: "https://your-url-to-share.com",
+                                    });
+                                  } catch (e) {
+                                    console.error("Error sharing:", e);
+                                  }
+                                } else {
+                                  console.error("web share is not supported!");
+                                }
+                              }}
+                              className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
+                            >
+                              <SendIcon className="size-[18px] group-hover:text-primary" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Justification */}
+                      {chat.answer.justification &&
+                        chat.answer.justification.length && (
+                          <div
+                            className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+                          >
+                            <Accordion
+                              defaultValue={""}
+                              type="single"
+                              collapsible
+                            >
+                              <AccordionItem value="justification">
+                                <AccordionTrigger className="text-foreground-menu">
+                                  Justification
+                                </AccordionTrigger>
+                                <AccordionContent
+                                  className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+                                  defaultChecked
+                                >
+                                  {chat.answer.justification.length > 0
+                                    ? chat.answer.justification
+                                        .replaceAll("<justification>", "")
+                                        .replaceAll("</justification>", "")
+                                    : "No justification provided."}
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="fixed bottom-4 w-full max-w-3xl">
               <QueryInput
                 mini
                 className="w-full shadow-md"
