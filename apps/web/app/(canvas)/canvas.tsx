@@ -21,22 +21,15 @@ export const Canvas = memo(() => {
     setIsDraggingOver(true);
     console.log("entere")
   };
-
-  const handleDragLeave = () => {
-    setIsDraggingOver(false);
-    console.log("leaver")
-  };
-
+  
   useEffect(() => {
     const divElement = Dragref.current;
     if (divElement) {
       divElement.addEventListener('dragover', handleDragOver);
-      divElement.addEventListener('dragleave', handleDragLeave);  
     }
     return () => {
       if (divElement) {
         divElement.removeEventListener('dragover', handleDragOver);
-        divElement.removeEventListener('dragleave', handleDragLeave);  
       }
     };
   }, []);

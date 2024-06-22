@@ -12,22 +12,27 @@ const stripHtmlTags = (html: string): string => {
 const useDrag = (): DragContextType => {
   const context = useContext(DragContext);
   if (!context) {
-    throw new Error('useCounter must be used within a CounterProvider');
+    throw new Error("useCounter must be used within a CounterProvider");
   }
   return context;
 };
 
-
 function DropZone() {
   const dropRef = useRef<HTMLDivElement | null>(null);
-  const {isDraggingOver, setIsDraggingOver} = useDrag();
+  const { isDraggingOver, setIsDraggingOver } = useDrag();
 
   const editor = useEditor();
 
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+    console.log("leaver");
+  };
+
+  const handleDrop = useCallback((event: DragEvent) => {
     event.preventDefault();
     setIsDraggingOver(false);
     const dt = event.dataTransfer;
+    if (!dt) {return}
     const items = dt.items;
 
     for (let i = 0; i < items.length; i++) {
@@ -45,7 +50,7 @@ function DropZone() {
       } else if (items[i]!.kind === "string") {
         items[i]!.getAsString((data) => {
           const cleanText = stripHtmlTags(data);
-          handleExternalDroppedContent({editor,text:cleanText})
+          handleExternalDroppedContent({ editor, text: cleanText });
         });
       }
     }
@@ -54,13 +59,13 @@ function DropZone() {
   useEffect(() => {
     const divElement = dropRef.current;
     if (divElement) {
-      // @ts-ignore
       divElement.addEventListener("drop", handleDrop);
+      divElement.addEventListener("dragleave", handleDragLeave);
     }
     return () => {
       if (divElement) {
-        // @ts-ignore
         divElement.removeEventListener("drop", handleDrop);
+        divElement.addEventListener("dragleave", handleDragLeave);
       }
     };
   }, []);
