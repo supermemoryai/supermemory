@@ -5,6 +5,7 @@ import QueryInput from "./queryinput";
 import { homeSearchParamsCache } from "@/lib/searchParams";
 import { getSpaces } from "@/app/actions/fetchers";
 import { useRouter } from "next/navigation";
+import { createChatThread } from "@/app/actions/doers";
 
 function Page({
   searchParams,
@@ -12,7 +13,8 @@ function Page({
   searchParams: Record<string, string | string[] | undefined>;
 }) {
   // TODO: use this to show a welcome page/modal
-  const { firstTime } = homeSearchParamsCache.parse(searchParams);
+  // const { firstTime } = homeSearchParamsCache.parse(searchParams);
+  const { push } = useRouter();
 
   const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
@@ -20,12 +22,11 @@ function Page({
     getSpaces().then((res) => {
       if (res.success && res.data) {
         setSpaces(res.data);
+        return;
       }
       // TODO: HANDLE ERROR
     });
   }, []);
-
-  const { push } = useRouter();
 
   return (
     <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col">
@@ -34,13 +35,12 @@ function Page({
 
       <div className="w-full h-96">
         <QueryInput
-          handleSubmit={(q, spaces) => {
-            const newQ =
-              "/chat?q=" +
-              encodeURI(q) +
-              (spaces ? "&spaces=" + JSON.stringify(spaces) : "");
+          handleSubmit={async (q, spaces) => {
+            const threadid = await createChatThread(q);
 
-            push(newQ);
+            push(
+              `/chat/${threadid.data}?spaces=${JSON.stringify(spaces)}&q=${q}`,
+            );
           }}
           initialSpaces={spaces}
         />

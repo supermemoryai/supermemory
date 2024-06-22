@@ -23,16 +23,12 @@ import { codeLanguageSubset } from "@/lib/constants";
 import { z } from "zod";
 import { toast } from "sonner";
 import Link from "next/link";
+import { createChatObject } from "@/app/actions/doers";
 
 function ChatWindow({
   q,
   spaces,
-}: {
-  q: string;
-  spaces: { id: string; name: string }[];
-}) {
-  const [layout, setLayout] = useState<"chat" | "initial">("initial");
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
+  initialChat = [
     {
       question: q,
       answer: {
@@ -40,7 +36,18 @@ function ChatWindow({
         sources: [],
       },
     },
-  ]);
+  ],
+  threadId,
+}: {
+  q: string;
+  spaces: { id: string; name: string }[];
+  initialChat?: ChatHistory[];
+  threadId: string;
+}) {
+  const [layout, setLayout] = useState<"chat" | "initial">(
+    initialChat.length > 1 ? "chat" : "initial",
+  );
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
   const [isAutoScroll, setIsAutoScroll] = useState(true);
 
   const removeJustificationFromText = (text: string) => {
@@ -61,7 +68,7 @@ function ChatWindow({
 
   const getAnswer = async (query: string, spaces: string[]) => {
     const sourcesFetch = await fetch(
-      `/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true`,
+      `/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true&threadId=${threadId}`,
       {
         method: "POST",
         body: JSON.stringify({ chatHistory }),
@@ -84,74 +91,108 @@ function ChatWindow({
       toast.error("Something went wrong while getting the sources");
       return;
     }
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: "smooth",
+    });
 
-    setChatHistory((prevChatHistory) => {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        behavior: "smooth",
+    // Assuming this is part of a larger function within a React component
+    const updateChatHistoryAndFetch = async () => {
+      // Step 1: Update chat history with the assistant's response
+      await new Promise((resolve) => {
+        setChatHistory((prevChatHistory) => {
+          const newChatHistory = [...prevChatHistory];
+          const lastAnswer = newChatHistory[newChatHistory.length - 1];
+          if (!lastAnswer) {
+            resolve(undefined);
+            return prevChatHistory;
+          }
+
+          const filteredSourceUrls = new Set(
+            sourcesParsed.data.metadata.map((source) => source.url),
+          );
+          const uniqueSources = sourcesParsed.data.metadata.filter((source) => {
+            if (filteredSourceUrls.has(source.url)) {
+              filteredSourceUrls.delete(source.url);
+              return true;
+            }
+            return false;
+          });
+
+          lastAnswer.answer.sources = uniqueSources.map((source) => ({
+            title: source.title ?? "Untitled",
+            type: source.type ?? "page",
+            source: source.url ?? "https://supermemory.ai",
+            content: source.description ?? "No content available",
+            numChunks: sourcesParsed.data.metadata.filter(
+              (f) => f.url === source.url,
+            ).length,
+          }));
+
+          resolve(newChatHistory);
+          return newChatHistory;
+        });
       });
-      const newChatHistory = [...prevChatHistory];
-      const lastAnswer = newChatHistory[newChatHistory.length - 1];
-      if (!lastAnswer) return prevChatHistory;
-      const filteredSourceUrls = new Set(
-        sourcesParsed.data.metadata.map((source) => source.url),
+
+      // Step 2: Fetch data from the API
+      const resp = await fetch(
+        `/api/chat?q=${query}&spaces=${spaces}&threadId=${threadId}`,
+        {
+          method: "POST",
+          body: JSON.stringify({ chatHistory }),
+        },
       );
-      const uniqueSources = sourcesParsed.data.metadata.filter((source) => {
-        if (filteredSourceUrls.has(source.url)) {
-          filteredSourceUrls.delete(source.url);
-          return true;
-        }
-        return false;
-      });
-      lastAnswer.answer.sources = uniqueSources.map((source) => ({
-        title: source.title ?? "Untitled",
-        type: source.type ?? "page",
-        source: source.url ?? "https://supermemory.ai",
-        content: source.description ?? "No content available",
-        numChunks: sourcesParsed.data.metadata.filter(
-          (f) => f.url === source.url,
-        ).length,
-      }));
-      return newChatHistory;
-    });
 
-    const resp = await fetch(`/api/chat?q=${query}&spaces=${spaces}`, {
-      method: "POST",
-      body: JSON.stringify({ chatHistory }),
-    });
-
-    const reader = resp.body?.getReader();
-    let done = false;
-    while (!done && reader) {
-      const { value, done: d } = await reader.read();
-      done = d;
-
-      setChatHistory((prevChatHistory) => {
-        const newChatHistory = [...prevChatHistory];
-        const lastAnswer = newChatHistory[newChatHistory.length - 1];
-        if (!lastAnswer) return prevChatHistory;
-        const txt = new TextDecoder().decode(value);
-
-        if (isAutoScroll) {
-          window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: "smooth",
+      // Step 3: Read the response stream and update the chat history
+      const reader = resp.body?.getReader();
+      let done = false;
+      while (!done && reader) {
+        const { value, done: d } = await reader.read();
+        if (d) {
+          console.log(chatHistory);
+          setChatHistory((prevChatHistory) => {
+            console.log(prevChatHistory);
+            createChatObject(threadId, prevChatHistory);
+            return prevChatHistory;
           });
         }
+        done = d;
 
-        lastAnswer.answer.parts.push({ text: txt });
-        return newChatHistory;
-      });
-    }
+        const txt = new TextDecoder().decode(value);
+        setChatHistory((prevChatHistory) => {
+          const newChatHistory = [...prevChatHistory];
+          const lastAnswer = newChatHistory[newChatHistory.length - 1];
+          if (!lastAnswer) return prevChatHistory;
+
+          if (isAutoScroll) {
+            window.scrollTo({
+              top: document.documentElement.scrollHeight,
+              behavior: "smooth",
+            });
+          }
+
+          lastAnswer.answer.parts.push({ text: txt });
+          return newChatHistory;
+        });
+      }
+    };
+
+    updateChatHistoryAndFetch();
   };
 
   useEffect(() => {
-    if (q.trim().length > 0) {
+    if (q.trim().length > 0 || chatHistory.length > 0) {
       setLayout("chat");
-      getAnswer(
-        q,
-        spaces.map((s) => s.id),
-      );
+      const lastChat = chatHistory.length > 0 ? chatHistory.length - 1 : 0;
+      const startGenerating = chatHistory[lastChat]?.answer.parts[0]?.text
+        ? false
+        : true;
+      if (startGenerating) {
+        getAnswer(
+          q,
+          spaces.map((s) => `${s}`),
+        );
+      }
     } else {
       router.push("/home");
     }

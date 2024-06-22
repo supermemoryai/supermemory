@@ -1,9 +1,5 @@
 import { type NextRequest } from "next/server";
-import {
-  ChatHistory,
-  ChatHistoryZod,
-  convertChatHistoryList,
-} from "@repo/shared-types";
+import { ChatHistoryZod, convertChatHistoryList } from "@repo/shared-types";
 import { ensureAuth } from "../ensureAuth";
 import { z } from "zod";
 
@@ -48,6 +44,8 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  console.log("validated.data.chatHistory", validated.data.chatHistory);
 
   const modelCompatible = await convertChatHistoryList(
     validated.data.chatHistory,

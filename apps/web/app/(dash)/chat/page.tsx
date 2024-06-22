@@ -12,7 +12,7 @@ function Page({
 
   console.log(spaces);
 
-  return <ChatWindow q={q} spaces={[]} />;
+  return <ChatWindow q={q} spaces={spaces} threadId={""} />;
 }
 
 export default Page;
