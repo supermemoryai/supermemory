@@ -226,7 +226,7 @@ export function Showcases() {
     <section
       id="secondary-features"
       aria-label="Features for simplifying everyday business tasks"
-      className=" bg-page-gradient relative pb-14 pt-20 sm:pb-20 sm:pt-32 lg:pb-32 w-full mt-10"
+      className=" bg-page-gradient bg-opacity-0 relative pb-14 pt-20 sm:pb-20 sm:pt-32 lg:pb-32 w-full mt-10"
     >
       <Container>
         <div className="-z-1 absolute inset-x-0 -top-0 h-[600px]  w-full bg-transparent bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)]  bg-[size:6rem_4rem] opacity-10 [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
