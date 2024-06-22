@@ -23,7 +23,7 @@ const slap = {
 function Hero() {
   return (
     <>
-      <section className="mt-24 flex max-w-3xl flex-col items-center justify-center gap-10 md:mt-32">
+      <section className="mt-24 flex max-w-3xl flex-col items-center justify-center gap-5 md:mt-32">
         <TwitterBorder />
         <motion.h1
           {...{
@@ -61,7 +61,7 @@ function Hero() {
         width={1512}
         height={1405}
         draggable="false"
-        className="z-[20] mt-0 h-full w-[80%] select-none "
+        className="z-[20] md:mt-[-40px] h-full w-[80%] select-none "
       />
     </>
   );
