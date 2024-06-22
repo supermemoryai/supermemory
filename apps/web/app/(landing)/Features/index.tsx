@@ -92,7 +92,7 @@ const Services = () => {
             <div
               style={{
                 background:
-                  "linear-gradient(143.6deg, rgba(192, 132, 252, 0) 20.79%, rgba(140, 121, 249, 0.40) 40.92%, rgba(140, 121, 249, 0) 80.35%)",
+                  "linear-gradient(143.6deg, rgba(192, 132, 252, 0) 20.79%, rgba(140, 121, 249, 0.3) 60.92%, rgba(140, 121, 249, 0) 80.35%)",
               }}
               className="overflow-hidden relative py-4 rounded-3xl group bg-glass-gradient lg:min-h-[30rem]"
             >
