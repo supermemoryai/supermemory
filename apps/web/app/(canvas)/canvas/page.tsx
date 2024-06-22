@@ -1,17 +1,12 @@
 "use client";
 
-// import Canvas from "./_components/canvas";
 import { Canvas } from "../canvas";
 import React, { useState } from "react";
-// import ReactTextareaAutosize from "react-textarea-autosize";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import {
-  DragSvg,
-  SettingsSvg,
-  LinkSvg,
-  ThreeDBlock,
-  TextLoadingSvg,
-} from "../svg";
+import { SettingsIcon, DragIcon } from "@repo/ui/icons";
+import DraggableComponentsContainer from "@repo/ui/components/canvas/draggableComponent";
+import { AutocompleteIcon, blockIcon } from "@repo/ui/icons";
+import Image from "next/image";
 
 function page() {
   const [value, setValue] = useState("");
@@ -45,7 +40,7 @@ function page() {
             >
               <div className="flex items-center justify-between bg-[#2C3439] px-4 py-2 text-lg font-medium text-[#989EA4]">
                 Change Filters
-                <SettingsSvg />
+                <Image src={SettingsIcon} alt="setting-icon" />
               </div>
               <div className="px-3 py-5">
                 <input
@@ -59,47 +54,7 @@ function page() {
                 />
               </div>
               {visible ? (
-                <div className="flex flex-col gap-10">
-                  <div className="flex gap-4 px-3 text-[#989EA4]">
-                    <TextLoadingSvg />
-                    <h1>
-                      Nvidia will most likely create monopoly in software
-                      industry as they are already largest player in GPU
-                      hardware by 20...
-                    </h1>
-                  </div>
-                  <div className="flex gap-4 px-3 text-[#989EA4]">
-                    <ThreeDBlock />
-                    <div className="flex flex-col gap-2">
-                      <div>
-                        <h1 className="line-clamp-3">
-                          Nvidia currently dominates the GPU hardware market,
-                          with a market share over 97%. This has led some to
-                          argue...
-                        </h1>
-                      </div>
-                      <p className="line-clamp-1 text-[#369DFD]">
-                        From space: GPU GOATS
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 px-3 text-[#989EA4]">
-                    <LinkSvg />
-                    <div className="flex flex-col gap-2">
-                      <div>
-                        <h1 className="line-clamp-3">
-                          Nvidia currently dominates the GPU hardware market,
-                          with a market share over 97%. This has led some to
-                          argue...
-                        </h1>
-                      </div>
-                      <p className="line-clamp-1 text-[#369DFD]">
-                        Page url:
-                        https://www.cnbc.com/2024/05/23/nvidia-keeps-hitting-records-can-investors-still-buy-the-stock.html?&qsearchterm=nvidia
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <SidePanel />
               ) : (
                 <h1 className="text-center py-10 text-xl">Need more space to show!</h1>
               )}
@@ -112,7 +67,7 @@ function page() {
             <div
               className={`rounded-lg bg-[#2F363B] ${!fullScreen && "px-1"} transition-all py-2`}
             >
-              <DragSvg />
+              <Image src={DragIcon} alt="drag-icon" />
             </div>
             {/* </div> */}
           </PanelResizeHandle>
@@ -127,6 +82,28 @@ function page() {
       </div>
     </div>
   );
+}
+
+const content= [
+  {
+    content: "Nvidia currently dominates the GPU hardware market, with a market share over 97%. This has led some to argue...",
+    icon: AutocompleteIcon,
+    iconAlt: "Autocomplete",
+    extraInfo: "Page Url: https://www.cnbc.com/2024/05/23/nvidia-keeps-hitting-records-can-investors-still-buy-the-stock.html?&qsearchterm=nvidia",
+  },
+  {
+    content: "Nvidia currently dominates the GPU hardware market, with a market share over 97%. This has led some to argue...",
+    icon: blockIcon,
+    iconAlt: "Autocomplete",
+    extraInfo: "Page Url: https://www.cnbc.com/2024/05/23/nvidia-keeps-hitting-records-can-investors-still-buy-the-stock.html?&qsearchterm=nvidia",
+  },
+
+]
+
+function SidePanel(){
+  return (
+    <DraggableComponentsContainer content={content} />
+  )
 }
 
 export default page;

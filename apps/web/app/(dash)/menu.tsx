@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { MemoriesIcon, ExploreIcon, HistoryIcon } from "@repo/ui/icons";
+import { MemoriesIcon, ExploreIcon, HistoryIcon, CanvasIcon } from "@repo/ui/icons";
 import Link from "next/link";
 
 function Menu() {
@@ -16,9 +16,9 @@ function Menu() {
       url: "/explore",
     },
     {
-      icon: HistoryIcon,
-      text: "History",
-      url: "/history",
+      icon: CanvasIcon,
+      text: "Canvas",
+      url: "/canvas",
     },
   ];
 
