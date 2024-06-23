@@ -3,6 +3,8 @@ import Link from "next/link";
 import Logo from "@/public/logo.svg";
 import { signIn } from "@/app/helpers/server/auth";
 import { Google } from "@repo/ui/components/icons";
+import gradientStyle from "./_components/TextGradient/gradient.module.css"
+import { cn } from "@repo/ui/lib/utils";
 
 export const runtime = "edge";
 
@@ -29,11 +31,11 @@ async function Signin() {
           alt="back bg"
         />
 
-        <div className="pl-4">
-          <h1 className="text-5xl text-foreground mb-8 tracking-tighter">
-            Hello, <span className="text-white">human</span>{" "}
+        <div className="pl-4 z-20">
+          <h1 className="text-5xl text-white mb-8 tracking-tighter">
+            Hello, <span className={cn("bg-gradient-to-tr from-zinc-100 via-zinc-200/50 to-zinc-200/90 text-transparent bg-clip-text animate-gradient" , gradientStyle.magicText)}>human</span>{" "}
           </h1>
-          <p className="text-white mb-8 text-lg">
+          <p className="text-white mb-8 text-lg tracking-tighter">
             Write, ideate, and learn with all the wisdom of your bookmarks.
           </p>
           <div className="flex items-center gap-4">
@@ -60,7 +62,7 @@ async function Signin() {
               </form>
             </div>
           </div>
-          <div className="text-slate-500 mt-16">
+          <div className="text-slate-500 mt-16 z-20">
             By continuing, you agree to the
             <Link href="/terms" className="text-slate-200">
               {" "}
@@ -82,7 +84,7 @@ async function Signin() {
 
         <div>
           <Image
-            className="mx-auto rounded-lg shadow-2xl px-10 md:px-14 lg:max-w-none"
+            className="mx-auto rounded-lg shadow-2xl w-[calc(100%-100px)] md:px-14 lg:px-0 lg:max-w-none"
             src={"/images/memory.svg"}
             width={700}
             height={520}

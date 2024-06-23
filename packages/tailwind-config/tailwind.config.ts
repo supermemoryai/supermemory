@@ -60,6 +60,11 @@ const config = {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        gradient: {
+          to: {
+            backgroundPosition: "var(--bg-size) 0",
+          },
+        },
         "background-shine": {
           from: {
             backgroundPosition: "0 0",
@@ -86,6 +91,7 @@ const config = {
         "accordion-up": "accordion-up 0.2s ease-out",
         "logo-cloud": "logo-cloud 30s linear infinite",
         "background-shine": "background-shine 5s linear infinite",
+        gradient: "gradient 8s linear infinite",
       },
       backgroundImage: {
         "glass-gradient":
