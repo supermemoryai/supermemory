@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Hono } from "hono";
-import { CoreMessage, streamText } from "ai";
+import { CoreMessage, generateText, streamText, tool } from "ai";
 import { chatObj, Env, vectorObj } from "./types";
 import {
   batchCreateChunksAndEmbeddings,
@@ -166,6 +166,159 @@ app.get(
     const r = response.toTextStreamResponse();
 
     return r;
+  },
+);
+
+// This is a special endpoint for our "chatbot-only" solutions.
+// It does both - adding content AND chatting with it.
+app.post(
+  "/api/autoChatOrAdd",
+  zValidator(
+    "query",
+    z.object({
+      query: z.string(),
+      user: z.string(),
+    }),
+  ),
+  zValidator("json", chatObj),
+  async (c) => {
+    const { query, user } = c.req.valid("query");
+    const { chatHistory } = c.req.valid("json");
+
+    const { store, model } = await initQuery(c);
+
+    let task: "add" | "chat" = "chat";
+    let thingToAdd: "page" | "image" | "text" | undefined = undefined;
+    let addContent: string | undefined = undefined;
+
+    // This is a "router". this finds out if the user wants to add a document, or chat with the AI to get a response.
+    const routerQuery = await generateText({
+      model,
+      system: `You are Supermemory chatbot. You can either add a document to the supermemory database, or return a chat response. Based on this query, 
+        You must determine what to do. Basically if it feels like a "question", then you should intiate a chat. If it feels like a "command" or feels like something that could be forwarded to the AI, then you should add a document.
+        You must also extract the "thing" to add and what type of thing it is.`,
+      prompt: `Question from user: ${query}`,
+      tools: {
+        decideTask: tool({
+          description:
+            "Decide if the user wants to add a document or chat with the AI",
+          parameters: z.object({
+            generatedTask: z.enum(["add", "chat"]),
+            contentToAdd: z.object({
+              thing: z.enum(["page", "image", "text"]),
+              content: z.string(),
+            }),
+          }),
+          execute: async ({ generatedTask, contentToAdd }) => {
+            task = generatedTask;
+            thingToAdd = contentToAdd.thing;
+            addContent = contentToAdd.content;
+          },
+        }),
+      },
+    });
+
+    if ((task as string) === "add") {
+      // addString is the plaintext string that the user wants to add to the database
+      let addString: string = addContent;
+
+      if (thingToAdd === "page") {
+        // TODO: Sometimes this query hangs, and errors out. we need to do proper error management here.
+        const response = await fetch("https://md.dhr.wtf/?url=" + addContent, {
+          headers: {
+            Authorization: "Bearer " + c.env.SECURITY_KEY,
+          },
+        });
+
+        addString = await response.text();
+      }
+
+      // At this point, we can just go ahead and create the embeddings!
+      await batchCreateChunksAndEmbeddings({
+        store,
+        body: {
+          url: addContent,
+          user,
+          type: thingToAdd,
+          pageContent: addString,
+          title: `${addString.slice(0, 30)}... (Added from chatbot)`,
+        },
+        chunks: chunkText(addString, 1536),
+        context: c,
+      });
+
+      return c.json({
+        status: "ok",
+        response:
+          "I added the document to your personal second brain! You can now use it to answer questions or chat with me.",
+        contentAdded: {
+          type: thingToAdd,
+          content: addString,
+          url:
+            thingToAdd === "page"
+              ? addContent
+              : `https://supermemory.ai/note/${Date.now()}`,
+        },
+      });
+    } else {
+      const filter: VectorizeVectorMetadataFilter = {
+        [`user-${user}`]: 1,
+      };
+
+      const queryAsVector = await store.embeddings.embedQuery(query);
+
+      const resp = await c.env.VECTORIZE_INDEX.query(queryAsVector, {
+        topK: 5,
+        filter,
+        returnMetadata: true,
+      });
+
+      const minScore = Math.min(...resp.matches.map(({ score }) => score));
+      const maxScore = Math.max(...resp.matches.map(({ score }) => score));
+
+      // This entire chat part is basically just a dumb down version of the /api/chat endpoint.
+      const normalizedData = resp.matches.map((data) => ({
+        ...data,
+        normalizedScore:
+          maxScore !== minScore
+            ? 1 + ((data.score - minScore) / (maxScore - minScore)) * 98
+            : 50,
+      }));
+
+      const preparedContext = normalizedData.map(
+        ({ metadata, score, normalizedScore }) => ({
+          context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
+          score,
+          normalizedScore,
+        }),
+      );
+
+      const prompt = template({
+        contexts: preparedContext,
+        question: query,
+      });
+
+      const initialMessages: CoreMessage[] = [
+        {
+          role: "system",
+          content: `You are an AI chatbot called "Supermemory.ai". When asked a question by a user, you must take all the context provided to you and give a good, small, but helpful response.`,
+        },
+        { role: "assistant", content: "Hello, how can I help?" },
+      ];
+
+      const userMessage: CoreMessage = { role: "user", content: prompt };
+
+      const response = await generateText({
+        model,
+        messages: [
+          ...initialMessages,
+          ...((chatHistory || []) as CoreMessage[]),
+          userMessage,
+        ],
+      });
+
+      return c.json({ status: "ok", response: response.text });
+    }
   },
 );
 
