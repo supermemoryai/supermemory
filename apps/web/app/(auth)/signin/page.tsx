@@ -11,7 +11,7 @@ export const runtime = "edge";
 async function Signin() {
   return (
     <div className="flex relative font-geistSans overflow-hidden items-center justify-between min-h-screen">
-      <div className="relative w-full lg:w-1/2 flex items-center min-h-screen  p-8 border-r-[1px] border-white/5">
+      <div className="relative w-full lg:w-1/2 flex items-center min-h-screen bg-page-gradient  p-8 border-r-[1px] border-white/5">
         <div className="absolute top-0 left-0 p-8 text-white inline-flex gap-2 items-center">
           <Image
             src={Logo}
@@ -20,9 +20,9 @@ async function Signin() {
           />
           <span className="text-xl">SuperMemory.ai</span>
         </div>
-        <div className="absolute  inset-0 opacity-10  w-full  bg-transparent  bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+        <div className="absolute  inset-0 opacity-5  w-full  bg-transparent  bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
         <img
-          className="absolute inset-x-0 -top-20 opacity-25 "
+          className="absolute inset-x-0 -top-20 opacity-20"
           src={
             "https://pipe.com/_next/image?url=%2Fassets%2Fimg%2Fhero-left.png&w=384&q=75"
           }
@@ -76,7 +76,16 @@ async function Signin() {
           </div>
         </div>
       </div>
-      <div className="hidden w-0 lg:flex lg:w-1/2  flex-col items-center justify-center min-h-screen bg-page-gradient overflow-hidden">
+      <div className="relative hidden w-0 lg:flex lg:w-1/2  flex-col items-center justify-center min-h-screen bg-page-gradient overflow-hidden">
+      <img
+          className="absolute inset-x-0 -top-20 opacity-15 "
+          src={
+            "https://pipe.com/_next/image?url=%2Fassets%2Fimg%2Fhero-left.png&w=384&q=75"
+          }
+          width={1000}
+          height={1000}
+          alt="back bg"
+        />
         <span className="text-3xl leading-relaxed tracking-tighter mb-8">
           Ready for your{" "}
           <span className="text-white font-bold">Second brain</span>?
