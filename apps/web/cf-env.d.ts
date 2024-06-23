@@ -11,6 +11,7 @@ declare global {
       R2_BUCKET_NAME: string;
       BACKEND_SECURITY_KEY: string;
       BACKEND_BASE_URL: string;
+      TELEGRAM_BOT_TOKEN: string;
     }
   }
 }
