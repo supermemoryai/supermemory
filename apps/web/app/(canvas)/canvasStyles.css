@@ -22,3 +22,7 @@
 .tlui-minimap__canvas {
   background: #1F2428 !important;
 }
+
+.tlui-dialog__overlay {
+  position: fixed;
+}
