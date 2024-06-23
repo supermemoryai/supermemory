@@ -40,7 +40,7 @@ async function Signin() {
           </p>
           <div className="flex items-center gap-4">
             <div
-              className={`relative cursor-pointer transition-width z-20 rounded-2xl bg-page-gradient p-[0.7px] duration-300 ease-in-out fit dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]`}
+              className={`relative cursor-pointer transition-width z-20 rounded-2xl bg-hero-gradient   p-[0.7px] duration-500  ease-in-out fit dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]`}
             >
               <form
                 action={async () => {
@@ -52,7 +52,7 @@ async function Signin() {
               >
                 <button
                   type="submit"
-                  className={`relative text-white transition-width flex gap-5 justify-center w-full items-center rounded-2xl bg-page-gradient  px-6 py-4 outline-none duration-300 focus:outline-none `}
+                  className={`relative text-white transition-width flex gap-3 justify-center w-full items-center rounded-2xl bg-page-gradient hover:opacity-70  duration-500  px-6 py-4 outline-none duration- focus:outline-none `}
                 >
                   <Google />
                   <span className="relative w-full">
