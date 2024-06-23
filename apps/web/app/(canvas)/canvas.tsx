@@ -12,43 +12,40 @@ import { getAssetUrls } from "@tldraw/assets/selfHosted";
 import { memo } from "react";
 import DragContext from "./lib/context";
 import DropZone from "./dropComponent";
-import './canvas.css'
+import "./canvas.css";
 
 export const Canvas = memo(() => {
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);
-  const Dragref = useRef<HTMLDivElement | null>(null)
+  const Dragref = useRef<HTMLDivElement | null>(null);
 
   const handleDragOver = (event: any) => {
     event.preventDefault();
     setIsDraggingOver(true);
-    console.log("entere")
+    console.log("entere");
   };
-  
+
   useEffect(() => {
     const divElement = Dragref.current;
     if (divElement) {
-      divElement.addEventListener('dragover', handleDragOver);
+      divElement.addEventListener("dragover", handleDragOver);
     }
     return () => {
       if (divElement) {
-        divElement.removeEventListener('dragover', handleDragOver);
+        divElement.removeEventListener("dragover", handleDragOver);
       }
     };
   }, []);
 
   return (
     <DragContext.Provider value={{ isDraggingOver, setIsDraggingOver }}>
-    <div
-      ref={Dragref}
-      className="w-full h-full"
-    >
-      <TldrawComponent />
-    </div>
+      <div ref={Dragref} className="w-full h-full">
+        <TldrawComponent />
+      </div>
     </DragContext.Provider>
   );
 });
 
-const TldrawComponent =memo(() => {
+const TldrawComponent = memo(() => {
   const [storeWithStatus, setStoreWithStatus] = useState<TLStoreWithStatus>({
     status: "loading",
   });
@@ -94,4 +91,4 @@ const TldrawComponent =memo(() => {
       </Tldraw>
     </div>
   );
-})
+});

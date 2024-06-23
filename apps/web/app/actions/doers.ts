@@ -2,7 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "../../server/db";
-import { contentToSpace, space, storedContent } from "../../server/db/schema";
+import {
+  chatHistory,
+  chatThreads,
+  contentToSpace,
+  space,
+  storedContent,
+} from "../../server/db/schema";
 import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
 import { Tweet } from "react-tweet/api";
@@ -10,6 +16,7 @@ import { getMetaData } from "@/lib/get-metadata";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { z } from "zod";
+import { ChatHistory } from "@repo/shared-types";
 
 export const createSpace = async (
   input: string | FormData,
@@ -265,4 +272,75 @@ export const createMemory = async (input: {
       error: `Failed to save to vector store. Backend returned error: ${e}`,
     };
   }
+};
+
+export const createChatThread = async (
+  firstMessage: string,
+): ServerActionReturnType<string> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    return { error: "Not authenticated", success: false };
+  }
+
+  const thread = await db
+    .insert(chatThreads)
+    .values({
+      firstMessage,
+      userId: data.user.id,
+    })
+    .returning({ id: chatThreads.id })
+    .execute();
+
+  console.log(thread);
+
+  if (!thread[0]) {
+    return {
+      success: false,
+      error: "Failed to create chat thread",
+    };
+  }
+
+  return { success: true, data: thread[0].id };
+};
+
+export const createChatObject = async (
+  threadId: string,
+  chatHistorySoFar: ChatHistory[],
+): ServerActionReturnType<boolean> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    return { error: "Not authenticated", success: false };
+  }
+
+  const lastChat = chatHistorySoFar[chatHistorySoFar.length - 1];
+  if (!lastChat) {
+    return {
+      success: false,
+      data: false,
+      error: "No chat object found",
+    };
+  }
+  console.log("sources: ", lastChat.answer.sources);
+
+  const saved = await db.insert(chatHistory).values({
+    question: lastChat.question,
+    answer: lastChat.answer.parts.map((part) => part.text).join(""),
+    answerSources: JSON.stringify(lastChat.answer.sources),
+    threadId,
+  });
+
+  if (!saved) {
+    return {
+      success: false,
+      data: false,
+      error: "Failed to save chat object",
+    };
+  }
+
+  return {
+    success: true,
+    data: true,
+  };
 };

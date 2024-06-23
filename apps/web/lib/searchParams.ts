@@ -16,11 +16,19 @@ export const chatSearchParamsCache = createSearchParamsCache({
   firstTime: parseAsBoolean.withDefault(false),
   q: parseAsString.withDefault(""),
   spaces: parseAsArrayOf(
-    parseAsJson(() =>
-      z.object({
-        id: z.string(),
-        name: z.string(),
-      }),
-    ),
+    parseAsJson((c) => {
+      const valid = z
+        .object({
+          id: z.string(),
+          name: z.string(),
+        })
+        .safeParse(c);
+
+      if (!valid.success) {
+        return null;
+      }
+
+      return valid.data;
+    }),
   ).withDefault([]),
 });

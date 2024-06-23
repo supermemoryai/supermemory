@@ -27,6 +27,23 @@ CREATE TABLE `authenticator` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `chatHistory` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`threadId` text NOT NULL,
+	`question` text NOT NULL,
+	`answerParts` text,
+	`answerSources` text,
+	`answerJustification` text,
+	FOREIGN KEY (`threadId`) REFERENCES `chatThread`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `chatThread` (
+	`id` text PRIMARY KEY NOT NULL,
+	`firstMessage` text NOT NULL,
+	`userId` text NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `contentToSpace` (
 	`contentId` integer NOT NULL,
 	`spaceId` integer NOT NULL,
@@ -60,7 +77,7 @@ CREATE TABLE `storedContent` (
 	`ogImage` text(255),
 	`type` text DEFAULT 'page',
 	`image` text(255),
-	`user` integer,
+	`user` text,
 	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -80,6 +97,8 @@ CREATE TABLE `verificationToken` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `authenticator_credentialID_unique` ON `authenticator` (`credentialID`);--> statement-breakpoint
+CREATE INDEX `chatHistory_thread_idx` ON `chatHistory` (`threadId`);--> statement-breakpoint
+CREATE INDEX `chatThread_user_idx` ON `chatThread` (`userId`);--> statement-breakpoint
 CREATE UNIQUE INDEX `space_name_unique` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_name_idx` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint

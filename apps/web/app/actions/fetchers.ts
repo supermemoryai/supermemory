@@ -1,8 +1,10 @@
 "use server";
 
-import { eq, inArray, not, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, not, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
+  chatHistory,
+  chatThreads,
   Content,
   contentToSpace,
   storedContent,
@@ -10,6 +12,8 @@ import {
 } from "../../server/db/schema";
 import { ServerActionReturnType, Space } from "./types";
 import { auth } from "../../server/auth";
+import { ChatHistory, SourceZod } from "@repo/shared-types";
+import { z } from "zod";
 
 export const getSpaces = async (): ServerActionReturnType<Space[]> => {
   const data = await auth();
@@ -103,22 +107,27 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
   // console.log(contentCountBySpace);
 
   // get a count with space mappings like spaceID: count (number of memories in that space)
-  const contentCountBySpace = await db
-    .select({
-      spaceId: contentToSpace.spaceId,
-      count: sql<number>`count(*)`.mapWith(Number),
-    })
-    .from(contentToSpace)
-    .where(
-      inArray(
-        contentToSpace.spaceId,
-        spacesWithoutUser.map((space) => space.id),
-      ),
-    )
-    .groupBy(contentToSpace.spaceId)
-    .execute();
 
-  console.log(contentCountBySpace);
+  const len = spacesWithoutUser.map((space) => space.id).length;
+
+  if (len > 0) {
+    const contentCountBySpace = await db
+      .select({
+        spaceId: contentToSpace.spaceId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(contentToSpace)
+      .where(
+        inArray(
+          contentToSpace.spaceId,
+          spacesWithoutUser.map((space) => space.id),
+        ),
+      )
+      .groupBy(contentToSpace.spaceId)
+      .execute();
+
+    console.log(contentCountBySpace);
+  }
 
   const contentNotInAnySpace = await db
     .select()
@@ -138,5 +147,66 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
   return {
     success: true,
     data: { spaces: spacesWithoutUser, memories: contentNotInAnySpace },
+  };
+};
+
+export const getFullChatThread = async (
+  threadId: string,
+): ServerActionReturnType<ChatHistory[]> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    return { error: "Not authenticated", success: false };
+  }
+
+  const thread = await db.query.chatThreads.findFirst({
+    where: and(
+      eq(chatThreads.id, threadId),
+      eq(chatThreads.userId, data.user.id),
+    ),
+  });
+
+  if (!thread) {
+    return { error: "Thread not found", success: false };
+  }
+
+  const allChatsInThisThread = await db.query.chatHistory
+    .findMany({
+      where: and(eq(chatHistory.threadId, threadId)),
+      orderBy: asc(chatHistory.id),
+    })
+    .execute();
+
+  const accumulatedChatHistory: ChatHistory[] = allChatsInThisThread.map(
+    (chat) => {
+      console.log("answer sources", chat.answerSources);
+      const sourceCheck = z
+        .array(SourceZod)
+        .safeParse(JSON.parse(chat.answerSources ?? "[]"));
+
+      if (!sourceCheck.success || !sourceCheck.data) {
+        console.error("sourceCheck.error", sourceCheck.error);
+        throw new Error("Invalid source data");
+      }
+
+      const sources = sourceCheck.data;
+
+      return {
+        question: chat.question,
+        answer: {
+          parts: [
+            {
+              text: chat.answer ?? undefined,
+            },
+          ],
+          sources: sources ?? [],
+        },
+      };
+    },
+  );
+
+  return {
+    success: true,
+    data: accumulatedChatHistory,
   };
 };

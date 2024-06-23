@@ -71,16 +71,13 @@ function DynamicIslandContent() {
   }
 
   const lastBtn = useRef<string>();
-  useEffect(() => {
-    console.log(show);
-  }, [show]);
 
   useEffect(() => {
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         setshow(true);
       }
-      console.log(e.key, lastBtn.current);
+
       if (e.key === "a" && lastBtn.current === "Alt") {
         setshow(false);
       }
@@ -90,19 +87,15 @@ function DynamicIslandContent() {
   return (
     <>
       {show ? (
-        <div
+        <button
           onClick={() => setshow(!show)}
-          className="bg-secondary px-3 w-[2.23rem] overflow-hidden hover:w-[9.2rem] whitespace-nowrap py-2 rounded-3xl  transition-[width] cursor-pointer"
+          className="bg-secondary p-2 text-[#989EA4] rounded-full flex items-center justify-between gap-2 px-4 h-10 pr-5 z-[999] shadow-md"
         >
-          <div className="flex gap-4 items-center">
-            <Image src={AddIcon} alt="Add icon" />
-            Add Content
-          </div>
-        </div>
+          <Image src={AddIcon} alt="add icon" />
+          Add content
+        </button>
       ) : (
-        <div>
-          <ToolBar cancelfn={cancelfn} />
-        </div>
+        <ToolBar cancelfn={cancelfn} />
       )}
     </>
   );
@@ -272,7 +265,6 @@ function PageForm({
           spaces: space ? [space] : undefined,
         });
 
-        console.log(cont);
         setLoading(false);
         if (cont.success) {
           toast.success("Memory created");

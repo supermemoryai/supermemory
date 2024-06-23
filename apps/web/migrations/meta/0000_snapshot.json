@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4a568d9b-a0e6-44ed-946b-694e34b063f3",
+  "id": "349eea0d-f26e-4579-9c65-3982816b0c6c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -189,6 +189,119 @@
           "name": "authenticator_userId_credentialID_pk"
         }
       },
+      "uniqueConstraints": {}
+    },
+    "chatHistory": {
+      "name": "chatHistory",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "threadId": {
+          "name": "threadId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "question": {
+          "name": "question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "answerParts": {
+          "name": "answerParts",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "answerSources": {
+          "name": "answerSources",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "answerJustification": {
+          "name": "answerJustification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "chatHistory_thread_idx": {
+          "name": "chatHistory_thread_idx",
+          "columns": ["threadId"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "chatHistory_threadId_chatThread_id_fk": {
+          "name": "chatHistory_threadId_chatThread_id_fk",
+          "tableFrom": "chatHistory",
+          "tableTo": "chatThread",
+          "columnsFrom": ["threadId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "chatThread": {
+      "name": "chatThread",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "firstMessage": {
+          "name": "firstMessage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "chatThread_user_idx": {
+          "name": "chatThread_user_idx",
+          "columns": ["userId"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "chatThread_userId_user_id_fk": {
+          "name": "chatThread_userId_user_id_fk",
+          "tableFrom": "chatThread",
+          "tableTo": "user",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
     "contentToSpace": {
@@ -411,7 +524,7 @@
         },
         "user": {
           "name": "user",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

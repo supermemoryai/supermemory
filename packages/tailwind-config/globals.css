@@ -211,12 +211,13 @@ body {
   width: 0px;
 }
 
-::-moz-selection { /* Code for Firefox */
-  color: #369DFD;
-  background: #21303D;
+::-moz-selection {
+  /* Code for Firefox */
+  color: #369dfd;
+  background: #21303d;
 }
 
 ::selection {
-  color: #369DFD;
-  background: #21303D;
+  color: #369dfd;
+  background: #21303d;
 }

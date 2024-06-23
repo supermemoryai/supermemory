@@ -1,18 +1,20 @@
 import { z } from "zod";
 
+export const SourceZod = z.object({
+  type: z.string(),
+  source: z.string(),
+  title: z.string(),
+  content: z.string(),
+  numChunks: z.number().optional().default(1),
+});
+
+export type Source = z.infer<typeof SourceZod>;
+
 export const ChatHistoryZod = z.object({
   question: z.string(),
   answer: z.object({
-    parts: z.array(z.object({ text: z.string() })),
-    sources: z.array(
-      z.object({
-        type: z.enum(["note", "page", "tweet"]),
-        source: z.string(),
-        title: z.string(),
-        content: z.string(),
-        numChunks: z.number().optional().default(1),
-      }),
-    ),
+    parts: z.array(z.object({ text: z.string().optional() })),
+    sources: z.array(SourceZod),
     justification: z.string().optional(),
   }),
 });
@@ -51,6 +53,9 @@ export function convertChatHistoryList(
       },
     );
   });
+
+  // THE LAST ASSISTANT CONTENT WILL ALWAYS BE EMPTY, so we remove it
+  convertedChats.pop();
 
   return convertedChats;
 }

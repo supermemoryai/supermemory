@@ -1,9 +1,5 @@
 import { type NextRequest } from "next/server";
-import {
-  ChatHistory,
-  ChatHistoryZod,
-  convertChatHistoryList,
-} from "@repo/shared-types";
+import { ChatHistoryZod, convertChatHistoryList } from "@repo/shared-types";
 import { ensureAuth } from "../ensureAuth";
 import { z } from "zod";
 
@@ -67,11 +63,8 @@ export async function POST(req: NextRequest) {
     },
   );
 
-  console.log("sourcesOnly", sourcesOnly);
-
   if (sourcesOnly == "true") {
     const data = await resp.json();
-    console.log("data", data);
     return new Response(JSON.stringify(data), { status: 200 });
   }
 

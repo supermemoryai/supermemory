@@ -1,4 +1,11 @@
-import { BaseBoxShapeUtil, HTMLContainer, TLBaseBoxShape, TLBaseShape, useIsEditing, useValue } from "tldraw";
+import {
+  BaseBoxShapeUtil,
+  HTMLContainer,
+  TLBaseBoxShape,
+  TLBaseShape,
+  useIsEditing,
+  useValue,
+} from "tldraw";
 
 type ITextCardShape = TLBaseShape<
   "Textcard",
@@ -18,26 +25,29 @@ export class textCardUtil extends BaseBoxShapeUtil<ITextCardShape> {
   }
 
   component(s: ITextCardShape) {
-
-    const isEditing = useIsEditing(s.id)
+    const isEditing = useIsEditing(s.id);
     const isHoveringWhileEditingSameShape = useValue(
-      'is hovering',
+      "is hovering",
       () => {
-        const { editingShapeId, hoveredShapeId } = this.editor.getCurrentPageState()
-  
+        const { editingShapeId, hoveredShapeId } =
+          this.editor.getCurrentPageState();
+
         if (editingShapeId && hoveredShapeId !== editingShapeId) {
-          const editingShape = this.editor.getShape(editingShapeId)
-          if (editingShape && this.editor.isShapeOfType<TLBaseBoxShape>(editingShape, 'embed')) {
-            return true
+          const editingShape = this.editor.getShape(editingShapeId);
+          if (
+            editingShape &&
+            this.editor.isShapeOfType<TLBaseBoxShape>(editingShape, "embed")
+          ) {
+            return true;
           }
         }
-  
-        return false
-      },
-      []
-    )
 
-    const isInteractive = isEditing || isHoveringWhileEditingSameShape
+        return false;
+      },
+      [],
+    );
+
+    const isInteractive = isEditing || isHoveringWhileEditingSameShape;
     return (
       <HTMLContainer className="flex h-full w-full items-center justify-center">
         <div
@@ -48,7 +58,7 @@ export class textCardUtil extends BaseBoxShapeUtil<ITextCardShape> {
             zIndex: isInteractive ? "" : "-1",
             background: "#2C3439",
             borderRadius: "16px",
-            padding: "8px 14px"
+            padding: "8px 14px",
           }}
         >
           <h1 style={{ fontSize: "15px" }}>{s.props.content}</h1>

@@ -154,3 +154,40 @@ export type StoredSpace = typeof space.$inferSelect;
 export type ChachedSpaceContent = StoredContent & {
   space: number;
 };
+
+export const chatThreads = createTable(
+  "chatThread",
+  {
+    id: text("id")
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    firstMessage: text("firstMessage").notNull(),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (thread) => ({
+    userIdx: index("chatThread_user_idx").on(thread.userId),
+  }),
+);
+
+export const chatHistory = createTable(
+  "chatHistory",
+  {
+    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
+    threadId: text("threadId")
+      .notNull()
+      .references(() => chatThreads.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    answer: text("answerParts"), // Single answer part as string
+    answerSources: text("answerSources"), // JSON stringified array of objects
+    answerJustification: text("answerJustification"),
+  },
+  (history) => ({
+    threadIdx: index("chatHistory_thread_idx").on(history.threadId),
+  }),
+);
+
+export type ChatThread = typeof chatThreads.$inferSelect;
+export type ChatHistory = typeof chatHistory.$inferSelect;

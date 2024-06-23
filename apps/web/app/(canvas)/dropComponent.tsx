@@ -52,14 +52,14 @@ function DropZone() {
     console.log("leaver");
   };
 
-  useEffect(()=> {
-    setInterval(()=> {
+  useEffect(() => {
+    setInterval(() => {
       editor.selectAll();
       const shapes = editor.getSelectedShapes();
-      const text = shapes.filter((s) => s.type === "text")
-      console.log("hrhh", text)
-    },5000)
-  }, [])
+      const text = shapes.filter((s) => s.type === "text");
+      console.log("hrhh", text);
+    }, 5000);
+  }, []);
 
   const handleDrop = useCallback((event: DragEvent) => {
     event.preventDefault();
@@ -111,19 +111,23 @@ function DropZone() {
       className={`h-full flex justify-center items-center w-full absolute top-0 left-0 z-[100000] pointer-events-none  ${isDraggingOver && "bg-[#2c3439ad]  pointer-events-auto"}`}
       ref={dropRef}
     >
-      {
-        isDraggingOver&& (
-          <>
-          <div className="absolute top-4 left-8"><TopRight /></div>
-          <div className="absolute top-4 right-8"><TopLeft /></div>
-          <div className="absolute bottom-4 left-8"><BottomLeft /></div>
-          <div className="absolute bottom-4 right-8"><BottomRight /></div>
+      {isDraggingOver && (
+        <>
+          <div className="absolute top-4 left-8">
+            <TopRight />
+          </div>
+          <div className="absolute top-4 right-8">
+            <TopLeft />
+          </div>
+          <div className="absolute bottom-4 left-8">
+            <BottomLeft />
+          </div>
+          <div className="absolute bottom-4 right-8">
+            <BottomRight />
+          </div>
           <h2 className="text-2xl">Drop here to add Content on Canvas</h2>
-          </>
-        )
-
-      }
-
+        </>
+      )}
     </div>
   );
 }
