@@ -1,10 +1,7 @@
 import {
   BaseBoxShapeUtil,
   HTMLContainer,
-  TLBaseBoxShape,
   TLBaseShape,
-  useIsEditing,
-  useValue,
 } from "tldraw";
 
 type ITextCardShape = TLBaseShape<
@@ -25,37 +22,14 @@ export class textCardUtil extends BaseBoxShapeUtil<ITextCardShape> {
   }
 
   component(s: ITextCardShape) {
-    const isEditing = useIsEditing(s.id);
-    const isHoveringWhileEditingSameShape = useValue(
-      "is hovering",
-      () => {
-        const { editingShapeId, hoveredShapeId } =
-          this.editor.getCurrentPageState();
 
-        if (editingShapeId && hoveredShapeId !== editingShapeId) {
-          const editingShape = this.editor.getShape(editingShapeId);
-          if (
-            editingShape &&
-            this.editor.isShapeOfType<TLBaseBoxShape>(editingShape, "embed")
-          ) {
-            return true;
-          }
-        }
-
-        return false;
-      },
-      [],
-    );
-
-    const isInteractive = isEditing || isHoveringWhileEditingSameShape;
     return (
       <HTMLContainer className="flex h-full w-full items-center justify-center">
         <div
           style={{
             height: s.props.h,
             width: s.props.w,
-            pointerEvents: isInteractive ? "all" : "none",
-            zIndex: isInteractive ? "" : "-1",
+            pointerEvents:"all",
             background: "#2C3439",
             borderRadius: "16px",
             padding: "8px 14px",
