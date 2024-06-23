@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Hono } from "hono";
-import { CoreMessage, generateText, streamText } from "ai";
+import { CoreMessage, streamText } from "ai";
 import { chatObj, Env, vectorObj } from "./types";
 import {
   batchCreateChunksAndEmbeddings,
@@ -193,90 +193,102 @@ app.post(
     const body = c.req.valid("json");
 
     const sourcesOnly = query.sourcesOnly === "true";
+
+    // Return early for dumb requests
+    if (sourcesOnly && body.sources) {
+      return c.json(body.sources);
+    }
+
     const spaces = query.spaces?.split(",") ?? [undefined];
 
     // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
 
-    const filter: VectorizeVectorMetadataFilter = {
-      [`user-${query.user}`]: 1,
-    };
-    console.log("Spaces", spaces);
+    if (!body.sources) {
+      const filter: VectorizeVectorMetadataFilter = {
+        [`user-${query.user}`]: 1,
+      };
+      console.log("Spaces", spaces);
 
-    // Converting the query to a vector so that we can search for similar vectors
-    const queryAsVector = await store.embeddings.embedQuery(query.query);
-    const responses: VectorizeMatches = { matches: [], count: 0 };
+      // Converting the query to a vector so that we can search for similar vectors
+      const queryAsVector = await store.embeddings.embedQuery(query.query);
+      const responses: VectorizeMatches = { matches: [], count: 0 };
 
-    console.log("hello world", spaces);
+      console.log("hello world", spaces);
 
-    // SLICED to 5 to avoid too many queries
-    for (const space of spaces.slice(0, 5)) {
-      console.log("space", space);
-      if (!space && spaces.length > 1) {
-        // it's possible for space list to be [undefined] so we only add space filter conditionally
-        filter[`space-${query.user}-${space}`] = 1;
+      // SLICED to 5 to avoid too many queries
+      for (const space of spaces.slice(0, 5)) {
+        console.log("space", space);
+        if (!space && spaces.length > 1) {
+          // it's possible for space list to be [undefined] so we only add space filter conditionally
+          filter[`space-${query.user}-${space}`] = 1;
+        }
+
+        // Because there's no OR operator in the filter, we have to make multiple queries
+        const resp = await c.env.VECTORIZE_INDEX.query(queryAsVector, {
+          topK: query.topK,
+          filter,
+          returnMetadata: true,
+        });
+
+        // Basically recreating the response object
+        if (resp.count > 0) {
+          responses.matches.push(...resp.matches);
+          responses.count += resp.count;
+        }
       }
 
-      // Because there's no OR operator in the filter, we have to make multiple queries
-      const resp = await c.env.VECTORIZE_INDEX.query(queryAsVector, {
-        topK: query.topK,
-        filter,
-        returnMetadata: true,
-      });
+      const minScore = Math.min(...responses.matches.map(({ score }) => score));
+      const maxScore = Math.max(...responses.matches.map(({ score }) => score));
 
-      // Basically recreating the response object
-      if (resp.count > 0) {
-        responses.matches.push(...resp.matches);
-        responses.count += resp.count;
+      // We are "normalising" the scores - if all of them are on top, we want to make sure that
+      // we have a way to filter out the noise.
+      const normalizedData = responses.matches.map((data) => ({
+        ...data,
+        normalizedScore:
+          maxScore !== minScore
+            ? 1 + ((data.score - minScore) / (maxScore - minScore)) * 98
+            : 50, // If all scores are the same, set them to the middle of the scale
+      }));
+
+      let highScoreData = normalizedData.filter(
+        ({ normalizedScore }) => normalizedScore > 50,
+      );
+
+      // If the normalsation is not done properly, we have a fallback to just get the
+      // top 3 scores
+      if (highScoreData.length === 0) {
+        highScoreData = normalizedData
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+      }
+
+      const sortedHighScoreData = highScoreData.sort(
+        (a, b) => b.normalizedScore - a.normalizedScore,
+      );
+
+      body.sources = {
+        normalizedData,
+      };
+
+      // So this is kinda hacky, but the frontend needs to do 2 calls to get sources and chat.
+      // I think this is fine for now, but we can improve this later.
+      if (sourcesOnly) {
+        const idsAsStrings = sortedHighScoreData.map((dataPoint) =>
+          dataPoint.id.toString(),
+        );
+
+        const storedContent = await Promise.all(
+          idsAsStrings.map(async (id) => await c.env.KV.get(id)),
+        );
+
+        const metadata = normalizedData.map((datapoint) => datapoint.metadata);
+
+        return c.json({ ids: storedContent, metadata, normalizedData });
       }
     }
 
-    const minScore = Math.min(...responses.matches.map(({ score }) => score));
-    const maxScore = Math.max(...responses.matches.map(({ score }) => score));
-
-    // We are "normalising" the scores - if all of them are on top, we want to make sure that
-    // we have a way to filter out the noise.
-    const normalizedData = responses.matches.map((data) => ({
-      ...data,
-      normalizedScore:
-        maxScore !== minScore
-          ? 1 + ((data.score - minScore) / (maxScore - minScore)) * 98
-          : 50, // If all scores are the same, set them to the middle of the scale
-    }));
-
-    let highScoreData = normalizedData.filter(
-      ({ normalizedScore }) => normalizedScore > 50,
-    );
-
-    // If the normalsation is not done properly, we have a fallback to just get the
-    // top 3 scores
-    if (highScoreData.length === 0) {
-      highScoreData = normalizedData
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 3);
-    }
-
-    const sortedHighScoreData = highScoreData.sort(
-      (a, b) => b.normalizedScore - a.normalizedScore,
-    );
-
-    // So this is kinda hacky, but the frontend needs to do 2 calls to get sources and chat.
-    // I think this is fine for now, but we can improve this later.
-    if (sourcesOnly) {
-      const idsAsStrings = sortedHighScoreData.map((dataPoint) =>
-        dataPoint.id.toString(),
-      );
-
-      const storedContent = await Promise.all(
-        idsAsStrings.map(async (id) => await c.env.KV.get(id)),
-      );
-
-      const metadata = normalizedData.map((datapoint) => datapoint.metadata);
-
-      return c.json({ ids: storedContent, metadata });
-    }
-
-    const preparedContext = normalizedData.map(
+    const preparedContext = body.sources.normalizedData.map(
       ({ metadata, score, normalizedScore }) => ({
         context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
         score,
@@ -330,20 +342,28 @@ app.delete(
   },
 );
 
-// ERROR #1 - this is the api that the editor uses, it is just a scrape off of /api/chat so you may check that out 
-app.get('/api/editorai', zValidator(
-  "query",
-  z.object({
-    context: z.string(),
-    request: z.string(),
-  }),
-), async (c)=> {
-  const { context, request } = c.req.valid("query");
-  const { model } = await initQuery(c);
+// ERROR #1 - this is the api that the editor uses, it is just a scrape off of /api/chat so you may check that out
+app.get(
+  "/api/editorai",
+  zValidator(
+    "query",
+    z.object({
+      context: z.string(),
+      request: z.string(),
+    }),
+  ),
+  async (c) => {
+    const { context, request } = c.req.valid("query");
+    const { model } = await initQuery(c);
 
-  const response = await streamText({ model, prompt: `${request}-${context}`, maxTokens: 224 });
+    const response = await streamText({
+      model,
+      prompt: `${request}-${context}`,
+      maxTokens: 224,
+    });
 
-  return response.toTextStreamResponse();
-})
+    return response.toTextStreamResponse();
+  },
+);
 
 export default app;

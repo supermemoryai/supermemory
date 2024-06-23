@@ -1,3 +1,4 @@
+import { sourcesZod } from "@repo/shared-types";
 import { z } from "zod";
 
 export type Env = {
@@ -37,6 +38,7 @@ export const contentObj = z.object({
 
 export const chatObj = z.object({
   chatHistory: z.array(contentObj).optional(),
+  sources: sourcesZod.optional(),
 });
 
 export const vectorObj = z.object({
