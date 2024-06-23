@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useEffect, useContext } from "react";
 import { useEditor } from "tldraw";
-import DragContext, { DragContextType } from "./lib/context";
-import { handleExternalDroppedContent } from "./lib/createEmbeds";
+import DragContext, { DragContextType, useDragContext } from "../lib/context";
+import { handleExternalDroppedContent } from "../lib/createEmbeds";
 
 const stripHtmlTags = (html: string): string => {
   const div = document.createElement("div");
@@ -33,17 +33,9 @@ function formatTextToRatio(text: string) {
   return lines.join("\n");
 }
 
-const useDrag = (): DragContextType => {
-  const context = useContext(DragContext);
-  if (!context) {
-    throw new Error("useCounter must be used within a CounterProvider");
-  }
-  return context;
-};
-
 function DropZone() {
   const dropRef = useRef<HTMLDivElement | null>(null);
-  const { isDraggingOver, setIsDraggingOver } = useDrag();
+  const { isDraggingOver, setIsDraggingOver } = useDragContext();
 
   const editor = useEditor();
 
