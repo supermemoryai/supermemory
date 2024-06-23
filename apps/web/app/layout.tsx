@@ -68,8 +68,6 @@ export default function RootLayout({
       {/* <head>
         <ThemeScript />
       </head> */}
-      <div className="absolute top-0 z-10 min-h-screen w-screen overflow-hidden bg-inherit  bg-[radial-gradient(ellipse_20%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
-      <BackgroundPlus />
       {/* TODO: when lightmode support is added, remove the 'dark' class from the body tag */}
       <body
         className={cn(

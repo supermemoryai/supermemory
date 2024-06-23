@@ -11,6 +11,7 @@ import FUIPricingSectionWithBadge from "./Pricing";
 import Services from "./Features/index";
 import { Showcases } from "./Showcase";
 import { cn } from "@repo/ui/lib/utils";
+import BackgroundPlus from "./GridPatterns/PlusGrid";
 
 export const runtime = "edge";
 
@@ -25,6 +26,10 @@ export default async function Home() {
 
   return (
     <main className="flex overflow-x-hidden relative flex-col items-center px-2 min-h-screen md:px-0 font-geistSans bg-hero-gradient">
+      <BackgroundPlus />
+      <div className="absolute top-0 z-10 min-h-screen w-screen overflow-hidden bg-inherit  bg-[radial-gradient(ellipse_20%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+
+      
       <Navbar />
 
       {/* Background gradients */}
