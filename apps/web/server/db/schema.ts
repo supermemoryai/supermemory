@@ -11,15 +11,24 @@ import type { AdapterAccountType } from "next-auth/adapters";
 
 export const createTable = sqliteTableCreator((name) => `${name}`);
 
-export const users = createTable("user", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name"),
-  email: text("email").notNull(),
-  emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
-  image: text("image"),
-});
+export const users = createTable(
+  "user",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text("name"),
+    email: text("email").notNull(),
+    emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
+    image: text("image"),
+    telegramId: text("telegramId"),
+  },
+  (user) => ({
+    emailIdx: index("users_email_idx").on(user.email),
+    telegramIdx: index("users_telegram_idx").on(user.telegramId),
+    idIdx: index("users_id_idx").on(user.id),
+  }),
+);
 
 export type User = typeof users.$inferSelect;
 
