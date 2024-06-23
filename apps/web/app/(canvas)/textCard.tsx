@@ -1,8 +1,4 @@
-import {
-  BaseBoxShapeUtil,
-  HTMLContainer,
-  TLBaseShape,
-} from "tldraw";
+import { BaseBoxShapeUtil, HTMLContainer, TLBaseShape } from "tldraw";
 
 type ITextCardShape = TLBaseShape<
   "Textcard",
@@ -22,14 +18,13 @@ export class textCardUtil extends BaseBoxShapeUtil<ITextCardShape> {
   }
 
   component(s: ITextCardShape) {
-
     return (
       <HTMLContainer className="flex h-full w-full items-center justify-center">
         <div
           style={{
             height: s.props.h,
             width: s.props.w,
-            pointerEvents:"all",
+            pointerEvents: "all",
             background: "#2C3439",
             borderRadius: "16px",
             padding: "8px 14px",
