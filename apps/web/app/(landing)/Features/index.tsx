@@ -58,7 +58,7 @@ const Services = () => {
           </div>
 
           <div className="grid relative gap-5 lg:grid-cols-2 z-1">
-            <div className="overflow-hidden relative rounded-3xl border min-h-[30rem] bg-hero-gradient bg-slate-950/10 border-white/10">
+            <div className="overflow-hidden relative rounded-3xl border min-h-[33rem] bg-hero-gradient bg-slate-950/10 border-white/10">
               <div className="absolute inset-0">
                 <div className="absolute -z-1 inset-0  h-[600px] w-full bg-transparent opacity-5 bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
 
@@ -71,7 +71,7 @@ const Services = () => {
                 />
               </div>
 
-              <div className="flex absolute inset-0 flex-col justify-end items-start p-8 -mt-20 bg-glass-gradient">
+              <div className="flex absolute mt-4 lg:-mt-20 inset-0 flex-col justify-end items-start p-8 bg-glass-gradient">
                 <h4 className="text-3xl tracking-tight mb-2 text-center text-transparent bg-clip-text bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]">
                   Self Hostable
                 </h4>
@@ -153,7 +153,7 @@ const Services = () => {
               </p>
               <a
                 href="/components"
-                className="inline-flex gap-x-1 justify-center items-center py-4 px-10 w-full text-center bg-transparent bg-gradient-to-tr to-transparent rounded-xl transition-colors sm:w-auto mt-[-20px] bg-glass-gradient group from-zinc-300/5 via-gray-400/5 border-white/10 border-[1px] hover:bg-transparent/10"
+                className="inline-flex gap-x-1 justify-center items-center py-4 px-10 w-fit text-center bg-transparent bg-gradient-to-tr to-transparent rounded-xl transition-colors sm:w-auto mt-[-20px] bg-glass-gradient group from-zinc-300/5 via-gray-400/5 border-white/10 border-[1px] hover:bg-transparent/10"
               >
                 <GithubIcon className="inline-flex justify-center items-center w-5 h-5" />{" "}
                 Get The Github
