@@ -5,6 +5,9 @@ import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
 const nextConfig = {
   transpilePackages: ["@repo/ui"],
   reactStrictMode: false,
+  env: {
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+  },
 };
 export default MillionLint.next({
   rsc: true,

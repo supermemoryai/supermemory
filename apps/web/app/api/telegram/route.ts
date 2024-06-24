@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { storedContent, users } from "@/server/db/schema";
-import { cipher, decipher } from "@/server/encrypt";
+import { cipher } from "@/server/encrypt";
 import { eq } from "drizzle-orm";
 import { Bot, webhookCallback } from "grammy";
 import { User } from "grammy/types";
@@ -16,16 +16,9 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 
 const bot = new Bot(token);
 
-const getUserByTelegramId = async (telegramId: string) => {
-  return await db.query.users
-    .findFirst({
-      where: eq(users.telegramId, telegramId),
-    })
-    .execute();
-};
-
 bot.command("start", async (ctx) => {
   const user: User = (await ctx.getAuthor()).user;
+
   const cipherd = cipher(user.id.toString());
   await ctx.reply(
     `Welcome to Supermemory bot. I am here to help you remember things better. Click here to create and link your accont: http://localhost:3000/signin?telegramUser=${cipherd}`,
@@ -34,9 +27,14 @@ bot.command("start", async (ctx) => {
 
 bot.on("message", async (ctx) => {
   const user: User = (await ctx.getAuthor()).user;
+
   const cipherd = cipher(user.id.toString());
 
-  const dbUser = await getUserByTelegramId(user.id.toString());
+  const dbUser = await db.query.users
+    .findFirst({
+      where: eq(users.telegramId, user.id.toString()),
+    })
+    .execute();
 
   if (!dbUser) {
     await ctx.reply(
