@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
     const og: { [key: string]: string | undefined } = {};
     const twitter: { [key: string]: string | undefined } = {};
 
-    // @ts-ignore, it just works so why care of type safety if someone has better way go ahead
     $("meta[property^=og:]").each(
+      // @ts-ignore, it just works so why care of type safety if someone has better way go ahead
       (_, el) => (og[$(el).attr("property")!] = $(el).attr("content")),
     );
-    // @ts-ignore
     $("meta[name^=twitter:]").each(
+      // @ts-ignore
       (_, el) => (twitter[$(el).attr("name")!] = $(el).attr("content")),
     );
 
