@@ -53,7 +53,7 @@ function EmailInput() {
       {email && (
         <button
           type="submit"
-          className="transition-width rounded-xl bg-gray-700 p-4 text-white duration-300"
+          className="transition-width rounded-xl z-20 bg-gray-700 p-4 text-white duration-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
