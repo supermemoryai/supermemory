@@ -3,16 +3,18 @@
 import { FormEvent, useState } from "react";
 import formSubmitAction from "./formSubmitAction";
 import { useToast } from "@repo/ui/shadcn/use-toast";
+import { Loader } from "lucide-react";
 
 function EmailInput() {
   const [email, setEmail] = useState("");
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
   return (
     <form
       onSubmit={async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-
+        setLoading(true);
         const value = await formSubmitAction(email, "token" as string);
 
         if (value.success) {
@@ -30,6 +32,7 @@ function EmailInput() {
             description: `${value.value}`,
           });
         }
+        setLoading(false);
       }}
       className="flex w-full items-center justify-center gap-2"
     >
@@ -55,20 +58,24 @@ function EmailInput() {
           type="submit"
           className="transition-width rounded-xl z-20 bg-gray-700 p-4 text-white duration-300"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="h-6 w-6"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-            />
-          </svg>
+          {loading ? (
+            <Loader className="h-6 w-6 animate-spin" />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="h-6 w-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
+              />
+            </svg>
+          )}
         </button>
       )}
     </form>
