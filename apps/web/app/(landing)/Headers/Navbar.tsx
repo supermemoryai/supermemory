@@ -33,7 +33,9 @@ const SlideTabs = () => {
         <Image src={Logo} alt="Supermemory logo" width={40} height={40} />
       </Link>
 
-      <Tab setPosition={setPosition}>Home</Tab>
+      <Tab key={0} setPosition={setPosition}>
+        Home
+      </Tab>
       <Tab setPosition={setPosition}>Pricing</Tab>
       <Tab setPosition={setPosition}>Features</Tab>
       <Tab setPosition={setPosition}>Docs</Tab>
@@ -51,20 +53,30 @@ const SlideTabs = () => {
     </ul>
   );
 };
-// @ts-ignore
-const Tab = ({ children, setPosition }) => {
-  const ref = useRef(null);
+const Tab = ({
+  children,
+  setPosition,
+}: {
+  children: React.ReactNode;
+  setPosition: ({
+    left,
+    width,
+    opacity,
+  }: {
+    left: number;
+    width: number;
+    opacity: number;
+  }) => void;
+}) => {
+  const ref = useRef<HTMLLIElement>(null);
 
   return (
     <li
       ref={ref}
       onMouseEnter={() => {
         if (!ref?.current) return;
-        // @ts-ignore
         const { width } = ref.current.getBoundingClientRect();
-
         setPosition({
-          // @ts-ignore
           left: ref.current.offsetLeft,
           width,
           opacity: 1,
