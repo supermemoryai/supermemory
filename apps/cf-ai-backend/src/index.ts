@@ -15,6 +15,7 @@ import { zValidator } from "@hono/zod-validator";
 import chunkText from "./utils/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
 import { swaggerUI } from "@hono/swagger-ui";
+import { createOpenAI } from "@ai-sdk/openai";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -187,13 +188,18 @@ app.post(
 
     const { store, model } = await initQuery(c);
 
+    // we're creating another instance of the model here because we want to use a cheaper model for this.
+    const openai = createOpenAI({
+      apiKey: c.env.OPENAI_API_KEY,
+    });
+
     let task: "add" | "chat" = "chat";
     let thingToAdd: "page" | "image" | "text" | undefined = undefined;
     let addContent: string | undefined = undefined;
 
     // This is a "router". this finds out if the user wants to add a document, or chat with the AI to get a response.
     const routerQuery = await generateText({
-      model,
+      model: openai.chat("gpt-3.5-turbo"),
       system: `You are Supermemory chatbot. You can either add a document to the supermemory database, or return a chat response. Based on this query, 
         You must determine what to do. Basically if it feels like a "question", then you should intiate a chat. If it feels like a "command" or feels like something that could be forwarded to the AI, then you should add a document.
         You must also extract the "thing" to add and what type of thing it is.`,

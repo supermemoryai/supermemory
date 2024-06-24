@@ -5,7 +5,8 @@ import QueryInput from "./queryinput";
 import { homeSearchParamsCache } from "@/lib/searchParams";
 import { getSpaces } from "@/app/actions/fetchers";
 import { useRouter } from "next/navigation";
-import { createChatThread } from "@/app/actions/doers";
+import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
+import { toast } from "sonner";
 
 function Page({
   searchParams,
@@ -14,11 +15,30 @@ function Page({
 }) {
   // TODO: use this to show a welcome page/modal
   // const { firstTime } = homeSearchParamsCache.parse(searchParams);
+
+  const [telegramUser, setTelegramUser] = useState<string | undefined>(
+    searchParams.telegramUser as string,
+  );
+
   const { push } = useRouter();
 
   const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
   useEffect(() => {
+    if (telegramUser) {
+      const linkTelegram = async () => {
+        const response = await linkTelegramToUser(telegramUser);
+
+        if (response.success) {
+          toast.success("Your telegram has been linked successfully.");
+        } else {
+          toast.error("Failed to link telegram. Please try again.");
+        }
+      };
+
+      linkTelegram();
+    }
+
     getSpaces().then((res) => {
       if (res.success && res.data) {
         setSpaces(res.data);
