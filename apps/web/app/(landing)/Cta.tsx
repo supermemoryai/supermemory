@@ -1,10 +1,7 @@
-import Image from "next/image";
 import React from "react";
 import EmailInput from "./EmailInput";
 import GridPattern from "./CardPatterns/AnimatedGrid";
-import { cn } from "@repo/ui/lib/utils";
 import { ChevronRight } from "lucide-react";
-import { Gradient } from "./Features/features";
 // import {Animated}
 
 function Cta() {

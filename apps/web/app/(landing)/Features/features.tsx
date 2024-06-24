@@ -1,5 +1,3 @@
-import { PlayIcon } from "lucide-react";
-import ChatBubbleWing from "./chatbubble";
 import { cn } from "@repo/ui/lib/utils";
 
 export const Gradient = ({ opacity = 50 }: { opacity?: number }) => {

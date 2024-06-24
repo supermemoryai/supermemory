@@ -65,12 +65,8 @@ export default function FUIFeatureSectionWithCards() {
         <div className="relative mx-auto max-w-2xl sm:text-center">
           <div className="relative z-10">
             <h3 className="mt-4 text-3xl font-normal tracking-tighter text-gray-200 sm:text-4xl md:text-5xl font-geist">
-              {/* Let’s help power your SaaS */}
             </h3>
-            {/* <p className="mt-3 text-gray-200 font-geist">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-              congue, nisl eget molestie varius, enim ex faucibus purus.
-            </p> */}
+          
           </div>
           <div
             className="absolute inset-0 mx-auto max-w-xs h-44 blur-[118px]"
@@ -80,7 +76,6 @@ export default function FUIFeatureSectionWithCards() {
             }}
           ></div>
         </div>
-        {/* <hr className="z-20 mx-auto w-1/2 inivisible h-[0.2px] bg-whi" /> */}
         <div className="relative z-20 mt-[4rem]">
           <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((item, idx) => (
