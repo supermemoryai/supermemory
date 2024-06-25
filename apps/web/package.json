@@ -5,11 +5,11 @@
   "packageManager": "yarn@1.22.21",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "bun pages:build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
-    "pages:build": "bunx @cloudflare/next-on-pages",
+    "pages:build": "npx @cloudflare/next-on-pages",
     "preview": "bun pages:build && wrangler pages dev",
     "deploy": "bun pages:build && wrangler pages deploy",
     "schema-update": "bunx drizzle-kit generate sqlite",
