@@ -255,17 +255,18 @@ function PageForm({
       action={async (e: FormData) => {
         const content = e.get("content")?.toString();
         const space = e.get("space")?.toString();
+
+        toast.info("Creating memory...");
+
         if (!content) {
           toast.error("Content is required");
           return;
         }
-        setLoading(true);
         const cont = await createMemory({
           content: content,
           spaces: space ? [space] : undefined,
         });
 
-        setLoading(false);
         if (cont.success) {
           toast.success("Memory created");
         } else {
@@ -290,9 +291,6 @@ function PageForm({
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div key={`${loading}-${pending}`}>
-        {loading ? <div>Loading...</div> : "not loading"}
       </div>
       <div>
         <Label className="text-[#858B92]" htmlFor="name">
