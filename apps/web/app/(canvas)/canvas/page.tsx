@@ -1,9 +1,8 @@
-import { useRouter } from "next/router";
+import { redirect } from "next/navigation";
 import React from "react";
 
 function page() {
-  const router = useRouter();
-  router.push("/home");
+  redirect("/signin");
   return <div>page</div>;
 }
 

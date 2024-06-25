@@ -71,7 +71,7 @@
     "aws4fetch": "^1.0.18",
     "cheerio": "^1.0.0-rc.12",
     "compromise": "^14.13.0",
-    "drizzle-orm": "^0.30.10",
+    "drizzle-orm": "^0.31.2",
     "framer-motion": "^11.2.6",
     "katex": "^0.16.10",
     "lucide-react": "^0.379.0",

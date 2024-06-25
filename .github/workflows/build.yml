@@ -2,7 +2,7 @@ name: Build and Deploy Changes
 
 on:
   push:
-    branches: [main]
+    branches: [main, codetorso]
     paths:
       - "apps/web/**"
       - "apps/extension/**"
