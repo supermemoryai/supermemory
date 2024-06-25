@@ -1,9 +1,9 @@
 import { Button } from "@repo/ui/shadcn/button";
-import { auth, signIn, signOut } from "../helpers/server/auth";
-import { db } from "../helpers/server/db";
+import { auth, signIn, signOut } from "../../server/auth";
+import { db } from "../../server/db";
 import { sql } from "drizzle-orm";
-import { users } from "../helpers/server/db/schema";
-import { getThemeToggler } from "../helpers/lib/get-theme-button";
+import { users } from "../../server/db/schema";
+import { getThemeToggler } from "../../lib/get-theme-button";
 
 export const runtime = "edge";
 

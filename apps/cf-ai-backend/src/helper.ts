@@ -21,8 +21,6 @@ export async function initQuery(
     index: c.env.VECTORIZE_INDEX,
   });
 
-  const DEFAULT_MODEL = "gpt-4o";
-
   let selectedModel:
     | ReturnType<ReturnType<typeof createOpenAI>>
     | ReturnType<ReturnType<typeof createGoogleGenerativeAI>>
@@ -52,12 +50,6 @@ export async function initQuery(
       break;
   }
 
-  if (!selectedModel) {
-    throw new Error(
-      `Model ${model} not found and default model ${DEFAULT_MODEL} is also not available.`,
-    );
-  }
-
   return { store, model: selectedModel };
 }
 
@@ -72,19 +64,60 @@ export async function deleteDocument({
   c: Context<{ Bindings: Env }>;
   store: CloudflareVectorizeStore;
 }) {
-  const toBeDeleted = `${url}-${user}`;
+  const toBeDeleted = `${url}#supermemory-web`;
   const random = seededRandom(toBeDeleted);
 
   const uuid =
     random().toString(36).substring(2, 15) +
     random().toString(36).substring(2, 15);
 
-  await c.env.KV.list({ prefix: uuid }).then(async (keys) => {
-    for (const key of keys.keys) {
-      await c.env.KV.delete(key.name);
-      await store.delete({ ids: [key.name] });
+  const allIds = await c.env.KV.list({ prefix: uuid });
+
+  if (allIds.keys.length > 0) {
+    const savedVectorIds = allIds.keys.map((key) => key.name);
+    const vectors = await c.env.VECTORIZE_INDEX.getByIds(savedVectorIds);
+    // We don't actually delete document directly, we just remove the user from the metadata.
+    // If there's no user left, we can delete the document.
+    const newVectors = vectors.map((vector) => {
+      delete vector.metadata[`user-${user}`];
+
+      // Get count of how many users are left
+      const userCount = Object.keys(vector.metadata).filter((key) =>
+        key.startsWith("user-"),
+      ).length;
+
+      // If there's no user left, we can delete the document.
+      // need to make sure that every chunk is deleted otherwise it would be problematic.
+      if (userCount === 0) {
+        store.delete({ ids: savedVectorIds });
+        void Promise.all(savedVectorIds.map((id) => c.env.KV.delete(id)));
+        return null;
+      }
+
+      return vector;
+    });
+
+    // If all vectors are null (deleted), we can delete the KV too. Otherwise, we update (upsert) the vectors.
+    if (newVectors.every((v) => v === null)) {
+      await c.env.KV.delete(uuid);
+    } else {
+      await c.env.VECTORIZE_INDEX.upsert(newVectors.filter((v) => v !== null));
     }
-  });
+  }
+}
+
+function sanitizeKey(key: string): string {
+  if (!key) throw new Error("Key cannot be empty");
+
+  // Remove or replace invalid characters
+  let sanitizedKey = key.replace(/[.$"]/g, "_");
+
+  // Ensure key does not start with $
+  if (sanitizedKey.startsWith("$")) {
+    sanitizedKey = sanitizedKey.substring(1);
+  }
+
+  return sanitizedKey;
 }
 
 export async function batchCreateChunksAndEmbeddings({
@@ -98,19 +131,47 @@ export async function batchCreateChunksAndEmbeddings({
   chunks: string[];
   context: Context<{ Bindings: Env }>;
 }) {
-  const ourID = `${body.url}-${body.user}`;
-
-  await deleteDocument({ url: body.url, user: body.user, c: context, store });
-
+  //! NOTE that we use #supermemory-web to ensure that
+  //! If a user saves it through the extension, we don't want other users to be able to see it.
+  // Requests from the extension should ALWAYS have a unique ID with the USERiD in it.
+  // I cannot stress this enough, important for security.
+  const ourID = `${body.url}#supermemory-web`;
   const random = seededRandom(ourID);
+  const uuid =
+    random().toString(36).substring(2, 15) +
+    random().toString(36).substring(2, 15);
+
+  const allIds = await context.env.KV.list({ prefix: uuid });
+
+  // If some chunks for that content already exist, we'll just update the metadata to include
+  // the user.
+  if (allIds.keys.length > 0) {
+    const savedVectorIds = allIds.keys.map((key) => key.name);
+    const vectors = await context.env.VECTORIZE_INDEX.getByIds(savedVectorIds);
+
+    // Now, we'll update all vector metadatas with one more userId and all spaceIds
+    const newVectors = vectors.map((vector) => {
+      vector.metadata = {
+        ...vector.metadata,
+        [`user-${body.user}`]: 1,
+
+        // For each space in body, add the spaceId to the vector metadata
+        ...(body.spaces ?? [])?.reduce((acc, space) => {
+          acc[`space-${body.user}-${space}`] = 1;
+          return acc;
+        }, {}),
+      };
+
+      return vector;
+    });
+
+    await context.env.VECTORIZE_INDEX.upsert(newVectors);
+    return;
+  }
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const uuid =
-      random().toString(36).substring(2, 15) +
-      random().toString(36).substring(2, 15) +
-      "-" +
-      i;
+    const chunkId = `${uuid}-${i}`;
 
     const newPageContent = `Title: ${body.title}\nDescription: ${body.description}\nURL: ${body.url}\nContent: ${chunk}`;
 
@@ -121,19 +182,25 @@ export async function batchCreateChunksAndEmbeddings({
           metadata: {
             title: body.title?.slice(0, 50) ?? "",
             description: body.description ?? "",
-            space: body.space ?? "",
             url: body.url,
-            user: body.user,
+            type: body.type ?? "page",
+            content: newPageContent,
+
+            [sanitizeKey(`user-${body.user}`)]: 1,
+            ...body.spaces?.reduce((acc, space) => {
+              acc[`space-${body.user}-${space}`] = 1;
+              return acc;
+            }, {}),
           },
         },
       ],
       {
-        ids: [uuid],
+        ids: [chunkId],
       },
     );
 
     console.log("Docs added: ", docs);
 
-    await context.env.KV.put(uuid, ourID);
+    await context.env.KV.put(chunkId, ourID);
   }
 }

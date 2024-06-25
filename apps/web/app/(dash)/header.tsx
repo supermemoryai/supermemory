@@ -3,13 +3,22 @@ import Image from "next/image";
 import Link from "next/link";
 import Logo from "../../public/logo.svg";
 import { AddIcon, ChatIcon } from "@repo/ui/icons";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/shadcn/tabs";
 
-function Header() {
+import DynamicIsland from "./dynamicisland";
+import { db } from "@/server/db";
+import { getChatHistory } from "../actions/fetchers";
+
+async function Header() {
+  const chatThreads = await getChatHistory();
+
+  if (!chatThreads.success || !chatThreads.data) {
+    return <div>Error fetching chat threads</div>;
+  }
+
   return (
-    <div>
-      <div className="flex items-center justify-between relative z-10">
-        <Link href="/">
+    <div className="p-4 relative z-30 h-16 flex items-center">
+      <div className="w-full flex items-center justify-between">
+        <Link className="" href="/home">
           <Image
             src={Logo}
             alt="SuperMemory logo"
@@ -17,37 +26,37 @@ function Header() {
           />
         </Link>
 
-        <Tabs
-          className="absolute flex flex-col justify-center items-center w-full -z-10 group top-0 transition-transform duration-1000 ease-out"
-          defaultValue="account"
-        >
-          <div className="bg-secondary all-center h-11 rounded-full p-2 min-w-14">
-            <button className="p-2 group-hover:hidden transition duration-500 ease-in-out">
-              <Image src={AddIcon} alt="Add icon" />
+        <div className="fixed z-30 left-1/2 -translate-x-1/2 top-5">
+          <DynamicIsland />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl">
+            <Image src={ChatIcon} alt="Chat icon" className="w-5" />
+            Start new chat
+          </button>
+
+          <div className="relative group">
+            <button className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl">
+              History
             </button>
 
-            <div className="hidden group-hover:flex inset-0 transition-opacity duration-500 ease-in-out">
-              <TabsList className="p-2">
-                <TabsTrigger value="account">Account</TabsTrigger>
-                <TabsTrigger value="password">Password</TabsTrigger>
-              </TabsList>
+            <div className="absolute p-4 hidden group-hover:block right-0 w-full md:w-[400px] max-h-[70vh] overflow-auto">
+              <div className="bg-[#1F2429] rounded-xl p-2 flex flex-col shadow-lg">
+                {chatThreads.data.map((thread) => (
+                  <Link
+                    prefetch={false}
+                    href={`/chat/${thread.id}`}
+                    key={thread.id}
+                    className="p-2 rounded-md hover:bg-secondary"
+                  >
+                    {thread.firstMessage}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="bg-secondary all-center rounded-full p-2 mt-4 min-w-14 hidden group-hover:block">
-            <TabsContent value="account">
-              Make changes to your account here.
-            </TabsContent>
-            <TabsContent value="password">
-              Change your password here.
-            </TabsContent>
-          </div>
-        </Tabs>
-
-        <button className="flex shrink-0 duration-200 items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-secondary">
-          <Image src={ChatIcon} alt="Chat icon" />
-          Start new chat
-        </button>
+        </div>
       </div>
     </div>
   );

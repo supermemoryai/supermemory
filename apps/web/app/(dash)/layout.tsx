@@ -1,22 +1,27 @@
 import Header from "./header";
 import Menu from "./menu";
-import { ensureAuth } from "./actions";
 import { redirect } from "next/navigation";
+import { auth } from "../../server/auth";
+import { Toaster } from "@repo/ui/shadcn/sonner";
 
 async function Layout({ children }: { children: React.ReactNode }) {
-  const info = await ensureAuth();
+  const info = await auth();
 
   if (!info) {
     return redirect("/signin");
   }
 
   return (
-    <main className="h-screen flex flex-col p-4 relative">
-      <Header />
+    <main className="h-screen flex flex-col">
+      <div className="fixed top-0 left-0 w-full">
+        <Header />
+      </div>
 
       <Menu />
 
-      {children}
+      <div className="w-full h-full px-2 md:px-0">{children}</div>
+
+      <Toaster />
     </main>
   );
 }

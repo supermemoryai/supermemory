@@ -1,7 +1,8 @@
-name = "cloudflare-saas-starter"
+name = "supermemory-ai"
 compatibility_date = "2024-03-29"
 compatibility_flags = [ "nodejs_compat" ]
 pages_build_output_dir = ".vercel/output/static"
+
 
 [placement]
 mode = "smart"
@@ -10,15 +11,13 @@ mode = "smart"
 binding = "STORAGE"
 bucket_name = "dev-r2-anycontext"
 
-[[d1_databases]]
+
+[[env.production.d1_databases]]
+binding = "DATABASE"
+database_name = "prod-d1-supermemory"
+database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
+
+[[env.preview.d1_databases]]
 binding = "DATABASE"
 database_name = "dev-d1-anycontext"
 database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
-
-# [[unsafe.bindings]]
-# name = "RATELIMITER"
-# type = "ratelimit"
-# namespace_id = "1001" 
-
-# # 25 requests per 10 seconds
-# simple = { limit = 25, period = 10 }

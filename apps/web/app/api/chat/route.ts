@@ -1,6 +1,12 @@
 import { type NextRequest } from "next/server";
-import { ChatHistory } from "@repo/shared-types";
+import {
+  ChatHistory,
+  ChatHistoryZod,
+  convertChatHistoryList,
+  SourcesFromApi,
+} from "@repo/shared-types";
 import { ensureAuth } from "../ensureAuth";
+import { z } from "zod";
 
 export const runtime = "edge";
 
@@ -15,59 +21,67 @@ export async function POST(req: NextRequest) {
     return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
   }
 
-  const query = new URL(req.url).searchParams.get("q");
-  const spaces = new URL(req.url).searchParams.get("spaces");
+  const url = new URL(req.url);
 
-  const sourcesOnly =
-    new URL(req.url).searchParams.get("sourcesOnly") ?? "false";
+  const query = url.searchParams.get("q");
+  const spaces = url.searchParams.get("spaces");
 
-  const chatHistory = (await req.json()) as {
+  const sourcesOnly = url.searchParams.get("sourcesOnly") ?? "false";
+
+  const jsonRequest = (await req.json()) as {
     chatHistory: ChatHistory[];
+    sources: SourcesFromApi[] | undefined;
   };
+  const { chatHistory, sources } = jsonRequest;
 
-  console.log("CHathistory", chatHistory);
-
-  if (!query) {
+  if (!query || query.trim.length < 0) {
     return new Response(JSON.stringify({ message: "Invalid query" }), {
       status: 400,
     });
   }
 
-  try {
-    const resp = await fetch(
-      `https://cf-ai-backend.dhravya.workers.dev/chat?q=${query}&user=${session.user.email ?? session.user.name}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
-      {
-        headers: {
-          "X-Custom-Auth-Key": process.env.BACKEND_SECURITY_KEY!,
-        },
-        method: "POST",
-        body: JSON.stringify({
-          chatHistory: chatHistory.chatHistory ?? [],
-        }),
-      },
+  const validated = z.array(ChatHistoryZod).safeParse(chatHistory ?? []);
+
+  if (!validated.success) {
+    return new Response(
+      JSON.stringify({
+        message: "Invalid chat history",
+        error: validated.error,
+      }),
+      { status: 400 },
     );
+  }
 
-    console.log("sourcesOnly", sourcesOnly);
+  const modelCompatible = await convertChatHistoryList(validated.data);
 
-    if (sourcesOnly == "true") {
-      const data = await resp.json();
-      console.log("data", data);
-      return new Response(JSON.stringify(data), { status: 200 });
-    }
+  const resp = await fetch(
+    `${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.id}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.BACKEND_SECURITY_KEY}`,
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify({
+        chatHistory: modelCompatible,
+        sources,
+      }),
+    },
+  );
 
-    if (resp.status !== 200 || !resp.ok) {
-      const errorData = await resp.json();
-      console.log(errorData);
-      return new Response(
-        JSON.stringify({ message: "Error in CF function", error: errorData }),
-        { status: resp.status },
-      );
-    }
+  if (sourcesOnly == "true") {
+    const data = (await resp.json()) as SourcesFromApi;
+    return new Response(JSON.stringify(data), { status: 200 });
+  }
 
-    // Stream the response back to the client
-    const { readable, writable } = new TransformStream();
-    resp && resp.body!.pipeTo(writable);
+  if (resp.status !== 200 || !resp.ok) {
+    const errorData = await resp.text();
+    console.log(errorData);
+    return new Response(
+      JSON.stringify({ message: "Error in CF function", error: errorData }),
+      { status: resp.status },
+    );
+  }
 
-    return new Response(readable, { status: 200 });
-  } catch {}
+  return new Response(resp.body, { status: 200 });
 }

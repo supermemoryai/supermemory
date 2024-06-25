@@ -6,6 +6,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { cn } from "@repo/ui/lib/utils";
 import BackgroundPlus from "./(landing)/GridPatterns/PlusGrid";
+import { Toaster } from "@repo/ui/shadcn/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const runtime = "edge";
@@ -77,6 +78,9 @@ export default function RootLayout({
         )}
       >
         {children}
+      <body className={`${inter.className} dark`}>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

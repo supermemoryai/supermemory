@@ -2,39 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground: rgba(179, 188, 197, 1);
-    --foreground-menu: rgba(106, 115, 125, 1);
-    --background: rgba(23, 27, 31, 1);
-    --secondary: rgba(31, 36, 40, 1);
-    --primary: rgba(54, 157, 253, 1);
-    --border: rgba(51, 57, 67, 1);
+:root {
+  --foreground: rgba(179, 188, 197, 1);
+  --foreground-menu: rgba(106, 115, 125, 1);
+  --background: rgba(23, 27, 31, 1);
+  --secondary: rgba(31, 36, 40, 1);
+  --primary: rgba(54, 157, 253, 1);
+  --border: rgba(51, 57, 67, 1);
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
 
-    --primary-foreground: 0 0% 98%;
+  --primary-foreground: 0 0% 98%;
 
-    --secondary-foreground: 0 0% 9%;
+  --secondary-foreground: 0 0% 9%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
 
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+  --accent: 0 0% 96.1%;
+  --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
 
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+  --input: 0 0% 89.8%;
+  --ring: 0 0% 3.9%;
 
-    --radius: 0.5rem;
-  }
+  --radius: 0.5rem;
 }
 
 body {
@@ -49,11 +47,75 @@ body {
     align-items: center;
     justify-content: center;
   }
+
+  .markdown table {
+    --tw-border-spacing-x: 0px;
+    --tw-border-spacing-y: 0px;
+    border-collapse: separate;
+    border-spacing: var(--tw-border-spacing-x) var(--tw-border-spacing-y);
+    width: 100%;
+  }
+  .markdown th {
+    background-color: rgba(236, 236, 241, 0.2);
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-top-width: 1px;
+    padding: 0.25rem 0.75rem;
+  }
+  .markdown th:first-child {
+    border-top-left-radius: 0.375rem;
+  }
+  .markdown th:last-child {
+    border-right-width: 1px;
+    border-top-right-radius: 0.375rem;
+  }
+  .markdown td {
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    padding: 0.25rem 0.75rem;
+  }
+  .markdown td:last-child {
+    border-right-width: 1px;
+  }
+  .markdown tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 0.375rem;
+  }
+  .markdown tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 0.375rem;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@layer components {
+  .markdown ol,
+  .markdown ul {
+    display: flex;
+    flex-direction: column;
+    padding-left: 1rem;
+  }
+
+  .markdown ol li,
+  .markdown ol li > p,
+  .markdown ol ol,
+  .markdown ol ul,
+  .markdown ul li,
+  .markdown ul li > p,
+  .markdown ul ol,
+  .markdown ul ul {
+    margin: 0;
+  }
+
+  .markdown ul li:before {
+    content: "•";
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    margin-left: -1rem;
+    position: absolute;
   }
 }
 
@@ -83,4 +145,79 @@ body {
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
   background: #22303d;
+}
+
+.no-scrollbar {
+  /* For WebKit (Safari, Chrome, etc.) */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* For Firefox */
+  scrollbar-width: none;
+
+  /* For IE and Edge */
+  -ms-overflow-style: none;
+}
+
+:not(pre) > code.hljs,
+:not(pre) > code[class*="language-"] {
+  border-radius: 0.3em;
+  white-space: normal;
+}
+.hljs-comment {
+  color: hsla(0, 0%, 100%, 0.5);
+}
+.hljs-meta {
+  color: hsla(0, 0%, 100%, 0.6);
+}
+.hljs-built_in,
+.hljs-class .hljs-title {
+  color: #e9950c;
+}
+.hljs-doctag,
+.hljs-formula,
+.hljs-keyword,
+.hljs-literal {
+  color: #2e95d3;
+}
+.hljs-addition,
+.hljs-attribute,
+.hljs-meta-string,
+.hljs-regexp,
+.hljs-string {
+  color: #00a67d;
+}
+.hljs-attr,
+.hljs-number,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-pseudo,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable {
+  color: #df3079;
+}
+.hljs-bullet,
+.hljs-link,
+.hljs-selector-id,
+.hljs-symbol,
+.hljs-title {
+  color: #f22c3d;
+}
+
+/* no scrollbar visibility */
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+}
+
+::-moz-selection {
+  /* Code for Firefox */
+  color: #369dfd;
+  background: #21303d;
+}
+
+::selection {
+  color: #369dfd;
+  background: #21303d;
 }

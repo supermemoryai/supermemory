@@ -1,5 +1,8 @@
 import nlp from "compromise";
 
+/**
+ * Split text into chunks of specified max size with some overlap for continuity.
+ */
 export default function chunkText(
   text: string,
   maxChunkSize: number,

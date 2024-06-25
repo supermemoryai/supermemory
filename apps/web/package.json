@@ -2,26 +2,33 @@
   "name": "@repo/web",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "yarn@1.22.21",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
-    "pages:build": "bunx @cloudflare/next-on-pages",
-    "preview": "bun pages:build && wrangler pages dev",
-    "deploy": "bun pages:build && wrangler pages deploy"
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "preview": "npm run pages:build && wrangler pages dev",
+    "deploy": "npm run pages:build && wrangler pages deploy",
+    "schema-update": "bunx drizzle-kit generate sqlite",
+    "update-local-db": "bunx wrangler d1 execute dev-d1-anycontext --local"
   },
   "dependencies": {
     "@million/lint": "^1.0.0-rc.11",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-popover": "^1.0.7",
     "cmdk": "^1.0.0",
+    "lowlight": "^3.1.0",
     "million": "^3.1.6",
     "next": "^14.1.1",
+    "novel": "^0.4.2",
     "nuqs": "^1.17.4",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-resizable-panels": "^2.0.19",
+    "use-debounce": "^10.0.1"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "^14.1.1",

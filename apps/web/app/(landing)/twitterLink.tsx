@@ -58,7 +58,7 @@ export function HoverBorderGradient({
     if (!directions[nextIndex]) {
       return directions[0]!;
     }
-    return directions[nextIndex];
+    return directions[nextIndex]!;
   };
 
   const movingMap: Record<Direction, string> = {
