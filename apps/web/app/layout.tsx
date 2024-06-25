@@ -74,11 +74,9 @@ export default function RootLayout({
         className={cn(
           `${inter.className} dark`,
           GeistMono.variable,
-          GeistSans.variable
+          GeistSans.variable,
         )}
       >
-        {children}
-      <body className={`${inter.className} dark`}>
         {children}
         <Toaster />
       </body>

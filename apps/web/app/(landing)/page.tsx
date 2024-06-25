@@ -5,7 +5,7 @@ import Cta from "./Cta";
 import { Toaster } from "@repo/ui/shadcn/toaster";
 import Features from "./Features";
 import Footer from "./footer";
-import { auth } from "../helpers/server/auth";
+import { auth } from "@/server/auth";
 import Services from "./Features/index";
 import { Showcases } from "./Showcase";
 import BackgroundPlus from "./GridPatterns/PlusGrid";
