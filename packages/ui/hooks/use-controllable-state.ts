@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { useCallbackRef } from "./use-callback-ref";
+import { useCallbackRef } from "@repo/ui/hooks/use-callback-ref";
 
 /**
  * @see https://github.com/radix-ui/primitives/blob/main/packages/react/use-controllable-state/src/useControllableState.tsx
