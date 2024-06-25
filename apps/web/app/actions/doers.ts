@@ -193,7 +193,7 @@ export const createMemory = async (input: {
 
   if (!vectorSaveResponse.ok) {
     const errorData = await vectorSaveResponse.text();
-    console.log(errorData);
+    console.error(errorData);
     return {
       success: false,
       data: 0,

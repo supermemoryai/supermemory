@@ -4,13 +4,13 @@ compatibility_date = "2024-02-23"
 node_compat = true
 
 # [env.preview]
-# [[vectorize]]
-# binding = "VECTORIZE_INDEX"
-# index_name = "supermem-vector-dev"
-
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
-index_name = "supermem-vector-prod"
+index_name = "supermem-vector-dev"
+
+# [[vectorize]]
+# binding = "VECTORIZE_INDEX"
+# index_name = "supermem-vector-prod"
 
 [ai]
 binding = "AI"
