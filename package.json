@@ -93,6 +93,7 @@
     "tailwind-scrollbar": "^3.1.0",
     "tldraw": "^2.1.4",
     "uploadthing": "^6.10.4",
+    "vaul": "^0.9.1",
     "zod": "^3.23.8"
   },
   "trustedDependencies": [

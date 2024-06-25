@@ -4,6 +4,7 @@ import { and, asc, eq, inArray, not, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
   chatHistory,
+  ChatThread,
   chatThreads,
   Content,
   contentToSpace,
@@ -13,6 +14,7 @@ import {
 import { ServerActionReturnType, Space } from "./types";
 import { auth } from "../../server/auth";
 import { ChatHistory, SourceZod } from "@repo/shared-types";
+import { ChatHistory as ChatHistoryType } from "../../server/db/schema";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 
@@ -159,4 +161,31 @@ export const getFullChatThread = async (
     success: true,
     data: accumulatedChatHistory,
   };
+};
+
+export const getChatHistory = async (): ServerActionReturnType<
+  ChatThread[]
+> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const chatHistorys = await db.query.chatThreads.findMany({
+      where: eq(chatThreads.userId, data.user.id),
+    });
+
+    return {
+      success: true,
+      data: chatHistorys,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
 };
