@@ -85,68 +85,13 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
     where: eq(users, data.user.id),
   });
 
-  const spacesWithoutUser = spaces.map((space) => {
-    return { ...space, user: undefined };
+  const memories = await db.query.storedContent.findMany({
+    where: eq(users, data.user.id),
   });
-
-  // const contentCountBySpace = await db
-  //   .select({
-  //     spaceId: contentToSpace.spaceId,
-  //     count: sql<number>`count(*)`.mapWith(Number),
-  //   })
-  //   .from(contentToSpace)
-  //   .where(
-  //     inArray(
-  //       contentToSpace.spaceId,
-  //       spacesWithoutUser.map((space) => space.id),
-  //     ),
-  //   )
-  //   .groupBy(contentToSpace.spaceId)
-  //   .execute();
-
-  // console.log(contentCountBySpace);
-
-  // get a count with space mappings like spaceID: count (number of memories in that space)
-
-  const len = spacesWithoutUser.map((space) => space.id).length;
-
-  if (len > 0) {
-    const contentCountBySpace = await db
-      .select({
-        spaceId: contentToSpace.spaceId,
-        count: sql<number>`count(*)`.mapWith(Number),
-      })
-      .from(contentToSpace)
-      .where(
-        inArray(
-          contentToSpace.spaceId,
-          spacesWithoutUser.map((space) => space.id),
-        ),
-      )
-      .groupBy(contentToSpace.spaceId)
-      .execute();
-
-    console.log(contentCountBySpace);
-  }
-
-  const contentNotInAnySpace = await db
-    .select()
-    .from(storedContent)
-    .where(
-      not(
-        eq(
-          storedContent.id,
-          db
-            .select({ contentId: contentToSpace.contentId })
-            .from(contentToSpace),
-        ),
-      ),
-    )
-    .execute();
 
   return {
     success: true,
-    data: { spaces: spacesWithoutUser, memories: contentNotInAnySpace },
+    data: { spaces: spaces, memories: memories },
   };
 };
 

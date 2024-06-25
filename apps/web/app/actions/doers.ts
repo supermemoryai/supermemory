@@ -8,6 +8,7 @@ import {
   contentToSpace,
   space,
   storedContent,
+  users,
 } from "../../server/db/schema";
 import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
@@ -17,6 +18,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { z } from "zod";
 import { ChatHistory } from "@repo/shared-types";
+import { decipher } from "@/server/encrypt";
 
 export const createSpace = async (
   input: string | FormData,
@@ -336,6 +338,35 @@ export const createChatObject = async (
       success: false,
       data: false,
       error: "Failed to save chat object",
+    };
+  }
+
+  return {
+    success: true,
+    data: true,
+  };
+};
+
+export const linkTelegramToUser = async (
+  telegramUser: string,
+): ServerActionReturnType<boolean> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    return { error: "Not authenticated", success: false };
+  }
+
+  const user = await db
+    .update(users)
+    .set({ telegramId: decipher(telegramUser) })
+    .where(eq(users.id, data.user.id))
+    .execute();
+
+  if (!user) {
+    return {
+      success: false,
+      data: false,
+      error: "Failed to link telegram to user",
     };
   }
 

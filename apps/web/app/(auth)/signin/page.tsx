@@ -6,7 +6,17 @@ import { Google } from "@repo/ui/components/icons";
 
 export const runtime = "edge";
 
-async function Signin() {
+async function Signin({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const searchParamsAsString = Object.keys(searchParams)
+    .map((key) => {
+      return `${key}=${searchParams[key]}`;
+    })
+    .join("&");
+
   return (
     <div className="flex items-center justify-between min-h-screen">
       <div className="relative w-full lg:w-1/2 flex items-center justify-center lg:justify-start min-h-screen bg-secondary p-8">
@@ -30,7 +40,7 @@ async function Signin() {
                 action={async () => {
                   "use server";
                   await signIn("google", {
-                    redirectTo: "/home?firstTime=true",
+                    redirectTo: `/home?firstTime=true&${searchParamsAsString}`,
                   });
                 }}
               >
