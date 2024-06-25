@@ -266,14 +266,13 @@ function PageForm({
           content: content,
           spaces: space ? [space] : undefined,
         });
+        cancelfn();
 
         if (cont.success) {
           toast.success("Memory created");
         } else {
           toast.error("Memory creation failed");
         }
-
-        cancelfn();
       }}
       className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3"
     >
