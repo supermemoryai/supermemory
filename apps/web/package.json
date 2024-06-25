@@ -2,7 +2,7 @@
   "name": "@repo/web",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "bun@1.1.8",
+  "packageManager": "pnpm@9.4.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
