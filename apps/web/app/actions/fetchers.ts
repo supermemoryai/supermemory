@@ -14,11 +14,13 @@ import { ServerActionReturnType, Space } from "./types";
 import { auth } from "../../server/auth";
 import { ChatHistory, SourceZod } from "@repo/shared-types";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 
 export const getSpaces = async (): ServerActionReturnType<Space[]> => {
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -39,6 +41,7 @@ export const getAllMemories = async (
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -78,6 +81,7 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -101,6 +105,7 @@ export const getFullChatThread = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 

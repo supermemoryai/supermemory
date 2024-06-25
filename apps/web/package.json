@@ -5,13 +5,13 @@
   "packageManager": "yarn@1.22.21",
   "scripts": {
     "dev": "next dev",
-    "build": "bun pages:build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
     "pages:build": "npx @cloudflare/next-on-pages",
-    "preview": "bun pages:build && wrangler pages dev",
-    "deploy": "bun pages:build && wrangler pages deploy",
+    "preview": "npm run pages:build && wrangler pages dev",
+    "deploy": "npm run pages:build && wrangler pages deploy",
     "schema-update": "bunx drizzle-kit generate sqlite",
     "update-local-db": "bunx wrangler d1 execute dev-d1-anycontext --local"
   },

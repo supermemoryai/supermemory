@@ -7,6 +7,7 @@ import { getSpaces } from "@/app/actions/fetchers";
 import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 
 function Page({
   searchParams,

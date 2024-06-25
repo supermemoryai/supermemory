@@ -19,6 +19,7 @@ import { LIMITS } from "@/lib/constants";
 import { z } from "zod";
 import { ChatHistory } from "@repo/shared-types";
 import { decipher } from "@/server/encrypt";
+import { redirect } from "next/navigation";
 
 export const createSpace = async (
   input: string | FormData,
@@ -26,6 +27,7 @@ export const createSpace = async (
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -112,6 +114,7 @@ export const createMemory = async (input: {
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -282,6 +285,7 @@ export const createChatThread = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -313,6 +317,7 @@ export const createChatObject = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -353,6 +358,7 @@ export const linkTelegramToUser = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 

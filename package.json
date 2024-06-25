@@ -34,7 +34,7 @@
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "bun@1.1.8",
+  "packageManager": "yarn@1.22.21",
   "workspaces": [
     "apps/*",
     "packages/*"
