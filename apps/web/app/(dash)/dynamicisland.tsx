@@ -272,6 +272,8 @@ function PageForm({
         } else {
           toast.error("Memory creation failed");
         }
+
+        cancelfn();
       }}
       className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3"
     >
