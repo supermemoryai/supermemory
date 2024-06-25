@@ -101,7 +101,7 @@ function DynamicIslandContent() {
   );
 }
 
-const fakeitems = ["spaces", "page", "note"];
+const fakeitems = ["page", "spaces"];
 
 function ToolBar({ cancelfn }: { cancelfn: () => void }) {
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -150,12 +150,10 @@ function ToolBar({ cancelfn }: { cancelfn: () => void }) {
             indexFn={(i) => setIndex(i)}
           />
         </div>
-        {index === 0 ? (
+        {index === 1 ? (
           <SpaceForm cancelfn={cancelfn} />
-        ) : index === 1 ? (
-          <PageForm cancelfn={cancelfn} spaces={spaces} />
         ) : (
-          <NoteForm cancelfn={cancelfn} spaces={spaces} />
+          <PageForm cancelfn={cancelfn} spaces={spaces} />
         )}
       </motion.div>
     </AnimatePresence>
@@ -220,9 +218,9 @@ function SpaceForm({ cancelfn }: { cancelfn: () => void }) {
         />
       </div>
       <div className="flex justify-between">
-        <a className="text-blue-500" href="">
+        {/* <a className="text-blue-500" href="">
           pull from store
-        </a>
+        </a> */}
         {/* <div
           onClick={cancelfn}
           className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
@@ -262,11 +260,11 @@ function PageForm({
           toast.error("Content is required");
           return;
         }
+        cancelfn();
         const cont = await createMemory({
           content: content,
           spaces: space ? [space] : undefined,
         });
-        cancelfn();
 
         if (cont.success) {
           toast.success("Memory created");
@@ -274,7 +272,7 @@ function PageForm({
           toast.error("Memory creation failed");
         }
       }}
-      className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3"
+      className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3 w-[100vw] md:w-[400px]"
     >
       <div>
         <Label className="text-[#858B92]" htmlFor="space">
@@ -295,12 +293,13 @@ function PageForm({
       </div>
       <div>
         <Label className="text-[#858B92]" htmlFor="name">
-          Page Url
+          Resource (URL or content)
         </Label>
-        <Input
+        <Textarea
           className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0"
           id="input"
           name="content"
+          placeholder="Start typing a note or paste a URL here. I'll remember it."
         />
       </div>
       <div className="flex justify-end">
@@ -312,53 +311,5 @@ function PageForm({
         </button>
       </div>
     </form>
-  );
-}
-
-function NoteForm({
-  cancelfn,
-  spaces,
-}: {
-  cancelfn: () => void;
-  spaces: Space[];
-}) {
-  return (
-    <div className="bg-secondary border border-muted-foreground px-4 py-3 rounded-2xl mt-2 flex flex-col gap-3">
-      <div>
-        <Label className="text-[#858B92]" htmlFor="name">
-          Space
-        </Label>
-        <Select>
-          <SelectTrigger>
-            <SelectValue placeholder="Space" />
-          </SelectTrigger>
-          <SelectContent className="bg-secondary text-white">
-            {spaces.map((space) => (
-              <SelectItem key={space.id} value={space.id.toString()}>
-                {space.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div>
-        <Label className="text-[#858B92]" htmlFor="name">
-          Note
-        </Label>
-        <Textarea
-          cols={4}
-          className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0 resize-none"
-          id="name"
-        />
-      </div>
-      <div className="flex justify-end">
-        <div
-          onClick={cancelfn}
-          className="bg-[#2B3237] px-2 py-1 rounded-xl cursor-pointer"
-        >
-          cancel
-        </div>
-      </div>
-    </div>
   );
 }

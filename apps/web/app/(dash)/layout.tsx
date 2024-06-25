@@ -19,7 +19,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
 
       <Menu />
 
-      <div className="w-full h-full">{children}</div>
+      <div className="w-full h-full px-2 md:px-0">{children}</div>
 
       <Toaster />
     </main>
