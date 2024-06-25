@@ -16,6 +16,7 @@
     "@repo/eslint-config": "*",
     "@repo/tailwind-config": "*",
     "@repo/typescript-config": "*",
+    "@repo/shared-types": "*",
     "@repo/ui": "*",
     "@tailwindcss/typography": "^0.5.13",
     "autoprefixer": "^10.4.19",

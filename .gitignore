@@ -4,6 +4,8 @@ bun.lockb
 .*.vars
 .wrangler
 .million
+yarn.lock
+package-lock.json
 
 # Dependencies
 node_modules

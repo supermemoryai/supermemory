@@ -2,7 +2,7 @@
   "name": "@repo/web",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@9.4.0",
+  "packageManager": "yarn@1.22.21",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
