@@ -41,7 +41,7 @@ async function Header() {
               History
             </button>
 
-            <div className="absolute p-4 hidden group-hover:block right-0 max-h-svh overflow-auto">
+            <div className="absolute p-4 hidden group-hover:block right-0 w-full md:w-[400px] max-h-[70vh] overflow-auto">
               <div className="bg-[#1F2429] rounded-xl p-2 flex flex-col shadow-lg">
                 {chatThreads.data.map((thread) => (
                   <Link
