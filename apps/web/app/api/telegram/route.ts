@@ -107,3 +107,7 @@ bot.on("message", async (ctx) => {
 });
 
 export const POST = webhookCallback(bot, "std/http");
+
+export const GET = async () => {
+  return new Response("OK", { status: 200 });
+};
