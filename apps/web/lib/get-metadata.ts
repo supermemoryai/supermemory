@@ -9,7 +9,7 @@ export async function getMetaData(url: string) {
   const $ = cheerio.load(html);
 
   // Extract the base URL
-  const baseUrl = new URL(url).origin;
+  const baseUrl = url
 
   // Extract title
   const title = $("title").text().trim();
