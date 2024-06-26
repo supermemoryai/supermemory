@@ -14,7 +14,7 @@ export function TwitterBorder() {
         className="group/anchor z-20 pl-10 pr- flex items-center justify-center gap-4 rounded-full text-white/80 bg-white/5 py-2 text-sm"
       >
         <Twitter className="h-4 w-4" />
-        <div className="flex">
+        <div className="flex items-center justify-center">
           {" "}
           Follow us on Twitter{" "}
           <LinkArrow
