@@ -40,7 +40,7 @@ const SlideTabs = () => {
       </Tab>
       <Tab setPosition={setPosition}>
         <Link className="w-full h-full" href={"/#use-cases"}>
-          Use cases
+          Use Cases
         </Link>
       </Tab>
       <Tab setPosition={setPosition}>
@@ -101,7 +101,7 @@ const Tab = ({
           opacity: 1,
         });
       }}
-      className="block relative z-10 py-2.5 px-3 text-xs text-white uppercase cursor-pointer md:py-2 md:px-5 md:text-base mix-blend-difference"
+      className="block relative z-10 py-2.5 px-3 text-xs text-white cursor-pointer md:py-2 md:px-5 md:text-base mix-blend-difference"
     >
       {children}
     </li>
