@@ -75,8 +75,8 @@ const Services = () => {
                 />
               </div>
 
-              <div className="flex absolute inset-0 flex-col justify-end items-start p-8 mt-10 lg:-mt-20 bg-glass-gradient">
-                <h4 className="text-3xl tracking-tight mb-2 text-left text-transparent bg-clip-text bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]">
+              <div className="flex md:absolute md:mt-4 lg:-mt-20 inset-0 flex-col md:justify-end justify-center -translate-y-16 md:translate-y-0 items-center md:items-start p-8 bg-glass-gradient">
+                <h4 className="text-3xl tracking-tight mb-2 text-center text-transparent bg-clip-text bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]">
                   Supermemory works everywhere you are.
                 </h4>
                 <p className="max-w-lg text-lg font-normal tracking-tighter text-gray-400 mb-[3rem]">
@@ -106,8 +106,9 @@ const Services = () => {
                   Privacy First
                 </h4>
                 <p className="text-lg text-gray-400 body-2 mb-[2rem]">
-                  The world’s most powerful AI photo and video art generation
-                  engine. What will you create?
+                  We use state-of-the art technology and providers to make sure
+                  that your data is completely safe and secure, and only store
+                  what's absolutely needed.
                 </p>
               </div>
 
@@ -174,19 +175,12 @@ const Services = () => {
 
               <div className="flex absolute inset-0 flex-col justify-end items-start p-8 pl-10 mt-4 lg:-mt-20 bg-glass-gradient">
                 <h4 className="text-3xl tracking-tight mb-2 text-center text-transparent bg-clip-text bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]">
-                  Platform Agnostic
+                  Bringing content in is easy.
                 </h4>
                 <p className="max-w-lg text-lg font-normal tracking-tighter text-gray-400 mb-[3rem]">
-                  Automatically enhance your photos using our AI app&apos;s
-                  photo editing feature. Try it now!
+                  You can use our chrome extension, iOS shortcut, or our API to
+                  send content to supermemory.
                 </p>
-                <a
-                  href="/components"
-                  className="inline-flex justify-center items-center py-4 px-10 w-full text-center bg-transparent bg-gradient-to-tr to-transparent rounded-xl transition-colors sm:w-auto mt-[-20px] bg-glass-gradient group from-zinc-300/5 via-gray-400/5 border-white/10 border-[1px] hover:bg-transparent/10"
-                >
-                  Get started
-                  <ChevronRight className="ml-2 w-4 h-4 duration-300 group-hover:translate-x-1" />
-                </a>
               </div>
             </div>
 
@@ -198,8 +192,8 @@ const Services = () => {
                   Self hostable
                 </h4>
                 <p className="text-lg text-gray-400 body-2 mb-[2rem]">
-                  The world’s most powerful AI photo and video art generation
-                  engine. What will you create?
+                  All the code is open source and self hostable for
+                  non-commercial use.
                 </p>
               </div>
 
