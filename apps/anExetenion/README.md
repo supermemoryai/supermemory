@@ -1,4 +1,4 @@
-# [projectName]
+# anExetenion
 
 > This project was bootstrapped using the Extension.js React-TypeScript template.
 
@@ -6,30 +6,30 @@
 
 In the project directory, you can run:
 
-### [projectPackageManager] dev
+### npm dev
 
 ```
 // Runs the app in the development mode.
 // Will open a new browser instance with your extension loaded.
 // The page will reload when you make changes.
-[projectPackageManager] dev
+npm dev
 ```
 
-### [projectPackageManager] start
+### npm start
 
 ```
 // Runs the app in the production mode.
 // Will open a new browser instance with your extension loaded.
 // This is how your browser extension will work once published.
-[projectPackageManager] start
+npm start
 ```
 
-### [projectPackageManager] build
+### npm build
 
 ```
 // Builds the app for production.
 // Bundles your browser extension in production mode for the target browser.
-[projectPackageManager] run build
+npm run build
 ```
 
 ## Learn More

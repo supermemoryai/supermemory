@@ -12,7 +12,7 @@ import { getAssetUrls } from "@tldraw/assets/selfHosted";
 import { memo } from "react";
 import DragContext from "../lib/context";
 import DropZone from "./dropComponent";
-import "./canvas.css";
+import "@repo/ui/components/canvas/styles/canvasStyles.css";
 
 export const Canvas = memo(() => {
   const [isDraggingOver, setIsDraggingOver] = useState<boolean>(false);

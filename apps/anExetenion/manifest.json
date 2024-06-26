@@ -1,18 +1,14 @@
-
 {
-  "name": "Supermemory.ai-Extension",
-  "description": "Uses the chrome.contextMenus API to customize the context menu.",
-  "version": "0.1",
-  "permissions": [
-    "contextMenus"
-  ],
   "manifest_version": 3,
-  "action": {
-    "default_popup": "index.html"
-  },
+  "version": "1.0",
+  "name": "Supermemory.ai-Extension",
+  "description": "Uses the chrome.contextMenus API to customize the context menu. To learn more checkout supermemory.ai",
   "background": {
     "service_worker": "./background.ts"
   },
+  "permissions": [
+    "contextMenus"
+  ],
   "content_scripts": [
     {
       "matches": [

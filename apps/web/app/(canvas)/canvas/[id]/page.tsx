@@ -16,7 +16,7 @@ function page() {
 
   return (
     <div
-      className={`h-screen w-full ${!fullScreen ? "px-4 py-6" : "bg-[#1F2428]"} transition-all`}
+      className={`h-screen w-full ${!fullScreen ? "px-4 py-6" : "bg-[#171B1F]"} transition-all`}
     >
       <div>
         <PanelGroup
@@ -37,9 +37,9 @@ function page() {
             collapsible={true}
           >
             <div
-              className={`flex transition-all rounded-2xl ${fullScreen ? "h-screen" : "h-[calc(100vh-3rem)]"} w-full flex-col overflow-hidden bg-[#1F2428]`}
+              className={`flex transition-all rounded-2xl ${fullScreen ? "h-screen" : "h-[calc(100vh-3rem)]"} w-full flex-col overflow-hidden bg-[#171B1F]`}
             >
-              <div className="flex items-center justify-between bg-[#2C3439] px-4 py-2 text-lg font-medium text-[#989EA4]">
+              <div className="flex items-center justify-between bg-[#1F2428] px-4 py-2 text-lg font-medium text-[#989EA4]">
                 Change Filters
                 <Image src={SettingsIcon} alt="setting-icon" />
               </div>

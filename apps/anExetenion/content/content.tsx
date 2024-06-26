@@ -1,9 +1,7 @@
 import ReactDOM from 'react-dom/client'
 import ContentApp from './ContentApp'
-import('./base.css')
-import('./content.css')
-
-setTimeout(initial, 4000)
+import './base.css'
+import './content.css'
 
 function initial() {
   const rootDiv = document.createElement('div')
@@ -11,5 +9,7 @@ function initial() {
   document.body.appendChild(rootDiv)
 
   const root = ReactDOM.createRoot(rootDiv)
-  root.render(<><ContentApp /></>)
+  root.render(<ContentApp />)
 }
+
+initial();

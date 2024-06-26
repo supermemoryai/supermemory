@@ -1,5 +1,3 @@
-import "../canvasStyles.css";
-
 export default function RootLayout({
   children,
 }: {
