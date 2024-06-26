@@ -79,7 +79,7 @@ export default function FUIFeatureSectionWithCards() {
         <div className="relative z-20 mt-[4rem]">
           <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((item, idx) => (
-              <GlareCard key={idx}>
+              <GlareCard key={`l-${idx}`}>
                 <li
                   key={idx}
                   className="z-20 transform-gpu space-y-3 rounded-xl border  border-white/10 bg-transparent/20 p-4 [border:1px_solid_rgba(255,255,255,.1)] [box-shadow:0_-20px_80px_-20px_#8686f01f_inset]"

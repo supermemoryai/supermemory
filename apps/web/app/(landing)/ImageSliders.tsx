@@ -193,7 +193,7 @@ const AnimatedLogoCloud = () => {
             .fill(null)
             .map((index) => (
               <div
-                key={index}
+                key={`animated-logo-cloud-${index}`}
                 className="flex flex-row gap-5 justify-around items-center animate-logo-cloud shrink-0"
               >
                 {logos.map((logo, key) => (
