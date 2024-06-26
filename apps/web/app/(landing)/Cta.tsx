@@ -5,7 +5,7 @@ import { ChevronRight } from "lucide-react";
 function Cta() {
   return (
     <section
-      id="try"
+      id="waitlist"
       className="relative  bg-page-gradient dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset] min-h-[600px] border-[1px] border-white/20 flex flex-col gap-8 justify-center items-center mt-32 mb-28 w-full md:w-3/4 rounded-3xl py-10 px-3 md:px-8 mx-auto"
     >
       <div className="absolute -z-1 inset-0 rounded-3xl opacity-5   h-[600px] w-full bg-transparent  bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
@@ -20,7 +20,7 @@ function Cta() {
           />
         </div>
       </div>
-      <h1 className="text-sm  z-20  text-gray-400 group font-geist mx-auto px-5 py-2 bg-gradient-to-tr from-zinc-300/5 via-gray-400/5 to-transparent  border-[2px] border-white/5 rounded-3xl w-fit">
+      <h1 className="text-sm z-20  text-gray-400 group font-geist mx-auto px-5 py-2 bg-gradient-to-tr from-zinc-300/5 via-gray-400/5 to-transparent  border-[2px] border-white/5 rounded-3xl w-fit">
         <p className="tracking-tight uppercase">
           Launching July 1st, 2024
           <ChevronRight className="inline w-4 h-4 ml-2 group-hover:translate-x-1 duration-300" />

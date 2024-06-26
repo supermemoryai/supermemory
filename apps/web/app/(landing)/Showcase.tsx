@@ -15,12 +15,14 @@ interface Feature {
   icon: React.ComponentType;
 }
 
+// TODO: This features section will be more for "use-cases"
 const features: Array<Feature> = [
   {
-    name: "Reporting",
-    summary: "Stay on top of things with always up-to-date reporting features.",
+    name: "Ideation",
+    summary:
+      "Never lose a great idea again - instead of saving it in your head, save it in supermemory.",
     description:
-      "We talked about reporting in the section above but we needed three items here, so mentioning it one more time for posterity.",
+      "The internet is full of great ideas, but there's a problem. They are ephemeral. They come and go. ",
     image: "search.svg",
     icon: function ReportingIcon() {
       let id = useId();
@@ -51,11 +53,10 @@ const features: Array<Feature> = [
     },
   },
   {
-    name: "Inventory",
-    summary:
-      "Never lose track of what’s in stock with accurate inventory tracking.",
+    name: "Bookmarks",
+    summary: "Simply great bookmarking tool.",
     description:
-      "We don’t offer this as part of our software but that statement is inarguably true. Accurate inventory tracking would help you for sure.",
+      "Good bookmarking tools have ways to import and organise your bookmarks. Great bookmarking tool resurfaces them when you need them.",
     image: "memory.svg",
     icon: function InventoryIcon() {
       return (
@@ -80,10 +81,9 @@ const features: Array<Feature> = [
   },
   {
     name: "Contacts",
-    summary:
-      "Organize all of your contacts, service providers, and invoices in one place.",
+    summary: "Life is all about the people you know.",
     description:
-      "This also isn’t actually a feature, it’s just some friendly advice. We definitely recommend that you do this, you’ll feel really organized and professional.",
+      "Tell supermemory about people you know, and when you forget, you know where to look.",
     image: "search.svg",
     icon: function ContactsIcon() {
       return (
@@ -120,7 +120,7 @@ function Feature({
       <div
         className={clsx(
           "w-9 rounded-lg",
-          isActive ? "bg-blue-600" : "bg-slate-500"
+          isActive ? "bg-blue-600" : "bg-slate-500",
         )}
       >
         <svg aria-hidden="true" className="h-9 w-9" fill="none">
@@ -130,7 +130,7 @@ function Feature({
       <h3
         className={clsx(
           "mt-6 text-sm font-medium",
-          isActive ? "text-blue-600" : "text-gray-300"
+          isActive ? "text-blue-600" : "text-gray-300",
         )}
       >
         {feature.name}
@@ -197,7 +197,7 @@ function FeaturesDesktop() {
                   key={feature.summary}
                   className={clsx(
                     "px-5 transition duration-500 ease-in-out ui-not-focus-visible:outline-none",
-                    featureIndex !== selectedIndex && "opacity-60"
+                    featureIndex !== selectedIndex && "opacity-60",
                   )}
                   style={{ transform: `translateX(-${selectedIndex * 100}%)` }}
                   aria-hidden={featureIndex !== selectedIndex}
@@ -224,8 +224,7 @@ function FeaturesDesktop() {
 export function Showcases() {
   return (
     <section
-      id="secondary-features"
-      aria-label="Features for simplifying everyday business tasks"
+      id="use-cases"
       className=" bg-page-gradient bg-opacity-0 relative pb-14 pt-20 sm:pb-20 sm:pt-32 lg:pb-32 w-full mt-10"
     >
       <Container>
@@ -240,7 +239,7 @@ export function Showcases() {
         {/* <img
           className="absolute inset-x-0 -top-0 opacity-75 "
           src={
-            "https://pipe.com/_next/image?url=%2Fassets%2Fimg%2Fhero-left.png&w=384&q=75"
+            "/images/landing-hero-left.webp"
           }
           width={1000}
           height={1000}
@@ -251,11 +250,11 @@ export function Showcases() {
             <span className="bg-gradient-to-br from-indigo-400 via-indigo-300 to-indigo-700 bg-clip-text text-transparent">
               Supermemory <br />
             </span>{" "}
-            simplify AI ingestions.
+            remembers everything.
           </h2>
           <p className="mt-4 text-lg tracking-tight text-gray-100">
-            Because you’d probably be a little confused if we suggested you
-            complicate your everyday business tasks instead.
+            ... so you don't have to. Whether you're a student, a professional,
+            or just a person on the the internet. we got you covered.
           </p>
           <div className="overflow-x-hidden overflow-y-hidden">
             <div className="absolute right-0 z-20 top-[0%] h-40 w-[17%] overflow-x-hidden bg-[#369DFD] bg-opacity-20 blur-[110px]" />

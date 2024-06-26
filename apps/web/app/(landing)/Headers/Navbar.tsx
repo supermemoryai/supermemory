@@ -34,20 +34,39 @@ const SlideTabs = () => {
       </Link>
 
       <Tab key={0} setPosition={setPosition}>
-        Home
+        <Link className="w-full h-full" href={"/home"}>
+          Home
+        </Link>
       </Tab>
-      <Tab setPosition={setPosition}>Pricing</Tab>
-      <Tab setPosition={setPosition}>Features</Tab>
-      <Tab setPosition={setPosition}>Docs</Tab>
-      <Tab setPosition={setPosition}>Blog</Tab>
+      <Tab setPosition={setPosition}>
+        <Link className="w-full h-full" href={"/#use-cases"}>
+          Use cases
+        </Link>
+      </Tab>
+      <Tab setPosition={setPosition}>
+        <Link className="w-full h-full" href={"/#features"}>
+          Features
+        </Link>
+      </Tab>
+      <Tab setPosition={setPosition}>
+        <Link
+          className="w-full h-full"
+          href={"https://github.com/Dhravya/supermemory/graphs/contributors"}
+        >
+          Team
+        </Link>
+      </Tab>
 
-      <button className="inline-flex gap-x-2 justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100">
+      <Link
+        href="/#waitlist"
+        className="inline-flex gap-x-2 justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100"
+      >
         Join waitlist
         <div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
           <ArrowUpRight className="absolute transition-all duration-500 group-hover:translate-x-4 group-hover:-translate-y-5" />
           <ArrowUpRight className="absolute transition-all duration-500 -translate-x-4 -translate-y-5 group-hover:translate-x-0 group-hover:translate-y-0" />
         </div>
-      </button>
+      </Link>
 
       <Cursor position={position} />
     </ul>

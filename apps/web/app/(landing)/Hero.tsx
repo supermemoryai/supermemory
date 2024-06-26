@@ -32,10 +32,11 @@ function Hero() {
           }}
           className="text-center  mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-7xl"
         >
-          Build your own second brain{" "}
+          Unlock your{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r to-blue-200 from-zinc-300">
-            with supermemory and bring it at scale
-          </span>
+            digital brain
+          </span>{" "}
+          with supermemory
         </motion.h1>
         <motion.p
           {...{
@@ -44,8 +45,9 @@ function Hero() {
           }}
           className="text-lg text-center text-soft-foreground-text"
         >
-          Bring saved information from all over the internet into one place
-          where you can connect it, and ask AI about it
+          Supermemory is your ultimate hub for organizing, searching, and
+          utilizing saved information with powerful tools like a search engine,
+          writing assistant, and canvas.
         </motion.p>
         <EmailInput />
       </section>

@@ -7,10 +7,8 @@ const Generating = ({ className }: { className?: string }) => {
         className || ""
       } text-base`}
     >
-
-      <Loader2 className="w-5 h-5 mr-2"/>
-      
-      AI is generating for you...
+      <Loader2 className="w-5 h-5 mr-2" />
+      Searching your second brain...
     </div>
   );
 };
