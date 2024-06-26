@@ -5,6 +5,7 @@ const config = {
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
+    '**/*.html', '**/*.tsx',
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
     "../../packages/ui/**/*.{js,ts,jsx,tsx}", // Add the ui package
