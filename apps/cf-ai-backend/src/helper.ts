@@ -106,6 +106,20 @@ export async function deleteDocument({
   }
 }
 
+function sanitizeKey(key: string): string {
+  if (!key) throw new Error("Key cannot be empty");
+
+  // Remove or replace invalid characters
+  let sanitizedKey = key.replace(/[.$"]/g, "_");
+
+  // Ensure key does not start with $
+  if (sanitizedKey.startsWith("$")) {
+    sanitizedKey = sanitizedKey.substring(1);
+  }
+
+  return sanitizedKey;
+}
+
 export async function batchCreateChunksAndEmbeddings({
   store,
   body,
@@ -172,7 +186,7 @@ export async function batchCreateChunksAndEmbeddings({
             type: body.type ?? "page",
             content: newPageContent,
 
-            [`user-${body.user}`]: 1,
+            [sanitizeKey(`user-${body.user}`)]: 1,
             ...body.spaces?.reduce((acc, space) => {
               acc[`space-${body.user}-${space}`] = 1;
               return acc;

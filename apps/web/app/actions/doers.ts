@@ -8,6 +8,7 @@ import {
   contentToSpace,
   space,
   storedContent,
+  users,
 } from "../../server/db/schema";
 import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
@@ -17,6 +18,8 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { z } from "zod";
 import { ChatHistory } from "@repo/shared-types";
+import { decipher } from "@/server/encrypt";
+import { redirect } from "next/navigation";
 
 export const createSpace = async (
   input: string | FormData,
@@ -24,6 +27,7 @@ export const createSpace = async (
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -110,6 +114,7 @@ export const createMemory = async (input: {
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -188,7 +193,7 @@ export const createMemory = async (input: {
 
   if (!vectorSaveResponse.ok) {
     const errorData = await vectorSaveResponse.text();
-    console.log(errorData);
+    console.error(errorData);
     return {
       success: false,
       data: 0,
@@ -280,6 +285,7 @@ export const createChatThread = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -311,6 +317,7 @@ export const createChatObject = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -336,6 +343,36 @@ export const createChatObject = async (
       success: false,
       data: false,
       error: "Failed to save chat object",
+    };
+  }
+
+  return {
+    success: true,
+    data: true,
+  };
+};
+
+export const linkTelegramToUser = async (
+  telegramUser: string,
+): ServerActionReturnType<boolean> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  const user = await db
+    .update(users)
+    .set({ telegramId: decipher(telegramUser) })
+    .where(eq(users.id, data.user.id))
+    .execute();
+
+  if (!user) {
+    return {
+      success: false,
+      data: false,
+      error: "Failed to link telegram to user",
     };
   }
 

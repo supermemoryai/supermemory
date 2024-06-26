@@ -277,8 +277,8 @@ export const X = (props: SVGProps<SVGSVGElement>) => (
 
 export const Google = (props: SVGProps<SVGSVGElement>) => (
   <svg
-    width="1.5em"
-    height="1.5em"
+    width="1.3em"
+    height="1.3em"
     viewBox="0 0 256 262"
     xmlns="http://www.w3.org/2000/svg"
     preserveAspectRatio="xMidYMid"

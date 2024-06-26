@@ -85,7 +85,10 @@ function QueryInput({
 
           <button
             type="submit"
-            onClick={(e) => e.preventDefault()}
+            onClick={(e) => {
+              e.preventDefault();
+              handleSubmit(q, preparedSpaces);
+            }}
             disabled={disabled}
             className="h-12 w-12 rounded-[14px] bg-[#21303D] all-center shrink-0 hover:brightness-125 duration-200 outline-none focus:outline focus:outline-primary active:scale-90"
           >

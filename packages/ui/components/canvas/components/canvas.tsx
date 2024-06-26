@@ -71,7 +71,7 @@ const TldrawComponent = memo(() => {
     });
   }, []);
 
-  setUserPreferences({ id: "supermemory", isDarkMode: true });
+  setUserPreferences({ id: "supermemory" });
 
   const assetUrls = getAssetUrls();
   return (

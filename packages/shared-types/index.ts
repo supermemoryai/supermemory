@@ -59,3 +59,11 @@ export function convertChatHistoryList(
 
   return convertedChats;
 }
+
+export const sourcesZod = z.object({
+  ids: z.array(z.string()),
+  metadata: z.array(z.any()),
+  normalizedData: z.array(z.any()).optional(),
+});
+
+export type SourcesFromApi = z.infer<typeof sourcesZod>;

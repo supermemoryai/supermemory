@@ -1,5 +1,10 @@
 import { type NextRequest } from "next/server";
-import { ChatHistoryZod, convertChatHistoryList } from "@repo/shared-types";
+import {
+  ChatHistory,
+  ChatHistoryZod,
+  convertChatHistoryList,
+  SourcesFromApi,
+} from "@repo/shared-types";
 import { ensureAuth } from "../ensureAuth";
 import { z } from "zod";
 
@@ -23,7 +28,11 @@ export async function POST(req: NextRequest) {
 
   const sourcesOnly = url.searchParams.get("sourcesOnly") ?? "false";
 
-  const chatHistory = await req.json();
+  const jsonRequest = (await req.json()) as {
+    chatHistory: ChatHistory[];
+    sources: SourcesFromApi[] | undefined;
+  };
+  const { chatHistory, sources } = jsonRequest;
 
   if (!query || query.trim.length < 0) {
     return new Response(JSON.stringify({ message: "Invalid query" }), {
@@ -31,9 +40,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const validated = z
-    .object({ chatHistory: z.array(ChatHistoryZod) })
-    .safeParse(chatHistory ?? []);
+  const validated = z.array(ChatHistoryZod).safeParse(chatHistory ?? []);
 
   if (!validated.success) {
     return new Response(
@@ -45,9 +52,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const modelCompatible = await convertChatHistoryList(
-    validated.data.chatHistory,
-  );
+  const modelCompatible = await convertChatHistoryList(validated.data);
 
   const resp = await fetch(
     `${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.id}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
@@ -59,12 +64,13 @@ export async function POST(req: NextRequest) {
       method: "POST",
       body: JSON.stringify({
         chatHistory: modelCompatible,
+        sources,
       }),
     },
   );
 
   if (sourcesOnly == "true") {
-    const data = await resp.json();
+    const data = (await resp.json()) as SourcesFromApi;
     return new Response(JSON.stringify(data), { status: 200 });
   }
 

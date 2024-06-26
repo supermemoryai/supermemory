@@ -6,7 +6,7 @@ import QueryInput from "../home/queryinput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ChatHistory } from "@repo/shared-types";
+import { ChatHistory, sourcesZod } from "@repo/shared-types";
 import {
   Accordion,
   AccordionContent,
@@ -20,15 +20,10 @@ import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import { code, p } from "./markdownRenderHelpers";
 import { codeLanguageSubset } from "@/lib/constants";
-import { z } from "zod";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
-import {
-  ClipboardIcon,
-  ShareIcon,
-  SpeakerWaveIcon,
-} from "@heroicons/react/24/outline";
+import { ClipboardIcon } from "@heroicons/react/24/outline";
 import { SendIcon } from "lucide-react";
 
 function ChatWindow({
@@ -83,11 +78,6 @@ function ChatWindow({
     // TODO: handle this properly
     const sources = await sourcesFetch.json();
 
-    const sourcesZod = z.object({
-      ids: z.array(z.string()),
-      metadata: z.array(z.any()),
-    });
-
     const sourcesParsed = sourcesZod.safeParse(sources);
 
     if (!sourcesParsed.success) {
@@ -100,7 +90,6 @@ function ChatWindow({
       behavior: "smooth",
     });
 
-    // Assuming this is part of a larger function within a React component
     const updateChatHistoryAndFetch = async () => {
       // Step 1: Update chat history with the assistant's response
       await new Promise((resolve) => {
@@ -143,7 +132,7 @@ function ChatWindow({
         `/api/chat?q=${query}&spaces=${spaces}&threadId=${threadId}`,
         {
           method: "POST",
-          body: JSON.stringify({ chatHistory }),
+          body: JSON.stringify({ chatHistory, sources: sourcesParsed.data }),
         },
       );
 

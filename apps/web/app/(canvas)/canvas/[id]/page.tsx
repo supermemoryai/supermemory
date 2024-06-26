@@ -9,10 +9,14 @@ import { AutocompleteIcon, blockIcon } from "@repo/ui/icons";
 import Image from "next/image";
 import { Switch } from "@repo/ui/shadcn/switch";
 import { Label } from "@repo/ui/shadcn/label";
+import { useRouter } from "next/router";
 
 function page() {
   const [fullScreen, setFullScreen] = useState(false);
   const [visible, setVisible] = useState(true);
+
+  const router = useRouter();
+  router.push("/home");
 
   return (
     <div

@@ -1,9 +1,9 @@
-import React from 'react'
+import { redirect } from "next/navigation";
+import React from "react";
 
 function page() {
-  return (
-    <div>page</div>
-  )
+  redirect("/signin");
+  return <div>page</div>;
 }
 
-export default page
+export default page;

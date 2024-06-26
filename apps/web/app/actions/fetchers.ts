@@ -4,6 +4,7 @@ import { and, asc, eq, inArray, not, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
   chatHistory,
+  ChatThread,
   chatThreads,
   Content,
   contentToSpace,
@@ -13,12 +14,15 @@ import {
 import { ServerActionReturnType, Space } from "./types";
 import { auth } from "../../server/auth";
 import { ChatHistory, SourceZod } from "@repo/shared-types";
+import { ChatHistory as ChatHistoryType } from "../../server/db/schema";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 
 export const getSpaces = async (): ServerActionReturnType<Space[]> => {
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -39,6 +43,7 @@ export const getAllMemories = async (
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -78,6 +83,7 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
   const data = await auth();
 
   if (!data || !data.user) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -85,68 +91,13 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
     where: eq(users, data.user.id),
   });
 
-  const spacesWithoutUser = spaces.map((space) => {
-    return { ...space, user: undefined };
+  const memories = await db.query.storedContent.findMany({
+    where: eq(users, data.user.id),
   });
-
-  // const contentCountBySpace = await db
-  //   .select({
-  //     spaceId: contentToSpace.spaceId,
-  //     count: sql<number>`count(*)`.mapWith(Number),
-  //   })
-  //   .from(contentToSpace)
-  //   .where(
-  //     inArray(
-  //       contentToSpace.spaceId,
-  //       spacesWithoutUser.map((space) => space.id),
-  //     ),
-  //   )
-  //   .groupBy(contentToSpace.spaceId)
-  //   .execute();
-
-  // console.log(contentCountBySpace);
-
-  // get a count with space mappings like spaceID: count (number of memories in that space)
-
-  const len = spacesWithoutUser.map((space) => space.id).length;
-
-  if (len > 0) {
-    const contentCountBySpace = await db
-      .select({
-        spaceId: contentToSpace.spaceId,
-        count: sql<number>`count(*)`.mapWith(Number),
-      })
-      .from(contentToSpace)
-      .where(
-        inArray(
-          contentToSpace.spaceId,
-          spacesWithoutUser.map((space) => space.id),
-        ),
-      )
-      .groupBy(contentToSpace.spaceId)
-      .execute();
-
-    console.log(contentCountBySpace);
-  }
-
-  const contentNotInAnySpace = await db
-    .select()
-    .from(storedContent)
-    .where(
-      not(
-        eq(
-          storedContent.id,
-          db
-            .select({ contentId: contentToSpace.contentId })
-            .from(contentToSpace),
-        ),
-      ),
-    )
-    .execute();
 
   return {
     success: true,
-    data: { spaces: spacesWithoutUser, memories: contentNotInAnySpace },
+    data: { spaces: spaces, memories: memories },
   };
 };
 
@@ -156,6 +107,7 @@ export const getFullChatThread = async (
   const data = await auth();
 
   if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
     return { error: "Not authenticated", success: false };
   }
 
@@ -209,4 +161,31 @@ export const getFullChatThread = async (
     success: true,
     data: accumulatedChatHistory,
   };
+};
+
+export const getChatHistory = async (): ServerActionReturnType<
+  ChatThread[]
+> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const chatHistorys = await db.query.chatThreads.findMany({
+      where: eq(chatThreads.userId, data.user.id),
+    });
+
+    return {
+      success: true,
+      data: chatHistorys,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
 };
