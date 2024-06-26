@@ -19,7 +19,6 @@
     "@million/lint": "^1.0.0-rc.11",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-popover": "^1.0.7",
-    "@repo/ui": "*",
     "cmdk": "^1.0.0",
     "lowlight": "^3.1.0",
     "million": "^3.1.6",

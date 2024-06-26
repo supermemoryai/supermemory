@@ -11,6 +11,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.378.0",
     "tailwind-merge": "^2.3.0",
+    "tailwind-scrollbar": "^3.1.0",
     "tailwindcss-animate": "^1.0.7"
   }
 }

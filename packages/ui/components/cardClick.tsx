@@ -22,13 +22,13 @@ export const CardClick = ({
       {items.map((item, idx) => (
         <div
           key={idx}
-          className="group relative  block h-full w-full cursor-pointer rounded-2xl p-2  transition-all hover:border"
+          className="group relative  block h-full w-full cursor-pointer rounded-2xl p-2 border border-transparent hover:bg-page-gradient  hover:border hover:border-white/20 rounded-3xl mt-1"
           onMouseDown={() => handleClickIndex(idx)}
         >
           <AnimatePresence>
             {tab === idx && (
               <motion.span
-                className="absolute inset-0 -z-[1] block h-full w-full rounded-3xl [background:linear-gradient(#2E2E32,#2E2E32),linear-gradient(120deg,theme(colors.zinc.700),theme(colors.zinc.700/0),theme(colors.zinc.700))]"
+                className="absolute inset-0 -z-[1] block h-full w-full rounded-3xl bg-page-gradient [background:linear-gradient(#2E2E32,#2E2E32),linear-gradient(120deg,theme(colors.zinc.700),theme(colors.zinc.700/0),theme(colors.zinc.700))]"
                 layoutId="hoverBackground"
                 initial={{ opacity: 0 }}
                 animate={{
