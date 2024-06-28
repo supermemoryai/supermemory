@@ -114,7 +114,11 @@ function Feature({
 }) {
   return (
     <div
-      className={clsx(className ,"focus:outline-none", !isActive && "opacity-75 hover:opacity-100")}
+      className={clsx(
+        className,
+        "focus:outline-none",
+        !isActive && "opacity-75 hover:opacity-100",
+      )}
       {...props}
     >
       <div
@@ -213,7 +217,7 @@ function FeaturesDesktop() {
                 </TabPanel>
               ))}
             </div>
-            <div className="pointer-events-none absolute inset-0 rounded-4xl ring-1 ring-inset ring-gray-200/10" />
+            <div className="absolute inset-0 rounded-4xl ring-1 ring-inset ring-gray-200/10" />
           </TabPanels>
         </>
       )}

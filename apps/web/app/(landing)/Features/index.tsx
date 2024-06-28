@@ -25,7 +25,7 @@ const Services = () => {
               src="/images/tailwind-bg-gradient.avif"
               className="absolute top-0 right-0 opacity-100 z-2"
             />
-            <div className="absolute top-0 left-0 w-full h-full pointer-events-none md:w-3/5 xl:w-auto">
+            <div className="absolute top-0 left-0 w-full h-full md:w-3/5 xl:w-auto">
               <img
                 className="object-cover w-full h-full md:object-right"
                 width={800}
@@ -138,7 +138,7 @@ const Services = () => {
               className="absolute top-0 right-0 opacity-60 z-2"
             />
 
-            <div className="absolute top-0 right-0 left-0 mx-auto w-full h-full pointer-events-none xl:w-auto">
+            <div className="absolute top-0 right-0 left-0 mx-auto w-full h-full xl:w-auto">
               <img
                 className="object-cover z-40 w-full h-full border-r-2 md:scale-110 border-r-white/5"
                 width={800}
