@@ -1,5 +1,4 @@
 {
-  "extends": "@repo/typescript-config/nextjs.json",
   "compilerOptions": {
     "allowJs": true,
     "allowSyntheticDefaultImports": true,

@@ -1,30 +1,25 @@
-
 {
-  "name": "Supermemory.ai-Extension",
-  "description": "Uses the chrome.contextMenus API to customize the context menu.",
-  "version": "0.1",
-  "permissions": [
-    "contextMenus"
-  ],
   "manifest_version": 3,
-  "action": {
-    "default_popup": "index.html"
-  },
+  "version": "1.0",
+  "name": "content-shadow-dom-tailwind",
+  "description": "An extension template using React and TypeScript. This template includes a content script using Tailwind.css. To see it in action, visit https://docs.extensioncreate.com.",
   "background": {
     "service_worker": "./background.ts"
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "./content/content.tsx"
-      ]
+      "matches": ["<all_urls>"],
+      "js": ["./content/content.tsx"]
     }
   ],
   "icons": {
-    "16": "public/icon/logo(16).png",
-    "48": "public/icon/logo(48).png"
-  }
+    "16": "public/icon/icon_16.png",
+    "48": "public/icon/icon_48.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["public/*"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ]
 }

@@ -1,5 +1,5 @@
-// Required Extension.js types for TypeScript projects.
-// This file is auto-generated and should not be excluded.
+// Required extension-create types for TypeScript projects.
+// This file auto-generated and should not be excluded.
 // If you need extra types, consider creating a new *.d.ts and
 // referencing it in the "include" array in your tsconfig.json file.
 // See https://www.typescriptlang.org/tsconfig#include for info.

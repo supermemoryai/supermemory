@@ -7,6 +7,7 @@ const config = {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    "../../apps/extension/**/*.{js,ts,jsx,tsx}",
     "../../packages/ui/**/*.{js,ts,jsx,tsx}", // Add the ui package
     "../../packages/ui/shadcn/**/*.{js,ts,jsx,tsx}", // Add the ui package
   ],

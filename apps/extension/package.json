@@ -14,7 +14,7 @@
     "build": "extension build"
   },
   "dependencies": {},
-  "name": "extension",
+  "name": "content-shadow-dom-tailwind",
   "private": true,
   "version": "0.0.0"
 }
