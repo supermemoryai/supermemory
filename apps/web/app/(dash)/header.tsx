@@ -4,7 +4,6 @@ import Link from "next/link";
 import Logo from "../../public/logo.svg";
 import { AddIcon, ChatIcon } from "@repo/ui/icons";
 
-import DynamicIsland from "./dynamicisland";
 import { db } from "@/server/db";
 import { getChatHistory } from "../actions/fetchers";
 
@@ -25,10 +24,6 @@ async function Header() {
             className="hover:brightness-125 duration-200"
           />
         </Link>
-
-        <div className="fixed z-30 left-1/2 -translate-x-1/2 top-5">
-          <DynamicIsland />
-        </div>
 
         <div className="flex items-center gap-2">
           <button className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl">
