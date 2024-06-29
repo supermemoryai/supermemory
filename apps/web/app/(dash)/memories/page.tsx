@@ -75,6 +75,11 @@ function Page() {
                 content={(item.data as Content).content}
                 title={(item.data as Content).title ?? "Untitled"}
                 url={(item.data as Content).url}
+                image={
+                  (item.data as Content).ogImage ??
+                  (item.data as Content).image ??
+                  "/placeholder-image.svg" // TODO: add this placeholder
+                }
               />
             );
           }
@@ -102,6 +107,7 @@ function TabComponent({
   title: string;
   description: string;
 }) {
+  // TODO: Display the space name and desription which is the number of elemenet in the space
   return (
     <div className="flex items-center my-6">
       <div>
@@ -125,12 +131,15 @@ function LinkComponent({
   content,
   title,
   url,
+  image,
 }: {
   type: string;
   content: string;
   title: string;
   url: string;
+  image?: string;
 }) {
+  // TODO: DISPLAY THE ITEM BASED ON `type` being note or page
   return (
     <div className="w-full">
       <div className="text-lg text-[#fff]">{title}</div>

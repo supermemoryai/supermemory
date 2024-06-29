@@ -38,7 +38,7 @@ export const createSpace = async (
   try {
     const resp = await db
       .insert(space)
-      .values({ name: input, user: data.user.id });
+      .values({ name: input, user: data.user.id, createdAt: new Date() });
 
     revalidatePath("/home");
     return { success: true, data: resp.meta.last_row_id };
