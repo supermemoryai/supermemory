@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MemoriesIcon, ExploreIcon, CanvasIcon, AddIcon } from "@repo/ui/icons";
 import { Button } from "@repo/ui/shadcn/button";
-import { PlusCircleIcon } from "lucide-react";
+import { MinusIcon, PlusCircleIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,8 +34,9 @@ import {
   TooltipTrigger,
 } from "@repo/ui/shadcn/tooltip";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
-import { createMemory } from "../actions/doers";
+import { createMemory, createSpace } from "../actions/doers";
 import { Input } from "@repo/ui/shadcn/input";
+import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 
 function Menu() {
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -77,7 +78,7 @@ function Menu() {
   ];
 
   const [content, setContent] = useState("");
-  const [selectedSpace, setSelectedSpace] = useState<string | null>(null);
+  const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
   const autoDetectedType = useMemo(() => {
     if (content.length === 0) {
@@ -96,6 +97,15 @@ function Menu() {
   }, [content]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const options = useMemo(
+    () =>
+      spaces.map((x) => ({
+        label: x.name,
+        value: x.id.toString(),
+      })),
+    [spaces],
+  );
 
   const handleSubmit = async (content?: string, space?: string) => {
     setDialogOpen(false);
@@ -212,7 +222,7 @@ function Menu() {
                   className="text-[#858B92] flex items-center gap-1 duration-200 transform transition-transform"
                   htmlFor="space"
                 >
-                  Space
+                  Spaces
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
@@ -227,26 +237,81 @@ function Menu() {
                     </Tooltip>
                   </TooltipProvider>
                 </Label>
-                <Select
-                  onValueChange={(value) => setSelectedSpace(value)}
-                  value={selectedSpace ?? "none"}
-                  defaultValue="none"
-                  name="space"
-                >
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-secondary text-white">
-                    <SelectItem defaultChecked value="none">
-                      None
-                    </SelectItem>
-                    {spaces.map((space) => (
-                      <SelectItem key={space.id} value={space.id.toString()}>
-                        {space.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+                <ComboboxWithCreate
+                  options={spaces.map((x) => ({
+                    label: x.name,
+                    value: x.id.toString(),
+                  }))}
+                  onSelect={(v) =>
+                    setSelectedSpaces((prev) => {
+                      if (v === "") {
+                        return [];
+                      }
+                      return [...prev, parseInt(v)];
+                    })
+                  }
+                  onSubmit={async (spaceName) => {
+                    const space = options.find((x) => x.label === spaceName);
+                    toast.info("Creating space...");
+
+                    if (space) {
+                      toast.error("A space with that name already exists.");
+                    }
+
+                    const creationTask = await createSpace(spaceName);
+                    if (creationTask.success && creationTask.data) {
+                      toast.success("Space created " + creationTask.data);
+                      setSpaces?.((prev) => [
+                        ...prev,
+                        {
+                          name: spaceName,
+                          id: creationTask.data!,
+                        },
+                      ]);
+                      setSelectedSpaces((prev) => [
+                        ...prev,
+                        creationTask.data!,
+                      ]);
+                    } else {
+                      toast.error(
+                        "Space creation failed: " + creationTask.error ??
+                          "Unknown error",
+                      );
+                    }
+                  }}
+                  placeholder="Save or create space by typing."
+                  className="bg-[#2B3237] h-min rounded-md mt-2 mb-4"
+                />
+
+                <div>
+                  {selectedSpaces.length > 0 && (
+                    <div className="flex flex-row flex-wrap gap-0.5 h-min">
+                      {selectedSpaces.map((x, idx) => (
+                        <button
+                          key={x}
+                          onClick={() =>
+                            setSelectedSpaces((prev) =>
+                              prev.filter((y) => y !== x),
+                            )
+                          }
+                          className={`relative group p-2 py-3 bg-[#3C464D] max-w-32 ${
+                            idx === selectedSpaces.length - 1
+                              ? "rounded-br-xl"
+                              : ""
+                          }`}
+                        >
+                          <p className="line-clamp-1">
+                            {spaces.find((y) => y.id === x)?.name}
+                          </p>
+                          <div className="absolute h-full right-0 top-0 p-1 opacity-0 group-hover:opacity-100 items-center">
+                            <MinusIcon className="w-6 h-6 rounded-full bg-secondary" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

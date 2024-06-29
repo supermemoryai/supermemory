@@ -21,10 +21,11 @@ interface Option {
 interface ComboboxWithCreateProps {
   options: Option[];
   onSelect: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (newName: string) => void;
   placeholder?: string;
   emptyMessage?: string;
   createNewMessage?: string;
+  className?: string;
 }
 
 const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
@@ -34,9 +35,8 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
   placeholder = "Select an option",
   emptyMessage = "No option found.",
   createNewMessage = "Create",
+  className,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState("");
   const [options, setOptions] = useState<Option[]>(initialOptions);
   const [inputValue, setInputValue] = useState("");
 
@@ -45,7 +45,7 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
   }, [initialOptions]);
 
   return (
-    <Command className="w-40 group">
+    <Command className={cn("group", className)}>
       <CommandInput
         onChangeCapture={(e) => setInputValue(e.currentTarget.value)}
         placeholder={placeholder}
@@ -53,7 +53,9 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
       />
       <CommandList className="z-10 translate-y-12 translate-x-5 opacity-0 absolute group-focus-within:opacity-100 bg-secondary p-2 rounded-b-xl max-w-64">
         <CommandEmpty>
-          {createNewMessage} "{inputValue}"
+          <Button onClick={async () => onSubmit(inputValue)} variant="link">
+            {createNewMessage} "{inputValue}"
+          </Button>
         </CommandEmpty>
         <CommandGroup
           className="hidden group-focus-within:block"

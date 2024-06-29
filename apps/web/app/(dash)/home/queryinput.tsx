@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { getSpaces } from "@/app/actions/fetchers";
 import Combobox from "@repo/ui/shadcn/combobox";
 import { MinusIcon } from "lucide-react";
+import { toast } from "sonner";
+import { createSpace } from "@/app/actions/doers";
 
 function QueryInput({
   initialQuery = "",
@@ -16,6 +18,7 @@ function QueryInput({
   className,
   mini = false,
   handleSubmit,
+  setInitialSpaces,
 }: {
   initialQuery?: string;
   initialSpaces?: {
@@ -26,6 +29,9 @@ function QueryInput({
   className?: string;
   mini?: boolean;
   handleSubmit: (q: string, spaces: { id: number; name: string }[]) => void;
+  setInitialSpaces?: React.Dispatch<
+    React.SetStateAction<{ id: number; name: string }[]>
+  >;
 }) {
   const [q, setQ] = useState(initialQuery);
 
@@ -104,6 +110,7 @@ function QueryInput({
           <div className="flex justify-between items-center gap-6 h-auto bg-secondary rounded-b-3xl border-2 border-border">
             <Combobox
               options={options}
+              className="rounded-bl-3xl bg-[#3C464D] w-44"
               onSelect={(v) =>
                 setSelectedSpaces((prev) => {
                   if (v === "") {
@@ -112,8 +119,33 @@ function QueryInput({
                   return [...prev, parseInt(v)];
                 })
               }
-              onSubmit={() => {}}
-              placeholder="Filter spaces..."
+              onSubmit={async (spaceName) => {
+                const space = options.find((x) => x.label === spaceName);
+                toast.info("Creating space...");
+
+                if (space) {
+                  toast.error("A space with that name already exists.");
+                }
+
+                const creationTask = await createSpace(spaceName);
+                if (creationTask.success && creationTask.data) {
+                  toast.success("Space created " + creationTask.data);
+                  setInitialSpaces?.((prev) => [
+                    ...prev,
+                    {
+                      name: spaceName,
+                      id: creationTask.data!,
+                    },
+                  ]);
+                  setSelectedSpaces((prev) => [...prev, creationTask.data!]);
+                } else {
+                  toast.error(
+                    "Space creation failed: " + creationTask.error ??
+                      "Unknown error",
+                  );
+                }
+              }}
+              placeholder="Chat with a space..."
             />
 
             <div className="flex flex-row gap-0.5 h-full">

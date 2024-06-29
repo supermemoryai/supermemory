@@ -412,7 +412,7 @@ function ChatWindow({
                 mini
                 className="w-full shadow-md"
                 initialQuery={""}
-                initialSpaces={[]}
+                initialSpaces={spaces}
                 handleSubmit={async (q, spaces) => {
                   setChatHistory((prevChatHistory) => {
                     return [

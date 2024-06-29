@@ -9,16 +9,15 @@ import { auth } from "@/server/auth";
 import Services from "./Features/index";
 import { Showcases } from "./Showcase";
 import BackgroundPlus from "./GridPatterns/PlusGrid";
+import { redirect } from "next/navigation";
 
 export const runtime = "edge";
 
 export default async function Home() {
   const user = await auth();
 
-  console.log(user);
-
   if (user) {
-    // await redirect("/home")
+    await redirect("/home");
   }
 
   return (

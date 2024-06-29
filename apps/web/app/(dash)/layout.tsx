@@ -1,4 +1,4 @@
-import Header from "./header";
+import Header from "./header/header";
 import Menu from "./menu";
 import { redirect } from "next/navigation";
 import { auth } from "../../server/auth";

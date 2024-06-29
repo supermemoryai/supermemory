@@ -41,7 +41,7 @@ export const createSpace = async (
       .values({ name: input, user: data.user.id });
 
     revalidatePath("/home");
-    return { success: true, data: 1 };
+    return { success: true, data: resp.meta.last_row_id };
   } catch (e: unknown) {
     const error = e as Error;
     if (

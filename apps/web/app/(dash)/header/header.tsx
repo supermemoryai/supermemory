@@ -1,11 +1,10 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Logo from "../../public/logo.svg";
-import { AddIcon, ChatIcon } from "@repo/ui/icons";
+import Logo from "../../../public/logo.svg";
 
-import { db } from "@/server/db";
-import { getChatHistory } from "../actions/fetchers";
+import { getChatHistory } from "../../actions/fetchers";
+import NewChatButton from "./newChatButton";
 
 async function Header() {
   const chatThreads = await getChatHistory();
@@ -26,10 +25,7 @@ async function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <button className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl">
-            <Image src={ChatIcon} alt="Chat icon" className="w-5" />
-            Start new chat
-          </button>
+          <NewChatButton />
 
           <div className="relative group">
             <button className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl">

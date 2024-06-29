@@ -375,10 +375,6 @@ app.post(
       // SLICED to 5 to avoid too many queries
       for (const space of spaces.slice(0, 5)) {
         if (space && space.length >= 1) {
-          console.log(
-            "this is the key being used",
-            `space-${query.user}-${space}`,
-          );
           // it's possible for space list to be [undefined] so we only add space filter conditionally
           filter[`space-${query.user}-${space}`] = 1;
         }
