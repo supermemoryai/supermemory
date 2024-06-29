@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../../server/db";
 import {
+  canvas,
   chatHistory,
   chatThreads,
   contentToSpace,
@@ -380,4 +381,38 @@ export const linkTelegramToUser = async (
     success: true,
     data: true,
   };
+};
+
+export const createCanvas = async () => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  const resp = await db
+  .insert(canvas)
+  .values({ userId: data.user.id }).returning({id: canvas.id});
+  redirect(`/canvas/${resp[0]!.id}`);
+  // TODO INVESTIGATE: NO REDIRECT INSIDE TRY CATCH BLOCK
+  // try {
+  //   const resp = await db
+  //     .insert(canvas)
+  //     .values({ userId: data.user.id }).returning({id: canvas.id});
+  //   return redirect(`/canvas/${resp[0]!.id}`);
+  // } catch (e: unknown) {
+  //   const error = e as Error;
+  //   if (
+  //     error.message.includes("D1_ERROR: UNIQUE constraint failed: space.name")
+  //   ) {
+  //     return { success: false, data: 0, error: "Space already exists" };
+  //   } else {
+  //     return {
+  //       success: false,
+  //       data: 0,
+  //       error: "Failed to create space with error: " + error.message,
+  //     };
+  //   }
+  // }
 };

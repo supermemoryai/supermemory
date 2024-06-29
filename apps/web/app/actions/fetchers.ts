@@ -3,6 +3,7 @@
 import { and, asc, eq, inArray, not, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
+  canvas,
   chatHistory,
   ChatThread,
   chatThreads,
@@ -181,6 +182,29 @@ export const getChatHistory = async (): ServerActionReturnType<
     return {
       success: true,
       data: chatHistorys,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
+};
+
+export const getCanvas = async () => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const canvases = await db.select().from(canvas).where(eq(canvas.userId, data.user.id))
+
+    return {
+      success: true,
+      data: canvases.map(({ userId, ...rest }) => rest),
     };
   } catch (e) {
     return {

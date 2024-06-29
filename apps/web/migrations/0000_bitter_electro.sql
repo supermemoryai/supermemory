@@ -27,6 +27,15 @@ CREATE TABLE `authenticator` (
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE TABLE `canvas` (
+	`id` text PRIMARY KEY NOT NULL,
+	`title` text DEFAULT 'Untitled' NOT NULL,
+	`description` text DEFAULT 'Untitled' NOT NULL,
+	`url` text DEFAULT '' NOT NULL,
+	`userId` text NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
 CREATE TABLE `chatHistory` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`threadId` text NOT NULL,
@@ -86,7 +95,8 @@ CREATE TABLE `user` (
 	`name` text,
 	`email` text NOT NULL,
 	`emailVerified` integer,
-	`image` text
+	`image` text,
+	`telegramId` text
 );
 --> statement-breakpoint
 CREATE TABLE `verificationToken` (
@@ -97,6 +107,7 @@ CREATE TABLE `verificationToken` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `authenticator_credentialID_unique` ON `authenticator` (`credentialID`);--> statement-breakpoint
+CREATE INDEX `canvas_user_userId` ON `canvas` (`userId`);--> statement-breakpoint
 CREATE INDEX `chatHistory_thread_idx` ON `chatHistory` (`threadId`);--> statement-breakpoint
 CREATE INDEX `chatThread_user_idx` ON `chatThread` (`userId`);--> statement-breakpoint
 CREATE UNIQUE INDEX `space_name_unique` ON `space` (`name`);--> statement-breakpoint
@@ -105,4 +116,7 @@ CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint
 CREATE INDEX `storedContent_savedAt_idx` ON `storedContent` (`savedAt`);--> statement-breakpoint
 CREATE INDEX `storedContent_title_idx` ON `storedContent` (`title`);--> statement-breakpoint
-CREATE INDEX `storedContent_user_idx` ON `storedContent` (`user`);
+CREATE INDEX `storedContent_user_idx` ON `storedContent` (`user`);--> statement-breakpoint
+CREATE INDEX `users_email_idx` ON `user` (`email`);--> statement-breakpoint
+CREATE INDEX `users_telegram_idx` ON `user` (`telegramId`);--> statement-breakpoint
+CREATE INDEX `users_id_idx` ON `user` (`id`);

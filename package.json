@@ -20,7 +20,7 @@
     "@repo/ui": "*",
     "@tailwindcss/typography": "^0.5.13",
     "autoprefixer": "^10.4.19",
-    "drizzle-kit": "^0.21.2",
+    "drizzle-kit": "^0.22.7",
     "eslint-plugin-next-on-pages": "^1.11.3",
     "lint-staged": "^15.2.5",
     "postcss": "^8.4.38",
