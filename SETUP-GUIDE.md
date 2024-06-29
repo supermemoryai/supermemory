@@ -34,6 +34,9 @@ bunx wrangler d1 create <YOUR_DATABASE_NAME>
 
 And then replace database_name and database_id with the values
 
+> [!NOTE]
+> please don't change the binding value even if wrangler cli suggests you to do so.
+
 ```
 [[d1_databases]]
 binding = "DATABASE"
