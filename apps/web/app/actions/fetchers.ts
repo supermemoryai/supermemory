@@ -9,6 +9,7 @@ import {
   Content,
   contentToSpace,
   storedContent,
+  StoredSpace,
   users,
 } from "../../server/db/schema";
 import { ServerActionReturnType, Space } from "./types";
@@ -18,7 +19,7 @@ import { ChatHistory as ChatHistoryType } from "../../server/db/schema";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 
-export const getSpaces = async (): ServerActionReturnType<Space[]> => {
+export const getSpaces = async (): ServerActionReturnType<StoredSpace[]> => {
   const data = await auth();
 
   if (!data || !data.user) {
@@ -30,11 +31,7 @@ export const getSpaces = async (): ServerActionReturnType<Space[]> => {
     where: eq(users, data.user.id),
   });
 
-  const spacesWithoutUser = spaces.map((space) => {
-    return { ...space, user: undefined };
-  });
-
-  return { success: true, data: spacesWithoutUser };
+  return { success: true, data: spaces };
 };
 
 export const getAllMemories = async (
@@ -77,7 +74,7 @@ export const getAllMemories = async (
 };
 
 export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
-  spaces: Space[];
+  spaces: StoredSpace[];
   memories: Content[];
 }> => {
   const data = await auth();

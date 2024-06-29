@@ -2,10 +2,11 @@
 
 import { getAllUserMemoriesAndSpaces } from "@/app/actions/fetchers";
 import { Space } from "@/app/actions/types";
-import { Content } from "@/server/db/schema";
+import { Content, StoredSpace } from "@/server/db/schema";
 import { NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 
 function Page() {
   const [filter, setFilter] = useState("All");
@@ -15,8 +16,33 @@ function Page() {
 
   const [memoriesAndSpaces, setMemoriesAndSpaces] = useState<{
     memories: Content[];
-    spaces: Space[];
+    spaces: StoredSpace[];
   }>({ memories: [], spaces: [] });
+
+  // Sort Both memories and spaces by their savedAt and createdAt dates respectfully.
+  // The output should be just one single list of items
+  // And it will look something like { item: "memory" | "space", date: Date, data: Content | StoredSpace }
+  const sortedItems = useMemo(() => {
+    // Merge the lists
+    const unifiedItems = [
+      ...memoriesAndSpaces.memories.map((memory) => ({
+        item: "memory",
+        date: new Date(memory.savedAt), // Assuming savedAt is a string date
+        data: memory,
+      })),
+      ...memoriesAndSpaces.spaces.map((space) => ({
+        item: "space",
+        date: new Date(space.createdAt), // Assuming createdAt is a string date
+        data: space,
+      })),
+    ].map((item) => ({
+      ...item,
+      date: Number(item.date), // Convert the date to a number
+    }));
+
+    // Sort the merged list
+    return unifiedItems.sort((a, b) => a.date - b.date);
+  }, [memoriesAndSpaces.memories, memoriesAndSpaces.spaces]);
 
   useEffect(() => {
     (async () => {
@@ -33,33 +59,12 @@ function Page() {
       </h2>
 
       <div className="flex flex-col gap-4">
-        <div className="w-full relative">
-          <input
-            type="text"
-            className=" w-full py-3 rounded-md text-lg pl-8 bg-[#1F2428] outline-none"
-            placeholder="search here..."
-          />
-          <Image
-            className="absolute top-1/2 -translate-y-1/2 left-2"
-            src={SearchIcon}
-            alt="Search icon"
-          />
-        </div>
-
-        <Filters filter={filter} setFilter={setFilterfn} />
-      </div>
-      <div>
-        <div className="text-[#B3BCC5]">Spaces</div>
-        {memoriesAndSpaces.spaces.map((space) => (
-          <TabComponent title={space.name} description={space.id.toString()} />
-        ))}
-      </div>
-
-      <div>
-        <div className="text-[#B3BCC5]">Pages</div>
-        {memoriesAndSpaces.memories.map((memory) => (
-          <LinkComponent title={memory.title ?? "No title"} url={memory.url} />
-        ))}
+        <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
+          <Masonry>
+            <div>Item 1</div>
+            <div>Item 2</div>
+          </Masonry>
+        </ResponsiveMasonry>
       </div>
     </div>
   );
@@ -90,18 +95,22 @@ function TabComponent({
   );
 }
 
-function LinkComponent({ title, url }: { title: string; url: string }) {
+function LinkComponent({
+  type,
+  content,
+  title,
+  url,
+}: {
+  type: string;
+  content: string;
+  title: string;
+  url: string;
+}) {
   return (
-    <div className="flex items-center my-6">
-      <div>
-        <div className="h-12 w-12 bg-[#1F2428] flex justify-center items-center rounded-md">
-          <Image src={UrlIcon} alt="Url icon" />
-        </div>
-      </div>
-      <div className="grow px-4">
-        <div className="text-lg text-[#fff]">{title}</div>
-        <div>{url}</div>
-      </div>
+    <div className="w-full">
+      <div className="text-lg text-[#fff]">{title}</div>
+      <div>{content}</div>
+      <div>{url}</div>
     </div>
   );
 }
@@ -120,7 +129,7 @@ function Filters({
         return (
           <div
             onClick={() => setFilter(i)}
-            className={`transition px-6 py-2 rounded-xl  ${i === filter ? "bg-[#21303D] text-[#369DFD]" : "text-[#B3BCC5] bg-[#1F2428] hover:bg-[#1f262d] hover:text-[#76a3cc]"}`}
+            className={`transition px-6 py-2 rounded-xl bg-border ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]"}`}
           >
             {i}
           </div>

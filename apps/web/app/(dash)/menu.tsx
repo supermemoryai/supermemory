@@ -37,9 +37,10 @@ import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import { createMemory, createSpace } from "../actions/doers";
 import { Input } from "@repo/ui/shadcn/input";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
+import { StoredSpace } from "@/server/db/schema";
 
 function Menu() {
-  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [spaces, setSpaces] = useState<StoredSpace[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -269,6 +270,8 @@ function Menu() {
                         {
                           name: spaceName,
                           id: creationTask.data!,
+                          createdAt: new Date().toISOString(),
+                          user: null,
                         },
                       ]);
                       setSelectedSpaces((prev) => [

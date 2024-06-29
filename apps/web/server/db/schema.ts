@@ -151,6 +151,7 @@ export const space = createTable(
     user: text("user", { length: 255 }).references(() => users.id, {
       onDelete: "cascade",
     }),
+    createdAt: int("createdAt", { mode: "timestamp" }).notNull(),
   },
   (space) => ({
     nameIdx: index("spaces_name_idx").on(space.name),
