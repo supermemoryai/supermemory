@@ -10,7 +10,6 @@ import Masonry from "react-layout-masonry";
 
 function Page() {
   const [filter, setFilter] = useState("All");
-  const setFilterfn = (i: string) => setFilter(i);
 
   const [search, setSearch] = useState("");
 
@@ -41,8 +40,25 @@ function Page() {
     }));
 
     // Sort the merged list
-    return unifiedItems.sort((a, b) => a.date - b.date);
-  }, [memoriesAndSpaces.memories, memoriesAndSpaces.spaces]);
+    return unifiedItems
+      .filter((item) => {
+        if (filter === "All") return true;
+        if (filter === "Spaces" && item.item === "space") {
+          console.log(item);
+          return true;
+        }
+        if (filter === "Pages")
+          return (
+            item.item === "memory" && (item.data as Content).type === "page"
+          );
+        if (filter === "Notes")
+          return (
+            item.item === "memory" && (item.data as Content).type === "note"
+          );
+        return false;
+      })
+      .sort((a, b) => a.date - b.date);
+  }, [memoriesAndSpaces.memories, memoriesAndSpaces.spaces, filter]);
 
   useEffect(() => {
     (async () => {
@@ -66,8 +82,6 @@ function Page() {
         gap={4}
       >
         {sortedItems.map((item) => {
-          if (filter !== "All" && item.item !== filter) return null;
-
           if (item.item === "memory") {
             return (
               <LinkComponent
