@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Editor, Tldraw, setUserPreferences, TLStoreWithStatus } from "tldraw";
-import { createAssetFromUrl } from "../lib/createAssetUrl";
+import { createAssetFromUrl } from "../../lib/createAssetUrl";
 import "tldraw/tldraw.css";
 import { components } from "./enabledComp";
 import { twitterCardUtil } from "./twitterCard";
 import { textCardUtil } from "./textCard";
-import createEmbedsFromUrl from "../lib/createEmbeds";
-import { loadRemoteSnapshot } from "../lib/loadSnap";
+import createEmbedsFromUrl from "../../lib/createEmbeds";
+import { loadRemoteSnapshot } from "../../lib/loadSnap";
 import { SaveStatus } from "./savesnap";
 import { getAssetUrls } from "@tldraw/assets/selfHosted";
 import { memo } from "react";
-import DragContext from "../lib/context";
+import DragContext from "../../lib/context";
 import DropZone from "./dropComponent";
 import { useRect } from "./resizableLayout";
 // import "./canvas.css";
@@ -73,7 +73,7 @@ const TldrawComponent = memo(() => {
     });
   }, []);
 
-  setUserPreferences({ id: "supermemory",colorScheme: "dark" });
+  setUserPreferences({ id: "supermemory", colorScheme: "dark" });
 
   const assetUrls = getAssetUrls();
   return (

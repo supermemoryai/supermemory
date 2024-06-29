@@ -1,7 +1,8 @@
 import { createTLStore, defaultShapeUtils, loadSnapshot } from "tldraw";
-import { twitterCardUtil } from "../(components)/twitterCard";
-import { textCardUtil } from "../(components)/textCard";
-import { getCanvasData } from "@/app/actions/fetchers";
+import { getCanvasData } from "../app/actions/fetchers";
+import { twitterCardUtil } from "../components/canvas/twitterCard";
+import { textCardUtil } from "../components/canvas/textCard";
+
 export async function loadRemoteSnapshot(id:string) {
   const snapshot = await getCanvasData(id);
 
