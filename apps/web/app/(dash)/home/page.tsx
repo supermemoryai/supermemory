@@ -57,7 +57,17 @@ function Page({
       <div className="w-full pb-20">
         <QueryInput
           handleSubmit={async (q, spaces) => {
+            if (q.length === 0) {
+              toast.error("Query is required");
+              return;
+            }
+
             const threadid = await createChatThread(q);
+
+            if (!threadid.success || !threadid.data) {
+              toast.error("Failed to create chat thread");
+              return;
+            }
 
             push(
               `/chat/${threadid.data}?spaces=${JSON.stringify(spaces)}&q=${q}`,

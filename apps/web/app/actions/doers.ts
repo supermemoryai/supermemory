@@ -65,6 +65,8 @@ const typeDecider = (content: string) => {
     return "tweet";
   } else if (content.match(/https?:\/\/[\w\.]+/)) {
     return "page";
+  } else if (content.match(/https?:\/\/www\.[\w\.]+/)) {
+    return "page";
   } else {
     return "note";
   }
@@ -138,7 +140,15 @@ export const createMemory = async (input: {
       },
     });
     pageContent = await response.text();
-    metadata = await getMetaData(input.content);
+
+    try {
+      metadata = await getMetaData(input.content);
+    } catch (e) {
+      return {
+        success: false,
+        error: "Failed to fetch metadata for the page. Please try again later.",
+      };
+    }
   } else if (type === "tweet") {
     const tweet = await getTweetData(input.content.split("/").pop() as string);
     pageContent = JSON.stringify(tweet);

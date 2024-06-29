@@ -5,10 +5,10 @@
 :root {
   --foreground: rgba(179, 188, 197, 1);
   --foreground-menu: rgba(106, 115, 125, 1);
-  --background: rgba(23, 27, 31, 1);
-  --secondary: rgba(31, 36, 40, 1);
+  --background: rgba(31, 36, 40, 1);
+  --secondary: rgb(45, 51, 58);
   --primary: rgba(54, 157, 253, 1);
-  --border: rgba(51, 57, 67, 1);
+  --border: rgba(62, 68, 73, 1);
 
   --card: 0 0% 100%;
   --card-foreground: 0 0% 3.9%;
