@@ -181,6 +181,7 @@ export const createMemory = async (input: {
     storeToSpaces = [];
   }
 
+  console.log(storeToSpaces);
   const vectorSaveResponse = await fetch(
     `${process.env.BACKEND_BASE_URL}/api/add`,
     {

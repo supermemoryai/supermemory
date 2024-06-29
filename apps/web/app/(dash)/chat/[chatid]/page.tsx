@@ -28,7 +28,7 @@ async function Page({
   return (
     <ChatWindow
       q={q}
-      spaces={spaces}
+      spaces={spaces ?? []}
       initialChat={chat.data.length > 0 ? chat.data : undefined}
       threadId={params.chatid}
     />

@@ -41,7 +41,7 @@ function ChatWindow({
   threadId,
 }: {
   q: string;
-  spaces: { id: string; name: string }[];
+  spaces: { id: number; name: string }[];
   initialChat?: ChatHistory[];
   threadId: string;
 }) {
@@ -179,7 +179,7 @@ function ChatWindow({
       if (startGenerating) {
         getAnswer(
           q,
-          spaces.map((s) => `${s}`),
+          spaces.map((s) => `${s.id}`),
         );
       }
     } else {

@@ -15,20 +15,21 @@ export const homeSearchParamsCache = createSearchParamsCache({
 export const chatSearchParamsCache = createSearchParamsCache({
   firstTime: parseAsBoolean.withDefault(false),
   q: parseAsString.withDefault(""),
-  spaces: parseAsArrayOf(
-    parseAsJson((c) => {
-      const valid = z
-        .object({
-          id: z.string(),
+  spaces: parseAsJson((c) => {
+    const valid = z
+      .array(
+        z.object({
+          id: z.number(),
           name: z.string(),
-        })
-        .safeParse(c);
+        }),
+      )
+      .safeParse(c);
 
-      if (!valid.success) {
-        return null;
-      }
+    if (!valid.success) {
+      console.log("invalid spaces", valid.error);
+      return null;
+    }
 
-      return valid.data;
-    }),
-  ).withDefault([]),
+    return valid.data;
+  }),
 });

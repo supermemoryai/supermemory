@@ -64,6 +64,7 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 
   const { store } = await initQuery(c);
 
+  console.log(body.spaces);
   await batchCreateChunksAndEmbeddings({
     store,
     body,
@@ -354,6 +355,7 @@ app.post(
     }
 
     const spaces = query.spaces?.split(",") ?? [undefined];
+    console.log(spaces);
 
     // Get the AI model maker and vector store
     const { model, store } = await initQuery(c, query.model);
@@ -372,8 +374,11 @@ app.post(
 
       // SLICED to 5 to avoid too many queries
       for (const space of spaces.slice(0, 5)) {
-        console.log("space", space);
-        if (!space && spaces.length > 1) {
+        if (space && space.length >= 1) {
+          console.log(
+            "this is the key being used",
+            `space-${query.user}-${space}`,
+          );
           // it's possible for space list to be [undefined] so we only add space filter conditionally
           filter[`space-${query.user}-${space}`] = 1;
         }
