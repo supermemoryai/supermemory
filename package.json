@@ -86,6 +86,7 @@
     "random-js": "^2.1.0",
     "react-dropzone": "^14.2.3",
     "react-hook-form": "^7.51.5",
+    "react-layout-masonry": "^1.1.0",
     "react-markdown": "^9.0.1",
     "react-responsive-masonry": "^2.2.1",
     "react-tweet": "^3.2.1",

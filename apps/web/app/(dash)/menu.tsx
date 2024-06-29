@@ -270,8 +270,9 @@ function Menu() {
                         {
                           name: spaceName,
                           id: creationTask.data!,
-                          createdAt: new Date().toISOString(),
+                          createdAt: new Date(),
                           user: null,
+                          numItems: 0,
                         },
                       ]);
                       setSelectedSpaces((prev) => [

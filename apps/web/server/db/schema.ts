@@ -152,6 +152,7 @@ export const space = createTable(
       onDelete: "cascade",
     }),
     createdAt: int("createdAt", { mode: "timestamp" }).notNull(),
+    numItems: integer("numItems").notNull().default(0),
   },
   (space) => ({
     nameIdx: index("spaces_name_idx").on(space.name),

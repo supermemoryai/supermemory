@@ -6,7 +6,7 @@ import { Content, StoredSpace } from "@/server/db/schema";
 import { NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
 import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
-import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
+import Masonry from "react-layout-masonry";
 
 function Page() {
   const [filter, setFilter] = useState("All");
@@ -53,19 +53,44 @@ function Page() {
   }, []);
 
   return (
-    <div className="max-w-3xl min-w-3xl py-36 h-full flex mx-auto w-full flex-col gap-12">
+    <div className="max-w-3xl min-w-3xl py-36 h-full flex mx-auto w-full flex-col gap-6">
       <h2 className="text-white w-full font-medium text-2xl text-left">
         My Memories
       </h2>
 
-      <div className="flex flex-col gap-4">
-        <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 750: 2, 900: 3 }}>
-          <Masonry>
-            <div>Item 1</div>
-            <div>Item 2</div>
-          </Masonry>
-        </ResponsiveMasonry>
-      </div>
+      <Filters setFilter={setFilter} filter={filter} />
+
+      <Masonry
+        className="mt-6"
+        columns={{ 640: 1, 768: 2, 1024: 3, 1280: 4 }}
+        gap={4}
+      >
+        {sortedItems.map((item) => {
+          if (filter !== "All" && item.item !== filter) return null;
+
+          if (item.item === "memory") {
+            return (
+              <LinkComponent
+                type={(item.data as Content).type ?? "note"}
+                content={(item.data as Content).content}
+                title={(item.data as Content).title ?? "Untitled"}
+                url={(item.data as Content).url}
+              />
+            );
+          }
+
+          if (item.item === "space") {
+            return (
+              <TabComponent
+                title={(item.data as StoredSpace).name}
+                description={`${(item.data as StoredSpace).numItems} memories`}
+              />
+            );
+          }
+
+          return null;
+        })}
+      </Masonry>
     </div>
   );
 }

@@ -63,7 +63,6 @@ CREATE TABLE `space` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`name` text DEFAULT 'none' NOT NULL,
 	`user` text(255),
-	`createdAt` integer NOT NULL,
 	FOREIGN KEY (`user`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -87,8 +86,7 @@ CREATE TABLE `user` (
 	`name` text,
 	`email` text NOT NULL,
 	`emailVerified` integer,
-	`image` text,
-	`telegramId` text
+	`image` text
 );
 --> statement-breakpoint
 CREATE TABLE `verificationToken` (
@@ -107,7 +105,4 @@ CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint
 CREATE INDEX `storedContent_savedAt_idx` ON `storedContent` (`savedAt`);--> statement-breakpoint
 CREATE INDEX `storedContent_title_idx` ON `storedContent` (`title`);--> statement-breakpoint
-CREATE INDEX `storedContent_user_idx` ON `storedContent` (`user`);--> statement-breakpoint
-CREATE INDEX `users_email_idx` ON `user` (`email`);--> statement-breakpoint
-CREATE INDEX `users_telegram_idx` ON `user` (`telegramId`);--> statement-breakpoint
-CREATE INDEX `users_id_idx` ON `user` (`id`);
+CREATE INDEX `storedContent_user_idx` ON `storedContent` (`user`);
