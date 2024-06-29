@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 interface DraggableComponentsProps {
   content: string;
   extraInfo?: string;
-  icon: string;
   iconAlt: string;
 }
 
@@ -19,7 +18,6 @@ export default function DraggableComponentsContainer({
         return (
           <DraggableComponents
             content={i.content}
-            icon={i.icon}
             iconAlt={i.iconAlt}
             extraInfo={i.extraInfo}
           />
@@ -32,7 +30,6 @@ export default function DraggableComponentsContainer({
 function DraggableComponents({
   content,
   extraInfo,
-  icon,
   iconAlt,
 }: DraggableComponentsProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -59,7 +56,6 @@ function DraggableComponents({
       draggable
       className={`flex gap-4 px-1 rounded-md text-[#989EA4] border-2 transition ${isDragging ? "border-blue-600" : "border-[#1F2428]"}`}
     >
-      <Image className="select-none" src={icon} alt={iconAlt} />
       <div className="flex flex-col gap-2">
         <div>
           <h1 className="line-clamp-3">{content}</h1>

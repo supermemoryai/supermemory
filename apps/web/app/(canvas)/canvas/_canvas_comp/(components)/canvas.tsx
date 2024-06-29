@@ -12,6 +12,7 @@ import { getAssetUrls } from "@tldraw/assets/selfHosted";
 import { memo } from "react";
 import DragContext from "../lib/context";
 import DropZone from "./dropComponent";
+import { useRect } from "./resizableLayout";
 // import "./canvas.css";
 
 export const Canvas = memo(() => {
@@ -46,12 +47,13 @@ export const Canvas = memo(() => {
 });
 
 const TldrawComponent = memo(() => {
+  const { id } = useRect();
   const [storeWithStatus, setStoreWithStatus] = useState<TLStoreWithStatus>({
     status: "loading",
   });
   useEffect(() => {
     const fetchStore = async () => {
-      const store = await loadRemoteSnapshot();
+      const store = await loadRemoteSnapshot(id);
 
       setStoreWithStatus({
         store: store,
@@ -71,7 +73,7 @@ const TldrawComponent = memo(() => {
     });
   }, []);
 
-  setUserPreferences({ id: "supermemory" });
+  setUserPreferences({ id: "supermemory",colorScheme: "dark" });
 
   const assetUrls = getAssetUrls();
   return (
@@ -85,7 +87,7 @@ const TldrawComponent = memo(() => {
         onMount={handleMount}
       >
         <div className="absolute left-1/2 top-0 z-[1000000] flex -translate-x-1/2 gap-2 bg-[#2C3439] text-[#B3BCC5]">
-          <SaveStatus />
+          <SaveStatus id={id} />
         </div>
         <DropZone />
       </Tldraw>

@@ -416,3 +416,16 @@ export const createCanvas = async () => {
   //   }
   // }
 };
+
+export const SaveCanvas = async ({id, data}: {id: string, data: string}) => {
+  console.log({id, data})
+  try {
+    await process.env.CANVAS_SNAPS.put(id, data)
+     return {
+      success: true,
+      message: "in-sync"
+     }
+   } catch (error) {
+    return {success: false, error, message:"An error occured while saving your canvas"}
+   }
+}
