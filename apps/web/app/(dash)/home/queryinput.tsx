@@ -73,6 +73,7 @@ function QueryInput({
           className="flex gap-4 p-3"
         >
           <textarea
+            autoFocus
             name="q"
             cols={30}
             rows={mini ? 2 : 4}
