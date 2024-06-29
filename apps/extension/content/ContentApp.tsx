@@ -29,19 +29,11 @@ export default function ContentApp() {
 
   return (
     <div className="flex justify-end items-end min-h-screen w-full">
-      <div className="h-[30vh] absolute flex bottom-12 items-center">
-        <button
-          className={`${hover && "opacity-100 p-2 rounded-l-2xl m-2"} transition bg-background border-2 border-border opacity-0 size-4`}
-        >
-          <img
-            width={24}
-            height={24}
-            className="m-2"
-            src={icon}
-            alt="Save to supermemory.ai"
-          />
-        </button>
-      </div>
+      <button
+        className={`${hover && "opacity-100 p-2 rounded-l-2xl"} transition bg-slate-700 border border-white/30 opacity-0 size-4 h-[30vh] absolute flex bottom-12 items-center`}
+      >
+        <img width={24} height={24} src={icon} alt="Save to supermemory.ai" />
+      </button>
     </div>
   );
 }
