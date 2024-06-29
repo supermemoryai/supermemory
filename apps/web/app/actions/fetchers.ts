@@ -9,6 +9,7 @@ import {
   Content,
   contentToSpace,
   storedContent,
+  User,
   users,
 } from "../../server/db/schema";
 import { ServerActionReturnType, Space } from "./types";
@@ -38,7 +39,7 @@ export const getSpaces = async (): ServerActionReturnType<Space[]> => {
 };
 
 export const getAllMemories = async (
-  freeMemoriesOnly: boolean = false,
+  freeMemoriesOnly: boolean = false
 ): ServerActionReturnType<Content[]> => {
   const data = await auth();
 
@@ -67,9 +68,9 @@ export const getAllMemories = async (
           storedContent.id,
           db
             .select({ contentId: contentToSpace.contentId })
-            .from(contentToSpace),
-        ),
-      ),
+            .from(contentToSpace)
+        )
+      )
     )
     .execute();
 
@@ -102,7 +103,7 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
 };
 
 export const getFullChatThread = async (
-  threadId: string,
+  threadId: string
 ): ServerActionReturnType<ChatHistory[]> => {
   const data = await auth();
 
@@ -114,7 +115,7 @@ export const getFullChatThread = async (
   const thread = await db.query.chatThreads.findFirst({
     where: and(
       eq(chatThreads.id, threadId),
-      eq(chatThreads.userId, data.user.id),
+      eq(chatThreads.userId, data.user.id)
     ),
   });
 
@@ -154,7 +155,7 @@ export const getFullChatThread = async (
           sources: sources ?? [],
         },
       };
-    },
+    }
   );
 
   return {
@@ -181,6 +182,31 @@ export const getChatHistory = async (): ServerActionReturnType<
     return {
       success: true,
       data: chatHistorys,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
+};
+
+export const getUserData = async (): ServerActionReturnType<User> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, data.user.id),
+    });
+
+    return {
+      success: true,
+      data: user,
     };
   } catch (e) {
     return {

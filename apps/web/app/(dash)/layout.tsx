@@ -14,7 +14,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
   return (
     <main className="h-screen flex flex-col">
       <div className="fixed top-0 left-0 w-full">
-        <Header />
+        <Header userId={info.user?.id || ""} />
       </div>
 
       <Menu />

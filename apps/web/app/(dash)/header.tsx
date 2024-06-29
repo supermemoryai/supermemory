@@ -2,13 +2,12 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Logo from "../../public/logo.svg";
-import { AddIcon, ChatIcon } from "@repo/ui/icons";
+import { ChatIcon } from "@repo/ui/icons";
 
 import DynamicIsland from "./dynamicisland";
-import { db } from "@/server/db";
 import { getChatHistory } from "../actions/fetchers";
 
-async function Header() {
+async function Header({ userId }: { userId: string }) {
   const chatThreads = await getChatHistory();
 
   if (!chatThreads.success || !chatThreads.data) {
@@ -56,6 +55,25 @@ async function Header() {
               </div>
             </div>
           </div>
+
+          <Link href={`/user/ + ${userId}`}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              className="lucide lucide-circle-user-round cursor-pointer"
+            >
+              <path d="M18 20a6 6 0 0 0-12 0" />
+              <circle cx="12" cy="10" r="4" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          </Link>
         </div>
       </div>
     </div>
