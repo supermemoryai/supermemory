@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import BackgroundPlus from "@/app/(landing)/GridPatterns/PlusGrid";
+import { variants } from "./homeVariants";
 
 const slap = {
   initial: {
@@ -40,6 +41,8 @@ function Page({
 
   const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
+  const [showVariant, setShowVariant] = useState<number>(0);
+
   useEffect(() => {
     if (telegramUser) {
       const linkTelegram = async () => {
@@ -62,21 +65,14 @@ function Page({
       }
       // TODO: HANDLE ERROR
     });
+
+    setShowVariant(Math.floor(Math.random() * variants.length));
   }, []);
 
   return (
     <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col">
       {/* all content goes here */}
       {/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
-
-      <div className="relative z-20 pointer-events-none">
-        <div
-          className="absolute -z-10 left-0 top-[10%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-100  blur-[337.4px]"
-          style={{ transform: "rotate(-30deg)" }}
-        />
-      </div>
-
-      <BackgroundPlus className="absolute top-0 left-0 w-full h-full -z-50" />
 
       <motion.h1
         {...{
@@ -85,10 +81,20 @@ function Page({
         }}
         className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl"
       >
-        Unlock your{" "}
-        <span className="text-transparent italic bg-clip-text bg-gradient-to-r to-blue-200 from-zinc-300">
-          digital brain
-        </span>
+        {variants[showVariant]!.map((v, i) => {
+          return (
+            <span
+              key={i}
+              className={
+                v.type === "highlighted"
+                  ? "bg-gradient-to-r to-blue-200 from-zinc-300 text-transparent bg-clip-text"
+                  : ""
+              }
+            >
+              {v.content}
+            </span>
+          );
+        })}
       </motion.h1>
 
       <div className="w-full pb-20 mt-12">

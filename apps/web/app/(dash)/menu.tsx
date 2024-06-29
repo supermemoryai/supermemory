@@ -179,7 +179,7 @@ function Menu() {
           </div>
         </div>
 
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] rounded-2xl bg-[#161f2a]/30 backdrop-blur-md">
           <form
             action={async (e: FormData) => {
               const content = e.get("content")?.toString();
@@ -201,7 +201,7 @@ function Menu() {
                 Resource (URL or content)
               </Label>
               <Textarea
-                className="bg-[#2B3237] focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2"
+                className="bg-[#161f2a] focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2"
                 id="content"
                 name="content"
                 placeholder="Start typing a note or paste a URL here. I'll remember it."
@@ -226,7 +226,9 @@ function Menu() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger>
-                        <InformationCircleIcon className="w-4 h-4" />
+                        <span>
+                          <InformationCircleIcon className="w-4 h-4" />
+                        </span>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>
@@ -281,7 +283,7 @@ function Menu() {
                     }
                   }}
                   placeholder="Save or create space by typing."
-                  className="bg-[#2B3237] h-min rounded-md mt-2 mb-4"
+                  className="bg-[#161f2a] h-min rounded-md mt-2 mb-4"
                 />
 
                 <div>

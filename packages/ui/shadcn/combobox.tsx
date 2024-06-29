@@ -56,11 +56,9 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
           <Button onClick={async () => onSubmit(inputValue)} variant="link">
             {createNewMessage} "{inputValue}"
           </Button>
+          <p>Start by creating a space and adding content to it</p>
         </CommandEmpty>
-        <CommandGroup
-          className="hidden group-focus-within:block"
-          heading="Spaces"
-        >
+        <CommandGroup className="hidden group-focus-within:block">
           {options.map((option, idx) => (
             <CommandItem
               key={`opt-${idx}`}
