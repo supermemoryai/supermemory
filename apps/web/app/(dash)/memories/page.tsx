@@ -82,9 +82,12 @@ function Page() {
       <Filters setFilter={setFilter} filter={filter} />
 
       <Masonry
-        className="mt-6"
-        columns={{ 640: 1, 768: 2, 1024: 3, 1280: 4 }}
+        className="mt-6 relative"
+        columns={{ 640: 1, 768: 2, 1024: 3 }}
         gap={12}
+        columnProps={{
+          className: "min-w-[calc(33.3333%-12px)] w-full",
+        }}
       >
         {sortedItems.map((item) => {
           if (item.item === "memory") {
@@ -153,7 +156,7 @@ function TabComponent({
   );
 }
 
-export function LinkComponent({
+function LinkComponent({
   type,
   content,
   title,
@@ -172,7 +175,7 @@ export function LinkComponent({
   return (
     <Link
       href={url}
-      className={`bg-secondary border-2 border-border w-full rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
+      className={`bg-secondary border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
     >
       {type === "page" ? (
         <>

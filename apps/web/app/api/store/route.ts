@@ -54,6 +54,9 @@ const createMemoryFromAPI = async (input: {
 
   let contentId: number | undefined;
 
+  const saveToDbUrl =
+    input.data.url.split("#supermemory-user-")[0] ?? input.data.url;
+
   // Insert into database
   try {
     const insertResponse = await db
@@ -62,8 +65,8 @@ const createMemoryFromAPI = async (input: {
         content: input.data.pageContent,
         title: input.data.title,
         description: input.data.description,
-        url: input.data.url,
-        baseUrl: input.data.url,
+        url: saveToDbUrl,
+        baseUrl: saveToDbUrl,
         image: input.data.image,
         savedAt: new Date(),
         userId: input.userId,

@@ -223,6 +223,9 @@ export const createMemory = async (input: {
 
   let contentId: number | undefined;
 
+  const saveToDbUrl =
+    metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl;
+
   // Insert into database
   try {
     const insertResponse = await db
@@ -231,8 +234,8 @@ export const createMemory = async (input: {
         content: pageContent,
         title: metadata.title,
         description: metadata.description,
-        url: input.content,
-        baseUrl: metadata.baseUrl,
+        url: saveToDbUrl,
+        baseUrl: saveToDbUrl,
         image: metadata.image,
         savedAt: new Date(),
         userId: data.user.id,

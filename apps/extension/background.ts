@@ -289,7 +289,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           },
           body: JSON.stringify({
             pageContent: content,
-            url,
+            url: url + "#supermemory-user-" + Math.random(),
             title,
             spaces: request.spaces,
             description,

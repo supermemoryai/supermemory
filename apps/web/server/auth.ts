@@ -11,6 +11,7 @@ export const {
   auth,
 } = NextAuth({
   secret: process.env.BACKEND_SECURITY_KEY,
+  trustHost: true,
   // callbacks: {
   //   session: ({ session, token, user }) => ({
   //     ...session,
