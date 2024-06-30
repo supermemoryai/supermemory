@@ -57,8 +57,15 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
             type="button"
             onClick={async () => onSubmit(inputValue)}
             variant="link"
+            disabled={inputValue.length === 0}
           >
-            {createNewMessage} "{inputValue}"
+            {inputValue.length > 0 ? (
+              <>
+                {createNewMessage} "{inputValue}"
+              </>
+            ) : (
+              <>Create a space by typing here</>
+            )}
           </Button>
           <p>Start by creating a space and adding content to it</p>
         </CommandEmpty>
