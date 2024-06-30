@@ -145,7 +145,7 @@ function Menu() {
                   height={24}
                   className="hover:brightness-125 focus:brightness-125 duration-200 text-white"
                 />
-                <p className="opacity-0 duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                <p className="opacity-0 duration-200 group-hover:opacity-100">
                   Add
                 </p>
               </DialogTrigger>
@@ -168,7 +168,7 @@ function Menu() {
                   height={24}
                   className="hover:brightness-125 duration-200"
                 />
-                <p className="opacity-0 duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                <p className="opacity-0 duration-200 group-hover:opacity-100">
                   {item.text}
                 </p>
               </Link>

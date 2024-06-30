@@ -171,6 +171,51 @@ app.get(
   },
 );
 
+app.get(
+  "/api/search",
+  zValidator("query", z.object({ query: z.string(), user: z.string() })),
+  async (c) => {
+    const { query, user } = c.req.valid("query");
+    const filter: VectorizeVectorMetadataFilter = {
+      [`user-${user}`]: 1,
+    };
+
+    const { store } = await initQuery(c);
+    const queryAsVector = await store.embeddings.embedQuery(query);
+
+    const resp = await c.env.VECTORIZE_INDEX.query(queryAsVector, {
+      topK: 5,
+      filter,
+      returnMetadata: true,
+    });
+
+    const minScore = Math.min(...resp.matches.map(({ score }) => score));
+    const maxScore = Math.max(...resp.matches.map(({ score }) => score));
+
+    // This entire chat part is basically just a dumb down version of the /api/chat endpoint.
+    const normalizedData = resp.matches.map((data) => ({
+      ...data,
+      normalizedScore:
+        maxScore !== minScore
+          ? 1 + ((data.score - minScore) / (maxScore - minScore)) * 98
+          : 50,
+    }));
+
+    const preparedContext = normalizedData.map(
+      ({ metadata, score, normalizedScore }) => ({
+        context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
+        score,
+        normalizedScore,
+      }),
+    );
+
+    return c.json({
+      status: "ok",
+      response: preparedContext,
+    });
+  },
+);
+
 // This is a special endpoint for our "chatbot-only" solutions.
 // It does both - adding content AND chatting with it.
 app.post(
