@@ -171,7 +171,7 @@ export const createMemory = async (input: {
     pageContent = input.content;
     noteId = new Date().getTime();
     metadata = {
-      baseUrl: `https://beta.supermemory.ai/?note=${noteId}`,
+      baseUrl: `https://beta.supermemory.ai/note/${noteId}`,
       description: `Note created at ${new Date().toLocaleString()}`,
       image: "https://supermemory.ai/logo.png",
       title: `${pageContent.slice(0, 20)} ${pageContent.length > 20 ? "..." : ""}`,

@@ -200,3 +200,26 @@ export const getSessionAuthToken = async (): ServerActionReturnType<string> => {
     data: token,
   };
 };
+
+export const getNoteFromId = async (
+  noteId: string,
+): ServerActionReturnType<Content> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  const note = await db.query.storedContent.findFirst({
+    where: and(
+      eq(storedContent.noteId, parseInt(noteId)),
+      eq(users, data.user.id),
+    ),
+  });
+
+  return {
+    success: true,
+    data: note,
+  };
+};

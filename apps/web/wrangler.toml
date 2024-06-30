@@ -13,8 +13,8 @@ bucket_name = "dev-r2-anycontext"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "prod-d1-supermemory"
-database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
+database_name = "dev-d1-anycontext"
+database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
 
 [[env.production.d1_databases]]
 binding = "DATABASE"

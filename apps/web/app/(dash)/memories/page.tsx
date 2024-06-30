@@ -174,7 +174,7 @@ function LinkComponent({
   // TODO: DISPLAY THE ITEM BASED ON `type` being note or page
   return (
     <Link
-      href={url}
+      href={url.replace("https://beta.supermemory.ai", "")}
       className={`bg-secondary border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
     >
       {type === "page" ? (

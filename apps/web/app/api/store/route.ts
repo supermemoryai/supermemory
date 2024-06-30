@@ -59,6 +59,8 @@ const createMemoryFromAPI = async (input: {
     "#supermemory-user-" +
     input.userId;
 
+  const noteId = new Date().getTime();
+
   // Insert into database
   try {
     const insertResponse = await db
@@ -73,6 +75,7 @@ const createMemoryFromAPI = async (input: {
         savedAt: new Date(),
         userId: input.userId,
         type: input.data.type,
+        noteId,
       })
       .returning({ id: storedContent.id });
 

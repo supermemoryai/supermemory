@@ -1,1 +1,0 @@
-CREATE UNIQUE INDEX `storedContent_baseUrl_unique` ON `storedContent` (`baseUrl`);

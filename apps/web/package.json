@@ -11,9 +11,10 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
     "pages:build": "npx @cloudflare/next-on-pages",
     "preview": "npm run pages:build && wrangler pages dev",
-    "deploy": "npm run pages:build && wrangler pages deploy",
+    "deploy": "npm run pages:build && wrangler pages deploy --branch main",
     "schema-update": "bunx drizzle-kit generate sqlite",
-    "update-local-db": "bunx wrangler d1 execute dev-d1-anycontext --local"
+    "update-local-db": "bunx wrangler d1 execute dev-d1-anycontext --local",
+    "update-prod-db": "bunx wrangler d1 execute prod-d1-supermemory --remote"
   },
   "dependencies": {
     "@million/lint": "^1.0.0-rc.11",
