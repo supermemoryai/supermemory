@@ -110,7 +110,7 @@ export const storedContent = createTable(
     description: text("description", { length: 255 }),
     url: text("url").notNull(),
     savedAt: int("savedAt", { mode: "timestamp" }).notNull(),
-    baseUrl: text("baseUrl", { length: 255 }),
+    baseUrl: text("baseUrl", { length: 255 }).unique(),
     ogImage: text("ogImage", { length: 255 }),
     type: text("type").default("page"),
     image: text("image", { length: 255 }),

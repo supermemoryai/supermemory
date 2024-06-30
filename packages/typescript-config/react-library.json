@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/tsconfig",
+  "$schema": "https://json.schemastore.org/base",
   "display": "React Library",
   "extends": "./base.json",
   "compilerOptions": {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import { homeSearchParamsCache } from "@/lib/searchParams";
-import { getSpaces } from "@/app/actions/fetchers";
+import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
 import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
@@ -67,6 +67,11 @@ function Page({
     });
 
     setShowVariant(Math.floor(Math.random() * variants.length));
+
+    getSessionAuthToken().then((token) => {
+      if (typeof window === "undefined") return;
+      window.postMessage({ token: token.data }, "*");
+    });
   }, []);
 
   return (

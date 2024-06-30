@@ -65,12 +65,6 @@ function Menu() {
       disabled: false,
     },
     {
-      icon: ExploreIcon,
-      text: "Explore",
-      url: "/explore",
-      disabled: true,
-    },
-    {
       icon: CanvasIcon,
       text: "Canvas",
       url: "/canvas",
@@ -86,7 +80,9 @@ function Menu() {
       return "none";
     }
 
-    if (content.match(/https?:\/\/[\w\.]+\/[\w]+\/[\w]+\/[\d]+/)) {
+    if (
+      content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)
+    ) {
       return "tweet";
     } else if (content.match(/https?:\/\/[\w\.]+/)) {
       return "page";
@@ -136,8 +132,8 @@ function Menu() {
     <>
       {/* Desktop Menu */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <div className="hidden lg:flex fixed h-screen pb-20 w-full p-4 items-center justify-start top-0 left-0 pointer-events-none">
-          <div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration-200 hover:w-40">
+        <div className="hidden lg:flex fixed h-screen pb-20 w-full p-4 items-center justify-start top-0 left-0 pointer-events-none z-[39]">
+          <div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration-200 hover:w-40 z-[99999]">
             <div className="border-b border-border pb-4 w-full">
               <DialogTrigger
                 className={`flex w-full text-white brightness-75 hover:brightness-125 focus:brightness-125  cursor-pointer items-center gap-3 px-1 duration-200 justify-start`}
@@ -180,7 +176,7 @@ function Menu() {
           </div>
         </div>
 
-        <DialogContent className="sm:max-w-[425px] rounded-2xl bg-[#161f2a]/30 backdrop-blur-md">
+        <DialogContent className="sm:max-w-[425px] rounded-2xl bg-[#161f2a]/40 backdrop-blur-md">
           <form
             action={async (e: FormData) => {
               const content = e.get("content")?.toString();
@@ -202,7 +198,7 @@ function Menu() {
                 Resource (URL or content)
               </Label>
               <Textarea
-                className="bg-[#161f2a] focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2"
+                className="bg-[#2F353C] focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2"
                 id="content"
                 name="content"
                 placeholder="Start typing a note or paste a URL here. I'll remember it."
@@ -287,7 +283,7 @@ function Menu() {
                     }
                   }}
                   placeholder="Save or create space by typing."
-                  className="bg-[#161f2a] h-min rounded-md mt-2 mb-4"
+                  className="bg-[#2F353C] h-min rounded-md mt-2 mb-4"
                 />
 
                 <div>
@@ -296,6 +292,7 @@ function Menu() {
                       {selectedSpaces.map((x, idx) => (
                         <button
                           key={x}
+                          type="button"
                           onClick={() =>
                             setSelectedSpaces((prev) =>
                               prev.filter((y) => y !== x),

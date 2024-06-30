@@ -31,7 +31,7 @@ function initial() {
   // Create a new div element to host the shadow root.
   // Styles for this div is in `content/content.css`
   const hostDiv = document.createElement("div");
-  hostDiv.id = "extension-host";
+  hostDiv.id = "supermemory-extension-host";
   document.body.appendChild(hostDiv);
 
   // Attach the shadow DOM to the hostDiv and set the mode to
@@ -41,11 +41,40 @@ function initial() {
 
   // Create a new div element that will be the root container for the React app
   const rootDiv = document.createElement("div");
-  rootDiv.id = "extension-root";
+  rootDiv.id = "supermemory-extension-root";
   shadowRoot.appendChild(rootDiv);
 
   appendTailwindStyleLink(shadowRoot);
 
   const root = ReactDOM.createRoot(rootDiv);
-  root.render(<ContentApp />);
+
+  const jwt = chrome.storage.local.get("jwt").then((data) => {
+    return data.jwt;
+  }) as Promise<string | undefined>;
+
+  jwt.then((token) => root.render(<ContentApp token={token} />));
 }
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window) {
+    return;
+  }
+  const jwt = event.data.token;
+
+  if (jwt) {
+    if (
+      !(
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "supermemory.ai" ||
+        window.location.hostname === "beta.supermemory.ai"
+      )
+    ) {
+      console.log(
+        "JWT is only allowed to be used on localhost or anycontext.dhr.wtf",
+      );
+      return;
+    }
+
+    chrome.storage.local.set({ jwt }, () => {});
+  }
+});

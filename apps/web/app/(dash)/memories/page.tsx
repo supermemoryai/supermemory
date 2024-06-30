@@ -1,17 +1,18 @@
 "use client";
 
 import { getAllUserMemoriesAndSpaces } from "@/app/actions/fetchers";
-import { Space } from "@/app/actions/types";
 import { Content, StoredSpace } from "@/server/db/schema";
-import { NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
+import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
+import { NotebookIcon, PaperclipIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import Masonry from "react-layout-masonry";
+import { getRawTweet } from "@repo/shared-types/utils";
+import { MyTweet } from "./render-tweet";
 
 function Page() {
   const [filter, setFilter] = useState("All");
-
-  const [search, setSearch] = useState("");
 
   const [memoriesAndSpaces, setMemoriesAndSpaces] = useState<{
     memories: Content[];
@@ -55,9 +56,13 @@ function Page() {
           return (
             item.item === "memory" && (item.data as Content).type === "note"
           );
+        if (filter === "Tweet")
+          return (
+            item.item === "memory" && (item.data as Content).type === "tweet"
+          );
         return false;
       })
-      .sort((a, b) => a.date - b.date);
+      .sort((a, b) => b.date - a.date);
   }, [memoriesAndSpaces.memories, memoriesAndSpaces.spaces, filter]);
 
   useEffect(() => {
@@ -69,7 +74,7 @@ function Page() {
   }, []);
 
   return (
-    <div className="max-w-3xl min-w-3xl py-36 h-full flex mx-auto w-full flex-col gap-6">
+    <div className="px-2 md:px-32 py-36 h-full flex mx-auto w-full flex-col gap-6">
       <h2 className="text-white w-full font-medium text-2xl text-left">
         My Memories
       </h2>
@@ -79,7 +84,7 @@ function Page() {
       <Masonry
         className="mt-6"
         columns={{ 640: 1, 768: 2, 1024: 3, 1280: 4 }}
-        gap={4}
+        gap={12}
       >
         {sortedItems.map((item) => {
           if (item.item === "memory") {
@@ -88,12 +93,15 @@ function Page() {
                 type={(item.data as Content).type ?? "note"}
                 content={(item.data as Content).content}
                 title={(item.data as Content).title ?? "Untitled"}
-                url={(item.data as Content).url}
+                url={
+                  (item.data as Content).baseUrl ?? (item.data as Content).url
+                }
                 image={
                   (item.data as Content).ogImage ??
                   (item.data as Content).image ??
                   "/placeholder-image.svg" // TODO: add this placeholder
                 }
+                description={(item.data as Content).description ?? ""}
               />
             );
           }
@@ -123,47 +131,73 @@ function TabComponent({
 }) {
   // TODO: Display the space name and desription which is the number of elemenet in the space
   return (
-    <div className="flex items-center my-6">
-      <div>
-        <div className="h-12 w-12 bg-[#1F2428] flex justify-center items-center rounded-md">
-          {title.slice(0, 2).toUpperCase()}
+    <div className="flex flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4 -z-10">
+      <div className="flex items-center gap-2 text-xs">
+        <Image alt="Spaces icon" src={MemoriesIcon} className="size-3" /> Space
+      </div>
+      <div className="flex items-center">
+        <div>
+          <div className="h-12 w-12 flex justify-center items-center rounded-md">
+            {title.slice(0, 2).toUpperCase()}
+          </div>
         </div>
-      </div>
-      <div className="grow px-4">
-        <div className="text-lg text-[#fff]">{title}</div>
-        <div>{description}</div>
-      </div>
-      <div>
-        <Image src={NextIcon} alt="Search icon" />
+        <div className="grow px-4">
+          <div className="text-lg text-[#fff] line-clamp-2">{title}</div>
+          <div>{description}</div>
+        </div>
+        <div>
+          <Image src={NextIcon} alt="Search icon" />
+        </div>
       </div>
     </div>
   );
 }
 
-function LinkComponent({
+export function LinkComponent({
   type,
   content,
   title,
   url,
   image,
+  description,
 }: {
   type: string;
   content: string;
   title: string;
   url: string;
   image?: string;
+  description: string;
 }) {
   // TODO: DISPLAY THE ITEM BASED ON `type` being note or page
   return (
-    <div className="w-full">
-      <div className="text-lg text-[#fff]">{title}</div>
-      <div>{content}</div>
-      <div>{url}</div>
-    </div>
+    <Link
+      href={url}
+      className={`bg-secondary border-2 border-border w-full rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
+    >
+      {type === "page" ? (
+        <>
+          <div className="flex items-center gap-2 text-xs">
+            <PaperclipIcon className="w-3 h-3" /> Page
+          </div>
+          <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
+          <div>{url}</div>
+        </>
+      ) : type === "note" ? (
+        <>
+          <div className="flex items-center gap-2 text-xs">
+            <NotebookIcon className="w-3 h-3" /> Note
+          </div>
+          <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
+          <div className="line-clamp-3">{content.replace(title, "")}</div>
+        </>
+      ) : type === "tweet" ? (
+        <MyTweet tweet={JSON.parse(getRawTweet(content) ?? "{}")} />
+      ) : null}
+    </Link>
   );
 }
 
-const FilterMethods = ["All", "Spaces", "Pages", "Notes"];
+const FilterMethods = ["All", "Spaces", "Pages", "Notes", "Tweet"];
 function Filters({
   setFilter,
   filter,
@@ -175,12 +209,12 @@ function Filters({
     <div className="flex gap-4">
       {FilterMethods.map((i) => {
         return (
-          <div
+          <button
             onClick={() => setFilter(i)}
             className={`transition px-6 py-2 rounded-xl bg-border ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]"}`}
           >
             {i}
-          </div>
+          </button>
         );
       })}
     </div>

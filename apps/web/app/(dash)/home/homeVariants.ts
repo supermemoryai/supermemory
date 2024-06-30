@@ -44,7 +44,7 @@ export const variants = [
     },
     {
       type: "highlighted",
-      content: " digital treasures.",
+      content: " digital treasure.",
     },
   ],
 ];

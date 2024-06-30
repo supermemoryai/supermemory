@@ -53,7 +53,11 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
       />
       <CommandList className="z-10 translate-y-12 translate-x-5 opacity-0 absolute group-focus-within:opacity-100 bg-secondary p-2 rounded-b-xl max-w-64">
         <CommandEmpty>
-          <Button onClick={async () => onSubmit(inputValue)} variant="link">
+          <Button
+            type="button"
+            onClick={async () => onSubmit(inputValue)}
+            variant="link"
+          >
             {createNewMessage} "{inputValue}"
           </Button>
           <p>Start by creating a space and adding content to it</p>

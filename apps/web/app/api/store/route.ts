@@ -1,0 +1,202 @@
+import { type NextRequest } from "next/server";
+import { addFromAPIType, AddFromAPIType } from "@repo/shared-types";
+import { ensureAuth } from "../ensureAuth";
+import { z } from "zod";
+import { db } from "@/server/db";
+import { contentToSpace, space, storedContent } from "@/server/db/schema";
+import { and, eq, inArray } from "drizzle-orm";
+import { LIMITS } from "@/lib/constants";
+import { limit } from "@/app/actions/doers";
+
+export const runtime = "edge";
+
+const createMemoryFromAPI = async (input: {
+  data: AddFromAPIType;
+  userId: string;
+}) => {
+  if (!(await limit(input.userId, input.data.type))) {
+    return {
+      success: false,
+      data: 0,
+      error: `You have exceeded the limit of ${LIMITS[input.data.type as keyof typeof LIMITS]} ${input.data.type}s.`,
+    };
+  }
+
+  const vectorSaveResponse = await fetch(
+    `${process.env.BACKEND_BASE_URL}/api/add`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        pageContent: input.data.pageContent,
+        title: input.data.title,
+        description: input.data.description,
+        url: input.data.url,
+        spaces: input.data.spaces,
+        user: input.userId,
+        type: input.data.type,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+      },
+    },
+  );
+
+  if (!vectorSaveResponse.ok) {
+    const errorData = await vectorSaveResponse.text();
+    console.error(errorData);
+    return {
+      success: false,
+      data: 0,
+      error: `Failed to save to vector store. Backend returned error: ${errorData}`,
+    };
+  }
+
+  let contentId: number | undefined;
+
+  // Insert into database
+  try {
+    const insertResponse = await db
+      .insert(storedContent)
+      .values({
+        content: input.data.pageContent,
+        title: input.data.title,
+        description: input.data.description,
+        url: input.data.url,
+        baseUrl: input.data.url,
+        image: input.data.image,
+        savedAt: new Date(),
+        userId: input.userId,
+        type: input.data.type,
+      })
+      .returning({ id: storedContent.id });
+
+    contentId = insertResponse[0]?.id;
+  } catch (e) {
+    const error = e as Error;
+    console.log("Error: ", error.message);
+
+    if (
+      error.message.includes(
+        "D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
+      )
+    ) {
+      return {
+        success: false,
+        data: 0,
+        error: "Content already exists",
+      };
+    }
+
+    return {
+      success: false,
+      data: 0,
+      error: "Failed to save to database with error: " + error.message,
+    };
+  }
+
+  if (!contentId) {
+    return {
+      success: false,
+      data: 0,
+      error: "Failed to save to database",
+    };
+  }
+
+  if (input.data.spaces.length > 0) {
+    // Adding the many-to-many relationship between content and spaces
+    const spaceData = await db
+      .select()
+      .from(space)
+      .where(
+        and(
+          inArray(
+            space.id,
+            input.data.spaces.map((s) => parseInt(s)),
+          ),
+          eq(space.user, input.userId),
+        ),
+      )
+      .all();
+
+    await Promise.all(
+      spaceData.map(async (space) => {
+        await db
+          .insert(contentToSpace)
+          .values({ contentId: contentId, spaceId: space.id });
+      }),
+    );
+  }
+
+  try {
+    const response = await vectorSaveResponse.json();
+
+    const expectedResponse = z.object({ status: z.literal("ok") });
+
+    const parsedResponse = expectedResponse.safeParse(response);
+
+    if (!parsedResponse.success) {
+      return {
+        success: false,
+        data: 0,
+        error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
+      };
+    }
+
+    return {
+      success: true,
+      data: 1,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      data: 0,
+      error: `Failed to save to vector store. Backend returned error: ${e}`,
+    };
+  }
+};
+
+export async function POST(req: NextRequest) {
+  const session = await ensureAuth(req);
+
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  if (!process.env.BACKEND_SECURITY_KEY) {
+    return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
+  }
+
+  const body = await req.json();
+
+  const validated = addFromAPIType.safeParse(body);
+
+  if (!validated.success) {
+    return new Response(
+      JSON.stringify({
+        message: "Invalid request",
+        error: validated.error,
+      }),
+      { status: 400 },
+    );
+  }
+
+  const data = validated.data;
+
+  const result = await createMemoryFromAPI({
+    data,
+    userId: session.user.id,
+  });
+
+  if (!result.success) {
+    return new Response(
+      JSON.stringify({
+        message: "Failed to save document",
+        error: result.error,
+      }),
+      { status: 500 },
+    );
+  }
+
+  return new Response("ok", { status: 200 });
+}

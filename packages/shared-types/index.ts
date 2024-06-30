@@ -32,6 +32,19 @@ export const ModelCompatibleChatHistoryZod = z.array(
   }),
 );
 
+export const addFromAPIType = z.object({
+  pageContent: z.string(),
+  url: z.string(),
+  type: z.string().default("page"),
+  title: z.string().optional().default("Untitled"),
+  description: z.string().optional().default(""),
+  ogImage: z.string().optional(),
+  image: z.string().optional(),
+  spaces: z.array(z.string()).optional().default([]),
+});
+
+export type AddFromAPIType = z.infer<typeof addFromAPIType>;
+
 export type ModelCompatibleChatHistory = z.infer<
   typeof ModelCompatibleChatHistoryZod
 >;

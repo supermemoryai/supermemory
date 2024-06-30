@@ -6,6 +6,7 @@ import {
   chatHistory,
   chatThreads,
   contentToSpace,
+  sessions,
   space,
   storedContent,
   users,
@@ -17,9 +18,11 @@ import { getMetaData } from "@/lib/get-metadata";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { z } from "zod";
-import { ChatHistory } from "@repo/shared-types";
+import { AddFromAPIType, ChatHistory } from "@repo/shared-types";
 import { decipher } from "@/server/encrypt";
 import { redirect } from "next/navigation";
+import { ensureAuth } from "../api/ensureAuth";
+import { tweetToMd } from "@repo/shared-types/utils";
 
 export const createSpace = async (
   input: string | FormData,
@@ -61,7 +64,7 @@ export const createSpace = async (
 const typeDecider = (content: string) => {
   // if the content is a URL, then it's a page. if its a URL with https://x.com/user/status/123, then it's a tweet. else, it's a note.
   // do strict checking with regex
-  if (content.match(/https?:\/\/[\w\.]+\/[\w]+\/[\w]+\/[\d]+/)) {
+  if (content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)) {
     return "tweet";
   } else if (content.match(/https?:\/\/[\w\.]+/)) {
     return "page";
@@ -72,19 +75,23 @@ const typeDecider = (content: string) => {
   }
 };
 
-export const limit = async (userId: string, type = "page") => {
-  const count = await db
+export const limit = async (
+  userId: string,
+  type = "page",
+  items: number = 1,
+) => {
+  const countResult = await db
     .select({
       count: sql<number>`count(*)`.mapWith(Number),
     })
     .from(storedContent)
     .where(and(eq(storedContent.userId, userId), eq(storedContent.type, type)));
 
-  if (count[0]!.count > LIMITS[type as keyof typeof LIMITS]) {
-    return false;
-  }
+  const currentCount = countResult[0]?.count || 0;
+  const totalLimit = LIMITS[type as keyof typeof LIMITS];
+  const remainingLimit = totalLimit - currentCount;
 
-  return true;
+  return items <= remainingLimit;
 };
 
 const getTweetData = async (tweetID: string) => {
@@ -133,6 +140,8 @@ export const createMemory = async (input: {
     };
   }
 
+  let noteId = 0;
+
   if (type === "page") {
     const response = await fetch("https://md.dhr.wtf/?url=" + input.content, {
       headers: {
@@ -151,7 +160,7 @@ export const createMemory = async (input: {
     }
   } else if (type === "tweet") {
     const tweet = await getTweetData(input.content.split("/").pop() as string);
-    pageContent = JSON.stringify(tweet);
+    pageContent = tweetToMd(tweet);
     metadata = {
       baseUrl: input.content,
       description: tweet.text,
@@ -160,7 +169,7 @@ export const createMemory = async (input: {
     };
   } else if (type === "note") {
     pageContent = input.content;
-    const noteId = new Date().getTime();
+    noteId = new Date().getTime();
     metadata = {
       baseUrl: `https://supermemory.ai/note/${noteId}`,
       description: `Note created at ${new Date().toLocaleString()}`,
@@ -212,23 +221,49 @@ export const createMemory = async (input: {
     };
   }
 
-  // Insert into database
-  const insertResponse = await db
-    .insert(storedContent)
-    .values({
-      content: pageContent,
-      title: metadata.title,
-      description: metadata.description,
-      url: input.content,
-      baseUrl: metadata.baseUrl,
-      image: metadata.image,
-      savedAt: new Date(),
-      userId: data.user.id,
-      type,
-    })
-    .returning({ id: storedContent.id });
+  let contentId: number | undefined;
 
-  const contentId = insertResponse[0]?.id;
+  // Insert into database
+  try {
+    const insertResponse = await db
+      .insert(storedContent)
+      .values({
+        content: pageContent,
+        title: metadata.title,
+        description: metadata.description,
+        url: input.content,
+        baseUrl: metadata.baseUrl,
+        image: metadata.image,
+        savedAt: new Date(),
+        userId: data.user.id,
+        type,
+      })
+      .returning({ id: storedContent.id });
+
+    contentId = insertResponse[0]?.id;
+  } catch (e) {
+    const error = e as Error;
+    console.log("Error: ", error.message);
+
+    if (
+      error.message.includes(
+        "D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
+      )
+    ) {
+      return {
+        success: false,
+        data: 0,
+        error: "Content already exists",
+      };
+    }
+
+    return {
+      success: false,
+      data: 0,
+      error: "Failed to save to database with error: " + error.message,
+    };
+  }
+
   if (!contentId) {
     return {
       success: false,
@@ -276,6 +311,9 @@ export const createMemory = async (input: {
         error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
       };
     }
+
+    revalidatePath("/home");
+    revalidatePath("/memories");
 
     return {
       success: true,

@@ -18,6 +18,7 @@ import { ChatHistory, SourceZod } from "@repo/shared-types";
 import { ChatHistory as ChatHistoryType } from "../../server/db/schema";
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { cookies, headers } from "next/headers";
 
 export const getSpaces = async (): ServerActionReturnType<StoredSpace[]> => {
   const data = await auth();
@@ -185,4 +186,17 @@ export const getChatHistory = async (): ServerActionReturnType<
       error: (e as Error).message,
     };
   }
+};
+
+export const getSessionAuthToken = async (): ServerActionReturnType<string> => {
+  const token =
+    cookies().get("next-auth.session-token")?.value ??
+    cookies().get("__Secure-authjs.session-token")?.value ??
+    cookies().get("authjs.session-token")?.value ??
+    headers().get("Authorization")?.replace("Bearer ", "");
+
+  return {
+    success: true,
+    data: token,
+  };
 };

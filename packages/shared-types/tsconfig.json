@@ -1,7 +1,7 @@
 {
-  "extends": "@repo/typescript-config/react-library.json",
+  "extends": "@repo/typescript-config/nextjs.json",
+  "exclude": ["node_modules", "dist"],
   "compilerOptions": {
     "outDir": "dist"
-  },
-  "exclude": ["node_modules", "dist"]
+  }
 }
