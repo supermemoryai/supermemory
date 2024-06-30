@@ -15,6 +15,13 @@
       "when": 1719772835765,
       "tag": "0001_chubby_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1719789157348,
+      "tag": "0002_old_titanium_man",
+      "breakpoints": true
     }
   ]
 }

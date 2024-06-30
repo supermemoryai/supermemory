@@ -117,6 +117,7 @@ export const storedContent = createTable(
     userId: text("user").references(() => users.id, {
       onDelete: "cascade",
     }),
+    noteId: integer("noteId"),
   },
   (sc) => ({
     urlIdx: index("storedContent_url_idx").on(sc.url),

@@ -171,7 +171,7 @@ export const createMemory = async (input: {
     pageContent = input.content;
     noteId = new Date().getTime();
     metadata = {
-      baseUrl: `https://supermemory.ai/note/${noteId}`,
+      baseUrl: `https://beta.supermemory.ai/?note=${noteId}`,
       description: `Note created at ${new Date().toLocaleString()}`,
       image: "https://supermemory.ai/logo.png",
       title: `${pageContent.slice(0, 20)} ${pageContent.length > 20 ? "..." : ""}`,
@@ -224,7 +224,9 @@ export const createMemory = async (input: {
   let contentId: number | undefined;
 
   const saveToDbUrl =
-    metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl;
+    (metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
+    "#supermemory-user-" +
+    data.user.id;
 
   // Insert into database
   try {
@@ -240,6 +242,7 @@ export const createMemory = async (input: {
         savedAt: new Date(),
         userId: data.user.id,
         type,
+        noteId,
       })
       .returning({ id: storedContent.id });
 
