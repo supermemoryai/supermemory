@@ -1,27 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
-import { debounce, useEditor } from "tldraw";
+import { debounce, getSnapshot, useEditor } from "tldraw";
+import { SaveCanvas } from "@/app/actions/doers";
 
-export function SaveStatus() {
+export function SaveStatus({ id }: { id: string }) {
   const [save, setSave] = useState("saved!");
   const editor = useEditor();
 
   const debouncedSave = useCallback(
     debounce(async () => {
-      const snapshot = editor.store.getSnapshot();
-      localStorage.setItem("saved", JSON.stringify(snapshot));
+      const snapshot = getSnapshot(editor.store);
+      const bounds = editor.getViewportPageBounds();
+      console.log(bounds);
 
-      const res = await fetch(
-        "https://learning-cf.pruthvirajthinks.workers.dev/post/page3",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            data: snapshot,
-          }),
-        },
-      );
+      SaveCanvas({ id, data: JSON.stringify({ snapshot, bounds }) });
 
-      console.log(await res.json());
       setSave("saved!");
     }, 3000),
     [editor], // Dependency array ensures the function is not recreated on every render

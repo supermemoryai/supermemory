@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "../../server/db";
 import {
+  canvas,
   chatHistory,
   chatThreads,
   contentToSpace,
@@ -435,3 +436,116 @@ export const linkTelegramToUser = async (
     data: true,
   };
 };
+
+export const createCanvas = async () => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  const canvases = await db
+    .select()
+    .from(canvas)
+    .where(eq(canvas.userId, data.user.id));
+
+  if (canvases.length >= 5) {
+    return {
+      success: false,
+      message: "A user currently can only have 5 canvases",
+    };
+  }
+
+  const resp = await db
+    .insert(canvas)
+    .values({ userId: data.user.id })
+    .returning({ id: canvas.id });
+  redirect(`/canvas/${resp[0]!.id}`);
+  // TODO INVESTIGATE: NO REDIRECT INSIDE TRY CATCH BLOCK
+  // try {
+  //   const resp = await db
+  //     .insert(canvas)
+  //     .values({ userId: data.user.id }).returning({id: canvas.id});
+  //   return redirect(`/canvas/${resp[0]!.id}`);
+  // } catch (e: unknown) {
+  //   const error = e as Error;
+  //   if (
+  //     error.message.includes("D1_ERROR: UNIQUE constraint failed: space.name")
+  //   ) {
+  //     return { success: false, data: 0, error: "Space already exists" };
+  //   } else {
+  //     return {
+  //       success: false,
+  //       data: 0,
+  //       error: "Failed to create space with error: " + error.message,
+  //     };
+  //   }
+  // }
+};
+
+export const SaveCanvas = async ({
+  id,
+  data,
+}: {
+  id: string;
+  data: string;
+}) => {
+  console.log({ id, data });
+  try {
+    await process.env.CANVAS_SNAPS.put(id, data);
+    return {
+      success: true,
+      message: "in-sync",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error,
+      message: "An error occured while saving your canvas",
+    };
+  }
+};
+
+export const deleteCanvas = async (id: string) => {
+  try {
+    await process.env.CANVAS_SNAPS.delete(id);
+    await db.delete(canvas).where(eq(canvas.id, id));
+    return {
+      success: true,
+      message: "in-sync",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error,
+      message: "An error occured while saving your canvas",
+    };
+  }
+};
+
+export async function AddCanvasInfo({
+  id,
+  title,
+  description,
+}: {
+  id: string;
+  title: string;
+  description: string;
+}) {
+  try {
+    await db
+      .update(canvas)
+      .set({ description, title })
+      .where(eq(canvas.id, id));
+    return {
+      success: true,
+      message: "info updated successfully",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: "something went wrong :/",
+    };
+  }
+}

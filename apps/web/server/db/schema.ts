@@ -201,5 +201,24 @@ export const chatHistory = createTable(
   }),
 );
 
+export const canvas = createTable(
+  "canvas",
+  {
+    id: text("id")
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: text("title").default("Untitled").notNull(),
+    description: text("description").default("Untitled").notNull(),
+    imageUrl: text("url").default("").notNull(),
+    userId: text("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (canvas) => ({
+    userIdx: index("canvas_user_userId").on(canvas.userId),
+  }),
+);
+
 export type ChatThread = typeof chatThreads.$inferSelect;
 export type ChatHistory = typeof chatHistory.$inferSelect;

@@ -3,6 +3,7 @@
 import { and, asc, eq, inArray, not, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
+  canvas,
   chatHistory,
   ChatThread,
   chatThreads,
@@ -222,4 +223,72 @@ export const getNoteFromId = async (
     success: true,
     data: note,
   };
+};
+export const getCanvas = async () => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const canvases = await db
+      .select()
+      .from(canvas)
+      .where(eq(canvas.userId, data.user.id));
+
+    return {
+      success: true,
+      data: canvases.map(({ userId, ...rest }) => rest),
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
+};
+
+export const userHasCanvas = async (canvasId: string) => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const canvases = await db
+      .select()
+      .from(canvas)
+      .where(eq(canvas.userId, data.user.id));
+    const exists = !!canvases.find((canvas) => canvas.id === canvasId);
+    return {
+      success: exists,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
+};
+
+export const getCanvasData = async (canvasId: string) => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  const canvas = await process.env.CANVAS_SNAPS.get(canvasId);
+
+  console.log({ canvas, canvasId });
+  if (canvas) {
+    return JSON.parse(canvas);
+  } else {
+    return { snapshot: {} };
+  }
 };

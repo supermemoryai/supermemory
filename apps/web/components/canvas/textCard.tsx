@@ -25,9 +25,11 @@ export class textCardUtil extends BaseBoxShapeUtil<ITextCardShape> {
             height: s.props.h,
             width: s.props.w,
             pointerEvents: "all",
-            background: "#2C3439",
+            background: "#2E3C4C",
             borderRadius: "16px",
+            border: "2px solid #3e4449",
             padding: "8px 14px",
+            overflow: "auto",
           }}
         >
           <h1 style={{ fontSize: "15px" }}>{s.props.content}</h1>

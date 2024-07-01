@@ -1,4 +1,9 @@
-import { BaseBoxShapeUtil, HTMLContainer, TLBaseShape, toDomPrecision } from "tldraw";
+import {
+  BaseBoxShapeUtil,
+  HTMLContainer,
+  TLBaseShape,
+  toDomPrecision,
+} from "tldraw";
 
 type ITwitterCardShape = TLBaseShape<
   "Twittercard",

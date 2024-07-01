@@ -1,7 +1,10 @@
 import React, { useRef, useCallback, useEffect, useContext } from "react";
 import { useEditor } from "tldraw";
-import DragContext, { DragContextType, useDragContext } from "../lib/context";
-import { handleExternalDroppedContent } from "../lib/createEmbeds";
+import DragContext, {
+  DragContextType,
+  useDragContext,
+} from "../../lib/context";
+import { handleExternalDroppedContent } from "../../lib/createEmbeds";
 
 const stripHtmlTags = (html: string): string => {
   const div = document.createElement("div");

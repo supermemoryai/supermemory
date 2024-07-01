@@ -16,6 +16,10 @@ binding = "DATABASE"
 database_name = "dev-d1-anycontext"
 database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
 
+[[kv_namespaces]]
+binding = "CANVAS_SNAPS"
+id = "c6446f7190dd4afebe1c318df3400518"
+
 [[env.production.d1_databases]]
 binding = "DATABASE"
 database_name = "prod-d1-supermemory"
