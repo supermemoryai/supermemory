@@ -245,6 +245,8 @@ export const createMemory = async (input: {
         noteId,
       })
       .returning({ id: storedContent.id });
+    revalidatePath("/memories");
+    revalidatePath("/home");
 
     contentId = insertResponse[0]?.id;
   } catch (e) {
@@ -317,9 +319,6 @@ export const createMemory = async (input: {
         error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
       };
     }
-
-    revalidatePath("/home");
-    revalidatePath("/memories");
 
     return {
       success: true,

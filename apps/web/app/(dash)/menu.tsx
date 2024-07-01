@@ -38,6 +38,7 @@ import { createMemory, createSpace } from "../actions/doers";
 import { Input } from "@repo/ui/shadcn/input";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@/server/db/schema";
+import { revalidatePath } from "next/cache";
 
 function Menu() {
   const [spaces, setSpaces] = useState<StoredSpace[]>([]);
@@ -205,7 +206,7 @@ function Menu() {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSubmit(content);
                   }

@@ -7,6 +7,7 @@ import { GeistMono } from "geist/font/mono";
 import { cn } from "@repo/ui/lib/utils";
 import BackgroundPlus from "./(landing)/GridPatterns/PlusGrid";
 import { Toaster } from "@repo/ui/shadcn/toaster";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const runtime = "edge";
