@@ -69,7 +69,7 @@ export function MemoriesPage({
       key={`${memoriesAndSpaces.memories.length + memoriesAndSpaces.spaces.length}`}
       className="px-2 md:px-32 py-36 h-full flex mx-auto w-full flex-col gap-6"
     >
-      <h2 className="text-white w-full font-medium text-2xl text-left">
+      <h2 className="text-white w-full font-medium text-3xl text-left font-semibold">
         My Memories
       </h2>
 
@@ -78,9 +78,9 @@ export function MemoriesPage({
       <Masonry
         className="mt-6 relative"
         columns={{ 640: 1, 768: 2, 1024: 3 }}
-        gap={12}
+        gap={16}
         columnProps={{
-          className: "min-w-[calc(33.3333%-12px)] w-full",
+          className: "min-w-[calc(33.3333%-16px)] w-full",
         }}
       >
         {sortedItems.map((item) => {
@@ -186,7 +186,7 @@ function LinkComponent({
             <NotebookIcon className="w-3 h-3" /> Note
           </div>
           <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
-          <div className="line-clamp-3">{content.replace(title, "")}</div>
+          <div className="line-clamp-3 mt-2">{content.replace(title, "")}</div>
         </>
       ) : type === "tweet" ? (
         <MyTweet tweet={JSON.parse(getRawTweet(content) ?? "{}")} />
