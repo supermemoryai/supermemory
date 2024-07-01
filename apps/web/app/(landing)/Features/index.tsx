@@ -157,7 +157,7 @@ const Services = () => {
                 enjoy the benefits.
               </p>
               <a
-                href="/components"
+                href="https://git.new/memory"
                 className="inline-flex gap-x-1 justify-center items-center py-4 px-10 text-center bg-transparent bg-gradient-to-tr to-transparent rounded-xl transition-colors sm:w-auto w-fit mt-[-20px] bg-glass-gradient group from-zinc-300/5 via-gray-400/5 border-white/10 border-[1px] hover:bg-transparent/10"
               >
                 <GithubIcon className="inline-flex justify-center items-center w-5 h-5" />{" "}
