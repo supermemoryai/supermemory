@@ -251,7 +251,7 @@ export const getCanvasData = async (canvasId: string) => {
   if (canvas){
     return JSON.parse(canvas);
   } else {
-    return {}
+    return {snapshot: {}}
   }
 }
 

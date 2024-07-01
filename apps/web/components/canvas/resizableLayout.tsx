@@ -13,12 +13,18 @@ interface RectContextType {
   setFullScreen: React.Dispatch<React.SetStateAction<boolean>>;
   visible: boolean;
   setVisible: React.Dispatch<React.SetStateAction<boolean>>;
-  id: string
+  id: string;
 }
 
 const RectContext = createContext<RectContextType | undefined>(undefined);
 
-export const RectProvider = ({ id, children }: {id: string, children: React.ReactNode}) => {
+export const RectProvider = ({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) => {
   const [fullScreen, setFullScreen] = useState(false);
   const [visible, setVisible] = useState(true);
 
@@ -36,11 +42,10 @@ export const RectProvider = ({ id, children }: {id: string, children: React.Reac
 export const useRect = () => {
   const context = useContext(RectContext);
   if (context === undefined) {
-    throw new Error('useRect must be used within a RectProvider');
+    throw new Error("useRect must be used within a RectProvider");
   }
   return context;
 };
-
 
 export function ResizaleLayout() {
   const { setVisible, fullScreen, setFullScreen } = useRect();
@@ -82,7 +87,7 @@ export function ResizaleLayout() {
 }
 
 function DragIconContainer() {
-  const { fullScreen} = useRect();
+  const { fullScreen } = useRect();
   return (
     <div
       className={`rounded-lg bg-[#2F363B] ${!fullScreen && "px-1"} transition-all py-2`}
@@ -93,7 +98,7 @@ function DragIconContainer() {
 }
 
 function CanvasContainer() {
-  const { fullScreen} = useRect();
+  const { fullScreen } = useRect();
   return (
     <div
       className={`absolute overflow-hidden transition-all inset-0 ${fullScreen ? "h-screen " : "h-[calc(100vh-3rem)] rounded-2xl"} w-full`}
@@ -104,7 +109,7 @@ function CanvasContainer() {
 }
 
 function SidePanelContainer() {
-  const { fullScreen, visible} = useRect();
+  const { fullScreen, visible } = useRect();
   return (
     <div
       className={`flex transition-all rounded-2xl ${fullScreen ? "h-screen" : "h-[calc(100vh-3rem)]"} w-full flex-col overflow-hidden bg-[#1F2428]`}
@@ -123,34 +128,34 @@ function SidePanelContainer() {
 }
 
 function SidePanel() {
-  const [value, setValue] = useState("");
-  // const [dragAsText, setDragAsText] = useState(false);
+  const [content, setContent] = useState<{context: string}[]>()
   return (
     <>
       <div className="px-3 py-5">
-        <input
-          placeholder="search..."
-          onChange={(e) => {
-            setValue(e.target.value);
+        <form
+          action={async (FormData) => {
+            const search = FormData.get("search");
+            console.log(search)
+            const res = await fetch("/api/canvasai", {
+              method: "POST",
+              body: JSON.stringify({ query: search }),
+            });
+            const t = await res.json()
+            console.log(t.response.response);
+            setContent(t.response.response)
           }}
-          value={value}
-          // rows={1}
-          className="w-full resize-none rounded-xl bg-[#151515] px-3 py-4 text-xl text-[#989EA4] outline-none focus:outline-none sm:max-h-52"
-        />
-      </div>
-      <div className="flex items-center justify-end px-3 py-4">
-        {/* <Switch
-          className="bg-[#151515] data-[state=unchecked]:bg-red-400 data-[state=checked]:bg-blue-400"
-          onCheckedChange={(e) => setDragAsText(e)}
-          id="drag-text-mode"
-        /> */}
-        <Label htmlFor="drag-text-mode">Drag as Text</Label>
+        >
+          <input
+            placeholder="search..."
+            name="search"
+            className="w-full resize-none rounded-xl bg-[#151515] px-3 py-4 text-xl text-[#989EA4] outline-none focus:outline-none sm:max-h-52"
+          />
+        </form>
       </div>
       <DraggableComponentsContainer content={content} />
     </>
   );
 }
-
 
 const content = [
   {
