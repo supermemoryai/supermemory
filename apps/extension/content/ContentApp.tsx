@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Readability } from "@mozilla/readability";
+import tailwindBg from "../public/tailwind_bg.png";
 
 export default function ContentApp({ token }: { token: string | undefined }) {
   const [text, setText] = useState("");
@@ -7,16 +8,10 @@ export default function ContentApp({ token }: { token: string | undefined }) {
 
   const [loading, setLoading] = useState(false);
 
-  const [isTwitterBookmarksEnabled, setIsTwitterBookmarksEnabled] =
-    useState(false);
+  const [importedCount, setImportedCount] = useState(0);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
-    const messageListener = (message: any) => {
-      setText(message);
-      setTimeout(() => setText(""), 2000);
-    };
-    chrome.runtime.onMessage.addListener(messageListener);
-
     document.addEventListener("mousemove", (e) => {
       const percentageX = (e.clientX / window.innerWidth) * 100;
       const percentageY = (e.clientY / window.innerHeight) * 100;
@@ -45,8 +40,22 @@ export default function ContentApp({ token }: { token: string | undefined }) {
 
     getUserData();
 
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      console.log("request", request);
+      console.log("sender", sender);
+      console.log("sendResponse", sendResponse);
+      if (request.type === "import-update") {
+        setIsImporting(true);
+        setImportedCount(request.importedCount);
+      }
+
+      if (request.type === "import-done") {
+        setIsImporting(false);
+      }
+    });
+
     return () => {
-      chrome.runtime.onMessage.removeListener(messageListener);
+      document.removeEventListener("mousemove", () => {});
     };
   }, []);
 
@@ -116,74 +125,55 @@ export default function ContentApp({ token }: { token: string | undefined }) {
         )}
       </button>
 
-      <button
-        onClick={() => {
-          chrome.runtime.sendMessage({ type: "batchImportAll" });
-        }}
-        className={`${hover && "opacity-100"} p-2 rounded-l-2xl transition bg-slate-700 border border-white/20 opacity-0 size-4 h-[30vh] absolute flex bottom-6 items-center`}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="#888B94"
-          className="size-4"
-          width={24}
-          height={24}
-        >
-          <path
-            fillRule="evenodd"
-            d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 0 0 1.075.676L10 15.082l5.925 2.844A.75.75 0 0 0 17 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0 0 10 2Z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
-
-      {(window.location.href === "https://twitter.com" ||
-        window.location.href === "https://x.com") &&
-        (isTwitterBookmarksEnabled ? (
-          <button
-            className={`${hover && "opacity-100"} p-2 rounded-l-2xl transition bg-slate-700 border border-white/20 opacity-0 size-4 h-[30vh] absolute flex bottom-6 items-center`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="#888B94"
-              className="size-4"
-              width={24}
-              height={24}
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 0 0 1.075.676L10 15.082l5.925 2.844A.75.75 0 0 0 17 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0 0 10 2Z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={() => {
-                chrome.runtime.sendMessage({ type: "batchImportAll" });
-              }}
-              className={`${hover && "opacity-100"} p-2 rounded-l-2xl transition bg-slate-700 border border-white/20 opacity-0 size-4 h-[30vh] absolute flex bottom-6 items-center`}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="#888B94"
-                className="size-4"
-                width={24}
-                height={24}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 0 0 1.075.676L10 15.082l5.925 2.844A.75.75 0 0 0 17 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0 0 10 2Z"
-                  clipRule="evenodd"
+      {isImporting && (
+        <div className="mx-auto max-w-7xl md:px-0 lg:p-6">
+          <div className="relative isolate overflow-hidden bg-gray-900 px-6 pt-16 shadow-2xl lg:rounded-3xl md:pt-24 md:h-full sm:h-[100vh] lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
+            <div className="absolute z-20 top-0 inset-x-0 flex justify-center overflow-hidden pointer-events-none">
+              <div className="w-[108rem] flex-none flex justify-end">
+                <img
+                  src={tailwindBg}
+                  className="w-full flex-none max-w-none hidden dark:block"
+                  decoding="async"
                 />
-              </svg>
-            </button>
-          </>
-        ))}
+              </div>
+            </div>
+            <div className="mx-auto max-w-md text-center lg:py-12 lg:mx-0 lg:flex-auto lg:text-left">
+              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Your twitter bookmarks are being imported.
+              </h2>
+              <p className="mt-6 text-lg leading-8 text-gray-300">
+                This is done completely locally, so please keep this tab open!
+              </p>
+            </div>
+            Imported {importedCount} bookmarks
+          </div>
+        </div>
+      )}
+
+      {(window.location.host === "twitter.com" ||
+        window.location.host === "x.com") && (
+        <button
+          onClick={() => {
+            chrome.runtime.sendMessage({ type: "batchImportAll" });
+          }}
+          className={`${hover && "opacity-100"} group p-2  rounded-l-2xl transition bg-slate-700 border border-white/20 opacity-0 size-4 h-[30vh] absolute flex bottom-6 items-center`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="#888B94"
+            className="size-4"
+            width={24}
+            height={24}
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 0 0 1.075.676L10 15.082l5.925 2.844A.75.75 0 0 0 17 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0 0 10 2Z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

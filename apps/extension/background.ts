@@ -18,7 +18,7 @@ const BACKEND_URL = "https://beta.supermemory.ai";
 // This is to prevent going over the rate limit
 let lastTwitterFetch = 0;
 
-const batchImportAll = async (cursor = "") => {
+const batchImportAll = async (cursor = "", totalImported = 0) => {
   chrome.storage.session.get(["cookie", "csrf", "auth"], (result) => {
     if (!result.cookie || !result.csrf || !result.auth) {
       console.log("cookie, csrf, or auth is missing");
@@ -37,12 +37,11 @@ const batchImportAll = async (cursor = "") => {
     };
 
     const variables = {
-      count: 100, // Using 100 as the count to prevent rate limiting
+      count: 100,
       cursor: cursor,
       includePromotedContent: false,
     };
 
-    // Append cursor if present
     const urlWithCursor = cursor
       ? `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
       : BOOKMARKS_URL;
@@ -51,6 +50,7 @@ const batchImportAll = async (cursor = "") => {
       .then((response) => response.json())
       .then((data) => {
         const tweets = getAllTweets(data);
+        let importedCount = 0;
 
         for (const tweet of tweets) {
           console.log(tweet);
@@ -74,16 +74,23 @@ const batchImportAll = async (cursor = "") => {
                   description: tweet.text.slice(0, 100),
                   type: "tweet",
                 }),
-              }).then((ers) => console.log(ers.status));
+              }).then((ers) => {
+                console.log(ers.status);
+                importedCount++;
+                totalImported++;
+                // Send an update message to the content script
+                chrome.runtime.sendMessage({
+                  type: "import-update",
+                  importedCount: totalImported,
+                });
+              });
             });
           })();
         }
 
         console.log("tweets", tweets);
-
         console.log("data", data);
 
-        // Extract next cursor
         const instructions =
           data.data?.bookmark_timeline_v2?.timeline?.instructions;
         const lastInstruction = instructions?.[0].entries.pop();
@@ -92,7 +99,6 @@ const batchImportAll = async (cursor = "") => {
           let nextCursor = lastInstruction?.content?.value;
 
           if (!nextCursor) {
-            // Find the nextcursor in the entire instructions array
             for (let i = instructions.length - 1; i >= 0; i--) {
               if (instructions[i].entryId.startsWith("cursor-bottom-")) {
                 nextCursor = instructions[i].content.value;
@@ -102,16 +108,22 @@ const batchImportAll = async (cursor = "") => {
           }
 
           if (nextCursor) {
-            batchImportAll(nextCursor); // Recursively call with new cursor
+            batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
           } else {
-            // No more cursors, run final function
             console.log("All bookmarks imported");
-            // Run function maybe
+            // Send a "done" message to the content script
+            chrome.runtime.sendMessage({
+              type: "import-done",
+              importedCount: totalImported,
+            });
           }
         } else {
-          // No cursor-bottom-* found, run final function
           console.log("All bookmarks imported");
-          // Run function maybe
+          // Send a "done" message to the content script
+          chrome.runtime.sendMessage({
+            type: "import-done",
+            importedCount: totalImported,
+          });
         }
       })
       .catch((error) => console.error(error));

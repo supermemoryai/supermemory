@@ -18,8 +18,8 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["public/*"],
-      "matches": ["http://*/*", "https://*/*"]
+      "resources": ["public/*/**"],
+      "matches": ["<all_urls>"]
     }
   ],
   "permissions": ["webRequest", "storage"],
