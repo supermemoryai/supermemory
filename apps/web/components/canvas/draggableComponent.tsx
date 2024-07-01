@@ -40,6 +40,7 @@ function DraggableComponents({ content }: { content: string }) {
       animate={{ opacity: 1, y: 0 }}
       ref={containerRef}
       onDragEnd={handleDragEnd}
+      // @ts-expect-error TODO: fix this
       onDragStart={handleDragStart}
       draggable
       className={`flex gap-4 px-3 overflow-hidden rounded-md text-[#989EA4] border-2 transition ${isDragging ? "border-blue-600" : "border-[#1F2428]"}`}

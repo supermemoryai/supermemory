@@ -166,7 +166,7 @@ function LinkComponent({
 }) {
   return (
     <Link
-      href={url.replace("https://beta.supermemory.ai", "").split("#")[0] ?? "/"}
+      href={url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
       className={`bg-secondary border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
     >
       {type === "page" ? (
@@ -176,8 +176,7 @@ function LinkComponent({
           </div>
           <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
           <div>
-            {url.replace("https://beta.supermemory.ai", "").split("#")[0] ??
-              "/"}
+            {url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
           </div>
         </>
       ) : type === "note" ? (

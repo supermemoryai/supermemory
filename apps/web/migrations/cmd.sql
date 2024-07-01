@@ -1,1 +1,1 @@
-ALTER TABLE `space` ADD COLUMN `numItems` integer NOT NULL DEFAULT 0;
+ALTER TABLE `space` ADD COLUMN `createdAt` integer;

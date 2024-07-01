@@ -141,7 +141,9 @@ function SidePanel() {
               body: JSON.stringify({ query: search }),
             });
             const t = await res.json();
+            // @ts-expect-error TODO: fix this
             console.log(t.response.response);
+            // @ts-expect-error TODO: fix this
             setContent(t.response.response);
           }}
         >

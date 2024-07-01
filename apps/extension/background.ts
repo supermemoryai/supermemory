@@ -13,7 +13,7 @@ const tweetToMd = (tweet: Tweet) => {
 
 const BOOKMARKS_URL = `https://x.com/i/api/graphql/xLjCVTqYWz8CGSprLU349w/Bookmarks?features=${encodeURIComponent(JSON.stringify(features))}`;
 
-const BACKEND_URL = "https://beta.supermemory.ai";
+const BACKEND_URL = "https://supermemory.ai";
 
 // This is to prevent going over the rate limit
 let lastTwitterFetch = 0;

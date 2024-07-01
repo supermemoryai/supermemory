@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6988522d-8117-484d-b52a-94c0fbd75140",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "5d27a673-efd9-47a7-a9f5-84d5cc7d851d",
+  "prevId": "56953eef-f444-4fc6-bca2-9cb6e08e8621",
   "tables": {
     "account": {
       "name": "account",
@@ -189,6 +189,69 @@
           "name": "authenticator_userId_credentialID_pk"
         }
       },
+      "uniqueConstraints": {}
+    },
+    "canvas": {
+      "name": "canvas",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'Untitled'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'Untitled'"
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "canvas_user_userId": {
+          "name": "canvas_user_userId",
+          "columns": ["userId"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "canvas_userId_user_id_fk": {
+          "name": "canvas_userId_user_id_fk",
+          "tableFrom": "canvas",
+          "tableTo": "user",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
     "chatHistory": {
@@ -422,6 +485,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "numItems": {
+          "name": "numItems",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         }
       },
       "indexes": {
@@ -535,9 +606,21 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "noteId": {
+          "name": "noteId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
+        "storedContent_baseUrl_unique": {
+          "name": "storedContent_baseUrl_unique",
+          "columns": ["baseUrl"],
+          "isUnique": true
+        },
         "storedContent_url_idx": {
           "name": "storedContent_url_idx",
           "columns": ["url"],
