@@ -10,7 +10,10 @@ export function SaveStatus({id}: {id:string}) {
   const debouncedSave = useCallback(
     debounce(async () => {
       const snapshot = getSnapshot(editor.store)
-      SaveCanvas({id, data: JSON.stringify(snapshot)})
+      const bounds = editor.getViewportPageBounds()
+      console.log(bounds)
+
+      SaveCanvas({id, data: JSON.stringify({snapshot, bounds})})
       
       setSave("saved!");
     }, 3000),

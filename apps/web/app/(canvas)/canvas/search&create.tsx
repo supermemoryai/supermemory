@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
 import { useFormStatus } from "react-dom";
 import Image from "next/image";
 import { SearchIcon } from "@repo/ui/icons";
 import { createCanvas } from "@/app/actions/doers";
+import { toast } from "sonner";
 
 export default function SearchandCreate() {
   return (
@@ -18,18 +19,27 @@ export default function SearchandCreate() {
         </button>
       </div>
 
-      <form action={createCanvas}>
-        <Button /> 
+      <form
+        action={async () => {
+          const res = await createCanvas();
+          if (!res.success){
+            toast.warning(res.message, {
+              style: {backgroundColor: "rgb(22 31 42 / 0.3)"}
+            });
+          }
+        }}
+      >
+        <Button />
       </form>
     </div>
   );
 }
 
 function Button() {
-  const {pending} = useFormStatus()
+  const { pending } = useFormStatus();
   return (
     <button className="rounded-xl bg-[#1F2428] px-5 py-3 text-xl text-[#B8C4C6]">
-      {pending? "Creating.." : "Create New"}
+      {pending ? "Creating.." : "Create New"}
     </button>
   );
 }

@@ -9,6 +9,6 @@ export async function loadRemoteSnapshot(id:string) {
   const newStore = createTLStore({
     shapeUtils: [...defaultShapeUtils, twitterCardUtil, textCardUtil],
   });
-  loadSnapshot(newStore, snapshot);
+  loadSnapshot(newStore, snapshot.snapshot);
   return newStore;
 }

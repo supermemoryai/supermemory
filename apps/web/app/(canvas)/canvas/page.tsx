@@ -6,10 +6,9 @@ import ThinkPads from "./thinkPads";
 async function page() {
   const canvas = await getCanvas();
   return (
-    <div className="h-screen w-full bg-[#171B1F] py-32 text-[#FFFFFF] ">
+    <div className="h-screen w-full py-32 text-[#FFFFFF] ">
       <div className="flex w-full flex-col items-center gap-8">
         <h1 className="text-4xl font-medium">Your thinkpads</h1>
-        <p>{JSON.stringify(canvas)}</p>
         <SearchandCreate />
         {
           // @ts-ignore
