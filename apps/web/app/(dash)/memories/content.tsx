@@ -126,7 +126,6 @@ function TabComponent({
   title: string;
   description: string;
 }) {
-  // TODO: Display the space name and desription which is the number of elemenet in the space
   return (
     <div className="flex flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4 -z-10">
       <div className="flex items-center gap-2 text-xs">
@@ -165,10 +164,9 @@ function LinkComponent({
   image?: string;
   description: string;
 }) {
-  // TODO: DISPLAY THE ITEM BASED ON `type` being note or page
   return (
     <Link
-      href={url.replace("https://beta.supermemory.ai", "")}
+      href={url.replace("https://beta.supermemory.ai", "").split("#")[0] ?? "/"}
       className={`bg-secondary border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
     >
       {type === "page" ? (
@@ -177,7 +175,10 @@ function LinkComponent({
             <PaperclipIcon className="w-3 h-3" /> Page
           </div>
           <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
-          <div>{url}</div>
+          <div>
+            {url.replace("https://beta.supermemory.ai", "").split("#")[0] ??
+              "/"}
+          </div>
         </>
       ) : type === "note" ? (
         <>
