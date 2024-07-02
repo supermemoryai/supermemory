@@ -36,7 +36,7 @@ function Cta() {
       <div className="w-full lg:w-3/4 mx-auto">
         <Link
           href="/signin"
-          className="inline-flex gap-x-2 justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100 text-white"
+          className="inline-flex gap-x-2 justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100 text-white z-[1] relative"
         >
           Sign in
           <div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
