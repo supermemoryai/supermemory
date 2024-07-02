@@ -203,7 +203,7 @@ app.get(
 
     const preparedContext = normalizedData.map(
       ({ metadata, score, normalizedScore }) => ({
-        context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
+        context: `Title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
         score,
         normalizedScore,
       }),

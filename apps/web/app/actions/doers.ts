@@ -206,7 +206,7 @@ export const createMemory = async (input: {
     pageContent = tweetToMd(tweet);
     metadata = {
       baseUrl: input.content,
-      description: tweet.text,
+      description: tweet.text.slice(0, 200),
       image: tweet.user.profile_image_url_https,
       title: `Tweet by ${tweet.user.name}`,
     };
