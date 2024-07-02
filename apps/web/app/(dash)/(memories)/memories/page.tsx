@@ -1,6 +1,6 @@
 import { getAllUserMemoriesAndSpaces } from "@/app/actions/fetchers";
 import { redirect } from "next/navigation";
-import MemoriesPage from "./content";
+import MemoriesPage from "../content";
 
 async function Page() {
   const { success, data } = await getAllUserMemoriesAndSpaces();

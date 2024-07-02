@@ -191,7 +191,8 @@ export const createMemory = async (input: {
     storeToSpaces = [];
   }
 
-  console.log(storeToSpaces);
+  console.log("SAVING URL: ", metadata.baseUrl);
+
   const vectorSaveResponse = await fetch(
     `${process.env.BACKEND_BASE_URL}/api/add`,
     {
@@ -298,10 +299,12 @@ export const createMemory = async (input: {
       .all();
 
     await Promise.all(
-      spaceData.map(async (space) => {
+      spaceData.map(async (s) => {
         await db
           .insert(contentToSpace)
-          .values({ contentId: contentId, spaceId: space.id });
+          .values({ contentId: contentId, spaceId: s.id });
+
+        db.update(space).set({ numItems: s.numItems + 1 });
       }),
     );
   }
@@ -435,6 +438,124 @@ export const linkTelegramToUser = async (
     success: true,
     data: true,
   };
+};
+
+export const deleteItem = async (id: number) => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const deletedItem = await db
+      .delete(storedContent)
+      .where(eq(storedContent.id, id))
+      .returning();
+
+    if (!deletedItem) {
+      return {
+        success: false,
+        error: "Failed to delete item",
+      };
+    }
+
+    const actualUrl = deletedItem[0]?.url.split("#supermemory-user-")[0];
+
+    console.log(
+      "ACTUAL URL BADBAL;KFJDLKASJFLKDSJFLKDSJFKD LSFJSLKDJF :",
+      actualUrl,
+    );
+
+    await fetch(`${process.env.BACKEND_BASE_URL}/api/delete`, {
+      method: "POST",
+      body: JSON.stringify({
+        websiteUrl: actualUrl,
+        user: data.user.id,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+      },
+    });
+
+    revalidatePath("/memories");
+
+    return {
+      success: true,
+      message: "in-sync",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error,
+      message: "An error occured while saving your canvas",
+    };
+  }
+};
+
+// TODO: also move in vectorize
+export const moveItem = async (
+  id: number,
+  spaces: number[],
+  fromSpace?: number | undefined,
+): ServerActionReturnType<boolean> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    if (fromSpace) {
+      await db
+        .delete(contentToSpace)
+        .where(
+          and(
+            eq(contentToSpace.contentId, id),
+            eq(contentToSpace.spaceId, fromSpace),
+          ),
+        );
+    }
+
+    const addedItem = await db
+      .insert(contentToSpace)
+      .values(spaces.map((spaceId) => ({ contentId: id, spaceId })))
+      .returning();
+
+    if (!(addedItem.length > 0)) {
+      return {
+        success: false,
+        error: "Failed to move item",
+      };
+    }
+
+    await db
+      .update(space)
+      .set({ numItems: sql<number>`numItems + 1` })
+      .where(eq(space.id, addedItem[0]?.spaceId!));
+
+    if (!addedItem) {
+      return {
+        success: false,
+        error: "Failed to move item",
+      };
+    }
+
+    revalidatePath("/memories");
+
+    return {
+      success: true,
+      data: true,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: (error as Error).message,
+    };
+  }
 };
 
 export const createCanvas = async () => {

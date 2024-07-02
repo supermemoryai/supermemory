@@ -3,18 +3,44 @@
 import { getAllUserMemoriesAndSpaces } from "@/app/actions/fetchers";
 import { Content, StoredSpace } from "@/server/db/schema";
 import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
-import { NotebookIcon, PaperclipIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  MenuIcon,
+  MoveIcon,
+  NotebookIcon,
+  PaperclipIcon,
+  TrashIcon,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import Masonry from "react-layout-masonry";
 import { getRawTweet } from "@repo/shared-types/utils";
-import { MyTweet } from "./render-tweet";
+import { MyTweet } from "../../../components/twitter/render-tweet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@repo/ui/shadcn/dropdown-menu";
+import { Button } from "@repo/ui/shadcn/button";
+import { deleteItem, moveItem } from "@/app/actions/doers";
+import { toast } from "sonner";
 
 export function MemoriesPage({
   memoriesAndSpaces,
+  title = "Your Memories",
+  currentSpace,
 }: {
   memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
+  title?: string;
+  currentSpace?: StoredSpace;
 }) {
   const [filter, setFilter] = useState("All");
 
@@ -69,9 +95,24 @@ export function MemoriesPage({
       key={`${memoriesAndSpaces.memories.length + memoriesAndSpaces.spaces.length}`}
       className="px-2 md:px-32 py-36 h-full flex mx-auto w-full flex-col gap-6"
     >
-      <h2 className="text-white w-full font-medium text-3xl text-left font-semibold">
-        My Memories
+      {currentSpace && (
+        <Link href={"/memories"} className="flex gap-2 items-center">
+          <ArrowLeftIcon className="w-3 h-3" /> Back to all memories
+        </Link>
+      )}
+
+      <h2 className="text-white w-full text-3xl text-left font-semibold">
+        {title}
       </h2>
+      {currentSpace && (
+        <div className="flex gap-4 items-center">
+          Space
+          <div className="flex items-center gap-2 bg-secondary p-2 rounded-xl">
+            <Image src={MemoriesIcon} alt="Spaces icon" className="w-3 h-3" />
+            <span className="text-[#fff]">{currentSpace.name}</span>
+          </div>
+        </div>
+      )}
 
       <Filters setFilter={setFilter} filter={filter} />
 
@@ -99,6 +140,8 @@ export function MemoriesPage({
                   "/placeholder-image.svg" // TODO: add this placeholder
                 }
                 description={(item.data as Content).description ?? ""}
+                spaces={memoriesAndSpaces.spaces}
+                id={(item.data as Content).id}
               />
             );
           }
@@ -108,6 +151,7 @@ export function MemoriesPage({
               <TabComponent
                 title={(item.data as StoredSpace).name}
                 description={`${(item.data as StoredSpace).numItems} memories`}
+                id={(item.data as StoredSpace).id}
               />
             );
           }
@@ -122,19 +166,24 @@ export function MemoriesPage({
 function TabComponent({
   title,
   description,
+  id,
 }: {
   title: string;
   description: string;
+  id: number;
 }) {
   return (
-    <div className="flex flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4 -z-10">
+    <Link
+      href={`/space/${id}`}
+      className="flex flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4"
+    >
       <div className="flex items-center gap-2 text-xs">
         <Image alt="Spaces icon" src={MemoriesIcon} className="size-3" /> Space
       </div>
       <div className="flex items-center">
         <div>
           <div className="h-12 w-12 flex justify-center items-center rounded-md">
-            {title.slice(0, 2).toUpperCase()}
+            {title.slice(0, 2).toUpperCase()} {id}
           </div>
         </div>
         <div className="grow px-4">
@@ -145,7 +194,7 @@ function TabComponent({
           <Image src={NextIcon} alt="Search icon" />
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -156,6 +205,8 @@ function LinkComponent({
   url,
   image,
   description,
+  spaces,
+  id,
 }: {
   type: string;
   content: string;
@@ -163,34 +214,95 @@ function LinkComponent({
   url: string;
   image?: string;
   description: string;
+  spaces: StoredSpace[];
+  id: number;
 }) {
   return (
-    <Link
-      href={url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
-      className={`bg-secondary border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
+    <div
+      className={`bg-secondary group relative border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
     >
-      {type === "page" ? (
-        <>
-          <div className="flex items-center gap-2 text-xs">
-            <PaperclipIcon className="w-3 h-3" /> Page
-          </div>
-          <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
-          <div>
-            {url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
-          </div>
-        </>
-      ) : type === "note" ? (
-        <>
-          <div className="flex items-center gap-2 text-xs">
-            <NotebookIcon className="w-3 h-3" /> Note
-          </div>
-          <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
-          <div className="line-clamp-3 mt-2">{content.replace(title, "")}</div>
-        </>
-      ) : type === "tweet" ? (
-        <MyTweet tweet={JSON.parse(getRawTweet(content) ?? "{}")} />
-      ) : null}
-    </Link>
+      <Link
+        href={url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
+      >
+        {type === "page" ? (
+          <>
+            <div className="flex items-center gap-2 text-xs">
+              <PaperclipIcon className="w-3 h-3" /> Page
+            </div>
+            <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
+            <div>
+              {url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
+            </div>
+          </>
+        ) : type === "note" ? (
+          <>
+            <div className="flex items-center gap-2 text-xs">
+              <NotebookIcon className="w-3 h-3" /> Note
+            </div>
+            <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
+            <div className="line-clamp-3 mt-2">
+              {content.replace(title, "")}
+            </div>
+          </>
+        ) : type === "tweet" ? (
+          <MyTweet tweet={JSON.parse(getRawTweet(content) ?? "{}")} />
+        ) : null}
+      </Link>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger className="top-5 right-5 absolute opacity-0 group-focus:opacity-100 group-hover:opacity-100 transition duration-200">
+          <MenuIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          {spaces.length > 0 && (
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>
+                <MoveIcon className="mr-2 h-4 w-4" />
+                <span>Add to space</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent>
+                  {spaces.map((space) => (
+                    <DropdownMenuItem>
+                      <button
+                        className="w-full h-full"
+                        onClick={async () => {
+                          toast.info("Adding to space...");
+
+                          console.log(id, space.id);
+                          const response = await moveItem(id, [space.id]);
+
+                          if (response.success) {
+                            toast.success("Moved to space");
+                            console.log("Moved to space");
+                          } else {
+                            toast.error("Failed to move to space");
+                            console.error("Failed to move to space");
+                          }
+                        }}
+                      >
+                        {space.name}
+                      </button>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+          )}
+          <DropdownMenuItem asChild>
+            <Button
+              onClick={async () => {
+                await deleteItem(id);
+              }}
+              variant="destructive"
+              className="w-full"
+            >
+              <TrashIcon className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 

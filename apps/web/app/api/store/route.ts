@@ -128,10 +128,12 @@ const createMemoryFromAPI = async (input: {
       .all();
 
     await Promise.all(
-      spaceData.map(async (space) => {
+      spaceData.map(async (s) => {
         await db
           .insert(contentToSpace)
-          .values({ contentId: contentId, spaceId: space.id });
+          .values({ contentId: contentId, spaceId: s.id });
+
+        await db.update(space).set({ numItems: s.numItems + 1 });
       }),
     );
   }

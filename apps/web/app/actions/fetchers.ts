@@ -9,6 +9,7 @@ import {
   chatThreads,
   Content,
   contentToSpace,
+  space,
   storedContent,
   StoredSpace,
   users,
@@ -73,6 +74,43 @@ export const getAllMemories = async (
     .execute();
 
   return { success: true, data: contentNotInAnySpace };
+};
+
+export const getMemoriesInsideSpace = async (
+  spaceId: number,
+): ServerActionReturnType<{ memories: Content[]; spaces: StoredSpace[] }> => {
+  const data = await auth();
+
+  if (!data || !data.user) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  const memories = await db
+    .select()
+    .from(storedContent)
+    .where(
+      inArray(
+        storedContent.id,
+        db
+          .select({ contentId: contentToSpace.contentId })
+          .from(contentToSpace)
+          .where(eq(contentToSpace.spaceId, spaceId)),
+      ),
+    )
+    .execute();
+
+  const queriedSpace = await db.query.space.findFirst({
+    where: and(eq(users, data.user.id), eq(space.id, spaceId)),
+  });
+
+  return {
+    success: true,
+    data: {
+      memories: memories,
+      spaces: queriedSpace ? [queriedSpace] : [],
+    },
+  };
 };
 
 export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
