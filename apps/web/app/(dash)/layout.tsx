@@ -14,7 +14,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <main className="h-screen flex flex-col">
-      <div className="fixed top-0 left-0 w-full">
+      <div className="fixed top-0 left-0 w-full z-40">
         <Header />
       </div>
 
@@ -28,7 +28,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
 
       <Menu />
 
-      <div className="w-full h-full px-2 md:px-0">{children}</div>
+      <div className="w-full h-full">{children}</div>
 
       <Toaster />
     </main>

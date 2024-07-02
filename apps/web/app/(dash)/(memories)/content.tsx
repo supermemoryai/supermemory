@@ -359,7 +359,7 @@ function Filters({
   filter: string;
 }) {
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 flex-wrap">
       {FilterMethods.map((i) => {
         return (
           <button

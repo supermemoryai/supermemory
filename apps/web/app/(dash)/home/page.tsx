@@ -75,7 +75,7 @@ function Page({
   }, []);
 
   return (
-    <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col">
+    <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">
       {/* all content goes here */}
       {/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
 

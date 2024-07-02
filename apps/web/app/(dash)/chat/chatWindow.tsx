@@ -210,7 +210,7 @@ function ChatWindow({
             className="max-w-3xl z-10 mx-auto relative h-full overflow-y-auto no-scrollbar"
             key="chat"
           >
-            <div className="w-full pt-24 mb-40">
+            <div className="w-full pt-24 mb-40 px-4 md:px-0">
               {chatHistory.map((chat, idx) => (
                 <div key={idx} className="space-y-16">
                   <div
@@ -407,7 +407,7 @@ function ChatWindow({
               ))}
             </div>
 
-            <div className="fixed bottom-4 w-full max-w-3xl">
+            <div className="fixed bottom-24 md:bottom-4 w-full max-w-3xl">
               <QueryInput
                 mini
                 className="w-full shadow-md"

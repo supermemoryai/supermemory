@@ -34,6 +34,7 @@ import {
   TooltipTrigger,
 } from "@repo/ui/shadcn/tooltip";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
+import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "../actions/doers";
 import { Input } from "@repo/ui/shadcn/input";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
@@ -332,8 +333,16 @@ function Menu() {
         </DialogContent>
 
         {/* Mobile Menu */}
-        <div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-secondary">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-secondary z-50 border-t-2 border-border">
           <div className="flex justify-around items-center">
+            <Link
+              href={"/"}
+              className={`flex flex-col items-center text-white ${"cursor-pointer"}`}
+            >
+              <HomeIcon width={24} height={24} />
+              <p className="text-xs text-foreground-menu mt-2">Home</p>
+            </Link>
+
             <DialogTrigger
               className={`flex flex-col items-center cursor-pointer text-white`}
             >

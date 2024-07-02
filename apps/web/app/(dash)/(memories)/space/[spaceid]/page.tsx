@@ -9,17 +9,12 @@ import { auth } from "@/server/auth";
 async function Page({ params: { spaceid } }: { params: { spaceid: number } }) {
   const user = await auth();
 
-  const hasAccess = await db.query.spacesAccess.findMany({
-    where: and(
-      eq(spacesAccess.spaceId, spaceid),
-      eq(spacesAccess.userEmail, user?.user!.email!),
-    ),
-  });
-
-  if (!hasAccess) return redirect("/home");
-
   const { success, data } = await getMemoriesInsideSpace(spaceid);
   if (!success ?? !data) return redirect("/home");
+
+  const hasAccess = await db.query.spacesAccess.findMany({
+    where: and(eq(spacesAccess.spaceId, spaceid)),
+  });
 
   return (
     <MemoriesPage
