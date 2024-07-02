@@ -14,7 +14,6 @@
     "@cloudflare/next-on-pages": "1",
     "@cloudflare/workers-types": "^4.20240614.0",
     "@repo/eslint-config": "*",
-    "@repo/shared-types": "*",
     "@repo/tailwind-config": "*",
     "@repo/typescript-config": "*",
     "@repo/ui": "*",
@@ -35,7 +34,7 @@
   "engines": {
     "node": ">=18"
   },
-  "packageManager": "yarn@1.22.21",
+  "packageManager": "bun@1.1.0",
   "workspaces": [
     "apps/*",
     "packages/*"
