@@ -207,7 +207,7 @@ function ChatWindow({
           </motion.div>
         ) : (
           <div
-            className="max-w-3xl z-10 mx-auto relative h-full overflow-y-auto no-scrollbar"
+            className="max-w-3xl z-10 mx-auto relative h-full overflow-y-auto"
             key="chat"
           >
             <div className="w-full pt-24 mb-40 px-4 md:px-0">
@@ -242,7 +242,7 @@ function ChatWindow({
                             </AccordionTrigger>
                             {/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
                             <AccordionContent
-                              className="flex items-center no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
+                              className="flex items-center overflow-auto gap-4 relative max-w-3xl no-scrollbar"
                               defaultChecked
                             >
                               {/* Loading state */}
