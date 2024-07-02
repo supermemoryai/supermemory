@@ -161,6 +161,21 @@ export const space = createTable(
   }),
 );
 
+export const spacesAccess = createTable(
+  "spacesAccess",
+  {
+    spaceId: integer("spaceId")
+      .notNull()
+      .references(() => space.id, { onDelete: "cascade" }),
+    userEmail: text("userEmail").notNull(),
+  },
+  (spaceAccess) => ({
+    compoundKey: primaryKey({
+      columns: [spaceAccess.spaceId, spaceAccess.userEmail],
+    }),
+  }),
+);
+
 export type StoredContent = Omit<typeof storedContent.$inferSelect, "user">;
 export type StoredSpace = typeof space.$inferSelect;
 export type ChachedSpaceContent = StoredContent & {

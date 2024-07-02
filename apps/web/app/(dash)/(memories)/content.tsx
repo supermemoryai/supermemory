@@ -30,17 +30,20 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/shadcn/dropdown-menu";
 import { Button } from "@repo/ui/shadcn/button";
-import { deleteItem, moveItem } from "@/app/actions/doers";
+import { addUserToSpace, deleteItem, moveItem } from "@/app/actions/doers";
 import { toast } from "sonner";
+import { Input } from "@repo/ui/shadcn/input";
 
 export function MemoriesPage({
   memoriesAndSpaces,
   title = "Your Memories",
   currentSpace,
+  usersWithAccess,
 }: {
   memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
   title?: string;
   currentSpace?: StoredSpace;
+  usersWithAccess?: string[];
 }) {
   const [filter, setFilter] = useState("All");
 
@@ -70,7 +73,6 @@ export function MemoriesPage({
       .filter((item) => {
         if (filter === "All") return true;
         if (filter === "Spaces" && item.item === "space") {
-          console.log(item);
           return true;
         }
         if (filter === "Pages")
@@ -105,12 +107,55 @@ export function MemoriesPage({
         {title}
       </h2>
       {currentSpace && (
-        <div className="flex gap-4 items-center">
-          Space
-          <div className="flex items-center gap-2 bg-secondary p-2 rounded-xl">
-            <Image src={MemoriesIcon} alt="Spaces icon" className="w-3 h-3" />
-            <span className="text-[#fff]">{currentSpace.name}</span>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-4 items-center">
+            Space
+            <div className="flex items-center gap-2 bg-secondary p-2 rounded-xl">
+              <Image src={MemoriesIcon} alt="Spaces icon" className="w-3 h-3" />
+              <span className="text-[#fff]">{currentSpace.name}</span>
+            </div>
           </div>
+
+          {usersWithAccess && usersWithAccess.length > 0 && (
+            <div className="flex gap-4 items-center">
+              Users with access
+              <div className="flex gap-2">
+                {usersWithAccess.map((user) => (
+                  <div className="flex items-center gap-2 bg-secondary p-2 rounded-xl">
+                    <Image
+                      src={UrlIcon}
+                      alt="Spaces icon"
+                      className="w-3 h-3"
+                    />
+                    <span className="text-[#fff]">{user}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <form
+            action={async (e: FormData) => {
+              const email = e.get("email")?.toString();
+
+              if (!email) {
+                toast.error("Please enter an email");
+                return;
+              }
+
+              const resp = await addUserToSpace(email, currentSpace.id);
+
+              if (resp.success) {
+                toast.success("User added to space");
+              } else {
+                toast.error("Failed to add user to space");
+              }
+            }}
+            className="flex gap-2 max-w-xl mt-2"
+          >
+            <Input name="email" placeholder="Add user by email" />
+            <Button variant="secondary">Add</Button>
+          </form>
         </div>
       )}
 
@@ -268,7 +313,6 @@ function LinkComponent({
                         onClick={async () => {
                           toast.info("Adding to space...");
 
-                          console.log(id, space.id);
                           const response = await moveItem(id, [space.id]);
 
                           if (response.success) {

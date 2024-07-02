@@ -29,6 +29,13 @@
       "when": 1719798795179,
       "tag": "0003_solid_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1719882966298,
+      "tag": "0004_skinny_stature",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, inArray, not, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, not, or, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
   canvas,
@@ -10,6 +10,7 @@ import {
   Content,
   contentToSpace,
   space,
+  spacesAccess,
   storedContent,
   StoredSpace,
   users,
@@ -90,12 +91,24 @@ export const getMemoriesInsideSpace = async (
     .select()
     .from(storedContent)
     .where(
-      inArray(
-        storedContent.id,
-        db
-          .select({ contentId: contentToSpace.contentId })
-          .from(contentToSpace)
-          .where(eq(contentToSpace.spaceId, spaceId)),
+      and(
+        inArray(
+          storedContent.id,
+          db
+            .select({ contentId: contentToSpace.contentId })
+            .from(contentToSpace)
+            .where(eq(contentToSpace.spaceId, spaceId)),
+        ),
+        or(
+          eq(storedContent.userId, data.user.id!),
+          eq(
+            db
+              .select({ userId: spacesAccess.userEmail })
+              .from(spacesAccess)
+              .where(eq(spacesAccess.spaceId, spaceId)),
+            data.user.email,
+          ),
+        ),
       ),
     )
     .execute();

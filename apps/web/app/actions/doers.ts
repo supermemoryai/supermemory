@@ -9,6 +9,7 @@ import {
   contentToSpace,
   sessions,
   space,
+  spacesAccess,
   storedContent,
   users,
 } from "../../server/db/schema";
@@ -93,6 +94,47 @@ export const limit = async (
   const remainingLimit = totalLimit - currentCount;
 
   return items <= remainingLimit;
+};
+
+export const addUserToSpace = async (userEmail: string, spaceId: number) => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  // We need to make sure that the user owns the space
+  const spaceData = await db
+    .select()
+    .from(space)
+    .where(and(eq(space.id, spaceId), eq(space.user, data.user.id)))
+    .all();
+
+  if (spaceData.length === 0) {
+    return {
+      success: false,
+      error: "You do not own this space",
+    };
+  }
+
+  try {
+    await db.insert(spacesAccess).values({
+      spaceId: spaceId,
+      userEmail: userEmail,
+    });
+
+    revalidatePath("/space/" + spaceId);
+
+    return {
+      success: true,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: (e as Error).message,
+    };
+  }
 };
 
 const getTweetData = async (tweetID: string) => {
@@ -190,8 +232,6 @@ export const createMemory = async (input: {
   if (!storeToSpaces) {
     storeToSpaces = [];
   }
-
-  console.log("SAVING URL: ", metadata.baseUrl);
 
   const vectorSaveResponse = await fetch(
     `${process.env.BACKEND_BASE_URL}/api/add`,
