@@ -1,6 +1,7 @@
 import React from "react";
 import EmailInput from "./EmailInput";
-import { ChevronRight } from "lucide-react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 function Cta() {
   return (
@@ -33,7 +34,16 @@ function Cta() {
         Sign up for the waitlist and be the first to try Supermemory
       </p>
       <div className="w-full lg:w-3/4 mx-auto">
-        <EmailInput />
+        <Link
+          href="/signin"
+          className="inline-flex gap-x-2 justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100 text-white"
+        >
+          Sign in
+          <div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
+            <ArrowUpRight className="absolute transition-all duration-500 group-hover:translate-x-4 group-hover:-translate-y-5" />
+            <ArrowUpRight className="absolute transition-all duration-500 -translate-x-4 -translate-y-5 group-hover:translate-x-0 group-hover:translate-y-0" />
+          </div>
+        </Link>
       </div>
     </section>
   );

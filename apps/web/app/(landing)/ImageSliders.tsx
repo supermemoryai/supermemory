@@ -162,7 +162,9 @@ const logos = [
   },
   {
     name: "Reddit",
-    url: <Reddit className="w-16 h-16 brightness-100 invert-1 mx-10" />,
+    url: (
+      <Reddit className="w-16 h-16 brightness-100 invert-1 mx-10 grayscale" />
+    ),
   },
   {
     name: "Twitter",
@@ -172,7 +174,7 @@ const logos = [
 
 const AnimatedLogoCloud = () => {
   return (
-    <div className="py-2 max-w-4xl">
+    <div className="py-2 max-w-4xl scale-75">
       <p className="font-normal tracking-tighter text-base text-gray-100 bg-gradient-to-br from-zinc-400 via-zinc-300 to-zinc-700 bg-clip-text text-transparent text-center mt-4">
         Works perfectly with the apps you love.
       </p>
