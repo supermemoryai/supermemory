@@ -71,7 +71,7 @@ const batchImportAll = async (cursor = "", totalImported = 0) => {
                   pageContent: tweetMd,
                   url: `https://twitter.com/supermemoryai/status/${tweet.id_str}`,
                   title: `Tweet by ${tweet.user.name}`,
-                  description: tweet.text.slice(0, 100),
+                  description: tweet.text.slice(0, 200),
                   type: "tweet",
                 }),
               }).then((ers) => {
