@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, inArray, not, or, sql } from "drizzle-orm";
+import { and, asc, eq, exists, inArray, not, or, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
   canvas,
@@ -82,46 +82,62 @@ export const getMemoriesInsideSpace = async (
 ): ServerActionReturnType<{ memories: Content[]; spaces: StoredSpace[] }> => {
   const data = await auth();
 
-  if (!data || !data.user) {
-    redirect("/signin");
+  if (!data || !data.user || !data.user.email) {
     return { error: "Not authenticated", success: false };
   }
 
-  const memories = await db
+  const spaces = await db
     .select()
-    .from(storedContent)
+    .from(space)
     .where(
       and(
-        inArray(
-          storedContent.id,
-          db
-            .select({ contentId: contentToSpace.contentId })
-            .from(contentToSpace)
-            .where(eq(contentToSpace.spaceId, spaceId)),
-        ),
+        eq(space.id, spaceId),
         or(
-          eq(storedContent.userId, data.user.id!),
-          eq(
+          eq(space.user, data.user.id!),
+          exists(
             db
-              .select({ userId: spacesAccess.userEmail })
+              .select()
               .from(spacesAccess)
-              .where(eq(spacesAccess.spaceId, spaceId)),
-            data.user.email,
+              .where(
+                and(
+                  eq(spacesAccess.spaceId, space.id),
+                  eq(spacesAccess.userEmail, data.user.email),
+                ),
+              ),
           ),
         ),
       ),
     )
-    .execute();
+    .limit(1);
 
-  const queriedSpace = await db.query.space.findFirst({
-    where: and(eq(users, data.user.id), eq(space.id, spaceId)),
-  });
+  const memories = await db
+    .select({
+      id: storedContent.id,
+      content: storedContent.content,
+      title: storedContent.title,
+      description: storedContent.description,
+      url: storedContent.url,
+      savedAt: storedContent.savedAt,
+      baseUrl: storedContent.baseUrl,
+      ogImage: storedContent.ogImage,
+      type: storedContent.type,
+      image: storedContent.image,
+      userId: storedContent.userId,
+      noteId: storedContent.noteId,
+    })
+    .from(storedContent)
+    .innerJoin(contentToSpace, eq(storedContent.id, contentToSpace.contentId))
+    .where(eq(contentToSpace.spaceId, spaceId));
+
+  if (spaces.length === 0) {
+    return { error: "Not authorized", success: false };
+  }
 
   return {
     success: true,
     data: {
       memories: memories,
-      spaces: queriedSpace ? [queriedSpace] : [],
+      spaces: spaces,
     },
   };
 };
