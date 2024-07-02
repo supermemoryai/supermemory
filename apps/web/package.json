@@ -36,7 +36,6 @@
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@repo/tailwind-config": "*",
-    "@repo/shared-types": "*",
     "@types/eslint": "^8.56.5",
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.61",
