@@ -1,4 +1,4 @@
-![og image](https://supermemory.dhr.wtf/og-image.png)
+![og image](https://supermemory.ai/og-image.png)
 
 # SuperMemory
 
@@ -18,7 +18,7 @@ Supermemory fixes this.
 
 ## How do I use this?
 
-Just go to [supermemory.dhr.wtf](https://supermemory.dhr.wtf) and sign in with your google account.
+Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google account.
 
 To use the chrome extension,
 
