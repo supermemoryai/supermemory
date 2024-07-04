@@ -32,7 +32,7 @@ function Hero() {
             ...slap,
             transition: { ...slap.transition, delay: 0.2 },
           }}
-          className="text-center  mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-7xl"
+          className="text-center  mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter  sm:text-5xl text-transparent md:text-6xl lg:text-7xl"
         >
           Unlock your{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r to-blue-200 from-zinc-300">
