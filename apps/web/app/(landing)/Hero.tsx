@@ -75,7 +75,7 @@ function Hero() {
           width={1512}
           height={1405}
           draggable="false"
-          className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none px-5 rounded-2xl"
+          className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none px-5 !rounded-2xl"
           style={{
             borderRadius: "20px",
           }}
