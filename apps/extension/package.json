@@ -2,19 +2,31 @@
   "devDependencies": {
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.5",
+    "@webpack-cli/generators": "^3.0.7",
+    "extension": "latest",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "tailwindcss": "^3.4.1",
     "typescript": "5.3.3",
-    "extension": "latest"
+    "webpack-cli": "^5.1.4"
   },
   "scripts": {
     "dev": "extension dev",
     "start": "extension start",
-    "build": "extension build"
+    "build": "extension build",
+    "style": "tailwindcss -i ../../packages/tailwind-config/globals.css -o ./public/output.css --watch"
   },
-  "dependencies": {},
-  "name": "content-shadow-dom-tailwind",
+  "name": "supermemory-extension",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "dependencies": {
+    "@radix-ui/react-popover": "^1.1.1",
+    "@radix-ui/react-toast": "^1.2.1",
+    "@radix-ui/react-tooltip": "^1.1.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.400.0",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss-animate": "^1.0.7"
+  }
 }

@@ -6,15 +6,21 @@ import { Google } from "@repo/ui/components/icons";
 import gradientStyle from "./_components/TextGradient/gradient.module.css";
 import { cn } from "@repo/ui/lib/utils";
 import { redirect } from "next/navigation";
+import { toast } from "sonner";
 
 export const runtime = "edge";
 
-async function Signin() {
+async function Signin({
+  searchParams,
+}: {
+  searchParams: Record<string, string>;
+}) {
   const user = await auth();
 
   if (user) {
     await redirect("/home");
   }
+
   return (
     <div className="flex relative font-geistSans overflow-hidden items-center justify-between min-h-screen">
       <div className="relative w-full lg:w-1/2 flex items-center min-h-screen bg-page-gradient  p-8 border-r-[1px] border-white/5">

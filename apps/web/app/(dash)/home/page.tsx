@@ -36,6 +36,9 @@ function Page({
   const [telegramUser, setTelegramUser] = useState<string | undefined>(
     searchParams.telegramUser as string,
   );
+  const [extensionInstalled, setExtensionInstalled] = useState<
+    string | undefined
+  >(searchParams.extension as string);
 
   const { push } = useRouter();
 
@@ -58,6 +61,10 @@ function Page({
       linkTelegram();
     }
 
+    if (extensionInstalled) {
+      toast.success("Extension installed successfully");
+    }
+
     getSpaces().then((res) => {
       if (res.success && res.data) {
         setSpaces(res.data);
@@ -72,7 +79,7 @@ function Page({
       if (typeof window === "undefined") return;
       window.postMessage({ token: token.data }, "*");
     });
-  }, []);
+  }, [telegramUser]);
 
   return (
     <div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">

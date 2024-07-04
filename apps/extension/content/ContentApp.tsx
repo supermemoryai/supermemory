@@ -1,8 +1,25 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Readability } from "@mozilla/readability";
 import tailwindBg from "../public/tailwind_bg.png";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/shadcn/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/shadcn/popover";
+import { Toaster } from "./ui/shadcn/toaster";
+import { useToast } from "./ui/shadcn/use-toast";
 
-export default function ContentApp({ token }: { token: string | undefined }) {
+const BACKEND_URL = "https://supermemory.ai";
+
+export default function ContentApp({
+  token,
+  shadowRoot,
+}: {
+  token: string | undefined;
+  shadowRoot: ShadowRoot;
+}) {
   const [text, setText] = useState("");
   const [hover, setHover] = useState(false);
 
@@ -10,6 +27,12 @@ export default function ContentApp({ token }: { token: string | undefined }) {
 
   const [importedCount, setImportedCount] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
+
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+    null,
+  );
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     document.addEventListener("mousemove", (e) => {
@@ -24,16 +47,7 @@ export default function ContentApp({ token }: { token: string | undefined }) {
     });
 
     const getUserData = () => {
-      const NO_JWT = [
-        "supermemory.ai",
-        "beta.supermemory.ai",
-        "localhost:3000",
-      ];
       chrome.runtime.sendMessage({ type: "getJwt" }, (response) => {
-        if (!response.jwt && !NO_JWT.includes(window.location.host)) {
-          window.location.href = "https://supermemory.ai/signin";
-        }
-
         console.log("jwt", response.jwt);
       });
     };
@@ -54,10 +68,15 @@ export default function ContentApp({ token }: { token: string | undefined }) {
       }
     });
 
+    const portalDiv = document.createElement("div");
+    portalDiv.id = "popover-portal";
+    shadowRoot.appendChild(portalDiv);
+    setPortalContainer(portalDiv);
+
     return () => {
       document.removeEventListener("mousemove", () => {});
     };
-  }, []);
+  }, [document.getElementById("supermemory-extension-host")]);
 
   function sendUrlToAPI(spaces: number[]) {
     setLoading(true);
@@ -100,55 +119,60 @@ export default function ContentApp({ token }: { token: string | undefined }) {
     }
   }
 
-  return (
-    <div className="flex justify-end items-end min-h-screen w-full">
-      <button
-        onClick={() => sendUrlToAPI([])}
-        className={`${hover && "opacity-100"} hover:bg-black p-2 rounded-l-2xl transition bg-gray-900 border border-white/20 opacity-0 size-4 h-[30vh] absolute flex bottom-20 items-center text-lg`}
-      >
-        {loading ? (
-          <div className="text-sm">Saving...</div>
-        ) : (
-          <svg
-            className="size-8"
-            width={24}
-            height={24}
-            viewBox="0 0 42 42"
-            fill="currentColor"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M19.0357 8C20.5531 8 21 9.27461 21 10.8438V16.3281H23.5536V14.2212C23.5536 13.1976 23.9468 12.216 24.6467 11.4922L25.0529 11.0721C24.9729 10.8772 24.9286 10.6627 24.9286 10.4375C24.9286 9.54004 25.6321 8.8125 26.5 8.8125C27.3679 8.8125 28.0714 9.54004 28.0714 10.4375C28.0714 11.335 27.3679 12.0625 26.5 12.0625C26.2822 12.0625 26.0748 12.0167 25.8863 11.9339L25.4801 12.354C25.0012 12.8492 24.7321 13.5209 24.7321 14.2212V16.3281H28.9714C29.2045 15.7326 29.7691 15.3125 30.4286 15.3125C31.2964 15.3125 32 16.04 32 16.9375C32 17.835 31.2964 18.5625 30.4286 18.5625C29.7691 18.5625 29.2045 18.1424 28.9714 17.5469H21V21.2031H25.0428C25.2759 20.6076 25.8405 20.1875 26.5 20.1875C27.3679 20.1875 28.0714 20.915 28.0714 21.8125C28.0714 22.71 27.3679 23.4375 26.5 23.4375C25.8405 23.4375 25.2759 23.0174 25.0428 22.4219H21V26.0781H24.4125C25.4023 26.0781 26.3516 26.4847 27.0515 27.2085L29.0292 29.2536C29.2177 29.1708 29.4251 29.125 29.6429 29.125C30.5107 29.125 31.2143 29.8525 31.2143 30.75C31.2143 31.6475 30.5107 32.375 29.6429 32.375C28.775 32.375 28.0714 31.6475 28.0714 30.75C28.0714 30.5248 28.1157 30.3103 28.1958 30.1154L26.2181 28.0703C25.7392 27.5751 25.0897 27.2969 24.4125 27.2969H21V31.1562C21 32.7254 20.5531 34 19.0357 34C17.6165 34 16.4478 32.8879 16.3004 31.4559C16.0451 31.527 15.775 31.5625 15.5 31.5625C13.7665 31.5625 12.3571 30.1051 12.3571 28.3125C12.3571 27.9367 12.421 27.5711 12.5339 27.2359C11.0509 26.657 10 25.1742 10 23.4375C10 21.8176 10.9183 20.416 12.2491 19.766C11.8219 19.2125 11.5714 18.5117 11.5714 17.75C11.5714 16.191 12.6321 14.891 14.0464 14.5711C13.9679 14.2918 13.9286 13.9922 13.9286 13.6875C13.9286 12.1691 14.9402 10.8895 16.3004 10.534C16.4478 9.11211 17.6165 8 19.0357 8Z"
-              fill="#888B94"
-            />
-          </svg>
-        )}
-      </button>
+  if (!shadowRoot || !portalContainer) {
+    return null;
+  }
 
-      {isImporting && (
-        <div className="mx-auto max-w-7xl md:px-0 lg:p-6">
-          <div className="relative isolate overflow-hidden bg-gray-900 px-6 pt-16 shadow-2xl lg:rounded-3xl md:pt-24 md:h-full sm:h-[100vh] lg:flex lg:gap-x-20 lg:px-24 lg:pt-0">
-            <div className="absolute z-20 top-0 inset-x-0 flex justify-center overflow-hidden pointer-events-none">
-              <div className="w-[108rem] flex-none flex justify-end">
-                <img
-                  src={tailwindBg}
-                  className="w-full flex-none max-w-none hidden dark:block"
-                  decoding="async"
-                />
-              </div>
-            </div>
-            <div className="mx-auto max-w-md text-center lg:py-12 lg:mx-0 lg:flex-auto lg:text-left">
-              <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Your twitter bookmarks are being imported.
-              </h2>
-              <p className="mt-6 text-lg leading-8 text-gray-300">
-                This is done completely locally, so please keep this tab open!
-              </p>
-            </div>
-            Imported {importedCount} bookmarks
+  return (
+    <div className="flex justify-end items-end min-h-screen h-full w-full">
+      <Toaster />
+
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <PopoverTrigger
+                className={`${hover || isPopoverOpen ? "opacity-100" : "opacity-75 pointer-events-none translate-x-3/4"} focus-within:translate-x-0 focus-visible:translate-x-0 size-12 hover:bg-black p-2 rounded-l-2xl transition bg-secondary border-2 border-border opacity-0 absolute flex bottom-20 items-center text-lg`}
+              >
+                {loading ? (
+                  <div className="text-sm">Saving...</div>
+                ) : (
+                  <svg
+                    className="w-full h-full size-8"
+                    width={24}
+                    height={24}
+                    viewBox="0 0 42 42"
+                    fill="currentColor"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M19.0357 8C20.5531 8 21 9.27461 21 10.8438V16.3281H23.5536V14.2212C23.5536 13.1976 23.9468 12.216 24.6467 11.4922L25.0529 11.0721C24.9729 10.8772 24.9286 10.6627 24.9286 10.4375C24.9286 9.54004 25.6321 8.8125 26.5 8.8125C27.3679 8.8125 28.0714 9.54004 28.0714 10.4375C28.0714 11.335 27.3679 12.0625 26.5 12.0625C26.2822 12.0625 26.0748 12.0167 25.8863 11.9339L25.4801 12.354C25.0012 12.8492 24.7321 13.5209 24.7321 14.2212V16.3281H28.9714C29.2045 15.7326 29.7691 15.3125 30.4286 15.3125C31.2964 15.3125 32 16.04 32 16.9375C32 17.835 31.2964 18.5625 30.4286 18.5625C29.7691 18.5625 29.2045 18.1424 28.9714 17.5469H21V21.2031H25.0428C25.2759 20.6076 25.8405 20.1875 26.5 20.1875C27.3679 20.1875 28.0714 20.915 28.0714 21.8125C28.0714 22.71 27.3679 23.4375 26.5 23.4375C25.8405 23.4375 25.2759 23.0174 25.0428 22.4219H21V26.0781H24.4125C25.4023 26.0781 26.3516 26.4847 27.0515 27.2085L29.0292 29.2536C29.2177 29.1708 29.4251 29.125 29.6429 29.125C30.5107 29.125 31.2143 29.8525 31.2143 30.75C31.2143 31.6475 30.5107 32.375 29.6429 32.375C28.775 32.375 28.0714 31.6475 28.0714 30.75C28.0714 30.5248 28.1157 30.3103 28.1958 30.1154L26.2181 28.0703C25.7392 27.5751 25.0897 27.2969 24.4125 27.2969H21V31.1562C21 32.7254 20.5531 34 19.0357 34C17.6165 34 16.4478 32.8879 16.3004 31.4559C16.0451 31.527 15.775 31.5625 15.5 31.5625C13.7665 31.5625 12.3571 30.1051 12.3571 28.3125C12.3571 27.9367 12.421 27.5711 12.5339 27.2359C11.0509 26.657 10 25.1742 10 23.4375C10 21.8176 10.9183 20.416 12.2491 19.766C11.8219 19.2125 11.5714 18.5117 11.5714 17.75C11.5714 16.191 12.6321 14.891 14.0464 14.5711C13.9679 14.2918 13.9286 13.9922 13.9286 13.6875C13.9286 12.1691 14.9402 10.8895 16.3004 10.534C16.4478 9.11211 17.6165 8 19.0357 8Z"
+                      fill="#fff"
+                    />
+                  </svg>
+                )}
+              </PopoverTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Add to supermemory.ai</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <PopoverContent container={portalContainer}>
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold text-lg">Select a space</p>
+
+            <button
+              onClick={() => {
+                sendUrlToAPI([1]);
+              }}
+              className="bg-slate-700 text-white p-2 rounded-md"
+            >
+              Add to supermemory.ai
+            </button>
           </div>
-        </div>
-      )}
+        </PopoverContent>
+      </Popover>
 
       {(window.location.host === "twitter.com" ||
         window.location.host === "x.com") && (

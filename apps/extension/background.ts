@@ -311,7 +311,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }).then((ers) => console.log(ers.status));
       });
     })();
+
+    return true;
   } else if (request.type === "batchImportAll") {
     batchImportAll();
+  }
+});
+
+chrome.runtime.onInstalled.addListener(function (details) {
+  if (details.reason === "install") {
+    chrome.tabs.create({
+      url: "https://supermemory.ai/signin?extension=true",
+      active: true,
+    });
   }
 });
