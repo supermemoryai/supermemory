@@ -53,7 +53,7 @@ function Hero() {
         </motion.p>
         <Link
           href="/signin"
-          className="inline-flex text-lg gap-x-2 mt-2 backdrop-blur-md text-white justify-start items-start py-3 px-5 ml-3 w-full rounded-3xl border duration-200 sm:w-auto group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100"
+          className="inline-flex text-lg gap-x-2 mt-2 backdrop-blur-md text-white justify-center items-center py-3 px-5 ml-3 w-fit rounded-3xl border duration-200 group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100"
         >
           It's free. Sign up now
           <div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
@@ -72,13 +72,9 @@ function Hero() {
           }}
           src="/images/landing-hero.jpeg"
           alt="Landing page background"
-          width={1512}
-          height={1405}
           draggable="false"
-          className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none px-5 rounded-2xl"
-          style={{
-            borderRadius: "20px",
-          }}
+          className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none rounded-2xl"
+        
         />
         <div
           className="absolute -z-10 left-0 top-[10%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-100  blur-[337.4px]"
