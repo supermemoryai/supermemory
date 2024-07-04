@@ -30,6 +30,8 @@ export async function initQuery(
     case "claude-3-opus":
       const anthropic = createAnthropic({
         apiKey: c.env.ANTHROPIC_API_KEY,
+        baseURL:
+          "https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/anthropic",
       });
       selectedModel = anthropic.chat("claude-3-opus-20240229");
       console.log("Selected model: ", selectedModel);
@@ -37,6 +39,8 @@ export async function initQuery(
     case "gemini-1.5-pro":
       const googleai = createGoogleGenerativeAI({
         apiKey: c.env.GOOGLE_AI_API_KEY,
+        baseURL:
+          "https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/google-vertex-ai",
       });
       selectedModel = googleai.chat("models/gemini-1.5-pro-latest");
       console.log("Selected model: ", selectedModel);
@@ -45,6 +49,8 @@ export async function initQuery(
     default:
       const openai = createOpenAI({
         apiKey: c.env.OPENAI_API_KEY,
+        baseURL:
+          "https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/openai",
       });
       selectedModel = openai.chat("gpt-4o");
       break;
