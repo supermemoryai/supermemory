@@ -22,6 +22,6 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "permissions": ["webRequest", "storage"],
-  "host_permissions": ["https://x.com/*", "https://twitter.com/*"]
+  "permissions": ["webRequest", "storage", "contextMenus"],
+  "host_permissions": ["<all_urls>"]
 }

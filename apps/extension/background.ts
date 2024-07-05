@@ -364,3 +364,133 @@ chrome.runtime.onInstalled.addListener(function (details) {
     });
   }
 });
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "saveSelection",
+    title: "Save note to Supermemory",
+    contexts: ["selection"],
+  });
+
+  chrome.contextMenus.create({
+    id: "savePage",
+    title: "Save page to Supermemory",
+    contexts: ["page"],
+  });
+
+  // TODO
+  // chrome.contextMenus.create({
+  //   id: 'saveLink',
+  //   title: 'Save link to Supermemory',
+  //   contexts: ['link'],
+  // });
+});
+
+interface FetchDataParams {
+  content: string;
+  url: string;
+  title: string;
+  description: string;
+  ogImage: string;
+  favicon: string;
+  isExternalContent: boolean; // Indicates if the content is from an external API
+}
+
+const fetchData = ({
+  content,
+  url,
+  title,
+  description,
+  ogImage,
+  favicon,
+  isExternalContent,
+}: FetchDataParams) => {
+  // Construct the URL
+  const finalUrl = isExternalContent
+    ? url
+    : `${url}#supermemory-stuff-${Math.random()}`;
+
+  // Construct the body
+  const body = JSON.stringify({
+    pageContent: content,
+    url: finalUrl,
+    title,
+    spaces: [],
+    description,
+    ogImage,
+    image: favicon,
+  });
+
+  // Make the fetch call
+  fetch(`${BACKEND_URL}/api/store`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: body,
+  })
+    .then((response) => {
+      console.log("Data saved successfully");
+    })
+    .catch((error) => {
+      console.error("Error saving data:", error);
+    });
+
+  return Promise.resolve();
+};
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (!tab || !tab.id) return;
+
+  const tabId = tab.id;
+
+  const sendMessageToTab = (message: string) => {
+    chrome.tabs.sendMessage(tabId, { message, type: "supermemory-message" });
+  };
+
+  if (info.menuItemId === "saveSelection" && info.selectionText) {
+    sendMessageToTab("Saving selection...");
+    fetchData({
+      content: info.selectionText || "No content",
+      url: info.pageUrl,
+      title: tab.title || "Selection Title",
+      description: "User-selected content from the page",
+      ogImage: "",
+      favicon: "",
+      isExternalContent: false,
+    })
+      .then(() => {
+        sendMessageToTab("Selection saved successfully.");
+      })
+      .catch(() => {
+        sendMessageToTab("Failed to save selection.");
+      });
+  } else if (info.menuItemId === "savePage") {
+    sendMessageToTab("Saving page...");
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabId },
+        func: () => document.body.innerText,
+      },
+      (results) => {
+        if (results.length > 0 && results[0].result) {
+          fetchData({
+            content: results[0].result as string,
+            url: info.pageUrl,
+            title: tab.title || "Page Title",
+            description: "Full page content",
+            ogImage: "",
+            favicon: "",
+            isExternalContent: false,
+          })
+            .then(() => {
+              sendMessageToTab("Page saved successfully.");
+            })
+            .catch(() => {
+              sendMessageToTab("Failed to save page.");
+            });
+        }
+      },
+    );
+  }
+});

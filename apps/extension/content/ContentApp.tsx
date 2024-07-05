@@ -116,7 +116,6 @@ export default function ContentApp({
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.type === "import-update") {
-        console.log(request);
         setIsImporting(true);
         setImportedCount(request.importedCount);
       }
@@ -124,6 +123,12 @@ export default function ContentApp({
       if (request.type === "import-done") {
         setIsImporting(false);
         setImportDone(true);
+      }
+
+      if (request.type === "supermemory-message") {
+        toast({
+          title: request.message,
+        });
       }
     });
 
