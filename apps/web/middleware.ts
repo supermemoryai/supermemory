@@ -1,13 +1,24 @@
-// middleware.js
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
+export function middleware(request: NextRequest) {
+  if (request.method === "OPTIONS") {
+    return new NextResponse(null, { headers: corsHeaders });
+  }
+
+  const response = NextResponse.next();
+  Object.entries(corsHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
   });
+
+  return response;
 }
+
+export const config = {
+  matcher: "/api/:path*",
+};

@@ -22,17 +22,20 @@ export class OpenAIEmbeddings {
   }
 
   async embedQuery(text: string): Promise<number[]> {
-    const response = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
+    const response = await fetch(
+      "https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/openai/embeddings",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          input: text,
+          model: this.modelName,
+        }),
       },
-      body: JSON.stringify({
-        input: text,
-        model: this.modelName,
-      }),
-    });
+    );
 
     const data = await response.json();
 

@@ -73,7 +73,7 @@ window.addEventListener("message", (event) => {
       )
     ) {
       console.log(
-        "JWT is only allowed to be used on localhost or anycontext.dhr.wtf",
+        "JWT is only allowed to be used on localhost or supermemory.ai",
       );
       return;
     }

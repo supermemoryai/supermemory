@@ -74,15 +74,28 @@ const batchImportAll = async (cursor = "", totalImported = 0) => {
                   description: tweet.text.slice(0, 200),
                   type: "tweet",
                 }),
-              }).then((ers) => {
+              }).then(async (ers) => {
                 console.log(ers.status);
                 importedCount++;
                 totalImported++;
-                // Send an update message to the content script
-                chrome.runtime.sendMessage({
-                  type: "import-update",
-                  importedCount: totalImported,
-                });
+                console.log(totalImported);
+                chrome.tabs.query(
+                  { active: true, currentWindow: true },
+                  async function (tabs) {
+                    if (tabs.length > 0) {
+                      let currentTabId = tabs[0].id;
+
+                      if (!currentTabId) {
+                        return;
+                      }
+
+                      await chrome.tabs.sendMessage(currentTabId, {
+                        type: "import-update",
+                        importedCount: totalImported,
+                      });
+                    }
+                  },
+                );
               });
             });
           })();
@@ -111,19 +124,45 @@ const batchImportAll = async (cursor = "", totalImported = 0) => {
             batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
           } else {
             console.log("All bookmarks imported");
-            // Send a "done" message to the content script
-            chrome.runtime.sendMessage({
-              type: "import-done",
-              importedCount: totalImported,
-            });
+
+            chrome.tabs.query(
+              { active: true, currentWindow: true },
+              async function (tabs) {
+                if (tabs.length > 0) {
+                  let currentTabId = tabs[0].id;
+
+                  if (!currentTabId) {
+                    return;
+                  }
+
+                  await chrome.runtime.sendMessage({
+                    type: "import-done",
+                    importedCount: totalImported,
+                  });
+                }
+              },
+            );
           }
         } else {
           console.log("All bookmarks imported");
           // Send a "done" message to the content script
-          chrome.runtime.sendMessage({
-            type: "import-done",
-            importedCount: totalImported,
-          });
+          chrome.tabs.query(
+            { active: true, currentWindow: true },
+            async function (tabs) {
+              if (tabs.length > 0) {
+                let currentTabId = tabs[0].id;
+
+                if (!currentTabId) {
+                  return;
+                }
+
+                await chrome.runtime.sendMessage({
+                  type: "import-done",
+                  importedCount: totalImported,
+                });
+              }
+            },
+          );
         }
       })
       .catch((error) => console.error(error));
@@ -311,10 +350,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }).then((ers) => console.log(ers.status));
       });
     })();
-
-    return true;
   } else if (request.type === "batchImportAll") {
     batchImportAll();
+    return true;
   }
 });
 

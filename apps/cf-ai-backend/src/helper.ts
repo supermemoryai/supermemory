@@ -51,6 +51,7 @@ export async function initQuery(
         apiKey: c.env.OPENAI_API_KEY,
         baseURL:
           "https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/openai",
+        compatibility: "strict",
       });
       selectedModel = openai.chat("gpt-4o");
       break;

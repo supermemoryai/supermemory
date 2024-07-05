@@ -22,7 +22,7 @@ export async function ensureAuth(req: NextRequest) {
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(eq(sessions.sessionToken, token!));
 
-  if (!sessionData || sessionData.length < 0) {
+  if (!sessionData || sessionData.length === 0) {
     return undefined;
   }
 
