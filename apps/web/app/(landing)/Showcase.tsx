@@ -23,7 +23,7 @@ const features: Array<Feature> = [
       "Never lose a great idea again - instead of saving it in your head, save it in supermemory.",
     description:
       "The internet is full of great ideas, but there's a problem. They are ephemeral. They come and go. ",
-    image: "/images/asking_questions.png",
+    image: "asking_questions.png",
     icon: function ReportingIcon() {
       let id = useId();
       return (

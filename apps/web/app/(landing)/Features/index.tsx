@@ -85,7 +85,7 @@ const Services = () => {
                   data in a private manner, from anywhere.
                 </p>
                 <a
-                  href="/components"
+                  href="/signin"
                   className="inline-flex justify-center items-center py-4 px-10 w-full text-center bg-transparent bg-gradient-to-tr to-transparent rounded-xl transition-colors sm:w-auto mt-[-20px] bg-glass-gradient group from-zinc-300/5 via-gray-400/5 border-white/10 border-[1px] hover:bg-transparent/10"
                 >
                   Get started
