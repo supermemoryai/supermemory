@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "2.0",
+  "version": "2.5",
   "name": "supermemory",
   "description": "An extension for https://supermemory.ai - an AI hub for all your bookmarks.",
   "background": {
@@ -22,6 +22,6 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "permissions": ["webRequest", "storage"],
-  "host_permissions": ["https://x.com/*", "https://twitter.com/*"]
+  "permissions": ["webRequest", "storage", "contextMenus"],
+  "host_permissions": ["<all_urls>"]
 }

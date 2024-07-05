@@ -74,15 +74,28 @@ const batchImportAll = async (cursor = "", totalImported = 0) => {
                   description: tweet.text.slice(0, 200),
                   type: "tweet",
                 }),
-              }).then((ers) => {
+              }).then(async (ers) => {
                 console.log(ers.status);
                 importedCount++;
                 totalImported++;
-                // Send an update message to the content script
-                chrome.runtime.sendMessage({
-                  type: "import-update",
-                  importedCount: totalImported,
-                });
+                console.log(totalImported);
+                chrome.tabs.query(
+                  { active: true, currentWindow: true },
+                  async function (tabs) {
+                    if (tabs.length > 0) {
+                      let currentTabId = tabs[0].id;
+
+                      if (!currentTabId) {
+                        return;
+                      }
+
+                      await chrome.tabs.sendMessage(currentTabId, {
+                        type: "import-update",
+                        importedCount: totalImported,
+                      });
+                    }
+                  },
+                );
               });
             });
           })();
@@ -111,19 +124,45 @@ const batchImportAll = async (cursor = "", totalImported = 0) => {
             batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
           } else {
             console.log("All bookmarks imported");
-            // Send a "done" message to the content script
-            chrome.runtime.sendMessage({
-              type: "import-done",
-              importedCount: totalImported,
-            });
+
+            chrome.tabs.query(
+              { active: true, currentWindow: true },
+              async function (tabs) {
+                if (tabs.length > 0) {
+                  let currentTabId = tabs[0].id;
+
+                  if (!currentTabId) {
+                    return;
+                  }
+
+                  await chrome.runtime.sendMessage({
+                    type: "import-done",
+                    importedCount: totalImported,
+                  });
+                }
+              },
+            );
           }
         } else {
           console.log("All bookmarks imported");
           // Send a "done" message to the content script
-          chrome.runtime.sendMessage({
-            type: "import-done",
-            importedCount: totalImported,
-          });
+          chrome.tabs.query(
+            { active: true, currentWindow: true },
+            async function (tabs) {
+              if (tabs.length > 0) {
+                let currentTabId = tabs[0].id;
+
+                if (!currentTabId) {
+                  return;
+                }
+
+                await chrome.runtime.sendMessage({
+                  type: "import-done",
+                  importedCount: totalImported,
+                });
+              }
+            },
+          );
         }
       })
       .catch((error) => console.error(error));
@@ -313,5 +352,145 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     })();
   } else if (request.type === "batchImportAll") {
     batchImportAll();
+    return true;
+  }
+});
+
+chrome.runtime.onInstalled.addListener(function (details) {
+  if (details.reason === "install") {
+    chrome.tabs.create({
+      url: "https://supermemory.ai/signin?extension=true",
+      active: true,
+    });
+  }
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "saveSelection",
+    title: "Save note to Supermemory",
+    contexts: ["selection"],
+  });
+
+  chrome.contextMenus.create({
+    id: "savePage",
+    title: "Save page to Supermemory",
+    contexts: ["page"],
+  });
+
+  // TODO
+  // chrome.contextMenus.create({
+  //   id: 'saveLink',
+  //   title: 'Save link to Supermemory',
+  //   contexts: ['link'],
+  // });
+});
+
+interface FetchDataParams {
+  content: string;
+  url: string;
+  title: string;
+  description: string;
+  ogImage: string;
+  favicon: string;
+  isExternalContent: boolean; // Indicates if the content is from an external API
+}
+
+const fetchData = ({
+  content,
+  url,
+  title,
+  description,
+  ogImage,
+  favicon,
+  isExternalContent,
+}: FetchDataParams) => {
+  // Construct the URL
+  const finalUrl = isExternalContent
+    ? url
+    : `${url}#supermemory-stuff-${Math.random()}`;
+
+  // Construct the body
+  const body = JSON.stringify({
+    pageContent: content,
+    url: finalUrl,
+    title,
+    spaces: [],
+    description,
+    ogImage,
+    image: favicon,
+  });
+
+  // Make the fetch call
+  fetch(`${BACKEND_URL}/api/store`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: body,
+  })
+    .then((response) => {
+      console.log("Data saved successfully");
+    })
+    .catch((error) => {
+      console.error("Error saving data:", error);
+    });
+
+  return Promise.resolve();
+};
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (!tab || !tab.id) return;
+
+  const tabId = tab.id;
+
+  const sendMessageToTab = (message: string) => {
+    chrome.tabs.sendMessage(tabId, { message, type: "supermemory-message" });
+  };
+
+  if (info.menuItemId === "saveSelection" && info.selectionText) {
+    sendMessageToTab("Saving selection...");
+    fetchData({
+      content: info.selectionText || "No content",
+      url: info.pageUrl,
+      title: tab.title || "Selection Title",
+      description: "User-selected content from the page",
+      ogImage: "",
+      favicon: "",
+      isExternalContent: false,
+    })
+      .then(() => {
+        sendMessageToTab("Selection saved successfully.");
+      })
+      .catch(() => {
+        sendMessageToTab("Failed to save selection.");
+      });
+  } else if (info.menuItemId === "savePage") {
+    sendMessageToTab("Saving page...");
+    chrome.scripting.executeScript(
+      {
+        target: { tabId: tabId },
+        func: () => document.body.innerText,
+      },
+      (results) => {
+        if (results.length > 0 && results[0].result) {
+          fetchData({
+            content: results[0].result as string,
+            url: info.pageUrl,
+            title: tab.title || "Page Title",
+            description: "Full page content",
+            ogImage: "",
+            favicon: "",
+            isExternalContent: false,
+          })
+            .then(() => {
+              sendMessageToTab("Page saved successfully.");
+            })
+            .catch(() => {
+              sendMessageToTab("Failed to save page.");
+            });
+        }
+      },
+    );
   }
 });

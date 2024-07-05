@@ -18,7 +18,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "../../packages/ui/",
-    "../../packages/shared-types/utils.ts",
+    "../../packages/shared-types",
     "./components"
   ],
   "exclude": ["node_modules/"]

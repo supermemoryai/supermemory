@@ -84,11 +84,7 @@ const createMemoryFromAPI = async (input: {
     const error = e as Error;
     console.log("Error: ", error.message);
 
-    if (
-      error.message.includes(
-        "D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
-      )
-    ) {
+    if (error.message.includes("D1_ERROR: UNIQUE constraint failed:")) {
       return {
         success: false,
         data: 0,
@@ -204,9 +200,15 @@ export async function POST(req: NextRequest) {
         message: "Failed to save document",
         error: result.error,
       }),
-      { status: 500 },
+      { status: 501 },
     );
   }
 
-  return new Response("ok", { status: 200 });
+  return new Response(
+    JSON.stringify({
+      message: "Document saved",
+      data: result.data,
+    }),
+    { status: 200 },
+  );
 }

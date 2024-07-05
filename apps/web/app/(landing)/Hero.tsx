@@ -73,8 +73,10 @@ function Hero() {
           src="/images/landing-hero.jpeg"
           alt="Landing page background"
           draggable="false"
-          className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none rounded-2xl"
-        
+          className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none px-5 !rounded-2xl"
+          style={{
+            borderRadius: "20px",
+          }}
         />
         <div
           className="absolute -z-10 left-0 top-[10%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-100  blur-[337.4px]"

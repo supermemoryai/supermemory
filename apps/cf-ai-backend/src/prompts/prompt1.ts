@@ -19,13 +19,10 @@ export const template = ({ contexts, question }) => {
   const contextParts = contexts
     .map(
       ({ context, normalisedScore }) => `
-  <context>
-  ${context}
-  </context>
   
-  <context_score>
-  normalisedScore: ${normalisedScore}
-  </context_score>`,
+  ${context ? `<context> ${context} </context>` : ""}
+  
+  ${normalisedScore ? `<context_score> normalisedScore: ${normalisedScore} </context_score>` : ""}`,
     )
     .join("\n");
 

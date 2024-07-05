@@ -8,10 +8,11 @@ const TAILWIND_URL =
   "https://cdn.jsdelivr.net/npm/tailwindcss@^2.0/dist/tailwind.min.css";
 
 const appendTailwindStyleData = (shadowRoot: ShadowRoot) => {
-  // Load and inject the local Tailwind CSS file into the shadow DOM
   const styleSheet = document.createElement("style");
-  // Change this path to your actual Tailwind CSS file's location
-  fetch(TAILWIND_URL)
+
+  const path = chrome.runtime.getURL("../public/output.css");
+
+  fetch(path)
     .then((response) => response.text())
     .then((css) => {
       styleSheet.textContent = css;
@@ -44,7 +45,7 @@ function initial() {
   rootDiv.id = "supermemory-extension-root";
   shadowRoot.appendChild(rootDiv);
 
-  appendTailwindStyleLink(shadowRoot);
+  appendTailwindStyleData(shadowRoot);
 
   const root = ReactDOM.createRoot(rootDiv);
 
@@ -52,7 +53,9 @@ function initial() {
     return data.jwt;
   }) as Promise<string | undefined>;
 
-  jwt.then((token) => root.render(<ContentApp token={token} />));
+  jwt.then((token) =>
+    root.render(<ContentApp shadowRoot={shadowRoot} token={token} />),
+  );
 }
 
 window.addEventListener("message", (event) => {
@@ -70,7 +73,7 @@ window.addEventListener("message", (event) => {
       )
     ) {
       console.log(
-        "JWT is only allowed to be used on localhost or anycontext.dhr.wtf",
+        "JWT is only allowed to be used on localhost or supermemory.ai",
       );
       return;
     }

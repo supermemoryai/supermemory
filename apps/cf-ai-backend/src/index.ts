@@ -509,7 +509,7 @@ app.post(
     const userMessage: CoreMessage = { role: "user", content: prompt };
 
     const response = await streamText({
-      model,
+      model: model,
       messages: [
         ...initialMessages,
         ...((body.chatHistory || []) as CoreMessage[]),

@@ -109,7 +109,10 @@ function Menu() {
   const handleSubmit = async (content?: string, space?: string) => {
     setDialogOpen(false);
 
-    toast.info("Creating memory...");
+    toast.info("Creating memory...", {
+      icon: <PlusCircleIcon className="w-4 h-4 text-white animate-spin" />,
+      duration: 7500,
+    });
 
     if (!content || content.length === 0) {
       toast.error("Content is required");
@@ -124,7 +127,9 @@ function Menu() {
     setContent("");
 
     if (cont.success) {
-      toast.success("Memory created");
+      toast.success("Memory created", {
+        richColors: true,
+      });
     } else {
       toast.error(`Memory creation failed: ${cont.error}`);
     }

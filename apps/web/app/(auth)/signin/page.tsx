@@ -6,15 +6,21 @@ import { Google } from "@repo/ui/components/icons";
 import gradientStyle from "./_components/TextGradient/gradient.module.css";
 import { cn } from "@repo/ui/lib/utils";
 import { redirect } from "next/navigation";
+import { toast } from "sonner";
 
 export const runtime = "edge";
 
-async function Signin() {
+async function Signin({
+  searchParams,
+}: {
+  searchParams: Record<string, string>;
+}) {
   const user = await auth();
 
   if (user) {
     await redirect("/home");
   }
+
   return (
     <div className="flex relative font-geistSans overflow-hidden items-center justify-between min-h-screen">
       <div className="relative w-full lg:w-1/2 flex items-center min-h-screen bg-page-gradient  p-8 border-r-[1px] border-white/5">
@@ -89,7 +95,7 @@ async function Signin() {
       <div className="relative hidden w-0 lg:flex lg:w-1/2  flex-col items-center justify-center min-h-screen bg-page-gradient overflow-hidden">
         <img
           className="absolute inset-x-0 -top-20 opacity-15 "
-          src={"/images/landing-hero-left.webp"}
+          src={"/images/landing-hero.jpeg"}
           width={1000}
           height={1000}
           alt="back bg"

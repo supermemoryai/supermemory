@@ -242,7 +242,7 @@ function ChatWindow({
                             </AccordionTrigger>
                             {/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
                             <AccordionContent
-                              className="flex items-center overflow-auto gap-4 relative max-w-3xl no-scrollbar"
+                              className="flex items-center no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
                               defaultChecked
                             >
                               {/* Loading state */}
