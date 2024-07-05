@@ -95,7 +95,7 @@ async function Signin({
       <div className="relative hidden w-0 lg:flex lg:w-1/2  flex-col items-center justify-center min-h-screen bg-page-gradient overflow-hidden">
         <img
           className="absolute inset-x-0 -top-20 opacity-15 "
-          src={"/images/landing-hero-left.webp"}
+          src={"/images/landing-hero.jpeg"}
           width={1000}
           height={1000}
           alt="back bg"
