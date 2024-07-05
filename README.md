@@ -22,9 +22,20 @@ Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google
 
 To use the chrome extension,
 
+> [!WARNING]
+> You need to be signed in before installing the supermemory extension, or you may experience problems
+
 1. Download from [Chrome Web Store](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?authuser=0&hl=en-GB)
 2. Now you can see on any page on bottom right (just click on it to save)
    <img width="1058" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/f24b0988-cd2b-4216-a75b-e9ff0dbfaa6a">
+
+### Import Twitter Bookmarks
+1. Make sure you signed into supermemory and installed chrome extension
+2. Open Twitter/X, you will see the save icon as follows
+
+   <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
+4. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
+5. Volia! Now your second brain has all your twitter bookmarks.
 
 
 ## 👨‍💻 The Stack
