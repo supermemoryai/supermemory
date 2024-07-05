@@ -51,9 +51,21 @@ Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google
 
 To use the chrome extension,
 
-1. Get the chrome ext (click on the button)
-2. Click on the "Extension Auth" button so the extension knows who you are :)
-   ![chrome](https://i.dhr.wtf/r/Clipboard_Apr_15,_2024_at_10.47 AM.png)
+> [!WARNING]
+> You need to be signed in before installing the supermemory extension, or you may experience problems
+
+1. Download from [Chrome Web Store](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?authuser=0&hl=en-GB)
+2. Now you can see on any page on bottom right (just click on it to save)
+   <img width="1058" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/f24b0988-cd2b-4216-a75b-e9ff0dbfaa6a">
+
+### Import Twitter Bookmarks
+1. Make sure you signed into supermemory and installed chrome extension
+2. Open Twitter/X, you will see the save icon as follows
+
+   <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
+4. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
+5. Volia! Now your second brain has all your twitter bookmarks.
+
 
 ## 👨‍💻 The Stack
 
@@ -71,7 +83,8 @@ Supermemory has three main modules, managed by [turborepo](https://turbo.build):
 
 The database, auth etc logic is here
 
-![App preview](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_4.10 PM.png)
+![image](https://github.com/MaheshtheDev/supermemory/assets/38828053/0c44708d-600a-43a8-a641-835cb1f349fc)
+
 
 Built with:
 
@@ -89,10 +102,7 @@ Built with:
 
 The chrome extension is one of the most important part of the setup, but is not required.This is to easily add pages to your memory.
 
-![Chrome extension preview](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_3.54 PM.png)
-![Import bookmarks](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_3.56 PM.png)
-
-You can also use it to import all your twitter bookmarks!
+<img width="290" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/fa4993bb-c447-46a8-a301-9e0fa84d406a">
 
 Built with:
 
