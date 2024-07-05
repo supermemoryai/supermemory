@@ -159,7 +159,13 @@ export function MemoriesPage({
         </div>
       )}
 
-      <Filters setFilter={setFilter} filter={filter} />
+      <Filters
+        setFilter={setFilter}
+        filter={filter}
+        filterMethods={
+          currentSpace ? SpaceFilterMethods : MemoriesFilterMethods
+        }
+      />
 
       <Masonry
         className="mt-6 relative"
@@ -350,17 +356,20 @@ function LinkComponent({
   );
 }
 
-const FilterMethods = ["All", "Spaces", "Pages", "Notes", "Tweet"];
+const MemoriesFilterMethods = ["All", "Spaces", "Pages", "Notes", "Tweet"];
+const SpaceFilterMethods = ["All", "Pages", "Notes", "Tweet"];
 function Filters({
   setFilter,
   filter,
+  filterMethods
 }: {
   setFilter: (i: string) => void;
   filter: string;
+  filterMethods: string[];
 }) {
   return (
     <div className="flex gap-4 flex-wrap">
-      {FilterMethods.map((i) => {
+      {filterMethods.map((i) => {
         return (
           <button
             onClick={() => setFilter(i)}
