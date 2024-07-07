@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1719671614406,
-      "tag": "0000_classy_speed_demon",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1719772835765,
-      "tag": "0001_chubby_vulture",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1719789157348,
-      "tag": "0002_old_titanium_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1719798795179,
-      "tag": "0003_solid_boom_boom",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1719882966298,
-      "tag": "0004_skinny_stature",
+      "when": 1720360287793,
+      "tag": "0000_exotic_sway",
       "breakpoints": true
     }
   ]

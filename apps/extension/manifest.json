@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
-  "version": "2.5",
+  "$schema": "https://json.schemastore.org/chrome-manifest",
+  "version": "2.63",
   "name": "supermemory",
   "description": "An extension for https://supermemory.ai - an AI hub for all your bookmarks.",
   "background": {
@@ -18,7 +19,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["public/*/**"],
+      "resources": ["public/*"],
       "matches": ["<all_urls>"]
     }
   ],

@@ -1,1 +1,0 @@
-ALTER TABLE `storedContent` ADD `noteId` integer;

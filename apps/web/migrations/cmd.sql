@@ -1,1 +1,0 @@
-ALTER TABLE `space` ADD COLUMN `createdAt` integer;

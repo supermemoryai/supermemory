@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6988522d-8117-484d-b52a-94c0fbd75140",
+  "id": "ab91d972-05ff-4916-84b7-1cfaab4c3879",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -189,6 +189,69 @@
           "name": "authenticator_userId_credentialID_pk"
         }
       },
+      "uniqueConstraints": {}
+    },
+    "canvas": {
+      "name": "canvas",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'Untitled'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'Untitled'"
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "canvas_user_userId": {
+          "name": "canvas_user_userId",
+          "columns": ["userId"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "canvas_userId_user_id_fk": {
+          "name": "canvas_userId_user_id_fk",
+          "tableFrom": "canvas",
+          "tableTo": "user",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
     "chatHistory": {
@@ -422,6 +485,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "numItems": {
+          "name": "numItems",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         }
       },
       "indexes": {
@@ -453,6 +524,44 @@
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "spacesAccess": {
+      "name": "spacesAccess",
+      "columns": {
+        "spaceId": {
+          "name": "spaceId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userEmail": {
+          "name": "userEmail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "spacesAccess_spaceId_space_id_fk": {
+          "name": "spacesAccess_spaceId_space_id_fk",
+          "tableFrom": "spacesAccess",
+          "tableTo": "space",
+          "columnsFrom": ["spaceId"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "spacesAccess_spaceId_userEmail_pk": {
+          "columns": ["spaceId", "userEmail"],
+          "name": "spacesAccess_spaceId_userEmail_pk"
+        }
+      },
       "uniqueConstraints": {}
     },
     "storedContent": {
@@ -535,9 +644,21 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "noteId": {
+          "name": "noteId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
+        "storedContent_baseUrl_unique": {
+          "name": "storedContent_baseUrl_unique",
+          "columns": ["baseUrl"],
+          "isUnique": true
+        },
         "storedContent_url_idx": {
           "name": "storedContent_url_idx",
           "columns": ["url"],

@@ -82,6 +82,9 @@ function QueryInput({
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
+                if (q.trim().length === 0) {
+                  return;
+                }
                 handleSubmit(q, preparedSpaces);
                 setQ("");
               }
@@ -95,6 +98,9 @@ function QueryInput({
             type="submit"
             onClick={(e) => {
               e.preventDefault();
+              if (q.trim().length === 0) {
+                return;
+              }
               handleSubmit(q, preparedSpaces);
             }}
             disabled={disabled}
