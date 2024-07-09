@@ -7,7 +7,6 @@ import {
   chatHistory,
   chatThreads,
   contentToSpace,
-  sessions,
   space,
   spacesAccess,
   storedContent,
@@ -19,11 +18,9 @@ import { Tweet } from "react-tweet/api";
 import { getMetaData } from "@/lib/get-metadata";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
-import { z } from "zod";
-import { AddFromAPIType, ChatHistory } from "@repo/shared-types";
+import { ChatHistory } from "@repo/shared-types";
 import { decipher } from "@/server/encrypt";
 import { redirect } from "next/navigation";
-import { ensureAuth } from "../api/ensureAuth";
 import { tweetToMd } from "@repo/shared-types/utils";
 
 export const createSpace = async (
@@ -265,6 +262,36 @@ export const createMemory = async (input: {
 
   let contentId: number | undefined;
 
+  const response = (await vectorSaveResponse.json()) as {
+    status: string;
+    chunkedInput: string;
+    message?: string;
+  };
+
+  try {
+    if (response.status !== "ok") {
+      if (response.status === "error") {
+        return {
+          success: false,
+          data: 0,
+          error: response.message,
+        };
+      } else {
+        return {
+          success: false,
+          data: 0,
+          error: `Failed to save to vector store. Backend returned error: ${response.message}`,
+        };
+      }
+    }
+  } catch (e) {
+    return {
+      success: false,
+      data: 0,
+      error: `Failed to save to vector store. Backend returned error: ${e}`,
+    };
+  }
+
   const saveToDbUrl =
     (metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
     "#supermemory-user-" +
@@ -275,7 +302,7 @@ export const createMemory = async (input: {
     const insertResponse = await db
       .insert(storedContent)
       .values({
-        content: pageContent,
+        content: response.chunkedInput,
         title: metadata.title,
         description: metadata.description,
         url: saveToDbUrl,
@@ -349,32 +376,10 @@ export const createMemory = async (input: {
     );
   }
 
-  try {
-    const response = await vectorSaveResponse.json();
-
-    const expectedResponse = z.object({ status: z.literal("ok") });
-
-    const parsedResponse = expectedResponse.safeParse(response);
-
-    if (!parsedResponse.success) {
-      return {
-        success: false,
-        data: 0,
-        error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
-      };
-    }
-
-    return {
-      success: true,
-      data: 1,
-    };
-  } catch (e) {
-    return {
-      success: false,
-      data: 0,
-      error: `Failed to save to vector store. Backend returned error: ${e}`,
-    };
-  }
+  return {
+    success: true,
+    data: 1,
+  };
 };
 
 export const createChatThread = async (

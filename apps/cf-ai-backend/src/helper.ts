@@ -150,6 +150,7 @@ export async function batchCreateChunksAndEmbeddings({
 
   const allIds = await context.env.KV.list({ prefix: uuid });
 
+  let pageContent = "";
   // If some chunks for that content already exist, we'll just update the metadata to include
   // the user.
   if (allIds.keys.length > 0) {
@@ -168,12 +169,15 @@ export async function batchCreateChunksAndEmbeddings({
           return acc;
         }, {}),
       };
-
+      const content =
+        vector.metadata.content.toString().split("Content: ")[1] ||
+        vector.metadata.content;
+      pageContent += `<---chunkId: ${vector.id}\n${content}\n---->`;
       return vector;
     });
 
     await context.env.VECTORIZE_INDEX.upsert(newVectors);
-    return;
+    return pageContent; //Return the page content that goes to d1 db
   }
 
   for (let i = 0; i < chunks.length; i++) {
@@ -209,5 +213,7 @@ export async function batchCreateChunksAndEmbeddings({
     console.log("Docs added: ", docs);
 
     await context.env.KV.put(chunkId, ourID);
+    pageContent += `<---chunkId: ${chunkId}\n${chunk}\n---->`;
   }
+  return pageContent; // Return the pageContent  that goes to the d1 db
 }
