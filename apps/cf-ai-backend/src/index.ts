@@ -66,7 +66,7 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
   console.log(body.spaces);
   const chunks = chunkText(body.pageContent, 1536);
   if (chunks.length > 20) {
-    return c.json({ status: "error", message: "no chunks over 20" });
+    return c.json({ status: "error", message: "We are unable to process documents this size just yet, try something smaller" });
   }
   const chunkedInput = await batchCreateChunksAndEmbeddings({
     store,

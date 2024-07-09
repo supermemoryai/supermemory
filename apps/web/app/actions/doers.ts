@@ -270,15 +270,11 @@ export const createMemory = async (input: {
 
   try {
     if (response.status !== "ok") {
-      if (
-        response.status === "error" &&
-        response.message === "no chunks over 20"
-      ) {
+      if (response.status === "error") {
         return {
           success: false,
           data: 0,
-          error:
-            "We are unable to process documents this size just yet, try something smaller",
+          error: response.message,
         };
       } else {
         return {
