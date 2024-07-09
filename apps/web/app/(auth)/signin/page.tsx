@@ -80,7 +80,7 @@ async function Signin({
           </div>
           <div className="text-slate-500 mt-16 z-20">
             By continuing, you agree to the
-            <Link href="/terms" className="text-slate-200">
+            <Link href="/tos" className="text-slate-200">
               {" "}
               Terms of Service
             </Link>{" "}
