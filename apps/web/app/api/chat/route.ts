@@ -83,5 +83,5 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return new Response(resp.body, { status: 200 });
+  return resp
 }
