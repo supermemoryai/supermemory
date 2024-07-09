@@ -15,7 +15,6 @@ import { zValidator } from "@hono/zod-validator";
 import chunkText from "./utils/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
 import { swaggerUI } from "@hono/swagger-ui";
-import { createOpenAI } from "@ai-sdk/openai";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -65,14 +64,18 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
   const { store } = await initQuery(c);
 
   console.log(body.spaces);
-  await batchCreateChunksAndEmbeddings({
+  const chunks = chunkText(body.pageContent, 1536);
+  if (chunks.length > 20) {
+    return c.json({ status: "error", message: "no chunks over 20" });
+  }
+  const chunkedInput = await batchCreateChunksAndEmbeddings({
     store,
     body,
-    chunks: chunkText(body.pageContent, 1536),
+    chunks: chunks,
     context: c,
   });
 
-  return c.json({ status: "ok" });
+  return c.json({ status: "ok", chunkedInput });
 });
 
 app.post(
