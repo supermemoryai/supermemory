@@ -274,6 +274,7 @@ function LinkComponent({
     >
       <Link
         href={url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
+        target="_blank"
       >
         {type === "page" ? (
           <>
