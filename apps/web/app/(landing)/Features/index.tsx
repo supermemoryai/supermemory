@@ -75,7 +75,7 @@ const Services = () => {
                 />
               </div>
 
-              <div className="flex md:absolute md:mt-4 lg:-mt-20 inset-0 flex-col md:justify-end justify-center -translate-y-16 md:translate-y-0 items-center md:items-start p-8 bg-glass-gradient">
+              <div className="flex md:absolute md:mt-4 lg:-mt-20 inset-0 flex-col md:justify-end justify-center items-center md:items-start p-8 bg-glass-gradient">
                 <h4 className="text-3xl tracking-tight mb-2 text-center text-transparent bg-clip-text bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]">
                   Supermemory works everywhere you are.
                 </h4>
@@ -173,7 +173,7 @@ const Services = () => {
                 <AnimatedBeamShow />
               </div>
 
-              <div className="flex absolute inset-0 flex-col justify-end items-start p-8 pl-10 mt-4 lg:-mt-20 bg-glass-gradient">
+              <div className="flex absolute inset-0 flex-col justify-end items-start p-8 pl-10 mt-4 lg:-mt-20 translate-y-10 md:translate-y-0 bg-glass-gradient">
                 <h4 className="text-3xl tracking-tight mb-2 text-center text-transparent bg-clip-text bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]">
                   Bringing content in is easy.
                 </h4>
