@@ -33,6 +33,7 @@ import { Button } from "@repo/ui/shadcn/button";
 import { addUserToSpace, deleteItem, moveItem } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
+import { motion } from "framer-motion";
 
 export function MemoriesPage({
   memoriesAndSpaces,
@@ -269,7 +270,9 @@ function LinkComponent({
   id: number;
 }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className={`bg-secondary group relative border-2 border-border rounded-xl ${type === "tweet" ? "" : "p-4"} hover:scale-105 transition duration-200`}
     >
       <Link
@@ -353,7 +356,7 @@ function LinkComponent({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </motion.div>
   );
 }
 
@@ -362,7 +365,7 @@ const SpaceFilterMethods = ["All", "Pages", "Notes", "Tweet"];
 function Filters({
   setFilter,
   filter,
-  filterMethods
+  filterMethods,
 }: {
   setFilter: (i: string) => void;
   filter: string;
