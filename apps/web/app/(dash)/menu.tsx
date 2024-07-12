@@ -209,9 +209,7 @@ function Menu() {
               </DialogHeader>
 
               <div>
-                <Label htmlFor="name">
-                  Resource (URL or content)
-                </Label>
+                <Label htmlFor="name">Resource (URL or content)</Label>
                 <Textarea
                   className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
                   id="content"
@@ -231,14 +229,11 @@ function Menu() {
 
               {autoDetectedType != "none" && (
                 <div>
-                  <Label
-                    className="space-y-2"
-                    htmlFor="space"
-                  >
-                    <h3 className="font-bold text-lg">Spaces</h3>
+                  <Label className="space-y-2" htmlFor="space">
+                    <h3 className="font-bold text-lg">Spaces (Optional)</h3>
                     <p className="leading-normal">
-                      A space is a collection of memories. You can create a
-                      space and then chat/write/ideate with it.
+                      A space is a collection of memories. It's a way to
+                      organise your memories.
                     </p>
                   </Label>
 
@@ -287,7 +282,7 @@ function Menu() {
                         );
                       }
                     }}
-                    placeholder="Save or create space by typing."
+                    placeholder="select or create a new space."
                     className="bg-[#2F353C] h-min rounded-md mt-4 mb-4"
                   />
 
