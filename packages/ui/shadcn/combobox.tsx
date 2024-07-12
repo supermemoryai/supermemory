@@ -34,7 +34,7 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
   onSubmit,
   placeholder = "Select an option",
   emptyMessage = "No option found.",
-  createNewMessage = "Create",
+  createNewMessage = "Create - ",
   className,
 }) => {
   const [options, setOptions] = useState<Option[]>(initialOptions);
@@ -54,6 +54,7 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
       <CommandList className="z-10 translate-y-12 translate-x-5 opacity-0 absolute group-focus-within:opacity-100 bg-secondary p-2 rounded-b-xl max-w-64">
         <CommandEmpty>
           <Button
+            className="px-1"
             type="button"
             onClick={async () => onSubmit(inputValue)}
             variant="link"
@@ -64,10 +65,9 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
                 {createNewMessage} "{inputValue}"
               </>
             ) : (
-              <>Create a space by typing here</>
+              <>Create a new space</>
             )}
           </Button>
-          <p>Start by creating a space and adding content to it</p>
         </CommandEmpty>
         <CommandGroup className="hidden group-focus-within:block">
           {options.map((option, idx) => (
