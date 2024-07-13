@@ -137,34 +137,39 @@ export default function ContentApp({
     shadowRoot.appendChild(portalDiv);
     setPortalContainer(portalDiv);
 
-    const getSpaces = async () => {
-      const response = await fetch(`${BACKEND_URL}/api/spaces`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.status === 401) {
-        showLoginToast();
-        return;
-      }
-
-      try {
-        const data = await response.json();
-        setSpacesOptions(data.data);
-      } catch (e) {
-        console.error(
-          `Error in supermemory.ai extension: ${e}. Please contact the developer https://x.com/dhravyashah`,
-        );
-      }
-    };
-
-    getSpaces();
-
     return () => {
       document.removeEventListener("mousemove", () => {});
     };
   }, []);
+
+  const getSpaces = async () => {
+    const response = await fetch(`${BACKEND_URL}/api/spaces`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      showLoginToast();
+      return;
+    }
+
+    try {
+      const data = await response.json();
+      setSpacesOptions(data.data);
+    } catch (e) {
+      console.error(
+        `Error in supermemory.ai extension: ${e}. Please contact the developer https://x.com/dhravyashah`,
+      );
+    }
+  };
+
+  async function handlePopoverChange() {
+    setIsPopoverOpen(!isPopoverOpen);
+    if (isPopoverOpen) {
+      await getSpaces();
+    }
+  }
 
   async function sendUrlToAPI(spaces: string[]) {
     setLoading(true);
@@ -243,7 +248,7 @@ export default function ContentApp({
     <div className="flex justify-end items-end min-h-screen h-full w-full">
       <Toaster />
 
-      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+      <Popover open={isPopoverOpen} onOpenChange={handlePopoverChange}>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
