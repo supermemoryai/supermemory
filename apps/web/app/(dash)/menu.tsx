@@ -214,7 +214,7 @@ function Menu() {
                   className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
                   id="content"
                   name="content"
-                  rows={8}
+                  rows={4}
                   placeholder="Start typing a note or paste a URL here. I'll remember it."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
