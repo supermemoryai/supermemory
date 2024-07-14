@@ -199,7 +199,7 @@ function Menu() {
 
                 await handleSubmit(content, space);
               }}
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-4 "
             >
               <DialogHeader>
                 <DialogTitle>Add memory</DialogTitle>
