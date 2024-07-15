@@ -284,7 +284,10 @@ function LinkComponent({
             <div className="flex items-center gap-2 text-xs">
               <PaperclipIcon className="w-3 h-3" /> Page
             </div>
-            <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
+            {/* remove `<---chunkId: ${vector.id}\n${content}\n---->` pattern from title */}
+            <div className="text-lg text-[#fff] mt-4 line-clamp-2">
+              {title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
+            </div>
             <div>
               {url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
             </div>
@@ -294,7 +297,9 @@ function LinkComponent({
             <div className="flex items-center gap-2 text-xs">
               <NotebookIcon className="w-3 h-3" /> Note
             </div>
-            <div className="text-lg text-[#fff] mt-4 line-clamp-2">{title}</div>
+            <div className="text-lg text-[#fff] mt-4 line-clamp-2">
+              {title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
+            </div>
             <div className="line-clamp-3 mt-2">
               {content.replace(title, "")}
             </div>

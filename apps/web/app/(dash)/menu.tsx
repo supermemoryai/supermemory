@@ -17,34 +17,15 @@ import {
 } from "@repo/ui/shadcn/dialog";
 import { Label } from "@repo/ui/shadcn/label";
 import { Textarea } from "@repo/ui/shadcn/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/ui/shadcn/select";
 import { toast } from "sonner";
 import { getSpaces } from "../actions/fetchers";
-import { Space } from "../actions/types";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@repo/ui/shadcn/tooltip";
-import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "../actions/doers";
-import { Input } from "@repo/ui/shadcn/input";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@/server/db/schema";
-import { revalidatePath } from "next/cache";
 import useMeasure from "react-use-measure";
-import { motion } from "framer-motion";
 
 function Menu() {
-  const [ref, bounds] = useMeasure();
   const [spaces, setSpaces] = useState<StoredSpace[]>([]);
 
   useEffect(() => {
@@ -109,7 +90,7 @@ function Menu() {
     [spaces],
   );
 
-  const handleSubmit = async (content?: string, space?: string) => {
+  const handleSubmit = async (content?: string, spaces?: number[]) => {
     setDialogOpen(false);
 
     toast.info("Creating memory...", {
@@ -122,12 +103,15 @@ function Menu() {
       return;
     }
 
+    console.log(spaces);
+
     const cont = await createMemory({
       content: content,
-      spaces: space ? [space] : undefined,
+      spaces: spaces ?? undefined,
     });
 
     setContent("");
+    setSelectedSpaces([]);
 
     if (cont.success) {
       toast.success("Memory created", {
@@ -187,148 +171,138 @@ function Menu() {
         </div>
 
         <DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39] backdrop-blur-md">
-          <motion.div
-            className="overflow-hidden max-h-[70vh]"
-            animate={{ height: bounds.height + 10 }}
-          >
-            <form
-              ref={ref}
-              action={async (e: FormData) => {
-                const content = e.get("content")?.toString();
-                const space = e.get("space")?.toString();
+          <form
+            action={async (e: FormData) => {
+              const content = e.get("content")?.toString();
 
-                await handleSubmit(content, space);
-              }}
-              className="flex flex-col gap-4 "
-            >
-              <DialogHeader>
-                <DialogTitle>Add memory</DialogTitle>
-                <DialogDescription className="text-[#F2F3F5]">
-                  A "Memory" is a bookmark, something you want to remember.
-                </DialogDescription>
-              </DialogHeader>
+              await handleSubmit(content, selectedSpaces);
+            }}
+            className="flex flex-col gap-4 "
+          >
+            <DialogHeader>
+              <DialogTitle>Add memory</DialogTitle>
+              <DialogDescription className="text-[#F2F3F5]">
+                A "Memory" is a bookmark, something you want to remember.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div>
+              <Label htmlFor="name">Resource (URL or content)</Label>
+              <Textarea
+                className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
+                id="content"
+                name="content"
+                rows={8}
+                placeholder="Start typing a note or paste a URL here. I'll remember it."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(content, selectedSpaces);
+                  }
+                }}
+              />
+            </div>
+
+            <div>
+              <Label className="space-y-1" htmlFor="space">
+                <h3 className="font-semibold text-lg tracking-tight">
+                  Spaces (Optional)
+                </h3>
+                <p className="leading-normal text-[#F2F3F5] text-sm">
+                  A space is a collection of memories. It's a way to organise
+                  your memories.
+                </p>
+              </Label>
+
+              <ComboboxWithCreate
+                options={spaces.map((x) => ({
+                  label: x.name,
+                  value: x.id.toString(),
+                }))}
+                onSelect={(v) =>
+                  setSelectedSpaces((prev) => {
+                    if (v === "") {
+                      return [];
+                    }
+                    return [...prev, parseInt(v)];
+                  })
+                }
+                onSubmit={async (spaceName) => {
+                  const space = options.find((x) => x.label === spaceName);
+                  toast.info("Creating space...");
+
+                  if (space) {
+                    toast.error("A space with that name already exists.");
+                  }
+
+                  const creationTask = await createSpace(spaceName);
+                  if (creationTask.success && creationTask.data) {
+                    toast.success("Space created " + creationTask.data);
+                    setSpaces?.((prev) => [
+                      ...prev,
+                      {
+                        name: spaceName,
+                        id: creationTask.data!,
+                        createdAt: new Date(),
+                        user: null,
+                        numItems: 0,
+                      },
+                    ]);
+                    setSelectedSpaces((prev) => [...prev, creationTask.data!]);
+                  } else {
+                    toast.error(
+                      "Space creation failed: " + creationTask.error ??
+                        "Unknown error",
+                    );
+                  }
+                }}
+                placeholder="Select or create a new space."
+                className="bg-[#2F353C] h-min rounded-md mt-4 mb-4"
+              />
 
               <div>
-                <Label htmlFor="name">Resource (URL or content)</Label>
-                <Textarea
-                  className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
-                  id="content"
-                  name="content"
-                  rows={8}
-                  placeholder="Start typing a note or paste a URL here. I'll remember it."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(content);
-                    }
-                  }}
-                />
-              </div>
-
-              {autoDetectedType != "none" && (
-                <div>
-                  <Label className="space-y-2" htmlFor="space">
-                    <h3 className="font-bold text-lg">Spaces (Optional)</h3>
-                    <p className="leading-normal">
-                      A space is a collection of memories. It's a way to
-                      organise your memories.
-                    </p>
-                  </Label>
-
-                  <ComboboxWithCreate
-                    options={spaces.map((x) => ({
-                      label: x.name,
-                      value: x.id.toString(),
-                    }))}
-                    onSelect={(v) =>
-                      setSelectedSpaces((prev) => {
-                        if (v === "") {
-                          return [];
+                {selectedSpaces.length > 0 && (
+                  <div className="flex flex-row flex-wrap gap-0.5 h-min">
+                    {selectedSpaces.map((x, idx) => (
+                      <button
+                        key={x}
+                        type="button"
+                        onClick={() =>
+                          setSelectedSpaces((prev) =>
+                            prev.filter((y) => y !== x),
+                          )
                         }
-                        return [...prev, parseInt(v)];
-                      })
-                    }
-                    onSubmit={async (spaceName) => {
-                      const space = options.find((x) => x.label === spaceName);
-                      toast.info("Creating space...");
-
-                      if (space) {
-                        toast.error("A space with that name already exists.");
-                      }
-
-                      const creationTask = await createSpace(spaceName);
-                      if (creationTask.success && creationTask.data) {
-                        toast.success("Space created " + creationTask.data);
-                        setSpaces?.((prev) => [
-                          ...prev,
-                          {
-                            name: spaceName,
-                            id: creationTask.data!,
-                            createdAt: new Date(),
-                            user: null,
-                            numItems: 0,
-                          },
-                        ]);
-                        setSelectedSpaces((prev) => [
-                          ...prev,
-                          creationTask.data!,
-                        ]);
-                      } else {
-                        toast.error(
-                          "Space creation failed: " + creationTask.error ??
-                            "Unknown error",
-                        );
-                      }
-                    }}
-                    placeholder="select or create a new space."
-                    className="bg-[#2F353C] h-min rounded-md mt-4 mb-4"
-                  />
-
-                  <div>
-                    {selectedSpaces.length > 0 && (
-                      <div className="flex flex-row flex-wrap gap-0.5 h-min">
-                        {selectedSpaces.map((x, idx) => (
-                          <button
-                            key={x}
-                            type="button"
-                            onClick={() =>
-                              setSelectedSpaces((prev) =>
-                                prev.filter((y) => y !== x),
-                              )
-                            }
-                            className={`relative group p-2 py-3 bg-[#3C464D] max-w-32 ${
-                              idx === selectedSpaces.length - 1
-                                ? "rounded-br-xl"
-                                : ""
-                            }`}
-                          >
-                            <p className="line-clamp-1">
-                              {spaces.find((y) => y.id === x)?.name}
-                            </p>
-                            <div className="absolute h-full right-0 top-0 p-1 opacity-0 group-hover:opacity-100 items-center">
-                              <MinusIcon className="w-6 h-6 rounded-full bg-secondary" />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                        className={`relative group p-2 py-3 bg-[#3C464D] max-w-32 ${
+                          idx === selectedSpaces.length - 1
+                            ? "rounded-br-xl"
+                            : ""
+                        }`}
+                      >
+                        <p className="line-clamp-1">
+                          {spaces.find((y) => y.id === x)?.name}
+                        </p>
+                        <div className="absolute h-full right-0 top-0 p-1 opacity-0 group-hover:opacity-100 items-center">
+                          <MinusIcon className="w-6 h-6 rounded-full bg-secondary" />
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
 
-              <DialogFooter>
-                <Button
-                  disabled={autoDetectedType === "none"}
-                  variant={"secondary"}
-                  type="submit"
-                >
-                  Save {autoDetectedType != "none" && autoDetectedType}
-                </Button>
-              </DialogFooter>
-            </form>
-          </motion.div>
+            <DialogFooter>
+              <Button
+                disabled={autoDetectedType === "none"}
+                variant={"secondary"}
+                type="submit"
+              >
+                Save {autoDetectedType != "none" && autoDetectedType}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
 
         {/* Mobile Menu */}

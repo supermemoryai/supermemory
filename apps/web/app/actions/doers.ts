@@ -158,7 +158,7 @@ const getTweetData = async (tweetID: string) => {
 
 export const createMemory = async (input: {
   content: string;
-  spaces?: string[];
+  spaces?: number[];
 }): ServerActionReturnType<number> => {
   const data = await auth();
 
@@ -239,7 +239,7 @@ export const createMemory = async (input: {
         title: metadata.title,
         description: metadata.description,
         url: metadata.baseUrl,
-        spaces: storeToSpaces,
+        spaces: storeToSpaces.map((spaceId) => spaceId.toString()),
         user: data.user.id,
         type,
       }),
@@ -302,7 +302,7 @@ export const createMemory = async (input: {
     const insertResponse = await db
       .insert(storedContent)
       .values({
-        content: response.chunkedInput,
+        content: pageContent,
         title: metadata.title,
         description: metadata.description,
         url: saveToDbUrl,
@@ -355,13 +355,7 @@ export const createMemory = async (input: {
       .select()
       .from(space)
       .where(
-        and(
-          inArray(
-            space.id,
-            storeToSpaces.map((s) => parseInt(s)),
-          ),
-          eq(space.user, data.user.id),
-        ),
+        and(inArray(space.id, storeToSpaces), eq(space.user, data.user.id)),
       )
       .all();
 
@@ -371,7 +365,7 @@ export const createMemory = async (input: {
           .insert(contentToSpace)
           .values({ contentId: contentId, spaceId: s.id });
 
-        db.update(space).set({ numItems: s.numItems + 1 });
+        await db.update(space).set({ numItems: s.numItems + 1 });
       }),
     );
   }

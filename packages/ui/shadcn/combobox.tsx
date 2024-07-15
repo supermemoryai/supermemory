@@ -52,23 +52,6 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
         value={inputValue}
       />
       <CommandList className="z-10 translate-y-12 translate-x-5 opacity-0 absolute group-focus-within:opacity-100 bg-secondary p-2 rounded-b-xl max-w-64">
-        <CommandEmpty>
-          <Button
-            className="px-1"
-            type="button"
-            onClick={async () => onSubmit(inputValue)}
-            variant="link"
-            disabled={inputValue.length === 0}
-          >
-            {inputValue.length > 0 ? (
-              <>
-                {createNewMessage} "{inputValue}"
-              </>
-            ) : (
-              <>Create a new space</>
-            )}
-          </Button>
-        </CommandEmpty>
         <CommandGroup className="hidden group-focus-within:block">
           {options.map((option, idx) => (
             <CommandItem
@@ -78,6 +61,23 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
               {option.label}
             </CommandItem>
           ))}
+          {!options.map((opts) => opts.label).includes(inputValue) && (
+            <Button
+              className="px-1"
+              type="button"
+              onClick={async () => onSubmit(inputValue)}
+              variant="link"
+              disabled={inputValue.length === 0}
+            >
+              {inputValue.length > 0 ? (
+                <>
+                  {createNewMessage} "{inputValue}"
+                </>
+              ) : (
+                <>Type to create a new space</>
+              )}
+            </Button>
+          )}
         </CommandGroup>
       </CommandList>
     </Command>

@@ -12,15 +12,12 @@ export const tweetToMd = (tweet: Tweet) => {
 
 export const getRawTweet = (tweet: string) => {
   // Get the content inside the last <raw> tag, there can any number of <raw> tags in the tweet (or just one)
-  const rawTag = /<raw>(.*)<\/raw>/gs; // Use 's' flag to match across multiple lines
+  const rawTag = /<raw>(.*)<\/raw>/g;
   const match = rawTag.exec(tweet);
-  if (match && match.length > 1) {
-    // Remove the specified item pattern
-    const cleanedContent = match[1]?.replace(
-      /<---chunkId:.*?\n.*?\n---->/gs,
-      "",
-    );
-    return cleanedContent;
+  if (match) {
+    return match[1];
   }
-  return tweet;
+  return `{
+    "error": "No <raw> tag found"
+  }`;
 };

@@ -15,7 +15,7 @@ import s from "./tweet-header.module.css";
 import { VerifiedBadge } from "./verified-badge";
 
 type Props = {
-  tweet: Tweet;
+  tweet: Tweet | { error: string };
   components?: TwitterComponents;
 };
 
@@ -101,6 +101,10 @@ const TweetHeader = ({
 };
 
 export const MyTweet = ({ tweet: t, components }: Props) => {
+  if ("error" in t) {
+    return <div>{t.error}</div>;
+  }
+
   const tweet = enrichTweet(t);
   return (
     <TweetContainer className="bg-transparent !m-0 !p-0 !z-0">

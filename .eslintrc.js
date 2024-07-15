@@ -7,9 +7,4 @@ module.exports = {
   parserOptions: {
     project: true,
   },
-  // ignore some rules
-  rules: {
-    "@": "off",
-    "import/no-unresolved": "off",
-  },
 };
