@@ -2,14 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
-import { homeSearchParamsCache } from "@/lib/searchParams";
 import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
 import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
-import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
-import BackgroundPlus from "@/app/(landing)/GridPatterns/PlusGrid";
 import { variants } from "./homeVariants";
 
 const slap = {

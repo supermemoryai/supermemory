@@ -16,7 +16,7 @@ let selectedCofig = baseNextConfig;
 if (process.env.NODE_ENV === "development") {
   selectedCofig = MillionLint.next({
     rsc: true,
-  })(nextConfig);
+  })(baseNextConfig);
 }
 
 export default withSentryConfig(selectedCofig, {
@@ -25,7 +25,6 @@ export default withSentryConfig(selectedCofig, {
 
   org: "none-h00",
   project: "javascript-nextjs",
-
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
 

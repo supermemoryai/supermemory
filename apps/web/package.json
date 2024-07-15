@@ -20,6 +20,7 @@
     "@million/lint": "^1.0.0-rc.11",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-popover": "^1.0.7",
+    "@radix-ui/react-slot": "^1.1.0",
     "@sentry/nextjs": "^8",
     "cmdk": "^1.0.0",
     "lowlight": "^3.1.0",
