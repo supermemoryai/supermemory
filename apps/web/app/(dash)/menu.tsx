@@ -240,7 +240,7 @@ function Menu() {
                   const creationTask = await createSpace(spaceName);
                   if (creationTask.success && creationTask.data) {
                     toast.success("Space created " + creationTask.data);
-                    setSpaces?.((prev) => [
+                    setSpaces((prev) => [
                       ...prev,
                       {
                         name: spaceName,
@@ -265,7 +265,7 @@ function Menu() {
               <div>
                 {selectedSpaces.length > 0 && (
                   <div className="flex flex-row flex-wrap gap-0.5 h-min">
-                    {selectedSpaces.map((x, idx) => (
+                    {[...new Set(selectedSpaces)].map((x, idx) => (
                       <button
                         key={x}
                         type="button"
