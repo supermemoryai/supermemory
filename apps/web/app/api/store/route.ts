@@ -11,204 +11,204 @@ import { limit } from "@/app/actions/doers";
 export const runtime = "edge";
 
 const createMemoryFromAPI = async (input: {
-  data: AddFromAPIType;
-  userId: string;
+	data: AddFromAPIType;
+	userId: string;
 }) => {
-  if (!(await limit(input.userId, input.data.type))) {
-    return {
-      success: false,
-      data: 0,
-      error: `You have exceeded the limit of ${LIMITS[input.data.type as keyof typeof LIMITS]} ${input.data.type}s.`,
-    };
-  }
+	if (!(await limit(input.userId, input.data.type))) {
+		return {
+			success: false,
+			data: 0,
+			error: `You have exceeded the limit of ${LIMITS[input.data.type as keyof typeof LIMITS]} ${input.data.type}s.`,
+		};
+	}
 
-  const vectorSaveResponse = await fetch(
-    `${process.env.BACKEND_BASE_URL}/api/add`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        pageContent: input.data.pageContent,
-        title: input.data.title,
-        description: input.data.description,
-        url: input.data.url,
-        spaces: input.data.spaces,
-        user: input.userId,
-        type: input.data.type,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
-      },
-    },
-  );
+	const vectorSaveResponse = await fetch(
+		`${process.env.BACKEND_BASE_URL}/api/add`,
+		{
+			method: "POST",
+			body: JSON.stringify({
+				pageContent: input.data.pageContent,
+				title: input.data.title,
+				description: input.data.description,
+				url: input.data.url,
+				spaces: input.data.spaces,
+				user: input.userId,
+				type: input.data.type,
+			}),
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+			},
+		},
+	);
 
-  if (!vectorSaveResponse.ok) {
-    const errorData = await vectorSaveResponse.text();
-    console.error(errorData);
-    return {
-      success: false,
-      data: 0,
-      error: `Failed to save to vector store. Backend returned error: ${errorData}`,
-    };
-  }
+	if (!vectorSaveResponse.ok) {
+		const errorData = await vectorSaveResponse.text();
+		console.error(errorData);
+		return {
+			success: false,
+			data: 0,
+			error: `Failed to save to vector store. Backend returned error: ${errorData}`,
+		};
+	}
 
-  let contentId: number | undefined;
+	let contentId: number | undefined;
 
-  const saveToDbUrl =
-    (input.data.url.split("#supermemory-user-")[0] ?? input.data.url) +
-    "#supermemory-user-" +
-    input.userId;
+	const saveToDbUrl =
+		(input.data.url.split("#supermemory-user-")[0] ?? input.data.url) +
+		"#supermemory-user-" +
+		input.userId;
 
-  const noteId = new Date().getTime();
+	const noteId = new Date().getTime();
 
-  // Insert into database
-  try {
-    const insertResponse = await db
-      .insert(storedContent)
-      .values({
-        content: input.data.pageContent,
-        title: input.data.title,
-        description: input.data.description,
-        url: saveToDbUrl,
-        baseUrl: saveToDbUrl,
-        image: input.data.image,
-        savedAt: new Date(),
-        userId: input.userId,
-        type: input.data.type,
-        noteId,
-      })
-      .returning({ id: storedContent.id });
+	// Insert into database
+	try {
+		const insertResponse = await db
+			.insert(storedContent)
+			.values({
+				content: input.data.pageContent,
+				title: input.data.title,
+				description: input.data.description,
+				url: saveToDbUrl,
+				baseUrl: saveToDbUrl,
+				image: input.data.image,
+				savedAt: new Date(),
+				userId: input.userId,
+				type: input.data.type,
+				noteId,
+			})
+			.returning({ id: storedContent.id });
 
-    contentId = insertResponse[0]?.id;
-  } catch (e) {
-    const error = e as Error;
-    console.log("Error: ", error.message);
+		contentId = insertResponse[0]?.id;
+	} catch (e) {
+		const error = e as Error;
+		console.log("Error: ", error.message);
 
-    if (error.message.includes("D1_ERROR: UNIQUE constraint failed:")) {
-      return {
-        success: false,
-        data: 0,
-        error: "Content already exists",
-      };
-    }
+		if (error.message.includes("D1_ERROR: UNIQUE constraint failed:")) {
+			return {
+				success: false,
+				data: 0,
+				error: "Content already exists",
+			};
+		}
 
-    return {
-      success: false,
-      data: 0,
-      error: "Failed to save to database with error: " + error.message,
-    };
-  }
+		return {
+			success: false,
+			data: 0,
+			error: "Failed to save to database with error: " + error.message,
+		};
+	}
 
-  if (!contentId) {
-    return {
-      success: false,
-      data: 0,
-      error: "Failed to save to database",
-    };
-  }
+	if (!contentId) {
+		return {
+			success: false,
+			data: 0,
+			error: "Failed to save to database",
+		};
+	}
 
-  if (input.data.spaces.length > 0) {
-    // Adding the many-to-many relationship between content and spaces
-    const spaceData = await db
-      .select()
-      .from(space)
-      .where(
-        and(
-          inArray(
-            space.id,
-            input.data.spaces.map((s) => parseInt(s)),
-          ),
-          eq(space.user, input.userId),
-        ),
-      )
-      .all();
+	if (input.data.spaces.length > 0) {
+		// Adding the many-to-many relationship between content and spaces
+		const spaceData = await db
+			.select()
+			.from(space)
+			.where(
+				and(
+					inArray(
+						space.id,
+						input.data.spaces.map((s) => parseInt(s)),
+					),
+					eq(space.user, input.userId),
+				),
+			)
+			.all();
 
-    await Promise.all(
-      spaceData.map(async (s) => {
-        await db
-          .insert(contentToSpace)
-          .values({ contentId: contentId, spaceId: s.id });
+		await Promise.all(
+			spaceData.map(async (s) => {
+				await db
+					.insert(contentToSpace)
+					.values({ contentId: contentId, spaceId: s.id });
 
-        await db.update(space).set({ numItems: s.numItems + 1 });
-      }),
-    );
-  }
+				await db.update(space).set({ numItems: s.numItems + 1 });
+			}),
+		);
+	}
 
-  try {
-    const response = await vectorSaveResponse.json();
+	try {
+		const response = await vectorSaveResponse.json();
 
-    const expectedResponse = z.object({ status: z.literal("ok") });
+		const expectedResponse = z.object({ status: z.literal("ok") });
 
-    const parsedResponse = expectedResponse.safeParse(response);
+		const parsedResponse = expectedResponse.safeParse(response);
 
-    if (!parsedResponse.success) {
-      return {
-        success: false,
-        data: 0,
-        error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
-      };
-    }
+		if (!parsedResponse.success) {
+			return {
+				success: false,
+				data: 0,
+				error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
+			};
+		}
 
-    return {
-      success: true,
-      data: 1,
-    };
-  } catch (e) {
-    return {
-      success: false,
-      data: 0,
-      error: `Failed to save to vector store. Backend returned error: ${e}`,
-    };
-  }
+		return {
+			success: true,
+			data: 1,
+		};
+	} catch (e) {
+		return {
+			success: false,
+			data: 0,
+			error: `Failed to save to vector store. Backend returned error: ${e}`,
+		};
+	}
 };
 
 export async function POST(req: NextRequest) {
-  const session = await ensureAuth(req);
+	const session = await ensureAuth(req);
 
-  if (!session) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+	if (!session) {
+		return new Response("Unauthorized", { status: 401 });
+	}
 
-  if (!process.env.BACKEND_SECURITY_KEY) {
-    return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
-  }
+	if (!process.env.BACKEND_SECURITY_KEY) {
+		return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
+	}
 
-  const body = await req.json();
+	const body = await req.json();
 
-  const validated = addFromAPIType.safeParse(body);
+	const validated = addFromAPIType.safeParse(body);
 
-  if (!validated.success) {
-    return new Response(
-      JSON.stringify({
-        message: "Invalid request",
-        error: validated.error,
-      }),
-      { status: 400 },
-    );
-  }
+	if (!validated.success) {
+		return new Response(
+			JSON.stringify({
+				message: "Invalid request",
+				error: validated.error,
+			}),
+			{ status: 400 },
+		);
+	}
 
-  const data = validated.data;
+	const data = validated.data;
 
-  const result = await createMemoryFromAPI({
-    data,
-    userId: session.user.id,
-  });
+	const result = await createMemoryFromAPI({
+		data,
+		userId: session.user.id,
+	});
 
-  if (!result.success) {
-    return new Response(
-      JSON.stringify({
-        message: "Failed to save document",
-        error: result.error,
-      }),
-      { status: 501 },
-    );
-  }
+	if (!result.success) {
+		return new Response(
+			JSON.stringify({
+				message: "Failed to save document",
+				error: result.error,
+			}),
+			{ status: 501 },
+		);
+	}
 
-  return new Response(
-    JSON.stringify({
-      message: "Document saved",
-      data: result.data,
-    }),
-    { status: 200 },
-  );
+	return new Response(
+		JSON.stringify({
+			message: "Document saved",
+			data: result.data,
+		}),
+		{ status: 200 },
+	);
 }

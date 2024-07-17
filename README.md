@@ -59,13 +59,14 @@ To use the chrome extension,
    <img width="1058" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/f24b0988-cd2b-4216-a75b-e9ff0dbfaa6a">
 
 ### Import Twitter Bookmarks
+
 1. Make sure you signed into supermemory and installed chrome extension
 2. Open Twitter/X, you will see the save icon as follows
 
    <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
-4. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
-5. Volia! Now your second brain has all your twitter bookmarks.
 
+3. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
+4. Volia! Now your second brain has all your twitter bookmarks.
 
 ## 👨‍💻 The Stack
 
@@ -84,7 +85,6 @@ Supermemory has three main modules, managed by [turborepo](https://turbo.build):
 The database, auth etc logic is here
 
 ![image](https://github.com/MaheshtheDev/supermemory/assets/38828053/0c44708d-600a-43a8-a641-835cb1f349fc)
-
 
 Built with:
 

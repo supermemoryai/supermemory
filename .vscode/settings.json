@@ -1,6 +1,6 @@
 {
-  "css.validate": false,
-  "editor.quickSuggestions": {
-    "strings": true
-  }
+	"css.validate": false,
+	"editor.quickSuggestions": {
+		"strings": true
+	}
 }

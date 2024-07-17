@@ -1,5 +1,5 @@
 {
-  "tabWidth": 2,
-  "trailingComma": "all",
-  "useTabs": false
+	"tabWidth": 2,
+	"trailingComma": "all",
+	"useTabs": true
 }

@@ -2,7 +2,7 @@ import { Tweet } from "react-tweet/api";
 import { features, transformTweetData } from "./helpers";
 
 const tweetToMd = (tweet: Tweet) => {
-  return `Tweet from @${tweet.user?.name ?? tweet.user?.screen_name ?? "Unknown"}
+	return `Tweet from @${tweet.user?.name ?? tweet.user?.screen_name ?? "Unknown"}
   
       ${tweet.text}
       Images: ${tweet.photos ? tweet.photos.map((photo) => photo.url).join(", ") : "none"}
@@ -19,478 +19,478 @@ const BACKEND_URL = "https://supermemory.ai";
 let lastTwitterFetch = 0;
 
 const batchImportAll = async (cursor = "", totalImported = 0) => {
-  chrome.storage.session.get(["cookie", "csrf", "auth"], (result) => {
-    if (!result.cookie || !result.csrf || !result.auth) {
-      console.log("cookie, csrf, or auth is missing");
-      return;
-    }
+	chrome.storage.session.get(["cookie", "csrf", "auth"], (result) => {
+		if (!result.cookie || !result.csrf || !result.auth) {
+			console.log("cookie, csrf, or auth is missing");
+			return;
+		}
 
-    const myHeaders = new Headers();
-    myHeaders.append("Cookie", result.cookie);
-    myHeaders.append("X-Csrf-token", result.csrf);
-    myHeaders.append("Authorization", result.auth);
+		const myHeaders = new Headers();
+		myHeaders.append("Cookie", result.cookie);
+		myHeaders.append("X-Csrf-token", result.csrf);
+		myHeaders.append("Authorization", result.auth);
 
-    const requestOptions: RequestInit = {
-      method: "GET",
-      headers: myHeaders,
-      redirect: "follow",
-    };
+		const requestOptions: RequestInit = {
+			method: "GET",
+			headers: myHeaders,
+			redirect: "follow",
+		};
 
-    const variables = {
-      count: 100,
-      cursor: cursor,
-      includePromotedContent: false,
-    };
+		const variables = {
+			count: 100,
+			cursor: cursor,
+			includePromotedContent: false,
+		};
 
-    const urlWithCursor = cursor
-      ? `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
-      : BOOKMARKS_URL;
+		const urlWithCursor = cursor
+			? `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
+			: BOOKMARKS_URL;
 
-    fetch(urlWithCursor, requestOptions)
-      .then((response) => response.json())
-      .then((data) => {
-        const tweets = getAllTweets(data);
-        let importedCount = 0;
+		fetch(urlWithCursor, requestOptions)
+			.then((response) => response.json())
+			.then((data) => {
+				const tweets = getAllTweets(data);
+				let importedCount = 0;
 
-        for (const tweet of tweets) {
-          console.log(tweet);
+				for (const tweet of tweets) {
+					console.log(tweet);
 
-          const tweetMd = tweetToMd(tweet);
-          (async () => {
-            chrome.storage.local.get(["jwt"], ({ jwt }) => {
-              if (!jwt) {
-                console.error("No JWT found");
-                return;
-              }
-              fetch(`${BACKEND_URL}/api/store`, {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${jwt}`,
-                },
-                body: JSON.stringify({
-                  pageContent: tweetMd,
-                  url: `https://twitter.com/supermemoryai/status/${tweet.id_str}`,
-                  title: `Tweet by ${tweet.user.name}`,
-                  description: tweet.text.slice(0, 200),
-                  type: "tweet",
-                }),
-              }).then(async (ers) => {
-                console.log(ers.status);
-                importedCount++;
-                totalImported++;
-                console.log(totalImported);
-                chrome.tabs.query(
-                  { active: true, currentWindow: true },
-                  async function (tabs) {
-                    if (tabs.length > 0) {
-                      let currentTabId = tabs[0].id;
+					const tweetMd = tweetToMd(tweet);
+					(async () => {
+						chrome.storage.local.get(["jwt"], ({ jwt }) => {
+							if (!jwt) {
+								console.error("No JWT found");
+								return;
+							}
+							fetch(`${BACKEND_URL}/api/store`, {
+								method: "POST",
+								headers: {
+									Authorization: `Bearer ${jwt}`,
+								},
+								body: JSON.stringify({
+									pageContent: tweetMd,
+									url: `https://twitter.com/supermemoryai/status/${tweet.id_str}`,
+									title: `Tweet by ${tweet.user.name}`,
+									description: tweet.text.slice(0, 200),
+									type: "tweet",
+								}),
+							}).then(async (ers) => {
+								console.log(ers.status);
+								importedCount++;
+								totalImported++;
+								console.log(totalImported);
+								chrome.tabs.query(
+									{ active: true, currentWindow: true },
+									async function (tabs) {
+										if (tabs.length > 0) {
+											let currentTabId = tabs[0].id;
 
-                      if (!currentTabId) {
-                        return;
-                      }
+											if (!currentTabId) {
+												return;
+											}
 
-                      await chrome.tabs.sendMessage(currentTabId, {
-                        type: "import-update",
-                        importedCount: totalImported,
-                      });
-                    }
-                  },
-                );
-              });
-            });
-          })();
-        }
+											await chrome.tabs.sendMessage(currentTabId, {
+												type: "import-update",
+												importedCount: totalImported,
+											});
+										}
+									},
+								);
+							});
+						});
+					})();
+				}
 
-        console.log("tweets", tweets);
-        console.log("data", data);
+				console.log("tweets", tweets);
+				console.log("data", data);
 
-        const instructions =
-          data.data?.bookmark_timeline_v2?.timeline?.instructions;
-        const lastInstruction = instructions?.[0].entries.pop();
+				const instructions =
+					data.data?.bookmark_timeline_v2?.timeline?.instructions;
+				const lastInstruction = instructions?.[0].entries.pop();
 
-        if (lastInstruction?.entryId.startsWith("cursor-bottom-")) {
-          let nextCursor = lastInstruction?.content?.value;
+				if (lastInstruction?.entryId.startsWith("cursor-bottom-")) {
+					let nextCursor = lastInstruction?.content?.value;
 
-          if (!nextCursor) {
-            for (let i = instructions.length - 1; i >= 0; i--) {
-              if (instructions[i].entryId.startsWith("cursor-bottom-")) {
-                nextCursor = instructions[i].content.value;
-                break;
-              }
-            }
-          }
+					if (!nextCursor) {
+						for (let i = instructions.length - 1; i >= 0; i--) {
+							if (instructions[i].entryId.startsWith("cursor-bottom-")) {
+								nextCursor = instructions[i].content.value;
+								break;
+							}
+						}
+					}
 
-          if (nextCursor) {
-            batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
-          } else {
-            console.log("All bookmarks imported");
+					if (nextCursor) {
+						batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
+					} else {
+						console.log("All bookmarks imported");
 
-            chrome.tabs.query(
-              { active: true, currentWindow: true },
-              async function (tabs) {
-                if (tabs.length > 0) {
-                  let currentTabId = tabs[0].id;
+						chrome.tabs.query(
+							{ active: true, currentWindow: true },
+							async function (tabs) {
+								if (tabs.length > 0) {
+									let currentTabId = tabs[0].id;
 
-                  if (!currentTabId) {
-                    return;
-                  }
+									if (!currentTabId) {
+										return;
+									}
 
-                  await chrome.runtime.sendMessage({
-                    type: "import-done",
-                    importedCount: totalImported,
-                  });
-                }
-              },
-            );
-          }
-        } else {
-          console.log("All bookmarks imported");
-          // Send a "done" message to the content script
-          chrome.tabs.query(
-            { active: true, currentWindow: true },
-            async function (tabs) {
-              if (tabs.length > 0) {
-                let currentTabId = tabs[0].id;
+									await chrome.runtime.sendMessage({
+										type: "import-done",
+										importedCount: totalImported,
+									});
+								}
+							},
+						);
+					}
+				} else {
+					console.log("All bookmarks imported");
+					// Send a "done" message to the content script
+					chrome.tabs.query(
+						{ active: true, currentWindow: true },
+						async function (tabs) {
+							if (tabs.length > 0) {
+								let currentTabId = tabs[0].id;
 
-                if (!currentTabId) {
-                  return;
-                }
+								if (!currentTabId) {
+									return;
+								}
 
-                await chrome.runtime.sendMessage({
-                  type: "import-done",
-                  importedCount: totalImported,
-                });
-              }
-            },
-          );
-        }
-      })
-      .catch((error) => console.error(error));
-  });
+								await chrome.runtime.sendMessage({
+									type: "import-done",
+									importedCount: totalImported,
+								});
+							}
+						},
+					);
+				}
+			})
+			.catch((error) => console.error(error));
+	});
 };
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
-  (details) => {
-    if (
-      !(details.url.includes("x.com") || details.url.includes("twitter.com"))
-    ) {
-      return;
-    }
-    const authHeader = details.requestHeaders!.find(
-      (header) => header.name.toLowerCase() === "authorization",
-    );
-    const auth = authHeader ? authHeader.value : "";
+	(details) => {
+		if (
+			!(details.url.includes("x.com") || details.url.includes("twitter.com"))
+		) {
+			return;
+		}
+		const authHeader = details.requestHeaders!.find(
+			(header) => header.name.toLowerCase() === "authorization",
+		);
+		const auth = authHeader ? authHeader.value : "";
 
-    const cookieHeader = details.requestHeaders!.find(
-      (header) => header.name.toLowerCase() === "cookie",
-    );
-    const cookie = cookieHeader ? cookieHeader.value : "";
+		const cookieHeader = details.requestHeaders!.find(
+			(header) => header.name.toLowerCase() === "cookie",
+		);
+		const cookie = cookieHeader ? cookieHeader.value : "";
 
-    const csrfHeader = details.requestHeaders!.find(
-      (header) => header.name.toLowerCase() === "x-csrf-token",
-    );
-    const csrf = csrfHeader ? csrfHeader.value : "";
+		const csrfHeader = details.requestHeaders!.find(
+			(header) => header.name.toLowerCase() === "x-csrf-token",
+		);
+		const csrf = csrfHeader ? csrfHeader.value : "";
 
-    if (!auth || !cookie || !csrf) {
-      console.log("auth, cookie, or csrf is missing");
-      return;
-    }
-    chrome.storage.session.set({ cookie, csrf, auth });
-    chrome.storage.local.get(["twitterBookmarks"], (result) => {
-      console.log("twitterBookmarks", result.twitterBookmarks);
-      if (result.twitterBookmarks !== "true") {
-        console.log("twitterBookmarks is NOT true");
-      } else {
-        if (
-          !details.requestHeaders ||
-          details.requestHeaders.length === 0 ||
-          details.requestHeaders === undefined
-        ) {
-          return;
-        }
+		if (!auth || !cookie || !csrf) {
+			console.log("auth, cookie, or csrf is missing");
+			return;
+		}
+		chrome.storage.session.set({ cookie, csrf, auth });
+		chrome.storage.local.get(["twitterBookmarks"], (result) => {
+			console.log("twitterBookmarks", result.twitterBookmarks);
+			if (result.twitterBookmarks !== "true") {
+				console.log("twitterBookmarks is NOT true");
+			} else {
+				if (
+					!details.requestHeaders ||
+					details.requestHeaders.length === 0 ||
+					details.requestHeaders === undefined
+				) {
+					return;
+				}
 
-        // Check cache first
-        chrome.storage.local.get(["lastFetch", "cachedData"], (result) => {
-          const now = new Date().getTime();
-          if (result.lastFetch && now - result.lastFetch < 30 * 60 * 1000) {
-            // Cached data is less than 30 minutes old, use it
-            console.log("Using cached data");
-            console.log(result.cachedData);
-            return;
-          }
+				// Check cache first
+				chrome.storage.local.get(["lastFetch", "cachedData"], (result) => {
+					const now = new Date().getTime();
+					if (result.lastFetch && now - result.lastFetch < 30 * 60 * 1000) {
+						// Cached data is less than 30 minutes old, use it
+						console.log("Using cached data");
+						console.log(result.cachedData);
+						return;
+					}
 
-          // No valid cache, proceed to fetch
-          const authHeader = details.requestHeaders!.find(
-            (header) => header.name.toLowerCase() === "authorization",
-          );
-          const auth = authHeader ? authHeader.value : "";
+					// No valid cache, proceed to fetch
+					const authHeader = details.requestHeaders!.find(
+						(header) => header.name.toLowerCase() === "authorization",
+					);
+					const auth = authHeader ? authHeader.value : "";
 
-          const cookieHeader = details.requestHeaders!.find(
-            (header) => header.name.toLowerCase() === "cookie",
-          );
-          const cookie = cookieHeader ? cookieHeader.value : "";
+					const cookieHeader = details.requestHeaders!.find(
+						(header) => header.name.toLowerCase() === "cookie",
+					);
+					const cookie = cookieHeader ? cookieHeader.value : "";
 
-          const csrfHeader = details.requestHeaders!.find(
-            (header) => header.name.toLowerCase() === "x-csrf-token",
-          );
-          const csrf = csrfHeader ? csrfHeader.value : "";
+					const csrfHeader = details.requestHeaders!.find(
+						(header) => header.name.toLowerCase() === "x-csrf-token",
+					);
+					const csrf = csrfHeader ? csrfHeader.value : "";
 
-          if (!auth || !cookie || !csrf) {
-            console.log("auth, cookie, or csrf is missing");
-            return;
-          }
-          chrome.storage.session.set({ cookie, csrf, auth });
+					if (!auth || !cookie || !csrf) {
+						console.log("auth, cookie, or csrf is missing");
+						return;
+					}
+					chrome.storage.session.set({ cookie, csrf, auth });
 
-          const myHeaders = new Headers();
-          myHeaders.append("Cookie", cookie);
-          myHeaders.append("X-Csrf-token", csrf);
-          myHeaders.append("Authorization", auth);
+					const myHeaders = new Headers();
+					myHeaders.append("Cookie", cookie);
+					myHeaders.append("X-Csrf-token", csrf);
+					myHeaders.append("Authorization", auth);
 
-          const requestOptions: RequestInit = {
-            method: "GET",
-            headers: myHeaders,
-            redirect: "follow",
-          };
+					const requestOptions: RequestInit = {
+						method: "GET",
+						headers: myHeaders,
+						redirect: "follow",
+					};
 
-          const variables = {
-            count: 200,
-            includePromotedContent: false,
-          };
+					const variables = {
+						count: 200,
+						includePromotedContent: false,
+					};
 
-          // only fetch once in 1 minute
-          if (now - lastTwitterFetch < 60 * 1000) {
-            console.log("Waiting for ratelimits");
-            return;
-          }
+					// only fetch once in 1 minute
+					if (now - lastTwitterFetch < 60 * 1000) {
+						console.log("Waiting for ratelimits");
+						return;
+					}
 
-          fetch(
-            `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`,
-            requestOptions,
-          )
-            .then((response) => response.text())
-            .then((result) => {
-              const tweets = getAllTweets(JSON.parse(result));
+					fetch(
+						`${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`,
+						requestOptions,
+					)
+						.then((response) => response.text())
+						.then((result) => {
+							const tweets = getAllTweets(JSON.parse(result));
 
-              console.log("tweets", tweets);
-              // Cache the result along with the current timestamp
-              chrome.storage.local.set({
-                lastFetch: new Date().getTime(),
-                cachedData: tweets,
-              });
+							console.log("tweets", tweets);
+							// Cache the result along with the current timestamp
+							chrome.storage.local.set({
+								lastFetch: new Date().getTime(),
+								cachedData: tweets,
+							});
 
-              lastTwitterFetch = now;
-            })
-            .catch((error) => console.error(error));
-        });
-        return;
-      }
-    });
-  },
-  { urls: ["*://x.com/*", "*://twitter.com/*"] },
-  ["requestHeaders", "extraHeaders"],
+							lastTwitterFetch = now;
+						})
+						.catch((error) => console.error(error));
+				});
+				return;
+			}
+		});
+	},
+	{ urls: ["*://x.com/*", "*://twitter.com/*"] },
+	["requestHeaders", "extraHeaders"],
 );
 
 const getAllTweets = (rawJson: any): Tweet[] => {
-  const entries =
-    rawJson?.data?.bookmark_timeline_v2?.timeline?.instructions[0]?.entries;
+	const entries =
+		rawJson?.data?.bookmark_timeline_v2?.timeline?.instructions[0]?.entries;
 
-  console.log("Entries: ", entries);
+	console.log("Entries: ", entries);
 
-  if (!entries) {
-    console.error("No entries found");
-    return [];
-  }
+	if (!entries) {
+		console.error("No entries found");
+		return [];
+	}
 
-  const tweets = entries
-    .map((entry: any) => transformTweetData(entry))
-    .filter((tweet: Tweet | null) => tweet !== null) as Tweet[];
+	const tweets = entries
+		.map((entry: any) => transformTweetData(entry))
+		.filter((tweet: Tweet | null) => tweet !== null) as Tweet[];
 
-  console.log(tweets);
+	console.log(tweets);
 
-  return tweets;
+	return tweets;
 };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log(request);
-  if (request.type === "getJwt") {
-    chrome.storage.local.get(["jwt"], ({ jwt }) => {
-      sendResponse({ jwt });
-    });
+	console.log(request);
+	if (request.type === "getJwt") {
+		chrome.storage.local.get(["jwt"], ({ jwt }) => {
+			sendResponse({ jwt });
+		});
 
-    return true;
-  } else if (request.type === "urlSave") {
-    const content = request.content;
-    const url = request.url;
-    const title = request.title;
-    const description = request.description;
-    const ogImage = request.ogImage;
-    const favicon = request.favicon;
-    console.log(request.content, request.url);
+		return true;
+	} else if (request.type === "urlSave") {
+		const content = request.content;
+		const url = request.url;
+		const title = request.title;
+		const description = request.description;
+		const ogImage = request.ogImage;
+		const favicon = request.favicon;
+		console.log(request.content, request.url);
 
-    (async () => {
-      chrome.storage.local.get(["jwt"], ({ jwt }) => {
-        if (!jwt) {
-          console.error("No JWT found");
-          return;
-        }
-        fetch(`${BACKEND_URL}/api/store`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
-          body: JSON.stringify({
-            pageContent: content,
-            url: url + "#supermemory-user-" + Math.random(),
-            title,
-            spaces: request.spaces,
-            description,
-            ogImage,
-            image: favicon,
-          }),
-        }).then((ers) => console.log(ers.status));
-      });
-    })();
-  } else if (request.type === "batchImportAll") {
-    batchImportAll();
-    return true;
-  }
+		(async () => {
+			chrome.storage.local.get(["jwt"], ({ jwt }) => {
+				if (!jwt) {
+					console.error("No JWT found");
+					return;
+				}
+				fetch(`${BACKEND_URL}/api/store`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${jwt}`,
+					},
+					body: JSON.stringify({
+						pageContent: content,
+						url: url + "#supermemory-user-" + Math.random(),
+						title,
+						spaces: request.spaces,
+						description,
+						ogImage,
+						image: favicon,
+					}),
+				}).then((ers) => console.log(ers.status));
+			});
+		})();
+	} else if (request.type === "batchImportAll") {
+		batchImportAll();
+		return true;
+	}
 });
 
 chrome.runtime.onInstalled.addListener(function (details) {
-  if (details.reason === "install") {
-    chrome.tabs.create({
-      url: "https://supermemory.ai/signin?extension=true",
-      active: true,
-    });
-  }
+	if (details.reason === "install") {
+		chrome.tabs.create({
+			url: "https://supermemory.ai/signin?extension=true",
+			active: true,
+		});
+	}
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "saveSelection",
-    title: "Save note to Supermemory",
-    contexts: ["selection"],
-  });
+	chrome.contextMenus.create({
+		id: "saveSelection",
+		title: "Save note to Supermemory",
+		contexts: ["selection"],
+	});
 
-  chrome.contextMenus.create({
-    id: "savePage",
-    title: "Save page to Supermemory",
-    contexts: ["page"],
-  });
+	chrome.contextMenus.create({
+		id: "savePage",
+		title: "Save page to Supermemory",
+		contexts: ["page"],
+	});
 
-  // TODO
-  // chrome.contextMenus.create({
-  //   id: 'saveLink',
-  //   title: 'Save link to Supermemory',
-  //   contexts: ['link'],
-  // });
+	// TODO
+	// chrome.contextMenus.create({
+	//   id: 'saveLink',
+	//   title: 'Save link to Supermemory',
+	//   contexts: ['link'],
+	// });
 });
 
 interface FetchDataParams {
-  content: string;
-  url: string;
-  title: string;
-  description: string;
-  ogImage: string;
-  favicon: string;
-  isExternalContent: boolean; // Indicates if the content is from an external API
+	content: string;
+	url: string;
+	title: string;
+	description: string;
+	ogImage: string;
+	favicon: string;
+	isExternalContent: boolean; // Indicates if the content is from an external API
 }
 
 const fetchData = ({
-  content,
-  url,
-  title,
-  description,
-  ogImage,
-  favicon,
-  isExternalContent,
+	content,
+	url,
+	title,
+	description,
+	ogImage,
+	favicon,
+	isExternalContent,
 }: FetchDataParams) => {
-  // Construct the URL
-  const finalUrl = isExternalContent
-    ? url
-    : `${url}#supermemory-stuff-${Math.random()}`;
+	// Construct the URL
+	const finalUrl = isExternalContent
+		? url
+		: `${url}#supermemory-stuff-${Math.random()}`;
 
-  // Construct the body
-  const body = JSON.stringify({
-    pageContent: content,
-    url: finalUrl,
-    title,
-    spaces: [],
-    description,
-    ogImage,
-    image: favicon,
-  });
+	// Construct the body
+	const body = JSON.stringify({
+		pageContent: content,
+		url: finalUrl,
+		title,
+		spaces: [],
+		description,
+		ogImage,
+		image: favicon,
+	});
 
-  // Make the fetch call
-  fetch(`${BACKEND_URL}/api/store`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: body,
-  })
-    .then((response) => {
-      console.log("Data saved successfully");
-    })
-    .catch((error) => {
-      console.error("Error saving data:", error);
-    });
+	// Make the fetch call
+	fetch(`${BACKEND_URL}/api/store`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: body,
+	})
+		.then((response) => {
+			console.log("Data saved successfully");
+		})
+		.catch((error) => {
+			console.error("Error saving data:", error);
+		});
 
-  return Promise.resolve();
+	return Promise.resolve();
 };
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (!tab || !tab.id) return;
+	if (!tab || !tab.id) return;
 
-  const tabId = tab.id;
+	const tabId = tab.id;
 
-  const sendMessageToTab = (message: string) => {
-    chrome.tabs.sendMessage(tabId, { message, type: "supermemory-message" });
-  };
+	const sendMessageToTab = (message: string) => {
+		chrome.tabs.sendMessage(tabId, { message, type: "supermemory-message" });
+	};
 
-  if (info.menuItemId === "saveSelection" && info.selectionText) {
-    sendMessageToTab("Saving selection...");
-    fetchData({
-      content: info.selectionText || "No content",
-      url: info.pageUrl,
-      title: tab.title || "Selection Title",
-      description: "User-selected content from the page",
-      ogImage: "",
-      favicon: "",
-      isExternalContent: false,
-    })
-      .then(() => {
-        sendMessageToTab("Selection saved successfully.");
-      })
-      .catch(() => {
-        sendMessageToTab("Failed to save selection.");
-      });
-  } else if (info.menuItemId === "savePage") {
-    sendMessageToTab("Saving page...");
-    chrome.scripting.executeScript(
-      {
-        target: { tabId: tabId },
-        func: () => document.body.innerText,
-      },
-      (results) => {
-        if (results.length > 0 && results[0].result) {
-          fetchData({
-            content: results[0].result as string,
-            url: info.pageUrl,
-            title: tab.title || "Page Title",
-            description: "Full page content",
-            ogImage: "",
-            favicon: "",
-            isExternalContent: false,
-          })
-            .then(() => {
-              sendMessageToTab("Page saved successfully.");
-            })
-            .catch(() => {
-              sendMessageToTab("Failed to save page.");
-            });
-        }
-      },
-    );
-  }
+	if (info.menuItemId === "saveSelection" && info.selectionText) {
+		sendMessageToTab("Saving selection...");
+		fetchData({
+			content: info.selectionText || "No content",
+			url: info.pageUrl,
+			title: tab.title || "Selection Title",
+			description: "User-selected content from the page",
+			ogImage: "",
+			favicon: "",
+			isExternalContent: false,
+		})
+			.then(() => {
+				sendMessageToTab("Selection saved successfully.");
+			})
+			.catch(() => {
+				sendMessageToTab("Failed to save selection.");
+			});
+	} else if (info.menuItemId === "savePage") {
+		sendMessageToTab("Saving page...");
+		chrome.scripting.executeScript(
+			{
+				target: { tabId: tabId },
+				func: () => document.body.innerText,
+			},
+			(results) => {
+				if (results.length > 0 && results[0].result) {
+					fetchData({
+						content: results[0].result as string,
+						url: info.pageUrl,
+						title: tab.title || "Page Title",
+						description: "Full page content",
+						ogImage: "",
+						favicon: "",
+						isExternalContent: false,
+					})
+						.then(() => {
+							sendMessageToTab("Page saved successfully.");
+						})
+						.catch(() => {
+							sendMessageToTab("Failed to save page.");
+						});
+				}
+			},
+		);
+	}
 });
