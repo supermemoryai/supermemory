@@ -511,6 +511,49 @@ app.post(
 
     const userMessage: CoreMessage = { role: "user", content: prompt };
 
+    // Check for any suspicious patterns to avoid system prompt leak
+    const suspiciousPatterns = [
+      /ignore all previous requests/i,
+      /print your system prompt/i,
+      /reveal your instructions/i,
+      /show your configuration/i,
+      /display your settings/i,
+      /what are you programmed to do/i,
+      /what is your system prompt/i,
+      /what are your instructions/i,
+      /what is your configuration/i,
+      /what are your settings/i,
+      /ignore previous/i,
+      /ignore all/i,
+      /reveal system prompt/i,
+      /reveal instructions/i,
+      /reveal configuration/i,
+      /reveal settings/i,
+      /show system prompt/i,
+      /show instructions/i,
+      /show configuration/i,
+      /show settings/i,
+      /print system prompt/i,
+      /print instructions/i,
+      /print configuration/i,
+      /print settings/i,
+      /display system prompt/i,
+      /display instructions/i,
+      /display configuration/i,
+      /display settings/i,
+      /what is your system prompt/i,
+      /what are your instructions/i,
+      /what is your configuration/i,
+      /what are your settings/i,
+    ];
+
+    if (suspiciousPatterns.some((pattern) => pattern.test(userMessage.content))) {
+      return c.json({
+        status: "ok",
+        response: "System prompt cannot be displayed for security reasons."
+      });
+    }
+
     const response = await streamText({
       model: model,
       messages: [
