@@ -193,7 +193,8 @@ export const chatThreads = createTable(
 		userId: text("userId")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-	},
+			createdAt: integer("createdAt").notNull().$defaultFn(() => Math.floor(Date.now() / 1000)), // Use Unix timestamp
+		},
 	(thread) => ({
 		userIdx: index("chatThread_user_idx").on(thread.userId),
 	}),

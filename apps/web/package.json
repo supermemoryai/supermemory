@@ -23,6 +23,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@sentry/nextjs": "^8",
     "cmdk": "^1.0.0",
+    "drizzle-kit": "^0.23.0",
     "lowlight": "^3.1.0",
     "million": "^3.1.6",
     "next": "^14.1.1",

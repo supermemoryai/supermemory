@@ -76,30 +76,31 @@ export function FilterSpaces({
 					</div>
 					<CommandList className="z-10 translate-y-12 translate-x-5 opacity-0 absolute group-focus-within:opacity-100 transition-opacity p-2 rounded-lg max-w-64 bg-[#2C3338]">
 						<CommandGroup className="pointer-events-none opacity-0 group-focus-within:opacity-100 scale-50 scale-y-50 group-focus-within:scale-y-100 group-focus-within:scale-100 group-focus-within:pointer-events-auto transition-all origin-top">
-							{initialSpaces.map((space) => (
-								<CommandItem
-									className="text-[#eaeaea] data-[disabled]:opacity-90"
-									value={space.name}
-									key={space.id}
-									onSelect={() => handleSelect(space)}
-								>
-									<Check
-										className={`mr-2 h-4 w-4 ${selectedSpaces.some((v) => v.id === space.id) ? "opacity-100" : "opacity-0"}`}
-									/>
-									{space.name}
-								</CommandItem>
-							))}
+							{initialSpaces.map((space) => {
+								if (!selectedSpaces.some((v) => v.id === space.id)) {
+									return (
+										<CommandItem
+											className="text-[#eaeaea] data-[disabled]:opacity-90"
+											value={space.name}
+											key={space.id}
+											onSelect={() => handleSelect(space)}
+										>
+											<Check
+												className={`mr-2 h-4 w-4 ${selectedSpaces.some((v) => v.id === space.id) ? "opacity-100" : "opacity-0"}`}
+											/>
+											{space.name}
+										</CommandItem>
+									);
+								}
+							})}
 						</CommandGroup>
 					</CommandList>
 				</Command>
 			</div>
-			{/* <button
+			<button
 				type="submit"
-				className="h-12 w-12 rounded-[14px] all-center shrink-0 hover:brightness-125 outline-none bg-[#369DFD1A] p-3 active:scale-90"
+				className="rounded-lg bg-[#369DFD1A] p-3 transition-colors"
 			>
-				<Image src={ArrowRightIcon} alt="Right arrow icon" />
-			</button> */}
-			<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3 transition-colors">
 				<Image src={ArrowRightIcon} alt="Enter" />
 			</button>
 		</div>

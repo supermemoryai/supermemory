@@ -25,9 +25,9 @@ function QueryInput({
 	>([]);
 
 	return (
-		<div className={`${className}`}>
+		<div className={`w-full`}>
 			<div
-				className={`bg-[#1F2428] overflow-hidden border-2 border-gray-700/50 shadow-md shadow-[#1d1d1dc7] rounded-3xl`}
+				className={`bg-[#1F2428]  overflow-hidden border-2 border-gray-700/50 shadow-md shadow-[#1d1d1dc7] rounded-3xl`}
 			>
 				{/* input and action button */}
 				<form
