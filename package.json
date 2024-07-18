@@ -97,6 +97,7 @@
 		"turndown": "^7.2.0",
 		"uploadthing": "^6.10.4",
 		"vaul": "^0.9.1",
+		"wrangler": "3.28.3",
 		"zod": "^3.23.8"
 	},
 	"trustedDependencies": [
