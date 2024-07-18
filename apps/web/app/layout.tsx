@@ -1,13 +1,13 @@
 import "@repo/tailwind-config/globals.css";
 
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Poppins } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { cn } from "@repo/ui/lib/utils";
 import { Toaster } from "@repo/ui/shadcn/toaster";
 
-const inter = Inter({ subsets: ["latin"] });
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const runtime = "edge";
 
@@ -72,7 +72,7 @@ export default function RootLayout({
 			{/* TODO: when lightmode support is added, remove the 'dark' class from the body tag */}
 			<body
 				className={cn(
-					`${inter.className} dark`,
+					`${poppins.className} dark`,
 					GeistMono.variable,
 					GeistSans.variable,
 				)}

@@ -51,7 +51,7 @@ function QueryInput({
 						name="q"
 						cols={30}
 						rows={mini ? 2 : 4}
-						className="bg-transparent pt-2.5 text-base placeholder:text-[#9B9B9B] focus:text-gray-200 duration-200 tracking-[3%] outline-none resize-none w-full p-4"
+						className="bg-transparent pt-2.5 text-lg placeholder:text-[#9B9B9B] focus:text-gray-200 duration-200 tracking-[3%] outline-none resize-none w-full p-4"
 						placeholder="Ask your second brain..."
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
