@@ -1,9 +1,8 @@
 "use client";
 
-import React, { Suspense, memo, use, useEffect, useState } from "react";
+import React, {  useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import {
-	getRecentChats,
 	getSessionAuthToken,
 	getSpaces,
 } from "@/app/actions/fetchers";
@@ -11,8 +10,7 @@ import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { Heading } from "./heading";
-import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
+import History from "./history";
 
 const linkTelegram = async (telegramUser: string) => {
 	const response = await linkTelegramToUser(telegramUser);
@@ -87,45 +85,12 @@ function Page({
 					initialSpaces={spaces}
 				/>
 			</div>
-			<History />
+			<div className="space-y-5">
+				<h3 className="text-lg">Recent Searches</h3>
+				<History />
+			</div>
 		</div>
 	);
 }
-
-const History = memo(() => {
-	const [chatThreads, setChatThreads] = useState(null);
-
-	useEffect(() => {
-		(async () => {
-			const chatThreads = await getRecentChats();
-
-			setChatThreads(chatThreads);
-		})();
-	}, []);
-
-	if (!chatThreads){
-		return <div>Loading</div>;
-	}
-
-	if (!chatThreads.success || !chatThreads.data) {
-		return <div>Error fetching chat threads</div>;
-	}
-
-	return (
-		<div className="space-y-5">
-			<h3 className="text-lg">Recent Searches</h3>
-			<ul className="text-base list-none space-y-3 text-[#b9b9b9]">
-				{chatThreads.data.map((thread) => (
-					<li className="flex items-center gap-2 truncate">
-						<ArrowLongRightIcon className="h-5" />{" "}
-						<Link prefetch={false} href={`/chat/${thread.id}`}>
-							{thread.firstMessage}
-						</Link>
-					</li>
-				))}
-			</ul>
-		</div>
-	);
-});
 
 export default Page;
