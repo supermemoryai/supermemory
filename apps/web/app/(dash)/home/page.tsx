@@ -83,7 +83,6 @@ function Page({
 						);
 					}}
 					initialSpaces={spaces}
-					setInitialSpaces={setSpaces}
 				/>
 			</div>
 		</div>
