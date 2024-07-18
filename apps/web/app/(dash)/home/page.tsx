@@ -23,25 +23,19 @@ function Page({
 }: {
 	searchParams: Record<string, string | string[] | undefined>;
 }) {
-	const [telegramUser, setTelegramUser] = useState<string | undefined>(
-		searchParams.telegramUser as string,
-	);
-	const [extensionInstalled, setExtensionInstalled] = useState<
-		string | undefined
-	>(searchParams.extension as string);
 
 	const { push } = useRouter();
 
 	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
-
 	useEffect(() => {
 		// telegram bot
+		const telegramUser = searchParams.extension as string
 		if (telegramUser) {
 			linkTelegram(telegramUser);
 		}
 
-		if (extensionInstalled) {
+		if (searchParams.extension as string) {
 			toast.success("Extension installed successfully");
 		}
 
@@ -58,7 +52,7 @@ function Page({
 			if (typeof window === "undefined") return;
 			window.postMessage({ token: token.data }, "*");
 		});
-	}, [telegramUser]);
+	}, []);
 
 	return (
 		<div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">
