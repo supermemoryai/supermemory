@@ -1,48 +1,30 @@
 import { useEffect, useState } from "react";
-import { headings } from "./headingVariants";
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 
-const slap = {
-	initial: {
-		opacity: 0,
-		scale: 1.1,
-	},
-	whileInView: { opacity: 1, scale: 1 },
-	transition: {
-		duration: 0.5,
-		ease: "easeInOut",
-	},
-	viewport: { once: true },
-};
+const headings = [
+	"Unlock your digital brain",
+	"Save everything.",
+	" Connect anything.",
+	"Turn your bookmarks into insights.",
+	"The smart way to use your digital treasure.",
+];
 
-export function Heading() {
+export function Heading({ query = "" }: { query?: string }) {
 	const [showHeading, setShowHeading] = useState<number>(0);
 
-	useEffect(()=> {
+	useEffect(() => {
 		setShowHeading(Math.floor(Math.random() * headings.length));
-	})
+	});
 	return (
-		<motion.h1
-			{...{
-				...slap,
-				transition: { ...slap.transition, delay: 0.2 },
-			}}
-			className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl"
-		>
-			{headings[showHeading]!.map((v, i) => {
-				return (
-					<span
-						key={i}
-						className={
-							v.type === "highlighted"
-								? "bg-gradient-to-r to-blue-200 from-zinc-300 text-transparent bg-clip-text"
-								: ""
-						}
-					>
-						{v.content}
-					</span>
-				);
-			})}
-		</motion.h1>
+		<div className="h-[3.4rem] overflow-hidden text-white text-center">
+			<motion.h1
+				animate={{ opacity: query ? 0 : 1, y: query ? "20%" : 0 }}
+				className={`text-[2.45rem] font-semibold ${
+					query ? "opacity-0 " : "opacity-100"
+				} transition-opacity`}
+			>
+				{headings[showHeading]}
+			</motion.h1>
+		</div>
 	);
 }
