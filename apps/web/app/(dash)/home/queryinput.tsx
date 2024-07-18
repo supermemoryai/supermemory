@@ -4,10 +4,12 @@ import React, { useState } from "react";
 import { FilterSpaces } from "./filterSpaces";
 
 function QueryInput({
+	setQueryPresent,
 	initialSpaces,
 	className,
 	handleSubmit,
 }: {
+	setQueryPresent: (t:boolean) => void;
 	initialSpaces?: {
 		id: number;
 		name: string;
@@ -55,7 +57,10 @@ function QueryInput({
 								setQ("");
 							}
 						}}
-						onChange={(e) => setQ(e.target.value)}
+						onChange={(e) => setQ((prev)=> {
+							setQueryPresent(!!(e.target.value.length));
+							return e.target.value;
+						})}
 						value={q}
 					/>
 					<FilterSpaces

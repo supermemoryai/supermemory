@@ -9,18 +9,17 @@ const headings = [
 	"The smart way to use your digital treasure.",
 ];
 
-export function Heading({ query = "" }: { query?: string }) {
+export function Heading({ queryPresent }: { queryPresent: boolean }) {
 	const [showHeading, setShowHeading] = useState<number>(0);
-
 	useEffect(() => {
 		setShowHeading(Math.floor(Math.random() * headings.length));
-	});
+	}, []);
 	return (
 		<div className="h-[3.4rem] overflow-hidden text-white text-center">
 			<motion.h1
-				animate={{ opacity: query ? 0 : 1, y: query ? "20%" : 0 }}
+				animate={{ opacity: queryPresent ? 0 : 1, y: queryPresent ? "20%" : 0 }}
 				className={`text-[2.45rem] font-semibold ${
-					query ? "opacity-0 " : "opacity-100"
+					queryPresent ? "pointer-events-none" : "pointer-events-auto"
 				} transition-opacity`}
 			>
 				{headings[showHeading]}

@@ -28,6 +28,8 @@ function Page({
 
 	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
+	const [queryPresent, setQueryPresent] = useState<boolean>(false);
+
 	useEffect(() => {
 		// telegram bot
 		const telegramUser = searchParams.extension as string
@@ -56,9 +58,10 @@ function Page({
 
 	return (
 		<div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">
-			<Heading />
+			<Heading queryPresent={queryPresent} />
 			<div className="w-full pb-20 mt-12">
 				<QueryInput
+					setQueryPresent={(t:boolean)=> setQueryPresent(t)}
 					handleSubmit={async (q, spaces) => {
 						if (q.length === 0) {
 							toast.error("Query is required");

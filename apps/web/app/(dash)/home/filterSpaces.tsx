@@ -49,7 +49,7 @@ export function FilterSpaces({
 						<button
 							key={v.id}
 							onClick={() => handleSelect(v)}
-							className="bg-[#3a4248] max-w-32 truncate-wor truncate whitespace-nowrap py-1 rounded-md px-2 mx-1 aria-selected:outline"
+							className="bg-[#3a4248] text-white max-w-32 truncate-wor truncate whitespace-nowrap py-1 rounded-md px-2 mx-1 aria-selected:outline"
 						>
 							{v.name}
 						</button>
