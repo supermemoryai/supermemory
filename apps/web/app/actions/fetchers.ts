@@ -18,7 +18,6 @@ import {
 import { ServerActionReturnType, Space } from "./types";
 import { auth } from "../../server/auth";
 import { ChatHistory, SourceZod } from "@repo/shared-types";
-import { ChatHistory as ChatHistoryType } from "../../server/db/schema";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";

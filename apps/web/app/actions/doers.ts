@@ -426,7 +426,6 @@ export const createChatObject = async (
 			error: "No chat object found",
 		};
 	}
-	console.log("sources: ", lastChat.answer.sources);
 
 	const saved = await db.insert(chatHistory).values({
 		question: lastChat.question,

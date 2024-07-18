@@ -1,6 +1,5 @@
 "use client";
 
-import { getAllUserMemoriesAndSpaces } from "@/app/actions/fetchers";
 import { Content, StoredSpace } from "@/server/db/schema";
 import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
 import {
