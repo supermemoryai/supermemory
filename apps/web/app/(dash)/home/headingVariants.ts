@@ -1,4 +1,4 @@
-export const variants = [
+export const headings = [
 	[
 		{
 			type: "text",
