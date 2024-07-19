@@ -155,7 +155,7 @@ function FeaturesMobile() {
           <Feature feature={feature} className="mx-auto max-w-2xl" isActive />
           <div className="relative mt-10 pb-10">
             <div className="absolute -inset-x-4 bottom-0 top-8 bg-page-gradient sm:-inset-x-6" />
-            <div className="relative mx-auto w-[52.75rem] overflow-hidden rounded-xl bg-glass-gradient shadow-lg shadow-gray-200/5 ring-1 ring-slate-500/10">
+            <div className="relative mx-auto lg:w-[52.75rem] md:w-[40rem] overflow-hidden rounded-xl bg-glass-gradient shadow-lg shadow-gray-200/5 ring-1 ring-slate-500/10">
               <img
                 className="w-full"
                 src={`/images/${feature.image}`}

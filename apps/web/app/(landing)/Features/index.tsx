@@ -16,7 +16,7 @@ const Services = () => {
         </div>
 
         <div className="relative bg-page-gradient">
-          <div className="flex overflow-hidden relative items-center p-8 mb-5 rounded-3xl border lg:p-20 z-1 h-[39rem] border-white/20 xl:h-[46rem]">
+          <div className="flex overflow-hidden relative items-stretch p-8 mb-5 rounded-3xl border lg:p-20 z-1 h-[55rem] md:h-[45rem] border-white/20 xl:h-[46rem]">
             <img
               src="/images/tailwind-bg-gradient.avif"
               className="absolute top-0 right-0 opacity-100 z-2"
@@ -168,7 +168,7 @@ const Services = () => {
           </div>
 
           <div className="grid relative gap-5 lg:grid-cols-2 z-1">
-            <div className="overflow-hidden relative rounded-3xl border max-h-[20rem] min-h-[33rem] bg-hero-gradient bg-slate-950/10 border-white/10">
+            <div className="overflow-hidden relative rounded-3xl border max-h-[20rem] min-h-[40rem] md:min-h-[33rem] bg-hero-gradient bg-slate-950/10 border-white/10">
               <div className="absolute inset-0">
                 <AnimatedBeamShow />
               </div>
