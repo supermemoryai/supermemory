@@ -234,3 +234,12 @@ body {
 	color: #369dfd;
 	background: #21303d;
 }
+
+.bg {
+  background-color:#171B1F;
+  background-image: linear-gradient(#1f24287a 2px, transparent 2px),
+  linear-gradient(90deg, #1f24287a 2px, transparent 2px);
+
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  background-position:-2px -2px, -2px -2px, -1px -1px, -1px -1px;
+}

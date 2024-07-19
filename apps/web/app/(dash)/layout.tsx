@@ -3,7 +3,6 @@ import Menu from "./menu";
 import { redirect } from "next/navigation";
 import { auth } from "../../server/auth";
 import { Toaster } from "@repo/ui/shadcn/sonner";
-import BackgroundPlus from "../(landing)/GridPatterns/PlusGrid";
 
 async function Layout({ children }: { children: React.ReactNode }) {
 	const info = await auth();
@@ -13,7 +12,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
 	}
 
 	return (
-		<main className="h-screen flex flex-col">
+		<main className="h-screen bg flex flex-col">
 			<div className="fixed top-0 left-0 w-full z-40">
 				<Header />
 			</div>
@@ -24,7 +23,6 @@ async function Layout({ children }: { children: React.ReactNode }) {
 					style={{ transform: "rotate(-30deg)" }}
 				/>
 			</div>
-			<BackgroundPlus className="absolute top-0 left-0 w-full h-full -z-50 opacity-70" />
 
 			<Menu />
 
