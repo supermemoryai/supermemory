@@ -224,71 +224,7 @@ function ChatWindow({
 											{chat.question}
 										</h2>
 
-										<div className="flex flex-col">
-											{/* Related memories */}
-											<div
-												className={`space-y-4 ${chat.answer.sources.length > 0 || chat.answer.parts.length === 0 ? "flex" : "hidden"}`}
-											>
-												<Accordion
-													defaultValue={
-														idx === chatHistory.length - 1 ? "memories" : ""
-													}
-													type="single"
-													collapsible
-												>
-													<AccordionItem value="memories">
-														<AccordionTrigger className="text-foreground-menu">
-															Related Memories
-														</AccordionTrigger>
-														{/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
-														<AccordionContent
-															className="flex items-center no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
-															defaultChecked
-														>
-															{/* Loading state */}
-															{chat.answer.sources.length > 0 ||
-																(chat.answer.parts.length === 0 && (
-																	<>
-																		{[1, 2, 3, 4].map((_, idx) => (
-																			<div
-																				key={`loadingState-${idx}`}
-																				className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary animate-pulse"
-																			>
-																				<div className="bg-slate-700 h-2 rounded-full w-1/2"></div>
-																				<div className="bg-slate-700 h-2 rounded-full w-full"></div>
-																			</div>
-																		))}
-																	</>
-																))}
-															{chat.answer.sources.map((source, idx) => (
-																<Link
-																	href={source.source}
-																	key={idx}
-																	className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary"
-																>
-																	<div className="flex justify-between text-foreground-menu text-sm">
-																		<span>{source.type}</span>
-
-																		{source.numChunks > 1 && (
-																			<span>{source.numChunks} chunks</span>
-																		)}
-																	</div>
-																	<div className="text-base">
-																		{source.title}
-																	</div>
-																	<div className="text-xs line-clamp-2">
-																		{source.content.length > 100
-																			? source.content.slice(0, 100) + "..."
-																			: source.content}
-																	</div>
-																</Link>
-															))}
-														</AccordionContent>
-													</AccordionItem>
-												</Accordion>
-											</div>
-
-											{/* Summary */}
+										<div className="flex flex-col mt-2">
 											<div>
 												<div className="text-foreground-menu py-2">Answer</div>
 												<div className="text-base">
@@ -347,60 +283,108 @@ function ChatWindow({
 														>
 															<ClipboardIcon className="size-[18px] group-hover:text-primary" />
 														</button>
-														<button
-															onClick={async () => {
-																const isWebShareSupported =
-																	navigator.share !== undefined;
-																if (isWebShareSupported) {
-																	try {
-																		await navigator.share({
-																			title: "Your Share Title",
-																			text: "Your share text or description",
-																			url: "https://your-url-to-share.com",
-																		});
-																	} catch (e) {
-																		console.error("Error sharing:", e);
-																	}
-																} else {
-																	console.error("web share is not supported!");
-																}
-															}}
-															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
-														>
-															<SendIcon className="size-[18px] group-hover:text-primary" />
-														</button>
 													</div>
 												</div>
 											</div>
-											{/* Justification */}
-											{chat.answer.justification &&
-												chat.answer.justification.length && (
-													<div
-														className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
-													>
-														<Accordion
-															defaultValue={""}
-															type="single"
-															collapsible
+
+											<div
+												className={`space-y-4 ${chat.answer.sources.length > 0 || chat.answer.parts.length === 0 ? "flex" : "hidden"}`}
+											>
+												<Accordion
+													defaultValue={
+														idx === chatHistory.length - 1 ? "memories" : ""
+													}
+													type="single"
+													collapsible
+												>
+													<AccordionItem value="memories">
+														<AccordionTrigger className="text-foreground-menu">
+															Related Memories
+														</AccordionTrigger>
+														{/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
+														<AccordionContent
+															className="flex flex-col no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
+															defaultChecked
 														>
-															<AccordionItem value="justification">
-																<AccordionTrigger className="text-foreground-menu">
-																	Justification
-																</AccordionTrigger>
-																<AccordionContent
-																	className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
-																	defaultChecked
-																>
-																	{chat.answer.justification.length > 0
-																		? chat.answer.justification
-																				.replaceAll("<justification>", "")
-																				.replaceAll("</justification>", "")
-																		: "No justification provided."}
-																</AccordionContent>
-															</AccordionItem>
-														</Accordion>
-													</div>
-												)}
+															<div className="w-full no-scrollbar flex gap-4">
+																{/* Loading state */}
+																{chat.answer.sources.length > 0 ||
+																	(chat.answer.parts.length === 0 && (
+																		<>
+																			{[1, 2, 3, 4].map((_, idx) => (
+																				<div
+																					key={`loadingState-${idx}`}
+																					className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary animate-pulse"
+																				>
+																					<div className="bg-slate-700 h-2 rounded-full w-1/2"></div>
+																					<div className="bg-slate-700 h-2 rounded-full w-full"></div>
+																				</div>
+																			))}
+																		</>
+																	))}
+																{chat.answer.sources.map((source, idx) => (
+																	<Link
+																		href={source.source}
+																		key={idx}
+																		className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary"
+																	>
+																		<div className="flex justify-between text-foreground-menu text-sm">
+																			<span>{source.type}</span>
+
+																			{source.numChunks > 1 && (
+																				<span>{source.numChunks} chunks</span>
+																			)}
+																		</div>
+																		<div className="text-base">
+																			{source.title}
+																		</div>
+																		<div className="text-xs line-clamp-2">
+																			{source.content.length > 100
+																				? source.content.slice(0, 100) + "..."
+																				: source.content}
+																		</div>
+																	</Link>
+																))}
+															</div>
+
+															{chat.answer.justification &&
+																chat.answer.justification.length && (
+																	<div
+																		className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+																	>
+																		<Accordion
+																			defaultValue={""}
+																			type="single"
+																			collapsible
+																		>
+																			<AccordionItem value="justification">
+																				<AccordionTrigger className="text-foreground-menu">
+																					Justification
+																				</AccordionTrigger>
+																				<AccordionContent
+																					className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+																					defaultChecked
+																				>
+																					{chat.answer.justification.length > 0
+																						? chat.answer.justification
+																								.replaceAll(
+																									"<justification>",
+																									"",
+																								)
+																								.replaceAll(
+																									"</justification>",
+																									"",
+																								)
+																						: "No justification provided."}
+																				</AccordionContent>
+																			</AccordionItem>
+																		</Accordion>
+																	</div>
+																)}
+														</AccordionContent>
+													</AccordionItem>
+												</Accordion>
+											</div>
 										</div>
 									</div>
 								</div>
