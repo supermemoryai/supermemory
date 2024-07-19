@@ -164,13 +164,6 @@ export default function ContentApp({
     }
   };
 
-  async function handlePopoverChange() {
-    setIsPopoverOpen(!isPopoverOpen);
-    if (isPopoverOpen) {
-      await getSpaces();
-    }
-  }
-
   async function sendUrlToAPI(spaces: string[]) {
     setLoading(true);
 
@@ -248,10 +241,13 @@ export default function ContentApp({
     <div className="flex justify-end items-end min-h-screen h-full w-full">
       <Toaster />
 
-      <Popover open={isPopoverOpen} onOpenChange={handlePopoverChange}>
+      <Popover
+        open={isPopoverOpen}
+        onOpenChange={() => setIsPopoverOpen(!isPopoverOpen)}
+      >
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
+            <TooltipTrigger onClick={async () => await getSpaces()} asChild>
               <PopoverTrigger
                 className={`${hover || isPopoverOpen ? "opacity-100" : "opacity-75 pointer-events-none translate-x-3/4"} focus-within:translate-x-0 focus-visible:translate-x-0 size-12 hover:bg-black p-2 rounded-l-2xl transition bg-secondary border-2 border-border opacity-0 absolute flex bottom-20 items-center text-lg`}
               >
