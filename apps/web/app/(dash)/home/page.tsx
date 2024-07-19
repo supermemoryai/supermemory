@@ -1,16 +1,14 @@
 "use client";
 
-import React, {  useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
-import {
-	getSessionAuthToken,
-	getSpaces,
-} from "@/app/actions/fetchers";
+import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
 import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { Heading } from "./heading";
 import History from "./history";
+import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
 
 const linkTelegram = async (telegramUser: string) => {
 	const response = await linkTelegramToUser(telegramUser);
@@ -88,6 +86,38 @@ function Page({
 			<div className="space-y-5">
 				<h3 className="text-lg">Recent Searches</h3>
 				<History />
+			</div>
+
+			<div className="w-full fixed bottom-0 left-0 p-4">
+				<div className="flex items-center justify-center gap-8">
+					<a
+						href="https://supermemory.ai/extension"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground"
+					>
+						<ChromeIcon className="w-4 h-4" />
+						Install extension
+					</a>
+					<a
+						href="https://github.com/Dhravya/supermemory/issues/new"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground"
+					>
+						<GithubIcon className="w-4 h-4" />
+						Bug report
+					</a>
+					<a
+						href="https://x.com/supermemory.ai"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground"
+					>
+						<TwitterIcon className="w-4 h-4" />
+						Twitter
+					</a>
+				</div>
 			</div>
 		</div>
 	);
