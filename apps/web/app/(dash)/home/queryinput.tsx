@@ -6,15 +6,13 @@ import { FilterSpaces } from "./filterSpaces";
 function QueryInput({
 	setQueryPresent,
 	initialSpaces,
-	className,
 	handleSubmit,
 }: {
-	setQueryPresent: (t:boolean) => void;
+	setQueryPresent: (t: boolean) => void;
 	initialSpaces?: {
 		id: number;
 		name: string;
 	}[];
-	className?: string;
 	mini?: boolean;
 	handleSubmit: (q: string, spaces: { id: number; name: string }[]) => void;
 }) {
@@ -38,7 +36,6 @@ function QueryInput({
 						handleSubmit(q, selectedSpaces);
 						setQ("");
 					}}
-					className=""
 				>
 					<textarea
 						autoFocus
@@ -57,10 +54,12 @@ function QueryInput({
 								setQ("");
 							}
 						}}
-						onChange={(e) => setQ((prev)=> {
-							setQueryPresent(!!(e.target.value.length));
-							return e.target.value;
-						})}
+						onChange={(e) =>
+							setQ((prev) => {
+								setQueryPresent(!!e.target.value.length);
+								return e.target.value;
+							})
+						}
 						value={q}
 					/>
 					<FilterSpaces

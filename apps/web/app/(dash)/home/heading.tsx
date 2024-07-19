@@ -27,7 +27,7 @@ export function Heading({ queryPresent }: { queryPresent: boolean }) {
 						exit={{ opacity: 0, y: "20%", whiteSpace: "nowrap" }}
 						className={`text-[2.45rem] font-semibold ${
 							queryPresent ? "pointer-events-none" : "pointer-events-auto"
-						} transition-opacity ${poppins.className}`}
+						} transition-opacity text-center ${poppins.className}`}
 					>
 						{headings[showHeading]}
 					</motion.h1>

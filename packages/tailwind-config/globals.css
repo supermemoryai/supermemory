@@ -236,10 +236,8 @@ body {
 }
 
 .bg {
-  background-color:#171B1F;
-  background-image: linear-gradient(#1f24287a 2px, transparent 2px),
-  linear-gradient(90deg, #1f24287a 2px, transparent 2px);
-
-  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
-  background-position:-2px -2px, -2px -2px, -1px -1px, -1px -1px;
+	background-color: #171B1F;
+	opacity: 1;
+	background: radial-gradient(circle, transparent 20%, #171B1F 20%, #171B1F 80%, transparent 80%, transparent), radial-gradient(circle, transparent 20%, #171B1F 20%, #171B1F 80%, transparent 80%, transparent) 100px 100px, linear-gradient(#1a1f23 8px, transparent 8px) 0 -4px, linear-gradient(90deg, #1a1f23 8px, #171B1F 8px) -4px 0;
+	background-size: 100px 100px, 100px 100px, 100px 100px, 100px 100px;
 }
