@@ -222,8 +222,8 @@ const Services = () => {
 
 export default Services;
 const supermemoryPoints = [
-  "Privacy focused",
-  "Works everywhere you are",
-  "Self hostable",
-  "Super affordable, with a generous free tier",
+	"Privacy focused",
+	"Works everywhere you are",
+	"Self hostable",
+	"Super affordable, with a generous free tier",
 ];

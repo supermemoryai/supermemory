@@ -2,11 +2,11 @@ import React from "react";
 import Markdown from "react-markdown";
 
 function Page() {
-  return (
-    <div className="flex flex-col items-center justify-center mt-8">
-      <div className="max-w-3xl prose prose-invert">
-        <Markdown>
-          {`
+	return (
+		<div className="flex flex-col items-center justify-center mt-8">
+			<div className="max-w-3xl prose prose-invert">
+				<Markdown>
+					{`
             Terms of Service for Supermemory.ai
 
 **Effective Date:** July 4, 2024
@@ -48,10 +48,10 @@ If you have any questions about these Terms of Service, please contact us at dhr
 
 **By using Supermemory, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.**
 `}
-        </Markdown>
-      </div>
-    </div>
-  );
+				</Markdown>
+			</div>
+		</div>
+	);
 }
 
 export default Page;
