@@ -143,7 +143,7 @@ function Page({
 						Install extension
 					</a>
 					<a
-						href="https://github.com/Dhravya/supermemory/issues/new"
+						href="https://github.com/supermemoryai/supermemory/issues/new"
 						target="_blank"
 						rel="noreferrer"
 						className="flex items-center gap-2 text-muted-foreground"
@@ -152,7 +152,7 @@ function Page({
 						Bug report
 					</a>
 					<a
-						href="https://x.com/supermemory.ai"
+						href="https://x.com/supermemoryai"
 						target="_blank"
 						rel="noreferrer"
 						className="flex items-center gap-2 text-muted-foreground"
