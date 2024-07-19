@@ -2,7 +2,7 @@
 
 import { AnimatePresence } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
-import QueryInput from "./queryinput";
+import QueryInput from "../home/queryinput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
