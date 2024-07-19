@@ -99,7 +99,7 @@ export function FilterSpaces({
 			</div>
 			<button
 				type="submit"
-				className="rounded-lg bg-[#369DFD1A] p-3 transition-colors"
+				className="rounded-lg bg-[#369DFD1A] p-3"
 			>
 				<Image src={ArrowRightIcon} alt="Enter" />
 			</button>
