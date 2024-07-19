@@ -1,9 +1,9 @@
 .verified {
-  margin-left: 0.125rem;
-  max-width: 20px;
-  max-height: 20px;
-  height: 1.25em;
-  fill: currentColor;
-  user-select: none;
-  vertical-align: text-bottom;
+	margin-left: 0.125rem;
+	max-width: 20px;
+	max-height: 20px;
+	height: 1.25em;
+	fill: currentColor;
+	user-select: none;
+	vertical-align: text-bottom;
 }

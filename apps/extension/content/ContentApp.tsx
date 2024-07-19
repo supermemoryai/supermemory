@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Readability } from "@mozilla/readability";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
 } from "./ui/shadcn/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/shadcn/popover";
 import { Toaster } from "./ui/shadcn/toaster";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
+	Select,
+	SelectContent,
+	SelectGroup,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
 } from "./ui/shadcn/select";
 import { useToast } from "./ui/shadcn/use-toast";
 import { Input } from "./ui/shadcn/input";
@@ -25,11 +25,11 @@ import { Textarea } from "./ui/shadcn/textarea";
 const BACKEND_URL = "https://supermemory.ai";
 
 export default function ContentApp({
-  token,
-  shadowRoot,
+	token,
+	shadowRoot,
 }: {
-  token: string | undefined;
-  shadowRoot: ShadowRoot;
+	token: string | undefined;
+	shadowRoot: ShadowRoot;
 }) {
   const [hover, setHover] = useState(false);
 

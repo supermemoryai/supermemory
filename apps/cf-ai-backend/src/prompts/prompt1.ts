@@ -15,19 +15,19 @@ To generate your answer:
 If no context is provided, introduce yourself and explain that the user can save content which will allow you to answer questions about that content in the future. Do not provide an answer if no context is provided.`;
 
 export const template = ({ contexts, question }) => {
-  // Map over contexts to generate the context and score parts
-  const contextParts = contexts
-    .map(
-      ({ context, normalisedScore }) => `
+	// Map over contexts to generate the context and score parts
+	const contextParts = contexts
+		.map(
+			({ context, normalisedScore }) => `
   
   ${context ? `<context> ${context} </context>` : ""}
   
   ${normalisedScore ? `<context_score> normalisedScore: ${normalisedScore} </context_score>` : ""}`,
-    )
-    .join("\n");
+		)
+		.join("\n");
 
-  // Construct the final prompt using a template literal
-  const finalPrompt = `
+	// Construct the final prompt using a template literal
+	const finalPrompt = `
   Here's the given context and question for the task:
   ${contextParts}
   
@@ -38,5 +38,5 @@ export const template = ({ contexts, question }) => {
   </question>
   `;
 
-  return finalPrompt.trim();
+	return finalPrompt.trim();
 };

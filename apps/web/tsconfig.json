@@ -1,25 +1,25 @@
 {
-  "extends": "@repo/typescript-config/nextjs.json",
-  "compilerOptions": {
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": [
-    "cf-env.d.ts",
-    "env.d.ts",
-    "next.config.mjs",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "../../packages/ui/",
-    "../../packages/shared-types",
-    "./components"
-  ],
-  "exclude": ["node_modules/"]
+	"extends": "@repo/typescript-config/nextjs.json",
+	"compilerOptions": {
+		"plugins": [
+			{
+				"name": "next"
+			}
+		],
+		"paths": {
+			"@/*": ["./*"]
+		}
+	},
+	"include": [
+		"cf-env.d.ts",
+		"env.d.ts",
+		"next.config.mjs",
+		"**/*.ts",
+		"**/*.tsx",
+		".next/types/**/*.ts",
+		"../../packages/ui/",
+		"../../packages/shared-types",
+		"./components"
+	],
+	"exclude": ["node_modules/"]
 }

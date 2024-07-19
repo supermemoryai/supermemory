@@ -1,28 +1,28 @@
 {
-  "manifest_version": 3,
-  "$schema": "https://json.schemastore.org/chrome-manifest",
-  "version": "2.63",
-  "name": "supermemory",
-  "description": "An extension for https://supermemory.ai - an AI hub for all your bookmarks.",
-  "background": {
-    "service_worker": "./background.ts"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["./content/content.tsx"]
-    }
-  ],
-  "icons": {
-    "16": "public/icon/icon_16.png",
-    "48": "public/icon/icon_48.png"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["public/*"],
-      "matches": ["<all_urls>"]
-    }
-  ],
-  "permissions": ["webRequest", "storage", "contextMenus"],
-  "host_permissions": ["<all_urls>"]
+	"manifest_version": 3,
+	"$schema": "https://json.schemastore.org/chrome-manifest",
+	"version": "2.63",
+	"name": "supermemory",
+	"description": "An extension for https://supermemory.ai - an AI hub for all your bookmarks.",
+	"background": {
+		"service_worker": "./background.ts"
+	},
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"js": ["./content/content.tsx"]
+		}
+	],
+	"icons": {
+		"16": "public/icon/icon_16.png",
+		"48": "public/icon/icon_48.png"
+	},
+	"web_accessible_resources": [
+		{
+			"resources": ["public/*"],
+			"matches": ["<all_urls>"]
+		}
+	],
+	"permissions": ["webRequest", "storage", "contextMenus"],
+	"host_permissions": ["<all_urls>"]
 }
