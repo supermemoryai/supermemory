@@ -64,7 +64,7 @@ async function Signin({
 								action={async () => {
 									"use server";
 									await signIn("google", {
-										redirectTo: "/home?firstTime=true",
+										redirectTo: "/onboarding",
 									});
 								}}
 							>

@@ -1,13 +1,20 @@
 {
-	"version": "6",
-	"dialect": "sqlite",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "6",
-			"when": 1720360287793,
-			"tag": "0000_exotic_sway",
-			"breakpoints": true
-		}
-	]
+  "version": "6",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1720360287793,
+      "tag": "0000_exotic_sway",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1721329604476,
+      "tag": "0001_nervous_longshot",
+      "breakpoints": true
+    }
+  ]
 }
