@@ -1,173 +1,358 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MemoriesIcon, CanvasIcon, AddIcon } from "@repo/ui/icons";
-import { DialogTrigger } from "@repo/ui/shadcn/dialog";
-
-import { HomeIcon } from "@heroicons/react/24/solid";
+import { MemoriesIcon, ExploreIcon, CanvasIcon, AddIcon } from "@repo/ui/icons";
+import { Button } from "@repo/ui/shadcn/button";
+import { MinusIcon, PlusCircleIcon } from "lucide-react";
 import {
-	PencilSquareIcon,
-	PlusIcon,
-	PresentationChartLineIcon,
-	RectangleStackIcon,
-} from "@heroicons/react/24/solid";
-import DialogTriggerWrapper, {
-	DialogDesktopTrigger,
-	DialogMobileTrigger,
-} from "./dialogTriggerWrapper";
-
-const menuItems = [
-	{
-		icon: MemoriesIcon,
-		text: "Memories",
-		url: "/memories",
-		disabled: false,
-	},
-	{
-		icon: CanvasIcon,
-		text: "Canvas",
-		url: "/canvas",
-		disabled: true,
-	},
-];
-
-const items = [
-	{
-		icon: <HomeIcon className="h-6 w-6" />,
-		name: "home",
-		url: "/home",
-		disabled: false,
-	},
-	{
-		icon: <RectangleStackIcon className="h-6 w-6" />,
-		name: "memories",
-		url: "/memories",
-		disabled: false,
-	},
-	{
-		icon: <PencilSquareIcon className="h-6 w-6" />,
-		name: "editor",
-		url: "/#",
-		disabled: true,
-	},
-	{
-		icon: <PresentationChartLineIcon className="h-6 w-6" />,
-		name: "thinkpad",
-		url: "/#",
-		disabled: true,
-	},
-];
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@repo/ui/shadcn/dialog";
+import { Label } from "@repo/ui/shadcn/label";
+import { Textarea } from "@repo/ui/shadcn/textarea";
+import { toast } from "sonner";
+import { getSpaces } from "../actions/fetchers";
+import { HomeIcon } from "@heroicons/react/24/solid";
+import { createMemory, createSpace } from "../actions/doers";
+import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
+import { StoredSpace } from "@/server/db/schema";
+import useMeasure from "react-use-measure";
 
 function Menu() {
+	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
+
+	useEffect(() => {
+		(async () => {
+			let spaces = await getSpaces();
+
+			if (!spaces.success || !spaces.data) {
+				toast.warning("Unable to get spaces", {
+					richColors: true,
+				});
+				setSpaces([]);
+				return;
+			}
+			setSpaces(spaces.data);
+		})();
+	}, []);
+
+	const menuItems = [
+		{
+			icon: MemoriesIcon,
+			text: "Memories",
+			url: "/memories",
+			disabled: false,
+		},
+		{
+			icon: CanvasIcon,
+			text: "Canvas",
+			url: "/canvas",
+			disabled: true,
+		},
+	];
+
+	const [content, setContent] = useState("");
+	const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
+
+	const autoDetectedType = useMemo(() => {
+		if (content.length === 0) {
+			return "none";
+		}
+
+		if (
+			content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)
+		) {
+			return "tweet";
+		} else if (content.match(/https?:\/\/[\w\.]+/)) {
+			return "page";
+		} else if (content.match(/https?:\/\/www\.[\w\.]+/)) {
+			return "page";
+		} else {
+			return "note";
+		}
+	}, [content]);
+
+	const [dialogOpen, setDialogOpen] = useState(false);
+
+	const options = useMemo(
+		() =>
+			spaces.map((x) => ({
+				label: x.name,
+				value: x.id.toString(),
+			})),
+		[spaces],
+	);
+
+	const handleSubmit = async (content?: string, spaces?: number[]) => {
+		setDialogOpen(false);
+
+		toast.info("Creating memory...", {
+			icon: <PlusCircleIcon className="w-4 h-4 text-white animate-spin" />,
+			duration: 7500,
+		});
+
+		if (!content || content.length === 0) {
+			toast.error("Content is required");
+			return;
+		}
+
+		console.log(spaces);
+
+		const cont = await createMemory({
+			content: content,
+			spaces: spaces ?? undefined,
+		});
+
+		setContent("");
+		setSelectedSpaces([]);
+
+		if (cont.success) {
+			toast.success("Memory created", {
+				richColors: true,
+			});
+		} else {
+			toast.error(`Memory creation failed: ${cont.error}`);
+		}
+	};
+
 	return (
 		<>
 			{/* Desktop Menu */}
-			<div className="hidden lg:flex items-center pointer-events-none z-[39] fixed left-0 top-0 h-screen flex-col justify-center px-2">
-				<div className="pointer-events-none z-10 absolute top-1/2 h-1/3 w-full -translate-y-1/2 bg-blue-500/20 blur-[300px] "></div>
-				<div className="pointer-events-auto flex flex-col gap-2">
-					<DialogDesktopTrigger />
-					<div className="inline-flex w-14 flex-col items-start gap-6 rounded-2xl border-[1px] border-gray-700/50 bg-[#1F2428] px-3 py-4 text-[#b9b9b9] shadow-md shadow-[#1d1d1dc7]">
-						{items.map((v) => (
-							<NavItem {...v} />
+			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+				<div className="hidden lg:flex fixed h-screen pb-20 w-full p-4 items-center justify-start top-0 left-0 pointer-events-none z-[39]">
+					<div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration-200 hover:w-40 z-[99999]">
+						<div className="border-b border-border pb-4 w-full">
+							<DialogTrigger
+								className={`flex w-full text-white brightness-75 hover:brightness-125 focus:brightness-125  cursor-pointer items-center gap-3 px-1 duration-200 justify-start`}
+							>
+								<Image
+									src={AddIcon}
+									alt="Logo"
+									width={24}
+									height={24}
+									className="hover:brightness-125 focus:brightness-125 duration-200 text-white"
+								/>
+								<p className="opacity-0 duration-200 group-hover:opacity-100">
+									Add
+								</p>
+							</DialogTrigger>
+						</div>
+						{menuItems.map((item) => (
+							<Link
+								aria-disabled={item.disabled}
+								href={item.disabled ? "#" : item.url}
+								key={item.url}
+								className={`flex w-full ${
+									item.disabled
+										? "cursor-not-allowed opacity-30"
+										: "text-white brightness-75 hover:brightness-125 cursor-pointer"
+								} items-center gap-3 px-1 duration-200 hover:scale-105 active:scale-90 justify-start`}
+							>
+								<Image
+									src={item.icon}
+									alt={`${item.text} icon`}
+									width={24}
+									height={24}
+									className="hover:brightness-125 duration-200"
+								/>
+								<p className="opacity-0 duration-200 group-hover:opacity-100">
+									{item.text}
+								</p>
+							</Link>
 						))}
 					</div>
 				</div>
-			</div>
 
-			{/* Mobile Menu */}
-			<div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-secondary z-50 border-t-2 border-border">
-				<div className="flex justify-around items-center">
-					<Link
-						href={"/"}
-						className={`flex flex-col items-center text-white ${"cursor-pointer"}`}
+				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39] backdrop-blur-md">
+					<form
+						action={async (e: FormData) => {
+							const content = e.get("content")?.toString();
+
+							await handleSubmit(content, selectedSpaces);
+						}}
+						className="flex flex-col gap-4 "
 					>
-						<HomeIcon width={24} height={24} />
-						<p className="text-xs text-foreground-menu mt-2">Home</p>
-					</Link>
+						<DialogHeader>
+							<DialogTitle>Add memory</DialogTitle>
+							<DialogDescription className="text-[#F2F3F5]">
+								A "Memory" is a bookmark, something you want to remember.
+							</DialogDescription>
+						</DialogHeader>
 
-					<DialogMobileTrigger />
-					{menuItems.map((item) => (
+						<div>
+							<Label htmlFor="name">Resource (URL or content)</Label>
+							<Textarea
+								className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
+								id="content"
+								name="content"
+								rows={8}
+								placeholder="Start typing a note or paste a URL here. I'll remember it."
+								value={content}
+								onChange={(e) => setContent(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" && !e.shiftKey) {
+										e.preventDefault();
+										handleSubmit(content, selectedSpaces);
+									}
+								}}
+							/>
+						</div>
+
+						<div>
+							<Label className="space-y-1" htmlFor="space">
+								<h3 className="font-semibold text-lg tracking-tight">
+									Spaces (Optional)
+								</h3>
+								<p className="leading-normal text-[#F2F3F5] text-sm">
+									A space is a collection of memories. It's a way to organise
+									your memories.
+								</p>
+							</Label>
+
+							<ComboboxWithCreate
+								options={spaces.map((x) => ({
+									label: x.name,
+									value: x.id.toString(),
+								}))}
+								onSelect={(v) =>
+									setSelectedSpaces((prev) => {
+										if (v === "") {
+											return [];
+										}
+										return [...prev, parseInt(v)];
+									})
+								}
+								onSubmit={async (spaceName) => {
+									const space = options.find((x) => x.label === spaceName);
+									toast.info("Creating space...");
+
+									if (space) {
+										toast.error("A space with that name already exists.");
+									}
+
+									const creationTask = await createSpace(spaceName);
+									if (creationTask.success && creationTask.data) {
+										toast.success("Space created " + creationTask.data);
+										setSpaces((prev) => [
+											...prev,
+											{
+												name: spaceName,
+												id: creationTask.data!,
+												createdAt: new Date(),
+												user: null,
+												numItems: 0,
+											},
+										]);
+										setSelectedSpaces((prev) => [...prev, creationTask.data!]);
+									} else {
+										toast.error(
+											"Space creation failed: " + creationTask.error ??
+												"Unknown error",
+										);
+									}
+								}}
+								placeholder="Select or create a new space."
+								className="bg-[#2F353C] h-min rounded-md mt-4 mb-4"
+							/>
+
+							<div>
+								{selectedSpaces.length > 0 && (
+									<div className="flex flex-row flex-wrap gap-0.5 h-min">
+										{[...new Set(selectedSpaces)].map((x, idx) => (
+											<button
+												key={x}
+												type="button"
+												onClick={() =>
+													setSelectedSpaces((prev) =>
+														prev.filter((y) => y !== x),
+													)
+												}
+												className={`relative group p-2 py-3 bg-[#3C464D] max-w-32 ${
+													idx === selectedSpaces.length - 1
+														? "rounded-br-xl"
+														: ""
+												}`}
+											>
+												<p className="line-clamp-1">
+													{spaces.find((y) => y.id === x)?.name}
+												</p>
+												<div className="absolute h-full right-0 top-0 p-1 opacity-0 group-hover:opacity-100 items-center">
+													<MinusIcon className="w-6 h-6 rounded-full bg-secondary" />
+												</div>
+											</button>
+										))}
+									</div>
+								)}
+							</div>
+						</div>
+
+						<DialogFooter>
+							<Button
+								disabled={autoDetectedType === "none"}
+								variant={"secondary"}
+								type="submit"
+							>
+								Save {autoDetectedType != "none" && autoDetectedType}
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+
+				{/* Mobile Menu */}
+				<div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-secondary z-50 border-t-2 border-border">
+					<div className="flex justify-around items-center">
 						<Link
-							aria-disabled={item.disabled}
-							href={item.disabled ? "#" : item.url}
-							key={item.url}
-							className={`flex flex-col items-center ${
-								item.disabled
-									? "opacity-50 pointer-events-none"
-									: "cursor-pointer"
-							}`}
+							href={"/"}
+							className={`flex flex-col items-center text-white ${"cursor-pointer"}`}
+						>
+							<HomeIcon width={24} height={24} />
+							<p className="text-xs text-foreground-menu mt-2">Home</p>
+						</Link>
+
+						<DialogTrigger
+							className={`flex flex-col items-center cursor-pointer text-white`}
 						>
 							<Image
-								src={item.icon}
-								alt={`${item.text} icon`}
+								src={AddIcon}
+								alt="Logo"
 								width={24}
 								height={24}
+								className="hover:brightness-125 focus:brightness-125 duration-200 stroke-white"
 							/>
-							<p className="text-xs text-foreground-menu mt-2">{item.text}</p>
-						</Link>
-					))}
-				</div>
-			</div>
-		</>
-	);
-}
-
-export function Navbar() {
-	return (
-		<div className="pointer-events-none fixed left-0 top-0 flex h-screen flex-col justify-center px-2">
-			<div className="pointer-events-none absolute top-1/2 h-1/3 w-full -translate-y-1/2 bg-blue-500/20 blur-[300px] "></div>
-			<div className="pointer-events-auto">
-				<div className="inline-flex w-14 flex-col items-start gap-6 rounded-2xl border-[1px] border-gray-700/50 bg-[#1f24289b] px-3 py-4 text-[#b9b9b9] shadow-md shadow-[#1d1d1dc7]">
-					<Top />
-					{items.map((v) => (
-						<NavItem {...v} />
-					))}
-				</div>
-			</div>
-		</div>
-	);
-}
-
-function Top() {
-	return (
-		<DialogTriggerWrapper>
-			<DialogTrigger>
-				<div className="space-y-4 group relative">
-					<button className="cursor-pointer px-1 hover:scale-105 hover:text-[#bfc4c9] active:scale-90">
-						<PlusIcon className="h-6 w-6" />
-					</button>
-					<div className="h-[1px] w-full bg-[#323b41]"></div>
-					<div className="opacity-0 group-hover:opacity-100 scale-x-50 group-hover:scale-x-100 origin-left transition-all  absolute whitespace-nowrap -top-1  -translate-y-1/2 left-[150%] pointer-events-none border-gray-700/50 border-[1px] bg-[#1F2428] shadow-md shadow-[#1d1d1dc7] rounded-xl px-2 py-1">
-						Add Memories
+							<p className="text-xs text-foreground-menu mt-2">Add</p>
+						</DialogTrigger>
+						{menuItems.map((item) => (
+							<Link
+								aria-disabled={item.disabled}
+								href={item.disabled ? "#" : item.url}
+								key={item.url}
+								className={`flex flex-col items-center ${
+									item.disabled
+										? "opacity-50 cursor-not-allowed"
+										: "cursor-pointer"
+								}`}
+								onClick={(e) => item.disabled && e.preventDefault()}
+							>
+								<Image
+									src={item.icon}
+									alt={`${item.text} icon`}
+									width={24}
+									height={24}
+								/>
+								<p className="text-xs text-foreground-menu mt-2">{item.text}</p>
+							</Link>
+						))}
 					</div>
 				</div>
-			</DialogTrigger>
-		</DialogTriggerWrapper>
-	);
-}
-
-function NavItem({
-	disabled,
-	icon,
-	url,
-	name,
-}: {
-	disabled: boolean;
-	icon: React.JSX.Element;
-	name: string;
-	url: string;
-}) {
-	return (
-		<div className="relative group">
-			<Link aria-disabled={disabled} href={disabled ? "#" : url}>
-				<div className={`cursor-pointer px-1 hover:scale-105 hover:text-[#bfc4c9] active:scale-90 ${disabled && "opacity-50"}`}>
-					{icon}
-				</div>
-			</Link>
-			<div className="opacity-0 group-hover:opacity-100 scale-x-50 group-hover:scale-x-100 origin-left transition-all   absolute whitespace-nowrap top-1/2 -translate-y-1/2 left-[150%] pointer-events-none border-gray-700/50 border-[1px] bg-[#1F2428] shadow-md shadow-[#1d1d1dc7] rounded-xl px-2 py-1">
-				{name}
-			</div>
-		</div>
+			</Dialog>
+		</>
 	);
 }
 

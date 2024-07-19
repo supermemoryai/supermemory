@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, desc, eq, exists, inArray, not, or, sql } from "drizzle-orm";
+import { and, asc, eq, exists, inArray, not, or, sql } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
 	canvas,
@@ -227,34 +227,6 @@ export const getFullChatThread = async (
 		data: accumulatedChatHistory,
 	};
 };
-
-export const getRecentChats = async (): ServerActionReturnType<ChatThread[]> => {
-	const data = await auth();
-
-	if (!data || !data.user || !data.user.id) {
-		redirect("/signin");
-		return { error: "Not authenticated", success: false };
-	}
-
-	try {
-		const chatHistorys = await db.query.chatThreads.findMany({
-			where: eq(chatThreads.userId, data.user.id),
-			orderBy: desc(chatThreads.createdAt), 
-			limit: 4,
-		});
-
-		return {
-			success: true,
-			data: chatHistorys,
-		};
-	} catch (e) {
-		return {
-			success: false,
-			error: (e as Error).message,
-		};
-	}
-};
-
 
 export const getChatHistory = async (): ServerActionReturnType<
 	ChatThread[]
