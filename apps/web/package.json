@@ -17,7 +17,6 @@
 		"update-prod-db": "bunx wrangler d1 execute prod-d1-supermemory --remote"
 	},
 	"dependencies": {
-		"@million/lint": "^1.0.0-rc.11",
 		"@radix-ui/react-dialog": "^1.0.5",
 		"@radix-ui/react-popover": "^1.0.7",
 		"@radix-ui/react-slot": "^1.1.0",
