@@ -8,6 +8,7 @@ import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { variants } from "./homeVariants";
+import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
 
 const slap = {
 	initial: {
@@ -128,6 +129,38 @@ function Page({
 					initialSpaces={spaces}
 					setInitialSpaces={setSpaces}
 				/>
+			</div>
+
+			<div className="w-full fixed bottom-0 left-0 p-4">
+				<div className="flex items-center justify-center gap-8">
+					<a
+						href="https://supermemory.ai/extension"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground"
+					>
+						<ChromeIcon className="w-4 h-4" />
+						Install extension
+					</a>
+					<a
+						href="https://github.com/Dhravya/supermemory/issues/new"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground"
+					>
+						<GithubIcon className="w-4 h-4" />
+						Bug report
+					</a>
+					<a
+						href="https://x.com/supermemory.ai"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground"
+					>
+						<TwitterIcon className="w-4 h-4" />
+						Twitter
+					</a>
+				</div>
 			</div>
 		</div>
 	);
