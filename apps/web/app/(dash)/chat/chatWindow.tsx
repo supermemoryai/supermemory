@@ -290,7 +290,7 @@ function ChatWindow({
 
 											{/* Summary */}
 											<div>
-												<div className="text-foreground-menu py-2">Summary</div>
+												<div className="text-foreground-menu py-2">Answer</div>
 												<div className="text-base">
 													{/* Loading state */}
 													{(chat.answer.parts.length === 0 ||
