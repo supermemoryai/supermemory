@@ -11,7 +11,10 @@ import {
 	PresentationChartLineIcon,
 	RectangleStackIcon,
 } from "@heroicons/react/24/solid";
-import DialogTriggerWrapper, { DialogDesktopTrigger, DialogMobileTrigger } from "./dialogTriggerWrapper";
+import DialogTriggerWrapper, {
+	DialogDesktopTrigger,
+	DialogMobileTrigger,
+} from "./dialogTriggerWrapper";
 
 const menuItems = [
 	{
@@ -82,7 +85,7 @@ function Menu() {
 						<p className="text-xs text-foreground-menu mt-2">Home</p>
 					</Link>
 
-<DialogMobileTrigger />
+					<DialogMobileTrigger />
 					{menuItems.map((item) => (
 						<Link
 							aria-disabled={item.disabled}
@@ -157,7 +160,7 @@ function NavItem({
 	return (
 		<div className="relative group">
 			<Link aria-disabled={disabled} href={disabled ? "#" : url}>
-				<div className="cursor-pointer px-1 hover:scale-105 hover:text-[#bfc4c9] active:scale-90">
+				<div className={`cursor-pointer px-1 hover:scale-105 hover:text-[#bfc4c9] active:scale-90 ${disabled && "opacity-50"}`}>
 					{icon}
 				</div>
 			</Link>
