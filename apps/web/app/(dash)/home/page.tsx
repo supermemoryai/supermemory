@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { variants } from "./homeVariants";
 import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
+import Link from "next/link";
 
 const slap = {
 	initial: {
@@ -133,33 +134,33 @@ function Page({
 
 			<div className="w-full fixed bottom-0 left-0 p-4">
 				<div className="flex items-center justify-center gap-8">
-					<a
+					<Link
 						href="https://supermemory.ai/extension"
 						target="_blank"
 						rel="noreferrer"
-						className="flex items-center gap-2 text-muted-foreground"
+						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
 					>
 						<ChromeIcon className="w-4 h-4" />
 						Install extension
-					</a>
-					<a
+					</Link>
+					<Link
 						href="https://github.com/supermemoryai/supermemory/issues/new"
 						target="_blank"
 						rel="noreferrer"
-						className="flex items-center gap-2 text-muted-foreground"
+						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
 					>
 						<GithubIcon className="w-4 h-4" />
 						Bug report
-					</a>
-					<a
+					</Link>
+					<Link
 						href="https://x.com/supermemoryai"
 						target="_blank"
 						rel="noreferrer"
-						className="flex items-center gap-2 text-muted-foreground"
+						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
 					>
 						<TwitterIcon className="w-4 h-4" />
 						Twitter
-					</a>
+					</Link>
 				</div>
 			</div>
 		</div>
