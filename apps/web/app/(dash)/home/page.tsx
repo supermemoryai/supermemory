@@ -151,7 +151,7 @@ function Page({
 					>
 						<GithubIcon className="w-4 h-4" />
 						Bug report
-					</Link
+					</Link>
 					<Link
 						href="https://x.com/supermemoryai"
 						target="_blank"
