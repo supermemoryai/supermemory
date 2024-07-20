@@ -64,7 +64,11 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 	const { store } = await initQuery(c);
 
 	console.log(body.spaces);
-	const chunks = chunkText(body.pageContent, 1536);
+
+	// remove everything in <raw> tags
+	const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
+
+	const chunks = chunkText(newPageContent, 1536);
 	if (chunks.length > 20) {
 		return c.json({
 			status: "error",
