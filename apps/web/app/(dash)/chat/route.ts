@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default async function GET() {
+export async function GET() {
 	return redirect("/home");
 }
