@@ -66,7 +66,7 @@ export function FilterSpaces({
 						value={input}
 					/>
 				</div>
-				<CommandList className="z-10 translate-y-12 translate-x-5 opacity-0 absolute group-focus-within:opacity-100 transition-opacity p-2 rounded-lg max-w-64 bg-[#2C3338]">
+				<CommandList className="z-10 translate-y-12 translate-x-5 hidden pointer-events-none opacity-0 absolute group-focus-within:block group-focus-within:pointer-events-auto group-focus-within:opacity-100 transition-opacity p-2 rounded-lg max-w-64 bg-[#2C3338]">
 					<CommandGroup className="pointer-events-none opacity-0 group-focus-within:opacity-100 scale-50 scale-y-50 group-focus-within:scale-y-100 group-focus-within:scale-100 group-focus-within:pointer-events-auto transition-all origin-top">
 						{initialSpaces.filter(
 							(space) => !selectedSpaces.some((v) => v.id === space.id),
