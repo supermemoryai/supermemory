@@ -7,6 +7,7 @@ import Image from "next/image";
 
 function QueryInput({
 	setQueryPresent,
+	initialQuery,
 	initialSpaces,
 	handleSubmit,
 }: {
@@ -15,10 +16,11 @@ function QueryInput({
 		id: number;
 		name: string;
 	}[];
+	initialQuery?: string;
 	mini?: boolean;
 	handleSubmit: (q: string, spaces: { id: number; name: string }[]) => void;
 }) {
-	const [q, setQ] = useState("");
+	const [q, setQ] = useState(initialQuery || "");
 
 	const [selectedSpaces, setSelectedSpaces] = useState<
 		{ id: number; name: string }[]

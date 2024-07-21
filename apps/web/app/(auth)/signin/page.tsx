@@ -95,7 +95,7 @@ async function Signin({
 			<div className="relative hidden w-0 lg:flex lg:w-1/2  flex-col items-center justify-center min-h-screen bg-page-gradient overflow-hidden">
 				<img
 					className="absolute inset-x-0 -top-20 opacity-15 "
-					src={"/images/landing-hero.jpeg"}
+					src={"/images/landing-hero-left.png"}
 					width={1000}
 					height={1000}
 					alt="back bg"
@@ -108,7 +108,7 @@ async function Signin({
 				<div>
 					<Image
 						className="mx-auto rounded-lg shadow-2xl w-[calc(100%-100px)] md:px-14 lg:px-0 lg:max-w-none"
-						src={"/images/memory.svg"}
+						src={"/images/landing-hero-left.png"}
 						width={700}
 						height={520}
 						alt="Carousel 01"
