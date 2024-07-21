@@ -44,9 +44,7 @@ function ChatWindow({
 	initialChat?: ChatHistory[];
 	threadId: string;
 }) {
-	const [layout, setLayout] = useState<"chat" | "initial">(
-		initialChat.length > 1 ? "chat" : "initial",
-	);
+	const [layout, setLayout] = useState<"chat" | "initial">("chat");
 	const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
 
 	const removeJustificationFromText = (text: string) => {
@@ -66,6 +64,10 @@ function ChatWindow({
 	const router = useRouter();
 
 	const getAnswer = async (query: string, spaces: string[]) => {
+		if (query.trim() === "from_loading" || query.trim().length === 0) {
+			return;
+		}
+
 		const sourcesFetch = await fetch(
 			`/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true&threadId=${threadId}`,
 			{
