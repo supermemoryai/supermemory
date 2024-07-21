@@ -9,7 +9,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { CheckIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { createMemory } from "@repo/web/app/actions/doers";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,13 @@ import gradientStyle from "../signin/_components/TextGradient/gradient.module.cs
 
 export default function Home() {
 	const [currStep, setCurrStep] = useState(0);
+	const { push } = useRouter();
+
+	useEffect(() => {
+		if (currStep > 3) {
+			push("/home?q=what%20is%20supermemory");
+		}
+	}, [currStep]);
 
 	return (
 		<main className="min-h-screen text-sm text-[#B8C4C6] font-geistSans">
