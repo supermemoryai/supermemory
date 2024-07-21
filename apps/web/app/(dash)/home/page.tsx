@@ -1,15 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import QueryInput from './queryinput';
-import { getSessionAuthToken, getSpaces } from '@/app/actions/fetchers';
-import { useRouter } from 'next/navigation';
-import { createChatThread, linkTelegramToUser } from '@/app/actions/doers';
-import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import { ChromeIcon, GithubIcon, TwitterIcon } from 'lucide-react';
-import Image from 'next/image';
-import Logo from '../../../public/logo.svg';
+import React, { useEffect, useState } from "react";
+import QueryInput from "./queryinput";
+import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
+import { useRouter } from "next/navigation";
+import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
+import Link from "next/link";
 
 const slap = {
   initial: {
@@ -122,39 +121,39 @@ function Page({
         />
       </div>
 
-      <div className="w-full fixed bottom-0 left-0 p-4">
-        <div className="flex items-center justify-center gap-8">
-          <a
-            href="https://supermemory.ai/extension"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-muted-foreground"
-          >
-            <ChromeIcon className="w-4 h-4" />
-            Install extension
-          </a>
-          <a
-            href="https://github.com/supermemoryai/supermemory/issues/new"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-muted-foreground"
-          >
-            <GithubIcon className="w-4 h-4" />
-            Bug report
-          </a>
-          <a
-            href="https://x.com/supermemoryai"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-muted-foreground"
-          >
-            <TwitterIcon className="w-4 h-4" />
-            Twitter
-          </a>
-        </div>
-      </div>
-    </div>
-  );
+			<div className="w-full fixed bottom-0 left-0 p-4">
+				<div className="flex items-center justify-center gap-8">
+					<Link
+						href="https://supermemory.ai/extension"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
+					>
+						<ChromeIcon className="w-4 h-4" />
+						Install extension
+					</Link>
+					<Link
+						href="https://github.com/supermemoryai/supermemory/issues/new"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
+					>
+						<GithubIcon className="w-4 h-4" />
+						Bug report
+					</Link>
+					<Link
+						href="https://x.com/supermemoryai"
+						target="_blank"
+						rel="noreferrer"
+						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
+					>
+						<TwitterIcon className="w-4 h-4" />
+						Twitter
+					</Link>
+				</div>
+			</div>
+		</div>
+	);
 }
 
 export default Page;
