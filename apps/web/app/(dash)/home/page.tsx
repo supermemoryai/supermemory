@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { variants } from "./homeVariants";
 import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
+import Image from "next/image";
+import Logo from "../../../public/logo.svg";
 
 const slap = {
 	initial: {
@@ -30,6 +31,8 @@ function Page({
 }) {
 	// TODO: use this to show a welcome page/modal
 	// const { firstTime } = homeSearchParamsCache.parse(searchParams);
+
+	const [queryPresent, setQueryPresent] = useState<boolean>(false);
 
 	const [telegramUser, setTelegramUser] = useState<string | undefined>(
 		searchParams.telegramUser as string,
@@ -71,8 +74,6 @@ function Page({
 			// TODO: HANDLE ERROR
 		});
 
-		setShowVariant(Math.floor(Math.random() * variants.length));
-
 		getSessionAuthToken().then((token) => {
 			if (typeof window === "undefined") return;
 			window.postMessage({ token: token.data }, "*");
@@ -91,24 +92,15 @@ function Page({
 				}}
 				className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl"
 			>
-				{variants[showVariant]!.map((v, i) => {
-					return (
-						<span
-							key={i}
-							className={
-								v.type === "highlighted"
-									? "bg-gradient-to-r to-blue-200 from-zinc-300 text-transparent bg-clip-text"
-									: ""
-							}
-						>
-							{v.content}
-						</span>
-					);
-				})}
+				<span>Ask your</span>{" "}
+				<span className="inline-flex items-center gap-2 bg-gradient-to-r to-blue-300 from-zinc-300 text-transparent bg-clip-text">
+					supermemory
+				</span>
 			</motion.h1>
 
 			<div className="w-full pb-20 mt-12">
 				<QueryInput
+					setQueryPresent={setQueryPresent}
 					handleSubmit={async (q, spaces) => {
 						if (q.length === 0) {
 							toast.error("Query is required");
@@ -127,7 +119,6 @@ function Page({
 						);
 					}}
 					initialSpaces={spaces}
-					setInitialSpaces={setSpaces}
 				/>
 			</div>
 

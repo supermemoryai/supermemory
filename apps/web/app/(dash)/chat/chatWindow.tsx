@@ -2,7 +2,7 @@
 
 import { AnimatePresence } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
-import QueryInput from "../home/queryinput";
+import QueryInput from "./chatQueryInput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,6 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
 import { ClipboardIcon } from "@heroicons/react/24/outline";
-import { SendIcon } from "lucide-react";
 
 function ChatWindow({
 	q,
@@ -199,9 +198,8 @@ function ChatWindow({
 						<div className="w-full h-96">
 							<QueryInput
 								handleSubmit={() => {}}
-								initialQuery={q}
 								initialSpaces={[]}
-								disabled
+								initialQuery={q}
 							/>
 						</div>
 					</motion.div>
