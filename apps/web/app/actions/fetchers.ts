@@ -235,7 +235,6 @@ export const getChatHistory = async (): ServerActionReturnType<
 
 	if (!data || !data.user || !data.user.id) {
 		redirect("/signin");
-		return { error: "Not authenticated", success: false };
 	}
 
 	try {

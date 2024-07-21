@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
 import Link from "next/link";
 import { homeSearchParamsCache } from "@/lib/searchParams";
+import History from "./history";
 
 const slap = {
 	initial: {
@@ -121,6 +122,8 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 					}}
 					initialSpaces={spaces}
 				/>
+
+				<History />
 			</div>
 
 			<div className="w-full fixed bottom-0 left-0 p-4">
