@@ -121,6 +121,6 @@
 		"es5-ext"
 	],
 	"lint-staged": {
-		"**/*": "prettier --write --ignore-unknown --allow-empty"
+		"**/*": "prettier --write --ignore-unknown"
 	}
 }
