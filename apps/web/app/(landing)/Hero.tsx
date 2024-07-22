@@ -26,6 +26,18 @@ function Hero() {
 	return (
 		<>
 			<section className="flex relative flex-col gap-5 justify-center items-center mt-24 max-w-xl md:mt-32 md:max-w-2xl lg:max-w-3xl">
+				<a
+					href="https://www.producthunt.com/posts/supermemory?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-supermemory"
+					target="_blank"
+				>
+					<img
+						src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=472686&theme=dark"
+						alt="Supermemory - AI&#0032;second&#0032;brain&#0032;for&#0032;all&#0032;your&#0032;saved&#0032;stuff | Product Hunt"
+						style={{ width: "250px", height: "54px" }}
+						width="250"
+						height="54"
+					/>
+				</a>
 				<TwitterBorder />
 				<motion.h1
 					{...{
