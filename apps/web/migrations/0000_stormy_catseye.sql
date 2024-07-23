@@ -70,7 +70,7 @@ CREATE TABLE `session` (
 --> statement-breakpoint
 CREATE TABLE `space` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`name` text DEFAULT 'none' NOT NULL,
+	`name` text NOT NULL,
 	`user` text(255),
 	`createdAt` integer NOT NULL,
 	`numItems` integer DEFAULT 0 NOT NULL,
@@ -120,7 +120,6 @@ CREATE UNIQUE INDEX `authenticator_credentialID_unique` ON `authenticator` (`cre
 CREATE INDEX `canvas_user_userId` ON `canvas` (`userId`);--> statement-breakpoint
 CREATE INDEX `chatHistory_thread_idx` ON `chatHistory` (`threadId`);--> statement-breakpoint
 CREATE INDEX `chatThread_user_idx` ON `chatThread` (`userId`);--> statement-breakpoint
-CREATE UNIQUE INDEX `space_name_unique` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_name_idx` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint
 CREATE UNIQUE INDEX `storedContent_baseUrl_unique` ON `storedContent` (`baseUrl`);--> statement-breakpoint
