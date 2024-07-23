@@ -62,7 +62,7 @@ async function Signin({
 						>
 							<GoogleLogin />
 						</div>
-            <div
+						<div
 							className={`relative cursor-pointer transition-width z-20 rounded-2xl bg-hero-gradient   p-[0.7px] duration-500  ease-in-out fit dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]`}
 						>
 							<GitHubLogin />
