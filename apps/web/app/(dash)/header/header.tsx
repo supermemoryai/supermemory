@@ -7,6 +7,7 @@ import { getChatHistory } from "../../actions/fetchers";
 import NewChatButton from "./newChatButton";
 import AutoBreadCrumbs from "./autoBreadCrumbs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui/shadcn/dropdown-menu";
+import { CaretDownIcon } from "@radix-ui/react-icons";
 
 async function Header() {
 	const chatThreads = await getChatHistory();
@@ -34,7 +35,10 @@ async function Header() {
 					<NewChatButton />
 
 					<DropdownMenu>
-						<DropdownMenuTrigger>History</DropdownMenuTrigger>
+						<DropdownMenuTrigger className="inline-flex flex-row flex-nowrap items-center text-muted-foreground hover:text-foreground">
+              History
+              <CaretDownIcon />
+            </DropdownMenuTrigger>
 						<DropdownMenuContent className="p-4 w-full md:w-[400px] max-h-[70vh] overflow-auto border-none">
 							{chatThreads.data.map((thread) => (
 								<DropdownMenuItem asChild>
