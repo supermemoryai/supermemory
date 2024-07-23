@@ -6,6 +6,7 @@ import Logo from "../../../public/logo.svg";
 import { getChatHistory } from "../../actions/fetchers";
 import NewChatButton from "./newChatButton";
 import AutoBreadCrumbs from "./autoBreadCrumbs";
+import SignOutButton from "./signOutButton";
 
 async function Header() {
 	const chatThreads = await getChatHistory();
@@ -52,6 +53,7 @@ async function Header() {
 							</div>
 						</div>
 					</div>
+          <SignOutButton />
 				</div>
 			</div>
 		</div>
