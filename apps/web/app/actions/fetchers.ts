@@ -218,6 +218,9 @@ export const getFullChatThread = async (
 					],
 					sources: sources ?? [],
 				},
+				proModeProcessing: {
+					queries: [],
+				},
 			};
 		},
 	);
