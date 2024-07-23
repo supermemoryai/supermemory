@@ -18,6 +18,9 @@ declare global {
 			CLOUDFLARE_DATABASE_ID: string;
 			CLOUDFLARE_D1_TOKEN: string;
 
+			THREAD_CF_WORKER: string;
+			THREAD_CF_AUTH: string;
+
 			MOBILE_TRUST_TOKEN: string;
 		}
 	}

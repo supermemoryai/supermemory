@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { Env, vectorObj } from "./types";
+import { Env, vectorObj, Chunks } from "./types";
 import { CloudflareVectorizeStore } from "@langchain/cloudflare";
 import { OpenAIEmbeddings } from "./utils/OpenAIEmbedder";
 import { createOpenAI } from "@ai-sdk/openai";
@@ -7,6 +7,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { seededRandom } from "./utils/seededRandom";
+import { bulkInsertKv } from "./utils/kvBulkInsert";
 
 export async function initQuery(
 	c: Context<{ Bindings: Env }>,
@@ -135,7 +136,7 @@ export async function batchCreateChunksAndEmbeddings({
 }: {
 	store: CloudflareVectorizeStore;
 	body: z.infer<typeof vectorObj>;
-	chunks: string[];
+	chunks: Chunks;
 	context: Context<{ Bindings: Env }>;
 }) {
 	//! NOTE that we use #supermemory-web to ensure that
@@ -150,7 +151,6 @@ export async function batchCreateChunksAndEmbeddings({
 
 	const allIds = await context.env.KV.list({ prefix: uuid });
 
-	let pageContent = "";
 	// If some chunks for that content already exist, we'll just update the metadata to include
 	// the user.
 	if (allIds.keys.length > 0) {
@@ -169,51 +169,169 @@ export async function batchCreateChunksAndEmbeddings({
 					return acc;
 				}, {}),
 			};
-			const content =
-				vector.metadata.content.toString().split("Content: ")[1] ||
-				vector.metadata.content;
-			pageContent += `<---chunkId: ${vector.id}\n${content}\n---->`;
 			return vector;
 		});
 
 		await context.env.VECTORIZE_INDEX.upsert(newVectors);
-		return pageContent; //Return the page content that goes to d1 db
+		return;
 	}
 
-	for (let i = 0; i < chunks.length; i++) {
-		const chunk = chunks[i];
-		const chunkId = `${uuid}-${i}`;
-
-		const newPageContent = `Title: ${body.title}\nDescription: ${body.description}\nURL: ${body.url}\nContent: ${chunk}`;
-
-		const docs = await store.addDocuments(
-			[
-				{
-					pageContent: newPageContent,
-					metadata: {
-						title: body.title?.slice(0, 50) ?? "",
-						description: body.description ?? "",
-						url: body.url,
-						type: body.type ?? "page",
-						content: newPageContent,
-
-						[sanitizeKey(`user-${body.user}`)]: 1,
-						...body.spaces?.reduce((acc, space) => {
-							acc[`space-${body.user}-${space}`] = 1;
-							return acc;
-						}, {}),
-					},
-				},
-			],
+	switch (chunks.type) {
+		case "tweet":
 			{
-				ids: [chunkId],
-			},
-		);
+				const commonMetaData = {
+					type: body.type ?? "tweet",
+					title: body.title,
+					description: body.description ?? "",
+					url: body.url,
+					[sanitizeKey(`user-${body.user}`)]: 1,
+				};
+				const spaceMetadata = body.spaces?.reduce((acc, space) => {
+					acc[`space-${body.user}-${space}`] = 1;
+					return acc;
+				}, {});
 
-		console.log("Docs added: ", docs);
+				const ids = [];
+				const preparedDocuments = chunks.chunks
+					.map((tweet, i) => {
+						return tweet.chunkedTweet.map((chunk) => {
+							const id = `${uuid}-${i}`;
+							ids.push(id);
+							const { tweetLinks, tweetVids, tweetId } = tweet.metadata;
+							return {
+								pageContent: chunk,
+								metadata: {
+									links: tweetLinks,
+									videos: tweetVids,
+									tweetId: tweetId,
+									...commonMetaData,
+									...spaceMetadata,
+								},
+							};
+						});
+					})
+					.flat();
 
-		await context.env.KV.put(chunkId, ourID);
-		pageContent += `<---chunkId: ${chunkId}\n${chunk}\n---->`;
+				const docs = await store.addDocuments(preparedDocuments, {
+					ids: ids,
+				});
+				console.log("these are the doucment ids", ids);
+				console.log("Docs added:", docs);
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
+					context.env;
+				await bulkInsertKv(
+					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
+					{ chunkIds: ids, urlid: ourID },
+				);
+			}
+			break;
+		case "page":
+			{
+				const commonMetaData = {
+					type: body.type ?? "page",
+					title: body.title,
+					description: body.description ?? "",
+					url: body.url,
+					[sanitizeKey(`user-${body.user}`)]: 1,
+				};
+				const spaceMetadata = body.spaces?.reduce((acc, space) => {
+					acc[`space-${body.user}-${space}`] = 1;
+					return acc;
+				}, {});
+
+				const ids = [];
+				const preparedDocuments = chunks.chunks.map((chunk, i) => {
+					const id = `${uuid}-${i}`;
+					ids.push(id);
+					return {
+						pageContent: chunk,
+						metadata: {
+							...commonMetaData,
+							...spaceMetadata,
+						},
+					};
+				});
+
+				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
+				console.log("Docs added:", docs);
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
+					context.env;
+				await bulkInsertKv(
+					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
+					{ chunkIds: ids, urlid: ourID },
+				);
+			}
+			break;
+		case "note":
+			{
+				const commonMetaData = {
+					type: body.type ?? "page",
+					description: body.description ?? "",
+					url: body.url,
+					[sanitizeKey(`user-${body.user}`)]: 1,
+				};
+				const spaceMetadata = body.spaces?.reduce((acc, space) => {
+					acc[`space-${body.user}-${space}`] = 1;
+					return acc;
+				}, {});
+
+				const ids = [];
+				const preparedDocuments = chunks.chunks.map((chunk, i) => {
+					const id = `${uuid}-${i}`;
+					ids.push(id);
+					return {
+						pageContent: chunk,
+						metadata: {
+							...commonMetaData,
+							...spaceMetadata,
+						},
+					};
+				});
+
+				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
+				console.log("Docs added:", docs);
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
+					context.env;
+				await bulkInsertKv(
+					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
+					{ chunkIds: ids, urlid: ourID },
+				);
+			}
+			break;
+		case "image": {
+			const commonMetaData = {
+				type: body.type ?? "image",
+				title: body.title,
+				description: body.description ?? "",
+				url: body.url,
+				[sanitizeKey(`user-${body.user}`)]: 1,
+			};
+			const spaceMetadata = body.spaces?.reduce((acc, space) => {
+				acc[`space-${body.user}-${space}`] = 1;
+				return acc;
+			}, {});
+
+			const ids = [];
+			const preparedDocuments = chunks.chunks.map((chunk, i) => {
+				const id = `${uuid}-${i}`;
+				ids.push(id);
+				return {
+					pageContent: chunk,
+					metadata: {
+						...commonMetaData,
+						...spaceMetadata,
+					},
+				};
+			});
+
+			const docs = await store.addDocuments(preparedDocuments, { ids: ids });
+			console.log("Docs added:", docs);
+			const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = context.env;
+			await bulkInsertKv(
+				{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
+				{ chunkIds: ids, urlid: ourID },
+			);
+		}
 	}
-	return pageContent; // Return the pageContent  that goes to the d1 db
+	return;
 }

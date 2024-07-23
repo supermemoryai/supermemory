@@ -60,7 +60,7 @@ export const createSpace = async (
 	}
 };
 
-const typeDecider = (content: string) => {
+const typeDecider = (content: string): "page" | "tweet" | "note" => {
 	// if the content is a URL, then it's a page. if its a URL with https://x.com/user/status/123, then it's a tweet. else, it's a note.
 	// do strict checking with regex
 	if (content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)) {
@@ -171,6 +171,7 @@ export const createMemory = async (input: {
 
 	let pageContent = input.content;
 	let metadata: Awaited<ReturnType<typeof getMetaData>>;
+	let vectorData: string;
 
 	if (!(await limit(data.user.id, type))) {
 		return {
@@ -189,7 +190,7 @@ export const createMemory = async (input: {
 			},
 		});
 		pageContent = await response.text();
-
+		vectorData = pageContent;
 		try {
 			metadata = await getMetaData(input.content);
 		} catch (e) {
@@ -199,8 +200,42 @@ export const createMemory = async (input: {
 			};
 		}
 	} else if (type === "tweet") {
+		//Request the worker for the entire thread
+
+		let thread: string;
+		let errorOccurred: boolean = false;
+
+		try {
+			const cf_thread_endpoint = process.env.THREAD_CF_WORKER;
+			const authKey = process.env.THREAD_CF_AUTH;
+
+			const threadRequest = await fetch(cf_thread_endpoint, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: authKey,
+				},
+				body: JSON.stringify({ url: input.content }),
+			});
+
+			if (threadRequest.status !== 200) {
+				throw new Error(
+					`Failed to fetch the thread: ${input.content}, Reason: ${threadRequest.statusText}`,
+				);
+			}
+
+			thread = await threadRequest.text();
+		} catch (e) {
+			console.log("[THREAD FETCHING SERVICE] Failed to fetch the thread", e);
+			errorOccurred = true;
+		}
+
 		const tweet = await getTweetData(input.content.split("/").pop() as string);
+
 		pageContent = tweetToMd(tweet);
+		console.log("THis ishte page content!!", pageContent);
+		//@ts-ignore
+		vectorData = errorOccurred ? pageContent : thread;
 		metadata = {
 			baseUrl: input.content,
 			description: tweet.text.slice(0, 200),
@@ -209,6 +244,7 @@ export const createMemory = async (input: {
 		};
 	} else if (type === "note") {
 		pageContent = input.content;
+		vectorData = pageContent;
 		noteId = new Date().getTime();
 		metadata = {
 			baseUrl: `https://supermemory.ai/note/${noteId}`,
@@ -235,7 +271,7 @@ export const createMemory = async (input: {
 		{
 			method: "POST",
 			body: JSON.stringify({
-				pageContent,
+				pageContent: vectorData,
 				title: metadata.title,
 				description: metadata.description,
 				url: metadata.baseUrl,
