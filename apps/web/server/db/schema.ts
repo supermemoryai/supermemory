@@ -22,6 +22,7 @@ export const users = createTable(
 		emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
 		image: text("image"),
 		telegramId: text("telegramId"),
+    hasOnboarded: integer("hasOnboarded", { mode: "boolean" }).default(false),
 	},
 	(user) => ({
 		emailIdx: index("users_email_idx").on(user.email),
