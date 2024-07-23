@@ -6,6 +6,7 @@ import Logo from "../../../public/logo.svg";
 import { getChatHistory } from "../../actions/fetchers";
 import NewChatButton from "./newChatButton";
 import AutoBreadCrumbs from "./autoBreadCrumbs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui/shadcn/dropdown-menu";
 
 async function Header() {
 	const chatThreads = await getChatHistory();
@@ -32,26 +33,23 @@ async function Header() {
 				<div className="flex items-center gap-2">
 					<NewChatButton />
 
-					<div className="relative group">
-						<button className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl">
-							History
-						</button>
-
-						<div className="absolute p-4 hidden group-hover:block right-0 w-full md:w-[400px] max-h-[70vh] overflow-auto">
-							<div className="bg-[#1F2429] rounded-xl p-2 flex flex-col shadow-lg">
-								{chatThreads.data.map((thread) => (
+					<DropdownMenu>
+						<DropdownMenuTrigger>History</DropdownMenuTrigger>
+						<DropdownMenuContent className="p-4 w-full md:w-[400px] max-h-[70vh] overflow-auto border-none">
+							{chatThreads.data.map((thread) => (
+								<DropdownMenuItem asChild>
 									<Link
 										prefetch={false}
 										href={`/chat/${thread.id}`}
 										key={thread.id}
-										className="p-2 rounded-md hover:bg-secondary"
+										className="p-2 rounded-md cursor-pointer focus:bg-secondary focus:text-current"
 									>
 										{thread.firstMessage}
 									</Link>
-								))}
-							</div>
-						</div>
-					</div>
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</div>
 		</div>
