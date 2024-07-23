@@ -9,7 +9,7 @@ export default function SignOutButton() {
 				await signOut()
 			}}
 		>
-			<Button variant="ghost" size="sm" type="submit">
+			<Button variant="ghost" size="sm" type="submit" className="text-[#7D8994]">
 				Sign Out
 			</Button>
 		</form>
