@@ -9,7 +9,6 @@ import SearchIcon from "./search.svg";
 import NextIcon from "./nextarrow.svg";
 import UrlIcon from "./url.svg";
 import CanvasIcon from "./canvas.svg";
-import blockIcon from "./block.svg";
 import LinkIcon from "./link.svg";
 import AutocompleteIcon from "./autocomplete.svg";
 import BlockIcon from "./block.svg";
@@ -29,7 +28,6 @@ export {
 	NextIcon,
 	UrlIcon,
 	CanvasIcon,
-	blockIcon,
 	LinkIcon,
 	AutocompleteIcon,
 	BlockIcon,
