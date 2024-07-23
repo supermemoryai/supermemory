@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
 	ChevronLeftIcon,
 	ChevronRightIcon,
@@ -187,7 +186,7 @@ function StepIndicator({
 				/>
 				<p>Step: {currStep}/3</p>
 				<ChevronRightIcon
-					className="h-6"
+					className="h-6 cursor-pointer"
 					onClick={() => currStep <= 3 && setCurrStep(currStep + 1)}
 				/>
 			</div>
@@ -386,6 +385,12 @@ function StepTwo({ currStep }: { currStep: number }) {
 }
 
 function Navbar() {
+  const router = useRouter();
+  const handleSkip = async () => {
+    await completeOnboarding();
+    router.push("/home?q=what%20is%20supermemory");
+  }
+
 	return (
 		<div className="flex items-center justify-between p-4 fixed top-0 left-0 w-full">
 			<Image
@@ -394,9 +399,7 @@ function Navbar() {
 				className="hover:brightness-125 duration-200 size-12"
 			/>
 
-			<Link href="/home">
-				<button className="text-sm">Skip</button>
-			</Link>
+      <button className="text-sm" onClick={handleSkip}>Skip</button>
 		</div>
 	);
 }
