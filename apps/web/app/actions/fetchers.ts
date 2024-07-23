@@ -24,19 +24,19 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 
 export const getUser = async (): ServerActionReturnType<User> => {
-  const data = await auth();
+	const data = await auth();
 
-  if (!data || !data.user || !data.user.id) {
-    redirect("/signin");
-    return { error: "Not authenticated", success: false };
-  }
+	if (!data || !data.user || !data.user.id) {
+		redirect("/signin");
+		return { error: "Not authenticated", success: false };
+	}
 
-  console.log("data.user.id", data.user.id);
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, data.user.id),
-  });
+	console.log("data.user.id", data.user.id);
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, data.user.id),
+	});
 
-  return { success: true, data: user };
+	return { success: true, data: user };
 };
 
 export const getSpaces = async (): ServerActionReturnType<StoredSpace[]> => {

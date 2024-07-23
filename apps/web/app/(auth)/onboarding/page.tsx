@@ -22,13 +22,13 @@ export default function Home() {
 	const { push } = useRouter();
 
 	useEffect(() => {
-    const updateDb = async () => {
-      await completeOnboarding();
-    }
+		const updateDb = async () => {
+			await completeOnboarding();
+		}
 		if (currStep > 3) {
-      updateDb().then(() => {
-			  push("/home?q=what%20is%20supermemory");
-      });
+			updateDb().then(() => {
+				push("/home?q=what%20is%20supermemory");
+			});
 		}
 	}, [currStep]);
 
@@ -385,11 +385,11 @@ function StepTwo({ currStep }: { currStep: number }) {
 }
 
 function Navbar() {
-  const router = useRouter();
-  const handleSkip = async () => {
-    await completeOnboarding();
-    router.push("/home?q=what%20is%20supermemory");
-  }
+	const router = useRouter();
+	const handleSkip = async () => {
+		await completeOnboarding();
+		router.push("/home?q=what%20is%20supermemory");
+	}
 
 	return (
 		<div className="flex items-center justify-between p-4 fixed top-0 left-0 w-full">
@@ -399,7 +399,7 @@ function Navbar() {
 				className="hover:brightness-125 duration-200 size-12"
 			/>
 
-      <button className="text-sm" onClick={handleSkip}>Skip</button>
+			<button className="text-sm" onClick={handleSkip}>Skip</button>
 		</div>
 	);
 }
