@@ -69,6 +69,7 @@ app.get("/api/health", (c) => {
 });
 
 app.post("/api/add", zValidator("json", vectorObj), async (c) => {
+	try{
 	const body = c.req.valid("json");
 
 	const { store } = await initQuery(c);
@@ -101,6 +102,10 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 	});
 
 	return c.json({ status: "ok" });
+}catch(error){
+	console.error("Error processing request:", error);
+    return c.json({ status: "error", message: error.message }, 500);
+}
 });
 
 app.post(
