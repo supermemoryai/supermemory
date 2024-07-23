@@ -148,7 +148,7 @@ export const space = createTable(
 	"space",
 	{
 		id: integer("id").notNull().primaryKey({ autoIncrement: true }),
-		name: text("name").notNull(),
+		name: text("name").notNull().unique().default("none"),
 		user: text("user", { length: 255 }).references(() => users.id, {
 			onDelete: "cascade",
 		}),

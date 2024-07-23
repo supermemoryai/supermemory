@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "06dbbdd5-8ab1-410a-8710-903d29513644",
+  "id": "e8646bed-105d-4f69-b385-b8b6fee8a6a9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -518,7 +518,8 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "'none'"
         },
         "user": {
           "name": "user",
@@ -544,6 +545,13 @@
         }
       },
       "indexes": {
+        "space_name_unique": {
+          "name": "space_name_unique",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true
+        },
         "spaces_name_idx": {
           "name": "spaces_name_idx",
           "columns": [
