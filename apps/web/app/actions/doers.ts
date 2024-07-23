@@ -23,6 +23,33 @@ import { decipher } from "@/server/encrypt";
 import { redirect } from "next/navigation";
 import { tweetToMd } from "@repo/shared-types/utils";
 
+export const completeOnboarding = async (): ServerActionReturnType<boolean> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  try {
+    const res = await db
+    .update(users)
+    .set({ hasOnboarded: true })
+    .where(eq(users.id, data.user.id))
+		.returning({ hasOnboarded: users.hasOnboarded });
+
+		if (res.length === 0 || !res[0]?.hasOnboarded) {
+			return { success: false, data: false, error: "Failed to update user" };
+		}
+
+    return { success: true, data: res[0].hasOnboarded };
+  } catch (e) {
+		return { success: false, data: false, error: (e as Error).message };
+	}
+
+
+}
+
 export const createSpace = async (
 	input: string | FormData,
 ): ServerActionReturnType<number> => {

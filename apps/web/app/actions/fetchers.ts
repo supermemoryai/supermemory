@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, exists, inArray, not, or, sql } from "drizzle-orm";
+import { and, asc, eq, exists, not, or } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
 	canvas,
@@ -13,14 +13,31 @@ import {
 	spacesAccess,
 	storedContent,
 	StoredSpace,
+	User,
 	users,
 } from "../../server/db/schema";
-import { ServerActionReturnType, Space } from "./types";
+import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
 import { ChatHistory, SourceZod } from "@repo/shared-types";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
+
+export const getUser = async (): ServerActionReturnType<User> => {
+  const data = await auth();
+
+  if (!data || !data.user || !data.user.id) {
+    redirect("/signin");
+    return { error: "Not authenticated", success: false };
+  }
+
+  console.log("data.user.id", data.user.id);
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, data.user.id),
+  });
+
+  return { success: true, data: user };
+};
 
 export const getSpaces = async (): ServerActionReturnType<StoredSpace[]> => {
 	const data = await auth();
