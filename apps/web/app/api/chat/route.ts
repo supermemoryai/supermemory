@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 	const spaces = url.searchParams.get("spaces");
 
 	const sourcesOnly = url.searchParams.get("sourcesOnly") ?? "false";
+	const proMode = url.searchParams.get("proMode") === "true";
 
 	const jsonRequest = (await req.json()) as {
 		chatHistory: ChatHistory[];
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
 	const modelCompatible = await convertChatHistoryList(validated.data);
 
 	const resp = await fetch(
-		`${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.id}&sourcesOnly=${sourcesOnly}&spaces=${spaces}`,
+		`${process.env.BACKEND_BASE_URL}/api/chat?query=${query}&user=${session.user.id}&sourcesOnly=${sourcesOnly}&spaces=${spaces}&proMode=${proMode}`,
 		{
 			headers: {
 				Authorization: `Bearer ${process.env.BACKEND_SECURITY_KEY}`,
