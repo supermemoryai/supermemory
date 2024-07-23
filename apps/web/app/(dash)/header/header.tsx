@@ -53,7 +53,7 @@ async function Header() {
 							</div>
 						</div>
 					</div>
-          <SignOutButton />
+					<SignOutButton />
 				</div>
 			</div>
 		</div>
