@@ -26,9 +26,18 @@ const History = memo(() => {
 		<ul className="text-base list-none space-y-3 text-[#b9b9b9] mt-8">
 			{!chatThreads_ && (
 				<>
-					<Skeleton className="w-[80%] h-4 bg-[#3b444b] "></Skeleton>
-					<Skeleton className="w-[40%] h-4 bg-[#3b444b] "></Skeleton>
-					<Skeleton className="w-[60%] h-4 bg-[#3b444b] "></Skeleton>
+					<Skeleton
+						key="loader-1"
+						className="w-[80%] h-4 bg-[#3b444b] "
+					></Skeleton>
+					<Skeleton
+						key="loader-2"
+						className="w-[40%] h-4 bg-[#3b444b] "
+					></Skeleton>
+					<Skeleton
+						key="loader-3"
+						className="w-[60%] h-4 bg-[#3b444b] "
+					></Skeleton>
 				</>
 			)}
 			{chatThreads_?.map((thread) => (
@@ -36,6 +45,7 @@ const History = memo(() => {
 					initial={{ opacity: 0, filter: "blur(1px)" }}
 					animate={{ opacity: 1, filter: "blur(0px)" }}
 					className="flex items-center gap-2 truncate"
+					key={thread.id}
 				>
 					<ArrowLongRightIcon className="h-5" />{" "}
 					<Link prefetch={false} href={`/chat/${thread.id}`}>

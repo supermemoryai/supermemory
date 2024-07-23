@@ -9,7 +9,8 @@ async function Page({
 	params: { chatid: string };
 	searchParams: Record<string, string | string[] | undefined>;
 }) {
-	const { firstTime, q, spaces } = chatSearchParamsCache.parse(searchParams);
+	const { firstTime, q, spaces, proMode } =
+		chatSearchParamsCache.parse(searchParams);
 
 	let chat: Awaited<ReturnType<typeof getFullChatThread>>;
 
@@ -31,6 +32,7 @@ async function Page({
 			spaces={spaces ?? []}
 			initialChat={chat.data.length > 0 ? chat.data : undefined}
 			threadId={params.chatid}
+			proMode={proMode}
 		/>
 	);
 }

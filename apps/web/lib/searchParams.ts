@@ -32,4 +32,5 @@ export const chatSearchParamsCache = createSearchParamsCache({
 
 		return valid.data;
 	}),
+	proMode: parseAsBoolean.withDefault(false),
 });

@@ -35,14 +35,19 @@ function ChatWindow({
 				parts: [],
 				sources: [],
 			},
+			proModeProcessing: {
+				queries: [],
+			},
 		},
 	],
 	threadId,
+	proMode,
 }: {
 	q: string;
 	spaces: { id: number; name: string }[];
 	initialChat?: ChatHistory[];
 	threadId: string;
+	proMode: boolean;
 }) {
 	const [layout, setLayout] = useState<"chat" | "initial">("chat");
 	const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
@@ -63,13 +68,17 @@ function ChatWindow({
 
 	const router = useRouter();
 
-	const getAnswer = async (query: string, spaces: string[]) => {
+	const getAnswer = async (
+		query: string,
+		spaces: string[],
+		proMode: boolean = false,
+	) => {
 		if (query.trim() === "from_loading" || query.trim().length === 0) {
 			return;
 		}
 
 		const sourcesFetch = await fetch(
-			`/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true&threadId=${threadId}`,
+			`/api/chat?q=${query}&spaces=${spaces}&sourcesOnly=true&threadId=${threadId}&proMode=${proMode}`,
 			{
 				method: "POST",
 				body: JSON.stringify({ chatHistory }),
@@ -90,6 +99,8 @@ function ChatWindow({
 			top: document.documentElement.scrollHeight,
 			behavior: "smooth",
 		});
+
+		let proModeListedQueries: string[] = [];
 
 		const updateChatHistoryAndFetch = async () => {
 			// Step 1: Update chat history with the assistant's response
@@ -123,6 +134,11 @@ function ChatWindow({
 						).length,
 					}));
 
+					lastAnswer.proModeProcessing.queries =
+						sourcesParsed.data.proModeListedQueries ?? [];
+
+					proModeListedQueries = lastAnswer.proModeProcessing.queries;
+
 					resolve(newChatHistory);
 					return newChatHistory;
 				});
@@ -130,7 +146,7 @@ function ChatWindow({
 
 			// Step 2: Fetch data from the API
 			const resp = await fetch(
-				`/api/chat?q=${query}&spaces=${spaces}&threadId=${threadId}`,
+				`/api/chat?q=${(query += proModeListedQueries.join(" "))}&spaces=${spaces}&threadId=${threadId}`,
 				{
 					method: "POST",
 					body: JSON.stringify({ chatHistory, sources: sourcesParsed.data }),
@@ -181,6 +197,7 @@ function ChatWindow({
 				getAnswer(
 					q,
 					spaces.map((s) => `${s.id}`),
+					proMode,
 				);
 			}
 		} else {
@@ -223,6 +240,28 @@ function ChatWindow({
 										>
 											{chat.question}
 										</h2>
+
+										{chat.proModeProcessing?.queries?.length > 0 && (
+											<div className="flex flex-col mt-2">
+												<div className="text-foreground-menu py-2">
+													Pro Mode
+												</div>
+												<div className="text-base">
+													<div className="flex gap-2 text-base">
+														{chat.proModeProcessing.queries.map(
+															(query, idx) => (
+																<div
+																	className="bg-secondary rounded-md p-2"
+																	key={`promode-query-${idx}`}
+																>
+																	{query}
+																</div>
+															),
+														)}
+													</div>
+												</div>
+											</div>
+										)}
 
 										<div className="flex flex-col mt-2">
 											<div>
@@ -406,6 +445,9 @@ function ChatWindow({
 												answer: {
 													parts: [],
 													sources: [],
+												},
+												proModeProcessing: {
+													queries: [],
 												},
 											},
 										];

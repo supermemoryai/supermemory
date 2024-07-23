@@ -407,6 +407,7 @@ app.post(
 			spaces: z.string().optional(),
 			sourcesOnly: z.string().optional().default("false"),
 			model: z.string().optional().default("gpt-4o"),
+			proMode: z.string().optional().default("false"),
 		}),
 	),
 	zValidator("json", chatObj),
@@ -415,6 +416,7 @@ app.post(
 		const body = c.req.valid("json");
 
 		const sourcesOnly = query.sourcesOnly === "true";
+		const proMode = query.proMode === "true";
 
 		// Return early for dumb requests
 		if (sourcesOnly && body.sources) {
@@ -422,7 +424,6 @@ app.post(
 		}
 
 		const spaces = query.spaces?.split(",") ?? [undefined];
-		console.log(spaces);
 
 		// Get the AI model maker and vector store
 		const { model, store } = await initQuery(c, query.model);
@@ -431,13 +432,66 @@ app.post(
 			const filter: VectorizeVectorMetadataFilter = {
 				[`user-${query.user}`]: 1,
 			};
-			console.log("Spaces", spaces);
+
+			let proModeListedQueries: string[] = [];
+
+			if (proMode) {
+				const addedToQuery = (await c.env.AI.run(
+					// @ts-ignore
+					"@hf/nousresearch/hermes-2-pro-mistral-7b",
+					{
+						messages: [
+							{
+								role: "system",
+								content:
+									"You are a query enhancer. You must enhance a user's query to make it more relevant to what the user might be looking for. If there's any mention of dates like 'last summer' or 'this year', you should return 'DAY: X, MONTH: Y, YEAR: Z'. If there's any mention of locations, add that to the query too. Try to keep your responses as short as possible. Add to the user's query, don't replace it. Make sure to keep your answers short.",
+							},
+							{ role: "user", content: query.query },
+						],
+						tools: [
+							{
+								type: "function",
+								function: {
+									name: "Enhance query get list",
+									description:
+										"Enhance the user's query to make it more relevant",
+									parameters: {
+										type: "object",
+										properties: {
+											listedQueries: {
+												type: "array",
+												description: "List of queries that the user has asked",
+												items: {
+													type: "string",
+												},
+											},
+										},
+										required: ["Enhance query get list"],
+									},
+								},
+							},
+						],
+						max_tokens: 200,
+					},
+				)) as {
+					response?: string;
+					tool_calls?: {
+						name: string;
+						arguments: {
+							listedQueries: string[];
+						};
+					}[];
+				};
+
+				proModeListedQueries =
+					addedToQuery.tool_calls?.[0]?.arguments?.listedQueries ?? [];
+			}
 
 			// Converting the query to a vector so that we can search for similar vectors
-			const queryAsVector = await store.embeddings.embedQuery(query.query);
+			const queryAsVector = await store.embeddings.embedQuery(
+				query.query + " " + proModeListedQueries.join(" "),
+			);
 			const responses: VectorizeMatches = { matches: [], count: 0 };
-
-			console.log("hello world", spaces);
 
 			// SLICED to 5 to avoid too many queries
 			for (const space of spaces.slice(0, 5)) {
@@ -506,7 +560,12 @@ app.post(
 
 				const metadata = normalizedData.map((datapoint) => datapoint.metadata);
 
-				return c.json({ ids: storedContent, metadata, normalizedData });
+				return c.json({
+					ids: storedContent,
+					metadata,
+					normalizedData,
+					proModeListedQueries,
+				});
 			}
 		}
 

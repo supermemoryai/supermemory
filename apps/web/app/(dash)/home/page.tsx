@@ -103,13 +103,12 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 				<QueryInput
 					initialQuery={query}
 					setQueryPresent={setQueryPresent}
-					handleSubmit={async (q, spaces) => {
+					handleSubmit={async (q, spaces, proMode) => {
 						if (q.length === 0) {
 							toast.error("Query is required");
 							return;
 						}
 
-						console.log("creating thread");
 						const threadid = await createChatThread(q);
 
 						if (!threadid.success || !threadid.data) {
@@ -117,9 +116,8 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 							return;
 						}
 
-						console.log("pushing to chat");
 						push(
-							`/chat/${threadid.data}?spaces=${JSON.stringify(spaces)}&q=${q}`,
+							`/chat/${threadid.data}?spaces=${JSON.stringify(spaces)}&q=${q}&proMode=${proMode}`,
 						);
 					}}
 					initialSpaces={spaces}

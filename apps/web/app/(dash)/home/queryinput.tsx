@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FilterSpaces } from "./filterSpaces";
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
@@ -20,7 +20,11 @@ function QueryInput({
 	}[];
 	initialQuery?: string;
 	mini?: boolean;
-	handleSubmit: (q: string, spaces: { id: number; name: string }[]) => void;
+	handleSubmit: (
+		q: string,
+		spaces: { id: number; name: string }[],
+		proMode: boolean,
+	) => void;
 }) {
 	const [q, setQ] = useState(initialQuery || "");
 
@@ -41,7 +45,7 @@ function QueryInput({
 						if (q.trim().length === 0) {
 							return;
 						}
-						handleSubmit(q, selectedSpaces);
+						handleSubmit(q, selectedSpaces, proMode);
 						setQ("");
 					}}
 				>
@@ -58,7 +62,7 @@ function QueryInput({
 								if (q.trim().length === 0) {
 									return;
 								}
-								handleSubmit(q, selectedSpaces);
+								handleSubmit(q, selectedSpaces, proMode);
 								setQ("");
 							}
 						}}
@@ -83,7 +87,7 @@ function QueryInput({
 								</Label>
 								<Switch
 									value={proMode ? "on" : "off"}
-									onChange={() => setProMode((prev) => !prev)}
+									onCheckedChange={(v) => setProMode(v)}
 									id="pro-mode"
 									about="Pro mode"
 								/>

@@ -50,7 +50,7 @@ export class OpenAIEmbeddings {
 		const json = zodTypeExpected.safeParse(data);
 
 		if (!json.success) {
-			console.log(data);
+			console.log(JSON.stringify(data));
 			throw new Error("Invalid response from OpenAI: " + json.error.message);
 		}
 

@@ -13,8 +13,6 @@ import React from "react";
 function AutoBreadCrumbs() {
 	const pathname = usePathname();
 
-	console.log(pathname.split("/").filter(Boolean));
-
 	return (
 		<Breadcrumb className="hidden md:block">
 			<BreadcrumbList>
@@ -31,7 +29,7 @@ function AutoBreadCrumbs() {
 					.filter(Boolean)
 					.map((path, idx, paths) => (
 						<>
-							<BreadcrumbItem key={path}>
+							<BreadcrumbItem key={path + idx}>
 								<BreadcrumbLink href={`/${paths.slice(0, idx + 1).join("/")}`}>
 									{path.charAt(0).toUpperCase() + path.slice(1)}
 								</BreadcrumbLink>
