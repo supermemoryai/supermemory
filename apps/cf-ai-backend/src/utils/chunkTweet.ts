@@ -12,13 +12,13 @@ interface Metadata {
 	tweetId: string;
 	tweetLinks: any[];
 	tweetVids: any[];
+	tweetImages: any[];
 }
 
 export interface ThreadTweetData {
 	chunkedTweet: string[];
 	metadata: Metadata;
 }
-
 
 export function chunkThread(threadText: string): TweetChunks {
 	const thread = JSON.parse(threadText);
@@ -30,6 +30,7 @@ export function chunkThread(threadText: string): TweetChunks {
 			tweetId: tweet.id,
 			tweetLinks: tweet.links,
 			tweetVids: tweet.videos,
+			tweetImages: tweet.images,
 		};
 
 		return { chunkedTweet, metadata };

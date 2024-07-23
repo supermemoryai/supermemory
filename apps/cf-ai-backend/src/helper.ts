@@ -155,10 +155,21 @@ export async function batchCreateChunksAndEmbeddings({
 	// the user.
 	if (allIds.keys.length > 0) {
 		const savedVectorIds = allIds.keys.map((key) => key.name);
-		const vectors = await context.env.VECTORIZE_INDEX.getByIds(savedVectorIds);
-
+		const vectors = [];
+		//Search in a batch of 20
+		for (let i = 0; i < savedVectorIds.length; i += 20) {
+			const batch = savedVectorIds.slice(i, i + 20);
+			const batchVectors = await context.env.VECTORIZE_INDEX.getByIds(batch);
+			vectors.push(...batchVectors);
+		}
+		console.log(
+			vectors.map((vector) => {
+				return vector.id;
+			}),
+		);
 		// Now, we'll update all vector metadatas with one more userId and all spaceIds
 		const newVectors = vectors.map((vector) => {
+			console.log(JSON.stringify(vector.metadata));
 			vector.metadata = {
 				...vector.metadata,
 				[`user-${body.user}`]: 1,
@@ -172,7 +183,18 @@ export async function batchCreateChunksAndEmbeddings({
 			return vector;
 		});
 
-		await context.env.VECTORIZE_INDEX.upsert(newVectors);
+		// upsert in batch of 20
+		const results = [];
+		for (let i = 0; i < newVectors.length; i += 20) {
+			results.push(newVectors.slice(i, i + 20));
+			console.log(JSON.stringify(newVectors[1].id));
+		}
+
+		await Promise.all(
+			results.map((result) => {
+				return context.env.VECTORIZE_INDEX.upsert(result);
+			}),
+		);
 		return;
 	}
 
@@ -186,6 +208,7 @@ export async function batchCreateChunksAndEmbeddings({
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
+
 				const spaceMetadata = body.spaces?.reduce((acc, space) => {
 					acc[`space-${body.user}-${space}`] = 1;
 					return acc;
@@ -197,13 +220,15 @@ export async function batchCreateChunksAndEmbeddings({
 						return tweet.chunkedTweet.map((chunk) => {
 							const id = `${uuid}-${i}`;
 							ids.push(id);
-							const { tweetLinks, tweetVids, tweetId } = tweet.metadata;
+							const { tweetLinks, tweetVids, tweetId, tweetImages } =
+								tweet.metadata;
 							return {
 								pageContent: chunk,
 								metadata: {
 									links: tweetLinks,
 									videos: tweetVids,
 									tweetId: tweetId,
+									tweetImages: tweetImages,
 									...commonMetaData,
 									...spaceMetadata,
 								},

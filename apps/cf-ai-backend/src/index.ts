@@ -92,15 +92,7 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 			break;
 	}
 
-	console.log(JSON.stringify(chunks));
 
-	if (chunks.chunks.length > 20) {
-		return c.json({
-			status: "error",
-			message:
-				"We are unable to process documents this size just yet, try something smaller",
-		});
-	}
 	await batchCreateChunksAndEmbeddings({
 		store,
 		body,
