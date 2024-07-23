@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import Logo from "@/public/logo.svg";
-import { auth, signIn } from "@/server/auth";
-import { Google } from "@repo/ui/components/icons";
+import { auth } from "@/server/auth";
 import gradientStyle from "./_components/TextGradient/gradient.module.css";
 import { cn } from "@repo/ui/lib/utils";
 import { redirect } from "next/navigation";
-import { toast } from "sonner";
+import GoogleLogin from "./_components/GoogleLogin";
+import GitHubLogin from "./_components/GitHubLogin";
 
 export const runtime = "edge";
 
@@ -60,22 +60,12 @@ async function Signin({
 						<div
 							className={`relative cursor-pointer transition-width z-20 rounded-2xl bg-hero-gradient   p-[0.7px] duration-500  ease-in-out fit dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]`}
 						>
-							<form
-								action={async () => {
-									"use server";
-									await signIn("google", {
-										redirectTo: "/home?firstTime=true",
-									});
-								}}
-							>
-								<button
-									type="submit"
-									className={`relative text-white transition-width flex gap-3 justify-center w-full items-center rounded-2xl bg-page-gradient hover:opacity-70  duration-500  px-6 py-4 outline-none duration- focus:outline-none `}
-								>
-									<Google />
-									<span className="relative w-full">Continue with Google</span>
-								</button>
-							</form>
+							<GoogleLogin />
+						</div>
+            <div
+							className={`relative cursor-pointer transition-width z-20 rounded-2xl bg-hero-gradient   p-[0.7px] duration-500  ease-in-out fit dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]`}
+						>
+							<GitHubLogin />
 						</div>
 					</div>
 					<div className="text-slate-500 mt-16 z-20">
