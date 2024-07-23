@@ -334,7 +334,7 @@ function Menu() {
 							/>
 							<p className="text-xs text-foreground-menu mt-2">Add</p>
 						</DialogTrigger>
-						{menuItems.map((item) => (
+						{menuItems.slice(1, 2).map((item) => (
 							<Link
 								aria-disabled={item.disabled}
 								href={item.disabled ? "#" : item.url}

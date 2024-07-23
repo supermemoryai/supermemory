@@ -69,21 +69,32 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 	const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
 
 	const chunks = chunkText(newPageContent, 1536);
-	if (chunks.length > 20) {
-		return c.json({
-			status: "error",
-			message:
-				"We are unable to process documents this size just yet, try something smaller",
+
+	const chunksOf20 = chunks.reduce((acc, chunk, index) => {
+		if (index % 20 === 0) {
+			acc.push([chunk]);
+		} else {
+			acc[acc.length - 1].push(chunk);
+		}
+		return acc;
+	}, [] as string[][]);
+
+	const accumChunkedInputs = [];
+
+	const promises = chunksOf20.map(async (chunkGroup) => {
+		const chunkedInput = await batchCreateChunksAndEmbeddings({
+			store,
+			body,
+			chunks: chunkGroup,
+			context: c,
 		});
-	}
-	const chunkedInput = await batchCreateChunksAndEmbeddings({
-		store,
-		body,
-		chunks: chunks,
-		context: c,
+
+		accumChunkedInputs.push(chunkedInput);
 	});
 
-	return c.json({ status: "ok", chunkedInput });
+	await Promise.all(promises);
+
+	return c.json({ status: "ok", chunkedInput: accumChunkedInputs });
 });
 
 app.post(

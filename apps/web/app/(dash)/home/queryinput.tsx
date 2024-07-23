@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { FilterSpaces } from "./filterSpaces";
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
+import { Switch } from "@repo/ui/shadcn/switch";
+import { Label } from "@repo/ui/shadcn/label";
 
 function QueryInput({
 	setQueryPresent,
@@ -21,6 +23,8 @@ function QueryInput({
 	handleSubmit: (q: string, spaces: { id: number; name: string }[]) => void;
 }) {
 	const [q, setQ] = useState(initialQuery || "");
+
+	const [proMode, setProMode] = useState(false);
 
 	const [selectedSpaces, setSelectedSpaces] = useState<
 		{ id: number; name: string }[]
@@ -72,9 +76,22 @@ function QueryInput({
 							setSelectedSpaces={setSelectedSpaces}
 							initialSpaces={initialSpaces || []}
 						/>
-						<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3">
-							<Image src={ArrowRightIcon} alt="Enter" />
-						</button>
+						<div className="flex items-center gap-4">
+							<div className="flex items-center gap-2">
+								<Label htmlFor="pro-mode" className="text-sm text-[#9B9B9B]">
+									Pro mode
+								</Label>
+								<Switch
+									value={proMode ? "on" : "off"}
+									onChange={() => setProMode((prev) => !prev)}
+									id="pro-mode"
+									about="Pro mode"
+								/>
+							</div>
+							<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3">
+								<Image src={ArrowRightIcon} alt="Enter" />
+							</button>
+						</div>
 					</div>
 				</form>
 			</div>
