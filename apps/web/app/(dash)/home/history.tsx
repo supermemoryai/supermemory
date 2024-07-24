@@ -16,10 +16,11 @@ const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
 			const suggestions = await getQuerySuggestions();
 			if (!suggestions.success || !suggestions.data) {
 				console.error(suggestions.error);
+				setSuggestions([]);
 				return;
 			}
 			console.log(suggestions);
-			setSuggestions(suggestions.data.reverse().slice(0, 3));
+			setSuggestions(suggestions.data.reverse());
 		})();
 	}, []);
 

@@ -734,8 +734,15 @@ export async function getQuerySuggestions() {
 		.from(storedContent)
 		.where(eq(storedContent.userId, data.user.id))
 		.orderBy(sql`random()`)
-		.limit(3)
+		.limit(5)
 		.all();
+
+	if (content.length === 0) {
+		return {
+			success: true,
+			data: [],
+		};
+	}
 
 	const fullQuery = content.map((c) => `${c.title} \n\n${c.content}`).join(" ");
 
@@ -787,8 +794,6 @@ export async function getQuerySuggestions() {
 
 	const suggestions =
 		suggestionsCall.tool_calls?.[0]?.arguments?.querySuggestions;
-
-	console.log(suggestions);
 
 	if (!suggestions || suggestions.length === 0) {
 		return {
