@@ -3,8 +3,12 @@
 import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
-import { useRouter } from "next/navigation";
-import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
+import { redirect, useRouter } from "next/navigation";
+import {
+	createChatThread,
+	getQuerySuggestions,
+	linkTelegramToUser,
+} from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
@@ -25,19 +29,13 @@ const slap = {
 };
 
 function Page({ searchParams }: { searchParams: Record<string, string> }) {
-	const query = searchParams.q || "";
-	const [queryPresent, setQueryPresent] = useState<boolean>(false);
-
-	const [telegramUser, setTelegramUser] = useState<string | undefined>(
-		searchParams.telegramUser as string,
-	);
-	const [extensionInstalled, setExtensionInstalled] = useState<
-		string | undefined
-	>(searchParams.extension as string);
-
-	const { push } = useRouter();
+	const telegramUser = searchParams.telegramUser;
+	const extensionInstalled = searchParams.extension;
+	const [query, setQuery] = useState(searchParams.q || "");
 
 	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
+
+	const { push } = useRouter();
 
 	useEffect(() => {
 		if (telegramUser) {
@@ -92,8 +90,8 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 
 			<div className="w-full pb-20 mt-10">
 				<QueryInput
-					initialQuery={query}
-					setQueryPresent={setQueryPresent}
+					query={query}
+					setQuery={setQuery}
 					handleSubmit={async (q, spaces, proMode) => {
 						if (q.length === 0) {
 							toast.error("Query is required");
@@ -114,7 +112,7 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 					initialSpaces={spaces}
 				/>
 
-				<History />
+				<History setQuery={setQuery} />
 			</div>
 
 			<div className="w-full fixed bottom-0 left-0 p-4">
