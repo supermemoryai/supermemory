@@ -39,7 +39,7 @@ export function FilterSpaces({
 	};
 
 	return (
-		<div className="flex bg-[#369DFD1A] rounded-xl overflow-hidden pl-1">
+		<div className="flex bg-[#2C3439]  rounded-xl overflow-hidden pl-1">
 			<div className="flex rounded-lg items-center">
 				{selectedSpaces.map((v) => (
 					<button

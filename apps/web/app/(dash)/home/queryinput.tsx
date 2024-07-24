@@ -35,7 +35,7 @@ function QueryInput({
 	return (
 		<div className={`w-full`}>
 			<div
-				className={`bg-secondary border-2 border-border overflow-hidden shadow-md shadow-[#1d1d1dc7] rounded-3xl`}
+				className={`bg-background border-2 border-border overflow-hidden shadow-md shadow-[#1d1d1dc7] rounded-3xl`}
 			>
 				{/* input and action button */}
 				<form
@@ -52,7 +52,7 @@ function QueryInput({
 						name="q"
 						cols={30}
 						rows={3}
-						className="bg-transparent text-lg placeholder:text-[#9B9B9B] text-gray-200 tracking-[3%] outline-none resize-none w-full p-7"
+						className={`bg-transparent text-lg placeholder:text-[#9B9B9B] text-gray-200 tracking-[3%] outline-none resize-none w-full py-4 px-4 h-32 transition-[height] ${query.length > 0 && "h-40"}`}
 						placeholder="Ask your second brain..."
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
@@ -74,7 +74,7 @@ function QueryInput({
 							initialSpaces={initialSpaces || []}
 						/>
 						<div className="flex items-center gap-4">
-							<div className="flex items-center gap-2">
+							<div className="flex items-center gap-2 p-2 rounded-lg bg-[#2C3439]">
 								<Label htmlFor="pro-mode" className="text-sm text-[#9B9B9B]">
 									Pro mode
 								</Label>
@@ -85,7 +85,7 @@ function QueryInput({
 									about="Pro mode"
 								/>
 							</div>
-							<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3">
+							<button type="submit" className="rounded-lg bg-[#2C3439]  p-3">
 								<Image src={ArrowRightIcon} alt="Enter" />
 							</button>
 						</div>

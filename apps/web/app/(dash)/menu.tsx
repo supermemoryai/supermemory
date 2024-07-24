@@ -133,7 +133,7 @@ function Menu() {
 			{/* Desktop Menu */}
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 				<div className="hidden lg:flex fixed h-screen pb-20 w-full p-4 items-center justify-start top-0 left-0 pointer-events-none z-[39]">
-					<div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration-200 hover:w-40 z-[99999]">
+					<div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-background px-3 py-4 duration-200 hover:w-40 z-[99999]">
 						<div className="border-b border-border pb-4 w-full">
 							<DialogTrigger
 								className={`flex w-full text-white brightness-75 hover:brightness-125 focus:brightness-125  cursor-pointer items-center gap-3 px-1 duration-200 justify-start`}
