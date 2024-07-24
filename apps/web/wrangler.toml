@@ -19,6 +19,10 @@ database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
 binding = "CANVAS_SNAPS"
 id = "c6446f7190dd4afebe1c318df3400518"
 
+[[kv_namespaces]]
+binding = "RECOMMENDATIONS"
+id = "83bc7055226c4657948141c2ff9a5425"
+
 [[env.production.d1_databases]]
 binding = "DATABASE"
 database_name = "prod-d1-supermemory"
@@ -28,3 +32,6 @@ database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
 binding = "DATABASE"
 database_name = "dev-d1-anycontext"
 database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+
+[ai]
+binding = "AI"

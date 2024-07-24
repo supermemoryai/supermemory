@@ -22,6 +22,8 @@ import { ChatHistory } from "@repo/shared-types";
 import { decipher } from "@/server/encrypt";
 import { redirect } from "next/navigation";
 import { tweetToMd } from "@repo/shared-types/utils";
+import { ensureAuth } from "../api/ensureAuth";
+import { getRandomSentences } from "@/lib/utils";
 
 export const createSpace = async (
 	input: string | FormData,
@@ -707,4 +709,104 @@ export async function AddCanvasInfo({
 			message: "something went wrong :/",
 		};
 	}
+}
+
+export async function getQuerySuggestions() {
+	const data = await auth();
+
+	if (!data || !data.user || !data.user.id) {
+		redirect("/signin");
+		return { error: "Not authenticated", success: false };
+	}
+
+	const recommendations = await process.env.RECOMMENDATIONS.get(data.user.id);
+
+	if (recommendations) {
+		return {
+			success: true,
+			data: JSON.parse(recommendations),
+		};
+	}
+
+	// Randomly choose some storedContent of the user.
+	const content = await db
+		.select()
+		.from(storedContent)
+		.where(eq(storedContent.userId, data.user.id))
+		.orderBy(sql`random()`)
+		.limit(3)
+		.all();
+
+	const fullQuery = content.map((c) => `${c.title} \n\n${c.content}`).join(" ");
+
+	const sentences = getRandomSentences(fullQuery);
+
+	const suggestionsCall = (await process.env.AI.run(
+		// @ts-ignore
+		"@cf/meta/llama-3.1-8b-instruct",
+		{
+			messages: [
+				{
+					role: "system",
+					content: `You are a model that suggests questions based on the user's content.`,
+				},
+				{
+					role: "user",
+					content: `Run the function based on this input: ${sentences}`,
+				},
+			],
+			tools: [
+				{
+					type: "function",
+					function: {
+						name: "querySuggestions",
+						description:
+							"Take the user's content to suggest some good questions that they could ask.",
+						parameters: {
+							type: "object",
+							properties: {
+								querySuggestions: {
+									type: "array",
+									description:
+										"Short questions that the user can ask. Give atleast 3 suggestions. No more than 5.",
+									items: {
+										type: "string",
+									},
+								},
+							},
+							required: ["querySuggestions"],
+						},
+					},
+				},
+			],
+		},
+	)) as {
+		response: string;
+		tool_calls: { name: string; arguments: { querySuggestions: string[] } }[];
+	};
+
+	const suggestions =
+		suggestionsCall.tool_calls?.[0]?.arguments?.querySuggestions;
+
+	console.log(suggestions);
+
+	if (!suggestions || suggestions.length === 0) {
+		return {
+			success: false,
+			error: "Failed to get query suggestions",
+		};
+	}
+
+	await process.env.RECOMMENDATIONS.put(
+		data.user.id,
+		JSON.stringify(suggestions),
+		{
+			expirationTtl: 60 * 5,
+		},
+	);
+
+	return {
+		success: true,
+		data: suggestions,
+	};
 }

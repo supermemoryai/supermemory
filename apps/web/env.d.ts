@@ -6,4 +6,6 @@ interface CloudflareEnv {
 	DATABASE: D1Database;
 	DEV_IMAGES: R2Bucket;
 	CANVAS_SNAPS: KVNamespace;
+	AI: Ai;
+	RECOMMENDATIONS: KVNamespace;
 }
