@@ -3,13 +3,12 @@
 import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
 import Link from "next/link";
-import { homeSearchParamsCache } from "@/lib/searchParams";
 import History from "./history";
 
 const slap = {
@@ -26,15 +25,7 @@ const slap = {
 };
 
 function Page({ searchParams }: { searchParams: Record<string, string> }) {
-	// TODO: use this to show a welcome page/modal
-	const firstTime = searchParams.firstTime === "true";
-
 	const query = searchParams.q || "";
-
-	if (firstTime) {
-		redirect("/onboarding");
-	}
-
 	const [queryPresent, setQueryPresent] = useState<boolean>(false);
 
 	const [telegramUser, setTelegramUser] = useState<string | undefined>(

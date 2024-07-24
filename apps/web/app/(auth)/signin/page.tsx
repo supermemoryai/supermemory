@@ -18,7 +18,7 @@ async function Signin({
 	const user = await auth();
 
 	if (user) {
-		await redirect("/home");
+		redirect("/home");
 	}
 
 	return (
