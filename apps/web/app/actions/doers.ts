@@ -747,95 +747,106 @@ export async function getQuerySuggestions() {
 
 	const { env } = getRequestContext();
 
-	const recommendations = await env.RECOMMENDATIONS.get(data.user.id);
+	try {
+		const recommendations = await env.RECOMMENDATIONS.get(data.user.id);
 
-	if (recommendations) {
-		return {
-			success: true,
-			data: JSON.parse(recommendations),
+		if (recommendations) {
+			return {
+				success: true,
+				data: JSON.parse(recommendations),
+			};
+		}
+
+		// Randomly choose some storedContent of the user.
+		const content = await db
+			.select()
+			.from(storedContent)
+			.where(eq(storedContent.userId, data.user.id))
+			.orderBy(sql`random()`)
+			.limit(5)
+			.all();
+
+		if (content.length === 0) {
+			return {
+				success: true,
+				data: [],
+			};
+		}
+
+		const fullQuery = content
+			.map((c) => `${c.title} \n\n${c.content}`)
+			.join(" ");
+
+		const sentences = getRandomSentences(fullQuery);
+
+		const suggestionsCall = (await env.AI.run(
+			// @ts-ignore
+			"@cf/meta/llama-3.1-8b-instruct",
+			{
+				messages: [
+					{
+						role: "system",
+						content: `You are a model that suggests questions based on the user's content.`,
+					},
+					{
+						role: "user",
+						content: `Run the function based on this input: ${sentences}`,
+					},
+				],
+				tools: [
+					{
+						type: "function",
+						function: {
+							name: "querySuggestions",
+							description:
+								"Take the user's content to suggest some good questions that they could ask.",
+							parameters: {
+								type: "object",
+								properties: {
+									querySuggestions: {
+										type: "array",
+										description:
+											"Short questions that the user can ask. Give atleast 3 suggestions. No more than 5.",
+										items: {
+											type: "string",
+										},
+									},
+								},
+								required: ["querySuggestions"],
+							},
+						},
+					},
+				],
+			},
+		)) as {
+			response: string;
+			tool_calls: { name: string; arguments: { querySuggestions: string[] } }[];
 		};
-	}
 
-	// Randomly choose some storedContent of the user.
-	const content = await db
-		.select()
-		.from(storedContent)
-		.where(eq(storedContent.userId, data.user.id))
-		.orderBy(sql`random()`)
-		.limit(5)
-		.all();
+		const suggestions =
+			suggestionsCall.tool_calls?.[0]?.arguments?.querySuggestions;
 
-	if (content.length === 0) {
+		if (!suggestions || suggestions.length === 0) {
+			return {
+				success: false,
+				error: "Failed to get query suggestions",
+			};
+		}
+
+		await env.RECOMMENDATIONS.put(data.user.id, JSON.stringify(suggestions), {
+			expirationTtl: 60 * 2,
+		});
+
 		return {
 			success: true,
+			data: suggestions,
+		};
+	} catch (exception) {
+		const error = exception as Error;
+		return {
+			success: false,
+			error: error.message,
 			data: [],
 		};
 	}
-
-	const fullQuery = content.map((c) => `${c.title} \n\n${c.content}`).join(" ");
-
-	const sentences = getRandomSentences(fullQuery);
-
-	const suggestionsCall = (await env.AI.run(
-		// @ts-ignore
-		"@cf/meta/llama-3.1-8b-instruct",
-		{
-			messages: [
-				{
-					role: "system",
-					content: `You are a model that suggests questions based on the user's content.`,
-				},
-				{
-					role: "user",
-					content: `Run the function based on this input: ${sentences}`,
-				},
-			],
-			tools: [
-				{
-					type: "function",
-					function: {
-						name: "querySuggestions",
-						description:
-							"Take the user's content to suggest some good questions that they could ask.",
-						parameters: {
-							type: "object",
-							properties: {
-								querySuggestions: {
-									type: "array",
-									description:
-										"Short questions that the user can ask. Give atleast 3 suggestions. No more than 5.",
-									items: {
-										type: "string",
-									},
-								},
-							},
-							required: ["querySuggestions"],
-						},
-					},
-				},
-			],
-		},
-	)) as {
-		response: string;
-		tool_calls: { name: string; arguments: { querySuggestions: string[] } }[];
-	};
-
-	const suggestions =
-		suggestionsCall.tool_calls?.[0]?.arguments?.querySuggestions;
-
-	if (!suggestions || suggestions.length === 0) {
-		return {
-			success: false,
-			error: "Failed to get query suggestions",
-		};
-	}
-
-	await env.RECOMMENDATIONS.put(data.user.id, JSON.stringify(suggestions), {
-		expirationTtl: 60 * 5,
-	});
-
-	return {
-		success: true,
-		data: suggestions,
-	};
 }
