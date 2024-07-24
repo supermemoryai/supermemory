@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "../../server/db";
-import { accounts, sessions, users } from "../../server/db/schema";
+import { sessions, users } from "../../server/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function ensureAuth(req: NextRequest) {
@@ -31,21 +31,25 @@ export async function ensureAuth(req: NextRequest) {
 
 		console.log(token, newToken);
 
-		const authUserFetch = await fetch(
+		const tokenInfo = await fetch(
 			`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${newToken}`,
 		);
 
-		if (!authUserFetch.ok) {
+    const userInfo = await fetch(
+      `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${newToken}`,
+    );
+
+		if (!tokenInfo.ok) {
 			console.error(
 				"Error fetching Google user,",
-				authUserFetch.statusText,
-				await authUserFetch.text(),
+				tokenInfo.statusText,
+				await tokenInfo.text(),
 			);
 			console.log("Google user not found or error.");
 			return undefined;
 		}
 
-		const authUserData = (await authUserFetch.json()) as {
+		const authUserData = (await tokenInfo.json()) as {
 			email: string;
 			audience: string;
 			issued_to: string;

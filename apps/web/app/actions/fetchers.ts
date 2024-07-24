@@ -3,6 +3,7 @@
 import { and, asc, eq, exists, not, or } from "drizzle-orm";
 import { db } from "../../server/db";
 import {
+  accounts,
 	canvas,
 	chatHistory,
 	ChatThread,
@@ -38,6 +39,18 @@ export const getUser = async (): ServerActionReturnType<User> => {
 
 	return { success: true, data: user };
 };
+
+export const getProvider = async (userId: string): ServerActionReturnType<string> => {
+  const account = await db.query.accounts.findFirst({
+    where: eq(accounts.userId, userId),
+  });
+
+  if (!account) {
+    return { error: "No account found", success: false };
+  }
+
+  return { success: true, data: account.provider };
+}
 
 export const getSpaces = async (): ServerActionReturnType<StoredSpace[]> => {
 	const data = await auth();
