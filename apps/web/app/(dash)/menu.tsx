@@ -29,10 +29,13 @@ import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@/server/db/schema";
-import useMeasure from "react-use-measure";
 
 function Menu() {
 	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
+	const [loading, setLoading] = useState<boolean>(false);
+	const [content, setContent] = useState("");
+	const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
+	const [dialogOpen, setDialogOpen] = useState(false);
 
 	useEffect(() => {
 		(async () => {
@@ -64,9 +67,6 @@ function Menu() {
 		},
 	];
 
-	const [content, setContent] = useState("");
-	const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
-
 	const autoDetectedType = useMemo(() => {
 		if (content.length === 0) {
 			return "none";
@@ -85,8 +85,6 @@ function Menu() {
 		}
 	}, [content]);
 
-	const [dialogOpen, setDialogOpen] = useState(false);
-
 	const options = useMemo(
 		() =>
 			spaces.map((x) => ({
@@ -97,8 +95,10 @@ function Menu() {
 	);
 
 	const handleSubmit = async (content?: string, spaces?: number[]) => {
-		setDialogOpen(false);
+		if (loading) return;
 
+		setLoading(true);
+		setDialogOpen(false);
 		toast.info("Creating memory...", {
 			icon: <PlusCircleIcon className="w-4 h-4 text-white animate-spin" />,
 			duration: 7500,
@@ -106,10 +106,9 @@ function Menu() {
 
 		if (!content || content.length === 0) {
 			toast.error("Content is required");
+			setLoading(false);
 			return;
 		}
-
-		console.log(spaces);
 
 		const cont = await createMemory({
 			content: content,
@@ -118,6 +117,8 @@ function Menu() {
 
 		setContent("");
 		setSelectedSpaces([]);
+
+		setLoading(false);
 
 		if (cont.success) {
 			toast.success("Memory created", {
@@ -133,7 +134,7 @@ function Menu() {
 			{/* Desktop Menu */}
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 				<div className="hidden lg:flex fixed h-screen pb-20 w-full p-4 items-center justify-start top-0 left-0 pointer-events-none z-[39]">
-					<div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration-200 hover:w-40 z-[99999]">
+					<div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration:200 hover:w-40 z-[99999]">
 						<div className="border-b border-border pb-4 w-full">
 							<DialogTrigger
 								className={`flex w-full text-white brightness-75 hover:brightness-125 focus:brightness-125  cursor-pointer items-center gap-3 px-1 duration-200 justify-start`}
@@ -175,15 +176,13 @@ function Menu() {
 						))}
 					</div>
 				</div>
-
 				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
 					<form
-						action={async (e: FormData) => {
-							const content = e.get("content")?.toString();
-
+						onSubmit={async (e) => {
+							e.preventDefault();
 							await handleSubmit(content, selectedSpaces);
 						}}
-						className="flex flex-col gap-4 "
+						className="flex flex-col gap-4"
 					>
 						<DialogHeader>
 							<DialogTitle>Add memory</DialogTitle>
@@ -202,10 +201,10 @@ function Menu() {
 								placeholder="Start typing a note or paste a URL here. I'll remember it."
 								value={content}
 								onChange={(e) => setContent(e.target.value)}
-								onKeyDown={(e) => {
+								onKeyDown={async (e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										handleSubmit(content, selectedSpaces);
+										await handleSubmit(content, selectedSpaces);
 									}
 								}}
 							/>
@@ -241,6 +240,7 @@ function Menu() {
 
 									if (space) {
 										toast.error("A space with that name already exists.");
+										return;
 									}
 
 									const creationTask = await createSpace(spaceName);
@@ -300,12 +300,10 @@ function Menu() {
 						</div>
 
 						<DialogFooter>
-							<Button
-								disabled={autoDetectedType === "none"}
-								variant={"secondary"}
-								type="submit"
-							>
-								Save {autoDetectedType != "none" && autoDetectedType}
+							<Button disabled={loading} variant={"secondary"} type="submit">
+								{loading
+									? "Saving..."
+									: `Save ${autoDetectedType != "none" ? autoDetectedType : ""}`}
 							</Button>
 						</DialogFooter>
 					</form>
