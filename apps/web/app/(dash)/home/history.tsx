@@ -20,7 +20,7 @@ const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
 				return;
 			}
 			console.log(suggestions);
-			setSuggestions(suggestions.data.reverse());
+			setSuggestions(suggestions.data.reverse().slice(0, 3));
 		})();
 	}, []);
 

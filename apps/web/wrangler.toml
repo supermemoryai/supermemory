@@ -14,6 +14,8 @@ env.production.kv_namespaces = [
 	{ binding = "RECOMMENDATIONS", id = "83bc7055226c4657948141c2ff9a5425" }
 ]
 
+[ai]
+binding = "AI"
 
 [placement]
 mode = "smart"

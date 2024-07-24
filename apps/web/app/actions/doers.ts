@@ -777,8 +777,6 @@ export async function getQuerySuggestions() {
 			.map((c) => `${c.title} \n\n${c.content}`)
 			.join(" ");
 
-		const sentences = getRandomSentences(fullQuery);
-
 		const suggestionsCall = (await env.AI.run(
 			// @ts-ignore
 			"@cf/meta/llama-3.1-8b-instruct",
@@ -786,11 +784,11 @@ export async function getQuerySuggestions() {
 				messages: [
 					{
 						role: "system",
-						content: `You are a model that suggests questions based on the user's content.`,
+						content: `You are a model that suggests questions based on the user's content. you MUST suggest atleast 1 question to ask. Create 3 suggestions at most.`,
 					},
 					{
 						role: "user",
-						content: `Run the function based on this input: ${sentences}`,
+						content: `Run the function based on this input: ${fullQuery.slice(0, 2000)}`,
 					},
 				],
 				tools: [
@@ -823,6 +821,11 @@ export async function getQuerySuggestions() {
 			tool_calls: { name: string; arguments: { querySuggestions: string[] } }[];
 		};
 
+		console.log(
+			"I RAN AN AI CALLS OWOWOWOWOW",
+			JSON.stringify(suggestionsCall, null, 2),
+		);
+
 		const suggestions =
 			suggestionsCall.tool_calls?.[0]?.arguments?.querySuggestions;
 
@@ -833,9 +836,11 @@ export async function getQuerySuggestions() {
 			};
 		}
 
-		await env.RECOMMENDATIONS.put(data.user.id, JSON.stringify(suggestions), {
-			expirationTtl: 60 * 2,
-		});
+		if (suggestions.length > 0) {
+			await env.RECOMMENDATIONS.put(data.user.id, JSON.stringify(suggestions), {
+				expirationTtl: 60 * 2,
+			});
+		}
 
 		return {
 			success: true,
