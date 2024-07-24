@@ -4,6 +4,9 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
 import { accounts, sessions, users, verificationTokens } from "./db/schema";
 
+
+console.log(`Google Client ID being used:, ${process.env.GOOGLE_CLIENT_ID} and the secret is ${process.env.GOOGLE_CLIENT_SECRET}`);
+
 export const {
 	handlers: { GET, POST },
 	signIn,

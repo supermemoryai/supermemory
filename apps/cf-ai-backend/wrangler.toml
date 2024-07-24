@@ -4,9 +4,9 @@ compatibility_date = "2024-02-23"
 node_compat = true
 
 # [env.preview]
-[[vectorize]]
-binding = "VECTORIZE_INDEX"
-index_name = "supermem-vector-dev"
+# [[vectorize]]
+# binding = "VECTORIZE_INDEX"
+# index_name = "supermem-vector-dev"
 
 # [[vectorize]]
 # binding = "VECTORIZE_INDEX"
@@ -24,7 +24,8 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "37a90353da63401e84e20e71165531d0"
+my_id="920cce6847dd4d489a6948559dede348"
+id = "920cce6847dd4d489a6948559dede348"
 preview_id = "c58b6202814f4224acea97627d0c18aa"
 
 [placement]

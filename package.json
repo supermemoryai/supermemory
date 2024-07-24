@@ -29,7 +29,7 @@
 		"readline-sync": "^1.4.10",
 		"tailwindcss": "^3.4.3",
 		"tailwindcss-animate": "^1.0.7",
-		"turbo": "2.0.3",
+		"turbo": "^2.0.3",
 		"vercel": "^34.2.0"
 	},
 	"engines": {

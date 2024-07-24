@@ -12,8 +12,8 @@ bucket_name = "dev-r2-anycontext"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+database_name = "database1"
+database_id = "11d5ccd9-c51c-4519-b9fa-2dc38110fd93"
 
 [[kv_namespaces]]
 binding = "CANVAS_SNAPS"
