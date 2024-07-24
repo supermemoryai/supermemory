@@ -26,18 +26,6 @@ function Hero() {
 	return (
 		<>
 			<section className="flex relative flex-col gap-5 justify-center items-center mt-24 max-w-xl md:mt-32 md:max-w-2xl lg:max-w-3xl">
-				<a
-					href="https://www.producthunt.com/posts/supermemory?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-supermemory"
-					target="_blank"
-				>
-					<img
-						src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=472686&theme=dark"
-						alt="Supermemory - AI&#0032;second&#0032;brain&#0032;for&#0032;all&#0032;your&#0032;saved&#0032;stuff | Product Hunt"
-						style={{ width: "250px", height: "54px" }}
-						width="250"
-						height="54"
-					/>
-				</a>
 				<TwitterBorder />
 				<motion.h1
 					{...{
@@ -65,7 +53,7 @@ function Hero() {
 				</motion.p>
 				<Link
 					href="/signin"
-					className="inline-flex text-lg gap-x-2 mt-2 backdrop-blur-md text-white justify-center items-center py-3 px-5 ml-3 w-fit rounded-3xl border duration-200 group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100"
+					className="inline-flex text-lg gap-x-2 mt-2 backdrop-blur-md text-white justify-center items-center py-3 px-5 w-fit rounded-3xl border duration-200 group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100"
 				>
 					It's free. Sign up now
 					<div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
@@ -73,6 +61,18 @@ function Hero() {
 						<ArrowUpRight className="absolute transition-all duration-500 -translate-x-4 -translate-y-5 group-hover:translate-x-0 group-hover:translate-y-0" />
 					</div>
 				</Link>
+				<a
+					href="https://www.producthunt.com/posts/supermemory?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-supermemory"
+					target="_blank"
+				>
+					<img
+						src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=472686&theme=dark&period=daily"
+						alt="Supermemory - AI&#0032;second&#0032;brain&#0032;for&#0032;all&#0032;your&#0032;saved&#0032;stuff | Product Hunt"
+						style={{ width: "250px", height: "54px" }}
+						width="250"
+						height="54"
+					/>
+				</a>
 			</section>
 
 			<AnimatedLogoCloud />
