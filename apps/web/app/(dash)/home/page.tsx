@@ -29,21 +29,13 @@ const slap = {
 };
 
 function Page({ searchParams }: { searchParams: Record<string, string> }) {
-
-	const query = searchParams.q || "";
-	const [queryPresent, setQueryPresent] = useState<boolean>(false);
-
-	const [telegramUser, setTelegramUser] = useState<string | undefined>(
-		searchParams.telegramUser as string,
-	);
-	const [extensionInstalled, setExtensionInstalled] = useState<
-		string | undefined
-	>(searchParams.extension as string);
-
-	const { push } = useRouter();
+	const telegramUser = searchParams.telegramUser;
+	const extensionInstalled = searchParams.extension;
+	const [query, setQuery] = useState(searchParams.q || "");
 
 	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
 
+	const { push } = useRouter();
 
 	useEffect(() => {
 		if (telegramUser) {
@@ -120,8 +112,7 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 					initialSpaces={spaces}
 				/>
 
-            <History setQuery={setQuery}/>
-            ```
+				<History setQuery={setQuery} />
 			</div>
 
 			<div className="w-full fixed bottom-0 left-0 p-4">
