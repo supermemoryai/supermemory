@@ -120,7 +120,8 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 					initialSpaces={spaces}
 				/>
 
-				<History setQuery={setQuery} />
+            <History setQuery={setQuery}/>
+            ```
 			</div>
 
 			<div className="w-full fixed bottom-0 left-0 p-4">
