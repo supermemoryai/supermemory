@@ -11,7 +11,7 @@ import {
 } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
+import { ChromeIcon, GithubIcon, MailIcon, TwitterIcon } from "lucide-react";
 import Link from "next/link";
 import History from "./history";
 
@@ -52,10 +52,6 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 			linkTelegram();
 		}
 
-		if (extensionInstalled) {
-			toast.success("Extension installed successfully");
-		}
-
 		getSpaces().then((res) => {
 			if (res.success && res.data) {
 				setSpaces(res.data);
@@ -66,15 +62,15 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 
 		getSessionAuthToken().then((token) => {
 			if (typeof window === "undefined") return;
+			if (extensionInstalled) {
+				toast.success("Extension installed successfully");
+			}
 			window.postMessage({ token: token.data }, "*");
 		});
 	}, [telegramUser]);
 
 	return (
 		<div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">
-			{/* all content goes here */}
-			{/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
-
 			<motion.h1
 				{...{
 					...slap,
@@ -127,12 +123,12 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 						Install extension
 					</Link>
 					<Link
-						href="https://github.com/supermemoryai/supermemory/issues/new"
+						href="mailto:feedback@supermemory.ai"
 						target="_blank"
 						rel="noreferrer"
 						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
 					>
-						<GithubIcon className="w-4 h-4" />
+						<MailIcon className="w-4 h-4" />
 						Bug report
 					</Link>
 					<Link
