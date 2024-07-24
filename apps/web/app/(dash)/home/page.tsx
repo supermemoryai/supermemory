@@ -29,20 +29,21 @@ const slap = {
 };
 
 function Page({ searchParams }: { searchParams: Record<string, string> }) {
-	// TODO: use this to show a welcome page/modal
-	const firstTime = searchParams.firstTime === "true";
-	const telegramUser = searchParams.telegramUser;
-	const extensionInstalled = searchParams.extension;
-	const [query, setQuery] = useState(searchParams.q || "");
 
-	const [querySuggestions, setQuerySuggestions] = useState<string[]>([]);
-	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
+	const query = searchParams.q || "";
+	const [queryPresent, setQueryPresent] = useState<boolean>(false);
+
+	const [telegramUser, setTelegramUser] = useState<string | undefined>(
+		searchParams.telegramUser as string,
+	);
+	const [extensionInstalled, setExtensionInstalled] = useState<
+		string | undefined
+	>(searchParams.extension as string);
 
 	const { push } = useRouter();
 
-	if (firstTime) {
-		redirect("/onboarding");
-	}
+	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
+
 
 	useEffect(() => {
 		if (telegramUser) {

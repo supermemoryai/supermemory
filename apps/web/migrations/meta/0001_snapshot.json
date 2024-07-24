@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e8646bed-105d-4f69-b385-b8b6fee8a6a9",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "1f43694b-f42b-4074-876e-8501fc18bf38",
+  "prevId": "e8646bed-105d-4f69-b385-b8b6fee8a6a9",
   "tables": {
     "account": {
       "name": "account",
@@ -818,6 +818,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "hasOnboarded": {
+          "name": "hasOnboarded",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
         }
       },
       "indexes": {
