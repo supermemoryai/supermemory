@@ -24,6 +24,7 @@ import { redirect } from "next/navigation";
 import { tweetToMd } from "@repo/shared-types/utils";
 import { ensureAuth } from "../api/ensureAuth";
 import { getRandomSentences } from "@/lib/utils";
+import { getRequestContext } from "@cloudflare/next-on-pages";
 
 export const completeOnboarding = async (): ServerActionReturnType<boolean> => {
 	const data = await auth();
@@ -35,10 +36,10 @@ export const completeOnboarding = async (): ServerActionReturnType<boolean> => {
 
 	try {
 		const res = await db
-		.update(users)
-		.set({ hasOnboarded: true })
-		.where(eq(users.id, data.user.id))
-		.returning({ hasOnboarded: users.hasOnboarded });
+			.update(users)
+			.set({ hasOnboarded: true })
+			.where(eq(users.id, data.user.id))
+			.returning({ hasOnboarded: users.hasOnboarded });
 
 		if (res.length === 0 || !res[0]?.hasOnboarded) {
 			return { success: false, data: false, error: "Failed to update user" };
@@ -48,9 +49,7 @@ export const completeOnboarding = async (): ServerActionReturnType<boolean> => {
 	} catch (e) {
 		return { success: false, data: false, error: (e as Error).message };
 	}
-
-
-}
+};
 
 export const createSpace = async (
 	input: string | FormData,
@@ -746,7 +745,9 @@ export async function getQuerySuggestions() {
 		return { error: "Not authenticated", success: false };
 	}
 
-	const recommendations = await process.env.RECOMMENDATIONS.get(data.user.id);
+	const { env } = getRequestContext();
+
+	const recommendations = await env.RECOMMENDATIONS.get(data.user.id);
 
 	if (recommendations) {
 		return {
@@ -775,7 +776,7 @@ export async function getQuerySuggestions() {
 
 	const sentences = getRandomSentences(fullQuery);
 
-	const suggestionsCall = (await process.env.AI.run(
+	const suggestionsCall = (await env.AI.run(
 		// @ts-ignore
 		"@cf/meta/llama-3.1-8b-instruct",
 		{
@@ -829,13 +830,9 @@ export async function getQuerySuggestions() {
 		};
 	}
 
-	await process.env.RECOMMENDATIONS.put(
-		data.user.id,
-		JSON.stringify(suggestions),
-		{
-			expirationTtl: 60 * 5,
-		},
-	);
+	await env.RECOMMENDATIONS.put(data.user.id, JSON.stringify(suggestions), {
+		expirationTtl: 60 * 5,
+	});
 
 	return {
 		success: true,
