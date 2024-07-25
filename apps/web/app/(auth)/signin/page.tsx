@@ -13,7 +13,7 @@ async function Signin() {
 	const user = await auth();
 
 	if (user) {
-		redirect("/app/home");
+		redirect("/home");
 	}
 
 	return (
@@ -59,7 +59,7 @@ async function Signin() {
 								action={async () => {
 									"use server";
 									await signIn("google", {
-										redirectTo: "/app/home",
+										redirectTo: "/home",
 									});
 								}}
 							>

@@ -70,7 +70,7 @@ export const createSpace = async (
 			.insert(space)
 			.values({ name: input, user: data.user.id, createdAt: new Date() });
 
-		revalidatePath("/app/home");
+		revalidatePath("/home");
 		return { success: true, data: resp.meta.last_row_id };
 	} catch (e: unknown) {
 		const error = e as Error;
@@ -343,7 +343,7 @@ export const createMemory = async (input: {
 			})
 			.returning({ id: storedContent.id });
 		revalidatePath("/memories");
-		revalidatePath("/app/home");
+		revalidatePath("/home");
 
 		contentId = insertResponse[0]?.id;
 	} catch (e) {

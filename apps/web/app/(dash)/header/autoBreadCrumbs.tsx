@@ -16,7 +16,7 @@ function AutoBreadCrumbs() {
 	return (
 		<Breadcrumb className="hidden md:block">
 			<BreadcrumbList>
-				{!pathname.startsWith("/app/home") && (
+				{!pathname.startsWith("/home") && (
 					<>
 						<BreadcrumbItem>
 							<BreadcrumbLink href="/">Home</BreadcrumbLink>

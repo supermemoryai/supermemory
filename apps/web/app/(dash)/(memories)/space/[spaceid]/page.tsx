@@ -7,7 +7,7 @@ import { spacesAccess } from "@/server/db/schema";
 
 async function Page({ params: { spaceid } }: { params: { spaceid: number } }) {
 	const { success, data } = await getMemoriesInsideSpace(spaceid);
-	if (!success ?? !data) return redirect("/app/home");
+	if (!success ?? !data) return redirect("/home");
 
 	const hasAccess = await db.query.spacesAccess.findMany({
 		where: and(eq(spacesAccess.spaceId, spaceid)),

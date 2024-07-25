@@ -34,7 +34,7 @@ const SlideTabs = () => {
 			</Link>
 
 			<Tab key={0} setPosition={setPosition}>
-				<Link className="w-full h-full" href={"/app/home"}>
+				<Link className="w-full h-full" href={"/home"}>
 					Home
 				</Link>
 			</Tab>

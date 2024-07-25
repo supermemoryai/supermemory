@@ -50,7 +50,7 @@ function Menu() {
 		{
 			icon: HomeIconWeb,
 			text: "Home",
-			url: "/app/home",
+			url: "/home",
 			disabled: false,
 		},
 		{

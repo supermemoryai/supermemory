@@ -26,7 +26,7 @@ async function Header() {
 		<div className="p-4 relative z-30 h-16 flex items-center">
 			<div className="w-full flex items-center justify-between">
 				<div className="flex items-center gap-4">
-					<Link className="" href="/app/home">
+					<Link className="" href="/home">
 						<Image
 							src={Logo}
 							alt="SuperMemory logo"
