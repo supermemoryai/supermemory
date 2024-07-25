@@ -7,9 +7,9 @@ This guide will help you set up your own instance of Supermemory. This is necces
 - [bun](https://bun.sh/)
 - [turbo](https://turbo.build/repo/docs/installing)
 - [wrangler](https://developers.cloudflare.com/workers/cli-wrangler/install-update)
-- [yarn](https://yarnpkg.com/getting-started/install) yarn is required to run scripts using turborepo. bun is not supported by turborepo yet vercel/turbo#4762
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/) You also need to have a paid Workers plan to use the vectorize feature which is needed run the AI backend. It is currently $5/mo + usage costs.
-- Cloudflare R2 You need to enable R2 in the Cloudflare Dashboard for use in the web app.
+- [yarn](https://yarnpkg.com/getting-started/install): yarn is required to run scripts using turborepo. bun is not supported by turborepo yet vercel/turbo#4762
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/): You also need to have a paid Workers plan to use the vectorize feature which is needed run the AI backend. It is currently $5/mo + usage costs.
+- [Cloudflare R2](https://developers.cloudflare.com/r2/): You need to enable R2 in the Cloudflare Dashboard for use in the web app.
 
 ## Steps
 
