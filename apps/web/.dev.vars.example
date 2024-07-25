@@ -1,0 +1,7 @@
+AUTH_URL="http://localhost:3000"
+AUTH_SECRET=""
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
+DATABASE_URL='database.sqlite'
+BACKEND_SECURITY_KEY=""
+BACKEND_BASE_URL="http://localhost:8686"

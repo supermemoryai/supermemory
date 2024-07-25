@@ -19,14 +19,14 @@ This guide will help you set up your own instance of Supermemory. This is necces
 ### web
 
 1. You need to create OAuth credentials for Google which is need for auth.js (nextauth). Visit https://developers.google.com/identity/protocols/oauth2 to learn more and https://console.cloud.google.com/apis/dashboard to create a new project and OAuth credentials. You need to set the redirect URL to `http://localhost:3000/api/auth/callback/google` for development. You can also set the redirect URL to your own domain if you are deploying the app.
-2. Create a `.dev.vars` file in `apps/web` with the following content:
+2. You can use `apps/web/.dev.vars.example` as a template. Create a `.dev.vars` file in `apps/web` with the following content:
 
 ```bash
-GOOGLE_CLIENT_ID="" // required
-GOOGLE_CLIENT_SECRET="" // required
-NEXTAUTH_SECRET="" // generate by running `openssl rand -base64 32`
+AUTH_URL="http://localhost:3000"
+AUTH_SECRET="" // generate by running `openssl rand -base64 32`
+AUTH_GOOGLE_ID="" // required
+AUTH_GOOGLE_SECRET="" // required
 DATABASE_URL='database.sqlite'
-NEXTAUTH_URL='http://localhost:3000'
 BACKEND_SECURITY_KEY="" // used to authenticate with the backend. generate a random string using `openssl rand -base64 32`
 BACKEND_BASE_URL="http://localhost:8686"
 ```
