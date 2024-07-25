@@ -16,7 +16,7 @@ export function SaveStatus({ id }: { id: string }) {
 
 			setSave("saved!");
 		}, 3000),
-		[editor], // Dependency array ensures the function is not recreated on every render
+		[editor], // ensures the function is not recreated on every render
 	);
 
 	useEffect(() => {
@@ -28,7 +28,7 @@ export function SaveStatus({ id }: { id: string }) {
 			{ scope: "document", source: "user" },
 		);
 
-		return () => unsubscribe(); // Cleanup on unmount
+		return () => unsubscribe();
 	}, [editor, debouncedSave]);
 
 	return <button>{save}</button>;

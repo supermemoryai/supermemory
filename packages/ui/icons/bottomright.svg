@@ -1,0 +1,14 @@
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M4 44H36C40.4183 44 44 40.4183 44 36V4"
+        stroke="#5f777f"
+        stroke-width="8"
+        stroke-linecap="round"
+      />
+    </svg>

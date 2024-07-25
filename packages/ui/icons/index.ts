@@ -15,6 +15,10 @@ import BlockIcon from "./block.svg";
 import DragIcon from "./drag.svg";
 import SettingsIcon from "./settings.svg";
 import HomeIcon from "./home.svg";
+import TopRightIcon from "./topright.svg"
+import TopLeftIcon from "./topleft.svg"
+import BomttomRightIcon from "./bottomright.svg"
+import BomttomLeftIcon from "./bottomleft.svg"
 
 export {
 	AddIcon,
@@ -34,4 +38,8 @@ export {
 	DragIcon,
 	SettingsIcon,
 	HomeIcon,
+	TopRightIcon,
+	TopLeftIcon,
+	BomttomRightIcon,
+  BomttomLeftIcon,
 };

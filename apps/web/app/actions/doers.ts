@@ -93,9 +93,7 @@ const typeDecider = (content: string) => {
 	// do strict checking with regex
 	if (content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)) {
 		return "tweet";
-	} else if (content.match(/https?:\/\/[\w\.]+/)) {
-		return "page";
-	} else if (content.match(/https?:\/\/www\.[\w\.]+/)) {
+	} else if (content.match(/^(https?:\/\/)?(www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(\/.*)?$/i)) {
 		return "page";
 	} else {
 		return "note";
@@ -648,7 +646,7 @@ export const createCanvas = async () => {
 		.insert(canvas)
 		.values({ userId: data.user.id })
 		.returning({ id: canvas.id });
-	redirect(`/canvas/${resp[0]!.id}`);
+	redirect(`/thinkpad/${resp[0]!.id}`);
 	// TODO INVESTIGATE: NO REDIRECT INSIDE TRY CATCH BLOCK
 	// try {
 	//   const resp = await db
