@@ -62,7 +62,9 @@ export function FilterSpaces({
 						placeholder={selectedSpaces.length ? "" : "Search in Spaces"}
 						onKeyDown={handleKeyDown}
 						className="text-white peer placeholder:text-white"
-						onChangeCapture={(e) => setInput(e.currentTarget.value)}
+						onChangeCapture={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setInput(e.target.value)
+            }
 						value={input}
 					/>
 				</div>

@@ -52,7 +52,7 @@ const createMemoryFromAPI = async (input: {
 		};
 	}
 
-	let contentId: number | undefined;
+	let contentId: number;
 
 	const saveToDbUrl =
 		(input.data.url.split("#supermemory-user-")[0] ?? input.data.url) +
@@ -79,7 +79,15 @@ const createMemoryFromAPI = async (input: {
 			})
 			.returning({ id: storedContent.id });
 
-		contentId = insertResponse[0]?.id;
+    if (!insertResponse[0]?.id) {
+      return {
+        success: false,
+        data: 0,
+        error: "Failed to save to database",
+      };
+    }
+
+		contentId = insertResponse[0].id;
 	} catch (e) {
 		const error = e as Error;
 		console.log("Error: ", error.message);
@@ -96,14 +104,6 @@ const createMemoryFromAPI = async (input: {
 			success: false,
 			data: 0,
 			error: "Failed to save to database with error: " + error.message,
-		};
-	}
-
-	if (!contentId) {
-		return {
-			success: false,
-			data: 0,
-			error: "Failed to save to database",
 		};
 	}
 

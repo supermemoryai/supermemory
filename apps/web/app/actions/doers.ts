@@ -288,7 +288,7 @@ export const createMemory = async (input: {
 		};
 	}
 
-	let contentId: number | undefined;
+	let contentId: number;
 
 	const response = (await vectorSaveResponse.json()) as {
 		status: string;
@@ -345,6 +345,14 @@ export const createMemory = async (input: {
 		revalidatePath("/memories");
 		revalidatePath("/home");
 
+    if (!insertResponse[0]?.id) {
+      return {
+        success: false,
+        data: 0,
+        error: "Something went wrong while saving the document to the database",
+      };
+    }
+
 		contentId = insertResponse[0]?.id;
 	} catch (e) {
 		const error = e as Error;
@@ -366,14 +374,6 @@ export const createMemory = async (input: {
 			success: false,
 			data: 0,
 			error: "Failed to save to database with error: " + error.message,
-		};
-	}
-
-	if (!contentId) {
-		return {
-			success: false,
-			data: 0,
-			error: "Something went wrong while saving the document to the database",
 		};
 	}
 
