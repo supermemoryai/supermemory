@@ -1,12 +1,8 @@
-import { getChatHistory } from "@repo/web/app/actions/fetchers";
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import { Skeleton } from "@repo/ui/shadcn/skeleton";
-import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { chatThreads } from "@/server/db/schema";
 import { getQuerySuggestions } from "@/app/actions/doers";
-import { Button } from "@repo/ui/shadcn/button";
 
 const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
 	const [suggestions, setSuggestions] = useState<string[] | null>(null);
