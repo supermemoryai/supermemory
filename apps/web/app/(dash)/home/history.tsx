@@ -21,7 +21,12 @@ const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
 			}
 			console.log(suggestions);
 			if (typeof suggestions.data === "string") {
-				setSuggestions(JSON.parse(suggestions.data));
+				const queries = suggestions.data.slice(1, -1).split(", ");
+				const parsedQueries = queries.map((query) =>
+					query.replace(/^'|'$/g, ""),
+				);
+				console.log(parsedQueries);
+				setSuggestions(parsedQueries);
 				return;
 			}
 			setSuggestions(suggestions.data.reverse().slice(0, 3));
