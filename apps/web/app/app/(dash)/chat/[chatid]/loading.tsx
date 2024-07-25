@@ -1,5 +1,4 @@
 import React from "react";
-import { chatSearchParamsCache } from "../../../../lib/searchParams";
 import ChatWindow from "../chatWindow";
 
 async function Page({

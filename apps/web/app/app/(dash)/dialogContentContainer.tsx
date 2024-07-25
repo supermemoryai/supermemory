@@ -1,9 +1,9 @@
-import { StoredSpace } from "@/server/db/schema";
+import type { StoredSpace } from "@/server/db/schema";
 import { useEffect, useMemo, useState } from "react";
-import { createMemory, createSpace } from "../actions/doers";
+import { createMemory, createSpace } from "@/app/actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { toast } from "sonner";
-import { getSpaces } from "../actions/fetchers";
+import { getSpaces } from "@/app/actions/fetchers";
 import { MinusIcon, PlusCircleIcon } from "lucide-react";
 import {
 	DialogContent,
