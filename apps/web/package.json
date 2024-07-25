@@ -2,12 +2,12 @@
 	"name": "@repo/web",
 	"version": "1.0.0",
 	"private": true,
-	"packageManager": "yarn@1.22.21",
 	"scripts": {
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint . --max-warnings 0",
+		"tsc": "tsc --noEmit --incremental",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
 		"pages:build": "pnpm dlx @cloudflare/next-on-pages",
 		"preview": "pnpm run pages:build && wrangler pages dev",
@@ -21,7 +21,9 @@
 		"@radix-ui/react-popover": "^1.0.7",
 		"@radix-ui/react-slot": "^1.1.0",
 		"@sentry/nextjs": "^8",
+		"clsx": "^2.1.1",
 		"cmdk": "^1.0.0",
+		"drizzle-orm": "0.30.0",
 		"lowlight": "^3.1.0",
 		"million": "^3.1.6",
 		"next": "^14.1.1",
@@ -33,16 +35,20 @@
 		"use-debounce": "^10.0.1"
 	},
 	"devDependencies": {
+		"@cloudflare/next-on-pages": "1",
 		"@next/eslint-plugin-next": "^14.1.1",
 		"@repo/eslint-config": "*",
-		"@repo/typescript-config": "*",
-		"@repo/tailwind-config": "*",
 		"@repo/shared-types": "*",
+		"@repo/tailwind-config": "*",
+		"@repo/typescript-config": "*",
 		"@types/eslint": "^8.56.5",
 		"@types/node": "^20.11.24",
 		"@types/react": "^18.2.61",
 		"@types/react-dom": "^18.2.19",
+		"drizzle-kit": "0.21.2",
 		"eslint": "^8.57.0",
-		"typescript": "^5.3.3"
+		"postcss": "^8.4.38",
+		"typescript": "^5.3.3",
+		"wrangler": "^3.66.0"
 	}
 }
