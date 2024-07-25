@@ -1,9 +1,9 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Logo from "../../../public/logo.svg";
+import Logo from "@/public/logo.svg";
 
-import { getChatHistory } from "../../actions/fetchers";
+import { getChatHistory } from "@/app/actions/fetchers";
 import NewChatButton from "./newChatButton";
 import AutoBreadCrumbs from "./autoBreadCrumbs";
 import SignOutButton from "./signOutButton";

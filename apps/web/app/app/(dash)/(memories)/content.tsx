@@ -1,7 +1,7 @@
 "use client";
 
-import { Content, StoredSpace } from "@/server/db/schema";
-import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
+import type { Content, StoredSpace } from "@/server/db/schema";
+import { MemoriesIcon, NextIcon, UrlIcon } from "@repo/ui/icons";
 import {
 	ArrowLeftIcon,
 	MenuIcon,
@@ -12,17 +12,15 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Masonry from "react-layout-masonry";
 import { getRawTweet } from "@repo/shared-types/utils";
-import { MyTweet } from "../../../components/twitter/render-tweet";
+import { MyTweet } from "@/components/twitter/render-tweet";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuPortal,
-	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
