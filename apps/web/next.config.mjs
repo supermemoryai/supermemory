@@ -7,7 +7,7 @@ const baseNextConfig = {
 	transpilePackages: ["@repo/ui"],
 	reactStrictMode: false,
 	env: {
-		TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+		// TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 	},
 };
 
