@@ -9,12 +9,12 @@
 		"start": "next start",
 		"lint": "eslint . --max-warnings 0",
 		"cf-typegen": "wrangler types --env-interface CloudflareEnv env.d.ts",
-		"pages:build": "npx @cloudflare/next-on-pages",
-		"preview": "npm run pages:build && wrangler pages dev",
-		"deploy": "npm run pages:build && wrangler pages deploy --branch main",
-		"schema-update": "bunx drizzle-kit generate sqlite",
-		"update-local-db": "bunx wrangler d1 execute dev-d1-anycontext --local",
-		"update-prod-db": "bunx wrangler d1 execute prod-d1-supermemory --remote"
+		"pages:build": "pnpm dlx @cloudflare/next-on-pages",
+		"preview": "pnpm run pages:build && wrangler pages dev",
+		"deploy": "pnpm run pages:build && wrangler pages deploy --branch main",
+		"schema-update": "drizzle-kit generate sqlite",
+		"update-local-db": "wrangler d1 execute dev-d1-anycontext --local",
+		"update-prod-db": "wrangler d1 execute prod-d1-supermemory --remote"
 	},
 	"dependencies": {
 		"@radix-ui/react-dialog": "^1.0.5",
@@ -44,10 +44,5 @@
 		"@types/react-dom": "^18.2.19",
 		"eslint": "^8.57.0",
 		"typescript": "^5.3.3"
-	},
-	"trustedDependencies": [
-		"esbuild",
-		"workerd",
-		"xycolors"
-	]
+	}
 }
