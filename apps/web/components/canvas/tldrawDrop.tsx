@@ -6,10 +6,10 @@ import { useEditor } from "tldraw";
 import { DragContext } from "./tldrawComponent";
 
 type CardData = {
-  type: any; // Adjust this according to your actual type
   title: string;
+  type: string;
   content: string;
-  url: string;
+  text: boolean;
 };
 
 function DropZone() {

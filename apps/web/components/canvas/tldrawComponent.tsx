@@ -12,9 +12,8 @@ import { textCardUtil } from "./custom_nodes/textcard";
 import DropZone from "./tldrawDrop";
 import { loadRemoteSnapshot } from "@/lib/loadSnap";
 import { createAssetFromUrl } from "@/lib/createAssetUrl";
-import createEmbedsFromUrl from "@/lib/ExternalDroppedContent";
-import { getAssetUrls } from "@tldraw/assets/selfHosted";
 import { SaveStatus } from "./savesnap";
+import createEmbedsFromUrl from "@/lib/createEmbeds";
 
 interface DragContextType {
 	isDraggingOver: boolean;

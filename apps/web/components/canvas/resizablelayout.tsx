@@ -6,6 +6,7 @@ import Sidepanel from "./sidepanel";
 import Image from "next/image";
 import { DragIcon } from "@repo/ui/icons";
 import { useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
 
 export default function ResizableLayout({ id }: { id: string }) {
 	const panelGroupRef = useRef(null);
@@ -19,7 +20,7 @@ export default function ResizableLayout({ id }: { id: string }) {
 
 	return (
 		<PanelGroup
-			className="text-white h-screen py-[1vh] px-[1vh] bg-[#111417]"
+			className="text-white h-screen py-[1vh] px-[1vh] bg-[#171B1F]"
 			direction="horizontal"
 			ref={panelGroupRef}
 			onLayout={(sizes) => {
@@ -31,9 +32,9 @@ export default function ResizableLayout({ id }: { id: string }) {
 			</Panel>
 			<PanelResizeHandle onClick={handleResize} className="w-4 h-[98vh] relative">
 				<div
-					className={`rounded-lg bg-[#2F363B] absolute top-1/2 -translate-y-1/2 px-1 transition-all py-2`}
+					className={`rounded-lg bg-[#2F363B] absolute top-1/2 z-[1000000] -translate-y-1/2 transition-all py-2 ${!isLeftPanelCollapsed && "px-1"}`}
 				>
-					<Image src={DragIcon} alt="drag-icon" />
+					{isLeftPanelCollapsed ? <ChevronRight className="text-[#989EA4] h-6 w-4 cursor-pointer" /> : <Image src={DragIcon} alt="drag-icon" />}
 				</div>
 			</PanelResizeHandle>
 			<Panel defaultSize={70} minSize={60}>

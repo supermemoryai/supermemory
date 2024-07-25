@@ -1,103 +1,5 @@
-import {
-  AssetRecordType,
-  Editor,
-  TLAsset,
-  TLAssetId,
-  TLBookmarkShape,
-  TLExternalContentSource,
-  TLShapePartial,
-  Vec,
-  VecLike,
-  createShapeId,
-  getEmbedInfo,
-  getHashForString,
-} from "tldraw";
-import { unfirlSite } from "@/app/actions/fetchers";
-
-export default async function createEmbedsFromUrl({
-  url,
-  point,
-  sources,
-  editor,
-}: {
-  url: string;
-  point?: VecLike | undefined;
-  sources?: TLExternalContentSource[] | undefined;
-  editor: Editor;
-}) {
-  const position =
-    point ??
-    (editor.inputs.shiftKey
-      ? editor.inputs.currentPagePoint
-      : editor.getViewportPageBounds().center);
-
-  const urlPattern = /https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/;
-  if (urlPattern.test(url)) {
-    return editor.createShape({
-      type: "Twittercard",
-      x: position.x - 250,
-      y: position.y - 150,
-      props: { url: url },
-    });
-  }
-
-  // try to paste as an embed first
-  const embedInfo = getEmbedInfo(url);
-
-  if (embedInfo) {
-    return editor.putExternalContent({
-      type: "embed",
-      url: embedInfo.url,
-      point,
-      embed: embedInfo.definition,
-    });
-  }
-
-  const assetId: TLAssetId = AssetRecordType.createId(getHashForString(url));
-  const shape = createEmptyBookmarkShape(editor, url, position);
-
-  let asset = editor.getAsset(assetId) as TLAsset;
-  let shouldAlsoCreateAsset = false;
-  if (!asset) {
-    shouldAlsoCreateAsset = true;
-    try {
-      const bookmarkAsset = await editor.getAssetForExternalContent({
-        type: "url",
-        url,
-      });
-      const value = await unfirlSite(url);
-      if (bookmarkAsset) {
-        if (bookmarkAsset.type === "bookmark" ){
-          if (value.title  ) bookmarkAsset.props.title = value.title;
-          if (value.image) bookmarkAsset.props.image = value.image;
-          if (value.description)
-            bookmarkAsset.props.description = value.description;
-        }
-      }
-      if (!bookmarkAsset) throw Error("Could not create an asset");
-      asset = bookmarkAsset;
-    } catch (e) {
-      console.log(e);
-      return;
-    }
-  }
-
-  editor.batch(() => {
-    if (shouldAlsoCreateAsset) {
-      editor.createAssets([asset]);
-    }
-
-    editor.updateShapes([
-      {
-        id: shape.id,
-        type: shape.type,
-        props: {
-          assetId: asset.id,
-        },
-      },
-    ]);
-  });
-}
+import {Editor} from "tldraw";
+import createEmbedsFromUrl from "./createEmbeds";
 
 function processURL(input: string): string | null {
   let str = input.trim();
@@ -115,6 +17,19 @@ function processURL(input: string): string | null {
       : null;
   }
 }
+
+function formatContent(title: string, content: string): string {
+  const totalLength = title.length + content.length;
+  const totalHeight = Math.ceil(totalLength * (2 / 3));
+  const titleLines = Math.ceil(totalHeight * (2 / 5));
+  const contentLines = totalHeight - titleLines;
+
+  const titleWithNewLines = title + '\n'.repeat(titleLines);
+  const contentWithNewLines = content + '\n'.repeat(contentLines);
+
+  return `${titleWithNewLines.trim()}\n\n${contentWithNewLines.trim()}`;
+}
+
 
 function formatTextToRatio(text: string): { height: number; width: number } {
   const RATIO = 4 / 3; 
@@ -162,9 +77,8 @@ function formatTextToRatio(text: string): { height: number; width: number } {
 type CardData = {
   title: string;
   type: string;
-  source: string;
   content: string;
-  numChunks: string;
+  text: boolean;
 };
 
 type DroppedData = CardData | string | { imageUrl: string };
@@ -188,17 +102,20 @@ export function handleExternalDroppedContent({
       createTextCard(editor, position, droppedData, "String Content");
     }
   } else if ("imageUrl" in droppedData) {
-    // Handle image URL (implementation not provided in original code)
   } else {
-    const { content, title, source, type } = droppedData;
-    const processedURL = processURL(source);
-    // if (processedURL) {
-    //   createEmbedsFromUrl({ editor, url: processedURL });
-    // } else {
-      // }
-        createTextCard(editor, position, title, type, content);
-  }
-}
+    const { content, title, type, text } = droppedData;
+    if (text){
+      const { height, width } = formatTextToRatio(content);
+      editor.createShape({
+        type: 'text',
+        x: position.x - width / 2,
+        y: position.y - height / 2,
+        props: { text: formatContent(title, content) },
+      })
+    }else {
+      createTextCard(editor, position, title, type, content);
+    }
+}}
 
 function createTextCard(editor: Editor, position: { x: number; y: number }, content: string, type: string, extraInfo: string = "") {
   const { height, width } = formatTextToRatio(content);
@@ -208,63 +125,4 @@ function createTextCard(editor: Editor, position: { x: number; y: number }, cont
     y: position.y - height / 2,
     props: { content, type, extrainfo: extraInfo, h: 200, w: 400 },
   });
-}
-
-function centerSelectionAroundPoint(editor: Editor, position: VecLike) {
-  // Re-position shapes so that the center of the group is at the provided point
-  const viewportPageBounds = editor.getViewportPageBounds();
-  let selectionPageBounds = editor.getSelectionPageBounds();
-
-  if (selectionPageBounds) {
-    const offset = selectionPageBounds!.center.sub(position);
-
-    editor.updateShapes(
-      editor.getSelectedShapes().map((shape) => {
-        const localRotation = editor
-          .getShapeParentTransform(shape)
-          .decompose().rotation;
-        const localDelta = Vec.Rot(offset, -localRotation);
-        return {
-          id: shape.id,
-          type: shape.type,
-          x: shape.x! - localDelta.x,
-          y: shape.y! - localDelta.y,
-        };
-      })
-    );
-  }
-
-  // Zoom out to fit the shapes, if necessary
-  selectionPageBounds = editor.getSelectionPageBounds();
-  if (
-    selectionPageBounds &&
-    !viewportPageBounds.contains(selectionPageBounds)
-  ) {
-    editor.zoomToSelection();
-  }
-}
-
-export function createEmptyBookmarkShape(
-  editor: Editor,
-  url: string,
-  position: VecLike
-): TLBookmarkShape {
-  const partial: TLShapePartial = {
-    id: createShapeId(),
-    type: "bookmark",
-    x: position.x - 150,
-    y: position.y - 160,
-    opacity: 1,
-    props: {
-      assetId: null,
-      url,
-    },
-  };
-
-  editor.batch(() => {
-    editor.createShapes([partial]).select(partial.id);
-    centerSelectionAroundPoint(editor, position);
-  });
-
-  return editor.getShape(partial.id) as TLBookmarkShape;
 }
