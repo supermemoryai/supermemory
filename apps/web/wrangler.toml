@@ -5,13 +5,13 @@ pages_build_output_dir = ".vercel/output/static"
 
 
 kv_namespaces = [
-	{ binding = "CANVAS_SNAPS", id = "6df98c892b3744ccb0c631d9f60d6697" },
-	{ binding = "RECOMMENDATIONS", id = "83bc7055226c4657948141c2ff9a5425" }
+	{ binding = "CANVAS_SNAPS", id = "f663564d9a4e4ebc904a5fb4301ab6a6" },
+	{ binding = "RECOMMENDATIONS", id = "bf3f293fb589406e961dfd91e43c48bd" }
 ]
 
 env.production.kv_namespaces = [
-	{ binding = "CANVAS_SNAPS", id = "6df98c892b3744ccb0c631d9f60d6697" },
-	{ binding = "RECOMMENDATIONS", id = "83bc7055226c4657948141c2ff9a5425" }
+	{ binding = "CANVAS_SNAPS", id = "f663564d9a4e4ebc904a5fb4301ab6a6" },
+	{ binding = "RECOMMENDATIONS", id = "bf3f293fb589406e961dfd91e43c48bd" }
 ]
 
 [ai]
@@ -22,26 +22,26 @@ mode = "smart"
 
 [[r2_buckets]]
 binding = "STORAGE"
-bucket_name = "dev-r2-anycontext"
+bucket_name = "supermemory-r2-preview"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+database_name = "supermemory-db-preview"
+database_id = "5e11c666-eece-4ef5-8d35-5b20636f7ce7"
 
 
 [[env.production.d1_databases]]
 binding = "DATABASE"
-database_name = "prod-d1-supermemory"
-database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
+database_name = "supermemory-db-prod"
+database_id = "2531ff71-861b-4815-bde8-aa0a36b9ed09"
 
 [env.preview.ai]
 binding = "AI"
 
 [[env.preview.d1_databases]]
 binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+database_name = "supermemory-db-preview"
+database_id = "5e11c666-eece-4ef5-8d35-5b20636f7ce7"
 
 [env.production.ai]
 binding = "AI"
