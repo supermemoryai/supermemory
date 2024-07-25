@@ -460,6 +460,7 @@ export const createChatObject = async (
 		answer: lastChat.answer.parts.map((part) => part.text).join(""),
 		answerSources: JSON.stringify(lastChat.answer.sources),
 		threadId,
+		createdAt: new Date(),
 	});
 
 	if (!saved) {
