@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "./server/auth";
-import { redirect } from "next/navigation";
 import { routeTypes } from "@/routes";
 
 const corsHeaders = {
@@ -25,13 +24,12 @@ export async function middleware(request: NextRequest) {
   const info = await auth();
   if (routeTypes.authed.some((route) => request.nextUrl.pathname.startsWith(route))) {
     if (!info) {
-      return redirect("/signin");
+      NextResponse.redirect(new URL("/signin", request.nextUrl));
     }
-    return NextResponse.next();
   } else {
     if (info) {
-      return redirect("/dash/home");
+      NextResponse.redirect(new URL("/home", request.nextUrl));
     }
-    return NextResponse.next();
   }
+  return NextResponse.next();
 }
