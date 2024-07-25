@@ -1,4 +1,4 @@
-name = "supermemory-backend"
+name = "new-cf-ai-backend"
 main = "src/index.ts"
 compatibility_date = "2024-02-23"
 node_compat = true
@@ -6,7 +6,8 @@ node_compat = true
 # [env.preview]
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
-index_name = "supermemory-prod"
+index_name = "supermem-vector-dev"
+
 # [[vectorize]]
 # binding = "VECTORIZE_INDEX"
 # index_name = "supermem-vector-prod"
@@ -23,8 +24,8 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "c76af0a8cd2047bd80db77cd160f2b6d"
-preview_id = "667225a5df924e68b26194cf49c75101"
+id = "37a90353da63401e84e20e71165531d0"
+preview_id = "c58b6202814f4224acea97627d0c18aa"
 
 [placement]
 mode = "smart"
