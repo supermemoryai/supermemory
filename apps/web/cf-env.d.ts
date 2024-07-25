@@ -19,6 +19,10 @@ declare global {
 			CLOUDFLARE_D1_TOKEN: string;
 
 			MOBILE_TRUST_TOKEN: string;
+
+			RATELIMITER: {
+				limit: ({key: string}) => {success: boolean}
+			};
 		}
 	}
 }

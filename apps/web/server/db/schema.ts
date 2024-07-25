@@ -1,3 +1,4 @@
+import { create } from "domain";
 import { relations, sql } from "drizzle-orm";
 import {
 	index,
@@ -211,6 +212,7 @@ export const chatHistory = createTable(
 		answer: text("answerParts"), // Single answer part as string
 		answerSources: text("answerSources"), // JSON stringified array of objects
 		answerJustification: text("answerJustification"),
+		createdAt: int("createdAt", { mode: "timestamp" }).notNull().default(new Date()),
 	},
 	(history) => ({
 		threadIdx: index("chatHistory_thread_idx").on(history.threadId),

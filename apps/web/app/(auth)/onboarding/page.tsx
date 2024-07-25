@@ -1,10 +1,10 @@
 "use client";
 
 import {
+	ArrowUturnDownIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	QuestionMarkCircleIcon,
-	ArrowTurnDownLeftIcon,
 } from "@heroicons/react/24/solid";
 import { CheckIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
@@ -311,7 +311,7 @@ function StepThree({ currStep }: { currStep: number }) {
 									type="submit"
 									className="rounded-lg bg-[#369DFD1A] p-3 absolute bottom-4 right-2"
 								>
-									<ArrowTurnDownLeftIcon className="w-4 h-4 text-[#369DFD]" />
+									<ArrowUturnDownIcon className="w-4 h-4 text-[#369DFD]" />
 								</button>
 							</form>
 						</li>
