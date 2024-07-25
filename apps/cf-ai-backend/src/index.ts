@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { Hono } from "hono";
 import { CoreMessage, generateText, streamText, tool } from "ai";
-import { chatObj, Env, vectorObj } from "./types";
+import {
+	chatObj,
+	Chunks,
+	Env,
+	ImageChunks,
+	PageOrNoteChunks,
+	TweetChunks,
+	vectorObj,
+} from "./types";
 import {
 	batchCreateChunksAndEmbeddings,
 	deleteDocument,
@@ -15,6 +23,8 @@ import { zValidator } from "@hono/zod-validator";
 import chunkText from "./utils/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
 import { swaggerUI } from "@hono/swagger-ui";
+import { chunkThread } from "./utils/chunkTweet";
+import { chunkNote, chunkPage } from "./utils/chunkPageOrNotes";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -59,42 +69,42 @@ app.get("/api/health", (c) => {
 });
 
 app.post("/api/add", zValidator("json", vectorObj), async (c) => {
-	const body = c.req.valid("json");
+	try {
+		const body = c.req.valid("json");
 
-	const { store } = await initQuery(c);
+		const { store } = await initQuery(c);
 
-	console.log(body.spaces);
+		console.log(body.spaces);
+		let chunks: TweetChunks | PageOrNoteChunks;
+		// remove everything in <raw> tags
+		const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
 
-	// remove everything in <raw> tags
-	const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
+		switch (body.type) {
+			case "tweet":
+				chunks = chunkThread(newPageContent);
+				break;
 
-	const chunks = chunkText(newPageContent, 1536);
+			case "page":
+				chunks = chunkPage(newPageContent);
+				break;
 
-	const chunksOf20 = chunks.reduce((acc, chunk, index) => {
-		if (index % 20 === 0) {
-			acc.push([chunk]);
-		} else {
-			acc[acc.length - 1].push(chunk);
+			case "note":
+				chunks = chunkNote(newPageContent);
+				break;
 		}
-		return acc;
-	}, [] as string[][]);
 
-	const accumChunkedInputs = [];
-
-	const promises = chunksOf20.map(async (chunkGroup) => {
-		const chunkedInput = await batchCreateChunksAndEmbeddings({
+		await batchCreateChunksAndEmbeddings({
 			store,
 			body,
-			chunks: chunkGroup,
+			chunks: chunks,
 			context: c,
 		});
 
-		accumChunkedInputs.push(chunkedInput);
-	});
-
-	await Promise.all(promises);
-
-	return c.json({ status: "ok", chunkedInput: accumChunkedInputs });
+		return c.json({ status: "ok" });
+	} catch (error) {
+		console.error("Error processing request:", error);
+		return c.json({ status: "error", message: error.message }, 500);
+	}
 });
 
 app.post(
@@ -147,6 +157,13 @@ app.post(
 		);
 
 		const imageDescriptions = await Promise.all(imagePromises);
+		const chunks: ImageChunks = {
+			type: "image",
+			chunks: [
+				imageDescriptions,
+				...(body.text ? chunkText(body.text, 1536) : []),
+			].flat(),
+		};
 
 		await batchCreateChunksAndEmbeddings({
 			store,
@@ -162,10 +179,7 @@ app.post(
 				pageContent: imageDescriptions.join("\n"),
 				title: "Image content from the web",
 			},
-			chunks: [
-				imageDescriptions,
-				...(body.text ? chunkText(body.text, 1536) : []),
-			].flat(),
+			chunks: chunks,
 			context: c,
 		});
 
@@ -263,7 +277,7 @@ app.post(
 		// This is a "router". this finds out if the user wants to add a document, or chat with the AI to get a response.
 		const routerQuery = await generateText({
 			model: model,
-			system: `You are Supermemory chatbot. You can either add a document to the supermemory database, or return a chat response. Based on this query, 
+			system: `You are Supermemory chatbot. You can either add a document to the supermemory database, or return a chat response. Based on this query,
         You must determine what to do. Basically if it feels like a "question", then you should intiate a chat. If it feels like a "command" or feels like something that could be forwarded to the AI, then you should add a document.
         You must also extract the "thing" to add and what type of thing it is.`,
 			prompt: `Question from user: ${query}`,
@@ -289,7 +303,9 @@ app.post(
 
 		if ((task as string) === "add") {
 			// addString is the plaintext string that the user wants to add to the database
+			//chunk the note
 			let addString: string = addContent;
+			let vectorContent: Chunks = chunkNote(addContent);
 
 			if (thingToAdd === "page") {
 				// TODO: Sometimes this query hangs, and errors out. we need to do proper error management here.
@@ -300,6 +316,7 @@ app.post(
 				});
 
 				addString = await response.text();
+				vectorContent = chunkPage(addString);
 			}
 
 			// At this point, we can just go ahead and create the embeddings!
@@ -312,7 +329,7 @@ app.post(
 					pageContent: addString,
 					title: `${addString.slice(0, 30)}... (Added from chatbot)`,
 				},
-				chunks: chunkText(addString, 1536),
+				chunks: vectorContent,
 				context: c,
 			});
 

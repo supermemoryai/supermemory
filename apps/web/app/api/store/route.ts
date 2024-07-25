@@ -30,7 +30,12 @@ const createMemoryFromAPI = async (input: {
 			count: sql<number>`count(*)`.mapWith(Number),
 		})
 		.from(storedContent)
-		.where(and(gt(storedContent.savedAt, last2Hours), eq(storedContent.userId, input.userId)))
+		.where(
+			and(
+				gt(storedContent.savedAt, last2Hours),
+				eq(storedContent.userId, input.userId),
+			),
+		);
 
 	if (numberOfItemsSavedInLast2Hours[0]!.count >= 20) {
 		return {
