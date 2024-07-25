@@ -1,1 +1,0 @@
-ALTER TABLE `chatHistory` ADD `createdAt` integer DEFAULT '"2024-07-25T16:09:15.141Z"' NOT NULL;

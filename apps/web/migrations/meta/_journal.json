@@ -1,34 +1,13 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "6",
-      "when": 1721746132570,
-      "tag": "0000_setup",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1721775651258,
-      "tag": "0001_dear_sally_floyd",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1721923624746,
-      "tag": "0002_giant_vin_gonzales",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1721923755148,
-      "tag": "0003_organic_pet_avengers",
-      "breakpoints": true
-    }
-  ]
+	"version": "6",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1721946710900,
+			"tag": "0000_steep_moira_mactaggert",
+			"breakpoints": true
+		}
+	]
 }
