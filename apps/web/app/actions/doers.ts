@@ -458,6 +458,7 @@ export const createChatObject = async (
 		answer: lastChat.answer.parts.map((part) => part.text).join(""),
 		answerSources: JSON.stringify(lastChat.answer.sources),
 		threadId,
+		createdAt: new Date(),
 	});
 
 	if (!saved) {
@@ -782,7 +783,7 @@ export async function getQuerySuggestions() {
 				messages: [
 					{
 						role: "system",
-						content: `You are a model that suggests questions based on the user's content. you MUST suggest atleast 1 question to ask. Create 3 suggestions at most.`,
+						content: `You are a model that suggests questions based on the user's content. you MUST suggest atleast 1 question to ask. AT MAX, create 3 suggestions. not more than that.`,
 					},
 					{
 						role: "user",

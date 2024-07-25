@@ -1,20 +1,13 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "6",
-      "when": 1721746132570,
-      "tag": "0000_silky_havok",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1721775651258,
-      "tag": "0001_dear_sally_floyd",
-      "breakpoints": true
-    }
-  ]
+	"version": "6",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1721946710900,
+			"tag": "0000_steep_moira_mactaggert",
+			"breakpoints": true
+		}
+	]
 }
