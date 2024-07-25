@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "./server/auth";
 import { redirect } from "next/navigation";
+import { routeTypes } from "@/routes";
 
 const corsHeaders = {
 	"Access-Control-Allow-Origin": "*",
@@ -20,15 +21,17 @@ export async function middleware(request: NextRequest) {
     });
 
     return response;
-  } else if (request.nextUrl.pathname.startsWith("/app")) {
-    const info = await auth();
-
+  }
+  const info = await auth();
+  if (routeTypes.authed.some((route) => request.nextUrl.pathname.startsWith(route))) {
     if (!info) {
       return redirect("/signin");
     }
+    return NextResponse.next();
+  } else {
+    if (info) {
+      return redirect("/dash/home");
+    }
+    return NextResponse.next();
   }
 }
-
-export const config = {
-	matcher: ["/api/:path*", "/app/:path*"],
-};
