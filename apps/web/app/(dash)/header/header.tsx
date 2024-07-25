@@ -6,6 +6,7 @@ import Logo from "../../../public/logo.svg";
 import { getChatHistory } from "../../actions/fetchers";
 import NewChatButton from "./newChatButton";
 import AutoBreadCrumbs from "./autoBreadCrumbs";
+import SignOutButton from "./signOutButton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui/shadcn/dropdown-menu";
 import { CaretDownIcon } from "@radix-ui/react-icons";
 
@@ -50,10 +51,15 @@ async function Header() {
 									>
 										{thread.firstMessage}
 									</Link>
-								</DropdownMenuItem>
+                  								</DropdownMenuItem>
 							))}
 						</DropdownMenuContent>
 					</DropdownMenu>
+
+					<SignOutButton />
+					</div>
+					
+
 				</div>
 			</div>
 		</div>
