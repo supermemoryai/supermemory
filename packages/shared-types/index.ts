@@ -17,6 +17,9 @@ export const ChatHistoryZod = z.object({
 		sources: z.array(SourceZod),
 		justification: z.string().optional(),
 	}),
+	proModeProcessing: z.object({
+		queries: z.array(z.string()),
+	}),
 });
 
 export type ChatHistory = z.infer<typeof ChatHistoryZod>;
@@ -77,6 +80,7 @@ export const sourcesZod = z.object({
 	ids: z.array(z.string()),
 	metadata: z.array(z.any()),
 	normalizedData: z.array(z.any()).optional(),
+	proModeListedQueries: z.array(z.string()).optional(),
 });
 
 export type SourcesFromApi = z.infer<typeof sourcesZod>;

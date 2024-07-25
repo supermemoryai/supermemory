@@ -1,3 +1,4 @@
+import { create } from "domain";
 import { relations, sql } from "drizzle-orm";
 import {
 	index,
@@ -22,6 +23,7 @@ export const users = createTable(
 		emailVerified: integer("emailVerified", { mode: "timestamp_ms" }),
 		image: text("image"),
 		telegramId: text("telegramId"),
+		hasOnboarded: integer("hasOnboarded", { mode: "boolean" }).default(false),
 	},
 	(user) => ({
 		emailIdx: index("users_email_idx").on(user.email),
@@ -210,6 +212,9 @@ export const chatHistory = createTable(
 		answer: text("answerParts"), // Single answer part as string
 		answerSources: text("answerSources"), // JSON stringified array of objects
 		answerJustification: text("answerJustification"),
+		createdAt: int("createdAt", { mode: "timestamp" })
+			.notNull()
+			.default(new Date()),
 	},
 	(history) => ({
 		threadIdx: index("chatHistory_thread_idx").on(history.threadId),

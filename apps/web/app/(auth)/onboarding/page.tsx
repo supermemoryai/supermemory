@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import {
+	ArrowUturnDownIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	QuestionMarkCircleIcon,
-	ArrowTurnDownLeftIcon,
 } from "@heroicons/react/24/solid";
 import { CheckIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { createMemory } from "@repo/web/app/actions/doers";
+import { completeOnboarding, createMemory } from "@repo/web/app/actions/doers";
 import { useRouter } from "next/navigation";
 import Logo from "../../../public/logo.svg";
 import Image from "next/image";
@@ -20,6 +19,18 @@ import gradientStyle from "../signin/_components/TextGradient/gradient.module.cs
 
 export default function Home() {
 	const [currStep, setCurrStep] = useState(0);
+	const { push } = useRouter();
+
+	useEffect(() => {
+		const updateDb = async () => {
+			await completeOnboarding();
+		};
+		if (currStep > 3) {
+			updateDb().then(() => {
+				push("/home?q=what%20is%20supermemory");
+			});
+		}
+	}, [currStep]);
 
 	return (
 		<main className="min-h-screen text-sm text-[#B8C4C6] font-geistSans">
@@ -175,7 +186,7 @@ function StepIndicator({
 				/>
 				<p>Step: {currStep}/3</p>
 				<ChevronRightIcon
-					className="h-6"
+					className="h-6 cursor-pointer"
 					onClick={() => currStep <= 3 && setCurrStep(currStep + 1)}
 				/>
 			</div>
@@ -300,7 +311,7 @@ function StepThree({ currStep }: { currStep: number }) {
 									type="submit"
 									className="rounded-lg bg-[#369DFD1A] p-3 absolute bottom-4 right-2"
 								>
-									<ArrowTurnDownLeftIcon className="w-4 h-4 text-[#369DFD]" />
+									<ArrowUturnDownIcon className="w-4 h-4 text-[#369DFD]" />
 								</button>
 							</form>
 						</li>
@@ -374,6 +385,12 @@ function StepTwo({ currStep }: { currStep: number }) {
 }
 
 function Navbar() {
+	const router = useRouter();
+	const handleSkip = async () => {
+		await completeOnboarding();
+		router.push("/home?q=what%20is%20supermemory");
+	};
+
 	return (
 		<div className="flex items-center justify-between p-4 fixed top-0 left-0 w-full">
 			<Image
@@ -382,9 +399,9 @@ function Navbar() {
 				className="hover:brightness-125 duration-200 size-12"
 			/>
 
-			<Link href="/home">
-				<button className="text-sm">Skip</button>
-			</Link>
+			<button className="text-sm" onClick={handleSkip}>
+				Skip
+			</button>
 		</div>
 	);
 }

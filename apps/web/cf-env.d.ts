@@ -22,6 +22,10 @@ declare global {
 			THREAD_CF_AUTH: string;
 
 			MOBILE_TRUST_TOKEN: string;
+
+			RATELIMITER: {
+				limit: ({ key: string }) => { success: boolean };
+			};
 		}
 	}
 }

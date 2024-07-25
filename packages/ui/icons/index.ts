@@ -9,12 +9,12 @@ import SearchIcon from "./search.svg";
 import NextIcon from "./nextarrow.svg";
 import UrlIcon from "./url.svg";
 import CanvasIcon from "./canvas.svg";
-import blockIcon from "./block.svg";
 import LinkIcon from "./link.svg";
 import AutocompleteIcon from "./autocomplete.svg";
 import BlockIcon from "./block.svg";
 import DragIcon from "./drag.svg";
 import SettingsIcon from "./settings.svg";
+import HomeIcon from "./home.svg";
 
 export {
 	AddIcon,
@@ -28,10 +28,10 @@ export {
 	NextIcon,
 	UrlIcon,
 	CanvasIcon,
-	blockIcon,
 	LinkIcon,
 	AutocompleteIcon,
 	BlockIcon,
 	DragIcon,
 	SettingsIcon,
+	HomeIcon,
 };

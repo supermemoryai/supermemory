@@ -7,9 +7,15 @@ async function Page({
 }: {
 	searchParams: Record<string, string | string[] | undefined>;
 }) {
-	const q = (searchParams?.q as string) ?? "from_loading";
+	const q = (searchParams?.q as string) ?? "";
 	return (
-		<ChatWindow q={q} spaces={[]} initialChat={undefined} threadId={"idk"} />
+		<ChatWindow
+			proMode={false}
+			q={q}
+			spaces={[]}
+			initialChat={undefined}
+			threadId={"idk"}
+		/>
 	);
 }
 

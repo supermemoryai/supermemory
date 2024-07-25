@@ -4,12 +4,15 @@ import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
 import { redirect, useRouter } from "next/navigation";
-import { createChatThread, linkTelegramToUser } from "@/app/actions/doers";
+import {
+	createChatThread,
+	getQuerySuggestions,
+	linkTelegramToUser,
+} from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ChromeIcon, GithubIcon, TwitterIcon } from "lucide-react";
+import { ChromeIcon, GithubIcon, MailIcon, TwitterIcon } from "lucide-react";
 import Link from "next/link";
-import { homeSearchParamsCache } from "@/lib/searchParams";
 import History from "./history";
 
 const slap = {
@@ -26,27 +29,13 @@ const slap = {
 };
 
 function Page({ searchParams }: { searchParams: Record<string, string> }) {
-	// TODO: use this to show a welcome page/modal
-	const firstTime = searchParams.firstTime === "true";
-
-	const query = searchParams.q || "";
-
-	if (firstTime) {
-		redirect("/onboarding");
-	}
-
-	const [queryPresent, setQueryPresent] = useState<boolean>(false);
-
-	const [telegramUser, setTelegramUser] = useState<string | undefined>(
-		searchParams.telegramUser as string,
-	);
-	const [extensionInstalled, setExtensionInstalled] = useState<
-		string | undefined
-	>(searchParams.extension as string);
-
-	const { push } = useRouter();
+	const telegramUser = searchParams.telegramUser;
+	const extensionInstalled = searchParams.extension;
+	const [query, setQuery] = useState(searchParams.q || "");
 
 	const [spaces, setSpaces] = useState<{ id: number; name: string }[]>([]);
+
+	const { push } = useRouter();
 
 	useEffect(() => {
 		if (telegramUser) {
@@ -63,10 +52,6 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 			linkTelegram();
 		}
 
-		if (extensionInstalled) {
-			toast.success("Extension installed successfully");
-		}
-
 		getSpaces().then((res) => {
 			if (res.success && res.data) {
 				setSpaces(res.data);
@@ -77,21 +62,21 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 
 		getSessionAuthToken().then((token) => {
 			if (typeof window === "undefined") return;
+			if (extensionInstalled) {
+				toast.success("Extension installed successfully");
+			}
 			window.postMessage({ token: token.data }, "*");
 		});
 	}, [telegramUser]);
 
 	return (
 		<div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">
-			{/* all content goes here */}
-			{/* <div className="">hi {firstTime ? 'first time' : ''}</div> */}
-
 			<motion.h1
 				{...{
 					...slap,
 					transition: { ...slap.transition, delay: 0.2 },
 				}}
-				className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl"
+				className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl pb-2"
 			>
 				<span>Ask your</span>{" "}
 				<span className="inline-flex items-center gap-2 bg-gradient-to-r to-blue-300 from-zinc-300 text-transparent bg-clip-text">
@@ -99,17 +84,16 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 				</span>
 			</motion.h1>
 
-			<div className="w-full pb-20 mt-12">
+			<div className="w-full pb-20 mt-10">
 				<QueryInput
-					initialQuery={query}
-					setQueryPresent={setQueryPresent}
-					handleSubmit={async (q, spaces) => {
+					query={query}
+					setQuery={setQuery}
+					handleSubmit={async (q, spaces, proMode) => {
 						if (q.length === 0) {
 							toast.error("Query is required");
 							return;
 						}
 
-						console.log("creating thread");
 						const threadid = await createChatThread(q);
 
 						if (!threadid.success || !threadid.data) {
@@ -117,15 +101,14 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 							return;
 						}
 
-						console.log("pushing to chat");
 						push(
-							`/chat/${threadid.data}?spaces=${JSON.stringify(spaces)}&q=${q}`,
+							`/chat/${threadid.data}?spaces=${JSON.stringify(spaces)}&q=${q}&proMode=${proMode}`,
 						);
 					}}
 					initialSpaces={spaces}
 				/>
 
-				<History />
+				<History setQuery={setQuery} />
 			</div>
 
 			<div className="w-full fixed bottom-0 left-0 p-4">
@@ -140,12 +123,12 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 						Install extension
 					</Link>
 					<Link
-						href="https://github.com/supermemoryai/supermemory/issues/new"
+						href="mailto:feedback@supermemory.ai"
 						target="_blank"
 						rel="noreferrer"
 						className="flex items-center gap-2 text-muted-foreground hover:text-grey-50 duration-300"
 					>
-						<GithubIcon className="w-4 h-4" />
+						<MailIcon className="w-4 h-4" />
 						Bug report
 					</Link>
 					<Link

@@ -1,7 +1,7 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "ab91d972-05ff-4916-84b7-1cfaab4c3879",
+	"id": "8705302a-eae7-4fbf-9ce8-8ae23df228a2",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"tables": {
 		"account": {
@@ -298,6 +298,14 @@
 					"primaryKey": false,
 					"notNull": false,
 					"autoincrement": false
+				},
+				"createdAt": {
+					"name": "createdAt",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": "'\"2024-07-25T22:31:50.848Z\"'"
 				}
 			},
 			"indexes": {
@@ -738,6 +746,14 @@
 					"primaryKey": false,
 					"notNull": false,
 					"autoincrement": false
+				},
+				"hasOnboarded": {
+					"name": "hasOnboarded",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false,
+					"default": false
 				}
 			},
 			"indexes": {

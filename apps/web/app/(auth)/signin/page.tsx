@@ -18,7 +18,7 @@ async function Signin({
 	const user = await auth();
 
 	if (user) {
-		await redirect("/home");
+		redirect("/home");
 	}
 
 	return (
@@ -64,7 +64,7 @@ async function Signin({
 								action={async () => {
 									"use server";
 									await signIn("google", {
-										redirectTo: "/home?firstTime=true",
+										redirectTo: "/home",
 									});
 								}}
 							>

@@ -1,26 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FilterSpaces } from "./filterSpaces";
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
+import { Switch } from "@repo/ui/shadcn/switch";
+import { Label } from "@repo/ui/shadcn/label";
 
 function QueryInput({
-	setQueryPresent,
-	initialQuery,
 	initialSpaces,
 	handleSubmit,
+	query,
+	setQuery,
 }: {
-	setQueryPresent: (t: boolean) => void;
 	initialSpaces?: {
 		id: number;
 		name: string;
 	}[];
-	initialQuery?: string;
 	mini?: boolean;
-	handleSubmit: (q: string, spaces: { id: number; name: string }[]) => void;
+	handleSubmit: (
+		q: string,
+		spaces: { id: number; name: string }[],
+		proMode: boolean,
+	) => void;
+	query: string;
+	setQuery: (q: string) => void;
 }) {
-	const [q, setQ] = useState(initialQuery || "");
+	const [proMode, setProMode] = useState(false);
 
 	const [selectedSpaces, setSelectedSpaces] = useState<
 		{ id: number; name: string }[]
@@ -34,11 +40,11 @@ function QueryInput({
 				{/* input and action button */}
 				<form
 					action={async () => {
-						if (q.trim().length === 0) {
+						if (query.trim().length === 0) {
 							return;
 						}
-						handleSubmit(q, selectedSpaces);
-						setQ("");
+						handleSubmit(query, selectedSpaces, proMode);
+						setQuery("");
 					}}
 				>
 					<textarea
@@ -51,20 +57,15 @@ function QueryInput({
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
 								e.preventDefault();
-								if (q.trim().length === 0) {
+								if (query.trim().length === 0) {
 									return;
 								}
-								handleSubmit(q, selectedSpaces);
-								setQ("");
+								handleSubmit(query, selectedSpaces, proMode);
+								setQuery("");
 							}
 						}}
-						onChange={(e) =>
-							setQ((prev) => {
-								setQueryPresent(!!e.target.value.length);
-								return e.target.value;
-							})
-						}
-						value={q}
+						onChange={(e) => setQuery(e.target.value)}
+						value={query}
 					/>
 					<div className="flex p-2 px-3 w-full items-center justify-between rounded-xl overflow-hidden">
 						<FilterSpaces
@@ -72,9 +73,22 @@ function QueryInput({
 							setSelectedSpaces={setSelectedSpaces}
 							initialSpaces={initialSpaces || []}
 						/>
-						<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3">
-							<Image src={ArrowRightIcon} alt="Enter" />
-						</button>
+						<div className="flex items-center gap-4">
+							<div className="flex items-center gap-2">
+								<Label htmlFor="pro-mode" className="text-sm text-[#9B9B9B]">
+									Pro mode
+								</Label>
+								<Switch
+									value={proMode ? "on" : "off"}
+									onCheckedChange={(v) => setProMode(v)}
+									id="pro-mode"
+									about="Pro mode"
+								/>
+							</div>
+							<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3">
+								<Image src={ArrowRightIcon} alt="Enter" />
+							</button>
+						</div>
 					</div>
 				</form>
 			</div>

@@ -4,7 +4,7 @@ import { ensureAuth } from "../ensureAuth";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { contentToSpace, space, storedContent } from "@/server/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { limit } from "@/app/actions/doers";
 
@@ -19,6 +19,29 @@ const createMemoryFromAPI = async (input: {
 			success: false,
 			data: 0,
 			error: `You have exceeded the limit of ${LIMITS[input.data.type as keyof typeof LIMITS]} ${input.data.type}s.`,
+		};
+	}
+
+	// Get number of items saved in the last 2 hours
+	const last2Hours = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+	const numberOfItemsSavedInLast2Hours = await db
+		.select({
+			count: sql<number>`count(*)`.mapWith(Number),
+		})
+		.from(storedContent)
+		.where(
+			and(
+				gt(storedContent.savedAt, last2Hours),
+				eq(storedContent.userId, input.userId),
+			),
+		);
+
+	if (numberOfItemsSavedInLast2Hours[0]!.count >= 20) {
+		return {
+			success: false,
+			data: 0,
+			error: `You have exceeded the limit`,
 		};
 	}
 
