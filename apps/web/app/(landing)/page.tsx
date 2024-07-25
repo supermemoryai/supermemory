@@ -17,7 +17,7 @@ export default async function Home() {
 	const user = await auth();
 
 	if (user) {
-		await redirect("/home");
+		redirect("/app/home");
 	}
 
 	return (

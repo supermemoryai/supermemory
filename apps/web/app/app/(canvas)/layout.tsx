@@ -1,7 +1,5 @@
-import { auth } from "@/server/auth";
 import "./canvasStyles.css";
-import { redirect } from "next/navigation";
-import BackgroundPlus from "../(landing)/GridPatterns/PlusGrid";
+import BackgroundPlus from "@/app/(landing)/GridPatterns/PlusGrid";
 import { Toaster } from "@repo/ui/shadcn/sonner";
 
 export default async function RootLayout({
@@ -9,11 +7,6 @@ export default async function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const info = await auth();
-
-	if (!info) {
-		return redirect("/signin");
-	}
 	return (
 		<>
 			<div className="relative flex justify-center z-40 pointer-events-none">

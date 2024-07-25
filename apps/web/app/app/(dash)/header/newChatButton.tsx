@@ -12,7 +12,7 @@ function NewChatButton() {
 	if (path.startsWith("/chat")) {
 		return (
 			<Link
-				href="/home"
+				href="/app/home"
 				className="flex duration-200 items-center text-[#7D8994] hover:bg-[#1F2429] text-[13px] gap-2 px-3 py-2 rounded-xl"
 			>
 				<Image src={ChatIcon} alt="Chat icon" className="w-5" />

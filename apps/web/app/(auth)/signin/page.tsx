@@ -6,19 +6,14 @@ import { Google } from "@repo/ui/components/icons";
 import gradientStyle from "./_components/TextGradient/gradient.module.css";
 import { cn } from "@repo/ui/lib/utils";
 import { redirect } from "next/navigation";
-import { toast } from "sonner";
 
 export const runtime = "edge";
 
-async function Signin({
-	searchParams,
-}: {
-	searchParams: Record<string, string>;
-}) {
+async function Signin() {
 	const user = await auth();
 
 	if (user) {
-		redirect("/home");
+		redirect("/app/home");
 	}
 
 	return (
@@ -64,7 +59,7 @@ async function Signin({
 								action={async () => {
 									"use server";
 									await signIn("google", {
-										redirectTo: "/home",
+										redirectTo: "/app/home",
 									});
 								}}
 							>

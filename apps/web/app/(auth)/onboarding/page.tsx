@@ -27,7 +27,7 @@ export default function Home() {
 		}
 		if (currStep > 3) {
 			updateDb().then(() => {
-				push("/home?q=what%20is%20supermemory");
+				push("/app/home?q=what%20is%20supermemory");
 			});
 		}
 	}, [currStep]);
@@ -297,7 +297,7 @@ function StepThree({ currStep }: { currStep: number }) {
 										toast.error(`Memory creation failed: ${cont.error}`);
 									}
 
-									push(`/home?q=what%20is%20supermemory`);
+									push(`/app/home?q=what%20is%20supermemory`);
 								}}
 							>
 								<textarea
@@ -388,7 +388,7 @@ function Navbar() {
 	const router = useRouter();
 	const handleSkip = async () => {
 		await completeOnboarding();
-		router.push("/home?q=what%20is%20supermemory");
+		router.push("/app/home?q=what%20is%20supermemory");
 	}
 
 	return (

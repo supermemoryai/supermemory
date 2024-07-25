@@ -4,7 +4,7 @@ import MemoriesPage from "../content";
 
 async function Page() {
 	const { success, data } = await getAllUserMemoriesAndSpaces();
-	if (!success ?? !data) return redirect("/home");
+	if (!success ?? !data) return redirect("/app/home");
 	return <MemoriesPage memoriesAndSpaces={data} />;
 }
 

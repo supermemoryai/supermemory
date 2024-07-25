@@ -201,7 +201,7 @@ function ChatWindow({
 				);
 			}
 		} else {
-			router.push("/home");
+			router.push("/app/home");
 		}
 	}, []);
 
