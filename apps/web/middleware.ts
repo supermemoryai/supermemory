@@ -18,18 +18,25 @@ export async function middleware(request: NextRequest) {
     Object.entries(corsHeaders).forEach(([key, value]) => {
       response.headers.set(key, value);
     });
-
     return response;
   }
   const info = await auth();
   if (routeTypes.authed.some((route) => request.nextUrl.pathname.startsWith(route))) {
     if (!info) {
-      NextResponse.redirect(new URL("/signin", request.nextUrl));
+      return NextResponse.redirect(new URL("/signin", request.nextUrl));
     }
-  } else {
+  } else if (routeTypes.unAuthedOnly.some((route) => request.nextUrl.pathname.endsWith(route))) {
     if (info) {
-      NextResponse.redirect(new URL("/home", request.nextUrl));
+      return NextResponse.redirect(new URL("/home", request.nextUrl));
     }
   }
   return NextResponse.next();
 }
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|image|favicon.ico).*)',
+    '/api/:path*',
+    '/.:path*',
+  ]
+};

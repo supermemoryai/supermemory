@@ -9,4 +9,5 @@ export const routeGroups = {
 export const routeTypes = {
   authed: [...routeGroups.canvas, ...routeGroups.dash, ...routeGroups.other],
   unauthed: [...routeGroups.auth, ...routeGroups.landing],
+  unAuthedOnly: [...routeGroups.landing, "/signin"],
 }
