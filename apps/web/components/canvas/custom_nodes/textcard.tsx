@@ -31,24 +31,13 @@ export class textCardUtil extends BaseBoxShapeUtil<ITextCardShape> {
     return (
       <HTMLContainer
         onPointerDown={isEditing ? stopEventPropagation : undefined}
-        className="flex h-full w-full items-center justify-center"
-        style={{
-          pointerEvents: isEditing ? "all" : "none",
-        }}
+        className={`flex h-full w-full items-center justify-center ${isEditing ? "pointer-events-auto" : "pointer-events-none"}`}
       >
         <div
-        className="overflow-hidden"
-          style={{
-            height: s.props.h,
-            width: s.props.w,
-            pointerEvents: "all",
-            background: "#232c2f",
-            borderRadius: "16px",
-            border: "2px solid #374151",
-            padding: "8px 14px",
-          }}
+        className={`overflow-hidden bg-[#232c2f] pointer-events-auto rounded-md border-2 border-[#374151] py-2 px-4
+        h-[${s.props.h}]px w-[${s.props.w}]px`}
         >
-          <h2 style={{ color: "#95A0AB" }}>{s.props.type}</h2>
+          <h2 className="text-[#95A0AB]">{s.props.type}</h2>
           {isEditing ? (
             <input
               value={s.props.content}

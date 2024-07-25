@@ -160,10 +160,11 @@ function formatTextToRatio(text: string): { height: number; width: number } {
 }
 
 type CardData = {
-  type: string;
   title: string;
+  type: string;
+  source: string;
   content: string;
-  url: string;
+  numChunks: string;
 };
 
 type DroppedData = CardData | string | { imageUrl: string };
@@ -183,45 +184,30 @@ export function handleExternalDroppedContent({
     const processedURL = processURL(droppedData);
     if (processedURL) {
       createEmbedsFromUrl({ editor, url: processedURL });
-      return;
     } else {
-      const { height, width } = formatTextToRatio(droppedData);
-      editor.createShape({
-        type: "Textcard",
-        x: position.x - width / 2,
-        y: position.y - height / 2,
-        props: {
-          content: "",
-          extrainfo: droppedData,
-          type: "note",
-          w: 300,
-          h: 200,
-        },
-      });
+      createTextCard(editor, position, droppedData, "String Content");
     }
   } else if ("imageUrl" in droppedData) {
+    // Handle image URL (implementation not provided in original code)
   } else {
-    const { content, title, url, type } = droppedData;
-    const processedURL = processURL(url);
-    if (processedURL) {
-      createEmbedsFromUrl({ editor, url: processedURL });
-      return;
-    }
-    const { height, width } = formatTextToRatio(content);
-
-    editor.createShape({
-      type: "Textcard",
-      x: position.x - 250,
-      y: position.y - 150,
-      props: {
-        type,
-        content: title,
-        extrainfo: content,
-        w: height,
-        h: width,
-      },
-    });
+    const { content, title, source, type } = droppedData;
+    const processedURL = processURL(source);
+    // if (processedURL) {
+    //   createEmbedsFromUrl({ editor, url: processedURL });
+    // } else {
+      // }
+        createTextCard(editor, position, title, type, content);
   }
+}
+
+function createTextCard(editor: Editor, position: { x: number; y: number }, content: string, type: string, extraInfo: string = "") {
+  const { height, width } = formatTextToRatio(content);
+  editor.createShape({
+    type: "Textcard",
+    x: position.x - width / 2,
+    y: position.y - height / 2,
+    props: { content, type, extrainfo: extraInfo, h: 200, w: 400 },
+  });
 }
 
 function centerSelectionAroundPoint(editor: Editor, position: VecLike) {
