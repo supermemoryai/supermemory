@@ -4,12 +4,20 @@ import { redirect } from "next/navigation";
 import { auth } from "../../server/auth";
 import { Toaster } from "@repo/ui/shadcn/sonner";
 import BackgroundPlus from "../(landing)/GridPatterns/PlusGrid";
+import { getUser } from "../actions/fetchers";
 
 async function Layout({ children }: { children: React.ReactNode }) {
 	const info = await auth();
 
 	if (!info) {
 		return redirect("/signin");
+	}
+
+	const user = await getUser();
+	const hasOnboarded = user.data?.hasOnboarded;
+
+	if (!hasOnboarded) {
+		redirect("/onboarding");
 	}
 
 	return (

@@ -8,26 +8,24 @@ import { Switch } from "@repo/ui/shadcn/switch";
 import { Label } from "@repo/ui/shadcn/label";
 
 function QueryInput({
-	setQueryPresent,
-	initialQuery,
 	initialSpaces,
 	handleSubmit,
+	query,
+	setQuery,
 }: {
-	setQueryPresent: (t: boolean) => void;
 	initialSpaces?: {
 		id: number;
 		name: string;
 	}[];
-	initialQuery?: string;
 	mini?: boolean;
 	handleSubmit: (
 		q: string,
 		spaces: { id: number; name: string }[],
 		proMode: boolean,
 	) => void;
+	query: string;
+	setQuery: (q: string) => void;
 }) {
-	const [q, setQ] = useState(initialQuery || "");
-
 	const [proMode, setProMode] = useState(false);
 
 	const [selectedSpaces, setSelectedSpaces] = useState<
@@ -42,11 +40,11 @@ function QueryInput({
 				{/* input and action button */}
 				<form
 					action={async () => {
-						if (q.trim().length === 0) {
+						if (query.trim().length === 0) {
 							return;
 						}
-						handleSubmit(q, selectedSpaces, proMode);
-						setQ("");
+						handleSubmit(query, selectedSpaces, proMode);
+						setQuery("");
 					}}
 				>
 					<textarea
@@ -59,20 +57,15 @@ function QueryInput({
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
 								e.preventDefault();
-								if (q.trim().length === 0) {
+								if (query.trim().length === 0) {
 									return;
 								}
-								handleSubmit(q, selectedSpaces, proMode);
-								setQ("");
+								handleSubmit(query, selectedSpaces, proMode);
+								setQuery("");
 							}
 						}}
-						onChange={(e) =>
-							setQ((prev) => {
-								setQueryPresent(!!e.target.value.length);
-								return e.target.value;
-							})
-						}
-						value={q}
+						onChange={(e) => setQuery(e.target.value)}
+						value={query}
 					/>
 					<div className="flex p-2 px-3 w-full items-center justify-between rounded-xl overflow-hidden">
 						<FilterSpaces

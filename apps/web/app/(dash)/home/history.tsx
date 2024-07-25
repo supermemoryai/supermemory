@@ -5,26 +5,32 @@ import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { chatThreads } from "@/server/db/schema";
+import { getQuerySuggestions } from "@/app/actions/doers";
+import { Button } from "@repo/ui/shadcn/button";
 
-const History = memo(() => {
-	const [chatThreads_, setChatThreads] = useState<
-		(typeof chatThreads.$inferSelect)[] | null
-	>(null);
+const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
+	const [suggestions, setSuggestions] = useState<string[] | null>(null);
 
 	useEffect(() => {
 		(async () => {
-			const chatThreads = await getChatHistory();
-			if (!chatThreads.success || !chatThreads.data) {
-				console.error(chatThreads.error);
+			const suggestions = await getQuerySuggestions();
+			if (!suggestions.success || !suggestions.data) {
+				console.error(suggestions.error);
+				setSuggestions([]);
 				return;
 			}
-			setChatThreads(chatThreads.data.reverse().slice(0, 3));
+			console.log(suggestions);
+			if (typeof suggestions.data === "string") {
+				setSuggestions(JSON.parse(suggestions.data));
+				return;
+			}
+			setSuggestions(suggestions.data.reverse().slice(0, 3));
 		})();
 	}, []);
 
 	return (
 		<ul className="text-base list-none space-y-3 text-[#b9b9b9] mt-8">
-			{!chatThreads_ && (
+			{!suggestions && (
 				<>
 					<Skeleton
 						key="loader-1"
@@ -40,17 +46,15 @@ const History = memo(() => {
 					></Skeleton>
 				</>
 			)}
-			{chatThreads_?.map((thread) => (
+			{suggestions?.map((suggestion) => (
 				<motion.li
 					initial={{ opacity: 0, filter: "blur(1px)" }}
 					animate={{ opacity: 1, filter: "blur(0px)" }}
-					className="flex items-center gap-2 truncate"
-					key={thread.id}
+					className="flex items-center gap-2 truncate cursor-pointer"
+					key={suggestion}
+					onClick={() => setQuery(suggestion)}
 				>
-					<ArrowLongRightIcon className="h-5" />{" "}
-					<Link prefetch={false} href={`/chat/${thread.id}`}>
-						{thread.firstMessage}
-					</Link>
+					<ArrowLongRightIcon className="h-5" /> {suggestion}
 				</motion.li>
 			))}
 		</ul>

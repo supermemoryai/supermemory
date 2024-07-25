@@ -176,7 +176,7 @@ function Menu() {
 					</div>
 				</div>
 
-				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39] backdrop-blur-md">
+				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
 					<form
 						action={async (e: FormData) => {
 							const content = e.get("content")?.toString();
