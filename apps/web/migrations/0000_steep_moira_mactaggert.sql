@@ -43,6 +43,7 @@ CREATE TABLE `chatHistory` (
 	`answerParts` text,
 	`answerSources` text,
 	`answerJustification` text,
+	`createdAt` integer DEFAULT '"2024-07-25T22:31:50.848Z"' NOT NULL,
 	FOREIGN KEY (`threadId`) REFERENCES `chatThread`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -106,7 +107,8 @@ CREATE TABLE `user` (
 	`email` text NOT NULL,
 	`emailVerified` integer,
 	`image` text,
-	`telegramId` text
+	`telegramId` text,
+	`hasOnboarded` integer DEFAULT false
 );
 --> statement-breakpoint
 CREATE TABLE `verificationToken` (
