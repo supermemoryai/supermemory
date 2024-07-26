@@ -4,7 +4,7 @@
 .million
 yarn.lock
 package-lock.json
-
+wrangler.toml
 # Dependencies
 node_modules
 .pnp

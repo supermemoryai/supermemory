@@ -4,7 +4,7 @@ worker
 package-lock.json
 yarn.lock
 .cargo-ok
-
+wrangler.toml
 # Output of 'npm pack'
 *.tgz
 
