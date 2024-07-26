@@ -300,7 +300,7 @@ function LinkComponent({
 						<div className="text-lg text-[#fff] mt-4 line-clamp-2">
 							{title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
 						</div>
-						<div>
+						<div className="overflow-hidden text-ellipsis whitespace-nowrap">
 							{url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
 						</div>
 					</>
