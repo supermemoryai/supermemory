@@ -4,17 +4,16 @@ This guide will help you set up your own instance of Supermemory. This is necces
 
 ## Prerequisites
 
-- [bun](https://bun.sh/)
+- [pnpm](https://pnpm.io/installation): pnpm is used as a package manager. You can enable pnpm by running `corepack enable pnpm` in your terminal.
 - [turbo](https://turbo.build/repo/docs/installing)
 - [wrangler](https://developers.cloudflare.com/workers/cli-wrangler/install-update)
-- [yarn](https://yarnpkg.com/getting-started/install): yarn is required to run scripts using turborepo. bun is not supported by turborepo yet vercel/turbo#4762
 - [Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/): You also need to have a paid Workers plan to use the vectorize feature which is needed run the AI backend. It is currently $5/mo + usage costs.
 - [Cloudflare R2](https://developers.cloudflare.com/r2/): You need to enable R2 in the Cloudflare Dashboard for use in the web app.
 
 ## Steps
 
 1. Clone the repo
-2. Run `bun install` in the root directory
+2. Run `pnpm install` in the root directory
 
 ### web
 
@@ -37,11 +36,11 @@ BACKEND_BASE_URL="http://localhost:8686"
 3. KV Namespaces
 
 ```bash
-bunx wrangler kv namespace create canvas-snaps
+pnpx wrangler kv namespace create canvas-snaps
 ```
 
 ```bash
-bunx wrangler kv namespace create recommendations
+pnpx wrangler kv namespace create recommendations
 ```
 
 Do not change the binding value in the `wrangler.toml` but update the id for the namespaces with the values you get from the above commands.
@@ -49,7 +48,7 @@ Do not change the binding value in the `wrangler.toml` but update the id for the
 4. R2 Storage
 
 ```bash
-bunx wrangler r2 bucket create supermemory-r2
+pnpx wrangler r2 bucket create supermemory-r2
 ```
 
 Update bucket_name in the `wrangler.toml` file in `apps/web` to `supermemory-r2`
@@ -57,13 +56,13 @@ Update bucket_name in the `wrangler.toml` file in `apps/web` to `supermemory-r2`
 5. D1 Database
 
 ```bash
-bunx wrangler d1 create supermemory-db-prod
+pnpx wrangler d1 create supermemory-db-prod
 ```
 
 Update the database_name and database_id in `[[env.production.d1_databases]]` with the values you get from the above command.
 
 ```bash
-bunx wrangler d1 create supermemory-db-preview
+pnpx wrangler d1 create supermemory-db-preview
 ```
 
 Update the database_name and database_id in `[[d1_databases]]` and `[[env.preview.d1_databases]]` with the values you get from the above command.
@@ -81,12 +80,12 @@ database_id = "YOUR_DB_ID"
 Simply run this command in `apps/web`
 
 ```bash
-bunx wrangler d1 migrations apply supermemory-db-preview
+pnpx wrangler d1 migrations apply supermemory-db-preview
 ```
 
 If it runs, you can set up the cloud database as well by add the `--remote` flag,
 
-if you just want to contribute to frontend then just run `bun run dev` in the root of the project and done! (you won't be able to try ai stuff), otherwise continue...
+if you just want to contribute to frontend then just run `pnpm run dev` in the root of the project and done! (you won't be able to try ai stuff), otherwise continue...
 
 ### cf-ai-backend
 
@@ -104,7 +103,7 @@ OPENAI_API_KEY="sk-"
    > Note: You need to use the workers paid plan to use vectorize for now.
 
 ```bash
-bunx wrangler vectorize create --dimensions=1536 supermemory --metric=cosine
+pnpx wrangler vectorize create --dimensions=1536 supermemory --metric=cosine
 ```
 
 Update the index_name for `[[vectorize]]` in `wrangler.toml` file in `apps/cf-ai-backend` with the `supermemory` or the name you used in the above command.
@@ -112,27 +111,27 @@ Update the index_name for `[[vectorize]]` in `wrangler.toml` file in `apps/cf-ai
 3. Create KV namespaces for the `cf-ai-backend` module
 
 ```bash
-bunx wrangler kv namespace create prod
+pnpx wrangler kv namespace create prod
 ```
 
 Update the id in `[[kv_namespaces]]` in the `wrangler.toml` file in `apps/cf-ai-backend` with the value you get from the above command.
 
 ```bash
-bunx wrangler kv namespace create preview
+pnpx wrangler kv namespace create preview
 ```
 
 Update the preview_id in `[[kv_namespaces]]` in the `wrangler.toml` file in `apps/cf-ai-backend` with the value you get from the above command.
 
 ## Local Development
 
-- Run `bun dev` in the root directory and Voila! You have your own supermemory instance running!
+- Run `pnpm dev` in the root directory and Voila! You have your own supermemory instance running!
 
 > [!NOTE]
-> It sometimes takes multiple tries to successfully run the `bun dev` command. If you encounter any issues, try running the command again.
+> It sometimes takes multiple tries to successfully run the `pnpm dev` command. If you encounter any issues, try running the command again.
 
 ## Deploying
 
-To deploy the web app, run `bun deploy` in the `apps/web` directory.
+To deploy the web app, run `pnpm run deploy` in the `apps/web` directory.
 To deploy the cf-ai-backend module, run `wrangler publish` in the `apps/cf-ai-backend` directory.
 
-To get the extension running, you need to build it first. Run `bun build` in the `apps/extension` directory and then load the extension in chrome.
+To get the extension running, you need to build it first. Run `pnpm build` in the `apps/extension` directory and then load the extension in chrome.
