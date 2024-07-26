@@ -63,8 +63,8 @@ export function FilterSpaces({
 						onKeyDown={handleKeyDown}
 						className="text-white peer placeholder:text-white"
 						onChangeCapture={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setInput(e.target.value)
-            }
+							setInput(e.target.value)
+						}
 						value={input}
 					/>
 				</div>

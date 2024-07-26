@@ -79,13 +79,13 @@ const createMemoryFromAPI = async (input: {
 			})
 			.returning({ id: storedContent.id });
 
-    if (!insertResponse[0]?.id) {
-      return {
-        success: false,
-        data: 0,
-        error: "Failed to save to database",
-      };
-    }
+		if (!insertResponse[0]?.id) {
+			return {
+				success: false,
+				data: 0,
+				error: "Failed to save to database",
+			};
+		}
 
 		contentId = insertResponse[0].id;
 	} catch (e) {

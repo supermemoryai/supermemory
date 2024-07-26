@@ -46,8 +46,8 @@ const ComboboxWithCreate: React.FC<ComboboxWithCreateProps> = ({
 		<Command className={cn("group", className)}>
 			<CommandInput
 				onChangeCapture={(e: React.ChangeEvent<HTMLInputElement>) =>
-          setInputValue(e.currentTarget.value)
-        }
+					setInputValue(e.currentTarget.value)
+				}
 				placeholder={placeholder}
 				value={inputValue}
 			/>

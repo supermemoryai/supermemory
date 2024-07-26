@@ -345,13 +345,13 @@ export const createMemory = async (input: {
 		revalidatePath("/memories");
 		revalidatePath("/home");
 
-    if (!insertResponse[0]?.id) {
-      return {
-        success: false,
-        data: 0,
-        error: "Something went wrong while saving the document to the database",
-      };
-    }
+		if (!insertResponse[0]?.id) {
+			return {
+				success: false,
+				data: 0,
+				error: "Something went wrong while saving the document to the database",
+			};
+		}
 
 		contentId = insertResponse[0]?.id;
 	} catch (e) {
