@@ -33,6 +33,7 @@ import { addUserToSpace, deleteItem, moveItem } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 
 export function MemoriesPage({
 	memoriesAndSpaces,
@@ -45,7 +46,19 @@ export function MemoriesPage({
 	currentSpace?: StoredSpace;
 	usersWithAccess?: string[];
 }) {
-	const [filter, setFilter] = useState("All");
+	const searchParams = useSearchParams();
+
+	const tab = searchParams.get("tab");
+
+	const initialFilter = useMemo(() => {
+		if (tab === "spaces") return "Spaces";
+		if (tab === "pages") return "Pages";
+		if (tab === "notes") return "Notes";
+		if (tab === "tweet") return "Tweet";
+		return "All";
+	}, [tab]);
+
+	const [filter, setFilter] = useState(initialFilter);
 
 	// Sort Both memories and spaces by their savedAt and createdAt dates respectfully.
 	// The output should be just one single list of items
