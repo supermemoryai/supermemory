@@ -10,7 +10,7 @@ import { CheckIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { completeOnboarding, createMemory } from "@repo/web/app/actions/doers";
+import { completeOnboarding, createMemory } from "@/app/actions/doers";
 import { useRouter } from "next/navigation";
 import Logo from "../../../public/logo.svg";
 import Image from "next/image";
@@ -28,7 +28,9 @@ export default function Home() {
 		if (currStep > 3) {
 			updateDb().then(() => {
 				push("/home?q=what%20is%20supermemory");
-			});
+			}).catch((e) => {
+        console.error(e);
+      });
 		}
 	}, [currStep]);
 

@@ -12,6 +12,10 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@hono/zod-validator": "^0.2.1"
-	}
+		"@hono/zod-validator": "^0.2.1",
+		"hono": "^4.5.1"
+	},
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240614.0"
+  }
 }
