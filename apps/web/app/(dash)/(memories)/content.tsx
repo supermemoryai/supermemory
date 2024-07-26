@@ -312,7 +312,7 @@ function LinkComponent({
 						<div className="text-lg text-[#fff] mt-4 line-clamp-2">
 							{title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
 						</div>
-						<div className="line-clamp-3 mt-2">
+						<div className="truncate line-clamp-3 mt-2">
 							{content.replace(title, "")}
 						</div>
 					</>
