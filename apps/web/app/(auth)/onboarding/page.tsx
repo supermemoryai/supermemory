@@ -28,7 +28,9 @@ export default function Home() {
 		if (currStep > 3) {
 			updateDb().then(() => {
 				push("/home?q=what%20is%20supermemory");
-			});
+			}).catch((e) => {
+        console.error(e);
+      });
 		}
 	}, [currStep]);
 
