@@ -366,6 +366,8 @@ function ChatWindow({
 																		href={source.source}
 																		key={idx}
 																		className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary"
+																		target="_blank"
+																		rel="noopener noreferrer"
 																	>
 																		<div className="flex justify-between text-foreground-menu text-sm">
 																			<span>{source.type}</span>
