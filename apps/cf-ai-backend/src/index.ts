@@ -77,19 +77,19 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 		console.log(body.spaces);
 		let chunks: TweetChunks | PageOrNoteChunks;
 		// remove everything in <raw> tags
-		const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
+		// const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
 
 		switch (body.type) {
 			case "tweet":
-				chunks = chunkThread(newPageContent);
+				chunks = chunkThread(body.pageContent);
 				break;
 
 			case "page":
-				chunks = chunkPage(newPageContent);
+				chunks = chunkPage(body.pageContent);
 				break;
 
 			case "note":
-				chunks = chunkNote(newPageContent);
+				chunks = chunkNote(body.pageContent);
 				break;
 		}
 

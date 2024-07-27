@@ -236,7 +236,6 @@ export const createMemory = async (input: {
 		try {
 			const cf_thread_endpoint = process.env.THREAD_CF_WORKER;
 			const authKey = process.env.THREAD_CF_AUTH;
-
 			const threadRequest = await fetch(cf_thread_endpoint, {
 				method: "POST",
 				headers: {
@@ -253,6 +252,12 @@ export const createMemory = async (input: {
 			}
 
 			thread = await threadRequest.text();
+			if (thread.trim().length === 2) {
+				console.log("Thread is an empty array");
+				throw new Error(
+					"[THREAD FETCHING SERVICE] Got no content form thread worker",
+				);
+			}
 		} catch (e) {
 			console.log("[THREAD FETCHING SERVICE] Failed to fetch the thread", e);
 			errorOccurred = true;
@@ -263,7 +268,7 @@ export const createMemory = async (input: {
 		pageContent = tweetToMd(tweet);
 		console.log("THis ishte page content!!", pageContent);
 		//@ts-ignore
-		vectorData = errorOccurred ? pageContent : thread;
+		vectorData = errorOccurred ? JSON.stringify(pageContent) : thread;
 		metadata = {
 			baseUrl: input.content,
 			description: tweet.text.slice(0, 200),
