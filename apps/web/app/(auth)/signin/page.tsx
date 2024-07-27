@@ -7,6 +7,7 @@ import gradientStyle from "./_components/TextGradient/gradient.module.css";
 import { cn } from "@repo/ui/lib/utils";
 import { redirect } from "next/navigation";
 import { toast } from "sonner";
+import EmailSignInForm from "./_components/EmailSigninForm";
 
 export const runtime = "edge";
 
@@ -56,7 +57,11 @@ async function Signin({
 					<p className="text-white mb-8 text-lg tracking-tighter">
 						Write, ideate, and learn with all the wisdom of your bookmarks.
 					</p>
-					<div className="flex items-center gap-4">
+					<div className="flex justify items-center gap-4 ">
+						<div>
+							<EmailSignInForm />
+						</div>
+						<div className="text-white">Or</div>
 						<div
 							className={`relative cursor-pointer transition-width z-20 rounded-2xl bg-hero-gradient   p-[0.7px] duration-500  ease-in-out fit dark:[box-shadow:0_-20px_80px_-20px_#8686f01f_inset]`}
 						>
