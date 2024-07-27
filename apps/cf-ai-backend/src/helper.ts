@@ -203,7 +203,7 @@ export async function batchCreateChunksAndEmbeddings({
 			{
 				const commonMetaData = {
 					type: body.type ?? "tweet",
-					title: body.title,
+					title: body.title?.slice(0, 50) ?? "",
 					description: body.description ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
@@ -225,6 +225,7 @@ export async function batchCreateChunksAndEmbeddings({
 							return {
 								pageContent: chunk,
 								metadata: {
+									content: chunk,
 									links: tweetLinks,
 									videos: tweetVids,
 									tweetId: tweetId,
@@ -254,7 +255,7 @@ export async function batchCreateChunksAndEmbeddings({
 			{
 				const commonMetaData = {
 					type: body.type ?? "page",
-					title: body.title,
+					title: body.title?.slice(0, 50) ?? "",
 					description: body.description ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
@@ -271,6 +272,7 @@ export async function batchCreateChunksAndEmbeddings({
 					return {
 						pageContent: chunk,
 						metadata: {
+							content: chunk,
 							...commonMetaData,
 							...spaceMetadata,
 						},
@@ -290,6 +292,7 @@ export async function batchCreateChunksAndEmbeddings({
 		case "note":
 			{
 				const commonMetaData = {
+					title: body.title?.slice(0, 50) ?? "",
 					type: body.type ?? "page",
 					description: body.description ?? "",
 					url: body.url,
@@ -307,6 +310,7 @@ export async function batchCreateChunksAndEmbeddings({
 					return {
 						pageContent: chunk,
 						metadata: {
+							content: chunk,
 							...commonMetaData,
 							...spaceMetadata,
 						},
