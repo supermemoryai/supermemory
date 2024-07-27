@@ -49,7 +49,7 @@ export default function Home() {
 			<Navbar />
 
 			{/* main-content */}
-			<div className="w-full max-w-3xl p-4 flex flex-col items-center justify-center mx-auto mt-24">
+			<div className="w-full max-w-3xl p-4 flex flex-col items-center justify-center mx-auto pt-24">
 				{currStep === 0 && (
 					<div className="text-white space-y-3 flex flex-col gap-16 w-full">
 						<h1 className="text-3xl md:text-5xl tracking-tighter">

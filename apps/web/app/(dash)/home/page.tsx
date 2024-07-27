@@ -70,18 +70,25 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 	}, [telegramUser]);
 
 	return (
-		<div className="max-w-3xl h-full justify-center flex mx-auto w-full flex-col px-2 md:px-0">
+		<div className="max-w-3xl h-full pt-[25vh] mx-auto w-full px-2 md:px-0">
 			<motion.h1
 				{...{
 					...slap,
 					transition: { ...slap.transition, delay: 0.2 },
 				}}
-				className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl pb-2"
 			>
-				<span>Ask your</span>{" "}
-				<span className="inline-flex items-center gap-2 bg-gradient-to-r to-blue-300 from-zinc-300 text-transparent bg-clip-text">
-					supermemory
-				</span>
+				<motion.h1
+					className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl"
+					animate={{
+						opacity: query.length ? 0 : 1,
+						translateY: query.length ? "10px" : "0px",
+					}}
+				>
+					<span>Ask your</span>{" "}
+					<span className="inline-flex items-center gap-2 bg-gradient-to-r to-blue-300 from-zinc-300 text-transparent bg-clip-text">
+						supermemory
+					</span>
+				</motion.h1>
 			</motion.h1>
 
 			<div className="w-full pb-20 mt-10">
@@ -108,7 +115,9 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 					initialSpaces={spaces}
 				/>
 
-				<History setQuery={setQuery} />
+				<motion.div animate={{ opacity: query.length ? 0 : 1 }}>
+					<History setQuery={setQuery} />
+				</motion.div>
 			</div>
 
 			<div className="w-full fixed bottom-0 left-0 p-4">

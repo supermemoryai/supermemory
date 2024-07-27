@@ -53,7 +53,7 @@ export function FilterSpaces({
 			</div>
 			<Command
 				className={`group transition-all border-0 text-white outline-0 ${
-					selectedSpaces.length ? "w-5 hover:w-24 focus-within:w-20" : "w-44"
+					selectedSpaces.length ? "w-12 hover:w-24 focus-within:w-28" : "w-44"
 				}`}
 			>
 				<div className="relative flex items-center">
