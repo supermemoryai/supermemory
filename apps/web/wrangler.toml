@@ -26,22 +26,22 @@ bucket_name = "dev-r2-anycontext"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "supermemory"
-database_id = "dc2a7858-cedd-4351-9f92-6af54ad44c31"
+database_name = "supermemory-db-preview"
+database_id = "231def91-f7e8-4788-9e9f-80cb0b135a7c"
 
 
 [[env.production.d1_databases]]
 binding = "DATABASE"
-database_name = "prod-d1-supermemory"
-database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
+database_name = "supermemory-db-prod"
+database_id = "021f8266-361a-4dae-9264-b35a765e4dfc"
 
 [env.preview.ai]
 binding = "AI"
 
 [[env.preview.d1_databases]]
 binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+database_name = "supermemory-db-preview"
+database_id = "231def91-f7e8-4788-9e9f-80cb0b135a7c"
 
 [env.production.ai]
 binding = "AI"
