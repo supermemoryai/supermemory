@@ -37,14 +37,6 @@ const createMemoryFromAPI = async (input: {
 			),
 		);
 
-	if (numberOfItemsSavedInLast2Hours[0]!.count >= 20) {
-		return {
-			success: false,
-			data: 0,
-			error: `You have exceeded the limit`,
-		};
-	}
-
 	const vectorSaveResponse = await fetch(
 		`${process.env.BACKEND_BASE_URL}/api/add`,
 		{

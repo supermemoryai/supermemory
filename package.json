@@ -18,6 +18,7 @@
 		"@repo/ui": "*",
 		"lint-staged": "^15.2.5",
 		"prettier": "^3.3.3",
+		"rxjs": "^7.8.1",
 		"tailwindcss": "^3.4.3",
 		"turbo": "^2.0.3",
 		"typescript": "^5.5.4"

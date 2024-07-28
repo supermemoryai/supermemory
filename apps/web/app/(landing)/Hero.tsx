@@ -77,22 +77,20 @@ function Hero() {
 
 			<AnimatedLogoCloud />
 			<div className="relative z-50">
-				<motion.iframe
+				<motion.img
 					{...{
 						...slap,
 						transition: { ...slap.transition, delay: 0.35 },
 					}}
+					src="/images/landing-hero.jpeg"
+					alt="Landing page background"
+					width={1512}
+					height={1405}
 					draggable="false"
-					className="z-40 relative md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none px-5 !rounded-2xl"
+					className="z-40 md:mt-[-40px] hidden sm:block h-full max-w-[70vw] mx-auto md:w-full select-none px-5 !rounded-2xl"
 					style={{
 						borderRadius: "20px",
-						width: "100%",
-						height: "100%",
 					}}
-					src="https://customer-5xczlbkyq4f9ejha.cloudflarestream.com/111c4828c3587348bc703e67bfca9682/iframe?preload=true&poster=https%3A%2F%2Fcustomer-5xczlbkyq4f9ejha.cloudflarestream.com%2F111c4828c3587348bc703e67bfca9682%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600"
-					loading="lazy"
-					allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-					allowFullScreen={true}
 				/>
 				<div
 					className="absolute -z-10 left-0 top-[10%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-100  blur-[337.4px]"
