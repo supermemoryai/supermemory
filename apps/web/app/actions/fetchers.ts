@@ -22,6 +22,7 @@ import { ChatHistory, SourceZod } from "@repo/shared-types";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
+import { unfurl } from "@/lib/unfirlsite";
 
 export const getUser = async (): ServerActionReturnType<User> => {
 	const data = await auth();
@@ -377,3 +378,8 @@ export const getCanvasData = async (canvasId: string) => {
 		return { snapshot: {} };
 	}
 };
+
+export async function unfirlSite(website: string) {
+	const data = await unfurl(website);
+	return data;
+}
