@@ -146,8 +146,10 @@ export default function ContentApp({
 
 		return () => {
 			document.removeEventListener("mousemove", () => {});
+			document.removeEventListener('keydown', handleKeyDown, true);
+
 		};
-	}, []);
+	}, [isPopoverOpen]);
 
 	const getSpaces = async () => {
 		const response = await fetch(`${BACKEND_URL}/api/spaces`, {
