@@ -146,7 +146,6 @@ export default function ContentApp({
 		setPortalContainer(portalDiv);
 
 		return () => {
-			document.removeEventListener("mousemove", () => {});
 			document.removeEventListener("keydown", handleKeyDown, true);
 		};
 	}, [isPopoverOpen]);
