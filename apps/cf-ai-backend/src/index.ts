@@ -578,7 +578,7 @@ app.post(
 				const metadata = normalizedData.map((datapoint) => datapoint.metadata);
 
 				return c.json({
-					ids: storedContent,
+					ids: storedContent.filter(Boolean),
 					metadata,
 					normalizedData,
 					proModeListedQueries,
