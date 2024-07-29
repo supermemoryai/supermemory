@@ -55,6 +55,8 @@ function Search({ setContent }: { setContent: (e: any) => void }) {
 
 				const sources = await sourcesFetch.json();
 
+				console.log(sources);
+
 				const sourcesParsed = sourcesZod.safeParse(sources);
 
 				if (!sourcesParsed.success) {

@@ -77,7 +77,7 @@ export function convertChatHistoryList(
 }
 
 export const sourcesZod = z.object({
-	ids: z.array(z.string()),
+	ids: z.array(z.string().nullable()),
 	metadata: z.array(z.any()),
 	normalizedData: z.array(z.any()).optional(),
 	proModeListedQueries: z.array(z.string()).optional(),

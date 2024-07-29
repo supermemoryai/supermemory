@@ -21,7 +21,7 @@ export default function Card({
 	const [isDragging, setIsDragging] = useState(false);
 
 	const handleDragStart = (
-		event: React.DragEvent<HTMLDivElement>,
+		event: React.DragEvent<HTMLAnchorElement | HTMLDivElement>,
 		dragSource: "icon" | "link" | "parent",
 	) => {
 		setIsDragging(true);

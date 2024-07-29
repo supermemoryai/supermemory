@@ -9,12 +9,12 @@ import { useRef, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
 export default function ResizableLayout({ id }: { id: string }) {
-	const panelGroupRef = useRef(null);
+	const panelGroupRef = useRef<any>(null);
 	const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
 
 	const handleResize = () => {
 		if (isLeftPanelCollapsed && panelGroupRef.current) {
-			panelGroupRef.current.setLayout([20, 80]);
+			panelGroupRef.current?.setLayout([20, 80]);
 		}
 	};
 

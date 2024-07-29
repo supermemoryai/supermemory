@@ -7,7 +7,7 @@ import { memo, useEffect, useState } from "react";
 import { Box, TldrawImage } from "tldraw";
 
 const ImageComponent = memo(({ id }: { id: string }) => {
-	const [snapshot, setSnapshot] = useState({});
+	const [snapshot, setSnapshot] = useState<any>();
 
 	useEffect(() => {
 		(async () => {
@@ -15,7 +15,7 @@ const ImageComponent = memo(({ id }: { id: string }) => {
 		})();
 	}, []);
 
-	if (snapshot.bounds) {
+	if (snapshot && snapshot.bounds) {
 		const pageBounds = new Box(
 			snapshot.bounds.x,
 			snapshot.bounds.y,

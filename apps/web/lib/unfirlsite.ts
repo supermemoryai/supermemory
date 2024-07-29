@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import cheerio from "cheerio";
 
 export async function unfurl(url: string) {

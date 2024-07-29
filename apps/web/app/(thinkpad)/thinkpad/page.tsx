@@ -1,5 +1,5 @@
 import { createCanvas } from "@/app/actions/doers";
-import { getCanvas, getCanvasData } from "@/app/actions/fetchers";
+import { getCanvas } from "@/app/actions/fetchers";
 import Link from "next/link";
 import React from "react";
 import ImageComponent from "./image";
