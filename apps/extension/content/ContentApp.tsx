@@ -131,6 +131,13 @@ export default function ContentApp({
 				});
 			}
 		});
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (isPopoverOpen) {
+			  e.stopPropagation();
+			  e.preventDefault();
+			}
+		  };
+		  document.addEventListener('keydown', handleKeyDown, true);
 
 		const portalDiv = document.createElement("div");
 		portalDiv.id = "popover-portal";
