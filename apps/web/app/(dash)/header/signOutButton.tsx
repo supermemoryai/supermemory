@@ -11,7 +11,12 @@ export default function SignOutButton() {
         });
 			}}
 		>
-			<Button variant="ghost" size="sm" type="submit" className="text-[#7D8994]">
+			<Button
+				variant="ghost"
+				size="sm"
+				type="submit"
+				className="text-[#7D8994]"
+			>
 				Sign Out
 			</Button>
 		</form>

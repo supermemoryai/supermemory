@@ -31,6 +31,7 @@ import { addUserToSpace, deleteItem, moveItem } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 
 export function MemoriesPage({
 	memoriesAndSpaces,
@@ -43,7 +44,19 @@ export function MemoriesPage({
 	currentSpace?: StoredSpace;
 	usersWithAccess?: string[];
 }) {
-	const [filter, setFilter] = useState("All");
+	const searchParams = useSearchParams();
+
+	const tab = searchParams.get("tab");
+
+	const initialFilter = useMemo(() => {
+		if (tab === "spaces") return "Spaces";
+		if (tab === "pages") return "Pages";
+		if (tab === "notes") return "Notes";
+		if (tab === "tweet") return "Tweet";
+		return "All";
+	}, [tab]);
+
+	const [filter, setFilter] = useState(initialFilter);
 
 	// Sort Both memories and spaces by their savedAt and createdAt dates respectfully.
 	// The output should be just one single list of items
@@ -285,7 +298,7 @@ function LinkComponent({
 						<div className="text-lg text-[#fff] mt-4 line-clamp-2">
 							{title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
 						</div>
-						<div>
+						<div className="overflow-hidden text-ellipsis whitespace-nowrap">
 							{url.replace("https://supermemory.ai", "").split("#")[0] ?? "/"}
 						</div>
 					</>
@@ -297,7 +310,7 @@ function LinkComponent({
 						<div className="text-lg text-[#fff] mt-4 line-clamp-2">
 							{title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
 						</div>
-						<div className="line-clamp-3 mt-2">
+						<div className="truncate line-clamp-3 mt-2">
 							{content.replace(title, "")}
 						</div>
 					</>

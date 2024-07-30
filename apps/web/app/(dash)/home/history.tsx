@@ -1,12 +1,8 @@
-import { getChatHistory } from "@repo/web/app/actions/fetchers";
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import { Skeleton } from "@repo/ui/shadcn/skeleton";
-import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { chatThreads } from "@/server/db/schema";
 import { getQuerySuggestions } from "@/app/actions/doers";
-import { Button } from "@repo/ui/shadcn/button";
 
 const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
 	const [suggestions, setSuggestions] = useState<string[] | null>(null);
@@ -21,7 +17,12 @@ const History = memo(({ setQuery }: { setQuery: (q: string) => void }) => {
 			}
 			console.log(suggestions);
 			if (typeof suggestions.data === "string") {
-				setSuggestions(JSON.parse(suggestions.data));
+				const queries = suggestions.data.slice(1, -1).split(", ");
+				const parsedQueries = queries.map((query) =>
+					query.replace(/^'|'$/g, ""),
+				);
+				console.log(parsedQueries);
+				setSuggestions(parsedQueries);
 				return;
 			}
 			setSuggestions(suggestions.data.reverse().slice(0, 3));

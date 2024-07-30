@@ -7,4 +7,7 @@ module.exports = {
 	parserOptions: {
 		project: true,
 	},
+	rules: {
+		"@typescript-eslint/consistent-type-imports": "off",
+	},
 };

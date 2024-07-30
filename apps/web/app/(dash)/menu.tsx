@@ -7,6 +7,7 @@ import {
 	MemoriesIcon,
 	AddIcon,
 	HomeIcon as HomeIconWeb,
+  CanvasIcon,
 } from "@repo/ui/icons";
 import { Button } from "@repo/ui/shadcn/button";
 import { MinusIcon, PlusCircleIcon } from "lucide-react";
@@ -27,6 +28,7 @@ import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "@/app/actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import type { StoredSpace } from "@/server/db/schema";
+import { useKeyPress } from "@/lib/useKeyPress";
 
 function Menu() {
 	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
@@ -45,7 +47,11 @@ function Menu() {
 			setSpaces(spaces.data);
 		})();
 	}, []);
-
+	useKeyPress("a", () => {
+		if (!dialogOpen) {
+			setDialogOpen(true);
+		}
+	});
 	const menuItems = [
 		{
 			icon: HomeIconWeb,
@@ -57,6 +63,12 @@ function Menu() {
 			icon: MemoriesIcon,
 			text: "Memories",
 			url: "/memories",
+			disabled: false,
+		},
+		{
+			icon: CanvasIcon,
+			text: "Thinkpad",
+			url: "/thinkpad",
 			disabled: false,
 		},
 	];
@@ -73,9 +85,11 @@ function Menu() {
 			content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)
 		) {
 			return "tweet";
-		} else if (content.match(/https?:\/\/[\w\.]+/)) {
-			return "page";
-		} else if (content.match(/https?:\/\/www\.[\w\.]+/)) {
+		} else if (
+			content.match(
+				/^(https?:\/\/)?(www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(\/.*)?$/i,
+			)
+		) {
 			return "page";
 		} else {
 			return "note";

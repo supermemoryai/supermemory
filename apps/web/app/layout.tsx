@@ -66,9 +66,14 @@ export default function RootLayout({
 }): JSX.Element {
 	return (
 		<html lang="en" className="overflow-x-hidden" suppressHydrationWarning>
-			{/* <head>
-        <ThemeScript />
-      </head> */}
+			<head>
+				{/* Cloudflare web analytics */}
+				<script
+					defer
+					src="https://static.cloudflareinsights.com/beacon.min.js"
+					data-cf-beacon='{"token": "16d76ebb82c74d9983b71d09ab6617bc"}'
+				></script>
+			</head>
 			{/* TODO: when lightmode support is added, remove the 'dark' class from the body tag */}
 			<body
 				className={cn(

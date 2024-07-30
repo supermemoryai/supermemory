@@ -52,7 +52,7 @@ function QueryInput({
 						name="q"
 						cols={30}
 						rows={3}
-						className="bg-transparent text-lg placeholder:text-[#9B9B9B] text-gray-200 tracking-[3%] outline-none resize-none w-full p-7"
+						className={`bg-transparent text-lg placeholder:text-[#9B9B9B] text-gray-200 tracking-[3%] outline-none resize-none w-full py-4 px-4 h-32 transition-[height] ${query.length > 0 && "h-40"}`}
 						placeholder="Ask your second brain..."
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
@@ -74,8 +74,8 @@ function QueryInput({
 							initialSpaces={initialSpaces || []}
 						/>
 						<div className="flex items-center gap-4">
-							<div className="flex items-center gap-2">
-								<Label htmlFor="pro-mode" className="text-sm text-[#9B9B9B]">
+							<div className="flex items-center gap-2 p-2 rounded-lg bg-[#369DFD1A]">
+								<Label htmlFor="pro-mode" className="text-sm">
 									Pro mode
 								</Label>
 								<Switch
