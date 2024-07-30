@@ -111,36 +111,18 @@ function Menu() {
 
 	const handleSubmit = async (content?: string, spaces?: number[]) => {
 		setDialogOpen(false);
-
-		toast.info("Creating memory...", {
-			icon: <PlusCircleIcon className="w-4 h-4 text-white animate-spin" />,
-			duration: 7500,
-		});
-
 		if (!content || content.length === 0) {
-			toast.error("Content is required");
-			return;
+			throw new Error("Content is required");
 		}
-
-		console.log(spaces);
-
 		const cont = await createMemory({
 			content: content,
 			spaces: spaces ?? undefined,
 		});
-
 		setContent("");
 		setSelectedSpaces([]);
-
-		if (cont.success) {
-			toast.success("Memory created", {
-				richColors: true,
-			});
-		} else {
-			toast.error(`Memory creation failed: ${cont.error}`);
-		}
+		return cont;
 	};
-
+	
 	return (
 		<>
 			{/* Desktop Menu */}
@@ -193,8 +175,24 @@ function Menu() {
 					<form
 						action={async (e: FormData) => {
 							const content = e.get("content")?.toString();
+							toast.promise(handleSubmit(content, selectedSpaces), {
+								loading: (
+									<span>
+										<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+										Creating memory...
+									</span>
+								),
+								success: (data) => {
+									if (data.success) {
+										return "Memory created";
+									} else {
+										return `Memory creation failed: ${data.error}`;
+									}
+								},
+								error: (error) => `Memory creation failed: ${error}`,
+								richColors: true,
+							});
 
-							await handleSubmit(content, selectedSpaces);
 						}}
 						className="flex flex-col gap-4 "
 					>
@@ -218,7 +216,23 @@ function Menu() {
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										handleSubmit(content, selectedSpaces);
+										toast.promise(handleSubmit(content, selectedSpaces), {
+											loading: (
+												<span>
+													<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+													Creating memory...
+												</span>
+											),
+											success: (data) => {
+												if (data.success) {
+													return "Memory created";
+												} else {
+													return `Memory creation failed: ${data.error}`;
+												}
+											},
+											error: (error) => `Memory creation failed: ${error}`,
+											richColors: true,
+										});
 									}
 								}}
 							/>
