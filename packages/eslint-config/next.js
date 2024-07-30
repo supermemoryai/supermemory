@@ -5,7 +5,6 @@ const project = resolve(process.cwd(), "tsconfig.json");
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
 	extends: [
-		"next/core-web-vitals",
 		"plugin:@typescript-eslint/recommended-type-checked",
 		"plugin:@typescript-eslint/stylistic-type-checked",
 		"plugin:eslint-plugin-next-on-pages/recommended",

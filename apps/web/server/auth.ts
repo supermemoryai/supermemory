@@ -12,14 +12,6 @@ export const {
 } = NextAuth({
 	secret: process.env.BACKEND_SECURITY_KEY,
 	trustHost: true,
-	// callbacks: {
-	//   session: ({ session, token, user }) => ({
-	//     ...session,
-	//     user: {
-	//       ...session.user,
-	//     },
-	//   }),
-	// },
 	adapter: DrizzleAdapter(db, {
 		usersTable: users,
 		accountsTable: accounts,

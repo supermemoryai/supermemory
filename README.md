@@ -21,7 +21,7 @@ Interested in helping build the best second brain for everyone? Join the discord
 
 ## 👀 What is this?
 
-Build your own second brain with supermemory. It's a ChatGPT for your bookmarks. Import tweets or save websites and content using the [chrome extension](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?hl=en-GB&authuser=0) (the extension on webstore is not updated, please use the one in the repo)
+Build your own second brain with supermemory. It's a ChatGPT for your bookmarks. Import tweets or save websites and content using the [chrome extension](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?hl=en-GB&authuser=0)
 
 Well, here's the thing - me and @yxshv save a _lot_ of content on the internet.
 

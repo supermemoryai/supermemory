@@ -1,16 +1,16 @@
 "use client";
 
 import {
+	ArrowUturnDownIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	QuestionMarkCircleIcon,
-	ArrowTurnDownLeftIcon,
 } from "@heroicons/react/24/solid";
 import { CheckIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { completeOnboarding, createMemory } from "@repo/web/app/actions/doers";
+import { completeOnboarding, createMemory } from "@/app/actions/doers";
 import { useRouter } from "next/navigation";
 import Logo from "../../../public/logo.svg";
 import Image from "next/image";
@@ -24,11 +24,13 @@ export default function Home() {
 	useEffect(() => {
 		const updateDb = async () => {
 			await completeOnboarding();
-		}
+		};
 		if (currStep > 3) {
 			updateDb().then(() => {
 				push("/home?q=what%20is%20supermemory");
-			});
+			}).catch((e) => {
+        console.error(e);
+      });
 		}
 	}, [currStep]);
 
@@ -47,7 +49,7 @@ export default function Home() {
 			<Navbar />
 
 			{/* main-content */}
-			<div className="w-full max-w-3xl p-4 flex flex-col items-center justify-center mx-auto mt-24">
+			<div className="w-full max-w-3xl p-4 flex flex-col items-center justify-center mx-auto pt-24">
 				{currStep === 0 && (
 					<div className="text-white space-y-3 flex flex-col gap-16 w-full">
 						<h1 className="text-3xl md:text-5xl tracking-tighter">
@@ -311,7 +313,7 @@ function StepThree({ currStep }: { currStep: number }) {
 									type="submit"
 									className="rounded-lg bg-[#369DFD1A] p-3 absolute bottom-4 right-2"
 								>
-									<ArrowTurnDownLeftIcon className="w-4 h-4 text-[#369DFD]" />
+									<ArrowUturnDownIcon className="w-4 h-4 text-[#369DFD]" />
 								</button>
 							</form>
 						</li>
@@ -389,7 +391,7 @@ function Navbar() {
 	const handleSkip = async () => {
 		await completeOnboarding();
 		router.push("/home?q=what%20is%20supermemory");
-	}
+	};
 
 	return (
 		<div className="flex items-center justify-between p-4 fixed top-0 left-0 w-full">
@@ -399,7 +401,9 @@ function Navbar() {
 				className="hover:brightness-125 duration-200 size-12"
 			/>
 
-			<button className="text-sm" onClick={handleSkip}>Skip</button>
+			<button className="text-sm" onClick={handleSkip}>
+				Skip
+			</button>
 		</div>
 	);
 }
