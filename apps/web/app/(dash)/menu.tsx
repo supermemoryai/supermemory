@@ -120,9 +120,12 @@ function Menu() {
 		});
 		setContent("");
 		setSelectedSpaces([]);
-		return cont;
+		if (cont.success) {
+			return cont;
+		}
+		throw new Error(`Memory creation failed: ${cont.error}`);
 	};
-	
+
 	return (
 		<>
 			{/* Desktop Menu */}
@@ -182,17 +185,10 @@ function Menu() {
 										Creating memory...
 									</span>
 								),
-								success: (data) => {
-									if (data.success) {
-										return "Memory created";
-									} else {
-										return `Memory creation failed: ${data.error}`;
-									}
-								},
-								error: (error) => `Memory creation failed: ${error}`,
+								success: (data) => "Memory created",
+								error: (error) => error.message,
 								richColors: true,
 							});
-
 						}}
 						className="flex flex-col gap-4 "
 					>
@@ -223,14 +219,8 @@ function Menu() {
 													Creating memory...
 												</span>
 											),
-											success: (data) => {
-												if (data.success) {
-													return "Memory created";
-												} else {
-													return `Memory creation failed: ${data.error}`;
-												}
-											},
-											error: (error) => `Memory creation failed: ${error}`,
+											success: (data) => "Memory created",
+											error: (error) => error.message,
 											richColors: true,
 										});
 									}
