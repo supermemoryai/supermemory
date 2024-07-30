@@ -39,7 +39,7 @@ const ImageComponent = memo(({ id }: { id: string }) => {
 
 	return (
 		<div className="w-full aspect-video bg-[#2C3439] flex justify-center items-center">
-			Drew things to seee here
+			Draw things to see here
 		</div>
 	);
 });
