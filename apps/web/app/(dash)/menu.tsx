@@ -30,6 +30,7 @@ import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@/server/db/schema";
 import useMeasure from "react-use-measure";
+import { useKeyPress } from "@/lib/useKeyPress";
 
 function Menu() {
 	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
@@ -48,7 +49,11 @@ function Menu() {
 			setSpaces(spaces.data);
 		})();
 	}, []);
-
+	useKeyPress("a", () => {
+		if (!dialogOpen) {
+			setDialogOpen(true);
+		}
+	});
 	const menuItems = [
 		{
 			icon: HomeIconWeb,
