@@ -15,7 +15,7 @@ import {
 import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
 import { Tweet } from "react-tweet/api";
-import { getMetaData } from "@/lib/get-metadata";
+// import { getMetaData } from "@/lib/get-metadata";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { ChatHistory } from "@repo/shared-types";
@@ -197,122 +197,16 @@ export const createMemory = async (input: {
 		return { error: "Not authenticated", success: false };
 	}
 
-	const type = typeDecider(input.content);
-
-	let pageContent = input.content;
-	let metadata: Awaited<ReturnType<typeof getMetaData>>;
-	let vectorData: string;
-
-	if (!(await limit(data.user.id, type))) {
-		return {
-			success: false,
-			data: 0,
-			error: `You have exceeded the limit of ${LIMITS[type as keyof typeof LIMITS]} ${type}s.`,
-		};
-	}
-
-	let noteId = 0;
-
-	if (type === "page") {
-		const response = await fetch("https://md.dhr.wtf/?url=" + input.content, {
-			headers: {
-				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
-			},
-		});
-		pageContent = await response.text();
-		vectorData = pageContent;
-		try {
-			metadata = await getMetaData(input.content);
-		} catch (e) {
-			return {
-				success: false,
-				error: "Failed to fetch metadata for the page. Please try again later.",
-			};
-		}
-	} else if (type === "tweet") {
-		//Request the worker for the entire thread
-
-		let thread: string;
-		let errorOccurred: boolean = false;
-
-		try {
-			const cf_thread_endpoint = process.env.THREAD_CF_WORKER;
-			const authKey = process.env.THREAD_CF_AUTH;
-			const threadRequest = await fetch(cf_thread_endpoint, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: authKey,
-				},
-				body: JSON.stringify({ url: input.content }),
-			});
-
-			if (threadRequest.status !== 200) {
-				throw new Error(
-					`Failed to fetch the thread: ${input.content}, Reason: ${threadRequest.statusText}`,
-				);
-			}
-
-			thread = await threadRequest.text();
-			if (thread.trim().length === 2) {
-				console.log("Thread is an empty array");
-				throw new Error(
-					"[THREAD FETCHING SERVICE] Got no content form thread worker",
-				);
-			}
-		} catch (e) {
-			console.log("[THREAD FETCHING SERVICE] Failed to fetch the thread", e);
-			errorOccurred = true;
-		}
-
-		const tweet = await getTweetData(input.content.split("/").pop() as string);
-
-		pageContent = tweetToMd(tweet);
-		console.log("THis ishte page content!!", pageContent);
-		//@ts-ignore
-		vectorData = errorOccurred ? JSON.stringify(pageContent) : thread;
-		metadata = {
-			baseUrl: input.content,
-			description: tweet.text.slice(0, 200),
-			image: tweet.user.profile_image_url_https,
-			title: `Tweet by ${tweet.user.name}`,
-		};
-	} else if (type === "note") {
-		pageContent = input.content;
-		vectorData = pageContent;
-		noteId = new Date().getTime();
-		metadata = {
-			baseUrl: `https://supermemory.ai/note/${noteId}`,
-			description: `Note created at ${new Date().toLocaleString()}`,
-			image: "https://supermemory.ai/logo.png",
-			title: `${pageContent.slice(0, 20)} ${pageContent.length > 20 ? "..." : ""}`,
-		};
-	} else {
-		return {
-			success: false,
-			data: 0,
-			error: "Invalid type",
-		};
-	}
-
-	let storeToSpaces = input.spaces;
-
-	if (!storeToSpaces) {
-		storeToSpaces = [];
-	}
-
-	const vectorSaveResponse = await fetch(
+	
+	// make the backend reqeust for the queue here
+	const vectorSaveResponses = await fetch(
 		`${process.env.BACKEND_BASE_URL}/api/add`,
 		{
 			method: "POST",
 			body: JSON.stringify({
-				pageContent: vectorData,
-				title: metadata.title,
-				description: metadata.description,
-				url: metadata.baseUrl,
-				spaces: storeToSpaces.map((spaceId) => spaceId.toString()),
+				url: input.content,
+				spaces: input.spaces,
 				user: data.user.id,
-				type,
 			}),
 			headers: {
 				"Content-Type": "application/json",
@@ -321,125 +215,249 @@ export const createMemory = async (input: {
 		},
 	);
 
-	if (!vectorSaveResponse.ok) {
-		const errorData = await vectorSaveResponse.text();
-		console.error(errorData);
-		return {
-			success: false,
-			data: 0,
-			error: `Failed to save to vector store. Backend returned error: ${errorData}`,
-		};
-	}
+// 	const type = typeDecider(input.content);
 
-	let contentId: number;
+// 	let pageContent = input.content;
+// 	let metadata: Awaited<ReturnType<typeof getMetaData>>;
+// 	let vectorData: string;
 
-	const response = (await vectorSaveResponse.json()) as {
-		status: string;
-		chunkedInput: string;
-		message?: string;
-	};
+// 	if (!(await limit(data.user.id, type))) {
+// 		return {
+// 			success: false,
+// 			data: 0,
+// 			error: `You have exceeded the limit of ${LIMITS[type as keyof typeof LIMITS]} ${type}s.`,
+// 		};
+// 	}
 
-	try {
-		if (response.status !== "ok") {
-			if (response.status === "error") {
-				return {
-					success: false,
-					data: 0,
-					error: response.message,
-				};
-			} else {
-				return {
-					success: false,
-					data: 0,
-					error: `Failed to save to vector store. Backend returned error: ${response.message}`,
-				};
-			}
-		}
-	} catch (e) {
-		return {
-			success: false,
-			data: 0,
-			error: `Failed to save to vector store. Backend returned error: ${e}`,
-		};
-	}
+// 	let noteId = 0;
 
-	const saveToDbUrl =
-		(metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
-		"#supermemory-user-" +
-		data.user.id;
+// 	if (type === "page") {
+// 		const response = await fetch("https://md.dhr.wtf/?url=" + input.content, {
+// 			headers: {
+// 				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+// 			},
+// 		});
+// 		pageContent = await response.text();
+// 		vectorData = pageContent;
+// 		try {
+// 			metadata = await getMetaData(input.content);
+// 		} catch (e) {
+// 			return {
+// 				success: false,
+// 				error: "Failed to fetch metadata for the page. Please try again later.",
+// 			};
+// 		}
+// 	} else if (type === "tweet") {
+// 		//Request the worker for the entire thread
 
-	// Insert into database
-	try {
-		const insertResponse = await db
-			.insert(storedContent)
-			.values({
-				content: pageContent,
-				title: metadata.title,
-				description: metadata.description,
-				url: saveToDbUrl,
-				baseUrl: saveToDbUrl,
-				image: metadata.image,
-				savedAt: new Date(),
-				userId: data.user.id,
-				type,
-				noteId,
-			})
-			.returning({ id: storedContent.id });
-		revalidatePath("/memories");
-		revalidatePath("/home");
+// 		let thread: string;
+// 		let errorOccurred: boolean = false;
 
-		if (!insertResponse[0]?.id) {
-			return {
-				success: false,
-				data: 0,
-				error: "Something went wrong while saving the document to the database",
-			};
-		}
+// 		try {
+// 			const cf_thread_endpoint = process.env.THREAD_CF_WORKER;
+// 			const authKey = process.env.THREAD_CF_AUTH;
+// 			const threadRequest = await fetch(cf_thread_endpoint, {
+// 				method: "POST",
+// 				headers: {
+// 					"Content-Type": "application/json",
+// 					Authorization: authKey,
+// 				},
+// 				body: JSON.stringify({ url: input.content }),
+// 			});
 
-		contentId = insertResponse[0]?.id;
-	} catch (e) {
-		const error = e as Error;
-		console.log("Error: ", error.message);
+// 			if (threadRequest.status !== 200) {
+// 				throw new Error(
+// 					`Failed to fetch the thread: ${input.content}, Reason: ${threadRequest.statusText}`,
+// 				);
+// 			}
 
-		if (
-			error.message.includes(
-				"D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
-			)
-		) {
-			return {
-				success: false,
-				data: 0,
-				error: "Content already exists",
-			};
-		}
+// 			thread = await threadRequest.text();
+// 			if (thread.trim().length === 2) {
+// 				console.log("Thread is an empty array");
+// 				throw new Error(
+// 					"[THREAD FETCHING SERVICE] Got no content form thread worker",
+// 				);
+// 			}
+// 		} catch (e) {
+// 			console.log("[THREAD FETCHING SERVICE] Failed to fetch the thread", e);
+// 			errorOccurred = true;
+// 		}
 
-		return {
-			success: false,
-			data: 0,
-			error: "Failed to save to database with error: " + error.message,
-		};
-	}
+// 		const tweet = await getTweetData(input.content.split("/").pop() as string);
 
-	if (storeToSpaces.length > 0) {
-		// Adding the many-to-many relationship between content and spaces
-		const spaceData = await db
-			.select()
-			.from(space)
-			.where(
-				and(inArray(space.id, storeToSpaces), eq(space.user, data.user.id)),
-			)
-			.all();
+// 		pageContent = tweetToMd(tweet);
+// 		console.log("THis ishte page content!!", pageContent);
+// 		//@ts-ignore
+// 		vectorData = errorOccurred ? JSON.stringify(pageContent) : thread;
+// 		metadata = {
+// 			baseUrl: input.content,
+// 			description: tweet.text.slice(0, 200),
+// 			image: tweet.user.profile_image_url_https,
+// 			title: `Tweet by ${tweet.user.name}`,
+// 		};
+// 	} else if (type === "note") {
+// 		pageContent = input.content;
+// 		vectorData = pageContent;
+// 		noteId = new Date().getTime();
+// 		metadata = {
+// 			baseUrl: `https://supermemory.ai/note/${noteId}`,
+// 			description: `Note created at ${new Date().toLocaleString()}`,
+// 			image: "https://supermemory.ai/logo.png",
+// 			title: `${pageContent.slice(0, 20)} ${pageContent.length > 20 ? "..." : ""}`,
+// 		};
+// 	} else {
+// 		return {
+// 			success: false,
+// 			data: 0,
+// 			error: "Invalid type",
+// 		};
+// 	}
 
-		await Promise.all(
-			spaceData.map(async (s) => {
-				await db
-					.insert(contentToSpace)
-					.values({ contentId: contentId, spaceId: s.id });
+// 	let storeToSpaces = input.spaces;
 
-				await db.update(space).set({ numItems: s.numItems + 1 });
-			}),
-		);
-	}
+// 	if (!storeToSpaces) {
+// 		storeToSpaces = [];
+// 	}
+
+// 	const vectorSaveResponse = await fetch(
+// 		`${process.env.BACKEND_BASE_URL}/api/add`,
+// 		{
+// 			method: "POST",
+// 			body: JSON.stringify({
+// 				pageContent: vectorData,
+// 				title: metadata.title,
+// 				description: metadata.description,
+// 				url: metadata.baseUrl,
+// 				spaces: storeToSpaces.map((spaceId) => spaceId.toString()),
+// 				user: data.user.id,
+// 				type,
+// 			}),
+// 			headers: {
+// 				"Content-Type": "application/json",
+// 				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+// 			},
+// 		},
+// 	);
+
+// 	if (!vectorSaveResponse.ok) {
+// 		const errorData = await vectorSaveResponse.text();
+// 		console.error(errorData);
+// 		return {
+// 			success: false,
+// 			data: 0,
+// 			error: `Failed to save to vector store. Backend returned error: ${errorData}`,
+// 		};
+// 	}
+
+// 	let contentId: number;
+
+// 	const response = (await vectorSaveResponse.json()) as {
+// 		status: string;
+// 		chunkedInput: string;
+// 		message?: string;
+// 	};
+
+// 	try {
+// 		if (response.status !== "ok") {
+// 			if (response.status === "error") {
+// 				return {
+// 					success: false,
+// 					data: 0,
+// 					error: response.message,
+// 				};
+// 			} else {
+// 				return {
+// 					success: false,
+// 					data: 0,
+// 					error: `Failed to save to vector store. Backend returned error: ${response.message}`,
+// 				};
+// 			}
+// 		}
+// 	} catch (e) {
+// 		return {
+// 			success: false,
+// 			data: 0,
+// 			error: `Failed to save to vector store. Backend returned error: ${e}`,
+// 		};
+// 	}
+
+// 	const saveToDbUrl =
+// 		(metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
+// 		"#supermemory-user-" +
+// 		data.user.id;
+
+// 	// Insert into database
+// 	try {
+// 		const insertResponse = await db
+// 			.insert(storedContent)
+// 			.values({
+// 				content: pageContent,
+// 				title: metadata.title,
+// 				description: metadata.description,
+// 				url: saveToDbUrl,
+// 				baseUrl: saveToDbUrl,
+// 				image: metadata.image,
+// 				savedAt: new Date(),
+// 				userId: data.user.id,
+// 				type,
+// 				noteId,
+// 			})
+// 			.returning({ id: storedContent.id });
+// 		revalidatePath("/memories");
+// 		revalidatePath("/home");
+
+// 		if (!insertResponse[0]?.id) {
+// 			return {
+// 				success: false,
+// 				data: 0,
+// 				error: "Something went wrong while saving the document to the database",
+// 			};
+// 		}
+
+// 		contentId = insertResponse[0]?.id;
+// 	} catch (e) {
+// 		const error = e as Error;
+// 		console.log("Error: ", error.message);
+
+// 		if (
+// 			error.message.includes(
+// 				"D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
+// 			)
+// 		) {
+// 			return {
+// 				success: false,
+// 				data: 0,
+// 				error: "Content already exists",
+// 			};
+// 		}
+
+// 		return {
+// 			success: false,
+// 			data: 0,
+// 			error: "Failed to save to database with error: " + error.message,
+// 		};
+// 	}
+
+// 	if (storeToSpaces.length > 0) {
+// 		// Adding the many-to-many relationship between content and spaces
+// 		const spaceData = await db
+// 			.select()
+// 			.from(space)
+// 			.where(
+// 				and(inArray(space.id, storeToSpaces), eq(space.user, data.user.id)),
+// 			)
+// 			.all();
+
+// 		await Promise.all(
+// 			spaceData.map(async (s) => {
+// 				await db
+// 					.insert(contentToSpace)
+// 					.values({ contentId: contentId, spaceId: s.id });
+
+// 				await db.update(space).set({ numItems: s.numItems + 1 });
+// 			}),
+// 		);
+// 	}
 
 	return {
 		success: true,
@@ -457,6 +475,7 @@ export const createChatThread = async (
 		return { error: "Not authenticated", success: false };
 	}
 
+	
 	const thread = await db
 		.insert(chatThreads)
 		.values({

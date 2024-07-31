@@ -1,5 +1,5 @@
 import chunkText from "./chonker";
-import { PageOrNoteChunks } from "../types";
+import { PageOrNoteChunks } from "../../types";
 export function chunkPage(pageContent: string): PageOrNoteChunks {
 	const chunks = chunkText(pageContent, 1536);
 

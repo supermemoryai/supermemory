@@ -7,6 +7,7 @@ import {
 	sqliteTableCreator,
 	text,
 	integer,
+	blob,
 } from "drizzle-orm/sqlite-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -242,3 +243,28 @@ export const canvas = createTable(
 
 export type ChatThread = typeof chatThreads.$inferSelect;
 export type ChatHistory = typeof chatHistory.$inferSelect;
+
+export const jobs = createTable(
+	"jobs",
+	{
+		id: integer("id").notNull().primaryKey({ autoIncrement: true }),
+		userId: text("userId")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		url: text("url").notNull(),
+		status: text("status").notNull(),
+		attempts: integer("attempts").notNull().default(0),
+		lastAttemptAt: integer("lastAttemptAt"),
+		error: blob("error"),
+		createdAt: integer("createdAt").notNull(),
+		updatedAt: integer("updatedAt").notNull(),
+	},
+	(job) => ({
+		userIdx: index("jobs_userId_idx").on(job.userId),
+		statusIdx: index("jobs_status_idx").on(job.status),
+		createdAtIdx: index("jobs_createdAt_idx").on(job.createdAt),
+		urlIdx: index("jobs_url_idx").on(job.url),
+	}),
+);
+
+export type Job = typeof jobs.$inferSelect;

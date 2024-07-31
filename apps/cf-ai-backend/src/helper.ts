@@ -132,12 +132,12 @@ export async function batchCreateChunksAndEmbeddings({
 	store,
 	body,
 	chunks,
-	context,
+	env: env,
 }: {
 	store: CloudflareVectorizeStore;
 	body: z.infer<typeof vectorObj>;
 	chunks: Chunks;
-	context: Context<{ Bindings: Env }>;
+	env: Env;
 }) {
 	//! NOTE that we use #supermemory-web to ensure that
 	//! If a user saves it through the extension, we don't want other users to be able to see it.
@@ -149,7 +149,7 @@ export async function batchCreateChunksAndEmbeddings({
 		random().toString(36).substring(2, 15) +
 		random().toString(36).substring(2, 15);
 
-	const allIds = await context.env.KV.list({ prefix: uuid });
+	const allIds = await env.KV.list({ prefix: uuid });
 
 	// If some chunks for that content already exist, we'll just update the metadata to include
 	// the user.
@@ -159,7 +159,7 @@ export async function batchCreateChunksAndEmbeddings({
 		//Search in a batch of 20
 		for (let i = 0; i < savedVectorIds.length; i += 20) {
 			const batch = savedVectorIds.slice(i, i + 20);
-			const batchVectors = await context.env.VECTORIZE_INDEX.getByIds(batch);
+			const batchVectors = await env.VECTORIZE_INDEX.getByIds(batch);
 			vectors.push(...batchVectors);
 		}
 		console.log(
@@ -192,7 +192,7 @@ export async function batchCreateChunksAndEmbeddings({
 
 		await Promise.all(
 			results.map((result) => {
-				return context.env.VECTORIZE_INDEX.upsert(result);
+				return env.VECTORIZE_INDEX.upsert(result);
 			}),
 		);
 		return;
@@ -243,8 +243,7 @@ export async function batchCreateChunksAndEmbeddings({
 				});
 				console.log("these are the doucment ids", ids);
 				console.log("Docs added:", docs);
-				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
-					context.env;
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 					{ chunkIds: ids, urlid: ourID },
@@ -281,8 +280,7 @@ export async function batchCreateChunksAndEmbeddings({
 
 				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
 				console.log("Docs added:", docs);
-				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
-					context.env;
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 					{ chunkIds: ids, urlid: ourID },
@@ -319,8 +317,7 @@ export async function batchCreateChunksAndEmbeddings({
 
 				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
 				console.log("Docs added:", docs);
-				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
-					context.env;
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 					{ chunkIds: ids, urlid: ourID },
@@ -355,7 +352,7 @@ export async function batchCreateChunksAndEmbeddings({
 
 			const docs = await store.addDocuments(preparedDocuments, { ids: ids });
 			console.log("Docs added:", docs);
-			const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = context.env;
+			const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 			await bulkInsertKv(
 				{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 				{ chunkIds: ids, urlid: ourID },

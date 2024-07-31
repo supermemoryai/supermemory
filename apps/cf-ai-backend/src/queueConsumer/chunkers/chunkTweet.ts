@@ -1,4 +1,4 @@
-import { TweetChunks } from "../types";
+import { TweetChunks } from "../../types";
 import chunkText from "./chonker";
 import { getRawTweet } from "@repo/shared-types/utils";
 

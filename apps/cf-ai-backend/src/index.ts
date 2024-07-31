@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { boolean, z } from "zod";
 import { Hono } from "hono";
 import { CoreMessage, generateText, streamText, tool } from "ai";
 import {
@@ -9,6 +9,7 @@ import {
 	PageOrNoteChunks,
 	TweetChunks,
 	vectorObj,
+	vectorBody,
 } from "./types";
 import {
 	batchCreateChunksAndEmbeddings,
@@ -20,11 +21,15 @@ import { logger } from "hono/logger";
 import { poweredBy } from "hono/powered-by";
 import { bearerAuth } from "hono/bearer-auth";
 import { zValidator } from "@hono/zod-validator";
-import chunkText from "./utils/chonker";
+import chunkText from "./queueConsumer/chunkers/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
 import { swaggerUI } from "@hono/swagger-ui";
-import { chunkThread } from "./utils/chunkTweet";
-import { chunkNote, chunkPage } from "./utils/chunkPageOrNotes";
+// import { chunkThread } from "./utils/chunkTweet";
+import {
+	chunkNote,
+	chunkPage,
+} from "./queueConsumer/chunkers/chunkPageOrNotes";
+import { queue } from "./queueConsumer";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -68,37 +73,44 @@ app.get("/api/health", (c) => {
 	return c.json({ status: "ok" });
 });
 
-app.post("/api/add", zValidator("json", vectorObj), async (c) => {
+app.post("/api/add", zValidator("json", vectorBody), async (c) => {
 	try {
+		// console.log("api/add hit!!!!");
 		const body = c.req.valid("json");
-
-		const { store } = await initQuery(c);
-
-		console.log(body.spaces);
-		let chunks: TweetChunks | PageOrNoteChunks;
-		// remove everything in <raw> tags
-		// const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
-
-		switch (body.type) {
-			case "tweet":
-				chunks = chunkThread(body.pageContent);
-				break;
-
-			case "page":
-				chunks = chunkPage(body.pageContent);
-				break;
-
-			case "note":
-				chunks = chunkNote(body.pageContent);
-				break;
-		}
-
-		await batchCreateChunksAndEmbeddings({
-			store,
-			body,
-			chunks: chunks,
-			context: c,
+		const spaceNumbers = body.spaces.map((s: string) => Number(s));
+		await c.env.EMBEDCHUNKS_QUEUE.send({
+			content: body.url,
+			user: body.user,
+			space: spaceNumbers,
 		});
+
+		// const { store } = await initQuery(c);
+
+		// console.log(body.spaces);
+		// let chunks: TweetChunks | PageOrNoteChunks;
+		// // remove everything in <raw> tags
+		// // const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
+
+		// switch (body.type) {
+		// 	case "tweet":
+		// 		chunks = chunkThread(body.pageContent);
+		// 		break;
+
+		// 	case "page":
+		// 		chunks = chunkPage(body.pageContent);
+		// 		break;
+
+		// 	case "note":
+		// 		chunks = chunkNote(body.pageContent);
+		// 		break;
+		// }
+
+		// await batchCreateChunksAndEmbeddings({
+		// 	store,
+		// 	body,
+		// 	chunks: chunks,
+		// 	env: c,
+		// });
 
 		return c.json({ status: "ok" });
 	} catch (error) {
@@ -180,7 +192,7 @@ app.post(
 				title: "Image content from the web",
 			},
 			chunks: chunks,
-			context: c,
+			env: c.env,
 		});
 
 		return c.json({ status: "ok" });
@@ -330,7 +342,7 @@ app.post(
 					title: `${addString.slice(0, 30)}... (Added from chatbot)`,
 				},
 				chunks: vectorContent,
-				context: c,
+				env: c.env,
 			});
 
 			return c.json({
@@ -664,4 +676,7 @@ app.get(
 	},
 );
 
-export default app;
+export default {
+	fetch: app.fetch,
+	queue,
+};
