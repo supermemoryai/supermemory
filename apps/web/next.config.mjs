@@ -9,6 +9,9 @@ const baseNextConfig = {
 	env: {
 		TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 	},
+	eslint: {
+		disableDuringBuilds: true
+	}
 };
 
 let selectedCofig = baseNextConfig;

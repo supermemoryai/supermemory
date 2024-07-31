@@ -11,7 +11,7 @@ import {
 	spacesAccess,
 	storedContent,
 	users,
-} from "../../server/db/schema";
+} from "@repo/db/schema";
 import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
 import { Tweet } from "react-tweet/api";
@@ -836,8 +836,7 @@ export async function getQuerySuggestions() {
 			};
 		}
 
-		const fullQuery = content
-			.map((c) => `${c.title} \n\n${c.content}`)
+		const fullQuery = (content?.map((c) => `${c.title} \n\n${c.content}`) ?? [])
 			.join(" ");
 
 		const suggestionsCall = (await env.AI.run(

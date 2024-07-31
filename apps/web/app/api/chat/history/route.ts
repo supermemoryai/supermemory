@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { ensureAuth } from "../../ensureAuth";
 import { db } from "@/server/db";
 import { eq } from "drizzle-orm";
-import { chatThreads } from "@/server/db/schema";
+import { chatThreads } from "@repo/db/schema";
 
 export const runtime = "edge";
 

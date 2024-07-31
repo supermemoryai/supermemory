@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 
-import * as schema from "./schema";
+import * as schema from "@repo/db/schema";
 
 export const db = drizzle(process.env.DATABASE, {
 	schema,

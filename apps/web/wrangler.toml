@@ -26,8 +26,9 @@ bucket_name = "dev-r2-anycontext"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
+database_name = "supermemlocal"
+database_id = "0f93c990-72fb-489c-8563-57a7bb18dc43"
+
 
 
 [[env.production.d1_databases]]

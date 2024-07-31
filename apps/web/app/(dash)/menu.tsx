@@ -28,7 +28,7 @@ import { getSpaces } from "../actions/fetchers";
 import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
-import { StoredSpace } from "@/server/db/schema";
+import { StoredSpace } from "@repo/db/schema";
 import useMeasure from "react-use-measure";
 
 function Menu() {

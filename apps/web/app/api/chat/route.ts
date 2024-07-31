@@ -8,7 +8,7 @@ import {
 import { ensureAuth } from "../ensureAuth";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { chatHistory as chatHistoryDb, chatThreads } from "@/server/db/schema";
+import { chatHistory as chatHistoryDb, chatThreads } from "@repo/db/schema";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { join } from "path";
 

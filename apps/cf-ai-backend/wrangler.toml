@@ -3,6 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2024-02-23"
 node_compat = true
 
+tail_consumers = [{service = "new-cf-ai-backend-tail"}]
+
+
 # [env.preview]
 [[vectorize]]
 binding = "VECTORIZE_INDEX"
@@ -24,8 +27,24 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "37a90353da63401e84e20e71165531d0"
-preview_id = "c58b6202814f4224acea97627d0c18aa"
+id = "569c3f2a510943729019f5d1f798e7d9"
+preview_id = "569c3f2a510943729019f5d1f798e7d9"
 
 [placement]
 mode = "smart"
+
+[[queues.producers]]
+  queue = "embedchunks-queue"
+  binding ="EMBEDCHUNKS_QUEUE"
+
+[[queues.consumers]]
+  queue = "embedchunks-queue"
+  max_batch_size = 100
+  max_retries = 10
+  dead_letter_queue = "embedchunks-dlq"
+
+
+[[d1_databases]]
+binding = "DATABASE"
+database_name = "supermemlocal"
+database_id = "0f93c990-72fb-489c-8563-57a7bb18dc43"

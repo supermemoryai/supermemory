@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import MemoriesPage from "../../content";
 import { db } from "@/server/db";
 import { and, eq } from "drizzle-orm";
-import { spacesAccess } from "@/server/db/schema";
+import { spacesAccess } from "@repo/db/schema";
 import { auth } from "@/server/auth";
 
 async function Page({ params: { spaceid } }: { params: { spaceid: number } }) {

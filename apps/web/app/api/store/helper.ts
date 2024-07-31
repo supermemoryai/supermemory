@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { db } from "@/server/db";
-import { contentToSpace, space, storedContent } from "@/server/db/schema";
+import { contentToSpace, space, storedContent } from "@repo/db/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import { LIMITS } from "@/lib/constants";
 import { limit } from "@/app/actions/doers";

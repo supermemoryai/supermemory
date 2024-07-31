@@ -33,13 +33,6 @@ import { queue } from "./queueConsumer";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get(
-	"/ui",
-	swaggerUI({
-		url: "/doc",
-	}),
-);
-
 // ------- MIDDLEWARES -------
 app.use("*", poweredBy());
 app.use("*", timing());

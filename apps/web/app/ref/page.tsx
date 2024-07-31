@@ -2,7 +2,7 @@ import { Button } from "@repo/ui/shadcn/button";
 import { auth, signIn, signOut } from "../../server/auth";
 import { db } from "../../server/db";
 import { sql } from "drizzle-orm";
-import { users } from "../../server/db/schema";
+import { users } from "@repo/db/schema";
 import { getThemeToggler } from "../../lib/get-theme-button";
 
 export const runtime = "edge";

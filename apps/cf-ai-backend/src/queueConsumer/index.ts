@@ -13,7 +13,7 @@ import { z } from "zod";
 import { Metadata } from "./utils/get-metadata";
 import { BaseError } from "../errors/baseError";
 import { database } from "../db";
-import { storedContent, space, contentToSpace } from "../db/schema";
+import { storedContent, space, contentToSpace } from "@repo/db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 class VectorInsertError extends BaseError {

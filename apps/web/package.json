@@ -45,7 +45,6 @@
 		"@types/node": "^20.11.24",
 		"@types/react": "^18.2.61",
 		"@types/react-dom": "^18.2.19",
-		"drizzle-kit": "0.21.2",
 		"eslint": "^8.57.0",
 		"postcss": "^8.4.38",
 		"typescript": "^5.3.3",
