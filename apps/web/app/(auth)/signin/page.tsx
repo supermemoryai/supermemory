@@ -15,10 +15,11 @@ async function Signin({
 }: {
 	searchParams: Record<string, string>;
 }) {
+	const telegramUser = searchParams.telegramUser;
 	const user = await auth();
 
 	if (user) {
-		redirect("/home");
+		redirect(`/home` + (telegramUser ? `?telegramUser=${telegramUser}` : ""));
 	}
 
 	return (
