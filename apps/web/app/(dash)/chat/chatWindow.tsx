@@ -6,7 +6,7 @@ import QueryInput from "./chatQueryInput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ChatHistory, sourcesZod } from "@repo/shared-types";
+import { type ChatHistory, sourcesZod } from "@repo/shared-types";
 import {
 	Accordion,
 	AccordionContent,
@@ -23,8 +23,11 @@ import { codeLanguageSubset } from "@/lib/constants";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
-import { ClipboardIcon, SpeakerWaveIcon } from "@heroicons/react/24/outline";
-import { SpeakerOffIcon } from "@radix-ui/react-icons";
+import {
+	ClipboardIcon,
+	SpeakerWaveIcon,
+	SpeakerXMarkIcon,
+} from "@heroicons/react/24/outline";
 
 function ChatWindow({
 	q,
@@ -93,7 +96,7 @@ function ChatWindow({
 	const getAnswer = async (
 		query: string,
 		spaces: string[],
-		proMode: boolean = false,
+		proMode = false,
 	) => {
 		if (query.trim() === "from_loading" || query.trim().length === 0) {
 			return;
@@ -356,7 +359,7 @@ function ChatWindow({
 															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
 														>
 															{speakingIdx === idx ? (
-																<SpeakerOffIcon className="size-[18px] group-hover:text-primary" />
+																<SpeakerXMarkIcon className="size-[18px] group-hover:text-primary" />
 															) : (
 																<SpeakerWaveIcon className="size-[18px] group-hover:text-primary group-disabled:text-gray-600" />
 															)}
