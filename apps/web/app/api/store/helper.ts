@@ -24,8 +24,8 @@ export const createMemoryFromAPI = async (input: {
 			method: "POST",
 			body: JSON.stringify({
 				pageContent: input.data.pageContent,
-				title: input.data.title,
-				description: input.data.description,
+				title: input.data.title.slice(0, 500),
+				description: input.data.description.slice(0, 500),
 				url: input.data.url,
 				spaces: input.data.spaces,
 				user: input.userId,
