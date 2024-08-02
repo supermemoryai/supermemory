@@ -23,7 +23,7 @@ import { codeLanguageSubset } from "@/lib/constants";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
-import { ClipboardIcon } from "@heroicons/react/24/outline";
+import { ClipboardIcon, SpeakerWaveIcon } from "@heroicons/react/24/outline";
 
 function ChatWindow({
 	q,
@@ -305,10 +305,25 @@ function ChatWindow({
 													</Markdown>
 
 													<div className="mt-3 relative -left-2 flex items-center gap-1">
-														{/* TODO: speak response */}
-														{/* <button className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200">
-                              <SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
-                            </button> */}
+														{/* speak response */}
+														<button
+															onClick={() => {
+																const utterThis: SpeechSynthesisUtterance =
+																	new SpeechSynthesisUtterance(
+																		chat.answer.parts
+																			.map((part) => part.text)
+																			.join(""),
+																	);
+																const speechSynth: SpeechSynthesis =
+																	window.speechSynthesis;
+																utterThis.lang = "en-US";
+																utterThis.rate = 1;
+																speechSynth.speak(utterThis);
+															}}
+															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
+														>
+															<SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
+														</button>
 														{/* copy response */}
 														<button
 															onClick={() =>
@@ -388,40 +403,36 @@ function ChatWindow({
 																))}
 															</div>
 
-															{chat.answer.justification &&
-																chat.answer.justification.length && (
-																	<div
-																		className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+															{chat.answer.justification?.length && (
+																<div
+																	className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+																>
+																	<Accordion
+																		defaultValue={""}
+																		type="single"
+																		collapsible
 																	>
-																		<Accordion
-																			defaultValue={""}
-																			type="single"
-																			collapsible
-																		>
-																			<AccordionItem value="justification">
-																				<AccordionTrigger className="text-foreground-menu">
-																					Justification
-																				</AccordionTrigger>
-																				<AccordionContent
-																					className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
-																					defaultChecked
-																				>
-																					{chat.answer.justification.length > 0
-																						? chat.answer.justification
-																								.replaceAll(
-																									"<justification>",
-																									"",
-																								)
-																								.replaceAll(
-																									"</justification>",
-																									"",
-																								)
-																						: "No justification provided."}
-																				</AccordionContent>
-																			</AccordionItem>
-																		</Accordion>
-																	</div>
-																)}
+																		<AccordionItem value="justification">
+																			<AccordionTrigger className="text-foreground-menu">
+																				Justification
+																			</AccordionTrigger>
+																			<AccordionContent
+																				className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+																				defaultChecked
+																			>
+																				{chat.answer.justification.length > 0
+																					? chat.answer.justification
+																							.replaceAll("<justification>", "")
+																							.replaceAll(
+																								"</justification>",
+																								"",
+																							)
+																					: "No justification provided."}
+																			</AccordionContent>
+																		</AccordionItem>
+																	</Accordion>
+																</div>
+															)}
 														</AccordionContent>
 													</AccordionItem>
 												</Accordion>
