@@ -52,7 +52,8 @@ function ChatWindow({
 }) {
 	const [layout, setLayout] = useState<"chat" | "initial">("chat");
 	const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
-	const [isSpeaking, setIsSpeaking] = useState(false);
+	const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+	const speechSynth: SpeechSynthesis = window.speechSynthesis;
 
 	const removeJustificationFromText = (text: string) => {
 		// remove everything after the first "<justification>" word
@@ -68,27 +69,23 @@ function ChatWindow({
 		return text;
 	};
 
-	const handleTTS = (text: string) => {
-		if (isSpeaking) return stopTTS();
+	const handleTTS = (text: string, idx: number) => {
+		if (speakingIdx != null) return stopTTS();
 		if (!text) return;
 		const utterThis: SpeechSynthesisUtterance = new SpeechSynthesisUtterance(
 			text,
 		);
-		const speechSynth: SpeechSynthesis = window.speechSynthesis;
 		utterThis.lang = "en-US";
 		speechSynth.speak(utterThis);
-		setIsSpeaking(true);
+		setSpeakingIdx(idx);
 		utterThis.onend = () => {
-			setIsSpeaking(false);
+			setSpeakingIdx(null);
 		};
 	};
 
 	const stopTTS = () => {
-		if (isSpeaking) {
-			const speechSynth: SpeechSynthesis = window.speechSynthesis;
-			speechSynth.cancel();
-			setIsSpeaking(false);
-		}
+		speechSynth.cancel();
+		setSpeakingIdx(null);
 	};
 
 	const router = useRouter();
@@ -345,19 +342,23 @@ function ChatWindow({
 														</button>
 														{/* speak response */}
 														<button
+															disabled={
+																speakingIdx !== null && speakingIdx !== idx
+															}
 															onClick={() => {
 																handleTTS(
 																	chat.answer.parts
 																		.map((part) => part.text)
 																		.join(""),
+																	idx,
 																);
 															}}
-															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200 "
+															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
 														>
-															{isSpeaking ? (
-																<SpeakerOffIcon />
+															{speakingIdx === idx ? (
+																<SpeakerOffIcon className="size-[18px] group-hover:text-primary" />
 															) : (
-																<SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
+																<SpeakerWaveIcon className="size-[18px] group-hover:text-primary group-disabled:text-gray-600" />
 															)}
 														</button>
 													</div>
