@@ -51,6 +51,7 @@ function ChatWindow({
 }) {
 	const [layout, setLayout] = useState<"chat" | "initial">("chat");
 	const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
+	const [isSpeaking, setIsSpeaking] = useState(false);
 
 	const removeJustificationFromText = (text: string) => {
 		// remove everything after the first "<justification>" word
@@ -64,6 +65,20 @@ function ChatWindow({
 			return text.slice(0, justificationLine);
 		}
 		return text;
+	};
+
+	const handleTTS = (text: string) => {
+		if (!text) return;
+		const utterThis: SpeechSynthesisUtterance = new SpeechSynthesisUtterance(
+			text,
+		);
+		const speechSynth: SpeechSynthesis = window.speechSynthesis;
+		utterThis.lang = "en-US";
+		speechSynth.speak(utterThis);
+		setIsSpeaking(true);
+		utterThis.onend = () => {
+			setIsSpeaking(false);
+		};
 	};
 
 	const router = useRouter();
@@ -305,25 +320,6 @@ function ChatWindow({
 													</Markdown>
 
 													<div className="mt-3 relative -left-2 flex items-center gap-1">
-														{/* speak response */}
-														<button
-															onClick={() => {
-																const utterThis: SpeechSynthesisUtterance =
-																	new SpeechSynthesisUtterance(
-																		chat.answer.parts
-																			.map((part) => part.text)
-																			.join(""),
-																	);
-																const speechSynth: SpeechSynthesis =
-																	window.speechSynthesis;
-																utterThis.lang = "en-US";
-																utterThis.rate = 1;
-																speechSynth.speak(utterThis);
-															}}
-															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
-														>
-															<SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
-														</button>
 														{/* copy response */}
 														<button
 															onClick={() =>
@@ -336,6 +332,20 @@ function ChatWindow({
 															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
 														>
 															<ClipboardIcon className="size-[18px] group-hover:text-primary" />
+														</button>
+														{/* speak response */}
+														<button
+															disabled={isSpeaking}
+															onClick={() => {
+																handleTTS(
+																	chat.answer.parts
+																		.map((part) => part.text)
+																		.join(""),
+																);
+															}}
+															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200 disabled:opacity-30"
+														>
+															<SpeakerWaveIcon className="size-[18px] group-hover:text-primary group-disabled:group-hover:text-gray-600" />
 														</button>
 													</div>
 												</div>
