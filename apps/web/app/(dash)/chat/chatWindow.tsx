@@ -6,7 +6,7 @@ import QueryInput from "./chatQueryInput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ChatHistory, sourcesZod } from "@repo/shared-types";
+import { type ChatHistory, sourcesZod } from "@repo/shared-types";
 import {
 	Accordion,
 	AccordionContent,
@@ -23,7 +23,11 @@ import { codeLanguageSubset } from "@/lib/constants";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
-import { ClipboardIcon, SpeakerWaveIcon } from "@heroicons/react/24/outline";
+import {
+	ClipboardIcon,
+	SpeakerWaveIcon,
+	SpeakerXMarkIcon,
+} from "@heroicons/react/24/outline";
 
 function ChatWindow({
 	q,
@@ -51,6 +55,8 @@ function ChatWindow({
 }) {
 	const [layout, setLayout] = useState<"chat" | "initial">("chat");
 	const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
+	const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+	const speechSynth: SpeechSynthesis = window.speechSynthesis;
 
 	const removeJustificationFromText = (text: string) => {
 		// remove everything after the first "<justification>" word
@@ -66,12 +72,31 @@ function ChatWindow({
 		return text;
 	};
 
+	const handleTTS = (text: string, idx: number) => {
+		if (speakingIdx != null) return stopTTS();
+		if (!text) return;
+		const utterThis: SpeechSynthesisUtterance = new SpeechSynthesisUtterance(
+			text,
+		);
+		utterThis.lang = "en-US";
+		speechSynth.speak(utterThis);
+		setSpeakingIdx(idx);
+		utterThis.onend = () => {
+			setSpeakingIdx(null);
+		};
+	};
+
+	const stopTTS = () => {
+		speechSynth.cancel();
+		setSpeakingIdx(null);
+	};
+
 	const router = useRouter();
 
 	const getAnswer = async (
 		query: string,
 		spaces: string[],
-		proMode: boolean = false,
+		proMode = false,
 	) => {
 		if (query.trim() === "from_loading" || query.trim().length === 0) {
 			return;
@@ -305,25 +330,6 @@ function ChatWindow({
 													</Markdown>
 
 													<div className="mt-3 relative -left-2 flex items-center gap-1">
-														{/* speak response */}
-														<button
-															onClick={() => {
-																const utterThis: SpeechSynthesisUtterance =
-																	new SpeechSynthesisUtterance(
-																		chat.answer.parts
-																			.map((part) => part.text)
-																			.join(""),
-																	);
-																const speechSynth: SpeechSynthesis =
-																	window.speechSynthesis;
-																utterThis.lang = "en-US";
-																utterThis.rate = 1;
-																speechSynth.speak(utterThis);
-															}}
-															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
-														>
-															<SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
-														</button>
 														{/* copy response */}
 														<button
 															onClick={() =>
@@ -336,6 +342,27 @@ function ChatWindow({
 															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
 														>
 															<ClipboardIcon className="size-[18px] group-hover:text-primary" />
+														</button>
+														{/* speak response */}
+														<button
+															disabled={
+																speakingIdx !== null && speakingIdx !== idx
+															}
+															onClick={() => {
+																handleTTS(
+																	chat.answer.parts
+																		.map((part) => part.text)
+																		.join(""),
+																	idx,
+																);
+															}}
+															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
+														>
+															{speakingIdx === idx ? (
+																<SpeakerXMarkIcon className="size-[18px] group-hover:text-primary" />
+															) : (
+																<SpeakerWaveIcon className="size-[18px] group-hover:text-primary group-disabled:text-gray-600" />
+															)}
 														</button>
 													</div>
 												</div>
