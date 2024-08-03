@@ -60,6 +60,26 @@ export function MemoriesPage({
 
 	const [filter, setFilter] = useState(initialFilter);
 
+	const handleExport = () => {
+		const dataToExport = sortedItems.map((item) => ({
+			type: item.item,
+			date: new Date(item.date).toISOString(),
+			data: item.data,
+		}));
+
+		const json = JSON.stringify(dataToExport, null, 2);
+		const blob = new Blob([json], { type: "application/json" });
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "memories_and_spaces.json";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
+
 	// Sort Both memories and spaces by their savedAt and createdAt dates respectfully.
 	// The output should be just one single list of items
 	// And it will look something like { item: "memory" | "space", date: Date, data: Content | StoredSpace }
@@ -172,13 +192,21 @@ export function MemoriesPage({
 				</div>
 			)}
 
-			<Filters
-				setFilter={setFilter}
-				filter={filter}
-				filterMethods={
-					currentSpace ? SpaceFilterMethods : MemoriesFilterMethods
-				}
-			/>
+			<div className="flex justify-between w-full">
+				<Filters
+					setFilter={setFilter}
+					filter={filter}
+					filterMethods={
+						currentSpace ? SpaceFilterMethods : MemoriesFilterMethods
+					}
+				/>
+				<button
+					onClick={handleExport}
+					className={`transition px-6 py-2 rounded-xl hover:text-[#369DFD]" text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]`}
+				>
+					JSON Export
+				</button>
+			</div>
 
 			<Masonry
 				className="mt-6 relative"
