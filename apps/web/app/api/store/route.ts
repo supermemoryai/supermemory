@@ -16,7 +16,21 @@ export async function POST(req: NextRequest) {
 		return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
 	}
 
-	const body = await req.json();
+	let body;
+
+	try {
+		body = await req.json();
+	} catch (e) {
+		const error = (e as Error).message;
+		return new Response(
+			JSON.stringify({
+				message: "A JSON was not sent to the API. " + error,
+			}),
+			{
+				status: 400,
+			},
+		);
+	}
 
 	const validated = addFromAPIType.safeParse(body);
 
