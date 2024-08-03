@@ -93,6 +93,8 @@ app.post("/api/add", zValidator("json", vectorObj), async (c) => {
 				break;
 		}
 
+		console.log("Chunks are here:", chunks);
+
 		await batchCreateChunksAndEmbeddings({
 			store,
 			body,
