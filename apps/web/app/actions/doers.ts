@@ -195,7 +195,7 @@ export const deleteSpace = async (id: number) => {
 	} catch (e) {
 		console.log(e);
 	}
-}
+};
 
 export const createMemory = async (input: {
 	content: string;
