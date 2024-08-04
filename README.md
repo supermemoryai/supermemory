@@ -66,7 +66,7 @@ To use the chrome extension,
    <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
 
 3. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
-4. Volia! Now your second brain has all your twitter bookmarks.
+4. Voila! Now your second brain has all your twitter bookmarks.
 
 ## 👨‍💻 The Stack
 
