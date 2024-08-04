@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Masonry from "react-layout-masonry";
 import { getRawTweet } from "@repo/shared-types/utils";
 import { MyTweet } from "../../../components/twitter/render-tweet";
@@ -20,16 +20,19 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuPortal,
-	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@repo/ui/shadcn/dropdown-menu";
 import { Button } from "@repo/ui/shadcn/button";
-import { addUserToSpace, deleteItem, moveItem } from "@/app/actions/doers";
+import {
+	addUserToSpace,
+	deleteItem,
+	deleteSpace,
+	moveItem,
+} from "@/app/actions/doers";
 import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
 import { motion } from "framer-motion";
@@ -59,6 +62,19 @@ export function MemoriesPage({
 	}, [tab]);
 
 	const [filter, setFilter] = useState(initialFilter);
+	const [spaces, setSpaces] = useState<StoredSpace[]>(memoriesAndSpaces.spaces);
+
+	// to delete a space
+	const handleDeleteSpace = async (id: number) => {
+		const response = await deleteSpace(id);
+
+		if (response?.success) {
+			setSpaces(spaces.filter((space) => space.id !== id));
+			toast.success("Space deleted");
+		} else {
+			toast.error("Failed to delete space");
+		}
+	};
 
 	const handleExport = () => {
 		const dataToExport = sortedItems.map((item) => ({
@@ -91,7 +107,7 @@ export function MemoriesPage({
 				date: new Date(memory.savedAt), // Assuming savedAt is a string date
 				data: memory,
 			})),
-			...memoriesAndSpaces.spaces.map((space) => ({
+			...spaces.map((space) => ({
 				item: "space",
 				date: new Date(space.createdAt), // Assuming createdAt is a string date
 				data: space,
@@ -123,7 +139,7 @@ export function MemoriesPage({
 				return false;
 			})
 			.sort((a, b) => b.date - a.date);
-	}, [memoriesAndSpaces.memories, memoriesAndSpaces.spaces, filter]);
+	}, [memoriesAndSpaces.memories, spaces, filter]);
 
 	return (
 		<div
@@ -244,6 +260,7 @@ export function MemoriesPage({
 								title={(item.data as StoredSpace).name}
 								description={`${(item.data as StoredSpace).numItems} memories`}
 								id={(item.data as StoredSpace).id}
+								handleDeleteSpace={handleDeleteSpace}
 							/>
 						);
 					}
@@ -259,34 +276,45 @@ function TabComponent({
 	title,
 	description,
 	id,
+	handleDeleteSpace,
 }: {
 	title: string;
 	description: string;
 	id: number;
+	handleDeleteSpace: (id: number) => void;
 }) {
 	return (
-		<Link
-			href={`/space/${id}`}
-			className="flex flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4"
-		>
+		<div className="flex group flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4">
 			<div className="flex items-center gap-2 text-xs">
 				<Image alt="Spaces icon" src={MemoriesIcon} className="size-3" /> Space
 			</div>
-			<div className="flex items-center">
-				<div>
-					<div className="h-12 w-12 flex justify-center items-center rounded-md">
-						{title.slice(0, 2).toUpperCase()} {id}
+
+			<div>
+				<Link
+					href={`/space/${id}`}
+					className="flex items-center justify-between w-full"
+				>
+					<div>
+						<div className="h-12 w-12 flex justify-center items-center rounded-md">
+							{title.slice(0, 2).toUpperCase()} {id}
+						</div>
 					</div>
-				</div>
-				<div className="grow px-4">
-					<div className="text-lg text-[#fff] line-clamp-2">{title}</div>
-					<div>{description}</div>
-				</div>
-				<div>
-					<Image src={NextIcon} alt="Search icon" />
+					<div className="grow px-2">
+						<div className="text-lg text-[#fff] line-clamp-2">{title}</div>
+						<div>{description}</div>
+					</div>
+					<div>
+						<Image src={NextIcon} alt="Search icon" />
+					</div>
+				</Link>
+				<div className="absolute z-40 right-3 top-3 opacity-0 group-hover:opacity-100 hover:text-red-600">
+					<TrashIcon
+						onClick={() => handleDeleteSpace(id)}
+						className="w-4 cursor-pointer"
+					/>
 				</div>
 			</div>
-		</Link>
+		</div>
 	);
 }
 
