@@ -384,10 +384,10 @@ function ChatWindow({
 														</AccordionTrigger>
 														{/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
 														<AccordionContent
-															className="flex flex-col no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
+															className="flex flex-col gap-4 relative max-w-3xl overflow-x-auto  scrollbar-thin scrollbar-thumb-scrollbar-thumb scrollbar-track-scrollbar-track scrollbar-thumb-rounded"
 															defaultChecked
 														>
-															<div className="w-full no-scrollbar flex gap-4">
+															<div className="w-full flex gap-3">
 																{/* Loading state */}
 																{chat.answer.sources.length > 0 ||
 																	(chat.answer.parts.length === 0 && (
@@ -415,7 +415,9 @@ function ChatWindow({
 																			<span>{source.type}</span>
 
 																			{source.numChunks > 1 && (
-																				<span>{source.numChunks} chunks</span>
+																				<span className="font-bold">
+																					{source.numChunks} chunks
+																				</span>
 																			)}
 																		</div>
 																		<div className="text-base">
@@ -461,6 +463,37 @@ function ChatWindow({
 																</div>
 															)}
 														</AccordionContent>
+														{/* <AccordionContent
+															className="flex flex-col gap-4 relative max-w-3xl overflow-x-auto  scrollbar-thin scrollbar-thumb-scrollbar-thumb scrollbar-track-scrollbar-track scrollbar-thumb-rounded"
+															defaultChecked
+														>
+															<div className="w-full flex gap-3">
+																{mockRelatedMemories.map((source, idx) => (
+																	<Link
+																		href={source.source}
+																		key={idx}
+																		className="w-[350px] shrink-0 p-4 gap-2 rounded-2xl flex flex-col bg-secondary"
+																		target="_blank"
+																		rel="noopener noreferrer"
+																	>
+																		<div className="flex justify-between text-foreground-menu text-sm">
+																			<span>{source.type}</span>
+																			{source.numChunks > 1 && (
+																				<span>{source.numChunks} chunks</span>
+																			)}
+																		</div>
+																		<div className="text-base">
+																			{source.title}
+																		</div>
+																		<div className="text-xs line-clamp-2">
+																			{source.content.length > 100
+																				? source.content.slice(0, 100) + "..."
+																				: source.content}
+																		</div>
+																	</Link>
+																))}
+															</div>
+														</AccordionContent> */}
 													</AccordionItem>
 												</Accordion>
 											</div>
