@@ -19,7 +19,7 @@ Interested in helping build the best second brain for everyone? Join the discord
   </a>
 </div>
 
-## 👀 What is this?
+## 👀 What is This?
 
 Build your own second brain with supermemory. It's a ChatGPT for your bookmarks. Import tweets or save websites and content using the [Chrome extension](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?hl=en-GB&authuser=0)
 
@@ -45,7 +45,7 @@ Supermemory fixes this.
 - 🏠 **Self Hostable**: Open source and easy to deploy locally.
 - 🔗 **Integrations**: Compatible with Telegram, Twitter, and more to come.
 
-## How do I use this?
+## How Do I Use This?
 
 Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google account.
 
@@ -60,7 +60,7 @@ To use the chrome extension,
 
 ### Import Twitter Bookmarks
 
-1. Make sure you signed into supermemory and installed chrome extension
+1. Make sure you signed in to supermemory and installed chrome extension
 2. Open Twitter/X, you will see the save icon as follows
 
    <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
@@ -128,7 +128,7 @@ Built with:
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Dhravya/supermemory&type=Date)](https://star-history.com/#Dhravya/supermemory&Date)
 
-## Contribute or self host
+## Contribute or Self host
 
 Supermemory is design to be set up easily locally and super duper easy to set up 💫
 
