@@ -43,7 +43,7 @@ CREATE TABLE `chatHistory` (
 	`answerParts` text,
 	`answerSources` text,
 	`answerJustification` text,
-	`createdAt` integer DEFAULT '"2024-07-29T17:06:56.122Z"' NOT NULL,
+	`createdAt` integer DEFAULT '"2024-07-31T07:35:53.819Z"' NOT NULL,
 	FOREIGN KEY (`threadId`) REFERENCES `chatThread`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
