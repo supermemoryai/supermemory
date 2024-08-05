@@ -14,15 +14,18 @@ export const Err = <E extends BaseError>(error: E): Result<never, E> => {
 
 export async function wrap<T, E extends BaseError>(
 	p: Promise<T>,
-	errorFactory: (err: Error) => E,
-): Promise<Result<T, E>> {
+	errorFactory: (err: Error, source: string) => E,
+	source: string = "unspecified"
+  ): Promise<Result<T, E>> {
 	try {
-		return Ok(await p);
+	  return Ok(await p);
 	} catch (e) {
-		return Err(errorFactory(e as Error));
+	  return Err(errorFactory(e as Error, source));
 	}
-}
-
-export function isErr<T, E extends Error>(result: Result<T, E>): result is { ok: false; error: E } {
-    return !result.ok;
   }
+
+export function isErr<T, E extends Error>(
+	result: Result<T, E>,
+): result is { ok: false; error: E } {
+	return !result.ok;
+}

@@ -7,7 +7,7 @@ export class BaseHttpError extends Error {
       this.status = status;
       this.message = message;
       Object.setPrototypeOf(this, new.target.prototype); // Restore prototype chain
-    }
+    }   
   }
   
   

@@ -9,17 +9,14 @@ import { z } from "zod";
 import { seededRandom } from "./utils/seededRandom";
 import { bulkInsertKv } from "./utils/kvBulkInsert";
 
-export async function initQuery(
-	c: Context<{ Bindings: Env }>,
-	model: string = "gpt-4o",
-) {
+export async function initQuery(env: Env, model: string = "gpt-4o") {
 	const embeddings = new OpenAIEmbeddings({
-		apiKey: c.env.OPENAI_API_KEY,
+		apiKey: env.OPENAI_API_KEY,
 		modelName: "text-embedding-3-small",
 	});
 
 	const store = new CloudflareVectorizeStore(embeddings, {
-		index: c.env.VECTORIZE_INDEX,
+		index: env.VECTORIZE_INDEX,
 	});
 
 	let selectedModel:
@@ -30,7 +27,7 @@ export async function initQuery(
 	switch (model) {
 		case "claude-3-opus":
 			const anthropic = createAnthropic({
-				apiKey: c.env.ANTHROPIC_API_KEY,
+				apiKey: env.ANTHROPIC_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/anthropic",
 			});
@@ -39,7 +36,7 @@ export async function initQuery(
 			break;
 		case "gemini-1.5-pro":
 			const googleai = createGoogleGenerativeAI({
-				apiKey: c.env.GOOGLE_AI_API_KEY,
+				apiKey: env.GOOGLE_AI_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/google-vertex-ai",
 			});
@@ -49,7 +46,7 @@ export async function initQuery(
 		case "gpt-4o":
 		default:
 			const openai = createOpenAI({
-				apiKey: c.env.OPENAI_API_KEY,
+				apiKey: env.OPENAI_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/openai",
 				compatibility: "strict",
@@ -204,7 +201,7 @@ export async function batchCreateChunksAndEmbeddings({
 				const commonMetaData = {
 					type: body.type ?? "tweet",
 					title: body.title?.slice(0, 50) ?? "",
-					description: body.description ?? "",
+					description: body.description?.slice(0, 50) ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
@@ -255,7 +252,7 @@ export async function batchCreateChunksAndEmbeddings({
 				const commonMetaData = {
 					type: body.type ?? "page",
 					title: body.title?.slice(0, 50) ?? "",
-					description: body.description ?? "",
+					description: body.description?.slice(0, 50) ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
@@ -292,7 +289,7 @@ export async function batchCreateChunksAndEmbeddings({
 				const commonMetaData = {
 					title: body.title?.slice(0, 50) ?? "",
 					type: body.type ?? "page",
-					description: body.description ?? "",
+					description: body.description?.slice(0, 50) ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
@@ -328,7 +325,7 @@ export async function batchCreateChunksAndEmbeddings({
 			const commonMetaData = {
 				type: body.type ?? "image",
 				title: body.title,
-				description: body.description ?? "",
+				description: body.description?.slice(0, 50) ?? "",
 				url: body.url,
 				[sanitizeKey(`user-${body.user}`)]: 1,
 			};

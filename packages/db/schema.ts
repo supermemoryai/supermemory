@@ -256,8 +256,14 @@ export const jobs = createTable(
 		attempts: integer("attempts").notNull().default(0),
 		lastAttemptAt: integer("lastAttemptAt"),
 		error: blob("error"),
-		createdAt: integer("createdAt").notNull(),
-		updatedAt: integer("updatedAt").notNull(),
+		createdAt: int("createdAt", { mode: "timestamp" })
+			.notNull()
+			.notNull()
+			.default(new Date()),
+		updatedAt: int("updatedAt", { mode: "timestamp" })
+			.notNull()
+			.notNull()
+			.default(new Date()),
 	},
 	(job) => ({
 		userIdx: index("jobs_userId_idx").on(job.userId),

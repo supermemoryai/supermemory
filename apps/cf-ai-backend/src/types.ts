@@ -18,14 +18,17 @@ export type Env = {
 	MYBROWSER: unknown;
 	ANTHROPIC_API_KEY: string;
 	THREAD_CF_AUTH: string;
+	THREAD: { processTweets: () => Promise<Array<any>> };
 	THREAD_CF_WORKER: string;
 	NODE_ENV: string;
+	MD_SEC_KEY: string;
 };
 
 export interface JobData {
 	content: string;
 	space: Array<number>;
 	user: string;
+	type: string
 }
 
 export interface TweetData {

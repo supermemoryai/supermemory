@@ -17,7 +17,7 @@ import { auth } from "../../server/auth";
 import { Tweet } from "react-tweet/api";
 // import { getMetaData } from "@/lib/get-metadata";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { LIMITS } from "@/lib/constants";
+import { LIMITS } from "@repo/shared-types";
 import { ChatHistory } from "@repo/shared-types";
 import { decipher } from "@/server/encrypt";
 import { redirect } from "next/navigation";
@@ -104,25 +104,6 @@ const typeDecider = (content: string): "page" | "tweet" | "note" => {
 	}
 };
 
-export const limit = async (
-	userId: string,
-	type = "page",
-	items: number = 1,
-) => {
-	const countResult = await db
-		.select({
-			count: sql<number>`count(*)`.mapWith(Number),
-		})
-		.from(storedContent)
-		.where(and(eq(storedContent.userId, userId), eq(storedContent.type, type)));
-
-	const currentCount = countResult[0]?.count || 0;
-	const totalLimit = LIMITS[type as keyof typeof LIMITS];
-	const remainingLimit = totalLimit - currentCount;
-
-	return items <= remainingLimit;
-};
-
 export const addUserToSpace = async (userEmail: string, spaceId: number) => {
 	const data = await auth();
 
@@ -197,7 +178,6 @@ export const createMemory = async (input: {
 		return { error: "Not authenticated", success: false };
 	}
 
-	
 	// make the backend reqeust for the queue here
 	const vectorSaveResponses = await fetch(
 		`${process.env.BACKEND_BASE_URL}/api/add`,
@@ -214,250 +194,262 @@ export const createMemory = async (input: {
 			},
 		},
 	);
+	const response = (await vectorSaveResponses.json()) as {
+		status: string;
+		message?: string;
+	};
 
-// 	const type = typeDecider(input.content);
+	if (response.status !== "ok") {
+		return {
+			success: false,
+			data: 0,
+			error: response.message,
+		};
+	}
 
-// 	let pageContent = input.content;
-// 	let metadata: Awaited<ReturnType<typeof getMetaData>>;
-// 	let vectorData: string;
+	// 	const type = typeDecider(input.content);
 
-// 	if (!(await limit(data.user.id, type))) {
-// 		return {
-// 			success: false,
-// 			data: 0,
-// 			error: `You have exceeded the limit of ${LIMITS[type as keyof typeof LIMITS]} ${type}s.`,
-// 		};
-// 	}
+	// 	let pageContent = input.content;
+	// 	let metadata: Awaited<ReturnType<typeof getMetaData>>;
+	// 	let vectorData: string;
 
-// 	let noteId = 0;
+	// 	if (!(await limit(data.user.id, type))) {
+	// 		return {
+	// 			success: false,
+	// 			data: 0,
+	// 			error: `You have exceeded the limit of ${LIMITS[type as keyof typeof LIMITS]} ${type}s.`,
+	// 		};
+	// 	} --> How would this fit in the backend???
 
-// 	if (type === "page") {
-// 		const response = await fetch("https://md.dhr.wtf/?url=" + input.content, {
-// 			headers: {
-// 				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
-// 			},
-// 		});
-// 		pageContent = await response.text();
-// 		vectorData = pageContent;
-// 		try {
-// 			metadata = await getMetaData(input.content);
-// 		} catch (e) {
-// 			return {
-// 				success: false,
-// 				error: "Failed to fetch metadata for the page. Please try again later.",
-// 			};
-// 		}
-// 	} else if (type === "tweet") {
-// 		//Request the worker for the entire thread
+	// 	let noteId = 0;
 
-// 		let thread: string;
-// 		let errorOccurred: boolean = false;
+	// 	if (type === "page") {
+	// 		const response = await fetch("https://md.dhr.wtf/?url=" + input.content, {
+	// 			headers: {
+	// 				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+	// 			},
+	// 		});
+	// 		pageContent = await response.text();
+	// 		vectorData = pageContent;
+	// 		try {
+	// 			metadata = await getMetaData(input.content);
+	// 		} catch (e) {
+	// 			return {
+	// 				success: false,
+	// 				error: "Failed to fetch metadata for the page. Please try again later.",
+	// 			};
+	// 		}
+	// 	} else if (type === "tweet") {
+	// 		//Request the worker for the entire thread
 
-// 		try {
-// 			const cf_thread_endpoint = process.env.THREAD_CF_WORKER;
-// 			const authKey = process.env.THREAD_CF_AUTH;
-// 			const threadRequest = await fetch(cf_thread_endpoint, {
-// 				method: "POST",
-// 				headers: {
-// 					"Content-Type": "application/json",
-// 					Authorization: authKey,
-// 				},
-// 				body: JSON.stringify({ url: input.content }),
-// 			});
+	// 		let thread: string;
+	// 		let errorOccurred: boolean = false;
 
-// 			if (threadRequest.status !== 200) {
-// 				throw new Error(
-// 					`Failed to fetch the thread: ${input.content}, Reason: ${threadRequest.statusText}`,
-// 				);
-// 			}
+	// 		try {
+	// 			const cf_thread_endpoint = process.env.THREAD_CF_WORKER;
+	// 			const authKey = process.env.THREAD_CF_AUTH;
+	// 			const threadRequest = await fetch(cf_thread_endpoint, {
+	// 				method: "POST",
+	// 				headers: {
+	// 					"Content-Type": "application/json",
+	// 					Authorization: authKey,
+	// 				},
+	// 				body: JSON.stringify({ url: input.content }),
+	// 			});
 
-// 			thread = await threadRequest.text();
-// 			if (thread.trim().length === 2) {
-// 				console.log("Thread is an empty array");
-// 				throw new Error(
-// 					"[THREAD FETCHING SERVICE] Got no content form thread worker",
-// 				);
-// 			}
-// 		} catch (e) {
-// 			console.log("[THREAD FETCHING SERVICE] Failed to fetch the thread", e);
-// 			errorOccurred = true;
-// 		}
+	// 			if (threadRequest.status !== 200) {
+	// 				throw new Error(
+	// 					`Failed to fetch the thread: ${input.content}, Reason: ${threadRequest.statusText}`,
+	// 				);
+	// 			}
 
-// 		const tweet = await getTweetData(input.content.split("/").pop() as string);
+	// 			thread = await threadRequest.text();
+	// 			if (thread.trim().length === 2) {
+	// 				console.log("Thread is an empty array");
+	// 				throw new Error(
+	// 					"[THREAD FETCHING SERVICE] Got no content form thread worker",
+	// 				);
+	// 			}
+	// 		} catch (e) {
+	// 			console.log("[THREAD FETCHING SERVICE] Failed to fetch the thread", e);
+	// 			errorOccurred = true;
+	// 		}
 
-// 		pageContent = tweetToMd(tweet);
-// 		console.log("THis ishte page content!!", pageContent);
-// 		//@ts-ignore
-// 		vectorData = errorOccurred ? JSON.stringify(pageContent) : thread;
-// 		metadata = {
-// 			baseUrl: input.content,
-// 			description: tweet.text.slice(0, 200),
-// 			image: tweet.user.profile_image_url_https,
-// 			title: `Tweet by ${tweet.user.name}`,
-// 		};
-// 	} else if (type === "note") {
-// 		pageContent = input.content;
-// 		vectorData = pageContent;
-// 		noteId = new Date().getTime();
-// 		metadata = {
-// 			baseUrl: `https://supermemory.ai/note/${noteId}`,
-// 			description: `Note created at ${new Date().toLocaleString()}`,
-// 			image: "https://supermemory.ai/logo.png",
-// 			title: `${pageContent.slice(0, 20)} ${pageContent.length > 20 ? "..." : ""}`,
-// 		};
-// 	} else {
-// 		return {
-// 			success: false,
-// 			data: 0,
-// 			error: "Invalid type",
-// 		};
-// 	}
+	// 		const tweet = await getTweetData(input.content.split("/").pop() as string);
 
-// 	let storeToSpaces = input.spaces;
+	// 		pageContent = tweetToMd(tweet);
+	// 		console.log("THis ishte page content!!", pageContent);
+	// 		//@ts-ignore
+	// 		vectorData = errorOccurred ? JSON.stringify(pageContent) : thread;
+	// 		metadata = {
+	// 			baseUrl: input.content,
+	// 			description: tweet.text.slice(0, 200),
+	// 			image: tweet.user.profile_image_url_https,
+	// 			title: `Tweet by ${tweet.user.name}`,
+	// 		};
+	// 	} else if (type === "note") {
+	// 		pageContent = input.content;
+	// 		vectorData = pageContent;
+	// 		noteId = new Date().getTime();
+	// 		metadata = {
+	// 			baseUrl: `https://supermemory.ai/note/${noteId}`,
+	// 			description: `Note created at ${new Date().toLocaleString()}`,
+	// 			image: "https://supermemory.ai/logo.png",
+	// 			title: `${pageContent.slice(0, 20)} ${pageContent.length > 20 ? "..." : ""}`,
+	// 		};
+	// 	} else {
+	// 		return {
+	// 			success: false,
+	// 			data: 0,
+	// 			error: "Invalid type",
+	// 		};
+	// 	}
 
-// 	if (!storeToSpaces) {
-// 		storeToSpaces = [];
-// 	}
+	// 	let storeToSpaces = input.spaces;
 
-// 	const vectorSaveResponse = await fetch(
-// 		`${process.env.BACKEND_BASE_URL}/api/add`,
-// 		{
-// 			method: "POST",
-// 			body: JSON.stringify({
-// 				pageContent: vectorData,
-// 				title: metadata.title,
-// 				description: metadata.description,
-// 				url: metadata.baseUrl,
-// 				spaces: storeToSpaces.map((spaceId) => spaceId.toString()),
-// 				user: data.user.id,
-// 				type,
-// 			}),
-// 			headers: {
-// 				"Content-Type": "application/json",
-// 				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
-// 			},
-// 		},
-// 	);
+	// 	if (!storeToSpaces) {
+	// 		storeToSpaces = [];
+	// 	}
 
-// 	if (!vectorSaveResponse.ok) {
-// 		const errorData = await vectorSaveResponse.text();
-// 		console.error(errorData);
-// 		return {
-// 			success: false,
-// 			data: 0,
-// 			error: `Failed to save to vector store. Backend returned error: ${errorData}`,
-// 		};
-// 	}
+	// 	const vectorSaveResponse = await fetch(
+	// 		`${process.env.BACKEND_BASE_URL}/api/add`,
+	// 		{
+	// 			method: "POST",
+	// 			body: JSON.stringify({
+	// 				pageContent: vectorData,
+	// 				title: metadata.title,
+	// 				description: metadata.description,
+	// 				url: metadata.baseUrl,
+	// 				spaces: storeToSpaces.map((spaceId) => spaceId.toString()),
+	// 				user: data.user.id,
+	// 				type,
+	// 			}),
+	// 			headers: {
+	// 				"Content-Type": "application/json",
+	// 				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+	// 			},
+	// 		},
+	// 	);
 
-// 	let contentId: number;
+	// 	if (!vectorSaveResponse.ok) {
+	// 		const errorData = await vectorSaveResponse.text();
+	// 		console.error(errorData);
+	// 		return {
+	// 			success: false,
+	// 			data: 0,
+	// 			error: `Failed to save to vector store. Backend returned error: ${errorData}`,
+	// 		};
+	// 	}
 
-// 	const response = (await vectorSaveResponse.json()) as {
-// 		status: string;
-// 		chunkedInput: string;
-// 		message?: string;
-// 	};
+	// 	let contentId: number;
 
-// 	try {
-// 		if (response.status !== "ok") {
-// 			if (response.status === "error") {
-// 				return {
-// 					success: false,
-// 					data: 0,
-// 					error: response.message,
-// 				};
-// 			} else {
-// 				return {
-// 					success: false,
-// 					data: 0,
-// 					error: `Failed to save to vector store. Backend returned error: ${response.message}`,
-// 				};
-// 			}
-// 		}
-// 	} catch (e) {
-// 		return {
-// 			success: false,
-// 			data: 0,
-// 			error: `Failed to save to vector store. Backend returned error: ${e}`,
-// 		};
-// 	}
+	// 	const response = (await vectorSaveResponse.json()) as {
+	// 		status: string;
+	// 		chunkedInput: string;
+	// 		message?: string;
+	// 	};
 
-// 	const saveToDbUrl =
-// 		(metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
-// 		"#supermemory-user-" +
-// 		data.user.id;
+	// 	try {
+	// 		if (response.status !== "ok") {
+	// 			if (response.status === "error") {
+	// 				return {
+	// 					success: false,
+	// 					data: 0,
+	// 					error: response.message,
+	// 				};
+	// 			} else {
+	// 				return {
+	// 					success: false,
+	// 					data: 0,
+	// 					error: `Failed to save to vector store. Backend returned error: ${response.message}`,
+	// 				};
+	// 			}
+	// 		}
+	// 	} catch (e) {
+	// 		return {
+	// 			success: false,
+	// 			data: 0,
+	// 			error: `Failed to save to vector store. Backend returned error: ${e}`,
+	// 		};
+	// 	}
 
-// 	// Insert into database
-// 	try {
-// 		const insertResponse = await db
-// 			.insert(storedContent)
-// 			.values({
-// 				content: pageContent,
-// 				title: metadata.title,
-// 				description: metadata.description,
-// 				url: saveToDbUrl,
-// 				baseUrl: saveToDbUrl,
-// 				image: metadata.image,
-// 				savedAt: new Date(),
-// 				userId: data.user.id,
-// 				type,
-// 				noteId,
-// 			})
-// 			.returning({ id: storedContent.id });
-// 		revalidatePath("/memories");
-// 		revalidatePath("/home");
+	// 	const saveToDbUrl =
+	// 		(metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
+	// 		"#supermemory-user-" +
+	// 		data.user.id;
 
-// 		if (!insertResponse[0]?.id) {
-// 			return {
-// 				success: false,
-// 				data: 0,
-// 				error: "Something went wrong while saving the document to the database",
-// 			};
-// 		}
+	// 	// Insert into database
+	// 	try {
+	// 		const insertResponse = await db
+	// 			.insert(storedContent)
+	// 			.values({
+	// 				content: pageContent,
+	// 				title: metadata.title,
+	// 				description: metadata.description,
+	// 				url: saveToDbUrl,
+	// 				baseUrl: saveToDbUrl,
+	// 				image: metadata.image,
+	// 				savedAt: new Date(),
+	// 				userId: data.user.id,
+	// 				type,
+	// 				noteId,
+	// 			})
+	// 			.returning({ id: storedContent.id });
+	// 		revalidatePath("/memories");
+	// 		revalidatePath("/home");
 
-// 		contentId = insertResponse[0]?.id;
-// 	} catch (e) {
-// 		const error = e as Error;
-// 		console.log("Error: ", error.message);
+	// 		if (!insertResponse[0]?.id) {
+	// 			return {
+	// 				success: false,
+	// 				data: 0,
+	// 				error: "Something went wrong while saving the document to the database",
+	// 			};
+	// 		}
 
-// 		if (
-// 			error.message.includes(
-// 				"D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
-// 			)
-// 		) {
-// 			return {
-// 				success: false,
-// 				data: 0,
-// 				error: "Content already exists",
-// 			};
-// 		}
+	// 		contentId = insertResponse[0]?.id;
+	// 	} catch (e) {
+	// 		const error = e as Error;
+	// 		console.log("Error: ", error.message);
 
-// 		return {
-// 			success: false,
-// 			data: 0,
-// 			error: "Failed to save to database with error: " + error.message,
-// 		};
-// 	}
+	// 		if (
+	// 			error.message.includes(
+	// 				"D1_ERROR: UNIQUE constraint failed: storedContent.baseUrl",
+	// 			)
+	// 		) {
+	// 			return {
+	// 				success: false,
+	// 				data: 0,
+	// 				error: "Content already exists",
+	// 			};
+	// 		}
 
-// 	if (storeToSpaces.length > 0) {
-// 		// Adding the many-to-many relationship between content and spaces
-// 		const spaceData = await db
-// 			.select()
-// 			.from(space)
-// 			.where(
-// 				and(inArray(space.id, storeToSpaces), eq(space.user, data.user.id)),
-// 			)
-// 			.all();
+	// 		return {
+	// 			success: false,
+	// 			data: 0,
+	// 			error: "Failed to save to database with error: " + error.message,
+	// 		};
+	// 	}
 
-// 		await Promise.all(
-// 			spaceData.map(async (s) => {
-// 				await db
-// 					.insert(contentToSpace)
-// 					.values({ contentId: contentId, spaceId: s.id });
+	// 	if (storeToSpaces.length > 0) {
+	// 		// Adding the many-to-many relationship between content and spaces
+	// 		const spaceData = await db
+	// 			.select()
+	// 			.from(space)
+	// 			.where(
+	// 				and(inArray(space.id, storeToSpaces), eq(space.user, data.user.id)),
+	// 			)
+	// 			.all();
 
-// 				await db.update(space).set({ numItems: s.numItems + 1 });
-// 			}),
-// 		);
-// 	}
+	// 		await Promise.all(
+	// 			spaceData.map(async (s) => {
+	// 				await db
+	// 					.insert(contentToSpace)
+	// 					.values({ contentId: contentId, spaceId: s.id });
+
+	// 				await db.update(space).set({ numItems: s.numItems + 1 });
+	// 			}),
+	// 		);
+	// 	}
 
 	return {
 		success: true,
@@ -475,7 +467,6 @@ export const createChatThread = async (
 		return { error: "Not authenticated", success: false };
 	}
 
-	
 	const thread = await db
 		.insert(chatThreads)
 		.values({
@@ -836,8 +827,9 @@ export async function getQuerySuggestions() {
 			};
 		}
 
-		const fullQuery = (content?.map((c) => `${c.title} \n\n${c.content}`) ?? [])
-			.join(" ");
+		const fullQuery = (
+			content?.map((c) => `${c.title} \n\n${c.content}`) ?? []
+		).join(" ");
 
 		const suggestionsCall = (await env.AI.run(
 			// @ts-ignore

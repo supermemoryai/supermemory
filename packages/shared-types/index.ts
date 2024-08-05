@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+
+export const LIMITS = {
+	page: 100,
+	tweet: 1000,
+	note: 1000,
+};
+
+
+
 export const SourceZod = z.object({
 	type: z.string(),
 	source: z.string(),

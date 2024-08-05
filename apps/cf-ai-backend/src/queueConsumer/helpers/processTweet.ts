@@ -3,6 +3,7 @@ import { Result, Ok, Err, isErr } from "../../errors/results";
 import { BaseError } from "../../errors/baseError";
 import { getMetaData, Metadata } from "../utils/get-metadata";
 import { tweetToMd } from "@repo/shared-types/utils"; // can I do this?
+import { Env } from "../../types";
 
 class ProcessTweetError extends BaseError {
 	constructor(message?: string, source?: string) {
@@ -43,39 +44,45 @@ export const getTweetData = async (
 	}
 };
 
-export const getThreadData = async (
-	tweetUrl: string,
-	cf_thread_endpoint: string,
-	authKey: string,
-): Promise<Result<string, ProcessTweetError>> => {
-	const threadRequest = await fetch(cf_thread_endpoint, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: authKey,
-		},
-		body: JSON.stringify({ url: tweetUrl }),
-	});
-	if (threadRequest.status !== 200) {
-		return Err(
-			new ProcessTweetError(
-				`Failed to fetch the thread: ${tweetUrl}, Reason: ${threadRequest.statusText}`,
-				"getThreadData",
-			),
-		);
-	}
+export const getThreadData = async (input: {
+	tweetUrl: string;
+	env: Env;
+}): Promise<Result<any, ProcessTweetError>> => {
+	try {
+		// const threadRequest = await fetch(input.cf_thread_endpoint, {
+		// 	method: "POST",
+		// 	headers: {
+		// 		"Content-Type": "application/json",
+		// 		Authorization: input.authKey,
+		// 	},
+		// 	body: JSON.stringify({ url: input.tweetUrl }),
+		// });
+		// if (threadRequest.status !== 200) {
+		// 	console.log(await threadRequest.text());
+		// 	console.log(input.tweetUrl);
+		// 	return Err(
+		// 		new ProcessTweetError(
+		// 			`Failed to fetch the thread: ${input.tweetUrl}, Reason: ${threadRequest.statusText}`,
+		// 			"getThreadData",
+		// 		),
+		// 	);
+		// }
+		//@ts-ignore
+		const thread = await input.env.THREAD.processTweets(input.tweetUrl);
+		console.log("[thread response]", thread);
 
-	const thread = await threadRequest.text();
-	console.log("[thread response]");
-
-	if (thread.trim().length === 2) {
-		console.log("Thread is an empty array");
-		return Err(
-			new ProcessTweetError(
-				"[THREAD FETCHING SERVICE] Got no content form thread worker",
-				"getThreadData",
-			),
-		);
+		if (!thread.length) {
+			console.log("Thread is an empty array");
+			return Err(
+				new ProcessTweetError(
+					"[THREAD FETCHING SERVICE] Got no content form thread worker",
+					"getThreadData",
+				),
+			);
+		}
+		return Ok(thread);
+	} catch (e) {
+		console.error("[Thread Processing Error]", e);
+		return Err(new ProcessTweetError((e as Error).message, "getThreadData"));
 	}
-	return Ok(thread);
 };

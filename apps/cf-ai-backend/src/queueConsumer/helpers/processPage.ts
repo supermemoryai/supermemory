@@ -10,13 +10,14 @@ class ProcessPageError extends BaseError {
 
 type PageProcessResult = { pageContent: string; metadata: Metadata };
 
-export async function processPage(
-	url: string,
-): Promise<Result<PageProcessResult, ProcessPageError>> {
+export async function processPage(input: {
+	url: string;
+	securityKey: string;
+}): Promise<Result<PageProcessResult, ProcessPageError>> {
 	try {
-		const response = await fetch("https://md.dhr.wtf/?url=" + url, {
+		const response = await fetch("https://md.dhr.wtf/?url=" + input.url, {
 			headers: {
-				Authorization: "Bearer " + process.env.BACKEND_SECURITY_KEY,
+				Authorization: "Bearer " + input.securityKey,
 			},
 		});
 		const pageContent = await response.text();
@@ -29,7 +30,7 @@ export async function processPage(
 			);
 		}
 		console.log("[This is the page content]", pageContent);
-		const metadataResult = await getMetaData(url);
+		const metadataResult = await getMetaData(input.url);
 		if (isErr(metadataResult)) {
 			throw metadataResult.error;
 		}
