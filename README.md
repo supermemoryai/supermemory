@@ -88,11 +88,11 @@ The database, auth etc logic is here
 
 Built with:
 
-- Nextjs 14
+- [Nextjs 14](https://nextjs.org/docs/app/building-your-application/upgrading/version-14)
 - [Next Auth](https://next-auth.js.org/)
 - [Drizzle ORM](https://drizzle.team/)
 - [Cloudflare D1 database](https://developers.cloudflare.com/d1/get-started/)
-- Cloudflare ratelimiter
+- [Cloudflare ratelimiter](https://developers.cloudflare.com/waf/rate-limiting-rules/)
 - [TailwindCSS](https://tailwindcss.com)
 - [shadcn-ui](https://ui.shadcn.com)
 - And some other amazing open source projects like [Novel](https://novel.sh) and [vaul](https://vaul.emilkowal.ski/)
