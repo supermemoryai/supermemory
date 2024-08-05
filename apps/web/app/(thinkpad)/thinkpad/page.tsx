@@ -21,7 +21,7 @@ async function page() {
 
 			<BlurHeaderMenu />
 
-			<div className="w-full flex py-20">
+			<div className="w-full flex py-20 justify-center">
 				{!canvas.success || canvas.error ? (
 					<div>Hmmm... Something went wrong. :/</div>
 				) : (
