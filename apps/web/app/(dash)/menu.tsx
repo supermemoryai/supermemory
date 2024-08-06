@@ -190,7 +190,7 @@ function Menu() {
 										Creating memory...
 									</span>
 								),
-								success: (data) => "Memory created",
+								success: (data) => "Memory queued",
 								error: (error) => error.message,
 								richColors: true,
 							});

@@ -74,14 +74,6 @@ export function DialogContentContainer({
 
 		setContent("");
 		setSelectedSpaces([]);
-
-		if (cont.success) {
-			toast.success("Memory queued", {
-				richColors: true,
-			});
-		} else {
-			toast.error(`Memory creation failed: ${cont.error}`);
-		}
 	};
 
 	useEffect(() => {
