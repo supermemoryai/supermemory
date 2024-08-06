@@ -185,7 +185,6 @@ export async function batchCreateChunksAndEmbeddings({
 		const results = [];
 		for (let i = 0; i < newVectors.length; i += 20) {
 			results.push(newVectors.slice(i, i + 20));
-			console.log(JSON.stringify(newVectors[1].id));
 		}
 
 		await Promise.all(

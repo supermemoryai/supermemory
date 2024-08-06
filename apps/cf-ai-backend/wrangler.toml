@@ -1,4 +1,4 @@
-name = "new-cf-ai-backend"
+name = "dev-cf-ai-backend"
 main = "src/index.ts"
 compatibility_date = "2024-02-23"
 node_compat = true
@@ -31,8 +31,8 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "569c3f2a510943729019f5d1f798e7d9"
-preview_id = "569c3f2a510943729019f5d1f798e7d9"
+id = "a68a8182f08e46a1b5d11588fdda68dc"
+preview_id = "a68a8182f08e46a1b5d11588fdda68dc"
 
 [placement]
 mode = "smart"
@@ -50,5 +50,5 @@ mode = "smart"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "supermemlocal"
-database_id = "0f93c990-72fb-489c-8563-57a7bb18dc43"
+database_name = "staging-d1-supermemory"
+database_id = "40a3bb06-82bd-42f1-aef4-fde04f3635c5"

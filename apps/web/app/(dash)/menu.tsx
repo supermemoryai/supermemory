@@ -128,7 +128,7 @@ function Menu() {
 		setSelectedSpaces([]);
 
 		if (cont.success) {
-			toast.success("Memory created", {
+			toast.success("Memory queued", {
 				richColors: true,
 			});
 		} else {
