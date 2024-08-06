@@ -31,8 +31,8 @@ binding = "AI"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "569c3f2a510943729019f5d1f798e7d9"
-preview_id = "569c3f2a510943729019f5d1f798e7d9"
+id = "37a90353da63401e84e20e71165531d0"
+preview_id = "c58b6202814f4224acea97627d0c18aa"
 
 [placement]
 mode = "smart"
