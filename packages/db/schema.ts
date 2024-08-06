@@ -252,6 +252,7 @@ export const jobs = createTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		url: text("url").notNull(),
+		// using enums ??
 		status: text("status").notNull(),
 		attempts: integer("attempts").notNull().default(0),
 		lastAttemptAt: integer("lastAttemptAt"),

@@ -1,6 +1,6 @@
 "use client";
 
-import { Content, StoredSpace } from "@repo/db/schema";
+import { Content, Job, StoredSpace } from "@repo/db/schema";
 import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
 import {
 	ArrowLeftIcon,
@@ -44,7 +44,7 @@ export function MemoriesPage({
 	currentSpace,
 	usersWithAccess,
 }: {
-	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
+	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[], unSavedMemories: Job[] };
 	title?: string;
 	currentSpace?: StoredSpace;
 	usersWithAccess?: string[];
@@ -101,7 +101,7 @@ export function MemoriesPage({
 	// And it will look something like { item: "memory" | "space", date: Date, data: Content | StoredSpace }
 	const sortedItems = useMemo(() => {
 		// Merge the lists
-		const unifiedItems = [
+		const unifiedItems = [			
 			...memoriesAndSpaces.memories.map((memory) => ({
 				item: "memory",
 				date: new Date(memory.savedAt), // Assuming savedAt is a string date
@@ -232,6 +232,7 @@ export function MemoriesPage({
 					className: "min-w-[calc(33.3333%-16px)] w-full",
 				}}
 			>
+				<h1>{JSON.stringify(memoriesAndSpaces.unSavedMemories)}</h1>
 				{sortedItems.map((item) => {
 					if (item.item === "memory") {
 						return (

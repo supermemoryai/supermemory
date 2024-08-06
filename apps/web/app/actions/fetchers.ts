@@ -9,6 +9,7 @@ import {
 	chatThreads,
 	Content,
 	contentToSpace,
+	Job,
 	space,
 	spacesAccess,
 	storedContent,
@@ -162,6 +163,7 @@ export const getMemoriesInsideSpace = async (
 export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
 	spaces: StoredSpace[];
 	memories: Content[];
+	unSavedMemories: Job[];
 }> => {
 	const data = await auth();
 
@@ -178,9 +180,13 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
 		where: eq(users, data.user.id),
 	});
 
+	const qMemories = await db.query.jobs.findMany({
+		where: eq(users, data.user.id),
+	});
+
 	return {
 		success: true,
-		data: { spaces: spaces, memories: memories },
+		data: { spaces: spaces, memories: memories, unSavedMemories: qMemories },
 	};
 };
 
