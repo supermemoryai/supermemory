@@ -20,7 +20,7 @@
 		"../../packages/ui/",
 		"../../packages/shared-types",
 		"./components",
-		"app/providers.js"
+		"app/providers.tsx"
 	],
 	"exclude": ["node_modules/"]
 }
