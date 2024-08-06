@@ -6,7 +6,7 @@ import {
 	contentToSpace,
 	storedContent,
 	users,
-} from "@/server/db/schema";
+} from "@repo/db/schema";
 import { ensureAuth } from "../ensureAuth";
 
 export const runtime = "edge";

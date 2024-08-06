@@ -15,7 +15,7 @@ import {
 	StoredSpace,
 	User,
 	users,
-} from "../../server/db/schema";
+} from "@repo/db/schema";
 import { ServerActionReturnType } from "./types";
 import { auth } from "../../server/auth";
 import { ChatHistory, SourceZod } from "@repo/shared-types";

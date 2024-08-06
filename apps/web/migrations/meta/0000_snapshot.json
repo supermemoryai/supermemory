@@ -1,7 +1,7 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "8705302a-eae7-4fbf-9ce8-8ae23df228a2",
+	"id": "3fbdb153-2764-4b09-ac22-05c3a131ec35",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"tables": {
 		"account": {
@@ -305,7 +305,7 @@
 					"primaryKey": false,
 					"notNull": true,
 					"autoincrement": false,
-					"default": "'\"2024-07-25T22:31:50.848Z\"'"
+					"default": "'\"2024-07-31T07:35:53.819Z\"'"
 				}
 			},
 			"indexes": {
@@ -420,6 +420,110 @@
 					"name": "contentToSpace_contentId_spaceId_pk"
 				}
 			},
+			"uniqueConstraints": {}
+		},
+		"jobs": {
+			"name": "jobs",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "integer",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": true
+				},
+				"userId": {
+					"name": "userId",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"url": {
+					"name": "url",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"attempts": {
+					"name": "attempts",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": 0
+				},
+				"lastAttemptAt": {
+					"name": "lastAttemptAt",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"error": {
+					"name": "error",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"createdAt": {
+					"name": "createdAt",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"updatedAt": {
+					"name": "updatedAt",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"jobs_userId_idx": {
+					"name": "jobs_userId_idx",
+					"columns": ["userId"],
+					"isUnique": false
+				},
+				"jobs_status_idx": {
+					"name": "jobs_status_idx",
+					"columns": ["status"],
+					"isUnique": false
+				},
+				"jobs_createdAt_idx": {
+					"name": "jobs_createdAt_idx",
+					"columns": ["createdAt"],
+					"isUnique": false
+				},
+				"jobs_url_idx": {
+					"name": "jobs_url_idx",
+					"columns": ["url"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {
+				"jobs_userId_user_id_fk": {
+					"name": "jobs_userId_user_id_fk",
+					"tableFrom": "jobs",
+					"tableTo": "user",
+					"columnsFrom": ["userId"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
 			"uniqueConstraints": {}
 		},
 		"session": {

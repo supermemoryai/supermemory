@@ -1,6 +1,6 @@
 "use client";
 
-import { Content, StoredSpace } from "@/server/db/schema";
+import { Content, StoredSpace } from "@repo/db/schema";
 import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
 import {
 	ArrowLeftIcon,

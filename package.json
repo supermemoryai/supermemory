@@ -16,6 +16,7 @@
 		"@repo/tailwind-config": "*",
 		"@repo/typescript-config": "*",
 		"@repo/ui": "*",
+		"@repo/db": "*",
 		"lint-staged": "^15.2.5",
 		"prettier": "^3.3.3",
 		"rxjs": "^7.8.1",
@@ -99,7 +100,9 @@
 		"turndown": "^7.2.0",
 		"uploadthing": "^6.10.4",
 		"vaul": "^0.9.1",
-		"zod": "^3.23.8"
+		"zod": "^3.23.8",
+		"drizzle-kit": "0.21.2",
+		"drizzle-orm": "0.30.0"
 	},
 	"trustedDependencies": [
 		"core-js-pure",

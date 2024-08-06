@@ -1,4 +1,4 @@
-import { StoredSpace } from "@/server/db/schema";
+import { StoredSpace } from "@repo/db/schema";
 import { useEffect, useMemo, useState } from "react";
 import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
@@ -76,7 +76,7 @@ export function DialogContentContainer({
 		setSelectedSpaces([]);
 
 		if (cont.success) {
-			toast.success("Memory created", {
+			toast.success("Memory queued", {
 				richColors: true,
 			});
 		} else {

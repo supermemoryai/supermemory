@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { eq } from "drizzle-orm";
-import { sessions, users } from "@/server/db/schema";
+import { sessions, users } from "@repo/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";

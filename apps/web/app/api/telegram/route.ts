@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { storedContent, users } from "@/server/db/schema";
+import { storedContent, users } from "@repo/db/schema";
 import { cipher } from "@/server/encrypt";
 import { eq } from "drizzle-orm";
 import { Bot, webhookCallback } from "grammy";

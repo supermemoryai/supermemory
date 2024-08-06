@@ -9,17 +9,14 @@ import { z } from "zod";
 import { seededRandom } from "./utils/seededRandom";
 import { bulkInsertKv } from "./utils/kvBulkInsert";
 
-export async function initQuery(
-	c: Context<{ Bindings: Env }>,
-	model: string = "gpt-4o",
-) {
+export async function initQuery(env: Env, model: string = "gpt-4o") {
 	const embeddings = new OpenAIEmbeddings({
-		apiKey: c.env.OPENAI_API_KEY,
+		apiKey: env.OPENAI_API_KEY,
 		modelName: "text-embedding-3-small",
 	});
 
 	const store = new CloudflareVectorizeStore(embeddings, {
-		index: c.env.VECTORIZE_INDEX,
+		index: env.VECTORIZE_INDEX,
 	});
 
 	let selectedModel:
@@ -30,7 +27,7 @@ export async function initQuery(
 	switch (model) {
 		case "claude-3-opus":
 			const anthropic = createAnthropic({
-				apiKey: c.env.ANTHROPIC_API_KEY,
+				apiKey: env.ANTHROPIC_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/anthropic",
 			});
@@ -39,7 +36,7 @@ export async function initQuery(
 			break;
 		case "gemini-1.5-pro":
 			const googleai = createGoogleGenerativeAI({
-				apiKey: c.env.GOOGLE_AI_API_KEY,
+				apiKey: env.GOOGLE_AI_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/google-vertex-ai",
 			});
@@ -49,7 +46,7 @@ export async function initQuery(
 		case "gpt-4o":
 		default:
 			const openai = createOpenAI({
-				apiKey: c.env.OPENAI_API_KEY,
+				apiKey: env.OPENAI_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/openai",
 				compatibility: "strict",
@@ -132,24 +129,25 @@ export async function batchCreateChunksAndEmbeddings({
 	store,
 	body,
 	chunks,
-	context,
+	env: env,
 }: {
 	store: CloudflareVectorizeStore;
 	body: z.infer<typeof vectorObj>;
 	chunks: Chunks;
-	context: Context<{ Bindings: Env }>;
+	env: Env;
 }) {
 	//! NOTE that we use #supermemory-web to ensure that
 	//! If a user saves it through the extension, we don't want other users to be able to see it.
 	// Requests from the extension should ALWAYS have a unique ID with the USERiD in it.
 	// I cannot stress this enough, important for security.
+
 	const ourID = `${body.url}#supermemory-web`;
 	const random = seededRandom(ourID);
 	const uuid =
 		random().toString(36).substring(2, 15) +
 		random().toString(36).substring(2, 15);
 
-	const allIds = await context.env.KV.list({ prefix: uuid });
+	const allIds = await env.KV.list({ prefix: uuid });
 
 	// If some chunks for that content already exist, we'll just update the metadata to include
 	// the user.
@@ -159,7 +157,7 @@ export async function batchCreateChunksAndEmbeddings({
 		//Search in a batch of 20
 		for (let i = 0; i < savedVectorIds.length; i += 20) {
 			const batch = savedVectorIds.slice(i, i + 20);
-			const batchVectors = await context.env.VECTORIZE_INDEX.getByIds(batch);
+			const batchVectors = await env.VECTORIZE_INDEX.getByIds(batch);
 			vectors.push(...batchVectors);
 		}
 		console.log(
@@ -193,7 +191,7 @@ export async function batchCreateChunksAndEmbeddings({
 
 		await Promise.all(
 			results.map((result) => {
-				return context.env.VECTORIZE_INDEX.upsert(result);
+				return env.VECTORIZE_INDEX.upsert(result);
 			}),
 		);
 		return;
@@ -205,7 +203,7 @@ export async function batchCreateChunksAndEmbeddings({
 				const commonMetaData = {
 					type: body.type ?? "tweet",
 					title: body.title?.slice(0, 50) ?? "",
-					description: body.description ?? "",
+					description: body.description?.slice(0, 50) ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
@@ -244,8 +242,7 @@ export async function batchCreateChunksAndEmbeddings({
 				});
 				console.log("these are the doucment ids", ids);
 				console.log("Docs added:", docs);
-				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
-					context.env;
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 					{ chunkIds: ids, urlid: ourID },
@@ -257,7 +254,7 @@ export async function batchCreateChunksAndEmbeddings({
 				const commonMetaData = {
 					type: body.type ?? "page",
 					title: body.title?.slice(0, 50) ?? "",
-					description: body.description ?? "",
+					description: body.description?.slice(0, 50) ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
@@ -267,23 +264,31 @@ export async function batchCreateChunksAndEmbeddings({
 				}, {});
 
 				const ids = [];
-				const preparedDocuments = chunks.chunks.map((chunk, i) => {
+				console.log("Page hit moving on to the for loop");
+				for (let i = 0; i < chunks.chunks.length; i++) {
+					const chunk = chunks.chunks[i];
 					const id = `${uuid}-${i}`;
 					ids.push(id);
-					return {
+					const document = {
 						pageContent: chunk,
 						metadata: {
-							content: chunk,
 							...commonMetaData,
 							...spaceMetadata,
 						},
 					};
-				});
+					const docs = await store.addDocuments([document], { ids: [id] });
+					console.log("Docs added:", docs);
+					// Wait for a second after every 20 documents for open ai rate limit
+					console.log(
+						"This is the 20th thing in the list?",
+						(i + 1) % 20 === 0,
+					);
+					if ((i + 1) % 20 === 0) {
+						await new Promise((resolve) => setTimeout(resolve, 1000));
+					}
+				}
 
-				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
-				console.log("Docs added:", docs);
-				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
-					context.env;
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 					{ chunkIds: ids, urlid: ourID },
@@ -295,7 +300,7 @@ export async function batchCreateChunksAndEmbeddings({
 				const commonMetaData = {
 					title: body.title?.slice(0, 50) ?? "",
 					type: body.type ?? "page",
-					description: body.description ?? "",
+					description: body.description?.slice(0, 50) ?? "",
 					url: body.url,
 					[sanitizeKey(`user-${body.user}`)]: 1,
 				};
@@ -305,23 +310,30 @@ export async function batchCreateChunksAndEmbeddings({
 				}, {});
 
 				const ids = [];
-				const preparedDocuments = chunks.chunks.map((chunk, i) => {
+				for (let i = 0; i < chunks.chunks.length; i++) {
+					const chunk = chunks.chunks[i];
 					const id = `${uuid}-${i}`;
 					ids.push(id);
-					return {
+					const document = {
 						pageContent: chunk,
 						metadata: {
-							content: chunk,
 							...commonMetaData,
 							...spaceMetadata,
 						},
 					};
-				});
+					const docs = await store.addDocuments([document], { ids: [id] });
+					console.log("Docs added:", docs);
+					// Wait for a second after every 20 documents for open ai rate limit
+					console.log(
+						"This is the 20th thing in the list?",
+						(i + 1) % 20 === 0,
+					);
+					if ((i + 1) % 20 === 0) {
+						await new Promise((resolve) => setTimeout(resolve, 1000));
+					}
+				}
 
-				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
-				console.log("Docs added:", docs);
-				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } =
-					context.env;
+				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 					{ chunkIds: ids, urlid: ourID },
@@ -332,7 +344,7 @@ export async function batchCreateChunksAndEmbeddings({
 			const commonMetaData = {
 				type: body.type ?? "image",
 				title: body.title,
-				description: body.description ?? "",
+				description: body.description?.slice(0, 50) ?? "",
 				url: body.url,
 				[sanitizeKey(`user-${body.user}`)]: 1,
 			};
@@ -342,26 +354,34 @@ export async function batchCreateChunksAndEmbeddings({
 			}, {});
 
 			const ids = [];
-			const preparedDocuments = chunks.chunks.map((chunk, i) => {
+			for (let i = 0; i < chunks.chunks.length; i++) {
+				const chunk = chunks.chunks[i];
 				const id = `${uuid}-${i}`;
 				ids.push(id);
-				return {
+				const document = {
 					pageContent: chunk,
 					metadata: {
 						...commonMetaData,
 						...spaceMetadata,
 					},
 				};
-			});
+				const docs = await store.addDocuments([document], { ids: [id] });
+				console.log("Docs added:", docs);
+				// Wait for a second after every 20 documents for open ai rate limit
+				console.log("This is the 20th thing in the list?", (i + 1) % 20 === 0);
+				if ((i + 1) % 20 === 0) {
+					console.log("-----------waiting atm");
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+				}
+			}
 
-			const docs = await store.addDocuments(preparedDocuments, { ids: ids });
-			console.log("Docs added:", docs);
-			const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = context.env;
+			const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 			await bulkInsertKv(
 				{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
 				{ chunkIds: ids, urlid: ourID },
 			);
 		}
 	}
+
 	return;
 }

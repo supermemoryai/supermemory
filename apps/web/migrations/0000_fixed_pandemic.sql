@@ -43,7 +43,7 @@ CREATE TABLE `chatHistory` (
 	`answerParts` text,
 	`answerSources` text,
 	`answerJustification` text,
-	`createdAt` integer DEFAULT '"2024-07-25T22:31:50.848Z"' NOT NULL,
+	`createdAt` integer DEFAULT '"2024-07-31T07:35:53.819Z"' NOT NULL,
 	FOREIGN KEY (`threadId`) REFERENCES `chatThread`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -60,6 +60,19 @@ CREATE TABLE `contentToSpace` (
 	PRIMARY KEY(`contentId`, `spaceId`),
 	FOREIGN KEY (`contentId`) REFERENCES `storedContent`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`spaceId`) REFERENCES `space`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `jobs` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`userId` text NOT NULL,
+	`url` text NOT NULL,
+	`status` text NOT NULL,
+	`attempts` integer DEFAULT 0 NOT NULL,
+	`lastAttemptAt` integer,
+	`error` blob,
+	`createdAt` integer NOT NULL,
+	`updatedAt` integer NOT NULL,
+	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `session` (
@@ -122,6 +135,10 @@ CREATE UNIQUE INDEX `authenticator_credentialID_unique` ON `authenticator` (`cre
 CREATE INDEX `canvas_user_userId` ON `canvas` (`userId`);--> statement-breakpoint
 CREATE INDEX `chatHistory_thread_idx` ON `chatHistory` (`threadId`);--> statement-breakpoint
 CREATE INDEX `chatThread_user_idx` ON `chatThread` (`userId`);--> statement-breakpoint
+CREATE INDEX `jobs_userId_idx` ON `jobs` (`userId`);--> statement-breakpoint
+CREATE INDEX `jobs_status_idx` ON `jobs` (`status`);--> statement-breakpoint
+CREATE INDEX `jobs_createdAt_idx` ON `jobs` (`createdAt`);--> statement-breakpoint
+CREATE INDEX `jobs_url_idx` ON `jobs` (`url`);--> statement-breakpoint
 CREATE UNIQUE INDEX `space_name_unique` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_name_idx` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint

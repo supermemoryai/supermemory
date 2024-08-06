@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { boolean, z } from "zod";
 import { Hono } from "hono";
 import { CoreMessage, generateText, streamText, tool } from "ai";
 import {
@@ -9,6 +9,7 @@ import {
 	PageOrNoteChunks,
 	TweetChunks,
 	vectorObj,
+	vectorBody,
 } from "./types";
 import {
 	batchCreateChunksAndEmbeddings,
@@ -20,20 +21,23 @@ import { logger } from "hono/logger";
 import { poweredBy } from "hono/powered-by";
 import { bearerAuth } from "hono/bearer-auth";
 import { zValidator } from "@hono/zod-validator";
-import chunkText from "./utils/chonker";
+import chunkText from "./queueConsumer/chunkers/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
 import { swaggerUI } from "@hono/swagger-ui";
-import { chunkThread } from "./utils/chunkTweet";
-import { chunkNote, chunkPage } from "./utils/chunkPageOrNotes";
+import { database } from "./db";
+import { storedContent } from "@repo/db/schema";
+import { sql, and, eq } from "drizzle-orm";
+import { LIMITS } from "@repo/shared-types";
+import { typeDecider } from "./queueConsumer/utils/typeDecider";
+// import { chunkThread } from "./utils/chunkTweet";
+import {
+	chunkNote,
+	chunkPage,
+} from "./queueConsumer/chunkers/chunkPageOrNotes";
+import { queue } from "./queueConsumer";
+import { isErr } from "./errors/results";
 
 const app = new Hono<{ Bindings: Env }>();
-
-app.get(
-	"/ui",
-	swaggerUI({
-		url: "/doc",
-	}),
-);
 
 // ------- MIDDLEWARES -------
 app.use("*", poweredBy());
@@ -68,39 +72,77 @@ app.get("/api/health", (c) => {
 	return c.json({ status: "ok" });
 });
 
-app.post("/api/add", zValidator("json", vectorObj), async (c) => {
+app.post("/api/add", zValidator("json", vectorBody), async (c) => {
 	try {
 		const body = c.req.valid("json");
+		//This is something I don't like
+		// console.log("api/add hit!!!!");
+		//Have to do limit on this also duplicate check here
+		const db = database(c.env);
+		const typeResult = typeDecider(body.url);
 
-		const { store } = await initQuery(c);
+		const saveToDbUrl =
+			(body.url.split("#supermemory-user-")[0] ?? body.url) + // Why does this have to be a split from #supermemory-user?
+			"#supermemory-user-" +
+			body.user;
 
-		console.log(body.spaces);
-		let chunks: TweetChunks | PageOrNoteChunks;
-		// remove everything in <raw> tags
-		// const newPageContent = body.pageContent?.replace(/<raw>.*?<\/raw>/g, "");
+		console.log(
+			"---------------------------------------------------------------------------------------------------------------------------------------------",
+			saveToDbUrl,
+		);
+		const alreadyExist = await db
+			.select()
+			.from(storedContent)
+			.where(eq(storedContent.baseUrl, saveToDbUrl));
+		console.log(
+			"------------------------------------------------",
+			JSON.stringify(alreadyExist),
+		);
 
-		switch (body.type) {
-			case "tweet":
-				chunks = chunkThread(body.pageContent);
-				break;
-
-			case "page":
-				chunks = chunkPage(body.pageContent);
-				break;
-
-			case "note":
-				chunks = chunkNote(body.pageContent);
-				break;
+		if (alreadyExist.length > 0) {
+			console.log(
+				"------------------------------------------------------------------------------------------------I exist------------------------",
+			);
+			return c.json({ status: "error", message: "the content already exists" });
 		}
 
-		console.log("Chunks are here:", chunks);
+		if (isErr(typeResult)) {
+			throw typeResult.error;
+		}
+		// limiting in the backend
+		const type = typeResult.value;
+		const countResult = await db
+			.select({
+				count: sql<number>`count(*)`.mapWith(Number),
+			})
+			.from(storedContent)
+			.where(
+				and(eq(storedContent.userId, body.user), eq(storedContent.type, type)),
+			);
 
-		await batchCreateChunksAndEmbeddings({
-			store,
-			body,
-			chunks: chunks,
-			context: c,
-		});
+		const currentCount = countResult[0]?.count || 0;
+		const totalLimit = LIMITS[type as keyof typeof LIMITS];
+		const remainingLimit = totalLimit - currentCount;
+		const items = 1;
+		const isWithinLimit = items <= remainingLimit;
+
+		// unique contraint check
+
+		if (isWithinLimit) {
+			const spaceNumbers = body.spaces.map((s: string) => Number(s));
+			await c.env.EMBEDCHUNKS_QUEUE.send({
+				content: body.url,
+				user: body.user,
+				space: spaceNumbers,
+				type: type,
+			});
+		} else {
+			return c.json({
+				status: "error",
+				message:
+					"You have exceed the current limit for this type of document, please try removing something form memories ",
+			});
+		}
 
 		return c.json({ status: "ok" });
 	} catch (error) {
@@ -134,7 +176,7 @@ app.post(
 	async (c) => {
 		const body = c.req.valid("form");
 
-		const { store } = await initQuery(c);
+		const { store } = await initQuery(c.env);
 
 		if (!(body.images || body["images[]"])) {
 			return c.json({ status: "error", message: "No images found" }, 400);
@@ -182,7 +224,7 @@ app.post(
 				title: "Image content from the web",
 			},
 			chunks: chunks,
-			context: c,
+			env: c.env,
 		});
 
 		return c.json({ status: "ok" });
@@ -200,7 +242,7 @@ app.get(
 	async (c) => {
 		const query = c.req.valid("query");
 
-		const { model } = await initQuery(c);
+		const { model } = await initQuery(c.env);
 
 		const response = await streamText({ model, prompt: query.query });
 		const r = response.toTextStreamResponse();
@@ -218,7 +260,7 @@ app.get(
 			[`user-${user}`]: 1,
 		};
 
-		const { store } = await initQuery(c);
+		const { store } = await initQuery(c.env);
 		const queryAsVector = await store.embeddings.embedQuery(query);
 
 		const resp = await c.env.VECTORIZE_INDEX.query(queryAsVector, {
@@ -270,7 +312,7 @@ app.post(
 		const { query, user } = c.req.valid("query");
 		const { chatHistory } = c.req.valid("json");
 
-		const { store, model } = await initQuery(c);
+		const { store, model } = await initQuery(c.env);
 
 		let task: "add" | "chat" = "chat";
 		let thingToAdd: "page" | "image" | "text" | undefined = undefined;
@@ -332,7 +374,7 @@ app.post(
 					title: `${addString.slice(0, 30)}... (Added from chatbot)`,
 				},
 				chunks: vectorContent,
-				context: c,
+				env: c.env,
 			});
 
 			return c.json({
@@ -445,7 +487,7 @@ app.post(
 		const spaces = query.spaces?.split(",") ?? [undefined];
 
 		// Get the AI model maker and vector store
-		const { model, store } = await initQuery(c, query.model);
+		const { model, store } = await initQuery(c.env, query.model);
 
 		if (!body.sources) {
 			const filter: VectorizeVectorMetadataFilter = {
@@ -588,6 +630,8 @@ app.post(
 			}
 		}
 
+		//Serach mem0
+
 		const preparedContext = body.sources.normalizedData.map(
 			({ metadata, score, normalizedScore }) => ({
 				context: `Website title: ${metadata!.title}\nDescription: ${metadata!.description}\nURL: ${metadata!.url}\nContent: ${metadata!.text}`,
@@ -598,7 +642,7 @@ app.post(
 
 		const initialMessages: CoreMessage[] = [
 			{ role: "user", content: systemPrompt },
-			{ role: "assistant", content: "Hello, how can I help?" },
+			{ role: "assistant", content: "Hello, how can I help?" }, // prase and add memory json here
 		];
 
 		const prompt = template({
@@ -634,7 +678,7 @@ app.delete(
 	async (c) => {
 		const { websiteUrl, user } = c.req.valid("query");
 
-		const { store } = await initQuery(c);
+		const { store } = await initQuery(c.env);
 
 		await deleteDocument({ url: websiteUrl, user, c, store });
 
@@ -654,7 +698,7 @@ app.get(
 	),
 	async (c) => {
 		const { context, request } = c.req.valid("query");
-		const { model } = await initQuery(c);
+		const { model } = await initQuery(c.env);
 
 		const response = await streamText({
 			model,
@@ -707,4 +751,7 @@ app.get("/howFuckedAreWe", async (c) => {
 	return c.json({ fuckedPercent });
 });
 
-export default app;
+export default {
+	fetch: app.fetch,
+	queue,
+};

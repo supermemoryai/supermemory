@@ -1,6 +1,6 @@
 import { sourcesZod } from "@repo/shared-types";
 import { z } from "zod";
-import { ThreadTweetData } from "./utils/chunkTweet";
+import { ThreadTweetData } from "./queueConsumer/chunkers/chunkTweet";
 
 export type Env = {
 	VECTORIZE_INDEX: VectorizeIndex;
@@ -11,12 +11,25 @@ export type Env = {
 	CF_KV_AUTH_TOKEN: string;
 	KV_NAMESPACE_ID: string;
 	CF_ACCOUNT_ID: string;
+	DATABASE: D1Database;
 	MY_QUEUE: Queue<TweetData[]>;
 	KV: KVNamespace;
+	EMBEDCHUNKS_QUEUE: Queue<JobData>;
 	MYBROWSER: unknown;
 	ANTHROPIC_API_KEY: string;
+	THREAD_CF_AUTH: string;
+	THREAD: { processTweets: () => Promise<Array<any>> };
+	THREAD_CF_WORKER: string;
 	NODE_ENV: string;
+	MD_SEC_KEY: string;
 };
+
+export interface JobData {
+	content: string;
+	space: Array<number>;
+	user: string;
+	type: string
+}
 
 export interface TweetData {
 	tweetText: string;
@@ -79,4 +92,9 @@ export const vectorObj = z.object({
 	url: z.string(),
 	user: z.string(),
 	type: z.string().optional().default("page"),
+});
+export const vectorBody = z.object({
+	spaces: z.array(z.string()).optional(),
+	url: z.string(),
+	user: z.string(),
 });

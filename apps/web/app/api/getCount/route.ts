@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { and, eq, ne, sql } from "drizzle-orm";
-import { sessions, storedContent, users } from "@/server/db/schema";
+import { sessions, storedContent, users } from "@repo/db/schema";
 import { type NextRequest, NextResponse } from "next/server";
 import { ensureAuth } from "../ensureAuth";
 

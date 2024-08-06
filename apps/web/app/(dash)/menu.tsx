@@ -28,7 +28,7 @@ import { getSpaces } from "../actions/fetchers";
 import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
-import { StoredSpace } from "@/server/db/schema";
+import { StoredSpace } from "@repo/db/schema";
 import useMeasure from "react-use-measure";
 import { useKeyPress } from "@/lib/useKeyPress";
 
@@ -121,9 +121,14 @@ function Menu() {
 		setContent("");
 		setSelectedSpaces([]);
 		if (cont.success) {
+			toast.success("Memory queued", {
+				richColors: true,
+			});
+		} else {
+			toast.error(`Memory creation failed: ${cont.error}`);
+			throw new Error(`Memory creation failed: ${cont.error}`);
 			return cont;
 		}
-		throw new Error(`Memory creation failed: ${cont.error}`);
 	};
 
 	return (
@@ -275,10 +280,7 @@ function Menu() {
 										]);
 										setSelectedSpaces((prev) => [...prev, creationTask.data!]);
 									} else {
-										toast.error(
-											"Space creation failed: " + creationTask.error ??
-												"Unknown error",
-										);
+										toast.error("Space creation failed: " + creationTask.error);
 									}
 								}}
 								placeholder="Select or create a new space."

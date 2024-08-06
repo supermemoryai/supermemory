@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { space } from "@/server/db/schema";
+import { space } from "@repo/db/schema";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { ensureAuth } from "../ensureAuth";
