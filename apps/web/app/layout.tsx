@@ -6,6 +6,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { cn } from "@repo/ui/lib/utils";
 import { Toaster } from "@repo/ui/shadcn/toaster";
+import { CSPostHogProvider } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -75,16 +76,18 @@ export default function RootLayout({
 				></script>
 			</head>
 			{/* TODO: when lightmode support is added, remove the 'dark' class from the body tag */}
-			<body
-				className={cn(
-					`${inter.className} dark`,
-					GeistMono.variable,
-					GeistSans.variable,
-				)}
-			>
-				{children}
-				<Toaster />
-			</body>
+			<CSPostHogProvider>
+				<body
+					className={cn(
+						`${inter.className} dark`,
+						GeistMono.variable,
+						GeistSans.variable,
+					)}
+				>
+					{children}
+					<Toaster />
+				</body>
+			</CSPostHogProvider>
 		</html>
 	);
 }

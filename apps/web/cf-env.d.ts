@@ -26,6 +26,8 @@ declare global {
 			RATELIMITER: {
 				limit: ({ key: string }) => { success: boolean };
 			};
+			NEXT_PUBLIC_POSTHOG_KEY: string;
+			NEXT_PUBLIC_POSTHOG_HOST: string;
 		}
 	}
 }

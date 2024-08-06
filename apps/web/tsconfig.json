@@ -19,7 +19,8 @@
 		".next/types/**/*.ts",
 		"../../packages/ui/",
 		"../../packages/shared-types",
-		"./components"
+		"./components",
+		"app/providers.js"
 	],
 	"exclude": ["node_modules/"]
 }
