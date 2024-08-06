@@ -44,7 +44,7 @@ mode = "smart"
 [[queues.consumers]]
   queue = "embedchunks-queue"
   max_batch_size = 100
-  max_retries = 10
+  max_retries = 3
   dead_letter_queue = "embedchunks-dlq"
 
 

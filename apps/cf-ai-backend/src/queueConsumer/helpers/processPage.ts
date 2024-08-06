@@ -29,12 +29,12 @@ export async function processPage(input: {
 				),
 			);
 		}
-		console.log("[This is the page content]", pageContent);
 		const metadataResult = await getMetaData(input.url);
 		if (isErr(metadataResult)) {
 			throw metadataResult.error;
 		}
 		const metadata = metadataResult.value;
+		console.log("[this is the metadata]", metadata);
 		return Ok({ pageContent, metadata });
 	} catch (e) {
 		console.error("[Page Processing Error]", e);

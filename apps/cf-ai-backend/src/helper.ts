@@ -140,6 +140,7 @@ export async function batchCreateChunksAndEmbeddings({
 	//! If a user saves it through the extension, we don't want other users to be able to see it.
 	// Requests from the extension should ALWAYS have a unique ID with the USERiD in it.
 	// I cannot stress this enough, important for security.
+
 	const ourID = `${body.url}#supermemory-web`;
 	const random = seededRandom(ourID);
 	const uuid =
@@ -262,21 +263,30 @@ export async function batchCreateChunksAndEmbeddings({
 				}, {});
 
 				const ids = [];
-				const preparedDocuments = chunks.chunks.map((chunk, i) => {
+				console.log("Page hit moving on to the for loop");
+				for (let i = 0; i < chunks.chunks.length; i++) {
+					const chunk = chunks.chunks[i];
 					const id = `${uuid}-${i}`;
 					ids.push(id);
-					return {
+					const document = {
 						pageContent: chunk,
 						metadata: {
-							content: chunk,
 							...commonMetaData,
 							...spaceMetadata,
 						},
 					};
-				});
+					const docs = await store.addDocuments([document], { ids: [id] });
+					console.log("Docs added:", docs);
+					// Wait for a second after every 20 documents for open ai rate limit
+					console.log(
+						"This is the 20th thing in the list?",
+						(i + 1) % 20 === 0,
+					);
+					if ((i + 1) % 20 === 0) {
+						await new Promise((resolve) => setTimeout(resolve, 1000));
+					}
+				}
 
-				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
-				console.log("Docs added:", docs);
 				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
@@ -299,21 +309,29 @@ export async function batchCreateChunksAndEmbeddings({
 				}, {});
 
 				const ids = [];
-				const preparedDocuments = chunks.chunks.map((chunk, i) => {
+				for (let i = 0; i < chunks.chunks.length; i++) {
+					const chunk = chunks.chunks[i];
 					const id = `${uuid}-${i}`;
 					ids.push(id);
-					return {
+					const document = {
 						pageContent: chunk,
 						metadata: {
-							content: chunk,
 							...commonMetaData,
 							...spaceMetadata,
 						},
 					};
-				});
+					const docs = await store.addDocuments([document], { ids: [id] });
+					console.log("Docs added:", docs);
+					// Wait for a second after every 20 documents for open ai rate limit
+					console.log(
+						"This is the 20th thing in the list?",
+						(i + 1) % 20 === 0,
+					);
+					if ((i + 1) % 20 === 0) {
+						await new Promise((resolve) => setTimeout(resolve, 1000));
+					}
+				}
 
-				const docs = await store.addDocuments(preparedDocuments, { ids: ids });
-				console.log("Docs added:", docs);
 				const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 				await bulkInsertKv(
 					{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
@@ -335,20 +353,27 @@ export async function batchCreateChunksAndEmbeddings({
 			}, {});
 
 			const ids = [];
-			const preparedDocuments = chunks.chunks.map((chunk, i) => {
+			for (let i = 0; i < chunks.chunks.length; i++) {
+				const chunk = chunks.chunks[i];
 				const id = `${uuid}-${i}`;
 				ids.push(id);
-				return {
+				const document = {
 					pageContent: chunk,
 					metadata: {
 						...commonMetaData,
 						...spaceMetadata,
 					},
 				};
-			});
+				const docs = await store.addDocuments([document], { ids: [id] });
+				console.log("Docs added:", docs);
+				// Wait for a second after every 20 documents for open ai rate limit
+				console.log("This is the 20th thing in the list?", (i + 1) % 20 === 0);
+				if ((i + 1) % 20 === 0) {
+					console.log("-----------waiting atm");
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+				}
+			}
 
-			const docs = await store.addDocuments(preparedDocuments, { ids: ids });
-			console.log("Docs added:", docs);
 			const { CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = env;
 			await bulkInsertKv(
 				{ CF_KV_AUTH_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID },
@@ -356,5 +381,6 @@ export async function batchCreateChunksAndEmbeddings({
 			);
 		}
 	}
+
 	return;
 }
