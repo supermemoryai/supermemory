@@ -43,7 +43,7 @@ export function transformTweetData(input: any): Tweet | null {
 		display_text_range: tweet.legacy.display_text_range,
 		entities: {
 			hashtags: tweet.legacy.entities.hashtags,
-			urls: tweet.legacy.entities.urls,
+			urls: tweet.legacy.entities?.urls,
 			user_mentions: tweet.legacy.entities.user_mentions,
 			symbols: tweet.legacy.entities.symbols,
 		},
