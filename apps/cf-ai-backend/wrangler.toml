@@ -38,14 +38,14 @@ preview_id = "c58b6202814f4224acea97627d0c18aa"
 mode = "smart"
 
 [[queues.producers]]
-  queue = "embedchunks-queue"
+  queue = "prod-embedchunks-queue"
   binding ="EMBEDCHUNKS_QUEUE"
 
 [[queues.consumers]]
-  queue = "embedchunks-queue"
+  queue = "prod-embedchunks-queue"
   max_batch_size = 100
   max_retries = 3
-  dead_letter_queue = "embedchunks-dlq"
+  dead_letter_queue = "prod-embedchunks-dlq"
 
 
 [[d1_databases]]
