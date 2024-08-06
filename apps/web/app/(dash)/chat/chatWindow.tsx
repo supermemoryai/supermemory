@@ -288,10 +288,10 @@ function ChatWindow({
 											</div>
 										)}
 
-										<div className="flex flex-col mt-2">
-											<div>
+										<div className="flex flex-col mt-2 w-full">
+											<div className="w-full">
 												<div className="text-foreground-menu py-2">Answer</div>
-												<div className="text-base">
+												<div className="text-base prose prose-invert prose-headings:py-0 prose-h1:py-4 prose-h2:py-4 prose-headings:-my-2 prose-h1:text-2xl prose-h2:text-xl prose:min-w-full min-w-full">
 													{/* Loading state */}
 													{(chat.answer.parts.length === 0 ||
 														chat.answer.parts.join("").length === 0) && (
@@ -316,11 +316,7 @@ function ChatWindow({
 																},
 															],
 														]}
-														components={{
-															code: code as any,
-															p: p as any,
-														}}
-														className="flex flex-col gap-2 text-base"
+														className="flex flex-col gap-2 w-full"
 													>
 														{removeJustificationFromText(
 															chat.answer.parts
