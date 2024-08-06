@@ -1,4 +1,4 @@
-name = "dev-supermemory"
+name = "supermemory"
 compatibility_date = "2024-03-29"
 compatibility_flags = [ "nodejs_compat" ]
 pages_build_output_dir = ".vercel/output/static"
@@ -26,14 +26,13 @@ bucket_name = "dev-r2-anycontext"
 
 [[d1_databases]]
 binding = "DATABASE"
-database_name = "supermemlocal"
-database_id = "0f93c990-72fb-489c-8563-57a7bb18dc43"
-
+database_name = "dev-d1-anycontext"
+database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
 
 [[env.production.d1_databases]]
 binding = "DATABASE"
-database_name = "staging-d1-supermemory"
-database_id = "40a3bb06-82bd-42f1-aef4-fde04f3635c5"
+database_name = "prod-d1-supermemory"
+database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
 
 [env.preview.ai]
 binding = "AI"

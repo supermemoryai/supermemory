@@ -4,9 +4,6 @@ import("./base.css");
 
 setTimeout(initial, 1000);
 
-const TAILWIND_URL =
-	"https://cdn.jsdelivr.net/npm/tailwindcss@^2.0/dist/tailwind.min.css";
-
 const appendTailwindStyleData = (shadowRoot: ShadowRoot) => {
 	const styleSheet = document.createElement("style");
 
@@ -18,14 +15,6 @@ const appendTailwindStyleData = (shadowRoot: ShadowRoot) => {
 			styleSheet.textContent = css;
 			shadowRoot.appendChild(styleSheet);
 		});
-};
-
-const appendTailwindStyleLink = (shadowRoot: ShadowRoot) => {
-	// Import Tailwind CSS and inject it into the shadow DOM
-	const styleSheet = document.createElement("link");
-	styleSheet.rel = "stylesheet";
-	styleSheet.href = TAILWIND_URL;
-	shadowRoot.appendChild(styleSheet);
 };
 
 function initial() {
