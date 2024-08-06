@@ -2,6 +2,7 @@ import { type NextRequest } from "next/server";
 import { addFromAPIType } from "@repo/shared-types";
 import { ensureAuth } from "../ensureAuth";
 import { createMemoryFromAPI } from "./helper";
+import { getRawTweet } from "@repo/shared-types/utils";
 
 export const runtime = "edge";
 
@@ -16,7 +17,43 @@ export async function POST(req: NextRequest) {
 		return new Response("Missing BACKEND_SECURITY_KEY", { status: 500 });
 	}
 
-	const body = await req.json();
+	let body;
+
+	try {
+		body = await req.json();
+	} catch (e) {
+		const error = (e as Error).message;
+
+		console.log(error);
+
+		const tryJson = getRawTweet(await req.text());
+		console.log(tryJson);
+
+		if (tryJson) {
+			try {
+				body = JSON.parse(tryJson);
+			} catch (e) {
+				console.log(e);
+				return new Response(
+					JSON.stringify({
+						message: "Raw found but not json?" + error,
+					}),
+					{
+						status: 400,
+					},
+				);
+			}
+		} else {
+			return new Response(
+				JSON.stringify({
+					message: "Raw not found & not json." + error,
+				}),
+				{
+					status: 400,
+				},
+			);
+		}
+	}
 
 	const validated = addFromAPIType.safeParse(body);
 

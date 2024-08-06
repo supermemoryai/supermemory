@@ -74,7 +74,7 @@ function QueryInput({
 							initialSpaces={initialSpaces || []}
 						/>
 						<div className="flex items-center gap-4">
-							<div className="flex items-center gap-2 p-2 rounded-lg bg-[#369DFD1A]">
+							{/* <div className="flex items-center gap-2 p-2 rounded-lg bg-[#369DFD1A]">
 								<Label htmlFor="pro-mode" className="text-sm">
 									Pro mode
 								</Label>
@@ -84,7 +84,7 @@ function QueryInput({
 									id="pro-mode"
 									about="Pro mode"
 								/>
-							</div>
+							</div> */}
 							<button type="submit" className="rounded-lg bg-[#369DFD1A] p-3">
 								<Image src={ArrowRightIcon} alt="Enter" />
 							</button>

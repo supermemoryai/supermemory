@@ -710,6 +710,47 @@ app.get(
 	},
 );
 
+app.get("/howFuckedAreWe", async (c) => {
+	let keys = 0;
+	const concurrencyLimit = 5; // Adjust this based on your system's capability
+	const queue: string[] = [undefined]; // Start with an undefined cursor
+
+	async function fetchKeys(cursor?: string): Promise<void> {
+		const response = await c.env.KV.list({ cursor });
+		keys += response.keys.length;
+
+		// @ts-ignore
+		if (response.cursor) {
+			// @ts-ignore
+			queue.push(response.cursor);
+		}
+	}
+
+	async function getAllKeys(): Promise<void> {
+		const promises: Promise<void>[] = [];
+
+		while (queue.length > 0) {
+			while (promises.length < concurrencyLimit && queue.length > 0) {
+				const cursor = queue.shift();
+				promises.push(fetchKeys(cursor));
+			}
+
+			await Promise.all(promises);
+			promises.length = 0; // Clear the promises array
+		}
+	}
+
+	await getAllKeys();
+
+	console.log(`Total number of keys: ${keys}`);
+
+	// on a scale of 200,000
+	// what % are we there?
+	const fuckedPercent = (keys / 200000) * 100;
+
+	return c.json({ fuckedPercent });
+});
+
 export default {
 	fetch: app.fetch,
 	queue,

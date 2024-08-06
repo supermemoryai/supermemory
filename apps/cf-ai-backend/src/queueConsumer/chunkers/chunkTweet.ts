@@ -22,16 +22,26 @@ export interface ThreadTweetData {
 }
 
 export function chunkThread(threadText: string): TweetChunks {
-	const thread = JSON.parse(threadText);
-	if (typeof thread == "string") {
-		console.log("DA WORKER FAILED DO SOMEHTING FIX DA WROKER");
+	let thread = threadText;
+
+	try {
+		thread = JSON.parse(threadText);
+	} catch (e) {
+		console.log("error: thread is not json.", e);
+	}
+
+	if (typeof threadText == "string") {
+		console.log("DA WORKER FAILED DO SOMEHTING FIX DA WROKER", thread);
 		const rawTweet = getRawTweet(thread);
+		console.log(rawTweet);
 		const parsedTweet: any = JSON.parse(rawTweet);
 
 		const chunkedTweet = chunkText(parsedTweet.text, 1536);
 		const metadata: Metadata = {
 			tweetId: parsedTweet.id_str,
-			tweetLinks: parsedTweet.entities.urls.map((url: any) => url.expanded_url),
+			tweetLinks: parsedTweet.entities?.urls.map(
+				(url: any) => url.expanded_url,
+			),
 			tweetVids:
 				parsedTweet.extended_entities?.media
 					.filter((media: any) => media.type === "video")
@@ -46,8 +56,8 @@ export function chunkThread(threadText: string): TweetChunks {
 
 		return { type: "tweet", chunks };
 	} else {
-		console.log(JSON.stringify(thread));
-		const chunkedTweets = thread.map((tweet: Tweet) => {
+		console.log("thread in else statement", JSON.stringify(thread));
+		const chunkedTweets = (thread as any).map((tweet: Tweet) => {
 			const chunkedTweet = chunkText(tweet.text, 1536);
 
 			const metadata = {

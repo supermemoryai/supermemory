@@ -167,6 +167,17 @@ const getTweetData = async (tweetID: string) => {
 	return data;
 };
 
+export const deleteSpace = async (id: number) => {
+	try {
+		await db.delete(space).where(eq(space.id, id));
+		return {
+			success: true,
+		};
+	} catch (e) {
+		console.log(e);
+	}
+};
+
 export const createMemory = async (input: {
 	content: string;
 	spaces?: number[];

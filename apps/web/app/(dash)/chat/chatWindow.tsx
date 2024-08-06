@@ -6,7 +6,7 @@ import QueryInput from "./chatQueryInput";
 import { cn } from "@repo/ui/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { ChatHistory, sourcesZod } from "@repo/shared-types";
+import { type ChatHistory, sourcesZod } from "@repo/shared-types";
 import {
 	Accordion,
 	AccordionContent,
@@ -23,7 +23,11 @@ import { codeLanguageSubset } from "@/lib/constants";
 import { toast } from "sonner";
 import Link from "next/link";
 import { createChatObject } from "@/app/actions/doers";
-import { ClipboardIcon } from "@heroicons/react/24/outline";
+import {
+	ClipboardIcon,
+	SpeakerWaveIcon,
+	SpeakerXMarkIcon,
+} from "@heroicons/react/24/outline";
 
 function ChatWindow({
 	q,
@@ -51,6 +55,8 @@ function ChatWindow({
 }) {
 	const [layout, setLayout] = useState<"chat" | "initial">("chat");
 	const [chatHistory, setChatHistory] = useState<ChatHistory[]>(initialChat);
+	const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+	const speechSynth: SpeechSynthesis = window.speechSynthesis;
 
 	const removeJustificationFromText = (text: string) => {
 		// remove everything after the first "<justification>" word
@@ -66,12 +72,31 @@ function ChatWindow({
 		return text;
 	};
 
+	const handleTTS = (text: string, idx: number) => {
+		if (speakingIdx != null) return stopTTS();
+		if (!text) return;
+		const utterThis: SpeechSynthesisUtterance = new SpeechSynthesisUtterance(
+			text,
+		);
+		utterThis.lang = "en-US";
+		speechSynth.speak(utterThis);
+		setSpeakingIdx(idx);
+		utterThis.onend = () => {
+			setSpeakingIdx(null);
+		};
+	};
+
+	const stopTTS = () => {
+		speechSynth.cancel();
+		setSpeakingIdx(null);
+	};
+
 	const router = useRouter();
 
 	const getAnswer = async (
 		query: string,
 		spaces: string[],
-		proMode: boolean = false,
+		proMode = false,
 	) => {
 		if (query.trim() === "from_loading" || query.trim().length === 0) {
 			return;
@@ -263,10 +288,10 @@ function ChatWindow({
 											</div>
 										)}
 
-										<div className="flex flex-col mt-2">
-											<div>
+										<div className="flex flex-col mt-2 w-full">
+											<div className="w-full">
 												<div className="text-foreground-menu py-2">Answer</div>
-												<div className="text-base">
+												<div className="text-base prose prose-invert prose-headings:py-0 prose-h1:py-4 prose-h2:py-4 prose-headings:-my-2 prose-h1:text-2xl prose-h2:text-xl prose:min-w-full min-w-full">
 													{/* Loading state */}
 													{(chat.answer.parts.length === 0 ||
 														chat.answer.parts.join("").length === 0) && (
@@ -291,11 +316,7 @@ function ChatWindow({
 																},
 															],
 														]}
-														components={{
-															code: code as any,
-															p: p as any,
-														}}
-														className="flex flex-col gap-2 text-base"
+														className="flex flex-col gap-2 w-full"
 													>
 														{removeJustificationFromText(
 															chat.answer.parts
@@ -305,10 +326,6 @@ function ChatWindow({
 													</Markdown>
 
 													<div className="mt-3 relative -left-2 flex items-center gap-1">
-														{/* TODO: speak response */}
-														{/* <button className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200">
-                              <SpeakerWaveIcon className="size-[18px] group-hover:text-primary" />
-                            </button> */}
 														{/* copy response */}
 														<button
 															onClick={() =>
@@ -321,6 +338,27 @@ function ChatWindow({
 															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
 														>
 															<ClipboardIcon className="size-[18px] group-hover:text-primary" />
+														</button>
+														{/* speak response */}
+														<button
+															disabled={
+																speakingIdx !== null && speakingIdx !== idx
+															}
+															onClick={() => {
+																handleTTS(
+																	chat.answer.parts
+																		.map((part) => part.text)
+																		.join(""),
+																	idx,
+																);
+															}}
+															className="group h-8 w-8 flex justify-center items-center active:scale-75 duration-200"
+														>
+															{speakingIdx === idx ? (
+																<SpeakerXMarkIcon className="size-[18px] group-hover:text-primary" />
+															) : (
+																<SpeakerWaveIcon className="size-[18px] group-hover:text-primary group-disabled:text-gray-600" />
+															)}
 														</button>
 													</div>
 												</div>
@@ -342,10 +380,10 @@ function ChatWindow({
 														</AccordionTrigger>
 														{/* TODO: fade out content on the right side, the fade goes away when the user scrolls */}
 														<AccordionContent
-															className="flex flex-col no-scrollbar overflow-auto gap-4 relative max-w-3xl no-scrollbar"
+															className="flex flex-col gap-4 relative max-w-3xl overflow-x-auto  scrollbar-thin scrollbar-thumb-scrollbar-thumb scrollbar-track-scrollbar-track scrollbar-thumb-rounded"
 															defaultChecked
 														>
-															<div className="w-full no-scrollbar flex gap-4">
+															<div className="w-full flex gap-3">
 																{/* Loading state */}
 																{chat.answer.sources.length > 0 ||
 																	(chat.answer.parts.length === 0 && (
@@ -373,7 +411,9 @@ function ChatWindow({
 																			<span>{source.type}</span>
 
 																			{source.numChunks > 1 && (
-																				<span>{source.numChunks} chunks</span>
+																				<span className="font-bold">
+																					{source.numChunks} chunks
+																				</span>
 																			)}
 																		</div>
 																		<div className="text-base">
@@ -388,40 +428,36 @@ function ChatWindow({
 																))}
 															</div>
 
-															{chat.answer.justification &&
-																chat.answer.justification.length && (
-																	<div
-																		className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+															{chat.answer.justification?.length && (
+																<div
+																	className={`${chat.answer.justification && chat.answer.justification.length > 0 ? "flex" : "hidden"}`}
+																>
+																	<Accordion
+																		defaultValue={""}
+																		type="single"
+																		collapsible
 																	>
-																		<Accordion
-																			defaultValue={""}
-																			type="single"
-																			collapsible
-																		>
-																			<AccordionItem value="justification">
-																				<AccordionTrigger className="text-foreground-menu">
-																					Justification
-																				</AccordionTrigger>
-																				<AccordionContent
-																					className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
-																					defaultChecked
-																				>
-																					{chat.answer.justification.length > 0
-																						? chat.answer.justification
-																								.replaceAll(
-																									"<justification>",
-																									"",
-																								)
-																								.replaceAll(
-																									"</justification>",
-																									"",
-																								)
-																						: "No justification provided."}
-																				</AccordionContent>
-																			</AccordionItem>
-																		</Accordion>
-																	</div>
-																)}
+																		<AccordionItem value="justification">
+																			<AccordionTrigger className="text-foreground-menu">
+																				Justification
+																			</AccordionTrigger>
+																			<AccordionContent
+																				className="relative flex gap-2 max-w-3xl overflow-auto no-scrollbar"
+																				defaultChecked
+																			>
+																				{chat.answer.justification.length > 0
+																					? chat.answer.justification
+																							.replaceAll("<justification>", "")
+																							.replaceAll(
+																								"</justification>",
+																								"",
+																							)
+																					: "No justification provided."}
+																			</AccordionContent>
+																		</AccordionItem>
+																	</Accordion>
+																</div>
+															)}
 														</AccordionContent>
 													</AccordionItem>
 												</Accordion>

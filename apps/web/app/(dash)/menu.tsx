@@ -30,6 +30,7 @@ import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@repo/db/schema";
 import useMeasure from "react-use-measure";
+import { useKeyPress } from "@/lib/useKeyPress";
 
 function Menu() {
 	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
@@ -48,7 +49,11 @@ function Menu() {
 			setSpaces(spaces.data);
 		})();
 	}, []);
-
+	useKeyPress("a", () => {
+		if (!dialogOpen) {
+			setDialogOpen(true);
+		}
+	});
 	const menuItems = [
 		{
 			icon: HomeIconWeb,
@@ -106,33 +111,23 @@ function Menu() {
 
 	const handleSubmit = async (content?: string, spaces?: number[]) => {
 		setDialogOpen(false);
-
-		toast.info("Creating memory...", {
-			icon: <PlusCircleIcon className="w-4 h-4 text-white animate-spin" />,
-			duration: 7500,
-		});
-
 		if (!content || content.length === 0) {
-			toast.error("Content is required");
-			return;
+			throw new Error("Content is required");
 		}
-
-		console.log(spaces);
-
 		const cont = await createMemory({
 			content: content,
 			spaces: spaces ?? undefined,
 		});
-
 		setContent("");
 		setSelectedSpaces([]);
-
 		if (cont.success) {
 			toast.success("Memory queued", {
 				richColors: true,
 			});
 		} else {
 			toast.error(`Memory creation failed: ${cont.error}`);
+			throw new Error(`Memory creation failed: ${cont.error}`);
+			return cont;
 		}
 	};
 
@@ -188,8 +183,17 @@ function Menu() {
 					<form
 						action={async (e: FormData) => {
 							const content = e.get("content")?.toString();
-
-							await handleSubmit(content, selectedSpaces);
+							toast.promise(handleSubmit(content, selectedSpaces), {
+								loading: (
+									<span>
+										<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+										Creating memory...
+									</span>
+								),
+								success: (data) => "Memory created",
+								error: (error) => error.message,
+								richColors: true,
+							});
 						}}
 						className="flex flex-col gap-4 "
 					>
@@ -213,7 +217,17 @@ function Menu() {
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										handleSubmit(content, selectedSpaces);
+										toast.promise(handleSubmit(content, selectedSpaces), {
+											loading: (
+												<span>
+													<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+													Creating memory...
+												</span>
+											),
+											success: (data) => "Memory created",
+											error: (error) => error.message,
+											richColors: true,
+										});
 									}
 								}}
 							/>
@@ -266,10 +280,7 @@ function Menu() {
 										]);
 										setSelectedSpaces((prev) => [...prev, creationTask.data!]);
 									} else {
-										toast.error(
-											"Space creation failed: " + creationTask.error ??
-												"Unknown error",
-										);
+										toast.error("Space creation failed: " + creationTask.error);
 									}
 								}}
 								placeholder="Select or create a new space."

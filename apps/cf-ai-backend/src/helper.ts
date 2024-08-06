@@ -161,6 +161,7 @@ export async function batchCreateChunksAndEmbeddings({
 			vectors.push(...batchVectors);
 		}
 		console.log(
+			"vector Id list: ",
 			vectors.map((vector) => {
 				return vector.id;
 			}),
@@ -185,6 +186,7 @@ export async function batchCreateChunksAndEmbeddings({
 		const results = [];
 		for (let i = 0; i < newVectors.length; i += 20) {
 			results.push(newVectors.slice(i, i + 20));
+			console.log(newVectors);
 		}
 
 		await Promise.all(

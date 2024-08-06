@@ -78,7 +78,7 @@ function Page({ searchParams }: { searchParams: Record<string, string> }) {
 				}}
 			>
 				<motion.h1
-					className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl"
+					className="text-center mx-auto bg-[linear-gradient(180deg,_#FFF_0%,_rgba(255,_255,_255,_0.00)_202.08%)]  bg-clip-text text-4xl tracking-tighter   text-transparent md:text-5xl pb-1"
 					animate={{
 						opacity: query.length ? 0 : 1,
 						translateY: query.length ? "10px" : "0px",

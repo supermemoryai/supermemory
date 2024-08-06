@@ -1,6 +1,6 @@
 # Self Hosting Guide
 
-This guide will help you set up your own instance of Supermemory. This is neccessary if you want to contribute to the project or if you want to self host the project. You can read more about the stack [here](https://github.com/supermemoryai/supermemory/?tab=readme-ov-file#-the-stack).
+This guide will help you set up your own instance of Supermemory. This is necessary if you want to contribute to the project or if you want to self host the project. You can read more about the stack [here](https://github.com/supermemoryai/supermemory/?tab=readme-ov-file#-the-stack).
 
 ## Prerequisites
 

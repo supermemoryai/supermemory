@@ -21,6 +21,7 @@
 		"@radix-ui/react-popover": "^1.0.7",
 		"@radix-ui/react-slot": "^1.1.0",
 		"@sentry/nextjs": "^8",
+		"ai": "^3.3.0",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.0.0",
 		"drizzle-orm": "0.30.0",

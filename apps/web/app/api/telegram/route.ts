@@ -68,9 +68,9 @@ bot.on("message", async (ctx) => {
 	if (response.status !== 200) {
 		console.log("Failed to get response from backend");
 		console.log(response.status);
-		console.log(await response.text());
 		await ctx.reply(
-			"Sorry, I am not able to process your request at the moment.",
+			"Sorry, I am not able to process your request at the moment." +
+				(await response.text()),
 		);
 		return;
 	}

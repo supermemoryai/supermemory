@@ -21,7 +21,7 @@ async function page() {
 
 			<BlurHeaderMenu />
 
-			<div className="w-full flex py-20">
+			<div className="w-full flex py-20 justify-center">
 				{!canvas.success || canvas.error ? (
 					<div>Hmmm... Something went wrong. :/</div>
 				) : (
@@ -37,7 +37,7 @@ async function page() {
 			</div>
 
 			<h3 className="fixed left-1/2 -translate-x-1/2 bottom-4 text-gray-400 pt-20 text-center">
-				*this is under beta and only one canvas is allowed per user
+				Thinkpads is under beta and only one thinkpad is allowed per user.
 			</h3>
 		</div>
 	);
