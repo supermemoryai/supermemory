@@ -39,7 +39,9 @@ export function chunkThread(threadText: string): TweetChunks {
 		const chunkedTweet = chunkText(parsedTweet.text, 1536);
 		const metadata: Metadata = {
 			tweetId: parsedTweet.id_str,
-			tweetLinks: parsedTweet.entities.urls.map((url: any) => url.expanded_url),
+			tweetLinks: parsedTweet.entities?.urls.map(
+				(url: any) => url.expanded_url,
+			),
 			tweetVids:
 				parsedTweet.extended_entities?.media
 					.filter((media: any) => media.type === "video")
