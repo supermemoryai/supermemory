@@ -22,13 +22,14 @@ export type Env = {
 	THREAD_CF_WORKER: string;
 	NODE_ENV: string;
 	MD_SEC_KEY: string;
+	MEM0_API_KEY: string;
 };
 
 export interface JobData {
 	content: string;
 	space: Array<number>;
 	user: string;
-	type: string
+	type: string;
 }
 
 export interface TweetData {

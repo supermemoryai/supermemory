@@ -631,6 +631,31 @@ app.post(
 		}
 
 		//Serach mem0
+		type Mem0Response = {
+			id: string;
+			memory: string;
+			user_id: string;
+			hash: string;
+			metadata: any;
+			categories: any;
+			created_at: string;
+			updated_at: string;
+		};
+		const mem0Response = await fetch(
+			"https://api.mem0.ai/v1/memories/?user_id=" + query.user,
+			{
+				method: "GET",
+				headers: {
+					Authorization: `Token ${c.env.MEM0_API_KEY}`,
+				},
+			},
+		);
+		const contextFromMem0 = await mem0Response.text();
+		const contextJson: Mem0Response[] = await JSON.parse(contextFromMem0);
+		const memories = contextJson.map((item) => {
+			return item.memory;
+		});
+		console.log("Here are the mem0 memories", memories);
 
 		const preparedContext = body.sources.normalizedData.map(
 			({ metadata, score, normalizedScore }) => ({
@@ -642,7 +667,10 @@ app.post(
 
 		const initialMessages: CoreMessage[] = [
 			{ role: "user", content: systemPrompt },
-			{ role: "assistant", content: "Hello, how can I help?" }, // prase and add memory json here
+			{
+				role: "assistant",
+				content: `Here is the profile of the user, refer this whenever possible ${memories.join(", ")}}`,
+			}, // prase and add memory json here
 		];
 
 		const prompt = template({

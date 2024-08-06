@@ -174,10 +174,7 @@ export function DialogContentContainer({
 								]);
 								setSelectedSpaces((prev) => [...prev, creationTask.data!]);
 							} else {
-								toast.error(
-									"Space creation failed: " + creationTask.error ??
-										"Unknown error",
-								);
+								toast.error("Space creation failed: " + creationTask.error);
 							}
 						}}
 						placeholder="Select or create a new space."

@@ -202,22 +202,26 @@ export async function queue(
 
 		//add to mem0, abstract
 
-		// const mem0Response = fetch('https://api.mem0.ai/v1/memories/', {
-		// 	method: 'POST',
-		// 	headers: {
-		// 	  'Content-Type': 'application/json',
-		// 	  Authorization: `Token ${process.env.MEM0_API_KEY}`,
-		// 	},
-		// 	body: JSON.stringify({
-		// 	  messages: [
-		// 		{
-		// 		  role: 'user',
-		// 		  content: query,
-		// 		},
-		// 	  ],
-		// 	  user_id: user?.user?.email,
-		// 	}),
-		//   });
+		const mem0Response = fetch("https://api.mem0.ai/v1/memories/", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Token ${env.MEM0_API_KEY}`,
+			},
+			body: JSON.stringify({
+				messages: [
+					{
+						role: "system",
+						content: `Extract information about the user based on this saved content provided, remember that the date was ${new Date().toUTCString()} in utc time zone`,
+					},
+					{
+						role: "user",
+						content: pageContent,
+					},
+				],
+				user_id: body.user,
+			}),
+		});
 
 		// see what's up with the storedToSpaces in this block
 		const { store } = await initQuery(env);
