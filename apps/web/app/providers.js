@@ -9,6 +9,6 @@ if (typeof window !== "undefined") {
 	});
 }
 
-const CSPostHogProvider = ({ children }) => {
+export const CSPostHogProvider = ({ children }) => {
 	return <PostHogProvider client={posthog}>{children}</PostHogProvider>;
 };
