@@ -58,7 +58,6 @@ export async function queue(
 	const db = database(env);
 
 	for (let message of batch.messages) {
-
 		const body = message.body;
 
 		const type = body.type;
@@ -167,7 +166,6 @@ export async function queue(
 			}
 
 			case "tweet": {
-
 				const tweet = await getTweetData(body.content.split("/").pop());
 
 				const thread = await getThreadData({
@@ -186,11 +184,10 @@ export async function queue(
 					image: tweet.value.user.profile_image_url_https,
 					title: `Tweet by ${tweet.value.user.name}`,
 				};
-				console.log("this is the tweet metadata", metadata.title);
+
 				if (isErr(thread)) {
 					console.log("Thread worker is down!");
 					vectorData = JSON.stringify(pageContent);
-					console.log(vectorData);
 					console.error(thread.error);
 				} else {
 					console.log("thread worker is fine");
