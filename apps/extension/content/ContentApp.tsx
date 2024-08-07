@@ -229,6 +229,18 @@ export default function ContentApp({
 				if (rep.status === 200) {
 					toast({
 						title: "Saved to supermemory.ai",
+						action: (
+							<button
+								onClick={() => {
+									window.open(
+										`https://supermemory.ai`,
+										"_blank",
+									);
+								}}
+							>
+								View
+							</button>
+						),
 					});
 				} else {
 					toast({
