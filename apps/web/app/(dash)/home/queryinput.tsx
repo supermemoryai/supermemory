@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FilterSpaces } from "./filterSpaces";
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
-import { Switch } from "@repo/ui/shadcn/switch";
-import { Label } from "@repo/ui/shadcn/label";
 
 function QueryInput({
 	initialSpaces,

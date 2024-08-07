@@ -3,15 +3,14 @@
 import React, { useEffect, useState } from "react";
 import QueryInput from "./queryinput";
 import { getSessionAuthToken, getSpaces } from "@/app/actions/fetchers";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
 	createChatThread,
-	getQuerySuggestions,
 	linkTelegramToUser,
 } from "@/app/actions/doers";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ChromeIcon, GithubIcon, MailIcon, TwitterIcon } from "lucide-react";
+import { ChromeIcon, MailIcon, TwitterIcon } from "lucide-react";
 import Link from "next/link";
 import History from "./history";
 

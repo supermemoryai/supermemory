@@ -1,7 +1,7 @@
 "use client";
 
 import { Content, StoredSpace } from "@repo/db/schema";
-import { MemoriesIcon, NextIcon, SearchIcon, UrlIcon } from "@repo/ui/icons";
+import { MemoriesIcon, NextIcon, UrlIcon } from "@repo/ui/icons";
 import {
 	ArrowLeftIcon,
 	MenuIcon,
@@ -37,20 +37,19 @@ import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-
+type TMemoriesPage = {
+	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
+	title?: string;
+	currentSpace?: StoredSpace;
+	usersWithAccess?: string[];
+};
 export function MemoriesPage({
 	memoriesAndSpaces,
 	title = "Your Memories",
 	currentSpace,
 	usersWithAccess,
-}: {
-	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
-	title?: string;
-	currentSpace?: StoredSpace;
-	usersWithAccess?: string[];
-}) {
+}: TMemoriesPage) {
 	const searchParams = useSearchParams();
-
 	const tab = searchParams.get("tab");
 
 	const initialFilter = useMemo(() => {
@@ -64,7 +63,6 @@ export function MemoriesPage({
 	const [filter, setFilter] = useState(initialFilter);
 	const [spaces, setSpaces] = useState<StoredSpace[]>(memoriesAndSpaces.spaces);
 
-	// to delete a space
 	const handleDeleteSpace = async (id: number) => {
 		const response = await deleteSpace(id);
 
@@ -72,7 +70,7 @@ export function MemoriesPage({
 			setSpaces(spaces.filter((space) => space.id !== id));
 			toast.success("Space deleted");
 		} else {
-			toast.error("Failed to delete space");
+			toast.error("Failed to delete the space");
 		}
 	};
 
@@ -96,25 +94,22 @@ export function MemoriesPage({
 		URL.revokeObjectURL(url);
 	};
 
-	// Sort Both memories and spaces by their savedAt and createdAt dates respectfully.
-	// The output should be just one single list of items
-	// And it will look something like { item: "memory" | "space", date: Date, data: Content | StoredSpace }
 	const sortedItems = useMemo(() => {
-		// Merge the lists
+		// merge spaces & memories to { item: "memory" | "space", date: Date, data: Content | StoredSpace }
 		const unifiedItems = [
 			...memoriesAndSpaces.memories.map((memory) => ({
 				item: "memory",
-				date: new Date(memory.savedAt), // Assuming savedAt is a string date
+				date: new Date(memory.savedAt),
 				data: memory,
 			})),
 			...spaces.map((space) => ({
 				item: "space",
-				date: new Date(space.createdAt), // Assuming createdAt is a string date
+				date: new Date(space.createdAt),
 				data: space,
 			})),
 		].map((item) => ({
 			...item,
-			date: Number(item.date), // Convert the date to a number
+			date: Number(item.date),
 		}));
 
 		// Sort the merged list
@@ -142,28 +137,22 @@ export function MemoriesPage({
 	}, [memoriesAndSpaces.memories, spaces, filter]);
 
 	return (
-		<div
-			key={`${memoriesAndSpaces.memories.length + memoriesAndSpaces.spaces.length}`}
-			className="px-2 md:px-32 py-36 h-full flex mx-auto w-full flex-col gap-6"
-		>
-			{currentSpace && (
-				<Link href={"/memories"} className="flex gap-2 items-center">
-					<ArrowLeftIcon className="w-3 h-3" /> Back to all memories
-				</Link>
-			)}
+		<div className="px-2 md:px-32 py-36 h-full flex mx-auto w-full flex-col gap-6">
+			<div className="space-y-2">
+				{currentSpace && (
+					<Link href={"/memories"}>
+						<Button className="px-0  text-gray-300" variant="link">
+							<ArrowLeftIcon className="w-3 h-3" /> Back to all memories
+						</Button>
+					</Link>
+				)}
+				<h2 className="text-white w-full text-3xl text-left font-semibold">
+					{title}
+				</h2>
+			</div>
 
-			<h2 className="text-white w-full text-3xl text-left font-semibold">
-				{title}
-			</h2>
 			{currentSpace && (
 				<div className="flex flex-col gap-2">
-					<div className="flex gap-4 items-center">
-						Space
-						<div className="flex items-center gap-2 bg-secondary p-2 rounded-xl">
-							<Image src={MemoriesIcon} alt="Spaces icon" className="w-3 h-3" />
-							<span className="text-[#fff]">{currentSpace.name}</span>
-						</div>
-					</div>
 
 					{usersWithAccess && usersWithAccess.length > 0 && (
 						<div className="flex gap-4 items-center">
@@ -202,7 +191,11 @@ export function MemoriesPage({
 						}}
 						className="flex gap-2 max-w-xl mt-2"
 					>
-						<Input name="email" placeholder="Add user by email" />
+						<Input
+							className="focus-visible:ring-0 border-[1px]"
+							name="email"
+							placeholder="Add user by email"
+						/>
 						<Button variant="secondary">Add</Button>
 					</form>
 				</div>
@@ -218,7 +211,7 @@ export function MemoriesPage({
 				/>
 				<button
 					onClick={handleExport}
-					className={`transition px-6 py-2 rounded-xl hover:text-[#369DFD]" text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]`}
+					className={`transition px-4 py-2 rounded-lg text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]`}
 				>
 					JSON Export
 				</button>
@@ -235,7 +228,7 @@ export function MemoriesPage({
 				{sortedItems.map((item) => {
 					if (item.item === "memory") {
 						return (
-							<LinkComponent
+							<MemoryComponent
 								type={(item.data as Content).type ?? "note"}
 								content={(item.data as Content).content}
 								title={(item.data as Content).title ?? "Untitled"}
@@ -256,7 +249,7 @@ export function MemoriesPage({
 
 					if (item.item === "space") {
 						return (
-							<TabComponent
+							<SpaceComponent
 								title={(item.data as StoredSpace).name}
 								description={`${(item.data as StoredSpace).numItems} memories`}
 								id={(item.data as StoredSpace).id}
@@ -272,7 +265,7 @@ export function MemoriesPage({
 	);
 }
 
-function TabComponent({
+function SpaceComponent({
 	title,
 	description,
 	id,
@@ -284,7 +277,7 @@ function TabComponent({
 	handleDeleteSpace: (id: number) => void;
 }) {
 	return (
-		<div className="flex group flex-col gap-4 bg-[#161f2a]/30 backdrop-blur-md border-2 border-border w-full rounded-xl p-4">
+		<div className="flex group flex-col gap-4 bg-[#161f2a]/25 backdrop-blur-md border-[1px] shadow-md border-border w-full rounded-xl p-4">
 			<div className="flex items-center gap-2 text-xs">
 				<Image alt="Spaces icon" src={MemoriesIcon} className="size-3" /> Space
 			</div>
@@ -296,7 +289,7 @@ function TabComponent({
 				>
 					<div>
 						<div className="h-12 w-12 flex justify-center items-center rounded-md">
-							{title.slice(0, 2).toUpperCase()} {id}
+							{title.slice(0, 2).toUpperCase()}{id}
 						</div>
 					</div>
 					<div className="grow px-2">
@@ -318,7 +311,7 @@ function TabComponent({
 	);
 }
 
-function LinkComponent({
+function MemoryComponent({
 	type,
 	content,
 	title,
@@ -445,12 +438,12 @@ function Filters({
 	filterMethods: string[];
 }) {
 	return (
-		<div className="flex gap-4 flex-wrap">
+		<div className="flex gap-3 flex-wrap">
 			{filterMethods.map((i) => {
 				return (
 					<button
 						onClick={() => setFilter(i)}
-						className={`transition px-6 py-2 rounded-xl bg-border ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]"}`}
+						className={`transition px-4 py-2 shadow-md rounded-lg bg-border ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]"}`}
 					>
 						{i}
 					</button>
