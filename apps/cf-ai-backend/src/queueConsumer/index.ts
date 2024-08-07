@@ -56,10 +56,9 @@ export async function queue(
 	env: Env,
 ): Promise<void> {
 	const db = database(env);
-	console.log(env.CF_ACCOUNT_ID, env.CF_KV_AUTH_TOKEN);
+
 	for (let message of batch.messages) {
-		console.log(env.CF_ACCOUNT_ID, env.CF_KV_AUTH_TOKEN);
-		console.log("is thie even running?", message.body);
+
 		const body = message.body;
 
 		const type = body.type;
@@ -168,9 +167,9 @@ export async function queue(
 			}
 
 			case "tweet": {
-				console.log("tweet hit");
+
 				const tweet = await getTweetData(body.content.split("/").pop());
-				console.log(env.THREAD_CF_WORKER, env.THREAD_CF_AUTH);
+
 				const thread = await getThreadData({
 					tweetUrl: body.content,
 					env: env,
@@ -180,16 +179,18 @@ export async function queue(
 					throw tweet.error;
 				}
 				pageContent = tweetToMd(tweet.value);
-				console.log(pageContent);
+
 				metadata = {
 					baseUrl: body.content,
 					description: tweet.value.text.slice(0, 200),
 					image: tweet.value.user.profile_image_url_https,
 					title: `Tweet by ${tweet.value.user.name}`,
 				};
+				console.log("this is the tweet metadata", metadata.title);
 				if (isErr(thread)) {
 					console.log("Thread worker is down!");
 					vectorData = JSON.stringify(pageContent);
+					console.log(vectorData);
 					console.error(thread.error);
 				} else {
 					console.log("thread worker is fine");
@@ -216,13 +217,12 @@ export async function queue(
 					},
 					{
 						role: "user",
-						content: pageContent,
+						content: vectorData.replace(/<raw>.*?<\/raw>/g, ""),
 					},
 				],
 				user_id: body.user,
 			}),
 		});
-
 		// see what's up with the storedToSpaces in this block
 		const { store } = await initQuery(env);
 
@@ -235,7 +235,7 @@ export async function queue(
 			type: type,
 			url: metadata.baseUrl,
 			description: metadata.description,
-			title: metadata.description,
+			title: metadata.title,
 		};
 
 		try {
@@ -268,6 +268,7 @@ export async function queue(
 				(metadata.baseUrl.split("#supermemory-user-")[0] ?? metadata.baseUrl) +
 				"#supermemory-user-" +
 				body.user;
+
 			let contentId: number;
 
 			const insertResponse = await wrap(
@@ -303,9 +304,8 @@ export async function queue(
 				});
 				throw insertResponse.error;
 			}
-			console.log(JSON.stringify(insertResponse));
-			contentId = insertResponse[0]?.id;
-			console.log("this is the content Id", contentId);
+
+			contentId = insertResponse.value[0].id;
 			if (storeToSpaces.length > 0) {
 				// Adding the many-to-many relationship between content and spaces
 				const spaceData = await wrap(
