@@ -130,14 +130,7 @@ function Menu() {
 		});
 		setContent("");
 		setSelectedSpaces([]);
-		if (cont.success) {
-			toast.success("Memory queued", {
-				richColors: true,
-			});
-		} else {
-			throw new Error(`Memory creation failed: ${cont.error}`);
-			return cont;
-		}
+		return cont;
 	};
 
 	const formSubmit = () => {
@@ -152,7 +145,7 @@ function Menu() {
 			error: (error) => `Memory creation failed: ${error}`,
 			richColors: true,
 		});
-	}
+	};
 
 	return (
 		<>
@@ -203,10 +196,7 @@ function Menu() {
 				</div>
 
 				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
-					<form
-						action={formSubmit}
-						className="flex flex-col gap-4 "
-					>
+					<form action={formSubmit} className="flex flex-col gap-4 ">
 						<DialogHeader>
 							<DialogTitle>Add memory</DialogTitle>
 							<DialogDescription className="text-[#F2F3F5]">
