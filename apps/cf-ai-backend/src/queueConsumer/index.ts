@@ -304,7 +304,7 @@ export async function queue(
 				throw insertResponse.error;
 			}
 			console.log(JSON.stringify(insertResponse));
-			contentId = insertResponse[0]?.id;
+			contentId = insertResponse[0]?.id || new Date().getTime();
 			console.log("this is the content Id", contentId);
 			if (storeToSpaces.length > 0) {
 				// Adding the many-to-many relationship between content and spaces

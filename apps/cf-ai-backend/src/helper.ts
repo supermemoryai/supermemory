@@ -9,7 +9,7 @@ import { z } from "zod";
 import { seededRandom } from "./utils/seededRandom";
 import { bulkInsertKv } from "./utils/kvBulkInsert";
 
-export async function initQuery(env: Env, model: string = "gpt-4o") {
+export async function initQuery(env: Env, model: string = "gemini-1.5-pro") {
 	const embeddings = new OpenAIEmbeddings({
 		apiKey: env.OPENAI_API_KEY,
 		modelName: "text-embedding-3-small",
@@ -35,12 +35,13 @@ export async function initQuery(env: Env, model: string = "gpt-4o") {
 			console.log("Selected model: ", selectedModel);
 			break;
 		case "gemini-1.5-pro":
+			console.log("YES GOOGLE");
 			const googleai = createGoogleGenerativeAI({
 				apiKey: env.GOOGLE_AI_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/google-vertex-ai",
 			});
-			selectedModel = googleai.chat("models/gemini-1.5-pro-latest");
+			selectedModel = googleai.chat("models/gemini-pro");
 			console.log("Selected model: ", selectedModel);
 			break;
 		case "gpt-4o":
@@ -49,7 +50,6 @@ export async function initQuery(env: Env, model: string = "gpt-4o") {
 				apiKey: env.OPENAI_API_KEY,
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/openai",
-				compatibility: "strict",
 			});
 			selectedModel = openai.chat("gpt-4o-mini");
 			break;

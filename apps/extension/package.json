@@ -1,5 +1,6 @@
 {
 	"devDependencies": {
+		"@extension-create/develop": "^1.8.0",
 		"@types/react": "^18.0.9",
 		"@types/react-dom": "^18.0.5",
 		"@webpack-cli/generators": "^3.0.7",

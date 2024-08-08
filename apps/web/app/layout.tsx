@@ -86,7 +86,7 @@ export default function RootLayout({
 				>
 					{children}
 					<Toaster />
-					<PostHogPageView />
+					{/* <PostHogPageView /> */}
 				</body>
 			</PHProvider>
 		</html>
