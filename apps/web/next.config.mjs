@@ -1,6 +1,6 @@
 import MillionLint from "@million/lint";
 import { setupDevPlatform } from "@cloudflare/next-on-pages/next-dev";
-
+import pwa from "next-pwa";
 /** @type {import('next').NextConfig} */
 const baseNextConfig = {
 	transpilePackages: ["@repo/ui"],
@@ -13,15 +13,22 @@ const baseNextConfig = {
 	},
 };
 
-let selectedCofig = baseNextConfig;
+const withPWA = pwa({
+	dest: "public",
+	disable: process.env.NODE_ENV === "development",
+	register: true,
+	skipWaiting: true,
+});
+
+let selectedConfig = baseNextConfig;
 
 if (process.env.NODE_ENV === "development") {
-	selectedCofig = MillionLint.next({
+	selectedConfig = MillionLint.next({
 		rsc: true,
 	})(baseNextConfig);
 }
 
-export default selectedCofig;
+export default withPWA(selectedConfig);
 
 // we only need to use the utility during development so we can check NODE_ENV
 // (note: this check is recommended but completely optional)
