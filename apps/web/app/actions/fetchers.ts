@@ -13,6 +13,7 @@ import {
 	spacesAccess,
 	storedContent,
 	StoredSpace,
+	Job,
 	User,
 	users,
 } from "@repo/db/schema";
@@ -162,6 +163,7 @@ export const getMemoriesInsideSpace = async (
 export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
 	spaces: StoredSpace[];
 	memories: Content[];
+	processingJobs: Job[];
 }> => {
 	const data = await auth();
 
@@ -170,17 +172,32 @@ export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
 		return { error: "Not authenticated", success: false };
 	}
 
-	const spaces = await db.query.space.findMany({
-		where: eq(users, data.user.id),
-	});
+	const memoriesFromBe = await fetch(
+		`${process.env.BACKEND_BASE_URL}/api/memories?userId=${data.user.id}`,
+		{
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+			},
+		},
+	);
 
-	const memories = await db.query.storedContent.findMany({
-		where: eq(users, data.user.id),
-	});
-
+	const memories = (await memoriesFromBe.json()) as {
+		spaces: StoredSpace[];
+		memories: Content[];
+		processingJobs: Job[];
+	};
+	console.log(
+		"----These are the processing Jobs----",
+		JSON.stringify(memories.processingJobs),
+	);
 	return {
 		success: true,
-		data: { spaces: spaces, memories: memories },
+		data: {
+			spaces: memories.spaces,
+			memories: memories.memories,
+			processingJobs: memories.processingJobs,
+		},
 	};
 };
 
