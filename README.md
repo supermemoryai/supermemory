@@ -76,7 +76,8 @@ To use the chrome extension,
 
 #### Architecture:
 
-![overview](https://i.dhr.wtf/r/Clipboard_Apr_14,_2024_at_4.52 PM.png)
+<img width="715" alt="image" src="https://github.com/user-attachments/assets/f2e38b28-8cfe-4331-9b84-a91902682ddd">
+
 
 Supermemory has three main modules, managed by [turborepo](https://turbo.build):
 
