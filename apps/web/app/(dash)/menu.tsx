@@ -31,9 +31,19 @@ import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@repo/db/schema";
 import useMeasure from "react-use-measure";
 import { useKeyPress } from "@/lib/useKeyPress";
+import { useFormStatus } from "react-dom";
 
 function Menu() {
 	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
+
+	function SubmitButton() {
+		const status = useFormStatus();
+		return (
+			<Button disabled={status.pending} variant={"secondary"} type="submit">
+				Save {autoDetectedType != "none" && autoDetectedType}
+			</Button>
+		);
+	}
 
 	useEffect(() => {
 		(async () => {
@@ -319,13 +329,7 @@ function Menu() {
 						</div>
 
 						<DialogFooter>
-							<Button
-								disabled={autoDetectedType === "none"}
-								variant={"secondary"}
-								type="submit"
-							>
-								Save {autoDetectedType != "none" && autoDetectedType}
-							</Button>
+							<SubmitButton />
 						</DialogFooter>
 					</form>
 				</DialogContent>
