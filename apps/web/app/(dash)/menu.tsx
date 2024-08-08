@@ -135,11 +135,24 @@ function Menu() {
 				richColors: true,
 			});
 		} else {
-			toast.error(`Memory creation failed: ${cont.error}`);
 			throw new Error(`Memory creation failed: ${cont.error}`);
 			return cont;
 		}
 	};
+
+	const formSubmit = () => {
+		toast.promise(handleSubmit(content, selectedSpaces), {
+			loading: (
+				<span>
+					<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+					Creating memory...
+				</span>
+			),
+			success: (data) => "Memory queued",
+			error: (error) => `Memory creation failed: ${error}`,
+			richColors: true,
+		});
+	}
 
 	return (
 		<>
@@ -191,20 +204,7 @@ function Menu() {
 
 				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
 					<form
-						action={async (e: FormData) => {
-							const content = e.get("content")?.toString();
-							toast.promise(handleSubmit(content, selectedSpaces), {
-								loading: (
-									<span>
-										<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
-										Creating memory...
-									</span>
-								),
-								success: (data) => "Memory queued",
-								error: (error) => error.message,
-								richColors: true,
-							});
-						}}
+						action={formSubmit}
 						className="flex flex-col gap-4 "
 					>
 						<DialogHeader>
@@ -227,17 +227,7 @@ function Menu() {
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										toast.promise(handleSubmit(content, selectedSpaces), {
-											loading: (
-												<span>
-													<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
-													Creating memory...
-												</span>
-											),
-											success: (data) => "Memory created",
-											error: (error) => error.message,
-											richColors: true,
-										});
+										formSubmit();
 									}
 								}}
 							/>
