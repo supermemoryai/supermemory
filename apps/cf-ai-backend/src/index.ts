@@ -86,23 +86,12 @@ app.post("/api/add", zValidator("json", vectorBody), async (c) => {
 			"#supermemory-user-" +
 			body.user;
 
-		console.log(
-			"---------------------------------------------------------------------------------------------------------------------------------------------",
-			saveToDbUrl,
-		);
 		const alreadyExist = await db
 			.select()
 			.from(storedContent)
 			.where(eq(storedContent.baseUrl, saveToDbUrl));
-		console.log(
-			"------------------------------------------------",
-			JSON.stringify(alreadyExist),
-		);
 
 		if (alreadyExist.length > 0) {
-			console.log(
-				"------------------------------------------------------------------------------------------------I exist------------------------",
-			);
 			return c.json({ status: "error", message: "the content already exists" });
 		}
 
@@ -129,11 +118,10 @@ app.post("/api/add", zValidator("json", vectorBody), async (c) => {
 		// unique contraint check
 
 		if (isWithinLimit) {
-			const spaceNumbers = body.spaces.map((s: string) => Number(s));
 			await c.env.EMBEDCHUNKS_QUEUE.send({
 				content: body.url,
 				user: body.user,
-				space: spaceNumbers,
+				space: body.spaces,
 				type: type,
 			});
 		} else {
@@ -620,7 +608,6 @@ app.post(
 				);
 
 				const metadata = normalizedData.map((datapoint) => datapoint.metadata);
-
 				return c.json({
 					ids: storedContent.filter(Boolean),
 					metadata,

@@ -95,7 +95,7 @@ export const vectorObj = z.object({
 	type: z.string().optional().default("page"),
 });
 export const vectorBody = z.object({
-	spaces: z.array(z.string()).optional(),
+	spaces: z.array(z.number()).optional(),
 	url: z.string(),
 	user: z.string(),
 });
