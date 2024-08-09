@@ -31,9 +31,19 @@ import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@repo/db/schema";
 import useMeasure from "react-use-measure";
 import { useKeyPress } from "@/lib/useKeyPress";
+import { useFormStatus } from "react-dom";
 
 function Menu() {
 	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
+
+	function SubmitButton() {
+		const status = useFormStatus();
+		return (
+			<Button disabled={status.pending} variant={"secondary"} type="submit">
+				Save {autoDetectedType != "none" && autoDetectedType}
+			</Button>
+		);
+	}
 
 	useEffect(() => {
 		(async () => {
@@ -120,15 +130,21 @@ function Menu() {
 		});
 		setContent("");
 		setSelectedSpaces([]);
-		if (cont.success) {
-			toast.success("Memory queued", {
-				richColors: true,
-			});
-		} else {
-			toast.error(`Memory creation failed: ${cont.error}`);
-			throw new Error(`Memory creation failed: ${cont.error}`);
-			return cont;
-		}
+		return cont;
+	};
+
+	const formSubmit = () => {
+		toast.promise(handleSubmit(content, selectedSpaces), {
+			loading: (
+				<span>
+					<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+					Creating memory...
+				</span>
+			),
+			success: (data) => "Memory queued",
+			error: (error) => `Memory creation failed: ${error}`,
+			richColors: true,
+		});
 	};
 
 	return (
@@ -180,23 +196,7 @@ function Menu() {
 				</div>
 
 				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
-					<form
-						action={async (e: FormData) => {
-							const content = e.get("content")?.toString();
-							toast.promise(handleSubmit(content, selectedSpaces), {
-								loading: (
-									<span>
-										<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
-										Creating memory...
-									</span>
-								),
-								success: (data) => "Memory queued",
-								error: (error) => error.message,
-								richColors: true,
-							});
-						}}
-						className="flex flex-col gap-4 "
-					>
+					<form action={formSubmit} className="flex flex-col gap-4 ">
 						<DialogHeader>
 							<DialogTitle>Add memory</DialogTitle>
 							<DialogDescription className="text-[#F2F3F5]">
@@ -217,17 +217,7 @@ function Menu() {
 								onKeyDown={(e) => {
 									if (e.key === "Enter" && !e.shiftKey) {
 										e.preventDefault();
-										toast.promise(handleSubmit(content, selectedSpaces), {
-											loading: (
-												<span>
-													<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
-													Creating memory...
-												</span>
-											),
-											success: (data) => "Memory created",
-											error: (error) => error.message,
-											richColors: true,
-										});
+										formSubmit();
 									}
 								}}
 							/>
@@ -319,13 +309,7 @@ function Menu() {
 						</div>
 
 						<DialogFooter>
-							<Button
-								disabled={autoDetectedType === "none"}
-								variant={"secondary"}
-								type="submit"
-							>
-								Save {autoDetectedType != "none" && autoDetectedType}
-							</Button>
+							<SubmitButton />
 						</DialogFooter>
 					</form>
 				</DialogContent>
