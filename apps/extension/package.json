@@ -21,6 +21,7 @@
 	"private": true,
 	"version": "0.0.0",
 	"dependencies": {
+		"@radix-ui/react-dialog": "^1.0.5",
 		"@radix-ui/react-label": "^2.1.0",
 		"@radix-ui/react-popover": "^1.1.1",
 		"@radix-ui/react-select": "^2.1.1",
@@ -28,8 +29,11 @@
 		"@radix-ui/react-tooltip": "^1.1.2",
 		"class-variance-authority": "^0.7.0",
 		"clsx": "^2.1.1",
+		"cmdk": "^1.0.0",
 		"lucide-react": "^0.400.0",
+		"mxcn": "^2.0.0",
 		"tailwind-merge": "^2.3.0",
-		"tailwindcss-animate": "^1.0.7"
+		"tailwindcss-animate": "^1.0.7",
+		"zustand": "^4.5.4"
 	}
 }
