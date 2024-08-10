@@ -39,7 +39,7 @@ export default function ContentApp({
 
 	const [webNote, setWebNote] = useState<string>("");
 
-	const [importedCount, setImportedCount] = useState(0);
+	const [importedMessage, setImportedMessage] = useState("Importing...");
 	const [isImporting, setIsImporting] = useState(false);
 	const [importDone, setImportDone] = useState(false);
 
@@ -117,7 +117,7 @@ export default function ContentApp({
 		chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			if (request.type === "import-update") {
 				setIsImporting(true);
-				setImportedCount(request.importedCount);
+				setImportedMessage(request.importedMessage);
 			}
 
 			if (request.type === "import-done") {
@@ -232,10 +232,7 @@ export default function ContentApp({
 						action: (
 							<button
 								onClick={() => {
-									window.open(
-										`https://supermemory.ai`,
-										"_blank",
-									);
+									window.open(`https://supermemory.ai`, "_blank");
 								}}
 							>
 								View
@@ -417,7 +414,7 @@ export default function ContentApp({
 
 								{isImporting && (
 									<div className="flex items-center gap-2">
-										<p>Imported {importedCount} bookmarks</p>
+										<p>{importedMessage}</p>
 										<svg
 											className="animate-spin w-6 h-6"
 											xmlns="http://www.w3.org/2000/svg"

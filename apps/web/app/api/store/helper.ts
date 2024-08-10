@@ -131,19 +131,16 @@ export const createMemoryFromAPI = async (input: {
 	}
 
 	try {
-		const response = await vectorSaveResponse.json();
-
-		const expectedResponse = z.object({ status: z.literal("ok") });
-
-		const parsedResponse = expectedResponse.safeParse(response);
-
-		if (!parsedResponse.success) {
+		if (!vectorSaveResponse.ok) {
+			const resp = await vectorSaveResponse.text();
 			return {
 				success: false,
 				data: 0,
-				error: `Failed to save to vector store. Backend returned error: ${parsedResponse.error.message}`,
+				error: `Failed to save to vector store. Backend returned error: ${resp}`,
 			};
 		}
+
+		await vectorSaveResponse.json();
 
 		return {
 			success: true,

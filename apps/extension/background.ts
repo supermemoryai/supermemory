@@ -14,14 +14,13 @@ const tweetToMd = (tweet: Tweet) => {
 const BOOKMARKS_URL = `https://x.com/i/api/graphql/xLjCVTqYWz8CGSprLU349w/Bookmarks?features=${encodeURIComponent(JSON.stringify(features))}`;
 
 const BACKEND_URL = "https://supermemory.ai";
-
-// This is to prevent going over the rate limit
+const INITIAL_WAIT_TIME = 60000; // 1 minute in milliseconds
+let waitTime = INITIAL_WAIT_TIME;
 let lastTwitterFetch = 0;
 
 const batchImportAll = async (cursor = "", totalImported = 0) => {
-	chrome.storage.session.get(["cookie", "csrf", "auth"], (result) => {
+	chrome.storage.session.get(["cookie", "csrf", "auth"], async (result) => {
 		if (!result.cookie || !result.csrf || !result.auth) {
-			console.log("cookie, csrf, or auth is missing");
 			return;
 		}
 
@@ -46,126 +45,155 @@ const batchImportAll = async (cursor = "", totalImported = 0) => {
 			? `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
 			: BOOKMARKS_URL;
 
-		fetch(urlWithCursor, requestOptions)
-			.then((response) => response.json())
-			.then((data) => {
-				const tweets = getAllTweets(data);
-				let importedCount = 0;
+		let batchImportedCount = 0;
 
-				for (const tweet of tweets) {
-					console.log(tweet);
-
-					const tweetMd = tweetToMd(tweet);
-					(async () => {
-						chrome.storage.local.get(["jwt"], ({ jwt }) => {
-							if (!jwt) {
-								console.error("No JWT found");
-								return;
-							}
-							fetch(`${BACKEND_URL}/api/store`, {
-								method: "POST",
-								headers: {
-									Authorization: `Bearer ${jwt}`,
-								},
-								body: JSON.stringify({
-									pageContent: tweetMd,
-									url: `https://twitter.com/supermemoryai/status/${tweet.id_str}`,
-									title: `Tweet by ${tweet.user.name}`,
-									description: tweet.text.slice(0, 200),
-									type: "tweet",
-								}),
-							}).then(async (ers) => {
-								console.log(ers.status);
-								importedCount++;
-								totalImported++;
-								console.log(totalImported);
-								chrome.tabs.query(
-									{ active: true, currentWindow: true },
-									async function (tabs) {
-										if (tabs.length > 0) {
-											let currentTabId = tabs[0].id;
-
-											if (!currentTabId) {
-												return;
-											}
-
-											await chrome.tabs.sendMessage(currentTabId, {
-												type: "import-update",
-												importedCount: totalImported,
-											});
-										}
-									},
-								);
-							});
-						});
-					})();
+		try {
+			const response = await fetch(urlWithCursor, requestOptions);
+			if (!response.ok) {
+				if (response.status === 429) {
+					console.error("Rate limit exceeded");
+					await handleRateLimit();
+					return batchImportAll(cursor, totalImported); // Retry after waiting
+				} else {
+					console.error("Error fetching bookmarks", response.status);
+					throw new Error("Failed to fetch data");
 				}
+			}
 
-				console.log("tweets", tweets);
-				console.log("data", data);
+			const data = await response.json();
+			const tweets = getAllTweets(data);
 
-				const instructions =
-					data.data?.bookmark_timeline_v2?.timeline?.instructions;
-				const lastInstruction = instructions?.[0].entries.pop();
+			for (const tweet of tweets) {
+				console.log(tweet);
 
-				if (lastInstruction?.entryId.startsWith("cursor-bottom-")) {
-					let nextCursor = lastInstruction?.content?.value;
+				const tweetMd = tweetToMd(tweet);
+				try {
+					await importTweet(tweetMd, tweet);
+					batchImportedCount++;
+					totalImported++;
+					console.log("Total imported:", totalImported);
+					await updateImportProgress(totalImported);
+				} catch (error) {
+					console.error("Error importing tweet:", error);
+					await handleSupermemoryError();
+					return; // Stop the process
+				}
+			}
 
-					if (!nextCursor) {
-						for (let i = instructions.length - 1; i >= 0; i--) {
-							if (instructions[i].entryId.startsWith("cursor-bottom-")) {
-								nextCursor = instructions[i].content.value;
-								break;
-							}
+			console.log("tweets", tweets);
+			console.log("data", data);
+
+			const instructions =
+				data.data?.bookmark_timeline_v2?.timeline?.instructions;
+			const lastInstruction = instructions?.[0].entries.pop();
+
+			if (lastInstruction?.entryId.startsWith("cursor-bottom-")) {
+				let nextCursor = lastInstruction?.content?.value;
+
+				if (!nextCursor) {
+					for (let i = instructions.length - 1; i >= 0; i--) {
+						if (instructions[i].entryId.startsWith("cursor-bottom-")) {
+							nextCursor = instructions[i].content.value;
+							break;
 						}
 					}
-
-					if (nextCursor) {
-						batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
-					} else {
-						console.log("All bookmarks imported");
-
-						chrome.tabs.query(
-							{ active: true, currentWindow: true },
-							async function (tabs) {
-								if (tabs.length > 0) {
-									let currentTabId = tabs[0].id;
-
-									if (!currentTabId) {
-										return;
-									}
-
-									await chrome.runtime.sendMessage({
-										type: "import-done",
-										importedCount: totalImported,
-									});
-								}
-							},
-						);
-					}
-				} else {
-					console.log("All bookmarks imported");
-					// Send a "done" message to the content script
-					chrome.tabs.query(
-						{ active: true, currentWindow: true },
-						async function (tabs) {
-							if (tabs.length > 0) {
-								let currentTabId = tabs[0].id;
-
-								if (!currentTabId) {
-									return;
-								}
-
-								await chrome.runtime.sendMessage({
-									type: "import-done",
-									importedCount: totalImported,
-								});
-							}
-						},
-					);
 				}
+
+				if (nextCursor) {
+					await new Promise((resolve) => setTimeout(resolve, 1000)); // 1 second delay between batches
+					batchImportAll(nextCursor, totalImported); // Recursively call with new cursor
+				} else {
+					await sendImportDoneMessage(totalImported);
+				}
+			} else {
+				await sendImportDoneMessage(totalImported);
+			}
+
+			// Reset wait time after successful import
+			waitTime = INITIAL_WAIT_TIME;
+		} catch (error) {
+			console.error(error);
+			await handleRateLimit();
+			batchImportAll(cursor, totalImported); // Retry after waiting
+		}
+	});
+};
+
+const handleRateLimit = async () => {
+	const waitTimeInSeconds = waitTime / 1000;
+	console.log(`Waiting for ${waitTimeInSeconds} seconds due to rate limit...`);
+	await sendMessageToCurrentTab(
+		`Rate limit reached. Waiting for ${waitTimeInSeconds} seconds before retrying...`,
+	);
+	await new Promise((resolve) => setTimeout(resolve, waitTime));
+	waitTime *= 2; // Double the wait time for next potential rate limit
+};
+
+const handleSupermemoryError = async () => {
+	const errorMessage =
+		"ALERT: Supermemory is unable to save tweets right now. Please contact support at feedback@supermemory.ai";
+	console.error(errorMessage);
+	await sendMessageToCurrentTab(errorMessage);
+};
+
+const sendMessageToCurrentTab = async (message: string) => {
+	const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+	if (tabs.length > 0 && tabs[0].id) {
+		await chrome.tabs.sendMessage(tabs[0].id, {
+			type: "import-update",
+			importedMessage: message,
+		});
+	}
+};
+
+const updateImportProgress = async (totalImported: number) => {
+	await sendMessageToCurrentTab(`Imported ${totalImported} tweets`);
+};
+
+const importTweet = async (tweetMd: string, tweet: Tweet) => {
+	return new Promise<void>((resolve, reject) => {
+		chrome.storage.local.get(["jwt"], ({ jwt }) => {
+			if (!jwt) {
+				console.error("No JWT found");
+				reject(new Error("No JWT found"));
+				return;
+			}
+			fetch(`${BACKEND_URL}/api/store`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${jwt}`,
+				},
+				body: JSON.stringify({
+					pageContent: tweetMd,
+					url: `https://twitter.com/supermemoryai/status/${tweet.id_str}`,
+					title: `Tweet by ${tweet.user.name}`,
+					description: tweet.text.slice(0, 200),
+					type: "tweet",
+				}),
 			})
-			.catch((error) => console.error(error));
+				.then(async (response) => {
+					if (!response.ok) {
+						console.log(
+							"Supermemory error",
+							response.status,
+							await response.text(),
+						);
+						reject(new Error("Failed to save tweet to Supermemory"));
+					} else {
+						console.log("Tweet saved successfully");
+						resolve();
+					}
+				})
+				.catch(reject);
+		});
+	});
+};
+
+const sendImportDoneMessage = async (totalImported: number) => {
+	console.log("All bookmarks imported");
+	await chrome.runtime.sendMessage({
+		type: "import-done",
+		importedCount: totalImported,
 	});
 };
 
