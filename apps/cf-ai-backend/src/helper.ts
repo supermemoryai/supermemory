@@ -41,7 +41,7 @@ export async function initQuery(env: Env, model: string = "gemini-1.5-pro") {
 				baseURL:
 					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/google-vertex-ai",
 			});
-			selectedModel = googleai.chat("models/gemini-pro");
+			selectedModel = googleai.chat("models/gemini-1.5-flash-8b");
 			console.log("Selected model: ", selectedModel);
 			break;
 		case "gpt-4o":
