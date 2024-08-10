@@ -173,6 +173,9 @@ const importTweet = async (tweetMd: string, tweet: Tweet) => {
 			})
 				.then(async (response) => {
 					if (!response.ok) {
+						if (response.status === 444) {
+							resolve(); // Skip saving if the tweet already exists
+						}
 						console.log(
 							"Supermemory error",
 							response.status,
@@ -268,47 +271,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 						return;
 					}
 					chrome.storage.session.set({ cookie, csrf, auth });
-
-					const myHeaders = new Headers();
-					myHeaders.append("Cookie", cookie);
-					myHeaders.append("X-Csrf-token", csrf);
-					myHeaders.append("Authorization", auth);
-
-					const requestOptions: RequestInit = {
-						method: "GET",
-						headers: myHeaders,
-						redirect: "follow",
-					};
-
-					const variables = {
-						count: 200,
-						includePromotedContent: false,
-					};
-
-					// only fetch once in 1 minute
-					if (now - lastTwitterFetch < 60 * 1000) {
-						console.log("Waiting for ratelimits");
-						return;
-					}
-
-					fetch(
-						`${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`,
-						requestOptions,
-					)
-						.then((response) => response.text())
-						.then((result) => {
-							const tweets = getAllTweets(JSON.parse(result));
-
-							console.log("tweets", tweets);
-							// Cache the result along with the current timestamp
-							chrome.storage.local.set({
-								lastFetch: new Date().getTime(),
-								cachedData: tweets,
-							});
-
-							lastTwitterFetch = now;
-						})
-						.catch((error) => console.error(error));
 				});
 				return;
 			}
