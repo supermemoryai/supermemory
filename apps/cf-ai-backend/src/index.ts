@@ -36,6 +36,7 @@ import {
 } from "./queueConsumer/chunkers/chunkPageOrNotes";
 import { queue } from "./queueConsumer";
 import { isErr } from "./errors/results";
+import { createOpenAI } from "@ai-sdk/openai";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -300,7 +301,11 @@ app.post(
 		const { query, user } = c.req.valid("query");
 		const { chatHistory } = c.req.valid("json");
 
-		const { store, model } = await initQuery(c.env);
+		const openai = createOpenAI({
+			apiKey: c.env.OPENAI_API_KEY,
+		});
+		const model = openai.chat("gpt-4o-mini");
+		const { store } = await initQuery(c.env);
 
 		let task: "add" | "chat" = "chat";
 		let thingToAdd: "page" | "image" | "text" | undefined = undefined;
@@ -319,15 +324,17 @@ app.post(
 						"Decide if the user wants to add a document or chat with the AI",
 					parameters: z.object({
 						generatedTask: z.enum(["add", "chat"]),
-						contentToAdd: z.object({
-							thing: z.enum(["page", "image", "text"]),
-							content: z.string(),
-						}),
+						contentToAdd: z
+							.object({
+								thing: z.enum(["page", "image", "text"]),
+								content: z.string(),
+							})
+							.optional(),
 					}),
 					execute: async ({ generatedTask, contentToAdd }) => {
 						task = generatedTask;
-						thingToAdd = contentToAdd.thing;
-						addContent = contentToAdd.content;
+						thingToAdd = contentToAdd?.thing;
+						addContent = contentToAdd?.content;
 					},
 				}),
 			},
@@ -681,17 +688,17 @@ app.post(
 	},
 );
 
-app.delete(
+app.post(
 	"/api/delete",
 	zValidator(
-		"query",
+		"json",
 		z.object({
 			websiteUrl: z.string(),
 			user: z.string(),
 		}),
 	),
 	async (c) => {
-		const { websiteUrl, user } = c.req.valid("query");
+		const { websiteUrl, user } = c.req.valid("json");
 
 		const { store } = await initQuery(c.env);
 

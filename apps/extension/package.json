@@ -15,7 +15,8 @@
 		"dev": "extension dev",
 		"start": "extension start",
 		"build": "extension build",
-		"style": "tailwindcss -i ../../packages/tailwind-config/globals.css -o ./public/output.css --watch"
+		"style": "tailwindcss -i ../../packages/tailwind-config/globals.css -o ./public/output.css --watch",
+		"zip": "cd dist && zip -r extension.zip chrome"
 	},
 	"name": "supermemory-extension",
 	"private": true,

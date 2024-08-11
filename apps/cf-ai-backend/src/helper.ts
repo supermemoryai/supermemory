@@ -38,8 +38,6 @@ export async function initQuery(env: Env, model: string = "gemini-1.5-pro") {
 			console.log("YES GOOGLE");
 			const googleai = createGoogleGenerativeAI({
 				apiKey: env.GOOGLE_AI_API_KEY,
-				baseURL:
-					"https://gateway.ai.cloudflare.com/v1/47c2b4d598af9d423c06fc9f936226d5/supermemory/google-vertex-ai",
 			});
 			selectedModel = googleai.chat("models/gemini-1.5-flash-8b");
 			console.log("Selected model: ", selectedModel);
