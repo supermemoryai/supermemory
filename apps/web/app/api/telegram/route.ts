@@ -21,7 +21,10 @@ bot.command("start", async (ctx) => {
 
 	const cipherd = cipher(user.id.toString());
 	await ctx.reply(
-		`Welcome to Supermemory bot. I am here to help you remember things better. Click here to create and link your account: https://supermemory.ai/signin?telegramUser=${cipherd}`,
+		`Welcome to Supermemory bot. I am here to help you remember things better. [Click here to create and link your account](https://supermemory.ai/signin?telegramUser=${cipherd})`,
+		{
+			parse_mode: "MarkdownV2",
+		},
 	);
 });
 
@@ -38,7 +41,10 @@ bot.on("message", async (ctx) => {
 
 	if (!dbUser) {
 		await ctx.reply(
-			`Welcome to Supermemory bot. I am here to help you remember things better. Click here to create and link your account: https://supermemory.ai/signin?telegramUser=${cipherd}`,
+			`Welcome to Supermemory bot. I am here to help you remember things better. [Click here to create and link your account](https://supermemory.ai/signin?telegramUser=${cipherd})`,
+			{
+				parse_mode: "MarkdownV2",
+			},
 		);
 
 		return;
@@ -103,7 +109,14 @@ bot.on("message", async (ctx) => {
 			.returning({ id: storedContent.id });
 	}
 
-	await ctx.api.editMessageText(ctx.chat.id, message.message_id, data.response);
+	await ctx.api.editMessageText(
+		ctx.chat.id,
+		message.message_id,
+		data.response,
+		{
+			parse_mode: "MarkdownV2",
+		},
+	);
 });
 
 export const POST = webhookCallback(bot, "std/http");
