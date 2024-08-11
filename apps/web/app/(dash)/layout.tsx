@@ -26,7 +26,7 @@ async function Layout({ children }: { children: React.ReactNode }) {
 				<Header />
 			</div>
 
-			<div className="relative flex justify-center z-40 pointer-events-none">
+			<div className="relative flex justify-center z-[45] pointer-events-none">
 				<div
 					className="absolute -z-10 left-0 top-[10%] h-32 w-[90%] overflow-x-hidden bg-[rgb(54,157,253)] bg-opacity-100 md:bg-opacity-70 blur-[337.4px]"
 					style={{ transform: "rotate(-30deg)" }}

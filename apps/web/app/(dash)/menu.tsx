@@ -66,11 +66,11 @@ function Menu() {
 		<>
 			{/* Desktop Menu */}
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-				<div className="hidden lg:flex fixed h-screen pb-20 w-full p-4 items-center justify-start top-0 left-0 pointer-events-none z-[39]">
+				<div className="hidden lg:flex fixed h-screen w-full p-4 items-center top-0 left-0 pointer-events-none z-[39]">
 					<div className="pointer-events-auto group flex w-14 text-foreground-menu text-[15px] font-medium flex-col items-start gap-6 overflow-hidden rounded-[28px] border-2 border-border bg-secondary px-3 py-4 duration-200 hover:w-40 z-[99999]">
 						<div className="border-b border-border pb-4 w-full">
 							<DialogTrigger
-								className={`flex w-full text-white brightness-75 hover:brightness-125 focus:brightness-125  cursor-pointer items-center gap-3 px-1 duration-200 justify-start`}
+								className="flex w-full text-white brightness-75 hover:brightness-125 focus:brightness-125  cursor-pointer items-center gap-3 px-1 duration-200 justify-start"
 							>
 								<Image
 									src={AddIcon}
@@ -86,14 +86,9 @@ function Menu() {
 						</div>
 						{menuItems.map((item) => (
 							<Link
-								aria-disabled={item.disabled}
-								href={item.disabled ? "#" : item.url}
+								href={item.url}
 								key={item.url}
-								className={`flex w-full ${
-									item.disabled
-										? "cursor-not-allowed opacity-30"
-										: "text-white brightness-75 hover:brightness-125 cursor-pointer"
-								} items-center gap-3 px-1 duration-200 hover:scale-105 active:scale-90 justify-start`}
+								className="flex w-full items-center gap-3 px-1 duration-200 hover:scale-105 active:scale-90 justify-start text-white brightness-75 hover:brightness-125 cursor-pointer"
 							>
 								<Image
 									src={item.icon}
@@ -297,6 +292,7 @@ function DialogContentMenu({setDialogClose}: {setDialogClose: ()=> void}){
 						<div>
 							<Label htmlFor="name">Resource (URL or content)</Label>
 							<Textarea
+								autoFocus
 								className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
 								id="content"
 								name="content"
