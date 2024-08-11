@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
 	MemoriesIcon,
-	ExploreIcon,
 	CanvasIcon,
 	AddIcon,
 	HomeIcon as HomeIconWeb,
@@ -29,36 +28,10 @@ import { HomeIcon } from "@heroicons/react/24/solid";
 import { createMemory, createSpace } from "../actions/doers";
 import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@repo/db/schema";
-import useMeasure from "react-use-measure";
 import { useKeyPress } from "@/lib/useKeyPress";
 import { useFormStatus } from "react-dom";
 
 function Menu() {
-	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
-
-	function SubmitButton() {
-		const status = useFormStatus();
-		return (
-			<Button disabled={status.pending} variant={"secondary"} type="submit">
-				Save {autoDetectedType != "none" && autoDetectedType}
-			</Button>
-		);
-	}
-
-	useEffect(() => {
-		(async () => {
-			let spaces = await getSpaces();
-
-			if (!spaces.success || !spaces.data) {
-				toast.warning("Unable to get spaces", {
-					richColors: true,
-				});
-				setSpaces([]);
-				return;
-			}
-			setSpaces(spaces.data);
-		})();
-	}, []);
 	useKeyPress("a", () => {
 		if (!dialogOpen) {
 			setDialogOpen(true);
@@ -85,67 +58,9 @@ function Menu() {
 		},
 	];
 
-	const [content, setContent] = useState("");
-	const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
 
-	const autoDetectedType = useMemo(() => {
-		if (content.length === 0) {
-			return "none";
-		}
-
-		if (
-			content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)
-		) {
-			return "tweet";
-		} else if (
-			content.match(
-				/^(https?:\/\/)?(www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(\/.*)?$/i,
-			)
-		) {
-			return "page";
-		} else {
-			return "note";
-		}
-	}, [content]);
 
 	const [dialogOpen, setDialogOpen] = useState(false);
-
-	const options = useMemo(
-		() =>
-			spaces.map((x) => ({
-				label: x.name,
-				value: x.id.toString(),
-			})),
-		[spaces],
-	);
-
-	const handleSubmit = async (content?: string, spaces?: number[]) => {
-		setDialogOpen(false);
-		if (!content || content.length === 0) {
-			throw new Error("Content is required");
-		}
-		const cont = await createMemory({
-			content: content,
-			spaces: spaces ?? undefined,
-		});
-		setContent("");
-		setSelectedSpaces([]);
-		return cont;
-	};
-
-	const formSubmit = () => {
-		toast.promise(handleSubmit(content, selectedSpaces), {
-			loading: (
-				<span>
-					<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
-					Creating memory...
-				</span>
-			),
-			success: (data) => "Memory queued",
-			error: (error) => `Memory creation failed: ${error}`,
-			richColors: true,
-		});
-	};
 
 	return (
 		<>
@@ -195,124 +110,7 @@ function Menu() {
 					</div>
 				</div>
 
-				<DialogContent className="sm:max-w-[475px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
-					<form action={formSubmit} className="flex flex-col gap-4 ">
-						<DialogHeader>
-							<DialogTitle>Add memory</DialogTitle>
-							<DialogDescription className="text-[#F2F3F5]">
-								A "Memory" is a bookmark, something you want to remember.
-							</DialogDescription>
-						</DialogHeader>
-
-						<div>
-							<Label htmlFor="name">Resource (URL or content)</Label>
-							<Textarea
-								className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
-								id="content"
-								name="content"
-								rows={8}
-								placeholder="Start typing a note or paste a URL here. I'll remember it."
-								value={content}
-								onChange={(e) => setContent(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" && !e.shiftKey) {
-										e.preventDefault();
-										formSubmit();
-									}
-								}}
-							/>
-						</div>
-
-						<div>
-							<Label className="space-y-1" htmlFor="space">
-								<h3 className="font-semibold text-lg tracking-tight">
-									Spaces (Optional)
-								</h3>
-								<p className="leading-normal text-[#F2F3F5] text-sm">
-									A space is a collection of memories. It's a way to organise
-									your memories.
-								</p>
-							</Label>
-
-							<ComboboxWithCreate
-								options={spaces.map((x) => ({
-									label: x.name,
-									value: x.id.toString(),
-								}))}
-								onSelect={(v) =>
-									setSelectedSpaces((prev) => {
-										if (v === "") {
-											return [];
-										}
-										return [...prev, parseInt(v)];
-									})
-								}
-								onSubmit={async (spaceName) => {
-									const space = options.find((x) => x.label === spaceName);
-									toast.info("Creating space...");
-
-									if (space) {
-										toast.error("A space with that name already exists.");
-									}
-
-									const creationTask = await createSpace(spaceName);
-									if (creationTask.success && creationTask.data) {
-										toast.success("Space created " + creationTask.data);
-										setSpaces((prev) => [
-											...prev,
-											{
-												name: spaceName,
-												id: creationTask.data!,
-												createdAt: new Date(),
-												user: null,
-												numItems: 0,
-											},
-										]);
-										setSelectedSpaces((prev) => [...prev, creationTask.data!]);
-									} else {
-										toast.error("Space creation failed: " + creationTask.error);
-									}
-								}}
-								placeholder="Select or create a new space."
-								className="bg-[#2F353C] h-min rounded-md mt-4 mb-4"
-							/>
-
-							<div>
-								{selectedSpaces.length > 0 && (
-									<div className="flex flex-row flex-wrap gap-0.5 h-min">
-										{[...new Set(selectedSpaces)].map((x, idx) => (
-											<button
-												key={x}
-												type="button"
-												onClick={() =>
-													setSelectedSpaces((prev) =>
-														prev.filter((y) => y !== x),
-													)
-												}
-												className={`relative group p-2 py-3 bg-[#3C464D] max-w-32 ${
-													idx === selectedSpaces.length - 1
-														? "rounded-br-xl"
-														: ""
-												}`}
-											>
-												<p className="line-clamp-1">
-													{spaces.find((y) => y.id === x)?.name}
-												</p>
-												<div className="absolute h-full right-0 top-0 p-1 opacity-0 group-hover:opacity-100 items-center">
-													<MinusIcon className="w-6 h-6 rounded-full bg-secondary" />
-												</div>
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-						</div>
-
-						<DialogFooter>
-							<SubmitButton />
-						</DialogFooter>
-					</form>
-				</DialogContent>
+				<DialogContentMenu setDialogClose={()=> setDialogOpen(false)} />
 
 				{/* Mobile Menu */}
 				<div className="lg:hidden fixed bottom-0 left-0 w-full p-4 bg-secondary z-50 border-t-2 border-border">
@@ -362,6 +160,173 @@ function Menu() {
 				</div>
 			</Dialog>
 		</>
+	);
+}
+
+function DialogContentMenu({setDialogClose}: {setDialogClose: ()=> void}){
+
+	const [spaces, setSpaces] = useState<StoredSpace[]>([]);
+
+	useEffect(() => {
+		(async () => {
+			let spaces = await getSpaces();
+
+			if (!spaces.success || !spaces.data) {
+				toast.warning("Unable to get spaces", {
+					richColors: true,
+				});
+				setSpaces([]);
+				return;
+			}
+			setSpaces(spaces.data);
+		})();
+	}, []);
+
+	const [content, setContent] = useState("");
+	const [selectedSpaces, setSelectedSpaces] = useState<number[]>([]);
+
+	const autoDetectedType = useMemo(() => {
+		if (content.length === 0) {
+			return "none";
+		}
+
+		if (
+			content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)
+		) {
+			return "tweet";
+		} else if (
+			content.match(
+				/^(https?:\/\/)?(www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(\/.*)?$/i,
+			)
+		) {
+			return "page";
+		} else {
+			return "note";
+		}
+	}, [content]);
+
+	const options = useMemo(
+		() =>
+			spaces.map((x) => ({
+				label: x.name,
+				value: x.id.toString(),
+			})),
+		[spaces],
+	);
+
+	const handleSubmit = async (content?: string, spaces?: number[]) => {
+		setDialogClose();
+		if (!content || content.length === 0) {
+			throw new Error("Content is required");
+		}
+		const cont = await createMemory({
+			content: content,
+			spaces: spaces ?? undefined,
+		});
+		setContent("");
+		setSelectedSpaces([]);
+		return cont;
+	}
+
+	const formSubmit = () => {
+		toast.promise(handleSubmit(content, selectedSpaces), {
+			loading: (
+				<span>
+					<PlusCircleIcon className="w-4 h-4 inline mr-2 text-white animate-spin" />{" "}
+					Creating memory...
+				</span>
+			),
+			success: (data) => "Memory queued",
+			error: (error) => `Memory creation failed: ${error}`,
+			richColors: true,
+		});
+	};
+	return (
+		<DialogContent className="sm:max-w-[575px] text-[#F2F3F5] rounded-2xl bg-background z-[39]">
+					<form action={formSubmit} className="flex flex-col gap-4 ">
+					<DialogHeader>
+					<DialogTitle>Add memory</DialogTitle>
+				</DialogHeader>
+
+						<div>
+							<Label htmlFor="space">Save to Spaces (Optional)</Label>
+							<ComboboxWithCreate
+								setSelectedSpaces={setSelectedSpaces}
+								selectedSpaces={selectedSpaces}							
+								options={spaces.map((x) => ({
+									label: x.name,
+									value: x.id.toString(),
+								}))}
+								onSelect={(v) =>
+									setSelectedSpaces((prev) => {
+										if (v === "") {
+											return [];
+										}
+										return [...prev, parseInt(v)];
+									})
+								}
+								onSubmit={async (spaceName) => {
+									const space = options.find((x) => x.label === spaceName);
+									toast.info("Creating space...");
+
+									if (space) {
+										toast.error("A space with that name already exists.");
+									}
+
+									const creationTask = await createSpace(spaceName);
+									if (creationTask.success && creationTask.data) {
+										toast.success("Space created " + creationTask.data);
+										setSpaces((prev) => [
+											...prev,
+											{
+												name: spaceName,
+												id: creationTask.data!,
+												createdAt: new Date(),
+												user: null,
+												numItems: 0,
+											},
+										]);
+										setSelectedSpaces((prev) => [...prev, creationTask.data!]);
+									} else {
+										toast.error("Space creation failed: " + creationTask.error);
+									}
+								}}
+							/>
+						</div>
+
+						<div>
+							<Label htmlFor="name">Resource (URL or content)</Label>
+							<Textarea
+								className={`bg-[#2F353C] text-[#DBDEE1] max-h-[35vh] overflow-auto  focus-visible:ring-0 border-none focus-visible:ring-offset-0 mt-2 ${/^https?:\/\/\S+$/i.test(content) && "text-[#1D9BF0] underline underline-offset-2"}`}
+								id="content"
+								name="content"
+								rows={8}
+								placeholder="Start typing a note or paste a URL here. I'll remember it."
+								value={content}
+								onChange={(e) => setContent(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" && !e.shiftKey) {
+										e.preventDefault();
+										formSubmit();
+									}
+								}}
+							/>
+						</div>
+
+						<DialogFooter>
+							<SubmitButton autoDetectedType={autoDetectedType} />
+						</DialogFooter>
+					</form>
+				</DialogContent>
+	)
+}
+
+function SubmitButton({autoDetectedType}: {autoDetectedType: string}) {
+	const status = useFormStatus();
+	return (
+		<Button disabled={status.pending} variant={"secondary"} type="submit">
+			Save {autoDetectedType != "none" && autoDetectedType}
+		</Button>
 	);
 }
 
