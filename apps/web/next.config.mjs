@@ -9,7 +9,7 @@ const baseNextConfig = {
 		TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 	},
 	eslint: {
-		disableDuringBuilds: true,
+		ignoreDuringBuilds: true
 	},
 };
 
