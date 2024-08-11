@@ -99,23 +99,34 @@ export default function ContentApp({
 
 	const [timer, setTimer] = useState(null);
 	const [progress, setProgress] = useState(0);
-	const timerRef = useRef(null);
+	type TimerId = ReturnType<typeof setTimeout>;
+	const timerRef = useRef<TimerId | null>(null);
+	const saveTimeoutRef = useRef<TimerId | null>(null);
 
 	useEffect(() => {
-		if (isPopoverOpen && !timer) {
+		if (isPopoverOpen) {
 			startTimer();
+		} else {
+			stopTimer();
 		}
+
+		return () => {
+			stopTimer();
+			if (saveTimeoutRef.current) {
+				clearTimeout(saveTimeoutRef.current);
+			}
+		};
 	}, [isPopoverOpen]);
 
 	const startTimer = () => {
+		stopTimer();
 		setProgress(0);
-		// @ts-ignore
 		timerRef.current = setInterval(() => {
 			setProgress((prev) => {
 				if (prev >= 100) {
-					clearInterval(timerRef.current!);
-					saveContent();
-					return prev;
+					stopTimer();
+					scheduleSave();
+					return 100;
 				}
 				return prev + 5;
 			});
@@ -123,8 +134,20 @@ export default function ContentApp({
 	};
 
 	const stopTimer = () => {
-		clearInterval(timerRef.current!);
-		setTimer(null);
+		if (timerRef.current) {
+			clearInterval(timerRef.current);
+			timerRef.current = null;
+		}
+	};
+
+	const scheduleSave = () => {
+		if (saveTimeoutRef.current) {
+			clearTimeout(saveTimeoutRef.current);
+		}
+		saveTimeoutRef.current = setTimeout(() => {
+			saveContent();
+			saveTimeoutRef.current = null;
+		}, 500);
 	};
 
 	const saveContent = async () => {
@@ -498,7 +521,7 @@ export default function ContentApp({
 					</PopoverContent>
 				</Popover>
 			)}
-			{/* 
+			{/*
       <div className="flex min-h-screen w-screen top-0 left-0 bg-black/50 backdrop-blur-sm items-center justify-center">
         <ShowCommandMenu />
       </div> */}
