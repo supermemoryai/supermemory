@@ -246,6 +246,7 @@ function DialogContentMenu({setDialogClose}: {setDialogClose: ()=> void}){
 						<div>
 							<Label htmlFor="space">Save to Spaces (Optional)</Label>
 							<ComboboxWithCreate
+							placeholder="spaces to save to..."
 								setSelectedSpaces={setSelectedSpaces}
 								selectedSpaces={selectedSpaces}							
 								options={spaces.map((x) => ({
