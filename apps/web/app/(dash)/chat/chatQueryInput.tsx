@@ -116,6 +116,8 @@ function QueryInput({
 					<Divider />
 					<div className="flex justify-between items-center gap-6 h-auto bg-secondary rounded-b-3xl border-2 border-border">
 						<Combobox
+							selectedSpaces={selectedSpaces}
+							setSelectedSpaces={setSelectedSpaces}
 							options={options}
 							className="rounded-bl-3xl bg-[#3C464D] w-44"
 							onSelect={(v) =>
@@ -146,10 +148,7 @@ function QueryInput({
 									]);
 									setSelectedSpaces((prev) => [...prev, creationTask.data!]);
 								} else {
-									toast.error(
-										"Space creation failed: " + creationTask.error ??
-											"Unknown error",
-									);
+									toast.error("Space creation failed: " + creationTask.error);
 								}
 							}}
 							placeholder="Chat with a space..."

@@ -9,6 +9,7 @@ import {
 	CommandItem,
 	CommandList,
 } from "./command";
+import { cn } from "../lib/utils";
 
 interface Option {
 	value: string;
@@ -21,6 +22,8 @@ interface ComboboxWithCreateProps {
 	onSubmit: (newName: string) => void;
 	selectedSpaces: number[];
 	setSelectedSpaces: React.Dispatch<React.SetStateAction<number[]>>;
+	className?: string;
+	placeholder?: string;
 }
 
 const ComboboxWithCreate = ({
@@ -29,6 +32,8 @@ const ComboboxWithCreate = ({
 	onSubmit,
 	selectedSpaces,
 	setSelectedSpaces,
+	className,
+	placeholder,
 }: ComboboxWithCreateProps) => {
 	const [inputValue, setInputValue] = useState("");
 
@@ -52,7 +57,10 @@ const ComboboxWithCreate = ({
 
 	return (
 		<Command
-			className={`group flex bg-[#2F353C] h-min rounded-md ${selectedSpaces.length > 0 && "p-2"} transition-all mt-4 mb-4`}
+			className={cn(
+				`group flex bg-[#2F353C] h-min rounded-md ${selectedSpaces.length > 0 && "p-2"} transition-all mt-4 mb-4`,
+				className,
+			)}
 		>
 			<div className="inline-flex flex-wrap gap-1">
 				{selectedSpaces.map((spaceId) => (
@@ -73,10 +81,12 @@ const ComboboxWithCreate = ({
 			<CommandInput
 				onChangeCapture={handleInputChange}
 				onKeyDown={handleKeyDown}
-				placeholder="Select or create a new space."
+				placeholder={placeholder}
 				value={inputValue}
 			/>
-			<CommandList className={`z-10 translate-x-5 opacity-0 transition-all absolute group-focus-within:opacity-100 bg-secondary p-2 rounded-b-xl max-w-64 ${selectedSpaces.length > 0 ?"translate-y-20": "translate-y-12"}`}>
+			<CommandList
+				className={`z-10 translate-x-5 opacity-0 transition-all absolute group-focus-within:opacity-100 bg-secondary p-2 rounded-b-xl max-w-64 ${selectedSpaces.length > 0 ? "translate-y-20" : "translate-y-12"}`}
+			>
 				<CommandGroup className="hidden group-focus-within:block">
 					{filteredOptions.map((option) => (
 						<CommandItem
