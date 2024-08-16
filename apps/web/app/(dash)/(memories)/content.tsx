@@ -37,7 +37,22 @@ import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@repo/ui/shadcn/alert-dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@repo/ui/shadcn/alert-dialog";
+import {
+	BookOpenIcon,
+	DocumentTextIcon,
+	FolderIcon,
+} from "@heroicons/react/24/outline";
 
 type TMemoriesPage = {
 	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
@@ -156,7 +171,6 @@ export function MemoriesPage({
 
 			{currentSpace && (
 				<div className="flex flex-col gap-2">
-
 					{usersWithAccess && usersWithAccess.length > 0 && (
 						<div className="flex gap-4 items-center">
 							Users with access
@@ -280,9 +294,9 @@ function SpaceComponent({
 	handleDeleteSpace: (id: number) => void;
 }) {
 	return (
-		<div className="flex group flex-col gap-4 bg-[#161f2a]/25 backdrop-blur-md border-[1px] shadow-md border-border w-full rounded-xl p-4">
+		<div className="flex group flex-col gap-4 bg-[#161f2a]/25 backdrop-blur-md border-[1px] shadow-md border-border w-full rounded-xl py-4 px-6">
 			<div className="flex items-center gap-2 text-xs">
-				<Image alt="Spaces icon" src={MemoriesIcon} className="size-3" /> Space
+				<FolderIcon className="h-4" /> Space
 			</div>
 
 			<div>
@@ -290,12 +304,7 @@ function SpaceComponent({
 					href={`/space/${id}`}
 					className="flex items-center justify-between w-full"
 				>
-					<div>
-						<div className="h-12 w-12 flex justify-center items-center rounded-md">
-							{title.slice(0, 2).toUpperCase()}{id}
-						</div>
-					</div>
-					<div className="grow px-2">
+					<div className="grow">
 						<div className="text-lg text-[#fff] line-clamp-2">{title}</div>
 						<div>{description}</div>
 					</div>
@@ -303,9 +312,12 @@ function SpaceComponent({
 						<Image src={NextIcon} alt="Search icon" />
 					</div>
 				</Link>
-				<div className="absolute z-40 right-3 top-3 opacity-0 group-hover:opacity-100 hover:text-red-600">
-
-				<SpaceDeleteAlert onClick={()=> {handleDeleteSpace(id)}} />
+				<div className="absolute z-40 right-5 top-4 opacity-0 group-hover:opacity-100 hover:text-red-600">
+					<SpaceDeleteAlert
+						onClick={() => {
+							handleDeleteSpace(id);
+						}}
+					/>
 				</div>
 			</div>
 		</div>
@@ -344,7 +356,7 @@ function MemoryComponent({
 				{type === "page" ? (
 					<>
 						<div className="flex items-center gap-2 text-xs">
-							<PaperclipIcon className="w-3 h-3" /> Page
+							<DocumentTextIcon className="w-3 h-3" /> Page
 						</div>
 						{/* remove `<---chunkId: ${vector.id}\n${content}\n---->` pattern from title */}
 						<div className="text-lg text-[#fff] mt-4 line-clamp-2">
@@ -357,7 +369,7 @@ function MemoryComponent({
 				) : type === "note" ? (
 					<>
 						<div className="flex items-center gap-2 text-xs">
-							<NotebookIcon className="w-3 h-3" /> Note
+							<BookOpenIcon className="h-4" /> Note
 						</div>
 						<div className="text-lg text-[#fff] mt-4 line-clamp-2">
 							{title.replace(/(<---chunkId: .*?\n.*?\n---->)/g, "")}
@@ -454,26 +466,28 @@ function Filters({
 	);
 }
 
-function SpaceDeleteAlert({onClick}: {onClick: ()=> void}){
+function SpaceDeleteAlert({ onClick }: { onClick: () => void }) {
 	return (
 		<AlertDialog>
-  <AlertDialogTrigger>					<TrashIcon
-						className="w-4 cursor-pointer"
-					/></AlertDialogTrigger>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-      <AlertDialogDescription>
-        This is irreversible. This will delete the space and all memories inside it.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onClick={onClick}>Delete</AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-	)
+			<AlertDialogTrigger>
+				{" "}
+				<TrashIcon className="w-4 cursor-pointer" />
+			</AlertDialogTrigger>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogDescription>
+						This is irreversible. This will delete the space and all memories
+						inside it.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogAction onClick={onClick}>Delete</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
 }
 
 export default MemoriesPage;
