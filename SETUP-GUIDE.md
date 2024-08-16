@@ -7,7 +7,7 @@ This guide will help you set up your own instance of Supermemory. This is necess
 - [pnpm](https://pnpm.io/installation): pnpm is used as a package manager. You can enable pnpm by running `corepack enable pnpm` in your terminal.
 - [turbo](https://turbo.build/repo/docs/installing)
 - [wrangler](https://developers.cloudflare.com/workers/cli-wrangler/install-update)
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/): You also need to have a paid Workers plan to use the vectorize feature which is needed to run the AI backend. It is currently $5/mo + usage costs.
+-[Cloudflare Workers](https://developers.cloudflare.com/workers/platform/pricing/): You also need to have a paid Workers plan to use the vectorize feature which is needed to run the AI backend. It is currently $5/mo + usage costs.
 - [Cloudflare R2](https://developers.cloudflare.com/r2/): You need to enable R2 in the Cloudflare Dashboard for use in the web app.
 
 ## Steps
