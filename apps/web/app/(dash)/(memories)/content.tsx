@@ -37,7 +37,17 @@ import { toast } from "sonner";
 import { Input } from "@repo/ui/shadcn/input";
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@repo/ui/shadcn/alert-dialog";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@repo/ui/shadcn/alert-dialog";
 
 type TMemoriesPage = {
 	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
@@ -156,7 +166,6 @@ export function MemoriesPage({
 
 			{currentSpace && (
 				<div className="flex flex-col gap-2">
-
 					{usersWithAccess && usersWithAccess.length > 0 && (
 						<div className="flex gap-4 items-center">
 							Users with access
@@ -292,7 +301,8 @@ function SpaceComponent({
 				>
 					<div>
 						<div className="h-12 w-12 flex justify-center items-center rounded-md">
-							{title.slice(0, 2).toUpperCase()}{id}
+							{title.slice(0, 2).toUpperCase()}
+							{id}
 						</div>
 					</div>
 					<div className="grow px-2">
@@ -304,8 +314,11 @@ function SpaceComponent({
 					</div>
 				</Link>
 				<div className="absolute z-40 right-3 top-3 opacity-0 group-hover:opacity-100 hover:text-red-600">
-
-				<SpaceDeleteAlert onClick={()=> {handleDeleteSpace(id)}} />
+					<SpaceDeleteAlert
+						onClick={() => {
+							handleDeleteSpace(id);
+						}}
+					/>
 				</div>
 			</div>
 		</div>
@@ -454,26 +467,28 @@ function Filters({
 	);
 }
 
-function SpaceDeleteAlert({onClick}: {onClick: ()=> void}){
+function SpaceDeleteAlert({ onClick }: { onClick: () => void }) {
 	return (
 		<AlertDialog>
-  <AlertDialogTrigger>					<TrashIcon
-						className="w-4 cursor-pointer"
-					/></AlertDialogTrigger>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-      <AlertDialogDescription>
-        This is irreversible. This will delete the space and all memories inside it.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction onClick={onClick}>Delete</AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-	)
+			<AlertDialogTrigger>
+				{" "}
+				<TrashIcon className="w-4 cursor-pointer" />
+			</AlertDialogTrigger>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+					<AlertDialogDescription>
+						This is irreversible. This will delete the space and all memories
+						inside it.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogAction onClick={onClick}>Delete</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
 }
 
 export default MemoriesPage;
