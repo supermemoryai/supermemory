@@ -169,6 +169,22 @@ export function MemoriesPage({
 				</h2>
 			</div>
 
+			<div className="flex justify-between w-full">
+				<Filters
+					setFilter={setFilter}
+					filter={filter}
+					filterMethods={
+						currentSpace ? SpaceFilterMethods : MemoriesFilterMethods
+					}
+				/>
+				<button
+					onClick={handleExport}
+					className={`transition px-4 py-2 rounded-lg text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]`}
+				>
+					JSON Export
+				</button>
+			</div>
+
 			{currentSpace && (
 				<div className="flex flex-col gap-2">
 					{usersWithAccess && usersWithAccess.length > 0 && (
@@ -217,22 +233,6 @@ export function MemoriesPage({
 					</form>
 				</div>
 			)}
-
-			<div className="flex justify-between w-full">
-				<Filters
-					setFilter={setFilter}
-					filter={filter}
-					filterMethods={
-						currentSpace ? SpaceFilterMethods : MemoriesFilterMethods
-					}
-				/>
-				<button
-					onClick={handleExport}
-					className={`transition px-4 py-2 rounded-lg text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]`}
-				>
-					JSON Export
-				</button>
-			</div>
 
 			<Masonry
 				className="mt-6 relative"
@@ -454,12 +454,20 @@ function Filters({
 		<div className="flex gap-3 flex-wrap">
 			{filterMethods.map((i) => {
 				return (
-					<button
-						onClick={() => setFilter(i)}
-						className={`transition px-4 py-2 shadow-md rounded-lg bg-border ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5] bg-secondary drop-shadow-md hover:bg-secondary hover:text-[#76a3cc]"}`}
-					>
-						{i}
-					</button>
+					<div className="relative">
+						<button
+							onClick={() => setFilter(i)}
+							className={`transition px-4 py-2   ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5]"}`}
+						>
+							{i}
+						</button>
+						{i === filter && (
+							<motion.div
+								layoutId="bg"
+								className="bg-secondary shadow-md drop-shadow-md rounded-lg z-[-1] absolute h-full w-full top-0 left-0"
+							></motion.div>
+						)}
+					</div>
 				);
 			})}
 		</div>
