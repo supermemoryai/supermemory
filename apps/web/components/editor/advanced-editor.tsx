@@ -7,22 +7,17 @@ import {
 	EditorCommandItem,
 	EditorCommandList,
 	EditorContent,
-	type EditorInstance,
 	EditorRoot,
-	type JSONContent,
 	useEditor,
 } from "novel";
 import { ImageResizer, handleCommandNavigation } from "novel/extensions";
 import { memo, useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
 import { defaultExtensions } from "./extensions";
 import { LinkSelector } from "./selectors/link-selector";
 import { NodeSelector } from "./selectors/node-selector";
 import { Separator } from "./ui/separator";
 
-import { handleImageDrop, handleImagePaste } from "novel/plugins";
 import GenerativeMenuSwitch from "./generative/generative-menu-switch";
-import { uploadFn } from "./image-upload";
 import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 import { ToC } from "./toc";
@@ -31,7 +26,6 @@ import {
 	TableOfContents,
 } from "@tiptap-pro/extension-table-of-contents";
 import { AlignSelector } from "./selectors/align-selector";
-import { useFormStatus } from "react-dom";
 import { Button } from "@repo/ui/shadcn/button";
 
 const MemorizedToC = memo(ToC);
