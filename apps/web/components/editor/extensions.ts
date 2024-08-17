@@ -2,24 +2,17 @@ import {
   AIHighlight,
   CharacterCount,
   CodeBlockLowlight,
-  // Color,
-  // CustomKeymap,
   GlobalDragHandle,
-  // HighlightExtension,
   HorizontalRule,
-  // MarkdownExtension,
   Placeholder,
   StarterKit,
   TaskItem,
   TaskList,
-  // TextStyle,
   TiptapImage,
   TiptapLink,
-  // TiptapUnderline,
   Twitter,
   UpdatedImage,
   Youtube,
-  // Mathematics,
 } from "novel/extensions";
 import suggestion from "./emoji/suggestion"
 import { UploadImagesPlugin } from "novel/plugins";
@@ -120,8 +113,6 @@ const starterKit = StarterKit.configure({
 });
 
 const codeBlockLowlight = CodeBlockLowlight.configure({
-  // configure lowlight: common /  all / use highlightJS in case there is a need to specify certain language grammars only
-  // common: covers 37 language grammars which should be good enough in most cases
   lowlight: createLowlight(common),
 });
 
@@ -139,14 +130,6 @@ const twitter = Twitter.configure({
   inline: false,
 });
 
-// const mathematics = Mathematics.configure({
-//   HTMLAttributes: {
-//     class: cx("text-foreground rounded p-1 hover:bg-accent cursor-pointer"),
-//   },
-//   katexOptions: {
-//     throwOnError: false,
-//   },
-// });
 
 const characterCount = CharacterCount.configure();
 
