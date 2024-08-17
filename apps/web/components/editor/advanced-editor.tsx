@@ -45,6 +45,7 @@ type tContent = {
 	isActive: boolean;
 	itemIndex: number;
 	isScrolledOver: boolean;
+	pos: number;
 };
 
 const TailwindAdvancedEditor = memo(
@@ -60,18 +61,20 @@ const TailwindAdvancedEditor = memo(
 			TableOfContents.configure({
 				getIndex: getHierarchicalIndexes,
 				onUpdate(content) {
+					console.log(content);
 					setItems(content);
 				},
 			}),
 		];
 
 		return (
-			<div className="relative w-full h-full">
+			<div className="relative w-full h-full bg-[#171B1F]">
 				<EditorRoot>
 					<EditorContent
+						autofocus
 						initialContent={defaultEditorContent}
 						extensions={extensions}
-						className="relative max-w-[98vw] h-[98vh] overflow-auto w-full bg-[#171B1F] sm:rounded-lg sm:shadow-lg"
+						className="relative w-full h-full py-10 max-w-5xl m-auto overflow-auto bg-transparent sm:rounded-lg sm:shadow-lg"
 						editorProps={{
 							handleDOMEvents: {
 								keydown: (_view, event) => handleCommandNavigation(event),
@@ -103,7 +106,7 @@ const TailwindAdvancedEditor = memo(
 										className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-[#21303D] group aria-selected:bg-[#21303D]"
 										key={item.title}
 									>
-										<div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#2D343A] group-hover:bg-[#369DFD33] group-aria-selected:bg-[#369DFD33]">
+										<div className="flex h-12 w-12 items-center justify-center rounded-md bg-[#2D343A] group-hover:bg-[#369DFD33] group-aria-selected:bg-[#369DFD33]">
 											{item.icon}
 										</div>
 										<div>
