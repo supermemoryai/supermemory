@@ -200,6 +200,12 @@ export async function queue(
 
 		//add to mem0, abstract
 
+		const includeMessages = {
+			note: "information of this user based on the provided note.",
+			tweet: "interests of this user based on a twitter post they are saving.",
+			page: "interests of this user based on a web page they are saving.",
+		};
+
 		const mem0Response = fetch("https://api.mem0.ai/v1/memories/", {
 			method: "POST",
 			headers: {
@@ -209,7 +215,7 @@ export async function queue(
 			body: JSON.stringify({
 				messages: [
 					{
-						role: "system",
+						role: "user",
 						content: `Extract information about the user based on this saved content provided, remember that the date was ${new Date().toUTCString()} in utc time zone`,
 					},
 					{
@@ -217,6 +223,7 @@ export async function queue(
 						content: vectorData.replace(/<raw>.*?<\/raw>/g, ""),
 					},
 				],
+				includes: includeMessages[type],
 				user_id: body.user,
 			}),
 		});
