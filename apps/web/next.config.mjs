@@ -9,7 +9,7 @@ const baseNextConfig = {
 		TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
 	},
 	eslint: {
-		ignoreDuringBuilds: true
+		ignoreDuringBuilds: true,
 	},
 };
 
@@ -22,7 +22,7 @@ const withPWA = pwa({
 
 let selectedConfig = baseNextConfig;
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === "development" && !process.env.TURBOPACK) {
 	selectedConfig = MillionLint.next({
 		rsc: true,
 	})(baseNextConfig);
