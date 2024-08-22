@@ -15,7 +15,7 @@ const baseNextConfig = {
 
 let selectedConfig = baseNextConfig;
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === "development" && !process.env.TURBOPACK) {
 	selectedConfig = MillionLint.next({
 		rsc: true,
 	})(baseNextConfig);
