@@ -17,7 +17,7 @@ This guide will help you set up your own instance of Supermemory. This is necess
 
 ### web
 
-1. You need to create OAuth credentials for Google which is need for auth.js (nextauth). Visit https://developers.google.com/identity/protocols/oauth2 to learn more and https://console.cloud.google.com/apis/dashboard to create a new project and OAuth credentials. You need to set the redirect URL to `http://localhost:3000/api/auth/callback/google` for development. You can also set the redirect URL to your own domain if you are deploying the app.
+1. You need to create OAuth credentials for Google which are needed for auth.js (nextauth). Visit https://developers.google.com/identity/protocols/oauth2 to learn more and https://console.cloud.google.com/apis/dashboard to create a new project and OAuth credentials. You need to set the redirect URL to `http://localhost:3000/api/auth/callback/google` for development. You can also set the redirect URL to your own domain if you are deploying the app.
 2. Create a `.dev.vars` file in `apps/web` with the following content:
 
 ```bash
