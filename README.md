@@ -45,6 +45,20 @@ Supermemory fixes this.
 - 🏠 **Self Hostable**: Open source and easy to deploy locally.
 - 🔗 **Integrations**: Compatible with Telegram, Twitter, and more to come.
 
+## Security Disclaimer
+
+While SuperMemory aims to provide a useful tool for organizing and accessing personal information, users should be aware of potential security considerations:
+
+- Always use strong, unique passwords and enable two-factor authentication when available to protect your account.
+- Be cautious about the types of sensitive information you store in any cloud-based service, including SuperMemory. Avoid storing highly confidential data like financial details or sensitive personal information.
+- Regularly review and manage your stored data, removing any outdated or unnecessary information.
+- Be aware that while the service aims to protect user privacy, no system is completely immune to potential security breaches or unauthorized access.
+- When using browser extensions or integrations, ensure you download them from official sources and keep them updated.
+- Exercise caution when granting permissions to extensions or connected services.
+- Remember that AI-powered features may sometimes produce unexpected or inaccurate results. Always verify important information from original sources.
+
+Users are encouraged to review SuperMemory's specific privacy policy and terms of service for detailed information on data handling and security practices.
+
 ## How do I use this?
 
 Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google account.
