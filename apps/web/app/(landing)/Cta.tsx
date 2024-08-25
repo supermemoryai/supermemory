@@ -21,24 +21,18 @@ function Cta() {
 					/>
 				</div>
 			</div>
-			<h1 className="text-sm z-20  text-gray-400 group font-geist mx-auto px-5 py-2 bg-gradient-to-tr from-zinc-300/5 via-gray-400/5 to-transparent  border-[2px] border-white/5 rounded-3xl w-fit">
-				<p className="tracking-tight uppercase">
-					Launching July 1st, 2024
-					<ChevronRight className="inline w-4 h-4 ml-2 group-hover:translate-x-1 duration-300" />
-				</p>
-			</h1>
 			<h1 className="z-20 mx-auto mt-0 max-w-xl font-normal tracking-tighter text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-center text-transparent bg-clip-text bg-gradient-to-tr from-zinc-400/50 to-white/60 via-white">
-				Your bookmarks are collecting dust.
+				Supercharge your bookmarks today.
 			</h1>
 			<p className="z-20 text-center text-md md:text-lg">
-				Sign up for the waitlist and be the first to try Supermemory
+				Start using Supermemory now and unlock your second brain.
 			</p>
 			<div className="w-fit  mx-auto">
 				<Link
 					href="/signin"
 					className="flex mx-auto w-fit gap-x-2 justify-center items-center py-3 px-5 ml-3  rounded-3xl border duration-200 group bg-page-gradient border-white/30 text-md font-geistSans hover:border-zinc-600 hover:bg-transparent/10 hover:text-zinc-100 text-white z-[1] relative"
 				>
-					Sign in
+					Get Started
 					<div className="flex overflow-hidden relative justify-center items-center ml-1 w-5 h-5">
 						<ArrowUpRight className="absolute transition-all duration-500 group-hover:translate-x-4 group-hover:-translate-y-5" />
 						<ArrowUpRight className="absolute transition-all duration-500 -translate-x-4 -translate-y-5 group-hover:translate-x-0 group-hover:translate-y-0" />
