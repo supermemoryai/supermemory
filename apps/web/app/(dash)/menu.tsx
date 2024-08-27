@@ -289,7 +289,6 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 				</div>
 
 				<div>
-					{content}
 					<Label htmlFor="name">Resource (URL or content)</Label>
 					<Textarea
 						autoFocus
@@ -313,7 +312,7 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 					<Dialog onOpenChange={setEditorOpen} open={editorOpen}>
 						<DialogTrigger>
 							<Button variant={"secondary"} type="button">
-								Try Note Editor!
+								Open Markdown Editor
 							</Button>
 						</DialogTrigger>
 						<EditorDialog
