@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthResult } from "next-auth";
+import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
@@ -12,12 +12,7 @@ export const {
 } = NextAuth({
 	secret: process.env.BACKEND_SECURITY_KEY,
 	trustHost: true,
-	adapter: DrizzleAdapter(db, {
-		usersTable: users,
-		accountsTable: accounts,
-		sessionsTable: sessions,
-		verificationTokensTable: verificationTokens,
-	}),
+	adapter: DrizzleAdapter(db),
 	providers: [
 		Google({
 			clientId: process.env.GOOGLE_CLIENT_ID,

@@ -20,8 +20,12 @@ import { Popover } from "@radix-ui/react-popover";
 export type SelectorItem = {
 	name: string;
 	icon: LucideIcon;
-	command: (editor: ReturnType<typeof useEditor>["editor"]) => void;
-	isActive: (editor: ReturnType<typeof useEditor>["editor"]) => boolean;
+	command: (
+		editor: NonNullable<ReturnType<typeof useEditor>["editor"]>,
+	) => void;
+	isActive: (
+		editor: NonNullable<ReturnType<typeof useEditor>["editor"]>,
+	) => boolean;
 };
 
 const items: SelectorItem[] = [
@@ -126,8 +130,10 @@ export const NodeSelector = ({ open, onOpenChange }: NodeSelectorProps) => {
 					<EditorBubbleItem
 						key={item.name}
 						onSelect={(editor) => {
-							item.command(editor);
-							onOpenChange(false);
+							if (editor) {
+								item.command(editor);
+								onOpenChange(false);
+							}
 						}}
 						className="flex border-0 group cursor-pointer items-center justify-between rounded-sm px-2 py-1 text-sm hover:bg-[#21303D]"
 					>

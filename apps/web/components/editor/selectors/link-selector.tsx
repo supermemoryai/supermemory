@@ -102,6 +102,7 @@ export const LinkSelector = ({ open, onOpenChange }: LinkSelectorProps) => {
 							className="flex h-8 border-0 items-center rounded-sm p-1 text-red-600 hover:text-red-600 hover:bg-red-950"
 							onClick={() => {
 								editor.chain().focus().unsetLink().run();
+								if (!inputRef.current) return;
 								inputRef.current.value = "";
 								onOpenChange(false);
 							}}

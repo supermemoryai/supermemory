@@ -141,6 +141,7 @@ const textAlign = TextAlign.configure({
 const emojis = Emoji.configure({
 	emojis: gitHubEmojis,
 	enableEmoticons: true,
+	// @ts-ignore
 	suggestion,
 });
 

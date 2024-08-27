@@ -5,10 +5,24 @@ import React, {
 	useState,
 } from "react";
 
-export const EmojiList = forwardRef((props, ref) => {
+interface EmojiItem {
+	name: string;
+	emoji: string;
+	fallbackImage?: string;
+}
+
+interface EmojiListProps {
+	items: EmojiItem[];
+	command: (item: { name: string }) => void;
+}
+
+export const EmojiList = forwardRef<
+	{ onKeyDown: (x: { event: KeyboardEvent }) => boolean },
+	EmojiListProps
+>((props, ref) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 
-	const selectItem = (index) => {
+	const selectItem = (index: number) => {
 		const item = props.items[index];
 		if (item) {
 			props.command({ name: item.name });
@@ -34,7 +48,7 @@ export const EmojiList = forwardRef((props, ref) => {
 	useImperativeHandle(
 		ref,
 		() => ({
-			onKeyDown: (x) => {
+			onKeyDown: (x: { event: KeyboardEvent }) => {
 				if (x.event.key === "ArrowUp") {
 					upHandler();
 					return true;
@@ -58,7 +72,7 @@ export const EmojiList = forwardRef((props, ref) => {
 			{props.items.map((item, index) => (
 				<button
 					className={`flex items-center gap-1 w-full text-left ${
-						index === selectedIndex && "bg-[#21303D] text-[#369DFD]"
+						index === selectedIndex ? "bg-[#21303D] text-[#369DFD]" : ""
 					}`}
 					key={index}
 					onClick={() => selectItem(index)}

@@ -1,16 +1,28 @@
 import { ReactRenderer } from "@tiptap/react";
-import tippy from "tippy.js";
+import tippy, { Instance as TippyInstance } from "tippy.js";
 
 import { EmojiList } from "./emojiList";
+import { Editor } from "@tiptap/core";
+
+interface EmojiItem {
+	shortcodes: string[];
+	tags: string[];
+}
+
+interface SuggestionProps {
+	editor: Editor;
+	clientRect: () => DOMRect;
+	event: KeyboardEvent;
+}
 
 export default {
-	items: ({ editor, query }) => {
-		return editor.storage.emoji.emojis
+	items: ({ editor, query }: { editor: Editor; query: string }) => {
+		return (editor.storage.emoji.emojis as EmojiItem[])
 			.filter(({ shortcodes, tags }) => {
 				return (
-					shortcodes.find((shortcode) =>
+					shortcodes.find((shortcode: string) =>
 						shortcode.startsWith(query.toLowerCase()),
-					) || tags.find((tag) => tag.startsWith(query.toLowerCase()))
+					) || tags.find((tag: string) => tag.startsWith(query.toLowerCase()))
 				);
 			})
 			.slice(0, 5);
@@ -19,11 +31,11 @@ export default {
 	allowSpaces: false,
 
 	render: () => {
-		let component;
-		let popup;
+		let component: ReactRenderer;
+		let popup: TippyInstance[];
 
 		return {
-			onStart: (props) => {
+			onStart: (props: SuggestionProps) => {
 				component = new ReactRenderer(EmojiList, {
 					props,
 					editor: props.editor,
@@ -40,27 +52,28 @@ export default {
 				});
 			},
 
-			onUpdate(props) {
+			onUpdate(props: SuggestionProps) {
 				component.updateProps(props);
 
-				popup[0].setProps({
+				popup[0]?.setProps({
 					getReferenceClientRect: props.clientRect,
 				});
 			},
 
-			onKeyDown(props) {
+			onKeyDown(props: SuggestionProps) {
 				if (props.event.key === "Escape") {
-					popup[0].hide();
+					popup[0]?.hide();
 					component.destroy();
 
 					return true;
 				}
 
+				// @ts-ignore
 				return component.ref?.onKeyDown(props);
 			},
 
 			onExit() {
-				popup[0].destroy();
+				popup[0]?.destroy();
 				component.destroy();
 			},
 		};

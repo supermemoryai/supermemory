@@ -1,4 +1,4 @@
-import { Check, ChevronDown, LucideIcon } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { EditorBubbleItem, useEditor } from "novel";
 
 import { Button } from "../ui/button";
@@ -7,8 +7,12 @@ import { Popover } from "@radix-ui/react-popover";
 
 export type SelectorItem = {
 	name: string;
-	command: (editor: ReturnType<typeof useEditor>["editor"]) => void;
-	isActive: (editor: ReturnType<typeof useEditor>["editor"]) => boolean;
+	command: (
+		editor: NonNullable<ReturnType<typeof useEditor>["editor"]>,
+	) => void;
+	isActive: (
+		editor: NonNullable<ReturnType<typeof useEditor>["editor"]>,
+	) => boolean;
 };
 
 const items: SelectorItem[] = [
@@ -67,7 +71,7 @@ export const AlignSelector = ({ open, onOpenChange }: AlignSelectorProps) => {
 				{items.map((item) => (
 					<EditorBubbleItem
 						key={item.name}
-						onSelect={(editor) => {
+						onSelect={() => {
 							item.command(editor);
 							onOpenChange(false);
 						}}

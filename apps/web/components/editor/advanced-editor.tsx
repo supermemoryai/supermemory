@@ -54,7 +54,7 @@ const TailwindAdvancedEditor = memo(
 			slashCommand,
 			TableOfContents.configure({
 				getIndex: getHierarchicalIndexes,
-				onUpdate(content) {
+				onUpdate(content: tContent[]) {
 					console.log(content);
 					setItems(content);
 				},
@@ -96,7 +96,7 @@ const TailwindAdvancedEditor = memo(
 								{suggestionItems.map((item) => (
 									<EditorCommandItem
 										value={item.title}
-										onCommand={(val) => item.command(val)}
+										onCommand={(val) => item?.command?.(val)}
 										className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-[#21303D] group aria-selected:bg-[#21303D]"
 										key={item.title}
 									>
