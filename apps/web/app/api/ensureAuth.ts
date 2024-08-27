@@ -56,9 +56,9 @@ export async function ensureAuth(req: NextRequest) {
 		if (
 			!(
 				authUserData.audience.split("-")[0] ===
-					process.env.GOOGLE_CLIENT_ID.split("-")[0] &&
+					process.env.AUTH_GOOGLE_ID.split("-")[0] &&
 				authUserData.issued_to.split("-")[0] ===
-					process.env.GOOGLE_CLIENT_ID.split("-")[0]
+					process.env.AUTH_GOOGLE_ID.split("-")[0]
 			)
 		) {
 			console.log(

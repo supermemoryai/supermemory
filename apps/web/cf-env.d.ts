@@ -1,9 +1,10 @@
 declare global {
 	namespace NodeJS {
 		interface ProcessEnv extends CloudflareEnv {
-			GOOGLE_CLIENT_ID: string;
-			GOOGLE_CLIENT_SECRET: string;
-			AUTH_SECRET: string;
+      AUTH_URL: string;
+      AUTH_SECRET: string;
+      AUTH_GOOGLE_ID: string;
+      AUTH_GOOGLE_SECRET: string;
 
 			R2_ENDPOINT: string;
 			R2_ACCESS_KEY_ID: string;

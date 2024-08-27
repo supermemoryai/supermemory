@@ -13,9 +13,9 @@
 		"dev": {
 			"env": [
 				"NODE_ENV=development",
-				"GOOGLE_CLIENT_ID",
-				"GOOGLE_CLIENT_SECRET",
-				"NEXTAUTH_SECRET",
+				"AUTH_GOOGLE_ID",
+				"AUTH_GOOGLE_SECRET",
+				"AUTH_SECRET",
 				"R2_ENDPOINT",
 				"R2_ACCESS_ID",
 				"R2_SECRET_KEY",
