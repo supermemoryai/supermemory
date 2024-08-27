@@ -304,7 +304,13 @@ function SpaceComponent({
 					href={`/space/${id}`}
 					className="flex items-center justify-between w-full"
 				>
-					<div className="grow">
+					<div>
+						<div className="h-12 w-12 flex justify-center items-center rounded-md">
+							{title.slice(0, 2).toUpperCase()}
+							{id}
+						</div>
+					</div>
+					<div className="grow px-2">
 						<div className="text-lg text-[#fff] line-clamp-2">{title}</div>
 						<div>{description}</div>
 					</div>
@@ -312,7 +318,7 @@ function SpaceComponent({
 						<Image src={NextIcon} alt="Search icon" />
 					</div>
 				</Link>
-				<div className="absolute z-40 right-5 top-4 opacity-0 group-hover:opacity-100 hover:text-red-600">
+				<div className="absolute z-40 right-3 top-3 opacity-0 group-hover:opacity-100 hover:text-red-600">
 					<SpaceDeleteAlert
 						onClick={() => {
 							handleDeleteSpace(id);

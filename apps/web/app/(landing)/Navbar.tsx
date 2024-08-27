@@ -30,7 +30,7 @@ export const Navbar = () => {
 	useMotionValueEvent(scrollYProgress, "change", (current) => {
 		// Check if current is not undefined and is a number
 		if (typeof current === "number") {
-			let direction = current! - scrollYProgress.getPrevious()!;
+			const direction = current - scrollYProgress.getPrevious()!;
 			if (direction < 0) {
 				setVisible(true);
 			} else {
@@ -43,17 +43,18 @@ export const Navbar = () => {
 		<AnimatePresence mode="wait">
 			<motion.nav
 				initial={{
-					y: -130,
+					y: -150,
 					opacity: 1,
 				}}
 				animate={{
-					y: visible ? 0 : -100,
+					y: visible ? -50 : -100,
 					opacity: visible ? 1 : 0,
 				}}
 				transition={{
 					duration: 0.2,
+					ease: "easeOut",
 				}}
-				className="fixed top-0 z-[99999] mt-12 hidden w-full px-24 text-sm md:flex"
+				className="fixed z-[99999]  inset-x-0 mt-12 hidden w-full px-24 text-sm md:flex"
 			>
 				<NavbarContent />
 			</motion.nav>
