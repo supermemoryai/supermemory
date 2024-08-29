@@ -340,6 +340,8 @@ app.post(
 			},
 		});
 
+		console.log(task);
+
 		if ((task as string) === "add") {
 			// addString is the plaintext string that the user wants to add to the database
 			//chunk the note
