@@ -120,7 +120,7 @@ app.post("/api/add", zValidator("json", vectorBody), async (c) => {
 
 		if (isWithinLimit) {
 			await c.env.EMBEDCHUNKS_QUEUE.send({
-				content: body.url,
+				content: saveToDbUrl,
 				user: body.user,
 				space: body.spaces,
 				type: type,
