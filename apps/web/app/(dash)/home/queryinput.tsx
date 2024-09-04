@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useRef } from "react";
 import { FilterSpaces } from "./filterSpaces";
 import { ArrowRightIcon } from "@repo/ui/icons";
 import Image from "next/image";
 import { Switch } from "@repo/ui/shadcn/switch";
 import { Label } from "@repo/ui/shadcn/label";
+
 
 function QueryInput({
 	initialSpaces,
@@ -32,6 +33,15 @@ function QueryInput({
 		{ id: number; name: string }[]
 	>([]);
 
+	const divRef=useRef<HTMLDivElement>(null)
+
+
+	const handleInput = () => {
+		if (divRef.current) {
+		  setQuery((divRef.current.textContent || ''));
+ 		}
+	  };
+	 
 	return (
 		<div className={`w-full`}>
 			<div
@@ -47,13 +57,11 @@ function QueryInput({
 						setQuery("");
 					}}
 				>
-					<textarea
+					<div
+					    contentEditable={true}
 						autoFocus
-						name="q"
-						cols={30}
-						rows={3}
-						className={`bg-transparent text-lg placeholder:text-[#9B9B9B] text-gray-200 tracking-[3%] outline-none resize-none w-full py-4 px-4 h-32 transition-[height] ${query.length > 0 && "h-40"}`}
-						placeholder="Ask your second brain..."
+						ref={divRef}
+						className={`bg-transparent text-lg placeholder:text-[#9B9B9B] text-gray-200 tracking-[3%] outline-none resize-none w-full py-4 px-4 h-32 transition-[height] overflow-y-auto ${query.length > 0 && "h-40"}`}
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !e.shiftKey) {
 								e.preventDefault();
@@ -63,10 +71,18 @@ function QueryInput({
 								handleSubmit(query, selectedSpaces, proMode);
 								setQuery("");
 							}
-						}}
-						onChange={(e) => setQuery(e.target.value)}
-						value={query}
-					/>
+						}} 
+ 						onInput={handleInput}
+						 
+					> 
+					</div>
+					{ query.length===0 &&	<span
+                className=" relative bottom-28 left-4 text-lg text-gray-400 pointer-events-none"
+                style={{ userSelect: "none" }}
+            >
+                Ask your second brain...
+            </span>}
+
 					<div className="flex p-2 px-3 w-full items-center justify-between rounded-xl overflow-hidden">
 						<FilterSpaces
 							selectedSpaces={selectedSpaces}
