@@ -162,7 +162,6 @@ export const getMemoriesInsideSpace = async (
 export const getAllUserMemoriesAndSpaces = async (): ServerActionReturnType<{
 	spaces: StoredSpace[];
 	memories: Content[];
-	userId: string;
 }> => {
 	const data = await auth();
 
