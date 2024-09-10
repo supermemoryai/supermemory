@@ -34,7 +34,6 @@ export async function processPage(input: {
 			throw metadataResult.error;
 		}
 		const metadata = metadataResult.value;
-		console.log("[this is the metadata]", metadata);
 		return Ok({ pageContent, metadata });
 	} catch (e) {
 		console.error("[Page Processing Error]", e);

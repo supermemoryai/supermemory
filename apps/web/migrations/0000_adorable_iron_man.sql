@@ -43,7 +43,7 @@ CREATE TABLE `chatHistory` (
 	`answerParts` text,
 	`answerSources` text,
 	`answerJustification` text,
-	`createdAt` integer DEFAULT '"2024-07-31T07:35:53.819Z"' NOT NULL,
+	`createdAt` integer DEFAULT '"2024-09-05T18:04:25.816Z"' NOT NULL,
 	FOREIGN KEY (`threadId`) REFERENCES `chatThread`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -70,8 +70,8 @@ CREATE TABLE `jobs` (
 	`attempts` integer DEFAULT 0 NOT NULL,
 	`lastAttemptAt` integer,
 	`error` blob,
-	`createdAt` integer NOT NULL,
-	`updatedAt` integer NOT NULL,
+	`createdAt` integer DEFAULT '"2024-09-05T18:04:25.816Z"' NOT NULL,
+	`updatedAt` integer DEFAULT '"2024-09-05T18:04:25.816Z"' NOT NULL,
 	FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
@@ -105,8 +105,8 @@ CREATE TABLE `storedContent` (
 	`description` text(255),
 	`url` text NOT NULL,
 	`savedAt` integer NOT NULL,
-	`baseUrl` text(255),
-	`ogImage` text(255),
+	`baseUrl` text,
+	`ogImage` text,
 	`type` text DEFAULT 'page',
 	`image` text(255),
 	`user` text,
@@ -142,7 +142,6 @@ CREATE INDEX `jobs_url_idx` ON `jobs` (`url`);--> statement-breakpoint
 CREATE UNIQUE INDEX `space_name_unique` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_name_idx` ON `space` (`name`);--> statement-breakpoint
 CREATE INDEX `spaces_user_idx` ON `space` (`user`);--> statement-breakpoint
-CREATE UNIQUE INDEX `storedContent_baseUrl_unique` ON `storedContent` (`baseUrl`);--> statement-breakpoint
 CREATE INDEX `storedContent_url_idx` ON `storedContent` (`url`);--> statement-breakpoint
 CREATE INDEX `storedContent_savedAt_idx` ON `storedContent` (`savedAt`);--> statement-breakpoint
 CREATE INDEX `storedContent_title_idx` ON `storedContent` (`title`);--> statement-breakpoint

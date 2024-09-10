@@ -25,7 +25,7 @@ import chunkText from "./queueConsumer/chunkers/chonker";
 import { systemPrompt, template } from "./prompts/prompt1";
 import { swaggerUI } from "@hono/swagger-ui";
 import { database } from "./db";
-import { storedContent } from "@repo/db/schema";
+import { jobs, storedContent, users } from "@repo/db/schema";
 import { sql, and, eq } from "drizzle-orm";
 import { LIMITS } from "@repo/shared-types";
 import { typeDecider } from "./queueConsumer/utils/typeDecider";
@@ -34,8 +34,8 @@ import {
 	chunkNote,
 	chunkPage,
 } from "./queueConsumer/chunkers/chunkPageOrNotes";
-import { queue } from "./queueConsumer";
-import { isErr } from "./errors/results";
+import { d1ErrorFactory, queue } from "./queueConsumer";
+import { isErr, wrap } from "./errors/results";
 import { createOpenAI } from "@ai-sdk/openai";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -119,11 +119,33 @@ app.post("/api/add", zValidator("json", vectorBody), async (c) => {
 		// unique contraint check
 
 		if (isWithinLimit) {
+			//insert to the jobs table
+			const job = await wrap(
+				db
+					.insert(jobs)
+					.values({
+						userId: body.user,
+						url: saveToDbUrl,
+						status: "Processing",
+						attempts: 0,
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					})
+					.returning({ jobId: jobs.id }),
+				d1ErrorFactory,
+				"Error When inserting into jobs table",
+			);
+			if (isErr(job)) {
+				throw job.error;
+			}
+
+			const jobId = job.value[0].jobId;
 			await c.env.EMBEDCHUNKS_QUEUE.send({
 				content: saveToDbUrl,
 				user: body.user,
 				space: body.spaces,
 				type: type,
+				jobId: jobId,
 			});
 		} else {
 			return c.json({
@@ -774,6 +796,31 @@ app.get("/howFuckedAreWe", async (c) => {
 
 	return c.json({ fuckedPercent });
 });
+
+app.get(
+	"api/memories",
+	zValidator(
+		"query",
+		z.object({
+			userId: z.string(),
+		}),
+	),
+	async (c) => {
+		const { userId } = c.req.valid("query");
+		const db = database(c.env);
+		const spaces = await db.query.space.findMany({
+			where: eq(users, userId),
+		});
+
+		const memories = await db.query.storedContent.findMany({
+			where: eq(users, userId),
+		});
+		const processingJobs = await db.query.jobs.findMany({
+			where: and(eq(jobs.userId, userId), eq(jobs.status, "Processing")),
+		});
+		return c.json({ spaces, memories, processingJobs });
+	},
+);
 
 export default {
 	fetch: app.fetch,

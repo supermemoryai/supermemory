@@ -1,6 +1,6 @@
 "use client";
 
-import { Content, StoredSpace } from "@repo/db/schema";
+import { Content, Job, jobs, StoredSpace } from "@repo/db/schema";
 import { MemoriesIcon, NextIcon, UrlIcon } from "@repo/ui/icons";
 import {
 	ArrowLeftIcon,
@@ -12,10 +12,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Masonry from "react-layout-masonry";
 import { getRawTweet } from "@repo/shared-types/utils";
 import { MyTweet } from "../../../components/twitter/render-tweet";
+import LoadingCard from "@/components/loadingCard/loadingCard";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -53,13 +54,24 @@ import {
 	DocumentTextIcon,
 	FolderIcon,
 } from "@heroicons/react/24/outline";
+import { db } from "@/server/db";
+import { and, count, eq } from "drizzle-orm";
+import { usePendingJob } from "../../../contexts/PendingJobContext";
 
 type TMemoriesPage = {
-	memoriesAndSpaces: { memories: Content[]; spaces: StoredSpace[] };
+	memoriesAndSpaces: {
+		memories: Content[];
+		spaces: StoredSpace[];
+		userId: string;
+	};
 	title?: string;
 	currentSpace?: StoredSpace;
 	usersWithAccess?: string[];
 };
+
+interface JobCountResponse {
+	pendingJobs: number;
+}
 
 export function MemoriesPage({
 	memoriesAndSpaces,
@@ -78,8 +90,65 @@ export function MemoriesPage({
 		return "All";
 	}, [tab]);
 
+	const userId = memoriesAndSpaces.userId;
 	const [filter, setFilter] = useState(initialFilter);
 	const [spaces, setSpaces] = useState<StoredSpace[]>(memoriesAndSpaces.spaces);
+	const [newMemories, setNewMemories] = useState<Content[]>([]);
+	const [lastFetchTimestamp, setLastFetchTimestamp] = useState<string>(
+		new Date().toISOString(),
+	);
+
+	const { pendingJobs, setPendingJobs } = usePendingJob();
+	const fetchNewMemories = async (lastFetchTimestamp: string) => {
+		try {
+			const response = await fetch(
+				"/api/getNewMemories?lastFetchTimestamp=" + lastFetchTimestamp,
+			);
+			if (!response.ok) {
+				throw new Error("Failed to fetch new memories");
+			}
+			const data = (await response.json()) as { newMemories: Content[] };
+			return data.newMemories;
+		} catch (error) {
+			console.error("Error fetching new memories:", error);
+		}
+	};
+
+	useEffect(() => {
+		const fetchJobCount = async () => {
+			try {
+				const response = await fetch("/api/getJobCount");
+				if (!response.ok) {
+					throw new Error("Failed to fetch job count");
+				}
+				const data: JobCountResponse = await response.json();
+				const newPendingJobs = data.pendingJobs;
+
+				// If pendingJobs has decreased, fetch new memories with the lastFetchTimestamp
+				if (newPendingJobs < pendingJobs) {
+					const newMemories = await fetchNewMemories(lastFetchTimestamp);
+					if (newMemories) {
+						setNewMemories((prev) => [...prev, ...newMemories]);
+						setLastFetchTimestamp(new Date().toISOString());
+					}
+				}
+
+				setPendingJobs(newPendingJobs);
+			} catch (error) {
+				console.error("Error fetching job count:", error);
+			}
+		};
+
+		fetchJobCount(); // Initial fetch
+		const intervalId = setInterval(fetchJobCount, 5000); // Poll every 5 seconds
+
+		return () => clearInterval(intervalId); // Clean up on unmount
+	}, [
+		pendingJobs,
+		memoriesAndSpaces.memories,
+		setPendingJobs,
+		lastFetchTimestamp,
+	]);
 
 	const handleDeleteSpace = async (id: number) => {
 		const response = await deleteSpace(id);
@@ -102,7 +171,6 @@ export function MemoriesPage({
 		const json = JSON.stringify(dataToExport, null, 2);
 		const blob = new Blob([json], { type: "application/json" });
 		const url = URL.createObjectURL(blob);
-
 		const a = document.createElement("a");
 		a.href = url;
 		a.download = "memories_and_spaces.json";
@@ -115,6 +183,11 @@ export function MemoriesPage({
 	const sortedItems = useMemo(() => {
 		// merge spaces & memories to { item: "memory" | "space", date: Date, data: Content | StoredSpace }
 		const unifiedItems = [
+			...newMemories.map((memory) => ({
+				item: "memory",
+				date: new Date(memory.savedAt),
+				data: memory,
+			})),
 			...memoriesAndSpaces.memories.map((memory) => ({
 				item: "memory",
 				date: new Date(memory.savedAt),
@@ -152,18 +225,19 @@ export function MemoriesPage({
 				return false;
 			})
 			.sort((a, b) => b.date - a.date);
-	}, [memoriesAndSpaces.memories, spaces, filter]);
+	}, [memoriesAndSpaces.memories, spaces, filter, newMemories]);
 
 	return (
 		<div className="px-2 md:px-32 py-36 h-full flex mx-auto w-full flex-col gap-6">
 			<div className="space-y-2">
 				{currentSpace && (
 					<Link href={"/memories"}>
-						<Button className="px-0  text-gray-300" variant="link">
+						<Button className="px-0 text-gray-300" variant="link">
 							<ArrowLeftIcon className="w-3 h-3" /> Back to all memories
 						</Button>
 					</Link>
 				)}
+
 				<h2 className="text-white w-full text-3xl text-left font-semibold">
 					{title}
 				</h2>
@@ -177,6 +251,7 @@ export function MemoriesPage({
 						currentSpace ? SpaceFilterMethods : MemoriesFilterMethods
 					}
 				/>
+
 				<button
 					onClick={handleExport}
 					className={`transition px-4 py-2 rounded-lg text-[#B3BCC5] bg-secondary hover:bg-secondary hover:text-[#76a3cc]`}
@@ -198,6 +273,7 @@ export function MemoriesPage({
 											alt="Spaces icon"
 											className="w-3 h-3"
 										/>
+
 										<span className="text-[#fff]">{user}</span>
 									</div>
 								))}
@@ -211,6 +287,7 @@ export function MemoriesPage({
 
 							if (!email) {
 								toast.error("Please enter an email");
+
 								return;
 							}
 
@@ -229,6 +306,7 @@ export function MemoriesPage({
 							name="email"
 							placeholder="Add user by email"
 						/>
+
 						<Button variant="secondary">Add</Button>
 					</form>
 				</div>
@@ -242,10 +320,17 @@ export function MemoriesPage({
 					className: "min-w-[calc(33.3333%-16px)] w-full",
 				}}
 			>
+				{pendingJobs > 0 && (
+					<div className="w-full">
+						<LoadingCard pendingJobs={pendingJobs} />
+					</div>
+				)}
+
 				{sortedItems.map((item) => {
 					if (item.item === "memory") {
 						return (
 							<MemoryComponent
+								key={item.data.id}
 								type={(item.data as Content).type ?? "note"}
 								content={(item.data as Content).content}
 								title={(item.data as Content).title ?? "Untitled"}
@@ -267,6 +352,7 @@ export function MemoriesPage({
 					if (item.item === "space") {
 						return (
 							<SpaceComponent
+								key={item.data.id}
 								title={(item.data as StoredSpace).name}
 								description={`${(item.data as StoredSpace).numItems} memories`}
 								id={(item.data as StoredSpace).id}
@@ -318,7 +404,7 @@ function SpaceComponent({
 						<Image src={NextIcon} alt="Search icon" />
 					</div>
 				</Link>
-				<div className="absolute z-40 right-3 top-3 opacity-0 group-hover:opacity-100 hover:text-red-600">
+				<div className="absolute z-40 right-5 top-4 opacity-0 group-hover:opacity-100 hover:text-red-600">
 					<SpaceDeleteAlert
 						onClick={() => {
 							handleDeleteSpace(id);
@@ -446,7 +532,7 @@ function MemoryComponent({
 }
 
 const MemoriesFilterMethods = ["All", "Spaces", "Pages", "Notes", "Tweet"];
-const SpaceFilterMethods = ["All", "Pages", "Notes", "Tweet"];
+const SpaceFilterMethods = ["All", "Pages", "Notes", "Tweet", "Jobs"];
 function Filters({
 	setFilter,
 	filter,
@@ -463,7 +549,7 @@ function Filters({
 					<div className="relative">
 						<button
 							onClick={() => setFilter(i)}
-							className={`transition px-4 py-2   ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5]"}`}
+							className={`transition px-4 py-2 ${i === filter ? " text-[#369DFD]" : "text-[#B3BCC5]"}`}
 						>
 							{i}
 						</button>

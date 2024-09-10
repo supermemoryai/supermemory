@@ -18,7 +18,7 @@ async function Page({ params: { spaceid } }: { params: { spaceid: number } }) {
 
 	return (
 		<MemoriesPage
-			memoriesAndSpaces={{ memories: data.memories, spaces: [] }}
+			memoriesAndSpaces={{ memories: data.memories, spaces: [], userId: "" }} //TODO: Fix this please
 			title={data.spaces[0]?.name}
 			currentSpace={data.spaces[0]}
 			usersWithAccess={hasAccess.map((x) => x.userEmail) ?? []}

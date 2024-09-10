@@ -6,7 +6,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { cn } from "@repo/ui/lib/utils";
 import { Toaster } from "@repo/ui/shadcn/toaster";
-import { PHProvider } from "./providers";
+import { PendingJobsProvider, PHProvider } from "./providers";
 import PostHogPageView from "./PHPageViews";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -78,17 +78,19 @@ export default function RootLayout({
 				></script>
 			</head>
 			<PHProvider>
-				<body
-					className={cn(
-						`${inter.className} dark`,
-						GeistMono.variable,
-						GeistSans.variable,
-					)}
-				>
-					{children}
-					<Toaster />
-					{/* <PostHogPageView /> */}
-				</body>
+				<PendingJobsProvider>
+					<body
+						className={cn(
+							`${inter.className} dark`,
+							GeistMono.variable,
+							GeistSans.variable,
+						)}
+					>
+						{children}
+						<Toaster />
+						{/* <PostHogPageView /> */}
+					</body>
+				</PendingJobsProvider>
 			</PHProvider>
 		</html>
 	);

@@ -31,6 +31,7 @@ import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@repo/db/schema";
 import { useKeyPress } from "@/lib/useKeyPress";
 import { useFormStatus } from "react-dom";
+import { usePendingJob } from "@/contexts/PendingJobContext";
 
 function Menu() {
 	useKeyPress("a", () => {
@@ -218,7 +219,7 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 		setSelectedSpaces([]);
 		return cont;
 	};
-
+	const { pendingJobs, setPendingJobs } = usePendingJob();
 	const formSubmit = () => {
 		toast.promise(handleSubmit(content, selectedSpaces), {
 			loading: (
@@ -227,8 +228,14 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 					Creating memory...
 				</span>
 			),
-			success: (data) => "Memory queued",
-			error: (error) => `Memory creation failed: ${error}`,
+			success: (data) => {
+				setPendingJobs(pendingJobs + 1);
+				return "Memory queued";
+			},
+			error: (error) => {
+				setPendingJobs(pendingJobs - 1);
+				return `Memory creation failed: ${error}`;
+			},
 			richColors: true,
 		});
 	};

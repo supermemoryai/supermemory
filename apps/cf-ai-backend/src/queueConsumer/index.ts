@@ -35,7 +35,7 @@ class D1InsertError extends BaseError {
 	}
 }
 
-const d1ErrorFactory = (err: Error, source: string) =>
+export const d1ErrorFactory = (err: Error, source: string) =>
 	new D1InsertError(err.message, source);
 
 const calculateExponentialBackoff = (
@@ -52,11 +52,12 @@ export async function queue(
 		space: Array<number>;
 		user: string;
 		type: string;
+		jobId: number;
 	}>,
 	env: Env,
 ): Promise<void> {
 	const db = database(env);
-
+	console.log("[This is the batch]", JSON.stringify(batch));
 	for (let message of batch.messages) {
 		const body = message.body;
 
@@ -71,62 +72,37 @@ export async function queue(
 			throw userExists.error;
 		}
 
-		//check if this is a retry job.. by checking if the combination of the userId and the url already exists on the queue
-		let jobId;
-		const existingJob = await wrap(
-			db
-				.select()
-				.from(jobs)
-				.where(
-					and(
-						eq(jobs.userId, userExists.value[0].id),
-						eq(jobs.url, body.content),
-					),
-				)
-				.limit(1),
+		//take the job id from the body and update the job table with attempts + 1
+		const jobId = body.jobId;
+
+		const jobResult = await wrap(
+			db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1),
 			d1ErrorFactory,
-			"Error when checking for existing job",
+			"Error when fetching job",
 		);
 
-		if (isErr(existingJob)) {
-			throw existingJob.error;
+		if (isErr(jobResult)) {
+			throw jobResult.error;
 		}
 
-		if (existingJob.value.length > 0) {
-			jobId = existingJob.value[0].id;
-			await wrap(
-				db
-					.update(jobs)
-					.set({
-						attempts: existingJob.value[0].attempts + 1,
-						updatedAt: new Date(),
-						status: "Processing",
-					})
-					.where(eq(jobs.id, jobId)),
-				d1ErrorFactory,
-				"Error when updating job attempts",
-			);
-		} else {
-			const job = await wrap(
-				db
-					.insert(jobs)
-					.values({
-						userId: userExists.value[0].id as string,
-						url: body.content,
-						status: "Processing",
-						attempts: 1,
-						createdAt: new Date(),
-						updatedAt: new Date(),
-					})
-					.returning({ jobId: jobs.id }),
-				d1ErrorFactory,
-				"Error When inserting into jobs table",
-			);
-			if (isErr(job)) {
-				throw job.error;
-			}
-			jobId = job.value[0].jobId;
+		const job = jobResult.value[0];
+
+		if (!job) {
+			throw new Error("Job not found");
 		}
+
+		await wrap(
+			db
+				.update(jobs)
+				.set({
+					attempts: job.attempts + 1,
+					updatedAt: new Date(),
+					status: "Processing",
+				})
+				.where(eq(jobs.id, jobId)),
+			d1ErrorFactory,
+			"Error when updating job attempts",
+		);
 
 		let pageContent: string;
 		let vectorData: string;
@@ -136,7 +112,6 @@ export async function queue(
 		let noteId = 0;
 		switch (type) {
 			case "note": {
-				console.log("note hit");
 				const note = processNote(body.content);
 				if (isErr(note)) {
 					throw note.error;
@@ -149,13 +124,11 @@ export async function queue(
 				break;
 			}
 			case "page": {
-				console.log("page hit");
 				const page = await processPage({
 					url: body.content,
 					securityKey: env.MD_SEC_KEY,
 				});
 				if (isErr(page)) {
-					console.log("there is a page error here");
 					throw page.error;
 				}
 				pageContent = page.value.pageContent;
@@ -172,7 +145,7 @@ export async function queue(
 					tweetUrl: body.content,
 					env: env,
 				});
-				console.log("[This is the thread]", thread);
+
 				if (isErr(tweet)) {
 					throw tweet.error;
 				}
@@ -368,9 +341,8 @@ export async function queue(
 			.update(jobs)
 			.set({ status: "Processed" })
 			.where(eq(jobs.id, jobId));
-
-		return;
 	}
+	console.log(`Finished processing batch of ${batch.messages.length} messages`);
 }
 
 /*

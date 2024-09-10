@@ -30,6 +30,7 @@ export interface JobData {
 	space: Array<number>;
 	user: string;
 	type: string;
+	jobId: number;
 }
 
 export interface TweetData {

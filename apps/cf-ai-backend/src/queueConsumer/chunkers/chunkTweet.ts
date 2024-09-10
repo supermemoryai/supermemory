@@ -33,7 +33,6 @@ export function chunkThread(threadText: string): TweetChunks {
 	if (typeof threadText == "string") {
 		console.log("DA WORKER FAILED DO SOMEHTING FIX DA WROKER", thread);
 		const rawTweet = getRawTweet(thread);
-		console.log(rawTweet);
 		const parsedTweet: any = JSON.parse(rawTweet);
 
 		const chunkedTweet = chunkText(parsedTweet.text, 1536);
@@ -56,7 +55,6 @@ export function chunkThread(threadText: string): TweetChunks {
 
 		return { type: "tweet", chunks };
 	} else {
-		console.log("thread in else statement", JSON.stringify(thread));
 		const chunkedTweets = (thread as any).map((tweet: Tweet) => {
 			const chunkedTweet = chunkText(tweet.text, 1536);
 
