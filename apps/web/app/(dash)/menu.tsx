@@ -31,7 +31,7 @@ import ComboboxWithCreate from "@repo/ui/shadcn/combobox";
 import { StoredSpace } from "@repo/db/schema";
 import { useKeyPress } from "@/lib/useKeyPress";
 import { useFormStatus } from "react-dom";
-import { usePendingJob } from "@/contexts/PendingJobContext";
+import EditorJSEditor from "@/components/newEditor/editor";
 
 function Menu() {
 	useKeyPress("a", () => {
@@ -219,7 +219,7 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 		setSelectedSpaces([]);
 		return cont;
 	};
-	const { pendingJobs, setPendingJobs } = usePendingJob();
+
 	const formSubmit = () => {
 		toast.promise(handleSubmit(content, selectedSpaces), {
 			loading: (
@@ -228,14 +228,8 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 					Creating memory...
 				</span>
 			),
-			success: (data) => {
-				setPendingJobs(pendingJobs + 1);
-				return "Memory queued";
-			},
-			error: (error) => {
-				setPendingJobs(pendingJobs - 1);
-				return `Memory creation failed: ${error}`;
-			},
+			success: (data) => "Memory queued",
+			error: (error) => `Memory creation failed: ${error}`,
 			richColors: true,
 		});
 	};
@@ -341,7 +335,13 @@ function DialogContentMenu({ setDialogClose }: { setDialogClose: () => void }) {
 function EditorDialog({ setContent }: { setContent: (e: string) => void }) {
 	return (
 		<DialogContent className="max-w-[98vw] h-[98vh] overflow-hidden px-0 py-0 z-[100]">
-			<Editor setContent={(e) => setContent(e)} />
+			<div id="editorjs" className="h-full">
+			<EditorJSEditor
+				setContent={(e) => setContent(e)}
+				data={{}} // Add an empty object or initial data
+				holder="editorjs" // Add a unique ID for the editor container
+			/>
+			</div>
 		</DialogContent>
 	);
 }
