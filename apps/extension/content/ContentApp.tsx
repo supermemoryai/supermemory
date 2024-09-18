@@ -363,7 +363,7 @@ export default function ContentApp({
 							onClick={async () => await getSpaces()}
 							asChild
 							style={{
-								position: "absolute",
+								position: "fixed",
 								right: "10px",
 								bottom: `${position.y}px`,
 							}}
