@@ -491,7 +491,7 @@ export default function ContentApp({
 				className={`${hover ? "opacity-100 block" : "pointer-events-none translate-x-3/4 hidden"} focus-within:translate-x-0 focus-visible:translate-x-0 h-12 w-5 hover:bg-yellow-300 transition pl-2 bg-secondary border-2 border-border opacity-0 flex items-center text-lg`}
 				style={{
 					cursor: `url("data:image/svg+xml,${encodedSvgCursor}"), auto`,
-					position: "absolute",
+					position: "fixed",
 					bottom: `${position.y}px`,
 					right: "0px",
 				}}
@@ -546,7 +546,7 @@ export default function ContentApp({
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<PopoverTrigger
-									className={`${hover || isPopover2Open ? "opacity-100" : "opacity-75 pointer-events-none translate-x-3/4"} focus-within:translate-x-0 focus-visible:translate-x-0 size-12 hover:bg-black p-2 rounded-l-2xl transition bg-secondary border-2 border-border opacity-0 absolute flex bottom-6 items-center text-lg`}
+									className={`${hover || isPopover2Open ? "opacity-100" : "opacity-75 pointer-events-none translate-x-3/4"} focus-within:translate-x-0 focus-visible:translate-x-0 size-12 hover:bg-black p-2 rounded-l-2xl transition bg-secondary border-2 border-border opacity-0 fixed flex bottom-6 items-center text-lg`}
 								>
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
