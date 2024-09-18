@@ -350,7 +350,7 @@ export default function ContentApp({
 	};
 
 	return (
-		<div className="flex justify-end items-end min-h-screen h-full w-full">
+		<div className="flex justify-end items-end h-full w-full">
 			<Toaster />
 
 			<Popover
@@ -363,7 +363,7 @@ export default function ContentApp({
 							onClick={async () => await getSpaces()}
 							asChild
 							style={{
-								position: "absolute",
+								position: "fixed",
 								right: "10px",
 								bottom: `${position.y}px`,
 							}}
