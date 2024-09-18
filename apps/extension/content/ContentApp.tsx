@@ -350,7 +350,7 @@ export default function ContentApp({
 	};
 
 	return (
-		<div className="flex justify-end items-end h-full w-full">
+		<div className="flex justify-end items-end h-full w-full z-[999999]">
 			<Toaster />
 
 			<Popover

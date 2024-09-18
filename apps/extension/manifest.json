@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"$schema": "https://json.schemastore.org/chrome-manifest",
-	"version": "2.63.4",
+	"version": "2.63.71",
 	"name": "supermemory",
 	"description": "An extension for https://supermemory.ai - an AI hub for all your bookmarks.",
 	"background": {

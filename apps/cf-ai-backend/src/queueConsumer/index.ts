@@ -368,9 +368,8 @@ export async function queue(
 			.update(jobs)
 			.set({ status: "Processed" })
 			.where(eq(jobs.id, jobId));
-
-		return;
 	}
+	console.log(`Finished processing batch of ${batch.messages.length} length`);
 }
 
 /*
