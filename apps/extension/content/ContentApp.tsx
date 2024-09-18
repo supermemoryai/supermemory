@@ -488,7 +488,7 @@ export default function ContentApp({
 				</PopoverContent>
 			</Popover>
 			<div
-				className={`${hover ? "opacity-100" : "pointer-events-none translate-x-3/4"} focus-within:translate-x-0 focus-visible:translate-x-0 h-12 w-5 hover:bg-yellow-300 transition pl-2 bg-secondary border-2 border-border opacity-0 flex items-center text-lg`}
+				className={`${hover ? "opacity-100 block" : "pointer-events-none translate-x-3/4 hidden"} focus-within:translate-x-0 focus-visible:translate-x-0 h-12 w-5 hover:bg-yellow-300 transition pl-2 bg-secondary border-2 border-border opacity-0 flex items-center text-lg`}
 				style={{
 					cursor: `url("data:image/svg+xml,${encodedSvgCursor}"), auto`,
 					position: "absolute",
