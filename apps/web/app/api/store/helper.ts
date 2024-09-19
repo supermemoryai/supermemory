@@ -50,59 +50,6 @@ export const createMemoryFromAPI = async (input: {
 
 	let contentId: number;
 
-	const saveToDbUrl =
-		(input.data.url.split("#supermemory-user-")[0] ?? input.data.url) +
-		"#supermemory-user-" +
-		input.userId;
-
-	const noteId = new Date().getTime();
-
-	// Insert into database
-	try {
-		const insertResponse = await db
-			.insert(storedContent)
-			.values({
-				content: input.data.pageContent,
-				title: input.data.title,
-				description: input.data.description,
-				url: saveToDbUrl,
-				baseUrl: saveToDbUrl,
-				image: input.data.image,
-				savedAt: new Date(),
-				userId: input.userId,
-				type: input.data.type,
-				noteId,
-			})
-			.returning({ id: storedContent.id });
-
-		if (!insertResponse[0]?.id) {
-			return {
-				success: false,
-				data: 0,
-				error: "Failed to save to database",
-			};
-		}
-
-		contentId = insertResponse[0].id;
-	} catch (e) {
-		const error = e as Error;
-		console.log("Error: ", error.message);
-
-		if (error.message.includes("D1_ERROR: UNIQUE constraint failed:")) {
-			return {
-				success: false,
-				data: 0,
-				error: "Content already exists",
-			};
-		}
-
-		return {
-			success: false,
-			data: 0,
-			error: "Failed to save to database with error: " + error.message,
-		};
-	}
-
 	if (input.data.spaces.length > 0) {
 		// Adding the many-to-many relationship between content and spaces
 		const spaceData = await db
