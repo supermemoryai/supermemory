@@ -147,7 +147,7 @@ function StepOne({ currStep }: { currStep: number }) {
 						<ol className="text-lg space-y-3">
 							<li>
 								Download the chrome extension{" "}
-								<a className="underline underline-offset-2" href="/extension">
+								<a className="underline underline-offset-2" href="/extension" target="_blank">
 									here
 								</a>
 							</li>
