@@ -13,6 +13,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@hono/zod-validator": "^0.2.1",
+		"drizzle-orm": "0.30.0",
 		"hono": "^4.5.1",
 		"honox": "^0.1.23",
 		"vite": "^5.3.5"
