@@ -19,13 +19,16 @@
 	},
 	"web_accessible_resources": [
 		{
-			"resources": ["public/*"],
+			"resources": [
+				"public/*",
+				"content/*"
+			],
 			"matches": ["<all_urls>"]
 		}
 	],
 	"permissions": ["webRequest", "storage", "contextMenus"],
 	"host_permissions": ["<all_urls>"],
-	"action": [
+	"action": {
 		    "default_popup": "home.html"
-	]
+	}
 }
