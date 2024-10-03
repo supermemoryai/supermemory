@@ -132,7 +132,7 @@ Built with:
 
 ## Contribute or self host
 
-Supermemory is design to be set up easily locally and super duper easy to set up 💫
+Supermemory is designed to be set up easily locally and super duper easy to set up 💫
 
 Please see the [SETUP-GUIDE.md](SETUP-GUIDE.md) for setup instructions.
 
