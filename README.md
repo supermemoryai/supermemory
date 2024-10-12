@@ -121,7 +121,9 @@ Built with:
 
 #### `apps/cf-ai-backend`: This module handles the vector store and AI response generation
 
-This is where the magic happens! Use AI to make your 
+This is where the magic happens! Use AI to make your secondary brain better!
+
+<img width="500" alt="Example of AI prompt" src="./example-ai.png">
 
 Built with:
 
