@@ -5,17 +5,17 @@
 Interested in helping build the best second brain for everyone? Join the discord https://discord.gg/2X2XsKz5AU. Contributions welcome.
 
 <div align="center">
-  <a href="https://github.com/Dhravya/Supermemory/stargazers">
-    <img src="https://img.shields.io/github/stars/Dhravya/Supermemory?style=flat-square&logo=github" alt="GitHub stars">
+  <a href="https://github.com/Dhravya/Supermemory/stargazers" target="_blank">
+    <img src="https://img.shields.io/github/stars/Dhravya/Supermemory?style=flat-square&logo=github" alt="GitHub stars" height="25px">
   </a>
-  <a href="https://github.com/Dhravya/Supermemory/network/members">
-    <img src="https://img.shields.io/github/forks/Dhravya/supermemory?style=flat-square&logo=github&color=8ae8ff" alt="GitHub forks">
+  <a href="https://github.com/Dhravya/Supermemory/network/members" target="_blank">
+    <img src="https://img.shields.io/github/forks/Dhravya/supermemory?style=flat-square&logo=github&color=8ae8ff" alt="GitHub forks" height="25px">
   </a>
-  <a href="https://github.com/Dhravya/Supermemory/graphs/contributors">
-    <img src="https://img.shields.io/github/contributors/Dhravya/Supermemory?style=flat-square&logo=github" alt="GitHub contributors">
+  <a href="https://github.com/Dhravya/Supermemory/graphs/contributors" target="_blank">
+    <img src="https://img.shields.io/github/contributors/Dhravya/Supermemory?style=flat-square&logo=github" alt="GitHub contributors" height="25px">
   </a>
-  <a href="https://chrome.google.com/webstore/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc">
-    <img src="https://img.shields.io/chrome-web-store/v/afpgkkipfdpeaflnpoaffkcankadgjfc?style=flat-square&color=yellow" alt="Chrome Web Store">
+  <a href="https://chrome.google.com/webstore/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc" target="_blank">
+    <img src="https://img.shields.io/chrome-web-store/v/afpgkkipfdpeaflnpoaffkcankadgjfc?style=flat-square&color=yellow&logo=chromewebstore&logoColor=ffffff" alt="Chrome Web Store" height="25px">
   </a>
 </div>
 
@@ -25,11 +25,11 @@ Build your own second brain with supermemory. It's a ChatGPT for your bookmarks.
 
 Well, here's the thing - me and @yxshv save a _lot_ of content on the internet.
 
-Twitter bookmarks, websites, snippets, etc.
+Twitter bookmarks, websites, snippets, etc. So much!
 
 But we never look back to it - to us, it's like throwing information in the void.
 
-Supermemory fixes this.
+SuperMemory fixes this.
 
 ## Key Features
 
@@ -52,34 +52,39 @@ Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google
 To use the chrome extension,
 
 > [!WARNING]
-> You need to be signed in before installing the supermemory extension, or you may experience problems
+> You need to be signed in before installing the SuperMemory extension, or you may experience problems
 
 1. Download from [Chrome Web Store](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?authuser=0&hl=en-GB)
 2. Now you can see on any page on bottom right (just click on it to save)
-   <img width="1058" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/f24b0988-cd2b-4216-a75b-e9ff0dbfaa6a">
+   
+   <img width="1058" alt="Example on Medium.com" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/f24b0988-cd2b-4216-a75b-e9ff0dbfaa6a">
 
 ### Import Twitter Bookmarks
 
-1. Make sure you signed into supermemory and installed chrome extension
-2. Open Twitter/X, you will see the save icon as follows
+1. Make sure you signed into SuperMemory and installed the supermemory extension
+2. Open [Twitter/X](https://x.com/), you will see the save icon as follows
 
    <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
 
-3. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
-4. Voila! Now your second brain has all your twitter bookmarks.
+3. Click on `save` button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
+4. Voila! Now your second brain has all your twitter bookmarks
 
 ## 👨‍💻 The Stack
 
 <div align="center">
-<img src="https://tech-orbit.wontory.dev/api?title=SuperMemory&tech=React,Next.js,Tailwind%20CSS,shadcn/ui,Drizzle,Cloudflare,Cloudflare%20Pages,Cloudflare%20Workers&size=900&duration=20" alt="SuperMemory" width="400">
+  <img src="https://tech-orbit.wontory.dev/api?title=SuperMemory&tech=React,Next.js,Tailwind%20CSS,shadcn/ui,Drizzle,Cloudflare,Cloudflare%20Pages,Cloudflare%20Workers&size=900&duration=20" alt="SuperMemory" width="400">
 </div>
+
+How is SuperMemory made?
+
+Learn how to use tools like Next.js and React to contribute. It's easier than you think.
 
 #### Architecture:
 
 <img width="715" alt="image" src="https://github.com/user-attachments/assets/f2e38b28-8cfe-4331-9b84-a91902682ddd">
 
 
-Supermemory has three main modules, managed by [turborepo](https://turbo.build):
+SuperMemory has three main modules, managed by [turborepo](https://turbo.build):
 
 #### `apps/web`: The main web UI.
 
@@ -96,12 +101,13 @@ Built with:
 - [Cloudflare ratelimiter](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
 - [TailwindCSS](https://tailwindcss.com)
 - [shadcn-ui](https://ui.shadcn.com)
-- And some other amazing open source projects like [Novel](https://novel.sh) and [vaul](https://vaul.emilkowal.ski/)
+- [React](https://react.dev/)
+- And some other amazing open-source projects like [Novel](https://novel.sh) and [vaul](https://vaul.emilkowal.ski/)
 - Hosted on [Cloudflare Pages](https://pages.cloudflare.com/)
 
 #### `apps/extension`: Chrome extension
 
-The chrome extension is one of the most important part of the setup, but is not required.This is to easily add pages to your memory.
+The chrome extension is one of the most important part of the setup, but is not required. This is to easily add pages to your memory.
 
 <img width="290" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/fa4993bb-c447-46a8-a301-9e0fa84d406a">
 
@@ -115,7 +121,8 @@ Built with:
 
 #### `apps/cf-ai-backend`: This module handles the vector store and AI response generation
 
-This is where the magic happens!
+This is where the magic happens! Use AI to make your 
+
 Built with:
 
 - [Cloudflare Workers](https://workers.cloudflare.com/)
@@ -132,7 +139,7 @@ Built with:
 
 ## Contribute or self host
 
-Supermemory is design to be set up easily locally and super duper easy to set up 💫
+SuperMemory is designed to be set up easily locally and super duper easy to set up 💫
 
 Please see the [SETUP-GUIDE.md](SETUP-GUIDE.md) for setup instructions.
 
