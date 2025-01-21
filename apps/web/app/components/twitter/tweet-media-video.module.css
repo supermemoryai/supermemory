@@ -1,0 +1,70 @@
+.anchor {
+	display: flex;
+	align-items: center;
+	color: white;
+	padding: 0 1rem;
+	border: 1px solid transparent;
+	border-radius: 9999px;
+	font-weight: 700;
+	transition: background-color 0.2s;
+	cursor: pointer;
+	user-select: none;
+	outline-style: none;
+	text-decoration: none;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.videoButton {
+	position: relative;
+	height: 67px;
+	width: 67px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--tweet-color-blue-primary);
+	transition-property: background-color;
+	transition-duration: 0.2s;
+	border: 4px solid #fff;
+	border-radius: 9999px;
+	cursor: pointer;
+}
+.videoButton:hover,
+.videoButton:focus-visible {
+	background-color: var(--tweet-color-blue-primary-hover);
+}
+.videoButtonIcon {
+	margin-left: 3px;
+	width: calc(50% + 4px);
+	height: calc(50% + 4px);
+	max-width: 100%;
+	color: #fff;
+	fill: currentColor;
+	user-select: none;
+}
+.watchOnTwitter {
+	position: absolute;
+	top: 12px;
+	right: 8px;
+}
+.watchOnTwitter > a {
+	min-width: 2rem;
+	min-height: 2rem;
+	font-size: 0.875rem;
+	line-height: 1rem;
+	backdrop-filter: blur(4px);
+	background-color: rgba(15, 20, 25, 0.75);
+}
+.watchOnTwitter > a:hover {
+	background-color: rgba(39, 44, 48, 0.75);
+}
+.viewReplies {
+	position: relative;
+	min-height: 2rem;
+	background-color: var(--tweet-color-blue-primary);
+	border-color: var(--tweet-color-blue-primary);
+	font-size: 0.9375rem;
+	line-height: 1.25rem;
+}
+.viewReplies:hover {
+	background-color: var(--tweet-color-blue-primary-hover);
+}

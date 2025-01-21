@@ -1,40 +1,38 @@
 {
-	"devDependencies": {
-		"@extension-create/develop": "^1.8.0",
-		"@types/react": "^18.0.9",
-		"@types/react-dom": "^18.0.5",
-		"@webpack-cli/generators": "^3.0.7",
-		"extension": "latest",
-		"react": "^18.1.0",
-		"react-dom": "^18.1.0",
-		"tailwindcss": "^3.4.1",
-		"typescript": "5.3.3",
-		"webpack-cli": "^5.1.4"
-	},
-	"scripts": {
-		"dev": "extension dev",
-		"start": "extension start",
-		"build": "extension build",
-		"style": "tailwindcss -i ../../packages/tailwind-config/globals.css -o ./public/output.css --watch",
-		"zip": "cd dist && zip -r extension.zip chrome"
-	},
-	"name": "supermemory-extension",
-	"private": true,
-	"version": "0.0.0",
-	"dependencies": {
-		"@radix-ui/react-dialog": "^1.0.5",
-		"@radix-ui/react-label": "^2.1.0",
-		"@radix-ui/react-popover": "^1.1.1",
-		"@radix-ui/react-select": "^2.1.1",
-		"@radix-ui/react-toast": "^1.2.1",
-		"@radix-ui/react-tooltip": "^1.1.2",
-		"class-variance-authority": "^0.7.0",
-		"clsx": "^2.1.1",
-		"cmdk": "^1.0.0",
-		"lucide-react": "^0.400.0",
-		"mxcn": "^2.0.0",
-		"tailwind-merge": "^2.3.0",
-		"tailwindcss-animate": "^1.0.7",
-		"zustand": "^4.5.4"
-	}
+  "name": "supermemory-extension",
+  "version": "1.0.0",
+  "description": "A memory enhancement extension",
+  "type": "module",
+  "scripts": {
+    "dev:css": "npx tailwindcss -i css/globals.css -o public/globals.css --watch",
+    "dev:extension": "extension dev",
+    "dev": "concurrently \"npm:dev:css\" \"npm:dev:extension\"",
+    "build:css": "npx tailwindcss -i css/globals.css -o public/globals.css",
+    "build:extension": "extension build",
+    "build": "npm run build:css && npm run build:extension",
+    "start": "npm run build && extension start",
+    "zip": "zip -r supermemory-extension.zip ./dist/chrome/*"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-popover": "^1.1.2",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.2",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "1.0.0",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.5",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "extension": "latest",
+    "typescript": "^5.3.3"
+  }
 }

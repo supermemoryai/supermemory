@@ -1,9 +1,7 @@
+
 ![og image](https://supermemory.ai/og-image.png)
 
-# SuperMemory
-
-Interested in helping build the best second brain for everyone? Join the discord https://discord.gg/2X2XsKz5AU. Contributions welcome.
-
+# Supermemory
 <div align="center">
   <a href="https://github.com/Dhravya/Supermemory/stargazers">
     <img src="https://img.shields.io/github/stars/Dhravya/Supermemory?style=flat-square&logo=github" alt="GitHub stars">
@@ -18,18 +16,29 @@ Interested in helping build the best second brain for everyone? Join the discord
     <img src="https://img.shields.io/chrome-web-store/v/afpgkkipfdpeaflnpoaffkcankadgjfc?style=flat-square&color=yellow" alt="Chrome Web Store">
   </a>
 </div>
+<br>
+<div align="center">
+<a href="https://www.producthunt.com/posts/supermemory?embed=true&utm_source=badge-top-post-badge&utm_medium=badge&utm_souce=badge-supermemory" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=472686&theme=light&period=daily&t=1737414816950" alt="Supermemory - AI&#0032;second&#0032;brain&#0032;for&#0032;all&#0032;your&#0032;saved&#0032;stuff | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+</div>
+
+
 
 ## 👀 What is this?
 
-Build your own second brain with supermemory. It's a ChatGPT for your bookmarks. Import tweets or save websites and content using the [Chrome extension](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?hl=en-GB&authuser=0)
+Supermemory exists to bring contextual knowledge to the age of LLMs. 
+The vision is to be the universal engine for memory
 
-Well, here's the thing - me and @yxshv save a _lot_ of content on the internet.
+LLMs are smart as fuck. but giving them the right context make them even more useful in most contexts.
 
-Twitter bookmarks, websites, snippets, etc.
+Think about it - there’s countless use-cases where LLMs by themselves don’t do much, but giving them the right data can make it a magical experience.
 
-But we never look back to it - to us, it's like throwing information in the void.
+Right data comes from everywhere. it’s literally with us. at all times. everything we see, hear, touch. is good data, USEFUL data. but then it all comes down to “how can i search for something within this pool of awesome stuff?”
 
-Supermemory fixes this.
+We make the pool, and give the search tools.
+
+That’s literally all Supermemory does. Every single project in our scope aids in doing one of the two things.
+
+Whether it’s organizing personal information, enhancing applications with contextual intelligence, or enabling companies to centralize and retrieve internal knowledge, Supermemory becomes the core infrastructure for transforming scattered data into actionable insights.
 
 ## Key Features
 
@@ -39,92 +48,95 @@ Supermemory fixes this.
 - 🐦 **Twitter Bookmarks**: Import and utilize your saved tweets.
 - 🔍 **Powerful Search**: Quickly find any saved information.
 - 💬 **Chat with Collections**: Interact with specific knowledge bases.
-- 🖼️ **Knowledge Canvas**: Organize information visually in a 2D canvas.
-- ✍️ **Writing Assistant**: Use a markdown editor with AI assistance for content creation.
+- 🖼️ **Memory refresh**: Contextually shows relevant items for re-learning.
+- ✍️ (soon) **Writing Assistant**: Use a markdown editor with AI assistance for content creation.
 - 🔒 **Privacy Focused**: Ensures data security and privacy.
 - 🏠 **Self Hostable**: Open source and easy to deploy locally.
-- 🔗 **Integrations**: Compatible with Telegram, Twitter, and more to come.
+- 🔗 **Integrations**: Compatible with Telegram, Twitter, Chrome bookmarks, Notion, and more to come.
+
+## Supermemory API
+Developers can make apps on top of supermemory using the [API](https://api.supermemory.ai). You can find the documentation here: https://docs.supermemory.ai
+
+YOU can build cool stuff with supermemory.
+1. Import tools 
+2. Chat with (insert whatever here) apps 
+3. Personalisation in existing apps 
+4. Content management systems
 
 ## How do I use this?
 
-Just go to [supermemory.ai](https://supermemory.ai) and sign in with your google account.
+Just go to [supermemory.com](https://supermemory.com) and sign in.
 
 To use the chrome extension,
 
-> [!WARNING]
-> You need to be signed in before installing the supermemory extension, or you may experience problems
-
 1. Download from [Chrome Web Store](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc?authuser=0&hl=en-GB)
-2. Now you can see on any page on bottom right (just click on it to save)
-   <img width="1058" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/f24b0988-cd2b-4216-a75b-e9ff0dbfaa6a">
+2. Pin the supermemory chrome extension and just click on it to save the website.
+   <img width="1058" alt="image" src="https://i.dhr.wtf/r/Clipboard_Jan_20,_2025_at_4.03 PM.png">
 
-### Import Twitter Bookmarks
+### Importing from integrations (Twitter, Chrome bookmarks, Notion, etc)
 
-1. Make sure you signed into supermemory and installed chrome extension
-2. Open Twitter/X, you will see the save icon as follows
-
-   <img width="480" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/2efb06a5-912a-48e7-ad1c-d527e7ffbc94">
-
-3. Click on save button and give it 10 - 20 secs, where supermemory extension will sync all your twitter bookmarks to supermemory.ai
-4. Voila! Now your second brain has all your twitter bookmarks.
-
-## 👨‍💻 The Stack
-
-<div align="center">
-<img src="https://tech-orbit.wontory.dev/api?title=SuperMemory&tech=React,Next.js,Tailwind%20CSS,shadcn/ui,Drizzle,Cloudflare,Cloudflare%20Pages,Cloudflare%20Workers&size=900&duration=20" alt="SuperMemory" width="400">
-</div>
+1. Open [Supermemory](https://supermemory.ai)
+2. Follow the steps to connect your integrations
+   <img width="480" alt="image" src="https://i.dhr.wtf/r/Clipboard_Jan_20,_2025_at_3.15 PM.png">
+3. Voila! Now your second brain has all your twitter bookmarks.
 
 #### Architecture:
 
-<img width="715" alt="image" src="https://github.com/user-attachments/assets/f2e38b28-8cfe-4331-9b84-a91902682ddd">
+<img width="715" alt="image" src="https://i.dhr.wtf/r/Clipboard_Jan_20,_2025_at_3.51 PM.png">
 
 
 Supermemory has three main modules, managed by [turborepo](https://turbo.build):
 
 #### `apps/web`: The main web UI.
 
-The database, auth etc logic is here
-
-![image](https://github.com/MaheshtheDev/supermemory/assets/38828053/0c44708d-600a-43a8-a641-835cb1f349fc)
+![image](https://i.dhr.wtf/r/Clipboard_Jan_20,_2025_at_3.19 PM.png)
 
 Built with:
 
-- [Nextjs 14](https://nextjs.org/)
-- [Next Auth](https://next-auth.js.org/)
+- [Remix](https://remix.run/)
+- [Hono](https://hono.dev/)
+- [authkit-remix-cloudflare by Supermemory](https://github.com/supermemory/authkit-remix-cloudflare)
 - [Drizzle ORM](https://drizzle.team/)
-- [Cloudflare D1 database](https://developers.cloudflare.com/d1/get-started/)
-- [Cloudflare ratelimiter](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
 - [TailwindCSS](https://tailwindcss.com)
 - [shadcn-ui](https://ui.shadcn.com)
-- And some other amazing open source projects like [Novel](https://novel.sh) and [vaul](https://vaul.emilkowal.ski/)
+- And some other amazing open source projects like [Plate](https://platejs.org/) and [vaul](https://vaul.emilkowal.ski/)
 - Hosted on [Cloudflare Pages](https://pages.cloudflare.com/)
 
 #### `apps/extension`: Chrome extension
 
-The chrome extension is one of the most important part of the setup, but is not required.This is to easily add pages to your memory.
+The [chrome extension](https://supermemory.ai/extension) is one of the most important part of the setup, but is not required.This is to easily add pages to your memory.
 
-<img width="290" alt="image" src="https://github.com/MaheshtheDev/supermemory/assets/38828053/fa4993bb-c447-46a8-a301-9e0fa84d406a">
+<img width="290" alt="image" src="https://i.dhr.wtf/r/Clipboard_Jan_20,_2025_at_4.05 PM.png">
+
+> please rate the extension to improve the rating 🙏. 
 
 Built with:
 
-- [CRXJS](https://crxjs.dev/vite-plugin/getting-started/react/create-project)
-- [Vite](https://vitejs.dev/)
+- [Extension JS](https://extension.js.org)
 - [TailwindCSS](https://tailwindcss.com)
-- [shadcn-ui](https://ui.shadcn.com)
 - [React](https://react.dev/)
 
-#### `apps/cf-ai-backend`: This module handles the vector store and AI response generation
+#### `apps/backend`: This module handles the vector store and AI response generation
 
 This is where the magic happens!
 Built with:
 
 - [Cloudflare Workers](https://workers.cloudflare.com/)
-- [Cloudflare AI](https://ai.cloudflare.com)
-- [Cloudflare Vectorize](https://developers.cloudflare.com/vectorize/)
-- [Cloudflare Queues](https://developers.cloudflare.com/queues/)
-- [Cloudflare Browser Rendering](https://developers.cloudflare.com/browser-rendering/)
+- [Postgres + Pgvector with Pgvectorscale](https://github.com/timescale/pgvectorscale)
+- [Cloudflare Workflows](https://developers.cloudflare.com/queues/)
+- [R2 Object storage](https://developers.cloudflare.com/r2/)
+- [Markdowner by Supermemory](https://md.dhr.wtf)
 - [Cloudflare KV](https://developers.cloudflare.com/kv)
 - [mem0](https://app.mem0.ai)
+
+## Is this free?
+
+Yes, everything is free & open source.
+Supermemory is built by [me](https://dhravya.dev), a college student. My life situations make it very difficult and almost impossible to monetise the product.
+
+Any kind of sponsorships / support would mean a lot to me, and help me keep supermemory alive.
+
+You can sponsor on my Github sponsors page - https://github.com/sponsors/dhravya
 
 ## Star History
 
@@ -134,12 +146,21 @@ Built with:
 
 Supermemory is design to be set up easily locally and super duper easy to set up 💫
 
-Please see the [SETUP-GUIDE.md](SETUP-GUIDE.md) for setup instructions.
+Please see the [SELF-HOSTING-GUIDE.md](SELF-HOSTING-GUIDE.md) for setup instructions.
+
+## License
+
+Supermemory is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International Public License](LICENSE).
+
+- You can use the code for personal projects, given appropriate attribution.
+- For non-commercial use, the code must be open source.
+- Please reach out to me if you want to use the code for commercial projects.
 
 ### Contributing
 
 Contributions are very welcome! A contribution can be as small as a ⭐ or even finding and creating issues.
 
+Thanks to all the awesome people who have contributed to supermemory.
 <a href="https://github.com/Dhravya/SuperMemory/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Dhravya/SuperMemory" />
 </a>

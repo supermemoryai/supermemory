@@ -1,18 +1,22 @@
 {
-	"compilerOptions": {
-		"allowJs": true,
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"isolatedModules": false,
-		"jsx": "react-jsx",
-		"lib": ["dom", "dom.iterable", "esnext"],
-		"moduleResolution": "node",
-		"module": "esnext",
-		"resolveJsonModule": true,
-		"strict": true,
-		"target": "esnext"
-	},
-	"include": ["./"],
-	"exclude": ["node_modules", "dist"]
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "types": ["chrome"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "ui/**/*.tsx", "src/content.tsx"],
+  "exclude": ["node_modules"]
 }
