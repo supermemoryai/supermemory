@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "document_url_user_id_idx";

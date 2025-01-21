@@ -1,28 +1,32 @@
 {
-	"$schema": "https://turbo.build/schema.json",
-	"globalDependencies": ["**/.env.*local"],
-	"tasks": {
-		"build": {
-			"dependsOn": ["^build"],
-			"outputs": [".next/**", "!.next/cache/**"]
-		},
-		"lint": {
-			"dependsOn": ["^lint"]
-		},
-		"deploy": {},
-		"dev": {
-			"env": [
-				"NODE_ENV=development",
-				"GOOGLE_CLIENT_ID",
-				"GOOGLE_CLIENT_SECRET",
-				"NEXTAUTH_SECRET",
-				"R2_ENDPOINT",
-				"R2_ACCESS_ID",
-				"R2_SECRET_KEY",
-				"R2_BUCKET_NAME"
-			],
-			"cache": false,
-			"persistent": true
-		}
-	}
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", ".dev.vars"],
+      "outputs": ["build/**", "public/build/**", "server/index.js"],
+      "cache": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "generate-migration": {
+      "cache": false
+    },
+    "migrate:local": {
+      "cache": false
+    },
+    "deploy": {
+      "cache": true
+    },
+    "tail": {
+      "cache": false,
+      "persistent": true
+    }
+  }
 }

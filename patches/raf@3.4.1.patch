@@ -1,0 +1,11 @@
+diff --git a/index.js b/index.js
+index 14ddddbe702a18480d11ab927b58f48d19b9c1cb..cbb9e93a3256f2d41f9c488290a2d4c123f786c6 100644
+--- a/index.js
++++ b/index.js
+@@ -1,5 +1,5 @@
+ var now = require('performance-now')
+-  , root = typeof window === 'undefined' ? global : window
++  , root = typeof window === 'undefined' ? (typeof global !== 'undefined' ? global : self) : window
+   , vendors = ['moz', 'webkit']
+   , suffix = 'AnimationFrame'
+   , raf = root['request' + suffix]

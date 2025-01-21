@@ -1,28 +1,37 @@
 {
-	"manifest_version": 3,
-	"$schema": "https://json.schemastore.org/chrome-manifest",
-	"version": "2.63.71",
-	"name": "supermemory",
-	"description": "An extension for https://supermemory.ai - an AI hub for all your bookmarks.",
-	"background": {
-		"service_worker": "./background.ts"
-	},
-	"content_scripts": [
-		{
-			"matches": ["<all_urls>"],
-			"js": ["./content/content.tsx"]
-		}
-	],
-	"icons": {
-		"16": "images/icon/icon_16.png",
-		"48": "images/icon/icon_48.png"
-	},
-	"web_accessible_resources": [
-		{
-			"resources": ["public/*"],
-			"matches": ["<all_urls>"]
-		}
-	],
-	"permissions": ["webRequest", "storage", "contextMenus"],
-	"host_permissions": ["<all_urls>"]
+  "$schema": "https://json.schemastore.org/chrome-manifest.json",
+  "manifest_version": 3,
+  "version": "5.0.12",
+  "homepage_url": "https://supermemory.ai",
+  "name": "Supermemory",
+  "description": "An extension for https://supermemory.ai - an AI hub for all your knowledge.",
+  "author": "Dhravya Shah",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "management",
+    "webRequest",
+    "storage",
+    "bookmarks"
+  ],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "src/background.ts"
+  },
+  "action": {},
+  "externally_connectable": {
+    "matches": [
+      "http://localhost:3000/*",
+      "https://supermemory.ai/*",
+      "https://beta.supermemory.ai/*",
+      "http://supermemory.com/*"
+    ]
+  },
+  "icons": {
+    "16": "images/icon/16.png",
+    "32": "images/icon/32.png",
+    "48": "images/icon/48.png",
+    "128": "images/icon/128.png"
+  }
 }

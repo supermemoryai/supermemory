@@ -1,0 +1,16 @@
+{
+	"version": 1,
+	"include": ["/*"],
+	"exclude": [
+		"/favicon.ico",
+		"/assets/*",
+		"/robots.txt",
+		"/site.webmanifest",
+		"/logo-dark.svg",
+		"/apple-touch-icon.png",
+		"/favicon-16x16.png",
+		"/favicon-32x32.png",
+		"/android-chrome-192x192.png",
+		"/android-chrome-512x512.png"
+	]
+}

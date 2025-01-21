@@ -1,0 +1,38 @@
+.header {
+	display: flex;
+	padding: 0.75rem 0.75rem 0 0.75rem;
+	line-height: var(--tweet-header-line-height);
+	font-size: var(--tweet-header-font-size);
+	white-space: nowrap;
+	overflow-wrap: break-word;
+	overflow: hidden;
+}
+
+.avatar {
+	position: relative;
+	height: 20px;
+	width: 20px;
+}
+
+.avatarSquare {
+	border-radius: 4px;
+}
+
+.author {
+	display: flex;
+	margin: 0 0.5rem;
+}
+
+.authorText {
+	font-weight: 700;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+.username {
+	color: var(--tweet-font-color-secondary);
+	text-decoration: none;
+	text-overflow: ellipsis;
+	margin-left: 0.125rem;
+}

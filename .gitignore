@@ -1,13 +1,9 @@
-.vars
-.*.vars
-.wrangler
-.million
-yarn.lock
-package-lock.json
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+bun.lockb
 
 # Dependencies
-node_modules
-.pnp
+node_modules/
+/.pnp
 .pnp.js
 
 # Local env files
@@ -16,9 +12,10 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
 
 # Testing
-coverage
+/coverage
 
 # Turbo
 .turbo
@@ -27,11 +24,10 @@ coverage
 .vercel
 
 # Build Outputs
-.next/
+/.next
 out/
 build
-dist
-
+/dist
 
 # Debug
 npm-debug.log*
@@ -41,3 +37,28 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Sensitive data
+*.key
+**/credentials.*
+**/secrets.*
+config.private.*
+
+# Cache
+.cache/
+.npm
+.eslintcache
+
+# Local database files
+*.sqlite
+*.db
+
+# Personal notes/todos
+TODO.md
+NOTES.md

@@ -1,26 +1,34 @@
 {
-	"extends": "@repo/typescript-config/nextjs.json",
-	"compilerOptions": {
-		"plugins": [
-			{
-				"name": "next"
-			}
-		],
-		"paths": {
-			"@/*": ["./*"]
-		}
-	},
 	"include": [
-		"cf-env.d.ts",
-		"env.d.ts",
-		"next.config.mjs",
 		"**/*.ts",
 		"**/*.tsx",
-		".next/types/**/*.ts",
-		"../../packages/ui/",
-		"../../packages/shared-types",
-		"./components",
-		"app/providers.tsx"
+		"**/.server/**/*.ts",
+		"**/.server/**/*.tsx",
+		"**/.client/**/*.ts",
+		"**/.client/**/*.tsx",
+		"**/*.json"
 	],
-	"exclude": ["node_modules/"]
+	"compilerOptions": {
+		"lib": ["DOM", "DOM.Iterable", "ES2022"],
+		"types": ["@remix-run/cloudflare", "vite/client", "@cloudflare/workers-types/2023-07-01", "chrome"],
+		"isolatedModules": true,
+		"esModuleInterop": true,
+		"jsx": "react-jsx",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"resolveJsonModule": true,
+		"target": "ES2022",
+		"strict": true,
+		"allowJs": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"baseUrl": ".",
+		"paths": {
+			"~/*": ["./app/*"]
+		},
+
+		// Vite takes care of building everything, not tsc.
+		"noEmit": true,
+		"moduleDetection": "force"
+	}
 }

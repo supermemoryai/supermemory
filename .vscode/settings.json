@@ -1,7 +1,17 @@
 {
-	"css.validate": false,
-	"editor.quickSuggestions": {
-		"strings": true
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "always"
 	},
-	"typescript.tsdk": "node_modules/typescript/lib"
+	"sqltools.connections": [
+		{
+			"previewLimit": 50,
+			"server": "localhost",
+			"driver": "PostgreSQL",
+			"name": "SupermemoryDB",
+			"connectString": "postgresql://dhravya:DPOSTGRES99%40c22%23hLab27postgres@168.119.111.189/supermemory"
+		}
+	],
+	"millionLint.disableOutdatedVersionMessage": true
 }

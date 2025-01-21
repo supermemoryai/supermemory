@@ -1,0 +1,33 @@
+{
+  "name": "supermemory-backend",
+  "scripts": {
+    "dev": "bunx wrangler -v && wrangler dev",
+    "deploy": "bunx wrangler deploy --minify",
+    "generate-migration": "dotenv -- npx drizzle-kit generate",
+    "migrate:local": "bun run ./scripts/migrate.ts",
+    "tail": "bunx wrangler tail"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^0.0.51",
+    "@ai-sdk/openai": "^0.0.70",
+    "@hono/zod-validator": "^0.4.1",
+    "@supermemory/db": "workspace:*",
+    "ai": "4.0.16",
+    "compromise": "^14.14.2",
+    "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.25.0",
+    "drizzle-orm": "^0.34.1",
+    "hono": "^4.6.4",
+    "openai": "^4.68.4",
+    "postgres": "^3.4.4",
+    "uuid": "^11.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240925.0",
+    "wrangler": "3.99.0"
+  },
+  "overrides": {
+    "iron-webcrypto": "^1.2.1"
+  }
+}

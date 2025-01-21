@@ -1,46 +1,27 @@
-name = "supermemory"
-compatibility_date = "2024-03-29"
-compatibility_flags = [ "nodejs_compat" ]
-pages_build_output_dir = ".vercel/output/static"
+#:schema node_modules/wrangler/config-schema.json
+name = "supermemory-web"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "./build/client"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "METADATA_KV"
+id = "4c9f38f1c4264f7b8b56a48555129571"
+
+[[kv_namespaces]]
+binding = "ENCRYPTED_TOKENS"
+id = "a1f048ee14644468ad63b817b5648a31"
+preview_id = "a1f048ee14644468ad63b817b5648a31"
+
+[[r2_buckets]]
+binding = "IMAGES_BUCKET"
+bucket_name = "supermemory-images"
 
 
-kv_namespaces = [
-	{ binding = "CANVAS_SNAPS", id = "6df98c892b3744ccb0c631d9f60d6697" },
-	{ binding = "RECOMMENDATIONS", id = "83bc7055226c4657948141c2ff9a5425" }
-]
-
-env.production.kv_namespaces = [
-	{ binding = "CANVAS_SNAPS", id = "6df98c892b3744ccb0c631d9f60d6697" },
-	{ binding = "RECOMMENDATIONS", id = "83bc7055226c4657948141c2ff9a5425" }
-]
-
-[ai]
-binding = "AI"
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "3a377d1b9c084e698ee201f10dfa8131"
+localConnectionString = "postgres://postgres:postgres@localhost:5432/supermemorydhravya?sslmode=require"
 
 [placement]
 mode = "smart"
-
-[[r2_buckets]]
-binding = "STORAGE"
-bucket_name = "dev-r2-anycontext"
-
-[[d1_databases]]
-binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
-
-[[env.production.d1_databases]]
-binding = "DATABASE"
-database_name = "prod-d1-supermemory"
-database_id = "f527a727-c472-41d4-8eaf-3d7ba0f2f395"
-
-[env.preview.ai]
-binding = "AI"
-
-[[env.preview.d1_databases]]
-binding = "DATABASE"
-database_name = "dev-d1-anycontext"
-database_id = "fc562605-157a-4f60-b439-2a24ffed5b4c"
-
-[env.production.ai]
-binding = "AI"
