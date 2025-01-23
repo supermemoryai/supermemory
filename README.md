@@ -164,3 +164,5 @@ Thanks to all the awesome people who have contributed to supermemory.
 <a href="https://github.com/Dhravya/SuperMemory/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=Dhravya/SuperMemory" />
 </a>
+
+

@@ -40,7 +40,7 @@ export default defineConfig((mode) => {
 		resolve: {
 			alias: {
 				...(mode.mode === "development" && {
-					postgres: path.resolve(__dirname, "node_modules/postgres/src/index.js"),
+					postgres: path.resolve(__dirname, "../../node_modules/postgres/src/index.js"),
 				}),
 			},
 			extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".css"],

@@ -20,10 +20,19 @@ import {
   chunk,
   spaces,
   spaceAccess,
+  type Space,
 } from "@supermemory/db/schema";
 import { google, openai } from "../providers";
 import { randomId } from "@supermemory/shared";
-import { and, cosineDistance, database, desc, eq, or, sql } from "@supermemory/db";
+import {
+  and,
+  cosineDistance,
+  database,
+  desc,
+  eq,
+  or,
+  sql,
+} from "@supermemory/db";
 import { typeDecider } from "../utils/typeDecider";
 import { isErr, Ok } from "../errors/results";
 
@@ -527,7 +536,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
     const cached = await c.env.MD_CACHE.get(cacheKey);
     if (cached) {
       return c.json({
-        suggestedLearnings: JSON.parse(cached) as {[x: string]: string},
+        suggestedLearnings: JSON.parse(cached) as { [x: string]: string },
       });
     }
 
@@ -714,7 +723,9 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       const data = encoder.encode(content);
       const hashBuffer = await crypto.subtle.digest("SHA-256", data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const documentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+      const documentHash = hashArray
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
 
       // Check for duplicates using hash
       const existingDocs = await db
@@ -727,10 +738,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               eq(documents.contentHash, documentHash),
               and(
                 eq(documents.type, type.value),
-                or(
-                  eq(documents.url, body.content),
-                  eq(documents.raw, content)
-                )
+                or(eq(documents.url, body.content), eq(documents.raw, content))
               )
             )
           )
@@ -757,13 +765,15 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               return { spaceId, allowed: false, error: "Space not found" };
             }
 
+            const spaceData = space[0] as Space;
+
             // If public space, only owner can add content
-            if (space[0].isPublic) {
+            if (spaceData.isPublic) {
               return {
                 spaceId,
-                allowed: space[0].ownerId === user.id,
+                allowed: spaceData.ownerId === user.id,
                 error:
-                  space[0].ownerId !== user.id
+                  spaceData.ownerId !== user.id
                     ? "Only space owner can add to public spaces"
                     : null,
               };
@@ -775,7 +785,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               .from(spaceAccess)
               .where(
                 and(
-                  eq(spaceAccess.spaceId, space[0].id),
+                  eq(spaceAccess.spaceId, spaceData.id),
                   eq(spaceAccess.userEmail, user.email),
                   eq(spaceAccess.status, "accepted")
                 )
@@ -785,9 +795,9 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
             return {
               spaceId,
               allowed:
-                space[0].ownerId === user.id || spaceAccessCheck.length > 0,
+                spaceData.ownerId === user.id || spaceAccessCheck.length > 0,
               error:
-                space[0].ownerId !== user.id && !spaceAccessCheck.length
+                spaceData.ownerId !== user.id && !spaceAccessCheck.length
                   ? "Not authorized to add to this space"
                   : null,
             };
@@ -855,6 +865,239 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         console.error("[Add Content Error]", error);
         return c.json({ error: "Failed to process content" }, 500);
       }
+    }
+  )
+  .post(
+    "/batch-add",
+    zValidator(
+      "json",
+      z.object({
+        urls: z.array(z.string()).min(1, "At least one URL is required"),
+        spaces: z.array(z.string()).max(5).optional(),
+      })
+    ),
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const { urls, spaces } = await c.req.valid("json");
+
+      // Check space permissions if spaces are specified
+      if (spaces && spaces.length > 0) {
+        const db = database(c.env.HYPERDRIVE.connectionString);
+        const spacePermissions = await Promise.all(
+          spaces.map(async (spaceId) => {
+            const space = await db
+              .select()
+              .from(spaces)
+              .where(eq(spaces.uuid, spaceId))
+              .limit(1);
+
+            if (!space[0]) {
+              return { spaceId, allowed: false, error: "Space not found" };
+            }
+
+            const spaceData = space[0] as Space;
+
+            // If public space, only owner can add content
+            if (spaceData.isPublic) {
+              return {
+                spaceId,
+                allowed: spaceData.ownerId === user.id,
+                error:
+                  spaceData.ownerId !== user.id
+                    ? "Only space owner can add to public spaces"
+                    : null,
+              };
+            }
+
+            // For private spaces, check if user is owner or in allowlist
+            const spaceAccessCheck = await db
+              .select()
+              .from(spaceAccess)
+              .where(
+                and(
+                  eq(spaceAccess.spaceId, spaceData.id),
+                  eq(spaceAccess.userEmail, user.email),
+                  eq(spaceAccess.status, "accepted")
+                )
+              )
+              .limit(1);
+
+            return {
+              spaceId,
+              allowed:
+                spaceData.ownerId === user.id || spaceAccessCheck.length > 0,
+              error:
+                spaceData.ownerId !== user.id && !spaceAccessCheck.length
+                  ? "Not authorized to add to this space"
+                  : null,
+            };
+          })
+        );
+
+        const unauthorized = spacePermissions.filter((p) => !p.allowed);
+        if (unauthorized.length > 0) {
+          return c.json(
+            {
+              error: "Space permission denied",
+              details: unauthorized
+                .map((u) => `${u.spaceId}: ${u.error}`)
+                .join(", "),
+            },
+            403
+          );
+        }
+      }
+
+      // Create a new ReadableStream for progress updates
+      const stream = new ReadableStream({
+        async start(controller) {
+          const db = database(c.env.HYPERDRIVE.connectionString);
+          const total = urls.length;
+          let processed = 0;
+          let failed = 0;
+          let succeeded = 0;
+
+          for (const url of urls) {
+            try {
+              processed++;
+
+              // Calculate document hash for duplicate detection
+              const encoder = new TextEncoder();
+              const data = encoder.encode(url);
+              const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              const documentHash = hashArray
+                .map((b) => b.toString(16).padStart(2, "0"))
+                .join("");
+
+              // Check for duplicates
+              const existingDocs = await db
+                .select()
+                .from(documents)
+                .where(
+                  and(
+                    eq(documents.userId, user.id),
+                    or(
+                      eq(documents.contentHash, documentHash),
+                      eq(documents.url, url)
+                    )
+                  )
+                );
+
+              if (existingDocs.length > 0) {
+                failed++;
+                controller.enqueue(
+                  `data: ${JSON.stringify({
+                    progress: Math.round((processed / total) * 100),
+                    status: "duplicate",
+                    url,
+                    processed,
+                    total,
+                    succeeded,
+                    failed,
+                  })}\n\n`
+                );
+                continue;
+              }
+
+              const contentId = `add-${user.id}-${randomId()}`;
+              const type = typeDecider(url);
+
+              if (isErr(type)) {
+                failed++;
+                controller.enqueue(
+                  `data: ${JSON.stringify({
+                    progress: Math.round((processed / total) * 100),
+                    status: "error",
+                    url,
+                    error: type.error.message,
+                    processed,
+                    total,
+                    succeeded,
+                    failed,
+                  })}\n\n`
+                );
+                continue;
+              }
+
+              // Insert into documents table
+              await db.insert(documents).values({
+                uuid: contentId,
+                userId: user.id,
+                type: type.value,
+                url,
+                contentHash: documentHash,
+                raw: url + "\n\n" + spaces?.join(" "),
+              });
+
+              // Create workflow for processing
+              await c.env.CONTENT_WORKFLOW.create({
+                params: {
+                  userId: user.id,
+                  content: url,
+                  spaces,
+                  type: type.value,
+                  uuid: contentId,
+                  url,
+                },
+                id: contentId,
+              });
+
+              succeeded++;
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  progress: Math.round((processed / total) * 100),
+                  status: "success",
+                  url,
+                  processed,
+                  total,
+                  succeeded,
+                  failed,
+                })}\n\n`
+              );
+            } catch (error) {
+              failed++;
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  progress: Math.round((processed / total) * 100),
+                  status: "error",
+                  url,
+                  error:
+                    error instanceof Error ? error.message : "Unknown error",
+                  processed,
+                  total,
+                  succeeded,
+                  failed,
+                })}\n\n`
+              );
+            }
+          }
+
+          controller.enqueue(
+            `data: ${JSON.stringify({
+              progress: 100,
+              status: "complete",
+              processed,
+              total,
+              succeeded,
+              failed,
+            })}\n\n`
+          );
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
     }
   );
 

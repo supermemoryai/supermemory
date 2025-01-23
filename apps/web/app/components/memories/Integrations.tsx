@@ -7,12 +7,13 @@ import { Card } from "../ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
 
 import { motion } from "framer-motion";
-import { AlertCircle, CheckCircle, Clipboard, ClipboardCheckIcon, X } from "lucide-react";
+import { AlertCircle, CheckCircle, Clipboard, ClipboardCheckIcon, X, FileUpIcon } from "lucide-react";
 import { toast } from "sonner";
 import { type IntegrationConfig, getIntegrations } from "~/config/integrations";
 import { getChromeExtensionId } from "~/config/util";
 import { cn } from "~/lib/utils";
 import { loader } from "~/root";
+import { CSVUploadModal } from "./CSVUploadModal";
 
 function IntegrationButton({
 	integration,
@@ -150,6 +151,7 @@ function Integrations() {
 	const [loadingIntegration, setLoadingIntegration] = useState<IntegrationConfig | null>(null);
 	const [apiKey, setApiKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
+	const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
 
 	const handleIntegrationClick = (integration: IntegrationConfig) => {
 		setLoadingIntegration(integration);
@@ -254,6 +256,24 @@ function Integrations() {
 			</div>
 
 			<div className="flex flex-wrap gap-4 overflow-x-auto">
+				<Card
+					className="group relative overflow-hidden transition-all hover:shadow-lg flex-1 basis-[calc(33.333%-1rem)]"
+					onClick={() => setIsCSVModalOpen(true)}
+				>
+					<div className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100 bg-gradient-to-r from-blue-500/10 to-blue-600/10" />
+					<div className="relative z-10 flex flex-col items-center gap-4 p-6">
+						<div className="rounded-full bg-white/10 p-3">
+							<FileUpIcon className="transition-transform group-hover:scale-110 text-blue-500" />
+						</div>
+						<div className="text-center">
+							<h3 className="font-semibold text-neutral-900 dark:text-white">CSV Upload</h3>
+							<p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 hidden md:block">
+								Bulk import URLs from a CSV file
+							</p>
+						</div>
+					</div>
+				</Card>
+
 				{Object.entries(integrations).map(([key, integration]) => (
 					<IntegrationButton
 						key={key}
@@ -269,6 +289,8 @@ function Integrations() {
 					onCancel={() => setLoadingIntegration(null)}
 				/>
 			)}
+
+			<CSVUploadModal isOpen={isCSVModalOpen} onClose={() => setIsCSVModalOpen(false)} />
 
 			<div className="mt-8 md:mt-12 text-center">
 				<p className="text-sm text-neutral-600 dark:text-neutral-400">
