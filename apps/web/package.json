@@ -6,7 +6,7 @@
 	"engineStrict": true,
 	"packageManager": "bun@1.1.29",
 	"scripts": {
-		"build": "bun i remix && remix vite:build",
+		"build": "remix vite:build",
 		"cf-typegen": "wrangler types",
 		"deploy": "cross-env NODE_ENV=production IS_DEPLOYING=true dotenv -- bun run build && wrangler pages deploy",
 		"dev": "dotenv -- wrangler -v && remix vite:dev --port 3000",
@@ -168,8 +168,7 @@
 		"tailwindcss": "^3.4.13",
 		"typescript": "^5.6.2",
 		"vite": "^5.4.8",
-		"vite-tsconfig-paths": "^5.0.1",
-		"wrangler": "3.99.0"
+		"vite-tsconfig-paths": "^5.0.1"
 	},
 	"engines": {
 		"node": ">=20.0.0"

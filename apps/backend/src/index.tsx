@@ -81,6 +81,7 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
       default: {
         windowMs: 60 * 1000, // 1 minute
         limit: 100, // 100 requests per minute
+        
       },
 
       common: {

@@ -18,7 +18,7 @@ import {
   chatThreads,
   documents,
   chunk,
-  spaces,
+  spaces as spaceInDb,
   spaceAccess,
   type Space,
 } from "@supermemory/db/schema";
@@ -757,8 +757,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           body.spaces.map(async (spaceId) => {
             const space = await db
               .select()
-              .from(spaces)
-              .where(eq(spaces.uuid, spaceId))
+              .from(spaceInDb)
+              .where(eq(spaceInDb.uuid, spaceId))
               .limit(1);
 
             if (!space[0]) {
@@ -871,10 +871,26 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
     "/batch-add",
     zValidator(
       "json",
-      z.object({
-        urls: z.array(z.string()).min(1, "At least one URL is required"),
-        spaces: z.array(z.string()).max(5).optional(),
-      })
+      z
+        .object({
+          urls: z
+            .array(z.string())
+            .min(1, "At least one URL is required")
+            .optional(),
+          contents: z
+            .array(
+              z.object({
+                content: z.string(),
+                title: z.string(),
+                type: z.string(),
+              })
+            )
+            .optional(),
+          spaces: z.array(z.string()).max(5).optional(),
+        })
+        .refine((data) => data.urls || data.contents, {
+          message: "Either urls or contents must be provided",
+        })
     ),
     async (c) => {
       const user = c.get("user");
@@ -882,7 +898,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      const { urls, spaces } = await c.req.valid("json");
+      const { urls, contents, spaces } = await c.req.valid("json");
 
       // Check space permissions if spaces are specified
       if (spaces && spaces.length > 0) {
@@ -891,8 +907,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           spaces.map(async (spaceId) => {
             const space = await db
               .select()
-              .from(spaces)
-              .where(eq(spaces.uuid, spaceId))
+              .from(spaceInDb)
+              .where(eq(spaceInDb.uuid, spaceId))
               .limit(1);
 
             if (!space[0]) {
@@ -953,21 +969,49 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       }
 
       // Create a new ReadableStream for progress updates
+      const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
           const db = database(c.env.HYPERDRIVE.connectionString);
-          const total = urls.length;
+          const items = urls || contents || [];
+          const total = items.length;
           let processed = 0;
           let failed = 0;
           let succeeded = 0;
 
-          for (const url of urls) {
+          const sendMessage = (data: any) => {
+            const message = encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
+            controller.enqueue(message);
+          };
+
+          for (const item of items) {
             try {
               processed++;
 
-              // Calculate document hash for duplicate detection
+              // Handle both URL and markdown content
+              const content = typeof item === "string" ? item : item.content;
+              const title = typeof item === "string" ? null : item.title;
+              const type =
+                typeof item === "string" ? typeDecider(item) : Ok(item.type);
+
+              if (isErr(type)) {
+                failed++;
+                sendMessage({
+                  progress: Math.round((processed / total) * 100),
+                  status: "error",
+                  url: typeof item === "string" ? item : item.title,
+                  error: type.error.message,
+                  processed,
+                  total,
+                  succeeded,
+                  failed,
+                });
+                continue;
+              }
+
+              // Calculate document hash
               const encoder = new TextEncoder();
-              const data = encoder.encode(url);
+              const data = encoder.encode(content);
               const hashBuffer = await crypto.subtle.digest("SHA-256", data);
               const hashArray = Array.from(new Uint8Array(hashBuffer));
               const documentHash = hashArray
@@ -983,46 +1027,32 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
                     eq(documents.userId, user.id),
                     or(
                       eq(documents.contentHash, documentHash),
-                      eq(documents.url, url)
+                      eq(documents.raw, content)
                     )
                   )
                 );
 
               if (existingDocs.length > 0) {
                 failed++;
-                controller.enqueue(
-                  `data: ${JSON.stringify({
-                    progress: Math.round((processed / total) * 100),
-                    status: "duplicate",
-                    url,
-                    processed,
-                    total,
-                    succeeded,
-                    failed,
-                  })}\n\n`
-                );
+                sendMessage({
+                  progress: Math.round((processed / total) * 100),
+                  status: "duplicate",
+                  title: typeof item === "string" ? item : item.title,
+                  processed,
+                  total,
+                  succeeded,
+                  failed,
+                });
                 continue;
               }
 
               const contentId = `add-${user.id}-${randomId()}`;
-              const type = typeDecider(url);
-
-              if (isErr(type)) {
-                failed++;
-                controller.enqueue(
-                  `data: ${JSON.stringify({
-                    progress: Math.round((processed / total) * 100),
-                    status: "error",
-                    url,
-                    error: type.error.message,
-                    processed,
-                    total,
-                    succeeded,
-                    failed,
-                  })}\n\n`
-                );
-                continue;
-              }
+              const isExternalContent =
+                typeof item === "string" &&
+                ["page", "tweet", "document", "notion"].includes(type.value);
+              const url = isExternalContent
+                ? content
+                : `https://supermemory.ai/content/${contentId}`;
 
               // Insert into documents table
               await db.insert(documents).values({
@@ -1030,15 +1060,16 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
                 userId: user.id,
                 type: type.value,
                 url,
+                title,
                 contentHash: documentHash,
-                raw: url + "\n\n" + spaces?.join(" "),
+                raw: content + "\n\n" + spaces?.join(" "),
               });
 
               // Create workflow for processing
               await c.env.CONTENT_WORKFLOW.create({
                 params: {
                   userId: user.id,
-                  content: url,
+                  content,
                   spaces,
                   type: type.value,
                   uuid: contentId,
@@ -1048,45 +1079,41 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               });
 
               succeeded++;
-              controller.enqueue(
-                `data: ${JSON.stringify({
-                  progress: Math.round((processed / total) * 100),
-                  status: "success",
-                  url,
-                  processed,
-                  total,
-                  succeeded,
-                  failed,
-                })}\n\n`
-              );
+              sendMessage({
+                progress: Math.round((processed / total) * 100),
+                status: "success",
+                title: typeof item === "string" ? item : item.title,
+                processed,
+                total,
+                succeeded,
+                failed,
+              });
+
+              // Add a small delay between requests
+              await new Promise((resolve) => setTimeout(resolve, 100));
             } catch (error) {
               failed++;
-              controller.enqueue(
-                `data: ${JSON.stringify({
-                  progress: Math.round((processed / total) * 100),
-                  status: "error",
-                  url,
-                  error:
-                    error instanceof Error ? error.message : "Unknown error",
-                  processed,
-                  total,
-                  succeeded,
-                  failed,
-                })}\n\n`
-              );
+              sendMessage({
+                progress: Math.round((processed / total) * 100),
+                status: "error",
+                title: typeof item === "string" ? item : item.title,
+                error: error instanceof Error ? error.message : "Unknown error",
+                processed,
+                total,
+                succeeded,
+                failed,
+              });
             }
           }
 
-          controller.enqueue(
-            `data: ${JSON.stringify({
-              progress: 100,
-              status: "complete",
-              processed,
-              total,
-              succeeded,
-              failed,
-            })}\n\n`
-          );
+          sendMessage({
+            progress: 100,
+            status: "complete",
+            processed,
+            total,
+            succeeded,
+            failed,
+          });
           controller.close();
         },
       });

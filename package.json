@@ -44,10 +44,10 @@
     "@tanstack/react-query-devtools": "^5.60.6",
     "@types/chrome": "^0.0.287",
     "@types/node": "^22.10.1",
+    "@types/papaparse": "^5.3.15",
     "@types/postlight__mercury-parser": "^2.2.7",
     "@types/showdown": "^2.0.6",
     "@types/turndown": "^5.0.5",
-    "@upstash/ratelimit": "^2.0.5",
     "ai": "4.0.18",
     "autoevals": "^0.0.106",
     "aws4fetch": "^1.0.20",
@@ -63,6 +63,7 @@
     "mammoth": "^1.8.0",
     "nanoid": "^5.0.7",
     "notion-client": "^7.1.5",
+    "papaparse": "^5.5.1",
     "pdfjs-serverless": "^0.6.0",
     "postgres": "^3.4.4",
     "posthog-js": "^1.188.0",
@@ -78,7 +79,7 @@
     "shiki": "^1.22.1",
     "sonner": "^1.7.0",
     "web": "^0.0.2",
-    "wrangler": "3.99.0"
+    "wrangler": "latest"
   },
   "overrides": {
     "iron-webcrypto": "^1.2.1",
