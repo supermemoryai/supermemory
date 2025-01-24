@@ -78,6 +78,7 @@
     "resend": "^4.0.1",
     "shiki": "^1.22.1",
     "sonner": "^1.7.0",
+    "vitest": "^3.0.4",
     "web": "^0.0.2",
     "wrangler": "latest"
   },

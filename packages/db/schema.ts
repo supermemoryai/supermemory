@@ -146,6 +146,30 @@ export const documentType = pgTable("document_type", {
   type: text("type").primaryKey(),
 });
 
+export const processedContent = pgTable(
+  "processed_content",
+  {
+    id: serial("id").primaryKey(),
+    contentHash: text("content_hash").notNull().unique(),
+    content: text("content").notNull(),
+    isSuccessfullyProcessed: boolean("is_successfully_processed").default(
+      false
+    ),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    contentHashIdx: uniqueIndex("processed_content_hash_idx").on(
+      table.contentHash
+    ),
+  })
+);
+
 export const documents = pgTable(
   "documents",
   {
@@ -167,11 +191,11 @@ export const documents = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     content: text("content"),
+    contentHash: text("content_hash"),
     isSuccessfullyProcessed: boolean("is_successfully_processed").default(
       false
     ),
     errorMessage: text("error_message"),
-    contentHash: text("content_hash"),
   },
   (document) => ({
     documentsIdIdx: uniqueIndex("document_id_idx").on(document.id),
@@ -179,6 +203,13 @@ export const documents = pgTable(
     documentsTypdIdx: index("document_type_idx").on(document.type),
     documentRawUserIdx: uniqueIndex("document_raw_user_idx").on(
       document.raw,
+      document.userId
+    ),
+    documentContentHashIdx: index("document_content_hash_idx").on(
+      document.contentHash
+    ),
+    documentUrlUserIdx: uniqueIndex("document_url_user_idx").on(
+      document.url,
       document.userId
     ),
   })
@@ -213,7 +244,8 @@ export const chunk = pgTable(
     documentId: integer("document_id")
       .references(() => documents.id, { onDelete: "cascade" })
       .notNull(),
-    textContent: text("text_content"),
+    textContent: text("text_content").notNull(),
+    contentHash: text("content_hash"),
     orderInDocument: integer("order_in_document").notNull(),
     embeddings: vector("embeddings", { dimensions: 1536 }),
     metadata: jsonb("metadata").$type<Metadata>(),
@@ -222,11 +254,12 @@ export const chunk = pgTable(
       .defaultNow(),
     updated_at: timestamp("updated_at", { withTimezone: true })
       .notNull()
-      .defaultNow(), // handle deletion on application layer
+      .defaultNow(),
   },
   (chunk) => ({
     chunkIdIdx: uniqueIndex("chunk_id_idx").on(chunk.id),
     chunkDocumentIdIdx: index("chunk_document_id_idx").on(chunk.documentId),
+    chunkContentHashIdx: index("chunk_content_hash_idx").on(chunk.contentHash),
     embeddingIndex: index("embeddingIndex").using(
       "hnsw",
       chunk.embeddings.op("vector_cosine_ops")

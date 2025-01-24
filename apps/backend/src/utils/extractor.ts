@@ -2,7 +2,7 @@ import { Env } from "../types";
 
 export const extractPageContent = async (content: string, env: Env) => {
   console.log("content", content);
-  const resp = await fetch(`https://md.dhr.wtf?url=${content}`);
+  const resp = await fetch(`https://md.dhr.wtf?url=${content}?nocache`);
 
   if (!resp.ok) {
     throw new Error(
@@ -10,7 +10,7 @@ export const extractPageContent = async (content: string, env: Env) => {
     );
   }
 
-  const metadataResp = await fetch(`https://md.dhr.wtf/metadata?url=${content}`);
+  const metadataResp = await fetch(`https://md.dhr.wtf/metadata?url=${content}?nocache`);
 
   if (!metadataResp.ok) {
     throw new Error(

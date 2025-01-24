@@ -19,7 +19,6 @@ name = "content-workflow-supermemory"
 binding = "CONTENT_WORKFLOW"
 class_name = "ContentWorkflow"
 
-
 [[kv_namespaces]]
 binding= "MD_CACHE"
 id = "3186489f943d409a9b772d876a58a73e"

@@ -93,7 +93,6 @@ export const auth = async (
       };
 
       const session = await getSessionFromRequest(c.req.raw, context);
-      console.log("Session", session);
       c.set("session", session);
 
       if (session?.user?.id) {
@@ -129,7 +128,6 @@ export const auth = async (
 
         user = Array.isArray(user) ? user[0] : user;
         c.set("user", user);
-        console.log("User", user);
       }
     }
   }

@@ -13,8 +13,6 @@ import {
 	AlertCircle,
 	BookIcon,
 	CheckCircle,
-	Clipboard,
-	ClipboardCheckIcon,
 	FileUpIcon,
 	X,
 } from "lucide-react";
@@ -220,50 +218,66 @@ function Integrations() {
 				</p>
 			</div>
 
-			<div className="max-w-full bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-8">
-				<div className="flex items-center gap-2">
-					<span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-						Your API Key
-					</span>
-					{apiKey ? (
-						<button
-							onClick={() => {
-								navigator.clipboard.writeText(apiKey);
-								setCopied(true);
-								toast.success("API key copied to clipboard!");
-							}}
-							className="flex-1 flex items-center gap-2 font-mono text-sm bg-white dark:bg-neutral-800 px-3 py-1.5 rounded group hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all overflow-hidden"
+			<div className="flex flex-col gap-2 mb-4">
+					<div className="flex justify-end">
+						<a
+							href="https://docs.supermemory.ai"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200 transition-colors"
 						>
-							<span className="flex-shrink-0 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-all">
-								{copied ? (
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M5 13l4 4L19 7"
-										/>
-									</svg>
-								) : (
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											strokeWidth={2}
-											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-										/>
-									</svg>
-								)}
-							</span>
-							<span className="blur-sm group-hover:blur-none transition-all truncate max-w-[500px]">
-								{apiKey}
-							</span>
-						</button>
-					) : (
-						<div className="flex-1 text-sm text-neutral-600 dark:text-neutral-400">Loading...</div>
-					)}
+							<BookIcon className="w-3 h-3" />
+							API Documentation
+						</a>
+					</div>
+					<div className="flex items-center gap-2">
+						<span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+							Your API Key
+						</span>
+						{apiKey ? (
+							<button
+								onClick={() => {
+									navigator.clipboard.writeText(apiKey);
+									setCopied(true);
+									toast.success("API key copied to clipboard!");
+								}}
+								className="flex-1 flex items-center gap-2 font-mono text-sm bg-white dark:bg-neutral-800 px-3 py-1.5 rounded group hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-all overflow-hidden"
+							>
+								<span className="flex-shrink-0 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-all">
+									{copied ? (
+										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M5 13l4 4L19 7"
+											/>
+										</svg>
+									) : (
+										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+											/>
+										</svg>
+									)}
+								</span>
+								<div className="relative flex-1">
+									<span className="absolute inset-0 flex items-center justify-center text-neutral-400 dark:text-neutral-500 opacity-0 group-hover:opacity-0 transition-opacity">
+										Hover to reveal
+									</span>
+									<span className="blur-sm group-hover:blur-none transition-all truncate max-w-[500px]">
+										{apiKey}
+									</span>
+								</div>
+							</button>
+						) : (
+							<div className="flex-1 text-sm text-neutral-600 dark:text-neutral-400">Loading...</div>
+						)}
+					</div>
 				</div>
-			</div>
 
 			<div className="flex flex-wrap gap-4 overflow-x-auto">
 				<Card

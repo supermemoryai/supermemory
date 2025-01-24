@@ -717,40 +717,6 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       const db = database(c.env.HYPERDRIVE.connectionString);
 
-      // Calculate document hash early to enable faster duplicate detection
-      const content = body.prefetched?.contentToVectorize || body.content;
-      const encoder = new TextEncoder();
-      const data = encoder.encode(content);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const documentHash = hashArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      // Check for duplicates using hash
-      const existingDocs = await db
-        .select()
-        .from(documents)
-        .where(
-          and(
-            eq(documents.userId, user.id),
-            or(
-              eq(documents.contentHash, documentHash),
-              and(
-                eq(documents.type, type.value),
-                or(eq(documents.url, body.content), eq(documents.raw, content))
-              )
-            )
-          )
-        );
-
-      if (existingDocs.length > 0) {
-        return c.json(
-          { error: `That ${type.value} already exists in your memories` },
-          409
-        );
-      }
-
       // Check space permissions if spaces are specified
       if (body.spaces && body.spaces.length > 0) {
         const spacePermissions = await Promise.all(
@@ -828,38 +794,90 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         ? body.content
         : `https://supermemory.ai/content/${contentId}`;
 
-      // Insert into documents table with hash
+      // Insert minimal document record
       try {
-        await db.insert(documents).values({
-          uuid: contentId,
-          userId: user.id,
-          type: type.value,
-          url: indexedUrl,
-          title: body.prefetched?.title,
-          description: body.prefetched?.description,
-          ogImage: body.prefetched?.ogImage,
-          contentHash: documentHash,
-          raw:
-            (body.prefetched ?? body.content) + "\n\n" + body.spaces?.join(" "),
-        });
+        // Check if document with same URL exists
+        console.log(
+          "[Add] Checking for existing document with URL:",
+          indexedUrl
+        );
+        const existingDoc = await db
+          .select()
+          .from(documents)
+          .where(
+            and(
+              eq(documents.userId, user.id),
+              eq(documents.url, indexedUrl),
+              sql`${documents.url} IS NOT NULL`
+            )
+          )
+          .limit(1);
 
+        let documentId = contentId;
+
+        if (existingDoc.length > 0) {
+          console.log("[Add] Found existing document:", {
+            id: existingDoc[0].id,
+            uuid: existingDoc[0].uuid,
+            url: existingDoc[0].url,
+          });
+          documentId = existingDoc[0].uuid;
+          // Update the raw content of existing document
+          console.log("[Add] Updating existing document content");
+          await db
+            .update(documents)
+            .set({
+              raw:
+                (body.prefetched ?? body.content) +
+                "\n\n" +
+                body.spaces?.join(" "),
+              updatedAt: new Date(),
+            })
+            .where(eq(documents.id, existingDoc[0].id));
+          console.log("[Add] Document updated successfully");
+        } else {
+          console.log("[Add] No existing document found, creating new one");
+          // Insert new document
+          await db.insert(documents).values({
+            uuid: contentId,
+            userId: user.id,
+            type: type.value,
+            url: indexedUrl,
+            raw:
+              (body.prefetched ?? body.content) +
+              "\n\n" +
+              body.spaces?.join(" "),
+          });
+          console.log("[Add] New document created successfully");
+        }
+
+        console.log("[Add] Starting workflow with params:", {
+          documentId,
+          url: indexedUrl,
+          isUpdate: existingDoc.length > 0,
+        });
+        // Start the workflow which will handle everything else
         await c.env.CONTENT_WORKFLOW.create({
           params: {
             userId: user.id,
             content: body.content,
             spaces: body.spaces,
             type: type.value,
-            uuid: contentId,
+            uuid: documentId,
             url: indexedUrl,
             prefetched: body.prefetched,
           },
-          id: contentId,
+          id: documentId,
         });
 
         return c.json({
-          message: "Content added successfully",
-          id: contentId,
+          message:
+            existingDoc.length > 0
+              ? "Content update started"
+              : "Content processing started",
+          id: documentId,
           type: type.value,
+          updated: existingDoc.length > 0,
         });
       } catch (error) {
         console.error("[Add Content Error]", error);
@@ -1053,6 +1071,57 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               const url = isExternalContent
                 ? content
                 : `https://supermemory.ai/content/${contentId}`;
+
+              // Check for existing document with same URL
+              const existingDoc = await db
+                .select()
+                .from(documents)
+                .where(
+                  and(
+                    eq(documents.userId, user.id),
+                    eq(documents.url, url),
+                    sql`${documents.url} IS NOT NULL`
+                  )
+                )
+                .limit(1);
+
+              if (existingDoc.length > 0) {
+                // Update existing document
+                await db
+                  .update(documents)
+                  .set({
+                    title,
+                    contentHash: documentHash,
+                    raw: content + "\n\n" + spaces?.join(" "),
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(documents.id, existingDoc[0].id));
+
+                // Create workflow for updating
+                await c.env.CONTENT_WORKFLOW.create({
+                  params: {
+                    userId: user.id,
+                    content,
+                    spaces,
+                    type: type.value,
+                    uuid: existingDoc[0].uuid,
+                    url,
+                  },
+                  id: existingDoc[0].uuid,
+                });
+
+                succeeded++;
+                sendMessage({
+                  progress: Math.round((processed / total) * 100),
+                  status: "updated",
+                  title: typeof item === "string" ? item : item.title,
+                  processed,
+                  total,
+                  succeeded,
+                  failed,
+                });
+                continue;
+              }
 
               // Insert into documents table
               await db.insert(documents).values({
