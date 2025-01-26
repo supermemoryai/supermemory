@@ -139,9 +139,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       }
       const openAi = openai(c.env);
 
-      const model = openAi.embedding("text-embedding-3-large", {
-        dimensions: 1536,
-      });
+
 
       let lastUserMessage = coreMessages
         .reverse()
@@ -155,10 +153,13 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       console.log("querytext", queryText);
 
+      if (!queryText ||queryText.length === 0) {
+        return c.json({ error: "Failed to generate embedding for query" }, 500);
+      }
+
       const embedStart = performance.now();
-      const { embedding } = await embed({
-        model,
-        value: queryText,
+      const { data: embedding } = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
+        text: queryText,
       });
       const embedEnd = performance.now();
       console.log(`Embedding generation took ${embedEnd - embedStart}ms`);
@@ -174,7 +175,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       const similarity = sql<number>`1 - (${cosineDistance(
         chunk.embeddings,
-        embedding
+        embedding[0]
       )})`;
 
       // Find similar chunks using cosine similarity
@@ -605,15 +606,14 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         return c.json({ error: "Unauthorized" }, 401);
       }
 
-      const openAi = openai(c.env, c.env.OPEN_AI_API_KEY);
-
       try {
         // Generate embedding for the search query
-        const model = openAi.embedding("text-embedding-3-small");
 
-        const embeddings = await embed({ model, value: query });
+        const embeddings = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
+          text: query,
+        });
 
-        if (!embeddings.embedding) {
+        if (!embeddings.data) {
           return c.json(
             { error: "Failed to generate embedding for query" },
             500
@@ -629,7 +629,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
             createdAt: documents.createdAt,
             chunkContent: chunk.textContent,
             similarity: sql<number>`1 - (embeddings <=> ${JSON.stringify(
-              embeddings.embedding
+              embeddings.data[0]
             )}::vector)`,
           })
           .from(chunk)
@@ -637,11 +637,11 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           .where(
             and(
               eq(documents.userId, user.id),
-              sql`1 - (embeddings <=> ${JSON.stringify(embeddings.embedding)}::vector) >= ${threshold}`
+              sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) >= ${threshold}`
             )
           )
           .orderBy(
-            sql`1 - (embeddings <=> ${JSON.stringify(embeddings.embedding)}::vector) desc`
+            sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) desc`
           ) //figure out a better way to do order by my brain isn't working at this time. but youcan't do vector search twice
           .limit(limit);
 

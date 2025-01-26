@@ -142,36 +142,12 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       );
     }
 
-    const model = openai(this.env, this.env.OPEN_AI_API_KEY).embedding(
-      "text-embedding-3-large",
-      {
-        dimensions: 1536,
-      }
-    );
 
-    // Step 3: Create chunks from the content.
-    const embeddings = await step.do(
-      "create embeddings",
-      {
-        retries: {
-          backoff: "constant",
-          delay: "10 seconds",
-          limit: 7,
-        },
-        timeout: "2 minutes",
-      },
-      async () => {
-        const { embeddings }: { embeddings: Array<number>[] } = await embedMany(
-          {
-            model,
-            values: chunked,
-          }
-        );
+    const {data: embeddings} = await this.env.AI.run("@cf/baai/bge-base-en-v1.5", {
+      text: chunked,
+    });
 
-        return embeddings;
-      }
-    );
-
+   
     // Step 4: Prepare chunk data
     const chunkInsertData: ChunkInsert[] = await step.do(
       "prepare chunk data",

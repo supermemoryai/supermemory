@@ -46,6 +46,7 @@ export type Env = {
   };
   ENCRYPTED_TOKENS: KVNamespace;
   RATE_LIMITER: DurableObjectNamespace<DurableObjectRateLimiter>;
+  AI: Ai
 };
 
 export type JobData = {
