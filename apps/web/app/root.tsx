@@ -29,6 +29,7 @@ import "@fontsource/geist-sans/900.css";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import posthog from "posthog-js";
+import { PostHogProvider, usePostHog} from 'posthog-js/react'
 
 const queryClient = new QueryClient();
 
@@ -130,10 +131,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	});
 };
 
-// Use React.memo to memoize the App component
 const App = React.memo(function App() {
 	const data = useLoaderData<typeof loader>();
 	const [theme] = useTheme();
+	const posthog = usePostHog();
 
 	useEffect(() => {
 		if (data.user) {
@@ -147,16 +148,16 @@ const App = React.memo(function App() {
 				lastName: data.user.lastName,
 			});
 		}
-	}, []);
+	}, [data.user]);
 
 	return (
-		<html lang="en" data-theme={theme ?? "light"} className={theme ?? ""}>
+		<html lang="en" data-theme={theme ?? "light"}>
 			<head>
 				<Meta />
 				<Links />
 				<NonFlashOfWrongThemeEls ssrTheme={Boolean(data.theme)} />
 			</head>
-			<body>
+			<body className={theme ?? ""}>
 				<Outlet />
 				<ScrollRestoration />
 				<Scripts />
@@ -174,23 +175,17 @@ const App = React.memo(function App() {
 });
 
 export default function AppWithProviders() {	
-	const data = useLoaderData<typeof loader>();
-
-	const specifiedTheme = useMemo(() => data.theme, [data.theme]);
-
-	const MemoizedApp = React.memo(App);
-	const MemoizedThemeProvider = useMemo(
-		() => <ThemeProvider specifiedTheme={specifiedTheme}>
-			<MemoizedApp />
-		</ThemeProvider>,
-		[specifiedTheme]
-	);
+	const data = useLoaderData<typeof loader>()
 
 	return (
-		<KeyboardProvider>
-			<QueryClientProvider client={queryClient}>
-				{MemoizedThemeProvider}
-			</QueryClientProvider>
-		</KeyboardProvider>
+		<PostHogProvider client={posthog}>
+			<KeyboardProvider>
+				<QueryClientProvider client={queryClient}>
+					<ThemeProvider specifiedTheme={data.theme}>
+						<App />
+					</ThemeProvider>
+				</QueryClientProvider>
+			</KeyboardProvider>
+		</PostHogProvider>
 	);
 }

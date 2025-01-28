@@ -5,6 +5,7 @@
     "deploy": "bunx wrangler deploy --minify",
     "generate-migration": "dotenv -- npx drizzle-kit generate",
     "migrate:local": "bun run ./scripts/migrate.ts",
+    "migrate:prod": "NODE_ENV=production bun run ./scripts/migrate.ts",
     "tail": "bunx wrangler tail"
   },
   "dependencies": {

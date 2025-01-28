@@ -6,11 +6,12 @@ import postgres from "postgres";
 
 config();
 
-if (!process.env.DATABASE_URL) {
-	throw new Error("DATABASE_URL is not set");
-}
+const isProd = process.env.NODE_ENV === "production";
+const connectionString = isProd ? process.env.PROD_DATABASE_URL : process.env.DATABASE_URL;
 
-const connectionString = process.env.DATABASE_URL!;
+if (!connectionString) {
+	throw new Error(`${isProd ? "PROD_DATABASE_URL" : "DATABASE_URL"} is not set`);
+}
 
 console.log("Connecting to:", connectionString.replace(/:[^:@]+@/, ":****@")); // Log sanitized connection string
 

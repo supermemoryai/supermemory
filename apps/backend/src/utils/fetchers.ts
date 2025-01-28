@@ -35,11 +35,6 @@ export const fetchContent = async (
       tweetUrl.search = ""; // Remove all search params
       const tweetId = tweetUrl.pathname.split("/").pop();
 
-      const unrolledTweetContent = await step.do(
-        "get unrolled tweet content",
-        async () => await unrollTweets(tweetUrl.toString())
-      );
-
       const rawBaseTweetContent = await step.do(
         "extract tweet content",
         async () => {
@@ -72,8 +67,10 @@ export const fetchContent = async (
         };
         raw: string;
       };
-
-      if (!unrolledTweetContent || isErr(unrolledTweetContent)) {
+      const unrolledTweetContent = {
+        value: [rawBaseTweetContent],
+      };
+      if (true) {
         console.error("Can't get thread, reverting back to single tweet");
         tweetContent = {
           text: rawBaseTweetContent.text,

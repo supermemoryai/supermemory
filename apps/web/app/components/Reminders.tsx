@@ -3,7 +3,6 @@ import Markdown from "react-markdown";
 
 import { useNavigate } from "@remix-run/react";
 
-import { client } from "../lib/utils/api";
 import image from "./gradients/gradient1.png";
 import { AddMemoryModal } from "./memories/AddMemory";
 import { Button } from "./ui/button";
