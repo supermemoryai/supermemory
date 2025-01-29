@@ -21,7 +21,7 @@ bucket_name = "supermemory-images"
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "3a377d1b9c084e698ee201f10dfa8131"
-localConnectionString = "postgres://postgres:postgres@localhost:5432/supermemorydhravya?sslmode=require"
+localConnectionString = "postgres://postgres:postgres@localhost:5432/supermemorylocal?sslmode=require"
 
 [placement]
 mode = "smart"

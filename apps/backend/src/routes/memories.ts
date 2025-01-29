@@ -8,8 +8,7 @@ import {
   spaceAccess,
   contentToSpace,
 } from "@supermemory/db/schema";
-import { and, database, desc, eq, sql } from "@supermemory/db";
-
+import { and, database, desc, eq, or, sql } from "@supermemory/db";
 
 const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
   .get(
@@ -148,26 +147,22 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
       });
     }
   )
-  .get(
-    "/:id",
-    zValidator("param", z.object({ id: z.string() })),
-    async (c) => {
-      const { id } = c.req.valid("param");
-      const user = c.get("user");
+  .get("/:id", zValidator("param", z.object({ id: z.string() })), async (c) => {
+    const { id } = c.req.valid("param");
+    const user = c.get("user");
 
-      if (!user) {
-        return c.json({ error: "Unauthorized" }, 401);
-      }
-
-      const memory = await database(c.env.HYPERDRIVE.connectionString)
-        .select()
-        .from(documents)
-        .where(and(eq(documents.uuid, id), eq(documents.userId, user.id)))
-        .limit(1);
-
-      return c.json(memory[0]);
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
     }
-  )
+
+    const memory = await database(c.env.HYPERDRIVE.connectionString)
+      .select()
+      .from(documents)
+      .where(and(eq(documents.uuid, id), eq(documents.userId, user.id)))
+      .limit(1);
+
+    return c.json(memory[0]);
+  })
   .delete(
     "/:id",
     zValidator("param", z.object({ id: z.string() })),
@@ -184,7 +179,12 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
       const doc = await db
         .select()
         .from(documents)
-        .where(and(eq(documents.uuid, id), eq(documents.userId, user.id)))
+        .where(
+          and(
+            or(eq(documents.uuid, id), eq(documents.id, Number(id))),
+            eq(documents.userId, user.id)
+          )
+        )
         .limit(1);
 
       if (!doc[0]) {
@@ -192,8 +192,12 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
       }
 
       const [document, contentToSpacei] = await Promise.all([
-        db.delete(documents).where(and(eq(documents.uuid, id), eq(documents.userId, user.id))),
-        db.delete(contentToSpace).where(eq(contentToSpace.contentId, doc[0].id)),
+        db
+          .delete(documents)
+          .where(and(eq(documents.uuid, id), eq(documents.userId, user.id))),
+        db
+          .delete(contentToSpace)
+          .where(eq(contentToSpace.contentId, doc[0].id)),
       ]);
 
       return c.json({ success: true });
