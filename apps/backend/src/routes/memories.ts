@@ -176,12 +176,20 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       const db = database(c.env.HYPERDRIVE.connectionString);
 
+      let documentIdNum
+
+      try {
+        documentIdNum = Number(id);
+      } catch (e) {
+        documentIdNum = null;
+      }
+
       const doc = await db
         .select()
         .from(documents)
         .where(
           and(
-            or(eq(documents.uuid, id), eq(documents.id, Number(id))),
+            documentIdNum ? or(eq(documents.uuid, id), eq(documents.id, documentIdNum)) : eq(documents.uuid, id),
             eq(documents.userId, user.id)
           )
         )
