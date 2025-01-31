@@ -1,61 +1,61 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Starter Kit",
+  "name": "Supermemory | Memory API for the AI era",
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373",
+    "primary": "#1E3A8A",
+    "light": "#3B82F6", 
+    "dark": "#1E3A8A",
     "anchors": {
-      "from": "#0D9373",
-      "to": "#07C983"
+      "from": "#1E3A8A",
+      "to": "#3B82F6"
     }
   },
   "topbarLinks": [
     {
       "name": "Support",
-      "url": "mailto:hi@mintlify.com"
+      "url": "mailto:dhravya@supermemory.com"
     }
   ],
   "topbarCtaButton": {
     "name": "Dashboard",
-    "url": "https://dashboard.mintlify.com"
+    "url": "https://supermemory.ai"
   },
   "tabs": [
     {
       "name": "API Reference",
       "url": "api-reference"
+    },
+    {
+      "name": "Changelog",
+      "url": "changelog/overview"
     }
   ],
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://mintlify.com/docs"
+      "name": "Github",
+      "icon": "github",
+      "url": "https://git.new/memory"
     },
     {
       "name": "Community",
-      "icon": "slack",
-      "url": "https://mintlify.com/community"
+      "icon": "discord",
+      "url": "https://discord.gg/supermemory"
     },
     {
-      "name": "Blog",
-      "icon": "newspaper",
-      "url": "https://mintlify.com/blog"
+      "name": "X (Twitter)",
+      "icon": "twitter",
+      "url": "https://x.com/supermemoryai"
     }
   ],
   "navigation": [
     {
       "group": "Get Started",
-      "pages": [
-        "introduction",
-        "quickstart",
-        "development"
-      ]
+      "pages": ["introduction", "quickstart", "self-hosting"]
     },
     {
       "group": "Essentials",
@@ -70,9 +70,7 @@
     },
     {
       "group": "API Documentation",
-      "pages": [
-        "api-reference/introduction"
-      ]
+      "pages": ["api-reference/introduction"]
     },
     {
       "group": "Endpoint Examples",
@@ -81,11 +79,15 @@
         "api-reference/endpoint/create",
         "api-reference/endpoint/delete"
       ]
+    },
+    {
+      "group": "Changelog",
+      "pages": ["changelog/overview"]
     }
   ],
   "footerSocials": {
-    "x": "https://x.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://linkedin.com/company/mintlify"
+    "x": "https://x.com/supermemoryai",
+    "github": "https://github.com/supermemoryai",
+    "linkedin": "https://linkedin.com/company/supermemoryai"
   }
 }
