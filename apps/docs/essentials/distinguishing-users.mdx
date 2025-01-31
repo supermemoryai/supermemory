@@ -1,0 +1,86 @@
+---
+title: "Managing Multi-User Search Results"
+description: "Learn how to handle search results for different users in Supermemory"
+icon: "users"
+---
+
+When building multi-user applications with Supermemory, you'll often need to manage data for different users accessing the same account. Here's everything you need to know about handling multi-user scenarios:
+
+## What are Spaces?
+
+Spaces are Supermemory's way of organizing and separating data for different users or groups. They help you:
+
+- Keep each user's data separate and organized
+- Group related content together
+- Manage access control efficiently
+- Scale your application to multiple users
+
+## How to Use Spaces
+
+**Creating Spaces**
+
+- Spaces are automatically provisioned when you use the `spaces` parameter
+- No separate setup or initialization needed
+- Example API call:
+
+```bash
+curl -X POST https://api.supermemory.ai/v1/add \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "This is the content of my first memory.", "spaces": ["user1", "user2"]}'
+```
+
+## Manually Creating Spaces
+
+You can also manually create spaces by using the `/spaces/create` endpoint.
+
+```bash
+curl -X POST https://api.supermemory.ai/v1/spaces/create \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"spaceName": "user1", "isPublic": false}'
+```
+
+Creating a public space will make it globally accessible to all users. By default, spaces are private.
+
+## Retrieving Spaces
+
+You can retrieve all spaces for a user by using the `/spaces` endpoint.
+
+```bash
+curl -X GET https://api.supermemory.ai/v1/spaces/list \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+## Moving a content to a Specific Space
+
+You can move a memory to a specific space by using the `space/addContent` endpoint and specifying the space id and the document id.
+
+```bash
+curl -X POST https://api.supermemory.ai/v1/space/addContent \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"spaceId": "123", "documentId": "456"}'
+```
+
+## Retrieving Content from a Specific Space
+
+You can retrieve content from a specific space by using the `/memories` endpoint and specifying the space id.
+
+```bash
+curl -X GET https://api.supermemory.ai/v1/memories \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"spaceId": "123"}'
+```
+
+This also means that you can augment multiple spaces together to create a more complex search.
+
+```bash
+curl -X GET https://api.supermemory.ai/v1/search \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"spaces": ["person", "project", "team"], "query": "my query"}'
+```
+
+This will filter only for memories that are in all three spaces - `person`, `project`, and `team`.

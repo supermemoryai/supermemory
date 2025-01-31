@@ -21,6 +21,7 @@ import {
   spaces as spaceInDb,
   spaceAccess,
   type Space,
+  contentToSpace,
 } from "@supermemory/db/schema";
 import { google, openai } from "../providers";
 import { randomId } from "@supermemory/shared";
@@ -30,6 +31,8 @@ import {
   database,
   desc,
   eq,
+  exists,
+  inArray,
   or,
   sql,
 } from "@supermemory/db";
@@ -457,14 +460,53 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         query: z.string().min(1, "Search query cannot be empty"),
         limit: z.number().min(1).max(50).default(10),
         threshold: z.number().min(0).max(1).default(0),
+        spaces: z.array(z.string()).optional(),
       })
     ),
     async (c) => {
-      const { query, limit, threshold } = c.req.valid("json");
+      const { query, limit, threshold, spaces } = c.req.valid("json");
       const user = c.get("user");
 
       if (!user) {
         return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const db = database(c.env.HYPERDRIVE.connectionString);
+
+      if (spaces && spaces.length > 0) {
+        const spaceDetails = await Promise.all(
+          spaces.map(async (spaceId) => {
+            const space = await db
+              .select()
+              .from(spaceInDb)
+              .where(eq(spaceInDb.uuid, spaceId))
+              .limit(1);
+            
+            if (space.length === 0) return null;
+            return {
+              id: space[0].id,
+              ownerId: space[0].ownerId,
+              uuid: space[0].uuid
+            };
+          })
+        );
+
+        // Filter out any null values and check permissions
+        const validSpaces = spaceDetails.filter((s): s is NonNullable<typeof s> => s !== null);
+        const unauthorized = validSpaces.filter(s => s.ownerId !== user.id);
+
+        if (unauthorized.length > 0) {
+          return c.json(
+            {
+              error: "Space permission denied",
+              details: unauthorized.map(s => s.uuid).join(", "),
+            },
+            403
+          );
+        }
+
+        // Replace UUIDs with IDs for the database query
+        spaces.splice(0, spaces.length, ...validSpaces.map(s => s.id.toString()));
       }
 
       try {
@@ -497,7 +539,25 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           .where(
             and(
               eq(documents.userId, user.id),
-              sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) >= ${threshold}`
+              sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) >= ${threshold}`,
+              ...(spaces && spaces.length > 0
+                ? [
+                    exists(
+                      db
+                        .select()
+                        .from(contentToSpace)
+                        .where(
+                          and(
+                            eq(contentToSpace.contentId, documents.id),
+                            inArray(
+                              contentToSpace.spaceId,
+                              spaces.map((spaceId) => Number(spaceId))
+                            )
+                          )
+                        )
+                    ),
+                  ]
+                : [])
             )
           )
           .orderBy(

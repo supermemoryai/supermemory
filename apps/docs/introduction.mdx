@@ -1,7 +1,12 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: Introduction - Supermemory
+description: "Supermemory is the Memory API for the AI era."
 ---
+
+We built [Supermemory](https://supermemory.ai) and scaled the RAG system to 10,000,000+ documents and multiple thousands of users.
+We faced challenges. It turns out that building scalable, reliable, production-ready Memory layer is pretty hard.
+
+Introducing the Supermemory API. An _affordable_, _easy-to-use_, and _production-ready_ Memory API for the AI era.
 
 <img
   className="block dark:hidden"
@@ -14,58 +19,151 @@ description: "Welcome to the home of your new documentation"
   alt="Hero Dark"
 />
 
-## Setting up
+## Why Supermemory?
 
-The first step to world-class documentation is setting up your editing environments.
+### The problem
+
+... so you want to build your own memory layer. Let's go through your decision process:
+
+<Steps>
+  <Step title="Let's choose a vector database">
+    <Warning>
+      Found a vector database? good luck
+      - Oh no, it's way too expensive. Time to switch.
+      - Turns out it's painfully slow. Let's try another.
+      - Great, now it won't scale. Back to square one.
+      - The maintenance is a nightmare. Need something else.
+    </Warning>
+  </Step>
+
+  <Step title="Now for the embedding model">
+    <Note>
+      Which one to choose? Unless you have a PhD in AI, good luck figuring out:
+      - Which model fits your use case
+      - What are the performance tradeoffs
+      - How to keep up with new releases
+    </Note>
+  </Step>
+
+  <Step title="Time to build the memory layer">
+    <CardGroup cols={2}>
+      <Card title="Support multimodal">
+        - Websites: How do you handle JavaScript? What about rate limits?
+        - PDFs: OCR keeps failing, text extraction is inconsistent
+        - Images: Need computer vision models now?
+        - Audio/Video: Transcription costs add up quickly
+      </Card>
+      <Card title="Handle everything">
+        - Multiple languages: Different models for each? 
+        - Various formats to parse: \
+          • Markdown: Tables break everything \
+          • HTML: Scripts and styles get in the way \
+          • PDF: Layout ruins the extraction \
+          • Word docs: Good luck with formatting \
+          • And somehow make it all work together...
+      </Card>
+    </CardGroup>
+  </Step>
+</Steps>
+
+And in the middle of all this, you're wondering...
+
+> "When will I actually ship my product?"
+
+### The solution
+
+If you are not a fan of reinventing the wheel, you can use Supermemory. 
 
 <CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
+  <Card title="Affordable & Easy to Use" icon="circle-check" className="text-emerald-600">
+    <div className="text-emerald-700 space-y-1">
+      - Start for free, scale as you grow
+      - Simple API, deploy in minutes
+      - No complex setup or maintenance
+      - Clear, predictable pricing
+    </div>
   </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
+  <Card title="Ready-made Connectors" icon="circle-check" className="text-emerald-600">
+    <div className="text-emerald-700 space-y-1">
+      - Notion, Google Drive, Slack integration
+      - Web scraping and PDF processing
+      - Email and calendar sync
+      - Custom connector SDK
+    </div>
+  </Card>
+  <Card title="Production Ready" icon="circle-check" className="text-emerald-600">
+    <div className="text-emerald-700 space-y-1">
+      - Enterprise-grade security
+      - Sub-200ms latency at scale
+      - Automatic failover and redundancy
+      - 99.9% uptime guarantee
+    </div>
+  </Card>
+  <Card title="Open Source & Trusted" icon="circle-check" className="text-emerald-600">
+    <div className="text-emerald-700 space-y-1">
+      - Open source core
+      - Active community
+      - Regular security audits
+      - Transparent development
+    </div>
   </Card>
 </CardGroup>
 
-## Make it yours
+Stop reinventing the wheel. Focus on building your product while we handle the memory infrastructure.
 
-Update your docs to your brand and add valuable content for the best user conversion.
+## Use cases
+
+What can you do with Supermemory?
 
 <CardGroup cols={2}>
   <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
+    title="Chat with <X> app"
+    icon="message"
   >
-    Customize your docs to your company's colors and brands
+    Quickly built chat apps like:
+
+    • Chat with your Twitter bookmarks \
+    • Interact with your PDF documents \
+    • Chat with your company documentation \
+    • Chat with your personal knowledge base
+    ... and more!
+
   </Card>
   <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
+    title="Smart search in your apps"
+    icon="magnifying-glass"
   >
-    Automatically generate endpoints from an OpenAPI spec
+    Search things with AI:
+
+    • Product recommendations \
+    • Knowledge base search \
+    • Document similarity matching \
+    • Content discovery systems \
+    • Research paper analysis
+
   </Card>
   <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
+    title="Assistants and Agents"
+    icon="chart-line"
   >
-    Build interactive features and designs to guide your users
+    Assistants and Agents:
+
+    • Email management \
+    • Meeting summarization \
+    • Task prioritization \
+    • Calendar organization \
+    • Personal knowledge management
+
   </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
+    <Card
+    title="Import tools and integrations"
+    icon="toolbox"
   >
-    Check out our showcase of our favorite documentation
+    You can contribute to supermemory by making community import tools. Examples:
+
+    • Notion \
+    • <a href="https://www.icloud.com/shortcuts/55f0695258cd46e4aad1aba8a2a7d14b">IOS shortcuts</a> \
+    • YOUR app / service
+
   </Card>
 </CardGroup>

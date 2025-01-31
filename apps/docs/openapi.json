@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Supermemory API",
-    "version": "1.0",
+    "version": "1.0", 
     "description": "API for Supermemory personal knowledge management system"
   },
   "servers": [
@@ -193,6 +193,43 @@
         "responses": {
           "200": {
             "description": "Space created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/spaces/addContent": {
+      "post": {
+        "summary": "Add content to space",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "spaceId": {
+                    "type": "string"
+                  },
+                  "documentId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["spaceId", "documentId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Content added to space successfully"
           },
           "401": {
             "description": "Unauthorized"

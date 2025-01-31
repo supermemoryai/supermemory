@@ -1,6 +1,6 @@
 ---
-title: 'Getting Started'
-description: 'Start using Supermemory API in under 5 minutes'
+title: "Getting Started"
+description: "Start using Supermemory API in under 5 minutes"
 ---
 
 ## Getting Started
@@ -26,16 +26,52 @@ To use the Supermemory API, you'll need:
     ![View API Key in Integrations](/images/setup/3.png)
 
     Keep your API key secure and never share it publicly. You'll need this key for authenticating all API requests.
+
   </Accordion>
 </AccordionGroup>
 
 ## Base URL
 
 All API requests should be made to:
+
 ```
 https://api.supermemory.ai/v1
 ```
 
-
 ## Add your first memory
 
+```bash
+curl -X POST https://api.supermemory.ai/v1/add \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "This is the content of my first memory."}'
+```
+
+This will add a new memory to your Supermemory account.
+
+Try it out in the [API Playground](/api-reference/endpoints/add-new-content)
+
+## Search your memories
+
+```bash
+curl -X GET https://api.supermemory.ai/v1/search \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "This is the content of my first memory."}'
+```
+
+Try it out in the [API Playground](/api-reference/endpoints/search-content)
+
+## Get your memories
+
+```bash
+curl -X GET https://api.supermemory.ai/v1/memories \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+This will return a list of all your memories.
+
+Try it out in the [API Playground](/api-reference/endpoints/list-memories)
+
+That's it! You've now added your first memory and searched for it.
