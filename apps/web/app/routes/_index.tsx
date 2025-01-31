@@ -39,6 +39,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	const success = searchParams.get("success");
 	const integration = searchParams.get("integration");
 
+	if (!user) {
+		return redirect("/signin");
+	}
+
 	try {
 		const recommendedQuestionsPromise = proxy("/v1/recommended-questions", {}, request, context)
 			.then((response) => response.json())
@@ -122,7 +126,7 @@ const HomePage = memo(function HomePage() {
 	}, []);
 
 	if (!user) {
-		return <Landing />;
+		return <div>Loading...</div>;
 	}
 
 	return (

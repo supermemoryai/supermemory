@@ -93,21 +93,22 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
     });
 
     return c.json({ spaces: spacesWithDetails });
-  }).get("/:spaceId", async (c) => {
+  })
+  .get("/:spaceId", async (c) => {
     const user = c.get("user");
     const spaceId = c.req.param("spaceId");
     const db = database(c.env.HYPERDRIVE.connectionString);
-  
+
     const space = await db
       .select()
       .from(spaces)
       .where(eq(spaces.uuid, spaceId))
       .limit(1);
-  
+
     if (!space[0]) {
       return c.json({ error: "Space not found" }, 404);
     }
-  
+
     // For public spaces, anyone can read but only owner can edit
     if (space[0].isPublic) {
       const canEdit = user?.id === space[0].ownerId;
@@ -120,12 +121,12 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
         },
       });
     }
-  
+
     // For private spaces, require authentication
     if (!user) {
       return c.json({ error: "Unauthorized" }, 401);
     }
-  
+
     // Check if user is owner or has access via spaceAccess
     const isOwner = space[0].ownerId === user.id;
     let canEdit = isOwner;
@@ -141,14 +142,14 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
           )
         )
         .limit(1);
-  
+
       if (spaceAccessCheck.length === 0) {
         return c.json({ error: "Access denied" }, 403);
       }
-  
+
       canEdit = spaceAccessCheck[0].accessType === "edit";
     }
-  
+
     return c.json({
       ...space[0],
       permissions: {
@@ -333,12 +334,10 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
             return c.json({ error: "Content already exists in space" }, 409);
           }
 
-          await tx
-            .insert(contentToSpace)
-            .values({
-              contentId: results.documentId,
-              spaceId: results.spaceId,
-            });
+          await tx.insert(contentToSpace).values({
+            contentId: results.documentId,
+            spaceId: results.spaceId,
+          });
         });
 
         return c.json({ success: true });
@@ -471,7 +470,8 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
         accessType: invitation[0].accessType,
       });
     }
-  ).post(
+  )
+  .post(
     "/invites/:action",
     zValidator(
       "json",
@@ -484,28 +484,28 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
       if (!user) {
         return c.json({ error: "Unauthorized" }, 401);
       }
-  
+
       const db = database(c.env.HYPERDRIVE.connectionString);
-  
+
       const { action } = c.req.param();
       if (action !== "accept" && action !== "reject") {
         return c.json({ error: "Invalid action" }, 400);
       }
-  
+
       const { spaceId } = c.req.valid("json");
       console.log("space ID", spaceId);
-  
+
       // Get space
       const space = await db
         .select()
         .from(spaces)
         .where(eq(spaces.uuid, spaceId))
         .limit(1);
-  
+
       if (space.length === 0) {
         return c.json({ error: "Space not found" }, 404);
       }
-  
+
       // Update invite status
       const updateResult = await db
         .update(spaceAccess)
@@ -517,11 +517,11 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
             eq(spaceAccess.status, "pending")
           )
         );
-  
+
       if (updateResult.length === 0) {
         return c.json({ error: "No pending invite found" }, 404);
       }
-  
+
       return c.json({ success: true });
     }
   );

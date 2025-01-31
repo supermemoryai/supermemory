@@ -8,7 +8,7 @@
   "favicon": "/favicon.png",
   "colors": {
     "primary": "#1E3A8A",
-    "light": "#3B82F6", 
+    "light": "#3B82F6",
     "dark": "#1E3A8A",
     "anchors": {
       "from": "#1E3A8A",
@@ -50,6 +50,12 @@
       "name": "X (Twitter)",
       "icon": "twitter",
       "url": "https://x.com/supermemoryai"
+    },
+    {
+      "name": "API Reference",
+      "openapi": "/openapi.json",
+      "url": "api-reference",
+      "icon": "square-terminal"
     }
   ],
   "navigation": [
@@ -89,5 +95,11 @@
     "x": "https://x.com/supermemoryai",
     "github": "https://github.com/supermemoryai",
     "linkedin": "https://linkedin.com/company/supermemoryai"
+  },
+  "api": {
+    "baseUrl": "https://api.supermemory.ai/v1",
+    "auth": {
+      "method": "bearer"
+    }
   }
 }

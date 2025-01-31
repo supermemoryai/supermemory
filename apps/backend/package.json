@@ -11,6 +11,8 @@
   "dependencies": {
     "@ai-sdk/google": "^0.0.51",
     "@ai-sdk/openai": "^0.0.70",
+    "@hono/swagger-ui": "^0.5.0",
+    "@hono/zod-openapi": "^0.18.3",
     "@hono/zod-validator": "^0.4.1",
     "@supermemory/db": "workspace:*",
     "ai": "4.0.16",
