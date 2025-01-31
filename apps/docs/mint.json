@@ -72,18 +72,6 @@
     {
       "group": "Changelog",
       "pages": ["changelog/overview"]
-    },
-    {
-      "group": "API Reference",
-      "pages": [
-        "api-reference/endpoints/add-new-content",
-        "api-reference/endpoints/search-content",
-        "api-reference/endpoints/create-space",
-        "api-reference/endpoints/get-user-spaces",
-        "api-reference/endpoints/import-notion-content",
-        "api-reference/endpoints/list-memories",
-        "api-reference/endpoints/list-spaces"
-      ]
     }
   ],
   "footerSocials": {
