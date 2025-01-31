@@ -23,6 +23,8 @@ import {
   DurableObjectStore,
 } from "@hono-rate-limiter/cloudflare";
 import { ConfigType, GeneralConfigType, rateLimiter } from "hono-rate-limiter";
+import { initNotifications } from "./utils/notifications";
+import { initDarkMode } from "./utils/darkMode";
 
 export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
   .use("*", timing())
@@ -229,6 +231,9 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
     console.error(err);
     return c.json({ error: "Internal server error" }, 500);
   });
+
+initNotifications(app);
+initDarkMode(app);
 
 export default {
   fetch: app.fetch,

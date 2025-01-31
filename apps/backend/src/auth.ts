@@ -4,6 +4,8 @@ import { and, database, eq, sql } from "@supermemory/db";
 import { User, users } from "@supermemory/db/schema";
 import { Env, Variables } from "./types";
 import { encrypt, decrypt } from "./utils/cipher";
+import { generateMfaCode, verifyMfaCode } from "./utils/mfa";
+import { checkUserRole } from "./utils/rbac";
 
 interface EncryptedData {
   userId: string;
@@ -145,6 +147,20 @@ export const auth = async (
     } else {
       return c.json({ error: "Authentication required" }, 401);
     }
+  }
+
+  // Multi-factor authentication (MFA) check
+  if (user && user.mfaEnabled) {
+    const mfaCode = c.req.raw.headers.get("X-MFA-Code");
+    if (!mfaCode || !(await verifyMfaCode(user.id, mfaCode))) {
+      return c.json({ error: "MFA required" }, 401);
+    }
+  }
+
+  // Role-based access control (RBAC) check
+  const requiredRole = c.req.raw.headers.get("X-Required-Role");
+  if (requiredRole && !checkUserRole(user, requiredRole)) {
+    return c.json({ error: "Insufficient permissions" }, 403);
   }
 
   return next();

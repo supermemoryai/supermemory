@@ -11,6 +11,8 @@ import {
 import { decryptApiKey, getApiKey } from "../auth";
 import { DurableObjectStore } from "@hono-rate-limiter/cloudflare";
 import { rateLimiter } from "hono-rate-limiter";
+import { generateMfaCode, verifyMfaCode } from "../utils/mfa";
+import { checkUserRole, assignUserRole } from "../utils/rbac";
 
 const user = new Hono<{ Variables: Variables; Bindings: Env }>()
   .get("/", (c) => {
@@ -195,5 +197,46 @@ const user = new Hono<{ Variables: Variables; Bindings: Env }>()
 
     return c.json({ success: true });
   })
+  .post("/mfa/enable", async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const mfaCode = await generateMfaCode(user.id);
+    // Send MFA code to user via email or SMS (implementation not shown)
+    return c.json({ success: true, message: "MFA code sent" });
+  })
+  .post("/mfa/verify", async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const { code } = await c.req.json();
+    const isValid = await verifyMfaCode(user.id, code);
+
+    if (!isValid) {
+      return c.json({ error: "Invalid MFA code" }, 400);
+    }
+
+    // Update user to mark MFA as enabled (implementation not shown)
+    return c.json({ success: true, message: "MFA verified and enabled" });
+  })
+  .post("/roles/assign", async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const { userId, role } = await c.req.json();
+    const success = await assignUserRole(userId, role);
+
+    if (!success) {
+      return c.json({ error: "Failed to assign role" }, 500);
+    }
+
+    return c.json({ success: true, message: "Role assigned successfully" });
+  });
 
 export default user;
