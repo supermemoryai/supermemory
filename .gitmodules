@@ -1,0 +1,3 @@
+[submodule "apps/docs"]
+	path = apps/docs
+	url = https://github.com/dhravya/docs
