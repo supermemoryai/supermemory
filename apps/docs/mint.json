@@ -28,7 +28,8 @@
   "tabs": [
     {
       "name": "API Reference",
-      "url": "api-reference"
+      "url": "api-reference/endpoints",
+      "openapi": "/openapi.json"
     },
     {
       "name": "Changelog",
@@ -50,12 +51,6 @@
       "name": "X (Twitter)",
       "icon": "twitter",
       "url": "https://x.com/supermemoryai"
-    },
-    {
-      "name": "API Reference",
-      "openapi": "/openapi.json",
-      "url": "api-reference",
-      "icon": "square-terminal"
     }
   ],
   "navigation": [
@@ -75,31 +70,25 @@
       ]
     },
     {
-      "group": "API Documentation",
-      "pages": ["api-reference/introduction"]
-    },
-    {
-      "group": "Endpoint Examples",
-      "pages": [
-        "api-reference/endpoint/get",
-        "api-reference/endpoint/create",
-        "api-reference/endpoint/delete"
-      ]
-    },
-    {
       "group": "Changelog",
       "pages": ["changelog/overview"]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/endpoints/add-new-content",
+        "api-reference/endpoints/search-content",
+        "api-reference/endpoints/create-space",
+        "api-reference/endpoints/get-user-spaces",
+        "api-reference/endpoints/import-notion-content",
+        "api-reference/endpoints/list-memories",
+        "api-reference/endpoints/list-spaces"
+      ]
     }
   ],
   "footerSocials": {
     "x": "https://x.com/supermemoryai",
     "github": "https://github.com/supermemoryai",
     "linkedin": "https://linkedin.com/company/supermemoryai"
-  },
-  "api": {
-    "baseUrl": "https://api.supermemory.ai/v1",
-    "auth": {
-      "method": "bearer"
-    }
   }
 }
