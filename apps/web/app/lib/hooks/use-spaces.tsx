@@ -31,7 +31,7 @@ type CreateSpaceResponse = {
 };
 
 export async function fetchSpaces(): Promise<SpaceResponse> {
-	const response = await fetch(`/backend/api/spaces`, {
+	const response = await fetch(`/backend/v1/spaces`, {
 		method: "GET",
 		headers: {
 			"Content-Type": "application/json",
@@ -50,7 +50,7 @@ async function createSpace(data: {
 	spaceName: string;
 	isPublic: boolean;
 }): Promise<CreateSpaceResponse> {
-	const response = await fetch(`/backend/api/spaces/create`, {
+	const response = await fetch(`/backend/v1/spaces/create`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
@@ -68,7 +68,7 @@ async function createSpace(data: {
 }
 
 async function makeFavorite(spaceId: string) {
-	const response = await fetch(`/backend/api/spaces/favorite/${spaceId}`, {
+	const response = await fetch(`/backend/v1/spaces/favorite/${spaceId}`, {
 		method: "POST",
 		credentials: "include",
 	});

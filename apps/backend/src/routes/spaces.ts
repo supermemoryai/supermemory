@@ -472,7 +472,7 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
       });
     }
   ).post(
-    "/api/space/invites/:action",
+    "/invites/:action",
     zValidator(
       "json",
       z.object({

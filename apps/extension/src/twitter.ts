@@ -241,7 +241,7 @@ const getBookmarks = async (cursor = "", totalImported = 0, allTweets = []) => {
 
     // Send all tweets in parallel
     const addRequests = tweetUrls.map((tweetUrl: string) =>
-      fetch(`${baseURL}/backend/api/add`, {
+      fetch(`${baseURL}/backend/v1/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

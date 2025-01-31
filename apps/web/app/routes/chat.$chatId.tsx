@@ -29,7 +29,7 @@ export const loader = (args: LoaderFunctionArgs) =>
 			return redirect("/");
 		}
 
-		const chatHistory = await proxy(`/api/chat/${threadId}`, {}, request, context);
+		const chatHistory = await proxy(`/v1/chat/${threadId}`, {}, request, context);
 		const chatHistoryJson = (await chatHistory.json()) as { chatHistory: CoreMessage[] };
 
 		if (!chatHistory) {

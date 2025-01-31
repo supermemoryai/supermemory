@@ -40,7 +40,7 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
 	try {
 		// Fetch space details and check access
-		const response = await proxy(`/api/spaces/${spaceId}`, { method: "GET" }, request, context);
+		const response = await proxy(`/v1/spaces/${spaceId}`, { method: "GET" }, request, context);
 
 		if (!response.ok) {
 			if (response.status === 404) {
@@ -100,7 +100,7 @@ export default function SpacePage() {
 
 		setIsInviting(true);
 		try {
-			const response = await fetch(`/backend/api/spaces/${space.uuid}/invite`, {
+			const response = await fetch(`/backend/v1/spaces/${space.uuid}/invite`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ email, accessType }),
@@ -123,7 +123,7 @@ export default function SpacePage() {
 
 	const handleFavorite = async () => {
 		try {
-			const response = await fetch(`/backend/api/spaces/${space.uuid}/favorite`, {
+			const response = await fetch(`/backend/v1/spaces/${space.uuid}/favorite`, {
 				method: isFavorited ? "DELETE" : "POST",
 				headers: { "Content-Type": "application/json" },
 				credentials: "include",
@@ -144,13 +144,13 @@ export default function SpacePage() {
 
 	const handleShare = async () => {
 		const shareUrl = window.location.href;
-		
+
 		if (navigator.share) {
 			try {
 				await navigator.share({
 					title: `${space.name} - Supermemory Space`,
 					text: `Check out this space on Supermemory: ${space.name}`,
-					url: shareUrl
+					url: shareUrl,
 				});
 			} catch (err) {
 				// Fallback to clipboard if share fails or is cancelled
@@ -241,16 +241,20 @@ export default function SpacePage() {
 								<Button variant="outline" size="sm" onClick={handleCopyLink}>
 									<Clipboard className="h-4 w-4" />
 								</Button>
-								{space.isPublic && user && !space.permissions.isOwner && !space.permissions.canEdit && !space.permissions.canRead && (
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={handleFavorite}
-										className={`ml-2 ${isFavorited ? "text-yellow-500" : "text-gray-500"}`}
-									>
-										<Star className="h-4 w-4" fill={isFavorited ? "currentColor" : "none"} />
-									</Button>
-								)}
+								{space.isPublic &&
+									user &&
+									!space.permissions.isOwner &&
+									!space.permissions.canEdit &&
+									!space.permissions.canRead && (
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={handleFavorite}
+											className={`ml-2 ${isFavorited ? "text-yellow-500" : "text-gray-500"}`}
+										>
+											<Star className="h-4 w-4" fill={isFavorited ? "currentColor" : "none"} />
+										</Button>
+									)}
 							</div>
 						</div>
 					</div>

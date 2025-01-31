@@ -10,10 +10,10 @@ import { Theme, useTheme } from "../lib/theme-provider";
 import { authkitLoader } from "@supermemory/authkit-remix-cloudflare";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { loader as routeLoader } from "~/root";
 import { proxy } from "server/proxy";
+import { toast } from "sonner";
 import { getChromeExtensionId } from "~/config/util";
+import { loader as routeLoader } from "~/root";
 
 export const loader = (args: LoaderFunctionArgs) => authkitLoader(args, { ensureSignedIn: true });
 
@@ -21,12 +21,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 	const formData = await request.formData();
 	const intent = formData.get("intent");
 
-	await proxy("/api/user/update", {
-		method: "POST",
-		body: JSON.stringify({
-			hasOnboarded: 1,
-		}),
-	}, request, context);
+	await proxy(
+		"/v1/user/update",
+		{
+			method: "POST",
+			body: JSON.stringify({
+				hasOnboarded: 1,
+			}),
+		},
+		request,
+		context,
+	);
 
 	return redirect("/");
 };
@@ -45,7 +50,7 @@ export default function Onboarding() {
 
 	useEffect(() => {
 		setTheme(Theme.DARK);
-		
+
 		// Check if extension is present
 		try {
 			chrome?.runtime.sendMessage(getChromeExtensionId(), { action: "ping" }, (response: any) => {

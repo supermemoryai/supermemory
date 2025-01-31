@@ -25,7 +25,7 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
 
 	try {
 		// Check if user has pending invitation
-		const response = await proxy(`/api/spaces/${spaceId}/invitation`, {}, request, context);
+		const response = await proxy(`/v1/spaces/${spaceId}/invitation`, {}, request, context);
 
 		const myJson = await response.json();
 
@@ -50,9 +50,8 @@ export default function SpaceInvitation() {
 	console.log(invitation);
 	const navigate = useNavigate();
 
-
 	async function handleInviteResponse(action: "accept" | "reject") {
-		const response = await fetch(`/backend/api/spaces/invites/${action}`, {
+		const response = await fetch(`/backend/v1/spaces/invites/${action}`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",

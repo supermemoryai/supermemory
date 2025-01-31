@@ -71,7 +71,7 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 			);
 
 			// Send to batch endpoint
-			const response = await fetch("/backend/api/batch-add", {
+			const response = await fetch("/backend/v1/batch-add", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

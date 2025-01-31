@@ -10,7 +10,7 @@ import { waitlist } from "@supermemory/db/schema";
 import { cors } from "hono/cors";
 import { ContentWorkflow } from "./workflow";
 import { Resend } from "resend";
-import { StatusCode } from "hono/utils/http-status";
+import { RedirectStatusCode, StatusCode } from "hono/utils/http-status";
 import { LandingPage } from "./components/landing";
 import user from "./routes/user";
 import spacesRoute from "./routes/spaces";
@@ -44,32 +44,29 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
       exposeHeaders: ["*"],
     })
   )
-  .use("/api/*", auth)
-  .use("/api/*", (c, next) => {
+  .use("/v1/*", auth)
+  .use("/v1/*", (c, next) => {
     const user = c.get("user");
 
     // RATELIMITS
     const rateLimitConfig = {
       // Endpoints that bypass rate limiting
       excludedPaths: [
-        "/api/add",
-        "/api/chat",
-        "/api/suggested-learnings",
-        "/api/recommended-questions",
+        "/v1/add",
+        "/v1/chat",
+        "/v1/suggested-learnings",
+        "/v1/recommended-questions",
       ] as (string | RegExp)[],
 
       // Custom rate limits for specific endpoints
       customLimits: {
         notionImport: {
-          paths: [
-            "/api/integrations/notion/import",
-            "/api/integrations/notion",
-          ],
+          paths: ["/v1/integrations/notion/import", "/v1/integrations/notion"],
           windowMs: 10 * 60 * 1000, // 10 minutes
           limit: 5, // 5 requests per 10 minutes
         },
         inviteSpace: {
-          paths: [/^\/api\/spaces\/[^/]+\/invite$/],
+          paths: [/^\v1\/spaces\/[^/]+\/invite$/],
           windowMs: 60 * 1000, // 1 minute
           limit: 5, // 5 requests per minute
         },
@@ -81,7 +78,6 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
       default: {
         windowMs: 60 * 1000, // 1 minute
         limit: 100, // 100 requests per minute
-        
       },
 
       common: {
@@ -128,11 +124,32 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
   .get("/", (c) => {
     return c.html(<LandingPage />);
   })
-  .route("/api/user", user)
-  .route("/api/spaces", spacesRoute)
-  .route("/api", actions)
-  .route("/api/integrations", integrations)
-  .route("/api/memories", memories)
+  // TEMPORARY REDIRECT
+  .all("/api/*", async (c) => {
+    // Get the full URL and path
+    const url = new URL(c.req.url);
+    const path = url.pathname.replace("/api", "/v1");
+
+    // Preserve query parameters and build target URL
+    const redirectUrl = path + url.search;
+
+    // Forward the request with same method, headers and body
+    const response = await fetch(redirectUrl, {
+      method: c.req.method,
+      headers: c.req.raw.headers,
+      body:
+        c.req.method !== "GET" && c.req.method !== "HEAD"
+          ? await c.req.blob()
+          : undefined,
+    });
+
+    return response;
+  })
+  .route("/v1/user", user)
+  .route("/v1/spaces", spacesRoute)
+  .route("/v1", actions)
+  .route("/v1/integrations", integrations)
+  .route("/v1/memories", memories)
   .post(
     "/waitlist",
     zValidator(

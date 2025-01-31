@@ -10,7 +10,7 @@ export const useChatStream = (initialMessages: CoreMessage[], initialThreadUuid?
 	const [threadUuid, setThreadUuid] = useState(initialThreadUuid || "");
 	const { messages, input, setInput, append, isLoading, error, stop, handleSubmit } = useChat({
 		initialMessages: convertToUIMessages(initialMessages),
-		api: `/backend/api/chat`,
+		api: `/backend/v1/chat`,
 		onResponse: (resp) => {
 			const newThreadUuid = resp.headers.get("Supermemory-Thread-Uuid");
 			if (newThreadUuid) {

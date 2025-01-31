@@ -1,13 +1,24 @@
 import * as ReactTweet from "react-tweet";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
+import { TweetSkeleton } from "react-tweet";
 
 import { NotionIcon } from "../icons/IntegrationIcons";
 import { CustomTwitterComp } from "../twitter/render-tweet";
+import Loader from "../ui/Loader";
 import { Button, ButtonProps } from "../ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "../ui/command";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuPortal,
@@ -16,24 +27,20 @@ import {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
-	DropdownMenuGroup,
 } from "../ui/dropdown-menu";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "../ui/command";
 
 import { FileIcon } from "@radix-ui/react-icons";
 import { SpaceIcon } from "@supermemory/shared/icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FastAverageColor } from "fast-average-color";
 import { MenuIcon, TrashIcon } from "lucide-react";
+import { toast } from "sonner";
 import { pastelColors } from "~/lib/constants/pastelColors";
 import { typeIcons } from "~/lib/constants/typeIcons";
 import { ExtraSpaceMetaData, fetchSpaces } from "~/lib/hooks/use-spaces";
 import { useTextOverflow } from "~/lib/hooks/use-text-overflow";
 import { Memory, WebsiteMetadata } from "~/lib/types/memory";
 import { cn } from "~/lib/utils";
-import Loader from "../ui/Loader";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { TweetSkeleton } from "react-tweet";
 
 const { useTweet } = ReactTweet;
 
@@ -393,119 +400,125 @@ async function fetchWebsiteMetadata(url: string): Promise<WebsiteMetadata> {
 	}
 }
 
-const WebsiteCard = memo(({
-	url,
-	title,
-	description,
-	image,
-}: {
-	url: string;
-	title?: string | null;
-	description?: string | null;
-	image?: string | null;
-}) => {
-	// Memoize domain extraction to avoid recalculation
-	const domain = useMemo(() => {
-		try {
-			let formattedUrl = url;
-			if (!formattedUrl.startsWith("http")) {
-				formattedUrl = "http://" + formattedUrl;
+const WebsiteCard = memo(
+	({
+		url,
+		title,
+		description,
+		image,
+	}: {
+		url: string;
+		title?: string | null;
+		description?: string | null;
+		image?: string | null;
+	}) => {
+		// Memoize domain extraction to avoid recalculation
+		const domain = useMemo(() => {
+			try {
+				let formattedUrl = url;
+				if (!formattedUrl.startsWith("http")) {
+					formattedUrl = "http://" + formattedUrl;
+				}
+				return new URL(formattedUrl).hostname.replace(/^www\./, "");
+			} catch {
+				return url;
 			}
-			return new URL(formattedUrl).hostname.replace(/^www\./, "");
-		} catch {
-			return url;
-		}
-	}, [url]);
+		}, [url]);
 
-	// Memoize initial color based on URL
-	const initialColor = useMemo(() => {
-		if (!image) {
-			const hash = url.split("").reduce((acc, char) => {
-				return char.charCodeAt(0) + ((acc << 5) - acc);
-			}, 0);
-			return `hsl(${hash % 360}, 70%, 85%)`; // Slightly lighter base color
-		}
-		return "#f0f0f0"; // Lighter default color
-	}, [url, image]);
+		// Memoize initial color based on URL
+		const initialColor = useMemo(() => {
+			if (!image) {
+				const hash = url.split("").reduce((acc, char) => {
+					return char.charCodeAt(0) + ((acc << 5) - acc);
+				}, 0);
+				return `hsl(${hash % 360}, 70%, 85%)`; // Slightly lighter base color
+			}
+			return "#f0f0f0"; // Lighter default color
+		}, [url, image]);
 
-	const [dominantColor, setDominantColor] = useState(initialColor);
-	const [isDark, setIsDark] = useState(false);
-	// Only calculate dominant color when component is in view
-	useEffect(() => {
-		if (image) {
-			const fac = new FastAverageColor();
-			fac.getColorAsync(image, {
-				algorithm: "dominant",
-				crossOrigin: "anonymous",
-				mode: "speed",
-			})
-				.then((color) => {
-					setDominantColor(color.hex);
-					setIsDark(color.isDark);
-				})
-				.catch((error) => {
-					console.error("Error getting dominant color:", error);
-				});
-		}
-	}, [image]);
+		const [dominantColor, setDominantColor] = useState(initialColor);
+		const [isDark, setIsDark] = useState(false);
+		// Only calculate dominant color when component is in view
+		useEffect(() => {
+			if (image) {
+				const fac = new FastAverageColor();
+				fac
+					.getColorAsync(image, {
+						algorithm: "dominant",
+						crossOrigin: "anonymous",
+						mode: "speed",
+					})
+					.then((color) => {
+						setDominantColor(color.hex);
+						setIsDark(color.isDark);
+					})
+					.catch((error) => {
+						console.error("Error getting dominant color:", error);
+					});
+			}
+		}, [image]);
 
-	const displayTitle = title || domain;
-	const displayDescription = description || `Saved from ${domain}`;
+		const displayTitle = title || domain;
+		const displayDescription = description || `Saved from ${domain}`;
 
-	return (
-		<div className="overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
-			<div className="relative">
-				{image && (
-					<div className="relative h-40">
-						<img
-							src={image}
-							alt={displayTitle}
-							className="absolute inset-0 w-full h-full object-cover"
-							loading="lazy"
-							style={{ backgroundColor: dominantColor }}
-						/>
-						<div
-							className="absolute inset-0"
-							style={{
-								background: `linear-gradient(to bottom, transparent 40%, ${dominantColor} 100%)`,
-							}}
-						/>
-					</div>
-				)}
-				<div
-					className={cn(
-						"p-5 relative",
-						!image && "rounded-lg",
-						isDark ? "text-white/90" : "text-black/90",
+		return (
+			<div className="overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
+				<div className="relative">
+					{image && (
+						<div className="relative h-40">
+							<img
+								src={image}
+								alt={displayTitle}
+								className="absolute inset-0 w-full h-full object-cover"
+								loading="lazy"
+								style={{ backgroundColor: dominantColor }}
+							/>
+							<div
+								className="absolute inset-0"
+								style={{
+									background: `linear-gradient(to bottom, transparent 40%, ${dominantColor} 100%)`,
+								}}
+							/>
+						</div>
 					)}
-					style={{
-						backgroundColor: dominantColor,
-						marginTop: image ? "-2.5rem" : 0,
-					}}
-				>
-					<h3 className="text-lg font-semibold tracking-tight">{displayTitle}</h3>
-					<p className="mt-2 line-clamp-2 text-sm opacity-80">
-						{displayDescription}
-					</p>
-					<a
-						href={url}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="mt-3 inline-flex items-center gap-1 text-sm hover:underline opacity-70 hover:opacity-100 transition-opacity"
+					<div
+						className={cn(
+							"p-5 relative",
+							!image && "rounded-lg",
+							isDark ? "text-white/90" : "text-black/90",
+						)}
 						style={{
-							color: isDark ? "white" : "black",
+							backgroundColor: dominantColor,
+							marginTop: image ? "-2.5rem" : 0,
 						}}
 					>
-						<span>{domain}</span>
-						<svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-						</svg>
-					</a>
+						<h3 className="text-lg font-semibold tracking-tight">{displayTitle}</h3>
+						<p className="mt-2 line-clamp-2 text-sm opacity-80">{displayDescription}</p>
+						<a
+							href={url}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="mt-3 inline-flex items-center gap-1 text-sm hover:underline opacity-70 hover:opacity-100 transition-opacity"
+							style={{
+								color: isDark ? "white" : "black",
+							}}
+						>
+							<span>{domain}</span>
+							<svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+								<path
+									d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								/>
+							</svg>
+						</a>
+					</div>
 				</div>
 			</div>
-		</div>
-	);
-});
+		);
+	},
+);
 
 export function FetchAndRenderContent({ content }: { content: string }) {
 	const [memory, setMemory] = useState<Memory | null>(null);
@@ -601,71 +614,70 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 	return memory ? <SharedCard data={memory} /> : null;
 }
 
-
 function SharedCard({ data }: { data: Memory }) {
 	const queryClient = useQueryClient();
 
 	// Delete mutation
 	const deleteMutation = useMutation({
 		mutationFn: async (id: number) => {
-			const response = await fetch(`/backend/api/memories/${id}`, {
-				method: 'DELETE',
-				credentials: 'include'
+			const response = await fetch(`/backend/v1/memories/${id}`, {
+				method: "DELETE",
+				credentials: "include",
 			});
 			if (!response.ok) {
-				throw new Error('Failed to delete memory');
+				throw new Error("Failed to delete memory");
 			}
 			return response.json();
 		},
 		onMutate: async (id) => {
 			// Cancel outgoing refetches
-			await queryClient.cancelQueries({ queryKey: ['memories'] });
-			
+			await queryClient.cancelQueries({ queryKey: ["memories"] });
+
 			// Snapshot the previous value
-			const previousMemories = queryClient.getQueryData(['memories']);
-			
+			const previousMemories = queryClient.getQueryData(["memories"]);
+
 			// Optimistically remove the memory
-			queryClient.setQueryData(['memories'], (old: any) => {
+			queryClient.setQueryData(["memories"], (old: any) => {
 				return old?.filter((memory: Memory) => memory.id !== id);
 			});
-			
+
 			return { previousMemories };
 		},
 		onError: (err, variables, context) => {
 			// Revert the optimistic update
-			queryClient.setQueryData(['memories'], context?.previousMemories);
-			toast.error('Failed to delete memory');
+			queryClient.setQueryData(["memories"], context?.previousMemories);
+			toast.error("Failed to delete memory");
 		},
 		onSuccess: () => {
-			toast.success('Memory deleted successfully');
-			queryClient.invalidateQueries({ queryKey: ['memories'] });
-		}
+			toast.success("Memory deleted successfully");
+			queryClient.invalidateQueries({ queryKey: ["memories"] });
+		},
 	});
 
 	// Move to space mutation
 	const moveToSpaceMutation = useMutation({
-		mutationFn: async ({ spaceId, documentId }: { spaceId: string, documentId: string }) => {
-			const response = await fetch('/backend/api/spaces/addContent', {
-				method: 'POST',
+		mutationFn: async ({ spaceId, documentId }: { spaceId: string; documentId: string }) => {
+			const response = await fetch("/backend/v1/spaces/addContent", {
+				method: "POST",
 				headers: {
-					'Content-Type': 'application/json'
+					"Content-Type": "application/json",
 				},
-				credentials: 'include',
-				body: JSON.stringify({ spaceId, documentId })
+				credentials: "include",
+				body: JSON.stringify({ spaceId, documentId }),
 			});
 			if (!response.ok) {
-				throw new Error('Failed to move memory');
+				throw new Error("Failed to move memory");
 			}
 			return response.json();
 		},
 		onError: (err) => {
-			toast.error('Failed to move memory to space');
+			toast.error("Failed to move memory to space");
 		},
 		onSuccess: () => {
-			toast.success('Memory moved successfully');
-			queryClient.invalidateQueries({ queryKey: ['memories'] });
-			queryClient.invalidateQueries({ queryKey: ['spaces'] });
-		}
+			toast.success("Memory moved successfully");
+			queryClient.invalidateQueries({ queryKey: ["memories"] });
+			queryClient.invalidateQueries({ queryKey: ["spaces"] });
+		},
 	});
 
 	// Flatten the data if it's a nested array and get the first item
@@ -694,7 +706,7 @@ function SharedCard({ data }: { data: Memory }) {
 	const handleMoveToSpace = (spaceId: string) => {
 		moveToSpaceMutation.mutate({
 			spaceId,
-			documentId: data.uuid
+			documentId: data.uuid,
 		});
 	};
 
@@ -729,7 +741,7 @@ function SharedCard({ data }: { data: Memory }) {
 									<MemoizedSpaceSelector contentId={data.id} onSelect={handleMoveToSpace} />
 								</DropdownMenuPortal>
 							</DropdownMenuSub>
-							<DropdownMenuItem onSelect={e => handleDelete(e)} asChild>
+							<DropdownMenuItem onSelect={(e) => handleDelete(e)} asChild>
 								<Button className="w-full gap-2 flex" variant={"destructive"}>
 									<TrashIcon className="h-4 w-4" /> Delete
 								</Button>
@@ -743,24 +755,28 @@ function SharedCard({ data }: { data: Memory }) {
 	);
 }
 
-export const SpaceSelector = function SpaceSelector({ 
-	contentId, 
-	onSelect 
-}: { 
+export const SpaceSelector = function SpaceSelector({
+	contentId,
+	onSelect,
+}: {
 	contentId: number;
 	onSelect: (spaceId: string) => void;
 }) {
 	const [search, setSearch] = useState("");
-	const { data: spacesData, isLoading, error } = useQuery({
-		queryKey: ['spaces'],
+	const {
+		data: spacesData,
+		isLoading,
+		error,
+	} = useQuery({
+		queryKey: ["spaces"],
 		queryFn: fetchSpaces,
 		staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
 	});
 
 	const filteredSpaces = useMemo(() => {
 		if (!spacesData?.spaces) return [];
-		return spacesData.spaces.filter(space => 
-			space.name.toLowerCase().includes(search.toLowerCase())
+		return spacesData.spaces.filter((space) =>
+			space.name.toLowerCase().includes(search.toLowerCase()),
 		);
 	}, [spacesData?.spaces, search]);
 
@@ -781,7 +797,9 @@ export const SpaceSelector = function SpaceSelector({
 		return (
 			<DropdownMenuSubContent>
 				<DropdownMenuItem disabled>
-					<div className="text-destructive">Error: {error instanceof Error ? error.message : 'Failed to load spaces'}</div>
+					<div className="text-destructive">
+						Error: {error instanceof Error ? error.message : "Failed to load spaces"}
+					</div>
 				</DropdownMenuItem>
 			</DropdownMenuSubContent>
 		);
@@ -790,16 +808,12 @@ export const SpaceSelector = function SpaceSelector({
 	return (
 		<DropdownMenuSubContent className="p-0">
 			<Command>
-				<CommandInput 
-					placeholder="Search spaces..." 
-					value={search}
-					onValueChange={setSearch}
-				/>
+				<CommandInput placeholder="Search spaces..." value={search} onValueChange={setSearch} />
 				<CommandList className="max-h-[200px] overflow-y-auto">
 					<CommandGroup>
 						{filteredSpaces.map((space) => (
-							<CommandItem 
-								key={space.uuid} 
+							<CommandItem
+								key={space.uuid}
 								value={space.name}
 								onSelect={() => onSelect(space.uuid)}
 							>
@@ -809,9 +823,7 @@ export const SpaceSelector = function SpaceSelector({
 								</div>
 							</CommandItem>
 						))}
-						{filteredSpaces.length === 0 && (
-							<CommandEmpty>No spaces found.</CommandEmpty>
-						)}
+						{filteredSpaces.length === 0 && <CommandEmpty>No spaces found.</CommandEmpty>}
 					</CommandGroup>
 				</CommandList>
 			</Command>

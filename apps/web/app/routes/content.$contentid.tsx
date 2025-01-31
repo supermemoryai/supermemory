@@ -39,7 +39,7 @@ export const loader = (args: LoaderFunctionArgs) =>
 			});
 		}
 
-		const content = await proxy(`/api/memories/${contentId}`, {}, request, context);
+		const content = await proxy(`/v1/memories/${contentId}`, {}, request, context);
 
 		if (!content) {
 			throw new Response(null, {
@@ -72,7 +72,7 @@ export default function Content() {
 	// Delete mutation
 	const deleteMutation = useMutation({
 		mutationFn: async (id: number) => {
-			const response = await fetch(`/backend/api/memories/${id}`, {
+			const response = await fetch(`/backend/v1/memories/${id}`, {
 				method: "DELETE",
 				credentials: "include",
 			});
@@ -94,7 +94,7 @@ export default function Content() {
 	// Move to space mutation
 	const moveToSpaceMutation = useMutation({
 		mutationFn: async ({ spaceId, documentId }: { spaceId: string; documentId: string }) => {
-			const response = await fetch("/backend/api/spaces/addContent", {
+			const response = await fetch("/backend/v1/spaces/addContent", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

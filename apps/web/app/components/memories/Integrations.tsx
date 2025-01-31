@@ -183,7 +183,7 @@ function Integrations() {
 	};
 
 	const getApiKey = async () => {
-		const response = await fetch(`/backend/api/user/key`, {
+		const response = await fetch(`/backend/v1/user/key`, {
 			credentials: "include",
 		});
 		if (response.ok) {
@@ -503,7 +503,7 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 		let toastId: string | number | undefined;
 
 		try {
-			const eventSource = new EventSource(`/backend/api/integrations/notion/import`, {
+			const eventSource = new EventSource(`/backend/v1/integrations/notion/import`, {
 				withCredentials: true,
 			});
 

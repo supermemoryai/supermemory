@@ -4,7 +4,7 @@
 	"sideEffects": true,
 	"type": "module",
 	"engineStrict": true,
-	"packageManager": "bun@1.1.29",
+	"packageManager": "bun@1.2.1",
 	"scripts": {
 		"build": "remix vite:build",
 		"cf-typegen": "wrangler types",

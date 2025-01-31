@@ -99,7 +99,7 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 
 		setIsUploading(true);
 		try {
-			const response = await fetch("/backend/api/batch-add", {
+			const response = await fetch("/backend/v1/batch-add", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

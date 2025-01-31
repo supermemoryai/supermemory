@@ -21,7 +21,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 		return redirect("/signin");
 	}
 
-	const userInfo = await proxy("/api/user", {}, request, context);
+	const userInfo = await proxy("/v1/user", {}, request, context);
 
 	const userInfoJson = (await userInfo.json()) as User;
 	console.log("userInfoJson", userInfoJson);

@@ -14,7 +14,7 @@ const tabStates = new Map<number, TabState>();
 
 const checkIfLoggedIn = async () => {
   const baseURL = await getBaseURL();
-  const response = await fetch(`${baseURL}/api/session`);
+  const response = await fetch(`${baseURL}/v1/session`);
 
   return response.status == 200;
 };
@@ -88,7 +88,7 @@ registerMessageHandler<MessageType>(
   async (message, sender, sendResponse) => {
     // Handle getting spaces
     const baseURL = await getBaseURL();
-    const response = await fetch(`${baseURL}/backend/api/spaces`);
+    const response = await fetch(`${baseURL}/backend/v1/spaces`);
     const data = await response.json();
     sendResponse(data);
   }
@@ -121,7 +121,7 @@ registerMessageHandler<MessageType>(
 
     console.log(message.payload);
 
-    const response = await fetch(`${baseURL}/backend/api/add`, {
+    const response = await fetch(`${baseURL}/backend/v1/add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -200,7 +200,7 @@ chrome.runtime.onMessageExternal.addListener(
       chrome.bookmarks.getRecent(100, async (bookmarks) => {
         for (const { url } of bookmarks) {
           console.log("Importing bookmark:", url);
-          const r = await fetch(`${baseURL}/backend/api/add`, {
+          const r = await fetch(`${baseURL}/backend/v1/add`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

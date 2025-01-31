@@ -115,7 +115,7 @@ function Reminders() {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		fetch(`/backend/api/suggested-learnings`, {
+		fetch(`/backend/v1/suggested-learnings`, {
 			credentials: "include",
 		})
 			.then((res) => res.json() as Promise<{ suggestedLearnings: Array<Record<string, string>> }>)

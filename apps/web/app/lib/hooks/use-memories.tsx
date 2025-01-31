@@ -27,7 +27,7 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 	const { data: memoriesData, isLoading: isInitialLoading } = useQuery<CachedMemories>({
 		queryKey: cacheKey,
 		queryFn: async () => {
-			const url = new URL(`/backend/api/memories`, window.location.origin);
+			const url = new URL(`/backend/v1/memories`, window.location.origin);
 			url.searchParams.set("start", "0");
 			url.searchParams.set("count", count.toString());
 			if (spaceId) url.searchParams.set("spaceId", spaceId);
@@ -54,7 +54,7 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 				return null;
 			}
 
-			const url = new URL(`/backend/api/memories`, window.location.origin);
+			const url = new URL(`/backend/v1/memories`, window.location.origin);
 			url.searchParams.set("start", memoriesData.nextCursor.toString());
 			url.searchParams.set("count", count.toString());
 			if (spaceId) url.searchParams.set("spaceId", spaceId);
@@ -94,7 +94,7 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 
 	const deleteMemory = useMutation({
 		mutationFn: async (memoryId: string) => {
-			const response = await fetch(`/backend/api/memories/${memoryId}`, {
+			const response = await fetch(`/backend/v1/memories/${memoryId}`, {
 				method: "DELETE",
 				credentials: "include",
 			});
@@ -148,7 +148,7 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 			const toastId = toast.loading("Adding content to your second brain...");
 
 			try {
-				const response = await fetch(`/backend/api/add`, {
+				const response = await fetch(`/backend/v1/add`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ content, spaces }),
@@ -175,7 +175,7 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 				toast.loading("Content queued for processing...", { id: toastId });
 
 				const pollForMemory = async (): Promise<Memory> => {
-					const response = await fetch(`/backend/api/memories/${result.id}`, {
+					const response = await fetch(`/backend/v1/memories/${result.id}`, {
 						credentials: "include",
 					});
 					if (!response.ok) {

@@ -136,7 +136,7 @@ export const auth = async (
 
   // Check if request requires authentication
   const isPublicSpaceRequest =
-    c.req.url.includes("/api/spaces/") || c.req.url.includes("/api/memories");
+    c.req.url.includes("/v1/spaces/") || c.req.url.includes("/v1/memories");
 
   if (!isPublicSpaceRequest && !c.get("user")) {
     console.log("Unauthorized access to", c.req.url);

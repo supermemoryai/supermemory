@@ -51,7 +51,7 @@ async function createSpace(data: {
   isPublic: boolean;
 }): Promise<CreateSpaceResponse> {
   const baseURL = await getBaseURL();
-  const response = await fetch(`${baseURL}/backend/api/space/create`, {
+  const response = await fetch(`${baseURL}/backend/v1/space/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -72,7 +72,7 @@ async function createSpace(data: {
 async function makeFavorite(spaceId: string) {
   const baseURL = await getBaseURL();
   const response = await fetch(
-    `${baseURL}/backend/api/space/favorite/${spaceId}`,
+    `${baseURL}/backend/v1/space/favorite/${spaceId}`,
     {
       method: "POST",
     }

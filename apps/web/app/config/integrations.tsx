@@ -62,7 +62,7 @@ export const getIntegrations = (
 		},
 
 		importData: {
-			url: `/backend/api/integrations/notion/import`,
+			url: `/backend/v1/integrations/notion/import`,
 			withCredentials: true,
 			parseProgress: (data) => ({
 				progress: data.progress,
@@ -193,7 +193,11 @@ export const getIntegrations = (
 		},
 
 		icon: (props) => (
-			<img src="https://imagedelivery.net/_Zs8NCbSWCQ8-iurXrWjBg/21434e3e-49ac-4a15-126d-175e95440300/public" alt="iOS Shortcut" {...props} />
+			<img
+				src="https://imagedelivery.net/_Zs8NCbSWCQ8-iurXrWjBg/21434e3e-49ac-4a15-126d-175e95440300/public"
+				alt="iOS Shortcut"
+				{...props}
+			/>
 		),
 	},
 });

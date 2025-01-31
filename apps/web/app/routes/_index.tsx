@@ -39,9 +39,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	const success = searchParams.get("success");
 	const integration = searchParams.get("integration");
 
-
 	try {
-		const recommendedQuestionsPromise = proxy("/api/recommended-questions", {}, request, context)
+		const recommendedQuestionsPromise = proxy("/v1/recommended-questions", {}, request, context)
 			.then((response) => response.json())
 			.then((data) => (data as { questions: string[] }).questions ?? null)
 			.catch(() => {
