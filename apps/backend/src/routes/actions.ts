@@ -469,7 +469,6 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       try {
         // Generate embedding for the search query
-
         const embeddings = await c.env.AI.run("@cf/baai/bge-base-en-v1.5", {
           text: query,
         });
@@ -503,7 +502,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           )
           .orderBy(
             sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) desc`
-          ) //figure out a better way to do order by my brain isn't working at this time. but youcan't do vector search twice
+          )
           .limit(limit);
 
         return c.json({
@@ -623,7 +622,24 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               .limit(1);
 
             if (!space[0]) {
-              return { spaceId, allowed: false, error: "Space not found" };
+              // create a new space for the user with the given id
+              const newSpace = await db
+                .insert(spaceInDb)
+                .values({
+                  uuid: spaceId,
+                  name: spaceId,
+                  isPublic: false,
+                  ownerId: user.id,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                })
+                .returning();
+
+              return {
+                spaceId: newSpace[0].id,
+                allowed: true,
+                error: null,
+              };
             }
 
             const spaceData = space[0] as Space;

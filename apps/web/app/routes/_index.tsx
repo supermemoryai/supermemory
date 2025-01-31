@@ -1,7 +1,7 @@
 import { Suspense, lazy, memo, useCallback, useEffect, useState } from "react";
-import { useFetcher, useNavigate, useRouteError } from "@remix-run/react";
 
 import { LoaderFunctionArgs, defer, json, redirect } from "@remix-run/cloudflare";
+import { useFetcher, useNavigate, useRouteError } from "@remix-run/react";
 import { Await, useLoaderData } from "@remix-run/react";
 
 import { getSignInUrl } from "@supermemory/authkit-remix-cloudflare";
@@ -39,9 +39,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	const success = searchParams.get("success");
 	const integration = searchParams.get("integration");
 
-	if (!user) {
-		return redirect("/signin");
-	}
 
 	try {
 		const recommendedQuestionsPromise = proxy("/api/recommended-questions", {}, request, context)
@@ -58,7 +55,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 			greeting,
 			recommendedQuestions: recommendedQuestionsPromise,
 			success,
-			integration
+			integration,
 		});
 	} catch (error) {
 		console.error("Error in loader:", error);
@@ -101,12 +98,6 @@ const HomePage = memo(function HomePage() {
 	const navigate = useNavigate();
 
 	useEffect(() => {
-		if (!user) {
-			navigate("/signin");
-		}
-	}, [user]);
-
-	useEffect(() => {
 		if (success && integration && integration === "notion") {
 			setIsModalOpen(true);
 		}
@@ -130,6 +121,10 @@ const HomePage = memo(function HomePage() {
 	const handleScroll = useCallback(() => {
 		window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 	}, []);
+
+	if (!user) {
+		return <Landing />;
+	}
 
 	return (
 		<div className="">
