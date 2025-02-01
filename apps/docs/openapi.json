@@ -405,7 +405,7 @@
         }
       }
     },
-    "/v1/search": {
+    "/search": {
       "post": {
         "summary": "Search content",
         "security": [
@@ -448,7 +448,7 @@
         }
       }
     },
-    "/v1/user/spaces": {
+    "/user/spaces": {
       "get": {
         "summary": "Get user spaces",
         "security": [
@@ -466,7 +466,7 @@
         }
       }
     },
-    "/v1/integrations/notion/import": {
+    "/integrations/notion/import": {
       "get": {
         "summary": "Import Notion content",
         "security": [
