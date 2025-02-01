@@ -60,7 +60,7 @@
     },
     {
       "group": "Essentials",
-      "pages": ["essentials/distinguishing-users", "essentials/infrastructure"]
+      "pages": ["essentials/distinguishing-users", "essentials/architecture", "essentials/pricing"]
     },
     {
       "group": "Changelog",

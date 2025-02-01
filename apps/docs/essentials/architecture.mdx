@@ -1,0 +1,59 @@
+---
+title: "How Supermemory works"
+description: "A short guide to how Supermemory works"
+icon: "toolbox"
+---
+
+Supermemory is a hosted service. This means that you don't need to worry about the infrastructure.
+
+but it's still good to know how it works.
+
+![Diagram](https://camo.githubusercontent.com/d6049c13d165a803aa0c6cbee9fc64fd4feafdfe51aecf47fc93c2f18b58e55a/68747470733a2f2f692e6468722e7774662f722f436c6970626f6172645f4a616e5f32302c5f323032355f61745f332e3531e280af504d2e706e67)
+
+Supermemory has three main modules, managed by [turborepo](https://turbo.build):
+
+#### `apps/web`: The main web UI.
+
+![image](https://camo.githubusercontent.com/5113555da016ca2621aac80b13d29dc0cd0aeaafc5296cf090ee1dd33264bf9b/68747470733a2f2f692e6468722e7774662f722f436c6970626f6172645f4a616e5f32302c5f323032355f61745f332e3139254532253830254146504d2e706e67)
+
+Built with:
+
+- [Remix](https://remix.run/)
+- [Hono](https://hono.dev/)
+- [authkit-remix-cloudflare by Supermemory](https://github.com/supermemory/authkit-remix-cloudflare)
+- [Drizzle ORM](https://drizzle.team/)
+- [TailwindCSS](https://tailwindcss.com)
+- [shadcn-ui](https://ui.shadcn.com)
+- And some other amazing open source projects like [Plate](https://platejs.org/) and [vaul](https://vaul.emilkowal.ski/)
+- Hosted on [Cloudflare Pages](https://pages.cloudflare.com/)
+
+#### `apps/extension`: Chrome extension
+
+The [chrome extension](https://supermemory.ai/extension) is one of the most important part of the setup, but is not required.This is to easily add pages to your memory.
+
+<img
+  width="290"
+  alt="image"
+  src="https://camo.githubusercontent.com/118b58b867eacccde8a316e6e791a1d095fc82d83489813b9d59549d673becf4/68747470733a2f2f692e6468722e7774662f722f436c6970626f6172645f4a616e5f32302c5f323032355f61745f342e3035e280af504d2e706e67"
+/>
+
+> please rate the extension to improve the rating 🙏.
+
+Built with:
+
+- [Extension JS](https://extension.js.org)
+- [TailwindCSS](https://tailwindcss.com)
+- [React](https://react.dev/)
+
+#### `apps/backend`: This module handles the vector store and AI response generation
+
+This is where the magic happens!
+Built with:
+
+- [Cloudflare Workers](https://workers.cloudflare.com/)
+- [Postgres + Pgvector with Pgvectorscale](https://github.com/timescale/pgvectorscale)
+- [Cloudflare Workflows](https://developers.cloudflare.com/queues/)
+- [R2 Object storage](https://developers.cloudflare.com/r2/)
+- [Markdowner by Supermemory](https://md.dhr.wtf)
+- [Cloudflare KV](https://developers.cloudflare.com/kv)
+- [mem0](https://app.mem0.ai)
