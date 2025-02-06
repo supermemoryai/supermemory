@@ -163,7 +163,7 @@ export function AddMemoryModal({
 							activeTab === "integrations" && "lg:col-span-3",
 						)}
 					>
-						<TabsList className="border md:flex-col md:h-full h-max md:justify-start md:space-y-2 bg-[#FAFBFC] dark:bg-zinc-800 md:col-span-1 p-2 flex flex-row justify-between overflow-x-auto md:overflow-visible shrink-0">
+						<TabsList className="border md:flex-col md:h-full h-max md:justify-start md:space-y-2 bg-[#FAFBFC] dark:bg-zinc-800 md:col-span-1 p-2 flex flex-row justify-between overflow-x-auto md:overflow-visible shrink-0 overflow-auto">
 							<TabsTrigger
 								className="w-full justify-start text-left px-4 py-3 rounded-lg border border-transparent data-[state=active]:border-indigo-500/20 data-[state=active]:bg-indigo-500/10 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex flex-col items-start gap-2 transition-all duration-200 hover:shadow-sm"
 								id="url-tab"
