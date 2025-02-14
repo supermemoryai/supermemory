@@ -28,7 +28,7 @@ export default function Onboarding() {
 			className="flex flex-col min-h-screen items-center pt-20 relative overflow-hidden bg-gradient-to-b from-gray-900 to-gray-800 bg-opacity-40"
 		>
 			{/* Neural network background pattern */}
-			<div className="absolute inset-0 overflow-hidden">
+			<div className="absolute inset-0 overflow-hidden pointer-events-none">
 				{/* Subtle gradient orbs */}
 				{[...Array(4)].map((_, i) => (
 					<motion.div
@@ -110,7 +110,7 @@ export default function Onboarding() {
 				initial={{ y: 20, opacity: 0 }}
 				animate={{ y: 0, opacity: 1 }}
 				transition={{ duration: 0.8 }}
-				className="flex flex-col gap-2 items-center font-geist italic text-5xl tracking-tight text-white"
+				className="flex flex-col gap-2 items-center font-geist italic text-5xl tracking-tight text-white relative z-10"
 			>
 				<Logo className="h-24 w-24" /> supermemory
 			</motion.div>
@@ -119,29 +119,29 @@ export default function Onboarding() {
 				initial={{ y: 20, opacity: 0 }}
 				animate={{ y: 0, opacity: 1 }}
 				transition={{ duration: 0.8, delay: 0.2 }}
-				className="flex flex-col gap-2 items-center mt-8 text-white"
+				className="flex flex-col gap-2 items-center mt-8 text-white relative z-10"
 			>
 				<h1 className="text-xl font-geist font-medium">Your privacy is our priority</h1>
 				<div className="flex flex-col gap-4 text-base font-geist max-w-md text-center font-light text-gray-200">
-					<p>
+					<p className="select-text">
 						We use Cloudflare's "bindings" architecture, meaning encryption keys are never exposed -
 						not even to our developers. Your data remains encrypted and inaccessible without your
 						authorization.
 					</p>
-					<p>
+					<p className="select-text">
 						Our entire codebase is open source and available for security review at{" "}
-						<a href="https://git.new/memory" className="text-blue-400 hover:text-blue-300">
+						<a href="https://git.new/memory" className="text-blue-400 hover:text-blue-300 cursor-pointer">
 							git.new/memory
 						</a>
 						. We believe transparency builds trust.
 					</p>
-					<p>
+					<p className="select-text">
 						Your data is encrypted at rest and in transit, and we use industry-standard encryption.
 						You maintain full control over your data, including the right to export or delete it at
 						any time.
 					</p>
-					<p className="text-sm mt-2">
-						<a href="/privacy" className="text-blue-400 hover:text-blue-300">
+					<p className="text-sm mt-2 select-text">
+						<a href="/privacy" className="text-blue-400 hover:text-blue-300 cursor-pointer">
 							Read our detailed privacy policy →
 						</a>
 					</p>
@@ -153,7 +153,7 @@ export default function Onboarding() {
 				initial={{ y: 20, opacity: 0 }}
 				animate={{ y: 0, opacity: 1 }}
 				transition={{ duration: 0.8, delay: 0.4 }}
-				className="mt-16 relative border-none bg-transparent p-0 cursor-pointer outline-offset-4 transition-[filter] duration-250 select-none"
+				className="mt-16 relative border-none bg-transparent p-0 cursor-pointer outline-offset-4 transition-[filter] duration-250 select-none z-10"
 				whileHover={{ scale: 1.05 }}
 				whileTap={{ scale: 0.95 }}
 				href="/onboarding/add"

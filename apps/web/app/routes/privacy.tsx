@@ -3,7 +3,7 @@ import Markdown from "react-markdown";
 function Page() {
 	return (
 		<div className="flex flex-col items-center justify-center mt-8">
-			<div className="max-w-3xl prose prose-invert">
+			<div className="max-w-3xl prose md:prose-lg dark:prose-invert">
 				<Markdown>
 					{`
             Privacy Policy for Supermemory.ai
@@ -34,7 +34,7 @@ The extension has the capability to see all websites that users visit. However, 
 - **Current page data**: Upon activation (click) by the user, Supermemory.ai stores data from the current HTML page. This data is used to provide relevant contextual information based on the content of the page you are viewing.
 
 ## Data Storage and Security
-All collected data is securely stored in a SQLite database hosted on [Cloudflare D1](https://developers.cloudflare.com/d1/), [Cloudflare vectorize](https://developers.cloudflare.com/vectorize/), and [Cloudflare KV](https://developers.cloudflare.com/kv). 
+All collected data is securely stored in a Database hosted on [Hetzner](https://www.hetzner.com/). 
 We employ industry-standard security measures to protect your information from unauthorized access, alteration, disclosure, or destruction. Despite our efforts, no method of transmission over the Internet or method of electronic storage is 100% secure. Therefore, while we strive to use commercially acceptable means to protect your personal information, we cannot guarantee its absolute security.
 
 When you chat with the app, your queries may be sent to OpenAI GPT-4 API, Google Gemini API or other third-party services to provide you with relevant information. These services may store your queries and responses for training purposes. 
@@ -58,8 +58,8 @@ Supermemory.ai reserves the right to update this privacy policy at any time. Whe
 # Contact Us
 If you have any questions about this Privacy Policy, the practices of this site, or your dealings with this site, please contact us at:
 
-Email: dhravyashah@gmail.com
-This document was last updated on July 4, 2024.
+Email: privacy@supermemory.ai
+This document was last updated on February 14, 2025.
 
 `}
 				</Markdown>

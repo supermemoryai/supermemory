@@ -14,6 +14,7 @@ import Navbar from "~/components/Navbar";
 import Suggestions from "~/components/Suggestions";
 import { IntegrationModals } from "~/components/memories/Integrations";
 import SuggestionsSkeleton from "~/components/skeletons/SuggestionsSkeleton";
+import { Theme, useTheme } from "~/lib/theme-provider";
 
 const MemoriesPage = lazy(() => import("~/components/memories/MemoriesPage"));
 const Reminders = lazy(() => import("~/components/Reminders"));
@@ -40,7 +41,14 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	const integration = searchParams.get("integration");
 
 	if (!user) {
-		return redirect("/signin");
+		return {
+			user: null,
+			signinUrl,
+			greeting,
+			recommendedQuestions: null,
+			success,
+			integration,
+		};
 	}
 
 	try {
@@ -80,15 +88,21 @@ const HomePage = memo(function HomePage() {
 	const [input, setInput] = useState("");
 	const fetcher = useFetcher();
 	const [scrollOpacity, setScrollOpacity] = useState(1);
+	const [theme, setTheme] = useTheme();
 
 	useEffect(() => {
+		if (!user) {
+			setTheme(Theme.LIGHT);
+			return;
+		}
+
 		const handleScroll = () => {
 			const scrollPosition = window.scrollY;
 			const opacity = Math.max(0, 1 - scrollPosition / 200); // Adjust 200 to control fade speed
 			setScrollOpacity(opacity);
 		};
 
-		if (!recommendedQuestions || recommendedQuestions === null) {
+		if ((!recommendedQuestions || recommendedQuestions === null) && !user) {
 			toast.error("Something went wrong. Please try again later.");
 			alert("Something went wrong. Please try again later.");
 		}
@@ -126,7 +140,7 @@ const HomePage = memo(function HomePage() {
 	}, []);
 
 	if (!user) {
-		return <div>Loading...</div>;
+		return <Landing />;
 	}
 
 	return (

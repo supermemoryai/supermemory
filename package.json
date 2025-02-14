@@ -32,6 +32,8 @@
   ],
   "dependencies": {
     "@cloudflare/workers-types": "^4.20241112.0",
+    "@deepgram/sdk": "^3.10.1",
+    "@heroicons/react": "^2.2.0",
     "@hono-rate-limiter/cloudflare": "^0.2.2",
     "@hono/zod-validator": "^0.4.1",
     "@llm-ui/code": "^0.13.3",
@@ -48,6 +50,8 @@
     "@types/postlight__mercury-parser": "^2.2.7",
     "@types/showdown": "^2.0.6",
     "@types/turndown": "^5.0.5",
+    "@udecode/plate": "^44.0.1",
+    "@uidotdev/usehooks": "^2.4.1",
     "ai": "4.0.18",
     "autoevals": "^0.0.106",
     "aws4fetch": "^1.0.20",

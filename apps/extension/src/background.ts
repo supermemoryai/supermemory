@@ -14,7 +14,7 @@ const tabStates = new Map<number, TabState>();
 
 const checkIfLoggedIn = async () => {
   const baseURL = await getBaseURL();
-  const response = await fetch(`${baseURL}/v1/session`);
+  const response = await fetch(`${baseURL}/backend/v1/session`);
 
   return response.status == 200;
 };

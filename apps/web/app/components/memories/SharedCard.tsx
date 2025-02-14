@@ -226,7 +226,7 @@ const renderContent = {
 
 				<div className="flex flex-col gap-3 mt-4">
 					<div className="flex items-center gap-2">
-						{data.isSuccessfullyProcessed ? (
+						{data.permissions?.isPublic ? (
 							<div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-medium">
 								<svg
 									xmlns="http://www.w3.org/2000/svg"

@@ -7,6 +7,7 @@ export type ExtraSpaceMetaData = {
 		canRead: boolean;
 		canEdit: boolean;
 		isOwner: boolean;
+		isPublic: boolean;
 	};
 	owner: {
 		id: string;

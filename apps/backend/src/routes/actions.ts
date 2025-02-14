@@ -88,7 +88,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         apiKey: c.env.BRAINTRUST_API_KEY,
       });
 
-      const googleClient = wrapAISDKModel(openai(c.env).chat("gpt-4o"));
+      const googleClient = wrapAISDKModel(openai(c.env).chat("gpt-4o-mini-2024-07-18"));
 
       // Get last user message and generate embedding in parallel with thread creation
       let lastUserMessage = coreMessages.findLast((i) => i.role === "user");
@@ -170,8 +170,17 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       try {
         const data = new StreamData();
+        // De-duplicate chunks by URL to avoid showing duplicate content
+        const uniqueResults = finalResults.reduce((acc, current) => {
+          const existingResult = acc.find(item => item.id === current.id);
+          if (!existingResult) {
+            acc.push(current);
+          }
+          return acc;
+        }, [] as typeof finalResults);
+
         data.appendMessageAnnotation(
-          finalResults.map((r) => ({
+          uniqueResults.map((r) => ({
             id: r.id,
             content: r.content,
             type: r.type,
@@ -414,7 +423,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       .orderBy(sql`RANDOM()`)
       .limit(7);
 
-    if (recentLearnings.length === 0) {
+    if (recentLearnings.length === 0 || recentLearnings.length < 3) {
       return c.json({ suggestedLearnings: [] });
     }
 
@@ -425,7 +434,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         const model = openai(c.env).chat("gpt-4o-mini-2024-07-18");
         const prompt = `Generate a concise topic recall card for this document. The card should:
   - Have a clear title that captures the main topic
-  - Include a brief "Last week, you saved notes on..." intro (do something different every time.)
+  - based on when the document was saved, include a brief "Last (week/month/...), you saved notes on..." intro (do something different every time.)
   - List 2-3 key points from the content in simple bullet points
   - Keep the total length under 280 characters
   - Focus on the core concepts worth remembering

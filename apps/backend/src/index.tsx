@@ -128,28 +128,31 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
   .all("/api/*", async (c) => {
     // Get the full URL and path
     const url = new URL(c.req.url);
-    const path = url.pathname.replace("/api", "/v1");
+    const path = url.pathname;
+    const newPath = path.replace("/api", "/v1");
 
     // Preserve query parameters and build target URL
-    const redirectUrl = path + url.search;
+    const redirectUrl = "https://api.supermemory.ai" + newPath + url.search;
 
-    // Forward the request with same method, headers and body
-    const response = await fetch(redirectUrl, {
-      method: c.req.method,
-      headers: c.req.raw.headers,
-      body:
-        c.req.method !== "GET" && c.req.method !== "HEAD"
-          ? await c.req.blob()
-          : undefined,
-    });
-
-    return response;
+    // Use c.redirect() for a proper redirect
+    return c.redirect(redirectUrl);
   })
   .route("/v1/user", user)
   .route("/v1/spaces", spacesRoute)
   .route("/v1", actions)
   .route("/v1/integrations", integrations)
   .route("/v1/memories", memories)
+  .get("/v1/session", (c) => {
+    const user = c.get("user");
+
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    return c.json({
+      user,
+    });
+  })
   .post(
     "/waitlist",
     zValidator(

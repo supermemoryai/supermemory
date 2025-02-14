@@ -22,7 +22,7 @@ export const useChatStream = (initialMessages: CoreMessage[], initialThreadUuid?
 		},
 		keepLastMessageOnError: true,
 		onError: (e) => {
-			alert(`Error in chat: ${e}`);
+			console.error(e);
 		},
 		body: {
 			threadId: threadUuid,

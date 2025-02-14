@@ -118,6 +118,7 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
           canRead: true,
           canEdit,
           isOwner: space[0].ownerId === user?.id,
+          isPublic: space[0].isPublic,
         },
       });
     }
@@ -156,6 +157,7 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
         canRead: true,
         canEdit,
         isOwner: space[0].ownerId === user.id,
+        isPublic: space[0].isPublic,
       },
     });
   })
@@ -254,16 +256,8 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
           error instanceof Error &&
           error.message.includes("saved_spaces_user_space_idx")
         ) {
-          // Space is already favorited - remove it
-          await db
-            .delete(savedSpaces)
-            .where(
-              and(
-                eq(savedSpaces.userId, user.id),
-                eq(savedSpaces.spaceId, space[0].id)
-              )
-            );
-          return c.json({ message: "Space unfavorited successfully" });
+          // Space is already favorited 
+          return c.json({ message: "Space already favorited" });
         }
         throw error;
       }
@@ -524,6 +518,28 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       return c.json({ success: true });
     }
-  );
+  ).delete("/:spaceId", async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const { spaceId } = c.req.param();
+    const db = database(c.env.HYPERDRIVE.connectionString);
+
+    const space = await db
+      .select()
+      .from(spaces)
+      .where(eq(spaces.uuid, spaceId))
+      .limit(1);
+
+    if (space.length === 0) {
+      return c.json({ error: "Space not found" }, 404);
+    }
+
+    await db.delete(spaces).where(eq(spaces.uuid, spaceId));
+
+    return c.json({ success: true });
+  });
 
 export default spacesRoute;

@@ -4,7 +4,7 @@ import * as cheerio from "cheerio";
 import { createOpenAI } from "@ai-sdk/openai";
 import { zValidator } from "@hono/zod-validator";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { convertToCoreMessages, generateText, streamText } from "ai";
+import { convertToCoreMessages, generateObject, generateText, streamText } from "ai";
 import { putEncryptedKV } from "encrypt-workers-kv";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -97,7 +97,7 @@ app.all("/backend/*", async (c) => {
 		try {
 			// Use tee() to create a copy of the body stream
 			const [stream1, stream2] = c.req.raw.body.tee();
-	
+
 			const reader = stream2.getReader();
 			const chunks = [];
 			let done = false;
@@ -125,21 +125,27 @@ app.all("/backend/*", async (c) => {
 					body = JSON.stringify(parsedBody);
 				} catch (e) {
 					console.error("Invalid JSON in request body:", bodyText);
-					return c.json({ 
-						error: "Invalid JSON in request body",
-						details: bodyText.substring(0, 100) + "..." // Show partial body for debugging
-					}, 400);
+					return c.json(
+						{
+							error: "Invalid JSON in request body",
+							details: bodyText.substring(0, 100) + "...", // Show partial body for debugging
+						},
+						400,
+					);
 				}
 			} else {
 				body = bodyText;
 			}
 		} catch (error) {
 			console.error("Error reading request body:", error);
-			return c.json({ 
-				error: "Failed to process request body",
-				details: error instanceof Error ? error.message : "Unknown error",
-				path: path
-			}, 400);
+			return c.json(
+				{
+					error: "Failed to process request body",
+					details: error instanceof Error ? error.message : "Unknown error",
+					path: path,
+				},
+				400,
+			);
 		}
 	}
 
@@ -197,11 +203,14 @@ app.all("/backend/*", async (c) => {
 			}
 		} catch (error) {
 			console.error("Error reading response:", error);
-			return c.json({ 
-				error: "Failed to read backend response",
-				details: error instanceof Error ? error.message : "Unknown error",
-				path: path
-			}, 502);
+			return c.json(
+				{
+					error: "Failed to read backend response",
+					details: error instanceof Error ? error.message : "Unknown error",
+					path: path,
+				},
+				502,
+			);
 		}
 
 		return new Response(JSON.stringify(responseBody), {
@@ -214,19 +223,22 @@ app.all("/backend/*", async (c) => {
 		});
 	} catch (error) {
 		console.error("Error proxying request:", error);
-		return c.json({ 
-			error: "Failed to proxy request to backend",
-			details: error instanceof Error ? error.message : "Unknown error",
-			path: path,
-			url: url
-		}, 502);
+		return c.json(
+			{
+				error: "Failed to proxy request to backend",
+				details: error instanceof Error ? error.message : "Unknown error",
+				path: path,
+				url: url,
+			},
+			502,
+		);
 	}
 });
 
 app.post("/api/ai/command", async (c) => {
-	const { apiKey: key, messages, model = "gpt-4o-mini", system } = await c.req.json();
+	const { messages, model = "gpt-4o-mini", system } = await c.req.json();
 
-	const apiKey = key || c.env.OPENAI_API_KEY;
+	const apiKey = c.env.OPENAI_API_KEY;
 
 	if (!apiKey) {
 		return c.json({ error: "Missing OpenAI API key." }, 401);
@@ -278,6 +290,60 @@ app.post("/api/ai/copilot", async (c) => {
 		console.error("Failed to process AI request:", error);
 		return c.json({ error: "Failed to process AI request" }, 500);
 	}
+});
+
+app.post("/api/ai/update", async (c) => {
+	const { caption, document } = await c.req.json();
+
+	const apiKey = c.env.OPENAI_API_KEY;
+
+	if (!apiKey) {
+		return c.json({ error: "Missing OpenAI API key." }, 401);
+	}
+
+	const openai = createOpenAI({ apiKey });
+
+	const result = await generateObject({
+		model: openai("gpt-4o-mini"),
+		schema: z.object({
+			action: z.enum(["edit", "delete", "append", "ignore"]),
+			blockId: z.string().optional(),
+			content: z.string().optional(),
+		}),
+		prompt: `You are a professional technical document editor.
+
+You are given a document and a new caption that was transcribed from a recording.
+
+Your job is to analyze how to update the document to reflect the new caption.
+
+Given this document structure:
+${JSON.stringify(document)}
+
+And this new caption that was transcribed:
+${caption}
+
+Analyze how to update the document. Choose one:
+1. Edit an existing block (provide blockId and new content)
+2. Delete a block (provide blockId)
+3. Append new content (provide content)
+4. Ignore the new content if it doesn't meaningfully improve the document
+
+You can be strict in ignoring. if the transcript is not related to the content of the document, you should ignore it.
+
+Sometimes you may need to edit things below the headers, or move things around. Do what you think is best. That's all right.
+
+For eg, if I am talking about the features, add it to the block ID BELOW the features header. Don't change the heading blogs
+
+I will first talk about "what supermemory is", you need to add it to the block id that is right below the heading "what is supermemory?".
+Then, I will talk about our charter. I will say somethuing like "we want to help companies write and read better documentation". now, you need to add it to the block id that is right below the heading "our charter".
+I will talk about features like "you can actually edit the docs along with AI, seamlessly integrate it into your workflow". now, you need to add it to the block id that is right below the heading "features".
+I will also talk about connections with existing documentation platforms. now, you need to add it to the block id that is right below the heading "how we will do it".
+
+there should not be any repetitive stuff. it should be professional.
+Make sure that the document you write is a good, accurate, and up-to-date document.`,
+	});
+
+	return c.json(result.object);
 });
 
 app.all("/auth/notion/callback", zValidator("query", z.object({ code: z.string() })), async (c) => {

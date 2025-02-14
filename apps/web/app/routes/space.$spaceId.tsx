@@ -4,7 +4,7 @@ import { LoaderFunctionArgs, json } from "@remix-run/cloudflare";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { Clipboard, Share, Star, UserPlus } from "lucide-react";
+import { Clipboard, DeleteIcon, Share, Star, Trash, UserPlus } from "lucide-react";
 import { proxy } from "server/proxy";
 import { toast } from "sonner";
 import Navbar from "~/components/Navbar";
@@ -155,11 +155,9 @@ export default function SpacePage() {
 			} catch (err) {
 				// Fallback to clipboard if share fails or is cancelled
 				await navigator.clipboard.writeText(shareUrl);
-				toast.success("Link copied to clipboard!");
 			}
 		} else {
 			await navigator.clipboard.writeText(shareUrl);
-			toast.success("Link copied to clipboard!");
 		}
 	};
 
@@ -167,6 +165,20 @@ export default function SpacePage() {
 		const shareUrl = window.location.href;
 		await navigator.clipboard.writeText(shareUrl);
 		toast.success("Link copied to clipboard!");
+	};
+
+	const handleDelete = async () => {
+		const response = await fetch(`/backend/v1/spaces/${space.uuid}`, {
+			method: "DELETE",
+			credentials: "include",
+		});
+
+		if (!response.ok) {
+			toast.error("Failed to delete space");
+		} else {
+			navigate("/");
+			toast.success("Space deleted successfully");
+		}
 	};
 
 	return (
@@ -241,6 +253,10 @@ export default function SpacePage() {
 								<Button variant="outline" size="sm" onClick={handleCopyLink}>
 									<Clipboard className="h-4 w-4" />
 								</Button>
+								<Button variant="outline" size="sm" onClick={handleDelete}>
+									<Trash className="h-4 w-4" />
+								</Button>
+
 								{space.isPublic &&
 									user &&
 									!space.permissions.isOwner &&

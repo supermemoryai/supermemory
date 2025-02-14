@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/chrome-manifest.json",
   "manifest_version": 3,
-  "version": "5.0.12",
+  "version": "5.0.135",
   "homepage_url": "https://supermemory.ai",
   "name": "Supermemory",
   "description": "An extension for https://supermemory.ai - an AI hub for all your knowledge.",
