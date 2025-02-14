@@ -99,6 +99,7 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
     const spaceId = c.req.param("spaceId");
     const db = database(c.env.HYPERDRIVE.connectionString);
 
+
     const space = await db
       .select()
       .from(spaces)
@@ -176,6 +177,10 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       if (!user) {
         return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      if (body.spaceName.trim() === "<HOME>") {
+        return c.json({ error: "Cannot create space with name <HOME>" }, 400);
       }
 
       const db = database(c.env.HYPERDRIVE.connectionString);
@@ -264,6 +269,99 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
     }
   )
   .post(
+    "/moveContent",
+    zValidator(
+      "json",
+      z.object({
+        spaceId: z.string(),
+        documentId: z.string(),
+      })
+    ),
+    async (c) => {
+      const body = c.req.valid("json");
+      const user = c.get("user");
+      const { spaceId, documentId } = body;
+
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const db = database(c.env.HYPERDRIVE.connectionString);
+
+      try {
+        await db.transaction(async (tx) => {
+          // If moving to <HOME>, just remove all space connections
+          if (spaceId === "<HOME>") {
+            const doc = await tx
+              .select()
+              .from(documents)
+              .where(eq(documents.uuid, documentId))
+              .limit(1);
+
+            if (!doc[0]) {
+              return c.json({ error: "Document not found" }, 404);
+            }
+
+            await tx
+              .delete(contentToSpace)
+              .where(eq(contentToSpace.contentId, doc[0].id));
+            return;
+          }
+
+          // Get space and document, verify space ownership
+          const results = (
+            await tx
+              .select({
+                spaceId: spaces.id,
+                documentId: documents.id,
+                ownerId: spaces.ownerId,
+                spaceName: spaces.name,
+              })
+              .from(spaces)
+              .innerJoin(
+                documents,
+                and(eq(spaces.uuid, spaceId), eq(documents.uuid, documentId))
+              )
+              .limit(1)
+          )[0];
+
+          if (!results) {
+            return c.json({ error: "Space or document not found" }, 404);
+          }
+
+          if (results.ownerId !== user.id) {
+            return c.json(
+              { error: "Not authorized to modify this space" },
+              403
+            );
+          }
+
+          // Delete existing space relations for this document
+          await tx
+            .delete(contentToSpace)
+            .where(eq(contentToSpace.contentId, results.documentId));
+
+          // Add new space relation
+          await tx.insert(contentToSpace).values({
+            contentId: results.documentId,
+            spaceId: results.spaceId,
+          });
+        });
+
+        return c.json({ success: true, spaceId });
+      } catch (e) {
+        console.error("Failed to move content to space:", e);
+        return c.json(
+          {
+            error: "Failed to move content to space",
+            details: e instanceof Error ? e.message : "Unknown error",
+          },
+          500
+        );
+      }
+    }
+  )
+  .post(
     "/addContent",
     zValidator(
       "json",
@@ -285,6 +383,24 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       try {
         await db.transaction(async (tx) => {
+          // If adding to <HOME>, just remove all space connections
+          if (spaceId === "<HOME>") {
+            const doc = await tx
+              .select()
+              .from(documents)
+              .where(eq(documents.uuid, documentId))
+              .limit(1);
+
+            if (!doc[0]) {
+              return c.json({ error: "Document not found" }, 404);
+            }
+
+            await tx
+              .delete(contentToSpace)
+              .where(eq(contentToSpace.contentId, doc[0].id));
+            return;
+          }
+
           // Get space and document, verify space ownership
           const results = (
             await tx

@@ -94,7 +94,7 @@ export default function Content() {
 	// Move to space mutation
 	const moveToSpaceMutation = useMutation({
 		mutationFn: async ({ spaceId, documentId }: { spaceId: string; documentId: string }) => {
-			const response = await fetch("/backend/v1/spaces/addContent", {
+			const response = await fetch("/backend/v1/spaces/moveContent", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -105,12 +105,16 @@ export default function Content() {
 			if (!response.ok) {
 				throw new Error("Failed to move memory");
 			}
-			return response.json();
+			return response.json() as Promise<{ spaceId: string }>;
 		},
-		onSuccess: () => {
+		onSuccess: ({ spaceId }: {spaceId: string}) => {
 			toast.success("Memory moved successfully");
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
 			queryClient.invalidateQueries({ queryKey: ["spaces"] });
+			if (spaceId === "<HOME>") {
+				return navigate("/");
+			}
+			return navigate(`/space/${spaceId}`);
 		},
 		onError: () => {
 			toast.error("Failed to move memory to space");

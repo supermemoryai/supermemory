@@ -47,6 +47,10 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
   .use("/v1/*", auth)
   .use("/v1/*", (c, next) => {
     const user = c.get("user");
+    
+    if (c.env.NODE_ENV === "development") {
+      return next();
+    }
 
     // RATELIMITS
     const rateLimitConfig = {

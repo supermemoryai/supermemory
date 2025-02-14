@@ -44,7 +44,27 @@ export async function fetchSpaces(): Promise<SpaceResponse> {
 		throw new Error("Failed to fetch spaces");
 	}
 
-	return response.json();
+	const resp = (await response.json()) as SpaceResponse;
+
+	resp.spaces.push({
+		id: 0,
+		uuid: "<HOME>",
+		name: "Home",
+		createdAt: new Date(),
+		updatedAt: new Date(),
+		ownerId: 0,
+		isPublic: false,
+		permissions: {
+			canRead: false,
+			canEdit: false,
+			isOwner: false,
+			isPublic: false,
+		},
+		owner: null,
+		favorited: false,
+	});
+
+	return resp;
 }
 
 async function createSpace(data: {

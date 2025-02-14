@@ -41,6 +41,7 @@ import { ExtraSpaceMetaData, fetchSpaces } from "~/lib/hooks/use-spaces";
 import { useTextOverflow } from "~/lib/hooks/use-text-overflow";
 import { Memory, WebsiteMetadata } from "~/lib/types/memory";
 import { cn } from "~/lib/utils";
+import { useNavigate } from "@remix-run/react";
 
 const { useTweet } = ReactTweet;
 
@@ -616,6 +617,7 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 
 function SharedCard({ data }: { data: Memory }) {
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 
 	// Delete mutation
 	const deleteMutation = useMutation({
@@ -657,7 +659,7 @@ function SharedCard({ data }: { data: Memory }) {
 	// Move to space mutation
 	const moveToSpaceMutation = useMutation({
 		mutationFn: async ({ spaceId, documentId }: { spaceId: string; documentId: string }) => {
-			const response = await fetch("/backend/v1/spaces/addContent", {
+			const response = await fetch("/backend/v1/spaces/moveContent", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -668,15 +670,19 @@ function SharedCard({ data }: { data: Memory }) {
 			if (!response.ok) {
 				throw new Error("Failed to move memory");
 			}
-			return response.json();
+			return response.json() as Promise<{ spaceId: string }>;
 		},
 		onError: (err) => {
 			toast.error("Failed to move memory to space");
 		},
-		onSuccess: () => {
+		onSuccess: ({ spaceId }: { spaceId: string }) => {
 			toast.success("Memory moved successfully");
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
 			queryClient.invalidateQueries({ queryKey: ["spaces"] });
+			if (spaceId === "<HOME>") {
+				return navigate("/");
+			}
+			return navigate(`/space/${spaceId}`);
 		},
 	});
 

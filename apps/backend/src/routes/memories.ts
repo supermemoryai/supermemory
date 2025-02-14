@@ -8,7 +8,7 @@ import {
   spaceAccess,
   contentToSpace,
 } from "@supermemory/db/schema";
-import { and, database, desc, eq, or, sql } from "@supermemory/db";
+import { and, database, desc, eq, or, sql, isNull } from "@supermemory/db";
 
 const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
   .get(
@@ -124,9 +124,20 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       const [items, [{ total }]] = await Promise.all([
         db
-          .select()
+          .select({
+            documents: documents,
+          })
           .from(documents)
-          .where(eq(documents.userId, user.id))
+          .leftJoin(
+            contentToSpace,
+            eq(documents.id, contentToSpace.contentId)
+          )
+          .where(
+            and(
+              eq(documents.userId, user.id),
+              isNull(contentToSpace.contentId)
+            )
+          )
           .orderBy(desc(documents.createdAt))
           .limit(count)
           .offset(start),
@@ -135,13 +146,22 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
             total: sql<number>`count(*)`.as("total"),
           })
           .from(documents)
-          .where(eq(documents.userId, user.id)),
+          .leftJoin(
+            contentToSpace,
+            eq(documents.id, contentToSpace.contentId)
+          )
+          .where(
+            and(
+              eq(documents.userId, user.id),
+              isNull(contentToSpace.contentId)
+            )
+          ),
       ]);
 
       return c.json({
         items: items.map((item) => ({
-          ...item,
-          id: item.uuid,
+          ...item.documents,
+          id: item.documents.uuid,
         })),
         total,
       });
