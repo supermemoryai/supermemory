@@ -4,7 +4,7 @@ import { LoaderFunctionArgs, json } from "@remix-run/cloudflare";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { Clipboard, DeleteIcon, Share, Star, Trash, UserPlus } from "lucide-react";
+import { Clipboard, DeleteIcon, Pencil, Share, Star, Trash, UserPlus } from "lucide-react";
 import { proxy } from "server/proxy";
 import { toast } from "sonner";
 import Navbar from "~/components/Navbar";
@@ -76,6 +76,9 @@ export default function SpacePage() {
 	const [accessType, setAccessType] = useState<"read" | "edit">("read");
 	const [isInviting, setIsInviting] = useState(false);
 	const [isFavorited, setIsFavorited] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+	const [editedName, setEditedName] = useState(space.name);
+	const [isUpdating, setIsUpdating] = useState(false);
 
 	useEffect(() => {
 		// Only update if we're on exactly /space/spaceid and not already in the correct format
@@ -94,6 +97,40 @@ export default function SpacePage() {
 			navigate(newPath);
 		}
 	}, [space, navigate]);
+
+	const handleEditName = async () => {
+		if (!editedName.trim() || editedName.trim() === space.name || isUpdating) return;
+
+		setIsUpdating(true);
+		try {
+			const response = await fetch(`/backend/v1/spaces/${space.uuid}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name: editedName.trim() }),
+				credentials: "include",
+			});
+
+			if (!response.ok) {
+				const data = (await response.json()) as { error: string };
+				throw new Error(data.error || "Failed to update space name");
+			}
+
+			toast.success("Space name updated successfully");
+			// Update URL with new name
+			const urlFriendlyName = editedName
+				.trim()
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, "-")
+				.replace(/^-+|-+$/g, "");
+			navigate(`/space/${space.uuid}---${urlFriendlyName}`);
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to update space name");
+			setEditedName(space.name); // Reset to original name on error
+		} finally {
+			setIsUpdating(false);
+			setIsEditing(false);
+		}
+	};
 
 	const handleInvite = async () => {
 		if (!email) return;
@@ -189,9 +226,61 @@ export default function SpacePage() {
 					<div className="flex flex-col gap-2">
 						<div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:justify-between">
 							<div className="flex flex-col md:flex-row items-start md:items-center gap-3">
-								<h1 className="font-geist text-3xl font-semibold dark:text-neutral-100 text-neutral-700 tracking-[-0.020em]">
-									{space.name}
-								</h1>
+								{isEditing && space.permissions.isOwner ? (
+									<div className="flex items-center gap-2">
+										<Input
+											value={editedName}
+											onChange={(e) => setEditedName(e.target.value)}
+											className="text-3xl font-semibold h-auto py-1"
+											autoFocus
+											onKeyDown={(e) => {
+												if (e.key === "Enter") {
+													handleEditName();
+												} else if (e.key === "Escape") {
+													setIsEditing(false);
+													setEditedName(space.name);
+												}
+											}}
+										/>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={() => {
+												setIsEditing(false);
+												setEditedName(space.name);
+											}}
+											className="text-muted-foreground"
+										>
+											Cancel
+										</Button>
+										<Button
+											variant="default"
+											size="sm"
+											onClick={handleEditName}
+											disabled={
+												isUpdating || !editedName.trim() || editedName.trim() === space.name
+											}
+										>
+											{isUpdating ? "Saving..." : "Save"}
+										</Button>
+									</div>
+								) : (
+									<div className="flex items-center gap-2">
+										<h1 className="font-geist text-3xl font-semibold dark:text-neutral-100 text-neutral-700 tracking-[-0.020em]">
+											{space.name}
+										</h1>
+										{space.permissions.isOwner && (
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => setIsEditing(true)}
+												className="text-muted-foreground"
+											>
+												<Pencil className="h-4 w-4" />
+											</Button>
+										)}
+									</div>
+								)}
 								{space.permissions.canEdit && (
 									<span className="px-2 py-0.5 text-sm bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-md">
 										Can Edit

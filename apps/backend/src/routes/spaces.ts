@@ -99,7 +99,6 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
     const spaceId = c.req.param("spaceId");
     const db = database(c.env.HYPERDRIVE.connectionString);
 
-
     const space = await db
       .select()
       .from(spaces)
@@ -261,7 +260,7 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
           error instanceof Error &&
           error.message.includes("saved_spaces_user_space_idx")
         ) {
-          // Space is already favorited 
+          // Space is already favorited
           return c.json({ message: "Space already favorited" });
         }
         throw error;
@@ -634,7 +633,54 @@ const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       return c.json({ success: true });
     }
-  ).delete("/:spaceId", async (c) => {
+  )
+  .patch(
+    "/:spaceId",
+    zValidator(
+      "json",
+      z.object({
+        name: z.string().min(1, "Space name cannot be empty").max(100),
+      })
+    ),
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const { spaceId } = c.req.param();
+      const { name } = c.req.valid("json");
+      const db = database(c.env.HYPERDRIVE.connectionString);
+
+      // Get space and verify ownership
+      const space = await db
+        .select()
+        .from(spaces)
+        .where(eq(spaces.uuid, spaceId))
+        .limit(1);
+
+      if (space.length === 0) {
+        return c.json({ error: "Space not found" }, 404);
+      }
+
+      if (space[0].ownerId !== user.id) {
+        return c.json({ error: "Only space owner can edit space name" }, 403);
+      }
+
+      if (name.trim() === "<HOME>") {
+        return c.json({ error: "Cannot use reserved name <HOME>" }, 400);
+      }
+
+      // Update space name
+      await db
+        .update(spaces)
+        .set({ name: name.trim() })
+        .where(eq(spaces.uuid, spaceId));
+
+      return c.json({ success: true, name: name.trim() });
+    }
+  )
+  .delete("/:spaceId", async (c) => {
     const user = c.get("user");
     if (!user) {
       return c.json({ error: "Unauthorized" }, 401);
