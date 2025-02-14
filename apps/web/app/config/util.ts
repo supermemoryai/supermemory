@@ -6,6 +6,6 @@ export const getChromeExtensionId = () => {
 	// if (environment === "development") {
 	// 	return "hepmifhfbiehpdlbeigpapkmjcaphfmn";
 	// }
-    // return "hepmifhfbiehpdlbeigpapkmjcaphfmn";
+    // return "lcmcmhklcjciegoakjejefbacbgikncb";
 	return "afpgkkipfdpeaflnpoaffkcankadgjfc";
 };

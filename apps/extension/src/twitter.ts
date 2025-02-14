@@ -214,7 +214,41 @@ const getBookmarks = async (cursor = "", totalImported = 0, allTweets = []) => {
       return getBookmarks(cursor, totalImported, allTweets);
     }
 
-    const data = (await response.json()) as any;
+    let data = (await response.json()) as any;
+
+    // Handle 400 error with missing features
+    if (response.status === 400 && data.errors?.[0]?.message) {
+      const errorMsg = data.errors[0].message;
+      const missingFeatures = errorMsg.match(
+        /following features cannot be null: (.*?)$/
+      )?.[1];
+
+      if (missingFeatures) {
+        const featuresList = missingFeatures.split(", ");
+        const updatedFeatures = { ...features };
+
+        featuresList.forEach((feature: string) => {
+          updatedFeatures[feature as keyof typeof updatedFeatures] = true;
+        });
+
+        // Retry with updated features
+        const newUrl = `https://x.com/i/api/graphql/${
+          sessionResult.bookmarksApiId
+        }/Bookmarks?features=${encodeURIComponent(
+          JSON.stringify(updatedFeatures)
+        )}&variables=${encodeURIComponent(JSON.stringify(variables))}`;
+
+        const retryResponse = await fetch(newUrl, {
+          method: "GET",
+          headers: headers,
+          redirect: "follow",
+        });
+
+        const retryData = await retryResponse.json();
+        data = retryData;
+      }
+    }
+
     const entries =
       data.data?.bookmark_timeline_v2?.timeline?.instructions?.[0]?.entries ||
       [];

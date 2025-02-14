@@ -727,7 +727,7 @@ function SharedCard({ data }: { data: Memory }) {
 			)}
 		>
 			<a href={`/content/${data.uuid}`}>
-				{data.type !== "space" && data.type !== "document" && (
+				{data.type !== "space" && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-gray-900/70 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm/50 backdrop-blur-[2px] border border-gray-200/30 dark:border-gray-700/30">
