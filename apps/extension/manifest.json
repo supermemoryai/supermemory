@@ -16,8 +16,11 @@
     "bookmarks"
   ],
   "host_permissions": ["*://*/*"],
-  "background": {
+  "chromium:background": {
     "service_worker": "src/background.ts"
+  },
+  "firefox:background": {
+    "scripts": ["src/background.ts"]
   },
   "action": {},
   "externally_connectable": {

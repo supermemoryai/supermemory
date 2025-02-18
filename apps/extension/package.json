@@ -5,13 +5,17 @@
   "type": "module",
   "scripts": {
     "dev:css": "npx tailwindcss -i css/globals.css -o public/globals.css --watch",
-    "dev:extension": "extension dev",
+    "dev:extension": "extension dev --chromium",
+    "dev:firefox": "extension dev --browser firefox --polyfill",
     "dev": "concurrently \"npm:dev:css\" \"npm:dev:extension\"",
     "build:css": "npx tailwindcss -i css/globals.css -o public/globals.css",
-    "build:extension": "extension build",
+    "build:extension": "extension build --chromium",
+    "build:extension:firefox": "extension build --browser firefox --polyfill",
     "build": "npm run build:css && npm run build:extension",
+    "build:firefox": "npm run build:css && npm run build:extension:firefox",
     "start": "npm run build && extension start",
-    "zip": "zip -r supermemory-extension.zip ./dist/chrome/*"
+    "zip": "cd dist/chrome && zip -r supermemory-extension.zip .",
+    "zip:firefox": "cd dist/firefox && zip -r supermemory-extension.zip ."
   },
   "dependencies": {
     "@mozilla/readability": "^0.5.0",
