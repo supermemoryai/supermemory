@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { TweetSkeleton } from "react-tweet";
 
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, useParams } from "@remix-run/react";
 
 import { NotionIcon } from "../icons/IntegrationIcons";
 import { CustomTwitterComp } from "../twitter/render-tweet";
@@ -111,6 +111,7 @@ const renderContent = {
 
 	page: ({ data }: { data: Memory }) => (
 		<WebsiteCard
+			id={data.uuid}
 			url={data.url ?? ""}
 			title={data.title}
 			description={data.description}
@@ -219,7 +220,7 @@ const renderContent = {
 	space: ({ data }: { data: Memory & Partial<ExtraSpaceMetaData> }) => {
 		return (
 			<a
-				href={`${data.url}`}
+				href={data.url ?? ""}
 				className="flex flex-col gap-2 p-6 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-gray-800 rounded-3xl"
 			>
 				<div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
@@ -325,7 +326,7 @@ const renderContent = {
 		// TODO: This can be improved
 		return (
 			<a
-				href={data.url ?? ""}
+				href={`/content/${data.id}`}
 				className="block p-4 rounded-3xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
 			>
 				<div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
@@ -411,11 +412,13 @@ const WebsiteCard = memo(
 		title,
 		description,
 		image,
+		id,
 	}: {
 		url: string;
 		title?: string | null;
 		description?: string | null;
 		image?: string | null;
+		id: string;
 	}) => {
 		// Memoize domain extraction to avoid recalculation
 		const domain = useMemo(() => {
@@ -500,9 +503,7 @@ const WebsiteCard = memo(
 						<h3 className="text-lg font-semibold tracking-tight">{displayTitle}</h3>
 						<p className="mt-2 line-clamp-2 text-sm opacity-80">{displayDescription}</p>
 						<a
-							href={url}
-							target="_blank"
-							rel="noopener noreferrer"
+							href={`/content/${id}`}
 							className="mt-3 inline-flex items-center gap-1 text-sm hover:underline opacity-70 hover:opacity-100 transition-opacity"
 							style={{
 								color: isDark ? "white" : "black",
@@ -686,6 +687,7 @@ export default function SharedCard({
 		onSuccess: () => {
 			toast.success("Memory deleted successfully");
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
+			queryClient.invalidateQueries({ queryKey: ["spaces"] });
 		},
 	});
 
@@ -741,11 +743,6 @@ export default function SharedCard({
 			e.preventDefault();
 			onToggleSelect();
 			return;
-		}
-
-		// Normal navigation behavior
-		if (data.url) {
-			window.location.href = data.url;
 		}
 	};
 
@@ -809,6 +806,10 @@ export const SpaceSelector = function SpaceSelector({
 	onSelect: (spaceId: string) => void;
 }) {
 	const [search, setSearch] = useState("");
+	const { spaceId } = useParams();
+
+	console.log(spaceId);
+
 	const {
 		data: spacesData,
 		isLoading,
@@ -821,10 +822,12 @@ export const SpaceSelector = function SpaceSelector({
 
 	const filteredSpaces = useMemo(() => {
 		if (!spacesData?.spaces) return [];
-		return spacesData.spaces.filter((space) =>
-			space.name.toLowerCase().includes(search.toLowerCase()),
+		return spacesData.spaces.filter(
+			(space) =>
+				space.name.toLowerCase().includes(search.toLowerCase()) && space.uuid !== (spaceId ? spaceId.split("---")[0] : "<HOME>"),
 		);
 	}, [spacesData?.spaces, search]);
+
 
 	if (isLoading) {
 		return (

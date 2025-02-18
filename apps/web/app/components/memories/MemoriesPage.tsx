@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { createContext, memo, useCallback, useContext, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Button } from "../ui/button";
@@ -21,6 +21,14 @@ interface MemoriesPageProps {
 	showAddButtons?: boolean;
 	isSpace?: boolean;
 }
+
+interface SelectionContextType {
+	isSelectionMode: boolean;
+	selectedItems: Set<string>;
+	toggleSelection: (uuid: string) => void;
+}
+
+const SelectionContext = createContext<SelectionContextType | null>(null);
 
 function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPageProps) {
 	const isHydrated = useHydrated();
@@ -106,21 +114,23 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 	// Memoize space items transformation
 	const spaceItems = useMemo(() => {
 		if (spaceId) return [];
-		return spaces.map((space) => ({
-			id: space.uuid,
-			type: "space",
-			content: space.name,
-			createdAt: new Date(space.createdAt),
-			description: null,
-			ogImage: null,
-			title: space.name,
-			url: `/space/${space.uuid}`,
-			uuid: space.uuid,
-			updatedAt: null,
-			raw: null,
-			userId: space.ownerId,
-			isSuccessfullyProcessed: true,
-		}));
+		return spaces
+			.filter((space) => space.uuid !== "<HOME>")
+			.map((space) => ({
+				id: space.uuid,
+				type: "space",
+				content: space.name,
+				createdAt: new Date(space.createdAt),
+				description: null,
+				ogImage: null,
+				title: space.name,
+				url: `/space/${space.uuid}`,
+				uuid: space.uuid,
+				updatedAt: null,
+				raw: null,
+				userId: space.ownerId,
+				isSuccessfullyProcessed: true,
+			}));
 	}, [spaces, spaceId]);
 
 	// Memoize filtered memories
@@ -180,8 +190,29 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 		};
 	}, [addButtonItem, spaceItems, filteredMemories, selectedVariant, spaceId, isSpace]);
 
-	const renderCard = useCallback(
-		({ data, index }: { data: Memory; index: number }) => {
+	const selectionContextValue = useMemo(
+		() => ({
+			isSelectionMode,
+			selectedItems,
+			toggleSelection: handleToggleSelection,
+		}),
+		[isSelectionMode, selectedItems, handleToggleSelection],
+	);
+
+	const MemoizedSharedCard = memo(
+		({
+			data,
+			index,
+			showAddButtons,
+			isSpace,
+		}: {
+			data: Memory;
+			index: number;
+			showAddButtons: boolean;
+			isSpace: boolean;
+		}) => {
+			const selection = useContext(SelectionContext);
+
 			if (index === 0 && showAddButtons) {
 				return <AddMemory isSpace={isSpace} />;
 			}
@@ -191,13 +222,30 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 			return (
 				<SharedCard
 					data={data}
-					isSelectionMode={isSelectionMode}
-					isSelected={selectedItems.has(data.uuid)}
-					onToggleSelect={() => handleToggleSelection(data.uuid)}
+					isSelectionMode={selection?.isSelectionMode ?? false}
+					isSelected={selection?.selectedItems.has(data.uuid) ?? false}
+					onToggleSelect={() => selection?.toggleSelection(data.uuid)}
 				/>
 			);
 		},
-		[showAddButtons, isSelectionMode, selectedItems, handleToggleSelection],
+		(prevProps, nextProps) => {
+			// Custom comparison function for memo
+			return prevProps.data.uuid === nextProps.data.uuid;
+		},
+	);
+
+	MemoizedSharedCard.displayName = "MemoizedSharedCard";
+
+	const renderCard = useCallback(
+		({ data, index }: { data: Memory; index: number }) => (
+			<MemoizedSharedCard
+				data={data}
+				index={index}
+				showAddButtons={showAddButtons}
+				isSpace={isSpace}
+			/>
+		),
+		[showAddButtons, isSpace],
 	);
 
 	const handleVariantClick = useCallback((variant: Variant) => {
@@ -345,28 +393,30 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 	if (!isHydrated) return null;
 
 	return (
-		<div className="min-h-screen p-2 md:p-4">
-			<div className="mb-4">
-				{MobileVariantButton}
-				{MobileVariantMenu}
-				{DesktopVariantMenu}
+		<SelectionContext.Provider value={selectionContextValue}>
+			<div className="min-h-screen p-2 md:p-4">
+				<div className="mb-4">
+					{MobileVariantButton}
+					{MobileVariantMenu}
+					{DesktopVariantMenu}
+				</div>
+
+				{SelectionControls}
+
+				<Masonry
+					key={key}
+					id="memories-masonry"
+					items={items}
+					// @ts-ignore
+					render={renderCard}
+					columnGutter={16}
+					columnWidth={Math.min(270, window.innerWidth - 32)}
+					onRender={maybeLoadMore}
+				/>
+
+				{isLoading && <div className="py-4 text-center text-muted-foreground">Loading more...</div>}
 			</div>
-
-			{SelectionControls}
-
-			<Masonry
-				key={key + "memories"}
-				id="memories-masonry"
-				items={items}
-				// @ts-ignore
-				render={renderCard}
-				columnGutter={16}
-				columnWidth={Math.min(270, window.innerWidth - 32)}
-				onRender={maybeLoadMore}
-			/>
-
-			{isLoading && <div className="py-4 text-center text-muted-foreground">Loading more...</div>}
-		</div>
+		</SelectionContext.Provider>
 	);
 }
 
