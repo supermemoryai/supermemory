@@ -50,6 +50,9 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       })
     ),
     async (c) => {
+      const startTime = performance.now();
+      console.log("[chat] Starting request");
+
       const user = c.get("user");
       if (!user) {
         return c.json({ error: "Unauthorized" }, 401);
@@ -57,6 +60,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       const { messages, threadId } = await c.req.valid("json");
 
+      console.log("[chat] Converting messages");
       const unfilteredCoreMessages = convertToCoreMessages(
         (messages as Message[])
           .filter((m) => m.content.length > 0)
@@ -79,6 +83,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         (message) => message.content.length > 0
       );
 
+      console.log("[chat] Setting up DB and logger");
       const db = database(c.env.HYPERDRIVE.connectionString);
       const { initLogger, wrapAISDKModel } = await import("braintrust");
 
@@ -101,6 +106,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         return c.json({ error: "Empty query" }, 400);
       }
 
+      console.log("[chat] Generating embeddings and creating thread");
+      const embedStart = performance.now();
       // Run embedding generation and thread creation in parallel
       const [{ data: embedding }, thread] = await Promise.all([
         c.env.AI.run("@cf/baai/bge-base-en-v1.5", { text: queryText }),
@@ -116,6 +123,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               .returning()
           : null,
       ]);
+      console.log(`[chat] Embedding generation took ${performance.now() - embedStart}ms`);
 
       const threadUuid = threadId || thread?.[0].uuid;
 
@@ -123,6 +131,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         return c.json({ error: "Failed to generate embedding" }, 500);
       }
 
+      console.log("[chat] Performing semantic search");
+      const searchStart = performance.now();
       // Perform semantic search
       const similarity = sql<number>`1 - (${cosineDistance(chunk.embeddings, embedding[0])})`;
 
@@ -144,6 +154,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         .where(and(eq(documents.userId, user.id), sql`${similarity} > 0.4`))
         .orderBy(desc(similarity))
         .limit(5);
+      console.log(`[chat] Semantic search took ${performance.now() - searchStart}ms`);
 
       const cleanDocumentsForContext = finalResults.map((d) => ({
         title: d.title,
@@ -169,6 +180,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       }
 
       try {
+        console.log("[chat] Starting stream generation");
+        const streamStart = performance.now();
         const data = new StreamData();
         // De-duplicate chunks by URL to avoid showing duplicate content
         const uniqueResults = finalResults.reduce((acc, current) => {
@@ -224,6 +237,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           ],
           async onFinish(completion) {
             try {
+              console.log("[chat] Stream finished, updating thread");
+              const updateStart = performance.now();
               if (lastUserMessage) {
                 lastUserMessage.content =
                   typeof lastUserMessage.content === "string"
@@ -257,12 +272,15 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
                   .set({ messages: newMessages })
                   .where(eq(chatThreads.uuid, threadUuid));
               }
+              console.log(`[chat] Thread update took ${performance.now() - updateStart}ms`);
             } catch (error) {
               console.error("Failed to update thread:", error);
             }
           },
         });
+        console.log(`[chat] Stream generation took ${performance.now() - streamStart}ms`);
 
+        console.log(`[chat] Total request time: ${performance.now() - startTime}ms`);
         return result.toDataStreamResponse({
           headers: {
             "Supermemory-Thread-Uuid": threadUuid ?? "",

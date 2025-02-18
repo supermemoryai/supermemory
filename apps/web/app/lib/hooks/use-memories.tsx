@@ -271,5 +271,6 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 		hasMore: memoriesData ? memoriesData.nextCursor < memoriesData.total : false,
 		total: memoriesData?.total ?? 0,
 		addMemory: wrappedAddMemory,
+		mutate: () => queryClient.invalidateQueries({ queryKey: cacheKey }),
 	};
 }

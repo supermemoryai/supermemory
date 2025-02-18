@@ -3,10 +3,14 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { TweetSkeleton } from "react-tweet";
 
+import { useNavigate } from "@remix-run/react";
+
 import { NotionIcon } from "../icons/IntegrationIcons";
 import { CustomTwitterComp } from "../twitter/render-tweet";
 import Loader from "../ui/Loader";
 import { Button, ButtonProps } from "../ui/button";
+import { Card } from "../ui/card";
+import { Checkbox } from "../ui/checkbox";
 import {
 	Command,
 	CommandEmpty,
@@ -34,6 +38,7 @@ import { SpaceIcon } from "@supermemory/shared/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FastAverageColor } from "fast-average-color";
 import { MenuIcon, TrashIcon } from "lucide-react";
+import { FolderIcon, MoreVertical, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { pastelColors } from "~/lib/constants/pastelColors";
 import { typeIcons } from "~/lib/constants/typeIcons";
@@ -41,7 +46,6 @@ import { ExtraSpaceMetaData, fetchSpaces } from "~/lib/hooks/use-spaces";
 import { useTextOverflow } from "~/lib/hooks/use-text-overflow";
 import { Memory, WebsiteMetadata } from "~/lib/types/memory";
 import { cn } from "~/lib/utils";
-import { useNavigate } from "@remix-run/react";
 
 const { useTweet } = ReactTweet;
 
@@ -615,9 +619,38 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 	return memory ? <SharedCard data={memory} /> : null;
 }
 
-function SharedCard({ data }: { data: Memory }) {
+interface SharedCardProps {
+	data: Memory;
+	isSelectionMode?: boolean;
+	isSelected?: boolean;
+	onToggleSelect?: () => void;
+}
+
+export default function SharedCard({
+	data,
+	isSelectionMode,
+	isSelected,
+	onToggleSelect,
+}: SharedCardProps) {
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
+
+	// Flatten the data if it's a nested array and get the first item
+	if (Array.isArray(data)) {
+		console.log("weird data here, will try flattening.", data);
+		data = data.flat(Infinity)[0];
+	}
+
+	const ContentRenderer =
+		renderContent[data.type as keyof typeof renderContent] ||
+		(() => {
+			console.log("SharedCard data", data);
+			return (
+				<div>
+					Unsupported content type: {typeof data.type === "undefined" ? "undefined" : data.type}
+				</div>
+			);
+		});
 
 	// Delete mutation
 	const deleteMutation = useMutation({
@@ -686,27 +719,14 @@ function SharedCard({ data }: { data: Memory }) {
 		},
 	});
 
-	// Flatten the data if it's a nested array and get the first item
-	if (Array.isArray(data)) {
-		console.log("weird data here, will try flattening.", data);
-		data = data.flat(Infinity)[0];
-	}
-
-	const ContentRenderer =
-		renderContent[data.type as keyof typeof renderContent] ||
-		(() => {
-			console.log("SharedCard data", data);
-			return (
-				<div>
-					Unsupported content type: {typeof data.type === "undefined" ? "undefined" : data.type}
-				</div>
-			);
-		});
-
-	const handleDelete = (e: Event) => {
-		e.preventDefault();
-		e.stopPropagation();
-		deleteMutation.mutate(data.id);
+	const handleDelete = (e?: Event) => {
+		if (e) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		if (window.confirm("Are you sure you want to delete this memory?")) {
+			deleteMutation.mutate(data.id);
+		}
 	};
 
 	const handleMoveToSpace = (spaceId: string) => {
@@ -716,10 +736,23 @@ function SharedCard({ data }: { data: Memory }) {
 		});
 	};
 
+	const handleClick = (e: React.MouseEvent) => {
+		if (isSelectionMode && onToggleSelect) {
+			e.preventDefault();
+			onToggleSelect();
+			return;
+		}
+
+		// Normal navigation behavior
+		if (data.url) {
+			window.location.href = data.url;
+		}
+	};
+
 	return (
-		<div
+		<Card
 			className={cn(
-				`relative overflow-hidden rounded-3xl border bg-card`,
+				"group relative overflow-hidden rounded-3xl border",
 				(() => {
 					switch (data.type) {
 						case "note":
@@ -730,13 +763,20 @@ function SharedCard({ data }: { data: Memory }) {
 							return "border-accent/30";
 					}
 				})(),
+				isSelectionMode && "hover:ring-2 hover:ring-primary",
+				isSelected && "ring-2 ring-primary bg-primary/5",
 			)}
+			onClick={handleClick}
 		>
-			<a href={`/content/${data.uuid}`}>
-				{data.type !== "space" && (
+			{isSelectionMode ? (
+				<div className="absolute right-2 top-2 z-50">
+					<Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
+				</div>
+			) : (
+				data.type !== "space" && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-gray-900/70 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm/50 backdrop-blur-[2px] border border-gray-200/30 dark:border-gray-700/30">
+							<div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-white/70 dark:bg-gray-900/70 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 shadow-sm/50 backdrop-blur-[2px] border border-gray-200/30 dark:border-gray-700/30 opacity-0 group-hover:opacity-100 transition-opacity">
 								<MenuIcon className="h-4 w-4" />
 							</div>
 						</DropdownMenuTrigger>
@@ -754,10 +794,10 @@ function SharedCard({ data }: { data: Memory }) {
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-				)}
-				<ContentRenderer data={data} />
-			</a>
-		</div>
+				)
+			)}
+			<ContentRenderer data={data} />
+		</Card>
 	);
 }
 
@@ -838,5 +878,3 @@ export const SpaceSelector = function SpaceSelector({
 };
 
 const MemoizedSpaceSelector = memo(SpaceSelector);
-
-export default SharedCard;

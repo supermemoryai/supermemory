@@ -128,15 +128,9 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
             documents: documents,
           })
           .from(documents)
-          .leftJoin(
-            contentToSpace,
-            eq(documents.id, contentToSpace.contentId)
-          )
+          .leftJoin(contentToSpace, eq(documents.id, contentToSpace.contentId))
           .where(
-            and(
-              eq(documents.userId, user.id),
-              isNull(contentToSpace.contentId)
-            )
+            and(eq(documents.userId, user.id), isNull(contentToSpace.contentId))
           )
           .orderBy(desc(documents.createdAt))
           .limit(count)
@@ -146,15 +140,9 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
             total: sql<number>`count(*)`.as("total"),
           })
           .from(documents)
-          .leftJoin(
-            contentToSpace,
-            eq(documents.id, contentToSpace.contentId)
-          )
+          .leftJoin(contentToSpace, eq(documents.id, contentToSpace.contentId))
           .where(
-            and(
-              eq(documents.userId, user.id),
-              isNull(contentToSpace.contentId)
-            )
+            and(eq(documents.userId, user.id), isNull(contentToSpace.contentId))
           ),
       ]);
 
@@ -196,7 +184,7 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
 
       const db = database(c.env.HYPERDRIVE.connectionString);
 
-      let documentIdNum
+      let documentIdNum;
 
       try {
         documentIdNum = Number(id);
@@ -209,7 +197,9 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
         .from(documents)
         .where(
           and(
-            documentIdNum ? or(eq(documents.uuid, id), eq(documents.id, documentIdNum)) : eq(documents.uuid, id),
+            documentIdNum
+              ? or(eq(documents.uuid, id), eq(documents.id, documentIdNum))
+              : eq(documents.uuid, id),
             eq(documents.userId, user.id)
           )
         )
@@ -229,6 +219,73 @@ const memories = new Hono<{ Variables: Variables; Bindings: Env }>()
       ]);
 
       return c.json({ success: true });
+    }
+  )
+  .post(
+    "/batch-delete",
+    zValidator(
+      "json",
+      z.object({
+        ids: z.array(z.string()),
+      })
+    ),
+    async (c) => {
+      const { ids } = c.req.valid("json");
+      const user = c.get("user");
+
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
+      }
+
+      const db = database(c.env.HYPERDRIVE.connectionString);
+
+      try {
+        // First get all valid documents that belong to the user
+        const docs = await db
+          .select()
+          .from(documents)
+          .where(
+            and(
+              eq(documents.userId, user.id),
+              sql`${documents.uuid} = ANY(ARRAY[${ids}]::text[])`
+            )
+          );
+
+        if (docs.length === 0) {
+          return c.json({ error: "No valid documents found" }, 404);
+        }
+
+        const docIds = docs.map((doc) => doc.id);
+
+        // Delete in transaction to ensure consistency
+        await db.transaction(async (tx) => {
+          await Promise.all([
+            // Delete document entries
+            tx
+              .delete(documents)
+              .where(
+                and(
+                  eq(documents.userId, user.id),
+                  sql`${documents.uuid} = ANY(ARRAY[${ids}]::text[])`
+                )
+              ),
+            // Delete space connections
+            tx
+              .delete(contentToSpace)
+              .where(
+                sql`${contentToSpace.contentId} = ANY(ARRAY[${docIds}]::int[])`
+              ),
+          ]);
+        });
+
+        return c.json({
+          success: true,
+          deletedCount: docs.length,
+        });
+      } catch (error) {
+        console.error("Batch delete error:", error);
+        return c.json({ error: "Failed to delete documents" }, 500);
+      }
     }
   );
 

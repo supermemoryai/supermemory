@@ -5,8 +5,10 @@ import { Button } from "../ui/button";
 import AddMemory from "./AddMemory";
 import SharedCard from "./SharedCard";
 
+import { Trash2 } from "lucide-react";
 import { Masonry, useInfiniteLoader } from "masonic";
 import { useHydrated } from "remix-utils/use-hydrated";
+import { toast } from "sonner";
 import { useMemories } from "~/lib/hooks/use-memories";
 import { useSpaces } from "~/lib/hooks/use-spaces";
 import { Memory } from "~/lib/types/memory";
@@ -25,10 +27,65 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 	const { spaceId } = useParams();
 	const [selectedVariant, setSelectedVariant] = useState<Variant>("All Memories");
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const [isSelectionMode, setIsSelectionMode] = useState(false);
+	const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+	const [isDeleting, setIsDeleting] = useState(false);
 
-	const { memories, isLoading, loadMore, hasMore } = useMemories(0, 20, spaceId);
+	const { memories, isLoading, loadMore, hasMore, mutate } = useMemories(0, 20, spaceId);
 
 	const { spaces } = useSpaces();
+
+	const handleToggleSelection = useCallback((uuid: string) => {
+		setSelectedItems((prev) => {
+			const newSet = new Set(prev);
+			if (newSet.has(uuid)) {
+				newSet.delete(uuid);
+			} else {
+				newSet.add(uuid);
+			}
+			return newSet;
+		});
+	}, []);
+
+	const handleBatchDelete = useCallback(async () => {
+		if (selectedItems.size === 0) return;
+
+		const confirmed = window.confirm(
+			`Are you sure you want to delete ${selectedItems.size} item${selectedItems.size > 1 ? "s" : ""}?`,
+		);
+
+		if (!confirmed) return;
+
+		setIsDeleting(true);
+		try {
+			const response = await fetch("/backend/v1/memories/batch-delete", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ ids: Array.from(selectedItems) }),
+				credentials: "include",
+			});
+
+			if (!response.ok) {
+				throw new Error("Failed to delete items");
+			}
+
+			const data = (await response.json()) as { success: boolean; deletedCount: number };
+			toast.success(
+				`Successfully deleted ${data.deletedCount} item${data.deletedCount > 1 ? "s" : ""}`,
+			);
+
+			// Reset selection mode and clear selected items
+			setIsSelectionMode(false);
+			setSelectedItems(new Set());
+
+			// Refresh the memories list
+			mutate();
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to delete items");
+		} finally {
+			setIsDeleting(false);
+		}
+	}, [selectedItems, mutate]);
 
 	const loadMoreItems = useCallback(
 		(startIndex: number, stopIndex: number) => {
@@ -109,7 +166,8 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 
 	// Combine items and generate key
 	const { items, key } = useMemo(() => {
-		const shouldShowSpaces = !isSpace && (selectedVariant === "All Memories" || selectedVariant === "Spaces");
+		const shouldShowSpaces =
+			!isSpace && (selectedVariant === "All Memories" || selectedVariant === "Spaces");
 		const allItems = [
 			...addButtonItem,
 			...(shouldShowSpaces ? spaceItems : []),
@@ -127,15 +185,95 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 			if (index === 0 && showAddButtons) {
 				return <AddMemory isSpace={isSpace} />;
 			}
-			return <SharedCard data={data} />;
+			if (data.type === "space") {
+				return <SharedCard data={data} />;
+			}
+			return (
+				<SharedCard
+					data={data}
+					isSelectionMode={isSelectionMode}
+					isSelected={selectedItems.has(data.uuid)}
+					onToggleSelect={() => handleToggleSelection(data.uuid)}
+				/>
+			);
 		},
-		[showAddButtons],
+		[showAddButtons, isSelectionMode, selectedItems, handleToggleSelection],
 	);
 
 	const handleVariantClick = useCallback((variant: Variant) => {
 		setSelectedVariant(variant);
 		setIsMobileMenuOpen(false);
+		if (variant === "Spaces") {
+			setIsSelectionMode(false);
+			setSelectedItems(new Set());
+		}
 	}, []);
+
+	const SelectionControls = useMemo(
+		() => (
+			<div className="flex items-center gap-2 mb-4">
+				{selectedVariant !== "Spaces" && (
+					<>
+						<Button
+							variant={isSelectionMode ? "secondary" : "outline"}
+							onClick={() => {
+								setIsSelectionMode(!isSelectionMode);
+								if (!isSelectionMode) {
+									setSelectedItems(new Set());
+								}
+							}}
+						>
+							{isSelectionMode ? "Cancel Selection" : "Select Items"}
+						</Button>
+						{isSelectionMode && (
+							<>
+								<Button
+									variant="outline"
+									onClick={() => {
+										// Get all non-space items' UUIDs
+										const allUuids = filteredMemories
+											.filter((item) => item.type !== "space")
+											.map((item) => item.uuid);
+
+										// If all items are selected, clear selection
+										if (allUuids.every((uuid) => selectedItems.has(uuid))) {
+											setSelectedItems(new Set());
+										} else {
+											// Otherwise, select all items
+											setSelectedItems(new Set(allUuids));
+										}
+									}}
+								>
+									{filteredMemories.every(
+										(item) => item.type === "space" || selectedItems.has(item.uuid),
+									)
+										? "Deselect All"
+										: "Select All"}
+								</Button>
+								<Button
+									variant="destructive"
+									onClick={handleBatchDelete}
+									disabled={selectedItems.size === 0 || isDeleting}
+								>
+									<Trash2 className="w-4 h-4 mr-2" />
+									{isDeleting ? "Deleting..." : `Delete Selected (${selectedItems.size})`}
+								</Button>
+							</>
+						)}
+					</>
+				)}
+			</div>
+		),
+		[
+			isSelectionMode,
+			selectedItems.size,
+			isDeleting,
+			handleBatchDelete,
+			selectedVariant,
+			filteredMemories,
+			selectedItems,
+		],
+	);
 
 	const MobileVariantButton = useMemo(
 		() => (
@@ -158,21 +296,23 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 				)}
 			>
 				<div className="flex flex-col gap-2 p-2">
-					{variants.filter(variant => !(isSpace && variant === "Spaces")).map((variant) => (
-						<Button
-							key={variant}
-							variant="ghost"
-							onClick={() => handleVariantClick(variant)}
-							className={cn(
-								"text-muted-foreground hover:bg-accent hover:text-foreground text-base w-full py-4 rounded-lg transition-colors",
-								selectedVariant === variant
-									? "bg-accent text-foreground font-medium shadow-sm"
-									: "hover:shadow-sm",
-							)}
-						>
-							{variant}
-						</Button>
-					))}
+					{variants
+						.filter((variant) => !(isSpace && variant === "Spaces"))
+						.map((variant) => (
+							<Button
+								key={variant}
+								variant="ghost"
+								onClick={() => handleVariantClick(variant)}
+								className={cn(
+									"text-muted-foreground hover:bg-accent hover:text-foreground text-base w-full py-4 rounded-lg transition-colors",
+									selectedVariant === variant
+										? "bg-accent text-foreground font-medium shadow-sm"
+										: "hover:shadow-sm",
+								)}
+							>
+								{variant}
+							</Button>
+						))}
 				</div>
 			</div>
 		),
@@ -182,19 +322,21 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 	const DesktopVariantMenu = useMemo(
 		() => (
 			<div className="hidden md:flex">
-				{variants.filter(variant => !(isSpace && variant === "Spaces")).map((variant) => (
-					<Button
-						key={variant}
-						variant="ghost"
-						onClick={() => setSelectedVariant(variant)}
-						className={cn(
-							"text-muted-foreground hover:bg-accent hover:text-foreground text-base",
-							selectedVariant === variant ? "bg-accent text-foreground" : "",
-						)}
-					>
-						{variant}
-					</Button>
-				))}
+				{variants
+					.filter((variant) => !(isSpace && variant === "Spaces"))
+					.map((variant) => (
+						<Button
+							key={variant}
+							variant="ghost"
+							onClick={() => setSelectedVariant(variant)}
+							className={cn(
+								"text-muted-foreground hover:bg-accent hover:text-foreground text-base",
+								selectedVariant === variant ? "bg-accent text-foreground" : "",
+							)}
+						>
+							{variant}
+						</Button>
+					))}
 			</div>
 		),
 		[selectedVariant, isSpace],
@@ -209,6 +351,8 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 				{MobileVariantMenu}
 				{DesktopVariantMenu}
 			</div>
+
+			{SelectionControls}
 
 			<Masonry
 				key={key + "memories"}
