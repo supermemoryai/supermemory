@@ -88,7 +88,9 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         apiKey: c.env.BRAINTRUST_API_KEY,
       });
 
-      const googleClient = wrapAISDKModel(openai(c.env).chat("gpt-4o-mini-2024-07-18"));
+      const googleClient = wrapAISDKModel(
+        openai(c.env).chat("gpt-4o-mini-2024-07-18")
+      );
 
       // Get last user message and generate embedding in parallel with thread creation
       let lastUserMessage = coreMessages.findLast((i) => i.role === "user");
@@ -123,9 +125,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         return c.json({ error: "Failed to generate embedding" }, 500);
       }
 
-      // Perform semantic search
-      const similarity = sql<number>`1 - (${cosineDistance(chunk.embeddings, embedding[0])})`;
-
+      // Perform hybrid search for context retrieval
       const finalResults = await db
         .select({
           id: documents.id,
@@ -138,11 +138,42 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           userId: documents.userId,
           description: documents.description,
           ogImage: documents.ogImage,
+          vectorSimilarity: sql<number>`1 - (embeddings <=> ${JSON.stringify(embedding[0])}::vector)`,
+          textSimilarity: sql<number>`ts_rank((
+            setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+            setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+            setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+            setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+          ), plainto_tsquery('english', ${queryText}))`,
+          hybridScore: sql<number>`(
+            0.75 * (1 - (embeddings <=> ${JSON.stringify(embedding[0])}::vector)) + 
+            0.25 * ts_rank((
+              setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+              setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+              setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+              setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+            ), plainto_tsquery('english', ${queryText}))
+          )::float`,
         })
         .from(chunk)
         .innerJoin(documents, eq(chunk.documentId, documents.id))
-        .where(and(eq(documents.userId, user.id), sql`${similarity} > 0.4`))
-        .orderBy(desc(similarity))
+        .where(
+          and(
+            eq(documents.userId, user.id),
+            sql`1 - (embeddings <=> ${JSON.stringify(embedding[0])}::vector) > 0.4`
+          )
+        )
+        .orderBy(
+          desc(sql<number>`(
+          0.75 * (1 - (embeddings <=> ${JSON.stringify(embedding[0])}::vector)) + 
+          0.25 * ts_rank((
+            setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+            setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+            setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+            setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+          ), plainto_tsquery('english', ${queryText}))
+        )::float`)
+        )
         .limit(5);
 
       const cleanDocumentsForContext = finalResults.map((d) => ({
@@ -171,27 +202,37 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
       try {
         const data = new StreamData();
         // De-duplicate chunks by URL to avoid showing duplicate content
-        const uniqueResults = finalResults.reduce((acc, current) => {
-          const existingResult = acc.find(item => item.id === current.id);
-          if (!existingResult) {
-            acc.push(current);
-          }
-          return acc;
-        }, [] as typeof finalResults);
+        const uniqueResults = finalResults.reduce(
+          (acc, current) => {
+            const existingResult = acc.find((item) => item.id === current.id);
+            if (!existingResult) {
+              acc.push(current);
+            }
+            return acc;
+          },
+          [] as typeof finalResults
+        );
 
         data.appendMessageAnnotation(
-          uniqueResults.map((r) => ({
-            id: r.id,
-            content: r.content,
-            type: r.type,
-            url: r.url,
-            title: r.title,
-            description: r.description,
-            ogImage: r.ogImage,
-            userId: r.userId,
-            createdAt: r.createdAt.toISOString(),
-            updatedAt: r.updatedAt?.toISOString() || null,
-          }))
+          uniqueResults.map(
+            (r) =>
+              ({
+                id: String(r.id),
+                content: String(r.content || ""),
+                type: String(r.type || ""),
+                url: String(r.url || ""),
+                title: String(r.title || ""),
+                description: String(r.description || ""),
+                ogImage: String(r.ogImage || ""),
+                userId: String(r.userId),
+                createdAt:
+                  r.createdAt instanceof Date ? r.createdAt.toISOString() : "",
+                updatedAt:
+                  r.updatedAt instanceof Date
+                    ? r.updatedAt.toISOString()
+                    : null,
+              }) as const
+          )
         );
 
         const result = await streamText({
@@ -470,10 +511,22 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         limit: z.number().min(1).max(50).default(10),
         threshold: z.number().min(0).max(1).default(0),
         spaces: z.array(z.string()).optional(),
+        weights: z
+          .object({
+            semantic: z.number().min(0).max(1).default(0.75),
+            keyword: z.number().min(0).max(1).default(0.25),
+          })
+          .optional(),
       })
     ),
     async (c) => {
-      const { query, limit, threshold, spaces } = c.req.valid("json");
+      const {
+        query,
+        limit,
+        threshold,
+        spaces,
+        weights = { semantic: 0.75, keyword: 0.25 },
+      } = c.req.valid("json");
       const user = c.get("user");
 
       if (!user) {
@@ -490,32 +543,36 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
               .from(spaceInDb)
               .where(eq(spaceInDb.uuid, spaceId))
               .limit(1);
-            
+
             if (space.length === 0) return null;
             return {
               id: space[0].id,
               ownerId: space[0].ownerId,
-              uuid: space[0].uuid
+              uuid: space[0].uuid,
             };
           })
         );
 
-        // Filter out any null values and check permissions
-        const validSpaces = spaceDetails.filter((s): s is NonNullable<typeof s> => s !== null);
-        const unauthorized = validSpaces.filter(s => s.ownerId !== user.id);
+        const validSpaces = spaceDetails.filter(
+          (s): s is NonNullable<typeof s> => s !== null
+        );
+        const unauthorized = validSpaces.filter((s) => s.ownerId !== user.id);
 
         if (unauthorized.length > 0) {
           return c.json(
             {
               error: "Space permission denied",
-              details: unauthorized.map(s => s.uuid).join(", "),
+              details: unauthorized.map((s) => s.uuid).join(", "),
             },
             403
           );
         }
 
-        // Replace UUIDs with IDs for the database query
-        spaces.splice(0, spaces.length, ...validSpaces.map(s => s.id.toString()));
+        spaces.splice(
+          0,
+          spaces.length,
+          ...validSpaces.map((s) => s.id.toString())
+        );
       }
 
       try {
@@ -531,7 +588,7 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           );
         }
 
-        // Perform semantic search using cosine similarity
+        // Perform hybrid search using both vector similarity and full-text search
         const results = await database(c.env.HYPERDRIVE.connectionString)
           .select({
             id: documents.id,
@@ -539,9 +596,22 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
             content: documents.content,
             createdAt: documents.createdAt,
             chunkContent: chunk.textContent,
-            similarity: sql<number>`1 - (embeddings <=> ${JSON.stringify(
-              embeddings.data[0]
-            )}::vector)`,
+            vectorSimilarity: sql<number>`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector)`,
+            textSimilarity: sql<number>`ts_rank((
+              setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+              setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+              setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+              setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+            ), plainto_tsquery('english', ${query}))`,
+            hybridScore: sql<number>`(
+              ${weights.semantic} * (1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector)) + 
+              ${weights.keyword} * ts_rank((
+                setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+                setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+                setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+                setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+              ), plainto_tsquery('english', ${query}))
+            )::float`,
           })
           .from(chunk)
           .innerJoin(documents, eq(chunk.documentId, documents.id))
@@ -570,14 +640,24 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
             )
           )
           .orderBy(
-            sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) desc`
+            desc(sql<number>`(
+            ${weights.semantic} * (1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector)) + 
+            ${weights.keyword} * ts_rank((
+              setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+              setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+              setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+              setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+            ), plainto_tsquery('english', ${query}))
+          )::float`)
           )
           .limit(limit);
 
         return c.json({
           results: results.map((r) => ({
             ...r,
-            similarity: Number(r.similarity.toFixed(4)),
+            vectorSimilarity: Number(r.vectorSimilarity.toFixed(4)),
+            textSimilarity: Number(r.textSimilarity.toFixed(4)),
+            hybridScore: Number(r.hybridScore.toFixed(4)),
           })),
         });
       } catch (error) {
