@@ -13,6 +13,7 @@ import {
   jsonb,
   date,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { Metadata } from "../../apps/backend/src/types";
 
 export const users = pgTable(
@@ -173,13 +174,22 @@ export const documents = pgTable(
     errorMessage: text("error_message"),
     contentHash: text("content_hash"),
   },
-  (document) => ({
-    documentsIdIdx: uniqueIndex("document_id_idx").on(document.id),
-    documentsUuidIdx: uniqueIndex("document_uuid_idx").on(document.uuid),
-    documentsTypdIdx: index("document_type_idx").on(document.type),
+  (table) => ({
+    documentsIdIdx: uniqueIndex("document_id_idx").on(table.id),
+    documentsUuidIdx: uniqueIndex("document_uuid_idx").on(table.uuid),
+    documentsTypdIdx: index("document_type_idx").on(table.type),
     documentRawUserIdx: uniqueIndex("document_raw_user_idx").on(
-      document.raw,
-      document.userId
+      table.raw,
+      table.userId
+    ),
+    searchIndex: index("documents_search_idx").using(
+      "gin",
+      sql`(
+        setweight(to_tsvector('english', coalesce(${table.content}, '')),'A') ||
+        setweight(to_tsvector('english', coalesce(${table.title}, '')),'B') ||
+        setweight(to_tsvector('english', coalesce(${table.description}, '')),'C') ||
+        setweight(to_tsvector('english', coalesce(${table.url}, '')),'D')
+      )`
     ),
   })
 );

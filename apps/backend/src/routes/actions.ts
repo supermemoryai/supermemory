@@ -88,7 +88,8 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         apiKey: c.env.BRAINTRUST_API_KEY,
       });
 
-      const googleClient = wrapAISDKModel(openai(c.env).chat("gpt-4o-mini-2024-07-18"));
+      const googleClient = wrapAISDKModel(
+        openai(c.env).chat("gpt-4o-mini-2024-07-18"));
 
       // Get last user message and generate embedding in parallel with thread creation
       let lastUserMessage = coreMessages.findLast((i) => i.role === "user");
@@ -123,9 +124,15 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
         return c.json({ error: "Failed to generate embedding" }, 500);
       }
 
-      // Perform semantic search
-      const similarity = sql<number>`1 - (${cosineDistance(chunk.embeddings, embedding[0])})`;
-
+      // Pre-compute the vector similarity expression to avoid multiple calculations
+      const vectorSimilarity = sql<number>`1 - (embeddings <=> ${JSON.stringify(embedding[0])}::vector)`;
+      const textSearchRank = sql<number>`ts_rank_cd((
+        setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+        setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+        setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+        setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+      ), plainto_tsquery('english', ${queryText}))`;
+      
       const finalResults = await db
         .select({
           id: documents.id,
@@ -138,12 +145,25 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           userId: documents.userId,
           description: documents.description,
           ogImage: documents.ogImage,
+          similarity: vectorSimilarity,
+          textRank: textSearchRank,
         })
         .from(chunk)
         .innerJoin(documents, eq(chunk.documentId, documents.id))
-        .where(and(eq(documents.userId, user.id), sql`${similarity} > 0.4`))
-        .orderBy(desc(similarity))
-        .limit(5);
+        .where(
+          and(
+            eq(documents.userId, user.id),
+            sql`${vectorSimilarity} > 0.5`
+          )
+        )
+        .orderBy(
+          desc(sql<number>`(
+            0.6 * ${vectorSimilarity} + 
+            0.25 * ${textSearchRank} +
+            0.15 * (1.0 / (1.0 + extract(epoch from age(${documents.updatedAt})) / (90 * 24 * 60 * 60)))
+          )::float`)
+        )
+        .limit(15);
 
       const cleanDocumentsForContext = finalResults.map((d) => ({
         title: d.title,
@@ -531,24 +551,37 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
           );
         }
 
-        // Perform semantic search using cosine similarity
-        const results = await database(c.env.HYPERDRIVE.connectionString)
+        // Pre-compute the vector similarity expression to avoid multiple calculations
+        const vectorSimilarity = sql<number>`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector)`;
+        const textSearchRank = sql<number>`ts_rank_cd((
+          setweight(to_tsvector('english', coalesce(${documents.content}, '')),'A') ||
+          setweight(to_tsvector('english', coalesce(${documents.title}, '')),'B') ||
+          setweight(to_tsvector('english', coalesce(${documents.description}, '')),'C') ||
+          setweight(to_tsvector('english', coalesce(${documents.url}, '')),'D')
+        ), plainto_tsquery('english', ${query}))`;
+        
+        const results = await db
           .select({
             id: documents.id,
             uuid: documents.uuid,
             content: documents.content,
+            type: documents.type,
+            url: documents.url,
+            title: documents.title,
             createdAt: documents.createdAt,
-            chunkContent: chunk.textContent,
-            similarity: sql<number>`1 - (embeddings <=> ${JSON.stringify(
-              embeddings.data[0]
-            )}::vector)`,
+            updatedAt: documents.updatedAt,
+            userId: documents.userId,
+            description: documents.description,
+            ogImage: documents.ogImage,
+            similarity: vectorSimilarity,
+            textRank: textSearchRank,
           })
           .from(chunk)
           .innerJoin(documents, eq(chunk.documentId, documents.id))
           .where(
             and(
               eq(documents.userId, user.id),
-              sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) >= ${threshold}`,
+              sql`${vectorSimilarity} > ${threshold}`,
               ...(spaces && spaces.length > 0
                 ? [
                     exists(
@@ -570,7 +603,11 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
             )
           )
           .orderBy(
-            sql`1 - (embeddings <=> ${JSON.stringify(embeddings.data[0])}::vector) desc`
+            desc(sql<number>`(
+              0.6 * ${vectorSimilarity} + 
+              0.25 * ${textSearchRank} +
+              0.15 * (1.0 / (1.0 + extract(epoch from age(${documents.updatedAt})) / (90 * 24 * 60 * 60)))
+            )::float`)
           )
           .limit(limit);
 

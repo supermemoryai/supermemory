@@ -24,7 +24,9 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
     // Step 0: Check if user has reached memory limit
     await step.do("check memory limit", async () => {
-      const existingMemories = await database(this.env.HYPERDRIVE.connectionString)
+      const existingMemories = await database(
+        this.env.HYPERDRIVE.connectionString
+      )
         .select()
         .from(documents)
         .where(eq(documents.userId, event.payload.userId));
@@ -33,7 +35,9 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
         await database(this.env.HYPERDRIVE.connectionString)
           .delete(documents)
           .where(eq(documents.uuid, event.payload.uuid));
-        throw new NonRetryableError("You have reached the maximum limit of 2000 memories");
+        throw new NonRetryableError(
+          "You have reached the maximum limit of 2000 memories"
+        );
       }
     });
 
@@ -142,12 +146,14 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
       );
     }
 
+    // Step 3: Generate embeddings
+    const { data: embeddings } = await this.env.AI.run(
+      "@cf/baai/bge-base-en-v1.5",
+      {
+        text: chunked,
+      }
+    );
 
-    const {data: embeddings} = await this.env.AI.run("@cf/baai/bge-base-en-v1.5", {
-      text: chunked,
-    });
-
-   
     // Step 4: Prepare chunk data
     const chunkInsertData: ChunkInsert[] = await step.do(
       "prepare chunk data",
@@ -159,8 +165,6 @@ export class ContentWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
           embeddings: embeddings[index],
         }))
     );
-
-    console.log(chunkInsertData);
 
     // Step 5: Insert chunks
     if (chunkInsertData.length > 0) {

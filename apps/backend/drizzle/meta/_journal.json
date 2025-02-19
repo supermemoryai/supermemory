@@ -113,6 +113,13 @@
       "when": 1737920848112,
       "tag": "0015_perpetual_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1739937938319,
+      "tag": "0016_good_deathbird",
+      "breakpoints": true
     }
   ]
 }
