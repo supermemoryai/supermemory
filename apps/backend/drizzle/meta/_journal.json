@@ -120,6 +120,20 @@
       "when": 1739937938319,
       "tag": "0016_good_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1739939067023,
+      "tag": "0017_oval_misty_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1739939254444,
+      "tag": "0018_past_inertia",
+      "breakpoints": true
     }
   ]
 }
