@@ -98,6 +98,7 @@ export const getIntegrations = (
 					console.log("Response:", response);
 				},
 			);
+			await window.postMessage({ action: "exportBookmarks" }, "*");
 			console.log("Message sent");
 		},
 

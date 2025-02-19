@@ -31,6 +31,16 @@
       "http://supermemory.com/*"
     ]
   },
+  "firefox:content_scripts": [{
+    "matches": [
+      "http://localhost:3000/*",
+      "https://supermemory.ai/*",
+      "https://beta.supermemory.ai/*",
+      "http://supermemory.com/*"
+    ],
+      "js": ["src/firefox/content.ts"]
+    }
+  ],
   "icons": {
     "16": "images/icon/16.png",
     "32": "images/icon/32.png",
