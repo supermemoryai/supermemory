@@ -165,4 +165,33 @@ Thanks to all the awesome people who have contributed to supermemory.
   <img src="https://contrib.rocks/image?repo=Dhravya/SuperMemory" />
 </a>
 
+## Sponsors
+
+We are grateful for the support of our sponsors:
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://www.cloudflare.com/">
+        <img src="https://github.com/user-attachments/assets/182fa2e0-bc54-4115-a956-5fcfc748d277" width="100" alt="Cloudflare Compute">
+      </a>
+      <br>
+      Cloudflare - Compute
+    </td>
+    <td align="center">
+      <a href="https://vercel.com/">
+        <img src="https://github.com/user-attachments/assets/b2923fdc-d2a7-46d1-b3e7-92a044d0f16d" width="100" alt="Vercel One Time">
+      </a>
+      <br>
+      Vercel - One Time
+    </td>
+    <td align="center">
+      <a href="https://coderabbit.io/">
+        <img src="https://github.com/user-attachments/assets/7ada40ad-664f-46fe-b746-b35162bbb037" width="100" alt="Coderabbit Monthly">
+      </a>
+      <br>
+      Coderabbit - Monthly ($50)
+    </td>
+  </tr>
+</table>
 
