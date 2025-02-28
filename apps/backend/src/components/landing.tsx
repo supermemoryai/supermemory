@@ -194,7 +194,7 @@ export function LandingPage() {
                     </li>
                     <li>
                       <a
-                        href="https://discord.gg/supermemory"
+                        href="https://discord.gg/b3BgKWpbtR"
                         target="_blank"
                         className="hover:text-white"
                         rel="noreferrer"
