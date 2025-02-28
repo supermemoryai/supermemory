@@ -77,7 +77,10 @@ export default function Hero() {
                 </Popover>
                 */}
 
-								<a href="https://docs.supermemory.ai" className="text-gray-600 hover:text-gray-900 transition-colors">
+								<a
+									href="https://docs.supermemory.ai"
+									className="text-gray-600 hover:text-gray-900 transition-colors"
+								>
 									Docs
 								</a>
 							</nav>
@@ -86,10 +89,16 @@ export default function Hero() {
 						{/* Right section */}
 						<div className="flex items-center space-x-6">
 							<div className="hidden sm:flex items-center space-x-6">
-								<a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
+								<a
+									href="https://git.new/memory"
+									className="text-gray-600 hover:text-gray-900 transition-colors"
+								>
 									<GithubIcon className="h-6 w-6" />
 								</a>
-								<a href="#" className="text-gray-600 hover:text-gray-900 transition-colors">
+								<a
+									href="https://discord.gg/b3BgKWpbtR"
+									className="text-gray-600 hover:text-gray-900 transition-colors"
+								>
 									<DiscordIcon className="h-6 w-6" />
 								</a>
 							</div>
