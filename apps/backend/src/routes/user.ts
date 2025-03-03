@@ -11,8 +11,11 @@ import {
 import { decryptApiKey, getApiKey } from "../auth";
 import { DurableObjectStore } from "@hono-rate-limiter/cloudflare";
 import { rateLimiter } from "hono-rate-limiter";
+import { fromHono } from "chanfana";
 
-const user = new Hono<{ Variables: Variables; Bindings: Env }>()
+const user = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
+  base: "",
+})
   .get("/", (c) => {
     return c.json(c.get("user"));
   })
@@ -132,30 +135,23 @@ const user = new Hono<{ Variables: Variables; Bindings: Env }>()
 
     return c.json({ invitations });
   })
-  .get(
-    "/key",
-    async (c) => {
-      const user = c.get("user");
-      if (!user) {
-        return c.json({ error: "Unauthorized" }, 401);
-      }
-
-      // we need user.id and user.lastApiKeyGeneratedAt
-      const lastApiKeyGeneratedAt = user.lastApiKeyGeneratedAt?.getTime();
-      if (!lastApiKeyGeneratedAt) {
-        return c.json({ error: "No API key generated" }, 400);
-      }
-
-      const key = await getApiKey(
-        user.uuid,
-        lastApiKeyGeneratedAt.toString(),
-        c
-      );
-
-      const decrypted = await decryptApiKey(key, c);
-      return c.json({ key, decrypted });
+  .get("/key", async (c) => {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
     }
-  )
+
+    // we need user.id and user.lastApiKeyGeneratedAt
+    const lastApiKeyGeneratedAt = user.lastApiKeyGeneratedAt?.getTime();
+    if (!lastApiKeyGeneratedAt) {
+      return c.json({ error: "No API key generated" }, 400);
+    }
+
+    const key = await getApiKey(user.uuid, lastApiKeyGeneratedAt.toString(), c);
+
+    const decrypted = await decryptApiKey(key, c);
+    return c.json({ key, decrypted });
+  })
   .post("/update", async (c) => {
     const user = c.get("user");
     if (!user) {
@@ -194,6 +190,6 @@ const user = new Hono<{ Variables: Variables; Bindings: Env }>()
       .where(eq(users.id, user.id));
 
     return c.json({ success: true });
-  })
+  });
 
 export default user;

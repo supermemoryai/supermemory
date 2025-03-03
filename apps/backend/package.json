@@ -24,6 +24,7 @@
     "openai": "^4.68.4",
     "postgres": "^3.4.4",
     "uuid": "^11.0.1",
+    "wrangler": "^3.111.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

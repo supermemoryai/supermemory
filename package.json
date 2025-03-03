@@ -56,6 +56,7 @@
     "autoevals": "^0.0.106",
     "aws4fetch": "^1.0.20",
     "braintrust": "^0.0.171",
+    "chanfana": "^2.6.3",
     "cheerio": "^1.0.0",
     "cloudflare": "^3.5.0",
     "concurrently": "^9.1.0",

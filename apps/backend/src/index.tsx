@@ -17,6 +17,7 @@ import spacesRoute from "./routes/spaces";
 import actions from "./routes/actions";
 import memories from "./routes/memories";
 import integrations from "./routes/integrations";
+import { fromHono, OpenAPIRoute } from "chanfana";
 import {
   cloudflareRateLimiter,
   DurableObjectRateLimiter,
@@ -24,190 +25,203 @@ import {
 } from "@hono-rate-limiter/cloudflare";
 import { ConfigType, GeneralConfigType, rateLimiter } from "hono-rate-limiter";
 
-export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
-  .use("*", timing())
-  .use("*", logger())
-  .use(
-    "*",
-    cors({
-      origin: [
-        "http://localhost:3000",
-        "https://supermemory.ai",
-        "https://*.supermemory.ai",
-        "https://*.supermemory.com",
-        "https://supermemory.com",
-        "chrome-extension://*",
-      ],
-      allowHeaders: ["*"],
-      allowMethods: ["*"],
-      credentials: true,
-      exposeHeaders: ["*"],
-    })
-  )
-  .use("/v1/*", auth)
-  .use("/v1/*", (c, next) => {
-    const user = c.get("user");
-    
-    if (c.env.NODE_ENV === "development") {
-      return next();
-    }
+// Create base Hono app first
+const honoApp = new Hono<{ Variables: Variables; Bindings: Env }>();
 
-    // RATELIMITS
-    const rateLimitConfig = {
-      // Endpoints that bypass rate limiting
-      excludedPaths: [
-        "/v1/add",
-        "/v1/chat",
-        "/v1/suggested-learnings",
-        "/v1/recommended-questions",
-      ] as (string | RegExp)[],
+const app = fromHono(honoApp, {
+  base: "",
+});
 
-      // Custom rate limits for specific endpoints
-      customLimits: {
-        notionImport: {
-          paths: ["/v1/integrations/notion/import", "/v1/integrations/notion"],
-          windowMs: 10 * 60 * 1000, // 10 minutes
-          limit: 5, // 5 requests per 10 minutes
-        },
-        inviteSpace: {
-          paths: [/^\v1\/spaces\/[^/]+\/invite$/],
-          windowMs: 60 * 1000, // 1 minute
-          limit: 5, // 5 requests per minute
-        },
-      } as Record<
-        string,
-        { paths: (string | RegExp)[]; windowMs: number; limit: number }
-      >,
+// Add all middleware and routes
+app.use("*", timing());
+app.use("*", logger());
+app.use(
+  "*",
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://supermemory.ai",
+      "https://*.supermemory.ai",
+      "https://*.supermemory.com",
+      "https://supermemory.com",
+      "chrome-extension://*",
+    ],
+    allowHeaders: ["*"],
+    allowMethods: ["*"],
+    credentials: true,
+    exposeHeaders: ["*"],
+  })
+);
 
-      default: {
-        windowMs: 60 * 1000, // 1 minute
-        limit: 100, // 100 requests per minute
+app.use("/v1/*", auth);
+app.use("/v1/*", (c, next) => {
+  const user = c.get("user");
+
+  if (c.env.NODE_ENV === "development") {
+    return next();
+  }
+
+  // RATELIMITS
+  const rateLimitConfig = {
+    // Endpoints that bypass rate limiting
+    excludedPaths: [
+      "/v1/add",
+      "/v1/chat",
+      "/v1/suggested-learnings",
+      "/v1/recommended-questions",
+    ] as (string | RegExp)[],
+
+    // Custom rate limits for specific endpoints
+    customLimits: {
+      notionImport: {
+        paths: ["/v1/integrations/notion/import", "/v1/integrations/notion"],
+        windowMs: 10 * 60 * 1000, // 10 minutes
+        limit: 5, // 5 requests per 10 minutes
       },
+      inviteSpace: {
+        paths: [/^\v1\/spaces\/[^/]+\/invite$/],
+        windowMs: 60 * 1000, // 1 minute
+        limit: 5, // 5 requests per minute
+      },
+    } as Record<
+      string,
+      { paths: (string | RegExp)[]; windowMs: number; limit: number }
+    >,
 
-      common: {
-        standardHeaders: "draft-6",
-        keyGenerator: (c: Context) =>
-          (user?.uuid ?? c.req.header("cf-connecting-ip")) +
-          "-" +
-          new Date().getDate(), // day so that limit gets reset every day
-        store: new DurableObjectStore({ namespace: c.env.RATE_LIMITER }),
-      } as GeneralConfigType<ConfigType>,
-    };
+    default: {
+      windowMs: 60 * 1000, // 1 minute
+      limit: 100, // 100 requests per minute
+    },
 
+    common: {
+      standardHeaders: "draft-6",
+      keyGenerator: (c: Context) =>
+        (user?.uuid ?? c.req.header("cf-connecting-ip")) +
+        "-" +
+        new Date().getDate(), // day so that limit gets reset every day
+      store: new DurableObjectStore({ namespace: c.env.RATE_LIMITER }),
+    } as GeneralConfigType<ConfigType>,
+  };
+
+  if (
+    c.req.path &&
+    rateLimitConfig.excludedPaths.some((path) =>
+      typeof path === "string" ? c.req.path === path : path.test(c.req.path)
+    )
+  ) {
+    return next();
+  }
+
+  // Check for custom rate limits
+  for (const [_, config] of Object.entries(rateLimitConfig.customLimits)) {
     if (
-      c.req.path &&
-      rateLimitConfig.excludedPaths.some((path) =>
+      config.paths.some((path) =>
         typeof path === "string" ? c.req.path === path : path.test(c.req.path)
       )
     ) {
-      return next();
+      return rateLimiter({
+        windowMs: config.windowMs,
+        limit: config.limit,
+        ...rateLimitConfig.common,
+      })(c as any, next);
     }
+  }
 
-    // Check for custom rate limits
-    for (const [_, config] of Object.entries(rateLimitConfig.customLimits)) {
-      if (
-        config.paths.some((path) =>
-          typeof path === "string" ? c.req.path === path : path.test(c.req.path)
-        )
-      ) {
-        return rateLimiter({
-          windowMs: config.windowMs,
-          limit: config.limit,
-          ...rateLimitConfig.common,
-        })(c as any, next);
-      }
-    }
+  // Apply default rate limit
+  return rateLimiter({
+    windowMs: rateLimitConfig.default.windowMs,
+    limit: rateLimitConfig.default.limit,
+    ...rateLimitConfig.common,
+  })(c as any, next);
+});
 
-    // Apply default rate limit
-    return rateLimiter({
-      windowMs: rateLimitConfig.default.windowMs,
-      limit: rateLimitConfig.default.limit,
-      ...rateLimitConfig.common,
-    })(c as any, next);
-  })
-  .get("/", (c) => {
-    return c.html(<LandingPage />);
-  })
-  // TEMPORARY REDIRECT
-  .all("/api/*", async (c) => {
-    // Get the full URL and path
-    const url = new URL(c.req.url);
-    const path = url.pathname;
-    const newPath = path.replace("/api", "/v1");
+app.get("/", (c) => {
+  return c.html(<LandingPage />);
+});
 
-    // Preserve query parameters and build target URL
-    const redirectUrl = "https://api.supermemory.ai" + newPath + url.search;
+// TEMPORARY REDIRECT
+app.all("/api/*", async (c) => {
+  // Get the full URL and path
+  const url = new URL(c.req.url);
+  const path = url.pathname;
+  const newPath = path.replace("/api", "/v1");
 
-    // Use c.redirect() for a proper redirect
-    return c.redirect(redirectUrl);
-  })
-  .route("/v1/user", user)
-  .route("/v1/spaces", spacesRoute)
-  .route("/v1", actions)
-  .route("/v1/integrations", integrations)
-  .route("/v1/memories", memories)
-  .get("/v1/session", (c) => {
-    const user = c.get("user");
+  // Preserve query parameters and build target URL
+  const redirectUrl = "https://api.supermemory.ai" + newPath + url.search;
 
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
+  // Use c.redirect() for a proper redirect
+  return c.redirect(redirectUrl);
+});
 
-    return c.json({
-      user,
+app.route("/v1/user", user);
+app.route("/v1/spaces", spacesRoute);
+app.route("/v1", actions);
+app.route("/v1/integrations", integrations);
+app.route("/v1/memories", memories);
+
+app.get("/v1/session", (c) => {
+  const user = c.get("user");
+
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  return c.json({
+    user,
+  });
+});
+
+app.post(
+  "/waitlist",
+  zValidator(
+    "json",
+    z.object({ email: z.string().email(), token: z.string() })
+  ),
+  async (c) => {
+    const { email, token } = c.req.valid("json");
+
+    const address = c.req.raw.headers.get("CF-Connecting-IP");
+
+    const idempotencyKey = crypto.randomUUID();
+    const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    const firstResult = await fetch(url, {
+      body: JSON.stringify({
+        secret: c.env.TURNSTILE_SECRET_KEY,
+        response: token,
+        remoteip: address,
+        idempotency_key: idempotencyKey,
+      }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
-  })
-  .post(
-    "/waitlist",
-    zValidator(
-      "json",
-      z.object({ email: z.string().email(), token: z.string() })
-    ),
-    async (c) => {
-      const { email, token } = c.req.valid("json");
 
-      const address = c.req.raw.headers.get("CF-Connecting-IP");
+    const firstOutcome = (await firstResult.json()) as { success: boolean };
 
-      const idempotencyKey = crypto.randomUUID();
-      const url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-      const firstResult = await fetch(url, {
-        body: JSON.stringify({
-          secret: c.env.TURNSTILE_SECRET_KEY,
-          response: token,
-          remoteip: address,
-          idempotency_key: idempotencyKey,
-        }),
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+    if (!firstOutcome.success) {
+      console.info("Turnstile verification failed", firstOutcome);
+      return c.json(
+        { error: "Turnstile verification failed" },
+        439 as StatusCode
+      );
+    }
 
-      const firstOutcome = (await firstResult.json()) as { success: boolean };
+    const resend = new Resend(c.env.RESEND_API_KEY);
 
-      if (!firstOutcome.success) {
-        console.info("Turnstile verification failed", firstOutcome);
-        return c.json(
-          { error: "Turnstile verification failed" },
-          439 as StatusCode
-        );
-      }
+    const db = database(c.env.HYPERDRIVE.connectionString);
 
-      const resend = new Resend(c.env.RESEND_API_KEY);
+    const ip =
+      c.req.header("cf-connecting-ip") ||
+      `${c.req.raw.cf?.asn}-${c.req.raw.cf?.country}-${c.req.raw.cf?.city}-${c.req.raw.cf?.region}-${c.req.raw.cf?.postalCode}`;
 
-      const db = database(c.env.HYPERDRIVE.connectionString);
+    const { success } = await c.env.EMAIL_LIMITER.limit({ key: ip });
 
-      const ip =
-        c.req.header("cf-connecting-ip") ||
-        `${c.req.raw.cf?.asn}-${c.req.raw.cf?.country}-${c.req.raw.cf?.city}-${c.req.raw.cf?.region}-${c.req.raw.cf?.postalCode}`;
+    if (!success) {
+      return c.json({ error: "Rate limit exceeded" }, 429);
+    }
 
-      const { success } = await c.env.EMAIL_LIMITER.limit({ key: ip });
-
-      if (!success) {
-        return c.json({ error: "Rate limit exceeded" }, 429);
-      }
-
-      const message = `Supermemory started as a side project a few months ago when I built it as a hackathon project.
+    const message = `Supermemory started as a side project a few months ago when I built it as a hackathon project.
     <br></br>
     you guys loved it too much. like wayy too much. it was embarrassing, because this was not it - it was nothing but a hackathon project.
     <br></br>
@@ -216,26 +230,27 @@ export const app = new Hono<{ Variables: Variables; Bindings: Env }>()
     So, it's time to make this good. My vision is to make supermemory the best memory tool on the internet.
     `;
 
-      try {
-        await db.insert(waitlist).values({ email });
-        await resend.emails.send({
-          from: "Dhravya From Supermemory <waitlist@m.supermemory.com>",
-          to: email,
-          subject: "You're in the waitlist - A personal note from Dhravya",
-          html: `<p>Hi. I'm Dhravya. I'm building Supermemory to help people remember everything.<br></br> ${message} <br></br><br></br>I'll be in touch when we launch! Till then, just reply to this email if you wanna talk :)<br></br>If you want to follow me on X, here's my handle: <a href='https://x.com/dhravyashah'>@dhravyashah</a><br></br><br></br>- Dhravya</p>`,
-        });
-      } catch (e) {
-        console.error(e);
-        return c.json({ error: "Failed to add to waitlist" }, 400);
-      }
-
-      return c.json({ success: true });
+    try {
+      await db.insert(waitlist).values({ email });
+      await resend.emails.send({
+        from: "Dhravya From Supermemory <waitlist@m.supermemory.com>",
+        to: email,
+        subject: "You're in the waitlist - A personal note from Dhravya",
+        html: `<p>Hi. I'm Dhravya. I'm building Supermemory to help people remember everything.<br></br> ${message} <br></br><br></br>I'll be in touch when we launch! Till then, just reply to this email if you wanna talk :)<br></br>If you want to follow me on X, here's my handle: <a href='https://x.com/dhravyashah'>@dhravyashah</a><br></br><br></br>- Dhravya</p>`,
+      });
+    } catch (e) {
+      console.error(e);
+      return c.json({ error: "Failed to add to waitlist" }, 400);
     }
-  )
-  .onError((err, c) => {
-    console.error(err);
-    return c.json({ error: "Internal server error" }, 500);
-  });
+
+    return c.json({ success: true });
+  }
+);
+
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: "Internal server error" }, 500);
+});
 
 export default {
   fetch: app.fetch,

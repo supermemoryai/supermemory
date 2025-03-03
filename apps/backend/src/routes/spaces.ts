@@ -12,8 +12,14 @@ import {
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { randomId } from "@supermemory/shared";
+import { fromHono } from "chanfana";
 
-const spacesRoute = new Hono<{ Variables: Variables; Bindings: Env }>()
+const spacesRoute = fromHono(
+  new Hono<{ Variables: Variables; Bindings: Env }>(),
+  {
+    base: "",
+  }
+)
   .get("/", async (c) => {
     const user = c.get("user");
     if (!user) {

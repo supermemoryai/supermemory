@@ -38,8 +38,11 @@ import {
 } from "@supermemory/db";
 import { typeDecider } from "../utils/typeDecider";
 import { isErr, Ok } from "../errors/results";
+import { fromHono } from "chanfana";
 
-const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
+const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
+  base: "",
+})
   .post(
     "/chat",
     zValidator(
@@ -1195,3 +1198,4 @@ const actions = new Hono<{ Variables: Variables; Bindings: Env }>()
   );
 
 export default actions;
+import { Context } from 'hono/jsx'
