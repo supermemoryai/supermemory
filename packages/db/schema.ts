@@ -11,7 +11,6 @@ import {
   timestamp,
   uniqueIndex,
   jsonb,
-  date,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { Metadata } from "../../apps/backend/src/types";
@@ -173,6 +172,7 @@ export const documents = pgTable(
     ),
     errorMessage: text("error_message"),
     contentHash: text("content_hash"),
+    metadata: jsonb("metadata"),
   },
   (table) => ({
     documentsIdIdx: uniqueIndex("document_id_idx").on(table.id),
@@ -244,25 +244,6 @@ export const chunk = pgTable(
   })
 );
 
-export const jobs = pgTable(
-  "job",
-  {
-    id: serial("id").primaryKey(),
-    userId: integer("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }), //why restrict the jobs?? srrsly give me a reason
-    url: text("url").notNull(),
-    status: text("status").notNull(),
-    attempts: integer("attempts").notNull().default(0),
-    lastAttemptAt: timestamp("lastAttemptAt", { withTimezone: true }),
-    error: text("error"),
-    createdAt: timestamp("created_at", { withTimezone: true }),
-    updatedAt: timestamp("updated_at", { withTimezone: true }),
-  },
-  (jobs) => ({
-    userUniqueJobsIdx: uniqueIndex("user_id_url_idx").on(jobs.userId, jobs.url),
-  })
-);
 
 export const waitlist = pgTable("waitlist", {
   email: varchar("email", { length: 512 }).primaryKey(),
@@ -281,4 +262,3 @@ export type Chunk = typeof chunk.$inferSelect;
 export type ChunkInsert = typeof chunk.$inferInsert;
 export type DocumentType = typeof documentType.$inferSelect;
 export type ContentToSpace = typeof contentToSpace.$inferSelect;
-export type Job = typeof jobs.$inferInsert;

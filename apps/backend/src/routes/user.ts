@@ -13,9 +13,7 @@ import { DurableObjectStore } from "@hono-rate-limiter/cloudflare";
 import { rateLimiter } from "hono-rate-limiter";
 import { fromHono } from "chanfana";
 
-const user = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
-  base: "",
-})
+const user = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>())
   .get("/", (c) => {
     return c.json(c.get("user"));
   })

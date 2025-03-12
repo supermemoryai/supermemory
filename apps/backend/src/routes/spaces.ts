@@ -15,11 +15,7 @@ import { randomId } from "@supermemory/shared";
 import { fromHono } from "chanfana";
 
 const spacesRoute = fromHono(
-  new Hono<{ Variables: Variables; Bindings: Env }>(),
-  {
-    base: "",
-  }
-)
+  new Hono<{ Variables: Variables; Bindings: Env }>())
   .get("/", async (c) => {
     const user = c.get("user");
     if (!user) {

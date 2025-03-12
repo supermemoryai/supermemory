@@ -11,9 +11,7 @@ import {
 import { and, database, desc, eq, or, sql, isNull } from "@supermemory/db";
 import { fromHono } from "chanfana";
 
-const memories = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
-  base: "",
-})
+const memories = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>())
   .get(
     "/",
     zValidator(

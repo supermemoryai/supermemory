@@ -1,8 +1,7 @@
 import { Env } from "../types";
 
 export const extractPageContent = async (content: string, env: Env) => {
-  console.log("content", content);
-  const resp = await fetch(`https://md.dhr.wtf?url=${content}`);
+  const resp = await fetch(`https://r.jina.ai/${content}`);
 
   if (!resp.ok) {
     throw new Error(

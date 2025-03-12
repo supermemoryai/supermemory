@@ -40,9 +40,7 @@ import { typeDecider } from "../utils/typeDecider";
 import { isErr, Ok } from "../errors/results";
 import { fromHono } from "chanfana";
 
-const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
-  base: "",
-})
+const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>())
   .post(
     "/chat",
     zValidator(
@@ -725,6 +723,10 @@ const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
       z.object({
         content: z.string().min(1, "Content cannot be empty"),
         spaces: z.array(z.string()).max(5).optional(),
+        id: z.string().optional(),
+        // any type of metadata. must be json serializable.
+        metadata: z.any().optional(),
+        images: z.array(z.string()).optional(),
         prefetched: z
           .object({
             contentToVectorize: z.string(),
@@ -739,7 +741,7 @@ const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
     ),
     async (c) => {
       const body = c.req.valid("json");
-      console.log("body", body);
+
       const user = c.get("user");
 
       if (!user) {
@@ -764,7 +766,7 @@ const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
         body.content = `https://${body.content}`;
       }
 
-      const uuid = randomId();
+      const uuid = body.id ?? randomId();
       const contentId = `add-${user.id}-${uuid}`;
 
       const db = database(c.env.HYPERDRIVE.connectionString);
@@ -910,6 +912,7 @@ const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
           contentHash: documentHash,
           raw:
             (body.prefetched ?? body.content) + "\n\n" + body.spaces?.join(" "),
+          metadata: body.metadata,
         });
 
         await c.env.CONTENT_WORKFLOW.create({
@@ -1198,4 +1201,3 @@ const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>(), {
   );
 
 export default actions;
-import { Context } from 'hono/jsx'

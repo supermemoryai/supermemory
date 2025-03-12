@@ -28,9 +28,7 @@ import { ConfigType, GeneralConfigType, rateLimiter } from "hono-rate-limiter";
 // Create base Hono app first
 const honoApp = new Hono<{ Variables: Variables; Bindings: Env }>();
 
-const app = fromHono(honoApp, {
-  base: "",
-});
+const app = fromHono(honoApp);
 
 // Add all middleware and routes
 app.use("*", timing());

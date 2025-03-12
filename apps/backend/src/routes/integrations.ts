@@ -8,11 +8,7 @@ import { database } from "@supermemory/db";
 import { fromHono } from "chanfana";
 
 const integrations = fromHono(
-  new Hono<{ Variables: Variables; Bindings: Env }>(),
-  {
-    base: "",
-  }
-).get("/notion/import", async (c) => {
+  new Hono<{ Variables: Variables; Bindings: Env }>()).get("/notion/import", async (c) => {
   const user = c.get("user");
   if (!user) {
     return c.json({ error: "Unauthorized" }, 401);
