@@ -76,5 +76,6 @@ export default defineConfig((mode) => {
 		optimizeDeps: {
 			include: ["react-tweet"],
 		},
+		publicDir: "public",
 	} satisfies UserConfig;
 });

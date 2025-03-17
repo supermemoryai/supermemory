@@ -22,6 +22,7 @@ interface Env {
 	NODE_ENV: string;
 	STRIPE_CHECKOUT_KEY: string;
 	STRIPE_WEBHOOK_SECRET: string;
+	STATIC_ASSETS: Fetcher
 }
 
 // global .env

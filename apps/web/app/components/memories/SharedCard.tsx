@@ -88,18 +88,24 @@ const renderContent = {
 				return <CustomTwitterComp tweet={parsedData} />;
 			} catch (error) {
 				console.error("Error parsing raw tweet data:", error);
-				return <div className="p-4 text-muted-foreground">Error parsing tweet data</div>;
+				return (
+					<div className="p-4 text-muted-foreground">Error parsing tweet data. {rawContent}</div>
+				);
 			}
 		}
 
 		// Otherwise use normal tweet ID flow
-		const tweetId = ourData.content?.match(/\/status\/(\d+)/)?.[1] ?? ourData.content;
+		const tweetId = ourData.url?.match(/\/status\/(\d+)/)?.[1] ?? ourData.url;
 		const { data, error } = useTweet(tweetId ?? undefined);
 
 		if (error) {
 			console.error("Error parsing tweet:", error);
 			console.log("Tweet ID:", tweetId);
-			return <div className="p-4 text-muted-foreground">Error parsing tweet</div>;
+			return (
+				<div className="p-4 text-muted-foreground">
+					Error parsing tweet. {tweetId} {JSON.stringify(error)}
+				</div>
+			);
 		}
 
 		if (!data || typeof data == "undefined") {
@@ -554,6 +560,7 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 					isSuccessfullyProcessed: true,
 					errorMessage: null,
 					contentHash: null,
+					metadata: null,
 				};
 				setMemory(item);
 				return;
@@ -579,6 +586,7 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 					isSuccessfullyProcessed: true,
 					errorMessage: null,
 					contentHash: null,
+					metadata: null,
 				};
 				setMemory(item);
 			} catch (error) {
@@ -599,6 +607,7 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 					isSuccessfullyProcessed: false,
 					errorMessage: null,
 					contentHash: null,
+					metadata: null,
 				};
 				setMemory(item);
 			} finally {
@@ -824,10 +833,10 @@ export const SpaceSelector = function SpaceSelector({
 		if (!spacesData?.spaces) return [];
 		return spacesData.spaces.filter(
 			(space) =>
-				space.name.toLowerCase().includes(search.toLowerCase()) && space.uuid !== (spaceId ? spaceId.split("---")[0] : "<HOME>"),
+				space.name.toLowerCase().includes(search.toLowerCase()) &&
+				space.uuid !== (spaceId ? spaceId.split("---")[0] : "<HOME>"),
 		);
 	}, [spacesData?.spaces, search]);
-
 
 	if (isLoading) {
 		return (
