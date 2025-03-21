@@ -717,9 +717,8 @@ const actions = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>())
         return c.json({ error: "You must be logged in to add content" }, 401);
       }
 
-      const type = body.prefetched
-        ? Ok(body.prefetched.type)
-        : typeDecider(body.content);
+      // Do not perform seperate check for prefetched type, breaks tweet addition from extension
+      const type = typeDecider(body.content);
 
       if (isErr(type)) {
         return c.json(
