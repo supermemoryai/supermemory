@@ -458,7 +458,7 @@ export function AddMemoryModal({
 					)}
 				</CredenzaBody>
 				<CredenzaFooter className="border-t">
-					<div className="flex justify-between w-full">
+					<div className="flex justify-between w-full pt-4">
 						<CredenzaClose asChild>
 							<Button id="close-memory-modal" variant="outline">
 								Cancel
