@@ -7,31 +7,32 @@
   "description": "An extension for https://supermemory.ai - an AI hub for all your knowledge.",
   "author": "Dhravya Shah",
   "permissions": [
-    "activeTab",
-    "scripting",
-    "tabs",
-    "management",
-    "webRequest",
-    "storage",
-    "bookmarks"
+      "activeTab",
+      "scripting",
+      "tabs",
+      "management",
+      "webRequest",
+      "storage",
+      "bookmarks"
   ],
   "host_permissions": ["*://*/*"],
   "background": {
-    "service_worker": "src/background.ts"
+      "service_worker": "src/background.ts"
   },
   "action": {},
   "externally_connectable": {
-    "matches": [
-      "http://localhost:3000/*",
-      "https://supermemory.ai/*",
-      "https://beta.supermemory.ai/*",
-      "http://supermemory.com/*"
-    ]
+      "matches": [
+          "http://localhost:3000/*",
+          "https://supermemory.ai/*",
+          "https://beta.supermemory.ai/*",
+          "http://supermemory.com/*"
+      ]
   },
   "icons": {
-    "16": "images/icon/16.png",
-    "32": "images/icon/32.png",
-    "48": "images/icon/48.png",
-    "128": "images/icon/128.png"
-  }
+      "16": "images/icon/16.png",
+      "32": "images/icon/32.png",
+      "48": "images/icon/48.png",
+      "128": "images/icon/128.png"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjXw4pdl6EOYXSdpf0ZIbe1yHegH/lzpuda1RsOxzGoZaijnVZ7SDdaQjnb52sNRIgevk9VVWHNmzhKkxKJ5E+un6vH0Rl4eF8WrpHyZg3oCH7svT3cldRnUevMG05EdRLSlzh2L49G6XopHUEkpXXgK/1heLf6wqNPdMHtM2Aayv2K8+S2A0+IgibKclxETZRF9LXkdRblfSvU7/qhHSJOeHj1C2LNs5jQUCHbTi00hWyqrCwVn+Wv60OrZzEiMfmZJsE9oGnit2sA/hI6bMATYWjxkSbTfWskNRK4veWe5mqn0uCxt+YskRAhfRJiYUR3WVOw/WWe5i1R3LGnPmywIDAQAB"
 }
