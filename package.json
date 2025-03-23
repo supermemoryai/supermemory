@@ -27,10 +27,7 @@
         "node": ">=18"
     },
     "packageManager": "bun@1.2.1",
-    "workspaces": [
-        "apps/*",
-        "packages/*"
-    ],
+    "workspaces": ["apps/*", "packages/*"],
     "dependencies": {
         "@deepgram/sdk": "^3.10.1",
         "@heroicons/react": "^2.2.0",

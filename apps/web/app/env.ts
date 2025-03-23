@@ -1,26 +1,26 @@
-import { createEnv } from "@t3-oss/env-core";
-import { string } from "valibot";
-import process from "node:process";
+import process from "node:process"
+import { createEnv } from "@t3-oss/env-core"
+import { string } from "valibot"
 
 export const webEnv = createEnv({
-	server: {
-		WORKOS_CLIENT_ID: string(),
-		WORKOS_API_KEY: string(),
-		WORKOS_REDIRECT_URI: string(),
-		WORKOS_COOKIE_PASSWORD: string(),
+    server: {
+        WORKOS_CLIENT_ID: string(),
+        WORKOS_API_KEY: string(),
+        WORKOS_REDIRECT_URI: string(),
+        WORKOS_COOKIE_PASSWORD: string(),
 
-		DATABASE_URL: string(),
+        DATABASE_URL: string(),
 
-		CLOUDFLARE_ACCOUNT_ID: string(),
-		R2_ACCESS_KEY_ID: string(),
-		R2_SECRET_ACCESS_KEY: string(),
-	},
+        CLOUDFLARE_ACCOUNT_ID: string(),
+        R2_ACCESS_KEY_ID: string(),
+        R2_SECRET_ACCESS_KEY: string(),
+    },
 
-	clientPrefix: "PUBLIC_",
+    clientPrefix: "PUBLIC_",
 
-	client: {},
+    client: {},
 
-	runtimeEnv: process.env,
+    runtimeEnv: process.env,
 
-	emptyStringAsUndefined: true,
-});
+    emptyStringAsUndefined: true,
+})

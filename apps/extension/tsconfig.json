@@ -1,21 +1,21 @@
 {
-	"extends": "./.wxt/tsconfig.json",
+    "extends": "./.wxt/tsconfig.json",
 
-	"compilerOptions": {
-		"target": "ES2020",
-		"module": "ES2020",
-		"strict": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"allowImportingTsExtensions": true,
-		"jsx": "react-jsx",
-		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true,
-		"isolatedModules": true,
-		"noEmit": true,
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./*"]
-		}
-	}
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "ES2020",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "allowImportingTsExtensions": true,
+        "jsx": "react-jsx",
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./*"]
+        }
+    }
 }

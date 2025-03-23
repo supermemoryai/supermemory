@@ -1,164 +1,172 @@
-import { customAlphabet } from "nanoid";
+import { customAlphabet } from "nanoid"
 
 import {
-	type Attachment,
-	type CoreMessage,
-	type CoreToolMessage,
-	DataContent,
-	type FilePart,
-	type ImagePart,
-	type Message,
-	type ToolInvocation,
-} from "ai";
+    type Attachment,
+    type CoreMessage,
+    type CoreToolMessage,
+    DataContent,
+    type FilePart,
+    type ImagePart,
+    type Message,
+    type ToolInvocation,
+} from "ai"
 
 export const nanoid = customAlphabet(
-	"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
-);
-export const randomId = () => nanoid(10);
+    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz",
+)
+export const randomId = () => nanoid(10)
 
 function addToolMessageToChat({
-	toolMessage,
-	messages,
+    toolMessage,
+    messages,
 }: {
-	toolMessage: CoreToolMessage;
-	messages: Array<Message>;
+    toolMessage: CoreToolMessage
+    messages: Array<Message>
 }): Array<Message> {
-	return messages.map((message) => {
-		if (message.toolInvocations) {
-			return {
-				...message,
-				toolInvocations: message.toolInvocations.map((toolInvocation) => {
-					const toolResult = toolMessage.content.find(
-						(tool) => tool.toolCallId === toolInvocation.toolCallId,
-					);
+    return messages.map((message) => {
+        if (message.toolInvocations) {
+            return {
+                ...message,
+                toolInvocations: message.toolInvocations.map(
+                    (toolInvocation) => {
+                        const toolResult = toolMessage.content.find(
+                            (tool) =>
+                                tool.toolCallId === toolInvocation.toolCallId,
+                        )
 
-					if (toolResult) {
-						return {
-							...toolInvocation,
-							state: "result",
-							result: toolResult.result,
-						};
-					}
+                        if (toolResult) {
+                            return {
+                                ...toolInvocation,
+                                state: "result",
+                                result: toolResult.result,
+                            }
+                        }
 
-					return toolInvocation;
-				}),
-			};
-		}
+                        return toolInvocation
+                    },
+                ),
+            }
+        }
 
-		return message;
-	});
+        return message
+    })
 }
 
 export const coreMessageAttachmentTypes = (
-	message: CoreMessage,
+    message: CoreMessage,
 ): Array<"file" | "image"> => {
-	if (typeof message.content === "string") {
-		return [];
-	}
+    if (typeof message.content === "string") {
+        return []
+    }
 
-	const attachmentTypes = message.content
-		.filter(
-			(content): content is FilePart | ImagePart =>
-				content.type === "file" || content.type === "image",
-		)
-		.map((content) => content.type);
+    const attachmentTypes = message.content
+        .filter(
+            (content): content is FilePart | ImagePart =>
+                content.type === "file" || content.type === "image",
+        )
+        .map((content) => content.type)
 
-	return attachmentTypes;
-};
+    return attachmentTypes
+}
 
 type GenericPart<T extends "file" | "image"> = T extends "file"
-	? FilePart
-	: ImagePart;
+    ? FilePart
+    : ImagePart
 
 export const getCoreMessageAttachments = (
-	message: CoreMessage,
+    message: CoreMessage,
 ): Array<Attachment> => {
-	const attachmentTypes = coreMessageAttachmentTypes(message);
-	if (attachmentTypes.length === 0) {
-		return [];
-	}
+    const attachmentTypes = coreMessageAttachmentTypes(message)
+    if (attachmentTypes.length === 0) {
+        return []
+    }
 
-	if (typeof message.content === "string") {
-		return [];
-	}
+    if (typeof message.content === "string") {
+        return []
+    }
 
-	const attachments: Array<Attachment> = [];
+    const attachments: Array<Attachment> = []
 
-	for (let i = 0; i < attachmentTypes.length; i++) {
-		const attachmentType = attachmentTypes[i];
-		const messageParts = message.content;
+    for (let i = 0; i < attachmentTypes.length; i++) {
+        const attachmentType = attachmentTypes[i]
+        const messageParts = message.content
 
-		const parts = messageParts.filter(
-			(part) => part.type === attachmentType,
-		) as Array<GenericPart<typeof attachmentType>>;
+        const parts = messageParts.filter(
+            (part) => part.type === attachmentType,
+        ) as Array<GenericPart<typeof attachmentType>>
 
-		let data: string | Uint8Array | ArrayBuffer | URL;
+        let data: string | Uint8Array | ArrayBuffer | URL
 
-		if (attachmentType === "file") {
-			data = (parts[0] as FilePart).data;
-		} else {
-			data = (parts[0] as ImagePart).image;
-		}
+        if (attachmentType === "file") {
+            data = (parts[0] as FilePart).data
+        } else {
+            data = (parts[0] as ImagePart).image
+        }
 
-		const normalisedData = typeof data === "string" ? data : data.toString();
+        const normalisedData = typeof data === "string" ? data : data.toString()
 
-		const size = normalisedData.length;
-		attachments.push({
-			name: size.toString(),
-			url: normalisedData,
-			contentType: parts[0].mimeType ?? "image/jpeg",
-		});
-	}
-	return attachments;
-};
+        const size = normalisedData.length
+        attachments.push({
+            name: size.toString(),
+            url: normalisedData,
+            contentType: parts[0].mimeType ?? "image/jpeg",
+        })
+    }
+    return attachments
+}
 
 export function convertToUIMessages(
-	messages: Array<CoreMessage>,
+    messages: Array<CoreMessage>,
 ): Array<Message> {
-	return messages.reduce((chatMessages: Array<Message>, message) => {
-		if (message.role === "tool") {
-			return addToolMessageToChat({
-				toolMessage: message as CoreToolMessage,
-				messages: chatMessages,
-			}) satisfies Message[];
-		}
+    return messages.reduce((chatMessages: Array<Message>, message) => {
+        if (message.role === "tool") {
+            return addToolMessageToChat({
+                toolMessage: message as CoreToolMessage,
+                messages: chatMessages,
+            }) satisfies Message[]
+        }
 
-		let textContent = "";
-		const toolInvocations: Array<ToolInvocation> = [];
+        let textContent = ""
+        const toolInvocations: Array<ToolInvocation> = []
 
-		if (typeof message.content === "string") {
-			textContent = message.content.trim();
-		} else if (Array.isArray(message.content)) {
-			for (const content of message.content) {
-				if (content.type === "text") {
-					textContent += content.text.trim();
-				} else if (content.type === "tool-call") {
-					toolInvocations.push({
-						state: "call",
-						toolCallId: content.toolCallId,
-						toolName: content.toolName,
-						args: content.args,
-					});
-				}
-			}
-		}
+        if (typeof message.content === "string") {
+            textContent = message.content.trim()
+        } else if (Array.isArray(message.content)) {
+            for (const content of message.content) {
+                if (content.type === "text") {
+                    textContent += content.text.trim()
+                } else if (content.type === "tool-call") {
+                    toolInvocations.push({
+                        state: "call",
+                        toolCallId: content.toolCallId,
+                        toolName: content.toolName,
+                        args: content.args,
+                    })
+                }
+            }
+        }
 
-		// Only add message if it has content or tool invocations
-		if (textContent || toolInvocations.length > 0) {
-			chatMessages.push({
-				id: (message.content.length * 100).toString(),
-				role: message.role,
-				content: textContent.replace(/<context>([\s\S]*?)<\/context>/, ""),
-				toolInvocations,
-				experimental_attachments: getCoreMessageAttachments(message),
-				annotations: textContent.includes("<context>")
-					? JSON.parse(
-							textContent.match(/<context>([\s\S]*?)<\/context>/)?.[1] ?? "",
-						)
-					: undefined,
-			});
-		}
+        // Only add message if it has content or tool invocations
+        if (textContent || toolInvocations.length > 0) {
+            chatMessages.push({
+                id: (message.content.length * 100).toString(),
+                role: message.role,
+                content: textContent.replace(
+                    /<context>([\s\S]*?)<\/context>/,
+                    "",
+                ),
+                toolInvocations,
+                experimental_attachments: getCoreMessageAttachments(message),
+                annotations: textContent.includes("<context>")
+                    ? JSON.parse(
+                          textContent.match(
+                              /<context>([\s\S]*?)<\/context>/,
+                          )?.[1] ?? "",
+                      )
+                    : undefined,
+            })
+        }
 
-		return chatMessages;
-	}, []);
+        return chatMessages
+    }, [])
 }
