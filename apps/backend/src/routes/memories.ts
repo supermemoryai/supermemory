@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import { vValidator } from "@hono/valibot-validator";
 import { and, database, desc, eq, isNull, or, sql } from "@supermemory/db";
 import {
 	contentToSpace,
@@ -9,17 +10,18 @@ import {
 import { fromHono } from "chanfana";
 import { Hono } from "hono";
 import { z } from "zod";
+import { object, string, optional, transform, pipe } from "valibot";
 import type { Env, Variables } from "../types";
 
 const memories = fromHono(new Hono<{ Variables: Variables; Bindings: Env }>())
 	.get(
 		"/",
-		zValidator(
+		vValidator(
 			"query",
-			z.object({
-				start: z.string().default("0").transform(Number),
-				count: z.string().default("10").transform(Number),
-				spaceId: z.string().optional(),
+			object({
+				start: pipe(optional(string(), "0"), transform(Number)),
+				count: pipe(optional(string(), "10"), transform(Number)),
+				spaceId: optional(string()),
 			}),
 		),
 		async (c) => {

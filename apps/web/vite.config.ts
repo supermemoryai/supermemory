@@ -3,11 +3,11 @@ import {
 	cloudflareDevProxyVitePlugin as remixCloudflareDevProxy,
 } from "@remix-run/dev";
 
-import path from "path";
+import path from "node:path";
 import adapter from "@hono/vite-dev-server/cloudflare";
 import serverAdapter from "hono-remix-adapter/vite";
 import { flatRoutes } from "remix-flat-routes";
-import { type UserConfig, defineConfig, loadEnv } from "vite";
+import { type UserConfig, defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const _plugins = [
@@ -76,8 +76,8 @@ export default defineConfig((mode) => {
 					warn(warning);
 				},
 				onLog(level, log, handler) {
-					// @ts-expect-error
 					if (
+						// @ts-expect-error: cause is not typed
 						log.cause?.message?.includes(
 							"Can't resolve original location of error.",
 						)

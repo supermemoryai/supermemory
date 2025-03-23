@@ -1,7 +1,7 @@
 name = "supermemory-backend"
 main = "src/index.tsx"
-compatibility_date = "2024-10-11"
-compatibility_flags = [ "nodejs_compat" ]
+compatibility_date = "2025-03-23"
+compatibility_flags = [ "nodejs_compat", "nodejs_compat_populate_process_env" ]
 
 [assets]
 directory = "./public/"

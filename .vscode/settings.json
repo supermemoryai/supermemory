@@ -1,16 +1,16 @@
 {
-	"editor.formatOnSave": true,
-	"editor.defaultFormatter": "biomejs.biome",
-	"editor.codeActionsOnSave": {
-		"source.fixAll.biome": "explicit"
-	},
-	"sqltools.connections": [
-		{
-			"previewLimit": 50,
-			"server": "localhost",
-			"driver": "PostgreSQL",
-			"name": "SupermemoryDB",
-			"connectString": "postgresql://dhravya:DPOSTGRES99%40c22%23hLab27postgres@168.119.111.189/supermemory"
-		}
-	]
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.biome": "explicit"
+    },
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "localhost",
+            "driver": "PostgreSQL",
+            "name": "SupermemoryDB",
+            "connectString": "postgresql://dhravya:DPOSTGRES99%40c22%23hLab27postgres@168.119.111.189/supermemory"
+        }
+    ]
 }

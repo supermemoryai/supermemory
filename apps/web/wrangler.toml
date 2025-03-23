@@ -2,7 +2,7 @@
 name = "supermemory-web"
 compatibility_date = "2025-03-12"
 pages_build_output_dir = "./build/client"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 
 [[kv_namespaces]]
 binding = "METADATA_KV"
