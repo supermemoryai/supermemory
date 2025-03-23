@@ -588,7 +588,6 @@ export function FetchAndRenderContent({ content }: { content: string }) {
     useEffect(() => {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
-
         ;(async () => {
             const type = typeDecider(content)
 

@@ -7,7 +7,7 @@
     },
     "files": {
         "ignoreUnknown": false,
-        "ignore": ["worker-configuration.d.ts"]
+        "ignore": ["worker-configuration.d.ts", "apps/backend/drizzle/*"]
     },
     "formatter": {
         "enabled": true,
