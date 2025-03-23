@@ -7,6 +7,6 @@
         "./icons": "./icons.tsx"
     },
     "dependencies": {
-        "ai": "^4.0.18"
+        "ai": "^4.2.0"
     }
 }
