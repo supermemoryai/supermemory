@@ -1,6 +1,6 @@
-import * as ReactTweet from "react-tweet";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
+import * as ReactTweet from "react-tweet";
 import { TweetSkeleton } from "react-tweet";
 
 import { useNavigate, useParams } from "@remix-run/react";
@@ -42,9 +42,9 @@ import { FolderIcon, MoreVertical, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { pastelColors } from "~/lib/constants/pastelColors";
 import { typeIcons } from "~/lib/constants/typeIcons";
-import { ExtraSpaceMetaData, fetchSpaces } from "~/lib/hooks/use-spaces";
+import { type ExtraSpaceMetaData, fetchSpaces } from "~/lib/hooks/use-spaces";
 import { useTextOverflow } from "~/lib/hooks/use-text-overflow";
-import { Memory, WebsiteMetadata } from "~/lib/types/memory";
+import type { Memory, WebsiteMetadata } from "~/lib/types/memory";
 import { cn } from "~/lib/utils";
 
 const { useTweet } = ReactTweet;
@@ -52,7 +52,9 @@ const { useTweet } = ReactTweet;
 export const typeDecider = (content: string) => {
 	try {
 		// If it's a tweet URL
-		if (content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)) {
+		if (
+			content.match(/https?:\/\/(x\.com|twitter\.com)\/[\w]+\/[\w]+\/[\d]+/)
+		) {
 			return "tweet";
 		}
 		// If it's a document
@@ -64,7 +66,11 @@ export const typeDecider = (content: string) => {
 			return "notion";
 		}
 		// If it's any other URL
-		if (content.match(/^(https?:\/\/)?(www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(\/.*)?$/i)) {
+		if (
+			content.match(
+				/^(https?:\/\/)?(www\.)?[a-z0-9]+([-.]{1}[a-z0-9]+)*\.[a-z]{2,5}(\/.*)?$/i,
+			)
+		) {
 			return "page";
 		}
 		// Otherwise it's a note
@@ -89,7 +95,9 @@ const renderContent = {
 			} catch (error) {
 				console.error("Error parsing raw tweet data:", error);
 				return (
-					<div className="p-4 text-muted-foreground">Error parsing tweet data. {rawContent}</div>
+					<div className="p-4 text-muted-foreground">
+						Error parsing tweet data. {rawContent}
+					</div>
 				);
 			}
 		}
@@ -154,7 +162,9 @@ const renderContent = {
 				{showFade && <div className="fade-overlay"></div>}
 
 				<div className="flex justify-between items-center mt-8 ">
-					<div className="text-slate-500 font-normal text-base">{formattedDate}</div>
+					<div className="text-slate-500 font-normal text-base">
+						{formattedDate}
+					</div>
 
 					<a className="rounded-full bg-black text-white p-2" href="#">
 						<svg
@@ -183,7 +193,9 @@ const renderContent = {
 			<div className="text-lg rounded-2xl relative p-8 font-semibold bg-[#F7F6F3] dark:bg-neutral-900">
 				<div className="flex items-center gap-2 mb-4">
 					<NotionIcon className="w-5 h-5" />
-					<span className="text-sm font-medium text-gray-800 dark:text-gray-200">Notion Page</span>
+					<span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+						Notion Page
+					</span>
 				</div>
 
 				<p
@@ -234,7 +246,9 @@ const renderContent = {
 					<span className="text-sm font-medium">Space</span>
 				</div>
 
-				<h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-2">{data.content}</h3>
+				<h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-2">
+					{data.content}
+				</h3>
 
 				<div className="flex flex-col gap-3 mt-4">
 					<div className="flex items-center gap-2">
@@ -316,7 +330,9 @@ const renderContent = {
 								) : (
 									<div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700" />
 								)}
-								<span className="text-sm text-gray-600 dark:text-gray-300">{data.owner.name}</span>
+								<span className="text-sm text-gray-600 dark:text-gray-300">
+									{data.owner.name}
+								</span>
 							</div>
 						</>
 					) : null}
@@ -338,7 +354,9 @@ const renderContent = {
 				<div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
 					<FileIcon className="h-5 w-5 flex-shrink-0" />
 					<div className="flex flex-col min-w-0">
-						<span className="text-sm font-medium text-gray-500 dark:text-gray-400">Document</span>
+						<span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+							Document
+						</span>
 						<span className="text-base font-medium text-gray-900 dark:text-white mt-0.5">
 							{decodeURIComponent(data.url?.split("/").pop() ?? "")}
 						</span>
@@ -364,9 +382,12 @@ async function fetchWebsiteMetadata(url: string): Promise<WebsiteMetadata> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-		const response = await fetch(`/api/metadata?url=${encodeURIComponent(url)}`, {
-			signal: controller.signal,
-		});
+		const response = await fetch(
+			`/api/metadata?url=${encodeURIComponent(url)}`,
+			{
+				signal: controller.signal,
+			},
+		);
 
 		clearTimeout(timeoutId);
 
@@ -506,8 +527,12 @@ const WebsiteCard = memo(
 							marginTop: image ? "-2.5rem" : 0,
 						}}
 					>
-						<h3 className="text-lg font-semibold tracking-tight">{displayTitle}</h3>
-						<p className="mt-2 line-clamp-2 text-sm opacity-80">{displayDescription}</p>
+						<h3 className="text-lg font-semibold tracking-tight">
+							{displayTitle}
+						</h3>
+						<p className="mt-2 line-clamp-2 text-sm opacity-80">
+							{displayDescription}
+						</p>
 						<a
 							href={`/content/${id}`}
 							className="mt-3 inline-flex items-center gap-1 text-sm hover:underline opacity-70 hover:opacity-100 transition-opacity"
@@ -516,7 +541,12 @@ const WebsiteCard = memo(
 							}}
 						>
 							<span>{domain}</span>
-							<svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+							<svg
+								className="w-3 h-3"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+							>
 								<path
 									d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"
 									strokeWidth="2"
@@ -623,7 +653,11 @@ export function FetchAndRenderContent({ content }: { content: string }) {
 	}, [content]);
 
 	if (isLoading) {
-		return <div className="p-4 text-muted-foreground">Loading website metadata...</div>;
+		return (
+			<div className="p-4 text-muted-foreground">
+				Loading website metadata...
+			</div>
+		);
 	}
 
 	return memory ? <SharedCard data={memory} /> : null;
@@ -648,7 +682,7 @@ export default function SharedCard({
 	// Flatten the data if it's a nested array and get the first item
 	if (Array.isArray(data)) {
 		console.log("weird data here, will try flattening.", data);
-		data = data.flat(Infinity)[0];
+		data = data.flat(Number.POSITIVE_INFINITY)[0];
 	}
 
 	const ContentRenderer =
@@ -657,7 +691,8 @@ export default function SharedCard({
 			console.log("SharedCard data", data);
 			return (
 				<div>
-					Unsupported content type: {typeof data.type === "undefined" ? "undefined" : data.type}
+					Unsupported content type:{" "}
+					{typeof data.type === "undefined" ? "undefined" : data.type}
 				</div>
 			);
 		});
@@ -702,7 +737,10 @@ export default function SharedCard({
 
 	// Move to space mutation
 	const moveToSpaceMutation = useMutation({
-		mutationFn: async ({ spaceId, documentId }: { spaceId: string; documentId: string }) => {
+		mutationFn: async ({
+			spaceId,
+			documentId,
+		}: { spaceId: string; documentId: string }) => {
 			const response = await fetch("/backend/v1/spaces/moveContent", {
 				method: "POST",
 				headers: {
@@ -790,7 +828,10 @@ export default function SharedCard({
 							<DropdownMenuSub>
 								<DropdownMenuSubTrigger>Move to ...</DropdownMenuSubTrigger>
 								<DropdownMenuPortal>
-									<MemoizedSpaceSelector contentId={data.id} onSelect={handleMoveToSpace} />
+									<MemoizedSpaceSelector
+										contentId={data.id}
+										onSelect={handleMoveToSpace}
+									/>
 								</DropdownMenuPortal>
 							</DropdownMenuSub>
 							<DropdownMenuItem onSelect={(e) => handleDelete(e)} asChild>
@@ -856,7 +897,8 @@ export const SpaceSelector = function SpaceSelector({
 			<DropdownMenuSubContent>
 				<DropdownMenuItem disabled>
 					<div className="text-destructive">
-						Error: {error instanceof Error ? error.message : "Failed to load spaces"}
+						Error:{" "}
+						{error instanceof Error ? error.message : "Failed to load spaces"}
 					</div>
 				</DropdownMenuItem>
 			</DropdownMenuSubContent>
@@ -866,7 +908,11 @@ export const SpaceSelector = function SpaceSelector({
 	return (
 		<DropdownMenuSubContent className="p-0">
 			<Command>
-				<CommandInput placeholder="Search spaces..." value={search} onValueChange={setSearch} />
+				<CommandInput
+					placeholder="Search spaces..."
+					value={search}
+					onValueChange={setSearch}
+				/>
 				<CommandList className="max-h-[200px] overflow-y-auto">
 					<CommandGroup>
 						{filteredSpaces.map((space) => (
@@ -881,7 +927,9 @@ export const SpaceSelector = function SpaceSelector({
 								</div>
 							</CommandItem>
 						))}
-						{filteredSpaces.length === 0 && <CommandEmpty>No spaces found.</CommandEmpty>}
+						{filteredSpaces.length === 0 && (
+							<CommandEmpty>No spaces found.</CommandEmpty>
+						)}
 					</CommandGroup>
 				</CommandList>
 			</Command>

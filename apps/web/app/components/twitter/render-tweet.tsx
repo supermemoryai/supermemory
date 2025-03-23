@@ -1,6 +1,13 @@
+import {
+	type ReactNode,
+	memo,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import * as ReactTweet from "react-tweet";
-import { ReactNode, memo, useCallback, useEffect, useMemo, useState } from "react";
-import { EnrichedTweet, TwitterComponents } from "react-tweet";
+import type { EnrichedTweet, TwitterComponents } from "react-tweet";
 import type { Tweet } from "react-tweet/api";
 import "react-tweet/theme.css";
 
@@ -33,7 +40,10 @@ type AvatarImgProps = {
 const AvatarImg = memo((props: AvatarImgProps) => <img {...props} />);
 
 const TweetHeader = memo(
-	({ tweet, components }: { tweet: EnrichedTweet; components?: TwitterComponents }) => {
+	({
+		tweet,
+		components,
+	}: { tweet: EnrichedTweet; components?: TwitterComponents }) => {
 		const Img = components?.AvatarImg ?? AvatarImg;
 		const { user } = tweet;
 
@@ -41,7 +51,8 @@ const TweetHeader = memo(
 			() =>
 				clsx(
 					tweetHeaderStyles.avatarOverflow,
-					user.profile_image_shape === "Square" && tweetHeaderStyles.avatarSquare,
+					user.profile_image_shape === "Square" &&
+						tweetHeaderStyles.avatarSquare,
 				),
 			[user.profile_image_shape],
 		);
@@ -55,7 +66,12 @@ const TweetHeader = memo(
 					rel="noopener noreferrer"
 				>
 					<div className={avatarClasses}>
-						<Img src={user.profile_image_url_https} alt={user.name} width={48} height={48} />
+						<Img
+							src={user.profile_image_url_https}
+							alt={user.name}
+							width={48}
+							height={48}
+						/>
 					</div>
 					<div className={tweetHeaderStyles.avatarOverflow}>
 						<div className={tweetHeaderStyles.avatarShadow}></div>
@@ -71,7 +87,10 @@ const TweetHeader = memo(
 						<div className={tweetHeaderStyles.authorLinkText}>
 							<span title={user.name}>{user.name}</span>
 						</div>
-						<VerifiedBadge user={user} className={tweetHeaderStyles.authorVerified} />
+						<VerifiedBadge
+							user={user}
+							className={tweetHeaderStyles.authorVerified}
+						/>
 					</a>
 					<div className={tweetHeaderStyles.authorMeta}>
 						<a
@@ -141,16 +160,18 @@ export const TweetBody = memo(({ tweet }: { tweet: EnrichedTweet }) => {
 	);
 });
 
-export const TweetLink = memo(({ href, children }: { children: ReactNode; href: string }) => (
-	<a
-		href={href}
-		className={tweetLinkStyles.root}
-		target="_blank"
-		rel="noopener noreferrer nofollow"
-	>
-		{children}
-	</a>
-));
+export const TweetLink = memo(
+	({ href, children }: { children: ReactNode; href: string }) => (
+		<a
+			href={href}
+			className={tweetLinkStyles.root}
+			target="_blank"
+			rel="noopener noreferrer nofollow"
+		>
+			{children}
+		</a>
+	),
+);
 
 export const CustomTwitterComp = memo(({ tweet: t, components }: Props) => {
 	const [tweet, setTweet] = useState<EnrichedTweet | null>(null);
@@ -172,7 +193,10 @@ export const CustomTwitterComp = memo(({ tweet: t, components }: Props) => {
 	}, [t]);
 
 	const tweetId = useMemo(
-		() => (tweet && typeof tweet === "object" ? `tweet-${tweet?.id_str}-${theme}` : ""),
+		() =>
+			tweet && typeof tweet === "object"
+				? `tweet-${tweet?.id_str}-${theme}`
+				: "",
 		[tweet?.id_str, theme],
 	);
 
@@ -190,7 +214,9 @@ export const CustomTwitterComp = memo(({ tweet: t, components }: Props) => {
 				<TweetHeader tweet={tweet} components={components} />
 				{tweet.in_reply_to_status_id_str && <TweetInReplyTo tweet={tweet} />}
 				<TweetBody tweet={tweet} />
-				{tweet.mediaDetails?.length ? <TweetMedia tweet={tweet} components={components} /> : null}
+				{tweet.mediaDetails?.length ? (
+					<TweetMedia tweet={tweet} components={components} />
+				) : null}
 				{tweet.quoted_tweet && <QuotedTweet tweet={tweet.quoted_tweet} />}
 			</TweetContainer>
 		</div>

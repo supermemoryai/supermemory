@@ -1,7 +1,11 @@
 import { PlusGrid, PlusGridItem, PlusGridRow } from "./plus-grid";
 
 function SitemapHeading({ children }: { children: React.ReactNode }) {
-	return <h3 className="text-sm/6 font-medium text-gray-950/50 dark:text-gray-200">{children}</h3>;
+	return (
+		<h3 className="text-sm/6 font-medium text-gray-950/50 dark:text-gray-200">
+			{children}
+		</h3>
+	);
 }
 
 function SitemapLinks({ children }: { children: React.ReactNode }) {
@@ -25,15 +29,21 @@ function Sitemap() {
 			<div>
 				<SitemapHeading>Product</SitemapHeading>
 				<SitemapLinks>
-					<SitemapLink href="https://docs.supermemory.ai">Documentation</SitemapLink>
-					<SitemapLink href="https://supermemory.ai/extension">Chrome Extension</SitemapLink>
+					<SitemapLink href="https://docs.supermemory.ai">
+						Documentation
+					</SitemapLink>
+					<SitemapLink href="https://supermemory.ai/extension">
+						Chrome Extension
+					</SitemapLink>
 					<SitemapLink href="/shortcut">iOS Shortcut</SitemapLink>
 				</SitemapLinks>
 			</div>
 			<div>
 				<SitemapHeading>Community</SitemapHeading>
 				<SitemapLinks>
-					<SitemapLink href="https://discord.gg/b3BgKWpbtR">Discord</SitemapLink>
+					<SitemapLink href="https://discord.gg/b3BgKWpbtR">
+						Discord
+					</SitemapLink>
 					<SitemapLink href="https://github.com/supermemoryai/supermemory/issues">
 						Report Issue
 					</SitemapLink>
@@ -43,8 +53,12 @@ function Sitemap() {
 			<div>
 				<SitemapHeading>Legal</SitemapHeading>
 				<SitemapLinks>
-					<SitemapLink href="https://supermemory.ai/tos">Terms of Service</SitemapLink>
-					<SitemapLink href="https://supermemory.ai/privacy">Privacy Policy</SitemapLink>
+					<SitemapLink href="https://supermemory.ai/tos">
+						Terms of Service
+					</SitemapLink>
+					<SitemapLink href="https://supermemory.ai/privacy">
+						Privacy Policy
+					</SitemapLink>
 				</SitemapLinks>
 			</div>
 		</>
@@ -75,6 +89,7 @@ function SocialLinks() {
 				target="_blank"
 				aria-label="Visit us on GitHub"
 				className="text-gray-950 data-[hover]:text-gray-950/75"
+				rel="noreferrer"
 			>
 				<SocialIconGitHub className="size-4" />
 			</a>
@@ -83,6 +98,7 @@ function SocialLinks() {
 				target="_blank"
 				aria-label="Visit us on X"
 				className="text-gray-950 data-[hover]:text-gray-950/75"
+				rel="noreferrer"
 			>
 				<SocialIconX className="size-4" />
 			</a>

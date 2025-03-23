@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
 import { database } from "@supermemory/db";
@@ -13,7 +13,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	}
 
 	if (success === "true") {
-		const db = await database(context.cloudflare.env.HYPERDRIVE.connectionString);
+		const db = await database(
+			context.cloudflare.env.HYPERDRIVE.connectionString,
+		);
 		await syncStripeDataToDb(user.user.id, db, context.cloudflare.env);
 	}
 

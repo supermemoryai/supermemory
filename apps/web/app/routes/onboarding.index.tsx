@@ -1,13 +1,17 @@
 import { useEffect } from "react";
 
-import { LoaderFunctionArgs, defer, redirect } from "@remix-run/cloudflare";
+import {
+	type LoaderFunctionArgs,
+	defer,
+	redirect,
+} from "@remix-run/cloudflare";
 import { useLoaderData } from "@remix-run/react";
 
 import {
 	authkitLoader,
 	getSessionFromRequest,
 } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { User } from "@supermemory/db/schema";
+import type { User } from "@supermemory/db/schema";
 import { motion } from "framer-motion";
 import { proxy } from "server/proxy";
 import { Logo } from "~/components/icons/Logo";
@@ -64,7 +68,9 @@ export default function Onboarding() {
 				transition={{ duration: 0.8, delay: 0.2 }}
 				className="flex flex-col gap-2 items-center mt-8 text-white"
 			>
-				<h1 className="text-xl font-geist font-medium">Welcome to Supermemory</h1>
+				<h1 className="text-xl font-geist font-medium">
+					Welcome to Supermemory
+				</h1>
 				<p className="text-base font-geist max-w-md text-center font-light text-gray-200">
 					Supermemory is the universal engine for your knowledge.
 				</p>

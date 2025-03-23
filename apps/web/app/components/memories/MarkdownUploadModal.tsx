@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+} from "../ui/dialog";
 import SpacesSelector from "./SpacesSelector";
 
 import { motion } from "framer-motion";
@@ -13,7 +18,10 @@ interface MarkdownUploadModalProps {
 	onClose: () => void;
 }
 
-export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProps) {
+export function MarkdownUploadModal({
+	isOpen,
+	onClose,
+}: MarkdownUploadModalProps) {
 	const [files, setFiles] = useState<File[]>([]);
 	const [isUploading, setIsUploading] = useState(false);
 	const [progress, setProgress] = useState<{
@@ -114,7 +122,9 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 
 							// Show individual file status toasts with a limit
 							if (data.status === "success" && data.processed % 5 === 0) {
-								toast.success(`Successfully imported ${data.processed} files so far`);
+								toast.success(
+									`Successfully imported ${data.processed} files so far`,
+								);
 							} else if (data.status === "error") {
 								toast.error(`Failed to import: ${data.title} - ${data.error}`);
 							}
@@ -139,7 +149,10 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 				}
 			}
 		} catch (error) {
-			toast.error("Upload failed: " + (error instanceof Error ? error.message : "Unknown error"));
+			toast.error(
+				"Upload failed: " +
+					(error instanceof Error ? error.message : "Unknown error"),
+			);
 		} finally {
 			setIsUploading(false);
 		}
@@ -192,7 +205,11 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 						) : (
 							<motion.div
 								animate={{ rotate: 360 }}
-								transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+								transition={{
+									duration: 2,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "linear",
+								}}
 								className="w-12 h-12 mx-auto"
 							>
 								<Upload className="h-full w-full text-neutral-900 dark:text-white" />
@@ -203,8 +220,8 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 					<div className="space-y-4">
 						<DialogTitle>Import from Obsidian</DialogTitle>
 						<DialogDescription>
-							Upload markdown files from your Obsidian vault. You can select multiple files or drop
-							a folder.
+							Upload markdown files from your Obsidian vault. You can select
+							multiple files or drop a folder.
 						</DialogDescription>
 
 						<div className="flex flex-col gap-4">
@@ -234,7 +251,9 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 								</label>
 							</div>
 
-							<div className="text-center text-sm text-gray-500 dark:text-gray-400">OR</div>
+							<div className="text-center text-sm text-gray-500 dark:text-gray-400">
+								OR
+							</div>
 
 							{/* Folder Selection */}
 							<div className="flex flex-col items-center justify-center w-full">
@@ -276,7 +295,10 @@ export function MarkdownUploadModal({ isOpen, onClose }: MarkdownUploadModalProp
 									</span>
 								</div>
 
-								<SpacesSelector selectedSpaces={selectedSpaces} onChange={setSelectedSpaces} />
+								<SpacesSelector
+									selectedSpaces={selectedSpaces}
+									onChange={setSelectedSpaces}
+								/>
 
 								<div className="flex justify-end gap-2">
 									<Button variant="outline" onClick={onClose}>

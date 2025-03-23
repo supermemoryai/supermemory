@@ -26,30 +26,39 @@ export default function Note() {
 										<span className="block">👋 Hey there! I'm Dhravya</span>
 
 										<span className="block">
-											I'm a college student who built Supermemory as a weekend project. What started
-											as a simple idea has grown into something I'm really proud of, thanks to
-											amazing support from the open-source community! 🚀
+											I'm a college student who built Supermemory as a weekend
+											project. What started as a simple idea has grown into
+											something I'm really proud of, thanks to amazing support
+											from the open-source community! 🚀
 										</span>
 
 										<span className="block">
-											When you see "we" on the website - that's actually just me! 😅 I maintain and
-											build everything myself, supported by wonderful donors and grants that help
-											keep this project free and open source.
+											When you see "we" on the website - that's actually just
+											me! 😅 I maintain and build everything myself, supported
+											by wonderful donors and grants that help keep this project
+											free and open source.
 										</span>
 
 										<span className="block">
-											In this AI-driven world, I believe in augmenting human knowledge rather than
-											replacing it. My goal is simple: build something that genuinely helps people
-											learn and grow. 💡
+											In this AI-driven world, I believe in augmenting human
+											knowledge rather than replacing it. My goal is simple:
+											build something that genuinely helps people learn and
+											grow. 💡
 										</span>
 
 										<span className="block">
 											If you'd like to follow my journey, you can find me on{" "}
-											<a href="https://x.com/dhravyashah" className="underline hover:text-blue-100">
+											<a
+												href="https://x.com/dhravyashah"
+												className="underline hover:text-blue-100"
+											>
 												Twitter
 											</a>{" "}
 											and{" "}
-											<a href="https://git.new/memory" className="underline hover:text-blue-100">
+											<a
+												href="https://git.new/memory"
+												className="underline hover:text-blue-100"
+											>
 												GitHub
 											</a>
 											. And if you believe in what we're building, consider{" "}

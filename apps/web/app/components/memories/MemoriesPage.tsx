@@ -1,4 +1,11 @@
-import { createContext, memo, useCallback, useContext, useMemo, useState } from "react";
+import {
+	createContext,
+	memo,
+	useCallback,
+	useContext,
+	useMemo,
+	useState,
+} from "react";
 import { useParams } from "react-router-dom";
 
 import { Button } from "../ui/button";
@@ -11,10 +18,17 @@ import { useHydrated } from "remix-utils/use-hydrated";
 import { toast } from "sonner";
 import { useMemories } from "~/lib/hooks/use-memories";
 import { useSpaces } from "~/lib/hooks/use-spaces";
-import { Memory } from "~/lib/types/memory";
+import type { Memory } from "~/lib/types/memory";
 import { cn } from "~/lib/utils";
 
-const variants = ["All Memories", "Web pages", "Tweets", "Documents", "Spaces", "Notes"] as const;
+const variants = [
+	"All Memories",
+	"Web pages",
+	"Tweets",
+	"Documents",
+	"Spaces",
+	"Notes",
+] as const;
 type Variant = (typeof variants)[number];
 
 interface MemoriesPageProps {
@@ -30,16 +44,24 @@ interface SelectionContextType {
 
 const SelectionContext = createContext<SelectionContextType | null>(null);
 
-function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPageProps) {
+function MemoriesPage({
+	showAddButtons = true,
+	isSpace = false,
+}: MemoriesPageProps) {
 	const isHydrated = useHydrated();
 	const { spaceId } = useParams();
-	const [selectedVariant, setSelectedVariant] = useState<Variant>("All Memories");
+	const [selectedVariant, setSelectedVariant] =
+		useState<Variant>("All Memories");
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isSelectionMode, setIsSelectionMode] = useState(false);
 	const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 	const [isDeleting, setIsDeleting] = useState(false);
 
-	const { memories, isLoading, loadMore, hasMore, mutate } = useMemories(0, 20, spaceId);
+	const { memories, isLoading, loadMore, hasMore, mutate } = useMemories(
+		0,
+		20,
+		spaceId,
+	);
 
 	const { spaces } = useSpaces();
 
@@ -77,7 +99,10 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 				throw new Error("Failed to delete items");
 			}
 
-			const data = (await response.json()) as { success: boolean; deletedCount: number };
+			const data = (await response.json()) as {
+				success: boolean;
+				deletedCount: number;
+			};
 			toast.success(
 				`Successfully deleted ${data.deletedCount} item${data.deletedCount > 1 ? "s" : ""}`,
 			);
@@ -89,7 +114,9 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 			// Refresh the memories list
 			mutate();
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to delete items");
+			toast.error(
+				error instanceof Error ? error.message : "Failed to delete items",
+			);
 		} finally {
 			setIsDeleting(false);
 		}
@@ -177,7 +204,8 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 	// Combine items and generate key
 	const { items, key } = useMemo(() => {
 		const shouldShowSpaces =
-			!isSpace && (selectedVariant === "All Memories" || selectedVariant === "Spaces");
+			!isSpace &&
+			(selectedVariant === "All Memories" || selectedVariant === "Spaces");
 		const allItems = [
 			...addButtonItem,
 			...(shouldShowSpaces ? spaceItems : []),
@@ -188,7 +216,14 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 			items: allItems,
 			key: `${selectedVariant || "default"}-${spaceId || "no-space"}-${allItems.length}`,
 		};
-	}, [addButtonItem, spaceItems, filteredMemories, selectedVariant, spaceId, isSpace]);
+	}, [
+		addButtonItem,
+		spaceItems,
+		filteredMemories,
+		selectedVariant,
+		spaceId,
+		isSpace,
+	]);
 
 	const selectionContextValue = useMemo(
 		() => ({
@@ -293,7 +328,8 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 									}}
 								>
 									{filteredMemories.every(
-										(item) => item.type === "space" || selectedItems.has(item.uuid),
+										(item) =>
+											item.type === "space" || selectedItems.has(item.uuid),
 									)
 										? "Deselect All"
 										: "Select All"}
@@ -304,7 +340,9 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 									disabled={selectedItems.size === 0 || isDeleting}
 								>
 									<Trash2 className="w-4 h-4 mr-2" />
-									{isDeleting ? "Deleting..." : `Delete Selected (${selectedItems.size})`}
+									{isDeleting
+										? "Deleting..."
+										: `Delete Selected (${selectedItems.size})`}
 								</Button>
 							</>
 						)}
@@ -414,7 +452,11 @@ function MemoriesPage({ showAddButtons = true, isSpace = false }: MemoriesPagePr
 					onRender={maybeLoadMore}
 				/>
 
-				{isLoading && <div className="py-4 text-center text-muted-foreground">Loading more...</div>}
+				{isLoading && (
+					<div className="py-4 text-center text-muted-foreground">
+						Loading more...
+					</div>
+				)}
 			</div>
 		</SelectionContext.Provider>
 	);

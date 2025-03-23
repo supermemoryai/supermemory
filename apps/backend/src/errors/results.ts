@@ -1,4 +1,4 @@
-import { BaseError } from "./baseError";
+import type { BaseError } from "./baseError";
 
 export type Result<T, E extends Error> =
 	| { ok: true; value: T }
@@ -15,14 +15,14 @@ export const Err = <E extends BaseError>(error: E): Result<never, E> => {
 export async function wrap<T, E extends BaseError>(
 	p: Promise<T>,
 	errorFactory: (err: Error, source: string) => E,
-	source: string = "unspecified"
-  ): Promise<Result<T, E>> {
+	source = "unspecified",
+): Promise<Result<T, E>> {
 	try {
-	  return Ok(await p);
+		return Ok(await p);
 	} catch (e) {
-	  return Err(errorFactory(e as Error, source));
+		return Err(errorFactory(e as Error, source));
 	}
-  }
+}
 
 export function isErr<T, E extends Error>(
 	result: Result<T, E>,

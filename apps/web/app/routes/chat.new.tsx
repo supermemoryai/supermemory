@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 
-import { LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
 import { useLoaderData } from "@remix-run/react";
 
 import { authkitLoader } from "@supermemory/authkit-remix-cloudflare";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { User } from "@supermemory/shared/types";
-import { CoreMessage } from "ai";
-import ChatComponent from "~/components/Chat";
+import type { User } from "@supermemory/shared/types";
+import type { CoreMessage } from "ai";
 import posthog from "posthog-js";
+import ChatComponent from "~/components/Chat";
 
 export const loader = (args: LoaderFunctionArgs) =>
 	authkitLoader(args, async ({ request, context }) => {
@@ -30,11 +30,12 @@ export const loader = (args: LoaderFunctionArgs) =>
 	});
 
 function Chat() {
-	const { chatMessages: initialChatMessages, user } = useLoaderData<typeof loader>() as {
+	const { chatMessages: initialChatMessages, user } = useLoaderData<
+		typeof loader
+	>() as {
 		chatMessages: CoreMessage[];
 		user: User;
 	};
-
 
 	return <ChatComponent user={user} chatMessages={initialChatMessages} />;
 }

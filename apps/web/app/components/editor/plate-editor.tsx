@@ -12,7 +12,7 @@ export function PlateEditor() {
 		<DndProvider backend={HTML5Backend}>
 			<Plate editor={editor}>
 				<EditorContainer className="w-full border z-[99999]">
-					<Editor  variant="default" />
+					<Editor variant="default" />
 				</EditorContainer>
 			</Plate>
 		</DndProvider>

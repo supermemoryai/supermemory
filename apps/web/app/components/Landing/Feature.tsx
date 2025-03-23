@@ -122,11 +122,31 @@ export default function Feature2() {
 						<stop offset="100%" stop-color="#9700F4"></stop>
 					</linearGradient>
 				</defs>
-				<path d="M3 0C3 157 280 90 280 282" stroke="url(#blueBase)" stroke-width="3"></path>
-				<path d="M200 0C200 157 294 90 294 282" stroke="url(#yellowBase)" stroke-width="3"></path>
-				<path d="M400 0C400 157 307 90 307 282" stroke="url(#redBase)" stroke-width="3"></path>
-				<path d="M601 0C601 157 320 90 320 282" stroke="url(#purpleBase)" stroke-width="3"></path>
-				<path d="M3 0C3 157 280 90 280 282" stroke="url(#pulseGradient1)" stroke-width="3"></path>
+				<path
+					d="M3 0C3 157 280 90 280 282"
+					stroke="url(#blueBase)"
+					stroke-width="3"
+				></path>
+				<path
+					d="M200 0C200 157 294 90 294 282"
+					stroke="url(#yellowBase)"
+					stroke-width="3"
+				></path>
+				<path
+					d="M400 0C400 157 307 90 307 282"
+					stroke="url(#redBase)"
+					stroke-width="3"
+				></path>
+				<path
+					d="M601 0C601 157 320 90 320 282"
+					stroke="url(#purpleBase)"
+					stroke-width="3"
+				></path>
+				<path
+					d="M3 0C3 157 280 90 280 282"
+					stroke="url(#pulseGradient1)"
+					stroke-width="3"
+				></path>
 				<path
 					d="M200 0C200 157 294 90 294 282"
 					stroke="url(#pulseGradient2)"
@@ -145,11 +165,15 @@ export default function Feature2() {
 			</svg>
 			<div className="w-full mx-auto text-center">
 				<h2 className="text-3xl md:text-4xl mb-1">Meet Supermemory.</h2>
-				<h3 className="text-3xl md:text-4xl  mb-8">Your second brain for knowledge.</h3>
+				<h3 className="text-3xl md:text-4xl  mb-8">
+					Your second brain for knowledge.
+				</h3>
 				<p className="text-gray-600 max-w-3xl mx-auto">
-					Save the things you like, and over time, build the knowledge base of your dreams.
+					Save the things you like, and over time, build the knowledge base of
+					your dreams.
 					<br />
-					Go down rabbit holes, make connections, search what's important to you.
+					Go down rabbit holes, make connections, search what's important to
+					you.
 				</p>
 			</div>
 		</div>

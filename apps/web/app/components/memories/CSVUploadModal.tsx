@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+} from "../ui/dialog";
 import SpacesSelector from "./SpacesSelector";
 
 import { motion } from "framer-motion";
@@ -49,7 +54,9 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 					firstRow.forEach((cell: string, index: number) => {
 						if (
 							cell?.toLowerCase().includes("url") ||
-							(cell && typeof cell === "string" && cell.trim().startsWith("http"))
+							(cell &&
+								typeof cell === "string" &&
+								cell.trim().startsWith("http"))
 						) {
 							urlColumnIndex = index;
 						}
@@ -59,7 +66,11 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 					if (urlColumnIndex === -1 && results.data[1]) {
 						// @ts-expect-error - results.data[1] is of type unknown
 						results.data[1].forEach((cell: string, index: number) => {
-							if (cell && typeof cell === "string" && cell.trim().startsWith("http")) {
+							if (
+								cell &&
+								typeof cell === "string" &&
+								cell.trim().startsWith("http")
+							) {
 								urlColumnIndex = index;
 							}
 						});
@@ -75,7 +86,9 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 					const validUrls = results.data
 						.slice(1) // Skip header row
 						.map((row: any) => row[urlColumnIndex])
-						.filter((url: string) => url && url.trim() && url.startsWith("http"));
+						.filter(
+							(url: string) => url && url.trim() && url.startsWith("http"),
+						);
 
 					if (validUrls.length === 0) {
 						toast.error("No valid URLs found in the CSV file");
@@ -84,7 +97,9 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 					}
 
 					setUrls(validUrls);
-					toast.success(`Found ${validUrls.length} valid URLs in column ${urlColumnIndex + 1}`);
+					toast.success(
+						`Found ${validUrls.length} valid URLs in column ${urlColumnIndex + 1}`,
+					);
 				},
 				error: (error) => {
 					toast.error("Error parsing CSV file: " + error.message);
@@ -148,7 +163,10 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 				}
 			}
 		} catch (error) {
-			toast.error("Upload failed: " + (error instanceof Error ? error.message : "Unknown error"));
+			toast.error(
+				"Upload failed: " +
+					(error instanceof Error ? error.message : "Unknown error"),
+			);
 		} finally {
 			setIsUploading(false);
 		}
@@ -201,7 +219,11 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 						) : (
 							<motion.div
 								animate={{ rotate: 360 }}
-								transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+								transition={{
+									duration: 2,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "linear",
+								}}
 								className="w-12 h-12 mx-auto"
 							>
 								<Upload className="h-full w-full text-neutral-900 dark:text-white" />
@@ -212,8 +234,8 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 					<div className="space-y-4">
 						<DialogTitle>Upload CSV File</DialogTitle>
 						<DialogDescription>
-							Upload a CSV file containing URLs to add to your memories. The URLs should be in the
-							first column.
+							Upload a CSV file containing URLs to add to your memories. The
+							URLs should be in the first column.
 						</DialogDescription>
 
 						<div className="flex flex-col items-center justify-center w-full">
@@ -224,9 +246,12 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 								<div className="flex flex-col items-center justify-center pt-5 pb-6">
 									<Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
 									<p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-										<span className="font-semibold">Click to upload</span> or drag and drop
+										<span className="font-semibold">Click to upload</span> or
+										drag and drop
 									</p>
-									<p className="text-xs text-gray-500 dark:text-gray-400">CSV files only</p>
+									<p className="text-xs text-gray-500 dark:text-gray-400">
+										CSV files only
+									</p>
 								</div>
 								<input
 									id="csv-upload"
@@ -247,7 +272,10 @@ export function CSVUploadModal({ isOpen, onClose }: CSVUploadModalProps) {
 									</span>
 								</div>
 
-								<SpacesSelector selectedSpaces={selectedSpaces} onChange={setSelectedSpaces} />
+								<SpacesSelector
+									selectedSpaces={selectedSpaces}
+									onChange={setSelectedSpaces}
+								/>
 
 								<div className="flex justify-end gap-2">
 									<Button variant="outline" onClick={onClose}>

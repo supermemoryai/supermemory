@@ -12,7 +12,10 @@ import { motion } from "framer-motion";
 import { BookIcon, BookOpen, ChevronDownIcon, SparkleIcon } from "lucide-react";
 import { Theme, useTheme } from "~/lib/theme-provider";
 
-function Reminder({ content, contentId }: { content: string; contentId: string }) {
+function Reminder({
+	content,
+	contentId,
+}: { content: string; contentId: string }) {
 	const [theme] = useTheme();
 	const navigate = useNavigate();
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -21,7 +24,9 @@ function Reminder({ content, contentId }: { content: string; contentId: string }
 
 	useEffect(() => {
 		if (contentRef.current) {
-			setIsOverflowing(contentRef.current.scrollHeight > contentRef.current.clientHeight);
+			setIsOverflowing(
+				contentRef.current.scrollHeight > contentRef.current.clientHeight,
+			);
 		}
 	}, [content]);
 
@@ -31,7 +36,9 @@ function Reminder({ content, contentId }: { content: string; contentId: string }
 		<div
 			style={{
 				backgroundImage:
-					theme === Theme.DARK ? "linear-gradient(to right, #414345, #232526)" : `url(${image})`,
+					theme === Theme.DARK
+						? "linear-gradient(to right, #414345, #232526)"
+						: `url(${image})`,
 				backgroundSize: "cover",
 				backgroundPosition: "right",
 			}}
@@ -39,10 +46,15 @@ function Reminder({ content, contentId }: { content: string; contentId: string }
 		>
 			<div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-300">
 				<SparkleIcon className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
-				<h2 className="text-xs md:text-sm truncate">Remember this? A topic you forgot.</h2>
+				<h2 className="text-xs md:text-sm truncate">
+					Remember this? A topic you forgot.
+				</h2>
 			</div>
 
-			<div ref={contentRef} className={`relative ${isExpanded ? "flex-1" : "h-[400px]"}`}>
+			<div
+				ref={contentRef}
+				className={`relative ${isExpanded ? "flex-1" : "h-[400px]"}`}
+			>
 				<div className={`${!isExpanded && "absolute inset-0"} overflow-hidden`}>
 					<Markdown className="mt-2 prose prose-lg dark:prose-invert leading-tight break-words line-clamp-[15] prose-h1:text-2xl prose-h1:font-semibold prose-h1:tracking-tight prose-h2:text-lg prose-h3:text-base">
 						{content}
@@ -109,7 +121,9 @@ function LoadingReminder() {
 }
 
 function Reminders() {
-	const [suggestedLearnings, setSuggestedLearnings] = useState<Array<Record<string, string>>>([]);
+	const [suggestedLearnings, setSuggestedLearnings] = useState<
+		Array<Record<string, string>>
+	>([]);
 	const [currentIndex, setCurrentIndex] = useState(0);
 	const [isLoading, setIsLoading] = useState(true);
 	const navigate = useNavigate();
@@ -118,7 +132,12 @@ function Reminders() {
 		fetch(`/backend/v1/suggested-learnings`, {
 			credentials: "include",
 		})
-			.then((res) => res.json() as Promise<{ suggestedLearnings: Array<Record<string, string>> }>)
+			.then(
+				(res) =>
+					res.json() as Promise<{
+						suggestedLearnings: Array<Record<string, string>>;
+					}>,
+			)
 			.then((data) => {
 				setSuggestedLearnings(data.suggestedLearnings);
 				setIsLoading(false);
@@ -163,9 +182,9 @@ function Reminders() {
 							Your Memory Hub Awaits
 						</h2>
 						<p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-							Start saving content to get bite-sized memory snippets that keep you on top of your
-							game. We'll transform your notes into smart reminders that help you retain knowledge
-							effortlessly.
+							Start saving content to get bite-sized memory snippets that keep
+							you on top of your game. We'll transform your notes into smart
+							reminders that help you retain knowledge effortlessly.
 						</p>
 						<AddMemoryModal>
 							<Button className="bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all">
@@ -192,7 +211,8 @@ function Reminders() {
 							const xOffset = index * (window?.innerWidth < 768 ? 12 : 16);
 							const yOffset = index * (window?.innerWidth < 768 ? 12 : 16);
 							const opacity = Math.max(1 - index * 0.15, 0.4);
-							const scale = 1 - index * (window?.innerWidth < 768 ? 0.02 : 0.03);
+							const scale =
+								1 - index * (window?.innerWidth < 768 ? 0.02 : 0.03);
 
 							return (
 								<motion.div
@@ -212,7 +232,8 @@ function Reminders() {
 						})
 					: suggestedLearnings?.map((learning, index) => {
 							const position =
-								(index - currentIndex + suggestedLearnings.length) % suggestedLearnings.length;
+								(index - currentIndex + suggestedLearnings.length) %
+								suggestedLearnings.length;
 
 							if (position >= 3) return null;
 
@@ -225,7 +246,8 @@ function Reminders() {
 							const xOffset = position * (window?.innerWidth < 768 ? 12 : 16);
 							const yOffset = position * (window?.innerWidth < 768 ? 12 : 16);
 							const opacity = Math.max(1 - position * 0.15, 0.4);
-							const scale = 1 - position * (window?.innerWidth < 768 ? 0.02 : 0.03);
+							const scale =
+								1 - position * (window?.innerWidth < 768 ? 0.02 : 0.03);
 
 							return (
 								<motion.div

@@ -10,10 +10,18 @@ import {
 	UnderlinePlugin,
 } from "@udecode/plate-basic-marks/react";
 import { BlockquotePlugin } from "@udecode/plate-block-quote/react";
-import { CodeBlockPlugin, CodeLinePlugin, CodeSyntaxPlugin } from "@udecode/plate-code-block/react";
+import {
+	CodeBlockPlugin,
+	CodeLinePlugin,
+	CodeSyntaxPlugin,
+} from "@udecode/plate-code-block/react";
 import { CommentsPlugin } from "@udecode/plate-comments/react";
-import { Value } from "@udecode/plate-common";
-import { ParagraphPlugin, PlateLeaf, usePlateEditor } from "@udecode/plate-common/react";
+import type { Value } from "@udecode/plate-common";
+import {
+	ParagraphPlugin,
+	PlateLeaf,
+	usePlateEditor,
+} from "@udecode/plate-common/react";
 import { DatePlugin } from "@udecode/plate-date/react";
 import { ExcalidrawPlugin } from "@udecode/plate-excalidraw/react";
 import { HEADING_KEYS } from "@udecode/plate-heading";
@@ -25,7 +33,10 @@ import { ColumnItemPlugin, ColumnPlugin } from "@udecode/plate-layout/react";
 import { LinkPlugin } from "@udecode/plate-link/react";
 import { MarkdownPlugin } from "@udecode/plate-markdown";
 import { ImagePlugin, MediaEmbedPlugin } from "@udecode/plate-media/react";
-import { MentionInputPlugin, MentionPlugin } from "@udecode/plate-mention/react";
+import {
+	MentionInputPlugin,
+	MentionPlugin,
+} from "@udecode/plate-mention/react";
 import { SlashInputPlugin } from "@udecode/plate-slash-command/react";
 import {
 	TableCellHeaderPlugin,
@@ -61,7 +72,10 @@ import { MentionInputElement } from "~/components/plate-ui/mention-input-element
 import { ParagraphElement } from "~/components/plate-ui/paragraph-element";
 import { withPlaceholders } from "~/components/plate-ui/placeholder";
 import { SlashInputElement } from "~/components/plate-ui/slash-input-element";
-import { TableCellElement, TableCellHeaderElement } from "~/components/plate-ui/table-cell-element";
+import {
+	TableCellElement,
+	TableCellHeaderElement,
+} from "~/components/plate-ui/table-cell-element";
 import { TableElement } from "~/components/plate-ui/table-element";
 import { TableRowElement } from "~/components/plate-ui/table-row-element";
 import { TocElement } from "~/components/plate-ui/toc-element";

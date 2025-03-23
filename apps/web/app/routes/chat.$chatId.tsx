@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 
-import { LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
 import { useLoaderData, useParams } from "@remix-run/react";
 
 import { proxy } from "../../server/proxy";
 
 import { authkitLoader } from "@supermemory/authkit-remix-cloudflare";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { CoreMessage } from "ai";
+import type { CoreMessage } from "ai";
 import posthog from "posthog-js";
 import ChatComponent from "~/components/Chat";
 import Navbar from "~/components/Navbar";
@@ -29,8 +29,15 @@ export const loader = (args: LoaderFunctionArgs) =>
 			return redirect("/");
 		}
 
-		const chatHistory = await proxy(`/v1/chat/${threadId}`, {}, request, context);
-		const chatHistoryJson = (await chatHistory.json()) as { chatHistory: CoreMessage[] };
+		const chatHistory = await proxy(
+			`/v1/chat/${threadId}`,
+			{},
+			request,
+			context,
+		);
+		const chatHistoryJson = (await chatHistory.json()) as {
+			chatHistory: CoreMessage[];
+		};
 
 		if (!chatHistory) {
 			return redirect("/");

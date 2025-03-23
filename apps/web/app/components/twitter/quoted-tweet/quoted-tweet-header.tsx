@@ -13,14 +13,24 @@ export const QuotedTweetHeader = ({ tweet }: Props) => {
 
 	return (
 		<div className={s.header}>
-			<a href={tweet.url} className={s.avatar} target="_blank" rel="noopener noreferrer">
+			<a
+				href={tweet.url}
+				className={s.avatar}
+				target="_blank"
+				rel="noopener noreferrer"
+			>
 				<div
 					className={clsx(
 						s.avatarOverflow,
 						user.profile_image_shape === "Square" && s.avatarSquare,
 					)}
 				>
-					<AvatarImg src={user.profile_image_url_https} alt={user.name} width={20} height={20} />
+					<AvatarImg
+						src={user.profile_image_url_https}
+						alt={user.name}
+						width={20}
+						height={20}
+					/>
 				</div>
 			</a>
 			<div className={s.author}>

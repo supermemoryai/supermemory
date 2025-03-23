@@ -4,7 +4,7 @@ import { Logo } from "./icons/Logo";
 import { AddMemoryModal } from "./memories/AddMemory";
 import { Button } from "./ui/button";
 
-import { User } from "@supermemory/shared/types";
+import type { User } from "@supermemory/shared/types";
 import {
 	ChevronDown,
 	Cloud,
@@ -87,7 +87,9 @@ function Navbar({ user }: { user?: User }) {
 							<DropdownMenuContent className="w-56 mr-8">
 								<DropdownMenuLabel className="text-wrap break-words">
 									{user.firstName} {user.lastName} <br />
-									<span className="text-sm text-muted-foreground">{user.email}</span>
+									<span className="text-sm text-muted-foreground">
+										{user.email}
+									</span>
 								</DropdownMenuLabel>
 								<DropdownMenuSeparator />
 								<DropdownMenuGroup>
@@ -102,16 +104,26 @@ function Navbar({ user }: { user?: User }) {
 										) : (
 											<Moon className="mr-2 h-4 w-4" />
 										)}
-										<span>{theme === Theme.LIGHT ? "Dark mode" : "Light mode"}</span>
+										<span>
+											{theme === Theme.LIGHT ? "Dark mode" : "Light mode"}
+										</span>
 									</DropdownMenuItem>
 									<DropdownMenuItem asChild>
-										<a href="https://portal.productboard.com/8rhspck6pdelv78mptczaena" target="_blank">
+										<a
+											href="https://portal.productboard.com/8rhspck6pdelv78mptczaena"
+											target="_blank"
+											rel="noreferrer"
+										>
 											<LifeBuoy className="mr-2 h-4 w-4" />
 											<span>Support</span>
 										</a>
 									</DropdownMenuItem>
 									<DropdownMenuItem asChild>
-										<a href="https://api.supermemory.ai" target="_blank">
+										<a
+											href="https://api.supermemory.ai"
+											target="_blank"
+											rel="noreferrer"
+										>
 											<Cloud className="mr-2 h-4 w-4" />
 											<span>API</span>
 										</a>
@@ -130,7 +142,10 @@ function Navbar({ user }: { user?: User }) {
 								<DropdownMenuSeparator />
 								<DropdownMenuItem asChild>
 									<Form action="/action/sign-out" method="post">
-										<button className="w-full flex items-center gap-2" type="submit">
+										<button
+											className="w-full flex items-center gap-2"
+											type="submit"
+										>
 											<LogOut className="mr-2 h-4 w-4" /> Log out
 										</button>
 									</Form>

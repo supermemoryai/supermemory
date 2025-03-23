@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 import { Logo } from "../icons/Logo";
 import { Button } from "../ui/button";
@@ -12,7 +13,13 @@ import SpacesSelector from "./SpacesSelector";
 import { FileIcon, Link1Icon, PlusCircledIcon } from "@radix-ui/react-icons";
 import { SpaceIcon } from "@supermemory/shared/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { NotebookIcon, Plus, PuzzleIcon, Settings2Icon, Upload } from "lucide-react";
+import {
+	NotebookIcon,
+	Plus,
+	PuzzleIcon,
+	Settings2Icon,
+	Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
 	Credenza,
@@ -260,7 +267,10 @@ export function AddMemoryModal({
 											</span>
 										</div>
 
-										<SpacesSelector selectedSpaces={selectedSpaces} onChange={setSelectedSpaces} />
+										<SpacesSelector
+											selectedSpaces={selectedSpaces}
+											onChange={setSelectedSpaces}
+										/>
 									</div>
 								</form>
 							</TabsContent>
@@ -286,7 +296,10 @@ export function AddMemoryModal({
 											id="note"
 											placeholder="Add a note"
 										/>
-										<SpacesSelector selectedSpaces={selectedSpaces} onChange={setSelectedSpaces} />
+										<SpacesSelector
+											selectedSpaces={selectedSpaces}
+											onChange={setSelectedSpaces}
+										/>
 										{/* TODO: will show this later */}
 										{/* <div className="hidden md:flex text-sm border border-blue-500/20 rounded-md p-4 bg-blue-500/10 dark:bg-blue-500/5 flex-row gap-4 justify-between items-center shadow-sm">
 											<span className="font-medium text-zinc-900 dark:text-zinc-100">
@@ -370,7 +383,8 @@ export function AddMemoryModal({
 											<div className="flex flex-col items-center justify-center pt-5 pb-6">
 												<Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
 												<p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-													<span className="font-semibold">Click to upload</span> or drag and drop
+													<span className="font-semibold">Click to upload</span>{" "}
+													or drag and drop
 												</p>
 												<p className="text-xs text-gray-500 dark:text-gray-400">
 													PDF, DOC, DOCX (MAX. 10MB)
@@ -389,11 +403,16 @@ export function AddMemoryModal({
 									{file && (
 										<div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-zinc-900 rounded border border-gray-200 dark:border-gray-700">
 											<FileIcon className="h-4 w-4 text-amber-500" />
-											<span className="text-sm text-gray-700 dark:text-gray-300">{file.name}</span>
+											<span className="text-sm text-gray-700 dark:text-gray-300">
+												{file.name}
+											</span>
 										</div>
 									)}
 
-									<SpacesSelector selectedSpaces={selectedSpaces} onChange={setSelectedSpaces} />
+									<SpacesSelector
+										selectedSpaces={selectedSpaces}
+										onChange={setSelectedSpaces}
+									/>
 								</div>
 							</TabsContent>
 							<TabsContent value="integrations">
@@ -415,8 +434,8 @@ export function AddMemoryModal({
 													Create a Space
 												</div>
 												<div className="relative text-base text-zinc-600 dark:text-zinc-300">
-													Spaces help you organize your memories. Create a new space to start
-													collecting related memories together.
+													Spaces help you organize your memories. Create a new
+													space to start collecting related memories together.
 												</div>
 											</div>
 										</div>
@@ -445,8 +464,8 @@ export function AddMemoryModal({
 													Create a Memory
 												</div>
 												<div className="relative text-base text-zinc-600 dark:text-zinc-300">
-													Add your first memory to start building your knowledge base. You will see
-													a preview here.
+													Add your first memory to start building your knowledge
+													base. You will see a preview here.
 												</div>
 											</div>
 										</div>
@@ -464,7 +483,11 @@ export function AddMemoryModal({
 								Cancel
 							</Button>
 						</CredenzaClose>
-						<Button onClick={handleSubmit} disabled={!content && !file} className="relative">
+						<Button
+							onClick={handleSubmit}
+							disabled={!content && !file}
+							className="relative"
+						>
 							{isUploading ? (
 								<>
 									<span className="opacity-0">

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { typeDecider } from "~/components/memories/SharedCard";
-import { Memory } from "~/lib/types/memory";
+import type { Memory } from "~/lib/types/memory";
 
 interface MemoriesResponse {
 	items: Memory[];
@@ -24,29 +24,30 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 	const queryClient = useQueryClient();
 	const cacheKey = ["memories", spaceId];
 
-	const { data: memoriesData, isLoading: isInitialLoading } = useQuery<CachedMemories>({
-		queryKey: cacheKey,
-		queryFn: async () => {
-			const url = new URL(`/backend/v1/memories`, window.location.origin);
-			url.searchParams.set("start", "0");
-			url.searchParams.set("count", count.toString());
-			if (spaceId) url.searchParams.set("spaceId", spaceId);
+	const { data: memoriesData, isLoading: isInitialLoading } =
+		useQuery<CachedMemories>({
+			queryKey: cacheKey,
+			queryFn: async () => {
+				const url = new URL(`/backend/v1/memories`, window.location.origin);
+				url.searchParams.set("start", "0");
+				url.searchParams.set("count", count.toString());
+				if (spaceId) url.searchParams.set("spaceId", spaceId);
 
-			const response = await fetch(url.toString(), {
-				credentials: "include",
-			});
-			if (!response.ok) throw new Error("Failed to fetch memories");
+				const response = await fetch(url.toString(), {
+					credentials: "include",
+				});
+				if (!response.ok) throw new Error("Failed to fetch memories");
 
-			const data = (await response.json()) as MemoriesResponse;
+				const data = (await response.json()) as MemoriesResponse;
 
-			return {
-				items: data.items,
-				total: data.total,
-				nextCursor: data.items.length,
-			};
-		},
-		staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-	});
+				return {
+					items: data.items,
+					total: data.total,
+					nextCursor: data.items.length,
+				};
+			},
+			staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+		});
 
 	const fetchNextPage = useMutation({
 		mutationFn: async () => {
@@ -81,7 +82,9 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 
 				// Merge new items, avoiding duplicates
 				const existingIds = new Set(old.items.map((item) => item.uuid));
-				const newItems = data.items.filter((item) => !existingIds.has(item.uuid));
+				const newItems = data.items.filter(
+					(item) => !existingIds.has(item.uuid),
+				);
 
 				return {
 					items: [...old.items, ...newItems],
@@ -110,7 +113,10 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 	});
 
 	const addMemory = useMutation({
-		mutationFn: async ({ content, spaces }: { content: string; spaces: string[] }) => {
+		mutationFn: async ({
+			content,
+			spaces,
+		}: { content: string; spaces: string[] }) => {
 			const type = typeDecider(content);
 			const optimisticMemory: Memory = {
 				id: -1,
@@ -204,7 +210,9 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 									};
 
 								return {
-									items: old.items.map((m) => (m.id === optimisticMemory.id ? processedMemory : m)),
+									items: old.items.map((m) =>
+										m.id === optimisticMemory.id ? processedMemory : m,
+									),
 									total: old.total,
 									nextCursor: old.nextCursor,
 								};
@@ -213,7 +221,9 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 						}
 
 						if (attempts % 2 === 0) {
-							toast.loading("Visiting and reading the website...", { id: toastId });
+							toast.loading("Visiting and reading the website...", {
+								id: toastId,
+							});
 						}
 					} catch (error) {
 						toast.error("Failed to fetch processed memory", { id: toastId });
@@ -241,7 +251,10 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 		},
 	});
 
-	const wrappedAddMemory = async (params: { content: string; spaces: string[] }) => {
+	const wrappedAddMemory = async (params: {
+		content: string;
+		spaces: string[];
+	}) => {
 		return addMemory.mutateAsync(params);
 	};
 
@@ -268,7 +281,9 @@ export function useMemories(start = 0, count = 40, spaceId?: string) {
 			}
 			return Promise.resolve();
 		},
-		hasMore: memoriesData ? memoriesData.nextCursor < memoriesData.total : false,
+		hasMore: memoriesData
+			? memoriesData.nextCursor < memoriesData.total
+			: false,
 		total: memoriesData?.total ?? 0,
 		addMemory: wrappedAddMemory,
 		mutate: () => queryClient.invalidateQueries({ queryKey: cacheKey }),

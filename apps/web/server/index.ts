@@ -1,10 +1,15 @@
-import { AppLoadContext } from "@remix-run/cloudflare";
+import type { AppLoadContext } from "@remix-run/cloudflare";
 
-import * as cheerio from "cheerio";
 import { createOpenAI } from "@ai-sdk/openai";
 import { zValidator } from "@hono/zod-validator";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { convertToCoreMessages, generateObject, generateText, streamText } from "ai";
+import {
+	convertToCoreMessages,
+	generateObject,
+	generateText,
+	streamText,
+} from "ai";
+import * as cheerio from "cheerio";
 import { putEncryptedKV } from "encrypt-workers-kv";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -49,7 +54,10 @@ app.get("/api/metadata", async (c) => {
 		const absoluteImage = image ? new URL(image, url).toString() : "";
 
 		const metadata = {
-			title: $("title").text() || $('meta[property="og:title"]').attr("content") || "",
+			title:
+				$("title").text() ||
+				$('meta[property="og:title"]').attr("content") ||
+				"",
 			description:
 				$('meta[name="description"]').attr("content") ||
 				$('meta[property="og:description"]').attr("content") ||
@@ -75,7 +83,10 @@ app.get("/api/session", async (c) => {
 			env: c.env,
 		},
 	};
-	const session = await getSessionFromRequest(c.req.raw, fakeContext as AppLoadContext);
+	const session = await getSessionFromRequest(
+		c.req.raw,
+		fakeContext as AppLoadContext,
+	);
 	if (!session) {
 		return c.json({ error: "No session found" }, 401);
 	}
@@ -83,7 +94,8 @@ app.get("/api/session", async (c) => {
 });
 
 app.all("/backend/*", async (c) => {
-	const backendUrl = c.env.BACKEND_URL ?? "https://supermemory-backend.dhravya.workers.dev";
+	const backendUrl =
+		c.env.BACKEND_URL ?? "https://supermemory-backend.dhravya.workers.dev";
 	const path = c.req.path.replace("/backend", "");
 	const searchParams = new URL(c.req.url).searchParams.toString();
 	const queryString = searchParams ? `?${searchParams}` : "";
@@ -185,7 +197,10 @@ app.all("/backend/*", async (c) => {
 			});
 		}
 
-		if (response.body && response.headers.get("content-type")?.includes("text/x-unknown")) {
+		if (
+			response.body &&
+			response.headers.get("content-type")?.includes("text/x-unknown")
+		) {
 			return new Response(response.body, {
 				status: response.status,
 				statusText: response.statusText,
@@ -262,7 +277,12 @@ app.post("/api/ai/command", async (c) => {
 });
 
 app.post("/api/ai/copilot", async (c) => {
-	const { apiKey: key, model = "gpt-4o-mini", prompt, system } = await c.req.json();
+	const {
+		apiKey: key,
+		model = "gpt-4o-mini",
+		prompt,
+		system,
+	} = await c.req.json();
 
 	const apiKey = key || c.env.OPENAI_API_KEY;
 
@@ -346,72 +366,81 @@ Make sure that the document you write is a good, accurate, and up-to-date docume
 	return c.json(result.object);
 });
 
-app.all("/auth/notion/callback", zValidator("query", z.object({ code: z.string() })), async (c) => {
-	const { code } = c.req.valid("query");
+app.all(
+	"/auth/notion/callback",
+	zValidator("query", z.object({ code: z.string() })),
+	async (c) => {
+		const { code } = c.req.valid("query");
 
-	const notionCredentials = btoa(`${c.env.NOTION_CLIENT_ID}:${c.env.NOTION_CLIENT_SECRET}`);
+		const notionCredentials = btoa(
+			`${c.env.NOTION_CLIENT_ID}:${c.env.NOTION_CLIENT_SECRET}`,
+		);
 
-	const response = await fetch("https://api.notion.com/v1/oauth/token", {
-		method: "POST",
-		headers: {
-			Authorization: `Basic ${notionCredentials}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			grant_type: "authorization_code",
-			code: code,
-			redirect_uri:
-				c.env.NODE_ENV === "production"
-					? "https://supermemory.ai/auth/notion/callback"
-					: "http://localhost:3000/auth/notion/callback",
-		}),
-	});
+		const response = await fetch("https://api.notion.com/v1/oauth/token", {
+			method: "POST",
+			headers: {
+				Authorization: `Basic ${notionCredentials}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				grant_type: "authorization_code",
+				code: code,
+				redirect_uri:
+					c.env.NODE_ENV === "production"
+						? "https://supermemory.ai/auth/notion/callback"
+						: "http://localhost:3000/auth/notion/callback",
+			}),
+		});
 
-	const data = await response.json();
+		const data = await response.json();
 
-	const fakeContext = {
-		cloudflare: {
-			env: c.env,
-		},
-	};
+		const fakeContext = {
+			cloudflare: {
+				env: c.env,
+			},
+		};
 
-	const currentUser = await getSessionFromRequest(c.req.raw, fakeContext as AppLoadContext);
+		const currentUser = await getSessionFromRequest(
+			c.req.raw,
+			fakeContext as AppLoadContext,
+		);
 
-	console.log(currentUser?.user.id);
-	const success = !(data as any).error;
+		console.log(currentUser?.user.id);
+		const success = !(data as any).error;
 
-	if (!success) {
-		return c.redirect(`/?error=${(data as any).error}`);
-	}
+		if (!success) {
+			return c.redirect(`/?error=${(data as any).error}`);
+		}
 
-	const accessToken = (data as any).access_token;
+		const accessToken = (data as any).access_token;
 
-	// const key = await crypto.subtle.importKey(
-	// 	"raw",
-	// 	new TextEncoder().encode(c.env.WORKOS_COOKIE_PASSWORD),
-	// 	{ name: "AES-GCM" },
-	// 	false,
-	// 	["encrypt", "decrypt"],
-	// );
+		// const key = await crypto.subtle.importKey(
+		// 	"raw",
+		// 	new TextEncoder().encode(c.env.WORKOS_COOKIE_PASSWORD),
+		// 	{ name: "AES-GCM" },
+		// 	false,
+		// 	["encrypt", "decrypt"],
+		// );
 
-	// const encrypted = await crypto.subtle.encrypt(
-	// 	{ name: "AES-GCM", iv: new Uint8Array(20) },
-	// 	key,
-	// 	new TextEncoder().encode(accessToken),
-	// );
+		// const encrypted = await crypto.subtle.encrypt(
+		// 	{ name: "AES-GCM", iv: new Uint8Array(20) },
+		// 	key,
+		// 	new TextEncoder().encode(accessToken),
+		// );
 
-	// const encryptedString = btoa(String(encrypted));
+		// const encryptedString = btoa(String(encrypted));
 
-	// await c.env.ENCRYPTED_TOKENS.put(`${currentUser?.user.id}-notion`, encryptedString);
+		// await c.env.ENCRYPTED_TOKENS.put(`${currentUser?.user.id}-notion`, encryptedString);
 
-	await putEncryptedKV(
-		c.env.ENCRYPTED_TOKENS,
-		`${currentUser?.user.id}-notion`,
-		accessToken,
-		`${c.env.WORKOS_COOKIE_PASSWORD}-${currentUser?.user.id}`,
-	);
+		await putEncryptedKV(
+			c.env.ENCRYPTED_TOKENS,
+			`${currentUser?.user.id}-notion`,
+			accessToken,
+			`${c.env.WORKOS_COOKIE_PASSWORD}-${currentUser?.user.id}`,
+		);
 
-	return c.redirect(`/?success=${success}&integration=notion`);
-});
+		return c.redirect(`/?success=${success}&integration=notion`);
+	},
+);
 
 export default app;

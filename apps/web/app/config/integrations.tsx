@@ -24,7 +24,10 @@ export interface IntegrationConfig {
 	};
 
 	getAuthUrl?: (env: Record<string, string>) => string;
-	handleConnection?: (env: Record<string, string>, navigate: NavigateFunction) => void;
+	handleConnection?: (
+		env: Record<string, string>,
+		navigate: NavigateFunction,
+	) => void;
 
 	importData?: {
 		url?: string;
@@ -189,7 +192,8 @@ export const getIntegrations = (
 		buttonClassName: "bg-gray-500 hover:bg-gray-600",
 
 		handleConnection: (env, navigate) => {
-			window.location.href = "https://www.icloud.com/shortcuts/55f0695258cd46e4aad1aba8a2a7d14b";
+			window.location.href =
+				"https://www.icloud.com/shortcuts/55f0695258cd46e4aad1aba8a2a7d14b";
 		},
 
 		icon: (props) => (

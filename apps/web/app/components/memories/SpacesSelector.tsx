@@ -12,7 +12,11 @@ import {
 	CommandInput,
 	CommandItem,
 } from "~/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "~/components/ui/popover";
 import { useSpaces } from "~/lib/hooks/use-spaces";
 import { cn } from "~/lib/utils";
 
@@ -70,7 +74,11 @@ function SpacesSelector({
 									const space = spaces?.find((s) => s.uuid === spaceId);
 									if (!space) return null;
 									return (
-										<Badge key={spaceId} variant="secondary" className="flex items-center gap-1 text-xs whitespace-nowrap mr-1">
+										<Badge
+											key={spaceId}
+											variant="secondary"
+											className="flex items-center gap-1 text-xs whitespace-nowrap mr-1"
+										>
 											{space.name}
 											<X
 												className="h-3 w-3 cursor-pointer hover:text-destructive"
@@ -80,7 +88,10 @@ function SpacesSelector({
 									);
 								})}
 								{selectedSpaces.length > 2 && (
-									<Badge variant="secondary" className="text-xs whitespace-nowrap">
+									<Badge
+										variant="secondary"
+										className="text-xs whitespace-nowrap"
+									>
 										+{selectedSpaces.length - 2} more
 									</Badge>
 								)}
@@ -111,7 +122,9 @@ function SpacesSelector({
 								<Check
 									className={cn(
 										"mr-2 h-4 w-4",
-										selectedSpaces.includes(space.uuid) ? "opacity-100" : "opacity-0",
+										selectedSpaces.includes(space.uuid)
+											? "opacity-100"
+											: "opacity-0",
 									)}
 								/>
 								<div className="flex items-center justify-between w-full">

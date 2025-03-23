@@ -1,5 +1,8 @@
 // import { getSignInUrl, signOut, authkitLoader } from '@supermemory/authkit-remix-cloudflare';
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
+import type {
+	ActionFunctionArgs,
+	LoaderFunctionArgs,
+} from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Form, Link, useLoaderData } from "@remix-run/react";
 

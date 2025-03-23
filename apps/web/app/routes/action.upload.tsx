@@ -1,4 +1,8 @@
-import { ActionFunctionArgs, UploadHandler, json } from "@remix-run/cloudflare";
+import {
+	type ActionFunctionArgs,
+	UploadHandler,
+	json,
+} from "@remix-run/cloudflare";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
 import { AwsClient } from "aws4fetch";

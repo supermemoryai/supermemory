@@ -1,11 +1,11 @@
-import React from "react";
-import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
 import { CircleHelp } from "lucide-react";
+import type React from "react";
+import { Button } from "~/components/ui/button";
+import { cn } from "~/lib/utils";
 
 interface SuggestionProps {
-  text: string;
-  onClick: () => void;
+	text: string;
+	onClick: () => void;
 }
 
 const SingleSuggestion: React.FC<SuggestionProps> = ({ text, onClick }) => {
@@ -22,22 +22,22 @@ const SingleSuggestion: React.FC<SuggestionProps> = ({ text, onClick }) => {
 };
 
 interface SuggestionsProps {
-  items: string[];
-  onSelect: (item: string) => void;
+	items: string[];
+	onSelect: (item: string) => void;
 }
 
 const Suggestions: React.FC<SuggestionsProps> = ({ items, onSelect }) => {
-  return (
-    <div className={cn("grid grid-cols-1 md:flex md:flex-wrap gap-2 mt-4")}>
-      {items?.map((item, index) => (
-        <SingleSuggestion
-          key={index}
-          text={item}
-          onClick={() => onSelect(item)}
-        />
-      ))}
-    </div>
-  );
+	return (
+		<div className={cn("grid grid-cols-1 md:flex md:flex-wrap gap-2 mt-4")}>
+			{items?.map((item, index) => (
+				<SingleSuggestion
+					key={index}
+					text={item}
+					onClick={() => onSelect(item)}
+				/>
+			))}
+		</div>
+	);
 };
 
 export default Suggestions;

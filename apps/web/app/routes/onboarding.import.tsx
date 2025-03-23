@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 
-import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
-import { Form, useLoaderData, useNavigate, useRouteLoaderData } from "@remix-run/react";
+import {
+	type ActionFunctionArgs,
+	type LoaderFunctionArgs,
+	redirect,
+} from "@remix-run/cloudflare";
+import {
+	Form,
+	useLoaderData,
+	useNavigate,
+	useRouteLoaderData,
+} from "@remix-run/react";
 
 import { Logo } from "../components/icons/Logo";
 import { getIntegrations } from "../config/integrations";
@@ -13,9 +22,10 @@ import { motion } from "framer-motion";
 import { proxy } from "server/proxy";
 import { toast } from "sonner";
 import { getChromeExtensionId } from "~/config/util";
-import { loader as routeLoader } from "~/root";
+import type { loader as routeLoader } from "~/root";
 
-export const loader = (args: LoaderFunctionArgs) => authkitLoader(args, { ensureSignedIn: true });
+export const loader = (args: LoaderFunctionArgs) =>
+	authkitLoader(args, { ensureSignedIn: true });
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
 	const formData = await request.formData();
@@ -53,9 +63,13 @@ export default function Onboarding() {
 
 		// Check if extension is present
 		try {
-			chrome?.runtime.sendMessage(getChromeExtensionId(), { action: "ping" }, (response: any) => {
-				setExtensionPresent(!chrome?.runtime.lastError);
-			});
+			chrome?.runtime.sendMessage(
+				getChromeExtensionId(),
+				{ action: "ping" },
+				(response: any) => {
+					setExtensionPresent(!chrome?.runtime.lastError);
+				},
+			);
 		} catch (e) {
 			setExtensionPresent(false);
 		}
@@ -87,8 +101,8 @@ export default function Onboarding() {
 					Import your existing knowledge
 				</h1>
 				<p className="text-gray-300 text-center max-w-lg">
-					Choose one of our integrations to get started quickly. Your data will be encrypted and
-					securely imported.
+					Choose one of our integrations to get started quickly. Your data will
+					be encrypted and securely imported.
 				</p>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-4">
@@ -127,10 +141,14 @@ export default function Onboarding() {
 								}}
 								className={`flex items-center gap-4 p-6 rounded-xl border border-gray-700 bg-gray-800/50 hover:bg-gray-800/80 transition-all ${integration.buttonClassName}`}
 							>
-								{Icon && <Icon className={integration.iconClassName || "w-8 h-8"} />}
+								{Icon && (
+									<Icon className={integration.iconClassName || "w-8 h-8"} />
+								)}
 								<div className="text-left">
 									<h3 className="font-medium text-lg">{integration.name}</h3>
-									<p className="text-sm text-gray-400">{integration.description}</p>
+									<p className="text-sm text-gray-400">
+										{integration.description}
+									</p>
 								</div>
 							</motion.button>
 						);
@@ -138,7 +156,9 @@ export default function Onboarding() {
 				</div>
 
 				<div className="flex flex-col items-center gap-4 mt-8">
-					{Object.values(integrations).some((i) => i.requiresChromeExtension) && (
+					{Object.values(integrations).some(
+						(i) => i.requiresChromeExtension,
+					) && (
 						<a
 							href="/extension"
 							target="_blank"

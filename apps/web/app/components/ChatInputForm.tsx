@@ -1,6 +1,6 @@
-import { KeyboardEvent, useCallback, useRef, useState } from "react";
+import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useFetcher, type useLoaderData } from "@remix-run/react";
 
 import { useUploadFile } from "../lib/hooks/use-upload-file";
 import SpacesSelector from "./memories/SpacesSelector";
@@ -9,7 +9,7 @@ import { Textarea } from "./ui/textarea";
 
 import { SpaceIcon } from "@supermemory/shared/icons";
 import { cn } from "~/lib/utils";
-import { loader } from "~/routes/_index";
+import type { loader } from "~/routes/_index";
 
 function MemoryInputForm({
 	user,
@@ -86,7 +86,9 @@ function MemoryInputForm({
 
 	const handleAttachClick = useCallback(() => {
 		if (isUploading || fileURLs.length !== previews.length) {
-			console.log("Cannot attach file: Upload in progress or previous upload not completed");
+			console.log(
+				"Cannot attach file: Upload in progress or previous upload not completed",
+			);
 			return;
 		}
 		if (fileInputRef.current) {
@@ -242,7 +244,11 @@ function MemoryInputForm({
 							variant="outline"
 							className="flex items-center gap-2 text-secondary-foreground hover:bg-gray-100 dark:hover:bg-neutral-600"
 							onClick={handleAttachClick}
-							disabled={fileURLs.length >= 5 || isUploading || fileURLs.length !== previews.length}
+							disabled={
+								fileURLs.length >= 5 ||
+								isUploading ||
+								fileURLs.length !== previews.length
+							}
 							aria-label="Attach file"
 						>
 							<svg
@@ -414,9 +420,10 @@ function MemoryInputForm({
 							)}
 						</>
 					)}
-					{fileURLs.length !== previews.length && !previews[fileURLs.length] && (
-						<div className="h-16 w-16 md:h-24 md:w-24 rounded-lg animate-pulse bg-gray-200" />
-					)}
+					{fileURLs.length !== previews.length &&
+						!previews[fileURLs.length] && (
+							<div className="h-16 w-16 md:h-24 md:w-24 rounded-lg animate-pulse bg-gray-200" />
+						)}
 				</div>
 			)}
 
@@ -426,7 +433,11 @@ function MemoryInputForm({
 						variant="outline"
 						className="flex items-center gap-2 text-secondary-foreground hover:bg-gray-100 dark:hover:bg-neutral-600"
 						onClick={handleAttachClick}
-						disabled={fileURLs.length >= 5 || isUploading || fileURLs.length !== previews.length}
+						disabled={
+							fileURLs.length >= 5 ||
+							isUploading ||
+							fileURLs.length !== previews.length
+						}
 						aria-label="Attach file"
 					>
 						<svg
@@ -441,11 +452,16 @@ function MemoryInputForm({
 								clipRule="evenodd"
 							/>
 						</svg>
-						<span className="hidden md:block">Attach ({fileURLs.length}/5)</span>
+						<span className="hidden md:block">
+							Attach ({fileURLs.length}/5)
+						</span>
 					</Button>
 
 					<div className="flex items-center gap-4 w-full md:w-auto">
-						<SpacesSelector selectedSpaces={selectedSpaces} onChange={setSelectedSpaces} />
+						<SpacesSelector
+							selectedSpaces={selectedSpaces}
+							onChange={setSelectedSpaces}
+						/>
 
 						<Button
 							onClick={submit}

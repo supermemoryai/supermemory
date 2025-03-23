@@ -1,4 +1,6 @@
-export const MemoryIcon: React.FC<React.SVGAttributes<SVGElement>> = (props) => (
+export const MemoryIcon: React.FC<React.SVGAttributes<SVGElement>> = (
+	props,
+) => (
 	<svg
 		viewBox="0 0 89 53"
 		fill="none"
@@ -40,7 +42,12 @@ export const MemoryIcon: React.FC<React.SVGAttributes<SVGElement>> = (props) => 
 );
 
 export const SpaceIcon: React.FC<React.SVGAttributes<SVGElement>> = (props) => (
-	<svg viewBox="0 0 34 30" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+	<svg
+		viewBox="0 0 34 30"
+		fill="none"
+		xmlns="http://www.w3.org/2000/svg"
+		{...props}
+	>
 		<rect
 			x="1.39502"
 			y="5.2229"

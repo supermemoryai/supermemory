@@ -1,6 +1,11 @@
 import type { CodeToHtmlOptions } from "@llm-ui/code";
-import { allLangs, allLangsAlias, loadHighlighter, useCodeBlockToHtml } from "@llm-ui/code";
-import { type LLMOutputComponent } from "@llm-ui/react";
+import {
+	allLangs,
+	allLangsAlias,
+	loadHighlighter,
+	useCodeBlockToHtml,
+} from "@llm-ui/code";
+import type { LLMOutputComponent } from "@llm-ui/react";
 import parseHtml from "html-react-parser";
 import { getHighlighterCore } from "shiki/core";
 import { bundledLanguagesInfo } from "shiki/langs";

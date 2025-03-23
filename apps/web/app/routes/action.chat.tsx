@@ -1,16 +1,15 @@
-import { ActionFunctionArgs, redirect } from "@remix-run/cloudflare";
+import { type ActionFunctionArgs, redirect } from "@remix-run/cloudflare";
 
-import { CoreMessage, UserContent } from "ai";
+import type { CoreMessage, UserContent } from "ai";
 import { assertNotString } from "~/lib/types/safety";
 
 export async function action({ request, context }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	const input = formData.get("input") as string;
 
-
-	const fileURLs = (JSON.parse(formData.get("fileURLs") as string) as string[])?.map((url) =>
-		decodeURIComponent(url),
-	);
+	const fileURLs = (
+		JSON.parse(formData.get("fileURLs") as string) as string[]
+	)?.map((url) => decodeURIComponent(url));
 
 	const messages = [
 		{

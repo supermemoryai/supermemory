@@ -3,7 +3,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 
 import { useChat } from "@ai-sdk/react";
-import { Message } from "ai";
+import type { Message } from "ai";
 import { OpenAIProvider } from "~/components/editor/use-chat";
 import { useCreateEditor } from "~/components/editor/use-create-editor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -15,11 +15,15 @@ const PlateEditorImport = lazy(() =>
 );
 
 const EditorContainerImport = lazy(() =>
-	import("~/components/plate-ui/editor").then((mod) => ({ default: mod.EditorContainer })),
+	import("~/components/plate-ui/editor").then((mod) => ({
+		default: mod.EditorContainer,
+	})),
 );
 
 const EditorImport = lazy(() =>
-	import("~/components/plate-ui/editor").then((mod) => ({ default: mod.Editor })),
+	import("~/components/plate-ui/editor").then((mod) => ({
+		default: mod.Editor,
+	})),
 );
 
 const Plate = memo(PlateEditorImport);
@@ -31,7 +35,9 @@ export function WritingPlayground() {
 		return <div>Loading...</div>;
 	}
 	const localValue = localStorage.getItem("editorContent");
-	const editor = useCreateEditor({ initialValue: localValue ? JSON.parse(localValue) : undefined });
+	const editor = useCreateEditor({
+		initialValue: localValue ? JSON.parse(localValue) : undefined,
+	});
 
 	const [theme, setTheme] = useTheme();
 
@@ -39,7 +45,8 @@ export function WritingPlayground() {
 		setTheme(Theme.LIGHT);
 	}, [theme, setTheme]);
 
-	const { toggleMicrophone, caption, status, isListening, isLoading } = useLiveTranscript();
+	const { toggleMicrophone, caption, status, isListening, isLoading } =
+		useLiveTranscript();
 
 	const { messages, input, handleInputChange, handleSubmit } = useChat({
 		id: "editor",
@@ -47,7 +54,8 @@ export function WritingPlayground() {
 		initialMessages: [
 			{
 				id: "1",
-				content: "Hi! I am here to help you quickly find what you're looking for.",
+				content:
+					"Hi! I am here to help you quickly find what you're looking for.",
 				role: "assistant",
 			},
 			{
@@ -115,7 +123,9 @@ export function WritingPlayground() {
 						// Make a copy of the editor children
 						const newChildren = [...editor.children];
 						// Find and update the block in the copy
-						const blockIndex = newChildren.findIndex((block) => block.id === data.blockId);
+						const blockIndex = newChildren.findIndex(
+							(block) => block.id === data.blockId,
+						);
 						if (blockIndex !== -1) {
 							newChildren[blockIndex] = {
 								...newChildren[blockIndex],
@@ -125,7 +135,9 @@ export function WritingPlayground() {
 						editor.tf.setValue(newChildren);
 					} else if (data.action === "delete") {
 						// Make a copy of the editor children and filter out the block
-						const newChildren = editor.children.filter((block) => block.id !== data.blockId);
+						const newChildren = editor.children.filter(
+							(block) => block.id !== data.blockId,
+						);
 						editor.tf.setValue(newChildren);
 					} else if (data.action === "append") {
 						editor.tf.setValue([
@@ -169,9 +181,13 @@ export function WritingPlayground() {
 							}`}
 							title={isListening ? "Stop recording" : "Start recording"}
 						>
-							<div className={`w-3 h-3 rounded-full ${isListening ? "bg-white" : "bg-red-500"}`} />
+							<div
+								className={`w-3 h-3 rounded-full ${isListening ? "bg-white" : "bg-red-500"}`}
+							/>
 						</button>
-						<span className="text-sm text-zinc-600 dark:text-zinc-400">{status}</span>
+						<span className="text-sm text-zinc-600 dark:text-zinc-400">
+							{status}
+						</span>
 					</div>
 				</TabsList>
 				<div
@@ -184,7 +200,10 @@ export function WritingPlayground() {
 								<Plate
 									onChange={({ value }) => {
 										// For performance, debounce your saving logic
-										localStorage.setItem("editorContent", JSON.stringify(value));
+										localStorage.setItem(
+											"editorContent",
+											JSON.stringify(value),
+										);
 									}}
 									editor={editor}
 								>

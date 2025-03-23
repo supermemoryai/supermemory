@@ -1,32 +1,32 @@
 {
-  "$schema": "https://turbo.build/schema.json",
-  "ui": "stream",
-  "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*", ".dev.vars"],
-      "outputs": ["build/**", "public/build/**", "server/index.js"],
-      "cache": true
-    },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "generate-migration": {
-      "cache": false
-    },
-    "migrate:local": {
-      "cache": false
-    },
-    "deploy": {
-      "cache": true
-    },
-    "tail": {
-      "cache": false,
-      "persistent": true
-    }
-  }
+	"$schema": "https://turbo.build/schema.json",
+	"ui": "stream",
+	"tasks": {
+		"//#format-and-lint": {},
+		"//#format-and-lint:fix": {
+			"cache": false
+		},
+		"build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*", ".dev.vars"],
+			"cache": true
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"generate-migration": {
+			"cache": false
+		},
+		"migrate:local": {
+			"cache": false
+		},
+		"deploy": {
+			"cache": true
+		},
+		"tail": {
+			"cache": false,
+			"persistent": true
+		}
+	}
 }

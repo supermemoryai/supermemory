@@ -7,11 +7,11 @@ import Private from "./Private";
 export default function Landing() {
 	return (
 		<div className="overflow-hidden">
-		<Hero />
-		<Feature2 />
-		<Private />
-		<Note />
-		<Footer />
-	  </div>
+			<Hero />
+			<Feature2 />
+			<Private />
+			<Note />
+			<Footer />
+		</div>
 	);
 }

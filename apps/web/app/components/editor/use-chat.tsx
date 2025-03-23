@@ -7,7 +7,14 @@ import { cn } from "@udecode/cn";
 import { CopilotPlugin } from "@udecode/plate-ai/react";
 import { useEditorPlugin } from "@udecode/plate-common/react";
 import { useChat as useBaseChat } from "ai/react";
-import { ArrowUpRight, Check, ChevronsUpDown, Eye, EyeOff, Settings } from "lucide-react";
+import {
+	ArrowUpRight,
+	Check,
+	ChevronsUpDown,
+	Eye,
+	EyeOff,
+	Settings,
+} from "lucide-react";
 import { Button } from "~/components/plate-ui/button";
 import {
 	Command,
@@ -26,7 +33,11 @@ import {
 	DialogTrigger,
 } from "~/components/plate-ui/dialog";
 import { Input } from "~/components/plate-ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/plate-ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "~/components/plate-ui/popover";
 
 export const useChat = (props?: Parameters<typeof useBaseChat>[0]) => {
 	return useBaseChat({
@@ -58,7 +69,9 @@ const fakeStreamText = ({
 				if (streamProtocol === "text") {
 					controller.enqueue(encoder.encode(chunk.texts));
 				} else {
-					controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk.texts)}\n`));
+					controller.enqueue(
+						encoder.encode(`0:${JSON.stringify(chunk.texts)}\n`),
+					);
 				}
 			}
 
@@ -208,8 +221,14 @@ export function SettingsDialog() {
 							onClick={() => setShowKey(!showKey)}
 							type="button"
 						>
-							{showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-							<span className="sr-only">{showKey ? "Hide" : "Show"} API key</span>
+							{showKey ? (
+								<EyeOff className="size-4" />
+							) : (
+								<Eye className="size-4" />
+							)}
+							<span className="sr-only">
+								{showKey ? "Hide" : "Show"} API key
+							</span>
 						</Button>
 					</div>
 
@@ -245,7 +264,9 @@ export function SettingsDialog() {
 												<Check
 													className={cn(
 														"mr-2 size-4",
-														model.value === m.value ? "opacity-100" : "opacity-0",
+														model.value === m.value
+															? "opacity-100"
+															: "opacity-0",
 													)}
 												/>
 												<code>{m.label}</code>

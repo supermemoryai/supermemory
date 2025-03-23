@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 import { useFetcher } from "@remix-run/react";
@@ -53,7 +60,10 @@ function ThemeProvider({
 			return;
 		}
 
-		persistTheme.submit({ theme }, { action: "action/set-theme", method: "post" });
+		persistTheme.submit(
+			{ theme },
+			{ action: "action/set-theme", method: "post" },
+		);
 	}, [theme]);
 
 	useEffect(() => {
@@ -65,9 +75,16 @@ function ThemeProvider({
 		return () => mediaQuery.removeEventListener("change", handleChange);
 	}, []);
 
-	const contextValue = useMemo<ThemeContextType>(() => [theme, setTheme], [theme, setTheme]);
+	const contextValue = useMemo<ThemeContextType>(
+		() => [theme, setTheme],
+		[theme, setTheme],
+	);
 
-	return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
+	return (
+		<ThemeContext.Provider value={contextValue}>
+			{children}
+		</ThemeContext.Provider>
+	);
 }
 
 const clientThemeCode = `
@@ -112,8 +129,13 @@ function NonFlashOfWrongThemeEls({ ssrTheme }: { ssrTheme: boolean }) {
 
 	return (
 		<>
-			<meta name="color-scheme" content={theme === "light" ? "light dark" : "dark light"} />
-			{ssrTheme ? null : <script dangerouslySetInnerHTML={{ __html: clientThemeCode }} />}
+			<meta
+				name="color-scheme"
+				content={theme === "light" ? "light dark" : "dark light"}
+			/>
+			{ssrTheme ? null : (
+				<script dangerouslySetInnerHTML={{ __html: clientThemeCode }} />
+			)}
 		</>
 	);
 }

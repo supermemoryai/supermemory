@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { LoaderFunctionArgs, json } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, json } from "@remix-run/cloudflare";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 
 import { Logo } from "../components/icons/Logo";
@@ -10,7 +10,10 @@ import { Textarea } from "../components/ui/textarea";
 import { Theme, useTheme } from "../lib/theme-provider";
 
 import { FileIcon, Link1Icon } from "@radix-ui/react-icons";
-import { authkitLoader, authLoader } from "@supermemory/authkit-remix-cloudflare";
+import {
+	authLoader,
+	authkitLoader,
+} from "@supermemory/authkit-remix-cloudflare";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
 import { motion } from "framer-motion";
 import { NotebookIcon, Upload } from "lucide-react";
@@ -18,7 +21,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useMemories } from "~/lib/hooks/use-memories";
 import { useUploadFile } from "~/lib/hooks/use-upload-file";
 
-export const loader = (args: LoaderFunctionArgs) => authkitLoader(args, { ensureSignedIn: true });
+export const loader = (args: LoaderFunctionArgs) =>
+	authkitLoader(args, { ensureSignedIn: true });
 
 const SUGGESTED_IMPORTS = [
 	{
@@ -43,7 +47,9 @@ export default function OnboardingAdd() {
 	const navigate = useNavigate();
 	const [content, setContent] = useState("");
 	const [file, setFile] = useState<File | null>(null);
-	const [activeTab, setActiveTab] = useState<"url" | "note" | "document">("url");
+	const [activeTab, setActiveTab] = useState<"url" | "note" | "document">(
+		"url",
+	);
 	const { addMemory } = useMemories();
 	const { uploadFile } = useUploadFile();
 
@@ -112,7 +118,7 @@ export default function OnboardingAdd() {
 						}}
 						transition={{
 							duration: 20,
-							repeat: Infinity,
+							repeat: Number.POSITIVE_INFINITY,
 							repeatType: "reverse",
 							ease: "linear",
 						}}
@@ -126,7 +132,9 @@ export default function OnboardingAdd() {
 			</div>
 
 			<div className="flex flex-col gap-8 items-center mt-12 text-white max-w-2xl px-4 z-10">
-				<h1 className="text-2xl font-geist font-medium">Add your first memory</h1>
+				<h1 className="text-2xl font-geist font-medium">
+					Add your first memory
+				</h1>
 
 				<div className="w-full max-w-md">
 					<Tabs
@@ -135,15 +143,24 @@ export default function OnboardingAdd() {
 						className="w-full"
 					>
 						<TabsList className="grid grid-cols-3 mb-4">
-							<TabsTrigger value="url" className="data-[state=active]:bg-blue-500/20">
+							<TabsTrigger
+								value="url"
+								className="data-[state=active]:bg-blue-500/20"
+							>
 								<Link1Icon className="h-4 w-4 mr-2" />
 								URL
 							</TabsTrigger>
-							<TabsTrigger value="note" className="data-[state=active]:bg-emerald-500/20">
+							<TabsTrigger
+								value="note"
+								className="data-[state=active]:bg-emerald-500/20"
+							>
 								<NotebookIcon className="h-4 w-4 mr-2" />
 								Note
 							</TabsTrigger>
-							<TabsTrigger value="document" className="data-[state=active]:bg-amber-500/20">
+							<TabsTrigger
+								value="document"
+								className="data-[state=active]:bg-amber-500/20"
+							>
 								<FileIcon className="h-4 w-4 mr-2" />
 								Document
 							</TabsTrigger>
@@ -176,7 +193,8 @@ export default function OnboardingAdd() {
 								<div className="flex flex-col items-center justify-center pt-5 pb-6">
 									<Upload className="w-8 h-8 mb-2 text-gray-400" />
 									<p className="text-sm text-gray-400">
-										<span className="font-medium">Click to upload</span> or drag and drop
+										<span className="font-medium">Click to upload</span> or drag
+										and drop
 									</p>
 								</div>
 								<input
@@ -235,7 +253,10 @@ export default function OnboardingAdd() {
 				</div>
 
 				<div className="flex gap-4 mt-4 mb-12">
-					<a href="/onboarding/import" className="text-gray-400 hover:text-gray-300 text-sm">
+					<a
+						href="/onboarding/import"
+						className="text-gray-400 hover:text-gray-300 text-sm"
+					>
 						Skip for now →
 					</a>
 				</div>

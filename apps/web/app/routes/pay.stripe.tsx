@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
 import { database, eq } from "@supermemory/db";
@@ -66,13 +66,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	const validTiers = Object.keys(productsMap.development);
 	if (!validTiers.includes(tier)) {
 		return {
-			error: "Invalid tier specified. Valid tiers are: " + validTiers.join(", "),
+			error:
+				"Invalid tier specified. Valid tiers are: " + validTiers.join(", "),
 			status: 400,
 		};
 	}
 
 	const isDev = context.cloudflare.env.NODE_ENV === "development";
-	const redirectUrl = isDev ? "http://localhost:3000" : "https://supermemory.ai";
+	const redirectUrl = isDev
+		? "http://localhost:3000"
+		: "https://supermemory.ai";
 
 	const url = await stripe.checkout.sessions.create({
 		success_url: redirectUrl + "/pay/stripe/callback?success=true",

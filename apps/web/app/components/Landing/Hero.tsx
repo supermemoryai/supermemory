@@ -127,7 +127,9 @@ export default function Hero() {
 									<span className="bg-[#3B82F6] text-white text-xs px-2.5 py-1 rounded-full font-medium">
 										NEW
 									</span>
-									<span className="text-gray-600">Top OSS Repository in 2024</span>
+									<span className="text-gray-600">
+										Top OSS Repository in 2024
+									</span>
 									<a
 										href="https://runacap.com/ross-index/q3-2024/"
 										className="text-[#1E3A8A] font-medium hover:text-[#3B82F6] transition-colors"
@@ -140,7 +142,8 @@ export default function Hero() {
 								AI for all your knowledge.
 							</h1>
 							<p className="text-xl text-gray-600 mt-6 mb-8 leading-relaxed">
-								Supermemory helps you collect, organize, and recall all your knowledge.
+								Supermemory helps you collect, organize, and recall all your
+								knowledge.
 								{/* list of notable features */}
 								<ul className="list-none space-y-3 mt-6">
 									<li className="flex items-center space-x-3">
@@ -173,7 +176,9 @@ export default function Hero() {
 												d="M5 13l4 4L19 7"
 											/>
 										</svg>
-										<span>Chat and find with AI & actually use your knowledge</span>
+										<span>
+											Chat and find with AI & actually use your knowledge
+										</span>
 									</li>
 									<li className="flex items-center space-x-3">
 										<svg
@@ -189,7 +194,9 @@ export default function Hero() {
 												d="M5 13l4 4L19 7"
 											/>
 										</svg>
-										<span>Share your knowledge with your friends and colleagues</span>
+										<span>
+											Share your knowledge with your friends and colleagues
+										</span>
 									</li>
 								</ul>
 							</p>

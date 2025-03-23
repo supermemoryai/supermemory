@@ -1,9 +1,9 @@
-import { ActionFunctionArgs } from "@remix-run/cloudflare";
+import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { database, eq } from "@supermemory/db";
 import { users } from "@supermemory/db/schema";
 import { Stripe } from "stripe";
-import { allowedEvents } from "~/lib/stripe.constants";
 import { syncStripeDataToDb } from "~/lib/stripe";
+import { allowedEvents } from "~/lib/stripe.constants";
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
 	const stripe = new Stripe(context.cloudflare.env.STRIPE_CHECKOUT_KEY);
@@ -25,7 +25,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
 		if (typeof customerId !== "string") {
 			throw new Error(
-				`[STRIPE HOOK][ERROR] ID isn't string.\nEvent type: ${event.type}`
+				`[STRIPE HOOK][ERROR] ID isn't string.\nEvent type: ${event.type}`,
 			);
 		}
 
@@ -48,7 +48,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 		const event = stripe.webhooks.constructEvent(
 			payload,
 			signature,
-			context.cloudflare.env.STRIPE_WEBHOOK_SECRET
+			context.cloudflare.env.STRIPE_WEBHOOK_SECRET,
 		);
 
 		await processEvent(event);

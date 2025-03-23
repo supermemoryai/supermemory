@@ -1,7 +1,11 @@
-import * as ReactTweet from "react-tweet";
 import { Fragment } from "react";
-import { type EnrichedQuotedTweet, type EnrichedTweet , TwitterComponents } from "react-tweet";
-import { MediaDetails } from "react-tweet/api";
+import * as ReactTweet from "react-tweet";
+import type {
+	EnrichedQuotedTweet,
+	EnrichedTweet,
+	TwitterComponents,
+} from "react-tweet";
+import type { MediaDetails } from "react-tweet/api";
 
 import s from "./tweet-media.module.css";
 
@@ -24,7 +28,8 @@ const getSkeletonStyle = (media: MediaDetails, itemCount: number) => {
 
 	// if we only have 1 item, show at original ratio
 	if (itemCount === 1)
-		paddingBottom = (100 / media.original_info.width) * media.original_info.height;
+		paddingBottom =
+			(100 / media.original_info.width) * media.original_info.height;
 
 	// if we have 2 items, double the default to be 16x9 total
 	if (itemCount === 2) paddingBottom = paddingBottom * 2;
@@ -65,7 +70,10 @@ export const TweetMedia = ({ tweet, components, quoted }: Props) => {
 								target="_blank"
 								rel="noopener noreferrer"
 							>
-								<div className={s.skeleton} style={getSkeletonStyle(media, length)} />
+								<div
+									className={s.skeleton}
+									style={getSkeletonStyle(media, length)}
+								/>
 								<Img
 									src={getMediaUrl(media, "small")}
 									alt={media.ext_alt_text || "Image"}
@@ -75,7 +83,10 @@ export const TweetMedia = ({ tweet, components, quoted }: Props) => {
 							</a>
 						) : (
 							<div key={media.media_url_https} className={s.mediaContainer}>
-								<div className={s.skeleton} style={getSkeletonStyle(media, length)} />
+								<div
+									className={s.skeleton}
+									style={getSkeletonStyle(media, length)}
+								/>
 								<TweetMediaVideo tweet={tweet} media={media} />
 							</div>
 						)}

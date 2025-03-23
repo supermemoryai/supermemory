@@ -1,8 +1,8 @@
-import { AppLoadContext, redirect } from "@remix-run/cloudflare";
+import { type AppLoadContext, redirect } from "@remix-run/cloudflare";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
 import { database, eq } from "@supermemory/db";
-import { User, users } from "@supermemory/db/schema";
+import { type User, users } from "@supermemory/db/schema";
 
 export const verifyOrCreateUser = async (
 	request: Request,
@@ -20,7 +20,9 @@ export const verifyOrCreateUser = async (
 		.where(eq(users.uuid, session.user.id));
 
 	if ((!user || user.length === 0) && session?.user?.id) {
-		const newUser = await database(context.cloudflare.env.HYPERDRIVE.connectionString)
+		const newUser = await database(
+			context.cloudflare.env.HYPERDRIVE.connectionString,
+		)
 			.insert(users)
 			.values({
 				uuid: session.user?.id,

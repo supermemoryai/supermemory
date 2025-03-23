@@ -1,4 +1,4 @@
-import { LoaderFunctionArgs } from "@remix-run/cloudflare";
+import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { useLoaderData } from "@remix-run/react";
 
 import { authkitLoader } from "@supermemory/authkit-remix-cloudflare";
@@ -16,7 +16,7 @@ const tiers = [
 		description: "Get started with the essentials and upgrade anytime.",
 		features: [
 			"1,000 memories",
-			"3 spaces", 
+			"3 spaces",
 			"Basic search",
 			"Limited API access",
 			"Mobile-friendly interface",
@@ -30,7 +30,8 @@ const tiers = [
 		href: "/pay/stripe?tier=tier-standard",
 		priceMonthly: "$12",
 		priceYearly: "$100",
-		description: "Perfect for power users who want to unlock their full potential.",
+		description:
+			"Perfect for power users who want to unlock their full potential.",
 		features: [
 			"10,000 memories",
 			"100 spaces",
@@ -103,8 +104,8 @@ export default function Pay() {
 				</div>
 
 				<p className="mx-auto mt-6 max-w-2xl text-pretty text-center text-base sm:text-lg text-neutral-600 dark:text-neutral-400 sm:text-xl/8">
-					Save bookmarks, notes, websites, tweets, and more in one place. Access your personal AI
-					knowledge base anytime, anywhere.
+					Save bookmarks, notes, websites, tweets, and more in one place. Access
+					your personal AI knowledge base anytime, anywhere.
 				</p>
 
 				<div className="mx-auto mt-12 sm:mt-16 grid max-w-lg grid-cols-1 items-stretch gap-y-10 sm:gap-y-0 lg:max-w-6xl lg:grid-cols-3">
@@ -130,18 +131,24 @@ export default function Pay() {
 									<h3
 										id={tier.id}
 										className={classNames(
-											tier.featured ? "text-blue-400" : "text-blue-600 dark:text-blue-400",
+											tier.featured
+												? "text-blue-400"
+												: "text-blue-600 dark:text-blue-400",
 											"text-base/7 font-semibold",
 										)}
 									>
 										{tier.name}
 									</h3>
-									{tier.featured && <Sparkles className="h-4 w-4 text-blue-400" />}
+									{tier.featured && (
+										<Sparkles className="h-4 w-4 text-blue-400" />
+									)}
 								</div>
 								<p className="mt-4 flex items-baseline gap-x-2">
 									<span
 										className={classNames(
-											tier.featured ? "text-white" : "text-neutral-900 dark:text-white",
+											tier.featured
+												? "text-white"
+												: "text-neutral-900 dark:text-white",
 											"text-4xl sm:text-5xl font-semibold tracking-tight",
 										)}
 									>
@@ -163,19 +170,25 @@ export default function Pay() {
 								{tier.priceYearly && (
 									<p
 										className={classNames(
-											tier.featured ? "text-neutral-300" : "text-neutral-500 dark:text-neutral-400",
+											tier.featured
+												? "text-neutral-300"
+												: "text-neutral-500 dark:text-neutral-400",
 											"mt-1 text-sm flex items-center gap-2",
 										)}
 									>
 										or {tier.priceYearly}/year
 										{tier.savings && (
-											<span className="text-green-500 font-medium">({tier.savings})</span>
+											<span className="text-green-500 font-medium">
+												({tier.savings})
+											</span>
 										)}
 									</p>
 								)}
 								<p
 									className={classNames(
-										tier.featured ? "text-neutral-300" : "text-neutral-600 dark:text-neutral-300",
+										tier.featured
+											? "text-neutral-300"
+											: "text-neutral-600 dark:text-neutral-300",
 										"mt-6 text-sm sm:text-base/7",
 									)}
 								>
@@ -184,7 +197,9 @@ export default function Pay() {
 								<ul
 									role="list"
 									className={classNames(
-										tier.featured ? "text-neutral-300" : "text-neutral-600 dark:text-neutral-300",
+										tier.featured
+											? "text-neutral-300"
+											: "text-neutral-600 dark:text-neutral-300",
 										"mt-6 sm:mt-8 space-y-3 text-sm/6",
 									)}
 								>
@@ -193,7 +208,9 @@ export default function Pay() {
 											<CheckIcon
 												aria-hidden="true"
 												className={classNames(
-													tier.featured ? "text-blue-400" : "text-blue-600 dark:text-blue-400",
+													tier.featured
+														? "text-blue-400"
+														: "text-blue-600 dark:text-blue-400",
 													"h-5 w-5 flex-none",
 												)}
 											/>
@@ -230,7 +247,9 @@ export default function Pay() {
 										"mt-6 sm:mt-8 block rounded-md px-3 py-2.5 text-center text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 transition-all duration-200",
 									)}
 								>
-									{tier.price === "$0" ? "Try Supermemory Free" : "Get Lifetime Access"}
+									{tier.price === "$0"
+										? "Try Supermemory Free"
+										: "Get Lifetime Access"}
 								</a>
 							)}
 						</div>

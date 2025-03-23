@@ -1,17 +1,29 @@
 import { useEffect, useState } from "react";
 
-import { LoaderFunctionArgs, json } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, json } from "@remix-run/cloudflare";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { Clipboard, DeleteIcon, Pencil, Share, Star, Trash, UserPlus } from "lucide-react";
+import {
+	Clipboard,
+	DeleteIcon,
+	Pencil,
+	Share,
+	Star,
+	Trash,
+	UserPlus,
+} from "lucide-react";
 import { proxy } from "server/proxy";
 import { toast } from "sonner";
 import Navbar from "~/components/Navbar";
 import MemoriesPage from "~/components/memories/MemoriesPage";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "~/components/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -40,7 +52,12 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 
 	try {
 		// Fetch space details and check access
-		const response = await proxy(`/v1/spaces/${spaceId}`, { method: "GET" }, request, context);
+		const response = await proxy(
+			`/v1/spaces/${spaceId}`,
+			{ method: "GET" },
+			request,
+			context,
+		);
 
 		if (!response.ok) {
 			if (response.status === 404) {
@@ -63,7 +80,9 @@ export async function loader({ params, request, context }: LoaderFunctionArgs) {
 	} catch (error) {
 		console.error(
 			"Error loading space:",
-			error instanceof Error ? error.message : "Unknown error " + JSON.stringify(error),
+			error instanceof Error
+				? error.message
+				: "Unknown error " + JSON.stringify(error),
 		);
 		throw new Response("Failed to load space", { status: 500 });
 	}
@@ -99,7 +118,8 @@ export default function SpacePage() {
 	}, [space, navigate]);
 
 	const handleEditName = async () => {
-		if (!editedName.trim() || editedName.trim() === space.name || isUpdating) return;
+		if (!editedName.trim() || editedName.trim() === space.name || isUpdating)
+			return;
 
 		setIsUpdating(true);
 		try {
@@ -124,7 +144,9 @@ export default function SpacePage() {
 				.replace(/^-+|-+$/g, "");
 			navigate(`/space/${space.uuid}---${urlFriendlyName}`);
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to update space name");
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update space name",
+			);
 			setEditedName(space.name); // Reset to original name on error
 		} finally {
 			setIsUpdating(false);
@@ -152,7 +174,9 @@ export default function SpacePage() {
 			toast.success(`Invitation sent to ${email}`);
 			setEmail("");
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to send invite");
+			toast.error(
+				error instanceof Error ? error.message : "Failed to send invite",
+			);
 		} finally {
 			setIsInviting(false);
 		}
@@ -160,11 +184,14 @@ export default function SpacePage() {
 
 	const handleFavorite = async () => {
 		try {
-			const response = await fetch(`/backend/v1/spaces/${space.uuid}/favorite`, {
-				method: isFavorited ? "DELETE" : "POST",
-				headers: { "Content-Type": "application/json" },
-				credentials: "include",
-			});
+			const response = await fetch(
+				`/backend/v1/spaces/${space.uuid}/favorite`,
+				{
+					method: isFavorited ? "DELETE" : "POST",
+					headers: { "Content-Type": "application/json" },
+					credentials: "include",
+				},
+			);
 
 			if (!response.ok) {
 				const data = (await response.json()) as { error: string };
@@ -173,7 +200,9 @@ export default function SpacePage() {
 			}
 
 			setIsFavorited(!isFavorited);
-			toast.success(isFavorited ? "Removed from favorites" : "Added to favorites");
+			toast.success(
+				isFavorited ? "Removed from favorites" : "Added to favorites",
+			);
 		} catch (error) {
 			toast.error("Failed to update favorite status");
 		}
@@ -258,7 +287,9 @@ export default function SpacePage() {
 											size="sm"
 											onClick={handleEditName}
 											disabled={
-												isUpdating || !editedName.trim() || editedName.trim() === space.name
+												isUpdating ||
+												!editedName.trim() ||
+												editedName.trim() === space.name
 											}
 										>
 											{isUpdating ? "Saving..." : "Save"}
@@ -290,7 +321,9 @@ export default function SpacePage() {
 									<div
 										className={`w-2 h-2 rounded-full ${space.isPublic ? "bg-green-500" : "bg-yellow-500"}`}
 									/>
-									<span>{space.isPublic ? "Public Space" : "Private Space"}</span>
+									<span>
+										{space.isPublic ? "Public Space" : "Private Space"}
+									</span>
 								</div>
 							</div>
 							<div className="flex items-center gap-2">
@@ -304,7 +337,9 @@ export default function SpacePage() {
 										<PopoverContent className="w-80">
 											<div className="grid gap-4">
 												<div className="space-y-2">
-													<h4 className="font-medium leading-none">Invite to Space</h4>
+													<h4 className="font-medium leading-none">
+														Invite to Space
+													</h4>
 													<p className="text-sm text-muted-foreground">
 														Invite users to collaborate in this space
 													</p>
@@ -318,13 +353,17 @@ export default function SpacePage() {
 													/>
 													<Select
 														value={accessType}
-														onValueChange={(value: "read" | "edit") => setAccessType(value)}
+														onValueChange={(value: "read" | "edit") =>
+															setAccessType(value)
+														}
 													>
 														<SelectTrigger>
 															<SelectValue placeholder="Select permission" />
 														</SelectTrigger>
 														<SelectContent>
-															{!space.isPublic && <SelectItem value="read">Can View</SelectItem>}
+															{!space.isPublic && (
+																<SelectItem value="read">Can View</SelectItem>
+															)}
 															<SelectItem value="edit">Can Edit</SelectItem>
 														</SelectContent>
 													</Select>
@@ -357,7 +396,10 @@ export default function SpacePage() {
 											onClick={handleFavorite}
 											className={`ml-2 ${isFavorited ? "text-yellow-500" : "text-gray-500"}`}
 										>
-											<Star className="h-4 w-4" fill={isFavorited ? "currentColor" : "none"} />
+											<Star
+												className="h-4 w-4"
+												fill={isFavorited ? "currentColor" : "none"}
+											/>
 										</Button>
 									)}
 							</div>
@@ -365,7 +407,10 @@ export default function SpacePage() {
 					</div>
 
 					<div className="w-full">
-						<MemoriesPage showAddButtons={space.permissions.canEdit} isSpace={true} />
+						<MemoriesPage
+							showAddButtons={space.permissions.canEdit}
+							isSpace={true}
+						/>
 					</div>
 				</div>
 			</div>
@@ -380,7 +425,8 @@ export function ErrorBoundary() {
 			<div className="text-center">
 				<h1 className="text-2xl font-bold">Oops!</h1>
 				<p className="text-muted-foreground">
-					We couldn't load this space. It might not exist or you might not have access to it.
+					We couldn't load this space. It might not exist or you might not have
+					access to it.
 				</p>
 			</div>
 		</div>

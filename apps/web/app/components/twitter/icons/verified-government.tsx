@@ -1,7 +1,12 @@
 import s from "./icons.module.css";
 
 export const VerifiedGovernment = () => (
-	<svg viewBox="0 0 22 22" aria-label="Verified account" role="img" className={s.verified}>
+	<svg
+		viewBox="0 0 22 22"
+		aria-label="Verified account"
+		role="img"
+		className={s.verified}
+	>
 		<g>
 			<path
 				clipRule="evenodd"

@@ -1,6 +1,10 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
-import { LinksFunction, type LoaderFunctionArgs, type MetaFunction } from "@remix-run/cloudflare";
+import type {
+	LinksFunction,
+	LoaderFunctionArgs,
+	MetaFunction,
+} from "@remix-run/cloudflare";
 import {
 	Links,
 	Meta,
@@ -12,7 +16,11 @@ import {
 } from "@remix-run/react";
 
 import { KeyboardProvider } from "./lib/hooks/use-keyboard";
-import { NonFlashOfWrongThemeEls, ThemeProvider, useTheme } from "./lib/theme-provider";
+import {
+	NonFlashOfWrongThemeEls,
+	ThemeProvider,
+	useTheme,
+} from "./lib/theme-provider";
 import { getThemeSession } from "./lib/theme.server";
 import "./tailwind.css";
 
@@ -26,10 +34,14 @@ import "@fontsource/geist-sans/600.css";
 import "@fontsource/geist-sans/700.css";
 import "@fontsource/geist-sans/800.css";
 import "@fontsource/geist-sans/900.css";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+import {
+	QueryClient,
+	QueryClientProvider,
+	useQuery,
+} from "@tanstack/react-query";
 import posthog from "posthog-js";
-import { PostHogProvider, usePostHog} from 'posthog-js/react'
+import { PostHogProvider, usePostHog } from "posthog-js/react";
+import { Toaster } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -108,13 +120,13 @@ export const BackgroundPlus: React.FC<PlusPatternBackgroundProps> = ({
 	);
 };
 
-import { cssBundleHref } from '@remix-run/css-bundle';
-import sonnerStyles from './sonner.css?url';
+import { cssBundleHref } from "@remix-run/css-bundle";
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
+import sonnerStyles from "./sonner.css?url";
 
 export const links: LinksFunction = () => [
-  { rel: 'stylesheet', href: sonnerStyles },
-  ...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : []),
+	{ rel: "stylesheet", href: sonnerStyles },
+	...(cssBundleHref ? [{ rel: "stylesheet", href: cssBundleHref }] : []),
 ];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -174,8 +186,8 @@ const App = React.memo(function App() {
 	);
 });
 
-export default function AppWithProviders() {	
-	const data = useLoaderData<typeof loader>()
+export default function AppWithProviders() {
+	const data = useLoaderData<typeof loader>();
 
 	return (
 		<PostHogProvider client={posthog}>

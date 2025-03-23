@@ -1,38 +1,38 @@
 {
-    "name": "supermemory-extension",
-    "description": "An extension for https://supermemory.ai - an AI hub for all your knowledge.",
-    "private": true,
-    "version": "5.0.200",
-    "type": "module",
-    "scripts": {
-        "dev": "wxt",
-        "dev:firefox": "wxt -b firefox",
-        "build": "wxt build",
-        "build:firefox": "wxt build -b firefox",
-        "zip": "wxt zip",
-        "zip:firefox": "wxt zip -b firefox",
-        "compile": "tsc --noEmit",
-        "postinstall": "wxt prepare"
-    },
-    "dependencies": {
-        "@mozilla/readability": "^0.6.0",
-        "@tailwindcss/vite": "^4.0.15",
-        "@webext-core/messaging": "^2.2.0",
-        "class-variance-authority": "^0.7.1",
-        "clsx": "^2.1.1",
-        "lucide-react": "^0.483.0",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "tailwind-merge": "^3.0.2",
-        "tailwindcss": "^4.0.15",
-        "tw-animate-css": "^1.2.4"
-    },
-    "devDependencies": {
-        "@types/chrome": "^0.0.280",
-        "@types/react": "^19.0.1",
-        "@types/react-dom": "^19.0.2",
-        "@wxt-dev/module-react": "^1.1.2",
-        "typescript": "^5.6.3",
-        "wxt": "^0.19.29"
-    }
+	"name": "supermemory-extension",
+	"description": "An extension for https://supermemory.ai - an AI hub for all your knowledge.",
+	"private": true,
+	"version": "5.0.200",
+	"type": "module",
+	"scripts": {
+		"dev": "wxt",
+		"dev:firefox": "wxt -b firefox",
+		"build": "wxt build",
+		"build:firefox": "wxt build -b firefox",
+		"zip": "wxt zip",
+		"zip:firefox": "wxt zip -b firefox",
+		"compile": "tsc --noEmit",
+		"postinstall": "wxt prepare"
+	},
+	"dependencies": {
+		"@mozilla/readability": "^0.6.0",
+		"@tailwindcss/vite": "^4.0.15",
+		"@webext-core/messaging": "^2.2.0",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"lucide-react": "^0.483.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tailwind-merge": "^3.0.2",
+		"tailwindcss": "^4.0.15",
+		"tw-animate-css": "^1.2.4"
+	},
+	"devDependencies": {
+		"@types/chrome": "^0.0.280",
+		"@types/react": "^19.0.1",
+		"@types/react-dom": "^19.0.2",
+		"@wxt-dev/module-react": "^1.1.2",
+		"typescript": "^5.6.3",
+		"wxt": "^0.19.29"
+	}
 }

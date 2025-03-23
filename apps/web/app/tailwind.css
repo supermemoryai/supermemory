@@ -106,7 +106,7 @@
 
 		--chart-5: 340 75% 55%;
 	}
-  [data-registry="plate"] {
+	[data-registry="plate"] {
 		--background: 0 0% 100%;
 		--foreground: 240 10% 3.9%;
 		--card: 0 0% 100%;
@@ -135,7 +135,7 @@
 		--brand: 217.2 91.2% 59.8%;
 		--highlight: 47.9 95.8% 53.1%;
 	}
-  [data-registry="plate"].dark {
+	[data-registry="plate"].dark {
 		--background: 240 10% 3.9%;
 		--foreground: 0 0% 98%;
 		--card: 240 10% 3.9%;

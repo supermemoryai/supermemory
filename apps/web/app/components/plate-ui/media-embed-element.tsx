@@ -10,7 +10,11 @@ import { CustomTwitterComp } from "../twitter/render-tweet";
 import { Caption, CaptionTextarea } from "./caption";
 import { MediaPopover } from "./media-popover";
 import { PlateElement } from "./plate-element";
-import { Resizable, ResizeHandle, mediaResizeHandleVariants } from "./resizable";
+import {
+	Resizable,
+	ResizeHandle,
+	mediaResizeHandleVariants,
+} from "./resizable";
 
 import { cn, withRef } from "@udecode/cn";
 import { withHOC } from "@udecode/plate-common/react";
@@ -39,7 +43,11 @@ export const MediaEmbedElement = withHOC(
 
 		return (
 			<MediaPopover plugin={MediaEmbedPlugin}>
-				<PlateElement ref={ref} className={cn("relative py-2.5", className)} {...props}>
+				<PlateElement
+					ref={ref}
+					className={cn("relative py-2.5", className)}
+					{...props}
+				>
 					<figure className="group relative m-0 w-full" contentEditable={false}>
 						<Resizable
 							align={align}
@@ -109,7 +117,11 @@ export const MediaEmbedElement = withHOC(
 											"[&_.react-tweet-theme]:ring-2 [&_.react-tweet-theme]:ring-ring [&_.react-tweet-theme]:ring-offset-2",
 									)}
 								>
-									{data ? <CustomTwitterComp tweet={data} /> : <div>Error parsing tweet</div>}
+									{data ? (
+										<CustomTwitterComp tweet={data} />
+									) : (
+										<div>Error parsing tweet</div>
+									)}
 								</div>
 							)}
 

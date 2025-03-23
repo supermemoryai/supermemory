@@ -1,4 +1,4 @@
-import { AppLoadContext } from "@remix-run/cloudflare";
+import type { AppLoadContext } from "@remix-run/cloudflare";
 
 export const proxy = async (
 	path: string,
@@ -12,7 +12,8 @@ export const proxy = async (
 		requestHeaders.set("Cookie", originalRequest.headers.get("Cookie") || "");
 
 		const backendUrl =
-			context.cloudflare.env.BACKEND_URL ?? "https://supermemory-backend.dhravya.workers.dev";
+			context.cloudflare.env.BACKEND_URL ??
+			"https://supermemory-backend.dhravya.workers.dev";
 
 		const response = await fetch(`${backendUrl}${path}`, {
 			...requestOptions,

@@ -1,75 +1,79 @@
 {
-  "$schema": "https://mintlify.com/schema.json",
-  "name": "Supermemory | Memory API for the AI era",
-  "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
-  },
-  "favicon": "/favicon.png",
-  "colors": {
-    "primary": "#1E3A8A",
-    "light": "#3B82F6",
-    "dark": "#1E3A8A",
-    "anchors": {
-      "from": "#1E3A8A",
-      "to": "#3B82F6"
-    }
-  },
-  "topbarLinks": [
-    {
-      "name": "Support",
-      "url": "mailto:dhravya@supermemory.com"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://supermemory.ai"
-  },
-  "tabs": [
-    {
-      "name": "API Reference",
-      "url": "api-reference/endpoints",
-      "openapi": "/openapi.json"
-    },
-    {
-      "name": "Changelog",
-      "url": "changelog/overview"
-    }
-  ],
-  "anchors": [
-    {
-      "name": "Github",
-      "icon": "github",
-      "url": "https://git.new/memory"
-    },
-    {
-      "name": "Community",
-      "icon": "discord",
-      "url": "https://discord.gg/supermemory"
-    },
-    {
-      "name": "X (Twitter)",
-      "icon": "twitter",
-      "url": "https://x.com/supermemoryai"
-    }
-  ],
-  "navigation": [
-    {
-      "group": "Get Started",
-      "pages": ["introduction", "quickstart", "self-hosting"]
-    },
-    {
-      "group": "Essentials",
-      "pages": ["essentials/distinguishing-users", "essentials/architecture", "essentials/pricing"]
-    },
-    {
-      "group": "Changelog",
-      "pages": ["changelog/overview"]
-    }
-  ],
-  "footerSocials": {
-    "x": "https://x.com/supermemoryai",
-    "github": "https://github.com/supermemoryai",
-    "linkedin": "https://linkedin.com/company/supermemoryai"
-  }
+	"$schema": "https://mintlify.com/schema.json",
+	"name": "Supermemory | Memory API for the AI era",
+	"logo": {
+		"dark": "/logo/dark.svg",
+		"light": "/logo/light.svg"
+	},
+	"favicon": "/favicon.png",
+	"colors": {
+		"primary": "#1E3A8A",
+		"light": "#3B82F6",
+		"dark": "#1E3A8A",
+		"anchors": {
+			"from": "#1E3A8A",
+			"to": "#3B82F6"
+		}
+	},
+	"topbarLinks": [
+		{
+			"name": "Support",
+			"url": "mailto:dhravya@supermemory.com"
+		}
+	],
+	"topbarCtaButton": {
+		"name": "Dashboard",
+		"url": "https://supermemory.ai"
+	},
+	"tabs": [
+		{
+			"name": "API Reference",
+			"url": "api-reference/endpoints",
+			"openapi": "/openapi.json"
+		},
+		{
+			"name": "Changelog",
+			"url": "changelog/overview"
+		}
+	],
+	"anchors": [
+		{
+			"name": "Github",
+			"icon": "github",
+			"url": "https://git.new/memory"
+		},
+		{
+			"name": "Community",
+			"icon": "discord",
+			"url": "https://discord.gg/supermemory"
+		},
+		{
+			"name": "X (Twitter)",
+			"icon": "twitter",
+			"url": "https://x.com/supermemoryai"
+		}
+	],
+	"navigation": [
+		{
+			"group": "Get Started",
+			"pages": ["introduction", "quickstart", "self-hosting"]
+		},
+		{
+			"group": "Essentials",
+			"pages": [
+				"essentials/distinguishing-users",
+				"essentials/architecture",
+				"essentials/pricing"
+			]
+		},
+		{
+			"group": "Changelog",
+			"pages": ["changelog/overview"]
+		}
+	],
+	"footerSocials": {
+		"x": "https://x.com/supermemoryai",
+		"github": "https://github.com/supermemoryai",
+		"linkedin": "https://linkedin.com/company/supermemoryai"
+	}
 }

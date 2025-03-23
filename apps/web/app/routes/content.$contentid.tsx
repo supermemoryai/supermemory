@@ -1,13 +1,13 @@
 import Markdown from "react-markdown";
 
-import { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 
 import {
 	authkitLoader,
 	getSessionFromRequest,
 } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { Document } from "@supermemory/db/schema";
+import type { Document } from "@supermemory/db/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { MenuIcon, TrashIcon } from "lucide-react";
 import { proxy } from "server/proxy";
@@ -39,7 +39,12 @@ export const loader = (args: LoaderFunctionArgs) =>
 			});
 		}
 
-		const content = await proxy(`/v1/memories/${contentId}`, {}, request, context);
+		const content = await proxy(
+			`/v1/memories/${contentId}`,
+			{},
+			request,
+			context,
+		);
 
 		if (!content) {
 			throw new Response(null, {
@@ -93,7 +98,10 @@ export default function Content() {
 
 	// Move to space mutation
 	const moveToSpaceMutation = useMutation({
-		mutationFn: async ({ spaceId, documentId }: { spaceId: string; documentId: string }) => {
+		mutationFn: async ({
+			spaceId,
+			documentId,
+		}: { spaceId: string; documentId: string }) => {
 			const response = await fetch("/backend/v1/spaces/moveContent", {
 				method: "POST",
 				headers: {
@@ -107,7 +115,7 @@ export default function Content() {
 			}
 			return response.json() as Promise<{ spaceId: string }>;
 		},
-		onSuccess: ({ spaceId }: {spaceId: string}) => {
+		onSuccess: ({ spaceId }: { spaceId: string }) => {
 			toast.success("Memory moved successfully");
 			queryClient.invalidateQueries({ queryKey: ["memories"] });
 			queryClient.invalidateQueries({ queryKey: ["spaces"] });
@@ -149,7 +157,10 @@ export default function Content() {
 								<DropdownMenuSub>
 									<DropdownMenuSubTrigger>Move to ...</DropdownMenuSubTrigger>
 									<DropdownMenuPortal>
-										<SpaceSelector contentId={content.id} onSelect={handleMoveToSpace} />
+										<SpaceSelector
+											contentId={content.id}
+											onSelect={handleMoveToSpace}
+										/>
 									</DropdownMenuPortal>
 								</DropdownMenuSub>
 								<DropdownMenuItem onSelect={handleDelete}>
@@ -164,7 +175,9 @@ export default function Content() {
 					{content.raw && (
 						<div className="mt-8 p-4 bg-muted rounded-lg">
 							<h2 className="text-lg font-semibold mb-4">Tweet Text</h2>
-							<p className="">{content.raw.split("Metadata for this tweet:")[0]}</p>
+							<p className="">
+								{content.raw.split("Metadata for this tweet:")[0]}
+							</p>
 						</div>
 					)}
 				</div>
@@ -180,7 +193,9 @@ export default function Content() {
 					<div className="flex justify-between items-start">
 						<div>
 							{content.title && (
-								<h1 className="text-4xl font-bold mb-4 text-foreground">{content.title}</h1>
+								<h1 className="text-4xl font-bold mb-4 text-foreground">
+									{content.title}
+								</h1>
 							)}
 
 							<div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -191,7 +206,12 @@ export default function Content() {
 								)}
 								{content.createdAt && (
 									<time className="flex items-center gap-2">
-										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<svg
+											className="w-4 h-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
 											<path
 												strokeLinecap="round"
 												strokeLinejoin="round"
@@ -213,7 +233,12 @@ export default function Content() {
 										rel="noopener noreferrer"
 										className="flex items-center gap-2 hover:text-primary transition-colors"
 									>
-										<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<svg
+											className="w-4 h-4"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
 											<path
 												strokeLinecap="round"
 												strokeLinejoin="round"
@@ -237,7 +262,10 @@ export default function Content() {
 								<DropdownMenuSub>
 									<DropdownMenuSubTrigger>Move to ...</DropdownMenuSubTrigger>
 									<DropdownMenuPortal>
-										<SpaceSelector contentId={content.id} onSelect={handleMoveToSpace} />
+										<SpaceSelector
+											contentId={content.id}
+											onSelect={handleMoveToSpace}
+										/>
 									</DropdownMenuPortal>
 								</DropdownMenuSub>
 								<DropdownMenuItem onSelect={handleDelete}>
@@ -262,7 +290,9 @@ export default function Content() {
 
 				{content.description && (
 					<div className="mb-8 bg-muted/50 p-4 rounded-lg border">
-						<p className="text-muted-foreground italic">{content.description}</p>
+						<p className="text-muted-foreground italic">
+							{content.description}
+						</p>
 					</div>
 				)}
 

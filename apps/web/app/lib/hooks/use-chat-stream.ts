@@ -1,14 +1,26 @@
 import { useEffect, useState } from "react";
 
 import { convertToUIMessages } from "@supermemory/shared";
-import { CoreMessage } from "ai";
+import type { CoreMessage } from "ai";
 import { useChat } from "ai/react";
-import { CreateMessage } from "ai/react";
+import type { CreateMessage } from "ai/react";
 import { toast } from "sonner";
 
-export const useChatStream = (initialMessages: CoreMessage[], initialThreadUuid?: string) => {
+export const useChatStream = (
+	initialMessages: CoreMessage[],
+	initialThreadUuid?: string,
+) => {
 	const [threadUuid, setThreadUuid] = useState(initialThreadUuid || "");
-	const { messages, input, setInput, append, isLoading, error, stop, handleSubmit } = useChat({
+	const {
+		messages,
+		input,
+		setInput,
+		append,
+		isLoading,
+		error,
+		stop,
+		handleSubmit,
+	} = useChat({
 		initialMessages: convertToUIMessages(initialMessages),
 		api: `/backend/v1/chat`,
 		onResponse: (resp) => {
@@ -52,7 +64,9 @@ export const useChatStream = (initialMessages: CoreMessage[], initialThreadUuid?
 					JSON.stringify({
 						files:
 							fileURLs?.map((url) => ({
-								contentType: url.endsWith(".pdf") ? "application/pdf" : "image/jpeg",
+								contentType: url.endsWith(".pdf")
+									? "application/pdf"
+									: "image/jpeg",
 								url: decodeURIComponent(url),
 								name: url.split("/").pop(),
 							})) ?? [],
@@ -81,5 +95,12 @@ export const useChatStream = (initialMessages: CoreMessage[], initialThreadUuid?
 		}
 	}, []);
 
-	return { threadUuid, chatMessages: messages, sendMessage, input, setInput, isLoading };
+	return {
+		threadUuid,
+		chatMessages: messages,
+		sendMessage,
+		input,
+		setInput,
+		isLoading,
+	};
 };

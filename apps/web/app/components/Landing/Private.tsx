@@ -18,8 +18,9 @@ export default function Private() {
 					</h1>
 
 					<p className="text-[#666666] text-lg leading-relaxed max-w-[600px] mx-auto">
-						We take privacy seriously. Your data is fully encrypted, never shared with third
-						parties. Even on the hosted version, we securely store your data in our own servers.
+						We take privacy seriously. Your data is fully encrypted, never
+						shared with third parties. Even on the hosted version, we securely
+						store your data in our own servers.
 					</p>
 
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 max-w-[700px] mx-auto">
@@ -28,7 +29,9 @@ export default function Private() {
 								<div className="w-12 h-12 rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.05)] flex items-center justify-center">
 									<feature.icon className="w-6 h-6 text-[#3B82F6]" />
 								</div>
-								<span className="text-sm text-gray-700 font-medium">{feature.text}</span>
+								<span className="text-sm text-gray-700 font-medium">
+									{feature.text}
+								</span>
 							</div>
 						))}
 					</div>

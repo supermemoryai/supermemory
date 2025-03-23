@@ -2,10 +2,10 @@
 
 // TODO: determine current context and return the correct extension id
 export const getChromeExtensionId = () => {
-    // const context = 
+	// const context =
 	// if (environment === "development") {
 	// 	return "hepmifhfbiehpdlbeigpapkmjcaphfmn";
 	// }
-    // return "lcmcmhklcjciegoakjejefbacbgikncb";
+	// return "lcmcmhklcjciegoakjejefbacbgikncb";
 	return "afpgkkipfdpeaflnpoaffkcankadgjfc";
 };

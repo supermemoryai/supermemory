@@ -1,4 +1,5 @@
-import React, { createContext, useCallback, useContext, useEffect } from "react";
+import type React from "react";
+import { createContext, useCallback, useContext, useEffect } from "react";
 
 // Define types
 type ModifierKey = "command" | "ctrl" | "shift" | "alt" | "meta";
@@ -86,11 +87,17 @@ export function KeyboardProvider({ children }: { children: React.ReactNode }) {
 	);
 }
 
-export function useKeyboardShortcut(keys: Key[], callback: () => void, label?: string) {
+export function useKeyboardShortcut(
+	keys: Key[],
+	callback: () => void,
+	label?: string,
+) {
 	const context = useContext(KeyboardContext);
 
 	if (!context) {
-		throw new Error("useKeyboardShortcut must be used within a KeyboardProvider");
+		throw new Error(
+			"useKeyboardShortcut must be used within a KeyboardProvider",
+		);
 	}
 
 	useEffect(() => {

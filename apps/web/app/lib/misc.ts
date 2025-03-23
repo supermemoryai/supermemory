@@ -3,7 +3,7 @@ import process from "node:process";
 function getRequiredEnvVarFromObj(
 	obj: Record<string, string | undefined>,
 	key: string,
-	devValue: string = `${key}-dev-value`,
+	devValue = `${key}-dev-value`,
 ) {
 	let value = devValue;
 	const envVal = obj[key];
@@ -15,6 +15,9 @@ function getRequiredEnvVarFromObj(
 	return value;
 }
 
-export function getRequiredServerEnvVar(key: string, devValue: string = `${key}-dev-value`) {
+export function getRequiredServerEnvVar(
+	key: string,
+	devValue = `${key}-dev-value`,
+) {
 	return getRequiredEnvVarFromObj(process.env, key, devValue);
 }

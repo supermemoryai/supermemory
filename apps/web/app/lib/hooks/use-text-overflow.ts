@@ -6,7 +6,9 @@ export const useTextOverflow = (content: string, lineCount: number) => {
 
 	const checkOverflow = useCallback(() => {
 		if (contentRef.current) {
-			const lineHeight = parseInt(window.getComputedStyle(contentRef.current).lineHeight);
+			const lineHeight = Number.parseInt(
+				window.getComputedStyle(contentRef.current).lineHeight,
+			);
 			const height = contentRef.current.offsetHeight;
 			setShowFade(height > lineHeight * lineCount);
 		}

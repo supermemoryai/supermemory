@@ -3,11 +3,11 @@ import {
 	cloudflareDevProxyVitePlugin as remixCloudflareDevProxy,
 } from "@remix-run/dev";
 
+import path from "path";
 import adapter from "@hono/vite-dev-server/cloudflare";
 import serverAdapter from "hono-remix-adapter/vite";
-import path from "path";
 import { flatRoutes } from "remix-flat-routes";
-import { UserConfig, defineConfig, loadEnv } from "vite";
+import { type UserConfig, defineConfig, loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const _plugins = [
@@ -40,7 +40,10 @@ export default defineConfig((mode) => {
 		resolve: {
 			alias: {
 				...(mode.mode === "development" && {
-					postgres: path.resolve(__dirname, "../../node_modules/postgres/src/index.js"),
+					postgres: path.resolve(
+						__dirname,
+						"../../node_modules/postgres/src/index.js",
+					),
 				}),
 			},
 			extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".css"],
@@ -49,7 +52,13 @@ export default defineConfig((mode) => {
 			target: "node",
 			noExternal:
 				mode.mode === "development"
-					? ["@udecode/plate-math", "katex", "prismjs", "react-tweet", "drizzle-orm"]
+					? [
+							"@udecode/plate-math",
+							"katex",
+							"prismjs",
+							"react-tweet",
+							"drizzle-orm",
+						]
 					: ["@udecode/plate-math", "katex", "prismjs"],
 		},
 		css: {
@@ -68,7 +77,12 @@ export default defineConfig((mode) => {
 				},
 				onLog(level, log, handler) {
 					// @ts-expect-error
-					if (log.cause?.message?.includes("Can't resolve original location of error.")) return;
+					if (
+						log.cause?.message?.includes(
+							"Can't resolve original location of error.",
+						)
+					)
+						return;
 					handler(level, log);
 				},
 			},

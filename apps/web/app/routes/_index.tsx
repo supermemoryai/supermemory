@@ -1,6 +1,11 @@
 import { Suspense, lazy, memo, useCallback, useEffect, useState } from "react";
 
-import { LoaderFunctionArgs, defer, json, redirect } from "@remix-run/cloudflare";
+import {
+	type LoaderFunctionArgs,
+	defer,
+	json,
+	redirect,
+} from "@remix-run/cloudflare";
 import { useFetcher, useNavigate, useRouteError } from "@remix-run/react";
 import { Await, useLoaderData } from "@remix-run/react";
 
@@ -31,9 +36,12 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 	const timezone = context.cloudflare.cf.timezone;
 
-	const date = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+	const date = new Date(
+		new Date().toLocaleString("en-US", { timeZone: timezone }),
+	);
 	const hour = date.getHours();
-	const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+	const greeting =
+		hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
 	const searchParams = new URL(request.url).searchParams;
 
@@ -52,7 +60,12 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 	}
 
 	try {
-		const recommendedQuestionsPromise = proxy("/v1/recommended-questions", {}, request, context)
+		const recommendedQuestionsPromise = proxy(
+			"/v1/recommended-questions",
+			{},
+			request,
+			context,
+		)
 			.then((response) => response.json())
 			.then((data) => (data as { questions: string[] }).questions ?? null)
 			.catch(() => {
@@ -154,7 +167,8 @@ const HomePage = memo(function HomePage() {
 							<div></div>
 							<div>
 								<h1 className="font-geist text-3xl font-semibold dark:text-neutral-100 text-neutral-700 tracking-[-0.020em]">
-									{greeting}, <span className="text-blue-400">{user?.firstName}</span>
+									{greeting},{" "}
+									<span className="text-blue-400">{user?.firstName}</span>
 								</h1>
 								<div className="mt-4 md:mt-8">
 									<MemoizedMemoryInputForm
@@ -200,7 +214,9 @@ const HomePage = memo(function HomePage() {
 										d="m4.5 5.25 7.5 7.5 7.5-7.5m-15 6 7.5 7.5 7.5-7.5"
 									/>
 								</svg>
-								<p className="text-sm ml-2">Scroll down to view your memories</p>
+								<p className="text-sm ml-2">
+									Scroll down to view your memories
+								</p>
 							</div>
 						</div>
 					</div>
@@ -228,7 +244,9 @@ export function ErrorBoundary() {
 	return (
 		<div className="min-h-screen flex flex-col items-center justify-center p-4">
 			<div className="max-w-md text-center space-y-4">
-				<h1 className="text-4xl font-bold text-primary">Oops! Something went wrong</h1>
+				<h1 className="text-4xl font-bold text-primary">
+					Oops! Something went wrong
+				</h1>
 				<p className="text-lg text-muted-foreground">
 					Supermemory is taking a quick break. We'll be back shortly!
 				</p>

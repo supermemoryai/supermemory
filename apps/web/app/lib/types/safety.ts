@@ -1,4 +1,4 @@
-import { UserContent } from "ai";
+import type { UserContent } from "ai";
 
 export function assertNotString(value: UserContent) {
 	if (typeof value === "string") {

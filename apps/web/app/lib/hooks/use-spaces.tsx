@@ -1,4 +1,4 @@
-import { Space } from "@supermemory/db/schema";
+import type { Space } from "@supermemory/db/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -82,7 +82,9 @@ async function createSpace(data: {
 
 	if (!response.ok) {
 		const error = await response.json();
-		throw new Error((error as { error: string }).error || "Failed to create space");
+		throw new Error(
+			(error as { error: string }).error || "Failed to create space",
+		);
 	}
 
 	return response.json();

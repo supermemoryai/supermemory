@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { EnrichedQuotedTweet, type EnrichedTweet, getMediaUrl, getMp4Video } from "react-tweet";
+import {
+	type EnrichedQuotedTweet,
+	type EnrichedTweet,
+	getMediaUrl,
+	getMp4Video,
+} from "react-tweet";
 import type { MediaAnimatedGif, MediaVideo } from "react-tweet/api";
 
 import s from "./tweet-media-video.module.css";
@@ -66,7 +71,11 @@ export const TweetMediaVideo = ({ tweet, media }: Props) => {
 						video.focus();
 					}}
 				>
-					<svg viewBox="0 0 24 24" className={s.videoButtonIcon} aria-hidden="true">
+					<svg
+						viewBox="0 0 24 24"
+						className={s.videoButtonIcon}
+						aria-hidden="true"
+					>
 						<g>
 							<path d="M21 12L4 2v20l17-10z"></path>
 						</g>
@@ -76,7 +85,12 @@ export const TweetMediaVideo = ({ tweet, media }: Props) => {
 
 			{!isPlaying && !ended && (
 				<div className={s.watchOnTwitter}>
-					<a href={tweet.url} className={s.anchor} target="_blank" rel="noopener noreferrer">
+					<a
+						href={tweet.url}
+						className={s.anchor}
+						target="_blank"
+						rel="noopener noreferrer"
+					>
 						{playButton ? "Watch on X" : "Continue watching on X"}
 					</a>
 				</div>

@@ -1,15 +1,21 @@
 // invitation page. user should be logged in to see this page.
 import { useEffect } from "react";
 
-import { LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 
 import { getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
-import { Space } from "@supermemory/db/schema";
+import type { Space } from "@supermemory/db/schema";
 import posthog from "posthog-js";
 import { proxy } from "server/proxy";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "~/components/ui/card";
 
 export async function loader({ request, params, context }: LoaderFunctionArgs) {
 	const user = await getSessionFromRequest(request, context);
@@ -25,7 +31,12 @@ export async function loader({ request, params, context }: LoaderFunctionArgs) {
 
 	try {
 		// Check if user has pending invitation
-		const response = await proxy(`/v1/spaces/${spaceId}/invitation`, {}, request, context);
+		const response = await proxy(
+			`/v1/spaces/${spaceId}/invitation`,
+			{},
+			request,
+			context,
+		);
 
 		const myJson = await response.json();
 
@@ -97,7 +108,9 @@ export default function SpaceInvitation() {
 						<div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
 							<p className="text-sm text-gray-600 dark:text-gray-300">
 								Access Level:{" "}
-								<span className="font-medium capitalize">{invitation.accessType}</span>
+								<span className="font-medium capitalize">
+									{invitation.accessType}
+								</span>
 							</p>
 						</div>
 						<div className="flex flex-col sm:flex-row gap-3">

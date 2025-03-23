@@ -1,15 +1,19 @@
 import { useEffect } from "react";
 
-import { LoaderFunctionArgs } from "@remix-run/cloudflare";
+import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { useLoaderData } from "@remix-run/react";
 
 import { Logo } from "../components/icons/Logo";
 import { Theme, useTheme } from "../lib/theme-provider";
 
-import { authkitLoader, getSessionFromRequest } from "@supermemory/authkit-remix-cloudflare/src/session";
+import {
+	authkitLoader,
+	getSessionFromRequest,
+} from "@supermemory/authkit-remix-cloudflare/src/session";
 import { motion } from "framer-motion";
 
-export const loader = (args: LoaderFunctionArgs) => authkitLoader(args, { ensureSignedIn: true });
+export const loader = (args: LoaderFunctionArgs) =>
+	authkitLoader(args, { ensureSignedIn: true });
 
 export default function Onboarding() {
 	const { user } = useLoaderData<typeof loader>();
@@ -27,7 +31,6 @@ export default function Onboarding() {
 			animate={{ opacity: 1 }}
 			className="flex flex-col min-h-screen items-center pt-20 relative overflow-hidden bg-gradient-to-b from-gray-900 to-gray-800 bg-opacity-40"
 		>
-
 			{/* Logo */}
 			<motion.div
 				initial={{ y: 20, opacity: 0 }}
@@ -44,27 +47,36 @@ export default function Onboarding() {
 				transition={{ duration: 0.8, delay: 0.2 }}
 				className="flex flex-col gap-2 items-center mt-8 text-white relative z-10"
 			>
-				<h1 className="text-xl font-geist font-medium">Your privacy is our priority</h1>
+				<h1 className="text-xl font-geist font-medium">
+					Your privacy is our priority
+				</h1>
 				<div className="flex flex-col gap-4 text-base font-geist max-w-md text-center font-light text-gray-200">
 					<p className="select-text">
-						We use Cloudflare's "bindings" architecture, meaning encryption keys are never exposed -
-						not even to our developers. Your data remains encrypted and inaccessible without your
-						authorization.
+						We use Cloudflare's "bindings" architecture, meaning encryption keys
+						are never exposed - not even to our developers. Your data remains
+						encrypted and inaccessible without your authorization.
 					</p>
 					<p className="select-text">
-						Our entire codebase is open source and available for security review at{" "}
-						<a href="https://git.new/memory" className="text-blue-400 hover:text-blue-300 cursor-pointer">
+						Our entire codebase is open source and available for security review
+						at{" "}
+						<a
+							href="https://git.new/memory"
+							className="text-blue-400 hover:text-blue-300 cursor-pointer"
+						>
 							git.new/memory
 						</a>
 						. We believe transparency builds trust.
 					</p>
 					<p className="select-text">
-						Your data is encrypted at rest and in transit, and we use industry-standard encryption.
-						You maintain full control over your data, including the right to export or delete it at
-						any time.
+						Your data is encrypted at rest and in transit, and we use
+						industry-standard encryption. You maintain full control over your
+						data, including the right to export or delete it at any time.
 					</p>
 					<p className="text-sm mt-2 select-text">
-						<a href="/privacy" className="text-blue-400 hover:text-blue-300 cursor-pointer">
+						<a
+							href="/privacy"
+							className="text-blue-400 hover:text-blue-300 cursor-pointer"
+						>
 							Read our detailed privacy policy →
 						</a>
 					</p>

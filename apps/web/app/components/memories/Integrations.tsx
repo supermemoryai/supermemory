@@ -4,7 +4,12 @@ import { useNavigate, useRouteLoaderData } from "@remix-run/react";
 
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogTitle,
+} from "../ui/dialog";
 import { CSVUploadModal } from "./CSVUploadModal";
 import { MarkdownUploadModal } from "./MarkdownUploadModal";
 
@@ -22,7 +27,7 @@ import { toast } from "sonner";
 import { type IntegrationConfig, getIntegrations } from "~/config/integrations";
 import { getChromeExtensionId } from "~/config/util";
 import { cn } from "~/lib/utils";
-import { loader } from "~/root";
+import type { loader } from "~/root";
 
 function IntegrationButton({
 	integration,
@@ -56,7 +61,9 @@ function IntegrationButton({
 				)}
 
 				<div className="text-center">
-					<h3 className="font-semibold text-neutral-900 dark:text-white">{integration.name}</h3>
+					<h3 className="font-semibold text-neutral-900 dark:text-white">
+						{integration.name}
+					</h3>
 					<p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 hidden md:block">
 						{integration.description}
 					</p>
@@ -93,9 +100,13 @@ function LoadingIntegration({
 				window.addEventListener("message", handleMessage);
 
 				// Check if extension is present
-				chrome?.runtime.sendMessage(getChromeExtensionId(), { action: "ping" }, (response: any) => {
-					setExtensionPresent(!chrome?.runtime.lastError);
-				});
+				chrome?.runtime.sendMessage(
+					getChromeExtensionId(),
+					{ action: "ping" },
+					(response: any) => {
+						setExtensionPresent(!chrome?.runtime.lastError);
+					},
+				);
 
 				return () => {
 					window.removeEventListener("message", handleMessage);
@@ -124,23 +135,32 @@ function LoadingIntegration({
 					<div className="text-center">
 						<CheckCircle className="mx-auto h-12 w-12 text-green-500" />
 						<DialogTitle className="mt-4">Import Complete!</DialogTitle>
-						<DialogDescription>Your X bookmarks have been successfully imported.</DialogDescription>
+						<DialogDescription>
+							Your X bookmarks have been successfully imported.
+						</DialogDescription>
 					</div>
 				) : (
 					<div className="text-center">
 						{integration.icon && (
 							<motion.div
 								animate={{ rotate: 360 }}
-								transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+								transition={{
+									duration: 2,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "linear",
+								}}
 								className="w-12 h-12 mx-auto"
 							>
 								<integration.icon className="h-full w-full text-neutral-900 dark:text-white" />
 							</motion.div>
 						)}
-						<DialogTitle className="mt-4">Importing from {integration.name}...</DialogTitle>
+						<DialogTitle className="mt-4">
+							Importing from {integration.name}...
+						</DialogTitle>
 						<DialogDescription className="mt-4">
-							The import has started. It will keep going in the background. You can close this modal
-							and enjoy supermemory! (You might need to reload to see the changes!)
+							The import has started. It will keep going in the background. You
+							can close this modal and enjoy supermemory! (You might need to
+							reload to see the changes!)
 						</DialogDescription>
 						<Button variant="outline" onClick={onCancel} className="mt-4">
 							Cancel
@@ -157,7 +177,8 @@ function Integrations() {
 	const data = useRouteLoaderData<typeof loader>("root");
 	const env = data?.ENV || {};
 	const integrations = getIntegrations(env);
-	const [loadingIntegration, setLoadingIntegration] = useState<IntegrationConfig | null>(null);
+	const [loadingIntegration, setLoadingIntegration] =
+		useState<IntegrationConfig | null>(null);
 	const [apiKey, setApiKey] = useState<string | null>(null);
 	const [copied, setCopied] = useState(false);
 	const [isCSVModalOpen, setIsCSVModalOpen] = useState(false);
@@ -216,7 +237,8 @@ function Integrations() {
 					Import your content
 				</h2>
 				<p className="mt-3 text-base md:text-lg text-neutral-600 dark:text-neutral-400">
-					Connect your favorite platforms to import your content into Supermemory
+					Connect your favorite platforms to import your content into
+					Supermemory
 				</p>
 			</div>
 
@@ -236,7 +258,12 @@ function Integrations() {
 						>
 							<span className="flex-shrink-0 text-neutral-400 dark:text-neutral-500 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-all">
 								{copied ? (
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
 										<path
 											strokeLinecap="round"
 											strokeLinejoin="round"
@@ -245,7 +272,12 @@ function Integrations() {
 										/>
 									</svg>
 								) : (
-									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg
+										className="w-4 h-4"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
 										<path
 											strokeLinecap="round"
 											strokeLinejoin="round"
@@ -260,7 +292,9 @@ function Integrations() {
 							</span>
 						</button>
 					) : (
-						<div className="flex-1 text-sm text-neutral-600 dark:text-neutral-400">Loading...</div>
+						<div className="flex-1 text-sm text-neutral-600 dark:text-neutral-400">
+							Loading...
+						</div>
 					)}
 				</div>
 			</div>
@@ -421,7 +455,9 @@ function Integrations() {
 							</svg>
 						</div>
 						<div className="text-center">
-							<h3 className="font-semibold text-neutral-900 dark:text-white">Obsidian</h3>
+							<h3 className="font-semibold text-neutral-900 dark:text-white">
+								Obsidian
+							</h3>
 							<p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 hidden md:block">
 								Import notes from your Obsidian vault
 							</p>
@@ -439,7 +475,9 @@ function Integrations() {
 							<FileUpIcon className="transition-transform group-hover:scale-110 text-blue-500" />
 						</div>
 						<div className="text-center">
-							<h3 className="font-semibold text-neutral-900 dark:text-white">CSV Upload</h3>
+							<h3 className="font-semibold text-neutral-900 dark:text-white">
+								CSV Upload
+							</h3>
 							<p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 hidden md:block">
 								Bulk import URLs from a CSV file
 							</p>
@@ -463,7 +501,10 @@ function Integrations() {
 				/>
 			)}
 
-			<CSVUploadModal isOpen={isCSVModalOpen} onClose={() => setIsCSVModalOpen(false)} />
+			<CSVUploadModal
+				isOpen={isCSVModalOpen}
+				onClose={() => setIsCSVModalOpen(false)}
+			/>
 			<MarkdownUploadModal
 				isOpen={isMarkdownModalOpen}
 				onClose={() => setIsMarkdownModalOpen(false)}
@@ -486,7 +527,9 @@ function Integrations() {
 
 type ImportStatus = "idle" | "loading" | "success" | "error";
 
-export function IntegrationModals({ integrationId }: { integrationId: string }) {
+export function IntegrationModals({
+	integrationId,
+}: { integrationId: string }) {
 	const [status, setStatus] = useState<ImportStatus>("idle");
 	const [progress, setProgress] = useState<number>(0);
 	const [isModalOpen, setIsModalOpen] = useState(true);
@@ -503,9 +546,12 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 		let toastId: string | number | undefined;
 
 		try {
-			const eventSource = new EventSource(`/backend/v1/integrations/notion/import`, {
-				withCredentials: true,
-			});
+			const eventSource = new EventSource(
+				`/backend/v1/integrations/notion/import`,
+				{
+					withCredentials: true,
+				},
+			);
 
 			eventSource.onmessage = (event) => {
 				try {
@@ -513,11 +559,17 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 					if (data.progress) {
 						setProgress(data.progress);
 						if (data.page) {
-							toastId = toast.loading(`Importing ${data.page}... ${data.progress}%`, {
-								id: toastId,
-							});
+							toastId = toast.loading(
+								`Importing ${data.page}... ${data.progress}%`,
+								{
+									id: toastId,
+								},
+							);
 						} else {
-							toastId = toast.loading(`Importing from Notion: ${data.progress}%`, { id: toastId });
+							toastId = toast.loading(
+								`Importing from Notion: ${data.progress}%`,
+								{ id: toastId },
+							);
 						}
 					}
 					if (data.warning) {
@@ -530,7 +582,9 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 						eventSource.close();
 						setStatus("success");
 						if (toastId) {
-							toast.success("Successfully imported from Notion!", { id: toastId });
+							toast.success("Successfully imported from Notion!", {
+								id: toastId,
+							});
 						} else {
 							toast.success("Successfully imported from Notion!");
 						}
@@ -543,11 +597,16 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 					eventSource.close();
 					setStatus("error");
 					if (toastId) {
-						toast.error(e instanceof Error ? e.message : "Failed to import from Notion", {
-							id: toastId,
-						});
+						toast.error(
+							e instanceof Error ? e.message : "Failed to import from Notion",
+							{
+								id: toastId,
+							},
+						);
 					} else {
-						toast.error(e instanceof Error ? e.message : "Failed to import from Notion");
+						toast.error(
+							e instanceof Error ? e.message : "Failed to import from Notion",
+						);
 					}
 				}
 			};
@@ -566,11 +625,20 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 			console.error("Import error:", error);
 			setStatus("error");
 			if (toastId) {
-				toast.error(error instanceof Error ? error.message : "Failed to import from Notion", {
-					id: toastId,
-				});
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Failed to import from Notion",
+					{
+						id: toastId,
+					},
+				);
 			} else {
-				toast.error(error instanceof Error ? error.message : "Failed to import from Notion");
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Failed to import from Notion",
+				);
 			}
 		}
 	};
@@ -607,7 +675,9 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 						<>
 							<div className="relative">
 								<div className="absolute inset-0 flex items-center justify-center">
-									<span className="text-lg font-semibold text-blue-500">{progress}%</span>
+									<span className="text-lg font-semibold text-blue-500">
+										{progress}%
+									</span>
 								</div>
 								<svg className="size-20 md:size-24 -rotate-90 transform">
 									<circle
@@ -639,8 +709,8 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 									Importing from Notion
 								</h3>
 								<p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-									This may take a few minutes. You can close this modal and let it run in the
-									background.
+									This may take a few minutes. You can close this modal and let
+									it run in the background.
 								</p>
 							</div>
 						</>
@@ -682,7 +752,11 @@ export function IntegrationModals({ integrationId }: { integrationId: string }) 
 								<p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
 									Please try again or contact support if the issue persists
 								</p>
-								<Button onClick={handleNotionImport} variant="outline" className="mt-4">
+								<Button
+									onClick={handleNotionImport}
+									variant="outline"
+									className="mt-4"
+								>
 									Retry Import
 								</Button>
 							</div>

@@ -1,4 +1,4 @@
-import { database, eq } from "@supermemory/db";
+import { type database, eq } from "@supermemory/db";
 import { users } from "@supermemory/db/schema";
 import { Stripe } from "stripe";
 import { allowedEvents } from "./stripe.constants";
@@ -46,7 +46,9 @@ export async function syncStripeDataToDb(
 	// Check one-time purchases if no active subscription
 	if (tier === "free" && charges.data.length > 0) {
 		// Look for successful lifetime purchase
-		const lifetimePurchase = charges.data.find((charge) => charge.paid && charge.amount >= 19900);
+		const lifetimePurchase = charges.data.find(
+			(charge) => charge.paid && charge.amount >= 19900,
+		);
 		if (lifetimePurchase) {
 			tier = "premium";
 		}

@@ -29,5 +29,7 @@ export const VerifiedBadge = ({ user, className }: Props) => {
 		}
 	}
 
-	return verified ? <div className={clsx(className, iconClassName)}>{icon}</div> : null;
+	return verified ? (
+		<div className={clsx(className, iconClassName)}>{icon}</div>
+	) : null;
 };
