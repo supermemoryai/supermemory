@@ -1,4 +1,4 @@
-import { getBaseURL } from "@/lib/utils";
+import { getBaseURL } from "@/utils";
 import { features } from "./twitter.constants";
 
 const DEBUG = true;
@@ -70,7 +70,7 @@ export const handleExportXBookmarks = async () => {
       try {
         await chrome.scripting.executeScript({
           target: { tabId: currentTab.id },
-          files: ["scripts/content.js"],
+          files: ["content-scripts/content.js"],
         });
       } catch (error) {
         console.error("Error injecting content script:", error);
