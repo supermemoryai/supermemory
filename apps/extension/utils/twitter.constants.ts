@@ -29,4 +29,4 @@ export const features = {
     responsive_web_grok_analyze_button_fetch_trends_enabled: true,
     responsive_web_grok_analyze_post_followups_enabled: true,
     responsive_web_grok_share_attachment_enabled: true,
-  };
+}

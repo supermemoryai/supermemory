@@ -1,11 +1,11 @@
-import Markdown from "react-markdown";
+import Markdown from "react-markdown"
 
 function Page() {
-	return (
-		<div className="flex flex-col items-center justify-center mt-8">
-			<div className="max-w-3xl prose md:prose-lg dark:prose-invert">
-				<Markdown>
-					{`
+    return (
+        <div className="flex flex-col items-center justify-center mt-8">
+            <div className="max-w-3xl prose md:prose-lg dark:prose-invert">
+                <Markdown>
+                    {`
             Privacy Policy for Supermemory.ai
 # Introduction
 This Privacy Policy provides detailed information on the handling, storage, and protection of your personal information by Supermemory.ai - A web app and a browser extension developed and owned by Dhravya Shah and Supermemory team in 2024. The extension is designed to enhance your browsing experience by providing contextual information based on the content of the web pages you visit. This policy outlines the types of data collected by Supermemory.ai, how it is used, and the measures we take to protect your privacy.
@@ -62,10 +62,10 @@ Email: privacy@supermemory.ai
 This document was last updated on February 14, 2025.
 
 `}
-				</Markdown>
-			</div>
-		</div>
-	);
+                </Markdown>
+            </div>
+        </div>
+    )
 }
 
-export default Page;
+export default Page

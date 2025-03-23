@@ -42,7 +42,6 @@ yarn-error.log*
 
 # IDE specific files
 .idea/
-.vscode/
 *.swp
 *.swo
 

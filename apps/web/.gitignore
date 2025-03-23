@@ -16,3 +16,5 @@ bun.lockb
 # Million Lint
 .million
 database.sql
+
+bun.lock
