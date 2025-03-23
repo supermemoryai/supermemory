@@ -16,8 +16,7 @@ export default defineConfig({
     runner: {
         openConsole: true,
         startUrls: ["http://localhost:3000", "https://supermemory.ai"],
-        chromiumProfile:
-            "/Users/shreyans/Library/Application Support/Google/Chrome/Default",
+        chromiumArgs: ["--user-data-dir=./.wxt/chrome-data"],
     },
     manifest: {
         name: "Supermemory",

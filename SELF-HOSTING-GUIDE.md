@@ -34,7 +34,7 @@ bun run migrate:local
 
 ```env
 WORKOS_API_KEY=your_workos_api_key
-WORKOS_CLIENT_ID=your_workos_client_id 
+WORKOS_CLIENT_ID=your_workos_client_id
 WORKOS_COOKIE_PASSWORD=your_cookie_password
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/supermemory"
 CONTENT_WORKFLOW=your_content_workflow
@@ -53,7 +53,7 @@ WORKOS_CLIENT_ID=your_workos_client_id
 WORKOS_API_KEY=your_workos_api_key
 WORKOS_REDIRECT_URI="http://localhost:3000/callback"
 WORKOS_COOKIE_PASSWORD=your_cookie_password
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/supermemorydhravya"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/supermemory"
 
 CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
 R2_ACCESS_KEY_ID=your_r2_access_key_id
