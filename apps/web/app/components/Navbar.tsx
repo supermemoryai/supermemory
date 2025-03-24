@@ -91,11 +91,13 @@ function Navbar({ user }: { user?: User }) {
 								</DropdownMenuLabel>
 								<DropdownMenuSeparator />
 								<DropdownMenuGroup>
+									{/* TODO: Add profile modal */}
+									{/* <ProfileModal>
 									<DropdownMenuItem>
 										<UserIcon className="mr-2 h-4 w-4" />
 										<span>Profile</span>
-										<DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
 									</DropdownMenuItem>
+									</ProfileModal> */}
 									<DropdownMenuItem onSelect={toggleTheme}>
 										{theme === Theme.LIGHT ? (
 											<Sun className="mr-2 h-4 w-4" />
@@ -105,13 +107,13 @@ function Navbar({ user }: { user?: User }) {
 										<span>{theme === Theme.LIGHT ? "Dark mode" : "Light mode"}</span>
 									</DropdownMenuItem>
 									<DropdownMenuItem asChild>
-										<a href="https://portal.productboard.com/8rhspck6pdelv78mptczaena" target="_blank">
+										<a href="https://portal.productboard.com/8rhspck6pdelv78mptczaena" target="_blank" rel="noreferrer">
 											<LifeBuoy className="mr-2 h-4 w-4" />
 											<span>Support</span>
 										</a>
 									</DropdownMenuItem>
 									<DropdownMenuItem asChild>
-										<a href="https://api.supermemory.ai" target="_blank">
+										<a href="https://api.supermemory.ai" target="_blank" rel="noreferrer">
 											<Cloud className="mr-2 h-4 w-4" />
 											<span>API</span>
 										</a>
