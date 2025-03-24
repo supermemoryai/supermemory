@@ -11,6 +11,11 @@
       "description": "Production Server"
     }
   ],
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
   "paths": {
     "/add": {
       "post": {
@@ -375,5 +380,15 @@
       }
     }
   },
-  "components": { "schemas": {} }
+  "components": {
+    "schemas": {},
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key for authentication"
+      }
+    }
+  }
 }
