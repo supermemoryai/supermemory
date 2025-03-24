@@ -29,7 +29,8 @@
     {
       "name": "API Reference",
       "url": "api-reference/endpoints",
-      "openapi": "https://v2.api.supermemory.ai/openapi"
+      "openapi": "https://v2.api.supermemory.ai/openapi",
+      "version": "3.1.0"
     },
     {
       "name": "Changelog",
