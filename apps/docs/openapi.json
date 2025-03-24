@@ -6,7 +6,6 @@
     "version": "2.0.0"
   },
   "servers": [
-    { "url": "http://localhost:3000", "description": "Local Server" },
     {
       "url": "https://v2.api.supermemory.ai",
       "description": "Production Server"
@@ -51,12 +50,6 @@
         "tags": ["Memory Management"],
         "parameters": [],
         "description": "Add a new memory with content and metadata",
-        "request": {
-          "body": {
-            "description": "Memory content and metadata",
-            "content": { "application/json": { "schema": {} } }
-          }
-        },
         "requestBody": {
           "content": {
             "application/json": {
@@ -132,13 +125,6 @@
           }
         ],
         "description": "Update an existing memory",
-        "request": {
-          "params": { "description": "Memory ID", "schema": {} },
-          "body": {
-            "description": "Updated memory content",
-            "content": { "application/json": { "schema": {} } }
-          }
-        },
         "requestBody": {
           "content": {
             "application/json": {
@@ -206,8 +192,7 @@
             "required": true
           }
         ],
-        "description": "Delete a memory",
-        "request": { "params": { "description": "Memory ID", "schema": {} } }
+        "description": "Delete a memory"
       }
     },
     "/search": {
@@ -283,12 +268,6 @@
         "tags": ["Search"],
         "parameters": [],
         "description": "Search through documents with metadata filtering",
-        "request": {
-          "body": {
-            "description": "Search parameters",
-            "content": { "application/json": { "schema": {} } }
-          }
-        },
         "requestBody": {
           "content": {
             "application/json": {
@@ -392,10 +371,7 @@
             "required": false
           }
         ],
-        "description": "Fast, lossy search using quantized embeddings",
-        "request": {
-          "query": { "description": "Search parameters", "schema": {} }
-        }
+        "description": "Fast, lossy search using quantized embeddings"
       }
     }
   },
