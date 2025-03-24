@@ -106,7 +106,7 @@
 
 		--chart-5: 340 75% 55%;
 	}
-  [data-registry="plate"] {
+	[data-registry="plate"] {
 		--background: 0 0% 100%;
 		--foreground: 240 10% 3.9%;
 		--card: 0 0% 100%;
@@ -135,7 +135,7 @@
 		--brand: 217.2 91.2% 59.8%;
 		--highlight: 47.9 95.8% 53.1%;
 	}
-  [data-registry="plate"].dark {
+	[data-registry="plate"].dark {
 		--background: 240 10% 3.9%;
 		--foreground: 0 0% 98%;
 		--card: 240 10% 3.9%;
@@ -183,4 +183,71 @@
 	.fade-overlay {
 		@apply absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent;
 	}
+}
+
+/* Base state - scrollbar always present but invisible */
+.md\:overflow-y-scroll::-webkit-scrollbar {
+	width: 4px; /* Thin scrollbar */
+	background-color: transparent;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.md\:overflow-y-scroll::-webkit-scrollbar-track {
+	background-color: rgba(240, 240, 240, 0.1); /* Very subtle light track in light mode */
+}
+
+.md\:overflow-y-scroll::-webkit-scrollbar-thumb {
+	background-color: rgba(155, 155, 155, 0.5); /* Light gray thumb */
+	border-radius: 10px;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+/* Show scrollbar on hover */
+.md\:overflow-y-scroll:hover::-webkit-scrollbar,
+.md\:overflow-y-scroll:hover::-webkit-scrollbar-thumb {
+	opacity: 1;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+	.md\:overflow-y-scroll::-webkit-scrollbar-track {
+		background-color: rgba(50, 50, 50, 0.1); /* Subtle dark track in dark mode */
+	}
+
+	.md\:overflow-y-scroll::-webkit-scrollbar-thumb {
+		background-color: rgba(180, 180, 180, 0.5); /* Slightly lighter thumb for dark mode */
+	}
+}
+
+/* For Firefox */
+.md\:overflow-y-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(155, 155, 155, 0) transparent; /* Start with opacity 0 */
+	transition: scrollbar-color 0.2s ease;
+}
+
+.md\:overflow-y-scroll:hover {
+	scrollbar-color: rgba(155, 155, 155, 0.5) rgba(240, 240, 240, 0.1); /* Light mode colors */
+}
+
+/* Dark mode for Firefox */
+@media (prefers-color-scheme: dark) {
+	.md\:overflow-y-scroll:hover {
+		scrollbar-color: rgba(180, 180, 180, 0.5) rgba(50, 50, 50, 0.1); /* Dark mode colors */
+	}
+}
+
+/* For your specific dark mode class */
+.dark .md\:overflow-y-scroll::-webkit-scrollbar-track {
+	background-color: rgba(50, 50, 50, 0.1);
+}
+
+.dark .md\:overflow-y-scroll::-webkit-scrollbar-thumb {
+	background-color: rgba(180, 180, 180, 0.5);
+}
+
+.dark .md\:overflow-y-scroll:hover {
+	scrollbar-color: rgba(180, 180, 180, 0.5) rgba(50, 50, 50, 0.1);
 }
