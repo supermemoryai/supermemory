@@ -65,21 +65,6 @@
     {
       "group": "Changelog",
       "pages": ["changelog/overview"]
-    },
-    {
-      "group": "Memory Management",
-      "pages": [
-        "api-reference/endpoints/memory-management/post-add",
-        "api-reference/endpoints/memory-management/put-update",
-        "api-reference/endpoints/memory-management/delete-delete"
-      ]
-    },
-    {
-      "group": "Search",
-      "pages": [
-        "api-reference/endpoints/search/post-search",
-        "api-reference/endpoints/search/get-fastsearch"
-      ]
     }
   ],
   "footerSocials": {
