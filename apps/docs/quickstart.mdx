@@ -5,26 +5,18 @@ description: "Start using Supermemory API in under 5 minutes"
 
 To use the Supermemory API, you'll need:
 
-1. An API key (get one by signing up at [supermemory.ai](https://supermemory.ai))
+1. An API key (get one by signing up at https://dev.supermemory.ai )
 2. Basic understanding of REST APIs
 3. A tool to make HTTP requests (like curl, Postman, or your favorite programming language)
 
 <AccordionGroup>
-  <Accordion icon="key" title="Getting Your API Key">
-    1. Login into [supermemory.ai](https://supermemory.ai) and click on the "Add Memory" button
+  <Accordion title="Getting Your API Key" icon="key">
+    1. Login into https://dev.supermemory.ai and create an organization
+    2. Create an api key, copy and save it securely.
 
-    ![Login to Supermemory](/images/setup/1.png)
-
-    2. Click on "Integrations" in the navigation menu
-
-    ![Navigate to Add Memory](/images/setup/2.png)
-
-    3. You'll see your API key, you can copy it by clicking on the copy button
-
-    ![View API Key in Integrations](/images/setup/3.png)
+    ![image.png](/apps/docs/image.png)
 
     Keep your API key secure and never share it publicly. You'll need this key for authenticating all API requests.
-
   </Accordion>
 </AccordionGroup>
 
@@ -33,14 +25,14 @@ To use the Supermemory API, you'll need:
 All API requests should be made to:
 
 ```
-https://api.supermemory.ai/v1
+https://v2.api.supermemory.ai
 ```
 
 ## Add your first memory
 
 ```bash
-curl -X POST https://api.supermemory.ai/v1/add \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl -X POST https://v2.api.supermemory.ai/add \
+  -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"content": "This is the content of my first memory."}'
 ```
@@ -52,24 +44,12 @@ Try it out in the [API Playground](/api-reference/endpoints/add-new-content)
 ## Search your memories
 
 ```bash
-curl -X GET https://api.supermemory.ai/v1/search \
+curl -X GET https://v2.api.supermemory.ai/search \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"query": "This is the content of my first memory."}'
+  -d '{"q": "This is the content of my first memory."}'
 ```
 
 Try it out in the [API Playground](/api-reference/endpoints/search-content)
 
-## Get your memories
-
-```bash
-curl -X GET https://api.supermemory.ai/v1/memories \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json"
-```
-
-This will return a list of all your memories.
-
-Try it out in the [API Playground](/api-reference/endpoints/list-memories)
-
-That's it! You've now added your first memory and searched for it.
+That's it\\! You've now added your first memory and searched for it.

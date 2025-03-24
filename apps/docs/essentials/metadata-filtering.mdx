@@ -1,0 +1,78 @@
+---
+title: "Managing Multi-User Search Results"
+description: "Learn how to handle search results for different users in Supermemory"
+icon: "users"
+---
+
+When building multi-user applications with Supermemory, you'll often need to manage data for different users accessing the same account.
+
+You might also want filters, like memories from **_multiple users_**, or in a certain **_time range_**, or products within a certain price category.
+
+You can do all this filtering using Supermemory's api.
+
+Here's a quick example
+
+```json [expandable]
+{
+    "AND": [
+        {
+            "filterType": "numeric",
+            "key": "timestamp",
+            "value": "1742745777",
+            "negate": false,
+            "numericOperator": ">"
+        },
+        {
+            "key": "group",
+            "value": "jira_users",
+            "negate": false
+        },
+        {
+            "OR": [
+                {
+                    "key": "team_name",
+                    "value": "engineering",
+                    "negate": false
+                },
+                {
+                    "key": "org_name",
+                    "value": "supermemory",
+                    "negate": false
+                }
+            ]
+        }
+    ]
+}
+```
+
+You can compose these conditions together to add filtering:
+
+- `AND`
+- `OR`
+- `numeric` (greater than / less than)
+
+Here's an example call:
+
+```bash
+curl --location 'https://v2.api.supermemory.ai/search' \
+--header 'x-api-key: supermemory_RXPx' \
+--header 'Content-Type: application/json' \
+--data '{
+    "q": "How to use teamcity to set up a project?",
+    "limit": 10,
+    "filters":  {
+                "AND": [
+                    {
+                        "key": "book",
+                        "value": "maths",
+                        "negate": false
+                    },
+                    {
+                        "key": "author",
+                        "value": "r.d. sharma",
+                        "negate": false
+                    }
+                ]
+            }
+}'
+```
