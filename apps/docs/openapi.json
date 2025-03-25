@@ -11,12 +11,55 @@
       "description": "Production Server"
     }
   ],
-  "security": [
-    {
-      "ApiKeyAuth": []
-    }
-  ],
   "paths": {
+    "/settings": {
+      "put": {
+        "responses": {},
+        "operationId": "putSettings",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "categories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 50
+                    }
+                  },
+                  "filterPrompt": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 750
+                  },
+                  "includeItems": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20
+                    }
+                  },
+                  "excludeItems": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 20
+                    }
+                  },
+                  "shouldLLMFilter": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/add": {
       "post": {
         "responses": {
@@ -297,16 +340,9 @@
                       { "type": "object", "additionalProperties": {} }
                     ]
                   },
-                  "chunkSize": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "default": 3
-                  },
-                  "minScore": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "default": 0.5
+                  "categoriesFilter": {
+                    "type": "array",
+                    "items": { "type": "string" }
                   }
                 },
                 "required": ["q"]
@@ -380,15 +416,5 @@
       }
     }
   },
-  "components": {
-    "schemas": {},
-    "securitySchemes": {
-      "ApiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-api-key",
-        "description": "API key for authentication"
-      }
-    }
-  }
+  "components": { "schemas": {} }
 }
