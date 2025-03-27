@@ -154,7 +154,6 @@ registerMessageHandler<MessageType>(
             target: { tabId: currentTab.id },
             files: ["scripts/content.js"],
           });
-
         } catch (error) {
           console.error("Error injecting content script:", error);
         }

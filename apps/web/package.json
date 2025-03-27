@@ -50,6 +50,7 @@
 		"@supermemory/db": "workspace:*",
 		"@trivago/prettier-plugin-sort-imports": "^4.3.0",
 		"@types/better-sqlite3": "^7.6.11",
+		"@types/firefox": "^0.0.34",
 		"@types/prismjs": "^1.26.5",
 		"@types/react-virtualized": "^9.21.30",
 		"@udecode/cn": "^39.0.0",
