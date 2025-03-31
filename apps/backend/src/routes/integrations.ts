@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { Env, Variables } from "../types";
+import type { Env, Variables } from "../types";
 import { getDecryptedKV } from "encrypt-workers-kv";
 import { getAllNotionPageContents } from "../utils/notion";
 import { and, eq, or } from "@supermemory/db";

@@ -1,29 +1,27 @@
 import { z } from "zod";
-import { Context, Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { auth } from "./auth";
 import { logger } from "hono/logger";
 import { timing } from "hono/timing";
-import { Env, Variables } from "./types";
+import type { Env, Variables } from "./types";
 import { zValidator } from "@hono/zod-validator";
 import { database } from "@supermemory/db";
 import { waitlist } from "@supermemory/db/schema";
 import { cors } from "hono/cors";
 import { ContentWorkflow } from "./workflow";
 import { Resend } from "resend";
-import { RedirectStatusCode, StatusCode } from "hono/utils/http-status";
 import { LandingPage } from "./components/landing";
 import user from "./routes/user";
 import spacesRoute from "./routes/spaces";
 import actions from "./routes/actions";
 import memories from "./routes/memories";
 import integrations from "./routes/integrations";
-import { fromHono, OpenAPIRoute } from "chanfana";
+import { fromHono } from "chanfana";
 import {
-  cloudflareRateLimiter,
   DurableObjectRateLimiter,
   DurableObjectStore,
 } from "@hono-rate-limiter/cloudflare";
-import { ConfigType, GeneralConfigType, rateLimiter } from "hono-rate-limiter";
+import type { ConfigType, GeneralConfigType, rateLimiter } from "hono-rate-limiter";
 
 // Create base Hono app first
 const honoApp = new Hono<{ Variables: Variables; Bindings: Env }>();
@@ -94,9 +92,7 @@ app.use("/v1/*", (c, next) => {
     common: {
       standardHeaders: "draft-6",
       keyGenerator: (c: Context) =>
-        (user?.uuid ?? c.req.header("cf-connecting-ip")) +
-        "-" +
-        new Date().getDate(), // day so that limit gets reset every day
+        `${user?.uuid ?? c.req.header("cf-connecting-ip")}-${new Date().getDate()}`, // day so that limit gets reset every day
       store: new DurableObjectStore({ namespace: c.env.RATE_LIMITER }),
     } as GeneralConfigType<ConfigType>,
   };
@@ -145,7 +141,7 @@ app.all("/api/*", async (c) => {
   const newPath = path.replace("/api", "/v1");
 
   // Preserve query parameters and build target URL
-  const redirectUrl = "https://api.supermemory.ai" + newPath + url.search;
+  const redirectUrl = `https://api.supermemory.ai${newPath}${url.search}`;
 
   // Use c.redirect() for a proper redirect
   return c.redirect(redirectUrl);

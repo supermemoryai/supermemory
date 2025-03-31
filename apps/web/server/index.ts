@@ -351,6 +351,11 @@ app.all("/auth/notion/callback", zValidator("query", z.object({ code: z.string()
 
 	const notionCredentials = btoa(`${c.env.NOTION_CLIENT_ID}:${c.env.NOTION_CLIENT_SECRET}`);
 
+	const redirectUri = c.env.NODE_ENV === "development"
+		? "http://localhost:3000/auth/notion/callback"
+		: "https://supermemory.ai/auth/notion/callback";
+	console.log(redirectUri)
+
 	const response = await fetch("https://api.notion.com/v1/oauth/token", {
 		method: "POST",
 		headers: {
@@ -360,10 +365,7 @@ app.all("/auth/notion/callback", zValidator("query", z.object({ code: z.string()
 		body: JSON.stringify({
 			grant_type: "authorization_code",
 			code: code,
-			redirect_uri:
-				c.env.NODE_ENV === "production"
-					? "https://supermemory.ai/auth/notion/callback"
-					: "http://localhost:3000/auth/notion/callback",
+			redirect_uri: redirectUri,
 		}),
 	});
 
@@ -381,6 +383,7 @@ app.all("/auth/notion/callback", zValidator("query", z.object({ code: z.string()
 	const success = !(data as any).error;
 
 	if (!success) {
+		console.error("Failed to get Notion access token:", data, (data as any).error);
 		return c.redirect(`/?error=${(data as any).error}`);
 	}
 
