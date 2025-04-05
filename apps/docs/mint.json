@@ -55,7 +55,7 @@
   ],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Get Started (5 mins)",
       "pages": ["introduction", "quickstart", "self-hosting"]
     },
     {

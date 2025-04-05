@@ -1,5 +1,5 @@
 ---
-title: "Getting Started"
+title: "Get Started (5 mins)"
 description: "Start using Supermemory API in under 5 minutes"
 ---
 
@@ -19,6 +19,10 @@ To use the Supermemory API, you'll need:
     Keep your API key secure and never share it publicly. You'll need this key for authenticating all API requests.
   </Accordion>
 </AccordionGroup>
+
+For even starter quickstart, you can use our API playground here - [API Playground](/api-reference/endpoints/add-new-content)
+
+You can also browse the postman collection - [Postman Collection](https://documenter.getpostman.com/view/21641015/2sB2cUBhvq#cf679c90-d60b-4d0d-a7aa-a909e97e41c3)
 
 ## Base URL
 
@@ -45,7 +49,7 @@ Try it out in the [API Playground](/api-reference/endpoints/add-new-content)
 
 ```bash
 curl -X GET https://v2.api.supermemory.ai/search \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"q": "This is the content of my first memory."}'
 ```
