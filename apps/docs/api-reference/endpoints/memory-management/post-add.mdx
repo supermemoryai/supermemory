@@ -4,3 +4,56 @@ openapi: post /add
 
 Add a new memory with content and metadata.
 
+Fields:
+
+`content`: string
+
+`id`: string
+
+`metadata`: Record
+
+The `content` can be of the following types:
+
+- note / Markdown
+    
+    - If it is a markdown, all the images inside `![]` image tags will automatically be parsed.
+        
+- pdf
+    
+- tweet
+    
+- google_doc
+    
+- notion_doc
+    
+- webpage URL
+    
+    - Images and other content is also intelligently parsed in case of a webpage.
+        
+
+The metadata provided is a JSON object.
+
+for eg.
+
+``` json
+{
+   "classId": "21412",
+   "year": "fifth"
+}
+
+ ```
+
+If you wish to do exact searches, please use strings. But if you want to search in a range (time, numbers, prices), you can use numbers too.
+
+``` json
+{
+    "price": 1250
+}
+
+ ```
+
+More about \[metadata filtering here\]([https://docs.supermemory.ai/essentials/metadata-filtering](https://docs.supermemory.ai/essentials/metadata-filtering))
+
+The `id` is optional. If provided, supermemory will store the same ID as your internal database. This can help for retrieval purposes.
+
+If the `id` already exists, supermemory will update it instead.
