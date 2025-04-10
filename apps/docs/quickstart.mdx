@@ -48,7 +48,7 @@ Try it out in the [API Playground](/api-reference/endpoints/add-new-content)
 ## Search your memories
 
 ```bash
-curl -X GET https://v2.api.supermemory.ai/search \
+curl -X POST https://v2.api.supermemory.ai/search \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"q": "This is the content of my first memory."}'
