@@ -4,7 +4,7 @@
 </div>
 
 > [!WARNING]
-> This repo contains archived code for supermemory v1 and no longer recieves updates or support.
+> This repo contains archived code for supermemory v1 and no longer receives updates or support.
 
 ## 🧠 What is supermemory?
 
