@@ -366,6 +366,16 @@ const getBookmarks = async (cursor = "", totalImported = 0, allTweets = []) => {
 };
 
 export const setupTwitterHeaderListener = () => {
+  const extraOptions =
+    chrome.runtime.getManifest().manifest_version === 2
+      ? ["blocking", "requestHeaders"]
+      : ["requestHeaders"];
+
+  // Add extraHeaders only if we're on a Chromium-based browser
+  if (!navigator.userAgent.includes("Firefox")) {
+    extraOptions.push("extraHeaders");
+  }
+
   chrome.webRequest.onBeforeSendHeaders.addListener(
     (details) => {
       try {
@@ -426,16 +436,6 @@ export const setupTwitterHeaderListener = () => {
               const cookie = getHeaderValue("cookie");
               const csrf = getHeaderValue("x-csrf-token");
 
-              // // Validate required headers
-              // if (!auth || !cookie || !csrf) {
-              //   console.warn("Missing required headers", {
-              //     hasAuth: !!auth,
-              //     hasCookie: !!cookie,
-              //     hasCsrf: !!csrf,
-              //   });
-              //   return;
-              // }
-
               // Only update storage if values have changed
               if (
                 result.cookie !== cookie ||
@@ -465,6 +465,6 @@ export const setupTwitterHeaderListener = () => {
       }
     },
     { urls: ["*://x.com/*", "*://twitter.com/*"] },
-    ["requestHeaders", "extraHeaders"]
+    extraOptions
   );
 };
