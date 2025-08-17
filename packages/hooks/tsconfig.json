@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./*"],
+			"@lib/*": ["../lib/*"]
+		}
+	},
+	"extends": "@total-typescript/tsconfig/bundler/dom/library-monorepo"
+}
