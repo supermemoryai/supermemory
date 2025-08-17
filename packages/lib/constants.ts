@@ -1,0 +1,4 @@
+const BIG_DIMENSIONS_NEW = 1536
+const DEFAULT_PROJECT_ID = "sm_project_default"
+
+export { BIG_DIMENSIONS_NEW, DEFAULT_PROJECT_ID }

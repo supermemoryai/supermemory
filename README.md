@@ -1,89 +1,99 @@
-<div align="center">
+<div align="center" style="padding-bottom:10px;padding-top:10px">
   <img src="logo.svg" alt="supermemory Logo" width="400" />
-  <p><strong>The Memory API for the AI era</strong></p>
 </div>
 
-> [!WARNING]
-> This repo contains archived code for supermemory v1 and no longer receives updates or support.
+<div align="center" style="padding-bottom:10px;padding-top:10px">
+  <img src="apps/web/public/landing-page.jpeg" alt="supermemory" width="100%" />
+</div>
 
-## 🧠 What is supermemory?
+## ✨ Features
 
-supermemory is a powerful, developer-friendly API that seamlessly integrates external knowledge into your AI applications. It serves as the perfect memory layer for your AI stack, providing semantic search and retrieval capabilities that enhance your models with relevant context.
+### Core Functionality
+- **Add Memories from Any Content**: Easily add memories from URLs, PDFs, and plain text—just paste, upload, or link.
+- **Chat with Your Memories**: Converse with your stored content using natural language chat.
+- **Supermemory MCP Integration**: Seamlessly connect with all major AI tools (Claude, Cursor, etc.) via Supermemory MCP.
+- **Graph View for All Memories**: Visualize and explore your memories and their connections in an interactive graph mode.
 
-With supermemory, you can:
+## 🏗️ Architecture
 
-- **Store and organize knowledge** in a searchable database that understands meaning, not just keywords
-- **Enhance AI responses** with accurate, up-to-date information from your data
-- **Eliminate hallucinations** by grounding AI outputs in your trusted content
-- **Connect to any source** with pre-built integrations for websites, PDFs, images, and more
+This is a **Turborepo monorepo**
 
-## ✨ Key Features
+### Technology Stack
+- **Frontend**: Next.js 15 with React 19
+- **Backend**: Hono API framework on Cloudflare Workers
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Better Auth with organization support
+- **Package Manager**: Bun
+- **Monorepo**: Turbo for build optimization
+- **Styling**: Tailwind CSS with Radix UI components
+- **Monitoring**: Sentry for error tracking and performance monitoring
 
-- **Universal Content Handling**: Automatically process and index content from URLs, PDFs, text, and more
-- **Semantic Search**: Find information based on meaning, not just keyword matching
-- **Advanced Filtering**: Organize and retrieve information using metadata, categories, and user partitioning
-- **Query Enhancement**: Rewriting and reranking for more relevant results
-- **Simple Integration**: Clean, consistent API with SDKs for TypeScript and Python
+### Project Structure
+```
+├── apps/
+│   └── web/              # Next.js web application
+├── packages/             # Shared packages and utilities
+├── CLAUDE.md            # Development guidelines for AI assistants
+├── turbo.json           # Turborepo configuration
+└── package.json         # Root package configuration
+```
 
 ## 🚀 Getting Started
 
-Getting started with supermemory takes just minutes:
+### Prerequisites
+- **Bun** package manager
 
-1. Sign up at [console.supermemory.ai](https://console.supermemory.ai)
-2. Create your API key
-3. Start adding and querying content
+### Installation
 
-```javascript
-// Install: npm install supermemory
-import { supermemory } from 'supermemory';
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/supermemoryai/supermemory-app.git
+   cd supermemory
+   ```
 
-const client = new supermemory({
-  apiKey: 'YOUR_API_KEY',
-});
+2. **Install dependencies**
+   ```bash
+   bun install
+   ```
 
-// Add content to your knowledge base
-await client.memory.create({
-  content: "https://en.wikipedia.org/wiki/Artificial_intelligence",
-  metadata: {
-    source: "wikipedia",
-    category: "AI"
-  }
-});
+3. **Environment Setup**
+   
+   Create environment files for each app:
+   ```bash
+   # Copy environment templates
+   cp apps/web/.env.example apps/web/.env.local
+   ```
 
-// Query your knowledge base
-const results = await client.search.create({
-  q: "What are the ethical considerations in AI development?",
-  limit: 5
-});
+### Development
+
+#### Start all applications in development mode:
+```bash
+bun run dev
 ```
 
-## 📚 Documentation
+This will start:
+- Web app at `http://localhost:3000`
+- API endpoints available through the web app
 
-We've created comprehensive documentation to help you get the most out of supermemory:
 
-- [Quick Start Guide](https://docs.supermemory.ai/quickstart/overview)
-- [API Reference](https://docs.supermemory.ai/api-reference)
-- [SDK Documentation](https://docs.supermemory.ai/sdks)
-- [Use Cases & Examples](https://docs.supermemory.ai/overview/use-cases)
+## 🧪 Development Workflow
 
-## 🌟 Use Cases
+### Code Quality
+- **Linting & Formatting**: Uses Biome for consistent code style
+- **Type Safety**: Strict TypeScript configuration across all packages
 
-supermemory powers a wide range of AI-enhanced applications:
+## 🤝 Contributing
 
-- **RAG (Retrieval Augmented Generation)**: Enhance LLM outputs with accurate data
-- **Knowledge Bases & Documentation**: Create intelligent, searchable repositories
-- **Customer Support**: Build chatbots with access to your support documentation
-- **Research Assistants**: Query across papers, notes, and references
-- **Content Management**: Organize and retrieve multimedia content semantically
+### Development Guidelines
+- Follow the code style enforced by Biome
+- Write tests for new features
+- Update documentation when adding new functionality
+- Ensure all checks pass before submitting PRs
 
-## 💬 Support
 
-Have questions or feedback? We're here to help:
-- Email: [dhravya@supermemory.com](mailto:dhravya@supermemory.com)
-- Documentation: [docs.supermemory.ai](https://docs.supermemory.ai)
+## 💬 Support & Community
 
-## 🔄 Updates & Roadmap
+- **Issues**: [GitHub Issues](https://github.com/supermemoryai/supermemory-app/issues)
+- **Email**: [dhravya@supermemory.com](mailto:dhravya@supermemory.com)
+- **Twitter**: [@supermemoryai](https://x.com/supermemoryai)
 
-Stay up to date with the latest improvements:
-- [Changelog](https://docs.supermemory.ai/changelog/overview)
-- [X](https://x.com/supermemoryai)

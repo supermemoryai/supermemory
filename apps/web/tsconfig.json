@@ -1,34 +1,20 @@
 {
-	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"**/.server/**/*.ts",
-		"**/.server/**/*.tsx",
-		"**/.client/**/*.ts",
-		"**/.client/**/*.tsx",
-		"**/*.json"
-	],
 	"compilerOptions": {
-		"lib": ["DOM", "DOM.Iterable", "ES2022"],
-		"types": ["@remix-run/cloudflare", "vite/client", "@cloudflare/workers-types/2023-07-01", "chrome"],
-		"isolatedModules": true,
-		"esModuleInterop": true,
-		"jsx": "react-jsx",
-		"module": "ESNext",
-		"moduleResolution": "Bundler",
-		"resolveJsonModule": true,
-		"target": "ES2022",
-		"strict": true,
-		"allowJs": true,
-		"skipLibCheck": true,
-		"forceConsistentCasingInFileNames": true,
-		"baseUrl": ".",
+		"incremental": true,
+		"jsx": "preserve",
 		"paths": {
-			"~/*": ["./app/*"]
+			"@/*": ["./*"],
+			"@ui/*": ["../../packages/ui/*"],
+			"@lib/*": ["../../packages/lib/*"],
+			"@hooks/*": ["../../packages/hooks/*"]
 		},
-
-		// Vite takes care of building everything, not tsc.
-		"noEmit": true,
-		"moduleDetection": "force"
-	}
+		"plugins": [
+			{
+				"name": "next"
+			}
+		]
+	},
+	"exclude": ["node_modules"],
+	"extends": "@total-typescript/tsconfig/bundler/dom/app",
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
 }
