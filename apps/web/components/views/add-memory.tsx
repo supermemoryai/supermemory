@@ -90,19 +90,19 @@ export function AddMemoryView({
 	const [activeTab, setActiveTab] = useState<
 		"note" | "link" | "file" | "connect"
 	>(initialTab)
-	const autumn = useCustomer()
+	// const autumn = useCustomer()
 	const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
 	const [newProjectName, setNewProjectName] = useState("")
 
 	// Check memory limits
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
+	// const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
 
-	const memoriesUsed = memoriesCheck?.usage ?? 0
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0
+	const memoriesUsed =  0
+	const memoriesLimit = 0
 
 	// Check if user is pro
-	const { data: proCheck } = fetchConsumerProProduct(autumn as any)
-	const isProUser = proCheck?.allowed ?? false
+	// const { data: proCheck } = fetchConsumerProProduct(autumn as any)
+	const isProUser = true
 
 	const canAddMemory = memoriesUsed < memoriesLimit
 
@@ -110,13 +110,39 @@ export function AddMemoryView({
 	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects")
-
-			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects")
-			}
-
-			return response.data?.projects || []
+			// Simulate 1 second loading
+			await new Promise(resolve => setTimeout(resolve, 1000))
+			
+			// Return fake data
+			return [
+				{
+					id: "1",
+					createdAt: "2024-01-01T00:00:00Z",
+					updatedAt: "2024-01-01T00:00:00Z",
+					name: "Default Project",
+					containerTag: "sm_project_default",
+					isExperimental: false,
+					documentCount: 42
+				},
+				{
+					id: "2",
+					createdAt: "2024-01-02T00:00:00Z",
+					updatedAt: "2024-01-02T00:00:00Z",
+					name: "Research Project",
+					containerTag: "sm_project_research",
+					isExperimental: true,
+					documentCount: 15
+				},
+				{
+					id: "3",
+					createdAt: "2024-01-03T00:00:00Z",
+					updatedAt: "2024-01-03T00:00:00Z",
+					name: "Personal Notes",
+					containerTag: "sm_project_personal",
+					isExperimental: false,
+					documentCount: 28
+				}
+			]
 		},
 		staleTime: 30 * 1000,
 	})
@@ -217,10 +243,10 @@ export function AddMemoryView({
 
 	const handleUpgrade = async () => {
 		try {
-			await autumn.attach({
-				productId: "consumer_pro",
-				successUrl: "https://app.supermemory.ai/",
-			})
+			// await autumn.attach({
+			// 	productId: "consumer_pro",
+			// 	successUrl: "https://app.supermemory.ai/",
+			// })
 			window.location.reload()
 		} catch (error) {
 			console.error(error)
@@ -641,11 +667,8 @@ export function AddMemoryView({
 									>
 										<div className="grid gap-4">
 											{/* Note Input */}
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className="flex flex-col gap-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.1 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -698,15 +721,12 @@ export function AddMemoryView({
 														</>
 													)}
 												</addContentForm.Field>
-											</motion.div>
+											</div>
 
 											{/* Project Selection */}
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className={`flex flex-col gap-2 ${addContentMutation.isPending ? "opacity-50" : ""
 													}`}
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.15 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -716,73 +736,22 @@ export function AddMemoryView({
 												</label>
 												<addContentForm.Field name="project">
 													{({ state, handleChange }) => (
-														<Select
-															disabled={
-																isLoadingProjects ||
-																addContentMutation.isPending
-															}
-															onValueChange={(value) => {
-																if (value === "create-new-project") {
-																	setShowCreateProjectDialog(true)
-																} else {
-																	handleChange(value)
-																}
-															}}
-															value={state.value}
-														>
-															<SelectTrigger
-																className="bg-white/5 border-white/10 text-white"
-																id="note-project"
-															>
-																<SelectValue placeholder="Select a project" />
-															</SelectTrigger>
-															<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-																<SelectItem
-																	className="text-white hover:bg-white/10"
-																	key="default"
-																	value="sm_project_default"
-																>
-																	Default Project
-																</SelectItem>
-																{projects
-																	.filter(
-																		(p) =>
-																			p.containerTag !== "sm_project_default" &&
-																			p.id,
-																	)
-																	.map((project) => (
-																		<SelectItem
-																			className="text-white hover:bg-white/10"
-																			key={project.id || project.containerTag}
-																			value={project.containerTag}
-																		>
-																			{project.name}
-																		</SelectItem>
-																	))}
-																<SelectItem
-																	className="text-white hover:bg-white/10 border-t border-white/10 mt-1"
-																	key="create-new"
-																	value="create-new-project"
-																>
-																	<div className="flex items-center gap-2">
-																		<Plus className="h-4 w-4" />
-																		<span>Create new project</span>
-																	</div>
-																</SelectItem>
-															</SelectContent>
-														</Select>
+														<ProjectSelector
+															isLoadingProjects={isLoadingProjects}
+															setShowCreateProjectDialog={setShowCreateProjectDialog}
+															handleChange={handleChange}
+															state={state}
+															projects={projects}
+														/>
 													)}
 												</addContentForm.Field>
 												<p className="text-xs text-white/50 mt-1">
 													Choose which project to save this note to
 												</p>
-											</motion.div>
+											</div>
 										</div>
 										<DialogFooter className="mt-6">
-											<motion.div
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-											>
+											<div>
 												<Button
 													className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 													onClick={() => {
@@ -795,11 +764,8 @@ export function AddMemoryView({
 												>
 													Cancel
 												</Button>
-											</motion.div>
-											<motion.div
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-											>
+											</div>
+											<div>
 												<Button
 													className="bg-white/10 hover:bg-white/20 text-white border-white/20"
 													disabled={
@@ -820,7 +786,7 @@ export function AddMemoryView({
 														</>
 													)}
 												</Button>
-											</motion.div>
+											</div>
 										</DialogFooter>
 									</form>
 								</TabsContent>
@@ -835,11 +801,8 @@ export function AddMemoryView({
 									>
 										<div className="grid gap-4">
 											{/* Link Input */}
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className="flex flex-col gap-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.1 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -878,11 +841,8 @@ export function AddMemoryView({
 																value={state.value}
 															/>
 															{state.meta.errors.length > 0 && (
-																<motion.p
-																	animate={{ opacity: 1, height: "auto" }}
+																<p
 																	className="text-sm text-red-400 mt-1"
-																	exit={{ opacity: 0, height: 0 }}
-																	initial={{ opacity: 0, height: 0 }}
 																>
 																	{state.meta.errors
 																		.map((error) =>
@@ -892,20 +852,17 @@ export function AddMemoryView({
 																					`Error: ${JSON.stringify(error)}`),
 																		)
 																		.join(", ")}
-																</motion.p>
+																</p>
 															)}
 														</>
 													)}
 												</addContentForm.Field>
-											</motion.div>
+											</div>
 
 											{/* Project Selection */}
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className={`flex flex-col gap-2 ${addContentMutation.isPending ? "opacity-50" : ""
 													}`}
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.15 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -915,73 +872,22 @@ export function AddMemoryView({
 												</label>
 												<addContentForm.Field name="project">
 													{({ state, handleChange }) => (
-														<Select
-															disabled={
-																isLoadingProjects ||
-																addContentMutation.isPending
-															}
-															onValueChange={(value) => {
-																if (value === "create-new-project") {
-																	setShowCreateProjectDialog(true)
-																} else {
-																	handleChange(value)
-																}
-															}}
-															value={state.value}
-														>
-															<SelectTrigger
-																className="bg-white/5 border-white/10 text-white"
-																id="link-project"
-															>
-																<SelectValue placeholder="Select a project" />
-															</SelectTrigger>
-															<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-																<SelectItem
-																	className="text-white hover:bg-white/10"
-																	key="default"
-																	value="sm_project_default"
-																>
-																	Default Project
-																</SelectItem>
-																{projects
-																	.filter(
-																		(p) =>
-																			p.containerTag !== "sm_project_default" &&
-																			p.id,
-																	)
-																	.map((project) => (
-																		<SelectItem
-																			className="text-white hover:bg-white/10"
-																			key={project.id || project.containerTag}
-																			value={project.containerTag}
-																		>
-																			{project.name}
-																		</SelectItem>
-																	))}
-																<SelectItem
-																	className="text-white hover:bg-white/10 border-t border-white/10 mt-1"
-																	key="create-new"
-																	value="create-new-project"
-																>
-																	<div className="flex items-center gap-2">
-																		<Plus className="h-4 w-4" />
-																		<span>Create new project</span>
-																	</div>
-																</SelectItem>
-															</SelectContent>
-														</Select>
+														<ProjectSelector
+															isLoadingProjects={false}
+															setShowCreateProjectDialog={() => {}}
+															handleChange={handleChange}
+															state={state}
+															projects={projects}
+														/>
 													)}
 												</addContentForm.Field>
 												<p className="text-xs text-white/50 mt-1">
 													Choose which project to save this link to
 												</p>
-											</motion.div>
+											</div>
 										</div>
 										<DialogFooter className="mt-6">
-											<motion.div
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-											>
+											<div>
 												<Button
 													className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 													onClick={() => {
@@ -994,11 +900,8 @@ export function AddMemoryView({
 												>
 													Cancel
 												</Button>
-											</motion.div>
-											<motion.div
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-											>
+											</div>
+											<div>
 												<Button
 													className="bg-white/10 hover:bg-white/20 text-white border-white/20"
 													disabled={
@@ -1019,7 +922,7 @@ export function AddMemoryView({
 														</>
 													)}
 												</Button>
-											</motion.div>
+											</div>
 										</DialogFooter>
 									</form>
 								</TabsContent>
@@ -1033,11 +936,8 @@ export function AddMemoryView({
 										}}
 									>
 										<div className="grid gap-4">
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className="flex flex-col gap-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.1 }}
 											>
 												<label className="text-sm font-medium" htmlFor="file">
 													File
@@ -1071,13 +971,10 @@ export function AddMemoryView({
 													<DropzoneEmptyState />
 													<DropzoneContent className="overflow-auto" />
 												</Dropzone>
-											</motion.div>
+											</div>
 
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className="flex flex-col gap-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.15 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -1097,13 +994,10 @@ export function AddMemoryView({
 														/>
 													)}
 												</fileUploadForm.Field>
-											</motion.div>
+											</div>
 
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className="flex flex-col gap-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.2 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -1123,13 +1017,10 @@ export function AddMemoryView({
 														/>
 													)}
 												</fileUploadForm.Field>
-											</motion.div>
+											</div>
 
-											<motion.div
-												animate={{ opacity: 1, y: 0 }}
+											<div
 												className="flex flex-col gap-2"
-												initial={{ opacity: 0, y: 10 }}
-												transition={{ delay: 0.25 }}
 											>
 												<label
 													className="text-sm font-medium"
@@ -1139,70 +1030,22 @@ export function AddMemoryView({
 												</label>
 												<fileUploadForm.Field name="project">
 													{({ state, handleChange }) => (
-														<Select
-															disabled={isLoadingProjects}
-															onValueChange={(value) => {
-																if (value === "create-new-project") {
-																	setShowCreateProjectDialog(true)
-																} else {
-																	handleChange(value)
-																}
-															}}
-															value={state.value}
-														>
-															<SelectTrigger
-																className="bg-white/5 border-white/10 text-white"
-																id="file-project"
-															>
-																<SelectValue placeholder="Select a project" />
-															</SelectTrigger>
-															<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-																<SelectItem
-																	className="text-white hover:bg-white/10"
-																	key="default"
-																	value="sm_project_default"
-																>
-																	Default Project
-																</SelectItem>
-																{projects
-																	.filter(
-																		(p) =>
-																			p.containerTag !== "sm_project_default" &&
-																			p.id,
-																	)
-																	.map((project) => (
-																		<SelectItem
-																			className="text-white hover:bg-white/10"
-																			key={project.id || project.containerTag}
-																			value={project.containerTag}
-																		>
-																			{project.name}
-																		</SelectItem>
-																	))}
-																<SelectItem
-																	className="text-white hover:bg-white/10 border-t border-white/10 mt-1"
-																	key="create-new"
-																	value="create-new-project"
-																>
-																	<div className="flex items-center gap-2">
-																		<Plus className="h-4 w-4" />
-																		<span>Create new project</span>
-																	</div>
-																</SelectItem>
-															</SelectContent>
-														</Select>
+														<ProjectSelector
+															isLoadingProjects={false}
+															setShowCreateProjectDialog={() => {}}
+															handleChange={handleChange}
+															state={state}
+															projects={projects}
+														/>
 													)}
 												</fileUploadForm.Field>
 												<p className="text-xs text-white/50 mt-1">
 													Choose which project to save this file to
 												</p>
-											</motion.div>
+											</div>
 										</div>
 										<DialogFooter className="mt-6">
-											<motion.div
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-											>
+											<div>
 												<Button
 													className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 													onClick={() => {
@@ -1216,11 +1059,8 @@ export function AddMemoryView({
 												>
 													Cancel
 												</Button>
-											</motion.div>
-											<motion.div
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-											>
+											</div>
+											<div>
 												<Button
 													className="bg-white/10 hover:bg-white/20 text-white border-white/20"
 													disabled={
@@ -1241,7 +1081,7 @@ export function AddMemoryView({
 														</>
 													)}
 												</Button>
-											</motion.div>
+											</div>
 										</DialogFooter>
 									</form>
 								</TabsContent>
@@ -1294,10 +1134,7 @@ export function AddMemoryView({
 								</motion.div>
 							</div>
 							<DialogFooter>
-								<motion.div
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-								>
+								<div>
 									<Button
 										className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 										onClick={() => {
@@ -1309,11 +1146,8 @@ export function AddMemoryView({
 									>
 										Cancel
 									</Button>
-								</motion.div>
-								<motion.div
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-								>
+								</div>
+								<div>
 									<Button
 										className="bg-white/10 hover:bg-white/20 text-white border-white/20"
 										disabled={
@@ -1331,13 +1165,82 @@ export function AddMemoryView({
 											"Create Project"
 										)}
 									</Button>
-								</motion.div>
+								</div>
 							</DialogFooter>
 						</motion.div>
 					</DialogContent>
 				</Dialog>
 			)}
 		</AnimatePresence>
+	)
+}
+
+function ProjectSelector({
+	isLoadingProjects,
+	setShowCreateProjectDialog,
+	handleChange,
+	state,
+	projects,
+}: {
+	isLoadingProjects: boolean
+	setShowCreateProjectDialog: (show: boolean) => void
+	handleChange: (value: string) => void
+	state: { value: string }
+	projects: any[]
+}) {
+	return (
+		<Select
+		disabled={isLoadingProjects}
+		onValueChange={(value) => {
+			if (value === "create-new-project") {
+				setShowCreateProjectDialog(true)
+			} else {
+				handleChange(value)
+			}
+		}}
+		value={state.value}
+	>
+		<SelectTrigger
+			className="bg-white/5 border-white/10 text-white"
+			id="file-project"
+		>
+			<SelectValue placeholder="Select a project" />
+		</SelectTrigger>
+		<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
+			<SelectItem
+				className="text-white hover:bg-white/10"
+				key="default"
+				value="sm_project_default"
+			>
+				Default Project
+			</SelectItem>
+			{projects
+				.filter(
+					(p) =>
+						p.containerTag !== "sm_project_default" &&
+						p.id,
+				)
+				.map((project) => (
+					<SelectItem
+						className="text-white hover:bg-white/10"
+						key={project.id || project.containerTag}
+						value={project.containerTag}
+					>
+						{project.name}
+					</SelectItem>
+				))}
+			<SelectItem
+				className="text-white hover:bg-white/10 border-t border-white/10 mt-1"
+				key="create-new"
+				value="create-new-project"
+			>
+				<div className="flex items-center gap-2">
+					<Plus className="h-4 w-4" />
+					<span>Create new project</span>
+				</div>
+			</SelectItem>
+		</SelectContent>
+	</Select>
 	)
 }
 
