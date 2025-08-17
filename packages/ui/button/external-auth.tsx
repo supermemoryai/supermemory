@@ -15,7 +15,7 @@ export function ExternalAuthButton({
 	return (
 		<Button
 			className={cn(
-				"flex flex-grow cursor-pointer max-w-full bg-sm-shark items-center justify-center gap-[0.625rem] rounded-xl border-[1.5px] border-sm-white px-6 py-5 hover:bg-sm-shark-alt",
+				"flex flex-grow cursor-pointer max-w-full bg-sm-shark items-center justify-center gap-[0.625rem] rounded-md border-[1.5px] border-sm-gray px-6 py-5 hover:bg-sm-shark-alt",
 				className,
 			)}
 			{...props}

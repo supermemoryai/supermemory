@@ -25,7 +25,7 @@ export function LabeledInput({
 
 			<Input
 				className={cn(
-					"w-full leading-[1.375rem] tracking-[-0.4px] rounded-2xl p-5 placeholder:text-sm-gray text-sm-white border-[1.5px] border-sm-gray disabled:cursor-not-allowed disabled:opacity-50",
+					"w-full leading-[1.375rem] tracking-[-0.4px] rounded-md p-5 placeholder:text-sm-gray text-sm-white border-[1.5px] border-sm-gray disabled:cursor-not-allowed disabled:opacity-50",
 					inputProps?.className,
 				)}
 				placeholder={inputPlaceholder}
