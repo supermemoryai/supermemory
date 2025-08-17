@@ -1,4 +1,4 @@
-<div align="center" style="padding-bottom:10px;padding-top:10px">
+<div align="center" style="padding-bottom:20px;padding-top:20px">
   <img src="logo.svg" alt="supermemory Logo" width="400" />
 </div>
 
@@ -6,94 +6,70 @@
   <img src="apps/web/public/landing-page.jpeg" alt="supermemory" width="100%" />
 </div>
 
-## ✨ Features
+## Features
 
 ### Core Functionality
-- **Add Memories from Any Content**: Easily add memories from URLs, PDFs, and plain text—just paste, upload, or link.
-- **Chat with Your Memories**: Converse with your stored content using natural language chat.
-- **Supermemory MCP Integration**: Seamlessly connect with all major AI tools (Claude, Cursor, etc.) via Supermemory MCP.
-- **Graph View for All Memories**: Visualize and explore your memories and their connections in an interactive graph mode.
 
-## 🏗️ Architecture
+- **[Add Memories from Any Content](#add-memory)**: Easily add memories from URLs, PDFs, and plain text—just paste, upload, or link.
+- **[Chat with Your Memories](#chat-memories)**: Converse with your stored content using natural language chat.
+- **[Supermemory MCP Integration](#mcp-integration)**: Seamlessly connect with all major AI tools (Claude, Cursor, etc.) via Supermemory MCP.
 
-This is a **Turborepo monorepo**
+## How do i use this?
 
-### Technology Stack
-- **Frontend**: Next.js 15 with React 19
-- **Backend**: Hono API framework on Cloudflare Workers
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Better Auth with organization support
-- **Package Manager**: Bun
-- **Monorepo**: Turbo for build optimization
-- **Styling**: Tailwind CSS with Radix UI components
-- **Monitoring**: Sentry for error tracking and performance monitoring
+Go to [app.supermemory.ai](https://app.supermemory.ai) and sign into with your account
 
-### Project Structure
-```
-├── apps/
-│   └── web/              # Next.js web application
-├── packages/             # Shared packages and utilities
-├── CLAUDE.md            # Development guidelines for AI assistants
-├── turbo.json           # Turborepo configuration
-└── package.json         # Root package configuration
-```
+1. <a id="add-memory"></a>Start Adding Memory with your choose of format (Note, Link, File)
+<div align="center" style="padding-bottom:10px;padding-top:10px">
+  <img src="apps/web/public/add-memory.png" alt="supermemory" width="100%" />
+</div>
 
-## 🚀 Getting Started
+2. You can also Connect to your favourite services (Notion, Google Drive, OneDrive)
+<div align="center" style="padding-bottom:10px;padding-top:10px">
+  <img src="apps/web/public/add-connections.png" alt="supermemory" width="100%" />
+</div>
 
-### Prerequisites
-- **Bun** package manager
+3. <a id="chat-memories"></a>Once Memories are added, you can chat with Supermemory by clicking on "Open Chat" and retrieve info from your saved memories
+<div align="center" style="padding-bottom:10px;padding-top:10px">
+  <img src="apps/web/public/chat.png" alt="supermemory" width="100%" />
+</div>
 
-### Installation
+4. <a id="mcp-integration"></a>Add MCP to your AI Tools (by clicking on "Connect to your AI" and select the AI tool you are trying to integrate)
+<div align="center" style="padding-bottom:10px;padding-top:10px">
+  <img src="apps/web/public/mcp.png" alt="supermemory" width="100%" />
+</div>
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/supermemoryai/supermemory-app.git
-   cd supermemory
-   ```
+## Support
 
-2. **Install dependencies**
-   ```bash
-   bun install
-   ```
+Have questions or feedback? We're here to help:
 
-3. **Environment Setup**
-   
-   Create environment files for each app:
-   ```bash
-   # Copy environment templates
-   cp apps/web/.env.example apps/web/.env.local
-   ```
+- Email: [dhravya@supermemory.com](mailto:dhravya@supermemory.com)
+- Documentation: [docs.supermemory.ai](https://docs.supermemory.ai)
 
-### Development
+## Contributing
 
-#### Start all applications in development mode:
-```bash
-bun run dev
-```
+We welcome contributions from developers of all skill levels! Whether you're fixing bugs, adding features, or improving documentation, your help makes supermemory better for everyone.
 
-This will start:
-- Web app at `http://localhost:3000`
-- API endpoints available through the web app
+### Quick Start for Contributors
 
+1. **Fork and clone** the repository
+2. **Install dependencies** with `bun install`
+3. **Set up your environment** by copying `.env.example` to `.env.local`
+4. **Start developing** with `bun run dev`
 
-## 🧪 Development Workflow
+For detailed guidelines, development setup, coding standards, and the complete contribution workflow, please see our [**Contributing Guide**](CONTRIBUTE.md).
 
-### Code Quality
-- **Linting & Formatting**: Uses Biome for consistent code style
-- **Type Safety**: Strict TypeScript configuration across all packages
+### Ways to Contribute
 
-## 🤝 Contributing
+- 🐛 **Bug fixes** - Help us squash those pesky issues
+- ✨ **New features** - Add functionality that users will love
+- 🎨 **UI/UX improvements** - Make the interface more intuitive
+- ⚡ **Performance optimizations** - Help us make supermemory faster
 
-### Development Guidelines
-- Follow the code style enforced by Biome
-- Write tests for new features
-- Update documentation when adding new functionality
-- Ensure all checks pass before submitting PRs
+Check out our [Issues](https://github.com/supermemoryai/supermemory/issues) page for `good first issue` and `help wanted` labels to get started!
 
+## Updates & Roadmap
 
-## 💬 Support & Community
+Stay up to date with the latest improvements:
 
-- **Issues**: [GitHub Issues](https://github.com/supermemoryai/supermemory-app/issues)
-- **Email**: [dhravya@supermemory.com](mailto:dhravya@supermemory.com)
-- **Twitter**: [@supermemoryai](https://x.com/supermemoryai)
-
+- [Changelog](https://docs.supermemory.ai/changelog/overview)
+- [X](https://x.com/supermemoryai)
