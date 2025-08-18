@@ -607,7 +607,7 @@ function Menu({ id }: { id?: string }) {
 
 			{showAddMemoryView && (
 				<AddMemoryView
-					initialTab="note"
+					initialTab="content"
 					onClose={() => setShowAddMemoryView(false)}
 				/>
 			)}

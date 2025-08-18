@@ -614,7 +614,7 @@ const MemoryGraphPage = () => {
 
 			{showAddMemoryView && (
 				<AddMemoryView
-					initialTab="note"
+					initialTab="content"
 					onClose={() => setShowAddMemoryView(false)}
 				/>
 			)}

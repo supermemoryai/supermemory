@@ -78,31 +78,31 @@ import { analytics } from "@/lib/analytics"
 
 export function AddMemoryView({
 	onClose,
-	initialTab = "note",
+	initialTab = "content",
 }: {
 	onClose?: () => void
-	initialTab?: "note" | "link" | "file" | "connect"
+	initialTab?: "content" | "file" | "connect"
 }) {
 	const queryClient = useQueryClient()
 	const { selectedProject, setSelectedProject } = useProject()
 	const [showAddDialog, setShowAddDialog] = useState(true)
 	const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 	const [activeTab, setActiveTab] = useState<
-		"note" | "link" | "file" | "connect"
+		"content" | "file" | "connect"
 	>(initialTab)
-	// const autumn = useCustomer()
+	const autumn = useCustomer()
 	const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
 	const [newProjectName, setNewProjectName] = useState("")
 
 	// Check memory limits
-	// const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
 
-	const memoriesUsed =  0
-	const memoriesLimit = 0
+	const memoriesUsed = memoriesCheck?.usage ?? 0
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
 	// Check if user is pro
-	// const { data: proCheck } = fetchConsumerProProduct(autumn as any)
-	const isProUser = true
+	const { data: proCheck } = fetchConsumerProProduct(autumn as any)
+	const isProUser = proCheck?.allowed ?? false
 
 	const canAddMemory = memoriesUsed < memoriesLimit
 
@@ -110,39 +110,13 @@ export function AddMemoryView({
 	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			// Simulate 1 second loading
-			await new Promise(resolve => setTimeout(resolve, 1000))
-			
-			// Return fake data
-			return [
-				{
-					id: "1",
-					createdAt: "2024-01-01T00:00:00Z",
-					updatedAt: "2024-01-01T00:00:00Z",
-					name: "Default Project",
-					containerTag: "sm_project_default",
-					isExperimental: false,
-					documentCount: 42
-				},
-				{
-					id: "2",
-					createdAt: "2024-01-02T00:00:00Z",
-					updatedAt: "2024-01-02T00:00:00Z",
-					name: "Research Project",
-					containerTag: "sm_project_research",
-					isExperimental: true,
-					documentCount: 15
-				},
-				{
-					id: "3",
-					createdAt: "2024-01-03T00:00:00Z",
-					updatedAt: "2024-01-03T00:00:00Z",
-					name: "Personal Notes",
-					containerTag: "sm_project_personal",
-					isExperimental: false,
-					documentCount: 28
-				}
-			]
+			const response = await $fetch("@get/projects")
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to load projects")
+			}
+
+			return response.data?.projects || []
 		},
 		staleTime: 30 * 1000,
 	})
@@ -190,7 +164,14 @@ export function AddMemoryView({
 			addContentMutation.mutate({
 				content: value.content,
 				project: value.project,
-				contentType: activeTab as "note" | "link",
+				contentType: (() => {
+					try {
+						new URL(value.content)
+						return "link"
+					} catch {
+						return "note"
+					}
+				})(),
 			})
 			formApi.reset()
 		},
@@ -201,18 +182,6 @@ export function AddMemoryView({
 			}),
 		},
 	})
-
-	// Re-validate content field when tab changes between note/link
-	// biome-ignore  lint/correctness/useExhaustiveDependencies: It is what it is
-	useEffect(() => {
-		// Trigger validation of the content field when switching between note/link
-		if (activeTab === "note" || activeTab === "link") {
-			const currentValue = addContentForm.getFieldValue("content")
-			if (currentValue) {
-				addContentForm.validateField("content", "change")
-			}
-		}
-	}, [activeTab])
 
 	// Form for file upload metadata
 	const fileUploadForm = useForm({
@@ -243,10 +212,10 @@ export function AddMemoryView({
 
 	const handleUpgrade = async () => {
 		try {
-			// await autumn.attach({
-			// 	productId: "consumer_pro",
-			// 	successUrl: "https://app.supermemory.ai/",
-			// })
+			await autumn.attach({
+				productId: "consumer_pro",
+				successUrl: "https://app.supermemory.ai/",
+			})
 			window.location.reload()
 		} catch (error) {
 			console.error(error)
@@ -570,10 +539,7 @@ export function AddMemoryView({
 					open={showAddDialog}
 				>
 					<DialogContent className="sm:max-w-3xl bg-[#0f1419] backdrop-blur-xl border-white/10 text-white z-[80]">
-						<motion.div
-							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.95 }}
-							initial={{ opacity: 0, scale: 0.95 }}
+						<div
 						>
 							<DialogHeader>
 								<DialogTitle>Add to Memory</DialogTitle>
@@ -581,10 +547,8 @@ export function AddMemoryView({
 									Save any webpage, article, or file to your memory
 								</DialogDescription>
 								{
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
+									<div
 										className="mt-2"
-										initial={{ opacity: 0, y: -10 }}
 									>
 										<div className="text-xs text-white/50">
 											{memoriesUsed} of {memoriesLimit} memories used
@@ -595,10 +559,8 @@ export function AddMemoryView({
 											)}
 										</div>
 										{!canAddMemory && !isProUser && (
-											<motion.div
-												animate={{ opacity: 1, height: "auto" }}
+											<div
 												className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg"
-												initial={{ opacity: 0, height: 0 }}
 											>
 												<p className="text-sm text-yellow-400">
 													You've reached the free plan limit.
@@ -613,33 +575,26 @@ export function AddMemoryView({
 													</Button>
 													for up to 5000 memories.
 												</p>
-											</motion.div>
+											</div>
 										)}
-									</motion.div>
+									</div>
 								}
 							</DialogHeader>
 
 							<Tabs
 								className="mt-4"
 								onValueChange={(v) =>
-									setActiveTab(v as "note" | "link" | "file" | "connect")
+									setActiveTab(v as "content" | "file" | "connect")
 								}
 								value={activeTab}
 							>
 								<TabsList className="grid w-full grid-cols-4 bg-white/5">
 									<TabsTrigger
 										className="data-[state=active]:bg-white/10"
-										value="note"
+										value="content"
 									>
 										<Brain className="h-4 w-4 mr-2" />
-										Note
-									</TabsTrigger>
-									<TabsTrigger
-										className="data-[state=active]:bg-white/10"
-										value="link"
-									>
-										<LinkIcon className="h-4 w-4 mr-2" />
-										Link
+										Content
 									</TabsTrigger>
 									<TabsTrigger
 										className="data-[state=active]:bg-white/10"
@@ -657,7 +612,7 @@ export function AddMemoryView({
 									</TabsTrigger>
 								</TabsList>
 
-								<TabsContent className="space-y-4 mt-4" value="note">
+								<TabsContent className="space-y-4 mt-4" value="content">
 									<form
 										onSubmit={(e) => {
 											e.preventDefault()
@@ -666,22 +621,22 @@ export function AddMemoryView({
 										}}
 									>
 										<div className="grid gap-4">
-											{/* Note Input */}
+											{/* Content Input */}
 											<div
 												className="flex flex-col gap-2"
 											>
 												<label
 													className="text-sm font-medium"
-													htmlFor="note-content"
+													htmlFor="content"
 												>
-													Note
+													Content
 												</label>
 												<addContentForm.Field
 													name="content"
 													validators={{
 														onChange: ({ value }) => {
 															if (!value || value.trim() === "") {
-																return "Note is required"
+																return "Content is required"
 															}
 															return undefined
 														},
@@ -690,154 +645,26 @@ export function AddMemoryView({
 													{({ state, handleChange, handleBlur }) => (
 														<>
 															<Textarea
-																className={`bg-white/5 border-white/10 text-white min-h-32 max-h-64 overflow-y-auto resize-none ${addContentMutation.isPending
+																className={`bg-white/5 border-white/10 min-h-32 max-h-64 overflow-y-auto resize-none ${
+																	(() => {
+																		try {
+																			new URL(state.value.trim())
+																			return true
+																		} catch {
+																			return false
+																		}
+																	})()
+																		? "text-blue-400"
+																		: "text-white"
+																} ${addContentMutation.isPending
 																	? "opacity-50"
 																	: ""
 																	}`}
 																disabled={addContentMutation.isPending}
-																id="note-content"
+																id="content"
 																onBlur={handleBlur}
 																onChange={(e) => handleChange(e.target.value)}
-																placeholder="Write your note here..."
-																value={state.value}
-															/>
-															{state.meta.errors.length > 0 && (
-																<motion.p
-																	animate={{ opacity: 1, height: "auto" }}
-																	className="text-sm text-red-400 mt-1"
-																	exit={{ opacity: 0, height: 0 }}
-																	initial={{ opacity: 0, height: 0 }}
-																>
-																	{state.meta.errors
-																		.map((error) =>
-																			typeof error === "string"
-																				? error
-																				: (error?.message ??
-																					`Error: ${JSON.stringify(error)}`),
-																		)
-																		.join(", ")}
-																</motion.p>
-															)}
-														</>
-													)}
-												</addContentForm.Field>
-											</div>
-
-											{/* Project Selection */}
-											<div
-												className={`flex flex-col gap-2 ${addContentMutation.isPending ? "opacity-50" : ""
-													}`}
-											>
-												<label
-													className="text-sm font-medium"
-													htmlFor="note-project"
-												>
-													Project
-												</label>
-												<addContentForm.Field name="project">
-													{({ state, handleChange }) => (
-														<ProjectSelector
-															isLoadingProjects={isLoadingProjects}
-															setShowCreateProjectDialog={setShowCreateProjectDialog}
-															handleChange={handleChange}
-															state={state}
-															projects={projects}
-														/>
-													)}
-												</addContentForm.Field>
-												<p className="text-xs text-white/50 mt-1">
-													Choose which project to save this note to
-												</p>
-											</div>
-										</div>
-										<DialogFooter className="mt-6">
-											<div>
-												<Button
-													className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
-													onClick={() => {
-														setShowAddDialog(false)
-														onClose?.()
-														addContentForm.reset()
-													}}
-													type="button"
-													variant="outline"
-												>
-													Cancel
-												</Button>
-											</div>
-											<div>
-												<Button
-													className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-													disabled={
-														addContentMutation.isPending ||
-														!addContentForm.state.canSubmit
-													}
-													type="submit"
-												>
-													{addContentMutation.isPending ? (
-														<>
-															<Loader2 className="h-4 w-4 animate-spin mr-2" />
-															Adding...
-														</>
-													) : (
-														<>
-															<Plus className="h-4 w-4 mr-2" />
-															Add Note
-														</>
-													)}
-												</Button>
-											</div>
-										</DialogFooter>
-									</form>
-								</TabsContent>
-
-								<TabsContent className="space-y-4 mt-4" value="link">
-									<form
-										onSubmit={(e) => {
-											e.preventDefault()
-											e.stopPropagation()
-											addContentForm.handleSubmit()
-										}}
-									>
-										<div className="grid gap-4">
-											{/* Link Input */}
-											<div
-												className="flex flex-col gap-2"
-											>
-												<label
-													className="text-sm font-medium"
-													htmlFor="link-content"
-												>
-													Link
-												</label>
-												<addContentForm.Field
-													name="content"
-													validators={{
-														onChange: ({ value }) => {
-															if (!value || value.trim() === "") {
-																return "Link is required"
-															}
-															try {
-																new URL(value)
-																return undefined
-															} catch {
-																return "Please enter a valid link"
-															}
-														},
-													}}
-												>
-													{({ state, handleChange, handleBlur }) => (
-														<>
-															<Input
-																className={`bg-white/5 border-white/10 text-white ${addContentMutation.isPending
-																	? "opacity-50"
-																	: ""
-																	}`}
-																disabled={addContentMutation.isPending}
-																id="link-content"
-																onBlur={handleBlur}
-																onChange={(e) => handleChange(e.target.value)}
-																placeholder="https://example.com/article"
+																placeholder="Type anything or paste in a link"
 																value={state.value}
 															/>
 															{state.meta.errors.length > 0 && (
@@ -866,23 +693,24 @@ export function AddMemoryView({
 											>
 												<label
 													className="text-sm font-medium"
-													htmlFor="link-project"
+													htmlFor="content-project"
 												>
 													Project
 												</label>
 												<addContentForm.Field name="project">
 													{({ state, handleChange }) => (
 														<ProjectSelector
-															isLoadingProjects={false}
-															setShowCreateProjectDialog={() => {}}
+															type="content"
+															disabled={isLoadingProjects || addContentMutation.isPending}
+															setShowCreateProjectDialog={setShowCreateProjectDialog}
 															handleChange={handleChange}
-															state={state}
+															value={state.value}
 															projects={projects}
 														/>
 													)}
 												</addContentForm.Field>
 												<p className="text-xs text-white/50 mt-1">
-													Choose which project to save this link to
+													Choose which project to save this content to
 												</p>
 											</div>
 										</div>
@@ -918,7 +746,7 @@ export function AddMemoryView({
 													) : (
 														<>
 															<Plus className="h-4 w-4 mr-2" />
-															Add Link
+															Add Content
 														</>
 													)}
 												</Button>
@@ -1031,10 +859,11 @@ export function AddMemoryView({
 												<fileUploadForm.Field name="project">
 													{({ state, handleChange }) => (
 														<ProjectSelector
-															isLoadingProjects={false}
-															setShowCreateProjectDialog={() => {}}
+															type="file"
+															disabled={isLoadingProjects}
+															setShowCreateProjectDialog={setShowCreateProjectDialog}
 															handleChange={handleChange}
-															state={state}
+															value={state.value}
 															projects={projects}
 														/>
 													)}
@@ -1090,7 +919,7 @@ export function AddMemoryView({
 									<ConnectionsTabContent />
 								</TabsContent>
 							</Tabs>
-						</motion.div>
+						</div>
 					</DialogContent>
 				</Dialog>
 			)}
@@ -1103,10 +932,7 @@ export function AddMemoryView({
 					open={showCreateProjectDialog}
 				>
 					<DialogContent className="sm:max-w-2xl bg-black/90 backdrop-blur-xl border-white/10 text-white z-[80]">
-						<motion.div
-							animate={{ opacity: 1, scale: 1 }}
-							initial={{ opacity: 0, scale: 0.95 }}
-						>
+						<div>
 							<DialogHeader>
 								<DialogTitle>Create New Project</DialogTitle>
 								<DialogDescription className="text-white/60">
@@ -1114,11 +940,8 @@ export function AddMemoryView({
 								</DialogDescription>
 							</DialogHeader>
 							<div className="grid gap-4 py-4">
-								<motion.div
-									animate={{ opacity: 1, y: 0 }}
+								<div
 									className="flex flex-col gap-2"
-									initial={{ opacity: 0, y: 10 }}
-									transition={{ delay: 0.1 }}
 								>
 									<Label htmlFor="projectName">Project Name</Label>
 									<Input
@@ -1131,7 +954,7 @@ export function AddMemoryView({
 									<p className="text-xs text-white/50">
 										This will help you organize your memories
 									</p>
-								</motion.div>
+								</div>
 							</div>
 							<DialogFooter>
 								<div>
@@ -1167,7 +990,7 @@ export function AddMemoryView({
 									</Button>
 								</div>
 							</DialogFooter>
-						</motion.div>
+						</div>
 					</DialogContent>
 				</Dialog>
 			)}
@@ -1176,21 +999,23 @@ export function AddMemoryView({
 }
 
 function ProjectSelector({
-	isLoadingProjects,
+	disabled,
 	setShowCreateProjectDialog,
 	handleChange,
-	state,
+	value,
 	projects,
+	type
 }: {
-	isLoadingProjects: boolean
+	disabled: boolean
 	setShowCreateProjectDialog: (show: boolean) => void
 	handleChange: (value: string) => void
-	state: { value: string }
+	value: string
 	projects: any[]
+	type: "content" | "file"
 }) {
 	return (
 		<Select
-		disabled={isLoadingProjects}
+		disabled={disabled}
 		onValueChange={(value) => {
 			if (value === "create-new-project") {
 				setShowCreateProjectDialog(true)
@@ -1198,11 +1023,11 @@ function ProjectSelector({
 				handleChange(value)
 			}
 		}}
-		value={state.value}
+		value={value}
 	>
 		<SelectTrigger
 			className="bg-white/5 border-white/10 text-white"
-			id="file-project"
+			id={`${type}-project`}
 		>
 			<SelectValue placeholder="Select a project" />
 		</SelectTrigger>
@@ -1247,10 +1072,10 @@ function ProjectSelector({
 export function AddMemoryExpandedView() {
 	const [showDialog, setShowDialog] = useState(false)
 	const [selectedTab, setSelectedTab] = useState<
-		"note" | "link" | "file" | "connect"
-	>("note")
+		"content" | "file" | "connect"
+	>("content")
 
-	const handleOpenDialog = (tab: "note" | "link" | "file" | "connect") => {
+	const handleOpenDialog = (tab: "content" | "file" | "connect") => {
 		setSelectedTab(tab)
 		setShowDialog(true)
 	}
@@ -1270,24 +1095,12 @@ export function AddMemoryExpandedView() {
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
 							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-							onClick={() => handleOpenDialog("note")}
+							onClick={() => handleOpenDialog("content")}
 							size="sm"
 							variant="outline"
 						>
 							<Brain className="h-4 w-4 mr-2" />
-							Note
-						</Button>
-					</motion.div>
-
-					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-						<Button
-							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
-							onClick={() => handleOpenDialog("link")}
-							size="sm"
-							variant="outline"
-						>
-							<LinkIcon className="h-4 w-4 mr-2" />
-							Link
+							Content
 						</Button>
 					</motion.div>
 
