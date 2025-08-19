@@ -33,7 +33,6 @@ import {
 	UploadIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -44,7 +43,25 @@ import { ActionButtons } from "./action-buttons";
 import { MemoryUsageRing } from "./memory-usage-ring";
 import { ProjectSelection } from "./project-selection";
 import { TabButton } from "./tab-button";
-import { TextEditor } from "./text-editor";
+import dynamic from "next/dynamic";
+
+const TextEditor = dynamic(() => import("./text-editor").then(mod => ({ default: mod.TextEditor })), {
+	loading: () => (
+		<div className="bg-white/5 border border-white/10 rounded-md">
+			<div className="flex-1 min-h-48 max-h-64 overflow-y-auto flex items-center justify-center text-white/70">
+				Loading editor...
+			</div>
+			<div className="p-1 flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-b-md">
+				<div className="flex items-center gap-1 opacity-50">
+					<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+					<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+					<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+				</div>
+			</div>
+		</div>
+	),
+	ssr: false,
+});
 
 // // Processing status component
 // function ProcessingStatus({ status }: { status: string }) {
