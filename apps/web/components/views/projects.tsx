@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { $fetch } from "@lib/api"
-import { Button } from "@repo/ui/components/button"
+import { $fetch } from "@lib/api";
+import { Button } from "@repo/ui/components/button";
 
 import {
 	Dialog,
@@ -10,57 +10,57 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@repo/ui/components/dialog"
+} from "@repo/ui/components/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu"
-import { Input } from "@repo/ui/components/input"
-import { Label } from "@repo/ui/components/label"
+} from "@repo/ui/components/dropdown-menu";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@repo/ui/components/select"
-import { Skeleton } from "@repo/ui/components/skeleton"
+} from "@repo/ui/components/select";
+import { Skeleton } from "@repo/ui/components/skeleton";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { FolderIcon, Loader2, MoreVertical, Plus, Trash2 } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
+import { FolderIcon, Loader2, MoreVertical, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 
-import { useState } from "react"
-import { toast } from "sonner"
-import { useProject } from "@/stores"
+import { useState } from "react";
+import { toast } from "sonner";
+import { useProject } from "@/stores";
 
 // Projects View Component
 export function ProjectsView() {
-	const queryClient = useQueryClient()
-	const { selectedProject, setSelectedProject } = useProject()
-	const [showCreateDialog, setShowCreateDialog] = useState(false)
-	const [projectName, setProjectName] = useState("")
+	const queryClient = useQueryClient();
+	const { selectedProject, setSelectedProject } = useProject();
+	const [showCreateDialog, setShowCreateDialog] = useState(false);
+	const [projectName, setProjectName] = useState("");
 	const [deleteDialog, setDeleteDialog] = useState<{
-		open: boolean
-		project: null | { id: string; name: string; containerTag: string }
-		action: "move" | "delete"
-		targetProjectId: string
+		open: boolean;
+		project: null | { id: string; name: string; containerTag: string };
+		action: "move" | "delete";
+		targetProjectId: string;
 	}>({
 		open: false,
 		project: null,
 		action: "move",
 		targetProjectId: "",
-	})
+	});
 	const [expDialog, setExpDialog] = useState<{
-		open: boolean
-		projectId: string
+		open: boolean;
+		projectId: string;
 	}>({
 		open: false,
 		projectId: "",
-	})
+	});
 
 	// Fetch projects
 	const {
@@ -70,42 +70,42 @@ export function ProjectsView() {
 	} = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects")
+			const response = await $fetch("@get/projects");
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects")
+				throw new Error(response.error?.message || "Failed to load projects");
 			}
 
-			return response.data?.projects || []
+			return response.data?.projects || [];
 		},
 		staleTime: 30 * 1000,
-	})
+	});
 
 	// Create project mutation
 	const createProjectMutation = useMutation({
 		mutationFn: async (name: string) => {
 			const response = await $fetch("@post/projects", {
 				body: { name },
-			})
+			});
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to create project")
+				throw new Error(response.error?.message || "Failed to create project");
 			}
 
-			return response.data
+			return response.data;
 		},
 		onSuccess: () => {
-			toast.success("Project created successfully!")
-			setShowCreateDialog(false)
-			setProjectName("")
-			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			toast.success("Project created successfully!");
+			setShowCreateDialog(false);
+			setProjectName("");
+			queryClient.invalidateQueries({ queryKey: ["projects"] });
 		},
 		onError: (error) => {
 			toast.error("Failed to create project", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	// Delete project mutation
 	const deleteProjectMutation = useMutation({
@@ -114,68 +114,72 @@ export function ProjectsView() {
 			action,
 			targetProjectId,
 		}: {
-			projectId: string
-			action: "move" | "delete"
-			targetProjectId?: string
+			projectId: string;
+			action: "move" | "delete";
+			targetProjectId?: string;
 		}) => {
 			const response = await $fetch(`@delete/projects/${projectId}`, {
 				body: { action, targetProjectId },
-			})
+			});
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to delete project")
+				throw new Error(response.error?.message || "Failed to delete project");
 			}
 
-			return response.data
+			return response.data;
 		},
 		onSuccess: () => {
-			toast.success("Project deleted successfully")
+			toast.success("Project deleted successfully");
 			setDeleteDialog({
 				open: false,
 				project: null,
 				action: "move",
 				targetProjectId: "",
-			})
-			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			});
+			queryClient.invalidateQueries({ queryKey: ["projects"] });
 
 			// If we deleted the selected project, switch to default
 			if (deleteDialog.project?.containerTag === selectedProject) {
-				setSelectedProject("sm_project_default")
+				setSelectedProject("sm_project_default");
 			}
 		},
 		onError: (error) => {
 			toast.error("Failed to delete project", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	// Enable experimental mode mutation
 	const enableExperimentalMutation = useMutation({
 		mutationFn: async (projectId: string) => {
-			const response = await $fetch(`@post/projects/${projectId}/enable-experimental`)
+			const response = await $fetch(
+				`@post/projects/${projectId}/enable-experimental`,
+			);
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to enable experimental mode")
+				throw new Error(
+					response.error?.message || "Failed to enable experimental mode",
+				);
 			}
-			return response.data
+			return response.data;
 		},
 		onSuccess: () => {
-			toast.success("Experimental mode enabled for project")
-			queryClient.invalidateQueries({ queryKey: ["projects"] })
-			setExpDialog({ open: false, projectId: "" })
+			toast.success("Experimental mode enabled for project");
+			queryClient.invalidateQueries({ queryKey: ["projects"] });
+			setExpDialog({ open: false, projectId: "" });
 		},
 		onError: (error) => {
 			toast.error("Failed to enable experimental mode", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	// Handle project selection
 	const handleProjectSelect = (containerTag: string) => {
-		setSelectedProject(containerTag)
-		toast.success("Project switched successfully")
-	}
+		setSelectedProject(containerTag);
+		toast.success("Project switched successfully");
+	};
 
 	return (
 		<div className="space-y-4">
@@ -238,10 +242,11 @@ export function ProjectsView() {
 						{/* Default project */}
 						<motion.div
 							animate={{ opacity: 1, x: 0 }}
-							className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${selectedProject === "sm_project_default"
+							className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${
+								selectedProject === "sm_project_default"
 									? "bg-white/20 border border-white/30"
 									: "bg-white/5 hover:bg-white/10"
-								}`}
+							}`}
 							exit={{ opacity: 0, x: 20 }}
 							initial={{ opacity: 0, x: -20 }}
 							key="default-project"
@@ -280,10 +285,11 @@ export function ProjectsView() {
 							.map((project, index) => (
 								<motion.div
 									animate={{ opacity: 1, x: 0 }}
-									className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${selectedProject === project.containerTag
+									className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${
+										selectedProject === project.containerTag
 											? "bg-white/20 border border-white/30"
 											: "bg-white/5 hover:bg-white/10"
-										}`}
+									}`}
 									exit={{ opacity: 0, x: 20 }}
 									initial={{ opacity: 0, x: -20 }}
 									key={project.id}
@@ -338,11 +344,11 @@ export function ProjectsView() {
 														<DropdownMenuItem
 															className="text-blue-400 hover:text-blue-300 cursor-pointer"
 															onClick={(e) => {
-																e.stopPropagation()
+																e.stopPropagation();
 																setExpDialog({
 																	open: true,
 																	projectId: project.id,
-																})
+																});
 															}}
 														>
 															<div className="h-4 w-4 mr-2 rounded border border-blue-400" />
@@ -361,7 +367,7 @@ export function ProjectsView() {
 												<DropdownMenuItem
 													className="text-red-400 hover:text-red-300 cursor-pointer"
 													onClick={(e) => {
-														e.stopPropagation()
+														e.stopPropagation();
 														setDeleteDialog({
 															open: true,
 															project: {
@@ -371,7 +377,7 @@ export function ProjectsView() {
 															},
 															action: "move",
 															targetProjectId: "",
-														})
+														});
 													}}
 												>
 													<Trash2 className="h-4 w-4 mr-2" />
@@ -430,8 +436,8 @@ export function ProjectsView() {
 										<Button
 											className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 											onClick={() => {
-												setShowCreateDialog(false)
-												setProjectName("")
+												setShowCreateDialog(false);
+												setProjectName("");
 											}}
 											type="button"
 											variant="outline"
@@ -617,10 +623,11 @@ export function ProjectsView() {
 										whileTap={{ scale: 0.95 }}
 									>
 										<Button
-											className={`${deleteDialog.action === "delete"
+											className={`${
+												deleteDialog.action === "delete"
 													? "bg-red-600 hover:bg-red-700"
 													: "bg-white/10 hover:bg-white/20"
-												} text-white border-white/20`}
+											} text-white border-white/20`}
 											disabled={
 												deleteProjectMutation.isPending ||
 												(deleteDialog.action === "move" &&
@@ -635,7 +642,7 @@ export function ProjectsView() {
 															deleteDialog.action === "move"
 																? deleteDialog.targetProjectId
 																: undefined,
-													})
+													});
 												}
 											}}
 											type="button"
@@ -738,5 +745,5 @@ export function ProjectsView() {
 				)}
 			</AnimatePresence>
 		</div>
-	)
+	);
 }

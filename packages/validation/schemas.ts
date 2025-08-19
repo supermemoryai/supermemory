@@ -10,7 +10,7 @@ export type Visibility = z.infer<typeof VisibilityEnum>
 
 export const DocumentTypeEnum = z.enum([
 	"text",
-	"pdf", 
+	"pdf",
 	"tweet",
 	"google_doc",
 	"google_slide",
@@ -26,7 +26,7 @@ export type DocumentType = z.infer<typeof DocumentTypeEnum>
 export const DocumentStatusEnum = z.enum([
 	"unknown",
 	"queued",
-	"extracting", 
+	"extracting",
 	"chunking",
 	"embedding",
 	"indexing",
@@ -125,7 +125,7 @@ export type Chunk = z.infer<typeof ChunkSchema>
 
 export const ConnectionProviderEnum = z.enum([
 	"notion",
-	"google-drive", 
+	"google-drive",
 	"onedrive",
 ])
 export type ConnectionProvider = z.infer<typeof ConnectionProviderEnum>
@@ -153,22 +153,22 @@ export const ConnectionSchema = z.object({
 	email: z.string().nullable().optional(),
 	documentLimit: z.number().default(10000),
 	containerTags: z.array(z.string()).nullable().optional(),
-	
+
 	// Token management
 	accessToken: z.string().nullable().optional(),
 	refreshToken: z.string().nullable().optional(),
 	expiresAt: z.coerce.date().nullable().optional(),
-	
+
 	// Provider-specific metadata
 	metadata: z.record(z.unknown()),
-	
+
 	createdAt: z.coerce.date(),
 })
 export type Connection = z.infer<typeof ConnectionSchema>
 
 export const RequestTypeEnum = z.enum([
 	"add",
-	"search", 
+	"search",
 	"fast_search",
 	"request",
 	"update",
@@ -186,31 +186,31 @@ export const ApiRequestSchema = z.object({
 	keyId: z.string().nullable().optional(),
 	statusCode: z.number(),
 	duration: z.number().nullable().optional(), // duration in ms
-	
+
 	// Request/Response data
 	input: z.record(z.unknown()).nullable().optional(),
 	output: z.record(z.unknown()).nullable().optional(),
-	
+
 	// Token usage tracking
 	originalTokens: z.number().nullable().optional(),
 	finalTokens: z.number().nullable().optional(),
 	tokensSaved: z.number().nullable().optional(), // computed field
-	
+
 	// Cost tracking
 	costSavedUSD: z.number().nullable().optional(),
-	
+
 	// Chat specific fields
 	model: z.string().nullable().optional(),
 	provider: z.string().nullable().optional(),
 	conversationId: z.string().nullable().optional(),
-	
+
 	// Flags
 	contextModified: z.boolean().default(false),
-	
+
 	// Metadata
 	metadata: MetadataSchema.nullable().optional(),
 	origin: z.string().default("api"),
-	
+
 	createdAt: z.coerce.date(),
 })
 export type ApiRequest = z.infer<typeof ApiRequestSchema>
@@ -224,23 +224,19 @@ export const SpaceSchema = z.object({
 	containerTag: z.string().nullable().optional(),
 	visibility: VisibilityEnum.default("private"),
 	isExperimental: z.boolean().default(false),
-	
+
 	// Content indexing
 	contentTextIndex: z.record(z.unknown()).default({}), // KnowledgeBase type
 	indexSize: z.number().nullable().optional(),
-	
+
 	metadata: MetadataSchema.nullable().optional(),
-	
+
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
 })
 export type Space = z.infer<typeof SpaceSchema>
 
-export const MemoryRelationEnum = z.enum([
-	"updates",
-	"extends", 
-	"derives",
-])
+export const MemoryRelationEnum = z.enum(["updates", "extends", "derives"])
 export type MemoryRelation = z.infer<typeof MemoryRelationEnum>
 
 export const MemoryEntrySchema = z.object({
@@ -249,33 +245,33 @@ export const MemoryEntrySchema = z.object({
 	spaceId: z.string(),
 	orgId: z.string(),
 	userId: z.string().nullable().optional(),
-	
+
 	// Version control
 	version: z.number().default(1),
 	isLatest: z.boolean().default(true),
 	parentMemoryId: z.string().nullable().optional(),
 	rootMemoryId: z.string().nullable().optional(),
-	
+
 	// Memory relationships
 	memoryRelations: z.record(MemoryRelationEnum).default({}),
-	
+
 	// Source tracking
 	sourceCount: z.number().default(1),
-	
+
 	// Status flags
 	isInference: z.boolean().default(false),
 	isForgotten: z.boolean().default(false),
 	forgetAfter: z.coerce.date().nullable().optional(),
 	forgetReason: z.string().nullable().optional(),
-	
+
 	// Embeddings
 	memoryEmbedding: z.array(z.number()).nullable().optional(),
 	memoryEmbeddingModel: z.string().nullable().optional(),
 	memoryEmbeddingNew: z.array(z.number()).nullable().optional(),
 	memoryEmbeddingNewModel: z.string().nullable().optional(),
-	
+
 	metadata: z.record(z.unknown()).nullable().optional(),
-	
+
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
 })
@@ -296,12 +292,7 @@ export const MemoryDocumentSourceSchema = z.object({
 })
 export type MemoryDocumentSource = z.infer<typeof MemoryDocumentSourceSchema>
 
-export const SpaceRoleEnum = z.enum([
-	"owner",
-	"admin",
-	"editor", 
-	"viewer",
-])
+export const SpaceRoleEnum = z.enum(["owner", "admin", "editor", "viewer"])
 export type SpaceRole = z.infer<typeof SpaceRoleEnum>
 
 export const SpacesToMembersSchema = z.object({
@@ -317,28 +308,28 @@ export type SpacesToMembers = z.infer<typeof SpacesToMembersSchema>
 export const OrganizationSettingsSchema = z.object({
 	id: z.string(),
 	orgId: z.string(),
-	
+
 	// LLM Filtering
 	shouldLLMFilter: z.boolean().default(false),
 	filterPrompt: z.string().nullable().optional(),
 	includeItems: z.array(z.string()).nullable().optional(),
 	excludeItems: z.array(z.string()).nullable().optional(),
-	
+
 	// Google Drive custom keys
 	googleDriveCustomKeyEnabled: z.boolean().default(false),
 	googleDriveClientId: z.string().nullable().optional(),
 	googleDriveClientSecret: z.string().nullable().optional(),
-	
+
 	// Notion custom keys
 	notionCustomKeyEnabled: z.boolean().default(false),
 	notionClientId: z.string().nullable().optional(),
 	notionClientSecret: z.string().nullable().optional(),
-	
+
 	// OneDrive custom keys
 	onedriveCustomKeyEnabled: z.boolean().default(false),
 	onedriveClientId: z.string().nullable().optional(),
 	onedriveClientSecret: z.string().nullable().optional(),
-	
+
 	updatedAt: z.coerce.date(),
 })
 export type OrganizationSettings = z.infer<typeof OrganizationSettingsSchema>
@@ -347,7 +338,7 @@ export const schemas = {
 	// Base types
 	MetadataSchema,
 	VisibilityEnum,
-	
+
 	// Content
 	DocumentTypeEnum,
 	DocumentStatusEnum,
@@ -356,16 +347,16 @@ export const schemas = {
 	DocumentSchema,
 	ChunkTypeEnum,
 	ChunkSchema,
-	
+
 	// Connections
 	ConnectionProviderEnum,
 	ConnectionStateSchema,
 	ConnectionSchema,
-	
+
 	// Analytics
 	RequestTypeEnum,
 	ApiRequestSchema,
-	
+
 	// Spaces and Memory
 	SpaceSchema,
 	MemoryRelationEnum,
@@ -374,7 +365,7 @@ export const schemas = {
 	MemoryDocumentSourceSchema,
 	SpaceRoleEnum,
 	SpacesToMembersSchema,
-	
+
 	// Auth
 	OrganizationSettingsSchema,
 } as const

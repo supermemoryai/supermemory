@@ -1,12 +1,12 @@
-import { cn } from "@lib/utils"
-import { Root } from "@radix-ui/react-slot"
+import { cn } from "@lib/utils";
+import { Root } from "@radix-ui/react-slot";
 
 export function HeadingH4Bold({
 	className,
 	asChild,
 	...props
 }: React.ComponentProps<"h4"> & { asChild?: boolean }) {
-	const Comp = asChild ? Root : "h4"
+	const Comp = asChild ? Root : "h4";
 	return (
 		<Comp
 			className={cn(
@@ -15,5 +15,5 @@ export function HeadingH4Bold({
 			)}
 			{...props}
 		/>
-	)
+	);
 }

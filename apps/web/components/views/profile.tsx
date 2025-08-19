@@ -1,36 +1,43 @@
-"use client"
+"use client";
 
-import { authClient } from "@lib/auth"
-import { useAuth } from "@lib/auth-context"
+import { authClient } from "@lib/auth";
+import { useAuth } from "@lib/auth-context";
 import {
 	fetchConnectionsFeature,
 	fetchMemoriesFeature,
 	fetchSubscriptionStatus,
-} from "@lib/queries"
-import { Button } from "@repo/ui/components/button"
-import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
-import { useCustomer } from "autumn-js/react"
-import { CreditCard, LoaderIcon, LogOut, User, CheckCircle, X } from "lucide-react"
-import { motion } from "motion/react"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
-import { analytics } from "@/lib/analytics"
+} from "@lib/queries";
+import { Button } from "@repo/ui/components/button";
+import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold";
+import { useCustomer } from "autumn-js/react";
+import {
+	CheckCircle,
+	CreditCard,
+	LoaderIcon,
+	LogOut,
+	User,
+	X,
+} from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { analytics } from "@/lib/analytics";
 
 export function ProfileView() {
-	const router = useRouter()
-	const pathname = usePathname()
-	const { user: session, org } = useAuth()
-	const organizations = org
-	const autumn = useCustomer()
-	const [isLoading, setIsLoading] = useState(false)
+	const router = useRouter();
+	const pathname = usePathname();
+	const { user: session, org } = useAuth();
+	const organizations = org;
+	const autumn = useCustomer();
+	const [isLoading, setIsLoading] = useState(false);
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
-	const memoriesUsed = memoriesCheck?.usage ?? 0
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any);
+	const memoriesUsed = memoriesCheck?.usage ?? 0;
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0;
 
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any)
-	const connectionsUsed = connectionsCheck?.usage ?? 0
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any);
+	const connectionsUsed = connectionsCheck?.usage ?? 0;
 
 	// Fetch subscription status with React Query
 	const {
@@ -38,36 +45,36 @@ export function ProfileView() {
 			consumer_pro: null,
 		},
 		isLoading: isCheckingStatus,
-	} = fetchSubscriptionStatus(autumn as any)
+	} = fetchSubscriptionStatus(autumn as any);
 
-	const isPro = status.consumer_pro
+	const isPro = status.consumer_pro;
 
 	const handleLogout = () => {
-		analytics.userSignedOut()
-		authClient.signOut()
-		router.push("/login")
-	}
+		analytics.userSignedOut();
+		authClient.signOut();
+		router.push("/login");
+	};
 
 	const handleUpgrade = async () => {
-		setIsLoading(true)
+		setIsLoading(true);
 		try {
 			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			})
-			window.location.reload()
+			});
+			window.location.reload();
 		} catch (error) {
-			console.error(error)
-			setIsLoading(false)
+			console.error(error);
+			setIsLoading(false);
 		}
-	}
+	};
 
 	// Handle manage billing
 	const handleManageBilling = async () => {
 		await autumn.openBillingPortal({
 			returnUrl: "https://app.supermemory.ai",
-		})
-	}
+		});
+	};
 
 	if (session?.isAnonymous) {
 		return (
@@ -78,7 +85,9 @@ export function ProfileView() {
 					initial={{ opacity: 0, scale: 0.9 }}
 					transition={{ type: "spring", damping: 20 }}
 				>
-					<p className="text-white/70 mb-4">Sign in to access your profile and billing</p>
+					<p className="text-white/70 mb-4">
+						Sign in to access your profile and billing
+					</p>
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
 							asChild
@@ -90,7 +99,7 @@ export function ProfileView() {
 					</motion.div>
 				</motion.div>
 			</div>
-		)
+		);
 	}
 
 	return (
@@ -133,14 +142,20 @@ export function ProfileView() {
 				<div className="space-y-2">
 					<div className="flex justify-between items-center">
 						<span className="text-sm text-white/70">Memories</span>
-						<span className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-400" : "text-white/90"}`}>
+						<span
+							className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-400" : "text-white/90"}`}
+						>
 							{memoriesUsed} / {memoriesLimit}
 						</span>
 					</div>
 					<div className="w-full bg-white/10 rounded-full h-2">
 						<div
 							className={`h-2 rounded-full transition-all ${
-								memoriesUsed >= memoriesLimit ? "bg-red-500" : isPro ? "bg-green-500" : "bg-blue-500"
+								memoriesUsed >= memoriesLimit
+									? "bg-red-500"
+									: isPro
+										? "bg-green-500"
+										: "bg-blue-500"
 							}`}
 							style={{
 								width: `${Math.min((memoriesUsed / memoriesLimit) * 100, 100)}%`,
@@ -196,12 +211,16 @@ export function ProfileView() {
 			{/* Plan Comparison - Only show for free users */}
 			{!isPro && (
 				<div className="bg-white/5 rounded-lg p-4 space-y-4">
-					<HeadingH3Bold className="text-white text-sm">Upgrade to Pro</HeadingH3Bold>
+					<HeadingH3Bold className="text-white text-sm">
+						Upgrade to Pro
+					</HeadingH3Bold>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 						{/* Free Plan */}
 						<div className="p-3 bg-white/5 rounded-lg border border-white/10">
-							<h4 className="font-medium text-white/90 mb-3 text-sm">Free Plan</h4>
+							<h4 className="font-medium text-white/90 mb-3 text-sm">
+								Free Plan
+							</h4>
 							<ul className="space-y-2">
 								<li className="flex items-center gap-2 text-sm text-white/70">
 									<CheckCircle className="h-4 w-4 text-green-400" />
@@ -248,7 +267,8 @@ export function ProfileView() {
 					</div>
 
 					<p className="text-xs text-white/50 text-center">
-						$15/month (only for first 100 users) • Cancel anytime. No questions asked.
+						$15/month (only for first 100 users) • Cancel anytime. No questions
+						asked.
 					</p>
 				</div>
 			)}
@@ -262,5 +282,5 @@ export function ProfileView() {
 				Sign Out
 			</Button>
 		</div>
-	)
+	);
 }

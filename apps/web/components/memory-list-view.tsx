@@ -1,5 +1,7 @@
-"use client"
+"use client";
 
+import { useIsMobile } from "@hooks/use-mobile";
+import { cn } from "@lib/utils";
 import {
 	GoogleDocs,
 	GoogleDrive,
@@ -12,165 +14,178 @@ import {
 	NotionDoc,
 	OneDrive,
 	PDF,
-} from "@repo/ui/assets/icons"
-import { Badge } from "@repo/ui/components/badge"
-import { Card, CardContent, CardHeader } from "@repo/ui/components/card"
-
-import {
-	Sheet,
-	SheetContent,
-	SheetHeader,
-	SheetTitle,
-} from "@repo/ui/components/sheet"
+} from "@repo/ui/assets/icons";
+import { Badge } from "@repo/ui/components/badge";
+import { Card, CardContent, CardHeader } from "@repo/ui/components/card";
 import {
 	Drawer,
 	DrawerContent,
 	DrawerHeader,
 	DrawerTitle,
-} from "@repo/ui/components/drawer"
-import { colors } from "@repo/ui/memory-graph/constants"
-import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { Label1Regular } from "@ui/text/label/label-1-regular"
-import { Brain, Calendar, ExternalLink, FileText, Sparkles } from "lucide-react"
-import { useVirtualizer } from "@tanstack/react-virtual"
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { z } from "zod"
-import { analytics } from "@/lib/analytics"
-import useResizeObserver from "@/hooks/use-resize-observer"
-import { useIsMobile } from "@hooks/use-mobile"
-import { cn } from "@lib/utils"
+} from "@repo/ui/components/drawer";
+import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+} from "@repo/ui/components/sheet";
+import { colors } from "@repo/ui/memory-graph/constants";
+import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { Label1Regular } from "@ui/text/label/label-1-regular";
+import {
+	Brain,
+	Calendar,
+	ExternalLink,
+	FileText,
+	Sparkles,
+} from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { z } from "zod";
+import useResizeObserver from "@/hooks/use-resize-observer";
+import { analytics } from "@/lib/analytics";
 
-type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
-type DocumentWithMemories = DocumentsResponse["documents"][0]
-type MemoryEntry = DocumentWithMemories["memoryEntries"][0]
+type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>;
+type DocumentWithMemories = DocumentsResponse["documents"][0];
+type MemoryEntry = DocumentWithMemories["memoryEntries"][0];
 
 interface MemoryListViewProps {
-	children?: React.ReactNode
-	documents: DocumentWithMemories[]
-	isLoading: boolean
-	isLoadingMore: boolean
-	error: Error | null
-	totalLoaded: number
-	hasMore: boolean
-	loadMoreDocuments: () => Promise<void>
+	children?: React.ReactNode;
+	documents: DocumentWithMemories[];
+	isLoading: boolean;
+	isLoadingMore: boolean;
+	error: Error | null;
+	totalLoaded: number;
+	hasMore: boolean;
+	loadMoreDocuments: () => Promise<void>;
 }
 
 const GreetingMessage = memo(() => {
 	const getGreeting = () => {
-		const hour = new Date().getHours()
-		if (hour < 12) return "Good morning"
-		if (hour < 17) return "Good afternoon"
-		return "Good evening"
-	}
+		const hour = new Date().getHours();
+		if (hour < 12) return "Good morning";
+		if (hour < 17) return "Good afternoon";
+		return "Good evening";
+	};
 
 	return (
 		<div className="flex items-center gap-3 mb-3 px-4 md:mb-6 md:mt-3">
 			<div>
-				<h1 
+				<h1
 					className="text-lg md:text-xl font-semibold"
 					style={{ color: colors.text.primary }}
 				>
 					{getGreeting()}!
 				</h1>
-				<p 
-					className="text-xs md:text-sm"
-					style={{ color: colors.text.muted }}
-				>
+				<p className="text-xs md:text-sm" style={{ color: colors.text.muted }}>
 					Welcome back to your memory collection
 				</p>
 			</div>
 		</div>
-	)
-})
+	);
+});
 
 const formatDate = (date: string | Date) => {
-	const dateObj = new Date(date)
-	const now = new Date()
-	const currentYear = now.getFullYear()
-	const dateYear = dateObj.getFullYear()
-	
-	const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-	const month = monthNames[dateObj.getMonth()]
-	const day = dateObj.getDate()
-	
+	const dateObj = new Date(date);
+	const now = new Date();
+	const currentYear = now.getFullYear();
+	const dateYear = dateObj.getFullYear();
+
+	const monthNames = [
+		"Jan",
+		"Feb",
+		"Mar",
+		"Apr",
+		"May",
+		"Jun",
+		"Jul",
+		"Aug",
+		"Sep",
+		"Oct",
+		"Nov",
+		"Dec",
+	];
+	const month = monthNames[dateObj.getMonth()];
+	const day = dateObj.getDate();
+
 	const getOrdinalSuffix = (n: number) => {
-		const s = ["th", "st", "nd", "rd"]
-		const v = n % 100
-		return n + (s[(v - 20) % 10] || s[v] || s[0]!)
-	}
-	
-	const formattedDay = getOrdinalSuffix(day)
-	
+		const s = ["th", "st", "nd", "rd"];
+		const v = n % 100;
+		return n + (s[(v - 20) % 10] || s[v] || s[0]!);
+	};
+
+	const formattedDay = getOrdinalSuffix(day);
+
 	if (dateYear !== currentYear) {
-		return `${month} ${formattedDay}, ${dateYear}`
+		return `${month} ${formattedDay}, ${dateYear}`;
 	}
-	
-	return `${month} ${formattedDay}`
-}
+
+	return `${month} ${formattedDay}`;
+};
 
 const formatDocumentType = (type: string) => {
 	// Special case for PDF
-	if (type.toLowerCase() === "pdf") return "PDF"
+	if (type.toLowerCase() === "pdf") return "PDF";
 
 	// Replace underscores with spaces and capitalize each word
 	return type
 		.split("_")
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-		.join(" ")
-}
+		.join(" ");
+};
 
 const getDocumentIcon = (type: string, className: string) => {
 	const iconProps = {
 		className,
 		style: { color: colors.text.muted },
-	}
+	};
 
 	switch (type) {
 		case "google_doc":
-			return <GoogleDocs {...iconProps} />
+			return <GoogleDocs {...iconProps} />;
 		case "google_sheet":
-			return <GoogleSheets {...iconProps} />
+			return <GoogleSheets {...iconProps} />;
 		case "google_slide":
-			return <GoogleSlides {...iconProps} />
+			return <GoogleSlides {...iconProps} />;
 		case "google_drive":
-			return <GoogleDrive {...iconProps} />
+			return <GoogleDrive {...iconProps} />;
 		case "notion":
 		case "notion_doc":
-			return <NotionDoc {...iconProps} />
+			return <NotionDoc {...iconProps} />;
 		case "word":
 		case "microsoft_word":
-			return <MicrosoftWord {...iconProps} />
+			return <MicrosoftWord {...iconProps} />;
 		case "excel":
 		case "microsoft_excel":
-			return <MicrosoftExcel {...iconProps} />
+			return <MicrosoftExcel {...iconProps} />;
 		case "powerpoint":
 		case "microsoft_powerpoint":
-			return <MicrosoftPowerpoint {...iconProps} />
+			return <MicrosoftPowerpoint {...iconProps} />;
 		case "onenote":
 		case "microsoft_onenote":
-			return <MicrosoftOneNote {...iconProps} />
+			return <MicrosoftOneNote {...iconProps} />;
 		case "onedrive":
-			return <OneDrive {...iconProps} />
+			return <OneDrive {...iconProps} />;
 		case "pdf":
-			return <PDF {...iconProps} />
+			return <PDF {...iconProps} />;
 		default:
-			return <FileText {...iconProps} />
+			return <FileText {...iconProps} />;
 	}
-}
+};
 
 const getSourceUrl = (document: DocumentWithMemories) => {
 	if (document.type === "google_doc" && document.customId) {
-		return `https://docs.google.com/document/d/${document.customId}`
+		return `https://docs.google.com/document/d/${document.customId}`;
 	}
 	if (document.type === "google_sheet" && document.customId) {
-		return `https://docs.google.com/spreadsheets/d/${document.customId}`
+		return `https://docs.google.com/spreadsheets/d/${document.customId}`;
 	}
 	if (document.type === "google_slide" && document.customId) {
-		return `https://docs.google.com/presentation/d/${document.customId}`
+		return `https://docs.google.com/presentation/d/${document.customId}`;
 	}
 	// Fallback to existing URL for all other document types
-	return document.url
-}
+	return document.url;
+};
 
 const MemoryDetailItem = memo(({ memory }: { memory: MemoryEntry }) => {
 	return (
@@ -199,8 +214,9 @@ const MemoryDetailItem = memo(({ memory }: { memory: MemoryEntry }) => {
 					}}
 				>
 					<Brain
-						className={`w-4 h-4 flex-shrink-0 transition-all ${memory.isLatest ? "text-blue-400" : "text-blue-400/50"
-							}`}
+						className={`w-4 h-4 flex-shrink-0 transition-all ${
+							memory.isLatest ? "text-blue-400" : "text-blue-400/50"
+						}`}
 					/>
 				</div>
 				<div className="flex-1 space-y-2">
@@ -282,29 +298,29 @@ const MemoryDetailItem = memo(({ memory }: { memory: MemoryEntry }) => {
 				</div>
 			</div>
 		</button>
-	)
-})
+	);
+});
 
 const DocumentCard = memo(
 	({
 		document,
 		onOpenDetails,
 	}: {
-		document: DocumentWithMemories
-		onOpenDetails: (document: DocumentWithMemories) => void
+		document: DocumentWithMemories;
+		onOpenDetails: (document: DocumentWithMemories) => void;
 	}) => {
-		const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten)
+		const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten);
 		const forgottenMemories = document.memoryEntries.filter(
 			(m) => m.isForgotten,
-		)
+		);
 
 		return (
 			<Card
 				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden border-0 gap-2 md:w-full"
 				onClick={() => {
-				analytics.documentCardClicked()
-				onOpenDetails(document)
-			}}
+					analytics.documentCardClicked();
+					onOpenDetails(document);
+				}}
 				style={{
 					backgroundColor: colors.document.primary,
 				}}
@@ -313,15 +329,22 @@ const DocumentCard = memo(
 					<div className="flex items-center justify-between gap-2">
 						<div className="flex items-center gap-1">
 							{getDocumentIcon(document.type, "w-4 h-4 flex-shrink-0")}
-							<p className={cn("text-sm font-medium line-clamp-1", document.url ? "max-w-[190px]" : "max-w-[200px]")}>{document.title || "Untitled Document"}</p>
+							<p
+								className={cn(
+									"text-sm font-medium line-clamp-1",
+									document.url ? "max-w-[190px]" : "max-w-[200px]",
+								)}
+							>
+								{document.title || "Untitled Document"}
+							</p>
 						</div>
 						{document.url && (
 							<button
 								className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
 								onClick={(e) => {
-									e.stopPropagation()
-									const sourceUrl = getSourceUrl(document)
-									window.open(sourceUrl ?? undefined, "_blank")
+									e.stopPropagation();
+									const sourceUrl = getSourceUrl(document);
+									window.open(sourceUrl ?? undefined, "_blank");
 								}}
 								style={{
 									backgroundColor: "rgba(255, 255, 255, 0.05)",
@@ -375,9 +398,9 @@ const DocumentCard = memo(
 					</div>
 				</CardContent>
 			</Card>
-		)
+		);
 	},
-)
+);
 
 const DocumentDetailSheet = memo(
 	({
@@ -386,20 +409,24 @@ const DocumentDetailSheet = memo(
 		onClose,
 		isMobile,
 	}: {
-		document: DocumentWithMemories | null
-		isOpen: boolean
-		onClose: () => void
-		isMobile: boolean
+		document: DocumentWithMemories | null;
+		isOpen: boolean;
+		onClose: () => void;
+		isMobile: boolean;
 	}) => {
-		if (!document) return null
+		if (!document) return null;
 
-		const [isSummaryExpanded, setIsSummaryExpanded] = useState(false)
-		const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten)
+		const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
+		const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten);
 		const forgottenMemories = document.memoryEntries.filter(
 			(m) => m.isForgotten,
-		)
+		);
 
-		const HeaderContent = ({ TitleComponent }: { TitleComponent: typeof SheetTitle | typeof DrawerTitle }) => (
+		const HeaderContent = ({
+			TitleComponent,
+		}: {
+			TitleComponent: typeof SheetTitle | typeof DrawerTitle;
+		}) => (
 			<div className="flex items-start justify-between gap-2">
 				<div className="flex items-start gap-3 flex-1">
 					<div
@@ -421,17 +448,15 @@ const DocumentDetailSheet = memo(
 						>
 							<span>{formatDocumentType(document.type)}</span>
 							<span>•</span>
-							<span>
-								{formatDate(document.createdAt)}
-							</span>
+							<span>{formatDate(document.createdAt)}</span>
 							{document.url && (
 								<>
 									<span>•</span>
 									<button
 										className="flex items-center gap-1 transition-all hover:gap-2"
 										onClick={() => {
-											const sourceUrl = getSourceUrl(document)
-											window.open(sourceUrl ?? undefined, "_blank")
+											const sourceUrl = getSourceUrl(document);
+											window.open(sourceUrl ?? undefined, "_blank");
 										}}
 										style={{ color: colors.accent.primary }}
 										type="button"
@@ -445,12 +470,12 @@ const DocumentDetailSheet = memo(
 					</div>
 				</div>
 			</div>
-		)
+		);
 
 		const SummarySection = () => {
-			if (!document.summary) return null
+			if (!document.summary) return null;
 
-			const shouldShowToggle = document.summary.length > 200 // Show toggle for longer summaries
+			const shouldShowToggle = document.summary.length > 200; // Show toggle for longer summaries
 
 			return (
 				<div
@@ -460,8 +485,8 @@ const DocumentDetailSheet = memo(
 						border: "1px solid rgba(255, 255, 255, 0.08)",
 					}}
 				>
-					<p 
-						className={`text-sm ${!isSummaryExpanded ? 'line-clamp-3' : ''}`} 
+					<p
+						className={`text-sm ${!isSummaryExpanded ? "line-clamp-3" : ""}`}
 						style={{ color: colors.text.muted }}
 					>
 						{document.summary}
@@ -473,12 +498,12 @@ const DocumentDetailSheet = memo(
 							style={{ color: colors.accent.primary }}
 							type="button"
 						>
-							{isSummaryExpanded ? 'Show less' : 'Show more'}
+							{isSummaryExpanded ? "Show less" : "Show more"}
 						</button>
 					)}
 				</div>
-			)
-		}
+			);
+		};
 
 		const MemoryContent = () => (
 			<div className="p-6 space-y-6">
@@ -529,26 +554,25 @@ const DocumentDetailSheet = memo(
 					</div>
 				)}
 
-				{activeMemories.length === 0 &&
-					forgottenMemories.length === 0 && (
-						<div
-							className="text-center py-12 rounded-lg"
-							style={{
-								backgroundColor: "rgba(255, 255, 255, 0.02)",
-								border: "1px solid rgba(255, 255, 255, 0.08)",
-							}}
-						>
-							<Brain
-								className="w-12 h-12 mx-auto mb-4 opacity-30"
-								style={{ color: colors.text.muted }}
-							/>
-							<p style={{ color: colors.text.muted }}>
-								No memories found for this document
-							</p>
-						</div>
-					)}
+				{activeMemories.length === 0 && forgottenMemories.length === 0 && (
+					<div
+						className="text-center py-12 rounded-lg"
+						style={{
+							backgroundColor: "rgba(255, 255, 255, 0.02)",
+							border: "1px solid rgba(255, 255, 255, 0.08)",
+						}}
+					>
+						<Brain
+							className="w-12 h-12 mx-auto mb-4 opacity-30"
+							style={{ color: colors.text.muted }}
+						/>
+						<p style={{ color: colors.text.muted }}>
+							No memories found for this document
+						</p>
+					</div>
+				)}
 			</div>
-		)
+		);
 
 		if (isMobile) {
 			return (
@@ -582,7 +606,7 @@ const DocumentDetailSheet = memo(
 						</div>
 					</DrawerContent>
 				</Drawer>
-			)
+			);
 		}
 
 		return (
@@ -616,9 +640,9 @@ const DocumentDetailSheet = memo(
 					</div>
 				</SheetContent>
 			</Sheet>
-		)
+		);
 	},
-)
+);
 
 export const MemoryListView = ({
 	children,
@@ -629,26 +653,29 @@ export const MemoryListView = ({
 	hasMore,
 	loadMoreDocuments,
 }: MemoryListViewProps) => {
-	const [selectedSpace, _] = useState<string>("all")
+	const [selectedSpace, _] = useState<string>("all");
 	const [selectedDocument, setSelectedDocument] =
-		useState<DocumentWithMemories | null>(null)
-	const [isDetailOpen, setIsDetailOpen] = useState(false)
-	const parentRef = useRef<HTMLDivElement>(null)
-	const containerRef = useRef<HTMLDivElement>(null)
-	const isMobile = useIsMobile()
+		useState<DocumentWithMemories | null>(null);
+	const [isDetailOpen, setIsDetailOpen] = useState(false);
+	const parentRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const isMobile = useIsMobile();
 
-	const gap = 14
-	
+	const gap = 14;
+
 	const { width: containerWidth } = useResizeObserver(containerRef);
-	const columnWidth = isMobile ? containerWidth : 320
-	const columns = Math.max(1, Math.floor((containerWidth + gap) / (columnWidth + gap)))
+	const columnWidth = isMobile ? containerWidth : 320;
+	const columns = Math.max(
+		1,
+		Math.floor((containerWidth + gap) / (columnWidth + gap)),
+	);
 
 	// Filter documents based on selected space
 	const filteredDocuments = useMemo(() => {
-		if (!documents) return []
+		if (!documents) return [];
 
 		if (selectedSpace === "all") {
-			return documents
+			return documents;
 		}
 
 		return documents
@@ -659,46 +686,52 @@ export const MemoryListView = ({
 						(memory.spaceContainerTag ?? memory.spaceId) === selectedSpace,
 				),
 			}))
-			.filter((doc) => doc.memoryEntries.length > 0)
-	}, [documents, selectedSpace])
+			.filter((doc) => doc.memoryEntries.length > 0);
+	}, [documents, selectedSpace]);
 
 	const handleOpenDetails = useCallback((document: DocumentWithMemories) => {
-		analytics.memoryDetailOpened()
-		setSelectedDocument(document)
-		setIsDetailOpen(true)
-	}, [])
+		analytics.memoryDetailOpened();
+		setSelectedDocument(document);
+		setIsDetailOpen(true);
+	}, []);
 
 	const handleCloseDetails = useCallback(() => {
-		setIsDetailOpen(false)
-		setTimeout(() => setSelectedDocument(null), 300)
-	}, [])
-	
+		setIsDetailOpen(false);
+		setTimeout(() => setSelectedDocument(null), 300);
+	}, []);
+
 	const virtualItems = useMemo(() => {
-		const items = []
+		const items = [];
 		for (let i = 0; i < filteredDocuments.length; i += columns) {
-			items.push(filteredDocuments.slice(i, i + columns))
+			items.push(filteredDocuments.slice(i, i + columns));
 		}
-		return items
-	}, [filteredDocuments, columns])
+		return items;
+	}, [filteredDocuments, columns]);
 
 	const virtualizer = useVirtualizer({
 		count: virtualItems.length,
 		getScrollElement: () => parentRef.current,
 		overscan: 5,
 		estimateSize: () => 200,
-	})
+	});
 
 	useEffect(() => {
-		const [lastItem] = [...virtualizer.getVirtualItems()].reverse()
-		
+		const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
+
 		if (!lastItem || !hasMore || isLoadingMore) {
-			return
+			return;
 		}
 
 		if (lastItem.index >= virtualItems.length - 1) {
-			loadMoreDocuments()
+			loadMoreDocuments();
 		}
-	}, [hasMore, isLoadingMore, loadMoreDocuments, virtualizer.getVirtualItems(), virtualItems.length])
+	}, [
+		hasMore,
+		isLoadingMore,
+		loadMoreDocuments,
+		virtualizer.getVirtualItems(),
+		virtualItems.length,
+	]);
 
 	// Always render with consistent structure
 	return (
@@ -738,19 +771,21 @@ export const MemoryListView = ({
 						{children}
 					</div>
 				) : (
-					<div 
+					<div
 						ref={parentRef}
 						className="h-full overflow-auto mt-20 custom-scrollbar"
 					>
 						<GreetingMessage />
-						
+
 						<div
 							className="w-full relative"
-							style={{ height: `${virtualizer.getTotalSize() + (virtualItems.length * gap)}px` }}
+							style={{
+								height: `${virtualizer.getTotalSize() + virtualItems.length * gap}px`,
+							}}
 						>
 							{virtualizer.getVirtualItems().map((virtualRow) => {
-								const rowItems = virtualItems[virtualRow.index]
-								if (!rowItems) return null
+								const rowItems = virtualItems[virtualRow.index];
+								if (!rowItems) return null;
 
 								return (
 									<div
@@ -758,25 +793,30 @@ export const MemoryListView = ({
 										data-index={virtualRow.index}
 										ref={virtualizer.measureElement}
 										className="absolute top-0 left-0 w-full"
-										style={{ transform: `translateY(${virtualRow.start + (virtualRow.index * gap)}px)` }}
+										style={{
+											transform: `translateY(${virtualRow.start + virtualRow.index * gap}px)`,
+										}}
 									>
 										<div
 											className="grid justify-start"
-											style={{ gridTemplateColumns: `repeat(${columns}, ${columnWidth}px)`, gap: `${gap}px` }}
+											style={{
+												gridTemplateColumns: `repeat(${columns}, ${columnWidth}px)`,
+												gap: `${gap}px`,
+											}}
 										>
-											{rowItems.map((document) => (
+											{rowItems.map((document, columnIndex) => (
 												<DocumentCard
-													key={document.id}
+													key={`${document.id}-${virtualRow.index}-${columnIndex}`}
 													document={document}
 													onOpenDetails={handleOpenDetails}
 												/>
 											))}
 										</div>
 									</div>
-								)
+								);
 							})}
 						</div>
-						
+
 						{isLoadingMore && (
 							<div className="py-8 flex items-center justify-center">
 								<div className="flex items-center gap-2">
@@ -798,5 +838,5 @@ export const MemoryListView = ({
 				isMobile={isMobile}
 			/>
 		</>
-	)
-}
+	);
+};

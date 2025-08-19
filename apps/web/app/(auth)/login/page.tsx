@@ -1,4 +1,4 @@
-import { LoginPage } from "@repo/ui/pages/login"
+import { LoginPage } from "@repo/ui/pages/login";
 
 export default function Page() {
 	return (
@@ -8,5 +8,5 @@ export default function Page() {
 				"Private, secure, and reliable.",
 			]}
 		/>
-	)
+	);
 }

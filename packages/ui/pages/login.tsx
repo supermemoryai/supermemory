@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { signIn } from "@lib/auth"
-import { usePostHog } from "@lib/posthog"
-import { LogoFull } from "@repo/ui/assets/Logo"
-import { TextSeparator } from "@repo/ui/components/text-separator"
-import { ExternalAuthButton } from "@ui/button/external-auth"
-import { Button } from "@ui/components/button"
+import { signIn } from "@lib/auth";
+import { usePostHog } from "@lib/posthog";
+import { LogoFull } from "@repo/ui/assets/Logo";
+import { TextSeparator } from "@repo/ui/components/text-separator";
+import { ExternalAuthButton } from "@ui/button/external-auth";
+import { Button } from "@ui/components/button";
 import {
 	Carousel,
 	CarouselContent,
 	CarouselItem,
-} from "@ui/components/carousel"
-import { LabeledInput } from "@ui/input/labeled-input"
-import { HeadingH1Medium } from "@ui/text/heading/heading-h1-medium"
-import { HeadingH3Medium } from "@ui/text/heading/heading-h3-medium"
-import { Label1Regular } from "@ui/text/label/label-1-regular"
-import { Title1Bold } from "@ui/text/title/title-1-bold"
-import Autoplay from "embla-carousel-autoplay"
-import Image from "next/image"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+} from "@ui/components/carousel";
+import { LabeledInput } from "@ui/input/labeled-input";
+import { HeadingH1Medium } from "@ui/text/heading/heading-h1-medium";
+import { HeadingH3Medium } from "@ui/text/heading/heading-h3-medium";
+import { Label1Regular } from "@ui/text/label/label-1-regular";
+import { Title1Bold } from "@ui/text/title/title-1-bold";
+import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export function LoginPage({
 	heroText = "The unified memory API for the AI era.",
@@ -28,74 +28,74 @@ export function LoginPage({
 		"Trusted by Open Source, enterprise and developers.",
 	],
 }) {
-	const [email, setEmail] = useState("")
-	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
-	const [isLoading, setIsLoading] = useState(false)
-	const [isLoadingEmail, setIsLoadingEmail] = useState(false)
-	const [error, setError] = useState<string | null>(null)
-	const router = useRouter()
+	const [email, setEmail] = useState("");
+	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const router = useRouter();
 
-	const posthog = usePostHog()
+	const posthog = usePostHog();
 
-	const params = useSearchParams()
+	const params = useSearchParams();
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
-		setIsLoading(true)
-		setIsLoadingEmail(true)
-		setError(null)
+		e.preventDefault();
+		setIsLoading(true);
+		setIsLoadingEmail(true);
+		setError(null);
 
 		// Track login attempt
 		posthog.capture("login_attempt", {
 			method: "magic_link",
 			email_domain: email.split("@")[1] || "unknown",
-		})
+		});
 
 		try {
 			await signIn.magicLink({
 				callbackURL: window.location.origin,
 				email,
-			})
-			setSubmittedEmail(email)
+			});
+			setSubmittedEmail(email);
 
 			// Track successful magic link send
 			posthog.capture("login_magic_link_sent", {
 				email_domain: email.split("@")[1] || "unknown",
-			})
+			});
 		} catch (error) {
-			console.error(error)
+			console.error(error);
 
 			// Track login failure
 			posthog.capture("login_failed", {
 				method: "magic_link",
 				error: error instanceof Error ? error.message : "Unknown error",
 				email_domain: email.split("@")[1] || "unknown",
-			})
+			});
 
 			setError(
 				error instanceof Error
 					? error.message
 					: "Failed to send login link. Please try again.",
-			)
-			setIsLoading(false)
-			setIsLoadingEmail(false)
-			return
+			);
+			setIsLoading(false);
+			setIsLoadingEmail(false);
+			return;
 		}
 
-		setIsLoading(false)
-		setIsLoadingEmail(false)
-	}
+		setIsLoading(false);
+		setIsLoadingEmail(false);
+	};
 
 	const handleSubmitToken = async (event: React.FormEvent<HTMLFormElement>) => {
-		event.preventDefault()
-		setIsLoading(true)
+		event.preventDefault();
+		setIsLoading(true);
 
-		const formData = new FormData(event.currentTarget)
-		const token = formData.get("token") as string
+		const formData = new FormData(event.currentTarget);
+		const token = formData.get("token") as string;
 		router.push(
 			`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(window.location.host)}`,
-		)
-	}
+		);
+	};
 
 	return (
 		<section className="min-h-screen flex flex-col lg:grid lg:grid-cols-12 items-center justify-center p-4 sm:p-6 md:p-8 lg:px-[5rem] lg:py-[3.125rem] gap-6 lg:gap-[5rem] max-w-[400rem] mx-auto">
@@ -197,8 +197,8 @@ export function LoginPage({
 									disabled: isLoading,
 									id: "email",
 									onChange: (e) => {
-										setEmail(e.target.value)
-										error && setError(null)
+										setEmail(e.target.value);
+										error && setError(null);
 									},
 									required: true,
 									value: email,
@@ -256,20 +256,20 @@ export function LoginPage({
 								authProvider="Google"
 								disabled={isLoading}
 								onClick={() => {
-									if (isLoading) return
-									setIsLoading(true)
+									if (isLoading) return;
+									setIsLoading(true);
 									posthog.capture("login_attempt", {
 										method: "social",
 										provider: "google",
-									})
+									});
 									signIn
 										.social({
 											callbackURL: window.location.origin,
 											provider: "google",
 										})
 										.finally(() => {
-											setIsLoading(false)
-										})
+											setIsLoading(false);
+										});
 								}}
 							/>
 						) : null}
@@ -309,20 +309,20 @@ export function LoginPage({
 								authProvider="Github"
 								disabled={isLoading}
 								onClick={() => {
-									if (isLoading) return
-									setIsLoading(true)
+									if (isLoading) return;
+									setIsLoading(true);
 									posthog.capture("login_attempt", {
 										method: "social",
 										provider: "github",
-									})
+									});
 									signIn
 										.social({
 											callbackURL: window.location.origin,
 											provider: "github",
 										})
 										.finally(() => {
-											setIsLoading(false)
-										})
+											setIsLoading(false);
+										});
 								}}
 							/>
 						) : null}
@@ -350,5 +350,5 @@ export function LoginPage({
 				</div>
 			)}
 		</section>
-	)
+	);
 }

@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { Button } from "@ui/components/button"
+import { Button } from "@ui/components/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@ui/components/card"
-import { ShareIcon } from "lucide-react"
-import Link from "next/link"
+} from "@ui/components/card";
+import { ShareIcon } from "lucide-react";
+import Link from "next/link";
 
 export default function ReferralHomePage() {
 	return (
@@ -23,28 +23,33 @@ export default function ReferralHomePage() {
 						Missing Referral Code
 					</CardTitle>
 					<CardDescription className="text-white/60 mt-2">
-						It looks like you're missing a referral code. Get one from a friend or join directly!
+						It looks like you're missing a referral code. Get one from a friend
+						or join directly!
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-4">
 						<div className="bg-[#0f1419] rounded-lg p-4 border border-white/10">
-							<h3 className="text-white font-semibold mb-2">What is supermemory?</h3>
+							<h3 className="text-white font-semibold mb-2">
+								What is supermemory?
+							</h3>
 							<p className="text-white/70 text-sm leading-relaxed">
-								supermemory is an AI-powered personal knowledge base that helps you store, 
-								organize, and interact with all your digital memories.
+								supermemory is an AI-powered personal knowledge base that helps
+								you store, organize, and interact with all your digital
+								memories.
 							</p>
 						</div>
-						
-						<Button asChild className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-							<Link href="/waitlist">
-								Join the Waitlist
-							</Link>
+
+						<Button
+							asChild
+							className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+						>
+							<Link href="/waitlist">Join the Waitlist</Link>
 						</Button>
 
 						<div className="text-center">
-							<Link 
-								href="https://supermemory.ai" 
+							<Link
+								href="https://supermemory.ai"
 								className="text-orange-500 hover:text-orange-400 text-sm underline"
 							>
 								Learn more about supermemory
@@ -54,5 +59,5 @@ export default function ReferralHomePage() {
 				</CardContent>
 			</Card>
 		</div>
-	)
+	);
 }

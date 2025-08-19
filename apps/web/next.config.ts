@@ -1,5 +1,5 @@
-import { withSentryConfig } from "@sentry/nextjs"
-import type { NextConfig } from "next"
+import { withSentryConfig } from "@sentry/nextjs";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
 	experimental: {
@@ -20,10 +20,10 @@ const nextConfig: NextConfig = {
 				source: "/ingest/:path*",
 				destination: "https://us.i.posthog.com/:path*",
 			},
-		]
+		];
 	},
 	skipTrailingSlashRedirect: true,
-}
+};
 
 export default withSentryConfig(nextConfig, {
 	// Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
@@ -54,7 +54,8 @@ export default withSentryConfig(nextConfig, {
 
 	// Upload a larger set of source maps for prettier stack traces (increases build time)
 	widenClientFileUpload: true,
-})
+});
 
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare"
-initOpenNextCloudflareForDev()
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+initOpenNextCloudflareForDev();

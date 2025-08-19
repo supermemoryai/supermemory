@@ -1,45 +1,45 @@
-"use client"
+"use client";
 
-import { useIsMobile } from "@hooks/use-mobile"
-import { cn } from "@repo/lib/utils"
+import { useIsMobile } from "@hooks/use-mobile";
+import { cn } from "@repo/lib/utils";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
-} from "@repo/ui/components/collapsible"
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect"
-import { Brain, ChevronDown, ChevronUp, FileText } from "lucide-react"
-import { memo, useEffect, useState } from "react"
-import { colors } from "./constants"
-import type { GraphEdge, GraphNode, LegendProps } from "./types"
+} from "@repo/ui/components/collapsible";
+import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { Brain, ChevronDown, ChevronUp, FileText } from "lucide-react";
+import { memo, useEffect, useState } from "react";
+import { colors } from "./constants";
+import type { GraphEdge, GraphNode, LegendProps } from "./types";
 
 // Cookie utility functions for legend state
 const setCookie = (name: string, value: string, days = 365) => {
-	if (typeof document === "undefined") return
-	const expires = new Date()
-	expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000)
-	document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`
-}
+	if (typeof document === "undefined") return;
+	const expires = new Date();
+	expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+	document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+};
 
 const getCookie = (name: string): string | null => {
-	if (typeof document === "undefined") return null
-	const nameEQ = `${name}=`
-	const ca = document.cookie.split(";")
+	if (typeof document === "undefined") return null;
+	const nameEQ = `${name}=`;
+	const ca = document.cookie.split(";");
 	for (let i = 0; i < ca.length; i++) {
-		let c = ca[i]
-		if (!c) continue
-		while (c.charAt(0) === " ") c = c.substring(1, c.length)
-		if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length)
+		let c = ca[i];
+		if (!c) continue;
+		while (c.charAt(0) === " ") c = c.substring(1, c.length);
+		if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
 	}
-	return null
-}
+	return null;
+};
 
 interface ExtendedLegendProps extends LegendProps {
-	id?: string
-	nodes?: GraphNode[]
-	edges?: GraphEdge[]
-	isLoading?: boolean
-	isExperimental?: boolean
+	id?: string;
+	nodes?: GraphNode[];
+	edges?: GraphEdge[];
+	isLoading?: boolean;
+	isExperimental?: boolean;
 }
 
 export const Legend = memo(function Legend({
@@ -50,63 +50,63 @@ export const Legend = memo(function Legend({
 	isLoading = false,
 	isExperimental = false,
 }: ExtendedLegendProps) {
-	const isMobile = useIsMobile()
-	const [isExpanded, setIsExpanded] = useState(true)
-	const [isInitialized, setIsInitialized] = useState(false)
+	const isMobile = useIsMobile();
+	const [isExpanded, setIsExpanded] = useState(true);
+	const [isInitialized, setIsInitialized] = useState(false);
 
-	const relationData = isExperimental ? [
-		["updates", colors.relations.updates],
-		["extends", colors.relations.extends],
-		["derives", colors.relations.derives],
-		] : [
-			["updates", colors.relations.updates],
-		]
+	const relationData = isExperimental
+		? [
+				["updates", colors.relations.updates],
+				["extends", colors.relations.extends],
+				["derives", colors.relations.derives],
+			]
+		: [["updates", colors.relations.updates]];
 
 	// Load saved preference on client side
 	useEffect(() => {
 		if (!isInitialized) {
-			const savedState = getCookie("legendCollapsed")
+			const savedState = getCookie("legendCollapsed");
 			if (savedState === "true") {
-				setIsExpanded(false)
+				setIsExpanded(false);
 			} else if (savedState === "false") {
-				setIsExpanded(true)
+				setIsExpanded(true);
 			} else {
 				// Default: collapsed on mobile, expanded on desktop
-				setIsExpanded(!isMobile)
+				setIsExpanded(!isMobile);
 			}
-			setIsInitialized(true)
+			setIsInitialized(true);
 		}
-	}, [isInitialized, isMobile])
+	}, [isInitialized, isMobile]);
 
 	// Save to cookie when state changes
 	const handleToggleExpanded = (expanded: boolean) => {
-		setIsExpanded(expanded)
-		setCookie("legendCollapsed", expanded ? "false" : "true")
-	}
+		setIsExpanded(expanded);
+		setCookie("legendCollapsed", expanded ? "false" : "true");
+	};
 
 	// Use explicit classes that Tailwind can detect
 	const getPositioningClasses = () => {
 		if (variant === "console") {
 			// Both desktop and mobile use same positioning for console
-			return "bottom-4 right-4"
+			return "bottom-4 right-4";
 		}
 		if (variant === "consumer") {
-			return isMobile ? "bottom-48 left-4" : "top-18 right-4"
+			return isMobile ? "bottom-48 left-4" : "top-18 right-4";
 		}
-		return ""
-	}
+		return "";
+	};
 
 	const getMobileSize = () => {
-		if (!isMobile) return ""
-		return isExpanded ? "max-w-xs" : "w-16 h-12"
-	}
+		if (!isMobile) return "";
+		return isExpanded ? "max-w-xs" : "w-16 h-12";
+	};
 
 	const hexagonClipPath =
-		"polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)"
+		"polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)";
 
 	// Calculate stats
-	const memoryCount = nodes.filter((n) => n.type === "memory").length
-	const documentCount = nodes.filter((n) => n.type === "document").length
+	const memoryCount = nodes.filter((n) => n.type === "memory").length;
+	const documentCount = nodes.filter((n) => n.type === "document").length;
 
 	return (
 		<div
@@ -114,7 +114,7 @@ export const Legend = memo(function Legend({
 				"absolute z-10 rounded-xl overflow-hidden w-fit h-fit",
 				getPositioningClasses(),
 				getMobileSize(),
-				isMobile && "hidden md:block"
+				isMobile && "hidden md:block",
 			)}
 			id={id}
 		>
@@ -271,13 +271,14 @@ export const Legend = memo(function Legend({
 											Relations
 										</div>
 										<div className="space-y-1.5">
-											{(isExperimental ? [
-												["updates", colors.relations.updates],
-												["extends", colors.relations.extends],
-												["derives", colors.relations.derives],
-											] : [
-												["updates", colors.relations.updates],
-											]).map(([label, color]) => (
+											{(isExperimental
+												? [
+														["updates", colors.relations.updates],
+														["extends", colors.relations.extends],
+														["derives", colors.relations.derives],
+													]
+												: [["updates", colors.relations.updates]]
+											).map(([label, color]) => (
 												<div className="flex items-center gap-2" key={label}>
 													<div
 														className="w-4 h-0 border-t-2 flex-shrink-0"
@@ -317,7 +318,7 @@ export const Legend = memo(function Legend({
 				</div>
 			</Collapsible>
 		</div>
-	)
-})
+	);
+});
 
-Legend.displayName = "Legend"
+Legend.displayName = "Legend";

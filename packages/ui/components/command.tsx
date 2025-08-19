@@ -1,16 +1,16 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
+import { cn } from "@lib/utils";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@ui/components/dialog"
-import { Command as CommandPrimitive } from "cmdk"
-import { SearchIcon } from "lucide-react"
-import type * as React from "react"
+} from "@ui/components/dialog";
+import { Command as CommandPrimitive } from "cmdk";
+import { SearchIcon } from "lucide-react";
+import type * as React from "react";
 
 function Command({
 	className,
@@ -25,7 +25,7 @@ function Command({
 			data-slot="command"
 			{...props}
 		/>
-	)
+	);
 }
 
 function CommandDialog({
@@ -36,10 +36,10 @@ function CommandDialog({
 	showCloseButton = true,
 	...props
 }: React.ComponentProps<typeof Dialog> & {
-	title?: string
-	description?: string
-	className?: string
-	showCloseButton?: boolean
+	title?: string;
+	description?: string;
+	className?: string;
+	showCloseButton?: boolean;
 }) {
 	return (
 		<Dialog {...props}>
@@ -56,7 +56,7 @@ function CommandDialog({
 				</Command>
 			</DialogContent>
 		</Dialog>
-	)
+	);
 }
 
 function CommandInput({
@@ -78,7 +78,7 @@ function CommandInput({
 				{...props}
 			/>
 		</div>
-	)
+	);
 }
 
 function CommandList({
@@ -94,7 +94,7 @@ function CommandList({
 			data-slot="command-list"
 			{...props}
 		/>
-	)
+	);
 }
 
 function CommandEmpty({
@@ -106,7 +106,7 @@ function CommandEmpty({
 			data-slot="command-empty"
 			{...props}
 		/>
-	)
+	);
 }
 
 function CommandGroup({
@@ -122,7 +122,7 @@ function CommandGroup({
 			data-slot="command-group"
 			{...props}
 		/>
-	)
+	);
 }
 
 function CommandSeparator({
@@ -135,7 +135,7 @@ function CommandSeparator({
 			data-slot="command-separator"
 			{...props}
 		/>
-	)
+	);
 }
 
 function CommandItem({
@@ -151,7 +151,7 @@ function CommandItem({
 			data-slot="command-item"
 			{...props}
 		/>
-	)
+	);
 }
 
 function CommandShortcut({
@@ -167,7 +167,7 @@ function CommandShortcut({
 			data-slot="command-shortcut"
 			{...props}
 		/>
-	)
+	);
 }
 
 export {
@@ -180,4 +180,4 @@ export {
 	CommandItem,
 	CommandShortcut,
 	CommandSeparator,
-}
+};

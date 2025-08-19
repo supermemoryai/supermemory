@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { cn } from "@repo/lib/utils"
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect"
-import { Sparkles } from "lucide-react"
-import { memo } from "react"
-import type { LoadingIndicatorProps } from "./types"
+import { cn } from "@repo/lib/utils";
+import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { Sparkles } from "lucide-react";
+import { memo } from "react";
+import type { LoadingIndicatorProps } from "./types";
 
 export const LoadingIndicator = memo<LoadingIndicatorProps>(
 	({ isLoading, isLoadingMore, totalLoaded, variant = "console" }) => {
 		// Use explicit classes that Tailwind can detect
 		const getPositioningClasses = () => {
 			// Both variants use the same positioning for loadingIndicator
-			return "top-20 left-4"
-		}
+			return "top-20 left-4";
+		};
 
-		if (!isLoading && !isLoadingMore) return null
+		if (!isLoading && !isLoadingMore) return null;
 
 		return (
 			<div
@@ -37,8 +37,8 @@ export const LoadingIndicator = memo<LoadingIndicatorProps>(
 					</div>
 				</div>
 			</div>
-		)
+		);
 	},
-)
+);
 
-LoadingIndicator.displayName = "LoadingIndicator"
+LoadingIndicator.displayName = "LoadingIndicator";

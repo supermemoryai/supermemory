@@ -1,54 +1,54 @@
-"use client"
+"use client";
 
-import { Button } from "@repo/ui/components/button"
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect"
-import { AnimatePresence, motion } from "motion/react"
-import * as React from "react"
-import { analytics } from "@/lib/analytics"
+import { Button } from "@repo/ui/components/button";
+import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { AnimatePresence, motion } from "motion/react";
+import * as React from "react";
+import { analytics } from "@/lib/analytics";
 
 // Types
 export interface TourStep {
-	content: React.ReactNode
-	selectorId: string
-	position?: "top" | "bottom" | "left" | "right" | "center"
-	onClickWithinArea?: () => void
+	content: React.ReactNode;
+	selectorId: string;
+	position?: "top" | "bottom" | "left" | "right" | "center";
+	onClickWithinArea?: () => void;
 }
 
 interface TourContextType {
-	currentStep: number
-	totalSteps: number
-	nextStep: () => void
-	previousStep: () => void
-	endTour: () => void
-	isActive: boolean
-	isPaused: boolean
-	startTour: () => void
-	setSteps: (steps: TourStep[]) => void
-	steps: TourStep[]
-	isTourCompleted: boolean
-	setIsTourCompleted: (completed: boolean) => void
+	currentStep: number;
+	totalSteps: number;
+	nextStep: () => void;
+	previousStep: () => void;
+	endTour: () => void;
+	isActive: boolean;
+	isPaused: boolean;
+	startTour: () => void;
+	setSteps: (steps: TourStep[]) => void;
+	steps: TourStep[];
+	isTourCompleted: boolean;
+	setIsTourCompleted: (completed: boolean) => void;
 	// Expansion state tracking
-	setMenuExpanded: (expanded: boolean) => void
-	setChatExpanded: (expanded: boolean) => void
+	setMenuExpanded: (expanded: boolean) => void;
+	setChatExpanded: (expanded: boolean) => void;
 }
 
 // Context
-const TourContext = React.createContext<TourContextType | undefined>(undefined)
+const TourContext = React.createContext<TourContextType | undefined>(undefined);
 
 export function useTour() {
-	const context = React.useContext(TourContext)
+	const context = React.useContext(TourContext);
 	if (!context) {
-		throw new Error("useTour must be used within a TourProvider")
+		throw new Error("useTour must be used within a TourProvider");
 	}
-	return context
+	return context;
 }
 
 // Provider
 interface TourProviderProps {
-	children: React.ReactNode
-	onComplete?: () => void
-	className?: string
-	isTourCompleted?: boolean
+	children: React.ReactNode;
+	onComplete?: () => void;
+	className?: string;
+	isTourCompleted?: boolean;
 }
 
 export function TourProvider({
@@ -57,60 +57,61 @@ export function TourProvider({
 	className,
 	isTourCompleted: initialCompleted = false,
 }: TourProviderProps) {
-	const [currentStep, setCurrentStep] = React.useState(-1)
-	const [steps, setSteps] = React.useState<TourStep[]>([])
-	const [isActive, setIsActive] = React.useState(false)
-	const [isTourCompleted, setIsTourCompleted] = React.useState(initialCompleted)
+	const [currentStep, setCurrentStep] = React.useState(-1);
+	const [steps, setSteps] = React.useState<TourStep[]>([]);
+	const [isActive, setIsActive] = React.useState(false);
+	const [isTourCompleted, setIsTourCompleted] =
+		React.useState(initialCompleted);
 
 	// Track expansion states
-	const [isMenuExpanded, setIsMenuExpanded] = React.useState(false)
-	const [isChatExpanded, setIsChatExpanded] = React.useState(false)
+	const [isMenuExpanded, setIsMenuExpanded] = React.useState(false);
+	const [isChatExpanded, setIsChatExpanded] = React.useState(false);
 
 	// Calculate if tour should be paused
 	const isPaused = React.useMemo(() => {
-		return isActive && (isMenuExpanded || isChatExpanded)
-	}, [isActive, isMenuExpanded, isChatExpanded])
+		return isActive && (isMenuExpanded || isChatExpanded);
+	}, [isActive, isMenuExpanded, isChatExpanded]);
 
 	const startTour = React.useCallback(() => {
-		console.debug("Starting tour with", steps.length, "steps")
-		analytics.tourStarted()
-		setCurrentStep(0)
-		setIsActive(true)
-	}, [steps])
+		console.debug("Starting tour with", steps.length, "steps");
+		analytics.tourStarted();
+		setCurrentStep(0);
+		setIsActive(true);
+	}, [steps]);
 
 	const endTour = React.useCallback(() => {
-		setCurrentStep(-1)
-		setIsActive(false)
-		setIsTourCompleted(true) // Mark tour as completed when ended/skipped
-		analytics.tourSkipped()
+		setCurrentStep(-1);
+		setIsActive(false);
+		setIsTourCompleted(true); // Mark tour as completed when ended/skipped
+		analytics.tourSkipped();
 		if (onComplete) {
-			onComplete()
+			onComplete();
 		}
-	}, [onComplete])
+	}, [onComplete]);
 
 	const nextStep = React.useCallback(() => {
 		if (currentStep < steps.length - 1) {
-			setCurrentStep(currentStep + 1)
+			setCurrentStep(currentStep + 1);
 		} else {
-			analytics.tourCompleted()
-			endTour()
-			setIsTourCompleted(true)
+			analytics.tourCompleted();
+			endTour();
+			setIsTourCompleted(true);
 		}
-	}, [currentStep, steps.length, endTour])
+	}, [currentStep, steps.length, endTour]);
 
 	const previousStep = React.useCallback(() => {
 		if (currentStep > 0) {
-			setCurrentStep(currentStep - 1)
+			setCurrentStep(currentStep - 1);
 		}
-	}, [currentStep])
+	}, [currentStep]);
 
 	const setMenuExpanded = React.useCallback((expanded: boolean) => {
-		setIsMenuExpanded(expanded)
-	}, [])
+		setIsMenuExpanded(expanded);
+	}, []);
 
 	const setChatExpanded = React.useCallback((expanded: boolean) => {
-		setIsChatExpanded(expanded)
-	}, [])
+		setIsChatExpanded(expanded);
+	}, []);
 
 	const value = React.useMemo(
 		() => ({
@@ -142,7 +143,7 @@ export function TourProvider({
 			setMenuExpanded,
 			setChatExpanded,
 		],
-	)
+	);
 
 	return (
 		<TourContext.Provider value={value}>
@@ -164,7 +165,7 @@ export function TourProvider({
 				</>
 			)}
 		</TourContext.Provider>
-	)
+	);
 }
 
 // Tour Highlight Component
@@ -173,33 +174,33 @@ function TourHighlight({
 	steps,
 	className,
 }: {
-	currentStepIndex: number
-	steps: TourStep[]
-	className?: string
+	currentStepIndex: number;
+	steps: TourStep[];
+	className?: string;
 }) {
-	const { nextStep, previousStep, endTour } = useTour()
-	const [elementRect, setElementRect] = React.useState<DOMRect | null>(null)
+	const { nextStep, previousStep, endTour } = useTour();
+	const [elementRect, setElementRect] = React.useState<DOMRect | null>(null);
 
 	// Get current step safely
 	const step =
 		currentStepIndex >= 0 && currentStepIndex < steps.length
 			? steps[currentStepIndex]
-			: null
+			: null;
 
 	React.useEffect(() => {
-		if (!step) return
+		if (!step) return;
 
 		// Use requestAnimationFrame to ensure DOM is ready
 		const rafId = requestAnimationFrame(() => {
-			const element = document.getElementById(step.selectorId)
+			const element = document.getElementById(step.selectorId);
 			console.debug(
 				"Looking for element with ID:",
 				step.selectorId,
 				"Found:",
 				!!element,
-			)
+			);
 			if (element) {
-				const rect = element.getBoundingClientRect()
+				const rect = element.getBoundingClientRect();
 				console.debug("Element rect:", {
 					id: step.selectorId,
 					top: rect.top,
@@ -208,34 +209,34 @@ function TourHighlight({
 					height: rect.height,
 					bottom: rect.bottom,
 					right: rect.right,
-				})
-				setElementRect(rect)
+				});
+				setElementRect(rect);
 			}
-		})
+		});
 
 		// Add click listener for onClickWithinArea
-		let clickHandler: ((e: MouseEvent) => void) | null = null
+		let clickHandler: ((e: MouseEvent) => void) | null = null;
 		if (step.onClickWithinArea) {
-			const element = document.getElementById(step.selectorId)
+			const element = document.getElementById(step.selectorId);
 			if (element) {
 				clickHandler = (e: MouseEvent) => {
 					if (element.contains(e.target as Node)) {
-						step.onClickWithinArea?.()
+						step.onClickWithinArea?.();
 					}
-				}
-				document.addEventListener("click", clickHandler)
+				};
+				document.addEventListener("click", clickHandler);
 			}
 		}
 
 		return () => {
-			cancelAnimationFrame(rafId)
+			cancelAnimationFrame(rafId);
 			if (clickHandler) {
-				document.removeEventListener("click", clickHandler)
+				document.removeEventListener("click", clickHandler);
 			}
-		}
-	}, [step])
+		};
+	}, [step]);
 
-	if (!step) return null
+	if (!step) return null;
 
 	// Keep the wrapper mounted but animate the content
 	return (
@@ -277,12 +278,12 @@ function TourHighlight({
 										? elementRect.bottom + 8
 										: step.position === "top"
 											? elementRect.top - 200
-											: elementRect.top + elementRect.height / 2 - 100
+											: elementRect.top + elementRect.height / 2 - 100;
 
 								// Ensure tooltip stays within viewport
-								const maxTop = window.innerHeight - 250 // Leave space for tooltip height
-								const minTop = 10
-								return Math.max(minTop, Math.min(baseTop, maxTop))
+								const maxTop = window.innerHeight - 250; // Leave space for tooltip height
+								const minTop = 10;
+								return Math.max(minTop, Math.min(baseTop, maxTop));
 							})(),
 							left: (() => {
 								const baseLeft =
@@ -290,12 +291,12 @@ function TourHighlight({
 										? elementRect.right + 8
 										: step.position === "left"
 											? elementRect.left - 300
-											: elementRect.left + elementRect.width / 2 - 150
+											: elementRect.left + elementRect.width / 2 - 150;
 
 								// Ensure tooltip stays within viewport
-								const maxLeft = window.innerWidth - 300 // Tooltip width
-								const minLeft = 10
-								return Math.max(minLeft, Math.min(baseLeft, maxLeft))
+								const maxLeft = window.innerWidth - 300; // Tooltip width
+								const minLeft = 10;
+								return Math.max(minLeft, Math.min(baseLeft, maxLeft));
 							})(),
 						}}
 					>
@@ -342,31 +343,31 @@ function TourHighlight({
 				</motion.div>
 			)}
 		</AnimatePresence>
-	)
+	);
 }
 
 // Tour Alert Dialog
 interface TourAlertDialogProps {
-	open: boolean
-	onOpenChange: (open: boolean) => void
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }
 
 export function TourAlertDialog({ open, onOpenChange }: TourAlertDialogProps) {
-	const { startTour, setIsTourCompleted } = useTour()
+	const { startTour, setIsTourCompleted } = useTour();
 
 	const handleStart = () => {
-		console.debug("TourAlertDialog: Starting tour")
-		onOpenChange(false)
-		startTour()
-	}
+		console.debug("TourAlertDialog: Starting tour");
+		onOpenChange(false);
+		startTour();
+	};
 
 	const handleSkip = () => {
-		analytics.tourSkipped()
-		setIsTourCompleted(true) // Mark tour as completed when skipped
-		onOpenChange(false)
-	}
+		analytics.tourSkipped();
+		setIsTourCompleted(true); // Mark tour as completed when skipped
+		onOpenChange(false);
+	};
 
-	if (!open) return null
+	if (!open) return null;
 
 	return (
 		<AnimatePresence>
@@ -409,5 +410,5 @@ export function TourAlertDialog({ open, onOpenChange }: TourAlertDialogProps) {
 				</div>
 			</motion.div>
 		</AnimatePresence>
-	)
+	);
 }

@@ -1,11 +1,11 @@
 import { z } from "zod"
 import "zod-openapi/extend"
 import {
+	MetadataSchema as BaseMetadataSchema,
 	DocumentSchema,
 	MemoryEntrySchema,
 	OrganizationSettingsSchema,
 	RequestTypeEnum,
-	MetadataSchema as BaseMetadataSchema,
 } from "./schemas"
 
 export const MetadataSchema = BaseMetadataSchema
@@ -47,90 +47,96 @@ const exampleMemory = {
 	url: "https://example.com/article",
 } as const
 
-export const MemorySchema = z.object({
-	id: z.string().openapi({
-		description: "Unique identifier of the memory.",
-		example: "acxV5LHMEsG2hMSNb4umbn",
-	}),
-	customId: z.string().nullable().optional().openapi({
-		description:
-			"Optional custom ID of the memory. This could be an ID from your database that will uniquely identify this memory.",
-		example: "mem_abc123",
-	}),
-	connectionId: z.string().nullable().optional().openapi({
-		description:
-			"Optional ID of connection the memory was created from. This is useful for identifying the source of the memory.",
-		example: "conn_123",
-	}),
-	content: z.string().nullable().optional().openapi({
-		description:
-			"The content to extract and process into a memory. This can be a URL to a website, a PDF, an image, or a video. \n\nPlaintext: Any plaintext format\n\nURL: A URL to a website, PDF, image, or video\n\nWe automatically detect the content type from the url's response format.",
-		examples: [
-			"This is a detailed article about machine learning concepts...",
-			"https://example.com/article",
-			"https://youtube.com/watch?v=abc123",
-			"https://example.com/audio.mp3",
-			"https://aws-s3.com/bucket/file.pdf",
-			"https://example.com/image.jpg",
-		],
-	}),
-	metadata: MetadataSchema.nullable().optional().openapi({
-		description:
-			"Optional metadata for the memory. This is used to store additional information about the memory. You can use this to store any additional information you need about the memory. Metadata can be filtered through. Keys must be strings and are case sensitive. Values can be strings, numbers, or booleans. You cannot nest objects.",
-		example: exampleMetadata,
-	}),
-	source: z.string().nullable().optional().openapi({
-		description: "Source of the memory",
-		example: "web",
-	}),
-	status: DocumentSchema.shape.status.openapi({
-		description: "Status of the memory",
-		example: "done",
-	}),
-	summary: z.string().nullable().optional().openapi({
-		description: "Summary of the memory content",
-		example:
-			"A comprehensive guide to understanding the basics of machine learning and its applications.",
-	}),
-	title: z.string().nullable().optional().openapi({
-		description: "Title of the memory",
-		example: "Introduction to Machine Learning",
-	}),
-	type: DocumentSchema.shape.type.openapi({
-		description: "Type of the memory",
-		example: "text",
-	}),
-	url: z.string().nullable().optional().openapi({
-		description: "URL of the memory",
-		example: "https://example.com/article",
-	}),
-	createdAt: z.string().openapi({
-		description: "Creation timestamp",
-		example: new Date().toISOString(),
-		format: "date-time",
-	}),
-	updatedAt: z.string().openapi({
-		description: "Last update timestamp",
-		example: new Date().toISOString(),
-		format: "date-time",
-	}),
-	containerTags: z
-		.array(z.string())
-		.optional()
-		.readonly()
-		.openapi({
-			description:
-				"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
-			example: ["user_123", "project_123"] as const,
+export const MemorySchema = z
+	.object({
+		id: z.string().openapi({
+			description: "Unique identifier of the memory.",
+			example: "acxV5LHMEsG2hMSNb4umbn",
 		}),
-	chunkCount: z.number().default(0).openapi({
-		description: "Number of chunks in the memory",
-		example: 10,
-	}),
-}).openapi({
-	description: "Memory object",
-	example: exampleMemory,
-})
+		customId: z.string().nullable().optional().openapi({
+			description:
+				"Optional custom ID of the memory. This could be an ID from your database that will uniquely identify this memory.",
+			example: "mem_abc123",
+		}),
+		connectionId: z.string().nullable().optional().openapi({
+			description:
+				"Optional ID of connection the memory was created from. This is useful for identifying the source of the memory.",
+			example: "conn_123",
+		}),
+		content: z
+			.string()
+			.nullable()
+			.optional()
+			.openapi({
+				description:
+					"The content to extract and process into a memory. This can be a URL to a website, a PDF, an image, or a video. \n\nPlaintext: Any plaintext format\n\nURL: A URL to a website, PDF, image, or video\n\nWe automatically detect the content type from the url's response format.",
+				examples: [
+					"This is a detailed article about machine learning concepts...",
+					"https://example.com/article",
+					"https://youtube.com/watch?v=abc123",
+					"https://example.com/audio.mp3",
+					"https://aws-s3.com/bucket/file.pdf",
+					"https://example.com/image.jpg",
+				],
+			}),
+		metadata: MetadataSchema.nullable().optional().openapi({
+			description:
+				"Optional metadata for the memory. This is used to store additional information about the memory. You can use this to store any additional information you need about the memory. Metadata can be filtered through. Keys must be strings and are case sensitive. Values can be strings, numbers, or booleans. You cannot nest objects.",
+			example: exampleMetadata,
+		}),
+		source: z.string().nullable().optional().openapi({
+			description: "Source of the memory",
+			example: "web",
+		}),
+		status: DocumentSchema.shape.status.openapi({
+			description: "Status of the memory",
+			example: "done",
+		}),
+		summary: z.string().nullable().optional().openapi({
+			description: "Summary of the memory content",
+			example:
+				"A comprehensive guide to understanding the basics of machine learning and its applications.",
+		}),
+		title: z.string().nullable().optional().openapi({
+			description: "Title of the memory",
+			example: "Introduction to Machine Learning",
+		}),
+		type: DocumentSchema.shape.type.openapi({
+			description: "Type of the memory",
+			example: "text",
+		}),
+		url: z.string().nullable().optional().openapi({
+			description: "URL of the memory",
+			example: "https://example.com/article",
+		}),
+		createdAt: z.string().openapi({
+			description: "Creation timestamp",
+			example: new Date().toISOString(),
+			format: "date-time",
+		}),
+		updatedAt: z.string().openapi({
+			description: "Last update timestamp",
+			example: new Date().toISOString(),
+			format: "date-time",
+		}),
+		containerTags: z
+			.array(z.string())
+			.optional()
+			.readonly()
+			.openapi({
+				description:
+					"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
+				example: ["user_123", "project_123"] as const,
+			}),
+		chunkCount: z.number().default(0).openapi({
+			description: "Number of chunks in the memory",
+			example: 10,
+		}),
+	})
+	.openapi({
+		description: "Memory object",
+		example: exampleMemory,
+	})
 
 export const MemoryUpdateSchema = z.object({
 	containerTags: z
@@ -698,7 +704,8 @@ export const MemorySearchResult = z.object({
 				.array(
 					z.object({
 						relation: z.enum(["updates", "extends", "derives"]).openapi({
-							description: "Relation type between this memory and its parent/child",
+							description:
+								"Relation type between this memory and its parent/child",
 							example: "updates",
 						}),
 						version: z.number().nullable().optional().openapi({
@@ -725,7 +732,8 @@ export const MemorySearchResult = z.object({
 				.array(
 					z.object({
 						relation: z.enum(["updates", "extends", "derives"]).openapi({
-							description: "Relation type between this memory and its parent/child",
+							description:
+								"Relation type between this memory and its parent/child",
 							example: "extends",
 						}),
 						version: z.number().nullable().optional().openapi({
@@ -1027,47 +1035,47 @@ export const AnalyticsMemoryResponseSchema = z.object({
 	totalMemories: z.number(),
 })
 
-export const MemoryEntryAPISchema = MemoryEntrySchema
-	.extend({
-		sourceAddedAt: z.date().nullable(), // From join relationship
-		sourceRelevanceScore: z.number().nullable(), // From join relationship
-		sourceMetadata: z.record(z.unknown()).nullable(), // From join relationship
-		spaceContainerTag: z.string().nullable(), // From join relationship
-	})
-	.openapi({
-		description: "Memory entry with source relationship data",
-	})
+export const MemoryEntryAPISchema = MemoryEntrySchema.extend({
+	sourceAddedAt: z.date().nullable(), // From join relationship
+	sourceRelevanceScore: z.number().nullable(), // From join relationship
+	sourceMetadata: z.record(z.unknown()).nullable(), // From join relationship
+	spaceContainerTag: z.string().nullable(), // From join relationship
+}).openapi({
+	description: "Memory entry with source relationship data",
+})
 
 // Extended document schema with memory entries
-export const DocumentWithMemoriesSchema = z.object({
-	id: DocumentSchema.shape.id,
-	customId: DocumentSchema.shape.customId,
-	contentHash: DocumentSchema.shape.contentHash,
-	orgId: DocumentSchema.shape.orgId,
-	userId: DocumentSchema.shape.userId,
-	connectionId: DocumentSchema.shape.connectionId,
-	title: DocumentSchema.shape.title,
-	content: DocumentSchema.shape.content,
-	summary: DocumentSchema.shape.summary,
-	url: DocumentSchema.shape.url,
-	source: DocumentSchema.shape.source,
-	type: DocumentSchema.shape.type,
-	status: DocumentSchema.shape.status,
-	metadata: DocumentSchema.shape.metadata,
-	processingMetadata: DocumentSchema.shape.processingMetadata,
-	raw: DocumentSchema.shape.raw,
-	tokenCount: DocumentSchema.shape.tokenCount,
-	wordCount: DocumentSchema.shape.wordCount,
-	chunkCount: DocumentSchema.shape.chunkCount,
-	averageChunkSize: DocumentSchema.shape.averageChunkSize,
-	summaryEmbedding: DocumentSchema.shape.summaryEmbedding,
-	summaryEmbeddingModel: DocumentSchema.shape.summaryEmbeddingModel,
-	createdAt: DocumentSchema.shape.createdAt,
-	updatedAt: DocumentSchema.shape.updatedAt,
-	memoryEntries: z.array(MemoryEntryAPISchema),
-}).openapi({
-	description: "Document with associated memory entries",
-})
+export const DocumentWithMemoriesSchema = z
+	.object({
+		id: DocumentSchema.shape.id,
+		customId: DocumentSchema.shape.customId,
+		contentHash: DocumentSchema.shape.contentHash,
+		orgId: DocumentSchema.shape.orgId,
+		userId: DocumentSchema.shape.userId,
+		connectionId: DocumentSchema.shape.connectionId,
+		title: DocumentSchema.shape.title,
+		content: DocumentSchema.shape.content,
+		summary: DocumentSchema.shape.summary,
+		url: DocumentSchema.shape.url,
+		source: DocumentSchema.shape.source,
+		type: DocumentSchema.shape.type,
+		status: DocumentSchema.shape.status,
+		metadata: DocumentSchema.shape.metadata,
+		processingMetadata: DocumentSchema.shape.processingMetadata,
+		raw: DocumentSchema.shape.raw,
+		tokenCount: DocumentSchema.shape.tokenCount,
+		wordCount: DocumentSchema.shape.wordCount,
+		chunkCount: DocumentSchema.shape.chunkCount,
+		averageChunkSize: DocumentSchema.shape.averageChunkSize,
+		summaryEmbedding: DocumentSchema.shape.summaryEmbedding,
+		summaryEmbeddingModel: DocumentSchema.shape.summaryEmbeddingModel,
+		createdAt: DocumentSchema.shape.createdAt,
+		updatedAt: DocumentSchema.shape.updatedAt,
+		memoryEntries: z.array(MemoryEntryAPISchema),
+	})
+	.openapi({
+		description: "Document with associated memory entries",
+	})
 
 export const DocumentsWithMemoriesResponseSchema = z
 	.object({
@@ -1212,14 +1220,14 @@ export const ProjectSchema = z
 			format: "date-time",
 		}),
 		updatedAt: z.string().openapi({
-            description: "Last update timestamp",
-            example: new Date().toISOString(),
-            format: "date-time",
-        }),
-        isExperimental: z.boolean().openapi({
-            description: "Whether the project (space) is in experimental mode",
-            example: false,
-        }),
+			description: "Last update timestamp",
+			example: new Date().toISOString(),
+			format: "date-time",
+		}),
+		isExperimental: z.boolean().openapi({
+			description: "Whether the project (space) is in experimental mode",
+			example: false,
+		}),
 		documentCount: z.number().optional().openapi({
 			description: "Number of documents in this project",
 			example: 42,

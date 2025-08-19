@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { cn } from "@repo/lib/utils"
-import { Button } from "@repo/ui/components/button"
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect"
-import { Move, ZoomIn, ZoomOut } from "lucide-react"
-import { memo } from "react"
-import type { ControlsProps } from "./types"
+import { cn } from "@repo/lib/utils";
+import { Button } from "@repo/ui/components/button";
+import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { Move, ZoomIn, ZoomOut } from "lucide-react";
+import { memo } from "react";
+import type { ControlsProps } from "./types";
 
 export const Controls = memo<ControlsProps>(
 	({ onZoomIn, onZoomOut, onResetView, variant = "console" }) => {
@@ -13,13 +13,13 @@ export const Controls = memo<ControlsProps>(
 		// Using a reasonable default position
 		const getPositioningClasses = () => {
 			if (variant === "console") {
-				return "bottom-4 left-4"
+				return "bottom-4 left-4";
 			}
 			if (variant === "consumer") {
-				return "bottom-20 right-4"
+				return "bottom-20 right-4";
 			}
-			return ""
-		}
+			return "";
+		};
 
 		return (
 			<div
@@ -60,8 +60,8 @@ export const Controls = memo<ControlsProps>(
 					</div>
 				</div>
 			</div>
-		)
+		);
 	},
-)
+);
 
-Controls.displayName = "Controls"
+Controls.displayName = "Controls";

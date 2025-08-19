@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
-import { Button } from "@ui/components/button"
+import { cn } from "@lib/utils";
+import { Button } from "@ui/components/button";
 import {
 	Command,
 	CommandEmpty,
@@ -9,25 +9,29 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from "@ui/components/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
-import { Check, ChevronsUpDown, X } from "lucide-react"
-import * as React from "react"
+} from "@ui/components/command";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@ui/components/popover";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import * as React from "react";
 
 interface Option {
-	value: string
-	label: string
+	value: string;
+	label: string;
 }
 
 interface ComboboxProps {
-	options: Option[]
-	onSelect: (value: string) => void
-	onSubmit: (newName: string) => void
-	selectedValues: string[]
-	setSelectedValues: React.Dispatch<React.SetStateAction<string[]>>
-	className?: string
-	placeholder?: string
-	triggerClassName?: string
+	options: Option[];
+	onSelect: (value: string) => void;
+	onSubmit: (newName: string) => void;
+	selectedValues: string[];
+	setSelectedValues: React.Dispatch<React.SetStateAction<string[]>>;
+	className?: string;
+	placeholder?: string;
+	triggerClassName?: string;
 }
 
 export function Combobox({
@@ -40,36 +44,38 @@ export function Combobox({
 	placeholder = "Select...",
 	triggerClassName,
 }: ComboboxProps) {
-	const [open, setOpen] = React.useState(false)
-	const [inputValue, setInputValue] = React.useState("")
+	const [open, setOpen] = React.useState(false);
+	const [inputValue, setInputValue] = React.useState("");
 
 	const handleSelect = (value: string) => {
-		onSelect(value)
-		setOpen(false)
-		setInputValue("")
-	}
+		onSelect(value);
+		setOpen(false);
+		setInputValue("");
+	};
 
 	const handleCreate = () => {
 		if (inputValue.trim()) {
-			onSubmit(inputValue)
-			setOpen(false)
-			setInputValue("")
+			onSubmit(inputValue);
+			setOpen(false);
+			setInputValue("");
 		}
-	}
+	};
 
 	const handleRemove = (valueToRemove: string) => {
-		setSelectedValues((prev) => prev.filter((value) => value !== valueToRemove))
-	}
+		setSelectedValues((prev) =>
+			prev.filter((value) => value !== valueToRemove),
+		);
+	};
 
 	const filteredOptions = options.filter(
 		(option) => !selectedValues.includes(option.value),
-	)
+	);
 
 	const isNewValue =
 		inputValue.trim() &&
 		!options.some(
 			(option) => option.label.toLowerCase() === inputValue.toLowerCase(),
-		)
+		);
 
 	return (
 		<Popover onOpenChange={setOpen} open={open}>
@@ -87,7 +93,7 @@ export function Combobox({
 					<div className="flex flex-wrap gap-1 items-center w-full">
 						{selectedValues.length > 0 ? (
 							selectedValues.map((value) => {
-								const option = options.find((opt) => opt.value === value)
+								const option = options.find((opt) => opt.value === value);
 								return (
 									<span
 										className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary text-sm rounded-md"
@@ -97,15 +103,15 @@ export function Combobox({
 										<button
 											className="hover:text-destructive"
 											onClick={(e) => {
-												e.stopPropagation()
-												handleRemove(value)
+												e.stopPropagation();
+												handleRemove(value);
 											}}
 											type="button"
 										>
 											<X className="h-3 w-3" />
 										</button>
 									</span>
-								)
+								);
 							})
 						) : (
 							<span className="text-muted-foreground">{placeholder}</span>
@@ -157,5 +163,5 @@ export function Combobox({
 				</Command>
 			</PopoverContent>
 		</Popover>
-	)
+	);
 }
