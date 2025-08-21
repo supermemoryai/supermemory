@@ -1,6 +1,6 @@
 {
-  "name": "Supermemory",
-  "description": "supermemory",
+  "name": "supermemory-browser-extension",
+  "description": "Supermemory Browser Extension",
   "private": true,
   "version": "0.0.1",
   "type": "module",

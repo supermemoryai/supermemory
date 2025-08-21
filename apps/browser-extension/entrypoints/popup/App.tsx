@@ -57,9 +57,26 @@ function App() {
               <span className="status-indicator signed-in"></span>
               <span>Signed in</span>
             </div>
-            <button className="sign-out-btn" onClick={handleSignOut}>
-              Sign Out
-            </button>
+            <div className="actions">
+              <button
+                onClick={() => {
+                  chrome.tabs.create({
+                    url: 'https://chatgpt.com/#settings/Personalization',
+                  });
+                }}
+                className="chatgpt-btn"
+              >
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/commons/1/13/ChatGPT-Logo.png" 
+                  alt="ChatGPT" 
+                  className="chatgpt-logo"
+                />
+                Import ChatGPT Memories
+              </button>
+              <button className="sign-out-btn" onClick={handleSignOut}>
+                Sign Out
+              </button>
+            </div>
           </div>
         ) : (
           <div className="unauthenticated">

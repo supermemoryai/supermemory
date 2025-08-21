@@ -81,3 +81,36 @@
 .authenticated, .unauthenticated {
   text-align: left;
 }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chatgpt-btn {
+  width: 100%;
+  padding: 12px 12px;
+  background-color: white;
+  color: black;
+  border: 1px solid #e4e6eb;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.chatgpt-btn:hover {
+  background-color: #f0f0f0;
+  border-color: #e4e6eb;
+}
+
+.chatgpt-logo {
+  width: 35px;
+  height: 20px;
+  flex-shrink: 0;
+}

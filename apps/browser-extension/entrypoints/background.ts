@@ -47,11 +47,11 @@ export default defineBackground(() => {
             body: JSON.stringify({
               containerTags: ['sm_project_default'],
               content:
-                message.data.highlightedText +
+                message.data?.highlightedText +
                 '\n\n' +
                 message.data.html +
                 '\n\n' +
-                message.data.url,
+                message.data?.url,
               metadata: { sm_source: 'consumer' },
             }),
           });

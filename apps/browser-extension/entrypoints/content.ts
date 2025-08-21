@@ -11,6 +11,29 @@ export default defineContentScript({
       }
     });
 
+    const observeForMemoriesDialog = () => {
+      const observer = new MutationObserver(() => {
+        if (window.location.hostname === 'chatgpt.com' || window.location.hostname === 'chat.openai.com') {
+          addSupermemoryButtonToMemoriesDialog();
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+
+      if (window.location.hostname === 'chatgpt.com' || window.location.hostname === 'chat.openai.com') {
+        addSupermemoryButtonToMemoriesDialog();
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', observeForMemoriesDialog);
+    } else {
+      observeForMemoriesDialog();
+    }
+
     async function saveMemory() {
       try {
         showToast('loading');
@@ -38,6 +61,113 @@ export default defineContentScript({
         }
       } catch (error) {
         console.error('Error saving memory:', error);
+        showToast('error');
+      }
+    }
+
+    function addSupermemoryButtonToMemoriesDialog() {
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      let memoriesDialog: HTMLElement | null = null;
+      
+      for (const dialog of dialogs) {
+        const headerText = dialog.querySelector('h2');
+        if (headerText && headerText.textContent?.includes('Saved memories')) {
+          memoriesDialog = dialog as HTMLElement;
+          break;
+        }
+      }
+      
+      if (!memoriesDialog) return;
+      
+      if (memoriesDialog.querySelector('#supermemory-save-button')) return;
+      
+      const deleteAllContainer = memoriesDialog.querySelector('.mt-5.flex.justify-end');
+      if (!deleteAllContainer) return;
+      
+      const supermemoryButton = document.createElement('button');
+      supermemoryButton.id = 'supermemory-save-button';
+      supermemoryButton.className = 'btn relative btn-primary-outline mr-2';
+      
+      const iconUrl = browser.runtime.getURL('/icon-16.png');
+      
+      supermemoryButton.innerHTML = `
+        <div class="flex items-center justify-center gap-2">
+          <img src="${iconUrl}" alt="Supermemory" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
+          Save to Supermemory
+        </div>
+      `;
+      
+      supermemoryButton.style.cssText = `
+        background: #1C2026 !important;
+        color: white !important;
+        border: 1px solid #1C2026 !important;
+        border-radius: 9999px !important;
+        padding: 10px 16px !important;
+        font-weight: 500 !important;
+        font-size: 14px !important;
+        margin-right: 8px !important;
+        cursor: pointer !important;
+      `;
+      
+      supermemoryButton.addEventListener('mouseenter', () => {
+        supermemoryButton.style.backgroundColor = '#2B2E33';
+      });
+      
+      supermemoryButton.addEventListener('mouseleave', () => {
+        supermemoryButton.style.backgroundColor = '#1C2026';
+      });
+      
+      supermemoryButton.addEventListener('click', async () => {
+        await saveMemoriesToSupermemory();
+      });
+      
+      deleteAllContainer.insertBefore(supermemoryButton, deleteAllContainer.firstChild);
+    }
+
+    async function saveMemoriesToSupermemory() {
+      try {
+        showToast('loading');
+        
+        const memoriesTable = document.querySelector('[role="dialog"] table tbody');
+        if (!memoriesTable) {
+          showToast('error');
+          return;
+        }
+        
+        const memoryRows = memoriesTable.querySelectorAll('tr');
+        const memories: string[] = [];
+        
+        memoryRows.forEach(row => {
+          const memoryCell = row.querySelector('td .py-2.whitespace-pre-wrap');
+          if (memoryCell && memoryCell.textContent) {
+            memories.push(memoryCell.textContent.trim());
+          }
+        });
+
+        console.log('Memories:', memories);
+        
+        if (memories.length === 0) {
+          showToast('error');
+          return;
+        }
+        
+        const url = window.location.href;
+        const combinedContent = `ChatGPT Saved Memories:\n\n${memories.map((memory, index) => `${index + 1}. ${memory}`).join('\n\n')}`;
+        
+        const response = await browser.runtime.sendMessage({
+          action: 'saveMemory',
+          data: {
+            html: combinedContent,
+          },
+        });
+        
+        if (response.success) {
+          showToast('success');
+        } else {
+          showToast('error');
+        }
+      } catch (error) {
+        console.error('Error saving memories to Supermemory:', error);
         showToast('error');
       }
     }
