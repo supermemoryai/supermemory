@@ -39,7 +39,7 @@
 		"@react-router/fs-routes": "^7.6.2",
 		"@react-router/node": "^7.6.2",
 		"@react-router/serve": "^7.6.2",
-		"@sentry/nextjs": "^9.33.0",
+		"@sentry/nextjs": "^10",
 		"@tabler/icons-react": "^3.34.0",
 		"@tailwindcss/typography": "^0.5.16",
 		"@tanstack/react-form": "^1.12.4",
