@@ -1,0 +1,83 @@
+.popup-container {
+  width: 320px;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header .logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.content {
+  padding: 16px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #000000;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-indicator.signed-in {
+  background-color: #000000;
+}
+
+.status-indicator.signed-out {
+  background-color: #666666;
+}
+
+.sign-out-btn {
+  width: 100%;
+  padding: 8px 16px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sign-out-btn:hover {
+  background-color: #333333;
+}
+
+.instruction {
+  margin: 0;
+  font-size: 13px;
+  color: #666666;
+  line-height: 1.4;
+}
+
+.authenticated, .unauthenticated {
+  text-align: left;
+}

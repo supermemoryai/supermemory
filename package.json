@@ -1,5 +1,5 @@
 {
-  "name": "supermemory",
+  "name": "supermemory-app",
   "private": true,
   "scripts": {
     "build": "turbo run build",
