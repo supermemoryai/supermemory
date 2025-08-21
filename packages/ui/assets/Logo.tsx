@@ -2,8 +2,8 @@ export const Logo = ({
 	className,
 	id,
 }: {
-	className?: string
-	id?: string
+	className?: string;
+	id?: string;
 }) => {
 	return (
 		<svg
@@ -19,15 +19,15 @@ export const Logo = ({
 				fill="#EFEFEF"
 			/>
 		</svg>
-	)
-}
+	);
+};
 
 export const LogoFull = ({
 	className,
 	id,
 }: {
-	className?: string
-	id?: string
+	className?: string;
+	id?: string;
 }) => {
 	return (
 		<svg
@@ -47,5 +47,5 @@ export const LogoFull = ({
 				</clipPath>
 			</defs>
 		</svg>
-	)
-}
+	);
+};

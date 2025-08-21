@@ -1,31 +1,31 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
-import type * as React from "react"
-import { Drawer as DrawerPrimitive } from "vaul"
+import { cn } from "@lib/utils";
+import type * as React from "react";
+import { Drawer as DrawerPrimitive } from "vaul";
 
 function Drawer({
 	...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-	return <DrawerPrimitive.Root data-slot="drawer" {...props} />
+	return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
 }
 
 function DrawerTrigger({
 	...props
 }: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {
-	return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />
+	return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
 
 function DrawerPortal({
 	...props
 }: React.ComponentProps<typeof DrawerPrimitive.Portal>) {
-	return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />
+	return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
 }
 
 function DrawerClose({
 	...props
 }: React.ComponentProps<typeof DrawerPrimitive.Close>) {
-	return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
+	return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
 }
 
 function DrawerOverlay({
@@ -41,7 +41,7 @@ function DrawerOverlay({
 			data-slot="drawer-overlay"
 			{...props}
 		/>
-	)
+	);
 }
 
 function DrawerContent({
@@ -68,7 +68,7 @@ function DrawerContent({
 				{children}
 			</DrawerPrimitive.Content>
 		</DrawerPortal>
-	)
+	);
 }
 
 function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -81,7 +81,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
 			data-slot="drawer-header"
 			{...props}
 		/>
-	)
+	);
 }
 
 function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
@@ -91,7 +91,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
 			data-slot="drawer-footer"
 			{...props}
 		/>
-	)
+	);
 }
 
 function DrawerTitle({
@@ -104,7 +104,7 @@ function DrawerTitle({
 			data-slot="drawer-title"
 			{...props}
 		/>
-	)
+	);
 }
 
 function DrawerDescription({
@@ -117,7 +117,7 @@ function DrawerDescription({
 			data-slot="drawer-description"
 			{...props}
 		/>
-	)
+	);
 }
 
 export {
@@ -131,4 +131,4 @@ export {
 	DrawerFooter,
 	DrawerTitle,
 	DrawerDescription,
-}
+};

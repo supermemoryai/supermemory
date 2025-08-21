@@ -17,7 +17,7 @@ export const TOUR_STEP_IDS = {
 	MENU_BILLING: "tour-menu-billing",
 	// Legend
 	LEGEND: "tour-legend",
-} as const
+} as const;
 
 // Tour storage key for localStorage
-export const TOUR_STORAGE_KEY = "supermemory-tour-completed"
+export const TOUR_STORAGE_KEY = "supermemory-tour-completed";

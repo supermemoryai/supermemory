@@ -1,12 +1,12 @@
 {
-    "name": "@repo/lib",
-    "version": "0.0.0",
-    "private": true,
-    "type": "module",
-    "dependencies": {
-        "@ai-sdk/anthropic": "^1.2.12",
-        "@ai-sdk/google": "^1.2.22",
-        "@ai-sdk/groq": "^1.2.9",
-        "ai-gateway-provider": "^0.0.11"
-    }
+	"name": "@repo/lib",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@ai-sdk/anthropic": "^1.2.12",
+		"@ai-sdk/google": "^1.2.22",
+		"@ai-sdk/groq": "^1.2.9",
+		"ai-gateway-provider": "^0.0.11"
+	}
 }

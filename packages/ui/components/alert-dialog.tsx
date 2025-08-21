@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
-import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
-import { buttonVariants } from "@ui/components/button"
-import type * as React from "react"
+import { cn } from "@lib/utils";
+import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
+import { buttonVariants } from "@ui/components/button";
+import type * as React from "react";
 
 function AlertDialog({
 	...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
-	return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
+	return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
 
 function AlertDialogTrigger({
@@ -16,7 +16,7 @@ function AlertDialogTrigger({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
 	return (
 		<AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
-	)
+	);
 }
 
 function AlertDialogPortal({
@@ -24,7 +24,7 @@ function AlertDialogPortal({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
 	return (
 		<AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
-	)
+	);
 }
 
 function AlertDialogOverlay({
@@ -40,7 +40,7 @@ function AlertDialogOverlay({
 			data-slot="alert-dialog-overlay"
 			{...props}
 		/>
-	)
+	);
 }
 
 function AlertDialogContent({
@@ -59,7 +59,7 @@ function AlertDialogContent({
 				{...props}
 			/>
 		</AlertDialogPortal>
-	)
+	);
 }
 
 function AlertDialogHeader({
@@ -72,7 +72,7 @@ function AlertDialogHeader({
 			data-slot="alert-dialog-header"
 			{...props}
 		/>
-	)
+	);
 }
 
 function AlertDialogFooter({
@@ -88,7 +88,7 @@ function AlertDialogFooter({
 			data-slot="alert-dialog-footer"
 			{...props}
 		/>
-	)
+	);
 }
 
 function AlertDialogTitle({
@@ -101,7 +101,7 @@ function AlertDialogTitle({
 			data-slot="alert-dialog-title"
 			{...props}
 		/>
-	)
+	);
 }
 
 function AlertDialogDescription({
@@ -114,7 +114,7 @@ function AlertDialogDescription({
 			data-slot="alert-dialog-description"
 			{...props}
 		/>
-	)
+	);
 }
 
 function AlertDialogAction({
@@ -126,7 +126,7 @@ function AlertDialogAction({
 			className={cn(buttonVariants(), className)}
 			{...props}
 		/>
-	)
+	);
 }
 
 function AlertDialogCancel({
@@ -138,7 +138,7 @@ function AlertDialogCancel({
 			className={cn(buttonVariants({ variant: "outline" }), className)}
 			{...props}
 		/>
-	)
+	);
 }
 
 export {
@@ -153,4 +153,4 @@ export {
 	AlertDialogDescription,
 	AlertDialogAction,
 	AlertDialogCancel,
-}
+};

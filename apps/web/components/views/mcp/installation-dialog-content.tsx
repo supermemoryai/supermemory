@@ -1,22 +1,22 @@
-import { Button } from "@ui/components/button"
+import { Button } from "@ui/components/button";
 import {
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@ui/components/dialog"
-import { Input } from "@ui/components/input"
+} from "@ui/components/dialog";
+import { Input } from "@ui/components/input";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@ui/components/select"
-import { CopyIcon } from "lucide-react"
-import { useState } from "react"
-import { toast } from "sonner"
-import { analytics } from "@/lib/analytics"
+} from "@ui/components/select";
+import { CopyIcon } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { analytics } from "@/lib/analytics";
 
 const clients = {
 	cursor: "Cursor",
@@ -28,10 +28,10 @@ const clients = {
 	enconvo: "Enconvo",
 	"gemini-cli": "Gemini CLI",
 	"claude-code": "Claude Code",
-} as const
+} as const;
 
 export function InstallationDialogContent() {
-	const [client, setClient] = useState<keyof typeof clients>("cursor")
+	const [client, setClient] = useState<keyof typeof clients>("cursor");
 	return (
 		<DialogContent>
 			<DialogHeader>
@@ -67,13 +67,13 @@ export function InstallationDialogContent() {
 				onClick={() => {
 					navigator.clipboard.writeText(
 						`npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${client} --oauth=yes`,
-					)
-					analytics.mcpInstallCmdCopied()
-					toast.success("Copied to clipboard!")
+					);
+					analytics.mcpInstallCmdCopied();
+					toast.success("Copied to clipboard!");
 				}}
 			>
 				<CopyIcon className="size-4" /> Copy Installation Command
 			</Button>
 		</DialogContent>
-	)
+	);
 }

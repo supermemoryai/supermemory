@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import { cn } from "@repo/lib/utils"
-import { Badge } from "@repo/ui/components/badge"
-import { ChevronDown, Eye } from "lucide-react"
-import { memo, useEffect, useRef, useState } from "react"
-import type { SpacesDropdownProps } from "./types"
+import { cn } from "@repo/lib/utils";
+import { Badge } from "@repo/ui/components/badge";
+import { ChevronDown, Eye } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
+import type { SpacesDropdownProps } from "./types";
 
 export const SpacesDropdown = memo<SpacesDropdownProps>(
 	({ selectedSpace, availableSpaces, spaceMemoryCounts, onSpaceChange }) => {
-		const [isOpen, setIsOpen] = useState(false)
-		const dropdownRef = useRef<HTMLDivElement>(null)
+		const [isOpen, setIsOpen] = useState(false);
+		const dropdownRef = useRef<HTMLDivElement>(null);
 
 		// Close dropdown when clicking outside
 		useEffect(() => {
@@ -18,18 +18,19 @@ export const SpacesDropdown = memo<SpacesDropdownProps>(
 					dropdownRef.current &&
 					!dropdownRef.current.contains(event.target as Node)
 				) {
-					setIsOpen(false)
+					setIsOpen(false);
 				}
-			}
+			};
 
-			document.addEventListener("mousedown", handleClickOutside)
-			return () => document.removeEventListener("mousedown", handleClickOutside)
-		}, [])
+			document.addEventListener("mousedown", handleClickOutside);
+			return () =>
+				document.removeEventListener("mousedown", handleClickOutside);
+		}, []);
 
 		const totalMemories = Object.values(spaceMemoryCounts).reduce(
 			(sum, count) => sum + count,
 			0,
-		)
+		);
 
 		return (
 			<div className="relative" ref={dropdownRef}>
@@ -77,8 +78,8 @@ export const SpacesDropdown = memo<SpacesDropdownProps>(
 										: "text-slate-200 hover:bg-slate-700/50",
 								)}
 								onClick={() => {
-									onSpaceChange("all")
-									setIsOpen(false)
+									onSpaceChange("all");
+									setIsOpen(false);
 								}}
 								type="button"
 							>
@@ -97,8 +98,8 @@ export const SpacesDropdown = memo<SpacesDropdownProps>(
 									)}
 									key={space}
 									onClick={() => {
-										onSpaceChange(space)
-										setIsOpen(false)
+										onSpaceChange(space);
+										setIsOpen(false);
 									}}
 									type="button"
 								>
@@ -112,8 +113,8 @@ export const SpacesDropdown = memo<SpacesDropdownProps>(
 					</div>
 				)}
 			</div>
-		)
+		);
 	},
-)
+);
 
-SpacesDropdown.displayName = "SpacesDropdown"
+SpacesDropdown.displayName = "SpacesDropdown";

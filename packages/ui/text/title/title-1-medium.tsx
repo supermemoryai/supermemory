@@ -1,12 +1,12 @@
-import { cn } from "@lib/utils"
-import { Root } from "@radix-ui/react-slot"
+import { cn } from "@lib/utils";
+import { Root } from "@radix-ui/react-slot";
 
 export function Title1Medium({
 	className,
 	asChild,
 	...props
 }: React.ComponentProps<"h1"> & { asChild?: boolean }) {
-	const Comp = asChild ? Root : "h1"
+	const Comp = asChild ? Root : "h1";
 	return (
 		<Comp
 			className={cn(
@@ -15,5 +15,5 @@ export function Title1Medium({
 			)}
 			{...props}
 		/>
-	)
+	);
 }

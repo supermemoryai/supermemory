@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
-import * as TogglePrimitive from "@radix-ui/react-toggle"
-import { cva, type VariantProps } from "class-variance-authority"
-import type * as React from "react"
+import { cn } from "@lib/utils";
+import * as TogglePrimitive from "@radix-ui/react-toggle";
+import { cva, type VariantProps } from "class-variance-authority";
+import type * as React from "react";
 
 const toggleVariants = cva(
 	"inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium hover:bg-muted hover:text-muted-foreground disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 outline-none transition-[color,box-shadow] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap",
@@ -25,7 +25,7 @@ const toggleVariants = cva(
 			size: "default",
 		},
 	},
-)
+);
 
 function Toggle({
 	className,
@@ -40,7 +40,7 @@ function Toggle({
 			data-slot="toggle"
 			{...props}
 		/>
-	)
+	);
 }
 
-export { Toggle, toggleVariants }
+export { Toggle, toggleVariants };

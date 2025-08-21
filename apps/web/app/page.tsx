@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useIsMobile } from "@hooks/use-mobile";
 import { useAuth } from "@lib/auth-context";
@@ -7,32 +7,38 @@ import { MemoryGraph } from "@repo/ui/memory-graph";
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Logo, LogoFull } from "@ui/assets/Logo";
-import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { Button } from "@ui/components/button";
-import { Gift, LayoutGrid, List, LoaderIcon, MessageSquare, Unplug } from "lucide-react";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
+import {
+	Gift,
+	LayoutGrid,
+	List,
+	LoaderIcon,
+	MessageSquare,
+	Unplug,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
-import { MemoryListView } from "@/components/memory-list-view";
-import Menu from "@/components/menu";
-import type { TourStep } from "@/components/tour";
-import { TourAlertDialog, useTour } from "@/components/tour";
-import { useProject } from "@/stores";
-import { TOUR_STEP_IDS, TOUR_STORAGE_KEY } from "@/lib/tour-constants";
-import { useViewMode } from "@/lib/view-mode-context";
-import { useChatOpen } from "@/stores";
-import { ChatRewrite } from "@/components/views/chat";
-import { useGraphHighlights } from "@/stores/highlights";
-import { ProjectSelector } from "@/components/project-selector";
-import { AddMemoryView } from "@/components/views/add-memory";
-import { ReferralUpgradeModal } from "@/components/referral-upgrade-modal";
 import { ConnectAIModal } from "@/components/connect-ai-modal";
 import { InstallPrompt } from "@/components/install-prompt";
+import { MemoryListView } from "@/components/memory-list-view";
+import Menu from "@/components/menu";
+import { ProjectSelector } from "@/components/project-selector";
+import { ReferralUpgradeModal } from "@/components/referral-upgrade-modal";
+import type { TourStep } from "@/components/tour";
+import { TourAlertDialog, useTour } from "@/components/tour";
+import { AddMemoryView } from "@/components/views/add-memory";
+import { ChatRewrite } from "@/components/views/chat";
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEY } from "@/lib/tour-constants";
+import { useViewMode } from "@/lib/view-mode-context";
+import { useChatOpen, useProject } from "@/stores";
+import { useGraphHighlights } from "@/stores/highlights";
 
-type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
-type DocumentWithMemories = DocumentsResponse["documents"][0]
+type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>;
+type DocumentWithMemories = DocumentsResponse["documents"][0];
 
 const MemoryGraphPage = () => {
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights();
@@ -41,26 +47,26 @@ const MemoryGraphPage = () => {
 	const { selectedProject } = useProject();
 	const { setSteps, isTourCompleted } = useTour();
 	const { isOpen, setIsOpen } = useChatOpen();
-	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([])
-	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
-	const [showReferralModal, setShowReferralModal] = useState(false)
+	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([]);
+	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
+	const [showReferralModal, setShowReferralModal] = useState(false);
 
 	// Fetch projects meta to detect experimental flag
 	const { data: projectsMeta = [] } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects")
-			return response.data?.projects ?? []
+			const response = await $fetch("@get/projects");
+			return response.data?.projects ?? [];
 		},
 		staleTime: 5 * 60 * 1000,
-	})
+	});
 
 	const isCurrentProjectExperimental = !!projectsMeta.find(
 		(p: any) => p.containerTag === selectedProject,
-	)?.isExperimental
+	)?.isExperimental;
 
 	// Tour state
-	const [showTourDialog, setShowTourDialog] = useState(false)
+	const [showTourDialog, setShowTourDialog] = useState(false);
 
 	// Define tour steps with useMemo to prevent recreation
 	const tourSteps: TourStep[] = useMemo(() => {
@@ -193,36 +199,36 @@ const MemoryGraphPage = () => {
 				selectorId: TOUR_STEP_IDS.FLOATING_CHAT,
 				position: "left",
 			},
-		]
-	}, [])
+		];
+	}, []);
 
 	// Check if tour has been completed before
 	useEffect(() => {
-		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true"
+		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true";
 		if (!hasCompletedTour && !isTourCompleted) {
 			const timer = setTimeout(() => {
-				setShowTourDialog(true)
-			}, 1000) // Show after 1 second
-			return () => clearTimeout(timer)
+				setShowTourDialog(true);
+			}, 1000); // Show after 1 second
+			return () => clearTimeout(timer);
 		}
-	}, [isTourCompleted])
+	}, [isTourCompleted]);
 
 	// Set up tour steps
 	useEffect(() => {
-		setSteps(tourSteps)
-	}, [setSteps, tourSteps])
+		setSteps(tourSteps);
+	}, [setSteps, tourSteps]);
 
 	// Save tour completion to localStorage
 	useEffect(() => {
 		if (isTourCompleted) {
-			localStorage.setItem(TOUR_STORAGE_KEY, "true")
+			localStorage.setItem(TOUR_STORAGE_KEY, "true");
 		}
-	}, [isTourCompleted])
+	}, [isTourCompleted]);
 
 	// Progressive loading via useInfiniteQuery
-	const IS_DEV = process.env.NODE_ENV === "development"
-	const PAGE_SIZE = IS_DEV ? 3 : 100
-	const MAX_TOTAL = 1000
+	const IS_DEV = process.env.NODE_ENV === "development";
+	const PAGE_SIZE = IS_DEV ? 3 : 100;
+	const MAX_TOTAL = 1000;
 
 	const {
 		data,
@@ -244,69 +250,76 @@ const MemoryGraphPage = () => {
 					containerTags: selectedProject ? [selectedProject] : undefined,
 				},
 				disableValidation: true,
-			})
+			});
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to fetch documents")
+				throw new Error(response.error?.message || "Failed to fetch documents");
 			}
 
-			return response.data
+			return response.data;
 		},
 		getNextPageParam: (lastPage, allPages) => {
 			const loaded = allPages.reduce(
 				(acc, p) => acc + (p.documents?.length ?? 0),
 				0,
-			)
-			if (loaded >= MAX_TOTAL) return undefined
+			);
+			if (loaded >= MAX_TOTAL) return undefined;
 
-			const { currentPage, totalPages } = lastPage.pagination
+			const { currentPage, totalPages } = lastPage.pagination;
 			if (currentPage < totalPages) {
-				return currentPage + 1
+				return currentPage + 1;
 			}
-			return undefined
+			return undefined;
 		},
 		staleTime: 5 * 60 * 1000,
-	})
+	});
 
 	const baseDocuments = useMemo(() => {
-		return data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
-	}, [data])
+		return (
+			data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
+		);
+	}, [data]);
 
 	const allDocuments = useMemo(() => {
-		if (injectedDocs.length === 0) return baseDocuments
-		const byId = new Map<string, DocumentWithMemories>()
-		for (const d of injectedDocs) byId.set(d.id, d)
-		for (const d of baseDocuments) if (!byId.has(d.id)) byId.set(d.id, d)
-		return Array.from(byId.values())
-	}, [baseDocuments, injectedDocs])
+		if (injectedDocs.length === 0) return baseDocuments;
+		const byId = new Map<string, DocumentWithMemories>();
+		for (const d of injectedDocs) byId.set(d.id, d);
+		for (const d of baseDocuments) if (!byId.has(d.id)) byId.set(d.id, d);
+		return Array.from(byId.values());
+	}, [baseDocuments, injectedDocs]);
 
-	const totalLoaded = allDocuments.length
-	const hasMore = hasNextPage
-	const isLoadingMore = isFetchingNextPage
+	const totalLoaded = allDocuments.length;
+	const hasMore = hasNextPage;
+	const isLoadingMore = isFetchingNextPage;
 
 	const loadMoreDocuments = useCallback(async (): Promise<void> => {
 		if (hasNextPage && !isFetchingNextPage) {
-			await fetchNextPage()
-			return
+			await fetchNextPage();
+			return;
 		}
-		return
-	}, [hasNextPage, isFetchingNextPage, fetchNextPage])
+		return;
+	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
 	// Reset injected docs when project changes
-	useEffect(() => { setInjectedDocs([]) }, [selectedProject])
+	useEffect(() => {
+		setInjectedDocs([]);
+	}, [selectedProject]);
 
 	// Surgical fetch of missing highlighted documents (customId-based IDs from search)
 	useEffect(() => {
-		if (!isOpen) return
-		if (!allHighlightDocumentIds || allHighlightDocumentIds.length === 0) return
-		const present = new Set<string>()
+		if (!isOpen) return;
+		if (!allHighlightDocumentIds || allHighlightDocumentIds.length === 0)
+			return;
+		const present = new Set<string>();
 		for (const d of [...baseDocuments, ...injectedDocs]) {
-			if (d.id) present.add(d.id)
-			if ((d as any).customId) present.add((d as any).customId as string)
+			if (d.id) present.add(d.id);
+			if ((d as any).customId) present.add((d as any).customId as string);
 		}
-		const missing = allHighlightDocumentIds.filter((id: string) => !present.has(id))
-		if (missing.length === 0) return
-		let cancelled = false
+		const missing = allHighlightDocumentIds.filter(
+			(id: string) => !present.has(id),
+		);
+		if (missing.length === 0) return;
+		let cancelled = false;
 		const run = async () => {
 			try {
 				const resp = await $fetch("@post/memories/documents/by-ids", {
@@ -316,49 +329,63 @@ const MemoryGraphPage = () => {
 						containerTags: selectedProject ? [selectedProject] : undefined,
 					},
 					disableValidation: true,
-				})
-				if (cancelled || (resp as any)?.error) return
-				const extraDocs = (resp as any)?.data?.documents as DocumentWithMemories[] | undefined
-				if (!extraDocs || extraDocs.length === 0) return
+				});
+				if (cancelled || (resp as any)?.error) return;
+				const extraDocs = (resp as any)?.data?.documents as
+					| DocumentWithMemories[]
+					| undefined;
+				if (!extraDocs || extraDocs.length === 0) return;
 				setInjectedDocs((prev) => {
-					const seen = new Set<string>([...prev.map((d) => d.id), ...baseDocuments.map((d) => d.id)])
-					const merged = [...prev]
+					const seen = new Set<string>([
+						...prev.map((d) => d.id),
+						...baseDocuments.map((d) => d.id),
+					]);
+					const merged = [...prev];
 					for (const doc of extraDocs) {
 						if (!seen.has(doc.id)) {
-							merged.push(doc)
-							seen.add(doc.id)
+							merged.push(doc);
+							seen.add(doc.id);
 						}
 					}
-					return merged
-				})
-			} catch { }
-		}
-		void run()
-		return () => { cancelled = true }
-	}, [isOpen, allHighlightDocumentIds.join('|'), baseDocuments, injectedDocs, selectedProject, $fetch])
+					return merged;
+				});
+			} catch {}
+		};
+		void run();
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		isOpen,
+		allHighlightDocumentIds.join("|"),
+		baseDocuments,
+		injectedDocs,
+		selectedProject,
+		$fetch,
+	]);
 
 	// Handle view mode change
 	const handleViewModeChange = useCallback(
 		(mode: "graph" | "list") => {
-			setViewMode(mode)
+			setViewMode(mode);
 		},
 		[setViewMode],
-	)
+	);
 
 	// Prevent body scrolling
 	useEffect(() => {
-		document.body.style.overflow = 'hidden'
-		document.body.style.height = '100vh'
-		document.documentElement.style.overflow = 'hidden'
-		document.documentElement.style.height = '100vh'
-		
+		document.body.style.overflow = "hidden";
+		document.body.style.height = "100vh";
+		document.documentElement.style.overflow = "hidden";
+		document.documentElement.style.height = "100vh";
+
 		return () => {
-			document.body.style.overflow = ''
-			document.body.style.height = ''
-			document.documentElement.style.overflow = ''
-			document.documentElement.style.height = ''
-		}
-	}, [])
+			document.body.style.overflow = "";
+			document.body.style.height = "";
+			document.documentElement.style.overflow = "";
+			document.documentElement.style.height = "";
+		};
+	}, []);
 
 	return (
 		<div className="relative h-screen bg-[#0f1419] overflow-hidden touch-none">
@@ -409,52 +436,52 @@ const MemoryGraphPage = () => {
 							</span>
 						</motion.button>
 
-					<motion.button
-						animate={{
-							color: viewMode === "list" ? "#93c5fd" : "#cbd5e1",
-						}}
-						className="relative h-8 px-3 flex items-center gap-2 text-sm font-medium rounded-md transition-colors"
-						onClick={() => handleViewModeChange("list")}
-						transition={{ duration: 0.2 }}
-						whileHover={{ scale: 1.02 }}
-						whileTap={{ scale: 0.98 }}
-					>
-						{viewMode === "list" && (
-							<motion.div
-								className="absolute inset-0 bg-blue-500/20 rounded-md"
-								layoutId="activeBackground"
-								transition={{
-									type: "spring",
-									stiffness: 400,
-									damping: 30,
-								}}
-							/>
-						)}
-						<span className="relative z-10 flex items-center gap-2">
-							<List className="w-4 h-4" />
-							<span className="hidden md:inline">List</span>
-						</span>
-					</motion.button>
-				</div>
-			</motion.div>
+						<motion.button
+							animate={{
+								color: viewMode === "list" ? "#93c5fd" : "#cbd5e1",
+							}}
+							className="relative h-8 px-3 flex items-center gap-2 text-sm font-medium rounded-md transition-colors"
+							onClick={() => handleViewModeChange("list")}
+							transition={{ duration: 0.2 }}
+							whileHover={{ scale: 1.02 }}
+							whileTap={{ scale: 0.98 }}
+						>
+							{viewMode === "list" && (
+								<motion.div
+									className="absolute inset-0 bg-blue-500/20 rounded-md"
+									layoutId="activeBackground"
+									transition={{
+										type: "spring",
+										stiffness: 400,
+										damping: 30,
+									}}
+								/>
+							)}
+							<span className="relative z-10 flex items-center gap-2">
+								<List className="w-4 h-4" />
+								<span className="hidden md:inline">List</span>
+							</span>
+						</motion.button>
+					</div>
+				</motion.div>
 
-			{/* Animated content switching */}
-			<AnimatePresence mode="wait">
-				{viewMode === "graph" ? (
-					<motion.div
-						animate={{ opacity: 1, scale: 1 }}
-						className="absolute inset-0"
-						exit={{ opacity: 0, scale: 0.95 }}
-						id={TOUR_STEP_IDS.MEMORY_GRAPH}
-						initial={{ opacity: 0, scale: 0.95 }}
-						key="graph"
-						transition={{
-							type: "spring",
-							stiffness: 500,
-							damping: 30,
-						}}
-					>
-						<MemoryGraph
+				{/* Animated content switching */}
+				<AnimatePresence mode="wait">
+					{viewMode === "graph" ? (
+						<motion.div
+							animate={{ opacity: 1, scale: 1 }}
+							className="absolute inset-0"
+							exit={{ opacity: 0, scale: 0.95 }}
+							id={TOUR_STEP_IDS.MEMORY_GRAPH}
+							initial={{ opacity: 0, scale: 0.95 }}
+							key="graph"
+							transition={{
+								type: "spring",
+								stiffness: 500,
+								damping: 30,
+							}}
+						>
+							<MemoryGraph
 								documents={allDocuments}
 								error={error}
 								hasMore={hasMore}
@@ -470,99 +497,108 @@ const MemoryGraphPage = () => {
 								occludedRightPx={isOpen && !isMobile ? 600 : 0}
 								autoLoadOnViewport={false}
 								isExperimental={isCurrentProjectExperimental}
-						>
-							<div className="absolute inset-0 flex items-center justify-center">
-								<div className="rounded-xl overflow-hidden">
-									<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
-										<p className="text-lg font-medium mb-2">No Memories to Visualize</p>
-										<button
-											type="button"
-											className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
-											onClick={() => setShowAddMemoryView(true)}
-										>
-											Create one?
-										</button>
+							>
+								<div className="absolute inset-0 flex items-center justify-center">
+									<div className="rounded-xl overflow-hidden">
+										<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
+											<p className="text-lg font-medium mb-2">
+												No Memories to Visualize
+											</p>
+											<button
+												type="button"
+												className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
+												onClick={() => setShowAddMemoryView(true)}
+											>
+												Create one?
+											</button>
+										</div>
 									</div>
 								</div>
-							</div>
-						</MemoryGraph>
-					</motion.div>
-				) : (
-					<motion.div
-						animate={{ opacity: 1, scale: 1 }}
-						className="absolute inset-0 md:ml-18"
-						exit={{ opacity: 0, scale: 0.95 }}
-						id={TOUR_STEP_IDS.MEMORY_LIST}
-						initial={{ opacity: 0, scale: 0.95 }}
-						key="list"
-						transition={{
-							type: "spring",
-							stiffness: 500,
-							damping: 30,
-						}}
-					>
-						<MemoryListView
-							documents={allDocuments}
-							error={error}
-							hasMore={hasMore}
-							isLoading={isPending}
-							isLoadingMore={isLoadingMore}
-							loadMoreDocuments={loadMoreDocuments}
-							totalLoaded={totalLoaded}
+							</MemoryGraph>
+						</motion.div>
+					) : (
+						<motion.div
+							animate={{ opacity: 1, scale: 1 }}
+							className="absolute inset-0 md:ml-18"
+							exit={{ opacity: 0, scale: 0.95 }}
+							id={TOUR_STEP_IDS.MEMORY_LIST}
+							initial={{ opacity: 0, scale: 0.95 }}
+							key="list"
+							transition={{
+								type: "spring",
+								stiffness: 500,
+								damping: 30,
+							}}
 						>
-							<div className="absolute inset-0 flex items-center justify-center">
-								<div className="rounded-xl overflow-hidden">
-									<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
-										<p className="text-lg font-medium mb-2">No Memories to Visualize</p>
-										<button
-											className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
-											onClick={() => setShowAddMemoryView(true)}
-											type="button"
-										>
-											Create one?
-										</button>
+							<MemoryListView
+								documents={allDocuments}
+								error={error}
+								hasMore={hasMore}
+								isLoading={isPending}
+								isLoadingMore={isLoadingMore}
+								loadMoreDocuments={loadMoreDocuments}
+								totalLoaded={totalLoaded}
+							>
+								<div className="absolute inset-0 flex items-center justify-center">
+									<div className="rounded-xl overflow-hidden">
+										<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
+											<p className="text-lg font-medium mb-2">
+												No Memories to Visualize
+											</p>
+											<button
+												className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
+												onClick={() => setShowAddMemoryView(true)}
+												type="button"
+											>
+												Create one?
+											</button>
+										</div>
 									</div>
 								</div>
-							</div>
-						</MemoryListView>
-					</motion.div>
-				)}
-			</AnimatePresence>
+							</MemoryListView>
+						</motion.div>
+					)}
+				</AnimatePresence>
 
-			{/* Top Bar */}
-			<div className="absolute top-2 left-0 right-0 z-10 p-4 flex items-center justify-between">
-				<div className="flex items-center gap-3 justify-between w-full md:w-fit md:justify-start">
-					<Link
-						className="pointer-events-auto"
-						href="https://supermemory.ai"
-						rel="noopener noreferrer"
-						target="_blank"
-					>
-						<LogoFull className="h-8 hidden md:block" id={TOUR_STEP_IDS.LOGO} />
-						<Logo className="h-8 md:hidden" id={TOUR_STEP_IDS.LOGO} />
-					</Link>
+				{/* Top Bar */}
+				<div className="absolute top-2 left-0 right-0 z-10 p-4 flex items-center justify-between">
+					<div className="flex items-center gap-3 justify-between w-full md:w-fit md:justify-start">
+						<Link
+							className="pointer-events-auto"
+							href="https://supermemory.ai"
+							rel="noopener noreferrer"
+							target="_blank"
+						>
+							<LogoFull
+								className="h-8 hidden md:block"
+								id={TOUR_STEP_IDS.LOGO}
+							/>
+							<Logo className="h-8 md:hidden" id={TOUR_STEP_IDS.LOGO} />
+						</Link>
 
-					<div className="hidden sm:block">
-						<ProjectSelector />
+						<div className="hidden sm:block">
+							<ProjectSelector />
+						</div>
+
+						<ConnectAIModal>
+							<Button
+								variant="outline"
+								size="sm"
+								className="bg-white/5 hover:bg-white/10 border-white/20 text-white hover:text-white px-2 sm:px-3"
+							>
+								<Unplug className="h-4 w-4" />
+								<span className="hidden sm:inline ml-2">
+									Connect to your AI
+								</span>
+								<span className="sm:hidden ml-1">Connect AI</span>
+							</Button>
+						</ConnectAIModal>
 					</div>
 
-					<ConnectAIModal>
-						<Button 
-							variant="outline" 
-							size="sm"
-							className="bg-white/5 hover:bg-white/10 border-white/20 text-white hover:text-white px-2 sm:px-3"
-						>
-							<Unplug className="h-4 w-4" />
-							<span className="hidden sm:inline ml-2">Connect to your AI</span>
-							<span className="sm:hidden ml-1">Connect AI</span>
-						</Button>
-					</ConnectAIModal>
+					<div>
+						<Menu />
+					</div>
 				</div>
-
-				<div>
-					<Menu />
-				</div>
-			</div>
 
 				{/* Floating Open Chat Button */}
 				{!isOpen && !isMobile && (
@@ -598,7 +634,7 @@ const MemoryGraphPage = () => {
 				id={TOUR_STEP_IDS.FLOATING_CHAT}
 			>
 				<motion.div
-					animate={{ x: isOpen ? 0 : (isMobile ? "100%" : 600) }}
+					animate={{ x: isOpen ? 0 : isMobile ? "100%" : 600 }}
 					className="absolute inset-0"
 					exit={{ x: isMobile ? "100%" : 600 }}
 					initial={{ x: isMobile ? "100%" : 600 }}
@@ -607,7 +643,8 @@ const MemoryGraphPage = () => {
 						type: "spring",
 						stiffness: 500,
 						damping: 40,
-					}}>
+					}}
+				>
 					<ChatRewrite />
 				</motion.div>
 			</motion.div>
@@ -623,18 +660,18 @@ const MemoryGraphPage = () => {
 			<TourAlertDialog onOpenChange={setShowTourDialog} open={showTourDialog} />
 
 			{/* Referral/Upgrade Modal */}
-			<ReferralUpgradeModal 
-				isOpen={showReferralModal} 
-				onClose={() => setShowReferralModal(false)} 
+			<ReferralUpgradeModal
+				isOpen={showReferralModal}
+				onClose={() => setShowReferralModal(false)}
 			/>
 		</div>
-	)
-}
+	);
+};
 
 // Wrapper component to handle auth and waitlist checks
 export default function Page() {
-	const router = useRouter()
-	const { user } = useAuth()
+	const router = useRouter();
+	const { user } = useAuth();
 
 	// Check waitlist status
 	const {
@@ -645,24 +682,24 @@ export default function Page() {
 		queryKey: ["waitlist-status", user?.id],
 		queryFn: async () => {
 			try {
-				const response = await $fetch("@get/waitlist/status")
-				return response.data
+				const response = await $fetch("@get/waitlist/status");
+				return response.data;
 			} catch (error) {
-				console.error("Error checking waitlist status:", error)
+				console.error("Error checking waitlist status:", error);
 				// Return null to indicate error, will handle in useEffect
-				return null
+				return null;
 			}
 		},
 		enabled: !!user && !user.isAnonymous,
 		staleTime: 5 * 60 * 1000, // 5 minutes
 		retry: 1, // Only retry once on failure
-	})
+	});
 
 	useEffect(() => {
 		if (waitlistStatus && !waitlistStatus.accessGranted) {
-			router.push("/waitlist")
+			router.push("/waitlist");
 		}
-	}, [])
+	}, []);
 
 	// Show loading state while checking authentication and waitlist status
 	if (!user || isCheckingWaitlist) {
@@ -673,9 +710,14 @@ export default function Page() {
 					<p className="text-white/60">Loading...</p>
 				</div>
 			</div>
-		)
+		);
 	}
 
 	// If we have a user and they have access, show the main component
-	return <><MemoryGraphPage /><InstallPrompt /></>;
+	return (
+		<>
+			<MemoryGraphPage />
+			<InstallPrompt />
+		</>
+	);
 }

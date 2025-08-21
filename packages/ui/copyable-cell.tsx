@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
-import { Label1Regular } from "@ui/text/label/label-1-regular"
-import { AnimatePresence, motion } from "motion/react"
-import * as React from "react"
+import { cn } from "@lib/utils";
+import { Label1Regular } from "@ui/text/label/label-1-regular";
+import { AnimatePresence, motion } from "motion/react";
+import * as React from "react";
 
 interface CopyableCellProps extends React.HTMLAttributes<HTMLDivElement> {
-	value: string
-	displayValue?: React.ReactNode
+	value: string;
+	displayValue?: React.ReactNode;
 }
 
 export function CopyableCell({
@@ -17,26 +17,26 @@ export function CopyableCell({
 	children,
 	...props
 }: CopyableCellProps) {
-	const [hasCopied, setHasCopied] = React.useState(false)
+	const [hasCopied, setHasCopied] = React.useState(false);
 
 	React.useEffect(() => {
 		if (hasCopied) {
 			const timeout = setTimeout(() => {
-				setHasCopied(false)
-			}, 2000)
-			return () => clearTimeout(timeout)
+				setHasCopied(false);
+			}, 2000);
+			return () => clearTimeout(timeout);
 		}
-	}, [hasCopied])
+	}, [hasCopied]);
 
 	const handleCopy = async (e: React.MouseEvent) => {
-		e.stopPropagation()
+		e.stopPropagation();
 		try {
-			await navigator.clipboard.writeText(value)
-			setHasCopied(true)
+			await navigator.clipboard.writeText(value);
+			setHasCopied(true);
 		} catch (err) {
-			console.error("Failed to copy:", err)
+			console.error("Failed to copy:", err);
 		}
-	}
+	};
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: shadcn
@@ -80,5 +80,5 @@ export function CopyableCell({
 				)}
 			</AnimatePresence>
 		</div>
-	)
+	);
 }

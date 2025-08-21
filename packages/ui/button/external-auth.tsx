@@ -1,9 +1,9 @@
-import { cn } from "@lib/utils"
-import { Button } from "@ui/components/button"
+import { cn } from "@lib/utils";
+import { Button } from "@ui/components/button";
 
 interface ExternalAuthButtonProps extends React.ComponentProps<typeof Button> {
-	authProvider: string
-	authIcon: React.ReactNode
+	authProvider: string;
+	authIcon: React.ReactNode;
 }
 
 export function ExternalAuthButton({
@@ -25,5 +25,5 @@ export function ExternalAuthButton({
 				Continue with {authProvider}
 			</span>
 		</Button>
-	)
+	);
 }

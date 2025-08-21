@@ -1,12 +1,12 @@
-import { cn } from "@lib/utils"
-import { Root } from "@radix-ui/react-slot"
+import { cn } from "@lib/utils";
+import { Root } from "@radix-ui/react-slot";
 
 export function Label2Regular({
 	className,
 	asChild,
 	...props
 }: React.ComponentProps<"p"> & { asChild?: boolean }) {
-	const Comp = asChild ? Root : "p"
+	const Comp = asChild ? Root : "p";
 	return (
 		<Comp
 			className={cn(
@@ -15,5 +15,5 @@ export function Label2Regular({
 			)}
 			{...props}
 		/>
-	)
+	);
 }

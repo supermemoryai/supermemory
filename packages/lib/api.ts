@@ -146,14 +146,14 @@ export const apiSchema = createSchema({
 		input: DocumentsWithMemoriesQuerySchema,
 		output: DocumentsWithMemoriesResponseSchema,
 	},
-  "@post/memories/documents/by-ids": {
-    input: z.object({
-      ids: z.array(z.string()),
-      by: z.enum(["id", "customId"]).optional(),
-      containerTags: z.array(z.string()).optional(),
-    }),
-    output: DocumentsWithMemoriesResponseSchema,
-  },
+	"@post/memories/documents/by-ids": {
+		input: z.object({
+			ids: z.array(z.string()),
+			by: z.enum(["id", "customId"]).optional(),
+			containerTags: z.array(z.string()).optional(),
+		}),
+		output: DocumentsWithMemoriesResponseSchema,
+	},
 	"@post/memories/migrate-mcp": {
 		input: MigrateMCPRequestSchema,
 		output: MigrateMCPResponseSchema,

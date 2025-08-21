@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { cn } from "@lib/utils"
-import { Button, type buttonVariants } from "@ui/components/button"
-import type { VariantProps } from "class-variance-authority"
-import { CheckIcon, ClipboardIcon } from "lucide-react"
-import * as React from "react"
-import { useEffect } from "react"
+import { cn } from "@lib/utils";
+import { Button, type buttonVariants } from "@ui/components/button";
+import type { VariantProps } from "class-variance-authority";
+import { CheckIcon, ClipboardIcon } from "lucide-react";
+import * as React from "react";
+import { useEffect } from "react";
 
 interface CopyButtonProps
 	extends React.ComponentProps<"button">,
 		VariantProps<typeof buttonVariants> {
-	value: string
-	src?: string
+	value: string;
+	src?: string;
 }
 
 export function CopyButton({
@@ -21,13 +21,13 @@ export function CopyButton({
 	variant = "ghost",
 	...props
 }: CopyButtonProps) {
-	const [hasCopied, setHasCopied] = React.useState(false)
+	const [hasCopied, setHasCopied] = React.useState(false);
 
 	useEffect(() => {
 		setTimeout(() => {
-			setHasCopied(false)
-		}, 2000)
-	}, [])
+			setHasCopied(false);
+		}, 2000);
+	}, []);
 
 	return (
 		<Button
@@ -36,8 +36,8 @@ export function CopyButton({
 				className,
 			)}
 			onClick={() => {
-				navigator.clipboard.writeText(value)
-				setHasCopied(true)
+				navigator.clipboard.writeText(value);
+				setHasCopied(true);
 			}}
 			size="icon"
 			variant={variant}
@@ -46,5 +46,5 @@ export function CopyButton({
 			<span className="sr-only">Copy</span>
 			{hasCopied ? <CheckIcon /> : <ClipboardIcon />}
 		</Button>
-	)
+	);
 }

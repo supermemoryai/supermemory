@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { cn } from "@repo/lib/utils"
-import { Badge } from "@repo/ui/components/badge"
-import { Button } from "@repo/ui/components/button"
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect"
-import { Brain, Calendar, ExternalLink, FileText, Hash, X } from "lucide-react"
-import { motion } from "motion/react"
-import { memo } from "react"
+import { cn } from "@repo/lib/utils";
+import { Badge } from "@repo/ui/components/badge";
+import { Button } from "@repo/ui/components/button";
+import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { Brain, Calendar, ExternalLink, FileText, Hash, X } from "lucide-react";
+import { motion } from "motion/react";
+import { memo } from "react";
 import {
 	GoogleDocs,
 	GoogleDrive,
@@ -19,73 +19,73 @@ import {
 	NotionDoc,
 	OneDrive,
 	PDF,
-} from "../assets/icons"
-import { HeadingH3Bold } from "../text/heading/heading-h3-bold"
+} from "../assets/icons";
+import { HeadingH3Bold } from "../text/heading/heading-h3-bold";
 import type {
 	DocumentWithMemories,
 	MemoryEntry,
 	NodeDetailPanelProps,
-} from "./types"
+} from "./types";
 
 const formatDocumentType = (type: string) => {
 	// Special case for PDF
-	if (type.toLowerCase() === "pdf") return "PDF"
+	if (type.toLowerCase() === "pdf") return "PDF";
 
 	// Replace underscores with spaces and capitalize each word
 	return type
 		.split("_")
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-		.join(" ")
-}
+		.join(" ");
+};
 
 const getDocumentIcon = (type: string) => {
-	const iconProps = { className: "w-5 h-5 text-slate-300" }
+	const iconProps = { className: "w-5 h-5 text-slate-300" };
 
 	switch (type) {
 		case "google_doc":
-			return <GoogleDocs {...iconProps} />
+			return <GoogleDocs {...iconProps} />;
 		case "google_sheet":
-			return <GoogleSheets {...iconProps} />
+			return <GoogleSheets {...iconProps} />;
 		case "google_slide":
-			return <GoogleSlides {...iconProps} />
+			return <GoogleSlides {...iconProps} />;
 		case "google_drive":
-			return <GoogleDrive {...iconProps} />
+			return <GoogleDrive {...iconProps} />;
 		case "notion":
 		case "notion_doc":
-			return <NotionDoc {...iconProps} />
+			return <NotionDoc {...iconProps} />;
 		case "word":
 		case "microsoft_word":
-			return <MicrosoftWord {...iconProps} />
+			return <MicrosoftWord {...iconProps} />;
 		case "excel":
 		case "microsoft_excel":
-			return <MicrosoftExcel {...iconProps} />
+			return <MicrosoftExcel {...iconProps} />;
 		case "powerpoint":
 		case "microsoft_powerpoint":
-			return <MicrosoftPowerpoint {...iconProps} />
+			return <MicrosoftPowerpoint {...iconProps} />;
 		case "onenote":
 		case "microsoft_onenote":
-			return <MicrosoftOneNote {...iconProps} />
+			return <MicrosoftOneNote {...iconProps} />;
 		case "onedrive":
-			return <OneDrive {...iconProps} />
+			return <OneDrive {...iconProps} />;
 		case "pdf":
-			return <PDF {...iconProps} />
+			return <PDF {...iconProps} />;
 		default:
-			return <FileText {...iconProps} />
+			return <FileText {...iconProps} />;
 	}
-}
+};
 
 export const NodeDetailPanel = memo<NodeDetailPanelProps>(
 	({ node, onClose, variant = "console" }) => {
 		// Use explicit classes that Tailwind can detect
 		const getPositioningClasses = () => {
 			// Both variants use the same positioning for nodeDetail
-			return "top-4 right-4"
-		}
+			return "top-4 right-4";
+		};
 
-		if (!node) return null
+		if (!node) return null;
 
-		const isDocument = node.type === "document"
-		const data = node.data
+		const isDocument = node.type === "document";
+		const data = node.data;
 
 		return (
 			<motion.div
@@ -185,17 +185,17 @@ export const NodeDetailPanel = memo<NodeDetailPanelProps>(
 										<a
 											className="text-sm text-indigo-400 hover:text-indigo-300 mt-1 flex items-center gap-1"
 											href={(() => {
-												const doc = data as DocumentWithMemories
+												const doc = data as DocumentWithMemories;
 												if (doc.type === "google_doc" && doc.customId) {
-													return `https://docs.google.com/document/d/${doc.customId}`
+													return `https://docs.google.com/document/d/${doc.customId}`;
 												}
 												if (doc.type === "google_sheet" && doc.customId) {
-													return `https://docs.google.com/spreadsheets/d/${doc.customId}`
+													return `https://docs.google.com/spreadsheets/d/${doc.customId}`;
 												}
 												if (doc.type === "google_slide" && doc.customId) {
-													return `https://docs.google.com/presentation/d/${doc.customId}`
+													return `https://docs.google.com/presentation/d/${doc.customId}`;
 												}
-												return doc.url ?? undefined
+												return doc.url ?? undefined;
 											})()}
 											rel="noopener noreferrer"
 											target="_blank"
@@ -223,10 +223,14 @@ export const NodeDetailPanel = memo<NodeDetailPanelProps>(
 									{(data as MemoryEntry).forgetAfter && (
 										<p className="text-xs text-slate-400 mt-1">
 											Expires:{" "}
-											{(data as MemoryEntry).forgetAfter ? new Date(
-												(data as MemoryEntry).forgetAfter!,
-											).toLocaleDateString() : ''}{" "}
-											{'forgetReason' in data && data.forgetReason && `- ${data.forgetReason}`}
+											{(data as MemoryEntry).forgetAfter
+												? new Date(
+														(data as MemoryEntry).forgetAfter!,
+													).toLocaleDateString()
+												: ""}{" "}
+											{"forgetReason" in data &&
+												data.forgetReason &&
+												`- ${data.forgetReason}`}
 										</p>
 									)}
 								</div>
@@ -257,8 +261,8 @@ export const NodeDetailPanel = memo<NodeDetailPanelProps>(
 					</div>
 				</motion.div>
 			</motion.div>
-		)
+		);
 	},
-)
+);
 
-NodeDetailPanel.displayName = "NodeDetailPanel"
+NodeDetailPanel.displayName = "NodeDetailPanel";

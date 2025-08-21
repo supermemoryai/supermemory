@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useIsMobile } from "@hooks/use-mobile"
-import { Button } from "@ui/components/button"
+import { useIsMobile } from "@hooks/use-mobile";
+import { Button } from "@ui/components/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,20 +9,20 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@ui/components/dialog"
-import { Input } from "@ui/components/input"
+} from "@ui/components/dialog";
+import { Input } from "@ui/components/input";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@ui/components/select"
-import { CopyableCell } from "@ui/copyable-cell"
-import { CopyIcon, ExternalLink } from "lucide-react"
-import Image from "next/image"
-import { useState } from "react"
-import { toast } from "sonner"
+} from "@ui/components/select";
+import { CopyableCell } from "@ui/copyable-cell";
+import { CopyIcon, ExternalLink } from "lucide-react";
+import Image from "next/image";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const clients = {
 	cursor: "Cursor",
@@ -34,23 +34,23 @@ const clients = {
 	"roo-cline": "Roo Cline",
 	witsy: "Witsy",
 	enconvo: "Enconvo",
-} as const
+} as const;
 
 interface ConnectAIModalProps {
-	children: React.ReactNode
+	children: React.ReactNode;
 }
 
 export function ConnectAIModal({ children }: ConnectAIModalProps) {
-	const [client, setClient] = useState<keyof typeof clients>("cursor")
-	const [isOpen, setIsOpen] = useState(false)
-	const [showAllTools, setShowAllTools] = useState(false)
-    const isMobile = useIsMobile()
-	const installCommand = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${client} --oauth=yes`
+	const [client, setClient] = useState<keyof typeof clients>("cursor");
+	const [isOpen, setIsOpen] = useState(false);
+	const [showAllTools, setShowAllTools] = useState(false);
+	const isMobile = useIsMobile();
+	const installCommand = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${client} --oauth=yes`;
 
 	const copyToClipboard = () => {
-		navigator.clipboard.writeText(installCommand)
-		toast.success("Copied to clipboard!")
-	}
+		navigator.clipboard.writeText(installCommand);
+		toast.success("Copied to clipboard!");
+	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -59,12 +59,13 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 				<DialogHeader>
 					<DialogTitle>Connect Supermemory to Your AI</DialogTitle>
 					<DialogDescription>
-						Connect supermemory to your favorite AI tools using the Model Context Protocol (MCP). 
-						This allows your AI assistant to create, search, and access your memories directly.
+						Connect supermemory to your favorite AI tools using the Model
+						Context Protocol (MCP). This allows your AI assistant to create,
+						search, and access your memories directly.
 					</DialogDescription>
 				</DialogHeader>
 
-                <div className="mb-6 block md:hidden">
+				<div className="mb-6 block md:hidden">
 					<label
 						className="text-sm font-medium text-white/80 block mb-2"
 						htmlFor="mcp-server-url"
@@ -78,10 +79,11 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 						/>
 					</div>
 					<p className="text-xs text-white/50 mt-2">
-						Click URL to copy to clipboard. Use this URL to configure supermemory in your AI assistant.
+						Click URL to copy to clipboard. Use this URL to configure
+						supermemory in your AI assistant.
 					</p>
 				</div>
-				
+
 				<div className="space-y-6">
 					<div className="hidden md:block">
 						<h3 className="text-sm font-medium mb-3">Supported AI Tools</h3>
@@ -102,12 +104,18 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 												className={"rounded object-contain"}
 												onError={(e) => {
 													const target = e.target as HTMLImageElement;
-													target.style.display = 'none';
+													target.style.display = "none";
 													const parent = target.parentElement;
-													if (parent && !parent.querySelector('.fallback-text')) {
-														const fallback = document.createElement('span');
-														fallback.className = 'fallback-text text-xs font-bold text-muted-foreground';
-														fallback.textContent = clientName.substring(0, 2).toUpperCase();
+													if (
+														parent &&
+														!parent.querySelector(".fallback-text")
+													) {
+														const fallback = document.createElement("span");
+														fallback.className =
+															"fallback-text text-xs font-bold text-muted-foreground";
+														fallback.textContent = clientName
+															.substring(0, 2)
+															.toUpperCase();
 														parent.appendChild(fallback);
 													}
 												}}
@@ -136,7 +144,9 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 						<div className="space-y-3 flex gap-2 items-center justify-between">
 							<Select
 								value={client}
-								onValueChange={(value) => setClient(value as keyof typeof clients)}
+								onValueChange={(value) =>
+									setClient(value as keyof typeof clients)
+								}
 							>
 								<SelectTrigger className="w-48 mb-0">
 									<SelectValue />
@@ -154,12 +164,18 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 														className="rounded object-contain"
 														onError={(e) => {
 															const target = e.target as HTMLImageElement;
-															target.style.display = 'none';
+															target.style.display = "none";
 															const parent = target.parentElement;
-															if (parent && !parent.querySelector('.fallback-text')) {
-																const fallback = document.createElement('span');
-																fallback.className = 'fallback-text text-xs font-bold text-muted-foreground';
-																fallback.textContent = value.substring(0, 1).toUpperCase();
+															if (
+																parent &&
+																!parent.querySelector(".fallback-text")
+															) {
+																const fallback = document.createElement("span");
+																fallback.className =
+																	"fallback-text text-xs font-bold text-muted-foreground";
+																fallback.textContent = value
+																	.substring(0, 1)
+																	.toUpperCase();
 																parent.appendChild(fallback);
 															}
 														}}
@@ -171,22 +187,22 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 									))}
 								</SelectContent>
 							</Select>
-							
-                            <div className="relative w-full flex items-center">
-                                <Input
-                                className="font-mono text-xs w-full pr-10"
-                                readOnly
-                                value={installCommand}
-                                />
-                            
-                                <Button
-                                    onClick={copyToClipboard}
-                                    className="absolute right-0 cursor-pointer"
-                                    variant="ghost"
-                                >
-                                    <CopyIcon className="size-4" />
-                                </Button>
-                            </div>
+
+							<div className="relative w-full flex items-center">
+								<Input
+									className="font-mono text-xs w-full pr-10"
+									readOnly
+									value={installCommand}
+								/>
+
+								<Button
+									onClick={copyToClipboard}
+									className="absolute right-0 cursor-pointer"
+									variant="ghost"
+								>
+									<CopyIcon className="size-4" />
+								</Button>
+							</div>
 						</div>
 					</div>
 
@@ -203,17 +219,20 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 					<div className="flex justify-between items-center pt-4 border-t">
 						<Button
 							variant="outline"
-							onClick={() => window.open("https://docs.supermemory.ai/supermemory-mcp/introduction", "_blank")}
+							onClick={() =>
+								window.open(
+									"https://docs.supermemory.ai/supermemory-mcp/introduction",
+									"_blank",
+								)
+							}
 						>
 							<ExternalLink className="w-4 h-4 mr-2" />
 							Learn More
 						</Button>
-						<Button onClick={() => setIsOpen(false)}>
-							Done
-						</Button>
+						<Button onClick={() => setIsOpen(false)}>Done</Button>
 					</div>
 				</div>
 			</DialogContent>
 		</Dialog>
-	)
+	);
 }

@@ -47,7 +47,7 @@ export const colors = {
 		extends: "rgba(16, 185, 129, 0.5)", // green
 		derives: "rgba(147, 197, 253, 0.5)", // blue
 	},
-}
+};
 
 export const LAYOUT_CONSTANTS = {
 	centerX: 400,
@@ -57,7 +57,7 @@ export const LAYOUT_CONSTANTS = {
 	documentSpacing: 1000, // How far the first doc in a space sits from its space-centre - push docs way out
 	minDocDist: 900, // Minimum distance two documents in the **same space** are allowed to be - sets repulsion radius
 	memoryClusterRadius: 300,
-}
+};
 
 // Graph view settings
 export const GRAPH_SETTINGS = {
@@ -71,7 +71,7 @@ export const GRAPH_SETTINGS = {
 		initialPanX: 400, // Pan towards center to compensate for larger layout
 		initialPanY: 300, // Pan towards center to compensate for larger layout
 	},
-}
+};
 
 // Responsive positioning for different app variants
 export const POSITIONING = {
@@ -97,4 +97,4 @@ export const POSITIONING = {
 		viewToggle: "top-4 right-4", // Consumer has view toggle
 		nodeDetail: "top-4 right-4",
 	},
-}
+};

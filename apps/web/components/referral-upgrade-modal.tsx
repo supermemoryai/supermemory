@@ -1,23 +1,25 @@
-"use client"
+"use client";
 
-import { useAuth } from "@lib/auth-context"
-import {
-	fetchMemoriesFeature,
-	fetchSubscriptionStatus,
-} from "@lib/queries"
-import { Button } from "@repo/ui/components/button"
+import { useAuth } from "@lib/auth-context";
+import { fetchMemoriesFeature, fetchSubscriptionStatus } from "@lib/queries";
+import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
-	DialogTitle
-} from "@repo/ui/components/dialog"
-import { Input } from "@repo/ui/components/input"
-import { Label } from "@repo/ui/components/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/tabs"
-import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
-import { useCustomer } from "autumn-js/react"
+	DialogTitle,
+} from "@repo/ui/components/dialog";
+import { Input } from "@repo/ui/components/input";
+import { Label } from "@repo/ui/components/label";
+import {
+	Tabs,
+	TabsContent,
+	TabsList,
+	TabsTrigger,
+} from "@repo/ui/components/tabs";
+import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold";
+import { useCustomer } from "autumn-js/react";
 import {
 	CheckCircle,
 	Copy,
@@ -25,26 +27,29 @@ import {
 	Gift,
 	LoaderIcon,
 	Share2,
-	Users
-} from "lucide-react"
-import { motion } from "motion/react"
-import Link from "next/link"
-import { useState } from "react"
+	Users,
+} from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useState } from "react";
 
 interface ReferralUpgradeModalProps {
-	isOpen: boolean
-	onClose: () => void
+	isOpen: boolean;
+	onClose: () => void;
 }
 
-export function ReferralUpgradeModal({ isOpen, onClose }: ReferralUpgradeModalProps) {
-	const { user } = useAuth()
-	const autumn = useCustomer()
-	const [isLoading, setIsLoading] = useState(false)
-	const [copied, setCopied] = useState(false)
+export function ReferralUpgradeModal({
+	isOpen,
+	onClose,
+}: ReferralUpgradeModalProps) {
+	const { user } = useAuth();
+	const autumn = useCustomer();
+	const [isLoading, setIsLoading] = useState(false);
+	const [copied, setCopied] = useState(false);
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
-	const memoriesUsed = memoriesCheck?.usage ?? 0
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any);
+	const memoriesUsed = memoriesCheck?.usage ?? 0;
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0;
 
 	// Fetch subscription status
 	const {
@@ -52,53 +57,53 @@ export function ReferralUpgradeModal({ isOpen, onClose }: ReferralUpgradeModalPr
 			consumer_pro: null,
 		},
 		isLoading: isCheckingStatus,
-	} = fetchSubscriptionStatus(autumn as any)
+	} = fetchSubscriptionStatus(autumn as any);
 
-	const isPro = status.consumer_pro
+	const isPro = status.consumer_pro;
 
 	// Handle upgrade
 	const handleUpgrade = async () => {
-		setIsLoading(true)
+		setIsLoading(true);
 		try {
 			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			})
-			window.location.reload()
+			});
+			window.location.reload();
 		} catch (error) {
-			console.error(error)
-			setIsLoading(false)
+			console.error(error);
+			setIsLoading(false);
 		}
-	}
+	};
 
 	// Generate referral link (you'll need to implement this based on your referral system)
-	const referralLink = `https://app.supermemory.ai/ref/${user?.id || 'user'}`
+	const referralLink = `https://app.supermemory.ai/ref/${user?.id || "user"}`;
 
 	const handleCopyReferralLink = async () => {
 		try {
-			await navigator.clipboard.writeText(referralLink)
-			setCopied(true)
-			setTimeout(() => setCopied(false), 2000)
+			await navigator.clipboard.writeText(referralLink);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
 		} catch (error) {
-			console.error('Failed to copy:', error)
+			console.error("Failed to copy:", error);
 		}
-	}
+	};
 
 	const handleShare = async () => {
 		if (navigator.share) {
 			try {
 				await navigator.share({
-					title: 'Join Supermemory',
-					text: 'Check out Supermemory - the best way to organize and search your digital memories!',
+					title: "Join Supermemory",
+					text: "Check out Supermemory - the best way to organize and search your digital memories!",
 					url: referralLink,
-				})
+				});
 			} catch (error) {
-				console.error('Error sharing:', error)
+				console.error("Error sharing:", error);
 			}
 		} else {
-			handleCopyReferralLink()
+			handleCopyReferralLink();
 		}
-	}
+	};
 
 	if (user?.isAnonymous) {
 		return (
@@ -127,7 +132,7 @@ export function ReferralUpgradeModal({ isOpen, onClose }: ReferralUpgradeModalPr
 					</motion.div>
 				</DialogContent>
 			</Dialog>
-		)
+		);
 	}
 
 	return (
@@ -149,14 +154,20 @@ export function ReferralUpgradeModal({ isOpen, onClose }: ReferralUpgradeModalPr
 					<div className="bg-white/5 rounded-lg p-4 mb-6">
 						<div className="flex justify-between items-center mb-2">
 							<span className="text-sm text-white/70">Current Usage</span>
-							<span className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-400" : "text-white/90"}`}>
+							<span
+								className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-400" : "text-white/90"}`}
+							>
 								{memoriesUsed} / {memoriesLimit} memories
 							</span>
 						</div>
 						<div className="w-full bg-white/10 rounded-full h-2">
 							<div
 								className={`h-2 rounded-full transition-all ${
-									memoriesUsed >= memoriesLimit ? "bg-red-500" : isPro ? "bg-green-500" : "bg-blue-500"
+									memoriesUsed >= memoriesLimit
+										? "bg-red-500"
+										: isPro
+											? "bg-green-500"
+											: "bg-blue-500"
 								}`}
 								style={{
 									width: `${Math.min((memoriesUsed / memoriesLimit) * 100, 100)}%`,
@@ -173,7 +184,10 @@ export function ReferralUpgradeModal({ isOpen, onClose }: ReferralUpgradeModalPr
 								Refer Friends
 							</TabsTrigger>
 							{!isPro && (
-								<TabsTrigger value="upgrade" className="flex items-center gap-2">
+								<TabsTrigger
+									value="upgrade"
+									className="flex items-center gap-2"
+								>
 									<CreditCard className="w-4 h-4" />
 									Upgrade Plan
 								</TabsTrigger>
@@ -286,5 +300,5 @@ export function ReferralUpgradeModal({ isOpen, onClose }: ReferralUpgradeModalPr
 				</motion.div>
 			</DialogContent>
 		</Dialog>
-	)
+	);
 }

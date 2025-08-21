@@ -1,115 +1,115 @@
-"use client"
+"use client";
 
-import { $fetch } from "@lib/api"
-import { authClient } from "@lib/auth"
-import { useAuth } from "@lib/auth-context"
-import { fetchConsumerProProduct } from "@lib/queries"
-import { Button } from "@ui/components/button"
+import { $fetch } from "@lib/api";
+import { authClient } from "@lib/auth";
+import { useAuth } from "@lib/auth-context";
+import { fetchConsumerProProduct } from "@lib/queries";
+import { Button } from "@ui/components/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@ui/components/card"
-import { useCustomer } from "autumn-js/react"
-import { Clock, LoaderIcon, SkipForwardIcon, LogOut } from "lucide-react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
+} from "@ui/components/card";
+import { useCustomer } from "autumn-js/react";
+import { Clock, LoaderIcon, LogOut, SkipForwardIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function WaitlistPage() {
-	const router = useRouter()
-	const searchParams = useSearchParams()
-	const referralCode = searchParams.get('ref')
-	const { user } = useAuth()
-	const [isChecking, setIsChecking] = useState(true)
-	const [isSkippingWaitlist, setIsSkippingWaitlist] = useState(false)
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const referralCode = searchParams.get("ref");
+	const { user } = useAuth();
+	const [isChecking, setIsChecking] = useState(true);
+	const [isSkippingWaitlist, setIsSkippingWaitlist] = useState(false);
 	const [waitlistStatus, setWaitlistStatus] = useState<{
-		inWaitlist: boolean
-		accessGranted: boolean
-		createdAt: string
-	} | null>(null)
-	const autumn = useCustomer()
+		inWaitlist: boolean;
+		accessGranted: boolean;
+		createdAt: string;
+	} | null>(null);
+	const autumn = useCustomer();
 
-	// @ts-ignore
-	const { data: earlyAccess } = fetchConsumerProProduct(autumn)
+	// @ts-expect-error
+	const { data: earlyAccess } = fetchConsumerProProduct(autumn);
 
 	const handleSkipWaitlist = async () => {
-		setIsSkippingWaitlist(true)
+		setIsSkippingWaitlist(true);
 		try {
 			const res = await autumn.attach({
 				productId: "consumer_pro",
 				forceCheckout: true,
 				successUrl: "https://app.supermemory.ai/",
-			})
+			});
 			if (res.data && "checkout_url" in res.data && res.data.checkout_url) {
-				router.push(res.data.checkout_url)
+				router.push(res.data.checkout_url);
 			}
 		} catch (error) {
-			console.error("Error skipping waitlist:", error)
+			console.error("Error skipping waitlist:", error);
 		} finally {
-			setIsSkippingWaitlist(false)
+			setIsSkippingWaitlist(false);
 		}
-	}
+	};
 
 	const handleLogout = async () => {
 		try {
-			await authClient.signOut()
-			router.push("/")
+			await authClient.signOut();
+			router.push("/");
 		} catch (error) {
-			console.error("Error signing out:", error)
-			toast.error("Failed to sign out")
+			console.error("Error signing out:", error);
+			toast.error("Failed to sign out");
 		}
-	}
+	};
 
 	useEffect(() => {
 		async function checkAccess() {
 			if (!user) {
-				router.push("/")
-				return
+				router.push("/");
+				return;
 			}
 
 			// Anonymous users should sign in first
 			if (user.isAnonymous) {
-				authClient.signOut()
-				router.push("/")
-				return
+				authClient.signOut();
+				router.push("/");
+				return;
 			}
 
 			try {
 				// Check waitlist status using the new endpoint
-				const response = await $fetch("@get/waitlist/status")
+				const response = await $fetch("@get/waitlist/status");
 
 				if (response.data) {
-					setWaitlistStatus(response.data)
+					setWaitlistStatus(response.data);
 
 					if (!response.data.inWaitlist) {
-						authClient.signOut()
-						router.push("/login")
+						authClient.signOut();
+						router.push("/login");
 					}
 
 					// If user has access, redirect to home
 					if (response.data.accessGranted) {
-						router.push("/")
+						router.push("/");
 					}
 				}
 			} catch (error) {
-				console.error("Error checking waitlist status:", error)
+				console.error("Error checking waitlist status:", error);
 				// If there's an error, assume user is on waitlist
 				setWaitlistStatus({
 					inWaitlist: true,
 					accessGranted: false,
 					createdAt: new Date().toISOString(),
-				})
+				});
 			} finally {
-				setIsChecking(false)
+				setIsChecking(false);
 			}
 		}
 
-		checkAccess()
-	}, [user, router])
+		checkAccess();
+	}, [user, router]);
 
 	if (isChecking) {
 		return (
@@ -119,7 +119,7 @@ export default function WaitlistPage() {
 					<p className="text-white/60">Checking access...</p>
 				</div>
 			</div>
-		)
+		);
 	}
 
 	return (
@@ -133,10 +133,9 @@ export default function WaitlistPage() {
 						You're on the waitlist!
 					</CardTitle>
 					<CardDescription className="text-white/60 mt-2">
-						{referralCode 
+						{referralCode
 							? "Thanks for joining through a friend's invitation! You've been added to the waitlist with priority access."
-							: "Thanks for your interest in supermemory. We'll notify you as soon as we're ready for you."
-						}
+							: "Thanks for your interest in supermemory. We'll notify you as soon as we're ready for you."}
 					</CardDescription>
 					{referralCode && (
 						<div className="mt-3 px-3 py-2 bg-orange-500/10 rounded-lg border border-orange-500/20">
@@ -199,8 +198,8 @@ export default function WaitlistPage() {
 								<p className="text-white/50 text-xs">
 									Signed in as {user.email}
 								</p>
-								<Button 
-									variant="outline" 
+								<Button
+									variant="outline"
 									size="sm"
 									onClick={handleLogout}
 									className="border-white/20 hover:bg-white/5"
@@ -214,5 +213,5 @@ export default function WaitlistPage() {
 				</CardContent>
 			</Card>
 		</div>
-	)
+	);
 }
