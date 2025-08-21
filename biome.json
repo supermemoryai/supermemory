@@ -1,75 +1,105 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on",
+				"useSortedAttributes": "on",
+				"useSortedKeys": "off"
+			}
+		},
+		"enabled": true
+	},
 	"files": {
 		"includes": [
-			"**/*.js",
-			"**/*.jsx",
-			"**/*.ts",
-			"**/*.tsx",
-			"**/*.json",
-			"**/*.jsonc",
+			"**",
 			"!**/node_modules",
+			"!**/.next/",
+			"!**/.contentlayer",
+			"!**/.vercel",
+			"!**/.react-router",
+			"!**/.wrangler",
+			"!**/package.json",
+			"!**/worker-configuration.d.ts",
+			"!**/.turbo/",
+			"!**/.vercel",
 			"!**/dist",
+			"!**/.astro",
 			"!**/build",
-			"!**/.next",
-			"!**/.turbo",
-			"!**/*.d.ts"
+			"!**/.alchemy",
+			"!**/.build",
+			"!**/.open-next",
+			"!**/*.astro"
 		]
 	},
 	"formatter": {
 		"enabled": true,
-		"formatWithErrors": false,
-		"indentStyle": "tab",
-		"indentWidth": 2,
-		"lineEnding": "lf",
-		"lineWidth": 80,
-		"attributePosition": "auto",
-		"includes": ["**", "!**/*.md"]
-	},
-	"assist": { "actions": { "source": { "organizeImports": "on" } } },
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"a11y": {
-				"recommended": true
-			},
-			"complexity": {
-				"recommended": true
-			},
-			"correctness": {
-				"recommended": true
-			},
-			"performance": {
-				"recommended": true
-			},
-			"security": {
-				"recommended": true
-			},
-			"style": {
-				"recommended": true
-			},
-			"suspicious": {
-				"recommended": true
-			}
-		}
+		"indentStyle": "tab"
 	},
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double",
-			"jsxQuoteStyle": "double",
-			"trailingCommas": "all",
-			"semicolons": "asNeeded",
-			"arrowParentheses": "always",
-			"bracketSpacing": true,
-			"bracketSameLine": false,
-			"quoteProperties": "asNeeded",
-			"attributePosition": "auto"
+			"semicolons": "asNeeded"
 		}
 	},
-	"json": {
-		"formatter": {
-			"trailingCommas": "none"
+	"linter": {
+		"domains": {
+			"project": "none"
+		},
+		"enabled": true,
+		"rules": {
+			"a11y": {
+				"useValidAnchor": "warn"
+			},
+			"correctness": {
+				"noUnusedVariables": {
+					"level": "warn",
+					"options": {
+						"ignoreRestSiblings": true
+					}
+				},
+				"useExhaustiveDependencies": "warn",
+				"noUnusedImports": "warn"
+			},
+			"recommended": true,
+			"style": {
+				"noDefaultExport": "off",
+				"noInferrableTypes": "error",
+				"noNonNullAssertion": "warn",
+				"noParameterAssign": "error",
+				"noUnusedTemplateLiteral": "error",
+				"noUselessElse": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useNamingConvention": {
+					"level": "off",
+					"options": {
+						"strictCase": false
+					}
+				},
+				"useNumberNamespace": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error"
+			}
 		}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.astro"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noUnusedVariables": "off",
+						"noUnusedImports": "off"
+					}
+				}
+			}
+		}
+	],
+	"vcs": {
+		"clientKind": "git",
+		"enabled": true,
+		"useIgnoreFile": true
 	}
 }
