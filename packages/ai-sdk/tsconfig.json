@@ -1,0 +1,10 @@
+{
+	"extends": "@total-typescript/tsconfig/bundler/dom/library-monorepo",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./*"],
+			"@lib/*": ["../lib/*"]
+		}
+	}
+}
