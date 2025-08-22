@@ -1,20 +1,32 @@
+import { createTwitterImportButton, createTwitterImportUI, createSaveTweetElement, DOMUtils } from '../utils/ui-components';
+import { DOMAINS, ELEMENT_IDS, MESSAGE_TYPES } from '../utils/constants';
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   main() {
-    let currentToast: HTMLElement | null = null;
+    let twitterImportUI: HTMLElement | null = null;
+    let isTwitterImportOpen = false;
 
     browser.runtime.onMessage.addListener(async (message) => {
-      if (message.action === 'showToast') {
-        showToast(message.state);
-      } else if (message.action === 'saveMemory') {
+      if (message.action === MESSAGE_TYPES.SHOW_TOAST) {
+        DOMUtils.showToast(message.state);
+      } else if (message.action === MESSAGE_TYPES.SAVE_MEMORY) {
         await saveMemory();
+      } else if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
+        updateTwitterImportUI(message);
+      } else if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
+        updateTwitterImportUI(message);
       }
     });
 
     const observeForMemoriesDialog = () => {
       const observer = new MutationObserver(() => {
-        if (window.location.hostname === 'chatgpt.com' || window.location.hostname === 'chat.openai.com') {
+        if (DOMUtils.isOnDomain(DOMAINS.CHATGPT)) {
           addSupermemoryButtonToMemoriesDialog();
+        }
+        if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
+          addTwitterImportButton();
+          //addSaveTweetElement();
         }
       });
 
@@ -26,7 +38,18 @@ export default defineContentScript({
       if (window.location.hostname === 'chatgpt.com' || window.location.hostname === 'chat.openai.com') {
         addSupermemoryButtonToMemoriesDialog();
       }
+      if (window.location.hostname === 'x.com' || window.location.hostname === 'twitter.com') {
+        addTwitterImportButton();
+        //addSaveTweetElement();
+      }
     };
+
+    if (window.location.hostname === 'x.com' || window.location.hostname === 'twitter.com') {
+      setTimeout(() => {
+        addTwitterImportButton(); // Wait 2 seconds for page to load
+        //addSaveTweetElement();
+      }, 2000);
+    }
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', observeForMemoriesDialog);
@@ -36,7 +59,7 @@ export default defineContentScript({
 
     async function saveMemory() {
       try {
-        showToast('loading');
+        DOMUtils.showToast('loading');
 
         const highlightedText = window.getSelection()?.toString() || '';
 
@@ -45,7 +68,7 @@ export default defineContentScript({
         const html = document.documentElement.outerHTML;
 
         const response = await browser.runtime.sendMessage({
-          action: 'saveMemory',
+          action: MESSAGE_TYPES.SAVE_MEMORY,
           data: {
             html,
             highlightedText,
@@ -55,13 +78,13 @@ export default defineContentScript({
 
         console.log('Response from enxtension:', response);
         if (response.success) {
-          showToast('success');
+          DOMUtils.showToast('success');
         } else {
-          showToast('error');
+          DOMUtils.showToast('error');
         }
       } catch (error) {
         console.error('Error saving memory:', error);
-        showToast('error');
+        DOMUtils.showToast('error');
       }
     }
 
@@ -126,11 +149,11 @@ export default defineContentScript({
 
     async function saveMemoriesToSupermemory() {
       try {
-        showToast('loading');
+        DOMUtils.showToast('loading');
         
         const memoriesTable = document.querySelector('[role="dialog"] table tbody');
         if (!memoriesTable) {
-          showToast('error');
+          DOMUtils.showToast('error');
           return;
         }
         
@@ -147,11 +170,10 @@ export default defineContentScript({
         console.log('Memories:', memories);
         
         if (memories.length === 0) {
-          showToast('error');
+          DOMUtils.showToast('error');
           return;
         }
         
-        const url = window.location.href;
         const combinedContent = `ChatGPT Saved Memories:\n\n${memories.map((memory, index) => `${index + 1}. ${memory}`).join('\n\n')}`;
         
         const response = await browser.runtime.sendMessage({
@@ -162,146 +184,134 @@ export default defineContentScript({
         });
         
         if (response.success) {
-          showToast('success');
+          DOMUtils.showToast('success');
         } else {
-          showToast('error');
+          DOMUtils.showToast('error');
         }
       } catch (error) {
         console.error('Error saving memories to Supermemory:', error);
-        showToast('error');
+        DOMUtils.showToast('error');
       }
     }
 
-    function showToast(state: 'loading' | 'success' | 'error') {
-      if (currentToast) {
-        currentToast.remove();
+
+    function addTwitterImportButton() {
+      if (!DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
+        return;
       }
 
-      const toast = document.createElement('div');
-      toast.id = 'supermemory-toast';
-
-      toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 2147483647;
-        background: #ffffff;
-        border-radius: 9999px;
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 14px;
-        color: #374151;
-        min-width: 200px;
-        max-width: 300px;
-        animation: slideIn 0.3s ease-out;
-      `;
-
-      if (!document.getElementById('supermemory-toast-styles')) {
-        const style = document.createElement('style');
-        style.id = 'supermemory-toast-styles';
-        style.textContent = `
-          @keyframes slideIn {
-            from {
-              transform: translateX(100%);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
-          }
-          @keyframes fadeOut {
-            from {
-              transform: translateX(0);
-              opacity: 1;
-            }
-            to {
-              transform: translateX(100%);
-              opacity: 0;
-            }
-          }
-        `;
-        document.head.appendChild(style);
+      if (DOMUtils.elementExists(ELEMENT_IDS.TWITTER_IMPORT_BUTTON)) {
+        return;
       }
 
-      const icon = document.createElement('div');
-      icon.style.cssText = `
-        width: 20px;
-        height: 20px;
-        flex-shrink: 0;
-      `;
+      const button = createTwitterImportButton(() => {
+        showTwitterImportUI();
+      });
+      
+      document.body.appendChild(button);
+    }
 
-      const text = document.createElement('span');
-      text.style.cssText = `
-        font-weight: 500;
-      `;
+    function showTwitterImportUI() {
+      if (twitterImportUI) {
+        twitterImportUI.remove();
+      }
 
-      if (state === 'loading') {
-        icon.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 6V2" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
-            <path d="M12 22V18" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
-            <path d="M20.49 8.51L18.36 6.38" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
-            <path d="M5.64 17.64L3.51 15.51" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-            <path d="M22 12H18" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
-            <path d="M6 12H2" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
-            <path d="M20.49 15.49L18.36 17.62" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
-            <path d="M5.64 6.36L3.51 8.49" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
-          </svg>
-        `;
-        icon.style.animation = 'spin 1s linear infinite';
-        if (!document.getElementById('supermemory-spinner-styles')) {
-          const spinStyle = document.createElement('style');
-          spinStyle.id = 'supermemory-spinner-styles';
-          spinStyle.textContent = `
-            @keyframes spin {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
+      isTwitterImportOpen = true;
+      
+      // Check if user is authenticated
+      browser.storage.local.get(['bearerToken'], ({ bearerToken }) => {
+        const isAuthenticated = !!bearerToken;
+        
+        twitterImportUI = createTwitterImportUI(
+          hideTwitterImportUI,
+          async () => {
+            try {
+              await browser.runtime.sendMessage({ type: MESSAGE_TYPES.BATCH_IMPORT_ALL });
+            } catch (error) {
+              console.error('Error starting import:', error);
             }
+          },
+          isAuthenticated
+        );
+        
+        document.body.appendChild(twitterImportUI);
+      });
+    }
+
+    function hideTwitterImportUI() {
+      if (twitterImportUI) {
+        twitterImportUI.remove();
+        twitterImportUI = null;
+      }
+      isTwitterImportOpen = false;
+    }
+
+    function updateTwitterImportUI(message: any) {
+      if (!isTwitterImportOpen || !twitterImportUI) return;
+
+      const statusDiv = twitterImportUI.querySelector('#twitter-import-status');
+      const button = twitterImportUI.querySelector('#twitter-import-button');
+      
+      if (message.type === 'import-update') {
+        if (statusDiv) {
+          statusDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px; color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 8px 12px; font-size: 13px;">
+              <div style="width: 12px; height: 12px; border: 2px solid #f59e0b; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+              <span>${message.importedMessage}</span>
+            </div>
           `;
-          document.head.appendChild(spinStyle);
         }
-        text.textContent = 'Adding to Memory...';
-      } else if (state === 'success') {
-        const iconUrl = browser.runtime.getURL('/icon-16.png');
-        icon.innerHTML = `
-          <img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />
-        `;
-        text.textContent = 'Added to Memory';
-      } else if (state === 'error') {
-        icon.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" fill="#ef4444"/>
-            <path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        `;
-        text.textContent = 'Failed to save memory / Make sure you are logged in';
+        if (button) {
+          (button as HTMLButtonElement).disabled = true;
+          (button as HTMLButtonElement).textContent = 'Importing...';
+        }
       }
-
-      toast.appendChild(icon);
-      toast.appendChild(text);
-      document.body.appendChild(toast);
-      currentToast = toast;
-
-      if (state === 'success' || state === 'error') {
+      
+      if (message.type === 'import-done') {
+        if (statusDiv) {
+          statusDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px; color: #0369a1; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 8px 12px; font-size: 13px;">
+              <span style="color: #059669;">✓</span>
+              <span>Successfully imported ${message.totalImported} tweets!</span>
+            </div>
+          `;
+        }
+        
         setTimeout(() => {
-          if (currentToast === toast) {
-            toast.style.animation = 'fadeOut 0.3s ease-out';
-            setTimeout(() => {
-              if (toast.parentNode) {
-                toast.remove();
-              }
-              if (currentToast === toast) {
-                currentToast = null;
-              }
-            }, 300);
-          }
+          hideTwitterImportUI();
         }, 3000);
       }
+    }
+
+    // TODO: Add Tweet Capture Functionality
+    function addSaveTweetElement() {
+      if (!DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
+        return;
+      }
+
+      const targetDivs = document.querySelectorAll('div.css-175oi2r.r-18u37iz.r-1h0z5md.r-1wron08');
+      
+      targetDivs.forEach((targetDiv) => {
+        if (targetDiv.hasAttribute('data-supermemory-icon-added')) {
+          return;
+        }
+
+        const previousElement = targetDiv.previousElementSibling;
+        if (previousElement && previousElement.id && previousElement.id.startsWith(ELEMENT_IDS.SAVE_TWEET_ELEMENT)) {
+          targetDiv.setAttribute('data-supermemory-icon-added', 'true');
+          return;
+        }
+
+        const saveTweetElement = createSaveTweetElement(async () => {
+          await saveMemory();
+        });
+        
+        saveTweetElement.id = `${ELEMENT_IDS.SAVE_TWEET_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+        
+        targetDiv.setAttribute('data-supermemory-icon-added', 'true');
+        
+        targetDiv.parentNode?.insertBefore(saveTweetElement, targetDiv);
+      });
     }
 
     document.addEventListener('keydown', async (event) => {
