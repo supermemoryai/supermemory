@@ -33,7 +33,6 @@ export default function WaitlistPage() {
 	} | null>(null);
 	const autumn = useCustomer();
 
-	// @ts-expect-error
 	const { data: earlyAccess } = fetchConsumerProProduct(autumn);
 
 	const handleSkipWaitlist = async () => {
