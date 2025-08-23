@@ -43,7 +43,7 @@ export const createSupermemoryInfiniteChat = (
 			? providerMap[config.providerName]
 			: config.providerUrl,
 		headers: {
-			"x-api-key": apiKey,
+			"x-supermemory-api-key": apiKey,
 			...config.headers,
 		},
 	}).chat

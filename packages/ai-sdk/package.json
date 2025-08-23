@@ -1,6 +1,6 @@
 {
     "name": "@supermemory/ai-sdk",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",
     "scripts": {
@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "@ai-sdk/openai": "^2.0.15",
+        "@ai-sdk/provider": "^2.0.0",
         "ai": "^5.0.17",
         "supermemory": "^3.0.0-alpha.22",
         "zod": "^4.0.17"
