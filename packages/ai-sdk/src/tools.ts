@@ -17,16 +17,16 @@ export interface SupermemoryToolsConfig {
  */
 export function supermemoryTools(
 	apiKey: string,
-	config: SupermemoryToolsConfig,
+	config?: SupermemoryToolsConfig,
 ) {
 	const client = new Supermemory({
 		apiKey,
-		...(config.baseUrl && { baseURL: config.baseUrl }),
+		...(config?.baseUrl && { baseURL: config.baseUrl }),
 	})
 
-	const containerTags = config.projectId
-		? [`sm_project_${config.projectId}`]
-		: (config.containerTags ?? ["sm_project_default"])
+	const containerTags = config?.projectId
+		? [`sm_project_${config?.projectId}`]
+		: (config?.containerTags ?? ["sm_project_default"])
 
 	const searchMemories = tool({
 		description:
@@ -124,7 +124,7 @@ export function supermemoryTools(
 // Export individual tool creators for more flexibility
 export const searchMemoriesTool = (
 	apiKey: string,
-	config: SupermemoryToolsConfig,
+	config?: SupermemoryToolsConfig,
 ) => {
 	const { searchMemories } = supermemoryTools(apiKey, config)
 	return searchMemories
@@ -132,7 +132,7 @@ export const searchMemoriesTool = (
 
 export const addMemoryTool = (
 	apiKey: string,
-	config: SupermemoryToolsConfig,
+	config?: SupermemoryToolsConfig,
 ) => {
 	const { addMemory } = supermemoryTools(apiKey, config)
 	return addMemory
@@ -140,7 +140,7 @@ export const addMemoryTool = (
 
 export const fetchMemoryTool = (
 	apiKey: string,
-	config: SupermemoryToolsConfig,
+	config?: SupermemoryToolsConfig,
 ) => {
 	const { fetchMemory } = supermemoryTools(apiKey, config)
 	return fetchMemory

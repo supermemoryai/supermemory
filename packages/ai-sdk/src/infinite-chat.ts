@@ -35,15 +35,15 @@ const providerMap = {
 
 export const createSupermemoryInfiniteChat = (
 	apiKey: SupermemoryApiKey,
-	config: SupermemoryInfiniteChatConfig,
+	config?: SupermemoryInfiniteChatConfig,
 ) =>
 	createOpenAI({
-		apiKey: config.providerApiKey,
-		baseURL: config.providerName
+		apiKey: config?.providerApiKey,
+		baseURL: config?.providerName
 			? providerMap[config.providerName]
-			: config.providerUrl,
+			: config?.providerUrl,
 		headers: {
 			"x-supermemory-api-key": apiKey,
-			...config.headers,
+			...config?.headers,
 		},
 	}).chat
