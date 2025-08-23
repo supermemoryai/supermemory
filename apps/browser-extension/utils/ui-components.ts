@@ -288,6 +288,49 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
 }
 
 /**
+ * Creates a save element button for ChatGPT input bar
+ * @param onClick - Click handler for the button
+ * @returns HTMLElement - The save button element
+ */
+export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
+  const iconButton = document.createElement('div');
+  iconButton.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    border-radius: 50%;
+  `;
+
+  // Use appropriate icon based on theme
+  const isDark = DOMUtils.isDarkMode();
+  const iconFileName = isDark ? '/dark-mode-icon.png' : '/light-mode-icon.png';
+  const iconUrl = browser.runtime.getURL(iconFileName);
+  iconButton.innerHTML = `
+    <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 50%;" />
+  `;
+
+  iconButton.addEventListener('mouseenter', () => {
+    iconButton.style.opacity = '0.8';
+  });
+
+  iconButton.addEventListener('mouseleave', () => {
+    iconButton.style.opacity = '1';
+  });
+
+  iconButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    onClick();
+  });
+
+  return iconButton;
+}
+
+/**
  * Utility functions for DOM manipulation
  */
 export const DOMUtils = {
@@ -298,6 +341,16 @@ export const DOMUtils = {
    */
   isOnDomain(domains: readonly string[]): boolean {
     return domains.includes(window.location.hostname);
+  },
+
+  /**
+   * Detect if the page is in dark mode based on color-scheme style
+   * @returns boolean - true if dark mode, false if light mode
+   */
+  isDarkMode(): boolean {
+    const htmlElement = document.documentElement;
+    const style = htmlElement.getAttribute('style');
+    return style?.includes('color-scheme: dark') || false;
   },
 
   /**

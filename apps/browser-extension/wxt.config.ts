@@ -19,6 +19,8 @@ export default defineConfig({
       '*://twitter.com/*',
       '*://supermemory.ai/*',
       '*://api.supermemory.ai/*',
+      '*://chatgpt.com/*',
+      '*://chat.openai.com/*',
     ],
     web_accessible_resources: [
       {
