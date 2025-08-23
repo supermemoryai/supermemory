@@ -1,65 +1,68 @@
 {
-	"name": "supermemory",
-	"private": true,
-	"scripts": {
-		"build": "turbo run build",
-		"dev": "turbo run dev",
-		"format-lint": "bunx biome check --write",
-		"check-types": "turbo run check-types"
-	},
-	"engines": {
-		"node": ">=20"
-	},
-	"packageManager": "bun@1.2.17",
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	],
-	"dependencies": {
-		"@ai-sdk/anthropic": "^1.2.12",
-		"@ai-sdk/cerebras": "^0.2.16",
-		"@ai-sdk/google": "^1.2.22",
-		"@ai-sdk/openai": "^1.3.23",
-		"@anthropic-ai/sdk": "^0.55.1",
-		"@google/genai": "^1.10.0",
-		"@google/generative-ai": "^0.24.1",
-		"@hono/zod-validator": "^0.7.1",
-		"@scalar/hono-api-reference": "^0.9.11",
-		"ai": "^4.3.19",
-		"alchemy": "^0.55.2",
-		"atmn": "^0.0.16",
-		"better-auth": "^1.3.3",
-		"boxen": "^8.0.1",
-		"cloudflare": "^4.5.0",
-		"compromise": "^14.14.4",
-		"dedent": "^1.6.0",
-		"destr": "^2.0.5",
-		"drizzle-orm": "^0.44.3",
-		"drizzle-zod": "~0.7.1",
-		"file-type": "^21.0.0",
-		"hono-openapi": "^0.4.8",
-		"llm-bridge": "1.0.8",
-		"nanoid": "^5.1.5",
-		"neverthrow": "^8.2.0",
-		"pg": "^8.16.3",
-		"pino": "^9.7.0",
-		"postgres": "^3.4.7",
-		"random-word-slugs": "^0.1.7",
-		"resend": "^4.7.0",
-		"zod": "^3.25.76",
-		"zod-openapi": "^4.2.4"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^2.2.0",
-		"@total-typescript/tsconfig": "^1.0.4",
-		"@types/pg": "^8.15.4",
-		"drizzle-kit": "^0.31.4",
-		"turbo": "^2.5.4",
-		"typescript": "5.8.3",
-		"wrangler": "4.22.0"
-	},
-	"workerd": {
-		"import": "./esm/index.mjs",
-		"require": "./dist/index.js"
-	}
+  "name": "supermemory",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "format-lint": "bunx biome check --write",
+    "check-types": "turbo run check-types",
+    "sentry:sourcemaps": "_SENTRY_RELEASE=$(sentry-cli releases propose-version) && sentry-cli releases new $_SENTRY_RELEASE --org=supermemory --project=consumer-app && sentry-cli sourcemaps upload --org=supermemory --project=consumer-app --release=$_SENTRY_RELEASE --strip-prefix 'dist/..' dist",
+    "postbuild": "bun run sentry:sourcemaps"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "bun@1.2.17",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/cerebras": "^0.2.16",
+    "@ai-sdk/google": "^1.2.22",
+    "@ai-sdk/openai": "^1.3.23",
+    "@anthropic-ai/sdk": "^0.55.1",
+    "@google/genai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1",
+    "@hono/zod-validator": "^0.7.1",
+    "@scalar/hono-api-reference": "^0.9.11",
+    "ai": "^4.3.19",
+    "alchemy": "^0.55.2",
+    "atmn": "^0.0.16",
+    "better-auth": "^1.3.3",
+    "boxen": "^8.0.1",
+    "cloudflare": "^4.5.0",
+    "compromise": "^14.14.4",
+    "dedent": "^1.6.0",
+    "destr": "^2.0.5",
+    "drizzle-orm": "^0.44.3",
+    "drizzle-zod": "~0.7.1",
+    "file-type": "^21.0.0",
+    "hono-openapi": "^0.4.8",
+    "llm-bridge": "1.0.8",
+    "nanoid": "^5.1.5",
+    "neverthrow": "^8.2.0",
+    "pg": "^8.16.3",
+    "pino": "^9.7.0",
+    "postgres": "^3.4.7",
+    "random-word-slugs": "^0.1.7",
+    "resend": "^4.7.0",
+    "zod": "^3.25.76",
+    "zod-openapi": "^4.2.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@sentry/cli": "^2.52.0",
+    "@total-typescript/tsconfig": "^1.0.4",
+    "@types/pg": "^8.15.4",
+    "drizzle-kit": "^0.31.4",
+    "turbo": "^2.5.4",
+    "typescript": "5.8.3",
+    "wrangler": "4.22.0"
+  },
+  "workerd": {
+    "import": "./esm/index.mjs",
+    "require": "./dist/index.js"
+  }
 }

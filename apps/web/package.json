@@ -10,7 +10,9 @@
 		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
 		"deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
 		"upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
-		"cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+		"cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+		"sentry:sourcemaps": "_SENTRY_RELEASE=$(sentry-cli releases propose-version) && sentry-cli releases new $_SENTRY_RELEASE --org=supermemory --project=consumer-app && sentry-cli sourcemaps upload --org=supermemory --project=consumer-app --release=$_SENTRY_RELEASE --strip-prefix 'dist/..' dist",
+		"postdeploy": "bun run sentry:sourcemaps"
 	},
 	"dependencies": {
 		"@ai-sdk/google": "^2.0.0-beta.13",
@@ -83,6 +85,7 @@
 		"zustand": "^5.0.7"
 	},
 	"devDependencies": {
+		"@sentry/cli": "^2.52.0",
 		"@tailwindcss/postcss": "^4.1.11",
 		"@total-typescript/tsconfig": "^1.0.4",
 		"@types/is-hotkey": "^0.1.10",
