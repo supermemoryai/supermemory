@@ -1,27 +1,32 @@
 {
-    "name": "@supermemory/ai-sdk",
-    "version": "1.0.0",
-    "main": "dist/index.mjs",
-    "types": "dist/index.d.mts",
-    "scripts": {
-        "build": "tsdown",
-        "dev": "tsdown --watch",
-        "check-types": "tsc --noEmit",
-        "test": "vitest",
-        "test:watch": "vitest --watch"
-    },
-    "dependencies": {
-        "@ai-sdk/openai": "^2.0.15",
-        "@ai-sdk/provider": "^2.0.0",
-        "ai": "^5.0.17",
-        "supermemory": "^3.0.0-alpha.22",
-        "zod": "^4.0.17"
-    },
-    "devDependencies": {
-        "@total-typescript/tsconfig": "^1.0.4",
-        "@types/bun": "^1.2.20",
-        "tsdown": "^0.14.1",
-        "typescript": "^5.9.2",
-        "vitest": "^3.2.4"
-    }
+  "name": "@supermemory/ai-sdk",
+  "version": "1.0.1",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "check-types": "tsc --noEmit",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.15",
+    "@ai-sdk/provider": "^2.0.0",
+    "ai": "^5.0.17",
+    "supermemory": "^3.0.0-alpha.22",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@total-typescript/tsconfig": "^1.0.4",
+    "@types/bun": "^1.2.20",
+    "tsdown": "^0.14.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  }
 }

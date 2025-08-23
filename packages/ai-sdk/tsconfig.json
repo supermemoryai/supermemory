@@ -5,6 +5,8 @@
 		"paths": {
 			"@/*": ["./*"],
 			"@lib/*": ["../lib/*"]
-		}
+		},
+		"declaration": true,
+		"declarationMap": true
 	}
 }
