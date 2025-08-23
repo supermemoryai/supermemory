@@ -114,8 +114,8 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
   button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON;
   button.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: 10px;
+    right: 10px;
     z-index: 2147483646;
     background: #ffffff;
     color: black;
@@ -195,7 +195,7 @@ export function createTwitterImportUI(
     ${isAuthenticated ? `
       <div>
         <p style="color: #536471; font-size: 14px; margin: 0 0 12px 0; line-height: 1.4;">
-          This will import all your Twitter bookmarks to Supermemory. Make sure you're logged into Twitter/X first.
+          This will import all your Twitter bookmarks to Supermemory
         </p>
         
         <button id="${ELEMENT_IDS.TWITTER_IMPORT_BTN}" style="width: 100%; background: #1d9bf0; color: white; border: none; border-radius: 20px; padding: 12px 16px; cursor: pointer; font-size: 14px; font-weight: 500; margin-bottom: 12px;">

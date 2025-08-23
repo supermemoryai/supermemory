@@ -13,6 +13,7 @@ import {
   type Tweet 
 } from './twitter-utils';
 import { getTwitterTokens, createTwitterAPIHeaders, type TwitterAuthTokens } from './twitter-auth';
+import { saveTweet } from './api';
 
 export type ImportProgressCallback = (message: string) => Promise<void>;
 
@@ -53,48 +54,20 @@ class RateLimiter {
  * @returns Promise that resolves when tweet is imported
  */
 async function importTweet(tweetMd: string, tweet: Tweet): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    browser.storage.local.get(['bearerToken'], ({ bearerToken }) => {
-      if (!bearerToken) {
-        reject(new Error('No bearer token found'));
-        return;
-      }
-      
-      const backendURL = 'https://api.supermemory.ai';
-      
-      fetch(`${backendURL}/v3/memories`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${bearerToken}`,
-        },
-        body: JSON.stringify({
-          containerTags: ['sm_project_twitter_bookmarks'],
-          content: tweetMd,
-          metadata: { 
-            sm_source: 'twitter_bookmarks',
-            tweet_id: tweet.id_str,
-            author: tweet.user.screen_name,
-            created_at: tweet.created_at,
-            likes: tweet.favorite_count,
-            retweets: tweet.retweet_count || 0,
-          },
-        }),
-      })
-      .then(async (response) => {
-        if (!response.ok) {
-          if (response.status === 409) {
-            resolve(); // Skip if already exists
-          } else {
-            reject(new Error(`Failed to save tweet: ${response.status}`));
-          }
-        } else {
-          resolve();
-        }
-      })
-      .catch(reject);
-    });
-  });
+  const metadata = { 
+    sm_source: 'consumer',
+    tweet_id: tweet.id_str,
+    author: tweet.user.screen_name,
+    created_at: tweet.created_at,
+    likes: tweet.favorite_count,
+    retweets: tweet.retweet_count || 0,
+  };
+
+  try {
+    await saveTweet(tweetMd, metadata);
+  } catch (error) {
+    throw new Error(`Failed to save tweet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**

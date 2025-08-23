@@ -1,7 +1,8 @@
 .popup-container {
   width: 320px;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #ffffff;
   border-radius: 8px;
 }
@@ -78,7 +79,8 @@
   line-height: 1.4;
 }
 
-.authenticated, .unauthenticated {
+.authenticated,
+.unauthenticated {
   text-align: left;
 }
 
@@ -113,4 +115,171 @@
   width: 35px;
   height: 20px;
   flex-shrink: 0;
+}
+
+/* Project Selection Styles */
+.project-section {
+  margin-bottom: 16px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 3%;
+  border: 1px solid #e9ecef;
+}
+
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.project-change-btn {
+  padding: 4px 8px;
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.project-change-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.project-current {
+  padding: 4px 0;
+}
+
+.project-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+  flex: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.project-count {
+  font-size: 12px;
+  color: #6c757d;
+  margin-left: 8px;
+}
+
+.project-none {
+  font-size: 14px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Project Selector Modal */
+.project-selector {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.project-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.project-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-close-btn:hover {
+  color: #000000;
+}
+
+.project-loading {
+  padding: 32px 16px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.project-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.project-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.project-item:hover {
+  background-color: #f8f9fa;
+}
+
+.project-item:last-child {
+  border-bottom: none;
+}
+
+.project-item.selected {
+  background-color: #e3f2fd;
+}
+
+.project-item-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.project-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.project-item-count {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.project-item-check {
+  color: #1976d2;
+  font-weight: bold;
+  font-size: 16px;
 }

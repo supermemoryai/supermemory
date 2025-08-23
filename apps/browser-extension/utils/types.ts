@@ -66,6 +66,11 @@ export interface StorageData {
   cookie?: string;
   csrf?: string;
   auth?: string;
+  defaultProject?: Project;
+  projectsCache?: {
+    projects: Project[];
+    timestamp: number;
+  };
 }
 
 /**
@@ -128,4 +133,17 @@ export class AuthenticationError extends ExtensionError {
     super(message, 'AUTH_ERROR');
     this.name = 'AuthenticationError';
   }
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  containerTag: string;
+  createdAt: string;
+  updatedAt: string;
+  documentCount: number;
+}
+
+export interface ProjectsResponse {
+  projects: Project[];
 }
