@@ -106,6 +106,44 @@ export default defineBackground(() => {
     }
   };
 
+  const getRelatedMemories = async (data: any): Promise<{ success: boolean; data?: any; error?: string }> => {
+    try {
+      const result = await browser.storage.local.get(['bearerToken']);
+      const bearerToken = result.bearerToken;
+
+      if (!bearerToken) {
+        return { success: false, error: 'No authentication token found' };
+      }
+
+      const response = await fetch(`${API_ENDPOINTS.SUPERMEMORY_API}/v3/search`, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${bearerToken}`,
+        },
+        body: JSON.stringify({
+          q: data
+        }),
+      });
+
+      if (!response.ok) {
+        return { success: false, error: `API call failed: ${response.status}` };
+      }
+
+      const responseData = await response.json();
+      const content = responseData.results[0].chunks[0].content;
+      console.log('Content:', content);
+      return { success: true, data: content };
+    }
+    catch(error){
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
   /**
    * Handle extension messages
    */
@@ -131,6 +169,21 @@ export default defineBackground(() => {
       (async () => {
         try {
           const result = await saveMemoryToSupermemory(message.data);
+          sendResponse(result);
+        } catch (error) {
+          sendResponse({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      })();
+      return true;
+    }
+
+    if (message.action === MESSAGE_TYPES.GET_RELATED_MEMORIES) {
+      (async () => {
+        try {
+          const result = await getRelatedMemories(message.data);
           sendResponse(result);
         } catch (error) {
           sendResponse({

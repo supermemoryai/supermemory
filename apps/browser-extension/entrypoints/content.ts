@@ -1,4 +1,10 @@
-import { createTwitterImportButton, createTwitterImportUI, createSaveTweetElement, DOMUtils } from '../utils/ui-components';
+import {
+  createTwitterImportButton,
+  createTwitterImportUI,
+  createSaveTweetElement,
+  createChatGPTInputBarElement,
+  DOMUtils,
+} from '../utils/ui-components';
 import { DOMAINS, ELEMENT_IDS, MESSAGE_TYPES } from '../utils/constants';
 
 export default defineContentScript({
@@ -23,6 +29,7 @@ export default defineContentScript({
       const observer = new MutationObserver(() => {
         if (DOMUtils.isOnDomain(DOMAINS.CHATGPT)) {
           addSupermemoryButtonToMemoriesDialog();
+          addSaveChatGPTElementBeforeComposerBtn();
         }
         if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
           addTwitterImportButton();
@@ -35,16 +42,23 @@ export default defineContentScript({
         subtree: true,
       });
 
-      if (window.location.hostname === 'chatgpt.com' || window.location.hostname === 'chat.openai.com') {
+      if (
+        window.location.hostname === 'chatgpt.com' ||
+        window.location.hostname === 'chat.openai.com'
+      ) {
         addSupermemoryButtonToMemoriesDialog();
+        addSaveChatGPTElementBeforeComposerBtn();
       }
-      if (window.location.hostname === 'x.com' || window.location.hostname === 'twitter.com') {
+      if (
+        window.location.hostname === 'x.com' ||
+        window.location.hostname === 'twitter.com'
+      ) {
         addTwitterImportButton();
         //addSaveTweetElement();
       }
     };
 
-    if (window.location.hostname === 'x.com' || window.location.hostname === 'twitter.com') {
+    if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
       setTimeout(() => {
         addTwitterImportButton(); // Wait 2 seconds for page to load
         //addSaveTweetElement();
@@ -88,10 +102,33 @@ export default defineContentScript({
       }
     }
 
+    async function getRelatedMemories() {
+      try {
+        const userQuery =
+          document.getElementById('prompt-textarea')?.textContent || '';
+
+        const response = await browser.runtime.sendMessage({
+          action: MESSAGE_TYPES.GET_RELATED_MEMORIES,
+          data: userQuery,
+        });
+
+        
+        if (response.success && response.data) {
+          const promptElement = document.getElementById('prompt-textarea');
+          if (promptElement) {
+            const currentContent = promptElement.innerHTML;
+            promptElement.innerHTML = currentContent + '<br>' + "Supermemories: " + response.data;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting related memories:', error);
+      }
+    }
+
     function addSupermemoryButtonToMemoriesDialog() {
       const dialogs = document.querySelectorAll('[role="dialog"]');
       let memoriesDialog: HTMLElement | null = null;
-      
+
       for (const dialog of dialogs) {
         const headerText = dialog.querySelector('h2');
         if (headerText && headerText.textContent?.includes('Saved memories')) {
@@ -99,27 +136,29 @@ export default defineContentScript({
           break;
         }
       }
-      
+
       if (!memoriesDialog) return;
-      
+
       if (memoriesDialog.querySelector('#supermemory-save-button')) return;
-      
-      const deleteAllContainer = memoriesDialog.querySelector('.mt-5.flex.justify-end');
+
+      const deleteAllContainer = memoriesDialog.querySelector(
+        '.mt-5.flex.justify-end'
+      );
       if (!deleteAllContainer) return;
-      
+
       const supermemoryButton = document.createElement('button');
       supermemoryButton.id = 'supermemory-save-button';
       supermemoryButton.className = 'btn relative btn-primary-outline mr-2';
-      
+
       const iconUrl = browser.runtime.getURL('/icon-16.png');
-      
+
       supermemoryButton.innerHTML = `
         <div class="flex items-center justify-center gap-2">
           <img src="${iconUrl}" alt="Supermemory" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
           Save to Supermemory
         </div>
       `;
-      
+
       supermemoryButton.style.cssText = `
         background: #1C2026 !important;
         color: white !important;
@@ -131,36 +170,41 @@ export default defineContentScript({
         margin-right: 8px !important;
         cursor: pointer !important;
       `;
-      
+
       supermemoryButton.addEventListener('mouseenter', () => {
         supermemoryButton.style.backgroundColor = '#2B2E33';
       });
-      
+
       supermemoryButton.addEventListener('mouseleave', () => {
         supermemoryButton.style.backgroundColor = '#1C2026';
       });
-      
+
       supermemoryButton.addEventListener('click', async () => {
         await saveMemoriesToSupermemory();
       });
-      
-      deleteAllContainer.insertBefore(supermemoryButton, deleteAllContainer.firstChild);
+
+      deleteAllContainer.insertBefore(
+        supermemoryButton,
+        deleteAllContainer.firstChild
+      );
     }
 
     async function saveMemoriesToSupermemory() {
       try {
         DOMUtils.showToast('loading');
-        
-        const memoriesTable = document.querySelector('[role="dialog"] table tbody');
+
+        const memoriesTable = document.querySelector(
+          '[role="dialog"] table tbody'
+        );
         if (!memoriesTable) {
           DOMUtils.showToast('error');
           return;
         }
-        
+
         const memoryRows = memoriesTable.querySelectorAll('tr');
         const memories: string[] = [];
-        
-        memoryRows.forEach(row => {
+
+        memoryRows.forEach((row) => {
           const memoryCell = row.querySelector('td .py-2.whitespace-pre-wrap');
           if (memoryCell && memoryCell.textContent) {
             memories.push(memoryCell.textContent.trim());
@@ -168,21 +212,21 @@ export default defineContentScript({
         });
 
         console.log('Memories:', memories);
-        
+
         if (memories.length === 0) {
           DOMUtils.showToast('error');
           return;
         }
-        
+
         const combinedContent = `ChatGPT Saved Memories:\n\n${memories.map((memory, index) => `${index + 1}. ${memory}`).join('\n\n')}`;
-        
+
         const response = await browser.runtime.sendMessage({
           action: 'saveMemory',
           data: {
             html: combinedContent,
           },
         });
-        
+
         if (response.success) {
           DOMUtils.showToast('success');
         } else {
@@ -193,7 +237,6 @@ export default defineContentScript({
         DOMUtils.showToast('error');
       }
     }
-
 
     function addTwitterImportButton() {
       if (!DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
@@ -207,7 +250,7 @@ export default defineContentScript({
       const button = createTwitterImportButton(() => {
         showTwitterImportUI();
       });
-      
+
       document.body.appendChild(button);
     }
 
@@ -217,23 +260,25 @@ export default defineContentScript({
       }
 
       isTwitterImportOpen = true;
-      
+
       // Check if user is authenticated
       browser.storage.local.get(['bearerToken'], ({ bearerToken }) => {
         const isAuthenticated = !!bearerToken;
-        
+
         twitterImportUI = createTwitterImportUI(
           hideTwitterImportUI,
           async () => {
             try {
-              await browser.runtime.sendMessage({ type: MESSAGE_TYPES.BATCH_IMPORT_ALL });
+              await browser.runtime.sendMessage({
+                type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
+              });
             } catch (error) {
               console.error('Error starting import:', error);
             }
           },
           isAuthenticated
         );
-        
+
         document.body.appendChild(twitterImportUI);
       });
     }
@@ -251,7 +296,7 @@ export default defineContentScript({
 
       const statusDiv = twitterImportUI.querySelector('#twitter-import-status');
       const button = twitterImportUI.querySelector('#twitter-import-button');
-      
+
       if (message.type === 'import-update') {
         if (statusDiv) {
           statusDiv.innerHTML = `
@@ -266,7 +311,7 @@ export default defineContentScript({
           (button as HTMLButtonElement).textContent = 'Importing...';
         }
       }
-      
+
       if (message.type === 'import-done') {
         if (statusDiv) {
           statusDiv.innerHTML = `
@@ -276,11 +321,65 @@ export default defineContentScript({
             </div>
           `;
         }
-        
+
         setTimeout(() => {
           hideTwitterImportUI();
         }, 3000);
       }
+    }
+
+    function addSaveChatGPTElementBeforeComposerBtn() {
+      if (!DOMUtils.isOnDomain(DOMAINS.CHATGPT)) {
+        return;
+      }
+
+      const composerButtons = document.querySelectorAll('button.composer-btn');
+
+      composerButtons.forEach((button) => {
+        if (button.hasAttribute('data-supermemory-icon-added-before')) {
+          return;
+        }
+
+        const parent = button.parentElement;
+        if (!parent) return;
+
+        const parentSiblings = parent.parentElement?.children;
+        if (!parentSiblings) return;
+
+        let hasSpeechButtonSibling = false;
+        for (const sibling of parentSiblings) {
+          if (
+            sibling.getAttribute('data-testid') ===
+            'composer-speech-button-container'
+          ) {
+            hasSpeechButtonSibling = true;
+            break;
+          }
+        }
+
+        if (!hasSpeechButtonSibling) return;
+
+        const grandParent = parent.parentElement;
+        if (!grandParent) return;
+
+        const existingIcon = grandParent.querySelector(
+          `#${ELEMENT_IDS.CHATGPT_INPUT_BAR_ELEMENT}-before-composer`
+        );
+        if (existingIcon) {
+          button.setAttribute('data-supermemory-icon-added-before', 'true');
+          return;
+        }
+
+        const saveChatGPTElement = createChatGPTInputBarElement(async () => {
+          await getRelatedMemories();
+        });
+
+        saveChatGPTElement.id = `${ELEMENT_IDS.CHATGPT_INPUT_BAR_ELEMENT}-before-composer-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+        button.setAttribute('data-supermemory-icon-added-before', 'true');
+
+        grandParent.insertBefore(saveChatGPTElement, parent);
+      });
     }
 
     // TODO: Add Tweet Capture Functionality
@@ -289,15 +388,21 @@ export default defineContentScript({
         return;
       }
 
-      const targetDivs = document.querySelectorAll('div.css-175oi2r.r-18u37iz.r-1h0z5md.r-1wron08');
-      
+      const targetDivs = document.querySelectorAll(
+        'div.css-175oi2r.r-18u37iz.r-1h0z5md.r-1wron08'
+      );
+
       targetDivs.forEach((targetDiv) => {
         if (targetDiv.hasAttribute('data-supermemory-icon-added')) {
           return;
         }
 
         const previousElement = targetDiv.previousElementSibling;
-        if (previousElement && previousElement.id && previousElement.id.startsWith(ELEMENT_IDS.SAVE_TWEET_ELEMENT)) {
+        if (
+          previousElement &&
+          previousElement.id &&
+          previousElement.id.startsWith(ELEMENT_IDS.SAVE_TWEET_ELEMENT)
+        ) {
           targetDiv.setAttribute('data-supermemory-icon-added', 'true');
           return;
         }
@@ -305,11 +410,11 @@ export default defineContentScript({
         const saveTweetElement = createSaveTweetElement(async () => {
           await saveMemory();
         });
-        
+
         saveTweetElement.id = `${ELEMENT_IDS.SAVE_TWEET_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-        
+
         targetDiv.setAttribute('data-supermemory-icon-added', 'true');
-        
+
         targetDiv.parentNode?.insertBefore(saveTweetElement, targetDiv);
       });
     }

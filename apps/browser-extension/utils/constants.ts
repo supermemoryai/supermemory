@@ -30,6 +30,7 @@ export const ELEMENT_IDS = {
   SUPERMEMORY_TOAST: 'supermemory-toast',
   SUPERMEMORY_SAVE_BUTTON: 'supermemory-save-button',
   SAVE_TWEET_ELEMENT: 'supermemory-save-tweet-element',
+  CHATGPT_INPUT_BAR_ELEMENT: 'supermemory-chatgpt-input-bar-element',
 } as const;
 
 /**
@@ -68,6 +69,7 @@ export const MESSAGE_TYPES = {
   BATCH_IMPORT_ALL: 'batchImportAll',
   IMPORT_UPDATE: 'import-update',
   IMPORT_DONE: 'import-done',
+  GET_RELATED_MEMORIES: 'getRelatedMemories',
 } as const;
 
 export const CONTEXT_MENU_IDS = {
