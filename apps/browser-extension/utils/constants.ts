@@ -16,6 +16,8 @@ export const STORAGE_KEYS = {
   TWITTER_COOKIE: 'cookie',
   TWITTER_CSRF: 'csrf',
   TWITTER_AUTH_TOKEN: 'auth',
+  DEFAULT_PROJECT: 'defaultProject',
+  PROJECTS_CACHE: 'projectsCache',
 } as const;
 
 /**
