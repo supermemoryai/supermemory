@@ -11,11 +11,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@repo/ui/components/sheet';
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '@repo/ui/components/tabs';
 import { colors } from '@repo/ui/memory-graph/constants';
 import type { DocumentsWithMemoriesResponseSchema } from '@repo/validation/api';
 import { Badge } from '@ui/components/badge';
-import { Brain, Calendar, ExternalLink, Sparkles } from 'lucide-react';
-import { memo, useState } from 'react';
+import { Brain, Calendar, CircleUserRound, ExternalLink, List, Sparkles } from 'lucide-react';
+import { memo } from 'react';
 import type { z } from 'zod';
 import { formatDate, getSourceUrl } from '.';
 import { Label1Regular } from '@ui/text/label/label-1-regular';
@@ -159,7 +165,6 @@ export const MemoryDetail = memo(
   }) => {
     if (!document) return null;
 
-    const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
     const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten);
     const forgottenMemories = document.memoryEntries.filter(
       (m) => m.isForgotten
@@ -214,35 +219,70 @@ export const MemoryDetail = memo(
       </div>
     );
 
-    const SummarySection = () => {
-      if (!document.summary) return null;
+    const ContentAndSummarySection = () => {
+      const hasContent = document.content && document.content.trim().length > 0;
+      const hasSummary = document.summary && document.summary.trim().length > 0;
+      
+      if (!hasContent && !hasSummary) return null;
 
-      const shouldShowToggle = document.summary.length > 200; // Show toggle for longer summaries
+      const defaultTab = hasContent ? 'content' : 'summary';
 
       return (
-        <div
-          className="mt-4 p-3 rounded-lg"
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-          }}
-        >
-          <p
-            className={`text-sm ${!isSummaryExpanded ? 'line-clamp-3' : ''}`}
-            style={{ color: colors.text.muted }}
-          >
-            {document.content}
-          </p>
-          {shouldShowToggle && (
-            <button
-              onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-              className="mt-2 text-xs hover:underline transition-all"
-              style={{ color: colors.accent.primary }}
-              type="button"
+        <div className="mt-4">
+          <Tabs defaultValue={defaultTab} className="w-full">
+            <TabsList
+              className={`grid w-full bg-white/5 border border-white/10 h-11 ${
+                hasContent && hasSummary ? 'grid-cols-2' : 'grid-cols-1'
+              }`}
             >
-              {isSummaryExpanded ? 'Show less' : 'Show more'}
-            </button>
-          )}
+              {hasContent && (
+                <TabsTrigger
+                  value="content"
+                  className="text-xs bg-transparent h-8"
+                  style={{ color: colors.text.secondary }}
+                >
+                  <CircleUserRound className="w-3 h-3" />
+                  Original Content
+                </TabsTrigger>
+              )}
+              {hasSummary && (
+                <TabsTrigger
+                  value="summary"
+                  className="text-xs flex items-center gap-1 bg-transparent h-8"
+                  style={{ color: colors.text.secondary }}
+                >
+                  <List className="w-3 h-3" />
+                  Summary
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            {hasContent && (
+              <TabsContent value="content" className="mt-3">
+                <div className="p-3 rounded-lg max-h-48 overflow-y-auto custom-scrollbar bg-white/[0.03] border border-white/[0.08]">
+                  <p
+                    className="text-sm leading-relaxed whitespace-pre-wrap"
+                    style={{ color: colors.text.primary }}
+                  >
+                    {document.content}
+                  </p>
+                </div>
+              </TabsContent>
+            )}
+
+            {hasSummary && (
+              <TabsContent value="summary" className="mt-3">
+                <div className="p-3 rounded-lg max-h-48 overflow-y-auto custom-scrollbar bg-indigo-500/5 border border-indigo-500/15">
+                  <p
+                    className="text-sm leading-relaxed whitespace-pre-wrap"
+                    style={{ color: colors.text.muted }}
+                  >
+                    {document.summary}
+                  </p>
+                </div>
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
       );
     };
@@ -260,7 +300,7 @@ export const MemoryDetail = memo(
               Active Memories ({activeMemories.length})
             </div>
             <div className="space-y-3">
-              {activeMemories.map((memory, index) => (
+              {activeMemories.map((memory) => (
                 <div
                   key={memory.id}
                 >
@@ -333,7 +373,7 @@ export const MemoryDetail = memo(
                 <HeaderContent TitleComponent={DrawerTitle} />
               </DrawerHeader>
 
-              <SummarySection />
+              <ContentAndSummarySection />
             </div>
 
             <div className="flex-1 memory-drawer-scroll overflow-y-auto">
@@ -362,7 +402,7 @@ export const MemoryDetail = memo(
               <HeaderContent TitleComponent={SheetTitle} />
             </SheetHeader>
 
-            <SummarySection />
+            <ContentAndSummarySection />
           </div>
 
           <div className="h-[calc(100vh-200px)] memory-sheet-scroll overflow-y-auto">
