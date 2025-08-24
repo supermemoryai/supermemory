@@ -8,7 +8,9 @@ export default async function middleware(request: Request) {
 	console.debug("[MIDDLEWARE] Path:", url.pathname);
 	console.debug("[MIDDLEWARE] Method:", request.method);
 
-	const sessionCookie = getSessionCookie(request);
+	const sessionCookie = getSessionCookie(request, {
+		path: "/",
+	});
 	console.debug("[MIDDLEWARE] Session cookie exists:", !!sessionCookie);
 
 	// Always allow access to login and waitlist pages
