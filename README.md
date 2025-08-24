@@ -72,4 +72,4 @@ Check out our [Issues](https://github.com/supermemoryai/supermemory/issues) page
 Stay up to date with the latest improvements:
 
 - [Changelog](https://docs.supermemory.ai/changelog/overview)
-- [X](https://x.com/supermemoryai)
+- [X](https://x.com/supermemoryai).
