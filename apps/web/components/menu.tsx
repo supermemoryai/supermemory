@@ -151,7 +151,7 @@ function Menu({ id }: { id?: string }) {
 	}, [isMobile, isMobileMenuOpen, isHovered, expandedView, setMenuExpanded]);
 
 	// Calculate width based on state
-	const menuWidth = expandedView || isCollapsing ? 600 : isHovered ? 160 : 56;
+	const menuWidth = expandedView || isCollapsing ? 600 : isHovered ? 220 : 56;
 
 	// Dynamic z-index for mobile based on active panel
 	const mobileZIndex =
@@ -275,26 +275,33 @@ function Menu({ id }: { id?: string }) {
 																	opacity: isHovered ? 1 : 0,
 																	x: isHovered ? 0 : -10,
 																}}
-																className="drop-shadow-lg absolute left-10 whitespace-nowrap flex items-center gap-2"
+																className="drop-shadow-lg absolute left-10 right-16 whitespace-nowrap"
 																initial={{ opacity: 0, x: -10 }}
 																style={{
 																	transform: "translateZ(0)",
 																}}
 																transition={{
-																	duration: 0.3,
-																	delay: index * 0.03,
+																	duration: isHovered ? 0.2 : 0.1,
+																	delay: isHovered ? index * 0.03 : 0,
 																	ease: [0.4, 0, 0.2, 1],
 																}}
 															>
 																{item.text}
-																{/* Show warning indicator for Add Memory when limits approached */}
-																{shouldShowLimitWarning &&
-																	item.key === "addUrl" && (
-																		<span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
-																			{memoriesLimit - memoriesUsed} left
-																		</span>
-																	)}
 															</motion.p>
+															{shouldShowLimitWarning && item.key === "addUrl" && (
+																<motion.span
+																	animate={{ opacity: isHovered ? 1 : 0, x: isHovered ? 0 : -10 }}
+																	initial={{ opacity: 0, x: -10 }}
+																	transition={{
+																		duration: isHovered ? 0.2 : 0.1,
+																		delay: isHovered ? index * 0.03 : 0,
+																		ease: [0.4, 0, 0.2, 1],
+																	}}
+																	className="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded"
+																>
+																	{memoriesLimit - memoriesUsed} left
+																</motion.span>
+															)}
 														</motion.button>
 														{index === 0 && (
 															<motion.div
