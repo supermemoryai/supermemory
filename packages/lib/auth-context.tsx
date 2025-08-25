@@ -33,6 +33,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	}, [session?.session.activeOrganizationId])
 
+	// When a session exists and there is a pending login method recorded,
+	// promote it to the last-used method (successful login) and clear pending.
+	useEffect(() => {
+		if (typeof window === "undefined") return
+		if (!session?.session) return
+
+		try {
+			const pendingMethod = localStorage.getItem(
+				"supermemory-pending-login-method",
+			)
+			const pendingTsRaw = localStorage.getItem(
+				"supermemory-pending-login-timestamp",
+			)
+
+			if (pendingMethod) {
+				const now = Date.now()
+				const ts = pendingTsRaw ? Number.parseInt(pendingTsRaw, 10) : NaN
+				const isFresh = Number.isFinite(ts) && now - ts < 10 * 60 * 1000 // 10 minutes TTL
+
+				if (isFresh) {
+					localStorage.setItem(
+						"supermemory-last-login-method",
+						pendingMethod,
+					)
+				}
+			}
+		} catch { }
+		// Always clear pending markers once a session is present
+		try {
+			localStorage.removeItem("supermemory-pending-login-method")
+			localStorage.removeItem("supermemory-pending-login-timestamp")
+		} catch { }
+	}, [session?.session])
+
 	const setActiveOrg = async (slug: string) => {
 		if (!slug) return
 
