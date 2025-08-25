@@ -9,7 +9,7 @@ import { Button } from "@repo/ui/components/button";
 import { HeadingH2Bold } from "@repo/ui/text/heading/heading-h2-bold";
 import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { useCustomer } from "autumn-js/react";
-import { MessageSquareMore, Plus, User, X } from "lucide-react";
+import { MessageSquareMore, Plus, Puzzle, User, X } from "lucide-react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Drawer } from "vaul";
@@ -19,6 +19,7 @@ import { useChatOpen } from "@/stores";
 import { ProjectSelector } from "./project-selector";
 import { useTour } from "./tour";
 import { AddMemoryExpandedView, AddMemoryView } from "./views/add-memory";
+import { IntegrationsView } from "./views/integrations";
 import { MCPView } from "./views/mcp";
 import { ProfileView } from "./views/profile";
 
@@ -41,7 +42,7 @@ const MCPIcon = ({ className }: { className?: string }) => {
 function Menu({ id }: { id?: string }) {
 	const [isHovered, setIsHovered] = useState(false);
 	const [expandedView, setExpandedView] = useState<
-		"addUrl" | "mcp" | "projects" | "profile" | null
+		"addUrl" | "mcp" | "projects" | "profile" | "integrations" | null
 	>(null);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isCollapsing, setIsCollapsing] = useState(false);
@@ -52,12 +53,12 @@ function Menu({ id }: { id?: string }) {
 	const autumn = useCustomer();
 	const { setIsOpen } = useChatOpen();
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any);
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn);
 
 	const memoriesUsed = memoriesCheck?.usage ?? 0;
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0;
 
-	const { data: proCheck } = fetchConsumerProProduct(autumn as any);
+	const { data: proCheck } = fetchConsumerProProduct(autumn);
 
 	useEffect(() => {
 		if (memoriesCheck) {
@@ -79,6 +80,7 @@ function Menu({ id }: { id?: string }) {
 		addUrl: TOUR_STEP_IDS.MENU_ADD_MEMORY,
 		projects: TOUR_STEP_IDS.MENU_PROJECTS,
 		mcp: TOUR_STEP_IDS.MENU_MCP,
+		integrations: "", // No tour ID for integrations yet
 	};
 
 	const menuItems = [
@@ -92,6 +94,12 @@ function Menu({ id }: { id?: string }) {
 			icon: MessageSquareMore,
 			text: "Chat",
 			key: "chat" as const,
+			disabled: false,
+		},
+		{
+			icon: Puzzle,
+			text: "Integrations",
+			key: "integrations" as const,
 			disabled: false,
 		},
 		{
@@ -109,7 +117,7 @@ function Menu({ id }: { id?: string }) {
 	];
 
 	const handleMenuItemClick = (
-		key: "chat" | "addUrl" | "mcp" | "projects" | "profile",
+		key: "chat" | "addUrl" | "mcp" | "projects" | "profile" | "integrations",
 	) => {
 		if (key === "chat") {
 			setIsOpen(true);
@@ -358,6 +366,7 @@ function Menu({ id }: { id?: string }) {
 												<HeadingH2Bold className="text-white">
 													{expandedView === "mcp" && "Model Context Protocol"}
 													{expandedView === "profile" && "Profile"}
+													{expandedView === "integrations" && "Integrations"}
 												</HeadingH2Bold>
 												<motion.div
 													animate={{ opacity: 1, scale: 1 }}
@@ -392,6 +401,9 @@ function Menu({ id }: { id?: string }) {
 											>
 												{expandedView === "mcp" && <MCPView />}
 												{expandedView === "profile" && <ProfileView />}
+												{expandedView === "integrations" && (
+													<IntegrationsView />
+												)}
 											</motion.div>
 										</motion.div>
 									)}
@@ -517,7 +529,8 @@ function Menu({ id }: { id?: string }) {
 																	handleMenuItemClick(item.key);
 																	if (
 																		item.key !== "mcp" &&
-																		item.key !== "profile"
+																		item.key !== "profile" &&
+																		item.key !== "integrations"
 																	) {
 																		setIsMobileMenuOpen(false);
 																	}
@@ -577,6 +590,8 @@ function Menu({ id }: { id?: string }) {
 															{expandedView === "mcp" &&
 																"Model Context Protocol"}
 															{expandedView === "profile" && "Profile"}
+															{expandedView === "integrations" &&
+																"Integrations"}
 														</HeadingH2Bold>
 														<Button
 															className="text-white/70 hover:text-white transition-colors duration-200"
@@ -596,6 +611,9 @@ function Menu({ id }: { id?: string }) {
 														)}
 														{expandedView === "mcp" && <MCPView />}
 														{expandedView === "profile" && <ProfileView />}
+														{expandedView === "integrations" && (
+															<IntegrationsView />
+														)}
 													</div>
 												</div>
 											</motion.div>
