@@ -391,7 +391,7 @@ function Menu({ id }: { id?: string }) {
 											</motion.div>
 											<motion.div
 												animate={{ opacity: 1, y: 0 }}
-												className="max-h-[70vh] overflow-y-auto pr-2"
+												className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar"
 												initial={{ opacity: 0, y: 10 }}
 												transition={{
 													delay: 0.1,
@@ -484,7 +484,7 @@ function Menu({ id }: { id?: string }) {
 								</div>
 
 								{/* Menu content */}
-								<div className="relative z-20 flex flex-col w-full px-6 pb-8">
+								<div className="relative z-20 flex flex-col w-full px-2 pb-8">
 									<AnimatePresence
 										initial={false}
 										mode="wait"
@@ -574,7 +574,7 @@ function Menu({ id }: { id?: string }) {
 										) : (
 											<motion.div
 												animate={{ opacity: 1 }}
-												className="w-full p-2 flex flex-col"
+												className="w-full px-2 flex flex-col"
 												exit={{ opacity: 0 }}
 												initial={{ opacity: 0 }}
 												key="expanded-view-mobile"
@@ -582,7 +582,7 @@ function Menu({ id }: { id?: string }) {
 											>
 												<div className="flex-1">
 													<motion.div
-														className="mb-4 flex items-center justify-between"
+														className="flex items-center justify-between"
 														layout
 													>
 														<HeadingH2Bold className="text-white">

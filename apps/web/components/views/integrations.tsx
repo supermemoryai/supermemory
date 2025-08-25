@@ -1,3 +1,4 @@
+import { $fetch } from "@lib/api";
 import { authClient } from "@lib/auth";
 import { useAuth } from "@lib/auth-context";
 import { generateId } from "@lib/generate-id";
@@ -5,19 +6,53 @@ import {
 	ADD_MEMORY_SHORTCUT_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
 } from "@repo/lib/constants";
+import {
+	fetchConnectionsFeature,
+	fetchConsumerProProduct,
+} from "@repo/lib/queries";
 import { Button } from "@repo/ui/components/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
-	DialogTitle,
 	DialogPortal,
+	DialogTitle,
 } from "@repo/ui/components/dialog";
-import { useMutation } from "@tanstack/react-query";
-import { Check, Copy, Smartphone, X } from "lucide-react";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import type { ConnectionResponseSchema } from "@repo/validation/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons";
+import { useCustomer } from "autumn-js/react";
+import { Check, Copy, Smartphone, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
+import type { z } from "zod";
+import { analytics } from "@/lib/analytics";
+import { useProject } from "@/stores";
+
+type Connection = z.infer<typeof ConnectionResponseSchema>;
+
+const CONNECTORS = {
+	"google-drive": {
+		title: "Google Drive",
+		description: "Connect your Google Docs, Sheets, and Slides",
+		icon: GoogleDrive,
+	},
+	notion: {
+		title: "Notion",
+		description: "Import your Notion pages and databases",
+		icon: Notion,
+	},
+	onedrive: {
+		title: "OneDrive",
+		description: "Access your Microsoft Office documents",
+		icon: OneDrive,
+	},
+} as const;
+
+type ConnectorProvider = keyof typeof CONNECTORS;
 
 const ChromeIcon = ({ className }: { className?: string }) => (
 	<svg
@@ -52,6 +87,9 @@ const ChromeIcon = ({ className }: { className?: string }) => (
 
 export function IntegrationsView() {
 	const { org } = useAuth();
+	const queryClient = useQueryClient();
+	const { selectedProject } = useProject();
+	const autumn = useCustomer();
 	const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 	const [apiKey, setApiKey] = useState<string>("");
 	const [copied, setCopied] = useState(false);
@@ -59,6 +97,119 @@ export function IntegrationsView() {
 		"add" | "search" | null
 	>(null);
 	const apiKeyId = useId();
+
+	const handleUpgrade = async () => {
+		try {
+			await autumn.attach({
+				productId: "consumer_pro",
+				successUrl: "https://app.supermemory.ai/",
+			});
+			window.location.reload();
+		} catch (error) {
+			console.error(error);
+		}
+	};
+
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any);
+	const connectionsUsed = connectionsCheck?.balance ?? 0;
+	const connectionsLimit = connectionsCheck?.included_usage ?? 0;
+
+	const { data: proCheck } = fetchConsumerProProduct(autumn as any);
+	const isProUser = proCheck?.allowed ?? false;
+
+	const canAddConnection = connectionsUsed < connectionsLimit;
+
+	const {
+		data: connections = [],
+		isLoading: connectionsLoading,
+		error: connectionsError,
+	} = useQuery({
+		queryKey: ["connections"],
+		queryFn: async () => {
+			const response = await $fetch("@post/connections/list", {
+				body: {
+					containerTags: [],
+				},
+			});
+
+			if (response.error) {
+				throw new Error(
+					response.error?.message || "Failed to load connections",
+				);
+			}
+
+			return response.data as Connection[];
+		},
+		staleTime: 30 * 1000,
+		refetchInterval: 60 * 1000,
+	});
+
+	useEffect(() => {
+		if (connectionsError) {
+			toast.error("Failed to load connections", {
+				description:
+					connectionsError instanceof Error
+						? connectionsError.message
+						: "Unknown error",
+			});
+		}
+	}, [connectionsError]);
+
+	const addConnectionMutation = useMutation({
+		mutationFn: async (provider: ConnectorProvider) => {
+			if (!canAddConnection && !isProUser) {
+				throw new Error(
+					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
+				);
+			}
+
+			const response = await $fetch("@post/connections/:provider", {
+				params: { provider },
+				body: {
+					redirectUrl: window.location.href,
+					containerTags: [selectedProject],
+				},
+			});
+
+			// biome-ignore lint/style/noNonNullAssertion: its fine
+			if ("data" in response && !("error" in response.data!)) {
+				return response.data;
+			}
+
+			throw new Error(response.error?.message || "Failed to connect");
+		},
+		onSuccess: (data, provider) => {
+			analytics.connectionAdded(provider);
+			analytics.connectionAuthStarted();
+			if (data?.authLink) {
+				window.location.href = data.authLink;
+			}
+		},
+		onError: (error, provider) => {
+			analytics.connectionAuthFailed();
+			toast.error(`Failed to connect ${provider}`, {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		},
+	});
+
+	const deleteConnectionMutation = useMutation({
+		mutationFn: async (connectionId: string) => {
+			await $fetch(`@delete/connections/${connectionId}`);
+		},
+		onSuccess: () => {
+			analytics.connectionDeleted();
+			toast.success(
+				"Connection removal has started. supermemory will permanently delete the documents in the next few minutes.",
+			);
+			queryClient.invalidateQueries({ queryKey: ["connections"] });
+		},
+		onError: (error) => {
+			toast.error("Failed to remove connection", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		},
+	});
 
 	const createApiKeyMutation = useMutation({
 		mutationFn: async () => {
@@ -125,10 +276,10 @@ export function IntegrationsView() {
 	};
 
 	return (
-		<div className="space-y-4">
+		<div className="space-y-4 sm:space-y-4 custom-scrollbar">
 			{/* iOS Shortcuts */}
 			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-				<div className="p-4">
+				<div className="p-4 sm:p-5">
 					<div className="flex items-start gap-3 mb-3">
 						<div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
 							<Smartphone className="h-5 w-5 text-blue-400" />
@@ -142,7 +293,7 @@ export function IntegrationsView() {
 							</p>
 						</div>
 					</div>
-					<div className="flex flex-col sm:flex-row gap-2">
+					<div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
 						<Button
 							variant="ghost"
 							className="flex-1 text-white hover:bg-blue-500/10 bg-[#171F59]/75 "
@@ -181,17 +332,17 @@ export function IntegrationsView() {
 
 			{/* Chrome Extension */}
 			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden opacity-75">
-				<div className="p-4">
+				<div className="p-4 sm:p-5">
 					<div className="flex items-start gap-3">
 						<div className="p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
 							<ChromeIcon className="h-5 w-5 text-orange-400" />
 						</div>
 						<div className="flex-1 min-w-0">
-							<div className="flex items-center gap-2 mb-1">
+							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
 								<h3 className="text-white font-semibold text-base">
 									Chrome Extension
 								</h3>
-								<div className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full flex-shrink-0">
+								<div className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full flex-shrink-0 w-fit">
 									Coming Soon
 								</div>
 							</div>
@@ -203,15 +354,208 @@ export function IntegrationsView() {
 				</div>
 			</div>
 
+			{/* Connections Section */}
+			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+				<div className="p-4 sm:p-5">
+					<div className="flex items-start gap-3 mb-3">
+						<div className="p-2 bg-green-500/20 rounded-lg flex-shrink-0">
+							<svg
+								className="h-5 w-5 text-green-400"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<title>Connection Link Icon</title>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+								/>
+							</svg>
+						</div>
+						<div className="flex-1 min-w-0">
+							<h3 className="text-white font-semibold text-base mb-1">
+								Connections
+							</h3>
+							<p className="text-white/70 text-sm leading-relaxed mb-2">
+								Connect your favorite services to import documents
+							</p>
+							{!isProUser && (
+								<p className="text-xs text-white/50">
+									Connections require a Pro subscription
+								</p>
+							)}
+						</div>
+					</div>
+
+					{/* Show upgrade prompt for free users */}
+					{!isProUser && (
+						<motion.div
+							animate={{ opacity: 1, y: 0 }}
+							className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-3"
+							initial={{ opacity: 0, y: -10 }}
+						>
+							<p className="text-sm text-yellow-400 mb-2">
+								🔌 Connections are a Pro feature
+							</p>
+							<p className="text-xs text-white/60 mb-3">
+								Connect Google Drive, Notion, OneDrive and more to automatically
+								sync your documents.
+							</p>
+							<Button
+								className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border-yellow-500/30 w-full sm:w-auto"
+								onClick={handleUpgrade}
+								size="sm"
+								variant="secondary"
+							>
+								Upgrade to Pro
+							</Button>
+						</motion.div>
+					)}
+
+					{/* All Connections with Status */}
+					{connectionsLoading ? (
+						<div className="space-y-2">
+							{Object.keys(CONNECTORS).map((_, i) => (
+								<motion.div
+									animate={{ opacity: 1 }}
+									className="p-3 bg-white/5 rounded-lg"
+									initial={{ opacity: 0 }}
+									key={`skeleton-${Date.now()}-${i}`}
+									transition={{ delay: i * 0.1 }}
+								>
+									<Skeleton className="h-12 w-full bg-white/10" />
+								</motion.div>
+							))}
+						</div>
+					) : (
+						<div className="space-y-2">
+							{Object.entries(CONNECTORS).map(([provider, config], index) => {
+								const Icon = config.icon;
+								const connection = connections.find(
+									(conn) => conn.provider === provider,
+								);
+								const isConnected = !!connection;
+
+								return (
+									<motion.div
+										animate={{ opacity: 1, y: 0 }}
+										className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+										initial={{ opacity: 0, y: 20 }}
+										key={provider}
+										transition={{ delay: index * 0.05 }}
+									>
+										<div className="flex items-center gap-3 flex-1">
+											<motion.div
+												animate={{ rotate: 0, opacity: 1 }}
+												className="flex-shrink-0"
+												initial={{ rotate: -180, opacity: 0 }}
+												transition={{ delay: index * 0.05 + 0.2 }}
+											>
+												<Icon className="h-8 w-8" />
+											</motion.div>
+											<div className="flex-1 min-w-0">
+												<div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+													<p className="font-medium text-white text-sm">
+														{config.title}
+													</p>
+													{isConnected ? (
+														<div className="flex items-center gap-1">
+															<div className="w-2 h-2 bg-green-400 rounded-full"></div>
+															<span className="text-xs text-green-400 font-medium">
+																Connected
+															</span>
+														</div>
+													) : (
+														<div className="hidden sm:flex items-center gap-1">
+															<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+															<span className="text-xs text-gray-400 font-medium">
+																Disconnected
+															</span>
+														</div>
+													)}
+												</div>
+												<p className="text-xs text-white/60 mt-0.5">
+													{config.description}
+												</p>
+												{connection?.email && (
+													<p className="text-xs text-white/50 mt-1">
+														{connection.email}
+													</p>
+												)}
+											</div>
+										</div>
+
+										<div className="flex items-center justify-end gap-2 sm:flex-shrink-0">
+											{isConnected ? (
+												<motion.div
+													whileHover={{ scale: 1.05 }}
+													whileTap={{ scale: 0.95 }}
+												>
+													<Button
+														className="text-white/70 hover:text-red-400 hover:bg-red-500/10 w-full sm:w-auto"
+														disabled={deleteConnectionMutation.isPending}
+														onClick={() =>
+															deleteConnectionMutation.mutate(connection.id)
+														}
+														size="sm"
+														variant="ghost"
+													>
+														<Trash2 className="h-4 w-4 sm:mr-2" />
+														<span className="hidden sm:inline">Disconnect</span>
+													</Button>
+												</motion.div>
+											) : (
+												<div className="flex items-center justify-between gap-2 w-full sm:w-auto">
+													<div className="sm:hidden flex items-center gap-1">
+														<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+														<span className="text-xs text-gray-400 font-medium">
+															Disconnected
+														</span>
+													</div>
+													<motion.div
+														whileHover={{ scale: 1.02 }}
+														whileTap={{ scale: 0.98 }}
+														className="flex-shrink-0"
+													>
+														<Button
+															className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30 min-w-[80px]"
+															disabled={addConnectionMutation.isPending}
+															onClick={() => {
+																addConnectionMutation.mutate(
+																	provider as ConnectorProvider,
+																);
+															}}
+															size="sm"
+															variant="outline"
+														>
+															{addConnectionMutation.isPending &&
+															addConnectionMutation.variables === provider
+																? "Connecting..."
+																: "Connect"}
+														</Button>
+													</motion.div>
+												</div>
+											)}
+										</div>
+									</motion.div>
+								);
+							})}
+						</div>
+					)}
+				</div>
+			</div>
+
 			<div className="p-3">
-				<p className="text-white/70 text-sm leading-relaxed">
+				<p className="text-white/70 text-sm leading-relaxed text-center">
 					More integrations are coming soon! Have a suggestion? Share it with us
 					on{" "}
 					<a
 						href="https://x.com/supermemoryai"
 						target="_blank"
 						rel="noopener noreferrer"
-						className="text-orange-500 hover:text-orange-400 text-sm underline"
+						className="text-orange-500 hover:text-orange-400 underline"
 					>
 						X
 					</a>
