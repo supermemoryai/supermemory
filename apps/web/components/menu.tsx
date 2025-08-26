@@ -460,6 +460,12 @@ function Menu({ id }: { id?: string }) {
 					<Drawer.Portal>
 						<Drawer.Overlay className="fixed inset-0 bg-black/40 z-[60]" />
 						<Drawer.Content className="bg-transparent fixed bottom-0 left-0 right-0 z-[70] outline-none">
+							<Drawer.Title className="sr-only">
+								{expandedView === "addUrl" && "Add Memory"}
+								{expandedView === "mcp" && "Model Context Protocol"}
+								{expandedView === "profile" && "Profile"}
+								{!expandedView && "Menu"}
+							</Drawer.Title>
 							<div className="w-full flex flex-col text-sm font-medium shadow-2xl relative overflow-hidden rounded-t-3xl max-h-[80vh]">
 								{/* Glass effect background */}
 								<div className="absolute inset-0 rounded-t-3xl">
