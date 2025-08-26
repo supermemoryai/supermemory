@@ -1,6 +1,6 @@
 {
   "name": "@supermemory/ai-sdk",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",

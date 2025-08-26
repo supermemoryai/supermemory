@@ -35,14 +35,27 @@ export function supermemoryTools(
 			informationToGet: z
 				.string()
 				.describe("Terms to search for in the user's memories"),
+			includeFullDocs: z
+				.boolean()
+				.optional()
+				.default(true)
+				.describe(
+					"Whether to include the full document content in the response. Defaults to true for better AI context.",
+				),
+			limit: z
+				.number()
+				.optional()
+				.default(10)
+				.describe("Maximum number of results to return"),
 		}),
-		execute: async ({ informationToGet }) => {
+		execute: async ({ informationToGet, includeFullDocs = true, limit = 10 }) => {
 			try {
 				const response = await client.search.execute({
 					q: informationToGet,
 					containerTags,
-					limit: 10,
+					limit,
 					chunkThreshold: 0.6,
+					includeFullDocs,
 				})
 
 				return {
