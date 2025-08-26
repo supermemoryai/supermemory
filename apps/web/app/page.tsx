@@ -388,284 +388,284 @@ const MemoryGraphPage = () => {
 	}, []);
 
 	return (
-		<div className="relative h-screen bg-[#0f1419] overflow-hidden touch-none">
-			{/* Main content area */}
-			<motion.div
-				animate={{
-					marginRight: isOpen && !isMobile ? 600 : 0,
-				}}
-				className="h-full relative"
-				transition={{
-					duration: 0.2,
-					ease: [0.4, 0, 0.2, 1], // Material Design easing - snappy but smooth
-				}}
-			>
-				<motion.div
-					animate={{ opacity: 1, y: 0 }}
-					className="absolute md:top-4 md:right-4 md:bottom-auto md:left-auto bottom-8 left-6 z-20 rounded-xl overflow-hidden"
-					id={TOUR_STEP_IDS.VIEW_TOGGLE}
-					initial={{ opacity: 0, y: -20 }}
-					transition={{ type: "spring", stiffness: 300, damping: 25 }}
-				>
-					<GlassMenuEffect rounded="rounded-xl" />
-					<div className="relative z-10 p-2 flex gap-1">
-						<motion.button
-							animate={{
-								color: viewMode === "graph" ? "#93c5fd" : "#cbd5e1",
-							}}
-							className="relative h-8 px-3 flex items-center gap-2 text-sm font-medium rounded-md transition-colors"
-							onClick={() => handleViewModeChange("graph")}
-							transition={{ duration: 0.2 }}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
-						>
-							{viewMode === "graph" && (
-								<motion.div
-									className="absolute inset-0 bg-blue-500/20 rounded-md"
-									layoutId="activeBackground"
-									transition={{
-										type: "spring",
-										stiffness: 400,
-										damping: 30,
-									}}
-								/>
-							)}
-							<span className="relative z-10 flex items-center gap-2">
-								<LayoutGrid className="w-4 h-4" />
-								<span className="hidden md:inline">Graph</span>
-							</span>
-						</motion.button>
+    <div className="relative h-screen bg-[#0f1419] overflow-hidden touch-none">
+      {/* Main content area */}
+      <motion.div
+        animate={{
+          marginRight: isOpen && !isMobile ? 600 : 0,
+        }}
+        className="h-full relative"
+        transition={{
+          duration: 0.2,
+          ease: [0.4, 0, 0.2, 1], // Material Design easing - snappy but smooth
+        }}
+      >
+        <motion.div
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute md:top-4 md:right-4 md:bottom-auto md:left-auto bottom-8 left-6 z-20 rounded-xl overflow-hidden"
+          id={TOUR_STEP_IDS.VIEW_TOGGLE}
+          initial={{ opacity: 0, y: -20 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+        >
+          <GlassMenuEffect rounded="rounded-xl" />
+          <div className="relative z-10 p-2 flex gap-1">
+            <motion.button
+              animate={{
+                color: viewMode === 'graph' ? '#93c5fd' : '#cbd5e1',
+              }}
+              className="relative h-8 px-3 flex items-center gap-2 text-sm font-medium rounded-md transition-colors"
+              onClick={() => handleViewModeChange('graph')}
+              transition={{ duration: 0.2 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {viewMode === 'graph' && (
+                <motion.div
+                  className="absolute inset-0 bg-blue-500/20 rounded-md"
+                  layoutId="activeBackground"
+                  transition={{
+                    type: 'spring',
+                    stiffness: 400,
+                    damping: 30,
+                  }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4" />
+                <span className="hidden md:inline">Graph</span>
+              </span>
+            </motion.button>
 
-						<motion.button
-							animate={{
-								color: viewMode === "list" ? "#93c5fd" : "#cbd5e1",
-							}}
-							className="relative h-8 px-3 flex items-center gap-2 text-sm font-medium rounded-md transition-colors"
-							onClick={() => handleViewModeChange("list")}
-							transition={{ duration: 0.2 }}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
-						>
-							{viewMode === "list" && (
-								<motion.div
-									className="absolute inset-0 bg-blue-500/20 rounded-md"
-									layoutId="activeBackground"
-									transition={{
-										type: "spring",
-										stiffness: 400,
-										damping: 30,
-									}}
-								/>
-							)}
-							<span className="relative z-10 flex items-center gap-2">
-								<List className="w-4 h-4" />
-								<span className="hidden md:inline">List</span>
-							</span>
-						</motion.button>
-					</div>
-				</motion.div>
+            <motion.button
+              animate={{
+                color: viewMode === 'list' ? '#93c5fd' : '#cbd5e1',
+              }}
+              className="relative h-8 px-3 flex items-center gap-2 text-sm font-medium rounded-md transition-colors"
+              onClick={() => handleViewModeChange('list')}
+              transition={{ duration: 0.2 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {viewMode === 'list' && (
+                <motion.div
+                  className="absolute inset-0 bg-blue-500/20 rounded-md"
+                  layoutId="activeBackground"
+                  transition={{
+                    type: 'spring',
+                    stiffness: 400,
+                    damping: 30,
+                  }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <List className="w-4 h-4" />
+                <span className="hidden md:inline">List</span>
+              </span>
+            </motion.button>
+          </div>
+        </motion.div>
 
-				{/* Animated content switching */}
-				<AnimatePresence mode="wait">
-					{viewMode === "graph" ? (
-						<motion.div
-							animate={{ opacity: 1, scale: 1 }}
-							className="absolute inset-0"
-							exit={{ opacity: 0, scale: 0.95 }}
-							id={TOUR_STEP_IDS.MEMORY_GRAPH}
-							initial={{ opacity: 0, scale: 0.95 }}
-							key="graph"
-							transition={{
-								type: "spring",
-								stiffness: 500,
-								damping: 30,
-							}}
-						>
-							<MemoryGraph
-								documents={allDocuments}
-								error={error}
-								hasMore={hasMore}
-								isLoading={isPending}
-								isLoadingMore={isLoadingMore}
-								legendId={TOUR_STEP_IDS.LEGEND}
-								loadMoreDocuments={loadMoreDocuments}
-								showSpacesSelector={false}
-								totalLoaded={totalLoaded}
-								variant="consumer"
-								highlightDocumentIds={allHighlightDocumentIds}
-								highlightsVisible={isOpen}
-								occludedRightPx={isOpen && !isMobile ? 600 : 0}
-								autoLoadOnViewport={false}
-								isExperimental={isCurrentProjectExperimental}
-							>
-								<div className="absolute inset-0 flex items-center justify-center">
-									<div className="rounded-xl overflow-hidden">
-										<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
-											<p className="text-lg font-medium mb-2">
-												No Memories to Visualize
-											</p>
-											<button
-												type="button"
-												className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
-												onClick={() => setShowAddMemoryView(true)}
-											>
-												Create one?
-											</button>
-										</div>
-									</div>
-								</div>
-							</MemoryGraph>
-						</motion.div>
-					) : (
-						<motion.div
-							animate={{ opacity: 1, scale: 1 }}
-							className="absolute inset-0 md:ml-18"
-							exit={{ opacity: 0, scale: 0.95 }}
-							id={TOUR_STEP_IDS.MEMORY_LIST}
-							initial={{ opacity: 0, scale: 0.95 }}
-							key="list"
-							transition={{
-								type: "spring",
-								stiffness: 500,
-								damping: 30,
-							}}
-						>
-							<MemoryListView
-								documents={allDocuments}
-								error={error}
-								hasMore={hasMore}
-								isLoading={isPending}
-								isLoadingMore={isLoadingMore}
-								loadMoreDocuments={loadMoreDocuments}
-								totalLoaded={totalLoaded}
-							>
-								<div className="absolute inset-0 flex items-center justify-center">
-									<div className="rounded-xl overflow-hidden">
-										<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
-											<p className="text-lg font-medium mb-2">
-												No Memories to Visualize
-											</p>
-											<button
-												className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
-												onClick={() => setShowAddMemoryView(true)}
-												type="button"
-											>
-												Create one?
-											</button>
-										</div>
-									</div>
-								</div>
-							</MemoryListView>
-						</motion.div>
-					)}
-				</AnimatePresence>
+        {/* Animated content switching */}
+        <AnimatePresence mode="wait">
+          {viewMode === 'graph' ? (
+            <motion.div
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute inset-0"
+              exit={{ opacity: 0, scale: 0.95 }}
+              id={TOUR_STEP_IDS.MEMORY_GRAPH}
+              initial={{ opacity: 0, scale: 0.95 }}
+              key="graph"
+              transition={{
+                type: 'spring',
+                stiffness: 500,
+                damping: 30,
+              }}
+            >
+              <MemoryGraph
+                documents={allDocuments}
+                error={error}
+                hasMore={hasMore}
+                isLoading={isPending}
+                isLoadingMore={isLoadingMore}
+                legendId={TOUR_STEP_IDS.LEGEND}
+                loadMoreDocuments={loadMoreDocuments}
+                showSpacesSelector={false}
+                totalLoaded={totalLoaded}
+                variant="consumer"
+                highlightDocumentIds={allHighlightDocumentIds}
+                highlightsVisible={isOpen}
+                occludedRightPx={isOpen && !isMobile ? 600 : 0}
+                autoLoadOnViewport={false}
+                isExperimental={isCurrentProjectExperimental}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-xl overflow-hidden">
+                    <div className="relative z-10 text-slate-200 px-6 py-4 text-center">
+                      <p className="text-lg font-medium mb-2">
+                        No Memories to Visualize
+                      </p>
+                      <button
+                        type="button"
+                        className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
+                        onClick={() => setShowAddMemoryView(true)}
+                      >
+                        Create one?
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </MemoryGraph>
+            </motion.div>
+          ) : (
+            <motion.div
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute inset-0 md:ml-18"
+              exit={{ opacity: 0, scale: 0.95 }}
+              id={TOUR_STEP_IDS.MEMORY_LIST}
+              initial={{ opacity: 0, scale: 0.95 }}
+              key="list"
+              transition={{
+                type: 'spring',
+                stiffness: 500,
+                damping: 30,
+              }}
+            >
+              <MemoryListView
+                documents={allDocuments}
+                error={error}
+                hasMore={hasMore}
+                isLoading={isPending}
+                isLoadingMore={isLoadingMore}
+                loadMoreDocuments={loadMoreDocuments}
+                totalLoaded={totalLoaded}
+              >
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-xl overflow-hidden">
+                    <div className="relative z-10 text-slate-200 px-6 py-4 text-center">
+                      <p className="text-lg font-medium mb-2">
+                        No Memories to Visualize
+                      </p>
+                      <button
+                        className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
+                        onClick={() => setShowAddMemoryView(true)}
+                        type="button"
+                      >
+                        Create one?
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </MemoryListView>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-				{/* Top Bar */}
-				<div className="absolute top-2 left-0 right-0 z-10 p-4 flex items-center justify-between">
-					<div className="flex items-center gap-3 justify-between w-full md:w-fit md:justify-start">
-						<Link
-							className="pointer-events-auto"
-							href="https://supermemory.ai"
-							rel="noopener noreferrer"
-							target="_blank"
-						>
-							<LogoFull
-								className="h-8 hidden md:block"
-								id={TOUR_STEP_IDS.LOGO}
-							/>
-							<Logo className="h-8 md:hidden" id={TOUR_STEP_IDS.LOGO} />
-						</Link>
+        {/* Top Bar */}
+        <div className="absolute top-2 left-0 right-0 z-10 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 justify-between w-full md:w-fit md:justify-start">
+            <Link
+              className="pointer-events-auto"
+              href="https://supermemory.ai"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              <LogoFull
+                className="h-8 hidden md:block"
+                id={TOUR_STEP_IDS.LOGO}
+              />
+              <Logo className="h-8 md:hidden" id={TOUR_STEP_IDS.LOGO} />
+            </Link>
 
-						<div className="hidden sm:block">
-							<ProjectSelector />
-						</div>
+            <div className="hidden sm:block">
+              <ProjectSelector />
+            </div>
 
-						<ConnectAIModal>
-							<Button
-								variant="outline"
-								size="sm"
-								className="bg-white/5 hover:bg-white/10 border-white/20 text-white hover:text-white px-2 sm:px-3"
-							>
-								<Unplug className="h-4 w-4" />
-								<span className="hidden sm:inline ml-2">
-									Connect to your AI
-								</span>
-								<span className="sm:hidden ml-1">Connect AI</span>
-							</Button>
-						</ConnectAIModal>
-					</div>
+            <ConnectAIModal>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white/5 hover:bg-white/10 border-white/20 text-white hover:text-white px-2 sm:px-3"
+              >
+                <Unplug className="h-4 w-4" />
+                <span className="hidden sm:inline ml-2">
+                  Connect to your AI
+                </span>
+                <span className="sm:hidden ml-1">Connect AI</span>
+              </Button>
+            </ConnectAIModal>
+          </div>
 
-					<div>
-						<Menu />
-					</div>
-				</div>
+          <div>
+            <Menu />
+          </div>
+        </div>
 
-				{/* Floating Open Chat Button */}
-				{!isOpen && !isMobile && (
-					<motion.div
-						animate={{ opacity: 1, scale: 1 }}
-						className="fixed bottom-6 right-6 z-50"
-						initial={{ opacity: 0, scale: 0.8 }}
-						transition={{
-							type: "spring",
-							stiffness: 300,
-							damping: 25,
-						}}
-					>
-						<Button
-							className="h-14 px-4 bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-full flex items-center gap-2"
-							onClick={() => setIsOpen(true)}
-							size="lg"
-						>
-							<MessageSquare className="h-5 w-5" />
-							<span className="font-medium">Open Chat</span>
-						</Button>
-					</motion.div>
-				)}
-			</motion.div>
+        {/* Floating Open Chat Button */}
+        {!isOpen && !isMobile && (
+          <motion.div
+            animate={{ opacity: 1, scale: 1 }}
+            className="fixed bottom-6 right-6 z-50"
+            initial={{ opacity: 0, scale: 0.8 }}
+            transition={{
+              type: 'spring',
+              stiffness: 300,
+              damping: 25,
+            }}
+          >
+            <Button
+              className="px-4 bg-white hover:bg-white/80 text-[#001A39] shadow-lg hover:shadow-xl transition-all duration-200 rounded-full flex items-center gap-2 cursor-pointer"
+              onClick={() => setIsOpen(true)}
+              size="lg"
+            >
+              <MessageSquare className="h-5 w-5" />
+              <span className="font-medium">Open Chat</span>
+            </Button>
+          </motion.div>
+        )}
+      </motion.div>
 
-			{/* Chat panel - positioned absolutely */}
-			<motion.div
-				className="fixed top-0 right-0 h-full z-50 md:z-auto"
-				style={{
-					width: isOpen ? (isMobile ? "100vw" : "600px") : 0,
-					pointerEvents: isOpen ? "auto" : "none",
-				}}
-				id={TOUR_STEP_IDS.FLOATING_CHAT}
-			>
-				<motion.div
-					animate={{ x: isOpen ? 0 : isMobile ? "100%" : 600 }}
-					className="absolute inset-0"
-					exit={{ x: isMobile ? "100%" : 600 }}
-					initial={{ x: isMobile ? "100%" : 600 }}
-					key="chat"
-					transition={{
-						type: "spring",
-						stiffness: 500,
-						damping: 40,
-					}}
-				>
-					<ChatRewrite />
-				</motion.div>
-			</motion.div>
+      {/* Chat panel - positioned absolutely */}
+      <motion.div
+        className="fixed top-0 right-0 h-full z-50 md:z-auto"
+        style={{
+          width: isOpen ? (isMobile ? '100vw' : '600px') : 0,
+          pointerEvents: isOpen ? 'auto' : 'none',
+        }}
+        id={TOUR_STEP_IDS.FLOATING_CHAT}
+      >
+        <motion.div
+          animate={{ x: isOpen ? 0 : isMobile ? '100%' : 600 }}
+          className="absolute inset-0"
+          exit={{ x: isMobile ? '100%' : 600 }}
+          initial={{ x: isMobile ? '100%' : 600 }}
+          key="chat"
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 40,
+          }}
+        >
+          <ChatRewrite />
+        </motion.div>
+      </motion.div>
 
-			{showAddMemoryView && (
-				<AddMemoryView
-					initialTab="note"
-					onClose={() => setShowAddMemoryView(false)}
-				/>
-			)}
+      {showAddMemoryView && (
+        <AddMemoryView
+          initialTab="note"
+          onClose={() => setShowAddMemoryView(false)}
+        />
+      )}
 
-			{/* Tour Alert Dialog */}
-			<TourAlertDialog onOpenChange={setShowTourDialog} open={showTourDialog} />
+      {/* Tour Alert Dialog */}
+      <TourAlertDialog onOpenChange={setShowTourDialog} open={showTourDialog} />
 
-			{/* Referral/Upgrade Modal */}
-			<ReferralUpgradeModal
-				isOpen={showReferralModal}
-				onClose={() => setShowReferralModal(false)}
-			/>
-		</div>
-	);
+      {/* Referral/Upgrade Modal */}
+      <ReferralUpgradeModal
+        isOpen={showReferralModal}
+        onClose={() => setShowReferralModal(false)}
+      />
+    </div>
+  );
 };
 
 // Wrapper component to handle auth and waitlist checks
