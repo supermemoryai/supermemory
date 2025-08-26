@@ -28,5 +28,9 @@
   "exports": {
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
+  },
+  "repository": {
+    "url": "https://github.com/supermemoryai/supermemory",
+    "directory": "packages/ai-sdk"
   }
 }
