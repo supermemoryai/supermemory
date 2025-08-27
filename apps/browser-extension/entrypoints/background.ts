@@ -26,12 +26,19 @@ interface SearchResponse {
 export default defineBackground(() => {
 	let twitterImporter: TwitterImporter | null = null;
 
-	browser.runtime.onInstalled.addListener(() => {
+	browser.runtime.onInstalled.addListener((details) => {
 		browser.contextMenus.create({
 			id: CONTEXT_MENU_IDS.SAVE_TO_SUPERMEMORY,
 			title: "Save to Supermemory",
 			contexts: ["selection", "page", "link"],
 		});
+
+		// Open welcome tab on first install
+		if (details.reason === "install") {
+			browser.tabs.create({
+				url: browser.runtime.getURL("/welcome.html"),
+			});
+		}
 	});
 
 	// Intercept Twitter requests to capture authentication headers.
