@@ -1,188 +1,199 @@
 /**
  * API service for Supermemory browser extension
  */
-import { API_ENDPOINTS, STORAGE_KEYS } from './constants';
-import { 
-  Project, 
-  ProjectsResponse, 
-  MemoryPayload,
-  SupermemoryAPIError, 
-  AuthenticationError 
-} from './types';
+import { API_ENDPOINTS, STORAGE_KEYS } from "./constants";
+import {
+	AuthenticationError,
+	type MemoryPayload,
+	type Project,
+	type ProjectsResponse,
+	SupermemoryAPIError,
+} from "./types";
 
 /**
  * Get bearer token from storage
  */
 async function getBearerToken(): Promise<string> {
-  const result = await chrome.storage.local.get([STORAGE_KEYS.BEARER_TOKEN]);
-  const token = result[STORAGE_KEYS.BEARER_TOKEN];
-  
-  if (!token) {
-    throw new AuthenticationError('Bearer token not found');
-  }
-  
-  return token;
+	const result = await chrome.storage.local.get([STORAGE_KEYS.BEARER_TOKEN]);
+	const token = result[STORAGE_KEYS.BEARER_TOKEN];
+
+	if (!token) {
+		throw new AuthenticationError("Bearer token not found");
+	}
+
+	return token;
 }
 
 /**
  * Make authenticated API request
  */
 async function makeAuthenticatedRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
+	endpoint: string,
+	options: RequestInit = {},
 ): Promise<T> {
-  const token = await getBearerToken();
-  
-  const response = await fetch(`${API_ENDPOINTS.SUPERMEMORY_API}${endpoint}`, {
-    ...options,
-    credentials: 'omit',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+	const token = await getBearerToken();
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new AuthenticationError('Invalid or expired token');
-    }
-    throw new SupermemoryAPIError(
-      `API request failed: ${response.statusText}`,
-      response.status
-    );
-  }
+	const response = await fetch(`${API_ENDPOINTS.SUPERMEMORY_API}${endpoint}`, {
+		...options,
+		credentials: "omit",
+		headers: {
+			Authorization: `Bearer ${token}`,
+			"Content-Type": "application/json",
+			...options.headers,
+		},
+	});
 
-  return response.json();
+	if (!response.ok) {
+		if (response.status === 401) {
+			throw new AuthenticationError("Invalid or expired token");
+		}
+		throw new SupermemoryAPIError(
+			`API request failed: ${response.statusText}`,
+			response.status,
+		);
+	}
+
+	return response.json();
 }
 
 /**
  * Fetch all projects from API
  */
 export async function fetchProjects(): Promise<Project[]> {
-  try {
-    const response = await makeAuthenticatedRequest<ProjectsResponse>('/v3/projects');
-    return response.projects;
-  } catch (error) {
-    console.error('Failed to fetch projects:', error);
-    throw error;
-  }
+	try {
+		const response =
+			await makeAuthenticatedRequest<ProjectsResponse>("/v3/projects");
+		return response.projects;
+	} catch (error) {
+		console.error("Failed to fetch projects:", error);
+		throw error;
+	}
 }
 
 /**
  * Get projects from cache or fetch fresh
  */
-export async function getProjects(useCache: boolean = true): Promise<Project[]> {
-  if (useCache) {
-    try {
-      const cached = await chrome.storage.local.get([STORAGE_KEYS.PROJECTS_CACHE]);
-      const cachedData = cached[STORAGE_KEYS.PROJECTS_CACHE];
-      
-      if (cachedData && cachedData.timestamp && cachedData.projects) {
-        // Cache for 5 minutes
-        const cacheAge = Date.now() - cachedData.timestamp;
-        if (cacheAge < 5 * 60 * 1000) {
-          return cachedData.projects;
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to read projects cache:', error);
-    }
-  }
+export async function getProjects(
+	useCache: boolean = true,
+): Promise<Project[]> {
+	if (useCache) {
+		try {
+			const cached = await chrome.storage.local.get([
+				STORAGE_KEYS.PROJECTS_CACHE,
+			]);
+			const cachedData = cached[STORAGE_KEYS.PROJECTS_CACHE];
 
-  // Fetch fresh data
-  const projects = await fetchProjects();
-  
-  // Cache the results
-  try {
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.PROJECTS_CACHE]: {
-        projects,
-        timestamp: Date.now(),
-      },
-    });
-  } catch (error) {
-    console.warn('Failed to cache projects:', error);
-  }
+			if (cachedData?.timestamp && cachedData.projects) {
+				// Cache for 5 minutes
+				const cacheAge = Date.now() - cachedData.timestamp;
+				if (cacheAge < 5 * 60 * 1000) {
+					return cachedData.projects;
+				}
+			}
+		} catch (error) {
+			console.warn("Failed to read projects cache:", error);
+		}
+	}
 
-  return projects;
+	// Fetch fresh data
+	const projects = await fetchProjects();
+
+	// Cache the results
+	try {
+		await chrome.storage.local.set({
+			[STORAGE_KEYS.PROJECTS_CACHE]: {
+				projects,
+				timestamp: Date.now(),
+			},
+		});
+	} catch (error) {
+		console.warn("Failed to cache projects:", error);
+	}
+
+	return projects;
 }
 
 /**
  * Get default project from storage
  */
 export async function getDefaultProject(): Promise<Project | null> {
-  try {
-    const result = await chrome.storage.local.get([STORAGE_KEYS.DEFAULT_PROJECT]);
-    return result[STORAGE_KEYS.DEFAULT_PROJECT] || null;
-  } catch (error) {
-    console.error('Failed to get default project:', error);
-    return null;
-  }
+	try {
+		const result = await chrome.storage.local.get([
+			STORAGE_KEYS.DEFAULT_PROJECT,
+		]);
+		return result[STORAGE_KEYS.DEFAULT_PROJECT] || null;
+	} catch (error) {
+		console.error("Failed to get default project:", error);
+		return null;
+	}
 }
 
 /**
  * Set default project in storage
  */
 export async function setDefaultProject(project: Project): Promise<void> {
-  try {
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.DEFAULT_PROJECT]: project,
-    });
-  } catch (error) {
-    console.error('Failed to set default project:', error);
-    throw error;
-  }
+	try {
+		await chrome.storage.local.set({
+			[STORAGE_KEYS.DEFAULT_PROJECT]: project,
+		});
+	} catch (error) {
+		console.error("Failed to set default project:", error);
+		throw error;
+	}
 }
 
 /**
  * Save memory to Supermemory API
  */
-export async function saveMemory(payload: MemoryPayload): Promise<any> {
-  try {
-    const response = await makeAuthenticatedRequest<any>('/v3/memories', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return response;
-  } catch (error) {
-    console.error('Failed to save memory:', error);
-    throw error;
-  }
+export async function saveMemory(payload: MemoryPayload): Promise<unknown> {
+	try {
+		const response = await makeAuthenticatedRequest<unknown>("/v3/memories", {
+			method: "POST",
+			body: JSON.stringify(payload),
+		});
+		return response;
+	} catch (error) {
+		console.error("Failed to save memory:", error);
+		throw error;
+	}
 }
 
 /**
  * Search memories using Supermemory API
  */
-export async function searchMemories(query: string): Promise<any> {
-  try {
-    const response = await makeAuthenticatedRequest<any>('/v3/search', {
-      method: 'POST',
-      body: JSON.stringify({ q: query }),
-    });
-    return response;
-  } catch (error) {
-    console.error('Failed to search memories:', error);
-    throw error;
-  }
+export async function searchMemories(query: string): Promise<unknown> {
+	try {
+		const response = await makeAuthenticatedRequest<unknown>("/v3/search", {
+			method: "POST",
+			body: JSON.stringify({ q: query }),
+		});
+		return response;
+	} catch (error) {
+		console.error("Failed to search memories:", error);
+		throw error;
+	}
 }
 
 /**
  * Save tweet to Supermemory API (specific for Twitter imports)
  */
-export async function saveTweet(content: string, metadata: any, containerTag: string = 'sm_project_twitter_bookmarks'): Promise<void> {
-  try {
-    const payload: MemoryPayload = {
-      containerTags: [containerTag],
-      content,
-      metadata,
-    };
-    await saveMemory(payload);
-  } catch (error) {
-    if (error instanceof SupermemoryAPIError && error.statusCode === 409) {
-      // Skip if already exists (409 Conflict)
-      return;
-    }
-    throw error;
-  }
+export async function saveTweet(
+	content: string,
+	metadata: { sm_source: string; [key: string]: unknown },
+	containerTag: string = "sm_project_twitter_bookmarks",
+): Promise<void> {
+	try {
+		const payload: MemoryPayload = {
+			containerTags: [containerTag],
+			content,
+			metadata,
+		};
+		await saveMemory(payload);
+	} catch (error) {
+		if (error instanceof SupermemoryAPIError && error.statusCode === 409) {
+			// Skip if already exists (409 Conflict)
+			return;
+		}
+		throw error;
+	}
 }

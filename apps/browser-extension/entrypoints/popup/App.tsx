@@ -1,213 +1,412 @@
-import React, { useState, useEffect } from 'react';
-import './App.css';
-import { getProjects, getDefaultProject, setDefaultProject } from '../../utils/api';
-import { Project } from '../../utils/types';
+import { useEffect, useState } from "react";
+import "./App.css";
+import {
+	getDefaultProject,
+	getProjects,
+	setDefaultProject,
+} from "../../utils/api";
+import type { Project } from "../../utils/types";
 
 function App() {
-  const [userSignedIn, setUserSignedIn] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [defaultProject, setDefaultProjectState] = useState<Project | null>(null);
-  const [loadingProjects, setLoadingProjects] = useState<boolean>(false);
-  const [showProjectSelector, setShowProjectSelector] = useState<boolean>(false);
+	const [userSignedIn, setUserSignedIn] = useState<boolean>(false);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [projects, setProjects] = useState<Project[]>([]);
+	const [defaultProject, setDefaultProjectState] = useState<Project | null>(
+		null,
+	);
+	const [loadingProjects, setLoadingProjects] = useState<boolean>(false);
+	const [showProjectSelector, setShowProjectSelector] =
+		useState<boolean>(false);
+	const [currentUrl, setCurrentUrl] = useState<string>("");
+	const [currentTitle, setCurrentTitle] = useState<string>("");
+	const [saving, setSaving] = useState<boolean>(false);
+	const [activeTab, setActiveTab] = useState<"save" | "imports">("save");
 
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const result = await chrome.storage.local.get(['bearerToken']);
-        const isSignedIn = !!result.bearerToken;
-        setUserSignedIn(isSignedIn);
-        
-        if (isSignedIn) {
-          try {
-            const defaultProj = await getDefaultProject();
-            setDefaultProjectState(defaultProj);
-          } catch (error) {
-            console.error('Error loading default project:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        setUserSignedIn(false);
-      } finally {
-        setLoading(false);
-      }
-    };
+	useEffect(() => {
+		const checkAuthStatus = async () => {
+			try {
+				const result = await chrome.storage.local.get(["bearerToken"]);
+				const isSignedIn = !!result.bearerToken;
+				setUserSignedIn(isSignedIn);
 
-    checkAuthStatus();
-  }, []);
+				if (isSignedIn) {
+					try {
+						const defaultProj = await getDefaultProject();
+						setDefaultProjectState(defaultProj);
+					} catch (error) {
+						console.error("Error loading default project:", error);
+					}
+				}
+			} catch (error) {
+				console.error("Error checking auth status:", error);
+				setUserSignedIn(false);
+			} finally {
+				setLoading(false);
+			}
+		};
 
-  const handleSignOut = async () => {
-    try {
-      await chrome.storage.local.remove(['bearerToken']);
-      setUserSignedIn(false);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
+		const getCurrentTab = async () => {
+			try {
+				const tabs = await chrome.tabs.query({
+					active: true,
+					currentWindow: true,
+				});
+				if (tabs.length > 0 && tabs[0].url && tabs[0].title) {
+					setCurrentUrl(tabs[0].url);
+					setCurrentTitle(tabs[0].title);
+				}
+			} catch (error) {
+				console.error("Error getting current tab:", error);
+			}
+		};
 
-  const loadProjects = async () => {
-    setLoadingProjects(true);
-    try {
-      const projectsList = await getProjects();
-      setProjects(projectsList);
-      console.log('Projects:', projectsList);
-      console.log('Default project:', defaultProject);
-      // If no default project is set and projects are available, set first as default
-      if (!defaultProject && projectsList.length > 0) {
-        const firstProject = projectsList[0];
-        await setDefaultProject(firstProject);
-        setDefaultProjectState(firstProject);
-      }
-    } catch (error) {
-      console.error('Error loading projects:', error);
-    } finally {
-      setLoadingProjects(false);
-    }
-  };
+		checkAuthStatus();
+		getCurrentTab();
+	}, []);
 
-  const handleProjectSelect = async (project: Project) => {
-    try {
-      await setDefaultProject(project);
-      setDefaultProjectState(project);
-      setShowProjectSelector(false);
-    } catch (error) {
-      console.error('Error setting default project:', error);
-    }
-  };
+	const loadProjects = async () => {
+		setLoadingProjects(true);
+		try {
+			const projectsList = await getProjects();
+			setProjects(projectsList);
+			console.log("Projects:", projectsList);
+			console.log("Default project:", defaultProject);
+			// If no default project is set and projects are available, set first as default
+			if (!defaultProject && projectsList.length > 0) {
+				const firstProject = projectsList[0];
+				await setDefaultProject(firstProject);
+				setDefaultProjectState(firstProject);
+			}
+		} catch (error) {
+			console.error("Error loading projects:", error);
+		} finally {
+			setLoadingProjects(false);
+		}
+	};
 
-  const handleShowProjectSelector = () => {
-    console.log('handleShowProjectSelector, projects.length:', projects.length);
-    if (projects.length === 0) {
-      loadProjects();
-    }
-    setShowProjectSelector(true);
-  };
+	const handleProjectSelect = async (project: Project) => {
+		try {
+			await setDefaultProject(project);
+			setDefaultProjectState(project);
+			setShowProjectSelector(false);
+		} catch (error) {
+			console.error("Error setting default project:", error);
+		}
+	};
 
-  if (loading) {
-    return (
-      <div className="popup-container">
-        <div className="header">
-          <img src="/icon-48.png" alt="Supermemory" className="logo" />
-          <h1>Supermemory</h1>
-        </div>
-        <div className="content">
-          <div>Loading...</div>
-        </div>
-      </div>
-    );
-  }
+	const handleShowProjectSelector = () => {
+		console.log("handleShowProjectSelector, projects.length:", projects.length);
+		if (projects.length === 0) {
+			loadProjects();
+		}
+		setShowProjectSelector(true);
+	};
 
-  return (
-    <div className="popup-container">
-      <div className="header">
-        <img src="/icon-48.png" alt="Supermemory" className="logo" />
-        <h1>Supermemory</h1>
-      </div>
-      <div className="content">
-        {userSignedIn ? (
-          <div className="authenticated">
-            
-            <div className="project-section">
-              <div className="project-header">
-                <span className="project-label">Default Project:</span>
-                <button 
-                  className="project-change-btn" 
-                  onClick={handleShowProjectSelector}
-                >
-                  Change
-                </button>
-              </div>
-              <div className="project-current">
-                {defaultProject ? (
-                  <div className="project-info">
-                    <span className="project-name">{defaultProject.name}</span>
-                  </div>
-                ) : (
-                  <span className="project-none">No project selected</span>
-                )}
-              </div>
-            </div>
+	const handleSaveCurrentPage = async () => {
+		setSaving(true);
+		try {
+			const tabs = await chrome.tabs.query({
+				active: true,
+				currentWindow: true,
+			});
+			if (tabs.length > 0 && tabs[0].id) {
+				await chrome.tabs.sendMessage(tabs[0].id, {
+					action: "saveMemory",
+				});
+			}
+		} catch (error) {
+			console.error("Failed to save current page:", error);
+		} finally {
+			setSaving(false);
+		}
+	};
 
-            {showProjectSelector && (
-              <div className="project-selector">
-                <div className="project-selector-header">
-                  <span>Select Default Project</span>
-                  <button 
-                    className="project-close-btn"
-                    onClick={() => setShowProjectSelector(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-                {loadingProjects ? (
-                  <div className="project-loading">Loading projects...</div>
-                ) : (
-                  <div className="project-list">
-                    {projects.map((project) => (
-                      <div
-                        key={project.id}
-                        className={`project-item ${defaultProject?.id === project.id ? 'selected' : ''}`}
-                        onClick={() => handleProjectSelect(project)}
-                      >
-                        <div className="project-item-info">
-                          <span className="project-item-name">{project.name}</span>
-                          <span className="project-item-count">{project.documentCount} docs</span>
-                        </div>
-                        {defaultProject?.id === project.id && (
-                          <span className="project-item-check">✓</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div className="actions">
-              <button
-                onClick={() => {
-                  chrome.tabs.create({
-                    url: 'https://chatgpt.com/#settings/Personalization',
-                  });
-                }}
-                className="chatgpt-btn"
-              >
-                <img 
-                  src="https://upload.wikimedia.org/wikipedia/commons/1/13/ChatGPT-Logo.png" 
-                  alt="ChatGPT" 
-                  className="chatgpt-logo"
-                />
-                Import ChatGPT Memories
-              </button>
-              <button className="sign-out-btn" onClick={handleSignOut}>
-                Sign Out
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="unauthenticated">
-            <div className="status">
-              <span className="status-indicator signed-out"></span>
-              <span>Not signed in</span>
-            </div>
-            <p className="instruction">
-              <a
-                onClick={() => {
-                  chrome.tabs.create({
-                    url: 'https://app.supermemory.ai/login',
-                  });
-                }}
-              >
-                Login to Supermemory
-              </a>
-              .
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+	const handleSignOut = async () => {
+		try {
+			await chrome.storage.local.remove(["bearerToken"]);
+			setUserSignedIn(false);
+			setDefaultProjectState(null);
+			setProjects([]);
+		} catch (error) {
+			console.error("Error signing out:", error);
+		}
+	};
+
+	if (loading) {
+		return (
+			<div className="popup-container">
+				<div className="header">
+					<img src="/icon-48.png" alt="Supermemory" className="logo" />
+					<h1>Supermemory</h1>
+				</div>
+				<div className="content">
+					<div>Loading...</div>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="popup-container">
+			<div className="header">
+				<img
+					src="/logo-trademark.svg"
+					alt="Supermemory"
+					className="logo"
+					style={{ width: "80%", height: "32px" }}
+				/>
+				{userSignedIn && (
+					<button
+						type="button"
+						className="header-sign-out"
+						onClick={handleSignOut}
+						title="Logout"
+					>
+						<svg
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
+							<title>Logout</title>
+							<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+							<polyline points="16,17 21,12 16,7" />
+							<line x1="21" y1="12" x2="9" y2="12" />
+						</svg>
+					</button>
+				)}
+			</div>
+			<div className="content">
+				{userSignedIn ? (
+					<div className="authenticated">
+						{/* Tab Navigation */}
+						<div className="tab-navigation">
+							<button
+								type="button"
+								className={`tab-btn ${activeTab === "save" ? "active" : ""}`}
+								onClick={() => setActiveTab("save")}
+							>
+								Save
+							</button>
+							<button
+								type="button"
+								className={`tab-btn ${activeTab === "imports" ? "active" : ""}`}
+								onClick={() => setActiveTab("imports")}
+							>
+								Imports
+							</button>
+						</div>
+
+						{/* Tab Content */}
+						{activeTab === "save" ? (
+							<div className="tab-content">
+								{/* Current Page Info */}
+								<div className="current-page">
+									<div className="page-info">
+										<h3 className="page-title">
+											{currentTitle || "Current Page"}
+										</h3>
+										<p className="page-url">{currentUrl}</p>
+									</div>
+								</div>
+
+								{/* Project Selection */}
+								<div className="project-section">
+									<button
+										type="button"
+										className="project-selector-btn"
+										onClick={handleShowProjectSelector}
+									>
+										<div className="project-selector-content">
+											<span className="project-label">Save to project:</span>
+											<div className="project-value">
+												<span className="project-name">
+													{defaultProject
+														? defaultProject.name
+														: "Default Project"}
+												</span>
+												<svg
+													className="project-arrow"
+													width="16"
+													height="16"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													aria-label="Select project"
+												>
+													<title>Select project</title>
+													<path d="M9 18l6-6-6-6" />
+												</svg>
+											</div>
+										</div>
+									</button>
+								</div>
+
+								{/* Save Button at Bottom */}
+								<div className="save-action">
+									<button
+										type="button"
+										className="login-primary-btn"
+										onClick={handleSaveCurrentPage}
+										disabled={saving}
+									>
+										{saving ? "Saving..." : "Save Current Page"}
+									</button>
+								</div>
+							</div>
+						) : (
+							<div className="tab-content">
+								{/* Import Actions */}
+								<div className="import-actions">
+									<div className="import-item">
+										<button
+											type="button"
+											onClick={() => {
+												chrome.tabs.create({
+													url: "https://chatgpt.com/#settings/Personalization",
+												});
+											}}
+											className="chatgpt-btn"
+										>
+											<svg
+												className="chatgpt-logo"
+												viewBox="0 0 24 24"
+												fill="currentColor"
+												xmlns="http://www.w3.org/2000/svg"
+												aria-label="ChatGPT Logo"
+											>
+												<title>ChatGPT Logo</title>
+												<path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z" />
+											</svg>
+											Import ChatGPT Memories
+										</button>
+									</div>
+
+									<div className="import-item">
+										<button
+											type="button"
+											onClick={() => {
+												chrome.tabs.create({
+													url: "https://x.com/i/bookmarks",
+												});
+											}}
+											className="twitter-btn"
+										>
+											<svg
+												className="twitter-logo"
+												viewBox="0 0 24 24"
+												fill="currentColor"
+												xmlns="http://www.w3.org/2000/svg"
+												aria-label="X Twitter Logo"
+											>
+												<title>X Twitter Logo</title>
+												<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+											</svg>
+											Import X Bookmarks
+										</button>
+										<p className="import-instructions">
+											Click on supermemory on top right to import bookmarks
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+
+						{showProjectSelector && (
+							<div className="project-selector">
+								<div className="project-selector-header">
+									<span>Select the Project</span>
+									<button
+										type="button"
+										className="project-close-btn"
+										onClick={() => setShowProjectSelector(false)}
+									>
+										×
+									</button>
+								</div>
+								{loadingProjects ? (
+									<div className="project-loading">Loading projects...</div>
+								) : (
+									<div className="project-list">
+										{projects.map((project) => (
+											<button
+												key={project.id}
+												type="button"
+												className={`project-item ${defaultProject?.id === project.id ? "selected" : ""}`}
+												onClick={() => handleProjectSelect(project)}
+											>
+												<div className="project-item-info">
+													<span className="project-item-name">
+														{project.name}
+													</span>
+													<span className="project-item-count">
+														{project.documentCount} docs
+													</span>
+												</div>
+												{defaultProject?.id === project.id && (
+													<span className="project-item-check">✓</span>
+												)}
+											</button>
+										))}
+									</div>
+								)}
+							</div>
+						)}
+					</div>
+				) : (
+					<div className="unauthenticated">
+						<div className="login-intro">
+							<h2 className="login-title">
+								Login to unlock all chrome extension features
+							</h2>
+
+							<ul className="features-list">
+								<li>Save any page to your supermemory</li>
+								<li>Import all your Twitter / X Bookmarks</li>
+								<li>Import your ChatGPT Memories</li>
+							</ul>
+						</div>
+
+						<div className="login-actions">
+							<p className="login-help">
+								having trouble to login?{" "}
+								<button
+									type="button"
+									className="help-link"
+									onClick={() => {
+										window.open("mailto:dhravya@supermemory.com", "_blank");
+									}}
+								>
+									reach out to us
+								</button>
+							</p>
+
+							<button
+								type="button"
+								className="login-primary-btn"
+								onClick={() => {
+									chrome.tabs.create({
+										url: import.meta.env.PROD
+											? "https://app.supermemory.ai/login"
+											: "http://localhost:3000/login",
+									});
+								}}
+							>
+								Login in
+							</button>
+						</div>
+					</div>
+				)}
+			</div>
+		</div>
+	);
 }
 
 export default App;

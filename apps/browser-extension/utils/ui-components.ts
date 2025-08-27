@@ -3,8 +3,8 @@
  * Reusable UI components for the browser extension
  */
 
-import { ELEMENT_IDS, UI_CONFIG, API_ENDPOINTS } from './constants';
-import type { ToastState } from './types';
+import { API_ENDPOINTS, ELEMENT_IDS, UI_CONFIG } from "./constants";
+import type { ToastState } from "./types";
 
 /**
  * Creates a toast notification element
@@ -12,10 +12,10 @@ import type { ToastState } from './types';
  * @returns HTMLElement - The toast element
  */
 export function createToast(state: ToastState): HTMLElement {
-  const toast = document.createElement('div');
-  toast.id = ELEMENT_IDS.SUPERMEMORY_TOAST;
+	const toast = document.createElement("div");
+	toast.id = ELEMENT_IDS.SUPERMEMORY_TOAST;
 
-  toast.style.cssText = `
+	toast.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -26,7 +26,7 @@ export function createToast(state: ToastState): HTMLElement {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
     color: #374151;
     min-width: 200px;
@@ -34,11 +34,46 @@ export function createToast(state: ToastState): HTMLElement {
     animation: slideIn 0.3s ease-out;
   `;
 
-  // Add keyframe animations if not already present
-  if (!document.getElementById('supermemory-toast-styles')) {
-    const style = document.createElement('style');
-    style.id = 'supermemory-toast-styles';
-    style.textContent = `
+	// Add keyframe animations and fonts if not already present
+	if (!document.getElementById("supermemory-toast-styles")) {
+		const style = document.createElement("style");
+		style.id = "supermemory-toast-styles";
+		style.textContent = `
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 300;
+        font-display: swap;
+        src: url('${chrome.runtime.getURL("fonts/SpaceGrotesk-Light.ttf")}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('${chrome.runtime.getURL("fonts/SpaceGrotesk-Regular.ttf")}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('${chrome.runtime.getURL("fonts/SpaceGrotesk-Medium.ttf")}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url('${chrome.runtime.getURL("fonts/SpaceGrotesk-SemiBold.ttf")}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+        src: url('${chrome.runtime.getURL("fonts/SpaceGrotesk-Bold.ttf")}') format('truetype');
+      }
       @keyframes slideIn {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
@@ -52,19 +87,19 @@ export function createToast(state: ToastState): HTMLElement {
         to { transform: rotate(360deg); }
       }
     `;
-    document.head.appendChild(style);
-  }
+		document.head.appendChild(style);
+	}
 
-  const icon = document.createElement('div');
-  icon.style.cssText = 'width: 20px; height: 20px; flex-shrink: 0;';
+	const icon = document.createElement("div");
+	icon.style.cssText = "width: 20px; height: 20px; flex-shrink: 0;";
 
-  const text = document.createElement('span');
-  text.style.fontWeight = '500';
+	const text = document.createElement("span");
+	text.style.fontWeight = "500";
 
-  // Configure toast based on state
-  switch (state) {
-    case 'loading':
-      icon.innerHTML = `
+	// Configure toast based on state
+	switch (state) {
+		case "loading":
+			icon.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 6V2" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
           <path d="M12 22V18" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
@@ -76,32 +111,33 @@ export function createToast(state: ToastState): HTMLElement {
           <path d="M5.64 6.36L3.51 8.49" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
         </svg>
       `;
-      icon.style.animation = 'spin 1s linear infinite';
-      text.textContent = 'Adding to Memory...';
-      break;
+			icon.style.animation = "spin 1s linear infinite";
+			text.textContent = "Adding to Memory...";
+			break;
 
-    case 'success':
-      const iconUrl = browser.runtime.getURL('/icon-16.png');
-      icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`;
-      text.textContent = 'Added to Memory';
-      break;
+		case "success": {
+			const iconUrl = browser.runtime.getURL("/icon-16.png");
+			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`;
+			text.textContent = "Added to Memory";
+			break;
+		}
 
-    case 'error':
-      icon.innerHTML = `
+		case "error":
+			icon.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" fill="#ef4444"/>
           <path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
-      text.textContent = 'Failed to save memory / Make sure you are logged in';
-      break;
-  }
+			text.textContent = "Failed to save memory / Make sure you are logged in";
+			break;
+	}
 
-  toast.appendChild(icon);
-  toast.appendChild(text);
+	toast.appendChild(icon);
+	toast.appendChild(text);
 
-  return toast;
+	return toast;
 }
 
 /**
@@ -110,9 +146,9 @@ export function createToast(state: ToastState): HTMLElement {
  * @returns HTMLElement - The button element
  */
 export function createTwitterImportButton(onClick: () => void): HTMLElement {
-  const button = document.createElement('div');
-  button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON;
-  button.style.cssText = `
+	const button = document.createElement("div");
+	button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON;
+	button.style.cssText = `
     position: fixed;
     top: 10px;
     right: 10px;
@@ -129,24 +165,24 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     transition: all 0.2s ease;
   `;
 
-  const iconUrl = browser.runtime.getURL('/light-mode-icon.png');
-  button.innerHTML = `
+	const iconUrl = browser.runtime.getURL("/light-mode-icon.png");
+	button.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
   `;
-  
-  button.addEventListener('mouseenter', () => {
-    button.style.transform = 'scale(1.05)';
-    button.style.boxShadow = '0 4px 12px rgba(29, 155, 240, 0.4)';
-  });
-  
-  button.addEventListener('mouseleave', () => {
-    button.style.transform = 'scale(1)';
-    button.style.boxShadow = '0 2px 8px rgba(29, 155, 240, 0.3)';
-  });
 
-  button.addEventListener('click', onClick);
-  
-  return button;
+	button.addEventListener("mouseenter", () => {
+		button.style.transform = "scale(1.05)";
+		button.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.4)";
+	});
+
+	button.addEventListener("mouseleave", () => {
+		button.style.transform = "scale(1)";
+		button.style.boxShadow = "0 2px 8px rgba(29, 155, 240, 0.3)";
+	});
+
+	button.addEventListener("click", onClick);
+
+	return button;
 }
 
 /**
@@ -157,12 +193,12 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The dialog element
  */
 export function createTwitterImportUI(
-  onClose: () => void,
-  onImport: () => void,
-  isAuthenticated: boolean
+	onClose: () => void,
+	onImport: () => void,
+	isAuthenticated: boolean,
 ): HTMLElement {
-  const container = document.createElement('div');
-  container.style.cssText = `
+	const container = document.createElement("div");
+	container.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -174,10 +210,10 @@ export function createTwitterImportUI(
     min-width: 280px;
     max-width: 400px;
     border: 1px solid #e1e5e9;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   `;
 
-  container.innerHTML = `
+	container.innerHTML = `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="#1d9bf0">
@@ -192,7 +228,9 @@ export function createTwitterImportUI(
       </button>
     </div>
     
-    ${isAuthenticated ? `
+    ${
+			isAuthenticated
+				? `
       <div>
         <p style="color: #536471; font-size: 14px; margin: 0 0 12px 0; line-height: 1.4;">
           This will import all your Twitter bookmarks to Supermemory
@@ -204,7 +242,8 @@ export function createTwitterImportUI(
         
         <div id="${ELEMENT_IDS.TWITTER_IMPORT_STATUS}"></div>
       </div>
-    ` : `
+    `
+				: `
       <div style="text-align: center;">
         <p style="color: #536471; font-size: 14px; margin: 0 0 12px 0;">
           Please sign in to Supermemory first
@@ -213,7 +252,8 @@ export function createTwitterImportUI(
           Sign In
         </button>
       </div>
-    `}
+    `
+		}
     
     <style>
       @keyframes spin {
@@ -223,19 +263,23 @@ export function createTwitterImportUI(
     </style>
   `;
 
-  // Add event listeners
-  const closeBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_CLOSE_BTN}`);
-  closeBtn?.addEventListener('click', onClose);
+	// Add event listeners
+	const closeBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_CLOSE_BTN}`);
+	closeBtn?.addEventListener("click", onClose);
 
-  const importBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_IMPORT_BTN}`);
-  importBtn?.addEventListener('click', onImport);
+	const importBtn = container.querySelector(
+		`#${ELEMENT_IDS.TWITTER_IMPORT_BTN}`,
+	);
+	importBtn?.addEventListener("click", onImport);
 
-  const signinBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_SIGNIN_BTN}`);
-  signinBtn?.addEventListener('click', () => {
-    browser.tabs.create({ url: `${API_ENDPOINTS.SUPERMEMORY_WEB}/login` });
-  });
+	const signinBtn = container.querySelector(
+		`#${ELEMENT_IDS.TWITTER_SIGNIN_BTN}`,
+	);
+	signinBtn?.addEventListener("click", () => {
+		browser.tabs.create({ url: `${API_ENDPOINTS.SUPERMEMORY_WEB}/login` });
+	});
 
-  return container;
+	return container;
 }
 
 /**
@@ -244,8 +288,8 @@ export function createTwitterImportUI(
  * @returns HTMLElement - The save button element
  */
 export function createSaveTweetElement(onClick: () => void): HTMLElement {
-  const iconButton = document.createElement('div');
-  iconButton.style.cssText = `
+	const iconButton = document.createElement("div");
+	iconButton.style.cssText = `
     display: inline-flex;
     align-items: flex-end;
     opacity: 0.7;
@@ -259,32 +303,34 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
     z-index: 1000;
   `;
 
-  // Check body background color to determine which icon to use
-  const bodyStyle = window.getComputedStyle(document.body);
-  const backgroundColor = bodyStyle.backgroundColor;
-  const isLightMode = backgroundColor === 'rgb(255, 255, 255)';
-  
-  const iconFileName = isLightMode ? '/light-mode-icon.png' : '/dark-mode-icon.png';
-  const iconUrl = browser.runtime.getURL(iconFileName);
-  iconButton.innerHTML = `
+	// Check body background color to determine which icon to use
+	const bodyStyle = window.getComputedStyle(document.body);
+	const backgroundColor = bodyStyle.backgroundColor;
+	const isLightMode = backgroundColor === "rgb(255, 255, 255)";
+
+	const iconFileName = isLightMode
+		? "/light-mode-icon.png"
+		: "/dark-mode-icon.png";
+	const iconUrl = browser.runtime.getURL(iconFileName);
+	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
   `;
 
-  iconButton.addEventListener('mouseenter', () => {
-    iconButton.style.opacity = '1';
-  });
+	iconButton.addEventListener("mouseenter", () => {
+		iconButton.style.opacity = "1";
+	});
 
-  iconButton.addEventListener('mouseleave', () => {
-    iconButton.style.opacity = '0.7';
-  });
+	iconButton.addEventListener("mouseleave", () => {
+		iconButton.style.opacity = "0.7";
+	});
 
-  iconButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-    onClick();
-  });
+	iconButton.addEventListener("click", (event) => {
+		event.stopPropagation();
+		event.preventDefault();
+		onClick();
+	});
 
-  return iconButton;
+	return iconButton;
 }
 
 /**
@@ -293,8 +339,8 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
-  const iconButton = document.createElement('div');
-  iconButton.style.cssText = `
+	const iconButton = document.createElement("div");
+	iconButton.style.cssText = `
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -305,100 +351,107 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
     border-radius: 50%;
   `;
 
-  // Use appropriate icon based on theme
-  const isDark = DOMUtils.isDarkMode();
-  const iconFileName = isDark ? '/dark-mode-icon.png' : '/light-mode-icon.png';
-  const iconUrl = browser.runtime.getURL(iconFileName);
-  iconButton.innerHTML = `
+	// Use appropriate icon based on theme
+	const isDark = DOMUtils.isDarkMode();
+	const iconFileName = isDark ? "/dark-mode-icon.png" : "/light-mode-icon.png";
+	const iconUrl = browser.runtime.getURL(iconFileName);
+	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 50%;" />
   `;
 
-  iconButton.addEventListener('mouseenter', () => {
-    iconButton.style.opacity = '0.8';
-  });
+	iconButton.addEventListener("mouseenter", () => {
+		iconButton.style.opacity = "0.8";
+	});
 
-  iconButton.addEventListener('mouseleave', () => {
-    iconButton.style.opacity = '1';
-  });
+	iconButton.addEventListener("mouseleave", () => {
+		iconButton.style.opacity = "1";
+	});
 
-  iconButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-    onClick();
-  });
+	iconButton.addEventListener("click", (event) => {
+		event.stopPropagation();
+		event.preventDefault();
+		onClick();
+	});
 
-  return iconButton;
+	return iconButton;
 }
 
 /**
  * Utility functions for DOM manipulation
  */
 export const DOMUtils = {
-  /**
-   * Check if current page is on specified domains
-   * @param domains - Array of domain names to check
-   * @returns boolean
-   */
-  isOnDomain(domains: readonly string[]): boolean {
-    return domains.includes(window.location.hostname);
-  },
+	/**
+	 * Check if current page is on specified domains
+	 * @param domains - Array of domain names to check
+	 * @returns boolean
+	 */
+	isOnDomain(domains: readonly string[]): boolean {
+		return domains.includes(window.location.hostname);
+	},
 
-  /**
-   * Detect if the page is in dark mode based on color-scheme style
-   * @returns boolean - true if dark mode, false if light mode
-   */
-  isDarkMode(): boolean {
-    const htmlElement = document.documentElement;
-    const style = htmlElement.getAttribute('style');
-    return style?.includes('color-scheme: dark') || false;
-  },
+	/**
+	 * Detect if the page is in dark mode based on color-scheme style
+	 * @returns boolean - true if dark mode, false if light mode
+	 */
+	isDarkMode(): boolean {
+		const htmlElement = document.documentElement;
+		const style = htmlElement.getAttribute("style");
+		return style?.includes("color-scheme: dark") || false;
+	},
 
-  /**
-   * Check if element exists in DOM
-   * @param id - Element ID to check
-   * @returns boolean
-   */
-  elementExists(id: string): boolean {
-    return !!document.getElementById(id);
-  },
+	/**
+	 * Check if element exists in DOM
+	 * @param id - Element ID to check
+	 * @returns boolean
+	 */
+	elementExists(id: string): boolean {
+		return !!document.getElementById(id);
+	},
 
-  /**
-   * Remove element from DOM if it exists
-   * @param id - Element ID to remove
-   */
-  removeElement(id: string): void {
-    const element = document.getElementById(id);
-    element?.remove();
-  },
+	/**
+	 * Remove element from DOM if it exists
+	 * @param id - Element ID to remove
+	 */
+	removeElement(id: string): void {
+		const element = document.getElementById(id);
+		element?.remove();
+	},
 
-  /**
-   * Show toast notification with auto-dismiss
-   * @param state - Toast state
-   * @param duration - Duration to show toast (default from config)
-   * @returns The toast element
-   */
-  showToast(state: ToastState, duration: number = UI_CONFIG.TOAST_DURATION): HTMLElement {
-    // Remove all existing toasts more aggressively
-    const existingToasts = document.querySelectorAll(`#${ELEMENT_IDS.SUPERMEMORY_TOAST}`);
-    existingToasts.forEach(toast => toast.remove());
+	/**
+	 * Show toast notification with auto-dismiss
+	 * @param state - Toast state
+	 * @param duration - Duration to show toast (default from config)
+	 * @returns The toast element
+	 */
+	showToast(
+		state: ToastState,
+		duration: number = UI_CONFIG.TOAST_DURATION,
+	): HTMLElement {
+		// Remove all existing toasts more aggressively
+		const existingToasts = document.querySelectorAll(
+			`#${ELEMENT_IDS.SUPERMEMORY_TOAST}`,
+		);
+		existingToasts.forEach((toast) => {
+			toast.remove();
+		});
 
-    const toast = createToast(state);
-    document.body.appendChild(toast);
+		const toast = createToast(state);
+		document.body.appendChild(toast);
 
-    // Auto-dismiss for success and error states
-    if (state === 'success' || state === 'error') {
-      setTimeout(() => {
-        if (document.body.contains(toast)) {
-          toast.style.animation = 'fadeOut 0.3s ease-out';
-          setTimeout(() => {
-            if (document.body.contains(toast)) {
-              toast.remove();
-            }
-          }, 300);
-        }
-      }, duration);
-    }
+		// Auto-dismiss for success and error states
+		if (state === "success" || state === "error") {
+			setTimeout(() => {
+				if (document.body.contains(toast)) {
+					toast.style.animation = "fadeOut 0.3s ease-out";
+					setTimeout(() => {
+						if (document.body.contains(toast)) {
+							toast.remove();
+						}
+					}, 300);
+				}
+			}, duration);
+		}
 
-    return toast;
-  }
+		return toast;
+	},
 };
