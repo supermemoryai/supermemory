@@ -21,7 +21,7 @@ export function supermemoryTools(
 ) {
 	const client = new Supermemory({
 		apiKey,
-		...(config?.baseUrl && { baseURL: config.baseUrl }),
+		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
 	})
 
 	const containerTags = config?.projectId
@@ -30,7 +30,7 @@ export function supermemoryTools(
 
 	const searchMemories = tool({
 		description:
-			"Search user memories and patterns. Run when explicitly asked or when context about user's past choices would be helpful. Uses semantic matching to find relevant details across related experiences.",
+			"Search (recall) memories/details/information about the user or other facts or entities. Run when explicitly asked or when context about user's past choices would be helpful.",
 		inputSchema: z.object({
 			informationToGet: z
 				.string()
@@ -48,7 +48,11 @@ export function supermemoryTools(
 				.default(10)
 				.describe("Maximum number of results to return"),
 		}),
-		execute: async ({ informationToGet, includeFullDocs = true, limit = 10 }) => {
+		execute: async ({
+			informationToGet,
+			includeFullDocs = true,
+			limit = 10,
+		}) => {
 			try {
 				const response = await client.search.execute({
 					q: informationToGet,
@@ -74,7 +78,7 @@ export function supermemoryTools(
 
 	const addMemory = tool({
 		description:
-			"Add a new memory to the user's memories. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation.",
+			"Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation.",
 		inputSchema: z.object({
 			memory: z
 				.string()
@@ -105,32 +109,9 @@ export function supermemoryTools(
 		},
 	})
 
-	const fetchMemory = tool({
-		description: "Fetch a specific memory by ID to get its full details",
-		inputSchema: z.object({
-			memoryId: z.string().describe("The ID of the memory to fetch"),
-		}),
-		execute: async ({ memoryId }) => {
-			try {
-				const response = await client.memories.get(memoryId)
-
-				return {
-					success: true,
-					memory: response,
-				}
-			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
-			}
-		},
-	})
-
 	return {
 		searchMemories,
 		addMemory,
-		fetchMemory,
 	}
 }
 
@@ -149,12 +130,4 @@ export const addMemoryTool = (
 ) => {
 	const { addMemory } = supermemoryTools(apiKey, config)
 	return addMemory
-}
-
-export const fetchMemoryTool = (
-	apiKey: string,
-	config?: SupermemoryToolsConfig,
-) => {
-	const { fetchMemory } = supermemoryTools(apiKey, config)
-	return fetchMemory
 }

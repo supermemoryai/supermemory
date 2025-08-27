@@ -1,7 +1,8 @@
 {
-  "name": "@supermemory/ai-sdk",
+  "name": "@supermemory/openai-sdk",
+  "version": "1.0.0",
   "type": "module",
-  "version": "1.0.5",
+  "description": "OpenAI SDK utilities for supermemory",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
@@ -10,34 +11,36 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.0.22",
-    "@ai-sdk/provider": "^2.0.0",
-    "ai": "^5.0.26",
+    "openai": "^4.104.0",
     "supermemory": "^3.0.0-alpha.26",
     "zod": "^4.1.4"
   },
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/bun": "^1.2.21",
+    "dotenv": "^16.6.1",
     "tsdown": "^0.14.2",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
   "repository": {
     "url": "https://github.com/supermemoryai/supermemory",
-    "directory": "packages/ai-sdk"
+    "directory": "packages/openai-sdk-ts"
   },
   "keywords": [
-    "ai",
-    "sdk",
+    "openai",
+    "typescript",
     "supermemory",
-    "memory"
-  ]
+    "ai",
+    "memory",
+    "context"
+  ],
+  "license": "MIT"
 }

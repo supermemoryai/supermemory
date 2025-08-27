@@ -39,7 +39,6 @@ describe("supermemoryTools", () => {
 			expect(tools).toBeDefined()
 			expect(tools.searchMemories).toBeDefined()
 			expect(tools.addMemory).toBeDefined()
-			expect(tools.fetchMemory).toBeDefined()
 		})
 
 		it("should create tools with custom baseUrl", () => {
@@ -51,7 +50,6 @@ describe("supermemoryTools", () => {
 			expect(tools).toBeDefined()
 			expect(tools.searchMemories).toBeDefined()
 			expect(tools.addMemory).toBeDefined()
-			expect(tools.fetchMemory).toBeDefined()
 		})
 
 		it("should create tools with projectId configuration", () => {
@@ -63,7 +61,6 @@ describe("supermemoryTools", () => {
 			expect(tools).toBeDefined()
 			expect(tools.searchMemories).toBeDefined()
 			expect(tools.addMemory).toBeDefined()
-			expect(tools.fetchMemory).toBeDefined()
 		})
 
 		it("should create tools with custom container tags", () => {
@@ -75,7 +72,6 @@ describe("supermemoryTools", () => {
 			expect(tools).toBeDefined()
 			expect(tools.searchMemories).toBeDefined()
 			expect(tools.addMemory).toBeDefined()
-			expect(tools.fetchMemory).toBeDefined()
 		})
 	})
 
