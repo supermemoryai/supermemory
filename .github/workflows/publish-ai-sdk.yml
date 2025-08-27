@@ -2,6 +2,8 @@ name: Publish AI SDK
 
 on:
     push:
+        branches:
+            - main
         paths: 
             - "packages/ai-sdk/package.json"
 

@@ -1,0 +1,96 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "supermemory-openai-sdk"
+version = "1.0.0"
+description = "OpenAI SDK utilities for supermemory"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["openai", "supermemory", "ai", "memory"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8.1"
+dependencies = [
+    "openai>=1.102.0",
+    "supermemory>=3.0.0a28",
+    "typing-extensions>=4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "black>=24.8.0",
+    "flake8>=7.1.2",
+    "isort>=5.13.2",
+    "mypy>=1.14.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.24.0",
+    "python-dotenv>=1.0.1",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/supermemoryai/supermemory"
+Repository = "https://github.com/supermemoryai/supermemory"
+Documentation = "https://docs.supermemory.ai"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
