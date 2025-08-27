@@ -29,7 +29,7 @@ export default defineBackground(() => {
 	browser.runtime.onInstalled.addListener((details) => {
 		browser.contextMenus.create({
 			id: CONTEXT_MENU_IDS.SAVE_TO_SUPERMEMORY,
-			title: "Save to Supermemory",
+			title: "Save to supermemory",
 			contexts: ["selection", "page", "link"],
 		});
 
@@ -97,7 +97,7 @@ export default defineBackground(() => {
 	};
 
 	/**
-	 * Save memory to Supermemory API
+	 * Save memory to supermemory API
 	 */
 	const saveMemoryToSupermemory = async (
 		data: MemoryData,

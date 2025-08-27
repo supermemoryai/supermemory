@@ -153,8 +153,8 @@ export default defineContentScript({
 
 			supermemoryButton.innerHTML = `
         <div class="flex items-center justify-center gap-2">
-          <img src="${iconUrl}" alt="Supermemory" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
-          Save to Supermemory
+          <img src="${iconUrl}" alt="supermemory" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
+          Save to supermemory
         </div>
       `;
 
@@ -232,7 +232,7 @@ export default defineContentScript({
 					DOMUtils.showToast("error");
 				}
 			} catch (error) {
-				console.error("Error saving memories to Supermemory:", error);
+				console.error("Error saving memories to supermemory:", error);
 				DOMUtils.showToast("error");
 			}
 		}

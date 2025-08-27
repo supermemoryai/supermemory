@@ -6,7 +6,7 @@ function Welcome() {
 				<div className="welcome-header">
 					<img
 						src="/logo-trademark.svg"
-						alt="Supermemory"
+						alt="supermemory"
 						className="welcome-logo"
 					/>
 					<p className="welcome-subtitle">
@@ -17,7 +17,7 @@ function Welcome() {
 
 				{/* Features Section */}
 				<div className="welcome-features">
-					<h2 className="features-title">What can you do with Supermemory?</h2>
+					<h2 className="features-title">What can you do with supermemory?</h2>
 
 					<div className="features-grid">
 						<div className="feature-card">
@@ -67,7 +67,7 @@ function Welcome() {
 							<div className="step-number">1</div>
 							<div className="step-content">
 								<h3>Login to Your Account</h3>
-								<p>Connect your Supermemory account to start saving content</p>
+								<p>Connect your supermemory account to start saving content</p>
 							</div>
 						</div>
 

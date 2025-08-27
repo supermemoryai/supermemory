@@ -246,7 +246,7 @@ export function createTwitterImportUI(
 				: `
       <div style="text-align: center;">
         <p style="color: #536471; font-size: 14px; margin: 0 0 12px 0;">
-          Please sign in to Supermemory first
+          Please sign in to supermemory first
         </p>
         <button id="${ELEMENT_IDS.TWITTER_SIGNIN_BTN}" style="background: #1d9bf0; color: white; border: none; border-radius: 20px; padding: 8px 16px; cursor: pointer; font-size: 14px; font-weight: 500;">
           Sign In

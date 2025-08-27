@@ -136,8 +136,8 @@ function App() {
 		return (
 			<div className="popup-container">
 				<div className="header">
-					<img src="/icon-48.png" alt="Supermemory" className="logo" />
-					<h1>Supermemory</h1>
+					<img src="/icon-48.png" alt="supermemory" className="logo" />
+					<h1>supermemory</h1>
 				</div>
 				<div className="content">
 					<div>Loading...</div>
@@ -151,7 +151,7 @@ function App() {
 			<div className="header">
 				<img
 					src="/logo-trademark.svg"
-					alt="Supermemory"
+					alt="supermemory"
 					className="logo"
 					style={{ width: "80%", height: "32px" }}
 				/>
