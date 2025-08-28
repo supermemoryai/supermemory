@@ -5,9 +5,9 @@ function Welcome() {
 				{/* Header */}
 				<div className="welcome-header">
 					<img
-						src="/logo-trademark.svg"
 						alt="supermemory"
 						className="welcome-logo"
+						src="/logo-trademark.svg"
 					/>
 					<p className="welcome-subtitle">
 						Your AI-powered second brain for saving and organizing everything
@@ -56,61 +56,21 @@ function Welcome() {
 					</div>
 				</div>
 
-				{/* Getting Started */}
-				<div className="welcome-getting-started">
-					<h2 className="getting-started-title">
-						Get Started in 2 Simple Steps
-					</h2>
-
-					<div className="steps">
-						<div className="step">
-							<div className="step-number">1</div>
-							<div className="step-content">
-								<h3>Login to Your Account</h3>
-								<p>Connect your supermemory account to start saving content</p>
-							</div>
-						</div>
-
-						<div className="step">
-							<div className="step-number">2</div>
-							<div className="step-content">
-								<h3>Start Saving</h3>
-								<p>Click the extension icon on any page to save it instantly</p>
-							</div>
-						</div>
-					</div>
-				</div>
-
 				{/* Actions */}
 				<div className="welcome-actions">
 					<button
-						type="button"
 						className="login-primary-btn"
 						onClick={() => {
 							chrome.tabs.create({
 								url: import.meta.env.PROD
 									? "https://app.supermemory.ai/login"
 									: "http://localhost:3000/login",
-							});
+							})
 						}}
+						type="button"
 					>
-						Login to Get Started
+						Login to Get started
 					</button>
-
-					<div className="welcome-help">
-						<p className="help-text">
-							Need help getting started?{" "}
-							<button
-								type="button"
-								className="help-link"
-								onClick={() => {
-									window.open("mailto:dhravya@supermemory.com", "_blank");
-								}}
-							>
-								Contact Support
-							</button>
-						</p>
-					</div>
 				</div>
 
 				{/* Footer */}
@@ -118,10 +78,10 @@ function Welcome() {
 					<p>
 						Learn more at{" "}
 						<a
-							href="https://supermemory.ai"
-							target="_blank"
-							rel="noopener noreferrer"
 							className="footer-link"
+							href="https://supermemory.ai"
+							rel="noopener noreferrer"
+							target="_blank"
 						>
 							supermemory.ai
 						</a>
@@ -129,7 +89,7 @@ function Welcome() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }
 
-export default Welcome;
+export default Welcome

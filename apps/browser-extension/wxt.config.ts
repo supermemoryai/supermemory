@@ -1,10 +1,10 @@
-import { defineConfig } from "wxt";
+import { defineConfig } from "wxt"
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
 	modules: ["@wxt-dev/module-react"],
 	manifest: {
-		name: "Supermemory",
+		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
 		permissions: [
 			"contextMenus",
@@ -25,10 +25,10 @@ export default defineConfig({
 		web_accessible_resources: [
 			{
 				resources: [
-					"icon-16.png", 
-					"light-mode-icon.png", 
+					"icon-16.png",
+					"light-mode-icon.png",
 					"dark-mode-icon.png",
-					"fonts/*.ttf"
+					"fonts/*.ttf",
 				],
 				matches: ["<all_urls>"],
 			},
@@ -37,4 +37,4 @@ export default defineConfig({
 	webExt: {
 		disabled: true,
 	},
-});
+})

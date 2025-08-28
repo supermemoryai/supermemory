@@ -8,7 +8,7 @@ export const API_ENDPOINTS = {
 	SUPERMEMORY_WEB: import.meta.env.PROD
 		? "https://app.supermemory.ai"
 		: "http://localhost:3000",
-} as const;
+} as const
 
 /**
  * Storage Keys
@@ -22,7 +22,7 @@ export const STORAGE_KEYS = {
 	TWITTER_AUTH_TOKEN: "auth",
 	DEFAULT_PROJECT: "defaultProject",
 	PROJECTS_CACHE: "projectsCache",
-} as const;
+} as const
 
 /**
  * DOM Element IDs
@@ -37,7 +37,7 @@ export const ELEMENT_IDS = {
 	SUPERMEMORY_SAVE_BUTTON: "supermemory-save-button",
 	SAVE_TWEET_ELEMENT: "supermemory-save-tweet-element",
 	CHATGPT_INPUT_BAR_ELEMENT: "supermemory-chatgpt-input-bar-element",
-} as const;
+} as const
 
 /**
  * UI Configuration
@@ -47,7 +47,7 @@ export const UI_CONFIG = {
 	TOAST_DURATION: 3000, // milliseconds
 	RATE_LIMIT_BASE_WAIT: 60000, // 1 minute
 	PAGINATION_DELAY: 1000, // 1 second between requests
-} as const;
+} as const
 
 /**
  * Supported Domains
@@ -56,7 +56,7 @@ export const DOMAINS = {
 	TWITTER: ["x.com", "twitter.com"],
 	CHATGPT: ["chatgpt.com", "chat.openai.com"],
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
-} as const;
+} as const
 
 /**
  * Container Tags
@@ -64,7 +64,7 @@ export const DOMAINS = {
 export const CONTAINER_TAGS = {
 	TWITTER_BOOKMARKS: "sm_project_twitter_bookmarks",
 	DEFAULT_PROJECT: "sm_project_default",
-} as const;
+} as const
 
 /**
  * Message Types for extension communication
@@ -76,13 +76,13 @@ export const MESSAGE_TYPES = {
 	IMPORT_UPDATE: "import-update",
 	IMPORT_DONE: "import-done",
 	GET_RELATED_MEMORIES: "getRelatedMemories",
-} as const;
+} as const
 
 export const CONTEXT_MENU_IDS = {
 	SAVE_TO_SUPERMEMORY: "save-to-supermemory",
-} as const;
+} as const
 
 export const CSS_CLASSES = {
 	TOAST_STYLES_ID: "supermemory-toast-styles",
 	SPINNER_STYLES_ID: "supermemory-spinner-styles",
-} as const;
+} as const

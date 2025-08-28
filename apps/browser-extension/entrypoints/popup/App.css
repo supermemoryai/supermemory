@@ -1,48 +1,50 @@
 /* Custom Font Definitions */
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 300;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Light.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Light.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 400;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Regular.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Regular.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 500;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Medium.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Medium.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 600;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-SemiBold.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-SemiBold.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 700;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Bold.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Bold.ttf") format("truetype");
 }
 
 .popup-container {
 	width: 320px;
 	padding: 0;
-	font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-family:
+		"Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		sans-serif;
 	background: #ffffff;
 	border-radius: 8px;
 	position: relative;
@@ -81,7 +83,9 @@
 	color: #6c757d;
 	padding: 4px;
 	border-radius: 4px;
-	transition: color 0.2s ease, background-color 0.2s ease;
+	transition:
+		color 0.2s ease,
+		background-color 0.2s ease;
 }
 
 .header-sign-out:hover {
@@ -403,7 +407,9 @@
 	font-size: 13px;
 	font-weight: 400;
 	cursor: pointer;
-	transition: background-color 0.2s ease, color 0.2s ease;
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease;
 }
 
 .secondary-btn:hover {
@@ -505,7 +511,9 @@
 	background-color: #f8f9fa;
 	border-radius: 8px;
 	border: 1px solid #e9ecef;
-	transition: background-color 0.2s ease, border-color 0.2s ease;
+	transition:
+		background-color 0.2s ease,
+		border-color 0.2s ease;
 }
 
 .project-selector-btn:hover .project-selector-content {
@@ -599,7 +607,9 @@
 	cursor: pointer;
 	padding: 4px 8px;
 	border-radius: 4px;
-	transition: color 0.2s ease, background-color 0.2s ease;
+	transition:
+		color 0.2s ease,
+		background-color 0.2s ease;
 	outline: none;
 }
 

@@ -1,120 +1,120 @@
 // Twitter API data structures and transformation utilities
 
 interface TwitterAPITweet {
-	__typename?: string;
+	__typename?: string
 	legacy: {
-		lang?: string;
-		favorite_count: number;
-		created_at: string;
-		display_text_range?: [number, number];
+		lang?: string
+		favorite_count: number
+		created_at: string
+		display_text_range?: [number, number]
 		entities?: {
-			hashtags?: Array<{ indices: [number, number]; text: string }>;
+			hashtags?: Array<{ indices: [number, number]; text: string }>
 			urls?: Array<{
-				display_url: string;
-				expanded_url: string;
-				indices: [number, number];
-				url: string;
-			}>;
+				display_url: string
+				expanded_url: string
+				indices: [number, number]
+				url: string
+			}>
 			user_mentions?: Array<{
-				id_str: string;
-				indices: [number, number];
-				name: string;
-				screen_name: string;
-			}>;
-			symbols?: Array<{ indices: [number, number]; text: string }>;
-			media?: MediaEntity[];
-		};
-		id_str: string;
-		full_text: string;
-		reply_count?: number;
-		retweet_count?: number;
-		quote_count?: number;
-	};
+				id_str: string
+				indices: [number, number]
+				name: string
+				screen_name: string
+			}>
+			symbols?: Array<{ indices: [number, number]; text: string }>
+			media?: MediaEntity[]
+		}
+		id_str: string
+		full_text: string
+		reply_count?: number
+		retweet_count?: number
+		quote_count?: number
+	}
 	core?: {
 		user_results?: {
 			result?: {
 				legacy?: {
-					id_str: string;
-					name: string;
-					profile_image_url_https: string;
-					screen_name: string;
-					verified: boolean;
-				};
-				is_blue_verified?: boolean;
-			};
-		};
-	};
+					id_str: string
+					name: string
+					profile_image_url_https: string
+					screen_name: string
+					verified: boolean
+				}
+				is_blue_verified?: boolean
+			}
+		}
+	}
 }
 
 interface MediaEntity {
-	type: string;
-	media_url_https: string;
+	type: string
+	media_url_https: string
 	sizes?: {
 		large?: {
-			w: number;
-			h: number;
-		};
-	};
+			w: number
+			h: number
+		}
+	}
 	video_info?: {
 		variants?: Array<{
-			url: string;
-		}>;
-		duration_millis?: number;
-	};
+			url: string
+		}>
+		duration_millis?: number
+	}
 }
 
 export interface Tweet {
-	__typename?: string;
-	lang?: string;
-	favorite_count: number;
-	created_at: string;
-	display_text_range?: [number, number];
+	__typename?: string
+	lang?: string
+	favorite_count: number
+	created_at: string
+	display_text_range?: [number, number]
 	entities: {
 		hashtags: Array<{
-			indices: [number, number];
-			text: string;
-		}>;
+			indices: [number, number]
+			text: string
+		}>
 		urls?: Array<{
-			display_url: string;
-			expanded_url: string;
-			indices: [number, number];
-			url: string;
-		}>;
+			display_url: string
+			expanded_url: string
+			indices: [number, number]
+			url: string
+		}>
 		user_mentions: Array<{
-			id_str: string;
-			indices: [number, number];
-			name: string;
-			screen_name: string;
-		}>;
+			id_str: string
+			indices: [number, number]
+			name: string
+			screen_name: string
+		}>
 		symbols: Array<{
-			indices: [number, number];
-			text: string;
-		}>;
-	};
-	id_str: string;
-	text: string;
+			indices: [number, number]
+			text: string
+		}>
+	}
+	id_str: string
+	text: string
 	user: {
-		id_str: string;
-		name: string;
-		profile_image_url_https: string;
-		screen_name: string;
-		verified: boolean;
-		is_blue_verified?: boolean;
-	};
-	conversation_count: number;
+		id_str: string
+		name: string
+		profile_image_url_https: string
+		screen_name: string
+		verified: boolean
+		is_blue_verified?: boolean
+	}
+	conversation_count: number
 	photos?: Array<{
-		url: string;
-		width: number;
-		height: number;
-	}>;
+		url: string
+		width: number
+		height: number
+	}>
 	videos?: Array<{
-		url: string;
-		thumbnail_url: string;
-		duration: number;
-	}>;
-	retweet_count?: number;
-	quote_count?: number;
-	reply_count?: number;
+		url: string
+		thumbnail_url: string
+		duration: number
+	}>
+	retweet_count?: number
+	quote_count?: number
+	reply_count?: number
 }
 
 export interface TwitterAPIResponse {
@@ -122,16 +122,16 @@ export interface TwitterAPIResponse {
 		bookmark_timeline_v2: {
 			timeline: {
 				instructions: Array<{
-					type: string;
+					type: string
 					entries?: Array<{
-						entryId: string;
-						sortIndex: string;
-						content: Record<string, unknown>;
-					}>;
-				}>;
-			};
-		};
-	};
+						entryId: string
+						sortIndex: string
+						content: Record<string, unknown>
+					}>
+				}>
+			}
+		}
+	}
 }
 
 // Twitter API features configuration
@@ -165,9 +165,9 @@ export const TWITTER_API_FEATURES = {
 	articles_preview_enabled: true,
 	rweb_video_timestamps_enabled: true,
 	verified_phone_label_enabled: true,
-};
+}
 
-export const BOOKMARKS_URL = `https://x.com/i/api/graphql/xLjCVTqYWz8CGSprLU349w/Bookmarks?features=${encodeURIComponent(JSON.stringify(TWITTER_API_FEATURES))}`;
+export const BOOKMARKS_URL = `https://x.com/i/api/graphql/xLjCVTqYWz8CGSprLU349w/Bookmarks?features=${encodeURIComponent(JSON.stringify(TWITTER_API_FEATURES))}`
 
 /**
  * Transform raw Twitter API response data into standardized Tweet format
@@ -177,29 +177,29 @@ export function transformTweetData(
 ): Tweet | null {
 	try {
 		const content = input.content as {
-			itemContent?: { tweet_results?: { result?: unknown } };
-		};
-		const tweetData = content?.itemContent?.tweet_results?.result;
+			itemContent?: { tweet_results?: { result?: unknown } }
+		}
+		const tweetData = content?.itemContent?.tweet_results?.result
 
 		if (!tweetData) {
-			return null;
+			return null
 		}
 
-		const tweet = tweetData as TwitterAPITweet;
+		const tweet = tweetData as TwitterAPITweet
 
 		if (!tweet.legacy) {
-			return null;
+			return null
 		}
 
 		// Handle media entities
-		const media = (tweet.legacy.entities?.media as MediaEntity[]) || [];
+		const media = (tweet.legacy.entities?.media as MediaEntity[]) || []
 		const photos = media
 			.filter((m) => m.type === "photo")
 			.map((m) => ({
 				url: m.media_url_https,
 				width: m.sizes?.large?.w || 0,
 				height: m.sizes?.large?.h || 0,
-			}));
+			}))
 
 		const videos = media
 			.filter((m) => m.type === "video")
@@ -207,7 +207,7 @@ export function transformTweetData(
 				url: m.video_info?.variants?.[0]?.url || "",
 				thumbnail_url: m.media_url_https,
 				duration: m.video_info?.duration_millis || 0,
-			}));
+			}))
 
 		const transformed: Tweet = {
 			__typename: tweet.__typename,
@@ -239,20 +239,20 @@ export function transformTweetData(
 			retweet_count: tweet.legacy.retweet_count || 0,
 			quote_count: tweet.legacy.quote_count || 0,
 			reply_count: tweet.legacy.reply_count || 0,
-		};
+		}
 
 		if (photos.length > 0) {
-			transformed.photos = photos;
+			transformed.photos = photos
 		}
 
 		if (videos.length > 0) {
-			transformed.videos = videos;
+			transformed.videos = videos
 		}
 
-		return transformed;
+		return transformed
 	} catch (error) {
-		console.error("Error transforming tweet data:", error);
-		return null;
+		console.error("Error transforming tweet data:", error)
+		return null
 	}
 }
 
@@ -260,29 +260,29 @@ export function transformTweetData(
  * Extract all tweets from Twitter API response
  */
 export function getAllTweets(data: TwitterAPIResponse): Tweet[] {
-	const tweets: Tweet[] = [];
+	const tweets: Tweet[] = []
 
 	try {
 		const instructions =
-			data.data?.bookmark_timeline_v2?.timeline?.instructions || [];
+			data.data?.bookmark_timeline_v2?.timeline?.instructions || []
 
 		for (const instruction of instructions) {
 			if (instruction.type === "TimelineAddEntries" && instruction.entries) {
 				for (const entry of instruction.entries) {
 					if (entry.entryId.startsWith("tweet-")) {
-						const tweet = transformTweetData(entry);
+						const tweet = transformTweetData(entry)
 						if (tweet) {
-							tweets.push(tweet);
+							tweets.push(tweet)
 						}
 					}
 				}
 			}
 		}
 	} catch (error) {
-		console.error("Error extracting tweets:", error);
+		console.error("Error extracting tweets:", error)
 	}
 
-	return tweets;
+	return tweets
 }
 
 /**
@@ -295,83 +295,83 @@ export function extractNextCursor(
 		for (const instruction of instructions) {
 			if (instruction.type === "TimelineAddEntries" && instruction.entries) {
 				const entries = instruction.entries as Array<{
-					entryId: string;
-					content?: { value?: string };
-				}>;
+					entryId: string
+					content?: { value?: string }
+				}>
 				for (const entry of entries) {
 					if (entry.entryId.startsWith("cursor-bottom-")) {
-						return entry.content?.value || null;
+						return entry.content?.value || null
 					}
 				}
 			}
 		}
 	} catch (error) {
-		console.error("Error extracting cursor:", error);
+		console.error("Error extracting cursor:", error)
 	}
 
-	return null;
+	return null
 }
 
 /**
  * Convert Tweet object to markdown format for storage
  */
 export function tweetToMarkdown(tweet: Tweet): string {
-	const username = tweet.user?.screen_name || "unknown";
-	const displayName = tweet.user?.name || "Unknown User";
-	const date = new Date(tweet.created_at).toLocaleDateString();
-	const time = new Date(tweet.created_at).toLocaleTimeString();
+	const username = tweet.user?.screen_name || "unknown"
+	const displayName = tweet.user?.name || "Unknown User"
+	const date = new Date(tweet.created_at).toLocaleDateString()
+	const time = new Date(tweet.created_at).toLocaleTimeString()
 
-	let markdown = `# Tweet by @${username} (${displayName})\n\n`;
-	markdown += `**Date:** ${date} ${time}\n`;
-	markdown += `**Likes:** ${tweet.favorite_count} | **Retweets:** ${tweet.retweet_count || 0} | **Replies:** ${tweet.reply_count || 0}\n\n`;
+	let markdown = `# Tweet by @${username} (${displayName})\n\n`
+	markdown += `**Date:** ${date} ${time}\n`
+	markdown += `**Likes:** ${tweet.favorite_count} | **Retweets:** ${tweet.retweet_count || 0} | **Replies:** ${tweet.reply_count || 0}\n\n`
 
 	// Add tweet text
-	markdown += `${tweet.text}\n\n`;
+	markdown += `${tweet.text}\n\n`
 
 	// Add media if present
 	if (tweet.photos && tweet.photos.length > 0) {
-		markdown += `**Images:**\n`;
+		markdown += "**Images:**\n"
 		tweet.photos.forEach((photo, index) => {
-			markdown += `![Image ${index + 1}](${photo.url})\n`;
-		});
-		markdown += "\n";
+			markdown += `![Image ${index + 1}](${photo.url})\n`
+		})
+		markdown += "\n"
 	}
 
 	if (tweet.videos && tweet.videos.length > 0) {
-		markdown += `**Videos:**\n`;
+		markdown += "**Videos:**\n"
 		tweet.videos.forEach((video, index) => {
-			markdown += `[Video ${index + 1}](${video.url})\n`;
-		});
-		markdown += "\n";
+			markdown += `[Video ${index + 1}](${video.url})\n`
+		})
+		markdown += "\n"
 	}
 
 	// Add hashtags and mentions
 	if (tweet.entities.hashtags.length > 0) {
-		markdown += `**Hashtags:** ${tweet.entities.hashtags.map((h) => `#${h.text}`).join(", ")}\n`;
+		markdown += `**Hashtags:** ${tweet.entities.hashtags.map((h) => `#${h.text}`).join(", ")}\n`
 	}
 
 	if (tweet.entities.user_mentions.length > 0) {
-		markdown += `**Mentions:** ${tweet.entities.user_mentions.map((m) => `@${m.screen_name}`).join(", ")}\n`;
+		markdown += `**Mentions:** ${tweet.entities.user_mentions.map((m) => `@${m.screen_name}`).join(", ")}\n`
 	}
 
 	// Add raw data for reference
-	markdown += `\n---\n<details>\n<summary>Raw Tweet Data</summary>\n\n\`\`\`json\n${JSON.stringify(tweet, null, 2)}\n\`\`\`\n</details>`;
+	markdown += `\n---\n<details>\n<summary>Raw Tweet Data</summary>\n\n\`\`\`json\n${JSON.stringify(tweet, null, 2)}\n\`\`\`\n</details>`
 
-	return markdown;
+	return markdown
 }
 
 /**
  * Build Twitter API request variables for pagination
  */
-export function buildRequestVariables(cursor?: string, count: number = 100) {
+export function buildRequestVariables(cursor?: string, count = 100) {
 	const variables = {
 		count,
 		includePromotedContent: false,
-	};
-
-	if (cursor) {
-		(variables as Record<string, unknown>).cursor = cursor;
 	}
 
-	return variables;
+	if (cursor) {
+		;(variables as Record<string, unknown>).cursor = cursor
+	}
+
+	return variables
 }

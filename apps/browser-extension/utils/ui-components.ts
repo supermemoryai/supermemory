@@ -3,8 +3,8 @@
  * Reusable UI components for the browser extension
  */
 
-import { API_ENDPOINTS, ELEMENT_IDS, UI_CONFIG } from "./constants";
-import type { ToastState } from "./types";
+import { API_ENDPOINTS, ELEMENT_IDS, UI_CONFIG } from "./constants"
+import type { ToastState } from "./types"
 
 /**
  * Creates a toast notification element
@@ -12,8 +12,8 @@ import type { ToastState } from "./types";
  * @returns HTMLElement - The toast element
  */
 export function createToast(state: ToastState): HTMLElement {
-	const toast = document.createElement("div");
-	toast.id = ELEMENT_IDS.SUPERMEMORY_TOAST;
+	const toast = document.createElement("div")
+	toast.id = ELEMENT_IDS.SUPERMEMORY_TOAST
 
 	toast.style.cssText = `
     position: fixed;
@@ -32,12 +32,12 @@ export function createToast(state: ToastState): HTMLElement {
     min-width: 200px;
     max-width: 300px;
     animation: slideIn 0.3s ease-out;
-  `;
+  `
 
 	// Add keyframe animations and fonts if not already present
 	if (!document.getElementById("supermemory-toast-styles")) {
-		const style = document.createElement("style");
-		style.id = "supermemory-toast-styles";
+		const style = document.createElement("style")
+		style.id = "supermemory-toast-styles"
 		style.textContent = `
       @font-face {
         font-family: 'Space Grotesk';
@@ -86,15 +86,15 @@ export function createToast(state: ToastState): HTMLElement {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
       }
-    `;
-		document.head.appendChild(style);
+    `
+		document.head.appendChild(style)
 	}
 
-	const icon = document.createElement("div");
-	icon.style.cssText = "width: 20px; height: 20px; flex-shrink: 0;";
+	const icon = document.createElement("div")
+	icon.style.cssText = "width: 20px; height: 20px; flex-shrink: 0;"
 
-	const text = document.createElement("span");
-	text.style.fontWeight = "500";
+	const text = document.createElement("span")
+	text.style.fontWeight = "500"
 
 	// Configure toast based on state
 	switch (state) {
@@ -110,16 +110,16 @@ export function createToast(state: ToastState): HTMLElement {
           <path d="M20.49 15.49L18.36 17.62" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
           <path d="M5.64 6.36L3.51 8.49" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
         </svg>
-      `;
-			icon.style.animation = "spin 1s linear infinite";
-			text.textContent = "Adding to Memory...";
-			break;
+      `
+			icon.style.animation = "spin 1s linear infinite"
+			text.textContent = "Adding to Memory..."
+			break
 
 		case "success": {
-			const iconUrl = browser.runtime.getURL("/icon-16.png");
-			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`;
-			text.textContent = "Added to Memory";
-			break;
+			const iconUrl = browser.runtime.getURL("/icon-16.png")
+			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
+			text.textContent = "Added to Memory"
+			break
 		}
 
 		case "error":
@@ -129,15 +129,15 @@ export function createToast(state: ToastState): HTMLElement {
           <path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      `;
-			text.textContent = "Failed to save memory / Make sure you are logged in";
-			break;
+      `
+			text.textContent = "Failed to save memory / Make sure you are logged in"
+			break
 	}
 
-	toast.appendChild(icon);
-	toast.appendChild(text);
+	toast.appendChild(icon)
+	toast.appendChild(text)
 
-	return toast;
+	return toast
 }
 
 /**
@@ -146,8 +146,8 @@ export function createToast(state: ToastState): HTMLElement {
  * @returns HTMLElement - The button element
  */
 export function createTwitterImportButton(onClick: () => void): HTMLElement {
-	const button = document.createElement("div");
-	button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON;
+	const button = document.createElement("div")
+	button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON
 	button.style.cssText = `
     position: fixed;
     top: 10px;
@@ -163,26 +163,26 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     align-items: center;
     gap: 8px;
     transition: all 0.2s ease;
-  `;
+  `
 
-	const iconUrl = browser.runtime.getURL("/light-mode-icon.png");
+	const iconUrl = browser.runtime.getURL("/light-mode-icon.png")
 	button.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-  `;
+  `
 
 	button.addEventListener("mouseenter", () => {
-		button.style.transform = "scale(1.05)";
-		button.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.4)";
-	});
+		button.style.transform = "scale(1.05)"
+		button.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.4)"
+	})
 
 	button.addEventListener("mouseleave", () => {
-		button.style.transform = "scale(1)";
-		button.style.boxShadow = "0 2px 8px rgba(29, 155, 240, 0.3)";
-	});
+		button.style.transform = "scale(1)"
+		button.style.boxShadow = "0 2px 8px rgba(29, 155, 240, 0.3)"
+	})
 
-	button.addEventListener("click", onClick);
+	button.addEventListener("click", onClick)
 
-	return button;
+	return button
 }
 
 /**
@@ -197,7 +197,7 @@ export function createTwitterImportUI(
 	onImport: () => void,
 	isAuthenticated: boolean,
 ): HTMLElement {
-	const container = document.createElement("div");
+	const container = document.createElement("div")
 	container.style.cssText = `
     position: fixed;
     top: 20px;
@@ -211,7 +211,7 @@ export function createTwitterImportUI(
     max-width: 400px;
     border: 1px solid #e1e5e9;
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  `;
+  `
 
 	container.innerHTML = `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
@@ -261,25 +261,25 @@ export function createTwitterImportUI(
         100% { transform: rotate(360deg); }
       }
     </style>
-  `;
+  `
 
 	// Add event listeners
-	const closeBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_CLOSE_BTN}`);
-	closeBtn?.addEventListener("click", onClose);
+	const closeBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_CLOSE_BTN}`)
+	closeBtn?.addEventListener("click", onClose)
 
 	const importBtn = container.querySelector(
 		`#${ELEMENT_IDS.TWITTER_IMPORT_BTN}`,
-	);
-	importBtn?.addEventListener("click", onImport);
+	)
+	importBtn?.addEventListener("click", onImport)
 
 	const signinBtn = container.querySelector(
 		`#${ELEMENT_IDS.TWITTER_SIGNIN_BTN}`,
-	);
+	)
 	signinBtn?.addEventListener("click", () => {
-		browser.tabs.create({ url: `${API_ENDPOINTS.SUPERMEMORY_WEB}/login` });
-	});
+		browser.tabs.create({ url: `${API_ENDPOINTS.SUPERMEMORY_WEB}/login` })
+	})
 
-	return container;
+	return container
 }
 
 /**
@@ -288,7 +288,7 @@ export function createTwitterImportUI(
  * @returns HTMLElement - The save button element
  */
 export function createSaveTweetElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div");
+	const iconButton = document.createElement("div")
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: flex-end;
@@ -301,36 +301,36 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
     margin-right: 10px;
     margin-bottom: 2px;
     z-index: 1000;
-  `;
+  `
 
 	// Check body background color to determine which icon to use
-	const bodyStyle = window.getComputedStyle(document.body);
-	const backgroundColor = bodyStyle.backgroundColor;
-	const isLightMode = backgroundColor === "rgb(255, 255, 255)";
+	const bodyStyle = window.getComputedStyle(document.body)
+	const backgroundColor = bodyStyle.backgroundColor
+	const isLightMode = backgroundColor === "rgb(255, 255, 255)"
 
 	const iconFileName = isLightMode
 		? "/light-mode-icon.png"
-		: "/dark-mode-icon.png";
-	const iconUrl = browser.runtime.getURL(iconFileName);
+		: "/dark-mode-icon.png"
+	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-  `;
+  `
 
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.opacity = "1";
-	});
+		iconButton.style.opacity = "1"
+	})
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.opacity = "0.7";
-	});
+		iconButton.style.opacity = "0.7"
+	})
 
 	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation();
-		event.preventDefault();
-		onClick();
-	});
+		event.stopPropagation()
+		event.preventDefault()
+		onClick()
+	})
 
-	return iconButton;
+	return iconButton
 }
 
 /**
@@ -339,7 +339,7 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div");
+	const iconButton = document.createElement("div")
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -349,31 +349,31 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
     cursor: pointer;
     transition: opacity 0.2s ease;
     border-radius: 50%;
-  `;
+  `
 
 	// Use appropriate icon based on theme
-	const isDark = DOMUtils.isDarkMode();
-	const iconFileName = isDark ? "/dark-mode-icon.png" : "/light-mode-icon.png";
-	const iconUrl = browser.runtime.getURL(iconFileName);
+	const isDark = DOMUtils.isDarkMode()
+	const iconFileName = isDark ? "/dark-mode-icon.png" : "/light-mode-icon.png"
+	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 50%;" />
-  `;
+  `
 
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.opacity = "0.8";
-	});
+		iconButton.style.opacity = "0.8"
+	})
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.opacity = "1";
-	});
+		iconButton.style.opacity = "1"
+	})
 
 	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation();
-		event.preventDefault();
-		onClick();
-	});
+		event.stopPropagation()
+		event.preventDefault()
+		onClick()
+	})
 
-	return iconButton;
+	return iconButton
 }
 
 /**
@@ -386,7 +386,7 @@ export const DOMUtils = {
 	 * @returns boolean
 	 */
 	isOnDomain(domains: readonly string[]): boolean {
-		return domains.includes(window.location.hostname);
+		return domains.includes(window.location.hostname)
 	},
 
 	/**
@@ -394,9 +394,9 @@ export const DOMUtils = {
 	 * @returns boolean - true if dark mode, false if light mode
 	 */
 	isDarkMode(): boolean {
-		const htmlElement = document.documentElement;
-		const style = htmlElement.getAttribute("style");
-		return style?.includes("color-scheme: dark") || false;
+		const htmlElement = document.documentElement
+		const style = htmlElement.getAttribute("style")
+		return style?.includes("color-scheme: dark") || false
 	},
 
 	/**
@@ -405,7 +405,7 @@ export const DOMUtils = {
 	 * @returns boolean
 	 */
 	elementExists(id: string): boolean {
-		return !!document.getElementById(id);
+		return !!document.getElementById(id)
 	},
 
 	/**
@@ -413,8 +413,8 @@ export const DOMUtils = {
 	 * @param id - Element ID to remove
 	 */
 	removeElement(id: string): void {
-		const element = document.getElementById(id);
-		element?.remove();
+		const element = document.getElementById(id)
+		element?.remove()
 	},
 
 	/**
@@ -430,28 +430,28 @@ export const DOMUtils = {
 		// Remove all existing toasts more aggressively
 		const existingToasts = document.querySelectorAll(
 			`#${ELEMENT_IDS.SUPERMEMORY_TOAST}`,
-		);
+		)
 		existingToasts.forEach((toast) => {
-			toast.remove();
-		});
+			toast.remove()
+		})
 
-		const toast = createToast(state);
-		document.body.appendChild(toast);
+		const toast = createToast(state)
+		document.body.appendChild(toast)
 
 		// Auto-dismiss for success and error states
 		if (state === "success" || state === "error") {
 			setTimeout(() => {
 				if (document.body.contains(toast)) {
-					toast.style.animation = "fadeOut 0.3s ease-out";
+					toast.style.animation = "fadeOut 0.3s ease-out"
 					setTimeout(() => {
 						if (document.body.contains(toast)) {
-							toast.remove();
+							toast.remove()
 						}
-					}, 300);
+					}, 300)
 				}
-			}, duration);
+			}, duration)
 		}
 
-		return toast;
+		return toast
 	},
-};
+}

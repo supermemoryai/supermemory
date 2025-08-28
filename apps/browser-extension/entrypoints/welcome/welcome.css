@@ -1,42 +1,42 @@
 /* Custom Font Definitions */
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 300;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Light.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Light.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 400;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Regular.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Regular.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 500;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Medium.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Medium.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 600;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-SemiBold.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-SemiBold.ttf") format("truetype");
 }
 
 @font-face {
-	font-family: 'Space Grotesk';
+	font-family: "Space Grotesk";
 	font-style: normal;
 	font-weight: 700;
 	font-display: swap;
-	src: url('/fonts/SpaceGrotesk-Bold.ttf') format('truetype');
+	src: url("/fonts/SpaceGrotesk-Bold.ttf") format("truetype");
 }
 
 /* Welcome Page Styles */
@@ -47,7 +47,9 @@
 }
 
 body {
-	font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	font-family:
+		"Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		sans-serif;
 	background: #ffffff;
 	color: #000000;
 	line-height: 1.5;
@@ -147,18 +149,6 @@ body {
 	line-height: 1.4;
 }
 
-/* Getting Started Section */
-.welcome-getting-started {
-	margin-bottom: 48px;
-}
-
-.getting-started-title {
-	font-size: 24px;
-	font-weight: 600;
-	color: #000000;
-	margin-bottom: 32px;
-}
-
 .steps {
 	display: flex;
 	justify-content: center;
@@ -231,31 +221,6 @@ body {
 	cursor: not-allowed;
 }
 
-.welcome-help {
-	margin-top: 16px;
-}
-
-.help-text {
-	font-size: 14px;
-	color: #6c757d;
-	margin: 0;
-}
-
-.help-link {
-	background: none;
-	border: none;
-	color: #4285f4;
-	cursor: pointer;
-	text-decoration: underline;
-	font-size: 14px;
-	padding: 0;
-	outline: none;
-}
-
-.help-link:hover {
-	color: #1a73e8;
-}
-
 /* Footer */
 .welcome-footer {
 	border-top: 1px solid #e9ecef;
@@ -283,25 +248,25 @@ body {
 	.welcome-container {
 		padding: 16px;
 	}
-	
+
 	.welcome-title {
 		font-size: 28px;
 	}
-	
+
 	.welcome-subtitle {
 		font-size: 16px;
 	}
-	
+
 	.features-grid {
 		grid-template-columns: 1fr;
 		gap: 16px;
 	}
-	
+
 	.steps {
 		flex-direction: column;
 		align-items: center;
 	}
-	
+
 	.step {
 		max-width: 100%;
 		text-align: center;
