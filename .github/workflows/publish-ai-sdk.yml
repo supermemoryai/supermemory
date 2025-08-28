@@ -32,9 +32,9 @@ jobs:
               run: bun install
 
             - name: Build
-              run: bun run build
+              run: bun run build && ls -la
 
             - name: Publish
-              run: npm publish --provenance --access public
+              run: npm publish --provenance --access public --dry-run --verbose
               env:
                 NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
