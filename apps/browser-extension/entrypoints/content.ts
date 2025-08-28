@@ -1,4 +1,9 @@
-import { DOMAINS, ELEMENT_IDS, MESSAGE_TYPES } from "../utils/constants"
+import {
+	DOMAINS,
+	ELEMENT_IDS,
+	MESSAGE_TYPES,
+	STORAGE_KEYS,
+} from "../utils/constants"
 import {
 	createChatGPTInputBarElement,
 	createSaveTweetElement,
@@ -261,8 +266,8 @@ export default defineContentScript({
 			isTwitterImportOpen = true
 
 			// Check if user is authenticated
-			browser.storage.local.get(["bearerToken"], ({ bearerToken }) => {
-				const isAuthenticated = !!bearerToken
+			browser.storage.local.get([STORAGE_KEYS.BEARER_TOKEN], (result) => {
+				const isAuthenticated = !!result[STORAGE_KEYS.BEARER_TOKEN]
 
 				twitterImportUI = createTwitterImportUI(
 					hideTwitterImportUI,
@@ -297,10 +302,10 @@ export default defineContentScript({
 		}) {
 			if (!isTwitterImportOpen || !twitterImportUI) return
 
-			const statusDiv = twitterImportUI.querySelector("#twitter-import-status")
-			const button = twitterImportUI.querySelector("#twitter-import-button")
+			const statusDiv = twitterImportUI.querySelector(`#${ELEMENT_IDS.TWITTER_IMPORT_STATUS}`)
+			const button = twitterImportUI.querySelector(`#${ELEMENT_IDS.TWITTER_IMPORT_BTN}`)
 
-			if (message.type === "import-update") {
+			if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
 				if (statusDiv) {
 					statusDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px; color: #92400e; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 8px 12px; font-size: 13px;">
@@ -315,7 +320,7 @@ export default defineContentScript({
 				}
 			}
 
-			if (message.type === "import-done") {
+			if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
 				if (statusDiv) {
 					statusDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px; color: #0369a1; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 8px 12px; font-size: 13px;">
@@ -449,7 +454,9 @@ export default defineContentScript({
 					return
 				}
 
-				chrome.storage.local.set({ bearerToken }, () => {})
+				chrome.storage.local.set({
+					[STORAGE_KEYS.BEARER_TOKEN]: bearerToken,
+				}, () => {})
 			}
 		})
 	},

@@ -1,5 +1,5 @@
 /**
- * API service for Supermemory browser extension
+ * API service for supermemory browser extension
  */
 import { API_ENDPOINTS, STORAGE_KEYS } from "./constants"
 import {
@@ -68,47 +68,6 @@ export async function fetchProjects(): Promise<Project[]> {
 		console.error("Failed to fetch projects:", error)
 		throw error
 	}
-}
-
-/**
- * Get projects from cache or fetch fresh
- */
-export async function getProjects(useCache = true): Promise<Project[]> {
-	if (useCache) {
-		try {
-			const cached = await chrome.storage.local.get([
-				STORAGE_KEYS.PROJECTS_CACHE,
-			])
-			const cachedData = cached[STORAGE_KEYS.PROJECTS_CACHE]
-
-			if (cachedData?.timestamp && cachedData.projects) {
-				// Cache for 5 minutes
-				const cacheAge = Date.now() - cachedData.timestamp
-				if (cacheAge < 5 * 60 * 1000) {
-					return cachedData.projects
-				}
-			}
-		} catch (error) {
-			console.warn("Failed to read projects cache:", error)
-		}
-	}
-
-	// Fetch fresh data
-	const projects = await fetchProjects()
-
-	// Cache the results
-	try {
-		await chrome.storage.local.set({
-			[STORAGE_KEYS.PROJECTS_CACHE]: {
-				projects,
-				timestamp: Date.now(),
-			},
-		})
-	} catch (error) {
-		console.warn("Failed to cache projects:", error)
-	}
-
-	return projects
 }
 
 /**

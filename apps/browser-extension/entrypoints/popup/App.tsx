@@ -1,41 +1,40 @@
+import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import "./App.css"
+import { STORAGE_KEYS } from "../../utils/constants"
 import {
-	getDefaultProject,
-	getProjects,
-	setDefaultProject,
-} from "../../utils/api"
+	useDefaultProject,
+	useProjects,
+	useSetDefaultProject,
+} from "../../utils/query-hooks"
 import type { Project } from "../../utils/types"
 
 function App() {
 	const [userSignedIn, setUserSignedIn] = useState<boolean>(false)
 	const [loading, setLoading] = useState<boolean>(true)
-	const [projects, setProjects] = useState<Project[]>([])
-	const [defaultProject, setDefaultProjectState] = useState<Project | null>(
-		null,
-	)
-	const [loadingProjects, setLoadingProjects] = useState<boolean>(false)
 	const [showProjectSelector, setShowProjectSelector] = useState<boolean>(false)
 	const [currentUrl, setCurrentUrl] = useState<string>("")
 	const [currentTitle, setCurrentTitle] = useState<string>("")
 	const [saving, setSaving] = useState<boolean>(false)
 	const [activeTab, setActiveTab] = useState<"save" | "imports">("save")
 
+	const queryClient = useQueryClient()
+	const { data: projects = [], isLoading: loadingProjects } = useProjects({
+		enabled: userSignedIn,
+	})
+	const { data: defaultProject } = useDefaultProject({
+		enabled: userSignedIn,
+	})
+	const setDefaultProjectMutation = useSetDefaultProject()
+
 	useEffect(() => {
 		const checkAuthStatus = async () => {
 			try {
-				const result = await chrome.storage.local.get(["bearerToken"])
-				const isSignedIn = !!result.bearerToken
+				const result = await chrome.storage.local.get([
+					STORAGE_KEYS.BEARER_TOKEN,
+				])
+				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN]
 				setUserSignedIn(isSignedIn)
-
-				if (isSignedIn) {
-					try {
-						const defaultProj = await getDefaultProject()
-						setDefaultProjectState(defaultProj)
-					} catch (error) {
-						console.error("Error loading default project:", error)
-					}
-				}
 			} catch (error) {
 				console.error("Error checking auth status:", error)
 				setUserSignedIn(false)
@@ -63,43 +62,27 @@ function App() {
 		getCurrentTab()
 	}, [])
 
-	const loadProjects = async () => {
-		setLoadingProjects(true)
-		try {
-			const projectsList = await getProjects()
-			setProjects(projectsList)
-			console.log("Projects:", projectsList)
-			console.log("Default project:", defaultProject)
-			// If no default project is set and projects are available, set first as default
-			if (!defaultProject && projectsList.length > 0) {
-				const firstProject = projectsList[0]
-				await setDefaultProject(firstProject)
-				setDefaultProjectState(firstProject)
-			}
-		} catch (error) {
-			console.error("Error loading projects:", error)
-		} finally {
-			setLoadingProjects(false)
-		}
-	}
-
-	const handleProjectSelect = async (project: Project) => {
-		try {
-			await setDefaultProject(project)
-			setDefaultProjectState(project)
-			setShowProjectSelector(false)
-		} catch (error) {
-			console.error("Error setting default project:", error)
-		}
+	const handleProjectSelect = (project: Project) => {
+		setDefaultProjectMutation.mutate(project, {
+			onSuccess: () => {
+				setShowProjectSelector(false)
+			},
+			onError: (error) => {
+				console.error("Error setting default project:", error)
+			},
+		})
 	}
 
 	const handleShowProjectSelector = () => {
-		console.log("handleShowProjectSelector, projects.length:", projects.length)
-		if (projects.length === 0) {
-			loadProjects()
-		}
 		setShowProjectSelector(true)
 	}
+
+	useEffect(() => {
+		if (!defaultProject && projects.length > 0) {
+			const firstProject = projects[0]
+			setDefaultProjectMutation.mutate(firstProject)
+		}
+	}, [defaultProject, projects, setDefaultProjectMutation])
 
 	const handleSaveCurrentPage = async () => {
 		setSaving(true)
@@ -122,10 +105,9 @@ function App() {
 
 	const handleSignOut = async () => {
 		try {
-			await chrome.storage.local.remove(["bearerToken"])
+			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN])
 			setUserSignedIn(false)
-			setDefaultProjectState(null)
-			setProjects([])
+			queryClient.clear()
 		} catch (error) {
 			console.error("Error signing out:", error)
 		}

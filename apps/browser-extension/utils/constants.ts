@@ -14,29 +14,27 @@ export const API_ENDPOINTS = {
  * Storage Keys
  */
 export const STORAGE_KEYS = {
-	BEARER_TOKEN: "bearerToken",
-	TWITTER_AUTH: "twitterAuth",
-	TOKENS_LOGGED: "tokens_logged",
-	TWITTER_COOKIE: "cookie",
-	TWITTER_CSRF: "csrf",
-	TWITTER_AUTH_TOKEN: "auth",
-	DEFAULT_PROJECT: "defaultProject",
-	PROJECTS_CACHE: "projectsCache",
+	BEARER_TOKEN: "bearer-token",
+	TOKENS_LOGGED: "tokens-logged",
+	TWITTER_COOKIE: "twitter-cookie",
+	TWITTER_CSRF: "twitter-csrf",
+	TWITTER_AUTH_TOKEN: "twitter-auth-token",
+	DEFAULT_PROJECT: "sm-default-project",
 } as const
 
 /**
  * DOM Element IDs
  */
 export const ELEMENT_IDS = {
-	TWITTER_IMPORT_BUTTON: "supermemory-twitter-import-button",
-	TWITTER_IMPORT_STATUS: "twitter-import-status",
-	TWITTER_CLOSE_BTN: "twitter-close-btn",
-	TWITTER_IMPORT_BTN: "twitter-import-button",
-	TWITTER_SIGNIN_BTN: "twitter-signin-btn",
-	SUPERMEMORY_TOAST: "supermemory-toast",
-	SUPERMEMORY_SAVE_BUTTON: "supermemory-save-button",
-	SAVE_TWEET_ELEMENT: "supermemory-save-tweet-element",
-	CHATGPT_INPUT_BAR_ELEMENT: "supermemory-chatgpt-input-bar-element",
+	TWITTER_IMPORT_BUTTON: "sm-twitter-import-button",
+	TWITTER_IMPORT_STATUS: "sm-twitter-import-status",
+	TWITTER_CLOSE_BTN: "sm-twitter-close-btn",
+	TWITTER_IMPORT_BTN: "sm-twitter-import-btn",
+	TWITTER_SIGNIN_BTN: "sm-twitter-signin-btn",
+	SUPERMEMORY_TOAST: "sm-toast",
+	SUPERMEMORY_SAVE_BUTTON: "sm-save-button",
+	SAVE_TWEET_ELEMENT: "sm-save-tweet-element",
+	CHATGPT_INPUT_BAR_ELEMENT: "sm-chatgpt-input-bar-element",
 } as const
 
 /**
@@ -70,19 +68,14 @@ export const CONTAINER_TAGS = {
  * Message Types for extension communication
  */
 export const MESSAGE_TYPES = {
-	SAVE_MEMORY: "saveMemory",
-	SHOW_TOAST: "showToast",
-	BATCH_IMPORT_ALL: "batchImportAll",
-	IMPORT_UPDATE: "import-update",
-	IMPORT_DONE: "import-done",
-	GET_RELATED_MEMORIES: "getRelatedMemories",
+	SAVE_MEMORY: "sm-save-memory",
+	SHOW_TOAST: "sm-show-toast",
+	BATCH_IMPORT_ALL: "sm-batch-import-all",
+	IMPORT_UPDATE: "sm-import-update",
+	IMPORT_DONE: "sm-import-done",
+	GET_RELATED_MEMORIES: "sm-get-related-memories",
 } as const
 
 export const CONTEXT_MENU_IDS = {
-	SAVE_TO_SUPERMEMORY: "save-to-supermemory",
-} as const
-
-export const CSS_CLASSES = {
-	TOAST_STYLES_ID: "supermemory-toast-styles",
-	SPINNER_STYLES_ID: "supermemory-spinner-styles",
+	SAVE_TO_SUPERMEMORY: "sm-save-to-supermemory",
 } as const

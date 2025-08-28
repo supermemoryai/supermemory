@@ -2,6 +2,7 @@
  * Twitter Authentication Module
  * Handles token capture and storage for Twitter API access
  */
+import { STORAGE_KEYS } from "./constants"
 
 export interface TwitterAuthTokens {
 	cookie: string
@@ -34,17 +35,17 @@ export function captureTwitterTokens(
 	)
 
 	if (authHeader?.value && cookieHeader?.value && csrfHeader?.value) {
-		chrome.storage.session.get(["tokens_logged"], (result) => {
-			if (!result.tokens_logged) {
+		chrome.storage.session.get([STORAGE_KEYS.TOKENS_LOGGED], (result) => {
+			if (!result[STORAGE_KEYS.TOKENS_LOGGED]) {
 				console.log("Twitter auth tokens captured successfully")
-				chrome.storage.session.set({ tokens_logged: true })
+				chrome.storage.session.set({ [STORAGE_KEYS.TOKENS_LOGGED]: true })
 			}
 		})
 
 		chrome.storage.session.set({
-			cookie: cookieHeader.value,
-			csrf: csrfHeader.value,
-			auth: authHeader.value,
+			[STORAGE_KEYS.TWITTER_COOKIE]: cookieHeader.value,
+			[STORAGE_KEYS.TWITTER_CSRF]: csrfHeader.value,
+			[STORAGE_KEYS.TWITTER_AUTH_TOKEN]: authHeader.value,
 		})
 
 		return true
@@ -58,16 +59,24 @@ export function captureTwitterTokens(
  * @returns Promise resolving to tokens or null if not available
  */
 export async function getTwitterTokens(): Promise<TwitterAuthTokens | null> {
-	const result = await chrome.storage.session.get(["cookie", "csrf", "auth"])
+	const result = await chrome.storage.session.get([
+		STORAGE_KEYS.TWITTER_COOKIE,
+		STORAGE_KEYS.TWITTER_CSRF,
+		STORAGE_KEYS.TWITTER_AUTH_TOKEN,
+	])
 
-	if (!result.cookie || !result.csrf || !result.auth) {
+	if (
+		!result[STORAGE_KEYS.TWITTER_COOKIE] ||
+		!result[STORAGE_KEYS.TWITTER_CSRF] ||
+		!result[STORAGE_KEYS.TWITTER_AUTH_TOKEN]
+	) {
 		return null
 	}
 
 	return {
-		cookie: result.cookie,
-		csrf: result.csrf,
-		auth: result.auth,
+		cookie: result[STORAGE_KEYS.TWITTER_COOKIE],
+		csrf: result[STORAGE_KEYS.TWITTER_CSRF],
+		auth: result[STORAGE_KEYS.TWITTER_AUTH_TOKEN],
 	}
 }
 

@@ -165,7 +165,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     transition: all 0.2s ease;
   `
 
-	const iconUrl = browser.runtime.getURL("/light-mode-icon.png")
+	const iconUrl = browser.runtime.getURL("/icon-16.png")
 	button.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
   `
