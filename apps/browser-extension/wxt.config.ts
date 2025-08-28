@@ -26,8 +26,6 @@ export default defineConfig({
 			{
 				resources: [
 					"icon-16.png",
-					"light-mode-icon.png",
-					"dark-mode-icon.png",
 					"fonts/*.ttf",
 				],
 				matches: ["<all_urls>"],

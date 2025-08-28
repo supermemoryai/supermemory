@@ -303,14 +303,7 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
     z-index: 1000;
   `
 
-	// Check body background color to determine which icon to use
-	const bodyStyle = window.getComputedStyle(document.body)
-	const backgroundColor = bodyStyle.backgroundColor
-	const isLightMode = backgroundColor === "rgb(255, 255, 255)"
-
-	const iconFileName = isLightMode
-		? "/light-mode-icon.png"
-		: "/dark-mode-icon.png"
+	const iconFileName = "/icon-16.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
@@ -352,8 +345,7 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
   `
 
 	// Use appropriate icon based on theme
-	const isDark = DOMUtils.isDarkMode()
-	const iconFileName = isDark ? "/dark-mode-icon.png" : "/light-mode-icon.png"
+	const iconFileName = "/icon-16.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 50%;" />

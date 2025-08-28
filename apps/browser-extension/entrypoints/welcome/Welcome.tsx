@@ -7,7 +7,7 @@ function Welcome() {
 					<img
 						alt="supermemory"
 						className="welcome-logo"
-						src="/logo-trademark.svg"
+						src="https://assets.supermemory.ai/brand/wordmark/dark-transparent.svg"
 					/>
 					<p className="welcome-subtitle">
 						Your AI-powered second brain for saving and organizing everything

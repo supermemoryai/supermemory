@@ -15,14 +15,6 @@ import type {
 	MemoryPayload,
 } from "../utils/types"
 
-interface SearchResponse {
-	results: Array<{
-		chunks: Array<{
-			content: string
-		}>
-	}>
-}
-
 export default defineBackground(() => {
 	let twitterImporter: TwitterImporter | null = null
 
@@ -134,8 +126,10 @@ export default defineBackground(() => {
 	): Promise<{ success: boolean; data?: unknown; error?: string }> => {
 		try {
 			const responseData = await searchMemories(data)
-			const content = (responseData as SearchResponse).results[0].chunks[0]
-				.content
+			const response = responseData as {
+				results?: Array<{ chunks?: Array<{ content?: string }> }>
+			}
+			const content = response.results?.[0]?.chunks?.[0]?.content
 			console.log("Content:", content)
 			return { success: true, data: content }
 		} catch (error) {

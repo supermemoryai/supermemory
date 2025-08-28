@@ -151,8 +151,8 @@ function App() {
 				<img
 					alt="supermemory"
 					className="logo"
-					src="/logo-trademark.svg"
-					style={{ width: "80%", height: "32px" }}
+					src="https://assets.supermemory.ai/brand/wordmark/dark-transparent.svg"
+					style={{ width: "80%", height: "45px" }}
 				/>
 				{userSignedIn && (
 					<button
