@@ -200,7 +200,7 @@ export function IntegrationsView() {
 		onSuccess: () => {
 			analytics.connectionDeleted();
 			toast.success(
-				"Connection removal has started. supermemory will permanently delete the documents in the next few minutes.",
+				"Connection removal has started. supermemory will permanently delete all documents related to the connection in the next few minutes.",
 			);
 			queryClient.invalidateQueries({ queryKey: ["connections"] });
 		},
@@ -286,10 +286,10 @@ export function IntegrationsView() {
 						</div>
 						<div className="flex-1 min-w-0">
 							<h3 className="text-white font-semibold text-base mb-1">
-								iOS Shortcuts
+								Apple shortcuts
 							</h3>
 							<p className="text-white/70 text-sm leading-relaxed">
-								Add memories directly from iOS
+								Add memories directly from iPhone, iPad or Mac.
 							</p>
 						</div>
 					</div>
@@ -379,7 +379,7 @@ export function IntegrationsView() {
 								Connections
 							</h3>
 							<p className="text-white/70 text-sm leading-relaxed mb-2">
-								Connect your favorite services to import documents
+								Connect your accounts to sync document.
 							</p>
 							{!isProUser && (
 								<p className="text-xs text-white/50">
