@@ -1,6 +1,6 @@
 {
 	"name": "supermemory-browser-extension",
-	"description": "An extension for https://app.supermemory.ai - an AI hub for all your knowledge.",
+	"description": "Browser extension for the supermemory app",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
