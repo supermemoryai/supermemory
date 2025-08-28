@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/ai-sdk",
   "type": "module",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
@@ -23,11 +23,11 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
   "repository": {
