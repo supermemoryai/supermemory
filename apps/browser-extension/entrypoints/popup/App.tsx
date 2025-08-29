@@ -115,12 +115,12 @@ function App() {
 
 	if (loading) {
 		return (
-			<div className="popup-container">
-				<div className="header">
-					<img alt="supermemory" className="logo" src="/icon-48.png" />
-					<h1>supermemory</h1>
+			<div className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden">
+				<div className="flex items-center justify-between gap-3 p-2.5 border-b border-gray-200 relative">
+					<img alt="supermemory" className="w-8 h-8 flex-shrink-0" src="/icon-48.png" />
+					<h1 className="m-0 text-lg font-semibold text-black flex-1">supermemory</h1>
 				</div>
-				<div className="content">
+				<div className="p-4">
 					<div>Loading...</div>
 				</div>
 			</div>
@@ -128,17 +128,17 @@ function App() {
 	}
 
 	return (
-		<div className="popup-container">
-			<div className="header">
+		<div className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden">
+			<div className="flex items-center justify-between gap-3 p-2.5 border-b border-gray-200 relative">
 				<img
 					alt="supermemory"
-					className="logo"
+					className="w-8 h-8 flex-shrink-0"
 					src="https://assets.supermemory.ai/brand/wordmark/dark-transparent.svg"
 					style={{ width: "80%", height: "45px" }}
 				/>
 				{userSignedIn && (
 					<button
-						className="header-sign-out"
+						className="bg-none border-none text-base cursor-pointer text-gray-500 p-1 rounded transition-colors duration-200 hover:text-black hover:bg-gray-100"
 						onClick={handleSignOut}
 						title="Logout"
 						type="button"
@@ -161,20 +161,28 @@ function App() {
 					</button>
 				)}
 			</div>
-			<div className="content">
+			<div className="p-4">
 				{userSignedIn ? (
-					<div className="authenticated">
+					<div className="text-left">
 						{/* Tab Navigation */}
-						<div className="tab-navigation">
+						<div className="flex bg-gray-100 rounded-lg p-1 mb-4">
 							<button
-								className={`tab-btn ${activeTab === "save" ? "active" : ""}`}
+								className={`flex-1 py-2 px-4 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
+									activeTab === "save"
+										? "bg-white text-black shadow-sm"
+										: "text-gray-500 hover:text-gray-700"
+								}`}
 								onClick={() => setActiveTab("save")}
 								type="button"
 							>
 								Save
 							</button>
 							<button
-								className={`tab-btn ${activeTab === "imports" ? "active" : ""}`}
+								className={`flex-1 py-2 px-4 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
+									activeTab === "imports"
+										? "bg-white text-black shadow-sm"
+										: "text-gray-500 hover:text-gray-700"
+								}`}
 								onClick={() => setActiveTab("imports")}
 								type="button"
 							>
@@ -184,35 +192,35 @@ function App() {
 
 						{/* Tab Content */}
 						{activeTab === "save" ? (
-							<div className="tab-content">
+							<div className="flex flex-col gap-4 min-h-[200px]">
 								{/* Current Page Info */}
-								<div className="current-page">
-									<div className="page-info">
-										<h3 className="page-title">
+								<div className="mb-0">
+									<div className="bg-gray-50 p-3 rounded-md border border-gray-200">
+										<h3 className="m-0 mb-1 text-sm font-semibold text-black overflow-hidden text-ellipsis whitespace-nowrap">
 											{currentTitle || "Current Page"}
 										</h3>
-										<p className="page-url">{currentUrl}</p>
+										<p className="m-0 text-xs text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">{currentUrl}</p>
 									</div>
 								</div>
 
 								{/* Project Selection */}
-								<div className="project-section">
+								<div className="mb-0">
 									<button
-										className="project-selector-btn"
+										className="w-full bg-transparent border-none p-0 cursor-pointer text-left"
 										onClick={handleShowProjectSelector}
 										type="button"
 									>
-										<div className="project-selector-content">
-											<span className="project-label">Save to project:</span>
-											<div className="project-value">
-												<span className="project-name">
+										<div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 transition-colors duration-200 hover:bg-gray-200 hover:border-gray-300">
+											<span className="text-sm font-medium text-gray-600">Save to project:</span>
+											<div className="flex items-center gap-2">
+												<span className="text-sm font-medium text-black overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
 													{defaultProject
 														? defaultProject.name
 														: "Default Project"}
 												</span>
 												<svg
 													aria-label="Select project"
-													className="project-arrow"
+													className="text-gray-500 flex-shrink-0 transition-transform duration-200 hover:text-gray-700 hover:translate-x-0.5"
 													fill="none"
 													height="16"
 													stroke="currentColor"
@@ -231,9 +239,9 @@ function App() {
 								</div>
 
 								{/* Save Button at Bottom */}
-								<div className="save-action">
+								<div className="mt-auto pt-4">
 									<button
-										className="login-primary-btn"
+										className="w-full py-3 px-6 bg-gray-700 text-white border-none rounded-3xl text-base font-medium cursor-pointer transition-colors duration-200 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
 										disabled={saving}
 										onClick={handleSaveCurrentPage}
 										type="button"
@@ -243,12 +251,12 @@ function App() {
 								</div>
 							</div>
 						) : (
-							<div className="tab-content">
+							<div className="flex flex-col gap-4 min-h-[200px]">
 								{/* Import Actions */}
-								<div className="import-actions">
-									<div className="import-item">
+								<div className="flex flex-col gap-4">
+									<div className="flex flex-col gap-2">
 										<button
-											className="chatgpt-btn"
+											className="w-full py-3 px-3 bg-white text-black border border-gray-200 rounded-md text-sm font-medium cursor-pointer flex items-center justify-center transition-colors duration-200 hover:bg-gray-50"
 											onClick={() => {
 												chrome.tabs.create({
 													url: "https://chatgpt.com/#settings/Personalization",
@@ -258,7 +266,7 @@ function App() {
 										>
 											<svg
 												aria-label="ChatGPT Logo"
-												className="chatgpt-logo"
+												className="w-4.5 h-4.5 flex-shrink-0 mr-2"
 												fill="currentColor"
 												role="img"
 												viewBox="0 0 24 24"
@@ -271,9 +279,9 @@ function App() {
 										</button>
 									</div>
 
-									<div className="import-item">
+									<div className="flex flex-col gap-2">
 										<button
-											className="twitter-btn"
+											className="w-full py-3 px-3 bg-white text-black border border-gray-200 rounded-md text-sm font-medium cursor-pointer flex items-center justify-center transition-colors duration-200 outline-none appearance-none hover:bg-gray-50 focus:outline-none"
 											onClick={() => {
 												chrome.tabs.create({
 													url: "https://x.com/i/bookmarks",
@@ -283,7 +291,7 @@ function App() {
 										>
 											<svg
 												aria-label="X Twitter Logo"
-												className="twitter-logo"
+												className="w-4.5 h-4.5 flex-shrink-0 mr-2"
 												fill="currentColor"
 												viewBox="0 0 24 24"
 												xmlns="http://www.w3.org/2000/svg"
@@ -293,7 +301,7 @@ function App() {
 											</svg>
 											Import X Bookmarks
 										</button>
-										<p className="import-instructions">
+										<p className="m-0 text-xs text-gray-500 leading-tight pl-1">
 											Click on supermemory on top right to import bookmarks
 										</p>
 									</div>
@@ -302,11 +310,11 @@ function App() {
 						)}
 
 						{showProjectSelector && (
-							<div className="project-selector">
-								<div className="project-selector-header">
+							<div className="absolute inset-0 bg-white rounded-lg z-[1000] shadow-xl flex flex-col">
+								<div className="flex justify-between items-center p-4 border-b border-gray-200 text-base font-semibold text-black flex-shrink-0">
 									<span>Select the Project</span>
 									<button
-										className="project-close-btn"
+										className="bg-transparent border-none text-xl cursor-pointer text-gray-500 p-0 w-6 h-6 flex items-center justify-center hover:text-black"
 										onClick={() => setShowProjectSelector(false)}
 										type="button"
 									>
@@ -314,26 +322,28 @@ function App() {
 									</button>
 								</div>
 								{loadingProjects ? (
-									<div className="project-loading">Loading projects...</div>
+									<div className="py-8 px-4 text-center text-gray-500 text-sm">Loading projects...</div>
 								) : (
-									<div className="project-list">
+									<div className="flex-1 overflow-y-auto min-h-0">
 										{projects.map((project) => (
 											<button
-												className={`project-item ${defaultProject?.id === project.id ? "selected" : ""}`}
+												className={`flex justify-between items-center py-3 px-4 cursor-pointer transition-colors duration-200 border-b border-gray-100 bg-transparent border-none w-full text-left last:border-b-0 hover:bg-gray-50 ${
+													defaultProject?.id === project.id ? "bg-blue-50" : ""
+												}`}
 												key={project.id}
 												onClick={() => handleProjectSelect(project)}
 												type="button"
 											>
-												<div className="project-item-info">
-													<span className="project-item-name">
+												<div className="flex flex-col flex-1 gap-0.5">
+													<span className="text-sm font-medium text-black break-words leading-tight">
 														{project.name}
 													</span>
-													<span className="project-item-count">
+													<span className="text-xs text-gray-500">
 														{project.documentCount} docs
 													</span>
 												</div>
 												{defaultProject?.id === project.id && (
-													<span className="project-item-check">✓</span>
+													<span className="text-blue-600 font-bold text-base">✓</span>
 												)}
 											</button>
 										))}
@@ -343,24 +353,24 @@ function App() {
 						)}
 					</div>
 				) : (
-					<div className="unauthenticated">
-						<div className="login-intro">
-							<h2 className="login-title">
+					<div className="text-center py-2">
+						<div className="mb-8">
+							<h2 className="m-0 mb-4 text-sm font-normal text-black leading-tight">
 								Login to unlock all chrome extension features
 							</h2>
 
-							<ul className="features-list">
-								<li>Save any page to your supermemory</li>
-								<li>Import all your Twitter / X Bookmarks</li>
-								<li>Import your ChatGPT Memories</li>
+							<ul className="list-none p-0 m-0 text-left">
+								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">Save any page to your supermemory</li>
+								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">Import all your Twitter / X Bookmarks</li>
+								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">Import your ChatGPT Memories</li>
 							</ul>
 						</div>
 
-						<div className="login-actions">
-							<p className="login-help">
+						<div className="mt-8">
+							<p className="m-0 mb-4 text-sm text-gray-500">
 								Having trouble logging in?{" "}
 								<button
-									className="help-link"
+									className="bg-transparent border-none text-blue-500 cursor-pointer underline text-sm p-0 hover:text-blue-700"
 									onClick={() => {
 										window.open("mailto:dhravya@supermemory.com", "_blank")
 									}}
@@ -371,7 +381,7 @@ function App() {
 							</p>
 
 							<button
-								className="login-primary-btn"
+								className="w-full py-3 px-6 bg-gray-700 text-white border-none rounded-3xl text-base font-medium cursor-pointer transition-colors duration-200 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
 								onClick={() => {
 									chrome.tabs.create({
 										url: import.meta.env.PROD
