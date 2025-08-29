@@ -32,6 +32,7 @@ export function createToast(state: ToastState): HTMLElement {
     min-width: 200px;
     max-width: 300px;
     animation: slideIn 0.3s ease-out;
+    box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.12);
   `
 
 	// Add keyframe animations and fonts if not already present
