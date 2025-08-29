@@ -1,0 +1,275 @@
+/* Custom Font Definitions */
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 300;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Light.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Regular.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Medium.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Bold.ttf") format("truetype");
+}
+
+/* Welcome Page Styles */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	font-family:
+		"Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		sans-serif;
+	background: #ffffff;
+	color: #000000;
+	line-height: 1.5;
+}
+
+.welcome-container {
+	min-height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 32px;
+	background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.welcome-content {
+	max-width: 800px;
+	width: 100%;
+	text-align: center;
+}
+
+/* Header Styles */
+.welcome-header {
+	margin-bottom: 48px;
+}
+
+.welcome-logo {
+	height: 64px;
+	margin-bottom: 24px;
+}
+
+.welcome-title {
+	font-size: 32px;
+	font-weight: 700;
+	color: #000000;
+	margin-bottom: 16px;
+}
+
+.welcome-subtitle {
+	font-size: 18px;
+	color: #6c757d;
+	font-weight: 400;
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+/* Features Section */
+.welcome-features {
+	margin-bottom: 48px;
+}
+
+.features-title {
+	font-size: 24px;
+	font-weight: 600;
+	color: #000000;
+	margin-bottom: 32px;
+}
+
+.features-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 24px;
+	margin-bottom: 32px;
+}
+
+.feature-card {
+	background: #ffffff;
+	border: 1px solid #e9ecef;
+	border-radius: 12px;
+	padding: 24px;
+	text-align: center;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.feature-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+	border-color: #ced4da;
+}
+
+.feature-icon {
+	font-size: 32px;
+	margin-bottom: 16px;
+	display: block;
+}
+
+.feature-card h3 {
+	font-size: 18px;
+	font-weight: 600;
+	color: #000000;
+	margin-bottom: 12px;
+}
+
+.feature-card p {
+	font-size: 14px;
+	color: #6c757d;
+	line-height: 1.4;
+}
+
+.steps {
+	display: flex;
+	justify-content: center;
+	gap: 32px;
+	flex-wrap: wrap;
+}
+
+.step {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	max-width: 300px;
+	text-align: left;
+}
+
+.step-number {
+	width: 48px;
+	height: 48px;
+	background: #374151;
+	color: white;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 18px;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+.step-content h3 {
+	font-size: 16px;
+	font-weight: 600;
+	color: #000000;
+	margin-bottom: 4px;
+}
+
+.step-content p {
+	font-size: 14px;
+	color: #6c757d;
+	line-height: 1.3;
+}
+
+/* Actions Section */
+.welcome-actions {
+	margin-bottom: 32px;
+}
+
+.login-primary-btn {
+	width: auto;
+	min-width: 200px;
+	padding: 16px 32px;
+	background-color: #374151;
+	color: white;
+	border: none;
+	border-radius: 24px;
+	font-size: 16px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+	margin-bottom: 16px;
+	outline: none;
+}
+
+.login-primary-btn:hover:not(:disabled) {
+	background-color: #1f2937;
+}
+
+.login-primary-btn:disabled {
+	background-color: #9e9e9e;
+	cursor: not-allowed;
+}
+
+/* Footer */
+.welcome-footer {
+	border-top: 1px solid #e9ecef;
+	padding-top: 24px;
+	margin-top: 32px;
+}
+
+.welcome-footer p {
+	font-size: 14px;
+	color: #6c757d;
+}
+
+.footer-link {
+	color: #4285f4;
+	text-decoration: none;
+}
+
+.footer-link:hover {
+	text-decoration: underline;
+	color: #1a73e8;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.welcome-container {
+		padding: 16px;
+	}
+
+	.welcome-title {
+		font-size: 28px;
+	}
+
+	.welcome-subtitle {
+		font-size: 16px;
+	}
+
+	.features-grid {
+		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+
+	.steps {
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.step {
+		max-width: 100%;
+		text-align: center;
+		flex-direction: column;
+	}
+}
