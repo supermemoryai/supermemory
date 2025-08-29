@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.2.0/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
 	"assist": {
 		"actions": {
 			"source": {
@@ -39,7 +39,7 @@
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double",
-			"semicolons": "asNeeded"
+			"semicolons": "always"
 		}
 	},
 	"linter": {
@@ -58,7 +58,7 @@
 						"ignoreRestSiblings": true
 					}
 				},
-				"useExhaustiveDependencies": "warn",
+				"useExhaustiveDependencies": "off",
 				"noUnusedImports": "warn"
 			},
 			"recommended": true,
