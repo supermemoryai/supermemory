@@ -677,7 +677,6 @@ export default function Page() {
 	const {
 		data: waitlistStatus,
 		isLoading: isCheckingWaitlist,
-		error: waitlistError,
 	} = useQuery({
 		queryKey: ["waitlist-status", user?.id],
 		queryFn: async () => {
@@ -696,10 +695,23 @@ export default function Page() {
 	});
 
 	useEffect(() => {
+		// save the token for chrome extension
+		const url = new URL(window.location.href);
+		const rawToken = url.searchParams.get("token");
+
+		if (rawToken) {
+			const encodedToken = encodeURIComponent(rawToken);
+			window.postMessage({ token: encodedToken }, "*");
+			url.searchParams.delete("token");
+			window.history.replaceState({}, "", url.toString());
+		}
+	}, []);
+
+	useEffect(() => {
 		if (waitlistStatus && !waitlistStatus.accessGranted) {
 			router.push("/waitlist");
 		}
-	}, []);
+	}, [waitlistStatus, router]);
 
 	// Show loading state while checking authentication and waitlist status
 	if (!user || isCheckingWaitlist) {
