@@ -120,7 +120,7 @@ export async function saveMemory(payload: MemoryPayload): Promise<unknown> {
  */
 export async function searchMemories(query: string): Promise<unknown> {
 	try {
-		const response = await makeAuthenticatedRequest<unknown>("/v3/search", {
+		const response = await makeAuthenticatedRequest<unknown>("/v4/search", {
 			method: "POST",
 			body: JSON.stringify({ q: query }),
 		})

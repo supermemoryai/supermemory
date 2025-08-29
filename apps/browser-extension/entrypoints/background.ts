@@ -127,11 +127,14 @@ export default defineBackground(() => {
 		try {
 			const responseData = await searchMemories(data)
 			const response = responseData as {
-				results?: Array<{ chunks?: Array<{ content?: string }> }>
+				results?: Array<{ memory?: string }>
 			}
-			const content = response.results?.[0]?.chunks?.[0]?.content
-			console.log("Content:", content)
-			return { success: true, data: content }
+			let memories = "";
+			response.results?.forEach((result, index) => {
+				memories += `[${index + 1}] ${result.memory} `
+			})	
+			console.log("Memories:", memories)
+			return { success: true, data: memories }
 		} catch (error) {
 			return {
 				success: false,
