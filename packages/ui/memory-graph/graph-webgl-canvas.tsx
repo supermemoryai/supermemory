@@ -697,6 +697,7 @@ export const GraphWebGLCanvas = memo<GraphCanvasProps>(
 						const { dx, dy } = pendingWheelDeltaRef.current;
 						pendingWheelDeltaRef.current = { dx: 0, dy: 0 };
 
+						// @ts-expect-error
 						onWheel({
 							deltaY: dy,
 							deltaX: dx,
