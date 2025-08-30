@@ -68,6 +68,9 @@ export interface GraphCanvasProps {
 	onPanEnd: () => void;
 	onWheel: (e: React.WheelEvent) => void;
 	onDoubleClick: (e: React.MouseEvent) => void;
+	onTouchStart?: (e: React.TouchEvent) => void;
+	onTouchMove?: (e: React.TouchEvent) => void;
+	onTouchEnd?: (e: React.TouchEvent) => void;
 	draggingNodeId: string | null;
 	// Optional list of document IDs (customId or internal id) to highlight
 	highlightDocumentIds?: string[];

@@ -35,6 +35,9 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		onPanEnd,
 		onWheel,
 		onDoubleClick,
+		onTouchStart,
+		onTouchMove,
+		onTouchEnd,
 		draggingNodeId,
 		highlightDocumentIds,
 	}) => {
@@ -657,6 +660,10 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 				onWheel({
 					deltaY: e.deltaY,
 					deltaX: e.deltaX,
+					clientX: e.clientX,
+					clientY: e.clientY,
+					currentTarget: canvas,
+					nativeEvent: e,
 					preventDefault: () => {},
 					stopPropagation: () => {},
 				} as React.WheelEvent);
@@ -732,6 +739,9 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						onPanEnd();
 					}
 				}}
+				onTouchStart={onTouchStart}
+				onTouchMove={onTouchMove}
+				onTouchEnd={onTouchEnd}
 				ref={canvasRef}
 				style={{
 					cursor: draggingNodeId
