@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* Custom Font Definitions */
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 300;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Light.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Regular.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Medium.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-SemiBold.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "Space Grotesk";
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url("/fonts/SpaceGrotesk-Bold.ttf") format("truetype");
+}
