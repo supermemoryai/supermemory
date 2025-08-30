@@ -1,0 +1,1 @@
+## supermemory Browser Extension
