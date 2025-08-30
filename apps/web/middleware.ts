@@ -26,17 +26,18 @@ export default async function middleware(request: Request) {
 		return NextResponse.redirect(new URL("/login", request.url));
 	}
 
-	if (url.pathname !== "/waitlist") {
-		const response = await $fetch("@get/waitlist/status", {
-			headers: {
-				Authorization: `Bearer ${sessionCookie}`,
-			},
-		});
-		console.debug("[MIDDLEWARE] Waitlist status:", response.data);
-		if (response.data && !response.data.accessGranted) {
-			return NextResponse.redirect(new URL("/waitlist", request.url));
-		}
-	}
+	// TEMPORARILY DISABLED: Waitlist check
+	// if (url.pathname !== "/waitlist") {
+	// 	const response = await $fetch("@get/waitlist/status", {
+	// 		headers: {
+	// 			Authorization: `Bearer ${sessionCookie}`,
+	// 		},
+	// 	});
+	// 	console.debug("[MIDDLEWARE] Waitlist status:", response.data);
+	// 	if (response.data && !response.data.accessGranted) {
+	// 		return NextResponse.redirect(new URL("/waitlist", request.url));
+	// 	}
+	// }
 
 	console.debug("[MIDDLEWARE] Passing through to next handler");
 	console.debug("[MIDDLEWARE] === MIDDLEWARE END ===");
