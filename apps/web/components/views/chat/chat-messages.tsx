@@ -7,9 +7,8 @@ import { Input } from "@ui/components/input";
 import { DefaultChatTransport } from "ai";
 import { ArrowUp, Check, Copy, RotateCcw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+import { Streamdown } from "streamdown";
 import { TextShimmer } from "@/components/text-shimmer";
 import { usePersistentChat, useProject } from "@/stores";
 import { useGraphHighlights } from "@/stores/highlights";
@@ -21,10 +20,10 @@ function useStickyAutoScroll(triggerKeys: ReadonlyArray<unknown>) {
 	const [isAutoScroll, setIsAutoScroll] = useState(true);
 	const [isFarFromBottom, setIsFarFromBottom] = useState(false);
 
-	function scrollToBottom(behavior: ScrollBehavior = "auto") {
+	const scrollToBottom = (behavior: ScrollBehavior = "auto") => {
 		const node = bottomRef.current;
 		if (node) node.scrollIntoView({ behavior, block: "end" });
-	}
+	};
 
 	useEffect(function observeBottomVisibility() {
 		const container = scrollContainerRef.current;
@@ -67,20 +66,20 @@ function useStickyAutoScroll(triggerKeys: ReadonlyArray<unknown>) {
 		function autoScrollOnNewContent() {
 			if (isAutoScroll) scrollToBottom("auto");
 		},
-		[isAutoScroll, ...triggerKeys],
+		[isAutoScroll, scrollToBottom, ...triggerKeys],
 	);
 
-	function recomputeDistanceFromBottom() {
+	const recomputeDistanceFromBottom = () => {
 		const container = scrollContainerRef.current;
 		if (!container) return;
 		const distanceFromBottom =
 			container.scrollHeight - container.scrollTop - container.clientHeight;
 		setIsFarFromBottom(distanceFromBottom > 100);
-	}
+	};
 
 	useEffect(() => {
 		recomputeDistanceFromBottom();
-	}, [...triggerKeys]);
+	}, [recomputeDistanceFromBottom, ...triggerKeys]);
 
 	function onScroll() {
 		recomputeDistanceFromBottom();
@@ -154,7 +153,6 @@ export function ChatMessages() {
 		const msgs = getCurrentConversation();
 		setMessages(msgs ?? []);
 		setInput("");
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [currentChatId]);
 
 	useEffect(() => {
@@ -208,7 +206,7 @@ export function ChatMessages() {
 			currentSummary?.title && currentSummary.title.trim().length > 0,
 		);
 		shouldGenerateTitleRef.current = !hasTitle;
-	}, [currentChatId, id, getCurrentChat]);
+	}, [getCurrentChat]);
 	const {
 		scrollContainerRef,
 		bottomRef,
@@ -222,17 +220,17 @@ export function ChatMessages() {
 		<>
 			<div className="relative grow">
 				<div
-					ref={scrollContainerRef}
-					onScroll={onScroll}
 					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7"
+					onScroll={onScroll}
+					ref={scrollContainerRef}
 				>
 					{messages.map((message) => (
 						<div
-							key={message.id}
 							className={cn(
 								"flex flex-col",
 								message.role === "user" ? "items-end" : "items-start",
 							)}
+							key={message.id}
 						>
 							<div className="flex flex-col gap-2 max-w-4/5 bg-white/10 py-3 px-4 rounded-lg">
 								{message.parts
@@ -241,27 +239,22 @@ export function ChatMessages() {
 											part.type,
 										),
 									)
-									.map((part, index) => {
+									.map((part) => {
 										switch (part.type) {
 											case "text":
 												return (
-													<div
-														key={index}
-														className="prose prose-sm prose-invert max-w-none"
-													>
-														<ReactMarkdown remarkPlugins={[remarkGfm]}>
-															{(part as any).text}
-														</ReactMarkdown>
+													<div key={message.id + part.type}>
+														<Streamdown>{part.text}</Streamdown>
 													</div>
 												);
-											case "tool-searchMemories":
+											case "tool-searchMemories": {
 												switch (part.state) {
 													case "input-available":
 													case "input-streaming":
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<Spinner className="size-4" /> Searching
 																memories...
@@ -270,44 +263,42 @@ export function ChatMessages() {
 													case "output-error":
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<X className="size-4" /> Error recalling
 																memories
 															</div>
 														);
 													case "output-available": {
-														const output = (part as any).output;
+														const output = part.output;
 														const foundCount =
 															typeof output === "object" &&
 															output !== null &&
 															"count" in output
 																? Number(output.count) || 0
 																: 0;
-														const ids = Array.isArray(output?.results)
-															? ((output.results as any[])
-																	.map((r) => r?.documentId)
-																	.filter(Boolean) as string[])
-															: [];
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<Check className="size-4" /> Found {foundCount}{" "}
 																memories
 															</div>
 														);
 													}
+													default:
+														return null;
 												}
-											case "tool-addMemory":
+											}
+											case "tool-addMemory": {
 												switch (part.state) {
 													case "input-available":
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<Spinner className="size-4" /> Adding memory...
 															</div>
@@ -315,8 +306,8 @@ export function ChatMessages() {
 													case "output-error":
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<X className="size-4" /> Error adding memory
 															</div>
@@ -324,8 +315,8 @@ export function ChatMessages() {
 													case "output-available":
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<Check className="size-4" /> Memory added
 															</div>
@@ -333,23 +324,24 @@ export function ChatMessages() {
 													case "input-streaming":
 														return (
 															<div
-																key={index}
 																className="text-sm flex items-center gap-2 text-muted-foreground"
+																key={message.id + part.type}
 															>
 																<Spinner className="size-4" /> Adding memory...
 															</div>
 														);
+													default:
+														return null;
 												}
+											}
+											default:
+												return null;
 										}
-
-										return null;
 									})}
 							</div>
 							{message.role === "assistant" && (
 								<div className="flex items-center gap-0.5 mt-0.5">
 									<Button
-										variant="ghost"
-										size="icon"
 										className="size-7 text-muted-foreground hover:text-foreground"
 										onClick={() => {
 											navigator.clipboard.writeText(
@@ -360,14 +352,16 @@ export function ChatMessages() {
 											);
 											toast.success("Copied to clipboard");
 										}}
+										size="icon"
+										variant="ghost"
 									>
 										<Copy className="size-3.5" />
 									</Button>
 									<Button
-										variant="ghost"
-										size="icon"
 										className="size-6 text-muted-foreground hover:text-foreground"
 										onClick={() => regenerate({ messageId: message.id })}
+										size="icon"
+										variant="ghost"
 									>
 										<RotateCcw className="size-3.5" />
 									</Button>
@@ -387,11 +381,6 @@ export function ChatMessages() {
 				</div>
 
 				<Button
-					type="button"
-					onClick={() => {
-						enableAutoScroll();
-						scrollToBottom("smooth");
-					}}
 					className={cn(
 						"rounded-full w-fit mx-auto shadow-md z-10 absolute inset-x-0 bottom-4 flex justify-center",
 						"transition-all duration-200 ease-out",
@@ -399,8 +388,13 @@ export function ChatMessages() {
 							? "opacity-100 scale-100 pointer-events-auto"
 							: "opacity-0 scale-95 pointer-events-none",
 					)}
-					variant="default"
+					onClick={() => {
+						enableAutoScroll();
+						scrollToBottom("smooth");
+					}}
 					size="sm"
+					type="button"
+					variant="default"
 				>
 					Scroll to bottom
 				</Button>
@@ -426,12 +420,12 @@ export function ChatMessages() {
 				<div className="absolute top-0 left-0 -mt-7 w-full h-7 bg-gradient-to-t from-background to-transparent" />
 				<Input
 					className="w-full"
-					value={input}
-					onChange={(e) => setInput(e.target.value)}
 					disabled={status === "submitted"}
+					onChange={(e) => setInput(e.target.value)}
 					placeholder="Say something..."
+					value={input}
 				/>
-				<Button type="submit" disabled={status === "submitted"}>
+				<Button disabled={status === "submitted"} type="submit">
 					{status === "ready" ? (
 						<ArrowUp className="size-4" />
 					) : status === "submitted" ? (

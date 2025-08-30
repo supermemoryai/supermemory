@@ -9,6 +9,7 @@ import { useGraphData } from "./hooks/use-graph-data";
 import { useGraphInteractions } from "./hooks/use-graph-interactions";
 import { Legend } from "./legend";
 import { LoadingIndicator } from "./loading-indicator";
+import { NavigationControls } from "./navigation-controls";
 import { NodeDetailPanel } from "./node-detail-panel";
 import { SpacesDropdown } from "./spaces-dropdown";
 
@@ -71,8 +72,14 @@ export const MemoryGraph = ({
 		handleNodeDragMove,
 		handleNodeDragEnd,
 		handleDoubleClick,
+		handleTouchStart,
+		handleTouchMove,
+		handleTouchEnd,
 		setSelectedNode,
 		autoFitToViewport,
+		centerViewportOn,
+		zoomIn,
+		zoomOut,
 	} = useGraphInteractions(variant);
 
 	// Graph data
@@ -187,6 +194,37 @@ export const MemoryGraph = ({
 		},
 		[handleNodeDragStart, nodes],
 	);
+
+	// Navigation callbacks
+	const handleCenter = useCallback(() => {
+		if (nodes.length > 0) {
+			// Calculate center of all nodes
+			let sumX = 0
+			let sumY = 0
+			let count = 0
+			
+			nodes.forEach((node) => {
+				sumX += node.x
+				sumY += node.y
+				count++
+			})
+			
+			if (count > 0) {
+				const centerX = sumX / count
+				const centerY = sumY / count
+				centerViewportOn(centerX, centerY, containerSize.width, containerSize.height)
+			}
+		}
+	}, [nodes, centerViewportOn, containerSize.width, containerSize.height])
+
+	const handleAutoFit = useCallback(() => {
+		if (nodes.length > 0 && containerSize.width > 0 && containerSize.height > 0) {
+			autoFitToViewport(nodes, containerSize.width, containerSize.height, {
+				occludedRightPx,
+				animate: true,
+			})
+		}
+	}, [nodes, containerSize.width, containerSize.height, occludedRightPx, autoFitToViewport])
 
 	// Get selected node data
 	const selectedNodeData = useMemo(() => {
@@ -368,11 +406,26 @@ export const MemoryGraph = ({
 						onPanEnd={handlePanEnd}
 						onPanMove={handlePanMove}
 						onPanStart={handlePanStart}
+						onTouchStart={handleTouchStart}
+						onTouchMove={handleTouchMove}
+						onTouchEnd={handleTouchEnd}
 						onWheel={handleWheel}
 						panX={panX}
 						panY={panY}
 						width={containerSize.width}
 						zoom={zoom}
+					/>
+				)}
+
+				{/* Navigation controls */}
+				{containerSize.width > 0 && (
+					<NavigationControls
+						onCenter={handleCenter}
+						onZoomIn={() => zoomIn(containerSize.width / 2, containerSize.height / 2)}
+						onZoomOut={() => zoomOut(containerSize.width / 2, containerSize.height / 2)}
+						onAutoFit={handleAutoFit}
+						nodes={nodes}
+						className="absolute bottom-4 left-4"
 					/>
 				)}
 			</div>

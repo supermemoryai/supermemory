@@ -28,6 +28,9 @@ export const GraphWebGLCanvas = memo<GraphCanvasProps>(
 		onPanEnd,
 		onWheel,
 		onDoubleClick,
+		onTouchStart,
+		onTouchMove,
+		onTouchEnd,
 		draggingNodeId,
 	}) => {
 		const containerRef = useRef<HTMLDivElement>(null);
@@ -694,9 +697,14 @@ export const GraphWebGLCanvas = memo<GraphCanvasProps>(
 						const { dx, dy } = pendingWheelDeltaRef.current;
 						pendingWheelDeltaRef.current = { dx: 0, dy: 0 };
 
+						// @ts-expect-error
 						onWheel({
 							deltaY: dy,
 							deltaX: dx,
+							clientX: e.clientX,
+							clientY: e.clientY,
+							currentTarget: containerRef.current,
+							nativeEvent: e.nativeEvent,
 							preventDefault: () => {},
 							stopPropagation: () => {},
 						} as React.WheelEvent);
@@ -739,6 +747,9 @@ export const GraphWebGLCanvas = memo<GraphCanvasProps>(
 				}}
 				onPointerMove={handlePointerMove}
 				onPointerUp={handlePointerUp}
+				onTouchStart={onTouchStart}
+				onTouchMove={onTouchMove}
+				onTouchEnd={onTouchEnd}
 				onWheel={handleWheel}
 				ref={containerRef}
 				role="application"
