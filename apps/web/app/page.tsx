@@ -50,7 +50,7 @@ const MemoryGraphPage = () => {
 	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([]);
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
 	const [showReferralModal, setShowReferralModal] = useState(false);
-	const [showConnectAIModal, setShowConnectAIModal] = useState(true);
+	const [showConnectAIModal, setShowConnectAIModal] = useState(false);
 
 	// Fetch projects meta to detect experimental flag
 	const { data: projectsMeta = [] } = useQuery({
@@ -209,6 +209,7 @@ const MemoryGraphPage = () => {
 		if (!hasCompletedTour && !isTourCompleted) {
 			const timer = setTimeout(() => {
 				setShowTourDialog(true);
+				setShowConnectAIModal(false);
 			}, 1000); // Show after 1 second
 			return () => clearTimeout(timer);
 		}
@@ -372,6 +373,15 @@ const MemoryGraphPage = () => {
 		},
 		[setViewMode],
 	);
+
+	useEffect(() => {
+		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true";
+		if (hasCompletedTour && allDocuments.length === 0 && !showTourDialog) {
+			setShowConnectAIModal(true);
+		} else if (showTourDialog) {
+			setShowConnectAIModal(false);
+		}
+	}, [allDocuments.length, showTourDialog]);
 
 	// Prevent body scrolling
 	useEffect(() => {
