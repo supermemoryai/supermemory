@@ -6,6 +6,7 @@ import {
 	fetchMemoriesFeature,
 } from "@repo/lib/queries";
 import { Button } from "@repo/ui/components/button";
+import { ConnectAIModal } from "./connect-ai-modal";
 import { HeadingH2Bold } from "@repo/ui/text/heading/heading-h2-bold";
 import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { useCustomer } from "autumn-js/react";
@@ -20,7 +21,6 @@ import { ProjectSelector } from "./project-selector";
 import { useTour } from "./tour";
 import { AddMemoryExpandedView, AddMemoryView } from "./views/add-memory";
 import { IntegrationsView } from "./views/integrations";
-import { MCPView } from "./views/mcp";
 import { ProfileView } from "./views/profile";
 
 const MCPIcon = ({ className }: { className?: string }) => {
@@ -47,6 +47,7 @@ function Menu({ id }: { id?: string }) {
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isCollapsing, setIsCollapsing] = useState(false);
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
+	const [showConnectAIModal, setShowConnectAIModal] = useState(false);
 	const isMobile = useIsMobile();
 	const { activePanel, setActivePanel } = useMobilePanel();
 	const { setMenuExpanded } = useTour();
@@ -125,6 +126,11 @@ function Menu({ id }: { id?: string }) {
 			if (isMobile) {
 				setActivePanel("chat");
 			}
+		} else if (key === "mcp") {
+			// Open ConnectAIModal directly for MCP
+			setIsMobileMenuOpen(false);
+			setExpandedView(null);
+			setShowConnectAIModal(true);
 		} else {
 			if (expandedView === key) {
 				setIsCollapsing(true);
@@ -392,7 +398,6 @@ function Menu({ id }: { id?: string }) {
 													ease: [0.4, 0, 0.2, 1],
 												}}
 											>
-												{expandedView === "mcp" && <MCPView />}
 												{expandedView === "profile" && <ProfileView />}
 												{expandedView === "integrations" && (
 													<IntegrationsView />
@@ -608,7 +613,6 @@ function Menu({ id }: { id?: string }) {
 														{expandedView === "addUrl" && (
 															<AddMemoryExpandedView />
 														)}
-														{expandedView === "mcp" && <MCPView />}
 														{expandedView === "profile" && <ProfileView />}
 														{expandedView === "integrations" && (
 															<IntegrationsView />
@@ -631,6 +635,13 @@ function Menu({ id }: { id?: string }) {
 					onClose={() => setShowAddMemoryView(false)}
 				/>
 			)}
+
+			<ConnectAIModal
+				onOpenChange={setShowConnectAIModal}
+				open={showConnectAIModal}
+			>
+				<Button className="hidden">Connect AI Assistant</Button>
+			</ConnectAIModal>
 		</>
 	);
 }

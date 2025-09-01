@@ -1,6 +1,8 @@
 "use client";
 
-import { useIsMobile } from "@hooks/use-mobile";
+import { $fetch } from "@lib/api";
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import {
 	Dialog,
@@ -19,10 +21,12 @@ import {
 	SelectValue,
 } from "@ui/components/select";
 import { CopyableCell } from "@ui/copyable-cell";
-import { CopyIcon, ExternalLink } from "lucide-react";
+import { CopyIcon, ExternalLink, Loader2 } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod/v4";
+import { analytics } from "@/lib/analytics";
 
 const clients = {
 	cursor: "Cursor",
@@ -36,24 +40,138 @@ const clients = {
 	enconvo: "Enconvo",
 } as const;
 
-interface ConnectAIModalProps {
-	children: React.ReactNode;
+const mcpMigrationSchema = z.object({
+	url: z
+		.string()
+		.min(1, "MCP Link is required")
+		.regex(
+			/^https:\/\/mcp\.supermemory\.ai\/[^/]+\/sse$/,
+			"Link must be in format: https://mcp.supermemory.ai/userId/sse",
+		),
+});
+
+interface Project {
+	id: string;
+	name: string;
+	containerTag: string;
+	createdAt: string;
+	updatedAt: string;
+	isExperimental?: boolean;
 }
 
-export function ConnectAIModal({ children }: ConnectAIModalProps) {
-	const [client, setClient] = useState<keyof typeof clients>("cursor");
-	const [isOpen, setIsOpen] = useState(false);
-	const [showAllTools, setShowAllTools] = useState(false);
-	const isMobile = useIsMobile();
-	const installCommand = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${client} --oauth=yes`;
+interface ConnectAIModalProps {
+	children: React.ReactNode;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
+}
+
+export function ConnectAIModal({
+	children,
+	open,
+	onOpenChange,
+}: ConnectAIModalProps) {
+	const [selectedClient, setSelectedClient] = useState<
+		keyof typeof clients | null
+	>(null);
+	const [internalIsOpen, setInternalIsOpen] = useState(false);
+	const isOpen = open !== undefined ? open : internalIsOpen;
+	const setIsOpen = onOpenChange || setInternalIsOpen;
+	const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false);
+	const [selectedProject, setSelectedProject] = useState<string | null>("none");
+	const projectId = localStorage.getItem("selectedProject") ?? "default";
+
+	useEffect(() => {
+		analytics.mcpViewOpened();
+	}, []);
+
+	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
+		queryKey: ["projects"],
+		queryFn: async () => {
+			const response = await $fetch("@get/projects");
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to load projects");
+			}
+			return response.data?.projects || [];
+		},
+		staleTime: 30 * 1000,
+	});
+
+	const mcpMigrationForm = useForm({
+		defaultValues: { url: "" },
+		onSubmit: async ({ value, formApi }) => {
+			const userId = extractUserIdFromMCPUrl(value.url);
+			if (userId) {
+				migrateMCPMutation.mutate({ userId, projectId });
+				formApi.reset();
+			}
+		},
+		validators: {
+			onChange: mcpMigrationSchema,
+		},
+	});
+
+	const extractUserIdFromMCPUrl = (url: string): string | null => {
+		const regex = /^https:\/\/mcp\.supermemory\.ai\/([^/]+)\/sse$/;
+		const match = url.trim().match(regex);
+		return match?.[1] || null;
+	};
+
+	const migrateMCPMutation = useMutation({
+		mutationFn: async ({
+			userId,
+			projectId,
+		}: {
+			userId: string;
+			projectId: string;
+		}) => {
+			const response = await $fetch("@post/memories/migrate-mcp", {
+				body: { userId, projectId },
+			});
+
+			if (response.error) {
+				throw new Error(
+					response.error?.message || "Failed to migrate documents",
+				);
+			}
+
+			return response.data;
+		},
+		onSuccess: (data) => {
+			toast.success("Migration completed!", {
+				description: `Successfully migrated ${data?.migratedCount} documents`,
+			});
+			setIsMigrateDialogOpen(false);
+		},
+		onError: (error) => {
+			toast.error("Migration failed", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			});
+		},
+	});
+
+	function generateInstallCommand() {
+		if (!selectedClient) return "";
+
+		let command = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`;
+
+		if (selectedProject && selectedProject !== "none") {
+			// Remove the "sm_project_" prefix from the containerTag
+			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "");
+			command += ` --project ${projectIdForCommand}`;
+		}
+
+		return command;
+	}
 
 	const copyToClipboard = () => {
-		navigator.clipboard.writeText(installCommand);
+		const command = generateInstallCommand();
+		navigator.clipboard.writeText(command);
+		analytics.mcpInstallCmdCopied();
 		toast.success("Copied to clipboard!");
 	};
 
 	return (
-		<Dialog open={isOpen} onOpenChange={setIsOpen}>
+		<Dialog onOpenChange={setIsOpen} open={isOpen}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
@@ -65,144 +183,194 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="mb-6 block md:hidden">
-					<label
-						className="text-sm font-medium text-white/80 block mb-2"
-						htmlFor="mcp-server-url"
-					>
-						MCP Server URL
-					</label>
-					<div className="p-3 bg-white/5 rounded border border-white/10">
-						<CopyableCell
-							className="font-mono text-sm text-blue-400"
-							value="https://api.supermemory.ai/mcp"
-						/>
-					</div>
-					<p className="text-xs text-white/50 mt-2">
-						Click URL to copy to clipboard. Use this URL to configure
-						supermemory in your AI assistant.
-					</p>
-				</div>
-
 				<div className="space-y-6">
-					<div className="hidden md:block">
-						<h3 className="text-sm font-medium mb-3">Supported AI Tools</h3>
-						<div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+					{/* Step 1: Client Selection */}
+					<div className="space-y-4">
+						<div className="flex items-center gap-3">
+							<div
+								className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${"bg-white/10 text-white/60"}`}
+							>
+								1
+							</div>
+							<h3 className="text-sm font-medium">Select Your AI Client</h3>
+						</div>
+
+						<div className="space-x-2">
 							{Object.entries(clients)
-								.slice(0, showAllTools ? undefined : isMobile ? 4 : 6)
+								.slice(0, 6)
 								.map(([key, clientName]) => (
-									<div
-										key={clientName}
-										className="flex items-center gap-3 px-3 py-3 bg-muted rounded-md"
+									<button
+										className={`pr-3 pl-1 rounded-full border cursor-pointer transition-all ${
+											selectedClient === key
+												? "border-blue-500 bg-blue-500/10"
+												: "border-white/10 hover:border-white/20 hover:bg-white/5"
+										}`}
+										key={key}
+										onClick={() =>
+											setSelectedClient(key as keyof typeof clients)
+										}
+										type="button"
 									>
-										<div className="w-8 h-8 relative flex-shrink-0 flex items-center justify-center">
-											<Image
-												src={`/mcp-supported-tools/${key == "claude-code" ? "claude" : key}.png`}
-												alt={clientName}
-												width={isMobile ? 20 : 32}
-												height={isMobile ? 20 : 32}
-												className={"rounded object-contain"}
-												onError={(e) => {
-													const target = e.target as HTMLImageElement;
-													target.style.display = "none";
-													const parent = target.parentElement;
-													if (
-														parent &&
-														!parent.querySelector(".fallback-text")
-													) {
-														const fallback = document.createElement("span");
-														fallback.className =
-															"fallback-text text-xs font-bold text-muted-foreground";
-														fallback.textContent = clientName
-															.substring(0, 2)
-															.toUpperCase();
-														parent.appendChild(fallback);
-													}
-												}}
-											/>
+										<div className="flex items-center gap-1">
+											<div className="w-8 h-8 flex items-center justify-center">
+												<Image
+													alt={clientName}
+													className="rounded object-contain"
+													height={20}
+													onError={(e) => {
+														const target = e.target as HTMLImageElement;
+														target.style.display = "none";
+														const parent = target.parentElement;
+														if (
+															parent &&
+															!parent.querySelector(".fallback-text")
+														) {
+															const fallback = document.createElement("span");
+															fallback.className =
+																"fallback-text text-sm font-bold text-white/40";
+															fallback.textContent = clientName
+																.substring(0, 2)
+																.toUpperCase();
+															parent.appendChild(fallback);
+														}
+													}}
+													src={`/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`}
+													width={20}
+												/>
+											</div>
+											<span className="text-sm font-medium text-white/80">
+												{clientName}
+											</span>
 										</div>
-										<span className="text-sm font-medium">{clientName}</span>
-									</div>
+									</button>
 								))}
 						</div>
-						{Object.entries(clients).length > 6 && (
-							<div className="mt-3 text-center">
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => setShowAllTools(!showAllTools)}
-									className="text-xs text-muted-foreground hover:text-foreground"
-								>
-									{showAllTools ? "Show Less" : `Show All`}
-								</Button>
-							</div>
-						)}
 					</div>
 
-					<div className="hidden md:block">
-						<h3 className="text-sm font-medium mb-3">Quick Installation</h3>
-						<div className="space-y-3 flex gap-2 items-center justify-between">
-							<Select
-								value={client}
-								onValueChange={(value) =>
-									setClient(value as keyof typeof clients)
-								}
-							>
-								<SelectTrigger className="w-48 mb-0">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{Object.entries(clients).map(([key, value]) => (
-										<SelectItem key={key} value={key}>
-											<div className="flex items-center gap-2">
-												<div className="w-4 h-4 relative flex-shrink-0 flex items-center justify-center">
-													<Image
-														src={`/mcp-supported-tools/${key == "claude-code" ? "claude" : key}.png`}
-														alt={value}
-														width={16}
-														height={16}
-														className="rounded object-contain"
-														onError={(e) => {
-															const target = e.target as HTMLImageElement;
-															target.style.display = "none";
-															const parent = target.parentElement;
-															if (
-																parent &&
-																!parent.querySelector(".fallback-text")
-															) {
-																const fallback = document.createElement("span");
-																fallback.className =
-																	"fallback-text text-xs font-bold text-muted-foreground";
-																fallback.textContent = value
-																	.substring(0, 1)
-																	.toUpperCase();
-																parent.appendChild(fallback);
-															}
-														}}
-													/>
-												</div>
-												{value}
-											</div>
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+					{/* Step 2: Project Selection */}
+					{selectedClient && (
+						<div className="space-y-4">
+							<div className="flex items-center gap-3">
+								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+									2
+								</div>
+								<h3 className="text-sm font-medium">
+									Select Target Project (Optional)
+								</h3>
+							</div>
 
-							<div className="relative w-full flex items-center">
+							<div className="max-w-md">
+								<Select
+									disabled={isLoadingProjects}
+									onValueChange={setSelectedProject}
+									value={selectedProject || "none"}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="Select project" />
+									</SelectTrigger>
+									<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
+										<SelectItem
+											className="text-white hover:bg-white/10"
+											value="none"
+										>
+											Auto-select project
+										</SelectItem>
+										<SelectItem
+											className="text-white hover:bg-white/10"
+											value="sm_project_default"
+										>
+											Default Project
+										</SelectItem>
+										{projects
+											.filter(
+												(p: Project) => p.containerTag !== "sm_project_default",
+											)
+											.map((project: Project) => (
+												<SelectItem
+													className="text-white hover:bg-white/10"
+													key={project.id}
+													value={project.containerTag}
+												>
+													{project.name}
+												</SelectItem>
+											))}
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
+					)}
+
+					{/* Step 3: Command Line */}
+					{selectedClient && (
+						<div className="space-y-4">
+							<div className="flex items-center gap-3">
+								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+									3
+								</div>
+								<h3 className="text-sm font-medium">Installation Command</h3>
+							</div>
+
+							<div className="relative">
 								<Input
 									className="font-mono text-xs w-full pr-10"
 									readOnly
-									value={installCommand}
+									value={generateInstallCommand()}
 								/>
-
 								<Button
+									className="absolute top-[-1px] right-0 cursor-pointer"
 									onClick={copyToClipboard}
-									className="absolute right-0 cursor-pointer"
 									variant="ghost"
 								>
 									<CopyIcon className="size-4" />
 								</Button>
 							</div>
+
+							<p className="text-xs text-white/50">
+								Copy and run this command in your terminal to install the MCP
+								server
+							</p>
+						</div>
+					)}
+
+					{/* Blurred Command Placeholder */}
+					{!selectedClient && (
+						<div className="space-y-4">
+							<div className="flex items-center gap-3">
+								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+									3
+								</div>
+								<h3 className="text-sm font-medium">Installation Command</h3>
+							</div>
+
+							<div className="relative">
+								<div className="w-full h-10 bg-white/5 border border-white/10 rounded-md flex items-center px-3">
+									<div className="w-full h-4 bg-white/20 rounded animate-pulse blur-sm" />
+								</div>
+							</div>
+
+							<p className="text-xs text-white/30">
+								Select a client above to see the installation command
+							</p>
+						</div>
+					)}
+
+					<div className="gap-2 hidden">
+						<div>
+							<label
+								className="text-sm font-medium text-white/80 block mb-2"
+								htmlFor="mcp-server-url-desktop"
+							>
+								MCP Server URL
+							</label>
+							<p className="text-xs text-white/50 mt-2">
+								Use this URL to configure supermemory in your AI assistant
+							</p>
+						</div>
+						<div className="p-1 bg-white/5 rounded-lg border border-white/10 items-center flex px-2">
+							<CopyableCell
+								className="font-mono text-xs text-blue-400"
+								value="https://api.supermemory.ai/mcp"
+							/>
 						</div>
 					</div>
 
@@ -217,22 +385,120 @@ export function ConnectAIModal({ children }: ConnectAIModalProps) {
 					</div>
 
 					<div className="flex justify-between items-center pt-4 border-t">
-						<Button
-							variant="outline"
-							onClick={() =>
-								window.open(
-									"https://docs.supermemory.ai/supermemory-mcp/introduction",
-									"_blank",
-								)
-							}
-						>
-							<ExternalLink className="w-4 h-4 mr-2" />
-							Learn More
-						</Button>
+						<div className="flex items-center gap-4">
+							<Button
+								onClick={() =>
+									window.open(
+										"https://docs.supermemory.ai/supermemory-mcp/introduction",
+										"_blank",
+									)
+								}
+								variant="outline"
+							>
+								<ExternalLink className="w-2 h-2 mr-2" />
+								Learn More
+							</Button>
+
+							<Button
+								onClick={() => setIsMigrateDialogOpen(true)}
+								variant="outline"
+							>
+								Migrate from v1
+							</Button>
+						</div>
 						<Button onClick={() => setIsOpen(false)}>Done</Button>
 					</div>
 				</div>
 			</DialogContent>
+
+			{/* Migration Dialog */}
+			{isMigrateDialogOpen && (
+				<Dialog
+					onOpenChange={setIsMigrateDialogOpen}
+					open={isMigrateDialogOpen}
+				>
+					<DialogContent className="sm:max-w-2xl bg-black/90 backdrop-blur-xl border-white/10 text-white">
+						<div>
+							<DialogHeader>
+								<DialogTitle>Migrate from MCP v1</DialogTitle>
+								<DialogDescription className="text-white/60">
+									Migrate your MCP documents from the legacy system.
+								</DialogDescription>
+							</DialogHeader>
+							<form
+								onSubmit={(e) => {
+									e.preventDefault();
+									e.stopPropagation();
+									mcpMigrationForm.handleSubmit();
+								}}
+							>
+								<div className="grid gap-4">
+									<div className="flex flex-col gap-2">
+										<label className="text-sm font-medium" htmlFor="mcpUrl">
+											MCP Link
+										</label>
+										<mcpMigrationForm.Field name="url">
+											{({ state, handleChange, handleBlur }) => (
+												<>
+													<Input
+														className="bg-white/5 border-white/10 text-white"
+														id="mcpUrl"
+														onBlur={handleBlur}
+														onChange={(e) => handleChange(e.target.value)}
+														placeholder="https://mcp.supermemory.ai/your-user-id/sse"
+														value={state.value}
+													/>
+													{state.meta.errors.length > 0 && (
+														<p className="text-sm text-red-400 mt-1">
+															{state.meta.errors.join(", ")}
+														</p>
+													)}
+												</>
+											)}
+										</mcpMigrationForm.Field>
+										<p className="text-xs text-white/50">
+											Enter your old MCP Link in the format: <br />
+											<span className="font-mono">
+												https://mcp.supermemory.ai/userId/sse
+											</span>
+										</p>
+									</div>
+								</div>
+								<div className="flex justify-end gap-3 mt-4">
+									<Button
+										className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
+										onClick={() => {
+											setIsMigrateDialogOpen(false);
+											mcpMigrationForm.reset();
+										}}
+										type="button"
+										variant="outline"
+									>
+										Cancel
+									</Button>
+									<Button
+										className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+										disabled={
+											migrateMCPMutation.isPending ||
+											!mcpMigrationForm.state.canSubmit
+										}
+										type="submit"
+									>
+										{migrateMCPMutation.isPending ? (
+											<>
+												<Loader2 className="h-4 w-4 animate-spin mr-2" />
+												Migrating...
+											</>
+										) : (
+											"Migrate"
+										)}
+									</Button>
+								</div>
+							</form>
+						</div>
+					</DialogContent>
+				</Dialog>
+			)}
 		</Dialog>
 	);
 }
