@@ -1,130 +1,137 @@
-import { useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import "./App.css"
-import { STORAGE_KEYS } from "../../utils/constants"
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import "./App.css";
+import { STORAGE_KEYS } from "../../utils/constants";
 import {
 	useDefaultProject,
 	useProjects,
 	useSetDefaultProject,
-} from "../../utils/query-hooks"
-import type { Project } from "../../utils/types"
+} from "../../utils/query-hooks";
+import type { Project } from "../../utils/types";
 
 function App() {
-	const [userSignedIn, setUserSignedIn] = useState<boolean>(false)
-	const [loading, setLoading] = useState<boolean>(true)
-	const [showProjectSelector, setShowProjectSelector] = useState<boolean>(false)
-	const [currentUrl, setCurrentUrl] = useState<string>("")
-	const [currentTitle, setCurrentTitle] = useState<string>("")
-	const [saving, setSaving] = useState<boolean>(false)
-	const [activeTab, setActiveTab] = useState<"save" | "imports">("save")
+	const [userSignedIn, setUserSignedIn] = useState<boolean>(false);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [showProjectSelector, setShowProjectSelector] =
+		useState<boolean>(false);
+	const [currentUrl, setCurrentUrl] = useState<string>("");
+	const [currentTitle, setCurrentTitle] = useState<string>("");
+	const [saving, setSaving] = useState<boolean>(false);
+	const [activeTab, setActiveTab] = useState<"save" | "imports">("save");
 
-	const queryClient = useQueryClient()
+	const queryClient = useQueryClient();
 	const { data: projects = [], isLoading: loadingProjects } = useProjects({
 		enabled: userSignedIn,
-	})
+	});
 	const { data: defaultProject } = useDefaultProject({
 		enabled: userSignedIn,
-	})
-	const setDefaultProjectMutation = useSetDefaultProject()
+	});
+	const setDefaultProjectMutation = useSetDefaultProject();
 
 	useEffect(() => {
 		const checkAuthStatus = async () => {
 			try {
 				const result = await chrome.storage.local.get([
 					STORAGE_KEYS.BEARER_TOKEN,
-				])
-				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN]
-				setUserSignedIn(isSignedIn)
+				]);
+				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN];
+				setUserSignedIn(isSignedIn);
 			} catch (error) {
-				console.error("Error checking auth status:", error)
-				setUserSignedIn(false)
+				console.error("Error checking auth status:", error);
+				setUserSignedIn(false);
 			} finally {
-				setLoading(false)
+				setLoading(false);
 			}
-		}
+		};
 
 		const getCurrentTab = async () => {
 			try {
 				const tabs = await chrome.tabs.query({
 					active: true,
 					currentWindow: true,
-				})
+				});
 				if (tabs.length > 0 && tabs[0].url && tabs[0].title) {
-					setCurrentUrl(tabs[0].url)
-					setCurrentTitle(tabs[0].title)
+					setCurrentUrl(tabs[0].url);
+					setCurrentTitle(tabs[0].title);
 				}
 			} catch (error) {
-				console.error("Error getting current tab:", error)
+				console.error("Error getting current tab:", error);
 			}
-		}
+		};
 
-		checkAuthStatus()
-		getCurrentTab()
-	}, [])
+		checkAuthStatus();
+		getCurrentTab();
+	}, []);
 
 	const handleProjectSelect = (project: Project) => {
 		setDefaultProjectMutation.mutate(project, {
 			onSuccess: () => {
-				setShowProjectSelector(false)
+				setShowProjectSelector(false);
 			},
 			onError: (error) => {
-				console.error("Error setting default project:", error)
+				console.error("Error setting default project:", error);
 			},
-		})
-	}
+		});
+	};
 
 	const handleShowProjectSelector = () => {
-		setShowProjectSelector(true)
-	}
+		setShowProjectSelector(true);
+	};
 
 	useEffect(() => {
 		if (!defaultProject && projects.length > 0) {
-			const firstProject = projects[0]
-			setDefaultProjectMutation.mutate(firstProject)
+			const firstProject = projects[0];
+			setDefaultProjectMutation.mutate(firstProject);
 		}
-	}, [defaultProject, projects, setDefaultProjectMutation])
+	}, [defaultProject, projects, setDefaultProjectMutation]);
 
 	const handleSaveCurrentPage = async () => {
-		setSaving(true)
+		setSaving(true);
 		try {
 			const tabs = await chrome.tabs.query({
 				active: true,
 				currentWindow: true,
-			})
+			});
 			if (tabs.length > 0 && tabs[0].id) {
 				await chrome.tabs.sendMessage(tabs[0].id, {
 					action: "saveMemory",
-				})
+				});
 			}
 		} catch (error) {
-			console.error("Failed to save current page:", error)
+			console.error("Failed to save current page:", error);
 		} finally {
-			setSaving(false)
+			setSaving(false);
 		}
-	}
+	};
 
 	const handleSignOut = async () => {
 		try {
-			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN])
-			setUserSignedIn(false)
-			queryClient.clear()
+			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN]);
+			setUserSignedIn(false);
+			queryClient.clear();
 		} catch (error) {
-			console.error("Error signing out:", error)
+			console.error("Error signing out:", error);
 		}
-	}
+	};
 
 	if (loading) {
 		return (
 			<div className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden">
 				<div className="flex items-center justify-between gap-3 p-2.5 border-b border-gray-200 relative">
-					<img alt="supermemory" className="w-8 h-8 flex-shrink-0" src="/icon-48.png" />
-					<h1 className="m-0 text-lg font-semibold text-black flex-1">supermemory</h1>
+					<img
+						alt="supermemory"
+						className="w-8 h-8 flex-shrink-0"
+						src="/icon-48.png"
+					/>
+					<h1 className="m-0 text-lg font-semibold text-black flex-1">
+						supermemory
+					</h1>
 				</div>
 				<div className="p-4">
 					<div>Loading...</div>
 				</div>
 			</div>
-		)
+		);
 	}
 
 	return (
@@ -199,7 +206,9 @@ function App() {
 										<h3 className="m-0 mb-1 text-sm font-semibold text-black overflow-hidden text-ellipsis whitespace-nowrap">
 											{currentTitle || "Current Page"}
 										</h3>
-										<p className="m-0 text-xs text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">{currentUrl}</p>
+										<p className="m-0 text-xs text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">
+											{currentUrl}
+										</p>
 									</div>
 								</div>
 
@@ -211,7 +220,9 @@ function App() {
 										type="button"
 									>
 										<div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 transition-colors duration-200 hover:bg-gray-200 hover:border-gray-300">
-											<span className="text-sm font-medium text-gray-600">Save to project:</span>
+											<span className="text-sm font-medium text-gray-600">
+												Save to project:
+											</span>
 											<div className="flex items-center gap-2">
 												<span className="text-sm font-medium text-black overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
 													{defaultProject
@@ -260,7 +271,7 @@ function App() {
 											onClick={() => {
 												chrome.tabs.create({
 													url: "https://chatgpt.com/#settings/Personalization",
-												})
+												});
 											}}
 											type="button"
 										>
@@ -285,7 +296,7 @@ function App() {
 											onClick={() => {
 												chrome.tabs.create({
 													url: "https://x.com/i/bookmarks",
-												})
+												});
 											}}
 											type="button"
 										>
@@ -322,7 +333,9 @@ function App() {
 									</button>
 								</div>
 								{loadingProjects ? (
-									<div className="py-8 px-4 text-center text-gray-500 text-sm">Loading projects...</div>
+									<div className="py-8 px-4 text-center text-gray-500 text-sm">
+										Loading projects...
+									</div>
 								) : (
 									<div className="flex-1 overflow-y-auto min-h-0">
 										{projects.map((project) => (
@@ -343,7 +356,9 @@ function App() {
 													</span>
 												</div>
 												{defaultProject?.id === project.id && (
-													<span className="text-blue-600 font-bold text-base">✓</span>
+													<span className="text-blue-600 font-bold text-base">
+														✓
+													</span>
 												)}
 											</button>
 										))}
@@ -360,9 +375,15 @@ function App() {
 							</h2>
 
 							<ul className="list-none p-0 m-0 text-left">
-								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">Save any page to your supermemory</li>
-								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">Import all your Twitter / X Bookmarks</li>
-								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">Import your ChatGPT Memories</li>
+								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+									Save any page to your supermemory
+								</li>
+								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+									Import all your Twitter / X Bookmarks
+								</li>
+								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+									Import your ChatGPT Memories
+								</li>
 							</ul>
 						</div>
 
@@ -372,7 +393,7 @@ function App() {
 								<button
 									className="bg-transparent border-none text-blue-500 cursor-pointer underline text-sm p-0 hover:text-blue-700"
 									onClick={() => {
-										window.open("mailto:dhravya@supermemory.com", "_blank")
+										window.open("mailto:dhravya@supermemory.com", "_blank");
 									}}
 									type="button"
 								>
@@ -387,18 +408,18 @@ function App() {
 										url: import.meta.env.PROD
 											? "https://app.supermemory.ai/login"
 											: "http://localhost:3000/login",
-									})
+									});
 								}}
 								type="button"
 							>
-								login in
+								Sign in or create account
 							</button>
 						</div>
 					</div>
 				)}
 			</div>
 		</div>
-	)
+	);
 }
 
-export default App
+export default App;

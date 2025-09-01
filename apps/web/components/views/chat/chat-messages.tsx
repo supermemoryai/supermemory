@@ -5,7 +5,7 @@ import { cn } from "@lib/utils";
 import { Button } from "@ui/components/button";
 import { Input } from "@ui/components/input";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, Check, Copy, RotateCcw, X } from "lucide-react";
+import { ArrowUp, Check, Copy, RotateCcw, X, ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
@@ -13,6 +13,104 @@ import { TextShimmer } from "@/components/text-shimmer";
 import { usePersistentChat, useProject } from "@/stores";
 import { useGraphHighlights } from "@/stores/highlights";
 import { Spinner } from "../../spinner";
+
+interface MemoryResult {
+	documentId?: string;
+	title?: string;
+	content?: string;
+	url?: string;
+	score?: number;
+}
+
+interface ExpandableMemoriesProps {
+	foundCount: number;
+	results: MemoryResult[];
+}
+
+function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
+	const [isExpanded, setIsExpanded] = useState(false);
+
+	if (foundCount === 0) {
+		return (
+			<div className="text-sm flex items-center gap-2 text-muted-foreground">
+				<Check className="size-4" /> No memories found
+			</div>
+		);
+	}
+
+	return (
+		<div className="text-sm">
+			<button
+				onClick={() => setIsExpanded(!isExpanded)}
+				className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+			>
+				{isExpanded ? (
+					<ChevronDown className="size-4" />
+				) : (
+					<ChevronRight className="size-4" />
+				)}
+				<Check className="size-4" />
+				Found {foundCount} {foundCount === 1 ? "memory" : "memories"}
+			</button>
+			
+			{isExpanded && results.length > 0 && (
+				<div className="mt-2 ml-6 space-y-2 max-h-48 overflow-y-auto">
+					{results.map((result, index) => {
+						const isClickable = result.url && (result.url.startsWith('http://') || result.url.startsWith('https://'));
+						
+						const content = (
+							<>
+								{result.title && (
+									<div className="font-medium text-sm mb-1 text-foreground">
+										{result.title}
+									</div>
+								)}
+								{result.content && (
+									<div className="text-xs text-muted-foreground line-clamp-2">
+										{result.content}
+									</div>
+								)}
+								{result.url && (
+									<div className="text-xs text-blue-400 mt-1 truncate">
+										{result.url}
+									</div>
+								)}
+								{result.score && (
+									<div className="text-xs text-muted-foreground mt-1">
+										Score: {(result.score * 100).toFixed(1)}%
+									</div>
+								)}
+							</>
+						);
+
+						if (isClickable) {
+							return (
+								<a
+									key={result.documentId || index}
+									href={result.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="block p-2 bg-white/5 rounded-md border border-white/10 hover:bg-white/10 hover:border-white/20 transition-colors cursor-pointer"
+								>
+									{content}
+								</a>
+							);
+						}
+
+						return (
+							<div
+								key={result.documentId || index}
+								className="p-2 bg-white/5 rounded-md border border-white/10"
+							>
+								{content}
+							</div>
+						);
+					})}
+				</div>
+			)}
+		</div>
+	);
+}
 
 function useStickyAutoScroll(triggerKeys: ReadonlyArray<unknown>) {
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -278,14 +376,14 @@ export function ChatMessages() {
 															"count" in output
 																? Number(output.count) || 0
 																: 0;
+														const results = Array.isArray(output?.results) ? output.results : [];
+														
 														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
+															<ExpandableMemories
 																key={message.id + part.type}
-															>
-																<Check className="size-4" /> Found {foundCount}{" "}
-																memories
-															</div>
+																foundCount={foundCount}
+																results={results}
+															/>
 														);
 													}
 													default:

@@ -10,23 +10,24 @@ function Welcome() {
 						src="https://assets.supermemory.ai/brand/wordmark/dark-transparent.svg"
 					/>
 					<p className="text-gray-600 text-lg font-normal max-w-2xl mx-auto">
-						Your AI-powered second brain for saving and organizing everything
-						that matters
+						Your AI second brain for saving and organizing everything that
+						matters. Supermemory learns and remembers everything you save, your
+						preferences, and understands you.
 					</p>
 				</div>
 
 				{/* Features Section */}
 				<div className="mb-12">
-					<h2 className="text-2xl font-semibold text-black mb-8"
-						>What can you do with supermemory
-					?</h2>
+					<h2 className="text-2xl font-semibold text-black mb-8">
+						What can you do with supermemory ?
+					</h2>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 						<div className="bg-white border border-gray-200 rounded-xl p-6 text-center transition-all duration-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300">
 							<div className="text-3xl mb-4 block">💾</div>
-							<h3 className="text-lg font-semibold text-black mb-3"
-								>Save Any Pag
-							e</h3>
+							<h3 className="text-lg font-semibold text-black mb-3">
+								Save Any Page
+							</h3>
 							<p className="text-sm text-gray-600 leading-snug">
 								Instantly save web pages, articles, and content to your personal
 								knowledge base
@@ -57,10 +58,11 @@ function Welcome() {
 						<div className="bg-white border border-gray-200 rounded-xl p-6 text-center transition-all duration-200 shadow-sm hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300">
 							<div className="text-3xl mb-4 block">🔍</div>
 							<h3 className="text-lg font-semibold text-black mb-3">
-								AI-Powered Search
+								Your context, everywhere.
 							</h3>
 							<p className="text-sm text-gray-600 leading-snug">
-								Find anything you've saved using intelligent semantic search
+								You can connect chatbots with MCP, chat with your personal
+								assistant, and more.
 							</p>
 						</div>
 					</div>
@@ -75,7 +77,7 @@ function Welcome() {
 								url: import.meta.env.PROD
 									? "https://app.supermemory.ai/login"
 									: "http://localhost:3000/login",
-							})
+							});
 						}}
 						type="button"
 					>
@@ -99,7 +101,7 @@ function Welcome() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
-export default Welcome
+export default Welcome;
