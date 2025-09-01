@@ -10,7 +10,7 @@ import { Logo, LogoFull } from "@ui/assets/Logo";
 import { Button } from "@ui/components/button";
 import { GlassMenuEffect } from "@ui/other/glass-effect";
 import {
-	Gift,
+	HelpCircle,
 	LayoutGrid,
 	List,
 	LoaderIcon,
@@ -51,6 +51,7 @@ const MemoryGraphPage = () => {
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
 	const [showReferralModal, setShowReferralModal] = useState(false);
 	const [showConnectAIModal, setShowConnectAIModal] = useState(false);
+	const [isHelpHovered, setIsHelpHovered] = useState(false);
 
 	// Fetch projects meta to detect experimental flag
 	const { data: projectsMeta = [] } = useQuery({
@@ -663,6 +664,36 @@ const MemoryGraphPage = () => {
 						</Button>
 					</motion.div>
 				)}
+
+				<button
+					className="fixed bottom-6 left-6 z-50 flex items-center overflow-hidden rounded-full shadow-2xl bg-transparent border-none cursor-pointer"
+					onMouseEnter={() => setIsHelpHovered(true)}
+					onMouseLeave={() => setIsHelpHovered(false)}
+					type="button"
+				>
+					<div className="absolute inset-0 rounded-full">
+						<GlassMenuEffect rounded="rounded-full" />
+					</div>
+
+					<div className="relative z-10 p-3 text-white">
+						<HelpCircle className="h-5 w-5" />
+					</div>
+
+					<div
+						className={`relative z-10 flex items-center text-white transition-all duration-300 overflow-hidden ${
+							isHelpHovered
+								? "opacity-100 max-w-32 pr-4 pl-0 py-3"
+								: "opacity-0 max-w-0 px-0 py-3"
+						}`}
+					>
+						<a
+							className="flex items-center gap-2 text-sm font-medium hover:text-white/80 transition-colors whitespace-nowrap"
+							href="mailto:dhravya@supermemory.com"
+						>
+							<span>Need Help?</span>
+						</a>
+					</div>
+				</button>
 			</motion.div>
 
 			{/* Chat panel - positioned absolutely */}
