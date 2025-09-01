@@ -370,6 +370,96 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
 }
 
 /**
+ * Creates a save element button for Claude input bar
+ * @param onClick - Click handler for the button
+ * @returns HTMLElement - The save button element
+ */
+export function createClaudeInputBarElement(onClick: () => void): HTMLElement {
+	const iconButton = document.createElement("div")
+	iconButton.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  `
+
+	const iconFileName = "/icon-16.png"
+	const iconUrl = browser.runtime.getURL(iconFileName)
+	iconButton.innerHTML = `
+    <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
+  `
+
+	iconButton.addEventListener("mouseenter", () => {
+		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)"
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)"
+	})
+
+	iconButton.addEventListener("mouseleave", () => {
+		iconButton.style.backgroundColor = "transparent"
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)"
+	})
+
+	iconButton.addEventListener("click", (event) => {
+		event.stopPropagation()
+		event.preventDefault()
+		onClick()
+	})
+
+	return iconButton
+}
+
+/**
+ * Creates a save element button for T3.chat input bar
+ * @param onClick - Click handler for the button
+ * @returns HTMLElement - The save button element
+ */
+export function createT3InputBarElement(onClick: () => void): HTMLElement {
+	const iconButton = document.createElement("div")
+	iconButton.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  `
+
+	const iconFileName = "/icon-16.png"
+	const iconUrl = browser.runtime.getURL(iconFileName)
+	iconButton.innerHTML = `
+    <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
+  `
+
+	iconButton.addEventListener("mouseenter", () => {
+		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)"
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)"
+	})
+
+	iconButton.addEventListener("mouseleave", () => {
+		iconButton.style.backgroundColor = "transparent"
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)"
+	})
+
+	iconButton.addEventListener("click", (event) => {
+		event.stopPropagation()
+		event.preventDefault()
+		onClick()
+	})
+
+	return iconButton
+}
+
+/**
  * Utility functions for DOM manipulation
  */
 export const DOMUtils = {

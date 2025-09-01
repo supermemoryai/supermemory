@@ -35,6 +35,8 @@ export const ELEMENT_IDS = {
 	SUPERMEMORY_SAVE_BUTTON: "sm-save-button",
 	SAVE_TWEET_ELEMENT: "sm-save-tweet-element",
 	CHATGPT_INPUT_BAR_ELEMENT: "sm-chatgpt-input-bar-element",
+	CLAUDE_INPUT_BAR_ELEMENT: "sm-claude-input-bar-element",
+	T3_INPUT_BAR_ELEMENT: "sm-t3-input-bar-element",
 } as const
 
 /**
@@ -53,6 +55,8 @@ export const UI_CONFIG = {
 export const DOMAINS = {
 	TWITTER: ["x.com", "twitter.com"],
 	CHATGPT: ["chatgpt.com", "chat.openai.com"],
+	CLAUDE: ["claude.ai"],
+	T3: ["t3.chat"],
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
 } as const
 

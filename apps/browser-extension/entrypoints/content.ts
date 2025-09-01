@@ -6,6 +6,8 @@ import {
 } from "../utils/constants"
 import {
 	createChatGPTInputBarElement,
+	createClaudeInputBarElement,
+	createT3InputBarElement,
 	createSaveTweetElement,
 	createTwitterImportButton,
 	createTwitterImportUI,
@@ -36,6 +38,12 @@ export default defineContentScript({
 					addSupermemoryButtonToMemoriesDialog()
 					addSaveChatGPTElementBeforeComposerBtn()
 				}
+				if (DOMUtils.isOnDomain(DOMAINS.CLAUDE)) {
+					addSupermemoryIconToClaudeInput()
+				}
+				if (DOMUtils.isOnDomain(DOMAINS.T3)) {
+					addSupermemoryIconToT3Input()
+				}
 				if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
 					addTwitterImportButton()
 					//addSaveTweetElement();
@@ -46,27 +54,24 @@ export default defineContentScript({
 				childList: true,
 				subtree: true,
 			})
-
-			if (
-				window.location.hostname === "chatgpt.com" ||
-				window.location.hostname === "chat.openai.com"
-			) {
-				addSupermemoryButtonToMemoriesDialog()
-				addSaveChatGPTElementBeforeComposerBtn()
-			}
-			if (
-				window.location.hostname === "x.com" ||
-				window.location.hostname === "twitter.com"
-			) {
-				addTwitterImportButton()
-				//addSaveTweetElement();
-			}
 		}
 
 		if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
 			setTimeout(() => {
 				addTwitterImportButton() // Wait 2 seconds for page to load
 				//addSaveTweetElement();
+			}, 2000)
+		}
+
+		if (DOMUtils.isOnDomain(DOMAINS.CLAUDE)) {
+			setTimeout(() => {
+				addSupermemoryIconToClaudeInput() // Wait 2 seconds for Claude page to load
+			}, 2000)
+		}
+
+		if (DOMUtils.isOnDomain(DOMAINS.T3)) {
+			setTimeout(() => {
+				addSupermemoryIconToT3Input() // Wait 2 seconds for T3 page to load
 			}, 2000)
 		}
 
@@ -388,6 +393,206 @@ export default defineContentScript({
 
 				grandParent.insertBefore(saveChatGPTElement, parent)
 			})
+		}
+
+		function addSupermemoryIconToClaudeInput() {
+			if (!DOMUtils.isOnDomain(DOMAINS.CLAUDE)) {
+				return
+			}
+
+			const targetContainers = document.querySelectorAll(
+				".relative.flex-1.flex.items-center.gap-2.shrink.min-w-0",
+			)
+
+			targetContainers.forEach((container) => {
+				if (container.hasAttribute("data-supermemory-icon-added")) {
+					return
+				}
+
+				const existingIcon = container.querySelector(
+					`#${ELEMENT_IDS.CLAUDE_INPUT_BAR_ELEMENT}`,
+				)
+				if (existingIcon) {
+					container.setAttribute("data-supermemory-icon-added", "true")
+					return
+				}
+
+				const supermemoryIcon = createClaudeInputBarElement(async () => {
+					await getRelatedMemoriesForClaude()
+				})
+
+				supermemoryIcon.id = `${ELEMENT_IDS.CLAUDE_INPUT_BAR_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+
+				container.setAttribute("data-supermemory-icon-added", "true")
+
+				container.insertBefore(supermemoryIcon, container.firstChild)
+			})
+		}
+
+		async function getRelatedMemoriesForClaude() {
+			try {
+				let userQuery = ""
+
+				const supermemoryContainer = document.querySelector('[data-supermemory-icon-added="true"]')
+				if (supermemoryContainer?.parentElement?.previousElementSibling) {
+					const pTag = supermemoryContainer.parentElement.previousElementSibling.querySelector('p')
+					userQuery = pTag?.innerText || pTag?.textContent || ""
+				}
+
+				if (!userQuery.trim()) {
+					const textareaElement = document.querySelector('div[contenteditable="true"]') as HTMLElement
+					userQuery = textareaElement?.innerText || textareaElement?.textContent || ""
+				}
+
+				if (!userQuery.trim()) {
+					const inputElements = document.querySelectorAll('div[contenteditable="true"], textarea, input[type="text"]')
+					for (const element of inputElements) {
+						const text = (element as HTMLElement).innerText || (element as HTMLInputElement).value
+						if (text?.trim()) {
+							userQuery = text.trim()
+							break
+						}
+					}
+				}
+
+				console.log("Claude query extracted:", userQuery)
+
+				if (!userQuery.trim()) {
+					console.log("No query text found")
+					DOMUtils.showToast("error")
+					return
+				}
+
+				const response = await browser.runtime.sendMessage({
+					action: MESSAGE_TYPES.GET_RELATED_MEMORIES,
+					data: userQuery,
+				})
+
+				console.log("Claude memories response:", response)
+
+				if (response.success && response.data) {
+					const textareaElement = document.querySelector('div[contenteditable="true"]') as HTMLElement
+					
+					if (textareaElement) {
+						const currentContent = textareaElement.innerHTML
+						textareaElement.innerHTML = `${currentContent}<br>Supermemories: ${response.data}`
+						
+						textareaElement.dispatchEvent(new Event('input', { bubbles: true }))
+					} else {
+						console.log("Could not find Claude input area")
+					}
+				} else {
+					console.log("Failed to get memories:", response.error || "Unknown error")
+				}
+			} catch (error) {
+				console.error("Error getting related memories for Claude:", error)
+			}
+		}
+
+		function addSupermemoryIconToT3Input() {
+			if (!DOMUtils.isOnDomain(DOMAINS.T3)) {
+				return
+			}
+
+			const targetContainers = document.querySelectorAll(
+				".flex.min-w-0.items-center.gap-2.overflow-hidden",
+			)
+
+			targetContainers.forEach((container) => {
+				if (container.hasAttribute("data-supermemory-icon-added")) {
+					return
+				}
+
+				const existingIcon = container.querySelector(
+					`#${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}`,
+				)
+				if (existingIcon) {
+					container.setAttribute("data-supermemory-icon-added", "true")
+					return
+				}
+
+				const supermemoryIcon = createT3InputBarElement(async () => {
+					await getRelatedMemoriesForT3()
+				})
+
+				supermemoryIcon.id = `${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+
+				container.setAttribute("data-supermemory-icon-added", "true")
+
+				container.insertBefore(supermemoryIcon, container.firstChild)
+			})
+		}
+
+		async function getRelatedMemoriesForT3() {
+			try {
+				let userQuery = ""
+
+				const supermemoryContainer = document.querySelector('[data-supermemory-icon-added="true"]')
+				if (supermemoryContainer?.parentElement?.parentElement?.previousElementSibling) {
+					const textareaElement = supermemoryContainer.parentElement.parentElement.previousElementSibling.querySelector('textarea')
+					userQuery = textareaElement?.value || ""
+				}
+
+				if (!userQuery.trim()) {
+					const textareaElement = document.querySelector('div[contenteditable="true"]') as HTMLElement
+					userQuery = textareaElement?.innerText || textareaElement?.textContent || ""
+				}
+
+				if (!userQuery.trim()) {
+					const textareas = document.querySelectorAll('textarea')
+					for (const textarea of textareas) {
+						const text = (textarea as HTMLTextAreaElement).value
+						if (text?.trim()) {
+							userQuery = text.trim()
+							break
+						}
+					}
+				}
+
+				console.log("T3 query extracted:", userQuery)
+
+				if (!userQuery.trim()) {
+					console.log("No query text found")
+					return
+				}
+
+				const response = await browser.runtime.sendMessage({
+					action: MESSAGE_TYPES.GET_RELATED_MEMORIES,
+					data: userQuery,
+				})
+
+				console.log("T3 memories response:", response)
+
+				if (response.success && response.data) {
+					let textareaElement = null
+					const supermemoryContainer = document.querySelector('[data-supermemory-icon-added="true"]')
+					if (supermemoryContainer?.parentElement?.parentElement?.previousElementSibling) {
+						textareaElement = supermemoryContainer.parentElement.parentElement.previousElementSibling.querySelector('textarea')
+					}
+
+					if (!textareaElement) {
+						textareaElement = document.querySelector('div[contenteditable="true"]') as HTMLElement
+					}
+					
+					if (textareaElement) {
+						if (textareaElement.tagName === 'TEXTAREA') {
+							const currentContent = (textareaElement as HTMLTextAreaElement).value
+							;(textareaElement as HTMLTextAreaElement).value = `${currentContent}\n\nSupermemories: ${response.data}`
+						} else {
+							const currentContent = textareaElement.innerHTML
+							textareaElement.innerHTML = `${currentContent}<br>Supermemories: ${response.data}`
+						}
+						
+						textareaElement.dispatchEvent(new Event('input', { bubbles: true }))
+					} else {
+						console.log("Could not find T3 input area")
+					}
+				} else {
+					console.log("Failed to get memories:", response.error || "Unknown error")
+				}
+			} catch (error) {
+				console.error("Error getting related memories for T3:", error)
+			}
 		}
 
 		// TODO: Add Tweet Capture Functionality
