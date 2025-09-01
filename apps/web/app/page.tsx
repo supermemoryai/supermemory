@@ -50,6 +50,7 @@ const MemoryGraphPage = () => {
 	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([]);
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
 	const [showReferralModal, setShowReferralModal] = useState(false);
+	const [showConnectAIModal, setShowConnectAIModal] = useState(true);
 
 	// Fetch projects meta to detect experimental flag
 	const { data: projectsMeta = [] } = useQuery({
@@ -499,20 +500,35 @@ const MemoryGraphPage = () => {
 								variant="consumer"
 							>
 								<div className="absolute inset-0 flex items-center justify-center">
-									<div className="rounded-xl overflow-hidden">
-										<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
-											<p className="text-lg font-medium mb-2">
-												No Memories to Visualize
-											</p>
-											<button
-												className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
-												onClick={() => setShowAddMemoryView(true)}
-												type="button"
-											>
-												Create one?
-											</button>
+									<ConnectAIModal 
+										onOpenChange={setShowConnectAIModal}
+										open={showConnectAIModal}
+									>
+										<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
+											<div className="relative z-10 text-slate-200 text-center">
+												<p className="text-lg font-medium mb-4">
+													Get Started with supermemory
+												</p>
+												<div className="flex flex-col gap-3">
+													<p className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+														Click here to set up your AI connection
+													</p>
+													<p className="text-xs text-white/60">or</p>
+													<button
+														className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+														onClick={(e) => {
+															e.stopPropagation();
+															setShowAddMemoryView(true);
+															setShowConnectAIModal(false);
+														}}
+														type="button"
+													>
+														Add your first memory
+													</button>
+												</div>
+											</div>
 										</div>
-									</div>
+									</ConnectAIModal>
 								</div>
 							</MemoryGraph>
 						</motion.div>
@@ -540,20 +556,35 @@ const MemoryGraphPage = () => {
 								totalLoaded={totalLoaded}
 							>
 								<div className="absolute inset-0 flex items-center justify-center">
-									<div className="rounded-xl overflow-hidden">
-										<div className="relative z-10 text-slate-200 px-6 py-4 text-center">
-											<p className="text-lg font-medium mb-2">
-												No Memories to Visualize
-											</p>
-											<button
-												className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer underline"
-												onClick={() => setShowAddMemoryView(true)}
-												type="button"
-											>
-												Create one?
-											</button>
+									<ConnectAIModal 
+										onOpenChange={setShowConnectAIModal}
+										open={showConnectAIModal}
+									>
+										<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
+											<div className="relative z-10 text-slate-200 text-center">
+												<p className="text-lg font-medium mb-4">
+													Get Started with supermemory
+												</p>
+												<div className="flex flex-col gap-3">
+													<p className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+														Click here to set up your AI connection
+													</p>
+													<p className="text-xs text-white/60">or</p>
+													<button
+														className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+														onClick={(e) => {
+															e.stopPropagation();
+															setShowAddMemoryView(true);
+															setShowConnectAIModal(false);
+														}}
+														type="button"
+													>
+														Add your first memory
+													</button>
+												</div>
+											</div>
 										</div>
-									</div>
+									</ConnectAIModal>
 								</div>
 							</MemoryListView>
 						</motion.div>
