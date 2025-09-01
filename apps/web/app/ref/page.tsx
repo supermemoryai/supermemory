@@ -40,17 +40,10 @@ export default function ReferralHomePage() {
 							</p>
 						</div>
 
-						<Button
-							asChild
-							className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-						>
-							<Link href="/waitlist">Join the Waitlist</Link>
-						</Button>
-
 						<div className="text-center">
 							<Link
-								href="https://supermemory.ai"
 								className="text-orange-500 hover:text-orange-400 text-sm underline"
+								href="https://supermemory.ai"
 							>
 								Learn more about supermemory
 							</Link>

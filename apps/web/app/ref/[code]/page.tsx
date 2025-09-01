@@ -20,7 +20,6 @@ export default function ReferralPage() {
 	const params = useParams();
 	const referralCode = params.code as string;
 
-	const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
 	const [referralData, setReferralData] = useState<{
 		referrerName?: string;
@@ -56,18 +55,7 @@ export default function ReferralPage() {
 		checkReferral();
 	}, [referralCode]);
 
-	const handleJoinWaitlist = async () => {
-		setIsJoiningWaitlist(true);
-		try {
-			// Redirect to waitlist signup with referral code
-			router.push(`/waitlist?ref=${referralCode}`);
-		} catch (error) {
-			console.error("Error joining waitlist:", error);
-			toast.error("Failed to join waitlist. Please try again.");
-		} finally {
-			setIsJoiningWaitlist(false);
-		}
-	};
+
 
 	const handleCopyLink = async () => {
 		try {
@@ -158,17 +146,6 @@ export default function ReferralPage() {
 								</p>
 							</div>
 
-							<Button
-								onClick={handleJoinWaitlist}
-								disabled={isJoiningWaitlist}
-								className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-							>
-								{isJoiningWaitlist ? (
-									<LoaderIcon className="w-4 h-4 animate-spin" />
-								) : (
-									"Join the Waitlist"
-								)}
-							</Button>
 
 							<div className="text-center">
 								<Link

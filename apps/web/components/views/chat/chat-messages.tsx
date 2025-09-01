@@ -5,7 +5,15 @@ import { cn } from "@lib/utils";
 import { Button } from "@ui/components/button";
 import { Input } from "@ui/components/input";
 import { DefaultChatTransport } from "ai";
-import { ArrowUp, Check, Copy, RotateCcw, X, ChevronDown, ChevronRight } from "lucide-react";
+import {
+	ArrowUp,
+	Check,
+	ChevronDown,
+	ChevronRight,
+	Copy,
+	RotateCcw,
+	X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
@@ -41,8 +49,9 @@ function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 	return (
 		<div className="text-sm">
 			<button
-				onClick={() => setIsExpanded(!isExpanded)}
 				className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+				onClick={() => setIsExpanded(!isExpanded)}
+				type="button"
 			>
 				{isExpanded ? (
 					<ChevronDown className="size-4" />
@@ -52,12 +61,15 @@ function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 				<Check className="size-4" />
 				Found {foundCount} {foundCount === 1 ? "memory" : "memories"}
 			</button>
-			
+
 			{isExpanded && results.length > 0 && (
 				<div className="mt-2 ml-6 space-y-2 max-h-48 overflow-y-auto">
 					{results.map((result, index) => {
-						const isClickable = result.url && (result.url.startsWith('http://') || result.url.startsWith('https://'));
-						
+						const isClickable =
+							result.url &&
+							(result.url.startsWith("http://") ||
+								result.url.startsWith("https://"));
+
 						const content = (
 							<>
 								{result.title && (
@@ -86,11 +98,11 @@ function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 						if (isClickable) {
 							return (
 								<a
-									key={result.documentId || index}
-									href={result.url}
-									target="_blank"
-									rel="noopener noreferrer"
 									className="block p-2 bg-white/5 rounded-md border border-white/10 hover:bg-white/10 hover:border-white/20 transition-colors cursor-pointer"
+									href={result.url}
+									key={result.documentId || index}
+									rel="noopener noreferrer"
+									target="_blank"
 								>
 									{content}
 								</a>
@@ -99,8 +111,8 @@ function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 
 						return (
 							<div
-								key={result.documentId || index}
 								className="p-2 bg-white/5 rounded-md border border-white/10"
+								key={result.documentId || index}
 							>
 								{content}
 							</div>
@@ -376,12 +388,16 @@ export function ChatMessages() {
 															"count" in output
 																? Number(output.count) || 0
 																: 0;
-														const results = Array.isArray(output?.results) ? output.results : [];
-														
+														// @ts-expect-error
+														const results = Array.isArray(output?.results)
+															? // @ts-expect-error
+																output.results
+															: [];
+
 														return (
 															<ExpandableMemories
-																key={message.id + part.type}
 																foundCount={foundCount}
+																key={message.id + part.type}
 																results={results}
 															/>
 														);

@@ -510,7 +510,7 @@ const MemoryGraphPage = () => {
 								variant="consumer"
 							>
 								<div className="absolute inset-0 flex items-center justify-center">
-									<ConnectAIModal 
+									<ConnectAIModal
 										onOpenChange={setShowConnectAIModal}
 										open={showConnectAIModal}
 									>
@@ -566,7 +566,7 @@ const MemoryGraphPage = () => {
 								totalLoaded={totalLoaded}
 							>
 								<div className="absolute inset-0 flex items-center justify-center">
-									<ConnectAIModal 
+									<ConnectAIModal
 										onOpenChange={setShowConnectAIModal}
 										open={showConnectAIModal}
 									>
@@ -714,23 +714,6 @@ export default function Page() {
 	const router = useRouter();
 	const { user } = useAuth();
 
-	const { data: waitlistStatus, isLoading: isCheckingWaitlist } = useQuery({
-		queryKey: ["waitlist-status", user?.id],
-		queryFn: async () => {
-			try {
-				const response = await $fetch("@get/waitlist/status");
-				return response.data;
-			} catch (error) {
-				console.error("Error checking waitlist status:", error);
-				// Return null to indicate error, will handle in useEffect
-				return null;
-			}
-		},
-		enabled: !!user && !user.isAnonymous,
-		staleTime: 5 * 60 * 1000, // 5 minutes
-		retry: 1, // Only retry once on failure
-	});
-
 	useEffect(() => {
 		// save the token for chrome extension
 		const url = new URL(window.location.href);
@@ -744,14 +727,8 @@ export default function Page() {
 		}
 	}, []);
 
-	useEffect(() => {
-		if (waitlistStatus && !waitlistStatus.accessGranted) {
-			router.push("/waitlist");
-		}
-	}, [waitlistStatus, router]);
-
 	// Show loading state while checking authentication and waitlist status
-	if (!user || isCheckingWaitlist) {
+	if (!user) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
 				<div className="flex flex-col items-center gap-4">
