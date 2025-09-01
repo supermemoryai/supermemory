@@ -35,6 +35,7 @@ const clients = {
 	cline: "Cline",
 	"gemini-cli": "Gemini CLI",
 	"claude-code": "Claude Code",
+	"mcp-url": "MCP URL",
 	"roo-cline": "Roo Cline",
 	witsy: "Witsy",
 	enconvo: "Enconvo",
@@ -195,9 +196,9 @@ export function ConnectAIModal({
 							<h3 className="text-sm font-medium">Select Your AI Client</h3>
 						</div>
 
-						<div className="space-x-2">
+						<div className="space-x-2 space-y-2">
 							{Object.entries(clients)
-								.slice(0, 6)
+								.slice(0, 7)
 								.map(([key, clientName]) => (
 									<button
 										className={`pr-3 pl-1 rounded-full border cursor-pointer transition-all ${
@@ -215,7 +216,7 @@ export function ConnectAIModal({
 											<div className="w-8 h-8 flex items-center justify-center">
 												<Image
 													alt={clientName}
-													className="rounded object-contain"
+													className="rounded object-contain text-white fill-white"
 													height={20}
 													onError={(e) => {
 														const target = e.target as HTMLImageElement;
@@ -234,7 +235,7 @@ export function ConnectAIModal({
 															parent.appendChild(fallback);
 														}
 													}}
-													src={`/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`}
+													src={key === "mcp-url" ? "/mcp-icon.svg" : `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`}
 													width={20}
 												/>
 											</div>
@@ -247,7 +248,7 @@ export function ConnectAIModal({
 						</div>
 					</div>
 
-					{/* Step 2: Project Selection */}
+					{/* Step 2: Project Selection or MCP URL */}
 					{selectedClient && (
 						<div className="space-y-4">
 							<div className="flex items-center gap-3">
@@ -255,53 +256,84 @@ export function ConnectAIModal({
 									2
 								</div>
 								<h3 className="text-sm font-medium">
-									Select Target Project (Optional)
+									{selectedClient === "mcp-url"
+										? "MCP Server URL"
+										: "Select Target Project (Optional)"}
 								</h3>
 							</div>
 
-							<div className="max-w-md">
-								<Select
-									disabled={isLoadingProjects}
-									onValueChange={setSelectedProject}
-									value={selectedProject || "none"}
-								>
-									<SelectTrigger className="w-full">
-										<SelectValue placeholder="Select project" />
-									</SelectTrigger>
-									<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-										<SelectItem
-											className="text-white hover:bg-white/10"
-											value="none"
+							{selectedClient === "mcp-url" ? (
+								<div className="space-y-2">
+									<div className="relative">
+										<Input
+											className="font-mono text-xs w-full pr-10"
+											readOnly
+											value="https://api.supermemory.ai/mcp"
+										/>
+										<Button
+											className="absolute top-[-1px] right-0 cursor-pointer"
+											onClick={() => {
+												navigator.clipboard.writeText(
+													"https://api.supermemory.ai/mcp",
+												);
+												analytics.mcpInstallCmdCopied();
+												toast.success("Copied to clipboard!");
+											}}
+											variant="ghost"
 										>
-											Auto-select project
-										</SelectItem>
-										<SelectItem
-											className="text-white hover:bg-white/10"
-											value="sm_project_default"
-										>
-											Default Project
-										</SelectItem>
-										{projects
-											.filter(
-												(p: Project) => p.containerTag !== "sm_project_default",
-											)
-											.map((project: Project) => (
-												<SelectItem
-													className="text-white hover:bg-white/10"
-													key={project.id}
-													value={project.containerTag}
-												>
-													{project.name}
-												</SelectItem>
-											))}
-									</SelectContent>
-								</Select>
-							</div>
+											<CopyIcon className="size-4" />
+										</Button>
+									</div>
+									<p className="text-xs text-white/50">
+										Use this URL to configure supermemory in your AI assistant
+									</p>
+								</div>
+							) : (
+								<div className="max-w-md">
+									<Select
+										disabled={isLoadingProjects}
+										onValueChange={setSelectedProject}
+										value={selectedProject || "none"}
+									>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="Select project" />
+										</SelectTrigger>
+										<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
+											<SelectItem
+												className="text-white hover:bg-white/10"
+												value="none"
+											>
+												Auto-select project
+											</SelectItem>
+											<SelectItem
+												className="text-white hover:bg-white/10"
+												value="sm_project_default"
+											>
+												Default Project
+											</SelectItem>
+											{projects
+												.filter(
+													(p: Project) =>
+														p.containerTag !== "sm_project_default",
+												)
+												.map((project: Project) => (
+													<SelectItem
+														className="text-white hover:bg-white/10"
+														key={project.id}
+														value={project.containerTag}
+													>
+														{project.name}
+													</SelectItem>
+												))}
+										</SelectContent>
+									</Select>
+								</div>
+							)}
 						</div>
 					)}
 
 					{/* Step 3: Command Line */}
-					{selectedClient && (
+					{selectedClient && selectedClient !== "mcp-url" && (
 						<div className="space-y-4">
 							<div className="flex items-center gap-3">
 								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
