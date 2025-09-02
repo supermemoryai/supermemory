@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "supermemory-openai-sdk"
 version = "1.0.0"
-description = "OpenAI SDK utilities for supermemory"
+description = "Memory tools for OpenAI function calling with supermemory"
 readme = "README.md"
 license = { text = "MIT" }
 keywords = ["openai", "supermemory", "ai", "memory"]

@@ -13,22 +13,22 @@
 	"files": {
 		"includes": [
 			"**",
-			"!**/node_modules",
+			"!**/node_modules/",
 			"!**/.next/",
-			"!**/.contentlayer",
-			"!**/.vercel",
-			"!**/.react-router",
-			"!**/.wrangler",
+			"!**/.contentlayer/",
+			"!**/.vercel/",
+			"!**/.react-router/",
+			"!**/.wrangler/",
 			"!**/package.json",
 			"!**/worker-configuration.d.ts",
 			"!**/.turbo/",
-			"!**/.vercel",
-			"!**/dist",
-			"!**/.astro",
-			"!**/build",
-			"!**/.alchemy",
-			"!**/.build",
-			"!**/.open-next",
+			"!**/.vercel/",
+			"!**/dist/",
+			"!**/.astro/",
+			"!**/build/",
+			"!**/.alchemy/",
+			"!**/.build/",
+			"!**/.open-next/",
 			"!**/*.astro"
 		]
 	},
@@ -39,7 +39,7 @@
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double",
-			"semicolons": "always"
+			"semicolons": "asNeeded"
 		}
 	},
 	"linter": {
@@ -58,7 +58,7 @@
 						"ignoreRestSiblings": true
 					}
 				},
-				"useExhaustiveDependencies": "off",
+				"useExhaustiveDependencies": "warn",
 				"noUnusedImports": "warn"
 			},
 			"recommended": true,

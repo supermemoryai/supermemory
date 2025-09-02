@@ -1,14 +1,4 @@
-"""Supermemory OpenAI SDK - Enhanced OpenAI Python SDK with infinite context."""
-
-from .infinite_chat import (
-    SupermemoryOpenAI,
-    SupermemoryInfiniteChatConfig,
-    SupermemoryInfiniteChatConfigWithProviderName,
-    SupermemoryInfiniteChatConfigWithProviderUrl,
-    ProviderName,
-    PROVIDER_MAP,
-    create_supermemory_openai,
-)
+"""Supermemory OpenAI SDK - Memory tools for OpenAI function calling."""
 
 from .tools import (
     SupermemoryTools,
@@ -29,14 +19,6 @@ from .tools import (
 __version__ = "0.1.0"
 
 __all__ = [
-    # Infinite Chat
-    "SupermemoryOpenAI",
-    "SupermemoryInfiniteChatConfig",
-    "SupermemoryInfiniteChatConfigWithProviderName",
-    "SupermemoryInfiniteChatConfigWithProviderUrl",
-    "ProviderName",
-    "PROVIDER_MAP",
-    "create_supermemory_openai",
     # Tools
     "SupermemoryTools",
     "SupermemoryToolsConfig",
