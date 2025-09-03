@@ -4,10 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-openai-sdk"
-version = "1.0.0"
+version = "1.0.1"
 description = "Memory tools for OpenAI function calling with supermemory"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["openai", "supermemory", "ai", "memory"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -40,11 +41,10 @@ dev = [
     "python-dotenv>=1.0.1",
 ]
 
-
 [project.urls]
-Homepage = "https://github.com/supermemoryai/supermemory"
+Homepage = "https://supermemory.ai"
 Repository = "https://github.com/supermemoryai/supermemory"
-Documentation = "https://docs.supermemory.ai"
+Documentation = "https://supermemory.ai/docs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

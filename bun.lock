@@ -186,14 +186,14 @@
     },
     "packages/tools": {
       "name": "@supermemory/tools",
-      "version": "1.0.0",
+      "version": "1.0.4",
       "dependencies": {
-        "@ai-sdk/openai": "^2.0.22",
+        "@ai-sdk/openai": "^2.0.23",
         "@ai-sdk/provider": "^2.0.0",
-        "ai": "^5.0.26",
+        "ai": "^5.0.29",
         "openai": "^4.104.0",
         "supermemory": "^3.0.0-alpha.26",
-        "zod": "^4.1.4",
+        "zod": "^4.1.5",
       },
       "devDependencies": {
         "@total-typescript/tsconfig": "^1.0.4",

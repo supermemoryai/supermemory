@@ -9,13 +9,13 @@ This package provides memory management tools for the official [OpenAI Python SD
 Install using uv (recommended):
 
 ```bash
-uv add supermemory-openai
+uv add supermemory-openai-sdk
 ```
 
 Or with pip:
 
 ```bash
-pip install supermemory-openai
+pip install supermemory-openai-sdk
 ```
 
 ## Quick Start
