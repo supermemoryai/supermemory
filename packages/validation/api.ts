@@ -1384,3 +1384,36 @@ export const BulkDeleteMemoriesResponseSchema = z
 	.openapi({
 		description: "Response for bulk memory deletion",
 	})
+
+// Referral schemas
+export const ReferrerSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	image: z.string().optional(),
+})
+
+export const ReferralDetailsResponseSchema = z.object({
+	referrer: ReferrerSchema,
+})
+
+export const ReferralCodeResponseSchema = z.object({
+	referralCode: z.string(),
+})
+
+export const TrackReferralRequestSchema = z.object({
+	referralCode: z.string(),
+})
+
+export const TrackReferralResponseSchema = z.object({
+	success: z.boolean(),
+	referrerId: z.string(),
+})
+
+// Referral type exports
+export type Referrer = z.infer<typeof ReferrerSchema>
+export type ReferralDetailsResponse = z.infer<
+	typeof ReferralDetailsResponseSchema
+>
+export type ReferralCodeResponse = z.infer<typeof ReferralCodeResponseSchema>
+export type TrackReferralRequest = z.infer<typeof TrackReferralRequestSchema>
+export type TrackReferralResponse = z.infer<typeof TrackReferralResponseSchema>

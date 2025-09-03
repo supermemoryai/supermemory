@@ -21,6 +21,10 @@ import {
 	SearchResponseSchema,
 	type SearchResult,
 	SettingsRequestSchema,
+	ReferralDetailsResponseSchema,
+	ReferralCodeResponseSchema,
+	TrackReferralRequestSchema,
+	TrackReferralResponseSchema,
 } from "../validation/api"
 
 // Settings response schema - this is custom to console (not in shared validation)
@@ -190,6 +194,21 @@ export const apiSchema = createSchema({
 	// Waitlist operations
 	"@get/waitlist/status": {
 		output: WaitlistStatusResponseSchema,
+	},
+
+	// Referral operations
+	"@get/referral/:code": {
+		output: ReferralDetailsResponseSchema,
+		params: z.object({
+			code: z.string(),
+		}),
+	},
+	"@get/referral/user/code": {
+		output: ReferralCodeResponseSchema,
+	},
+	"@post/referral/track": {
+		input: TrackReferralRequestSchema,
+		output: TrackReferralResponseSchema,
 	},
 })
 

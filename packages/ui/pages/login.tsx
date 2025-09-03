@@ -43,28 +43,45 @@ export function LoginPage({
 
 	// Get redirect URL from query params
 	const redirectUrl = params.get("redirect");
+	// Get referral code from query params
+	const referralCode = params.get("ref");
 
 	// Create callback URL that includes redirect parameter if provided
 	const getCallbackURL = () => {
 		const origin = window.location.origin;
+		let callbackUrl = origin;
+
 		if (redirectUrl) {
 			// Validate that the redirect URL is safe (same origin or allow external based on your security requirements)
 			try {
 				const url = new URL(redirectUrl, origin);
-				return url.toString();
+				callbackUrl = url.toString();
 			} catch {
 				// If redirect URL is invalid, fall back to origin
-				return origin;
+				callbackUrl = origin;
 			}
 		}
-		return origin;
+
+		// Add referral code to callback URL if present
+		if (referralCode) {
+			const url = new URL(callbackUrl);
+			url.searchParams.set("ref", referralCode);
+			return url.toString();
+		}
+
+		return callbackUrl;
 	};
 
-	// Load last used method from localStorage on mount
+	// Load last used method from localStorage on mount and save referral code
 	useEffect(() => {
 		const savedMethod = localStorage.getItem("supermemory-last-login-method");
 		setLastUsedMethod(savedMethod);
-	}, []);
+
+		// Store referral code in localStorage if present
+		if (referralCode) {
+			localStorage.setItem("supermemory-pending-referral", referralCode);
+		}
+	}, [referralCode]);
 
 	// Record the pending login method (will be committed after successful auth)
 	function setPendingLoginMethod(method: string) {

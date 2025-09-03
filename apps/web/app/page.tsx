@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "motion/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { useReferralTracking } from "@lib/use-referral-tracking"
 import type { z } from "zod"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { InstallPrompt } from "@/components/install-prompt"
@@ -743,6 +744,9 @@ const MemoryGraphPage = () => {
 export default function Page() {
 	const router = useRouter()
 	const { user } = useAuth()
+
+	// Track referral if present
+	useReferralTracking(user)
 
 	useEffect(() => {
 		// save the token for chrome extension
