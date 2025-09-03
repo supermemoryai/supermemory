@@ -4,7 +4,8 @@
 
 import * as Sentry from '@sentry/nextjs';
 
-Sentry.init({
+if (process.env.NODE_ENV !== 'development') {
+  Sentry.init({
   dsn: 'https://2451ebfd1a7490f05fa7776482df81b6@o4508385422802944.ingest.us.sentry.io/4509872269819904',
 
   // Add optional integrations for additional features
@@ -25,6 +26,7 @@ Sentry.init({
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
-});
+  });
+}
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+export const onRouterTransitionStart = process.env.NODE_ENV !== 'development' ? Sentry.captureRouterTransitionStart : () => {};

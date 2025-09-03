@@ -3,14 +3,13 @@
 import { useChat, useCompletion } from "@ai-sdk/react";
 import { cn } from "@lib/utils";
 import { Button } from "@ui/components/button";
-import { Input } from "@ui/components/input";
 import { DefaultChatTransport } from "ai";
 import {
-	ArrowUp,
 	Check,
 	ChevronDown,
 	ChevronRight,
 	Copy,
+	Plus,
 	RotateCcw,
 	UserIcon,
 	X,
@@ -218,8 +217,10 @@ export function ChatMessages() {
 		getCurrentChat,
 	} = usePersistentChat();
 
+	const [input, setInput] = useState("");
 	const activeChatIdRef = useRef<string | null>(null);
 	const shouldGenerateTitleRef = useRef<boolean>(false);
+	const hasRunInitialMessageRef = useRef<boolean>(false);
 
 	const { setDocumentIds } = useGraphHighlights();
 
@@ -255,6 +256,16 @@ export function ChatMessages() {
 	}, [currentChatId, id]);
 
 	useEffect(() => {
+		if (currentChatId && !hasRunInitialMessageRef.current) {
+			const msgs = getCurrentConversation();
+			if (msgs && msgs.length === 1) {
+				sendMessage({ text: msgs[0].content });
+				hasRunInitialMessageRef.current = true;
+			}
+		}
+	}, []);
+
+	useEffect(() => {
 		if (id && id !== currentChatId) {
 			setCurrentChatId(id);
 		}
@@ -262,7 +273,11 @@ export function ChatMessages() {
 
 	useEffect(() => {
 		const msgs = getCurrentConversation();
-		setMessages(msgs ?? []);
+		if (msgs && msgs.length > 0) {
+			setMessages(msgs);
+		} else if (!currentChatId) {
+			setMessages([]);
+		}
 		setInput("");
 	}, [currentChatId]);
 
@@ -273,7 +288,6 @@ export function ChatMessages() {
 		}
 	}, [messages, currentChatId, id, setConversation]);
 
-	const [input, setInput] = useState("");
 	const { complete } = useCompletion({
 		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
 		credentials: "include",
@@ -336,7 +350,13 @@ export function ChatMessages() {
 					ref={scrollContainerRef}
 				>
 					{messages.map((message) => (
-						<div className={cn("flex", message.role === "user" ? "items-center gap-2" : "flex-col")} key={message.id}>
+						<div
+							className={cn(
+								"flex",
+								message.role === "user" ? "items-center gap-2" : "flex-col",
+							)}
+							key={message.id}
+						>
 							{message.role === "user" && (
 								<UserIcon className="size-4 text-muted-foreground" />
 							)}
@@ -517,40 +537,92 @@ export function ChatMessages() {
 				</Button>
 			</div>
 
-			<form
-				className="flex gap-2 px-4 pb-4 pt-1 relative flex-shrink-0"
-				onSubmit={(e) => {
-					e.preventDefault();
-					if (status === "submitted") return;
-					if (status === "streaming") {
-						stop();
-						return;
-					}
-					if (input.trim()) {
-						enableAutoScroll();
-						scrollToBottom("auto");
-						sendMessage({ text: input });
-						setInput("");
-					}
-				}}
-			>
-				<Input
-					className="w-full"
-					disabled={status === "submitted"}
-					onChange={(e) => setInput(e.target.value)}
-					placeholder="Say something..."
-					value={input}
-				/>
-				<Button disabled={status === "submitted"} type="submit">
-					{status === "ready" ? (
-						<ArrowUp className="size-4" />
-					) : status === "submitted" ? (
-						<Spinner className="size-4" />
-					) : (
-						<X className="size-4" />
-					)}
-				</Button>
-			</form>
+			<div className="px-4 pb-4 pt-1 relative flex-shrink-0">
+				<div className="bg-gradient-to-r from-blue-500 to-blue-600 p-[3px] rounded-3xl shadow-lg">
+					<div className="flex p-2 gap-2">
+						<div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white text-sm hover:bg-white/15 transition-all duration-200 cursor-pointer shadow-lg">
+							Suggest me best hotels in Liechtenstein
+						</div>
+						<div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white/90 text-sm hover:bg-white/15 transition-all duration-200 cursor-pointer shadow-lg">
+							Prepare a full itinerary to Liechtenstein
+						</div>
+					</div>
+					<form
+						className="flex flex-col items-end gap-3 bg-white rounded-[22px] p-2"
+						onSubmit={(e) => {
+							e.preventDefault();
+							if (status === "submitted") return;
+							if (status === "streaming") {
+								stop();
+								return;
+							}
+							if (input.trim()) {
+								enableAutoScroll();
+								scrollToBottom("auto");
+								sendMessage({ text: input });
+								setInput("");
+							}
+						}}
+					>
+						<textarea
+							className="w-full text-black placeholder-black/40 rounded-md outline-none resize-none text-base leading-relaxed p-2"
+							disabled={status === "submitted"}
+							onChange={(e) => setInput(e.target.value)}
+							placeholder="Yo, describe my fav destination..."
+							rows={2}
+							value={input}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && !e.shiftKey) {
+									e.preventDefault();
+									if (input.trim() && status !== "submitted") {
+										enableAutoScroll();
+										scrollToBottom("auto");
+										sendMessage({ text: input });
+										setInput("");
+									}
+								}
+							}}
+						/>
+
+						<div className="flex items-center gap-2 w-full justify-between">
+							<div className="flex items-center gap-2">
+								<Button
+									className="bg-white/20 hover:bg-white/30 text-black border-[#EBEBEB] rounded-lg size-10"
+									size="icon"
+									type="button"
+									variant="outline"
+								>
+									<img src="/icons/attach.svg" alt="Attach" className="w-5 h-5" />
+								</Button>
+								<Button
+									className="bg-white/20 hover:bg-white/30 text-black border-[#EBEBEB] rounded-lg px-4 py-2 h-10"
+									type="button"
+									variant="outline"
+								>
+									<Plus className="size-4 mr-2" />
+									Link Project
+								</Button>
+							</div>
+
+							<Button
+								className="flex items-center justify-center bg-white"
+								disabled={status === "submitted"}
+								size="icon"
+								type="submit"
+								variant="ghost"
+							>
+								{status === "ready" ? (
+									<img src="/icons/send.svg" alt="Send" className="w-7 h-7" />
+								) : status === "submitted" ? (
+									<Spinner className="size-5" />
+								) : (
+									<X className="size-5" />
+								)}
+							</Button>
+						</div>
+					</form>
+				</div>
+			</div>
 		</div>
 	);
 }

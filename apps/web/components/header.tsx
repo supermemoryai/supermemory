@@ -38,8 +38,7 @@ export function AppHeader() {
 		<>
 			<header className="w-full h-16 px-4 flex items-center justify-between">
 				<Link
-					href="https://supermemory.ai"
-					target="_blank"
+					href="/"
 					rel="noopener noreferrer"
 					className="flex items-center"
 				>
