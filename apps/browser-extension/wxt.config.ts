@@ -15,7 +15,6 @@ export default defineConfig({
 		permissions: [
 			"contextMenus",
 			"storage",
-			"scripting",
 			"activeTab",
 			"webRequest",
 			"tabs",
