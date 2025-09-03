@@ -3,8 +3,8 @@
 	"assist": {
 		"actions": {
 			"source": {
-				"organizeImports": "on",
-				"useSortedAttributes": "on",
+				"organizeImports": "off",
+				"useSortedAttributes": "off",
 				"useSortedKeys": "off"
 			}
 		},
@@ -94,6 +94,12 @@
 						"noUnusedImports": "off"
 					}
 				}
+			}
+		},
+		{
+			"includes": ["**/*.css"],
+			"linter": {
+				"enabled": false
 			}
 		}
 	],

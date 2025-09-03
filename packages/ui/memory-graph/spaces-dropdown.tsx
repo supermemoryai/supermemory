@@ -34,39 +34,6 @@ export const SpacesDropdown = memo<SpacesDropdownProps>(
 
 		return (
 			<div className="relative" ref={dropdownRef}>
-				<button
-					className={cn(
-						"flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-solid border-transparent",
-						"[background-image:linear-gradient(#1a1f29,_#1a1f29),_linear-gradient(150.262deg,_#A4E8F5_0%,_#267FFA_26%,_#464646_49%,_#747474_70%,_#A4E8F5_100%)]",
-						"[background-origin:border-box] [background-clip:padding-box,_border-box]",
-						"shadow-[inset_0px_2px_1px_rgba(84,84,84,0.15)] backdrop-blur-md",
-						"transition-all duration-200 hover:shadow-[inset_0px_2px_1px_rgba(84,84,84,0.25)]",
-						"cursor-pointer min-w-60",
-					)}
-					onClick={() => setIsOpen(!isOpen)}
-					type="button"
-				>
-					<Eye className="w-4 h-4 text-slate-300" />
-					<div className="flex-1 text-left">
-						<span className="text-sm text-slate-200 font-medium">
-							{selectedSpace === "all"
-								? "All Spaces"
-								: selectedSpace || "Select space"}
-						</span>
-						<div className="text-xs text-slate-400">
-							{selectedSpace === "all"
-								? `${totalMemories} total memories`
-								: `${spaceMemoryCounts[selectedSpace] || 0} memories`}
-						</div>
-					</div>
-					<ChevronDown
-						className={cn(
-							"w-4 h-4 text-slate-300 transition-transform duration-200",
-							isOpen && "rotate-180",
-						)}
-					/>
-				</button>
-
 				{isOpen && (
 					<div className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 backdrop-blur-md border border-slate-700/40 rounded-xl shadow-xl z-20 overflow-hidden">
 						<div className="p-1">

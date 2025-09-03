@@ -4,7 +4,6 @@ import { useIsMobile } from "@hooks/use-mobile";
 import { cn } from "@lib/utils";
 import { Badge } from "@repo/ui/components/badge";
 import { Card, CardContent, CardHeader } from "@repo/ui/components/card";
-import { colors } from "@repo/ui/memory-graph/constants";
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -20,6 +19,8 @@ import { analytics } from "@/lib/analytics";
 import { MemoryDetail } from "./memories/memory-detail";
 import { getDocumentIcon } from "@/lib/document-icon";
 import { formatDate, getSourceUrl } from "./memories";
+import { ChatInline } from "./chat-inline";
+import { GraphPreview } from "./graph-preview";
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>;
 type DocumentWithMemories = DocumentsResponse["documents"][0];
@@ -33,32 +34,8 @@ interface MemoryListViewProps {
 	totalLoaded: number;
 	hasMore: boolean;
 	loadMoreDocuments: () => Promise<void>;
+	isCurrentProjectExperimental?: boolean;
 }
-
-const GreetingMessage = memo(() => {
-	const getGreeting = () => {
-		const hour = new Date().getHours();
-		if (hour < 12) return "Good morning";
-		if (hour < 17) return "Good afternoon";
-		return "Good evening";
-	};
-
-	return (
-		<div className="flex items-center gap-3 mb-3 px-4 md:mb-6 md:mt-3">
-			<div>
-				<h1
-					className="text-lg md:text-xl font-semibold"
-					style={{ color: colors.text.primary }}
-				>
-					{getGreeting()}!
-				</h1>
-				<p className="text-xs md:text-sm" style={{ color: colors.text.muted }}>
-					Welcome back to your memory collection
-				</p>
-			</div>
-		</div>
-	);
-});
 
 const DocumentCard = memo(
 	({
@@ -75,13 +52,10 @@ const DocumentCard = memo(
 
 		return (
 			<Card
-				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden border-0 gap-2 md:w-full"
+				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden bg-card gap-2 md:w-full"
 				onClick={() => {
 					analytics.documentCardClicked();
 					onOpenDetails(document);
-				}}
-				style={{
-					backgroundColor: colors.document.primary,
 				}}
 			>
 				<CardHeader className="relative z-10 px-0">
@@ -99,15 +73,11 @@ const DocumentCard = memo(
 						</div>
 						{document.url && (
 							<button
-								className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+								className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-muted/50 text-muted-foreground hover:bg-muted/80"
 								onClick={(e) => {
 									e.stopPropagation();
 									const sourceUrl = getSourceUrl(document);
 									window.open(sourceUrl ?? undefined, "_blank");
-								}}
-								style={{
-									backgroundColor: "rgba(255, 255, 255, 0.05)",
-									color: colors.text.secondary,
 								}}
 								type="button"
 							>
@@ -122,8 +92,7 @@ const DocumentCard = memo(
 				<CardContent className="relative z-10 px-0">
 					{document.content && (
 						<p
-							className="text-xs line-clamp-2 mb-3"
-							style={{ color: colors.text.muted }}
+							className="text-xs line-clamp-2 mb-3 text-muted-foreground"
 						>
 							{document.content}
 						</p>
@@ -131,10 +100,7 @@ const DocumentCard = memo(
 					<div className="flex items-center gap-2 flex-wrap">
 						{activeMemories.length > 0 && (
 							<Badge
-								className="text-xs text-accent-foreground"
-								style={{
-									backgroundColor: colors.memory.secondary,
-								}}
+								className="text-xs"
 								variant="secondary"
 							>
 								<Brain className="w-3 h-3 mr-1" />
@@ -144,11 +110,7 @@ const DocumentCard = memo(
 						)}
 						{forgottenMemories.length > 0 && (
 							<Badge
-								className="text-xs"
-								style={{
-									borderColor: "rgba(255, 255, 255, 0.2)",
-									color: colors.text.muted,
-								}}
+								className="text-xs text-muted-foreground border-muted"
 								variant="outline"
 							>
 								{forgottenMemories.length} forgotten
@@ -169,13 +131,14 @@ export const MemoryListView = ({
 	error,
 	hasMore,
 	loadMoreDocuments,
+	isCurrentProjectExperimental = false,
 }: MemoryListViewProps) => {
 	const [selectedSpace, _] = useState<string>("all");
 	const [selectedDocument, setSelectedDocument] =
 		useState<DocumentWithMemories | null>(null);
 	const [isDetailOpen, setIsDetailOpen] = useState(false);
-	const parentRef = useRef<HTMLDivElement>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const parentRef = useRef<HTMLDivElement>(null);
 	const isMobile = useIsMobile();
 
 	const gap = 14;
@@ -232,6 +195,7 @@ export const MemoryListView = ({
 		estimateSize: () => 200,
 	});
 
+
 	useEffect(() => {
 		const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
 
@@ -254,27 +218,24 @@ export const MemoryListView = ({
 	return (
 		<>
 			<div
-				className="h-full overflow-hidden relative pb-20"
-				style={{ backgroundColor: colors.background.primary }}
+				className="min-h-screen flex flex-col"
 				ref={containerRef}
 			>
 				{error ? (
-					<div className="h-full flex items-center justify-center p-4">
+					<div className="flex items-center justify-center p-4 min-h-screen">
 						<div className="rounded-xl overflow-hidden">
 							<div
-								className="relative z-10 px-6 py-4"
-								style={{ color: colors.text.primary }}
+								className="relative z-10 px-6 py-4 text-foreground"
 							>
 								Error loading documents: {error.message}
 							</div>
 						</div>
 					</div>
 				) : isLoading ? (
-					<div className="h-full flex items-center justify-center p-4">
+					<div className="flex items-center justify-center p-4 min-h-screen">
 						<div className="rounded-xl overflow-hidden">
 							<div
-								className="relative z-10 px-6 py-4"
-								style={{ color: colors.text.primary }}
+								className="relative z-10 px-6 py-4 text-foreground"
 							>
 								<div className="flex items-center gap-2">
 									<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
@@ -284,67 +245,157 @@ export const MemoryListView = ({
 						</div>
 					</div>
 				) : filteredDocuments.length === 0 && !isLoading ? (
-					<div className="h-full flex items-center justify-center p-4">
-						{children}
+					<div className="flex flex-col min-h-screen">
+						<div className="p-6 pb-8">
+							{isMobile ? (
+								<>
+									<div className="mb-6">
+										<ChatInline />
+									</div>
+									<div className="mb-6 hidden sm:block">
+										<GraphPreview
+											documents={documents}
+											error={error}
+											hasMore={hasMore}
+											isLoading={isLoading}
+											isLoadingMore={isLoadingMore}
+											totalLoaded={documents.length}
+											loadMoreDocuments={loadMoreDocuments}
+											isCurrentProjectExperimental={
+												isCurrentProjectExperimental
+											}
+										/>
+									</div>
+								</>
+							) : (
+								<div className="mb-6 flex gap-6">
+									<div className="w-2/3">
+										<ChatInline />
+									</div>
+									<div className="w-1/3">
+										<GraphPreview
+											documents={documents}
+											error={error}
+											hasMore={hasMore}
+											isLoading={isLoading}
+											isLoadingMore={isLoadingMore}
+											totalLoaded={documents.length}
+											loadMoreDocuments={loadMoreDocuments}
+											isCurrentProjectExperimental={
+												isCurrentProjectExperimental
+											}
+										/>
+									</div>
+								</div>
+							)}
+						</div>
+						<div className="flex-1 flex items-center justify-center p-4">
+							{children}
+						</div>
 					</div>
 				) : (
-					<div
-						ref={parentRef}
-						className="h-full overflow-auto mt-20 custom-scrollbar"
-					>
-						<GreetingMessage />
-
-						<div
-							className="w-full relative"
-							style={{
-								height: `${virtualizer.getTotalSize() + virtualItems.length * gap}px`,
-							}}
-						>
-							{virtualizer.getVirtualItems().map((virtualRow) => {
-								const rowItems = virtualItems[virtualRow.index];
-								if (!rowItems) return null;
-
-								return (
-									<div
-										key={virtualRow.key}
-										data-index={virtualRow.index}
-										ref={virtualizer.measureElement}
-										className="absolute top-0 left-0 w-full"
-										style={{
-											transform: `translateY(${virtualRow.start + virtualRow.index * gap}px)`,
-										}}
-									>
-										<div
-											className="grid justify-start"
-											style={{
-												gridTemplateColumns: `repeat(${columns}, ${columnWidth}px)`,
-												gap: `${gap}px`,
-											}}
-										>
-											{rowItems.map((document, columnIndex) => (
-												<DocumentCard
-													key={`${document.id}-${virtualRow.index}-${columnIndex}`}
-													document={document}
-													onOpenDetails={handleOpenDetails}
-												/>
-											))}
-										</div>
+					<>
+						<div className="p-6 pb-8 min-h-[48vh]">
+							{isMobile ? (
+								<>
+									<div className="mb-6">
+										<ChatInline />
 									</div>
-								);
-							})}
+									<div className="mb-6 hidden sm:block">
+										<GraphPreview
+											documents={documents}
+											error={error}
+											hasMore={hasMore}
+											isLoading={isLoading}
+											isLoadingMore={isLoadingMore}
+											totalLoaded={documents.length}
+											loadMoreDocuments={loadMoreDocuments}
+											isCurrentProjectExperimental={
+												isCurrentProjectExperimental
+											}
+										/>
+									</div>
+								</>
+							) : (
+								<div className="flex gap-6 h-[48vh]">
+									<div className="w-2/3">
+										<ChatInline />
+									</div>
+									<div className="w-1/3">
+										<GraphPreview
+											documents={documents}
+											error={error}
+											hasMore={hasMore}
+											isLoading={isLoading}
+											isLoadingMore={isLoadingMore}
+											totalLoaded={documents.length}
+											loadMoreDocuments={loadMoreDocuments}
+											isCurrentProjectExperimental={
+												isCurrentProjectExperimental
+											}
+										/>
+									</div>
+								</div>
+							)}
 						</div>
 
-						{isLoadingMore && (
-							<div className="py-8 flex items-center justify-center">
-								<div className="flex items-center gap-2">
-									<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
-									<span style={{ color: colors.text.primary }}>
-										Loading more memories...
-									</span>
-								</div>
+						<div className="px-10 py-2">
+							<p className="font-medium text-lg">All Memories</p>
+						</div>
+
+						<div ref={parentRef} className="flex-1 overflow-auto pt-2">
+							<div
+								className="w-full relative"
+								style={{
+									height: `${virtualizer.getTotalSize() + virtualItems.length * gap}px`,
+								}}
+							>
+								{virtualizer.getVirtualItems().map((virtualRow) => {
+									const rowItems = virtualItems[virtualRow.index];
+									if (!rowItems) return null;
+
+									return (
+										<div
+											key={virtualRow.key}
+											data-index={virtualRow.index}
+											ref={virtualizer.measureElement}
+											className="absolute top-0 left-0 w-full"
+											style={{
+												transform: `translateY(${virtualRow.start + virtualRow.index * gap}px)`,
+											}}
+										>
+											<div
+												className="grid justify-start px-4"
+												style={{
+													gridTemplateColumns: `repeat(${columns}, ${columnWidth}px)`,
+													gap: `${gap}px`,
+												}}
+											>
+												{rowItems.map((document, columnIndex) => (
+													<DocumentCard
+														key={`${document.id}-${virtualRow.index}-${columnIndex}`}
+														document={document}
+														onOpenDetails={handleOpenDetails}
+													/>
+												))}
+											</div>
+										</div>
+									);
+								})}
 							</div>
-						)}
-					</div>
+
+							{isLoadingMore && (
+								<div className="py-8 flex items-center justify-center">
+									<div className="flex items-center gap-2">
+										<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
+										<span className="text-foreground">
+											Loading more memories...
+										</span>
+									</div>
+								</div>
+							)}
+						</div>
+					</>
 				)}
 			</div>
 

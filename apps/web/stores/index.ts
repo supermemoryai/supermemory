@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { DEFAULT_PROJECT_ID } from "@repo/lib/constants";
 
 interface ProjectState {
 	selectedProject: string;
@@ -9,7 +10,7 @@ interface ProjectState {
 export const useProjectStore = create<ProjectState>()(
 	persist(
 		(set) => ({
-			selectedProject: "sm_project_default",
+			selectedProject: DEFAULT_PROJECT_ID,
 			setSelectedProject: (projectId) => set({ selectedProject: projectId }),
 		}),
 		{
@@ -51,7 +52,14 @@ export function useProject() {
 	const setSelectedProject = useProjectStore(
 		(state) => state.setSelectedProject,
 	);
-	return { selectedProject, setSelectedProject };
+	
+	const finalProject = selectedProject || DEFAULT_PROJECT_ID;
+	
+	return { 
+		selectedProject: finalProject, 
+		setSelectedProject,
+		resetToDefault: () => setSelectedProject(DEFAULT_PROJECT_ID)
+	};
 }
 
 export function useMemoryGraphPosition() {

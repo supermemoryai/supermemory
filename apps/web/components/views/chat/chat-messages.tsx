@@ -12,6 +12,7 @@ import {
 	ChevronRight,
 	Copy,
 	RotateCcw,
+	UserIcon,
 	X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -327,22 +328,24 @@ export function ChatMessages() {
 	} = useStickyAutoScroll([messages, status]);
 
 	return (
-		<>
-			<div className="relative grow">
+		<div className="h-full mx-auto flex flex-col max-w-3xl">
+			<div className="flex-1 relative">
 				<div
 					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7"
 					onScroll={onScroll}
 					ref={scrollContainerRef}
 				>
 					{messages.map((message) => (
-						<div
-							className={cn(
-								"flex flex-col",
-								message.role === "user" ? "items-end" : "items-start",
+						<div className={cn("flex", message.role === "user" ? "items-center gap-2" : "flex-col")} key={message.id}>
+							{message.role === "user" && (
+								<UserIcon className="size-4 text-muted-foreground" />
 							)}
-							key={message.id}
-						>
-							<div className="flex flex-col gap-2 max-w-4/5 bg-white/10 py-3 px-4 rounded-lg">
+							<div
+								className={cn(
+									"flex flex-col gap-2 max-w-4/5 rounded-full",
+									message.role === "user" ? "bg-white/10 px-3 py-1.5" : "",
+								)}
+							>
 								{message.parts
 									.filter((part) =>
 										["text", "tool-searchMemories", "tool-addMemory"].includes(
@@ -515,7 +518,7 @@ export function ChatMessages() {
 			</div>
 
 			<form
-				className="flex gap-2 px-4 pb-4 pt-1 relative"
+				className="flex gap-2 px-4 pb-4 pt-1 relative flex-shrink-0"
 				onSubmit={(e) => {
 					e.preventDefault();
 					if (status === "submitted") return;
@@ -531,7 +534,6 @@ export function ChatMessages() {
 					}
 				}}
 			>
-				<div className="absolute top-0 left-0 -mt-7 w-full h-7 bg-gradient-to-t from-background to-transparent" />
 				<Input
 					className="w-full"
 					disabled={status === "submitted"}
@@ -549,6 +551,6 @@ export function ChatMessages() {
 					)}
 				</Button>
 			</form>
-		</>
+		</div>
 	);
 }

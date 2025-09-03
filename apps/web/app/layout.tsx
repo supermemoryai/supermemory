@@ -7,6 +7,7 @@ import { ErrorTrackingProvider } from "@lib/error-tracking";
 import { PostHogProvider } from "@lib/posthog";
 import { QueryProvider } from "@lib/query-client";
 import { AutumnProvider } from "autumn-js/react";
+import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { TourProvider } from "@/components/tour";
@@ -36,33 +37,35 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html className="dark bg-sm-black" lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${sans.variable} ${mono.variable} antialiased bg-[#0f1419]`}
+				className={`${sans.variable} ${mono.variable} antialiased`}
 			>
-				<AutumnProvider
-					backendUrl={
-						process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
-					}
-					includeCredentials={true}
-				>
-					<QueryProvider>
-						<AuthProvider>
-							<ViewModeProvider>
-								<MobilePanelProvider>
-									<PostHogProvider>
-										<ErrorTrackingProvider>
-											<TourProvider>
-												<Suspense>{children}</Suspense>
-												<Toaster richColors theme="dark" />
-											</TourProvider>
-										</ErrorTrackingProvider>
-									</PostHogProvider>
-								</MobilePanelProvider>
-							</ViewModeProvider>
-						</AuthProvider>
-					</QueryProvider>
-				</AutumnProvider>
+				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+					<AutumnProvider
+						backendUrl={
+							process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+						}
+						includeCredentials={true}
+					>
+						<QueryProvider>
+							<AuthProvider>
+								<ViewModeProvider>
+									<MobilePanelProvider>
+										<PostHogProvider>
+											<ErrorTrackingProvider>
+												<TourProvider>
+													<Suspense>{children}</Suspense>
+													<Toaster richColors />
+												</TourProvider>
+											</ErrorTrackingProvider>
+										</PostHogProvider>
+									</MobilePanelProvider>
+								</ViewModeProvider>
+							</AuthProvider>
+						</QueryProvider>
+					</AutumnProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);
