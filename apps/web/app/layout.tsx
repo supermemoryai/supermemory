@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import "../globals.css";
 import "@ui/globals.css";
 import { AuthProvider } from "@lib/auth-context";
@@ -25,6 +25,12 @@ const mono = JetBrains_Mono({
 	variable: "--font-mono",
 });
 
+const spaceGrotesk = Space_Grotesk({
+	subsets: ["latin"],
+	variable: "--font-serif",
+});
+
+
 export const metadata: Metadata = {
 	metadataBase: new URL("https://app.supermemory.ai"),
 	description: "Your memories, wherever you are",
@@ -39,7 +45,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${sans.variable} ${mono.variable} antialiased`}
+				className={`${sans.variable} ${mono.variable} ${spaceGrotesk.variable} antialiased`}
 			>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
 					<AutumnProvider

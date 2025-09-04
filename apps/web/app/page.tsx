@@ -142,7 +142,7 @@ const MemoryAppPage = () => {
 	}, []);
 
 	return (
-		<div>
+		<div className="font-sans">
 			<AppHeader />
 			
 			<MemoryListView

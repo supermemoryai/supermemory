@@ -44,34 +44,43 @@ export function ChatInline() {
 				<div className="w-full max-w-4xl">
 					<div className="text-start mb-6">
 						<h2 className="text-xl font-medium text-foreground mb-2">
-							Night owl, Mahesh
+							Good evening, Mahesh
 						</h2>
 					</div>
 					<div className="relative">
-						<div className="flex flex-col border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow min-h-24">
-							<textarea
-								value={message}
-								onChange={(e) => setMessage(e.target.value)}
-								onKeyDown={handleKeyDown}
-								placeholder="Ask your supermemory..."
-								id="chat-inline-textarea"
-								className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-base resize-none px-4 py-3"
-								rows={2}
-							/>
-							<div className="flex w-full rounded-b-lg justify-end">
-								<button
-									onClick={handleSend}
-									disabled={!message.trim()}
-									className="p-2 mr-1 rounded-lg disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors flex-shrink-0"
-									type="button"
-								>
-									<ArrowUp className="w-6 h-6 bg-black rounded-full p-1 text-white" />
-								</button>
-							</div>
+						<div className="bg-gradient-to-r from-blue-500 to-blue-600 p-[2px] rounded-3xl shadow-lg">
+							<form
+								className="flex flex-col items-end gap-3 bg-white rounded-[22px] p-3"
+								onSubmit={(e) => {
+									e.preventDefault()
+									if (!message.trim()) return
+									handleSend()
+								}}
+							>
+								<textarea
+									value={message}
+									onChange={(e) => setMessage(e.target.value)}
+									onKeyDown={handleKeyDown}
+									placeholder="Yo, describe my fav destination..."
+									className="w-full text-black placeholder-black/40 rounded-md outline-none resize-none text-base leading-relaxed"
+									rows={2}
+								/>
+								<div className="flex items-center gap-2 w-full justify-between">
+									<div className="flex items-center gap-2" />
+									<button
+										onClick={handleSend}
+										disabled={!message.trim()}
+										className="text-white border-0 rounded-lg size-10 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										type="button"
+									>
+										<img src="/icons/send.svg" alt="Send" className="w-8 h-8" />
+									</button>
+								</div>
+							</form>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	);
+	)
 }

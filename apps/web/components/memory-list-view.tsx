@@ -52,7 +52,7 @@ const DocumentCard = memo(
 
 		return (
 			<Card
-				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden bg-card gap-2 md:w-full"
+				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden bg-card shadow-lg gap-2 md:w-full hover:shadow-xl"
 				onClick={() => {
 					analytics.documentCardClicked();
 					onOpenDetails(document);
@@ -61,7 +61,7 @@ const DocumentCard = memo(
 				<CardHeader className="relative z-10 px-0">
 					<div className="flex items-center justify-between gap-2">
 						<div className="flex items-center gap-1">
-							{getDocumentIcon(document.type, "w-4 h-4 flex-shrink-0")}
+							{/*{getDocumentIcon(document.type, "w-4 h-4 flex-shrink-0")}*/}
 							<p
 								className={cn(
 									"text-sm font-medium line-clamp-1",
