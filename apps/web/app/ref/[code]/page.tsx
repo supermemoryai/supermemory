@@ -11,13 +11,20 @@ import {
 	CardTitle,
 } from "@ui/components/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import { ShareIcon, LoaderIcon } from "lucide-react"
+import { ShareIcon, LoaderIcon, ArrowRightIcon } from "lucide-react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
+import { labelVariants } from "@ui/text/label"
+import { cn } from "@lib/utils"
+import { headingVariants } from "@ui/text/heading"
+import { titleVariants } from "@ui/text/title"
+import { useSession } from "@lib/auth"
 
 export default function ReferralInvitePage() {
 	const params = useParams()
 	const code = params.code as string
+	const router = useRouter()
+	const session = useSession()
 
 	const {
 		data: referrerData,
@@ -48,6 +55,10 @@ export default function ReferralInvitePage() {
 		retry: 1,
 	})
 
+	if (session.data) {
+		router.push("/")
+	}
+
 	const referrer = referrerData?.referrer
 
 	if (isLoading) {
@@ -55,7 +66,13 @@ export default function ReferralInvitePage() {
 			<div className="min-h-screen flex items-center justify-center p-4 bg-[#0f1419]">
 				<div className="flex flex-col items-center gap-4">
 					<LoaderIcon className="w-8 h-8 text-orange-500 animate-spin" />
-					<p className="text-white/60">Loading invitation...</p>
+					<p
+						className={cn(
+							labelVariants({ level: 1, weight: "regular", color: "muted" }),
+						)}
+					>
+						Loading invitation...
+					</p>
 				</div>
 			</div>
 		)
@@ -64,15 +81,22 @@ export default function ReferralInvitePage() {
 	if (error || !code) {
 		return (
 			<div className="min-h-screen flex items-center justify-center p-4 bg-[#0f1419]">
-				<Card className="max-w-md w-full bg-[#1a1f2a] border-white/10">
+				<Card className="max-w-md w-full bg-sm-shark">
 					<CardHeader className="text-center">
 						<div className="mx-auto mb-4 w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
 							<ShareIcon className="w-8 h-8 text-red-500" />
 						</div>
-						<CardTitle className="text-2xl font-bold text-white">
+						<CardTitle
+							className={cn(titleVariants({ level: 2, weight: "bold" }))}
+						>
 							Invalid Referral Link
 						</CardTitle>
-						<CardDescription className="text-white/60 mt-2">
+						<CardDescription
+							className={cn(
+								labelVariants({ level: 1, weight: "regular", color: "muted" }),
+								"mt-2",
+							)}
+						>
 							{error instanceof Error ? error.message : "Invalid referral code"}
 						</CardDescription>
 					</CardHeader>
@@ -80,10 +104,17 @@ export default function ReferralInvitePage() {
 						<div className="space-y-4">
 							<div className="text-center">
 								<Link
-									className="text-orange-500 hover:text-orange-400 text-sm underline"
+									className={cn(
+										labelVariants({
+											level: 1,
+											weight: "regular",
+											color: "default",
+										}),
+										"underline underline-offset-2 hover:opacity-50 transition-all",
+									)}
 									href="https://supermemory.ai"
 								>
-									Learn more about supermemory
+									Learn more
 								</Link>
 							</div>
 						</div>
@@ -95,7 +126,7 @@ export default function ReferralInvitePage() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4 bg-[#0f1419]">
-			<Card className="max-w-md w-full bg-[#1a1f2a] border-white/10">
+			<Card className="max-w-md w-full bg-sm-shark">
 				<CardHeader className="text-center">
 					<div className="mx-auto mb-4">
 						<Avatar className="w-20 h-20">
@@ -105,10 +136,17 @@ export default function ReferralInvitePage() {
 							</AvatarFallback>
 						</Avatar>
 					</div>
-					<CardTitle className="text-2xl font-bold text-white">
+					<CardTitle
+						className={cn(titleVariants({ level: 2, weight: "bold" }))}
+					>
 						You've been invited!
 					</CardTitle>
-					<CardDescription className="text-white/60 mt-2">
+					<CardDescription
+						className={cn(
+							labelVariants({ level: 1, weight: "regular", color: "muted" }),
+							"mt-2",
+						)}
+					>
 						<span className="text-orange-400 font-semibold">
 							{referrer?.name}
 						</span>{" "}
@@ -117,29 +155,66 @@ export default function ReferralInvitePage() {
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-4">
-						<div className="bg-[#0f1419] rounded-lg p-4 border border-white/10">
-							<h3 className="text-white font-semibold mb-2">
+						<div
+							className={
+								(cn(
+									headingVariants({
+										level: "h2",
+										weight: "medium",
+									}),
+								),
+								"text-white text-center")
+							}
+						>
+							You and {referrer?.name} both get a free month of{" "}
+							<b>supermemory pro</b>
+						</div>
+						<div className="bg-sm-shark rounded-lg p-4 border border-white/10">
+							<h3
+								className={cn(headingVariants({ level: "h3", weight: "bold" }))}
+							>
 								What is supermemory?
 							</h3>
-							<p className="text-white/70 text-sm leading-relaxed">
+							<p
+								className={cn(
+									labelVariants({
+										level: 1,
+										weight: "regular",
+										color: "muted",
+									}),
+								)}
+							>
 								supermemory is an AI-powered personal knowledge base that helps
 								you store, organize, and interact with all your digital
 								memories.
 							</p>
 						</div>
 
-						<Link href={`/login?ref=${code}`} className="block">
-							<Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-								Get Started
-							</Button>
-						</Link>
+						<Button
+							className={cn(
+								labelVariants({ level: 1, weight: "medium" }),
+								"w-full",
+							)}
+							asChild
+						>
+							<Link href={`/login?ref=${code}`}>
+								Get Started <ArrowRightIcon className="w-4 h-4" />
+							</Link>
+						</Button>
 
 						<div className="text-center">
 							<Link
-								className="text-orange-500 hover:text-orange-400 text-sm underline"
+								className={cn(
+									labelVariants({
+										level: 1,
+										weight: "regular",
+										color: "default",
+									}),
+									"underline underline-offset-2 hover:opacity-50 transition-all",
+								)}
 								href="https://supermemory.ai"
 							>
-								Learn more about supermemory
+								Learn more
 							</Link>
 						</div>
 					</div>
