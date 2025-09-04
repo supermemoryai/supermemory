@@ -3,15 +3,15 @@
 import { useChat, useCompletion } from "@ai-sdk/react";
 import { cn } from "@lib/utils";
 import { Button } from "@ui/components/button";
-import { Input } from "@ui/components/input";
 import { DefaultChatTransport } from "ai";
 import {
-	ArrowUp,
 	Check,
 	ChevronDown,
 	ChevronRight,
 	Copy,
+	Plus,
 	RotateCcw,
+	UserIcon,
 	X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -217,8 +217,10 @@ export function ChatMessages() {
 		getCurrentChat,
 	} = usePersistentChat();
 
+	const [input, setInput] = useState("");
 	const activeChatIdRef = useRef<string | null>(null);
 	const shouldGenerateTitleRef = useRef<boolean>(false);
+	const hasRunInitialMessageRef = useRef<boolean>(false);
 
 	const { setDocumentIds } = useGraphHighlights();
 
@@ -254,6 +256,16 @@ export function ChatMessages() {
 	}, [currentChatId, id]);
 
 	useEffect(() => {
+		if (currentChatId && !hasRunInitialMessageRef.current) {
+			const msgs = getCurrentConversation();
+			if (msgs && msgs.length === 1) {
+				sendMessage({ text: msgs[0].content });
+				hasRunInitialMessageRef.current = true;
+			}
+		}
+	}, []);
+
+	useEffect(() => {
 		if (id && id !== currentChatId) {
 			setCurrentChatId(id);
 		}
@@ -261,7 +273,11 @@ export function ChatMessages() {
 
 	useEffect(() => {
 		const msgs = getCurrentConversation();
-		setMessages(msgs ?? []);
+		if (msgs && msgs.length > 0) {
+			setMessages(msgs);
+		} else if (!currentChatId) {
+			setMessages([]);
+		}
 		setInput("");
 	}, [currentChatId]);
 
@@ -272,7 +288,6 @@ export function ChatMessages() {
 		}
 	}, [messages, currentChatId, id, setConversation]);
 
-	const [input, setInput] = useState("");
 	const { complete } = useCompletion({
 		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
 		credentials: "include",
@@ -327,36 +342,45 @@ export function ChatMessages() {
 	} = useStickyAutoScroll([messages, status]);
 
 	return (
-		<>
-			<div className="relative grow">
+		<div className="h-full mx-auto flex flex-col max-w-3xl">
+			<div className="flex-1 relative">
 				<div
-					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7"
+					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7 custom-scrollbar"
 					onScroll={onScroll}
 					ref={scrollContainerRef}
 				>
 					{messages.map((message) => (
 						<div
 							className={cn(
-								"flex flex-col",
-								message.role === "user" ? "items-end" : "items-start",
+								"flex my-2",
+								message.role === "user"
+									? "items-center flex-row-reverse gap-2"
+									: "flex-col",
 							)}
 							key={message.id}
 						>
-							<div className="flex flex-col gap-2 max-w-4/5 bg-white/10 py-3 px-4 rounded-lg">
+							<div
+								className={cn(
+									"flex flex-col gap-2 max-w-4/5",
+									message.role === "user"
+										? "bg-white/10 px-3 py-1.5 border border-black/20 rounded-lg"
+										: "",
+								)}
+							>
 								{message.parts
 									.filter((part) =>
 										["text", "tool-searchMemories", "tool-addMemory"].includes(
 											part.type,
 										),
 									)
-									.map((part) => {
+									.map((part, index) => {
 										switch (part.type) {
 											case "text":
 												return (
-													<div key={message.id + part.type}>
+													<div key={`${message.id}-${part.type}-${index}`}>
 														<Streamdown>{part.text}</Streamdown>
 													</div>
-												);
+												)
 											case "tool-searchMemories": {
 												switch (part.state) {
 													case "input-available":
@@ -364,46 +388,46 @@ export function ChatMessages() {
 														return (
 															<div
 																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 															>
 																<Spinner className="size-4" /> Searching
 																memories...
 															</div>
-														);
+														)
 													case "output-error":
 														return (
 															<div
 																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 															>
 																<X className="size-4" /> Error recalling
 																memories
 															</div>
-														);
+														)
 													case "output-available": {
-														const output = part.output;
+														const output = part.output
 														const foundCount =
 															typeof output === "object" &&
 															output !== null &&
 															"count" in output
 																? Number(output.count) || 0
-																: 0;
+																: 0
 														// @ts-expect-error
 														const results = Array.isArray(output?.results)
 															? // @ts-expect-error
 																output.results
-															: [];
+															: []
 
 														return (
 															<ExpandableMemories
 																foundCount={foundCount}
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 																results={results}
 															/>
-														);
+														)
 													}
 													default:
-														return null;
+														return null
 												}
 											}
 											case "tool-addMemory": {
@@ -412,44 +436,44 @@ export function ChatMessages() {
 														return (
 															<div
 																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 															>
 																<Spinner className="size-4" /> Adding memory...
 															</div>
-														);
+														)
 													case "output-error":
 														return (
 															<div
 																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 															>
 																<X className="size-4" /> Error adding memory
 															</div>
-														);
+														)
 													case "output-available":
 														return (
 															<div
 																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 															>
 																<Check className="size-4" /> Memory added
 															</div>
-														);
+														)
 													case "input-streaming":
 														return (
 															<div
 																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={message.id + part.type}
+																key={`${message.id}-${part.type}-${index}`}
 															>
 																<Spinner className="size-4" /> Adding memory...
 															</div>
-														);
+														)
 													default:
-														return null;
+														return null
 												}
 											}
 											default:
-												return null;
+												return null
 										}
 									})}
 							</div>
@@ -463,8 +487,8 @@ export function ChatMessages() {
 													.filter((p) => p.type === "text")
 													?.map((p) => (p as any).text)
 													.join("\n") ?? "",
-											);
-											toast.success("Copied to clipboard");
+											)
+											toast.success("Copied to clipboard")
 										}}
 										size="icon"
 										variant="ghost"
@@ -503,8 +527,8 @@ export function ChatMessages() {
 							: "opacity-0 scale-95 pointer-events-none",
 					)}
 					onClick={() => {
-						enableAutoScroll();
-						scrollToBottom("smooth");
+						enableAutoScroll()
+						scrollToBottom("smooth")
 					}}
 					size="sm"
 					type="button"
@@ -514,41 +538,96 @@ export function ChatMessages() {
 				</Button>
 			</div>
 
-			<form
-				className="flex gap-2 px-4 pb-4 pt-1 relative"
-				onSubmit={(e) => {
-					e.preventDefault();
-					if (status === "submitted") return;
-					if (status === "streaming") {
-						stop();
-						return;
-					}
-					if (input.trim()) {
-						enableAutoScroll();
-						scrollToBottom("auto");
-						sendMessage({ text: input });
-						setInput("");
-					}
-				}}
-			>
-				<div className="absolute top-0 left-0 -mt-7 w-full h-7 bg-gradient-to-t from-background to-transparent" />
-				<Input
-					className="w-full"
-					disabled={status === "submitted"}
-					onChange={(e) => setInput(e.target.value)}
-					placeholder="Say something..."
-					value={input}
-				/>
-				<Button disabled={status === "submitted"} type="submit">
-					{status === "ready" ? (
-						<ArrowUp className="size-4" />
-					) : status === "submitted" ? (
-						<Spinner className="size-4" />
-					) : (
-						<X className="size-4" />
-					)}
-				</Button>
-			</form>
-		</>
-	);
+			<div className="px-4 pb-4 pt-1 relative flex-shrink-0">
+				<div className="bg-gradient-to-r from-blue-500 to-blue-600 p-[3px] rounded-3xl shadow-lg">
+					<div className="flex p-2 gap-2">
+						<div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-2 text-white text-xs hover:bg-white/15 transition-all duration-200 cursor-pointer shadow-lg">
+							Suggest me best hotels in Liechtenstein
+						</div>
+						<div className="backdrop-blur-md bg-white/10 border border-white/20 rounded-lg p-2 text-white/90 text-xs hover:bg-white/15 transition-all duration-200 cursor-pointer shadow-lg">
+							Prepare a full itinerary to Liechtenstein
+						</div>
+					</div>
+					<form
+						className="flex flex-col items-end gap-3 bg-white rounded-[22px] p-3"
+						onSubmit={(e) => {
+							e.preventDefault()
+							if (status === "submitted") return
+							if (status === "streaming") {
+								stop()
+								return
+							}
+							if (input.trim()) {
+								enableAutoScroll()
+								scrollToBottom("auto")
+								sendMessage({ text: input })
+								setInput("")
+							}
+						}}
+					>
+						<textarea
+							className="w-full text-black placeholder-black/40 rounded-md outline-none resize-none text-base leading-relaxed"
+							disabled={status === "submitted"}
+							onChange={(e) => setInput(e.target.value)}
+							placeholder="Yo, describe my fav destination..."
+							rows={2}
+							value={input}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && !e.shiftKey) {
+									e.preventDefault()
+									if (input.trim() && status !== "submitted") {
+										enableAutoScroll()
+										scrollToBottom("auto")
+										sendMessage({ text: input })
+										setInput("")
+									}
+								}
+							}}
+						/>
+
+						<div className="flex items-center gap-2 w-full justify-between">
+							<div className="flex items-center gap-2">
+								<Button
+									className="bg-white/20 hover:bg-white/30 text-black border-[#EBEBEB] rounded-lg size-10"
+									size="icon"
+									type="button"
+									variant="outline"
+								>
+									<img
+										src="/icons/attach.svg"
+										alt="Attach"
+										className="w-5 h-5"
+									/>
+								</Button>
+								<Button
+									className="bg-white/20 hover:bg-white/30 text-black border-[#EBEBEB] rounded-lg px-4 py-2 h-10"
+									type="button"
+									variant="outline"
+								>
+									<Plus className="size-4" />
+									Link Project
+								</Button>
+							</div>
+
+							<Button
+								className="flex items-center justify-center bg-white"
+								disabled={status === "submitted"}
+								size="icon"
+								type="submit"
+								variant="ghost"
+							>
+								{status === "ready" ? (
+									<img src="/icons/send.svg" alt="Send" className="w-8 h-8" />
+								) : status === "submitted" ? (
+									<Spinner className="size-5" />
+								) : (
+									<X className="size-5" />
+								)}
+							</Button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	)
 }

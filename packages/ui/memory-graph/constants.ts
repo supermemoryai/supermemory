@@ -67,7 +67,7 @@ export const GRAPH_SETTINGS = {
 		initialPanY: 0,
 	},
 	consumer: {
-		initialZoom: 0.5, // Changed from 0.1 to 0.5 for better initial visibility
+		initialZoom: 0.1, // Changed from 0.1 to 0.5 for better initial visibility
 		initialPanX: 400, // Pan towards center to compensate for larger layout
 		initialPanY: 300, // Pan towards center to compensate for larger layout
 	},

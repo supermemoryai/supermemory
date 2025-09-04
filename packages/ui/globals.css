@@ -10,6 +10,7 @@
 	--color-background: var(--color-sm-shark-alt);
 	--color-background: var(--color-sm-shark-alt);
 	--color-foreground: var(--foreground);
+	--color-dodger-blue: var(--color-sm-dodger-blue);
 	--font-sans:
 		"Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif,
 		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -84,7 +85,7 @@
 
 :root {
 	--radius: 0.625rem;
-	--background: oklch(1 0 0);
+	--background: oklch(0.98 0.002 286);
 	--foreground: oklch(0.141 0.005 285.823);
 	--card: oklch(1 0 0);
 	--card-foreground: oklch(0.141 0.005 285.823);
@@ -149,15 +150,6 @@
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.552 0.016 285.938);
-}
-
-@layer base {
-	* {
-		@apply border-border outline-ring/50;
-	}
-	body {
-		@apply bg-background text-foreground;
-	}
 }
 
 /* Custom Scrollbar Styles */

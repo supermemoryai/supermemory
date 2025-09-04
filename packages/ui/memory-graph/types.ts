@@ -90,6 +90,7 @@ export interface MemoryGraphProps {
 	showSpacesSelector?: boolean; // true for console, false for consumer
 	variant?: "console" | "consumer"; // for different positioning and styling
 	legendId?: string; // Optional ID for the legend component
+	showLegend?: boolean;
 	// Optional document highlight list (document custom IDs)
 	highlightDocumentIds?: string[];
 	// Whether highlights are currently visible (e.g., chat open)
