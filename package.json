@@ -34,6 +34,7 @@
     "boxen": "^8.0.1",
     "cloudflare": "^4.5.0",
     "compromise": "^14.14.4",
+    "cva": "^1.0.0-beta.4",
     "dedent": "^1.6.0",
     "destr": "^2.0.5",
     "drizzle-orm": "^0.44.3",

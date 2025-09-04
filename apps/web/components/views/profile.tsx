@@ -8,6 +8,7 @@ import {
 	fetchSubscriptionStatus,
 } from "@lib/queries"
 import { Button } from "@repo/ui/components/button"
+import { ReferralLink } from "@repo/ui/components/referral-link"
 import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
 import { useCustomer } from "autumn-js/react"
 import {
@@ -272,6 +273,9 @@ export function ProfileView() {
 					</p>
 				</div>
 			)}
+
+			{/* Referral Section */}
+			<ReferralLink className="mt-4" />
 
 			<Button
 				className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-200 border-red-500/30"

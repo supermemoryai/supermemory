@@ -105,9 +105,6 @@ export default function MigrateMCPPage() {
 
 	return (
 		<div className="min-h-screen bg-[#0f1419] overflow-hidden relative">
-			{/* Background elements */}
-			<div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/10" />
-
 			{/* Top navigation */}
 			<motion.div
 				initial={{ opacity: 0, y: -20 }}
@@ -148,20 +145,9 @@ export default function MigrateMCPPage() {
 								transition={{ delay: 0.2 }}
 								className="text-center mb-8"
 							>
-								<div className="flex items-center justify-center mb-4">
-									<div className="relative">
-										<div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl" />
-										<div className="relative bg-blue-500/10 p-3 rounded-full border border-blue-500/20">
-											<Zap className="w-6 h-6 text-blue-400" />
-										</div>
-									</div>
-								</div>
 								<h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-									Upgrade supermemory MCP
+									Upgrade MCP
 								</h1>
-								<p className="text-slate-400 text-sm md:text-base">
-									Migrate your documents to the new MCP server
-								</p>
 							</motion.div>
 
 							{/* Form */}
@@ -177,8 +163,7 @@ export default function MigrateMCPPage() {
 										htmlFor="mcpUrl"
 										className="text-sm font-medium text-slate-200 flex items-center gap-2"
 									>
-										<Upload className="w-4 h-4" />
-										MCP URL
+										URL
 									</label>
 									<div className="relative">
 										<Input
@@ -219,7 +204,7 @@ export default function MigrateMCPPage() {
 								>
 									<Button
 										type="submit"
-										className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 py-3 rounded-xl font-medium shadow-lg hover:shadow-blue-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+										className="w-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 										disabled={
 											migrateMutation.isPending || !getUserIdFromUrl(mcpUrl)
 										}
@@ -233,88 +218,12 @@ export default function MigrateMCPPage() {
 										) : (
 											<>
 												Start Upgrade
-												<ArrowRight className="ml-2 w-4 h-4" />
+												<ArrowRight className="w-4 h-4" />
 											</>
 										)}
 									</Button>
 								</motion.div>
 							</motion.form>
-
-							{/* Success/Error States */}
-							<AnimatePresence mode="wait">
-								{migrateMutation.isSuccess && migrateMutation.data && (
-									<motion.div
-										key="success"
-										initial={{ opacity: 0, y: 20, scale: 0.95 }}
-										animate={{ opacity: 1, y: 0, scale: 1 }}
-										exit={{ opacity: 0, y: -10, scale: 0.95 }}
-										transition={{ type: "spring", stiffness: 300, damping: 25 }}
-										className="mt-6"
-									>
-										<div className="relative rounded-xl overflow-hidden">
-											<div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10" />
-											<div className="relative p-4 border border-green-500/20 rounded-xl">
-												<div className="text-green-400">
-													<div className="flex items-center gap-2 mb-2">
-														<CheckCircle className="w-5 h-5" />
-														<p className="font-medium">
-															Migration completed successfully!
-														</p>
-													</div>
-													<p className="text-sm text-green-300/80 mb-3">
-														Migrated {migrateMutation.data.migratedCount}{" "}
-														documents
-													</p>
-													{migrateMutation.data.documentIds &&
-														migrateMutation.data.documentIds.length > 0 && (
-															<details className="mt-3">
-																<summary className="cursor-pointer hover:text-green-300 transition-colors text-sm font-medium">
-																	View migrated document IDs
-																</summary>
-																<div className="mt-3 space-y-2 max-h-40 overflow-y-auto">
-																	{migrateMutation.data.documentIds.map(
-																		(id) => (
-																			<code
-																				key={id}
-																				className="block text-xs bg-black/30 px-3 py-2 rounded-lg border border-green-500/10 text-green-200"
-																			>
-																				{id}
-																			</code>
-																		),
-																	)}
-																</div>
-															</details>
-														)}
-												</div>
-											</div>
-										</div>
-									</motion.div>
-								)}
-
-								{migrateMutation.isError && (
-									<motion.div
-										key="error"
-										initial={{ opacity: 0, y: 20, scale: 0.95 }}
-										animate={{ opacity: 1, y: 0, scale: 1 }}
-										exit={{ opacity: 0, y: -10, scale: 0.95 }}
-										transition={{ type: "spring", stiffness: 300, damping: 25 }}
-										className="mt-6"
-									>
-										<div className="relative rounded-xl overflow-hidden">
-											<div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10" />
-											<div className="relative p-4 border border-red-500/20 rounded-xl">
-												<div className="text-red-400">
-													<p className="font-medium mb-1">Migration failed</p>
-													<p className="text-sm text-red-300/80">
-														{migrateMutation.error?.message ||
-															"An unexpected error occurred"}
-													</p>
-												</div>
-											</div>
-										</div>
-									</motion.div>
-								)}
-							</AnimatePresence>
 						</div>
 					</div>
 				</motion.div>
