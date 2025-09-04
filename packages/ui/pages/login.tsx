@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { signIn } from "@lib/auth"
-import { usePostHog } from "@lib/posthog"
-import { LogoFull } from "@repo/ui/assets/Logo"
-import { TextSeparator } from "@repo/ui/components/text-separator"
-import { ExternalAuthButton } from "@ui/button/external-auth"
-import { Button } from "@ui/components/button"
-import { Badge } from "@ui/components/badge"
+import { signIn } from "@lib/auth";
+import { usePostHog } from "@lib/posthog";
+import { LogoFull } from "@repo/ui/assets/Logo";
+import { TextSeparator } from "@repo/ui/components/text-separator";
+import { ExternalAuthButton } from "@ui/button/external-auth";
+import { Button } from "@ui/components/button";
+import { Badge } from "@ui/components/badge";
 import {
 	Carousel,
 	CarouselContent,
 	CarouselItem,
-} from "@ui/components/carousel"
-import { LabeledInput } from "@ui/input/labeled-input"
-import { HeadingH1Medium } from "@ui/text/heading/heading-h1-medium"
-import { HeadingH3Medium } from "@ui/text/heading/heading-h3-medium"
-import { Label1Regular } from "@ui/text/label/label-1-regular"
-import { Title1Bold } from "@ui/text/title/title-1-bold"
-import Autoplay from "embla-carousel-autoplay"
-import Image from "next/image"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
+} from "@ui/components/carousel";
+import { LabeledInput } from "@ui/input/labeled-input";
+import { HeadingH1Medium } from "@ui/text/heading/heading-h1-medium";
+import { HeadingH3Medium } from "@ui/text/heading/heading-h3-medium";
+import { Label1Regular } from "@ui/text/label/label-1-regular";
+import { Title1Bold } from "@ui/text/title/title-1-bold";
+import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export function LoginPage({
 	heroText = "The unified memory API for the AI era.",
@@ -29,101 +29,122 @@ export function LoginPage({
 		"Trusted by Open Source, enterprise and developers.",
 	],
 }) {
-	const [email, setEmail] = useState("")
-	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
-	const [isLoading, setIsLoading] = useState(false)
-	const [isLoadingEmail, setIsLoadingEmail] = useState(false)
-	const [error, setError] = useState<string | null>(null)
-	const [lastUsedMethod, setLastUsedMethod] = useState<string | null>(null)
-	const router = useRouter()
+	const [email, setEmail] = useState("");
+	const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const [isLoadingEmail, setIsLoadingEmail] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [lastUsedMethod, setLastUsedMethod] = useState<string | null>(null);
+	const router = useRouter();
 
-	const posthog = usePostHog()
+	const posthog = usePostHog();
 
-	const params = useSearchParams()
+	const params = useSearchParams();
+
+	// Get redirect URL from query params
+	const redirectUrl = params.get("redirect");
+
+	// Create callback URL that includes redirect parameter if provided
+	const getCallbackURL = () => {
+		const origin = window.location.origin;
+		if (redirectUrl) {
+			// Validate that the redirect URL is safe (same origin or allow external based on your security requirements)
+			try {
+				const url = new URL(redirectUrl, origin);
+				return url.toString();
+			} catch {
+				// If redirect URL is invalid, fall back to origin
+				return origin;
+			}
+		}
+		return origin;
+	};
 
 	// Load last used method from localStorage on mount
 	useEffect(() => {
-		const savedMethod = localStorage.getItem('supermemory-last-login-method')
-		setLastUsedMethod(savedMethod)
-	}, [])
+		const savedMethod = localStorage.getItem("supermemory-last-login-method");
+		setLastUsedMethod(savedMethod);
+	}, []);
 
 	// Record the pending login method (will be committed after successful auth)
 	function setPendingLoginMethod(method: string) {
 		try {
-			localStorage.setItem('supermemory-pending-login-method', method)
-			localStorage.setItem('supermemory-pending-login-timestamp', String(Date.now()))
-		} catch { }
+			localStorage.setItem("supermemory-pending-login-method", method);
+			localStorage.setItem(
+				"supermemory-pending-login-timestamp",
+				String(Date.now()),
+			);
+		} catch {}
 	}
 
 	// If we land back on this page with an error, clear any pending marker
 	useEffect(() => {
 		if (params.get("error")) {
 			try {
-				localStorage.removeItem('supermemory-pending-login-method')
-				localStorage.removeItem('supermemory-pending-login-timestamp')
-			} catch { }
+				localStorage.removeItem("supermemory-pending-login-method");
+				localStorage.removeItem("supermemory-pending-login-timestamp");
+			} catch {}
 		}
-	}, [params])
-
-
+	}, [params]);
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
-		setIsLoading(true)
-		setIsLoadingEmail(true)
-		setError(null)
+		e.preventDefault();
+		setIsLoading(true);
+		setIsLoadingEmail(true);
+		setError(null);
 
 		// Track login attempt
 		posthog.capture("login_attempt", {
 			method: "magic_link",
 			email_domain: email.split("@")[1] || "unknown",
-		})
+		});
 
 		try {
 			await signIn.magicLink({
-				callbackURL: window.location.origin,
+				callbackURL: getCallbackURL(),
 				email,
-			})
-			setSubmittedEmail(email)
-			setPendingLoginMethod('magic_link')
+			});
+			setSubmittedEmail(email);
+			setPendingLoginMethod("magic_link");
 			// Track successful magic link send
 			posthog.capture("login_magic_link_sent", {
 				email_domain: email.split("@")[1] || "unknown",
-			})
+			});
 		} catch (error) {
-			console.error(error)
+			console.error(error);
 
 			// Track login failure
 			posthog.capture("login_failed", {
 				method: "magic_link",
 				error: error instanceof Error ? error.message : "Unknown error",
 				email_domain: email.split("@")[1] || "unknown",
-			})
+			});
 
 			setError(
 				error instanceof Error
 					? error.message
 					: "Failed to send login link. Please try again.",
-			)
-			setIsLoading(false)
-			setIsLoadingEmail(false)
-			return
+			);
+			setIsLoading(false);
+			setIsLoadingEmail(false);
+			return;
 		}
 
-		setIsLoading(false)
-		setIsLoadingEmail(false)
-	}
+		setIsLoading(false);
+		setIsLoadingEmail(false);
+	};
 
 	const handleSubmitToken = async (event: React.FormEvent<HTMLFormElement>) => {
-		event.preventDefault()
-		setIsLoading(true)
+		event.preventDefault();
+		setIsLoading(true);
 
-		const formData = new FormData(event.currentTarget)
-		const token = formData.get("token") as string
+		const formData = new FormData(event.currentTarget);
+		const token = formData.get("token") as string;
+		const callbackURL = getCallbackURL();
 		router.push(
-			`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(window.location.host)}`,
-		)
-	}
+			`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(callbackURL)}`,
+		);
+	};
 
 	return (
 		<section className="min-h-screen flex flex-col lg:grid lg:grid-cols-12 items-center justify-center p-4 sm:p-6 md:p-8 lg:px-[5rem] lg:py-[3.125rem] gap-6 lg:gap-[5rem] max-w-[400rem] mx-auto">
@@ -225,8 +246,8 @@ export function LoginPage({
 									disabled: isLoading,
 									id: "email",
 									onChange: (e) => {
-										setEmail(e.target.value)
-										error && setError(null)
+										setEmail(e.target.value);
+										error && setError(null);
 									},
 									required: true,
 									value: email,
@@ -241,9 +262,11 @@ export function LoginPage({
 										? "Sending login link..."
 										: "Log in to supermemory"}
 								</Button>
-								{lastUsedMethod === 'magic_link' && (
+								{lastUsedMethod === "magic_link" && (
 									<div className="absolute -top-2 -right-2">
-										<Badge variant="default" className="text-xs">Last used</Badge>
+										<Badge variant="default" className="text-xs">
+											Last used
+										</Badge>
 									</div>
 								)}
 							</div>
@@ -251,14 +274,14 @@ export function LoginPage({
 					</form>
 
 					{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-						!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ||
-						!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
+					!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ||
+					!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
 						<TextSeparator text="OR" />
 					) : null}
 
 					<div className="flex flex-col sm:flex-row flex-wrap gap-3 lg:gap-4">
 						{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-							!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ? (
+						!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ? (
 							<div className="relative flex-grow">
 								<ExternalAuthButton
 									authIcon={
@@ -293,32 +316,34 @@ export function LoginPage({
 									className="w-full"
 									disabled={isLoading}
 									onClick={() => {
-										if (isLoading) return
-										setIsLoading(true)
+										if (isLoading) return;
+										setIsLoading(true);
 										posthog.capture("login_attempt", {
 											method: "social",
 											provider: "google",
-										})
-										setPendingLoginMethod('google')
+										});
+										setPendingLoginMethod("google");
 										signIn
 											.social({
-												callbackURL: window.location.origin,
+												callbackURL: getCallbackURL(),
 												provider: "google",
 											})
 											.finally(() => {
-												setIsLoading(false)
-											})
+												setIsLoading(false);
+											});
 									}}
 								/>
-								{lastUsedMethod === 'google' && (
+								{lastUsedMethod === "google" && (
 									<div className="absolute -top-2 -right-2">
-										<Badge variant="default" className="text-xs">Last used</Badge>
+										<Badge variant="default" className="text-xs">
+											Last used
+										</Badge>
 									</div>
 								)}
 							</div>
 						) : null}
 						{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
-							!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
+						!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
 							<div className="relative flex-grow">
 								<ExternalAuthButton
 									authIcon={
@@ -355,26 +380,28 @@ export function LoginPage({
 									className="w-full"
 									disabled={isLoading}
 									onClick={() => {
-										if (isLoading) return
-										setIsLoading(true)
+										if (isLoading) return;
+										setIsLoading(true);
 										posthog.capture("login_attempt", {
 											method: "social",
 											provider: "github",
-										})
-										setPendingLoginMethod('github')
+										});
+										setPendingLoginMethod("github");
 										signIn
 											.social({
-												callbackURL: window.location.origin,
+												callbackURL: getCallbackURL(),
 												provider: "github",
 											})
 											.finally(() => {
-												setIsLoading(false)
-											})
+												setIsLoading(false);
+											});
 									}}
 								/>
-								{lastUsedMethod === 'github' && (
+								{lastUsedMethod === "github" && (
 									<div className="absolute -top-2 -right-2">
-										<Badge variant="default" className="text-xs">Last used</Badge>
+										<Badge variant="default" className="text-xs">
+											Last used
+										</Badge>
 									</div>
 								)}
 							</div>
@@ -403,5 +430,5 @@ export function LoginPage({
 				</div>
 			)}
 		</section>
-	)
+	);
 }

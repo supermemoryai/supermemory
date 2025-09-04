@@ -1,15 +1,15 @@
-"use client";
+"use client"
 
-import { authClient } from "@lib/auth";
-import { useAuth } from "@lib/auth-context";
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
 import {
 	fetchConnectionsFeature,
 	fetchMemoriesFeature,
 	fetchSubscriptionStatus,
-} from "@lib/queries";
-import { Button } from "@repo/ui/components/button";
-import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold";
-import { useCustomer } from "autumn-js/react";
+} from "@lib/queries"
+import { Button } from "@repo/ui/components/button"
+import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
+import { useCustomer } from "autumn-js/react"
 import {
 	CheckCircle,
 	CreditCard,
@@ -17,27 +17,27 @@ import {
 	LogOut,
 	User,
 	X,
-} from "lucide-react";
-import { motion } from "motion/react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { analytics } from "@/lib/analytics";
+} from "lucide-react"
+import { motion } from "motion/react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { useState } from "react"
+import { analytics } from "@/lib/analytics"
 
 export function ProfileView() {
-	const router = useRouter();
-	const pathname = usePathname();
-	const { user: session, org } = useAuth();
-	const organizations = org;
-	const autumn = useCustomer();
-	const [isLoading, setIsLoading] = useState(false);
+	const router = useRouter()
+	const pathname = usePathname()
+	const { user: session, org } = useAuth()
+	const organizations = org
+	const autumn = useCustomer()
+	const [isLoading, setIsLoading] = useState(false)
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any);
-	const memoriesUsed = memoriesCheck?.usage ?? 0;
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0;
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
+	const memoriesUsed = memoriesCheck?.usage ?? 0
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any);
-	const connectionsUsed = connectionsCheck?.usage ?? 0;
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any)
+	const connectionsUsed = connectionsCheck?.usage ?? 0
 
 	// Fetch subscription status with React Query
 	const {
@@ -45,36 +45,36 @@ export function ProfileView() {
 			consumer_pro: null,
 		},
 		isLoading: isCheckingStatus,
-	} = fetchSubscriptionStatus(autumn as any);
+	} = fetchSubscriptionStatus(autumn as any)
 
-	const isPro = status.consumer_pro;
+	const isPro = status.consumer_pro
 
 	const handleLogout = () => {
-		analytics.userSignedOut();
-		authClient.signOut();
-		router.push("/login");
-	};
+		analytics.userSignedOut()
+		authClient.signOut()
+		router.push("/login")
+	}
 
 	const handleUpgrade = async () => {
-		setIsLoading(true);
+		setIsLoading(true)
 		try {
 			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			});
-			window.location.reload();
+			})
+			window.location.reload()
 		} catch (error) {
-			console.error(error);
-			setIsLoading(false);
+			console.error(error)
+			setIsLoading(false)
 		}
-	};
+	}
 
 	// Handle manage billing
 	const handleManageBilling = async () => {
 		await autumn.openBillingPortal({
 			returnUrl: "https://app.supermemory.ai",
-		});
-	};
+		})
+	}
 
 	if (session?.isAnonymous) {
 		return (
@@ -99,7 +99,7 @@ export function ProfileView() {
 					</motion.div>
 				</motion.div>
 			</div>
-		);
+		)
 	}
 
 	return (
@@ -282,5 +282,5 @@ export function ProfileView() {
 				Sign Out
 			</Button>
 		</div>
-	);
+	)
 }

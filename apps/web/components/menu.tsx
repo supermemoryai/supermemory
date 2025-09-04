@@ -1,27 +1,28 @@
-"use client";
+"use client"
 
-import { useIsMobile } from "@hooks/use-mobile";
+import { useIsMobile } from "@hooks/use-mobile"
 import {
 	fetchConsumerProProduct,
 	fetchMemoriesFeature,
-} from "@repo/lib/queries";
-import { Button } from "@repo/ui/components/button";
-import { ConnectAIModal } from "./connect-ai-modal";
-import { HeadingH2Bold } from "@repo/ui/text/heading/heading-h2-bold";
-import { GlassMenuEffect } from "@ui/other/glass-effect";
-import { useCustomer } from "autumn-js/react";
-import { MessageSquareMore, Plus, Puzzle, User, X } from "lucide-react";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useEffect, useState } from "react";
-import { Drawer } from "vaul";
-import { useMobilePanel } from "@/lib/mobile-panel-context";
-import { TOUR_STEP_IDS } from "@/lib/tour-constants";
-import { useChatOpen } from "@/stores";
-import { ProjectSelector } from "./project-selector";
-import { useTour } from "./tour";
-import { AddMemoryExpandedView, AddMemoryView } from "./views/add-memory";
-import { IntegrationsView } from "./views/integrations";
-import { ProfileView } from "./views/profile";
+} from "@repo/lib/queries"
+import { Button } from "@repo/ui/components/button"
+import { ConnectAIModal } from "./connect-ai-modal"
+import { HeadingH2Bold } from "@repo/ui/text/heading/heading-h2-bold"
+import { GlassMenuEffect } from "@ui/other/glass-effect"
+import { useCustomer } from "autumn-js/react"
+import { MessageSquareMore, Plus, Puzzle, User, X } from "lucide-react"
+import { AnimatePresence, LayoutGroup, motion } from "motion/react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
+import { Drawer } from "vaul"
+import { useMobilePanel } from "@/lib/mobile-panel-context"
+import { TOUR_STEP_IDS } from "@/lib/tour-constants"
+import { useChatOpen } from "@/stores"
+import { ProjectSelector } from "./project-selector"
+import { useTour } from "./tour"
+import { AddMemoryExpandedView, AddMemoryView } from "./views/add-memory"
+import { IntegrationsView } from "./views/integrations"
+import { ProfileView } from "./views/profile"
 
 const MCPIcon = ({ className }: { className?: string }) => {
 	return (
@@ -36,45 +37,67 @@ const MCPIcon = ({ className }: { className?: string }) => {
 			<path d="M15.688 2.343a2.588 2.588 0 00-3.61 0l-9.626 9.44a.863.863 0 01-1.203 0 .823.823 0 010-1.18l9.626-9.44a4.313 4.313 0 016.016 0 4.116 4.116 0 011.204 3.54 4.3 4.3 0 013.609 1.18l.05.05a4.115 4.115 0 010 5.9l-8.706 8.537a.274.274 0 000 .393l1.788 1.754a.823.823 0 010 1.18.863.863 0 01-1.203 0l-1.788-1.753a1.92 1.92 0 010-2.754l8.706-8.538a2.47 2.47 0 000-3.54l-.05-.049a2.588 2.588 0 00-3.607-.003l-7.172 7.034-.002.002-.098.097a.863.863 0 01-1.204 0 .823.823 0 010-1.18l7.273-7.133a2.47 2.47 0 00-.003-3.537z" />
 			<path d="M14.485 4.703a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a4.115 4.115 0 000 5.9 4.314 4.314 0 006.016 0l7.12-6.982a.823.823 0 000-1.18.863.863 0 00-1.204 0l-7.119 6.982a2.588 2.588 0 01-3.61 0 2.47 2.47 0 010-3.54l7.12-6.982z" />
 		</svg>
-	);
-};
+	)
+}
 
 function Menu({ id }: { id?: string }) {
-	const [isHovered, setIsHovered] = useState(false);
+	const router = useRouter()
+	const searchParams = useSearchParams()
+	const openParam = searchParams.get("open")
+
+	// Valid view names that can be opened via URL parameter
+	const validViews = [
+		"addUrl",
+		"mcp",
+		"projects",
+		"profile",
+		"integrations",
+	] as const
+	type ValidView = (typeof validViews)[number]
+
+	const [isHovered, setIsHovered] = useState(false)
 	const [expandedView, setExpandedView] = useState<
 		"addUrl" | "mcp" | "projects" | "profile" | "integrations" | null
-	>(null);
-	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-	const [isCollapsing, setIsCollapsing] = useState(false);
-	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
-	const [showConnectAIModal, setShowConnectAIModal] = useState(false);
-	const isMobile = useIsMobile();
-	const { activePanel, setActivePanel } = useMobilePanel();
-	const { setMenuExpanded } = useTour();
-	const autumn = useCustomer();
-	const { setIsOpen } = useChatOpen();
+	>(null)
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+	const [isCollapsing, setIsCollapsing] = useState(false)
+	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
+	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
+	const isMobile = useIsMobile()
+	const { activePanel, setActivePanel } = useMobilePanel()
+	const { setMenuExpanded } = useTour()
+	const autumn = useCustomer()
+	const { setIsOpen } = useChatOpen()
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn);
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn)
 
-	const memoriesUsed = memoriesCheck?.usage ?? 0;
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0;
+	const memoriesUsed = memoriesCheck?.usage ?? 0
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
-	const { data: proCheck } = fetchConsumerProProduct(autumn);
+	const { data: proCheck } = fetchConsumerProProduct(autumn)
 
 	useEffect(() => {
 		if (memoriesCheck) {
-			console.log({ memoriesCheck });
+			console.log({ memoriesCheck })
 		}
 
 		if (proCheck) {
-			console.log({ proCheck });
+			console.log({ proCheck })
 		}
-	}, [memoriesCheck, proCheck]);
+	}, [memoriesCheck, proCheck])
 
-	const isProUser = proCheck?.allowed ?? false;
+	// Function to clear the 'open' parameter from URL
+	const clearOpenParam = useCallback(() => {
+		const newSearchParams = new URLSearchParams(searchParams.toString())
+		newSearchParams.delete("open")
+		const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`
+		router.replace(newUrl)
+	}, [searchParams, router])
+
+	const isProUser = proCheck?.allowed ?? false
 
 	const shouldShowLimitWarning =
-		!isProUser && memoriesUsed >= memoriesLimit * 0.8;
+		!isProUser && memoriesUsed >= memoriesLimit * 0.8
 
 	// Map menu item keys to tour IDs
 	const menuItemTourIds: Record<string, string> = {
@@ -82,7 +105,7 @@ function Menu({ id }: { id?: string }) {
 		projects: TOUR_STEP_IDS.MENU_PROJECTS,
 		mcp: TOUR_STEP_IDS.MENU_MCP,
 		integrations: "", // No tour ID for integrations yet
-	};
+	}
 
 	const menuItems = [
 		{
@@ -115,61 +138,102 @@ function Menu({ id }: { id?: string }) {
 			key: "profile" as const,
 			disabled: false,
 		},
-	];
+	]
 
 	const handleMenuItemClick = (
 		key: "chat" | "addUrl" | "mcp" | "projects" | "profile" | "integrations",
 	) => {
 		if (key === "chat") {
-			setIsOpen(true);
-			setIsMobileMenuOpen(false);
+			setIsOpen(true)
+			setIsMobileMenuOpen(false)
 			if (isMobile) {
-				setActivePanel("chat");
+				setActivePanel("chat")
 			}
 		} else if (key === "mcp") {
 			// Open ConnectAIModal directly for MCP
-			setIsMobileMenuOpen(false);
-			setExpandedView(null);
-			setShowConnectAIModal(true);
+			setIsMobileMenuOpen(false)
+			setExpandedView(null)
+			setShowConnectAIModal(true)
 		} else {
 			if (expandedView === key) {
-				setIsCollapsing(true);
-				setExpandedView(null);
+				setIsCollapsing(true)
+				setExpandedView(null)
 			} else if (key === "addUrl") {
-				setShowAddMemoryView(true);
-				setExpandedView(null);
+				setShowAddMemoryView(true)
+				setExpandedView(null)
 			} else {
-				setExpandedView(key);
+				setExpandedView(key)
 			}
 			if (isMobile) {
-				setActivePanel("menu");
+				setActivePanel("menu")
 			}
 		}
-	};
+	}
+
+	// Handle initial view opening based on URL parameter
+	useEffect(() => {
+		if (openParam) {
+			if (openParam === "chat") {
+				setIsOpen(true)
+				setIsMobileMenuOpen(false)
+				if (isMobile) {
+					setActivePanel("chat")
+				}
+			} else if (openParam === "mcp") {
+				// Open ConnectAIModal directly for MCP
+				setIsMobileMenuOpen(false)
+				setExpandedView(null)
+				setShowConnectAIModal(true)
+			} else if (openParam === "addUrl") {
+				setShowAddMemoryView(true)
+				setExpandedView(null)
+				if (isMobile) {
+					setIsMobileMenuOpen(true)
+					setActivePanel("menu")
+				}
+			} else if (validViews.includes(openParam as ValidView)) {
+				// For other valid views like "profile", "integrations"
+				setExpandedView(openParam as ValidView)
+				if (isMobile) {
+					setIsMobileMenuOpen(true)
+					setActivePanel("menu")
+				}
+			}
+
+			// Clear the parameter from URL after performing any action
+			clearOpenParam()
+		}
+	}, [
+		openParam,
+		isMobile,
+		setIsOpen,
+		setActivePanel,
+		validViews,
+		clearOpenParam,
+	])
 
 	// Watch for active panel changes on mobile
 	useEffect(() => {
 		if (isMobile && activePanel !== "menu" && activePanel !== null) {
 			// Another panel became active, close the menu
-			setIsMobileMenuOpen(false);
-			setExpandedView(null);
+			setIsMobileMenuOpen(false)
+			setExpandedView(null)
 		}
-	}, [isMobile, activePanel]);
+	}, [isMobile, activePanel])
 
 	// Notify tour provider about expansion state changes
 	useEffect(() => {
 		const isExpanded = isMobile
 			? isMobileMenuOpen || !!expandedView
-			: isHovered || !!expandedView;
-		setMenuExpanded(isExpanded);
-	}, [isMobile, isMobileMenuOpen, isHovered, expandedView, setMenuExpanded]);
+			: isHovered || !!expandedView
+		setMenuExpanded(isExpanded)
+	}, [isMobile, isMobileMenuOpen, isHovered, expandedView, setMenuExpanded])
 
 	// Calculate width based on state
-	const menuWidth = expandedView || isCollapsing ? 600 : isHovered ? 160 : 56;
+	const menuWidth = expandedView || isCollapsing ? 600 : isHovered ? 160 : 56
 
 	// Dynamic z-index for mobile based on active panel
-	const mobileZIndex =
-		isMobile && activePanel === "menu" ? "z-[70]" : "z-[100]";
+	const mobileZIndex = isMobile && activePanel === "menu" ? "z-[70]" : "z-[100]"
 
 	return (
 		<>
@@ -378,8 +442,8 @@ function Menu({ id }: { id?: string }) {
 													<Button
 														className="text-white/70 hover:text-white transition-colors duration-200"
 														onClick={() => {
-															setIsCollapsing(true);
-															setExpandedView(null);
+															setIsCollapsing(true)
+															setExpandedView(null)
 														}}
 														size="icon"
 														variant="ghost"
@@ -418,9 +482,9 @@ function Menu({ id }: { id?: string }) {
 					open={isMobileMenuOpen || !!expandedView}
 					onOpenChange={(open) => {
 						if (!open) {
-							setIsMobileMenuOpen(false);
-							setExpandedView(null);
-							setActivePanel(null);
+							setIsMobileMenuOpen(false)
+							setExpandedView(null)
+							setActivePanel(null)
 						}
 					}}
 				>
@@ -433,8 +497,8 @@ function Menu({ id }: { id?: string }) {
 									className="w-14 h-14 flex items-center justify-center text-white rounded-full shadow-2xl"
 									initial={{ scale: 0.8, opacity: 0 }}
 									onClick={() => {
-										setIsMobileMenuOpen(true);
-										setActivePanel("menu");
+										setIsMobileMenuOpen(true)
+										setActivePanel("menu")
 									}}
 									transition={{
 										duration: 0.3,
@@ -530,13 +594,13 @@ function Menu({ id }: { id?: string }) {
 																initial={{ opacity: 0, y: 10 }}
 																layout
 																onClick={() => {
-																	handleMenuItemClick(item.key);
+																	handleMenuItemClick(item.key)
 																	if (
 																		item.key !== "mcp" &&
 																		item.key !== "profile" &&
 																		item.key !== "integrations"
 																	) {
-																		setIsMobileMenuOpen(false);
+																		setIsMobileMenuOpen(false)
 																	}
 																}}
 																type="button"
@@ -600,8 +664,8 @@ function Menu({ id }: { id?: string }) {
 														<Button
 															className="text-white/70 hover:text-white transition-colors duration-200"
 															onClick={() => {
-																setIsCollapsing(true);
-																setExpandedView(null);
+																setIsCollapsing(true)
+																setExpandedView(null)
 															}}
 															size="icon"
 															variant="ghost"
@@ -643,7 +707,7 @@ function Menu({ id }: { id?: string }) {
 				<Button className="hidden">Connect AI Assistant</Button>
 			</ConnectAIModal>
 		</>
-	);
+	)
 }
 
-export default Menu;
+export default Menu
