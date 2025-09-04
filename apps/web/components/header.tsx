@@ -37,11 +37,7 @@ export function AppHeader() {
 	return (
 		<>
 			<header className="w-full h-16 px-4 flex items-center justify-between">
-				<Link
-					href="/"
-					rel="noopener noreferrer"
-					className="flex items-center"
-				>
+				<Link href="/" rel="noopener noreferrer" className="flex items-center">
 					{isMobile ? (
 						<Logo className="h-8" />
 					) : (
@@ -52,7 +48,7 @@ export function AppHeader() {
 				<div className="flex items-center gap-3">
 					<Button
 						onClick={() => setShowAddMemoryView(true)}
-						className="bg-dodger-blue hover:bg-dodger-blue/90 text-white px-4 py-2 rounded-full cursor-pointer"
+						className="bg-[#09090B] hover:bg-[#09090B]/80 text-white px-4 py-2 rounded-full cursor-pointer"
 						variant="default"
 						size="default"
 					>
@@ -78,12 +74,18 @@ export function AppHeader() {
 							</div>
 							<DropdownMenuSeparator />
 
-							<DropdownMenuItem className="cursor-pointer">
+							<DropdownMenuItem
+								className="cursor-pointer"
+								onClick={() => router.push("/settings")}
+							>
 								<Settings className="h-4 w-4 mr-2" />
 								Settings
 							</DropdownMenuItem>
 
-							<DropdownMenuItem className="cursor-pointer">
+							<DropdownMenuItem
+								className="cursor-pointer"
+								onClick={() => router.push("/settings")}
+							>
 								<CreditCard className="h-4 w-4 mr-2" />
 								Billing
 							</DropdownMenuItem>
@@ -110,5 +112,5 @@ export function AppHeader() {
 				/>
 			)}
 		</>
-	);
+	)
 }
