@@ -238,10 +238,10 @@ export function ProfileView() {
 							</Button>
 						) : (
 							<Button
-								className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
+								className="w-full bg-[#267ffa] hover:bg-[#267ffa]/90 text-white border-0"
 								disabled={isLoading || isCheckingStatus}
 								onClick={handleUpgrade}
-								size="sm"
+								size="lg"
 							>
 								{isLoading || isCheckingStatus ? (
 									<>

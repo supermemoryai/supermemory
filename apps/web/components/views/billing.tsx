@@ -22,22 +22,24 @@ export function BillingView() {
 		analytics.billingViewed()
 	}, [])
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any)
-
-	const memoriesUsed = memoriesCheck?.usage ?? 0
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0
-
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any)
-
-	const connectionsUsed = connectionsCheck?.usage ?? 0
-
-	// Fetch subscription status with React Query
 	const {
 		data: status = {
 			consumer_pro: null,
 		},
 		isLoading: isCheckingStatus,
-	} = fetchSubscriptionStatus(autumn as any)
+	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
+
+	const { data: memoriesCheck } = fetchMemoriesFeature(
+		autumn,
+		!autumn.isLoading && !isCheckingStatus,
+	)
+
+	const memoriesUsed = memoriesCheck?.usage ?? 0
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0
+
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn)
+
+	const connectionsUsed = connectionsCheck?.usage ?? 0
 
 	// Handle upgrade
 	const handleUpgrade = async () => {
@@ -233,23 +235,20 @@ export function BillingView() {
 					</div>
 				</div>
 
-				<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-					<Button
-						className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 w-full"
-						disabled={isLoading || isCheckingStatus}
-						onClick={handleUpgrade}
-						size="sm"
-					>
-						{isLoading || isCheckingStatus ? (
-							<>
-								<LoaderIcon className="h-4 w-4 animate-spin mr-2" />
-								Upgrading...
-							</>
-						) : (
-							<div>Upgrade to Pro - $15/month (only for first 100 users)</div>
-						)}
-					</Button>
-				</motion.div>
+				<Button
+					className="bg-blue-600 hover:bg-blue-700 text-white border-0 w-full"
+					disabled={isLoading || isCheckingStatus}
+					onClick={handleUpgrade}
+				>
+					{isLoading || isCheckingStatus ? (
+						<>
+							<LoaderIcon className="h-4 w-4 animate-spin mr-2" />
+							Upgrading...
+						</>
+					) : (
+						<div>Upgrade to Pro - $15/month (only for first 100 users)</div>
+					)}
+				</Button>
 
 				<p className="text-xs text-muted-foreground text-center">
 					Cancel anytime. No questions asked.
