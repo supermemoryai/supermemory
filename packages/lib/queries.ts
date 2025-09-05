@@ -3,13 +3,11 @@ import type { useCustomer } from "autumn-js/react"
 
 export const fetchSubscriptionStatus = (
 	autumn: ReturnType<typeof useCustomer>,
+	isEnabled: boolean,
 ) =>
 	useQuery({
 		queryFn: async () => {
 			const allPlans = [
-				"pro",
-				"memory_starter",
-				"memory_growth",
 				"consumer_pro",
 			]
 			const statusMap: Record<string, boolean | null> = {}
@@ -17,7 +15,7 @@ export const fetchSubscriptionStatus = (
 			await Promise.all(
 				allPlans.map(async (plan) => {
 					try {
-						const res = await autumn.check({
+						const res = autumn.check({
 							productId: plan,
 						})
 						statusMap[plan] = res.data?.allowed ?? false
@@ -33,18 +31,20 @@ export const fetchSubscriptionStatus = (
 		queryKey: ["subscription-status"],
 		refetchInterval: 5000, // Refetch every 5 seconds
 		staleTime: 4000, // Consider data stale after 4 seconds
+		enabled: isEnabled,
 	})
 
 // Feature checks
-export const fetchMemoriesFeature = (autumn: ReturnType<typeof useCustomer>) =>
+export const fetchMemoriesFeature = (autumn: ReturnType<typeof useCustomer>, isEnabled: boolean) =>
 	useQuery({
 		queryFn: async () => {
-			const res = await autumn.check({ featureId: "memories" })
+			const res = autumn.check({ featureId: "memories" })
 			return res.data
 		},
 		queryKey: ["autumn-feature", "memories"],
 		staleTime: 30 * 1000, // 30 seconds
 		gcTime: 5 * 60 * 1000, // 5 minutes
+		enabled: isEnabled,
 	})
 
 export const fetchConnectionsFeature = (
@@ -52,7 +52,7 @@ export const fetchConnectionsFeature = (
 ) =>
 	useQuery({
 		queryFn: async () => {
-			const res = await autumn.check({ featureId: "connections" })
+			const res = autumn.check({ featureId: "connections" })
 			return res.data
 		},
 		queryKey: ["autumn-feature", "connections"],
@@ -66,7 +66,7 @@ export const fetchConsumerProProduct = (
 ) =>
 	useQuery({
 		queryFn: async () => {
-			const res = await autumn.check({ productId: "consumer_pro" })
+			const res = autumn.check({ productId: "consumer_pro" })
 			return res.data
 		},
 		queryKey: ["autumn-product", "consumer_pro"],
@@ -77,7 +77,7 @@ export const fetchConsumerProProduct = (
 export const fetchProProduct = (autumn: ReturnType<typeof useCustomer>) =>
 	useQuery({
 		queryFn: async () => {
-			const res = await autumn.check({ productId: "pro" })
+			const res = autumn.check({ productId: "pro" })
 			return res.data
 		},
 		queryKey: ["autumn-product", "pro"],

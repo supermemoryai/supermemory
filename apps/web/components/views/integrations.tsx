@@ -1,38 +1,39 @@
-import { $fetch } from "@lib/api";
-import { authClient } from "@lib/auth";
-import { useAuth } from "@lib/auth-context";
-import { generateId } from "@lib/generate-id";
+import { $fetch } from "@lib/api"
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
+import { generateId } from "@lib/generate-id"
 import {
 	ADD_MEMORY_SHORTCUT_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
-} from "@repo/lib/constants";
+} from "@repo/lib/constants"
 import {
 	fetchConnectionsFeature,
 	fetchConsumerProProduct,
-} from "@repo/lib/queries";
-import { Button } from "@repo/ui/components/button";
+} from "@repo/lib/queries"
+import { Button } from "@repo/ui/components/button"
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogPortal,
 	DialogTitle,
-} from "@repo/ui/components/dialog";
-import { Skeleton } from "@repo/ui/components/skeleton";
-import type { ConnectionResponseSchema } from "@repo/validation/api";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons";
-import { useCustomer } from "autumn-js/react";
-import { Check, Copy, Smartphone, Trash2 } from "lucide-react";
-import { motion } from "motion/react";
-import Image from "next/image";
-import { useEffect, useId, useState } from "react";
-import { toast } from "sonner";
-import type { z } from "zod";
-import { analytics } from "@/lib/analytics";
-import { useProject } from "@/stores";
+} from "@repo/ui/components/dialog"
+import { Skeleton } from "@repo/ui/components/skeleton"
+import type { ConnectionResponseSchema } from "@repo/validation/api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { useCustomer } from "autumn-js/react"
+import { Check, Copy, Smartphone, Trash2 } from "lucide-react"
+import { motion } from "motion/react"
+import Image from "next/image"
+import { useEffect, useId, useState } from "react"
+import { toast } from "sonner"
+import type { z } from "zod"
+import { analytics } from "@/lib/analytics"
+import { useProject } from "@/stores"
+import { cn } from "@lib/utils"
 
-type Connection = z.infer<typeof ConnectionResponseSchema>;
+type Connection = z.infer<typeof ConnectionResponseSchema>
 
 const CONNECTORS = {
 	"google-drive": {
@@ -50,9 +51,9 @@ const CONNECTORS = {
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
 	},
-} as const;
+} as const
 
-type ConnectorProvider = keyof typeof CONNECTORS;
+type ConnectorProvider = keyof typeof CONNECTORS
 
 const ChromeIcon = ({ className }: { className?: string }) => (
 	<svg
@@ -83,41 +84,41 @@ const ChromeIcon = ({ className }: { className?: string }) => (
 			d="M95.252 47.628h82.479A95.237 95.237 0 0 0 142.87 12.76 95.23 95.23 0 0 0 95.245 0a95.222 95.222 0 0 0-47.623 12.767 95.23 95.23 0 0 0-34.856 34.872l41.24 71.43.011.006a47.62 47.62 0 0 1-.015-47.633 47.61 47.61 0 0 1 41.252-23.815z"
 		/>
 	</svg>
-);
+)
 
 export function IntegrationsView() {
-	const { org } = useAuth();
-	const queryClient = useQueryClient();
-	const { selectedProject } = useProject();
-	const autumn = useCustomer();
-	const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-	const [apiKey, setApiKey] = useState<string>("");
-	const [copied, setCopied] = useState(false);
+	const { org } = useAuth()
+	const queryClient = useQueryClient()
+	const { selectedProject } = useProject()
+	const autumn = useCustomer()
+	const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+	const [apiKey, setApiKey] = useState<string>("")
+	const [copied, setCopied] = useState(false)
 	const [selectedShortcutType, setSelectedShortcutType] = useState<
 		"add" | "search" | null
-	>(null);
-	const apiKeyId = useId();
+	>(null)
+	const apiKeyId = useId()
 
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			});
-			window.location.reload();
+			})
+			window.location.reload()
 		} catch (error) {
-			console.error(error);
+			console.error(error)
 		}
-	};
+	}
 
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any);
-	const connectionsUsed = connectionsCheck?.balance ?? 0;
-	const connectionsLimit = connectionsCheck?.included_usage ?? 0;
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn)
+	const connectionsUsed = connectionsCheck?.balance ?? 0
+	const connectionsLimit = connectionsCheck?.included_usage ?? 0
 
-	const { data: proCheck } = fetchConsumerProProduct(autumn as any);
-	const isProUser = proCheck?.allowed ?? false;
+	const { data: proCheck } = fetchConsumerProProduct(autumn)
+	const isProUser = proCheck?.allowed ?? false
 
-	const canAddConnection = connectionsUsed < connectionsLimit;
+	const canAddConnection = connectionsUsed < connectionsLimit
 
 	const {
 		data: connections = [],
@@ -130,19 +131,17 @@ export function IntegrationsView() {
 				body: {
 					containerTags: [],
 				},
-			});
+			})
 
 			if (response.error) {
-				throw new Error(
-					response.error?.message || "Failed to load connections",
-				);
+				throw new Error(response.error?.message || "Failed to load connections")
 			}
 
-			return response.data as Connection[];
+			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
 		refetchInterval: 60 * 1000,
-	});
+	})
 
 	useEffect(() => {
 		if (connectionsError) {
@@ -151,16 +150,16 @@ export function IntegrationsView() {
 					connectionsError instanceof Error
 						? connectionsError.message
 						: "Unknown error",
-			});
+			})
 		}
-	}, [connectionsError]);
+	}, [connectionsError])
 
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
 			if (!canAddConnection && !isProUser) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
-				);
+				)
 			}
 
 			const response = await $fetch("@post/connections/:provider", {
@@ -169,47 +168,47 @@ export function IntegrationsView() {
 					redirectUrl: window.location.href,
 					containerTags: [selectedProject],
 				},
-			});
+			})
 
 			// biome-ignore lint/style/noNonNullAssertion: its fine
 			if ("data" in response && !("error" in response.data!)) {
-				return response.data;
+				return response.data
 			}
 
-			throw new Error(response.error?.message || "Failed to connect");
+			throw new Error(response.error?.message || "Failed to connect")
 		},
 		onSuccess: (data, provider) => {
-			analytics.connectionAdded(provider);
-			analytics.connectionAuthStarted();
+			analytics.connectionAdded(provider)
+			analytics.connectionAuthStarted()
 			if (data?.authLink) {
-				window.location.href = data.authLink;
+				window.location.href = data.authLink
 			}
 		},
 		onError: (error, provider) => {
-			analytics.connectionAuthFailed();
+			analytics.connectionAuthFailed()
 			toast.error(`Failed to connect ${provider}`, {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const deleteConnectionMutation = useMutation({
 		mutationFn: async (connectionId: string) => {
-			await $fetch(`@delete/connections/${connectionId}`);
+			await $fetch(`@delete/connections/${connectionId}`)
 		},
 		onSuccess: () => {
-			analytics.connectionDeleted();
+			analytics.connectionDeleted()
 			toast.success(
 				"Connection removal has started. supermemory will permanently delete all documents related to the connection in the next few minutes.",
-			);
-			queryClient.invalidateQueries({ queryKey: ["connections"] });
+			)
+			queryClient.invalidateQueries({ queryKey: ["connections"] })
 		},
 		onError: (error) => {
 			toast.error("Failed to remove connection", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const createApiKeyMutation = useMutation({
 		mutationFn: async () => {
@@ -220,85 +219,86 @@ export function IntegrationsView() {
 				},
 				name: `ios-${generateId().slice(0, 8)}`,
 				prefix: `sm_${org?.id}_`,
-			});
-			return res.key;
+			})
+			return res.key
 		},
 		onSuccess: (apiKey) => {
-			setApiKey(apiKey);
-			setShowApiKeyModal(true);
-			setCopied(false);
-			handleCopyApiKey();
+			setApiKey(apiKey)
+			setShowApiKeyModal(true)
+			setCopied(false)
+			handleCopyApiKey()
 		},
 		onError: (error) => {
 			toast.error("Failed to create API key", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const handleShortcutClick = (shortcutType: "add" | "search") => {
-		setSelectedShortcutType(shortcutType);
-		createApiKeyMutation.mutate();
-	};
+		setSelectedShortcutType(shortcutType)
+		createApiKeyMutation.mutate()
+	}
 
 	const handleCopyApiKey = async () => {
 		try {
-			await navigator.clipboard.writeText(apiKey);
-			setCopied(true);
-			toast.success("API key copied to clipboard!");
-			setTimeout(() => setCopied(false), 2000);
+			await navigator.clipboard.writeText(apiKey)
+			setCopied(true)
+			toast.success("API key copied to clipboard!")
+			setTimeout(() => setCopied(false), 2000)
 		} catch {
-			toast.error("Failed to copy API key");
+			toast.error("Failed to copy API key")
 		}
-	};
+	}
 
 	const handleOpenShortcut = () => {
 		if (!selectedShortcutType) {
-			toast.error("No shortcut type selected");
-			return;
+			toast.error("No shortcut type selected")
+			return
 		}
 
 		if (selectedShortcutType === "add") {
-			window.open(ADD_MEMORY_SHORTCUT_URL, "_blank");
+			window.open(ADD_MEMORY_SHORTCUT_URL, "_blank")
 		} else if (selectedShortcutType === "search") {
-			window.open(SEARCH_MEMORY_SHORTCUT_URL, "_blank");
+			window.open(SEARCH_MEMORY_SHORTCUT_URL, "_blank")
 		}
-	};
+	}
 
 	const handleDialogClose = (open: boolean) => {
-		setShowApiKeyModal(open);
+		setShowApiKeyModal(open)
 		if (!open) {
 			// Reset state when dialog closes
-			setSelectedShortcutType(null);
-			setApiKey("");
-			setCopied(false);
+			setSelectedShortcutType(null)
+			setApiKey("")
+			setCopied(false)
 		}
-	};
+	}
 
 	return (
-		<div className="space-y-4 sm:space-y-4 custom-scrollbar">
+		<div className="space-y-2 sm:space-y-4 custom-scrollbar">
 			{/* iOS Shortcuts */}
-			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+			<div className="bg-card border border-border rounded-xl overflow-hidden">
 				<div className="p-4 sm:p-5">
 					<div className="flex items-start gap-3 mb-3">
-						<div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
-							<Smartphone className="h-5 w-5 text-blue-400" />
+						<div className="p-2 rounded-lg flex-shrink-0 bg-muted/70">
+							<Smartphone className="h-5 w-5" />
 						</div>
 						<div className="flex-1 min-w-0">
-							<h3 className="text-white font-semibold text-base mb-1">
+							<h3 className="text-foreground font-semibold text-base">
 								Apple shortcuts
 							</h3>
-							<p className="text-white/70 text-sm leading-relaxed">
+							<p className="text-muted-foreground text-sm leading-relaxed">
 								Add memories directly from iPhone, iPad or Mac.
 							</p>
 						</div>
 					</div>
 					<div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
 						<Button
-							variant="ghost"
-							className="flex-1 text-white hover:bg-blue-500/10 bg-[#171F59]/75 "
+							variant="outline"
+							className="flex-1 bg-muted/50 border-none"
 							onClick={() => handleShortcutClick("add")}
 							disabled={createApiKeyMutation.isPending}
+							size="lg"
 						>
 							<Image
 								src="/images/ios-shortcuts.png"
@@ -311,10 +311,11 @@ export function IntegrationsView() {
 								: "Add Memory Shortcut"}
 						</Button>
 						<Button
-							variant="ghost"
-							className="flex-1 text-white  hover:bg-blue-500/10 bg-[#171F59]/75"
+							variant="outline"
+							className="flex-1 bg-muted/50 border-none"
 							onClick={() => handleShortcutClick("search")}
 							disabled={createApiKeyMutation.isPending}
+							size="lg"
 						>
 							<Image
 								src="/images/ios-shortcuts.png"
@@ -331,22 +332,22 @@ export function IntegrationsView() {
 			</div>
 
 			{/* Chrome Extension */}
-			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden opacity-75">
+			<div className="bg-card border border-border rounded-xl overflow-hidden opacity-75">
 				<div className="p-4 sm:p-5">
 					<div className="flex items-start gap-3">
-						<div className="p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
-							<ChromeIcon className="h-5 w-5 text-orange-400" />
+						<div className="p-2 rounded-lg flex-shrink-0 bg-muted/70">
+							<ChromeIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
 						</div>
 						<div className="flex-1 min-w-0">
-							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
-								<h3 className="text-white font-semibold text-base">
+							<div className="flex flex-col sm:flex-row sm:items-center gap-2">
+								<h3 className="text-foreground font-semibold text-base">
 									Chrome Extension
 								</h3>
-								<div className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full flex-shrink-0 w-fit">
+								<div className="px-2 py-1 bg-muted/70 text-xs rounded-full flex-shrink-0 w-fit">
 									Coming Soon
 								</div>
 							</div>
-							<p className="text-white/70 text-sm leading-relaxed">
+							<p className="text-muted-foreground text-sm leading-relaxed">
 								Save web content with one click
 							</p>
 						</div>
@@ -355,12 +356,12 @@ export function IntegrationsView() {
 			</div>
 
 			{/* Connections Section */}
-			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+			<div className="bg-card border border-border rounded-xl overflow-hidden">
 				<div className="p-4 sm:p-5">
-					<div className="flex items-start gap-3 mb-3">
-						<div className="p-2 bg-green-500/20 rounded-lg flex-shrink-0">
+					<div className="flex items-start gap-3">
+						<div className="p-2 rounded-lg flex-shrink-0 bg-muted/70">
 							<svg
-								className="h-5 w-5 text-green-400"
+								className="h-5 w-5 text-green-600 dark:text-green-400"
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
@@ -375,43 +376,35 @@ export function IntegrationsView() {
 							</svg>
 						</div>
 						<div className="flex-1 min-w-0">
-							<h3 className="text-white font-semibold text-base mb-1">
+							<h3 className="text-foreground font-semibold text-base">
 								Connections
 							</h3>
-							<p className="text-white/70 text-sm leading-relaxed mb-2">
+							<p className="text-muted-foreground text-sm leading-relaxed mb-2">
 								Connect your accounts to sync document.
 							</p>
-							{!isProUser && (
-								<p className="text-xs text-white/50">
-									Connections require a Pro subscription
-								</p>
-							)}
 						</div>
 					</div>
 
 					{/* Show upgrade prompt for free users */}
 					{!isProUser && (
-						<motion.div
-							animate={{ opacity: 1, y: 0 }}
-							className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-3"
-							initial={{ opacity: 0, y: -10 }}
-						>
-							<p className="text-sm text-yellow-400 mb-2">
-								🔌 Connections are a Pro feature
-							</p>
-							<p className="text-xs text-white/60 mb-3">
-								Connect Google Drive, Notion, OneDrive and more to automatically
-								sync your documents.
-							</p>
+						<div className="flex p-4 bg-muted/80 rounded-lg mb-2 justify-between items-center">
+							<div>
+								<p className="text-sm mb-1">🔌 Connections are a Pro feature</p>
+								<p className="text-xs text-muted-foreground">
+									Connect Google Drive, Notion, OneDrive to automatically
+									sync your documents.
+								</p>
+							</div>
+
 							<Button
-								className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border-yellow-500/30 w-full sm:w-auto"
+								className="bg-[#267ffa] hover:bg-[#267ffa]/90 text-white border-0 w-full sm:w-auto rounded-full"
 								onClick={handleUpgrade}
-								size="sm"
+								size="lg"
 								variant="secondary"
 							>
 								Upgrade to Pro
 							</Button>
-						</motion.div>
+						</div>
 					)}
 
 					{/* All Connections with Status */}
@@ -420,28 +413,28 @@ export function IntegrationsView() {
 							{Object.keys(CONNECTORS).map((_, i) => (
 								<motion.div
 									animate={{ opacity: 1 }}
-									className="p-3 bg-white/5 rounded-lg"
+									className="p-3 bg-muted/50 rounded-lg"
 									initial={{ opacity: 0 }}
 									key={`skeleton-${Date.now()}-${i}`}
 									transition={{ delay: i * 0.1 }}
 								>
-									<Skeleton className="h-12 w-full bg-white/10" />
+									<Skeleton className="h-12 w-full bg-muted" />
 								</motion.div>
 							))}
 						</div>
 					) : (
-						<div className="space-y-2">
+						<div className={cn("space-y-2", !isProUser && "opacity-50 pointer-events-none cursor-not-allowed")}>
 							{Object.entries(CONNECTORS).map(([provider, config], index) => {
-								const Icon = config.icon;
+								const Icon = config.icon
 								const connection = connections.find(
 									(conn) => conn.provider === provider,
-								);
-								const isConnected = !!connection;
+								)
+								const isConnected = !!connection
 
 								return (
 									<motion.div
 										animate={{ opacity: 1, y: 0 }}
-										className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+										className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted/80 transition-colors"
 										initial={{ opacity: 0, y: 20 }}
 										key={provider}
 										transition={{ delay: index * 0.05 }}
@@ -457,30 +450,30 @@ export function IntegrationsView() {
 											</motion.div>
 											<div className="flex-1 min-w-0">
 												<div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-													<p className="font-medium text-white text-sm">
+													<p className="font-medium text-foreground text-sm">
 														{config.title}
 													</p>
 													{isConnected ? (
 														<div className="flex items-center gap-1">
-															<div className="w-2 h-2 bg-green-400 rounded-full"></div>
-															<span className="text-xs text-green-400 font-medium">
+															<div className="w-2 h-2 bg-green-500 rounded-full" />
+															<span className="text-xs text-green-600 dark:text-green-400 font-medium">
 																Connected
 															</span>
 														</div>
 													) : (
 														<div className="hidden sm:flex items-center gap-1">
-															<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-															<span className="text-xs text-gray-400 font-medium">
+															<div className="w-2 h-2 bg-muted-foreground rounded-full" />
+															<span className="text-xs text-muted-foreground font-medium">
 																Disconnected
 															</span>
 														</div>
 													)}
 												</div>
-												<p className="text-xs text-white/60 mt-0.5">
+												<p className="text-xs text-muted-foreground mt-0.5">
 													{config.description}
 												</p>
 												{connection?.email && (
-													<p className="text-xs text-white/50 mt-1">
+													<p className="text-xs text-muted-foreground mt-1">
 														{connection.email}
 													</p>
 												)}
@@ -494,7 +487,7 @@ export function IntegrationsView() {
 													whileTap={{ scale: 0.95 }}
 												>
 													<Button
-														className="text-white/70 hover:text-red-400 hover:bg-red-500/10 w-full sm:w-auto"
+														className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 w-full sm:w-auto"
 														disabled={deleteConnectionMutation.isPending}
 														onClick={() =>
 															deleteConnectionMutation.mutate(connection.id)
@@ -509,8 +502,8 @@ export function IntegrationsView() {
 											) : (
 												<div className="flex items-center justify-between gap-2 w-full sm:w-auto">
 													<div className="sm:hidden flex items-center gap-1">
-														<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-														<span className="text-xs text-gray-400 font-medium">
+														<div className="w-2 h-2 bg-muted-foreground rounded-full" />
+														<span className="text-xs text-muted-foreground font-medium">
 															Disconnected
 														</span>
 													</div>
@@ -520,12 +513,12 @@ export function IntegrationsView() {
 														className="flex-shrink-0"
 													>
 														<Button
-															className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30 min-w-[80px]"
+															className=" text-white border-0 min-w-[80px]"
 															disabled={addConnectionMutation.isPending}
 															onClick={() => {
 																addConnectionMutation.mutate(
 																	provider as ConnectorProvider,
-																);
+																)
 															}}
 															size="sm"
 															variant="outline"
@@ -540,7 +533,7 @@ export function IntegrationsView() {
 											)}
 										</div>
 									</motion.div>
-								);
+								)
 							})}
 						</div>
 					)}
@@ -548,14 +541,14 @@ export function IntegrationsView() {
 			</div>
 
 			<div className="p-3">
-				<p className="text-white/70 text-sm leading-relaxed text-center">
+				<p className="text-muted-foreground text-sm leading-relaxed text-center">
 					More integrations are coming soon! Have a suggestion? Share it with us
 					on{" "}
 					<a
 						href="https://x.com/supermemoryai"
 						target="_blank"
 						rel="noopener noreferrer"
-						className="text-orange-500 hover:text-orange-400 underline"
+						className="text-[#267ffa] hover:text-[#267ffa]/90 underline"
 					>
 						X
 					</a>
@@ -566,9 +559,9 @@ export function IntegrationsView() {
 			{/* API Key Modal */}
 			<Dialog open={showApiKeyModal} onOpenChange={handleDialogClose}>
 				<DialogPortal>
-					<DialogContent className="bg-[#0f1419] border-white/10 text-white md:max-w-md z-[100]">
+					<DialogContent className="bg-background border-border text-foreground md:max-w-md z-[100]">
 						<DialogHeader>
-							<DialogTitle className="text-white text-lg font-semibold">
+							<DialogTitle className="text-foreground text-lg font-semibold">
 								Setup{" "}
 								{selectedShortcutType === "add"
 									? "Add Memory"
@@ -584,7 +577,7 @@ export function IntegrationsView() {
 							<div className="space-y-2">
 								<label
 									htmlFor={apiKeyId}
-									className="text-sm font-medium text-white/80"
+									className="text-sm font-medium text-foreground"
 								>
 									Your API Key
 								</label>
@@ -594,16 +587,16 @@ export function IntegrationsView() {
 										type="text"
 										value={apiKey}
 										readOnly
-										className="flex-1 bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-sm text-white font-mono"
+										className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono"
 									/>
 									<Button
 										size="sm"
 										variant="ghost"
 										onClick={handleCopyApiKey}
-										className="text-white/70 hover:text-white hover:bg-white/10"
+										className="text-muted-foreground hover:text-foreground hover:bg-muted"
 									>
 										{copied ? (
-											<Check className="h-4 w-4 text-green-400" />
+											<Check className="h-4 w-4 text-green-500" />
 										) : (
 											<Copy className="h-4 w-4" />
 										)}
@@ -613,31 +606,31 @@ export function IntegrationsView() {
 
 							{/* Steps */}
 							<div className="space-y-3">
-								<h4 className="text-sm font-medium text-white/80">
+								<h4 className="text-sm font-medium text-foreground">
 									Follow these steps:
 								</h4>
 								<div className="space-y-2">
 									<div className="flex items-start gap-3">
-										<div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-medium">
 											1
 										</div>
-										<p className="text-sm text-white/70">
+										<p className="text-sm text-muted-foreground">
 											Click "Add to Shortcuts" below to open the shortcut
 										</p>
 									</div>
 									<div className="flex items-start gap-3">
-										<div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-medium">
 											2
 										</div>
-										<p className="text-sm text-white/70">
+										<p className="text-sm text-muted-foreground">
 											Paste your API key when prompted
 										</p>
 									</div>
 									<div className="flex items-start gap-3">
-										<div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-medium">
 											3
 										</div>
-										<p className="text-sm text-white/70">
+										<p className="text-sm text-muted-foreground">
 											Start using your shortcut!
 										</p>
 									</div>
@@ -665,5 +658,5 @@ export function IntegrationsView() {
 				</DialogPortal>
 			</Dialog>
 		</div>
-	);
+	)
 }
