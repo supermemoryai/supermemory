@@ -3,16 +3,14 @@
  * Handles the import process for Twitter bookmarks
  */
 
-import { saveTweet } from "./api"
+import { saveAllTweets } from "./api"
 import { createTwitterAPIHeaders, getTwitterTokens } from "./twitter-auth"
 import {
 	BOOKMARKS_URL,
 	buildRequestVariables,
 	extractNextCursor,
 	getAllTweets,
-	type Tweet,
 	type TwitterAPIResponse,
-	tweetToMarkdown,
 } from "./twitter-utils"
 
 export type ImportProgressCallback = (message: string) => Promise<void>
@@ -48,31 +46,6 @@ class RateLimiter {
 }
 
 /**
- * Imports a single tweet to Supermemory
- * @param tweetMd - Tweet content in markdown format
- * @param tweet - Original tweet object with metadata
- * @returns Promise that resolves when tweet is imported
- */
-async function importTweet(tweetMd: string, tweet: Tweet): Promise<void> {
-	const metadata = {
-		sm_source: "consumer",
-		tweet_id: tweet.id_str,
-		author: tweet.user.screen_name,
-		created_at: tweet.created_at,
-		likes: tweet.favorite_count,
-		retweets: tweet.retweet_count || 0,
-	}
-
-	try {
-		await saveTweet(tweetMd, metadata)
-	} catch (error) {
-		throw new Error(
-			`Failed to save tweet: ${error instanceof Error ? error.message : "Unknown error"}`,
-		)
-	}
-}
-
-/**
  * Main class for handling Twitter bookmarks import
  */
 export class TwitterImporter {
@@ -91,9 +64,10 @@ export class TwitterImporter {
 		}
 
 		this.importInProgress = true
+		const uniqueGroupId = crypto.randomUUID()
 
 		try {
-			await this.batchImportAll("", 0)
+			await this.batchImportAll("", 0, uniqueGroupId)
 			this.rateLimiter.reset()
 		} catch (error) {
 			await this.config.onError(error as Error)
@@ -107,7 +81,7 @@ export class TwitterImporter {
 	 * @param cursor - Pagination cursor for Twitter API
 	 * @param totalImported - Number of tweets imported so far
 	 */
-	private async batchImportAll(cursor = "", totalImported = 0): Promise<void> {
+	private async batchImportAll(cursor = "", totalImported = 0, uniqueGroupId = "twitter_bookmarks"): Promise<void> {
 		try {
 			// Use a local variable to track imported count
 			let importedCount = totalImported
@@ -130,9 +104,6 @@ export class TwitterImporter {
 				? `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
 				: BOOKMARKS_URL
 
-			console.log("Making Twitter API request to:", urlWithCursor)
-			console.log("Request headers:", Object.fromEntries(headers.entries()))
-
 			const response = await fetch(urlWithCursor, {
 				method: "GET",
 				headers,
@@ -145,7 +116,7 @@ export class TwitterImporter {
 
 				if (response.status === 429) {
 					await this.rateLimiter.handleRateLimit(this.config.onProgress)
-					return this.batchImportAll(cursor, totalImported)
+					return this.batchImportAll(cursor, totalImported, uniqueGroupId)
 				}
 				throw new Error(
 					`Failed to fetch data: ${response.status} - ${errorText}`,
@@ -155,19 +126,43 @@ export class TwitterImporter {
 			const data: TwitterAPIResponse = await response.json()
 			const tweets = getAllTweets(data)
 
-			console.log("Tweets:", tweets)
+			const documents: MemoryPayload[] = []
 
-			// Process each tweet
+			// Convert tweets to MemoryPayload
 			for (const tweet of tweets) {
 				try {
-					const tweetMd = tweetToMarkdown(tweet)
-					await importTweet(tweetMd, tweet)
+					const metadata = {
+						sm_source: "consumer",
+						tweet_id: tweet.id_str,
+						author: tweet.user.screen_name,
+						created_at: tweet.created_at,
+						likes: tweet.favorite_count,
+						retweets: tweet.retweet_count || 0,
+						sm_internal_group_id: uniqueGroupId,
+					}
+					documents.push({
+						containerTags: ["sm_project_twitter_bookmarks"],
+						content: `https://x.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
+						metadata,
+						customId: tweet.id_str,
+					})
 					importedCount++
-					await this.config.onProgress(`Imported ${importedCount} tweets`)
+					await this.config.onProgress(`Imported ${importedCount} tweets, so far...`)
 				} catch (error) {
 					console.error("Error importing tweet:", error)
-					// Continue with next tweet
 				}
+			}
+
+			try {
+				if (documents.length > 0) {
+					await saveAllTweets(documents)
+				}
+				console.log("Tweets saved")
+				console.log("Documents:", documents)
+			} catch (error) {
+				console.error("Error saving tweets batch:", error)
+				await this.config.onError(error as Error)
+				return
 			}
 
 			// Handle pagination
@@ -180,7 +175,7 @@ export class TwitterImporter {
 
 			if (nextCursor && tweets.length > 0) {
 				await new Promise((resolve) => setTimeout(resolve, 1000)) // Rate limiting
-				await this.batchImportAll(nextCursor, importedCount)
+				await this.batchImportAll(nextCursor, importedCount, uniqueGroupId)
 			} else {
 				await this.config.onComplete(importedCount)
 			}

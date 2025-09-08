@@ -1,5 +1,5 @@
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type WxtViteConfig } from "wxt";
+import tailwindcss from "@tailwindcss/vite"
+import { defineConfig, type WxtViteConfig } from "wxt"
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -12,13 +12,7 @@ export default defineConfig({
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
 		version: "6.0.000",
-		permissions: [
-			"contextMenus",
-			"storage",
-			"activeTab",
-			"webRequest",
-			"tabs",
-		],
+		permissions: ["contextMenus", "storage", "activeTab", "webRequest", "tabs"],
 		host_permissions: [
 			"*://x.com/*",
 			"*://twitter.com/*",
@@ -26,6 +20,7 @@ export default defineConfig({
 			"*://api.supermemory.ai/*",
 			"*://chatgpt.com/*",
 			"*://chat.openai.com/*",
+			"https://*.posthog.com/*",
 		],
 		web_accessible_resources: [
 			{
@@ -37,4 +32,4 @@ export default defineConfig({
 	webExt: {
 		disabled: true,
 	},
-});
+})

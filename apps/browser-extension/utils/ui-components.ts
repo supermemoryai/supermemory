@@ -3,7 +3,7 @@
  * Reusable UI components for the browser extension
  */
 
-import { API_ENDPOINTS, ELEMENT_IDS, UI_CONFIG } from "./constants"
+import { ELEMENT_IDS, UI_CONFIG } from "./constants"
 import type { ToastState } from "./types"
 
 /**
@@ -158,7 +158,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     color: black;
     border: none;
     border-radius: 50px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -169,118 +169,22 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
 	const iconUrl = browser.runtime.getURL("/icon-16.png")
 	button.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
+    <span style="font-weight: 500; font-size: 12px;">Import Bookmarks</span>
   `
 
 	button.addEventListener("mouseenter", () => {
-		button.style.transform = "scale(1.05)"
+		button.style.opacity = "0.8"
 		button.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.4)"
 	})
 
 	button.addEventListener("mouseleave", () => {
-		button.style.transform = "scale(1)"
+		button.style.opacity = "1"
 		button.style.boxShadow = "0 2px 8px rgba(29, 155, 240, 0.3)"
 	})
 
 	button.addEventListener("click", onClick)
 
 	return button
-}
-
-/**
- * Creates the Twitter import UI dialog
- * @param onClose - Close handler
- * @param onImport - Import handler
- * @param isAuthenticated - Whether user is authenticated
- * @returns HTMLElement - The dialog element
- */
-export function createTwitterImportUI(
-	onClose: () => void,
-	onImport: () => void,
-	isAuthenticated: boolean,
-): HTMLElement {
-	const container = document.createElement("div")
-	container.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 2147483647;
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 280px;
-    max-width: 400px;
-    border: 1px solid #e1e5e9;
-    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  `
-
-	container.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#1d9bf0">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-        </svg>
-        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0f1419;">
-          Import Twitter Bookmarks
-        </h3>
-      </div>
-      <button id="${ELEMENT_IDS.TWITTER_CLOSE_BTN}" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: #536471;">
-        ✕
-      </button>
-    </div>
-    
-    ${
-			isAuthenticated
-				? `
-      <div>
-        <p style="color: #536471; font-size: 14px; margin: 0 0 12px 0; line-height: 1.4;">
-          This will import all your Twitter bookmarks to Supermemory
-        </p>
-        
-        <button id="${ELEMENT_IDS.TWITTER_IMPORT_BTN}" style="width: 100%; background: #1d9bf0; color: white; border: none; border-radius: 20px; padding: 12px 16px; cursor: pointer; font-size: 14px; font-weight: 500; margin-bottom: 12px;">
-          Import All Bookmarks
-        </button>
-        
-        <div id="${ELEMENT_IDS.TWITTER_IMPORT_STATUS}"></div>
-      </div>
-    `
-				: `
-      <div style="text-align: center;">
-        <p style="color: #536471; font-size: 14px; margin: 0 0 12px 0;">
-          Please sign in to supermemory first
-        </p>
-        <button id="${ELEMENT_IDS.TWITTER_SIGNIN_BTN}" style="background: #1d9bf0; color: white; border: none; border-radius: 20px; padding: 8px 16px; cursor: pointer; font-size: 14px; font-weight: 500;">
-          Sign In
-        </button>
-      </div>
-    `
-		}
-    
-    <style>
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
-  `
-
-	// Add event listeners
-	const closeBtn = container.querySelector(`#${ELEMENT_IDS.TWITTER_CLOSE_BTN}`)
-	closeBtn?.addEventListener("click", onClose)
-
-	const importBtn = container.querySelector(
-		`#${ELEMENT_IDS.TWITTER_IMPORT_BTN}`,
-	)
-	importBtn?.addEventListener("click", onImport)
-
-	const signinBtn = container.querySelector(
-		`#${ELEMENT_IDS.TWITTER_SIGNIN_BTN}`,
-	)
-	signinBtn?.addEventListener("click", () => {
-		browser.tabs.create({ url: `${API_ENDPOINTS.SUPERMEMORY_WEB}/login` })
-	})
-
-	return container
 }
 
 /**
@@ -510,7 +414,48 @@ export const DOMUtils = {
 		state: ToastState,
 		duration: number = UI_CONFIG.TOAST_DURATION,
 	): HTMLElement {
-		// Remove all existing toasts more aggressively
+		const existingToast = document.getElementById(ELEMENT_IDS.SUPERMEMORY_TOAST)
+
+		if ((state === "success" || state === "error") && existingToast) {
+			const icon = existingToast.querySelector("div")
+			const text = existingToast.querySelector("span")
+
+			if (icon && text) {
+				// Update based on new state
+				if (state === "success") {
+					const iconUrl = browser.runtime.getURL("/icon-16.png")
+					icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
+					icon.style.animation = ""
+					text.textContent = "Added to Memory"
+				} else if (state === "error") {
+					icon.innerHTML = `
+						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<circle cx="12" cy="12" r="10" fill="#ef4444"/>
+							<path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						</svg>
+					`
+					icon.style.animation = ""
+					text.textContent =
+						"Failed to save memory / Make sure you are logged in"
+				}
+
+				// Auto-dismiss
+				setTimeout(() => {
+					if (document.body.contains(existingToast)) {
+						existingToast.style.animation = "fadeOut 0.3s ease-out"
+						setTimeout(() => {
+							if (document.body.contains(existingToast)) {
+								existingToast.remove()
+							}
+						}, 300)
+					}
+				}, duration)
+
+				return existingToast
+			}
+		}
+
 		const existingToasts = document.querySelectorAll(
 			`#${ELEMENT_IDS.SUPERMEMORY_TOAST}`,
 		)
