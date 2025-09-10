@@ -191,6 +191,16 @@ export const apiSchema = createSchema({
 	"@get/waitlist/status": {
 		output: WaitlistStatusResponseSchema,
 	},
+
+	"@post/emails/welcome/pro": {
+		input: z.object({
+			email: z.string(),
+			firstName: z.string(),
+		}),
+		output: z.object({
+			message: z.string(),
+		}),
+	}
 })
 
 export const $fetch = createFetch({
