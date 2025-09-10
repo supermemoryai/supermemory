@@ -11,7 +11,7 @@ export default defineConfig({
 	manifest: {
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
-		version: "6.0.001",
+		version: "6.0.002",
 		permissions: ["contextMenus", "storage", "activeTab", "webRequest", "tabs"],
 		host_permissions: [
 			"*://x.com/*",
@@ -30,6 +30,6 @@ export default defineConfig({
 		],
 	},
 	webExt: {
-		disabled: true,
+		chromiumArgs: ["--user-data-dir=./.wxt/chrome-data"],
 	},
 })

@@ -16,7 +16,10 @@ function App() {
 	const [currentUrl, setCurrentUrl] = useState<string>("")
 	const [currentTitle, setCurrentTitle] = useState<string>("")
 	const [saving, setSaving] = useState<boolean>(false)
-	const [activeTab, setActiveTab] = useState<"save" | "imports">("save")
+	const [activeTab, setActiveTab] = useState<"save" | "imports" | "settings">(
+		"save",
+	)
+	const [autoSearchEnabled, setAutoSearchEnabled] = useState<boolean>(false)
 
 	const queryClient = useQueryClient()
 	const { data: projects = [], isLoading: loadingProjects } = useProjects({
@@ -32,9 +35,14 @@ function App() {
 			try {
 				const result = await chrome.storage.local.get([
 					STORAGE_KEYS.BEARER_TOKEN,
+					STORAGE_KEYS.AUTO_SEARCH_ENABLED,
 				])
 				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN]
 				setUserSignedIn(isSignedIn)
+
+				const autoSearchSetting =
+					result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
+				setAutoSearchEnabled(autoSearchSetting)
 			} catch (error) {
 				console.error("Error checking auth status:", error)
 				setUserSignedIn(false)
@@ -103,11 +111,6 @@ function App() {
 						action: MESSAGE_TYPES.SHOW_TOAST,
 						state: "success",
 					})
-				} else {
-					await chrome.tabs.sendMessage(tabs[0].id, {
-						action: MESSAGE_TYPES.SHOW_TOAST,
-						state: "error",
-					})
 				}
 
 				window.close()
@@ -133,6 +136,17 @@ function App() {
 			window.close()
 		} finally {
 			setSaving(false)
+		}
+	}
+
+	const handleAutoSearchToggle = async (enabled: boolean) => {
+		try {
+			await chrome.storage.local.set({
+				[STORAGE_KEYS.AUTO_SEARCH_ENABLED]: enabled,
+			})
+			setAutoSearchEnabled(enabled)
+		} catch (error) {
+			console.error("Error updating auto search setting:", error)
 		}
 	}
 
@@ -208,7 +222,7 @@ function App() {
 						{/* Tab Navigation */}
 						<div className="flex bg-gray-100 rounded-lg p-1 mb-4">
 							<button
-								className={`flex-1 py-2 px-4 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
+								className={`flex-1 py-2 px-3 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
 									activeTab === "save"
 										? "bg-white text-black shadow-sm"
 										: "text-gray-500 hover:text-gray-700"
@@ -219,7 +233,7 @@ function App() {
 								Save
 							</button>
 							<button
-								className={`flex-1 py-2 px-4 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
+								className={`flex-1 py-2 px-3 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
 									activeTab === "imports"
 										? "bg-white text-black shadow-sm"
 										: "text-gray-500 hover:text-gray-700"
@@ -228,6 +242,17 @@ function App() {
 								type="button"
 							>
 								Imports
+							</button>
+							<button
+								className={`flex-1 py-2 px-3 bg-transparent border-none rounded-md text-sm font-medium cursor-pointer transition-all duration-200 outline-none appearance-none ${
+									activeTab === "settings"
+										? "bg-white text-black shadow-sm"
+										: "text-gray-500 hover:text-gray-700"
+								}`}
+								onClick={() => setActiveTab("settings")}
+								type="button"
+							>
+								Settings
 							</button>
 						</div>
 
@@ -295,7 +320,7 @@ function App() {
 									</button>
 								</div>
 							</div>
-						) : (
+						) : activeTab === "imports" ? (
 							<div className="flex flex-col gap-4 min-h-[200px]">
 								{/* Import Actions */}
 								<div className="flex flex-col gap-4">
@@ -368,6 +393,40 @@ function App() {
 											</div>
 										</button>
 									</div>
+								</div>
+							</div>
+						) : (
+							<div className="flex flex-col gap-4 min-h-[200px]">
+								<div className="mb-4">
+									<h3 className="text-base font-semibold text-black mb-3">
+										Chat Integration
+									</h3>
+									<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+										<div className="flex flex-col">
+											<span className="text-sm font-medium text-black">
+												Auto Search Memories
+											</span>
+											<span className="text-xs text-gray-500">
+												Automatically search your memories while typing in chat
+												apps
+											</span>
+										</div>
+										<label className="relative inline-flex items-center cursor-pointer">
+											<input
+												checked={autoSearchEnabled}
+												className="sr-only peer"
+												onChange={(e) =>
+													handleAutoSearchToggle(e.target.checked)
+												}
+												type="checkbox"
+											/>
+											<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-700" />
+										</label>
+									</div>
+									<p className="text-xs text-gray-500 mt-2">
+										When enabled, supermemory will search your memories as you
+										type in ChatGPT, Claude, and T3.chat
+									</p>
 								</div>
 							</div>
 						)}

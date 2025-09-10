@@ -23,7 +23,7 @@ export default defineBackground(() => {
 	browser.runtime.onInstalled.addListener(async (details) => {
 		browser.contextMenus.create({
 			id: CONTEXT_MENU_IDS.SAVE_TO_SUPERMEMORY,
-			title: "Save to supermemory",
+			title: "sync to supermemory",
 			contexts: ["selection", "page", "link"],
 		})
 
@@ -114,7 +114,9 @@ export default defineBackground(() => {
 
 			const payload: MemoryPayload = {
 				containerTags: [containerTag],
-				content: `${data.highlightedText}\n\n${data.html}\n\n${data?.url}`,
+				content:
+					data.content ||
+					`${data.highlightedText}\n\n${data.html}\n\n${data?.url}`,
 				metadata: { sm_source: "consumer" },
 			}
 
@@ -144,9 +146,9 @@ export default defineBackground(() => {
 			const response = responseData as {
 				results?: Array<{ memory?: string }>
 			}
-			let memories = ""
+			const memories: string[] = []
 			response.results?.forEach((result, index) => {
-				memories += `[${index + 1}] ${result.memory} `
+				memories.push(`${index + 1}. ${result.memory} \n`)
 			})
 			console.log("Memories:", memories)
 			await trackEvent(eventSource)
@@ -205,6 +207,37 @@ export default defineBackground(() => {
 						const result = await getRelatedMemories(
 							message.data as string,
 							message.actionSource || "unknown",
+						)
+						sendResponse(result)
+					} catch (error) {
+						sendResponse({
+							success: false,
+							error: error instanceof Error ? error.message : "Unknown error",
+						})
+					}
+				})()
+				return true
+			}
+
+			if (message.action === MESSAGE_TYPES.CAPTURE_PROMPT) {
+				;(async () => {
+					try {
+						const messageData = message.data as {
+							prompt: string
+							platform: string
+							source: string
+						}
+						console.log("=== PROMPT CAPTURED ===")
+						console.log(messageData)
+						console.log("========================")
+
+						const memoryData: MemoryData = {
+							content: messageData.prompt,
+						}
+
+						const result = await saveMemoryToSupermemory(
+							memoryData,
+							`prompt_capture_${messageData.platform}`,
 						)
 						sendResponse(result)
 					} catch (error) {
