@@ -77,7 +77,7 @@ function Welcome() {
 								url: import.meta.env.PROD
 									? "https://app.supermemory.ai/login"
 									: "http://localhost:3000/login",
-							});
+							})
 						}}
 						type="button"
 					>
@@ -101,7 +101,7 @@ function Welcome() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }
 
-export default Welcome;
+export default Welcome

@@ -1,27 +1,27 @@
 /**
  * API service for supermemory browser extension
  */
-import { API_ENDPOINTS, STORAGE_KEYS } from "./constants";
+import { API_ENDPOINTS, STORAGE_KEYS } from "./constants"
 import {
 	AuthenticationError,
 	type MemoryPayload,
 	type Project,
 	type ProjectsResponse,
 	SupermemoryAPIError,
-} from "./types";
+} from "./types"
 
 /**
  * Get bearer token from storage
  */
 async function getBearerToken(): Promise<string> {
-	const result = await chrome.storage.local.get([STORAGE_KEYS.BEARER_TOKEN]);
-	const token = result[STORAGE_KEYS.BEARER_TOKEN];
+	const result = await chrome.storage.local.get([STORAGE_KEYS.BEARER_TOKEN])
+	const token = result[STORAGE_KEYS.BEARER_TOKEN]
 
 	if (!token) {
-		throw new AuthenticationError("Bearer token not found");
+		throw new AuthenticationError("Bearer token not found")
 	}
 
-	return token;
+	return token
 }
 
 /**
@@ -31,7 +31,7 @@ async function makeAuthenticatedRequest<T>(
 	endpoint: string,
 	options: RequestInit = {},
 ): Promise<T> {
-	const token = await getBearerToken();
+	const token = await getBearerToken()
 
 	const response = await fetch(`${API_ENDPOINTS.SUPERMEMORY_API}${endpoint}`, {
 		...options,
@@ -41,19 +41,19 @@ async function makeAuthenticatedRequest<T>(
 			"Content-Type": "application/json",
 			...options.headers,
 		},
-	});
+	})
 
 	if (!response.ok) {
 		if (response.status === 401) {
-			throw new AuthenticationError("Invalid or expired token");
+			throw new AuthenticationError("Invalid or expired token")
 		}
 		throw new SupermemoryAPIError(
 			`API request failed: ${response.statusText}`,
 			response.status,
-		);
+		)
 	}
 
-	return response.json();
+	return response.json()
 }
 
 /**
@@ -62,11 +62,11 @@ async function makeAuthenticatedRequest<T>(
 export async function fetchProjects(): Promise<Project[]> {
 	try {
 		const response =
-			await makeAuthenticatedRequest<ProjectsResponse>("/v3/projects");
-		return response.projects;
+			await makeAuthenticatedRequest<ProjectsResponse>("/v3/projects")
+		return response.projects
 	} catch (error) {
-		console.error("Failed to fetch projects:", error);
-		throw error;
+		console.error("Failed to fetch projects:", error)
+		throw error
 	}
 }
 
@@ -77,11 +77,11 @@ export async function getDefaultProject(): Promise<Project | null> {
 	try {
 		const result = await chrome.storage.local.get([
 			STORAGE_KEYS.DEFAULT_PROJECT,
-		]);
-		return result[STORAGE_KEYS.DEFAULT_PROJECT] || null;
+		])
+		return result[STORAGE_KEYS.DEFAULT_PROJECT] || null
 	} catch (error) {
-		console.error("Failed to get default project:", error);
-		return null;
+		console.error("Failed to get default project:", error)
+		return null
 	}
 }
 
@@ -92,10 +92,10 @@ export async function setDefaultProject(project: Project): Promise<void> {
 	try {
 		await chrome.storage.local.set({
 			[STORAGE_KEYS.DEFAULT_PROJECT]: project,
-		});
+		})
 	} catch (error) {
-		console.error("Failed to set default project:", error);
-		throw error;
+		console.error("Failed to set default project:", error)
+		throw error
 	}
 }
 
@@ -107,11 +107,11 @@ export async function saveMemory(payload: MemoryPayload): Promise<unknown> {
 		const response = await makeAuthenticatedRequest<unknown>("/v3/memories", {
 			method: "POST",
 			body: JSON.stringify(payload),
-		});
-		return response;
+		})
+		return response
 	} catch (error) {
-		console.error("Failed to save memory:", error);
-		throw error;
+		console.error("Failed to save memory:", error)
+		throw error
 	}
 }
 
@@ -123,34 +123,40 @@ export async function searchMemories(query: string): Promise<unknown> {
 		const response = await makeAuthenticatedRequest<unknown>("/v4/search", {
 			method: "POST",
 			body: JSON.stringify({ q: query, include: { relatedMemories: true } }),
-		});
-		return response;
+		})
+		return response
 	} catch (error) {
-		console.error("Failed to search memories:", error);
-		throw error;
+		console.error("Failed to search memories:", error)
+		throw error
 	}
 }
 
 /**
  * Save tweet to Supermemory API (specific for Twitter imports)
  */
-export async function saveTweet(
-	content: string,
-	metadata: { sm_source: string; [key: string]: unknown },
-	containerTag = "sm_project_twitter_bookmarks",
-): Promise<void> {
+export async function saveAllTweets(
+	documents: MemoryPayload[],
+): Promise<unknown> {
 	try {
-		const payload: MemoryPayload = {
-			containerTags: [containerTag],
-			content,
-			metadata,
-		};
-		await saveMemory(payload);
+		const response = await makeAuthenticatedRequest<unknown>(
+			"/v3/memories/batch",
+			{
+				method: "POST",
+				body: JSON.stringify({
+					documents,
+					metadata: {
+						sm_source: "consumer",
+						sm_internal_group_id: "twitter_bookmarks",
+					},
+				}),
+			},
+		)
+		return response
 	} catch (error) {
 		if (error instanceof SupermemoryAPIError && error.statusCode === 409) {
 			// Skip if already exists (409 Conflict)
-			return;
+			return
 		}
-		throw error;
+		throw error
 	}
 }

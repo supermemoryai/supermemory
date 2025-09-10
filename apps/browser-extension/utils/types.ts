@@ -17,6 +17,7 @@ export interface ExtensionMessage {
 	state?: ToastState
 	importedMessage?: string
 	totalImported?: number
+	actionSource?: string
 }
 
 /**
@@ -32,12 +33,13 @@ export interface MemoryData {
  * Supermemory API payload for storing memories
  */
 export interface MemoryPayload {
-	containerTags: string[]
+	containerTags?: string[]
 	content: string
 	metadata: {
 		sm_source: string
 		[key: string]: unknown
 	}
+	customId?: string
 }
 
 /**

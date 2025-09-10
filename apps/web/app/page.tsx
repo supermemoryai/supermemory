@@ -19,7 +19,6 @@ import {
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { z } from "zod"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
@@ -741,21 +740,30 @@ const MemoryGraphPage = () => {
 
 // Wrapper component to handle auth and waitlist checks
 export default function Page() {
-	const router = useRouter()
-	const { user } = useAuth()
+	const { user, session } = useAuth()
 
 	useEffect(() => {
-		// save the token for chrome extension
 		const url = new URL(window.location.href)
-		const rawToken = url.searchParams.get("token")
+		const authenticateChromeExtension = url.searchParams.get(
+			"extension-auth-success",
+		)
 
-		if (rawToken) {
-			const encodedToken = encodeURIComponent(rawToken)
-			window.postMessage({ token: encodedToken }, "*")
-			url.searchParams.delete("token")
-			window.history.replaceState({}, "", url.toString())
+		if (authenticateChromeExtension) {
+			const sessionToken = session?.token
+			const userData = {
+				email: user?.email,
+				name: user?.name,
+				userId: user?.id,
+			}
+
+			if (sessionToken && userData?.email) {
+				const encodedToken = encodeURIComponent(sessionToken)
+				window.postMessage({ token: encodedToken, userData }, "*")
+				url.searchParams.delete("extension-auth-success")
+				window.history.replaceState({}, "", url.toString())
+			}
 		}
-	}, [])
+	}, [user, session])
 
 	// Show loading state while checking authentication and waitlist status
 	if (!user) {

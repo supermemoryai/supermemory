@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
  */
 export const STORAGE_KEYS = {
 	BEARER_TOKEN: "bearer-token",
+	USER_DATA: "user-data",
 	TOKENS_LOGGED: "tokens-logged",
 	TWITTER_COOKIE: "twitter-cookie",
 	TWITTER_CSRF: "twitter-csrf",
@@ -27,10 +28,6 @@ export const STORAGE_KEYS = {
  */
 export const ELEMENT_IDS = {
 	TWITTER_IMPORT_BUTTON: "sm-twitter-import-button",
-	TWITTER_IMPORT_STATUS: "sm-twitter-import-status",
-	TWITTER_CLOSE_BTN: "sm-twitter-close-btn",
-	TWITTER_IMPORT_BTN: "sm-twitter-import-btn",
-	TWITTER_SIGNIN_BTN: "sm-twitter-signin-btn",
 	SUPERMEMORY_TOAST: "sm-toast",
 	SUPERMEMORY_SAVE_BUTTON: "sm-save-button",
 	SAVE_TWEET_ELEMENT: "sm-save-tweet-element",
@@ -82,4 +79,14 @@ export const MESSAGE_TYPES = {
 
 export const CONTEXT_MENU_IDS = {
 	SAVE_TO_SUPERMEMORY: "sm-save-to-supermemory",
+} as const
+
+export const POSTHOG_EVENT_KEY = {
+	TWITTER_IMPORT_STARTED: "twitter_import_started",
+	SAVE_MEMORY_ATTEMPTED: "save_memory_attempted",
+	SAVE_MEMORY_ATTEMPT_FAILED: "save_memory_attempt_failed",
+	SOURCE: "extension",
+	T3_CHAT_MEMORIES_SEARCHED: "t3_chat_memories_searched",
+	CLAUDE_CHAT_MEMORIES_SEARCHED: "claude_chat_memories_searched",
+	CHATGPT_CHAT_MEMORIES_SEARCHED: "chatgpt_chat_memories_searched",
 } as const
