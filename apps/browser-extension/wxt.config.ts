@@ -11,6 +11,7 @@ export default defineConfig({
 	manifest: {
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
+<<<<<<< Updated upstream
 		version: "6.0.000",
 		permissions: [
 			"contextMenus",
@@ -19,6 +20,10 @@ export default defineConfig({
 			"webRequest",
 			"tabs",
 		],
+=======
+		version: "6.0.001",
+		permissions: ["contextMenus", "storage", "activeTab", "webRequest", "tabs"],
+>>>>>>> Stashed changes
 		host_permissions: [
 			"*://x.com/*",
 			"*://twitter.com/*",

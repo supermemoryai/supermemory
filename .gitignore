@@ -1,6 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .open-next/
 .sentryclirc
+drizzle.config.ts
 
 # Dependencies
 node_modules

@@ -1,48 +1,48 @@
-"use client"
+"use client";
 
-import { useCallback, useRef, useState } from "react"
-import { GRAPH_SETTINGS } from "../constants"
-import type { GraphNode } from "../types"
+import { useCallback, useRef, useState } from "react";
+import { GRAPH_SETTINGS } from "../constants";
+import type { GraphNode } from "../types";
 
 export function useGraphInteractions(
 	variant: "console" | "consumer" = "console",
 ) {
-	const settings = GRAPH_SETTINGS[variant]
+	const settings = GRAPH_SETTINGS[variant];
 
-	const [panX, setPanX] = useState(settings.initialPanX)
-	const [panY, setPanY] = useState(settings.initialPanY)
-	const [zoom, setZoom] = useState(settings.initialZoom)
-	const [isPanning, setIsPanning] = useState(false)
-	const [panStart, setPanStart] = useState({ x: 0, y: 0 })
-	const [hoveredNode, setHoveredNode] = useState<string | null>(null)
-	const [selectedNode, setSelectedNode] = useState<string | null>(null)
-	const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null)
+	const [panX, setPanX] = useState(settings.initialPanX);
+	const [panY, setPanY] = useState(settings.initialPanY);
+	const [zoom, setZoom] = useState(settings.initialZoom);
+	const [isPanning, setIsPanning] = useState(false);
+	const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+	const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+	const [selectedNode, setSelectedNode] = useState<string | null>(null);
+	const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
 	const [dragStart, setDragStart] = useState({
 		x: 0,
 		y: 0,
 		nodeX: 0,
 		nodeY: 0,
-	})
+	});
 	const [nodePositions, setNodePositions] = useState<
 		Map<string, { x: number; y: number }>
-	>(new Map())
-	
+	>(new Map());
+
 	// Touch gesture state
 	const [touchState, setTouchState] = useState<{
-		touches: { id: number; x: number; y: number }[]
-		lastDistance: number
-		lastCenter: { x: number; y: number }
-		isGesturing: boolean
+		touches: { id: number; x: number; y: number }[];
+		lastDistance: number;
+		lastCenter: { x: number; y: number };
+		isGesturing: boolean;
 	}>({
 		touches: [],
 		lastDistance: 0,
 		lastCenter: { x: 0, y: 0 },
 		isGesturing: false,
-	})
+	});
 
 	// Animation state for smooth transitions
-	const animationRef = useRef<number | null>(null)
-	const [isAnimating, setIsAnimating] = useState(false)
+	const animationRef = useRef<number | null>(null);
+	const [isAnimating, setIsAnimating] = useState(false);
 
 	// Smooth animation helper
 	const animateToViewState = useCallback(
@@ -50,46 +50,46 @@ export function useGraphInteractions(
 			targetPanX: number,
 			targetPanY: number,
 			targetZoom: number,
-			duration: number = 300,
+			duration = 300,
 		) => {
 			if (animationRef.current) {
-				cancelAnimationFrame(animationRef.current)
+				cancelAnimationFrame(animationRef.current);
 			}
 
-			const startPanX = panX
-			const startPanY = panY
-			const startZoom = zoom
-			const startTime = Date.now()
-			
-			setIsAnimating(true)
+			const startPanX = panX;
+			const startPanY = panY;
+			const startZoom = zoom;
+			const startTime = Date.now();
+
+			setIsAnimating(true);
 
 			const animate = () => {
-				const elapsed = Date.now() - startTime
-				const progress = Math.min(elapsed / duration, 1)
-				
+				const elapsed = Date.now() - startTime;
+				const progress = Math.min(elapsed / duration, 1);
+
 				// Ease out cubic function for smooth transitions
-				const easeOut = 1 - Math.pow(1 - progress, 3)
-				
-				const currentPanX = startPanX + (targetPanX - startPanX) * easeOut
-				const currentPanY = startPanY + (targetPanY - startPanY) * easeOut
-				const currentZoom = startZoom + (targetZoom - startZoom) * easeOut
-				
-				setPanX(currentPanX)
-				setPanY(currentPanY)
-				setZoom(currentZoom)
-				
+				const easeOut = 1 - (1 - progress) ** 3;
+
+				const currentPanX = startPanX + (targetPanX - startPanX) * easeOut;
+				const currentPanY = startPanY + (targetPanY - startPanY) * easeOut;
+				const currentZoom = startZoom + (targetZoom - startZoom) * easeOut;
+
+				setPanX(currentPanX);
+				setPanY(currentPanY);
+				setZoom(currentZoom);
+
 				if (progress < 1) {
-					animationRef.current = requestAnimationFrame(animate)
+					animationRef.current = requestAnimationFrame(animate);
 				} else {
-					setIsAnimating(false)
-					animationRef.current = null
+					setIsAnimating(false);
+					animationRef.current = null;
 				}
-			}
-			
-			animate()
+			};
+
+			animate();
 		},
 		[panX, panY, zoom],
-	)
+	);
 
 	// Node drag handlers
 	const handleNodeDragStart = useCallback(
@@ -158,107 +158,107 @@ export function useGraphInteractions(
 	const handleWheel = useCallback(
 		(e: React.WheelEvent) => {
 			// Always prevent default to stop browser navigation
-			e.preventDefault()
-			e.stopPropagation()
-			
+			e.preventDefault();
+			e.stopPropagation();
+
 			// Handle horizontal scrolling (trackpad swipe) by converting to pan
 			if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
 				// Horizontal scroll - pan the graph instead of zooming
-				const panDelta = e.deltaX * 0.5
-				setPanX(prev => prev - panDelta)
-				return
+				const panDelta = e.deltaX * 0.5;
+				setPanX((prev) => prev - panDelta);
+				return;
 			}
-			
+
 			// Vertical scroll - zoom behavior
-			const delta = e.deltaY > 0 ? 0.97 : 1.03
-			const newZoom = Math.max(0.05, Math.min(3, zoom * delta))
-			
+			const delta = e.deltaY > 0 ? 0.97 : 1.03;
+			const newZoom = Math.max(0.05, Math.min(3, zoom * delta));
+
 			// Get mouse position relative to the viewport
-			let mouseX = e.clientX
-			let mouseY = e.clientY
-			
+			let mouseX = e.clientX;
+			let mouseY = e.clientY;
+
 			// Try to get the container bounds to make coordinates relative to the graph container
-			const target = e.currentTarget
-			if (target && 'getBoundingClientRect' in target) {
-				const rect = target.getBoundingClientRect()
-				mouseX = e.clientX - rect.left
-				mouseY = e.clientY - rect.top
+			const target = e.currentTarget;
+			if (target && "getBoundingClientRect" in target) {
+				const rect = target.getBoundingClientRect();
+				mouseX = e.clientX - rect.left;
+				mouseY = e.clientY - rect.top;
 			}
-			
+
 			// Calculate the world position of the mouse cursor
-			const worldX = (mouseX - panX) / zoom
-			const worldY = (mouseY - panY) / zoom
-			
+			const worldX = (mouseX - panX) / zoom;
+			const worldY = (mouseY - panY) / zoom;
+
 			// Calculate new pan to keep the mouse position stationary
-			const newPanX = mouseX - worldX * newZoom
-			const newPanY = mouseY - worldY * newZoom
-			
-			setZoom(newZoom)
-			setPanX(newPanX)
-			setPanY(newPanY)
+			const newPanX = mouseX - worldX * newZoom;
+			const newPanY = mouseY - worldY * newZoom;
+
+			setZoom(newZoom);
+			setPanX(newPanX);
+			setPanY(newPanY);
 		},
 		[zoom, panX, panY],
-	)
+	);
 
 	const zoomIn = useCallback(
-		(centerX?: number, centerY?: number, animate: boolean = true) => {
-			const zoomFactor = 1.2
-			const newZoom = Math.min(3, zoom * zoomFactor) // Increased max zoom to 3x
-			
+		(centerX?: number, centerY?: number, animate = true) => {
+			const zoomFactor = 1.2;
+			const newZoom = Math.min(3, zoom * zoomFactor); // Increased max zoom to 3x
+
 			if (centerX !== undefined && centerY !== undefined) {
 				// Mouse-centered zoom for programmatic zoom in
-				const worldX = (centerX - panX) / zoom
-				const worldY = (centerY - panY) / zoom
-				const newPanX = centerX - worldX * newZoom
-				const newPanY = centerY - worldY * newZoom
-				
+				const worldX = (centerX - panX) / zoom;
+				const worldY = (centerY - panY) / zoom;
+				const newPanX = centerX - worldX * newZoom;
+				const newPanY = centerY - worldY * newZoom;
+
 				if (animate && !isAnimating) {
-					animateToViewState(newPanX, newPanY, newZoom, 200)
+					animateToViewState(newPanX, newPanY, newZoom, 200);
 				} else {
-					setZoom(newZoom)
-					setPanX(newPanX)
-					setPanY(newPanY)
+					setZoom(newZoom);
+					setPanX(newPanX);
+					setPanY(newPanY);
 				}
 			} else {
 				if (animate && !isAnimating) {
-					animateToViewState(panX, panY, newZoom, 200)
+					animateToViewState(panX, panY, newZoom, 200);
 				} else {
-					setZoom(newZoom)
+					setZoom(newZoom);
 				}
 			}
 		},
 		[zoom, panX, panY, isAnimating, animateToViewState],
-	)
+	);
 
 	const zoomOut = useCallback(
-		(centerX?: number, centerY?: number, animate: boolean = true) => {
-			const zoomFactor = 0.8
-			const newZoom = Math.max(0.05, zoom * zoomFactor) // Decreased min zoom to 0.05x
-			
+		(centerX?: number, centerY?: number, animate = true) => {
+			const zoomFactor = 0.8;
+			const newZoom = Math.max(0.05, zoom * zoomFactor); // Decreased min zoom to 0.05x
+
 			if (centerX !== undefined && centerY !== undefined) {
 				// Mouse-centered zoom for programmatic zoom out
-				const worldX = (centerX - panX) / zoom
-				const worldY = (centerY - panY) / zoom
-				const newPanX = centerX - worldX * newZoom
-				const newPanY = centerY - worldY * newZoom
-				
+				const worldX = (centerX - panX) / zoom;
+				const worldY = (centerY - panY) / zoom;
+				const newPanX = centerX - worldX * newZoom;
+				const newPanY = centerY - worldY * newZoom;
+
 				if (animate && !isAnimating) {
-					animateToViewState(newPanX, newPanY, newZoom, 200)
+					animateToViewState(newPanX, newPanY, newZoom, 200);
 				} else {
-					setZoom(newZoom)
-					setPanX(newPanX)
-					setPanY(newPanY)
+					setZoom(newZoom);
+					setPanX(newPanX);
+					setPanY(newPanY);
 				}
 			} else {
 				if (animate && !isAnimating) {
-					animateToViewState(panX, panY, newZoom, 200)
+					animateToViewState(panX, panY, newZoom, 200);
 				} else {
-					setZoom(newZoom)
+					setZoom(newZoom);
 				}
 			}
 		},
 		[zoom, panX, panY, isAnimating, animateToViewState],
-	)
+	);
 
 	const resetView = useCallback(() => {
 		setPanX(settings.initialPanX);
@@ -278,10 +278,10 @@ export function useGraphInteractions(
 			if (nodes.length === 0) return;
 
 			// Find the bounds of all nodes
-			let minX = Number.POSITIVE_INFINITY,
-				maxX = Number.NEGATIVE_INFINITY;
-			let minY = Number.POSITIVE_INFINITY,
-				maxY = Number.NEGATIVE_INFINITY;
+			let minX = Number.POSITIVE_INFINITY;
+			let maxX = Number.NEGATIVE_INFINITY;
+			let minY = Number.POSITIVE_INFINITY;
+			let maxY = Number.NEGATIVE_INFINITY;
 
 			nodes.forEach((node) => {
 				minX = Math.min(minX, node.x - node.size / 2);
@@ -308,178 +308,181 @@ export function useGraphInteractions(
 			const availableWidth = Math.max(1, viewportWidth - occludedRightPx);
 
 			// Calculate the zoom needed to fit the content within available width
-			const zoomX = availableWidth / paddedWidth
-			const zoomY = viewportHeight / paddedHeight
-			const newZoom = Math.min(Math.max(0.05, Math.min(zoomX, zoomY)), 3)
+			const zoomX = availableWidth / paddedWidth;
+			const zoomY = viewportHeight / paddedHeight;
+			const newZoom = Math.min(Math.max(0.05, Math.min(zoomX, zoomY)), 3);
 
 			// Calculate pan to center the content within available area
-			const availableCenterX = availableWidth / 2
-			const newPanX = availableCenterX - contentCenterX * newZoom
-			const newPanY = viewportHeight / 2 - contentCenterY * newZoom
+			const availableCenterX = availableWidth / 2;
+			const newPanX = availableCenterX - contentCenterX * newZoom;
+			const newPanY = viewportHeight / 2 - contentCenterY * newZoom;
 
 			// Apply the new view (optional animation)
 			if (options?.animate) {
-				const steps = 8
-				const durationMs = 160 // snappy
-				const intervalMs = Math.max(1, Math.floor(durationMs / steps))
-				const startZoom = zoom
-				const startPanX = panX
-				const startPanY = panY
-				let i = 0
-				const ease = (t: number) => 1 - (1 - t) ** 2 // ease-out quad
+				const steps = 8;
+				const durationMs = 160; // snappy
+				const intervalMs = Math.max(1, Math.floor(durationMs / steps));
+				const startZoom = zoom;
+				const startPanX = panX;
+				const startPanY = panY;
+				let i = 0;
+				const ease = (t: number) => 1 - (1 - t) ** 2; // ease-out quad
 				const timer = setInterval(() => {
-					i++
-					const t = ease(i / steps)
-					setZoom(startZoom + (newZoom - startZoom) * t)
-					setPanX(startPanX + (newPanX - startPanX) * t)
-					setPanY(startPanY + (newPanY - startPanY) * t)
-					if (i >= steps) clearInterval(timer)
-				}, intervalMs)
+					i++;
+					const t = ease(i / steps);
+					setZoom(startZoom + (newZoom - startZoom) * t);
+					setPanX(startPanX + (newPanX - startPanX) * t);
+					setPanY(startPanY + (newPanY - startPanY) * t);
+					if (i >= steps) clearInterval(timer);
+				}, intervalMs);
 			} else {
-				setZoom(newZoom)
-				setPanX(newPanX)
-				setPanY(newPanY)
+				setZoom(newZoom);
+				setPanX(newPanX);
+				setPanY(newPanY);
 			}
 		},
 		[zoom, panX, panY],
-	)
+	);
 
 	// Touch gesture handlers for mobile pinch-to-zoom
 	const handleTouchStart = useCallback((e: React.TouchEvent) => {
-		const touches = Array.from(e.touches).map(touch => ({
+		const touches = Array.from(e.touches).map((touch) => ({
 			id: touch.identifier,
 			x: touch.clientX,
 			y: touch.clientY,
-		}))
+		}));
 
 		if (touches.length >= 2) {
 			// Start gesture with two or more fingers
-			const touch1 = touches[0]!
-			const touch2 = touches[1]!
-			
+			const touch1 = touches[0]!;
+			const touch2 = touches[1]!;
+
 			const distance = Math.sqrt(
-				Math.pow(touch2.x - touch1.x, 2) + Math.pow(touch2.y - touch1.y, 2)
-			)
-			
+				(touch2.x - touch1.x) ** 2 + (touch2.y - touch1.y) ** 2,
+			);
+
 			const center = {
 				x: (touch1.x + touch2.x) / 2,
 				y: (touch1.y + touch2.y) / 2,
-			}
-			
+			};
+
 			setTouchState({
 				touches,
 				lastDistance: distance,
 				lastCenter: center,
 				isGesturing: true,
-			})
+			});
 		} else {
-			setTouchState(prev => ({ ...prev, touches, isGesturing: false }))
+			setTouchState((prev) => ({ ...prev, touches, isGesturing: false }));
 		}
-	}, [])
+	}, []);
 
-	const handleTouchMove = useCallback((e: React.TouchEvent) => {
-		e.preventDefault()
-		
-		const touches = Array.from(e.touches).map(touch => ({
-			id: touch.identifier,
-			x: touch.clientX,
-			y: touch.clientY,
-		}))
+	const handleTouchMove = useCallback(
+		(e: React.TouchEvent) => {
+			e.preventDefault();
 
-		if (touches.length >= 2 && touchState.isGesturing) {
-			const touch1 = touches[0]!
-			const touch2 = touches[1]!
-			
-			const distance = Math.sqrt(
-				Math.pow(touch2.x - touch1.x, 2) + Math.pow(touch2.y - touch1.y, 2)
-			)
-			
-			const center = {
-				x: (touch1.x + touch2.x) / 2,
-				y: (touch1.y + touch2.y) / 2,
+			const touches = Array.from(e.touches).map((touch) => ({
+				id: touch.identifier,
+				x: touch.clientX,
+				y: touch.clientY,
+			}));
+
+			if (touches.length >= 2 && touchState.isGesturing) {
+				const touch1 = touches[0]!;
+				const touch2 = touches[1]!;
+
+				const distance = Math.sqrt(
+					(touch2.x - touch1.x) ** 2 + (touch2.y - touch1.y) ** 2,
+				);
+
+				const center = {
+					x: (touch1.x + touch2.x) / 2,
+					y: (touch1.y + touch2.y) / 2,
+				};
+
+				// Calculate zoom change based on pinch distance change
+				const distanceChange = distance / touchState.lastDistance;
+				const newZoom = Math.max(0.05, Math.min(3, zoom * distanceChange));
+
+				// Get canvas bounds for center calculation
+				const canvas = e.currentTarget as HTMLElement;
+				const rect = canvas.getBoundingClientRect();
+				const centerX = center.x - rect.left;
+				const centerY = center.y - rect.top;
+
+				// Calculate the world position of the pinch center
+				const worldX = (centerX - panX) / zoom;
+				const worldY = (centerY - panY) / zoom;
+
+				// Calculate new pan to keep the pinch center stationary
+				const newPanX = centerX - worldX * newZoom;
+				const newPanY = centerY - worldY * newZoom;
+
+				// Calculate pan change based on center movement
+				const centerDx = center.x - touchState.lastCenter.x;
+				const centerDy = center.y - touchState.lastCenter.y;
+
+				setZoom(newZoom);
+				setPanX(newPanX + centerDx);
+				setPanY(newPanY + centerDy);
+
+				setTouchState({
+					touches,
+					lastDistance: distance,
+					lastCenter: center,
+					isGesturing: true,
+				});
+			} else if (touches.length === 1 && !touchState.isGesturing && isPanning) {
+				// Single finger pan (only if not in gesture mode)
+				const touch = touches[0]!;
+				const newPanX = touch.x - panStart.x;
+				const newPanY = touch.y - panStart.y;
+				setPanX(newPanX);
+				setPanY(newPanY);
 			}
-			
-			// Calculate zoom change based on pinch distance change
-			const distanceChange = distance / touchState.lastDistance
-			const newZoom = Math.max(0.05, Math.min(3, zoom * distanceChange))
-			
-			// Get canvas bounds for center calculation
-			const canvas = e.currentTarget as HTMLElement
-			const rect = canvas.getBoundingClientRect()
-			const centerX = center.x - rect.left
-			const centerY = center.y - rect.top
-			
-			// Calculate the world position of the pinch center
-			const worldX = (centerX - panX) / zoom
-			const worldY = (centerY - panY) / zoom
-			
-			// Calculate new pan to keep the pinch center stationary
-			const newPanX = centerX - worldX * newZoom
-			const newPanY = centerY - worldY * newZoom
-			
-			// Calculate pan change based on center movement
-			const centerDx = center.x - touchState.lastCenter.x
-			const centerDy = center.y - touchState.lastCenter.y
-			
-			setZoom(newZoom)
-			setPanX(newPanX + centerDx)
-			setPanY(newPanY + centerDy)
-			
-			setTouchState({
-				touches,
-				lastDistance: distance,
-				lastCenter: center,
-				isGesturing: true,
-			})
-		} else if (touches.length === 1 && !touchState.isGesturing && isPanning) {
-			// Single finger pan (only if not in gesture mode)
-			const touch = touches[0]!
-			const newPanX = touch.x - panStart.x
-			const newPanY = touch.y - panStart.y
-			setPanX(newPanX)
-			setPanY(newPanY)
-		}
-	}, [touchState, zoom, panX, panY, isPanning, panStart])
+		},
+		[touchState, zoom, panX, panY, isPanning, panStart],
+	);
 
 	const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-		const touches = Array.from(e.touches).map(touch => ({
+		const touches = Array.from(e.touches).map((touch) => ({
 			id: touch.identifier,
 			x: touch.clientX,
 			y: touch.clientY,
-		}))
+		}));
 
 		if (touches.length < 2) {
-			setTouchState(prev => ({ ...prev, touches, isGesturing: false }))
+			setTouchState((prev) => ({ ...prev, touches, isGesturing: false }));
 		} else {
-			setTouchState(prev => ({ ...prev, touches }))
+			setTouchState((prev) => ({ ...prev, touches }));
 		}
 
 		if (touches.length === 0) {
-			setIsPanning(false)
+			setIsPanning(false);
 		}
-	}, [])
+	}, []);
 
 	// Center viewport on a specific world position (with animation)
 	const centerViewportOn = useCallback(
 		(
-			worldX: number, 
-			worldY: number, 
-			viewportWidth: number, 
+			worldX: number,
+			worldY: number,
+			viewportWidth: number,
 			viewportHeight: number,
-			animate: boolean = true
+			animate = true,
 		) => {
-			const newPanX = viewportWidth / 2 - worldX * zoom
-			const newPanY = viewportHeight / 2 - worldY * zoom
-			
+			const newPanX = viewportWidth / 2 - worldX * zoom;
+			const newPanY = viewportHeight / 2 - worldY * zoom;
+
 			if (animate && !isAnimating) {
-				animateToViewState(newPanX, newPanY, zoom, 400)
+				animateToViewState(newPanX, newPanY, zoom, 400);
 			} else {
-				setPanX(newPanX)
-				setPanY(newPanY)
+				setPanX(newPanX);
+				setPanY(newPanY);
 			}
 		},
 		[zoom, isAnimating, animateToViewState],
-	)
+	);
 
 	// Node interaction handlers
 	const handleNodeHover = useCallback((nodeId: string | null) => {
@@ -496,35 +499,35 @@ export function useGraphInteractions(
 	const handleDoubleClick = useCallback(
 		(e: React.MouseEvent) => {
 			// Calculate new zoom (zoom in by 1.5x)
-			const zoomFactor = 1.5
-			const newZoom = Math.min(3, zoom * zoomFactor)
+			const zoomFactor = 1.5;
+			const newZoom = Math.min(3, zoom * zoomFactor);
 
 			// Get mouse position relative to the container
-			let mouseX = e.clientX
-			let mouseY = e.clientY
-			
+			let mouseX = e.clientX;
+			let mouseY = e.clientY;
+
 			// Try to get the container bounds to make coordinates relative to the graph container
-			const target = e.currentTarget
-			if (target && 'getBoundingClientRect' in target) {
-				const rect = target.getBoundingClientRect()
-				mouseX = e.clientX - rect.left
-				mouseY = e.clientY - rect.top
+			const target = e.currentTarget;
+			if (target && "getBoundingClientRect" in target) {
+				const rect = target.getBoundingClientRect();
+				mouseX = e.clientX - rect.left;
+				mouseY = e.clientY - rect.top;
 			}
 
 			// Calculate the world position of the clicked point
-			const worldX = (mouseX - panX) / zoom
-			const worldY = (mouseY - panY) / zoom
+			const worldX = (mouseX - panX) / zoom;
+			const worldY = (mouseY - panY) / zoom;
 
 			// Calculate new pan to keep the clicked point in the same screen position
-			const newPanX = mouseX - worldX * newZoom
-			const newPanY = mouseY - worldY * newZoom
+			const newPanX = mouseX - worldX * newZoom;
+			const newPanY = mouseY - worldY * newZoom;
 
-			setZoom(newZoom)
-			setPanX(newPanX)
-			setPanY(newPanY)
+			setZoom(newZoom);
+			setPanX(newPanX);
+			setPanY(newPanY);
 		},
 		[zoom, panX, panY],
-	)
+	);
 
 	return {
 		// State
@@ -557,5 +560,5 @@ export function useGraphInteractions(
 		autoFitToViewport,
 		centerViewportOn,
 		setSelectedNode,
-	}
+	};
 }
