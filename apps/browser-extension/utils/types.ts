@@ -24,7 +24,8 @@ export interface ExtensionMessage {
  * Memory data structure for saving content
  */
 export interface MemoryData {
-	html: string
+	html?: string
+	content?: string
 	highlightedText?: string
 	url?: string
 }

@@ -21,6 +21,7 @@ export const STORAGE_KEYS = {
 	TWITTER_CSRF: "twitter-csrf",
 	TWITTER_AUTH_TOKEN: "twitter-auth-token",
 	DEFAULT_PROJECT: "sm-default-project",
+	AUTO_SEARCH_ENABLED: "sm-auto-search-enabled",
 } as const
 
 /**
@@ -44,6 +45,10 @@ export const UI_CONFIG = {
 	TOAST_DURATION: 3000, // milliseconds
 	RATE_LIMIT_BASE_WAIT: 60000, // 1 minute
 	PAGINATION_DELAY: 1000, // 1 second between requests
+	AUTO_SEARCH_DEBOUNCE_DELAY: 1500, // milliseconds to wait after user stops typing
+	OBSERVER_THROTTLE_DELAY: 300, // milliseconds between observer callback executions
+	ROUTE_CHECK_INTERVAL: 2000, // milliseconds between route change checks
+	API_REQUEST_TIMEOUT: 10000, // milliseconds for API request timeout
 } as const
 
 /**
@@ -75,6 +80,7 @@ export const MESSAGE_TYPES = {
 	IMPORT_UPDATE: "sm-import-update",
 	IMPORT_DONE: "sm-import-done",
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
+	CAPTURE_PROMPT: "sm-capture-prompt",
 } as const
 
 export const CONTEXT_MENU_IDS = {
@@ -87,6 +93,9 @@ export const POSTHOG_EVENT_KEY = {
 	SAVE_MEMORY_ATTEMPT_FAILED: "save_memory_attempt_failed",
 	SOURCE: "extension",
 	T3_CHAT_MEMORIES_SEARCHED: "t3_chat_memories_searched",
+	T3_CHAT_MEMORIES_AUTO_SEARCHED: "t3_chat_memories_auto_searched",
 	CLAUDE_CHAT_MEMORIES_SEARCHED: "claude_chat_memories_searched",
+	CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED: "claude_chat_memories_auto_searched",
 	CHATGPT_CHAT_MEMORIES_SEARCHED: "chatgpt_chat_memories_searched",
+	CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED: "chatgpt_chat_memories_auto_searched",
 } as const

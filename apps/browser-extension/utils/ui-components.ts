@@ -242,7 +242,7 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
+    width: auto;
     height: 24px;
     cursor: pointer;
     transition: opacity 0.2s ease;
@@ -284,13 +284,12 @@ export function createClaudeInputBarElement(onClick: () => void): HTMLElement {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    width: auto;
     height: 32px;
     cursor: pointer;
     transition: all 0.2s ease;
     border-radius: 6px;
     background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.1);
   `
 
 	const iconFileName = "/icon-16.png"
@@ -329,13 +328,12 @@ export function createT3InputBarElement(onClick: () => void): HTMLElement {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    width: auto;
     height: 32px;
     cursor: pointer;
     transition: all 0.2s ease;
     border-radius: 6px;
     background: transparent;
-    border: 1px solid rgba(0, 0, 0, 0.1);
   `
 
 	const iconFileName = "/icon-16.png"
@@ -421,7 +419,6 @@ export const DOMUtils = {
 			const text = existingToast.querySelector("span")
 
 			if (icon && text) {
-				// Update based on new state
 				if (state === "success") {
 					const iconUrl = browser.runtime.getURL("/icon-16.png")
 					icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
