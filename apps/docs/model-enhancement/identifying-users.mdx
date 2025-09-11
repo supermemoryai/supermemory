@@ -1,0 +1,119 @@
+---
+title: "Identifying Users"
+description: "Identifying users in supermemory"
+---
+
+You can enable built-in cross-conversational memory by sending supermemory a `x-sm-user-id`.
+
+## How supermemory Identifies Users and conversations
+
+supermemory will find the user ID in the following places (in order of priority):
+
+### `x-sm-user-id` header
+
+You can add a default header of x-sm-user-id with any client and model
+
+### `user` in body
+
+For models that support the `user` parameter in the body, such as OpenAI, you can also attach it to the body. 
+
+### `userId` in search params
+
+You can also add `?userId=xyz` in the URL search parameters, incase the models don't support it. 
+
+## Conversation ID
+
+If a conversation identifier is provided, You do not need to send the entire array of messages to supermemory. 
+
+```typescript
+// if you provide conversation ID, You do not need to send all the messages every single time. supermemory automatically backfills it. 
+const client = new OpenAI({
+    baseURL:
+"https://api.supermemory.ai/v3/https://api.openai.com/v1",
+    defaultHeaders: {
+        "x-supermemory-api-key":
+            "SUPERMEMORY_API_KEY",
+        "x-sm-user-id": `dhravya`,
+        "x-sm-conversation-id": "conversation-id"
+    },
+})
+
+const messages = [
+{"role" : "user", "text": "SOme long thing"},
+// .... 50 other messages
+{"role" : "user", "text": "new message"},
+]
+
+const client.generateText(messages)
+
+// Next time, you dont need to send more.
+const messages2 = [{"role" : "user", "text": "What did we talk about in this conversation, and the one we did last year?"}]
+
+const client.generateText(messages2)
+```
+
+## Implementation Examples
+
+### Google Gemini
+
+```typescript
+const ai = new GoogleGenAI({ apiKey: "YOUR_API_KEY" });
+
+async function main() {
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: "Explain how AI works in a few words",
+    config: {
+      httpOptions: {
+        headers: {
+          'x-sm-user-id': "user_123"
+        }
+      }
+    },
+  });
+  console.debug(response.text);
+}
+```
+
+### Anthropic
+
+```typescript
+const anthropic = new Anthropic({
+  apiKey: 'YOUR_API_KEY', // defaults to process.env["ANTHROPIC_API_KEY"]
+});
+
+async function main() {
+  const msg = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: "Hello, Claude" }],
+  }, {
+    // Using headers
+    headers: {
+      'x-sm-user-id': "user_123"
+    }
+  });
+  
+  console.debug(msg);
+}
+```
+
+### OpenAI
+
+```typescript
+const openai = new OpenAI({
+  apiKey: "YOUR_API_KEY"
+});
+
+async function main() {
+  const completion = await openai.chat.completions.create({
+    messages: [
+      { role: "user", content: "Hello, Assistant" }
+    ],
+    model: "gpt-4o",
+    user: "user_123"
+  });
+  
+  console.debug(completion.choices[0].message);
+}
+```

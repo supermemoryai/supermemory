@@ -1,0 +1,180 @@
+{
+	"$schema": "https://mintlify.com/docs.json",
+	"api": {
+		"examples": {
+			"defaults": "required",
+			"languages": ["javascript", "python", "curl"]
+		},
+		"openapi": "https://localhost:8787/v3/openapi"
+	},
+	"colors": {
+		"dark": "#1E3A8A",
+		"light": "#3B82F6",
+		"primary": "#1E3A8A"
+	},
+	"contextual": {
+		"options": ["copy", "view", "chatgpt", "claude"]
+	},
+	"favicon": "/favicon.png",
+	"fonts": {
+		"body": {
+			"family": "Space Grotesk",
+			"format": "woff2"
+		},
+		"heading": {
+			"family": "Space Grotesk",
+			"format": "woff2"
+		}
+	},
+	"footer": {
+		"socials": {
+			"github": "https://github.com/supermemoryai",
+			"linkedin": "https://linkedin.com/company/supermemoryai",
+			"x": "https://x.com/supermemoryai"
+		}
+	},
+	"icons": { "library": "lucide" },
+	"logo": {
+		"dark": "/logo/dark.svg",
+		"light": "/logo/light.svg"
+	},
+	"name": "supermemory | Memory API for the AI era",
+	"navbar": {
+		"links": [
+			{
+				"href": "mailto:dhravya@supermemory.com",
+				"label": "Support"
+			}
+		],
+		"primary": {
+			"href": "https://console.supermemory.ai",
+			"label": "Dashboard",
+			"type": "button"
+		}
+	},
+	"navigation": {
+		"tabs": [
+			{
+				"pages": ["introduction"],
+				"tab": "Welcome"
+			},
+			{
+				"anchors": [
+					{
+						"anchor": "Your Dashboard",
+						"href": "https://console.supermemory.ai",
+						"icon": "play"
+					},
+					{
+						"anchor": "Documentation",
+						"pages": [
+							{
+								"group": "Memory API",
+								"pages": [
+									"memory-api/introduction",
+									"memory-api/overview",
+									"memory-api/creation/adding-memories",
+									"memory-api/searching/searching-memories",
+									{
+										"group": "Features",
+										"pages": [
+											"memory-api/features/auto-multi-modal",
+											"memory-api/features/filtering",
+											"memory-api/features/content-cleaner",
+											"memory-api/features/query-rewriting",
+											"memory-api/features/reranking"
+										]
+									},
+									{
+										"group": "Connectors Sync",
+										"pages": [
+											"memory-api/connectors/overview",
+											"memory-api/connectors/creating-connection",
+											"api-reference/connections/list-connections",
+											"api-reference/connections/delete-connection",
+											"/api-reference/connections/sync-connection",
+											"memory-api/connectors/google-drive",
+											{
+												"group": "Advanced",
+												"pages": [
+													"memory-api/connectors/advanced/bring-your-own-key"
+												]
+											}
+										]
+									}
+								]
+							},
+							{
+								"group": "Model Enhancer",
+								"pages": [
+									"model-enhancement/context-extender",
+									"model-enhancement/getting-started",
+									"model-enhancement/identifying-users"
+								]
+							},
+							{
+								"group": "Overview",
+								"pages": ["overview/use-cases", "overview/why-supermemory"]
+							},
+							{
+								"group": "Deployment",
+								"pages": ["deployment/self-hosting"]
+							}
+						]
+					}
+				],
+				"tab": "Documentation"
+			},
+			{
+				"anchors": [
+					{
+						"anchor": "SDKs",
+						"pages": ["memory-api/sdks/typescript", "memory-api/sdks/python"]
+					}
+				],
+				"tab": "SDKs"
+			},
+			{
+				"anchors": [
+					{
+						"anchor": "API Reference",
+						"icon": "unplug",
+						"openapi": "https://localhost:8787/v3/openapi"
+					}
+				],
+				"tab": "API Reference"
+			},
+			{
+				"anchors": [
+					{
+						"anchor": "supermemory MCP",
+						"pages": [
+							"supermemory-mcp/introduction",
+							"supermemory-mcp/setup",
+							"supermemory-mcp/technology"
+						]
+					}
+				],
+				"tab": "supermemory MCP"
+			},
+			{
+				"anchors": [
+					{
+						"anchor": "Changelog",
+						"pages": ["changelog/overview"]
+					}
+				],
+				"tab": "Changelog"
+			}
+		]
+	},
+	"redirects": [
+		{
+			"destination": "/introduction",
+			"permanent": false,
+			"source": "/"
+		}
+	],
+	"styling": { "eyebrows": "breadcrumbs" },
+	"theme": "mint"
+}

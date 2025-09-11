@@ -1,0 +1,48 @@
+---
+title: 'Technical implementation details'
+description: 'Technical implementation details of supermemory MCP'
+---
+
+The technical architecture prioritizes **simplicity and user experience** while maintaining robust functionality. Built as what the creators describe as "the simplest thing you'll see" - essentially a React Router application making fetch calls to the supermemory API - the entire system was developed and shipped in approximately 5 hours of actual work time.
+
+### Architecture components
+
+- **Backend API**: Built on top of the supermemory API (https://api.supermemory.ai/v3)
+- **Transport Layer**: Uses Server-Sent Events (SSE) for real-time communication
+- **Dynamic Server Generation**: Creates unique MCP server instances for each user via URL path parameters
+- **Session Management**: Maintains complete user isolation through unique URLs
+- **Infrastructure**: Hosted on Cloudflare using Durable Objects for persistent, long-running connections
+
+The system leverages **Cloudflare's infrastructure** with CPU-based billing, making it highly efficient since memory connections spend most time waiting between interactions rather than actively processing, resulting in minimal CPU usage despite potentially running for millions of milliseconds.
+
+## The two main components explained
+
+### addToSupermemory action
+
+This component **stores user information, preferences, and behavioral patterns** with sophisticated triggering mechanisms:
+
+**Trigger methods:**
+- **Explicit commands**: Direct user instructions like "remember this"
+- **Implicit detection**: Automatic identification of significant user traits, preferences, or patterns during conversations
+
+**Data types captured:**
+- Technical preferences and details (e.g., "My primary programming language is Python")
+- Project information and context (e.g., "I'm currently working on a project named 'Apollo'")
+- User behaviors and emotional responses
+- Personal facts, preferences, and decision-making patterns
+- Rich context including technical details and examples
+
+### searchSupermemory action
+
+This component **retrieves relevant information** from stored memories using advanced search capabilities:
+
+**Activation triggers:**
+- Explicit user requests for historical information
+- Contextual situations where past user choices would be helpful for current decisions
+- Automatic context enhancement based on conversation flow
+
+**Search capabilities:**
+- **Semantic matching**: Finds relevant details across related experiences using vector search
+- **Pattern recognition**: Identifies behavioral patterns and preferences
+- **Cross-session retrieval**: Accesses memories from previous conversations and platforms
+- **Intelligent filtering**: Returns most relevant context based on current conversation needs

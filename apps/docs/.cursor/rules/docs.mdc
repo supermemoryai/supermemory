@@ -1,0 +1,84 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Documentation MDX Format
+
+All documentation files use MDX format with a specific structure:
+
+## Frontmatter
+
+Every documentation file must begin with frontmatter:
+
+```mdx
+---
+title: "Page Title"
+description: "Brief description of the page content"
+icon: "icon-name"  # Optional, uses Lucide icons
+sidebarTitle: "Optional Sidebar Title"  # Optional
+---
+```
+
+Example: @features/query-rewriting.mdx
+
+## Components
+
+Use the following components to enhance documentation:
+
+### Accordion
+
+For collapsible sections:
+
+```mdx
+<Accordion title="Section Title" defaultOpen icon="sparkles">
+  Content goes here...
+</Accordion>
+```
+
+Example: @creation/supported-types.mdx
+
+### Notes and Warnings
+
+For important information:
+
+```mdx
+<Note>
+  Important information goes here.
+</Note>
+
+<Warning>
+  Critical warning goes here.
+</Warning>
+```
+
+Example: @creation/adding-memories.mdx
+
+### Code Examples
+
+For multi-language code examples:
+
+```mdx
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/endpoint \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY'
+```
+
+```typescript Typescript
+await client.method({
+  parameter: "value"
+})
+```
+
+```python Python
+client.method(
+  parameter="value"
+)
+```
+
+</CodeGroup>
+```
+
+Example: @essentials/authentication.mdx

@@ -1,0 +1,86 @@
+---
+title: "Cleaning and Categorizing"
+description: "Document Cleaning Summaries in supermemory"
+icon: "washing-machine"
+---
+
+supermemory provides advanced configuration options to customize your content processing pipeline. At its core is an AI-powered system that can automatically analyze, categorize, and filter your content based on your specific needs.
+
+## Configuration Schema
+
+```json
+{
+  "shouldLLMFilter": true,
+  "categories": ["feature-request", "bug-report", "positive", "negative"],
+  "filterPrompt": "Analyze feedback sentiment and identify feature requests",
+  "includeItems": ["critical", "high-priority"],
+  "excludeItems": ["spam", "irrelevant"]
+}
+```
+
+## Core Settings
+
+### shouldLLMFilter
+- **Type**: `boolean`
+- **Required**: No (defaults to `false`)
+- **Description**: Master switch for AI-powered content analysis. Must be enabled to use any of the advanced filtering features.
+
+### categories
+- **Type**: `string[]`
+- **Limits**: Each category must be 1-50 characters
+- **Required**: No
+- **Description**: Define custom categories for content classification. When specified, the AI will only use these categories. If not specified, it will generate 3-5 relevant categories automatically.
+
+### filterPrompt
+- **Type**: `string`
+- **Limits**: 1-750 characters
+- **Required**: No
+- **Description**: Custom instructions for the AI on how to analyze and categorize content. Use this to guide the categorization process based on your specific needs.
+
+### includeItems & excludeItems
+- **Type**: `string[]`
+- **Limits**: Each item must be 1-20 characters
+- **Required**: No
+- **Description**: Fine-tune content filtering by specifying items to explicitly include or exclude during processing.
+
+## Content Processing Pipeline
+
+When content is ingested with LLM filtering enabled:
+
+1. **Initial Processing**
+   - Content is extracted and normalized
+   - Basic metadata (title, description) is captured
+
+2. **AI Analysis**
+   - Content is analyzed based on your `filterPrompt`
+   - Categories are assigned (either from your predefined list or auto-generated)
+   - Tags are evaluated and scored
+
+3. **Chunking & Indexing**
+   - Content is split into semantic chunks
+   - Each chunk is embedded for efficient search
+   - Metadata and classifications are stored
+
+## Example Use Cases
+
+### 1. Customer Feedback System
+```json
+{
+  "shouldLLMFilter": true,
+  "categories": ["positive", "negative", "neutral"],
+  "filterPrompt": "Analyze customer sentiment and identify key themes",
+}
+```
+
+### 2. Content Moderation
+```json
+{
+  "shouldLLMFilter": true,
+  "categories": ["safe", "needs-review", "flagged"],
+  "filterPrompt": "Identify potentially inappropriate or sensitive content",
+  "excludeItems": ["spam", "offensive"],
+  "includeItems": ["user-generated"]
+}
+```
+
+> **Important**: All filtering features (`categories`, `filterPrompt`, `includeItems`, `excludeItems`) require `shouldLLMFilter` to be enabled. Attempting to use these features without enabling `shouldLLMFilter` will result in a 400 error.
