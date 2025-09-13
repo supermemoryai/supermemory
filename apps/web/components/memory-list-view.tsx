@@ -23,9 +23,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { z } from "zod"
 import useResizeObserver from "@/hooks/use-resize-observer"
 import { analytics } from "@/lib/analytics"
-import { $fetch } from "@lib/api"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useDeleteDocument } from "@lib/queries"
 import { useProject } from "@/stores"
 
 import { MemoryDetail } from "./memories/memory-detail"
@@ -236,76 +234,10 @@ export const MemoryListView = ({
 	const parentRef = useRef<HTMLDivElement>(null)
 	const containerRef = useRef<HTMLDivElement>(null)
 	const isMobile = useIsMobile()
-	const queryClient = useQueryClient()
 	const { selectedProject } = useProject()
+	const deleteDocumentMutation = useDeleteDocument(selectedProject)
 
 	const gap = 14
-
-	// Delete document mutation
-	const deleteDocumentMutation = useMutation({
-		mutationFn: async (documentId: string) => {
-			const response = await $fetch(`@delete/memories/${documentId}`)
-			if (response.error) {
-				throw new Error(response.error?.message || "Failed to delete document")
-			}
-			return response.data
-		},
-		onMutate: async (documentId: string) => {
-			// Cancel any outgoing refetches
-			await queryClient.cancelQueries({
-				queryKey: ["documents-with-memories", selectedProject],
-			})
-
-			// Snapshot the previous value
-			const previousData = queryClient.getQueryData([
-				"documents-with-memories",
-				selectedProject,
-			])
-
-			// Optimistically remove the document from the cache
-			queryClient.setQueryData(
-				["documents-with-memories", selectedProject],
-				(old: unknown) => {
-					if (!old || typeof old !== "object") return old
-					const typedOld = old as {
-						pages?: Array<{ documents?: DocumentWithMemories[] }>
-					}
-					return {
-						...typedOld,
-						pages: typedOld.pages?.map((page) => ({
-							...page,
-							documents: page.documents?.filter(
-								(doc: DocumentWithMemories) => doc.id !== documentId,
-							),
-						})),
-					}
-				},
-			)
-
-			return { previousData }
-		},
-		onSuccess: () => {
-			toast.success("Memory deleted successfully")
-		},
-		onError: (error, _documentId, context) => {
-			// Rollback on error
-			if (context?.previousData) {
-				queryClient.setQueryData(
-					["documents-with-memories", selectedProject],
-					context.previousData,
-				)
-			}
-			toast.error("Failed to delete memory", {
-				description: error instanceof Error ? error.message : "Unknown error",
-			})
-		},
-		onSettled: () => {
-			// Always refetch to ensure consistency
-			queryClient.invalidateQueries({
-				queryKey: ["documents-with-memories", selectedProject],
-			})
-		},
-	})
 
 	const handleDeleteDocument = useCallback(
 		(document: DocumentWithMemories) => {

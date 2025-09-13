@@ -1,5 +1,12 @@
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { useCustomer } from "autumn-js/react"
+import { $fetch } from "./api"
+import { toast } from "sonner"
+import type { DocumentsWithMemoriesResponseSchema } from "../validation/api"
+import type { z } from "zod"
+
+type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
+type DocumentWithMemories = DocumentsResponse["documents"][0]
 
 export const fetchSubscriptionStatus = (
 	autumn: ReturnType<typeof useCustomer>,
@@ -84,3 +91,68 @@ export const fetchProProduct = (autumn: ReturnType<typeof useCustomer>) =>
 		staleTime: 30 * 1000, // 30 seconds
 		gcTime: 5 * 60 * 1000, // 5 minutes
 	})
+
+export const useDeleteDocument = (selectedProject: string) => {
+	const queryClient = useQueryClient()
+
+	return useMutation({
+		mutationFn: async (documentId: string) => {
+			// context for LLM: delete/memories/:documentId is documents delete endpoint not memories delete endpoint
+			const response = await $fetch(`@delete/memories/${documentId}`)
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to delete document")
+			}
+			return response.data
+		},
+		onMutate: async (documentId: string) => {
+			await queryClient.cancelQueries({
+				queryKey: ["documents-with-memories", selectedProject],
+			})
+
+			const previousData = queryClient.getQueryData([
+				"documents-with-memories",
+				selectedProject,
+			])
+
+			queryClient.setQueryData(
+				["documents-with-memories", selectedProject],
+				(old: unknown) => {
+					if (!old || typeof old !== "object") return old
+					const typedOld = old as {
+						pages?: Array<{ documents?: DocumentWithMemories[] }>
+					}
+					return {
+						...typedOld,
+						pages: typedOld.pages?.map((page) => ({
+							...page,
+							documents: page.documents?.filter(
+								(doc: DocumentWithMemories) => doc.id !== documentId,
+							),
+						})),
+					}
+				},
+			)
+
+			return { previousData }
+		},
+		onSuccess: () => {
+			toast.success("Memory deleted successfully")
+		},
+		onError: (error, _documentId, context) => {
+			if (context?.previousData) {
+				queryClient.setQueryData(
+					["documents-with-memories", selectedProject],
+					context.previousData,
+				)
+			}
+			toast.error("Failed to delete memory", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+		onSettled: () => {
+			queryClient.invalidateQueries({
+				queryKey: ["documents-with-memories", selectedProject],
+			})
+		},
+	})
+}
