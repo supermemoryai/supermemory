@@ -7,13 +7,13 @@ This package provides supermemory tools for both AI SDK and OpenAI function call
 ## Installation
 
 ```bash
-npm install @supermemory/ai-sdk
+npm install @supermemory/tools
 # or
-bun add @supermemory/ai-sdk
+bun add @supermemory/tools
 # or
-pnpm add @supermemory/ai-sdk
+pnpm add @supermemory/tools
 # or
-yarn add @supermemory/ai-sdk
+yarn add @supermemory/tools
 ```
 
 ## Usage

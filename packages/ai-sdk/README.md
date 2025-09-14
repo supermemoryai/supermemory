@@ -26,29 +26,20 @@ Choose **one** of the following approaches (they cannot be used together):
 The infinite chat provider allows you to connect to various LLM providers with supermemory's context management.
 
 ```typescript
-import { createSupermemoryInfiniteChat } from '@supermemory/ai-sdk'
 import { generateText } from 'ai'
 
-// Using a named provider
-const supermemory = createSupermemoryInfiniteChat('your-supermemory-api-key', {
-  providerName: 'openai',
-  providerApiKey: 'your-openai-api-key',
-  headers: {
-    // Optional additional headers
-  }
-})
-
 // Using a custom provider URL
-const supermemory = createSupermemoryInfiniteChat('your-supermemory-api-key', {
-  providerUrl: 'https://your-custom-provider.com/v1/chat/completions',
-  providerApiKey: 'your-provider-api-key',
+const supermemoryOpenai = createOpenAI({
+  baseUrl: 'https://api.supermemory.ai/v3/https://api.openai.com/v1',
+  apiKey: 'your-provider-api-key',
   headers: {
-    // Optional additional headers
+    'x-supermemory-api-key': 'supermemory-api-key',
+    'x-sm-conversation-id': 'conversation-id'
   }
 })
 
 const result = await generateText({
-  model: supermemory('gpt-4-turbo'),
+  model: supermemoryOpenai('gpt-4-turbo'),
   messages: [
     { role: 'user', content: 'Hello, how are you?' }
   ]
@@ -58,35 +49,37 @@ const result = await generateText({
 ### Complete Infinite Chat Example
 
 ```typescript
-import { createSupermemoryInfiniteChat } from '@supermemory/ai-sdk'
 import { generateText } from 'ai'
 
 const supermemoryApiKey = process.env.SUPERMEMORY_API_KEY!
 const openaiApiKey = process.env.OPENAI_API_KEY!
 
 // Initialize infinite chat provider
-const supermemory = createSupermemoryInfiniteChat(supermemoryApiKey, {
-  providerName: 'openai',
-  providerApiKey: openaiApiKey,
-  headers: {}
+const supermemoryOpenai = createOpenAI({
+  baseUrl: 'https://api.supermemory.ai/v3/https://api.openai.com/v1',
+  apiKey: 'your-provider-api-key',
+  headers: {
+    'x-supermemory-api-key': 'supermemory-api-key',
+    'x-sm-conversation-id': 'conversation-id'
+  }
 })
 
 async function chat(userMessage: string) {
   const result = await generateText({
-    model: supermemory('gpt-4-turbo'),
+    model: supermemoryOpenai('gpt-4-turbo'),
     messages: [
-      { 
-        role: 'system', 
-        content: 'You are a helpful assistant with unlimited context.' 
+      {
+        role: 'system',
+        content: 'You are a helpful assistant with unlimited context.'
       },
-      { 
-        role: 'user', 
-        content: userMessage 
+      {
+        role: 'user',
+        content: userMessage
       }
     ]
     // No tools - infinite chat handles context automatically
   })
-  
+
   return result.text
 }
 ```
@@ -126,7 +119,7 @@ const result = await generateText({
     ...supermemoryTools('your-supermemory-api-key', {
   // Optional: specify a base URL for self-hosted instances
   baseUrl: 'https://api.supermemory.com',
-  
+
   // Use either projectId OR containerTags, not both
   projectId: 'your-project-id',
   // OR
@@ -150,13 +143,13 @@ async function chatWithTools(userMessage: string) {
   const result = await generateText({
     model: openai('gpt-4-turbo'), // Use standard provider
     messages: [
-      { 
-        role: 'system', 
-        content: 'You are a helpful assistant with access to user memories.' 
+      {
+        role: 'system',
+        content: 'You are a helpful assistant with access to user memories.'
       },
-      { 
-        role: 'user', 
-        content: userMessage 
+      {
+        role: 'user',
+        content: userMessage
       }
     ],
     tools: {
@@ -166,7 +159,7 @@ async function chatWithTools(userMessage: string) {
     },
     maxToolRoundtrips: 5
   })
-  
+
   return result.text
 }
 ```
@@ -177,10 +170,10 @@ async function chatWithTools(userMessage: string) {
 interface SupermemoryConfig {
   // Optional: Base URL for API calls (default: https://api.supermemory.com)
   baseUrl?: string
-  
+
   // Container tags for organizing memories (cannot be used with projectId)
   containerTags?: string[]
-  
+
   // Project ID for scoping memories (cannot be used with containerTags)
   projectId?: string
 }
@@ -234,10 +227,10 @@ const fetchResult = await tools.fetchMemory.execute({
 For more flexibility, you can import and use individual tools:
 
 ```typescript
-import { 
-  searchMemoriesTool, 
-  addMemoryTool, 
-  fetchMemoryTool 
+import {
+  searchMemoriesTool,
+  addMemoryTool,
+  fetchMemoryTool
 } from '@supermemory/ai-sdk'
 
 const searchTool = searchMemoriesTool('your-api-key', {
