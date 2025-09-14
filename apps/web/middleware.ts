@@ -42,7 +42,13 @@ export default async function middleware(request: Request) {
 
 	console.debug("[MIDDLEWARE] Passing through to next handler")
 	console.debug("[MIDDLEWARE] === MIDDLEWARE END ===")
-	return NextResponse.next()
+	const response = NextResponse.next()
+	response.cookies.set({
+		name: "last-site-visited",
+		value: "https://app.supermemory.ai",
+		domain: "supermemory.ai",
+	})
+	return response
 }
 
 export const config = {
