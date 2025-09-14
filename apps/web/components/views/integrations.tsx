@@ -1,38 +1,35 @@
-import { $fetch } from "@lib/api";
-import { authClient } from "@lib/auth";
-import { useAuth } from "@lib/auth-context";
-import { generateId } from "@lib/generate-id";
+import { $fetch } from "@lib/api"
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
+import { generateId } from "@lib/generate-id"
 import {
 	ADD_MEMORY_SHORTCUT_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
-} from "@repo/lib/constants";
-import {
-	fetchConnectionsFeature,
-	fetchConsumerProProduct,
-} from "@repo/lib/queries";
-import { Button } from "@repo/ui/components/button";
+} from "@repo/lib/constants"
+import { fetchConnectionsFeature } from "@repo/lib/queries"
+import { Button } from "@repo/ui/components/button"
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogPortal,
 	DialogTitle,
-} from "@repo/ui/components/dialog";
-import { Skeleton } from "@repo/ui/components/skeleton";
-import type { ConnectionResponseSchema } from "@repo/validation/api";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons";
-import { useCustomer } from "autumn-js/react";
-import { Check, Copy, Smartphone, Trash2 } from "lucide-react";
-import { motion } from "motion/react";
-import Image from "next/image";
-import { useEffect, useId, useState } from "react";
-import { toast } from "sonner";
-import type { z } from "zod";
-import { analytics } from "@/lib/analytics";
-import { useProject } from "@/stores";
+} from "@repo/ui/components/dialog"
+import { Skeleton } from "@repo/ui/components/skeleton"
+import type { ConnectionResponseSchema } from "@repo/validation/api"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { useCustomer } from "autumn-js/react"
+import { Check, Copy, Smartphone, Trash2 } from "lucide-react"
+import { motion } from "motion/react"
+import Image from "next/image"
+import { useEffect, useId, useState } from "react"
+import { toast } from "sonner"
+import type { z } from "zod"
+import { analytics } from "@/lib/analytics"
+import { useProject } from "@/stores"
 
-type Connection = z.infer<typeof ConnectionResponseSchema>;
+type Connection = z.infer<typeof ConnectionResponseSchema>
 
 const CONNECTORS = {
 	"google-drive": {
@@ -50,9 +47,9 @@ const CONNECTORS = {
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
 	},
-} as const;
+} as const
 
-type ConnectorProvider = keyof typeof CONNECTORS;
+type ConnectorProvider = keyof typeof CONNECTORS
 
 const ChromeIcon = ({ className }: { className?: string }) => (
 	<svg
@@ -83,41 +80,49 @@ const ChromeIcon = ({ className }: { className?: string }) => (
 			d="M95.252 47.628h82.479A95.237 95.237 0 0 0 142.87 12.76 95.23 95.23 0 0 0 95.245 0a95.222 95.222 0 0 0-47.623 12.767 95.23 95.23 0 0 0-34.856 34.872l41.24 71.43.011.006a47.62 47.62 0 0 1-.015-47.633 47.61 47.61 0 0 1 41.252-23.815z"
 		/>
 	</svg>
-);
+)
 
 export function IntegrationsView() {
-	const { org } = useAuth();
-	const queryClient = useQueryClient();
-	const { selectedProject } = useProject();
-	const autumn = useCustomer();
-	const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-	const [apiKey, setApiKey] = useState<string>("");
-	const [copied, setCopied] = useState(false);
+	const { org } = useAuth()
+	const queryClient = useQueryClient()
+	const { selectedProject } = useProject()
+	const autumn = useCustomer()
+	const [showApiKeyModal, setShowApiKeyModal] = useState(false)
+	const [apiKey, setApiKey] = useState<string>("")
+	const [copied, setCopied] = useState(false)
+	const [isProUser, setIsProUser] = useState(false)
 	const [selectedShortcutType, setSelectedShortcutType] = useState<
 		"add" | "search" | null
-	>(null);
-	const apiKeyId = useId();
+	>(null)
+	const apiKeyId = useId()
 
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			});
-			window.location.reload();
+			})
+			window.location.reload()
 		} catch (error) {
-			console.error(error);
+			console.error(error)
 		}
-	};
+	}
 
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn as any);
-	const connectionsUsed = connectionsCheck?.balance ?? 0;
-	const connectionsLimit = connectionsCheck?.included_usage ?? 0;
+	useEffect(() => {
+		if (!autumn.isLoading) {
+			setIsProUser(
+				autumn.customer?.products.some(
+					(product) => product.id === "consumer_pro",
+				) ?? false,
+			)
+		}
+	}, [autumn.isLoading, autumn.customer])
 
-	const { data: proCheck } = fetchConsumerProProduct(autumn as any);
-	const isProUser = proCheck?.allowed ?? false;
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn)
+	const connectionsUsed = connectionsCheck?.balance ?? 0
+	const connectionsLimit = connectionsCheck?.included_usage ?? 0
 
-	const canAddConnection = connectionsUsed < connectionsLimit;
+	const canAddConnection = connectionsUsed < connectionsLimit
 
 	const {
 		data: connections = [],
@@ -130,19 +135,17 @@ export function IntegrationsView() {
 				body: {
 					containerTags: [],
 				},
-			});
+			})
 
 			if (response.error) {
-				throw new Error(
-					response.error?.message || "Failed to load connections",
-				);
+				throw new Error(response.error?.message || "Failed to load connections")
 			}
 
-			return response.data as Connection[];
+			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
 		refetchInterval: 60 * 1000,
-	});
+	})
 
 	useEffect(() => {
 		if (connectionsError) {
@@ -151,16 +154,16 @@ export function IntegrationsView() {
 					connectionsError instanceof Error
 						? connectionsError.message
 						: "Unknown error",
-			});
+			})
 		}
-	}, [connectionsError]);
+	}, [connectionsError])
 
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
 			if (!canAddConnection && !isProUser) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
-				);
+				)
 			}
 
 			const response = await $fetch("@post/connections/:provider", {
@@ -169,47 +172,47 @@ export function IntegrationsView() {
 					redirectUrl: window.location.href,
 					containerTags: [selectedProject],
 				},
-			});
+			})
 
 			// biome-ignore lint/style/noNonNullAssertion: its fine
 			if ("data" in response && !("error" in response.data!)) {
-				return response.data;
+				return response.data
 			}
 
-			throw new Error(response.error?.message || "Failed to connect");
+			throw new Error(response.error?.message || "Failed to connect")
 		},
 		onSuccess: (data, provider) => {
-			analytics.connectionAdded(provider);
-			analytics.connectionAuthStarted();
+			analytics.connectionAdded(provider)
+			analytics.connectionAuthStarted()
 			if (data?.authLink) {
-				window.location.href = data.authLink;
+				window.location.href = data.authLink
 			}
 		},
 		onError: (error, provider) => {
-			analytics.connectionAuthFailed();
+			analytics.connectionAuthFailed()
 			toast.error(`Failed to connect ${provider}`, {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const deleteConnectionMutation = useMutation({
 		mutationFn: async (connectionId: string) => {
-			await $fetch(`@delete/connections/${connectionId}`);
+			await $fetch(`@delete/connections/${connectionId}`)
 		},
 		onSuccess: () => {
-			analytics.connectionDeleted();
+			analytics.connectionDeleted()
 			toast.success(
 				"Connection removal has started. supermemory will permanently delete all documents related to the connection in the next few minutes.",
-			);
-			queryClient.invalidateQueries({ queryKey: ["connections"] });
+			)
+			queryClient.invalidateQueries({ queryKey: ["connections"] })
 		},
 		onError: (error) => {
 			toast.error("Failed to remove connection", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const createApiKeyMutation = useMutation({
 		mutationFn: async () => {
@@ -220,60 +223,60 @@ export function IntegrationsView() {
 				},
 				name: `ios-${generateId().slice(0, 8)}`,
 				prefix: `sm_${org?.id}_`,
-			});
-			return res.key;
+			})
+			return res.key
 		},
 		onSuccess: (apiKey) => {
-			setApiKey(apiKey);
-			setShowApiKeyModal(true);
-			setCopied(false);
-			handleCopyApiKey();
+			setApiKey(apiKey)
+			setShowApiKeyModal(true)
+			setCopied(false)
+			handleCopyApiKey()
 		},
 		onError: (error) => {
 			toast.error("Failed to create API key", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const handleShortcutClick = (shortcutType: "add" | "search") => {
-		setSelectedShortcutType(shortcutType);
-		createApiKeyMutation.mutate();
-	};
+		setSelectedShortcutType(shortcutType)
+		createApiKeyMutation.mutate()
+	}
 
 	const handleCopyApiKey = async () => {
 		try {
-			await navigator.clipboard.writeText(apiKey);
-			setCopied(true);
-			toast.success("API key copied to clipboard!");
-			setTimeout(() => setCopied(false), 2000);
+			await navigator.clipboard.writeText(apiKey)
+			setCopied(true)
+			toast.success("API key copied to clipboard!")
+			setTimeout(() => setCopied(false), 2000)
 		} catch {
-			toast.error("Failed to copy API key");
+			toast.error("Failed to copy API key")
 		}
-	};
+	}
 
 	const handleOpenShortcut = () => {
 		if (!selectedShortcutType) {
-			toast.error("No shortcut type selected");
-			return;
+			toast.error("No shortcut type selected")
+			return
 		}
 
 		if (selectedShortcutType === "add") {
-			window.open(ADD_MEMORY_SHORTCUT_URL, "_blank");
+			window.open(ADD_MEMORY_SHORTCUT_URL, "_blank")
 		} else if (selectedShortcutType === "search") {
-			window.open(SEARCH_MEMORY_SHORTCUT_URL, "_blank");
+			window.open(SEARCH_MEMORY_SHORTCUT_URL, "_blank")
 		}
-	};
+	}
 
 	const handleDialogClose = (open: boolean) => {
-		setShowApiKeyModal(open);
+		setShowApiKeyModal(open)
 		if (!open) {
 			// Reset state when dialog closes
-			setSelectedShortcutType(null);
-			setApiKey("");
-			setCopied(false);
+			setSelectedShortcutType(null)
+			setApiKey("")
+			setCopied(false)
 		}
-	};
+	}
 
 	return (
 		<div className="space-y-4 sm:space-y-4 custom-scrollbar">
@@ -362,15 +365,15 @@ export function IntegrationsView() {
 							<svg
 								className="h-5 w-5 text-green-400"
 								fill="none"
-								viewBox="0 0 24 24"
 								stroke="currentColor"
+								viewBox="0 0 24 24"
 							>
 								<title>Connection Link Icon</title>
 								<path
+									d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
 									strokeLinecap="round"
 									strokeLinejoin="round"
 									strokeWidth={2}
-									d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
 								/>
 							</svg>
 						</div>
@@ -390,7 +393,7 @@ export function IntegrationsView() {
 					</div>
 
 					{/* Show upgrade prompt for free users */}
-					{!isProUser && (
+					{!autumn.isLoading && !isProUser && (
 						<motion.div
 							animate={{ opacity: 1, y: 0 }}
 							className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-3"
@@ -432,11 +435,11 @@ export function IntegrationsView() {
 					) : (
 						<div className="space-y-2">
 							{Object.entries(CONNECTORS).map(([provider, config], index) => {
-								const Icon = config.icon;
+								const Icon = config.icon
 								const connection = connections.find(
 									(conn) => conn.provider === provider,
-								);
-								const isConnected = !!connection;
+								)
+								const isConnected = !!connection
 
 								return (
 									<motion.div
@@ -462,14 +465,14 @@ export function IntegrationsView() {
 													</p>
 													{isConnected ? (
 														<div className="flex items-center gap-1">
-															<div className="w-2 h-2 bg-green-400 rounded-full"></div>
+															<div className="w-2 h-2 bg-green-400 rounded-full" />
 															<span className="text-xs text-green-400 font-medium">
 																Connected
 															</span>
 														</div>
 													) : (
 														<div className="hidden sm:flex items-center gap-1">
-															<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+															<div className="w-2 h-2 bg-gray-400 rounded-full" />
 															<span className="text-xs text-gray-400 font-medium">
 																Disconnected
 															</span>
@@ -509,7 +512,7 @@ export function IntegrationsView() {
 											) : (
 												<div className="flex items-center justify-between gap-2 w-full sm:w-auto">
 													<div className="sm:hidden flex items-center gap-1">
-														<div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+														<div className="w-2 h-2 bg-gray-400 rounded-full" />
 														<span className="text-xs text-gray-400 font-medium">
 															Disconnected
 														</span>
@@ -520,12 +523,14 @@ export function IntegrationsView() {
 														className="flex-shrink-0"
 													>
 														<Button
-															className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30 min-w-[80px]"
-															disabled={addConnectionMutation.isPending}
+															className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30 min-w-[80px] disabled:cursor-not-allowed"
+															disabled={
+																addConnectionMutation.isPending || !isProUser
+															}
 															onClick={() => {
 																addConnectionMutation.mutate(
 																	provider as ConnectorProvider,
-																);
+																)
 															}}
 															size="sm"
 															variant="outline"
@@ -540,7 +545,7 @@ export function IntegrationsView() {
 											)}
 										</div>
 									</motion.div>
-								);
+								)
 							})}
 						</div>
 					)}
@@ -665,5 +670,5 @@ export function IntegrationsView() {
 				</DialogPortal>
 			</Dialog>
 		</div>
-	);
+	)
 }

@@ -1,9 +1,9 @@
-import { $fetch } from "@lib/api";
+import { $fetch } from "@lib/api"
 import {
 	fetchConsumerProProduct,
 	fetchMemoriesFeature,
-} from "@repo/lib/queries";
-import { Button } from "@repo/ui/components/button";
+} from "@repo/lib/queries"
+import { Button } from "@repo/ui/components/button"
 import {
 	Dialog,
 	DialogContent,
@@ -11,18 +11,18 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@repo/ui/components/dialog";
-import { Input } from "@repo/ui/components/input";
-import { Label } from "@repo/ui/components/label";
-import { Textarea } from "@repo/ui/components/textarea";
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+} from "@repo/ui/components/dialog"
+import { Input } from "@repo/ui/components/input"
+import { Label } from "@repo/ui/components/label"
+import { Textarea } from "@repo/ui/components/textarea"
+import { useForm } from "@tanstack/react-form"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
 	Dropzone,
 	DropzoneContent,
 	DropzoneEmptyState,
-} from "@ui/components/shadcn-io/dropzone";
-import { useCustomer } from "autumn-js/react";
+} from "@ui/components/shadcn-io/dropzone"
+import { useCustomer } from "autumn-js/react"
 import {
 	Brain,
 	FileIcon,
@@ -31,37 +31,40 @@ import {
 	PlugIcon,
 	Plus,
 	UploadIcon,
-} from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { z } from "zod";
-import { analytics } from "@/lib/analytics";
-import { useProject } from "@/stores";
-import { ConnectionsTabContent } from "../connections-tab-content";
-import { ActionButtons } from "./action-buttons";
-import { MemoryUsageRing } from "./memory-usage-ring";
-import { ProjectSelection } from "./project-selection";
-import { TabButton } from "./tab-button";
-import dynamic from "next/dynamic";
+} from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { z } from "zod"
+import { analytics } from "@/lib/analytics"
+import { useProject } from "@/stores"
+import { ConnectionsTabContent } from "../connections-tab-content"
+import { ActionButtons } from "./action-buttons"
+import { MemoryUsageRing } from "./memory-usage-ring"
+import { ProjectSelection } from "./project-selection"
+import { TabButton } from "./tab-button"
+import dynamic from "next/dynamic"
 
-const TextEditor = dynamic(() => import("./text-editor").then(mod => ({ default: mod.TextEditor })), {
-	loading: () => (
-		<div className="bg-white/5 border border-white/10 rounded-md">
-			<div className="flex-1 min-h-48 max-h-64 overflow-y-auto flex items-center justify-center text-white/70">
-				Loading editor...
-			</div>
-			<div className="p-1 flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-b-md">
-				<div className="flex items-center gap-1 opacity-50">
-					<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
-					<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
-					<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+const TextEditor = dynamic(
+	() => import("./text-editor").then((mod) => ({ default: mod.TextEditor })),
+	{
+		loading: () => (
+			<div className="bg-white/5 border border-white/10 rounded-md">
+				<div className="flex-1 min-h-48 max-h-64 overflow-y-auto flex items-center justify-center text-white/70">
+					Loading editor...
+				</div>
+				<div className="p-1 flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-b-md">
+					<div className="flex items-center gap-1 opacity-50">
+						<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+						<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+						<div className="h-8 w-8 bg-white/10 rounded-sm animate-pulse" />
+					</div>
 				</div>
 			</div>
-		</div>
-	),
-	ssr: false,
-});
+		),
+		ssr: false,
+	},
+)
 
 // // Processing status component
 // function ProcessingStatus({ status }: { status: string }) {
@@ -89,80 +92,74 @@ export function AddMemoryView({
 	onClose,
 	initialTab = "note",
 }: {
-	onClose?: () => void;
-	initialTab?: "note" | "link" | "file" | "connect";
+	onClose?: () => void
+	initialTab?: "note" | "link" | "file" | "connect"
 }) {
-	const queryClient = useQueryClient();
-	const { selectedProject, setSelectedProject } = useProject();
-	const [showAddDialog, setShowAddDialog] = useState(true);
-	const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+	const queryClient = useQueryClient()
+	const { selectedProject, setSelectedProject } = useProject()
+	const [showAddDialog, setShowAddDialog] = useState(true)
+	const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 	const [activeTab, setActiveTab] = useState<
 		"note" | "link" | "file" | "connect"
-	>(initialTab);
-	const autumn = useCustomer();
-	const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false);
-	const [newProjectName, setNewProjectName] = useState("");
+	>(initialTab)
+	const autumn = useCustomer()
+	const [showCreateProjectDialog, setShowCreateProjectDialog] = useState(false)
+	const [newProjectName, setNewProjectName] = useState("")
 
 	// Check memory limits
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn as any);
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn)
 
-	const memoriesUsed = memoriesCheck?.usage ?? 0;
-	const memoriesLimit = memoriesCheck?.included_usage ?? 0;
-
-	// Check if user is pro
-	const { data: proCheck } = fetchConsumerProProduct(autumn as any);
-	const isProUser = proCheck?.allowed ?? false;
-
-	const canAddMemory = memoriesUsed < memoriesLimit;
+	const memoriesUsed = memoriesCheck?.usage ?? 0
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
 	// Fetch projects for the dropdown
 	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects");
+			const response = await $fetch("@get/projects")
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects");
+				throw new Error(response.error?.message || "Failed to load projects")
 			}
 
-			return response.data?.projects || [];
+			return response.data?.projects || []
 		},
 		staleTime: 30 * 1000,
-	});
+	})
 
 	// Create project mutation
 	const createProjectMutation = useMutation({
 		mutationFn: async (name: string) => {
 			const response = await $fetch("@post/projects", {
 				body: { name },
-			});
+			})
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to create project");
+				throw new Error(response.error?.message || "Failed to create project")
 			}
 
-			return response.data;
+			return response.data
 		},
 		onSuccess: (data) => {
-			analytics.projectCreated();
-			toast.success("Project created successfully!");
-			setShowCreateProjectDialog(false);
-			setNewProjectName("");
-			queryClient.invalidateQueries({ queryKey: ["projects"] });
+			analytics.projectCreated()
+			toast.success("Project created successfully!")
+			setShowCreateProjectDialog(false)
+			setNewProjectName("")
+			queryClient.invalidateQueries({ queryKey: ["projects"] })
 			// Set the newly created project as selected
 			if (data?.containerTag) {
-				setSelectedProject(data.containerTag);
+				setSelectedProject(data.containerTag)
 				// Update form values
-				addContentForm.setFieldValue("project", data.containerTag);
-				fileUploadForm.setFieldValue("project", data.containerTag);
+				addContentForm.setFieldValue("project", data.containerTag)
+				fileUploadForm.setFieldValue("project", data.containerTag)
 			}
 		},
 		onError: (error) => {
 			toast.error("Failed to create project", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const addContentForm = useForm({
 		defaultValues: {
@@ -174,8 +171,8 @@ export function AddMemoryView({
 				content: value.content,
 				project: value.project,
 				contentType: activeTab as "note" | "link",
-			});
-			formApi.reset();
+			})
+			formApi.reset()
 		},
 		validators: {
 			onChange: z.object({
@@ -183,19 +180,19 @@ export function AddMemoryView({
 				project: z.string(),
 			}),
 		},
-	});
+	})
 
 	// Re-validate content field when tab changes between note/link
 	// biome-ignore  lint/correctness/useExhaustiveDependencies: It is what it is
 	useEffect(() => {
 		// Trigger validation of the content field when switching between note/link
 		if (activeTab === "note" || activeTab === "link") {
-			const currentValue = addContentForm.getFieldValue("content");
+			const currentValue = addContentForm.getFieldValue("content")
 			if (currentValue) {
-				addContentForm.validateField("content", "change");
+				addContentForm.validateField("content", "change")
 			}
 		}
-	}, [activeTab]);
+	}, [activeTab])
 
 	// Form for file upload metadata
 	const fileUploadForm = useForm({
@@ -206,8 +203,8 @@ export function AddMemoryView({
 		},
 		onSubmit: async ({ value, formApi }) => {
 			if (selectedFiles.length === 0) {
-				toast.error("Please select a file to upload");
-				return;
+				toast.error("Please select a file to upload")
+				return
 			}
 
 			for (const file of selectedFiles) {
@@ -216,25 +213,13 @@ export function AddMemoryView({
 					title: value.title || undefined,
 					description: value.description || undefined,
 					project: value.project,
-				});
+				})
 			}
 
-			formApi.reset();
-			setSelectedFiles([]);
+			formApi.reset()
+			setSelectedFiles([])
 		},
-	});
-
-	const handleUpgrade = async () => {
-		try {
-			await autumn.attach({
-				productId: "consumer_pro",
-				successUrl: "https://app.supermemory.ai/",
-			});
-			window.location.reload();
-		} catch (error) {
-			console.error(error);
-		}
-	};
+	})
 
 	const addContentMutation = useMutation({
 		mutationFn: async ({
@@ -242,12 +227,12 @@ export function AddMemoryView({
 			project,
 			contentType,
 		}: {
-			content: string;
-			project: string;
-			contentType: "note" | "link";
+			content: string
+			project: string
+			contentType: "note" | "link"
 		}) => {
 			// close the modal
-			onClose?.();
+			onClose?.()
 
 			const processingPromise = (async () => {
 				// First, create the memory
@@ -259,31 +244,31 @@ export function AddMemoryView({
 							sm_source: "consumer", // Use "consumer" source to bypass limits
 						},
 					},
-				});
+				})
 
 				if (response.error) {
 					throw new Error(
 						response.error?.message || `Failed to add ${contentType}`,
-					);
+					)
 				}
 
-				const memoryId = response.data.id;
+				const memoryId = response.data.id
 
 				// Polling function to check status
 				const pollForCompletion = async (): Promise<any> => {
-					let attempts = 0;
-					const maxAttempts = 60; // Maximum 5 minutes (60 attempts * 5 seconds)
+					let attempts = 0
+					const maxAttempts = 60 // Maximum 5 minutes (60 attempts * 5 seconds)
 
 					while (attempts < maxAttempts) {
 						try {
 							const memory = await $fetch<{ status: string; content: string }>(
 								"@get/memories/" + memoryId,
-							);
+							)
 
 							if (memory.error) {
 								throw new Error(
 									memory.error?.message || "Failed to fetch memory status",
-								);
+								)
 							}
 
 							// Check if processing is complete
@@ -293,58 +278,58 @@ export function AddMemoryView({
 								// Sometimes the memory might be ready when it has content and no processing status
 								memory.data?.content
 							) {
-								return memory.data;
+								return memory.data
 							}
 
 							// If still processing, wait and try again
-							await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
-							attempts++;
+							await new Promise((resolve) => setTimeout(resolve, 5000)) // Wait 5 seconds
+							attempts++
 						} catch (error) {
-							console.error("Error polling memory status:", error);
+							console.error("Error polling memory status:", error)
 							// Don't throw immediately, retry a few times
 							if (attempts >= 3) {
-								throw new Error("Failed to check processing status");
+								throw new Error("Failed to check processing status")
 							}
-							await new Promise((resolve) => setTimeout(resolve, 5000));
-							attempts++;
+							await new Promise((resolve) => setTimeout(resolve, 5000))
+							attempts++
 						}
 					}
 
 					// If we've exceeded max attempts, throw an error
 					throw new Error(
 						"Memory processing timed out. Please check back later.",
-					);
-				};
+					)
+				}
 
 				// Wait for completion
-				const completedMemory = await pollForCompletion();
-				return completedMemory;
-			})();
+				const completedMemory = await pollForCompletion()
+				return completedMemory
+			})()
 
 			toast.promise(processingPromise, {
 				loading: "Processing...",
 				success: `${contentType === "link" ? "Link" : "Note"} created successfully!`,
 				error: (err) =>
 					`Failed to add ${contentType}: ${err instanceof Error ? err.message : "Unknown error"}`,
-			});
+			})
 
-			return processingPromise;
+			return processingPromise
 		},
 		onMutate: async ({ content, project, contentType }) => {
-			console.log("🚀 onMutate starting...");
+			console.log("🚀 onMutate starting...")
 
 			// Cancel any outgoing refetches
 			await queryClient.cancelQueries({
 				queryKey: ["documents-with-memories", project],
-			});
-			console.log("✅ Cancelled queries");
+			})
+			console.log("✅ Cancelled queries")
 
 			// Snapshot the previous value
 			const previousMemories = queryClient.getQueryData([
 				"documents-with-memories",
 				project,
-			]);
-			console.log("📸 Previous memories:", previousMemories);
+			])
+			console.log("📸 Previous memories:", previousMemories)
 
 			// Create optimistic memory
 			const optimisticMemory = {
@@ -368,28 +353,28 @@ export function AddMemoryView({
 				},
 				memoryEntries: [],
 				isOptimistic: true,
-			};
-			console.log("🎯 Created optimistic memory:", optimisticMemory);
+			}
+			console.log("🎯 Created optimistic memory:", optimisticMemory)
 
 			// Optimistically update to include the new memory
 			queryClient.setQueryData(
 				["documents-with-memories", project],
 				(old: any) => {
-					console.log("🔄 Old data:", old);
+					console.log("🔄 Old data:", old)
 					const newData = old
 						? {
 								...old,
 								documents: [optimisticMemory, ...(old.documents || [])],
 								totalCount: (old.totalCount || 0) + 1,
 							}
-						: { documents: [optimisticMemory], totalCount: 1 };
-					console.log("✨ New data:", newData);
-					return newData;
+						: { documents: [optimisticMemory], totalCount: 1 }
+					console.log("✨ New data:", newData)
+					return newData
 				},
-			);
+			)
 
-			console.log("✅ onMutate completed");
-			return { previousMemories, optimisticId: optimisticMemory.id };
+			console.log("✅ onMutate completed")
+			return { previousMemories, optimisticId: optimisticMemory.id }
 		},
 		// If the mutation fails, roll back to the previous value
 		onError: (error, variables, context) => {
@@ -397,7 +382,7 @@ export function AddMemoryView({
 				queryClient.setQueryData(
 					["documents-with-memories", variables.project],
 					context.previousMemories,
-				);
+				)
 			}
 		},
 		onSuccess: (_data, variables) => {
@@ -405,28 +390,28 @@ export function AddMemoryView({
 				type: variables.contentType === "link" ? "link" : "note",
 				project_id: variables.project,
 				content_length: variables.content.length,
-			});
+			})
 
 			queryClient.invalidateQueries({
 				queryKey: ["documents-with-memories", variables.project],
-			});
+			})
 
 			setTimeout(() => {
 				queryClient.invalidateQueries({
 					queryKey: ["documents-with-memories", variables.project],
-				});
-			}, 30000); // 30 seconds
+				})
+			}, 30000) // 30 seconds
 
 			setTimeout(() => {
 				queryClient.invalidateQueries({
 					queryKey: ["documents-with-memories", variables.project],
-				});
-			}, 120000); // 2 minutes
+				})
+			}, 120000) // 2 minutes
 
-			setShowAddDialog(false);
-			onClose?.();
+			setShowAddDialog(false)
+			onClose?.()
 		},
-	});
+	})
 
 	const fileUploadMutation = useMutation({
 		mutationFn: async ({
@@ -435,10 +420,10 @@ export function AddMemoryView({
 			description,
 			project,
 		}: {
-			file: File;
-			title?: string;
-			description?: string;
-			project: string;
+			file: File
+			title?: string
+			description?: string
+			project: string
 		}) => {
 			// TEMPORARILY DISABLED: Limit check disabled
 			// Check if user can add more memories
@@ -448,9 +433,9 @@ export function AddMemoryView({
 			// 	);
 			// }
 
-			const formData = new FormData();
-			formData.append("file", file);
-			formData.append("containerTags", JSON.stringify([project]));
+			const formData = new FormData()
+			formData.append("file", file)
+			formData.append("containerTags", JSON.stringify([project]))
 
 			const response = await fetch(
 				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/memories/file`,
@@ -459,14 +444,14 @@ export function AddMemoryView({
 					body: formData,
 					credentials: "include",
 				},
-			);
+			)
 
 			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.error || "Failed to upload file");
+				const error = await response.json()
+				throw new Error(error.error || "Failed to upload file")
 			}
 
-			const data = await response.json();
+			const data = await response.json()
 
 			// If we have metadata, we can update the document after creation
 			if (title || description) {
@@ -478,23 +463,23 @@ export function AddMemoryView({
 							sm_source: "consumer", // Use "consumer" source to bypass limits
 						},
 					},
-				});
+				})
 			}
 
-			return data;
+			return data
 		},
 		// Optimistic update
 		onMutate: async ({ file, title, description, project }) => {
 			// Cancel any outgoing refetches
 			await queryClient.cancelQueries({
 				queryKey: ["documents-with-memories", project],
-			});
+			})
 
 			// Snapshot the previous value
 			const previousMemories = queryClient.getQueryData([
 				"documents-with-memories",
 				project,
-			]);
+			])
 
 			// Create optimistic memory for the file
 			const optimisticMemory = {
@@ -514,23 +499,23 @@ export function AddMemoryView({
 					mimeType: file.type,
 				},
 				memoryEntries: [],
-			};
+			}
 
 			// Optimistically update to include the new memory
 			queryClient.setQueryData(
 				["documents-with-memories", project],
 				(old: any) => {
-					if (!old) return { documents: [optimisticMemory], totalCount: 1 };
+					if (!old) return { documents: [optimisticMemory], totalCount: 1 }
 					return {
 						...old,
 						documents: [optimisticMemory, ...(old.documents || [])],
 						totalCount: (old.totalCount || 0) + 1,
-					};
+					}
 				},
-			);
+			)
 
 			// Return a context object with the snapshotted value
-			return { previousMemories };
+			return { previousMemories }
 		},
 		// If the mutation fails, roll back to the previous value
 		onError: (error, variables, context) => {
@@ -538,11 +523,11 @@ export function AddMemoryView({
 				queryClient.setQueryData(
 					["documents-with-memories", variables.project],
 					context.previousMemories,
-				);
+				)
 			}
 			toast.error("Failed to upload file", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
 		onSuccess: (_data, variables) => {
 			analytics.memoryAdded({
@@ -550,18 +535,18 @@ export function AddMemoryView({
 				project_id: variables.project,
 				file_size: variables.file.size,
 				file_type: variables.file.type,
-			});
+			})
 			toast.success("File uploaded successfully!", {
 				description: "Your file is being processed",
-			});
-			setShowAddDialog(false);
-			onClose?.();
+			})
+			setShowAddDialog(false)
+			onClose?.()
 		},
 		// Always refetch after error or success
 		onSettled: () => {
-			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] });
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 		},
-	});
+	})
 
 	return (
 		<AnimatePresence mode="wait">
@@ -569,8 +554,8 @@ export function AddMemoryView({
 				<Dialog
 					key="add-memory-dialog"
 					onOpenChange={(open) => {
-						setShowAddDialog(open);
-						if (!open) onClose?.();
+						setShowAddDialog(open)
+						if (!open) onClose?.()
 					}}
 					open={showAddDialog}
 				>
@@ -597,26 +582,26 @@ export function AddMemoryView({
 										<div className="bg-white/5 p-1 h-10 sm:h-8 rounded-md flex overflow-x-auto">
 											<TabButton
 												icon={Brain}
-												label="Note"
 												isActive={activeTab === "note"}
+												label="Note"
 												onClick={() => setActiveTab("note")}
 											/>
 											<TabButton
 												icon={LinkIcon}
-												label="Link"
 												isActive={activeTab === "link"}
+												label="Link"
 												onClick={() => setActiveTab("link")}
 											/>
 											<TabButton
 												icon={FileIcon}
-												label="File"
 												isActive={activeTab === "file"}
+												label="File"
 												onClick={() => setActiveTab("file")}
 											/>
 											<TabButton
 												icon={PlugIcon}
-												label="Connect"
 												isActive={activeTab === "connect"}
+												label="Connect"
 												onClick={() => setActiveTab("connect")}
 											/>
 										</div>
@@ -629,9 +614,9 @@ export function AddMemoryView({
 									<div className="space-y-4">
 										<form
 											onSubmit={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												addContentForm.handleSubmit();
+												e.preventDefault()
+												e.stopPropagation()
+												addContentForm.handleSubmit()
 											}}
 										>
 											<div className="grid gap-4">
@@ -647,9 +632,9 @@ export function AddMemoryView({
 														validators={{
 															onChange: ({ value }) => {
 																if (!value || value.trim() === "") {
-																	return "Note is required";
+																	return "Note is required"
 																}
-																return undefined;
+																return undefined
 															},
 														}}
 													>
@@ -729,9 +714,9 @@ export function AddMemoryView({
 
 												<ActionButtons
 													onCancel={() => {
-														setShowAddDialog(false);
-														onClose?.();
-														addContentForm.reset();
+														setShowAddDialog(false)
+														onClose?.()
+														addContentForm.reset()
 													}}
 													submitText="Add Note"
 													submitIcon={Plus}
@@ -747,9 +732,9 @@ export function AddMemoryView({
 									<div className="space-y-4">
 										<form
 											onSubmit={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												addContentForm.handleSubmit();
+												e.preventDefault()
+												e.stopPropagation()
+												addContentForm.handleSubmit()
 											}}
 										>
 											<div className="grid gap-4">
@@ -771,13 +756,13 @@ export function AddMemoryView({
 														validators={{
 															onChange: ({ value }) => {
 																if (!value || value.trim() === "") {
-																	return "Link is required";
+																	return "Link is required"
 																}
 																try {
-																	new URL(value);
-																	return undefined;
+																	new URL(value)
+																	return undefined
 																} catch {
-																	return "Please enter a valid link";
+																	return "Please enter a valid link"
 																}
 															},
 														}}
@@ -855,9 +840,9 @@ export function AddMemoryView({
 
 												<ActionButtons
 													onCancel={() => {
-														setShowAddDialog(false);
-														onClose?.();
-														addContentForm.reset();
+														setShowAddDialog(false)
+														onClose?.()
+														addContentForm.reset()
 													}}
 													submitText="Add Link"
 													submitIcon={Plus}
@@ -873,9 +858,9 @@ export function AddMemoryView({
 									<div className="space-y-4">
 										<form
 											onSubmit={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												fileUploadForm.handleSubmit();
+												e.preventDefault()
+												e.stopPropagation()
+												fileUploadForm.handleSubmit()
 											}}
 										>
 											<div className="grid gap-4">
@@ -1007,10 +992,10 @@ export function AddMemoryView({
 
 												<ActionButtons
 													onCancel={() => {
-														setShowAddDialog(false);
-														onClose?.();
-														fileUploadForm.reset();
-														setSelectedFiles([]);
+														setShowAddDialog(false)
+														onClose?.()
+														fileUploadForm.reset()
+														setSelectedFiles([])
 													}}
 													submitText="Upload File"
 													submitIcon={UploadIcon}
@@ -1080,8 +1065,8 @@ export function AddMemoryView({
 									<Button
 										className="bg-white/5 hover:bg-white/10 border-white/10 text-white w-full sm:w-auto"
 										onClick={() => {
-											setShowCreateProjectDialog(false);
-											setNewProjectName("");
+											setShowCreateProjectDialog(false)
+											setNewProjectName("")
 										}}
 										type="button"
 										variant="outline"
@@ -1118,19 +1103,19 @@ export function AddMemoryView({
 				</Dialog>
 			)}
 		</AnimatePresence>
-	);
+	)
 }
 
 export function AddMemoryExpandedView() {
-	const [showDialog, setShowDialog] = useState(false);
+	const [showDialog, setShowDialog] = useState(false)
 	const [selectedTab, setSelectedTab] = useState<
 		"note" | "link" | "file" | "connect"
-	>("note");
+	>("note")
 
 	const handleOpenDialog = (tab: "note" | "link" | "file" | "connect") => {
-		setSelectedTab(tab);
-		setShowDialog(true);
-	};
+		setSelectedTab(tab)
+		setShowDialog(true)
+	}
 
 	return (
 		<>
@@ -1201,5 +1186,5 @@ export function AddMemoryExpandedView() {
 				/>
 			)}
 		</>
-	);
+	)
 }
