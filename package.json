@@ -40,7 +40,7 @@
     "drizzle-zod": "~0.7.1",
     "file-type": "^21.0.0",
     "hono-openapi": "^0.4.8",
-    "llm-bridge": "1.0.8",
+
     "nanoid": "^5.1.5",
     "neverthrow": "^8.2.0",
     "pg": "^8.16.3",

@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { useCustomer } from "autumn-js/react"
-import { $fetch } from "./api"
 import { toast } from "sonner"
-import type { DocumentsWithMemoriesResponseSchema } from "../validation/api"
 import type { z } from "zod"
+import type { DocumentsWithMemoriesResponseSchema } from "../validation/api"
+import { $fetch } from "./api"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -98,7 +98,7 @@ export const useDeleteDocument = (selectedProject: string) => {
 	return useMutation({
 		mutationFn: async (documentId: string) => {
 			// context for LLM: delete/memories/:documentId is documents delete endpoint not memories delete endpoint
-			const response = await $fetch(`@delete/memories/${documentId}`)
+			const response = await $fetch(`@delete/documents/${documentId}`)
 			if (response.error) {
 				throw new Error(response.error?.message || "Failed to delete document")
 			}

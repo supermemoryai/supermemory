@@ -37,7 +37,7 @@ This is a **Turbo monorepo** containing multiple applications and shared package
 The API serves as the core backend with these key features:
 
 **Key API Routes**
-- `/v3/memories` - CRUD operations for documents/memories
+- `/v3/documents` - CRUD operations for documents/memories
 - `/v3/search` - Semantic search across indexed content
 - `/v3/connections` - External service integrations (Google Drive, Notion, OneDrive)
 - `/v3/settings` - Organization and user settings

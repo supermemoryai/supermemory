@@ -33,6 +33,7 @@ import {
 	UploadIcon,
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
+import dynamic from "next/dynamic"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -43,7 +44,6 @@ import { ActionButtons } from "./action-buttons"
 import { MemoryUsageRing } from "./memory-usage-ring"
 import { ProjectSelection } from "./project-selection"
 import { TabButton } from "./tab-button"
-import dynamic from "next/dynamic"
 
 const TextEditor = dynamic(
 	() => import("./text-editor").then((mod) => ({ default: mod.TextEditor })),
@@ -236,7 +236,7 @@ export function AddMemoryView({
 
 			const processingPromise = (async () => {
 				// First, create the memory
-				const response = await $fetch("@post/memories", {
+				const response = await $fetch("@post/documents", {
 					body: {
 						content: content,
 						containerTags: [project],
@@ -262,7 +262,7 @@ export function AddMemoryView({
 					while (attempts < maxAttempts) {
 						try {
 							const memory = await $fetch<{ status: string; content: string }>(
-								"@get/memories/" + memoryId,
+								`@get/documents/${memoryId}`,
 							)
 
 							if (memory.error) {
@@ -438,7 +438,7 @@ export function AddMemoryView({
 			formData.append("containerTags", JSON.stringify([project]))
 
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/memories/file`,
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,
 				{
 					method: "POST",
 					body: formData,
@@ -455,7 +455,7 @@ export function AddMemoryView({
 
 			// If we have metadata, we can update the document after creation
 			if (title || description) {
-				await $fetch(`@patch/memories/${data.id}`, {
+				await $fetch(`@patch/documents/${data.id}`, {
 					body: {
 						metadata: {
 							...(title && { title }),
@@ -648,12 +648,12 @@ export function AddMemoryView({
 																	}`}
 																>
 																	<TextEditor
-																		value={state.value}
-																		onChange={handleChange}
-																		onBlur={handleBlur}
-																		placeholder="Write your note here..."
-																		disabled={addContentMutation.isPending}
 																		className="text-white"
+																		disabled={addContentMutation.isPending}
+																		onBlur={handleBlur}
+																		onChange={handleChange}
+																		placeholder="Write your note here..."
+																		value={state.value}
 																	/>
 																</div>
 																{state.meta.errors.length > 0 && (
@@ -692,36 +692,36 @@ export function AddMemoryView({
 														<addContentForm.Field name="project">
 															{({ state, handleChange }) => (
 																<ProjectSelection
-																	projects={projects}
-																	selectedProject={state.value}
-																	onProjectChange={handleChange}
+																	disabled={addContentMutation.isPending}
+																	id="note-project"
+																	isLoading={isLoadingProjects}
 																	onCreateProject={() =>
 																		setShowCreateProjectDialog(true)
 																	}
-																	disabled={addContentMutation.isPending}
-																	isLoading={isLoadingProjects}
-																	id="note-project"
+																	onProjectChange={handleChange}
+																	projects={projects}
+																	selectedProject={state.value}
 																/>
 															)}
 														</addContentForm.Field>
 													</motion.div>
 
 													<MemoryUsageRing
-														memoriesUsed={memoriesUsed}
 														memoriesLimit={memoriesLimit}
+														memoriesUsed={memoriesUsed}
 													/>
 												</div>
 
 												<ActionButtons
+													isSubmitDisabled={!addContentForm.state.canSubmit}
+													isSubmitting={addContentMutation.isPending}
 													onCancel={() => {
 														setShowAddDialog(false)
 														onClose?.()
 														addContentForm.reset()
 													}}
-													submitText="Add Note"
 													submitIcon={Plus}
-													isSubmitting={addContentMutation.isPending}
-													isSubmitDisabled={!addContentForm.state.canSubmit}
+													submitText="Add Note"
 												/>
 											</div>
 										</form>
@@ -818,36 +818,36 @@ export function AddMemoryView({
 														<addContentForm.Field name="project">
 															{({ state, handleChange }) => (
 																<ProjectSelection
-																	projects={projects}
-																	selectedProject={state.value}
-																	onProjectChange={handleChange}
+																	disabled={addContentMutation.isPending}
+																	id="link-project-2"
+																	isLoading={isLoadingProjects}
 																	onCreateProject={() =>
 																		setShowCreateProjectDialog(true)
 																	}
-																	disabled={addContentMutation.isPending}
-																	isLoading={isLoadingProjects}
-																	id="link-project-2"
+																	onProjectChange={handleChange}
+																	projects={projects}
+																	selectedProject={state.value}
 																/>
 															)}
 														</addContentForm.Field>
 													</motion.div>
 
 													<MemoryUsageRing
-														memoriesUsed={memoriesUsed}
 														memoriesLimit={memoriesLimit}
+														memoriesUsed={memoriesUsed}
 													/>
 												</div>
 
 												<ActionButtons
+													isSubmitDisabled={!addContentForm.state.canSubmit}
+													isSubmitting={addContentMutation.isPending}
 													onCancel={() => {
 														setShowAddDialog(false)
 														onClose?.()
 														addContentForm.reset()
 													}}
-													submitText="Add Link"
 													submitIcon={Plus}
-													isSubmitting={addContentMutation.isPending}
-													isSubmitDisabled={!addContentForm.state.canSubmit}
+													submitText="Add Link"
 												/>
 											</div>
 										</form>
@@ -970,37 +970,37 @@ export function AddMemoryView({
 														<fileUploadForm.Field name="project">
 															{({ state, handleChange }) => (
 																<ProjectSelection
-																	projects={projects}
-																	selectedProject={state.value}
-																	onProjectChange={handleChange}
+																	disabled={fileUploadMutation.isPending}
+																	id="file-project"
+																	isLoading={isLoadingProjects}
 																	onCreateProject={() =>
 																		setShowCreateProjectDialog(true)
 																	}
-																	disabled={fileUploadMutation.isPending}
-																	isLoading={isLoadingProjects}
-																	id="file-project"
+																	onProjectChange={handleChange}
+																	projects={projects}
+																	selectedProject={state.value}
 																/>
 															)}
 														</fileUploadForm.Field>
 													</motion.div>
 
 													<MemoryUsageRing
-														memoriesUsed={memoriesUsed}
 														memoriesLimit={memoriesLimit}
+														memoriesUsed={memoriesUsed}
 													/>
 												</div>
 
 												<ActionButtons
+													isSubmitDisabled={selectedFiles.length === 0}
+													isSubmitting={fileUploadMutation.isPending}
 													onCancel={() => {
 														setShowAddDialog(false)
 														onClose?.()
 														fileUploadForm.reset()
 														setSelectedFiles([])
 													}}
-													submitText="Upload File"
 													submitIcon={UploadIcon}
-													isSubmitting={fileUploadMutation.isPending}
-													isSubmitDisabled={selectedFiles.length === 0}
+													submitText="Upload File"
 												/>
 											</div>
 										</form>
@@ -1058,9 +1058,9 @@ export function AddMemoryView({
 							</div>
 							<DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-0">
 								<motion.div
+									className="w-full sm:w-auto"
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.95 }}
-									className="w-full sm:w-auto"
 								>
 									<Button
 										className="bg-white/5 hover:bg-white/10 border-white/10 text-white w-full sm:w-auto"
@@ -1075,9 +1075,9 @@ export function AddMemoryView({
 									</Button>
 								</motion.div>
 								<motion.div
+									className="w-full sm:w-auto"
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.95 }}
-									className="w-full sm:w-auto"
 								>
 									<Button
 										className="bg-white/10 hover:bg-white/20 text-white border-white/20 w-full sm:w-auto"

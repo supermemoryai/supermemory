@@ -1,9 +1,9 @@
-import { $fetch } from "@lib/api";
-import { authClient } from "@lib/auth";
-import { useAuth } from "@lib/auth-context";
-import { useForm } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
+import { $fetch } from "@lib/api"
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
+import { useForm } from "@tanstack/react-form"
+import { useMutation } from "@tanstack/react-query"
+import { Button } from "@ui/components/button"
 import {
 	Dialog,
 	DialogContent,
@@ -11,18 +11,18 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@ui/components/dialog";
-import { Input } from "@ui/components/input";
-import { CopyableCell } from "@ui/copyable-cell";
-import { Loader2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import Image from "next/image";
-import { generateSlug } from "random-word-slugs";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { z } from "zod/v4";
-import { analytics } from "@/lib/analytics";
-import { InstallationDialogContent } from "./installation-dialog-content";
+} from "@ui/components/dialog"
+import { Input } from "@ui/components/input"
+import { CopyableCell } from "@ui/copyable-cell"
+import { Loader2 } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import Image from "next/image"
+import { generateSlug } from "random-word-slugs"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { z } from "zod/v4"
+import { analytics } from "@/lib/analytics"
+import { InstallationDialogContent } from "./installation-dialog-content"
 
 // Validation schemas
 const mcpMigrationSchema = z.object({
@@ -33,56 +33,56 @@ const mcpMigrationSchema = z.object({
 			/^https:\/\/mcp\.supermemory\.ai\/[^/]+\/sse$/,
 			"Link must be in format: https://mcp.supermemory.ai/userId/sse",
 		),
-});
+})
 
 export function MCPView() {
-	const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false);
-	const projectId = localStorage.getItem("selectedProject") ?? "default";
-	const { org } = useAuth();
-	const [apiKey, setApiKey] = useState<string>();
-	const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+	const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false)
+	const projectId = localStorage.getItem("selectedProject") ?? "default"
+	const { org } = useAuth()
+	const [apiKey, setApiKey] = useState<string>()
+	const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false)
 
 	useEffect(() => {
-		analytics.mcpViewOpened();
-	}, []);
+		analytics.mcpViewOpened()
+	}, [])
 	const apiKeyMutation = useMutation({
 		mutationFn: async () => {
-			if (apiKey) return apiKey;
+			if (apiKey) return apiKey
 			const res = await authClient.apiKey.create({
 				metadata: {
 					organizationId: org?.id,
 				},
 				name: generateSlug(),
 				prefix: `sm_${org?.id}_`,
-			});
-			return res.key;
+			})
+			return res.key
 		},
 		onSuccess: (data) => {
-			setApiKey(data);
-			setIsInstallDialogOpen(true);
+			setApiKey(data)
+			setIsInstallDialogOpen(true)
 		},
-	});
+	})
 
 	// Form for MCP migration
 	const mcpMigrationForm = useForm({
 		defaultValues: { url: "" },
 		onSubmit: async ({ value, formApi }) => {
-			const userId = extractUserIdFromMCPUrl(value.url);
+			const userId = extractUserIdFromMCPUrl(value.url)
 			if (userId) {
-				migrateMCPMutation.mutate({ userId, projectId });
-				formApi.reset();
+				migrateMCPMutation.mutate({ userId, projectId })
+				formApi.reset()
 			}
 		},
 		validators: {
 			onChange: mcpMigrationSchema,
 		},
-	});
+	})
 
 	const extractUserIdFromMCPUrl = (url: string): string | null => {
-		const regex = /^https:\/\/mcp\.supermemory\.ai\/([^/]+)\/sse$/;
-		const match = url.trim().match(regex);
-		return match?.[1] || null;
-	};
+		const regex = /^https:\/\/mcp\.supermemory\.ai\/([^/]+)\/sse$/
+		const match = url.trim().match(regex)
+		return match?.[1] || null
+	}
 
 	// Migrate MCP mutation
 	const migrateMCPMutation = useMutation({
@@ -90,33 +90,33 @@ export function MCPView() {
 			userId,
 			projectId,
 		}: {
-			userId: string;
-			projectId: string;
+			userId: string
+			projectId: string
 		}) => {
-			const response = await $fetch("@post/memories/migrate-mcp", {
+			const response = await $fetch("@post/documents/migrate-mcp", {
 				body: { userId, projectId },
-			});
+			})
 
 			if (response.error) {
 				throw new Error(
 					response.error?.message || "Failed to migrate documents",
-				);
+				)
 			}
 
-			return response.data;
+			return response.data
 		},
 		onSuccess: (data) => {
 			toast.success("Migration completed!", {
 				description: `Successfully migrated ${data?.migratedCount} documents`,
-			});
-			setIsMigrateDialogOpen(false);
+			})
+			setIsMigrateDialogOpen(false)
 		},
 		onError: (error) => {
 			toast.error("Migration failed", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	return (
 		<div className="space-y-6">
@@ -155,9 +155,9 @@ export function MCPView() {
 							<Button
 								disabled={apiKeyMutation.isPending}
 								onClick={(e) => {
-									e.preventDefault();
-									e.stopPropagation();
-									apiKeyMutation.mutate();
+									e.preventDefault()
+									e.stopPropagation()
+									apiKeyMutation.mutate()
 								}}
 							>
 								Install Now
@@ -213,9 +213,9 @@ export function MCPView() {
 								</DialogHeader>
 								<form
 									onSubmit={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-										mcpMigrationForm.handleSubmit();
+										e.preventDefault()
+										e.stopPropagation()
+										mcpMigrationForm.handleSubmit()
 									}}
 								>
 									<div className="grid gap-4">
@@ -268,8 +268,8 @@ export function MCPView() {
 											<Button
 												className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 												onClick={() => {
-													setIsMigrateDialogOpen(false);
-													mcpMigrationForm.reset();
+													setIsMigrateDialogOpen(false)
+													mcpMigrationForm.reset()
 												}}
 												type="button"
 												variant="outline"
@@ -307,5 +307,5 @@ export function MCPView() {
 				)}
 			</AnimatePresence>
 		</div>
-	);
+	)
 }

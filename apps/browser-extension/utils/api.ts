@@ -104,7 +104,7 @@ export async function setDefaultProject(project: Project): Promise<void> {
  */
 export async function saveMemory(payload: MemoryPayload): Promise<unknown> {
 	try {
-		const response = await makeAuthenticatedRequest<unknown>("/v3/memories", {
+		const response = await makeAuthenticatedRequest<unknown>("/v3/documents", {
 			method: "POST",
 			body: JSON.stringify(payload),
 		})
@@ -139,7 +139,7 @@ export async function saveAllTweets(
 ): Promise<unknown> {
 	try {
 		const response = await makeAuthenticatedRequest<unknown>(
-			"/v3/memories/batch",
+			"/v3/documents/batch",
 			{
 				method: "POST",
 				body: JSON.stringify({

@@ -127,11 +127,11 @@ export const apiSchema = createSchema({
 		output: SettingsResponseSchema,
 	},
 	// Memory operations
-	"@post/memories": {
+	"@post/documents": {
 		input: MemoryAddSchema,
 		output: MemoryResponseSchema,
 	},
-	"@post/memories/list": {
+	"@post/documents/list": {
 		body: z
 			.object({
 				limit: z.number().optional(),
@@ -142,11 +142,11 @@ export const apiSchema = createSchema({
 			.optional(),
 		output: ListMemoriesResponseSchema,
 	},
-	"@post/memories/documents": {
+	"@post/documents/documents": {
 		input: DocumentsWithMemoriesQuerySchema,
 		output: DocumentsWithMemoriesResponseSchema,
 	},
-	"@post/memories/documents/by-ids": {
+	"@post/documents/documents/by-ids": {
 		input: z.object({
 			ids: z.array(z.string()),
 			by: z.enum(["id", "customId"]).optional(),
@@ -154,13 +154,13 @@ export const apiSchema = createSchema({
 		}),
 		output: DocumentsWithMemoriesResponseSchema,
 	},
-	"@post/memories/migrate-mcp": {
+	"@post/documents/migrate-mcp": {
 		input: MigrateMCPRequestSchema,
 		output: MigrateMCPResponseSchema,
 	},
 
 	// Delete a memory
-	"@delete/memories/:id": {
+	"@delete/documents/:id": {
 		output: z.any(), // 204 No-Content
 		params: z.object({ id: z.string() }),
 	},
@@ -200,7 +200,7 @@ export const apiSchema = createSchema({
 		output: z.object({
 			message: z.string(),
 		}),
-	}
+	},
 })
 
 export const $fetch = createFetch({
