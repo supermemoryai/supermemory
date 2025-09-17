@@ -1,4 +1,4 @@
-import posthog from "posthog-js";
+import posthog from "posthog-js"
 
 export const analytics = {
 	userSignedOut: () => posthog.capture("user_signed_out"),
@@ -7,11 +7,11 @@ export const analytics = {
 	tourSkipped: () => posthog.capture("tour_skipped"),
 
 	memoryAdded: (props: {
-		type: "note" | "link" | "file";
-		project_id?: string;
-		content_length?: number;
-		file_size?: number;
-		file_type?: string;
+		type: "note" | "link" | "file"
+		project_id?: string
+		content_length?: number
+		file_size?: number
+		file_type?: string
 	}) => posthog.capture("memory_added", props),
 
 	memoryDetailOpened: () => posthog.capture("memory_detail_opened"),
@@ -41,4 +41,6 @@ export const analytics = {
 
 	mcpViewOpened: () => posthog.capture("mcp_view_opened"),
 	mcpInstallCmdCopied: () => posthog.capture("mcp_install_cmd_copied"),
-};
+
+	extensionInstallClicked: () => posthog.capture("extension_install_clicked"),
+}

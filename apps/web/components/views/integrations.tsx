@@ -334,23 +334,53 @@ export function IntegrationsView() {
 			</div>
 
 			{/* Chrome Extension */}
-			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden opacity-75">
+			<div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
 				<div className="p-4 sm:p-5">
 					<div className="flex items-start gap-3">
 						<div className="p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
 							<ChromeIcon className="h-5 w-5 text-orange-400" />
 						</div>
-						<div className="flex-1 min-w-0">
-							<div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+						<div className="flex-1 min-w-0 mb-3">
+							<div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 mb-1">
 								<h3 className="text-white font-semibold text-base">
 									Chrome Extension
 								</h3>
-								<div className="px-2 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full flex-shrink-0 w-fit">
-									Coming Soon
-								</div>
+								<Button
+									className="text-white bg-secondary w-fit"
+									onClick={() => {
+										window.open(
+											"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
+											"_blank",
+											"noopener,noreferrer",
+										)
+										analytics.extensionInstallClicked()
+									}}
+									size="sm"
+									variant="ghost"
+								>
+									<ChromeIcon className="h-3 w-3 mr-1" />
+									Add to Chrome
+								</Button>
 							</div>
-							<p className="text-white/70 text-sm leading-relaxed">
-								Save web content with one click
+						</div>
+					</div>
+					<div className="space-y-2">
+						<div className="flex items-center gap-3">
+							<div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+							<p className="text-white/80 text-sm">
+								Save any webpage to supermemory
+							</p>
+						</div>
+						<div className="flex items-center gap-3">
+							<div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+							<p className="text-white/80 text-sm">
+								Import All your Twitter Bookmarks
+							</p>
+						</div>
+						<div className="flex items-center gap-3">
+							<div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+							<p className="text-white/80 text-sm">
+								Bring all your chatGPT memories to Supermemory
 							</p>
 						</div>
 					</div>
