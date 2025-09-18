@@ -1,19 +1,19 @@
 "use client"
 
 import { $fetch } from "@lib/api"
+import { useSession } from "@lib/auth"
+import { useMutation } from "@tanstack/react-query"
+import { Logo, LogoFull } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
 import { Input } from "@ui/components/input"
 import { GlassMenuEffect } from "@ui/other/glass-effect"
-import { useMutation } from "@tanstack/react-query"
+import { ArrowRight, CheckCircle, Upload, Zap } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Spinner } from "@/components/spinner"
-import { motion, AnimatePresence } from "motion/react"
-import { Logo, LogoFull } from "@ui/assets/Logo"
-import { ArrowRight, CheckCircle, Upload, Zap } from "lucide-react"
-import Link from "next/link"
-import { useSession } from "@lib/auth"
 
 interface MigrateMCPRequest {
 	userId: string
@@ -60,7 +60,7 @@ export default function MigrateMCPPage() {
 
 	const migrateMutation = useMutation({
 		mutationFn: async (data: MigrateMCPRequest) => {
-			const response = await $fetch("@post/memories/migrate-mcp", {
+			const response = await $fetch("@post/documents/migrate-mcp", {
 				body: data,
 			})
 
@@ -110,13 +110,13 @@ export default function MigrateMCPPage() {
 
 			{/* Top navigation */}
 			<motion.div
-				initial={{ opacity: 0, y: -20 }}
 				animate={{ opacity: 1, y: 0 }}
 				className="absolute top-0 left-0 right-0 z-10 p-6 flex items-center justify-between"
+				initial={{ opacity: 0, y: -20 }}
 			>
 				<Link
-					href="/"
 					className="pointer-events-auto hover:opacity-80 transition-opacity"
+					href="/"
 				>
 					<LogoFull className="h-8 hidden md:block text-white" />
 					<Logo className="h-8 md:hidden text-white" />
@@ -126,15 +126,15 @@ export default function MigrateMCPPage() {
 			{/* Main content */}
 			<div className="flex items-center justify-center min-h-screen p-4 relative z-10">
 				<motion.div
-					initial={{ opacity: 0, y: 20, scale: 0.95 }}
 					animate={{ opacity: 1, y: 0, scale: 1 }}
+					className="w-full max-w-lg relative"
+					initial={{ opacity: 0, y: 20, scale: 0.95 }}
 					transition={{
 						type: "spring",
 						stiffness: 300,
 						damping: 25,
 						delay: 0.1,
 					}}
-					className="w-full max-w-lg relative"
 				>
 					{/* Glass card with effect */}
 					<div className="relative rounded-2xl overflow-hidden">
@@ -143,10 +143,10 @@ export default function MigrateMCPPage() {
 						<div className="relative z-10 p-8 md:p-10">
 							{/* Header */}
 							<motion.div
-								initial={{ opacity: 0, y: 10 }}
 								animate={{ opacity: 1, y: 0 }}
-								transition={{ delay: 0.2 }}
 								className="text-center mb-8"
+								initial={{ opacity: 0, y: 10 }}
+								transition={{ delay: 0.2 }}
 							>
 								<div className="flex items-center justify-center mb-4">
 									<div className="relative">
@@ -166,49 +166,49 @@ export default function MigrateMCPPage() {
 
 							{/* Form */}
 							<motion.form
-								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
-								transition={{ delay: 0.3 }}
-								onSubmit={handleSubmit}
 								className="space-y-6"
+								initial={{ opacity: 0, y: 20 }}
+								onSubmit={handleSubmit}
+								transition={{ delay: 0.3 }}
 							>
 								<div className="space-y-2">
 									<label
-										htmlFor="mcpUrl"
 										className="text-sm font-medium text-slate-200 flex items-center gap-2"
+										htmlFor="mcpUrl"
 									>
 										<Upload className="w-4 h-4" />
 										MCP URL
 									</label>
 									<div className="relative">
 										<Input
-											id="mcpUrl"
-											type="url"
-											value={mcpUrl}
-											onChange={(e) => setMcpUrl(e.target.value)}
-											placeholder="https://mcp.supermemory.ai/userId/sse"
 											className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 pl-4 pr-4 py-3 rounded-xl"
 											disabled={migrateMutation.isPending}
+											id="mcpUrl"
+											onChange={(e) => setMcpUrl(e.target.value)}
+											placeholder="https://mcp.supermemory.ai/userId/sse"
+											type="url"
+											value={mcpUrl}
 										/>
 									</div>
 								</div>
 
 								<div className="space-y-2">
 									<label
-										htmlFor="projectId"
 										className="text-sm font-medium text-slate-200"
+										htmlFor="projectId"
 									>
 										Project ID
 									</label>
 									<div className="relative">
 										<Input
-											id="projectId"
-											type="text"
-											value={projectId}
-											onChange={(e) => setProjectId(e.target.value)}
-											placeholder="Project ID (default: 'default')"
 											className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 pl-4 pr-4 py-3 rounded-xl"
 											disabled={migrateMutation.isPending}
+											id="projectId"
+											onChange={(e) => setProjectId(e.target.value)}
+											placeholder="Project ID (default: 'default')"
+											type="text"
+											value={projectId}
 										/>
 									</div>
 								</div>
@@ -218,12 +218,12 @@ export default function MigrateMCPPage() {
 									whileTap={{ scale: 0.99 }}
 								>
 									<Button
-										type="submit"
 										className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 py-3 rounded-xl font-medium shadow-lg hover:shadow-blue-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 										disabled={
 											migrateMutation.isPending || !getUserIdFromUrl(mcpUrl)
 										}
 										size="lg"
+										type="submit"
 									>
 										{migrateMutation.isPending ? (
 											<>
@@ -244,12 +244,12 @@ export default function MigrateMCPPage() {
 							<AnimatePresence mode="wait">
 								{migrateMutation.isSuccess && migrateMutation.data && (
 									<motion.div
-										key="success"
-										initial={{ opacity: 0, y: 20, scale: 0.95 }}
 										animate={{ opacity: 1, y: 0, scale: 1 }}
-										exit={{ opacity: 0, y: -10, scale: 0.95 }}
-										transition={{ type: "spring", stiffness: 300, damping: 25 }}
 										className="mt-6"
+										exit={{ opacity: 0, y: -10, scale: 0.95 }}
+										initial={{ opacity: 0, y: 20, scale: 0.95 }}
+										key="success"
+										transition={{ type: "spring", stiffness: 300, damping: 25 }}
 									>
 										<div className="relative rounded-xl overflow-hidden">
 											<div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10" />
@@ -275,8 +275,8 @@ export default function MigrateMCPPage() {
 																	{migrateMutation.data.documentIds.map(
 																		(id) => (
 																			<code
-																				key={id}
 																				className="block text-xs bg-black/30 px-3 py-2 rounded-lg border border-green-500/10 text-green-200"
+																				key={id}
 																			>
 																				{id}
 																			</code>
@@ -293,12 +293,12 @@ export default function MigrateMCPPage() {
 
 								{migrateMutation.isError && (
 									<motion.div
-										key="error"
-										initial={{ opacity: 0, y: 20, scale: 0.95 }}
 										animate={{ opacity: 1, y: 0, scale: 1 }}
-										exit={{ opacity: 0, y: -10, scale: 0.95 }}
-										transition={{ type: "spring", stiffness: 300, damping: 25 }}
 										className="mt-6"
+										exit={{ opacity: 0, y: -10, scale: 0.95 }}
+										initial={{ opacity: 0, y: 20, scale: 0.95 }}
+										key="error"
+										transition={{ type: "spring", stiffness: 300, damping: 25 }}
 									>
 										<div className="relative rounded-xl overflow-hidden">
 											<div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10" />
