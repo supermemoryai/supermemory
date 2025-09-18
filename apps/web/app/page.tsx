@@ -243,7 +243,7 @@ const MemoryGraphPage = () => {
 		queryKey: ["documents-with-memories", selectedProject],
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
-			const response = await $fetch("@post/memories/documents", {
+			const response = await $fetch("@post/documents/documents", {
 				body: {
 					page: pageParam as number,
 					limit: (pageParam as number) === 1 ? (IS_DEV ? 500 : 500) : PAGE_SIZE,
