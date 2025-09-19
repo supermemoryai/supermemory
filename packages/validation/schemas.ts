@@ -1,12 +1,12 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const MetadataSchema = z.record(
 	z.union([z.string(), z.number(), z.boolean()]),
-)
-export type Metadata = z.infer<typeof MetadataSchema>
+);
+export type Metadata = z.infer<typeof MetadataSchema>;
 
-export const VisibilityEnum = z.enum(["public", "private", "unlisted"])
-export type Visibility = z.infer<typeof VisibilityEnum>
+export const VisibilityEnum = z.enum(["public", "private", "unlisted"]);
+export type Visibility = z.infer<typeof VisibilityEnum>;
 
 export const DocumentTypeEnum = z.enum([
 	"text",
@@ -20,8 +20,8 @@ export const DocumentTypeEnum = z.enum([
 	"notion_doc",
 	"webpage",
 	"onedrive",
-])
-export type DocumentType = z.infer<typeof DocumentTypeEnum>
+]);
+export type DocumentType = z.infer<typeof DocumentTypeEnum>;
 
 export const DocumentStatusEnum = z.enum([
 	"unknown",
@@ -32,8 +32,8 @@ export const DocumentStatusEnum = z.enum([
 	"indexing",
 	"done",
 	"failed",
-])
-export type DocumentStatus = z.infer<typeof DocumentStatusEnum>
+]);
+export type DocumentStatus = z.infer<typeof DocumentStatusEnum>;
 
 export const ProcessingStepSchema = z.object({
 	name: z.string(),
@@ -43,8 +43,8 @@ export const ProcessingStepSchema = z.object({
 	error: z.string().optional(),
 	metadata: z.record(z.unknown()).optional(),
 	finalStatus: z.enum(["done", "failed"]).optional(),
-})
-export type ProcessingStep = z.infer<typeof ProcessingStepSchema>
+});
+export type ProcessingStep = z.infer<typeof ProcessingStepSchema>;
 
 export const ProcessingMetadataSchema = z.object({
 	startTime: z.number(),
@@ -55,8 +55,8 @@ export const ProcessingMetadataSchema = z.object({
 	chunkingStrategy: z.string().optional(),
 	tokenCount: z.number().optional(),
 	steps: z.array(ProcessingStepSchema),
-})
-export type ProcessingMetadata = z.infer<typeof ProcessingMetadataSchema>
+});
+export type ProcessingMetadata = z.infer<typeof ProcessingMetadataSchema>;
 
 export const DocumentSchema = z.object({
 	id: z.string(),
@@ -97,11 +97,11 @@ export const DocumentSchema = z.object({
 	// Timestamps
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
-})
-export type Document = z.infer<typeof DocumentSchema>
+});
+export type Document = z.infer<typeof DocumentSchema>;
 
-export const ChunkTypeEnum = z.enum(["text", "image"])
-export type ChunkType = z.infer<typeof ChunkTypeEnum>
+export const ChunkTypeEnum = z.enum(["text", "image"]);
+export type ChunkType = z.infer<typeof ChunkTypeEnum>;
 
 export const ChunkSchema = z.object({
 	id: z.string(),
@@ -120,15 +120,15 @@ export const ChunkSchema = z.object({
 	matryokshaEmbeddingModel: z.string().nullable().optional(),
 
 	createdAt: z.coerce.date(),
-})
-export type Chunk = z.infer<typeof ChunkSchema>
+});
+export type Chunk = z.infer<typeof ChunkSchema>;
 
 export const ConnectionProviderEnum = z.enum([
 	"notion",
 	"google-drive",
 	"onedrive",
-])
-export type ConnectionProvider = z.infer<typeof ConnectionProviderEnum>
+]);
+export type ConnectionProvider = z.infer<typeof ConnectionProviderEnum>;
 
 export const ConnectionStateSchema = z.object({
 	stateToken: z.string(),
@@ -142,8 +142,8 @@ export const ConnectionStateSchema = z.object({
 	containerTags: z.array(z.string()).nullable().optional(),
 	createdAt: z.coerce.date(),
 	expiresAt: z.coerce.date().nullable().optional(),
-})
-export type ConnectionState = z.infer<typeof ConnectionStateSchema>
+});
+export type ConnectionState = z.infer<typeof ConnectionStateSchema>;
 
 export const ConnectionSchema = z.object({
 	id: z.string(),
@@ -163,8 +163,8 @@ export const ConnectionSchema = z.object({
 	metadata: z.record(z.unknown()),
 
 	createdAt: z.coerce.date(),
-})
-export type Connection = z.infer<typeof ConnectionSchema>
+});
+export type Connection = z.infer<typeof ConnectionSchema>;
 
 export const RequestTypeEnum = z.enum([
 	"add",
@@ -175,8 +175,8 @@ export const RequestTypeEnum = z.enum([
 	"delete",
 	"chat",
 	"search_v4",
-])
-export type RequestType = z.infer<typeof RequestTypeEnum>
+]);
+export type RequestType = z.infer<typeof RequestTypeEnum>;
 
 export const ApiRequestSchema = z.object({
 	id: z.string(),
@@ -212,8 +212,8 @@ export const ApiRequestSchema = z.object({
 	origin: z.string().default("api"),
 
 	createdAt: z.coerce.date(),
-})
-export type ApiRequest = z.infer<typeof ApiRequestSchema>
+});
+export type ApiRequest = z.infer<typeof ApiRequestSchema>;
 
 export const SpaceSchema = z.object({
 	id: z.string(),
@@ -233,11 +233,11 @@ export const SpaceSchema = z.object({
 
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
-})
-export type Space = z.infer<typeof SpaceSchema>
+});
+export type Space = z.infer<typeof SpaceSchema>;
 
-export const MemoryRelationEnum = z.enum(["updates", "extends", "derives"])
-export type MemoryRelation = z.infer<typeof MemoryRelationEnum>
+export const MemoryRelationEnum = z.enum(["updates", "extends", "derives"]);
+export type MemoryRelation = z.infer<typeof MemoryRelationEnum>;
 
 export const MemoryEntrySchema = z.object({
 	id: z.string(),
@@ -274,14 +274,14 @@ export const MemoryEntrySchema = z.object({
 
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
-})
-export type MemoryEntry = z.infer<typeof MemoryEntrySchema>
+});
+export type MemoryEntry = z.infer<typeof MemoryEntrySchema>;
 
 export const DocumentsToSpacesSchema = z.object({
 	documentId: z.string(),
 	spaceId: z.string(),
-})
-export type DocumentsToSpaces = z.infer<typeof DocumentsToSpacesSchema>
+});
+export type DocumentsToSpaces = z.infer<typeof DocumentsToSpacesSchema>;
 
 export const MemoryDocumentSourceSchema = z.object({
 	memoryEntryId: z.string(),
@@ -289,11 +289,11 @@ export const MemoryDocumentSourceSchema = z.object({
 	relevanceScore: z.number().default(100),
 	metadata: z.record(z.unknown()).nullable().optional(),
 	addedAt: z.coerce.date(),
-})
-export type MemoryDocumentSource = z.infer<typeof MemoryDocumentSourceSchema>
+});
+export type MemoryDocumentSource = z.infer<typeof MemoryDocumentSourceSchema>;
 
-export const SpaceRoleEnum = z.enum(["owner", "admin", "editor", "viewer"])
-export type SpaceRole = z.infer<typeof SpaceRoleEnum>
+export const SpaceRoleEnum = z.enum(["owner", "admin", "editor", "viewer"]);
+export type SpaceRole = z.infer<typeof SpaceRoleEnum>;
 
 export const SpacesToMembersSchema = z.object({
 	spaceId: z.string(),
@@ -302,8 +302,8 @@ export const SpacesToMembersSchema = z.object({
 	metadata: MetadataSchema.nullable().optional(),
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
-})
-export type SpacesToMembers = z.infer<typeof SpacesToMembersSchema>
+});
+export type SpacesToMembers = z.infer<typeof SpacesToMembersSchema>;
 
 export const OrganizationSettingsSchema = z.object({
 	id: z.string(),
@@ -331,8 +331,8 @@ export const OrganizationSettingsSchema = z.object({
 	onedriveClientSecret: z.string().nullable().optional(),
 
 	updatedAt: z.coerce.date(),
-})
-export type OrganizationSettings = z.infer<typeof OrganizationSettingsSchema>
+});
+export type OrganizationSettings = z.infer<typeof OrganizationSettingsSchema>;
 
 export const schemas = {
 	// Base types
@@ -368,4 +368,4 @@ export const schemas = {
 
 	// Auth
 	OrganizationSettingsSchema,
-} as const
+} as const;
