@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@repo/ui/components/button";
+import { Button } from "@repo/ui/components/button"
 import {
 	Dialog,
 	DialogContent,
@@ -8,40 +8,40 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@repo/ui/components/dialog";
-import { Input } from "@repo/ui/components/input";
-import { Label } from "@repo/ui/components/label";
-import { Loader2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
-import { useProjectMutations } from "@/hooks/use-project-mutations";
+} from "@repo/ui/components/dialog"
+import { Input } from "@repo/ui/components/input"
+import { Label } from "@repo/ui/components/label"
+import { Loader2 } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useState } from "react"
+import { useProjectMutations } from "@/hooks/use-project-mutations"
 
 interface CreateProjectDialogProps {
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
+	open: boolean
+	onOpenChange: (open: boolean) => void
 }
 
 export function CreateProjectDialog({
 	open,
 	onOpenChange,
 }: CreateProjectDialogProps) {
-	const [projectName, setProjectName] = useState("");
-	const { createProjectMutation } = useProjectMutations();
+	const [projectName, setProjectName] = useState("")
+	const { createProjectMutation } = useProjectMutations()
 
 	const handleClose = () => {
-		onOpenChange(false);
-		setProjectName("");
-	};
+		onOpenChange(false)
+		setProjectName("")
+	}
 
 	const handleCreate = () => {
 		if (projectName.trim()) {
 			createProjectMutation.mutate(projectName, {
 				onSuccess: () => {
-					handleClose();
+					handleClose()
 				},
-			});
+			})
 		}
-	};
+	}
 
 	return (
 		<AnimatePresence>
@@ -73,7 +73,7 @@ export function CreateProjectDialog({
 										onChange={(e) => setProjectName(e.target.value)}
 										onKeyDown={(e) => {
 											if (e.key === "Enter" && projectName.trim()) {
-												handleCreate();
+												handleCreate()
 											}
 										}}
 										placeholder="My Awesome Project"
@@ -126,5 +126,5 @@ export function CreateProjectDialog({
 				</Dialog>
 			)}
 		</AnimatePresence>
-	);
+	)
 }
