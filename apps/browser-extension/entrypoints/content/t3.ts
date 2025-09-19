@@ -5,204 +5,206 @@ import {
 	POSTHOG_EVENT_KEY,
 	STORAGE_KEYS,
 	UI_CONFIG,
-} from "../../utils/constants"
-import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
+} from "../../utils/constants";
+import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components";
 
-let t3DebounceTimeout: NodeJS.Timeout | null = null
-let t3RouteObserver: MutationObserver | null = null
-let t3UrlCheckInterval: NodeJS.Timeout | null = null
-let t3ObserverThrottle: NodeJS.Timeout | null = null
+let t3DebounceTimeout: NodeJS.Timeout | null = null;
+let t3RouteObserver: MutationObserver | null = null;
+let t3UrlCheckInterval: NodeJS.Timeout | null = null;
+let t3ObserverThrottle: NodeJS.Timeout | null = null;
 
 export function initializeT3() {
 	if (!DOMUtils.isOnDomain(DOMAINS.T3)) {
-		return
+		return;
 	}
 
 	if (document.body.hasAttribute("data-t3-initialized")) {
-		return
+		return;
 	}
 
 	setTimeout(() => {
-		console.log("Adding supermemory icon to T3 input")
-		addSupermemoryIconToT3Input()
-		setupT3AutoFetch()
-	}, 2000)
+		console.log("Adding supermemory icon to T3 input");
+		addSupermemoryIconToT3Input();
+		setupT3AutoFetch();
+	}, 2000);
 
-	setupT3PromptCapture()
+	setupT3PromptCapture();
 
-	setupT3RouteChangeDetection()
+	setupT3RouteChangeDetection();
 
-	document.body.setAttribute("data-t3-initialized", "true")
+	document.body.setAttribute("data-t3-initialized", "true");
 }
 
 function setupT3RouteChangeDetection() {
 	if (t3RouteObserver) {
-		t3RouteObserver.disconnect()
+		t3RouteObserver.disconnect();
 	}
 	if (t3UrlCheckInterval) {
-		clearInterval(t3UrlCheckInterval)
+		clearInterval(t3UrlCheckInterval);
 	}
 	if (t3ObserverThrottle) {
-		clearTimeout(t3ObserverThrottle)
-		t3ObserverThrottle = null
+		clearTimeout(t3ObserverThrottle);
+		t3ObserverThrottle = null;
 	}
 
-	let currentUrl = window.location.href
+	let currentUrl = window.location.href;
 
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
-			currentUrl = window.location.href
-			console.log("T3 route changed, re-adding supermemory icon")
+			currentUrl = window.location.href;
+			console.log("T3 route changed, re-adding supermemory icon");
 			setTimeout(() => {
-				addSupermemoryIconToT3Input()
-				setupT3AutoFetch()
-			}, 1000)
+				addSupermemoryIconToT3Input();
+				setupT3AutoFetch();
+			}, 1000);
 		}
-	}
+	};
 
-	t3UrlCheckInterval = setInterval(checkForRouteChange, 2000)
+	t3UrlCheckInterval = setInterval(checkForRouteChange, 2000);
 
 	t3RouteObserver = new MutationObserver((mutations) => {
 		if (t3ObserverThrottle) {
-			return
+			return;
 		}
 
-		let shouldRecheck = false
+		let shouldRecheck = false;
 		mutations.forEach((mutation) => {
 			if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
 				mutation.addedNodes.forEach((node) => {
 					if (node.nodeType === Node.ELEMENT_NODE) {
-						const element = node as Element
+						const element = node as Element;
 						if (
 							element.querySelector?.("textarea") ||
 							element.querySelector?.('div[contenteditable="true"]') ||
 							element.matches?.("textarea") ||
 							element.matches?.('div[contenteditable="true"]')
 						) {
-							shouldRecheck = true
+							shouldRecheck = true;
 						}
 					}
-				})
+				});
 			}
-		})
+		});
 
 		if (shouldRecheck) {
 			t3ObserverThrottle = setTimeout(() => {
 				try {
-					t3ObserverThrottle = null
-					addSupermemoryIconToT3Input()
-					setupT3AutoFetch()
+					t3ObserverThrottle = null;
+					addSupermemoryIconToT3Input();
+					setupT3AutoFetch();
 				} catch (error) {
-					console.error("Error in T3 observer callback:", error)
+					console.error("Error in T3 observer callback:", error);
 				}
-			}, 300)
+			}, 300);
 		}
-	})
+	});
 
 	try {
 		t3RouteObserver.observe(document.body, {
 			childList: true,
 			subtree: true,
-		})
+		});
 	} catch (error) {
-		console.error("Failed to set up T3 route observer:", error)
+		console.error("Failed to set up T3 route observer:", error);
 		if (t3UrlCheckInterval) {
-			clearInterval(t3UrlCheckInterval)
+			clearInterval(t3UrlCheckInterval);
 		}
-		t3UrlCheckInterval = setInterval(checkForRouteChange, 1000)
+		t3UrlCheckInterval = setInterval(checkForRouteChange, 1000);
 	}
 }
 
 function addSupermemoryIconToT3Input() {
 	const targetContainers = document.querySelectorAll(
 		".flex.min-w-0.items-center.gap-2.overflow-hidden",
-	)
+	);
 
 	targetContainers.forEach((container) => {
 		if (container.hasAttribute("data-supermemory-icon-added")) {
-			return
+			return;
 		}
 
 		const existingIcon = container.querySelector(
 			`#${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}`,
-		)
+		);
 		if (existingIcon) {
-			container.setAttribute("data-supermemory-icon-added", "true")
-			return
+			container.setAttribute("data-supermemory-icon-added", "true");
+			return;
 		}
 
 		const supermemoryIcon = createT3InputBarElement(async () => {
-			await getRelatedMemoriesForT3(POSTHOG_EVENT_KEY.T3_CHAT_MEMORIES_SEARCHED)
-		})
+			await getRelatedMemoriesForT3(
+				POSTHOG_EVENT_KEY.T3_CHAT_MEMORIES_SEARCHED,
+			);
+		});
 
-		supermemoryIcon.id = `${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+		supermemoryIcon.id = `${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
-		container.setAttribute("data-supermemory-icon-added", "true")
+		container.setAttribute("data-supermemory-icon-added", "true");
 
-		container.insertBefore(supermemoryIcon, container.firstChild)
-	})
+		container.insertBefore(supermemoryIcon, container.firstChild);
+	});
 }
 
 async function getRelatedMemoriesForT3(actionSource: string) {
 	try {
-		let userQuery = ""
+		let userQuery = "";
 
 		const supermemoryContainer = document.querySelector(
 			'[data-supermemory-icon-added="true"]',
-		)
+		);
 		if (
 			supermemoryContainer?.parentElement?.parentElement?.previousElementSibling
 		) {
 			const textareaElement =
 				supermemoryContainer.parentElement.parentElement.previousElementSibling.querySelector(
 					"textarea",
-				)
-			userQuery = textareaElement?.value || ""
+				);
+			userQuery = textareaElement?.value || "";
 		}
 
 		if (!userQuery.trim()) {
 			const textareaElement = document.querySelector(
 				'div[contenteditable="true"]',
-			) as HTMLElement
+			) as HTMLElement;
 			userQuery =
-				textareaElement?.innerText || textareaElement?.textContent || ""
+				textareaElement?.innerText || textareaElement?.textContent || "";
 		}
 
 		if (!userQuery.trim()) {
-			const textareas = document.querySelectorAll("textarea")
+			const textareas = document.querySelectorAll("textarea");
 			for (const textarea of textareas) {
-				const text = (textarea as HTMLTextAreaElement).value
+				const text = (textarea as HTMLTextAreaElement).value;
 				if (text?.trim()) {
-					userQuery = text.trim()
-					break
+					userQuery = text.trim();
+					break;
 				}
 			}
 		}
 
-		console.log("T3 query extracted:", userQuery)
+		console.log("T3 query extracted:", userQuery);
 
 		if (!userQuery.trim()) {
-			console.log("No query text found for T3")
-			return
+			console.log("No query text found for T3");
+			return;
 		}
 
-		const icon = document.querySelector('[id*="sm-t3-input-bar-element"]')
+		const icon = document.querySelector('[id*="sm-t3-input-bar-element"]');
 
-		const iconElement = icon as HTMLElement
+		const iconElement = icon as HTMLElement;
 
 		if (!iconElement) {
-			console.warn("T3 icon element not found, cannot update feedback")
-			return
+			console.warn("T3 icon element not found, cannot update feedback");
+			return;
 		}
 
-		updateT3IconFeedback("Searching memories...", iconElement)
+		updateT3IconFeedback("Searching memories...", iconElement);
 
 		const timeoutPromise = new Promise((_, reject) =>
 			setTimeout(
 				() => reject(new Error("Memory search timeout")),
 				UI_CONFIG.API_REQUEST_TIMEOUT,
 			),
-		)
+		);
 
 		const response = await Promise.race([
 			browser.runtime.sendMessage({
@@ -211,15 +213,15 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 				actionSource: actionSource,
 			}),
 			timeoutPromise,
-		])
+		]);
 
-		console.log("T3 memories response:", response)
+		console.log("T3 memories response:", response);
 
 		if (response?.success && response?.data) {
-			let textareaElement = null
+			let textareaElement = null;
 			const supermemoryContainer = document.querySelector(
 				'[data-supermemory-icon-added="true"]',
-			)
+			);
 			if (
 				supermemoryContainer?.parentElement?.parentElement
 					?.previousElementSibling
@@ -227,46 +229,46 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 				textareaElement =
 					supermemoryContainer.parentElement.parentElement.previousElementSibling.querySelector(
 						"textarea",
-					)
+					);
 			}
 
 			if (!textareaElement) {
 				textareaElement = document.querySelector(
 					'div[contenteditable="true"]',
-				) as HTMLElement
+				) as HTMLElement;
 			}
 
 			if (textareaElement) {
 				if (textareaElement.tagName === "TEXTAREA") {
-					;(textareaElement as HTMLTextAreaElement).dataset.supermemories =
-						`<br>Supermemories of user (only for the reference): ${response.data}</br>`
+					(textareaElement as HTMLTextAreaElement).dataset.supermemories =
+						`<br>Supermemories of user (only for the reference): ${response.data}</br>`;
 				} else {
-					;(textareaElement as HTMLElement).dataset.supermemories =
-						`<br>Supermemories of user (only for the reference): ${response.data}</br>`
+					(textareaElement as HTMLElement).dataset.supermemories =
+						`<br>Supermemories of user (only for the reference): ${response.data}</br>`;
 				}
 
-				iconElement.dataset.memoriesData = response.data
+				iconElement.dataset.memoriesData = response.data;
 
-				updateT3IconFeedback("Included Memories", iconElement)
+				updateT3IconFeedback("Included Memories", iconElement);
 			} else {
-				console.warn("T3 input area not found after successful memory fetch")
-				updateT3IconFeedback("Memories found", iconElement)
+				console.warn("T3 input area not found after successful memory fetch");
+				updateT3IconFeedback("Memories found", iconElement);
 			}
 		} else {
-			console.warn("No memories found or API response invalid for T3")
-			updateT3IconFeedback("No memories found", iconElement)
+			console.warn("No memories found or API response invalid for T3");
+			updateT3IconFeedback("No memories found", iconElement);
 		}
 	} catch (error) {
-		console.error("Error getting related memories for T3:", error)
+		console.error("Error getting related memories for T3:", error);
 		try {
 			const icon = document.querySelector(
 				'[id*="sm-t3-input-bar-element"]',
-			) as HTMLElement
+			) as HTMLElement;
 			if (icon) {
-				updateT3IconFeedback("Error fetching memories", icon)
+				updateT3IconFeedback("Error fetching memories", icon);
 			}
 		} catch (feedbackError) {
-			console.error("Failed to update T3 error feedback:", feedbackError)
+			console.error("Failed to update T3 error feedback:", feedbackError);
 		}
 	}
 }
@@ -277,10 +279,10 @@ function updateT3IconFeedback(
 	resetAfter = 0,
 ) {
 	if (!iconElement.dataset.originalHtml) {
-		iconElement.dataset.originalHtml = iconElement.innerHTML
+		iconElement.dataset.originalHtml = iconElement.innerHTML;
 	}
 
-	const feedbackDiv = document.createElement("div")
+	const feedbackDiv = document.createElement("div");
 	feedbackDiv.style.cssText = `
 		display: flex; 
 		align-items: center; 
@@ -293,15 +295,15 @@ function updateT3IconFeedback(
 		font-weight: 500;
 		cursor: ${message === "Included Memories" ? "pointer" : "default"};
 		position: relative;
-	`
+	`;
 
 	feedbackDiv.innerHTML = `
 		<span>✓</span>
 		<span>${message}</span>
-	`
+	`;
 
 	if (message === "Included Memories" && iconElement.dataset.memoriesData) {
-		const popup = document.createElement("div")
+		const popup = document.createElement("div");
 		popup.style.cssText = `
 			position: fixed;
 			bottom: 80px;
@@ -319,9 +321,9 @@ function updateT3IconFeedback(
 			z-index: 999999;
 			display: none;
 			border: 1px solid #333;
-		`
+		`;
 
-		const header = document.createElement("div")
+		const header = document.createElement("div");
 		header.style.cssText = `
 			display: flex;
 			justify-content: space-between;
@@ -329,28 +331,28 @@ function updateT3IconFeedback(
 			padding: 8px;
 			border-bottom: 1px solid #333;
 			opacity: 0.8;
-		`
+		`;
 		header.innerHTML = `
 			<span style="font-weight: 600; color: #fff;">Included Memories</span>
-		`
+		`;
 
-		const content = document.createElement("div")
+		const content = document.createElement("div");
 		content.style.cssText = `
 			padding: 0;
 			max-height: 300px;
 			overflow-y: auto;
-		`
+		`;
 
-		const memoriesText = iconElement.dataset.memoriesData || ""
-		console.log("Memories text:", memoriesText)
+		const memoriesText = iconElement.dataset.memoriesData || "";
+		console.log("Memories text:", memoriesText);
 		const individualMemories = memoriesText
 			.split(/[,\n]/)
 			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
-		console.log("Individual memories:", individualMemories)
+			.filter((memory) => memory.length > 0 && memory !== ",");
+		console.log("Individual memories:", individualMemories);
 
 		individualMemories.forEach((memory, index) => {
-			const memoryItem = document.createElement("div")
+			const memoryItem = document.createElement("div");
 			memoryItem.style.cssText = `
 				display: flex;
 				align-items: center;
@@ -358,16 +360,16 @@ function updateT3IconFeedback(
 				padding: 10px;
 				font-size: 13px;
 				line-height: 1.4;
-			`
+			`;
 
-			const memoryText = document.createElement("div")
+			const memoryText = document.createElement("div");
 			memoryText.style.cssText = `
 				flex: 1;
 				color: #e5e5e5;
-			`
-			memoryText.textContent = memory.trim()
+			`;
+			memoryText.textContent = memory.trim();
 
-			const removeBtn = document.createElement("button")
+			const removeBtn = document.createElement("button");
 			removeBtn.style.cssText = `
 				background: transparent;
 				color: #9ca3af;
@@ -380,164 +382,169 @@ function updateT3IconFeedback(
 				display: flex;
 				align-items: center;
 				justify-content: center;
-			`
-			removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`
-			removeBtn.dataset.memoryIndex = index.toString()
+			`;
+			removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`;
+			removeBtn.dataset.memoryIndex = index.toString();
 
 			removeBtn.addEventListener("mouseenter", () => {
-				removeBtn.style.color = "#ef4444"
-			})
+				removeBtn.style.color = "#ef4444";
+			});
 			removeBtn.addEventListener("mouseleave", () => {
-				removeBtn.style.color = "#9ca3af"
-			})
+				removeBtn.style.color = "#9ca3af";
+			});
 
-			memoryItem.appendChild(memoryText)
-			memoryItem.appendChild(removeBtn)
-			content.appendChild(memoryItem)
-		})
+			memoryItem.appendChild(memoryText);
+			memoryItem.appendChild(removeBtn);
+			content.appendChild(memoryItem);
+		});
 
-		popup.appendChild(header)
-		popup.appendChild(content)
-		document.body.appendChild(popup)
+		popup.appendChild(header);
+		popup.appendChild(content);
+		document.body.appendChild(popup);
 
 		feedbackDiv.addEventListener("mouseenter", () => {
-			const textSpan = feedbackDiv.querySelector("span:last-child")
+			const textSpan = feedbackDiv.querySelector("span:last-child");
 			if (textSpan) {
-				textSpan.textContent = "Click to see memories"
+				textSpan.textContent = "Click to see memories";
 			}
-		})
+		});
 
 		feedbackDiv.addEventListener("mouseleave", () => {
-			const textSpan = feedbackDiv.querySelector("span:last-child")
+			const textSpan = feedbackDiv.querySelector("span:last-child");
 			if (textSpan) {
-				textSpan.textContent = "Included Memories"
+				textSpan.textContent = "Included Memories";
 			}
-		})
+		});
 
 		feedbackDiv.addEventListener("click", (e) => {
-			e.stopPropagation()
-			popup.style.display = "block"
-		})
+			e.stopPropagation();
+			popup.style.display = "block";
+		});
 
 		document.addEventListener("click", (e) => {
 			if (!popup.contains(e.target as Node)) {
-				popup.style.display = "none"
+				popup.style.display = "none";
 			}
-		})
+		});
 
 		content.querySelectorAll("button[data-memory-index]").forEach((button) => {
-			const htmlButton = button as HTMLButtonElement
+			const htmlButton = button as HTMLButtonElement;
 			htmlButton.addEventListener("click", () => {
-				const index = Number.parseInt(htmlButton.dataset.memoryIndex || "0", 10)
-				const memoryItem = htmlButton.parentElement
+				const index = Number.parseInt(
+					htmlButton.dataset.memoryIndex || "0",
+					10,
+				);
+				const memoryItem = htmlButton.parentElement;
 
 				if (memoryItem) {
-					content.removeChild(memoryItem)
+					content.removeChild(memoryItem);
 				}
 
 				const currentMemories = (iconElement.dataset.memoriesData || "")
 					.split(/[,\n]/)
 					.map((memory) => memory.trim())
-					.filter((memory) => memory.length > 0 && memory !== ",")
-				currentMemories.splice(index, 1)
+					.filter((memory) => memory.length > 0 && memory !== ",");
+				currentMemories.splice(index, 1);
 
-				const updatedMemories = currentMemories.join(" ,")
+				const updatedMemories = currentMemories.join(" ,");
 
-				iconElement.dataset.memoriesData = updatedMemories
+				iconElement.dataset.memoriesData = updatedMemories;
 
 				const textareaElement =
 					(document.querySelector("textarea") as HTMLTextAreaElement) ||
-					(document.querySelector('div[contenteditable="true"]') as HTMLElement)
+					(document.querySelector(
+						'div[contenteditable="true"]',
+					) as HTMLElement);
 				if (textareaElement) {
-					textareaElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${updatedMemories}</div>`
+					textareaElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${updatedMemories}</div>`;
 				}
 
 				content
 					.querySelectorAll("button[data-memory-index]")
 					.forEach((btn, newIndex) => {
-						const htmlBtn = btn as HTMLButtonElement
-						htmlBtn.dataset.memoryIndex = newIndex.toString()
-					})
+						const htmlBtn = btn as HTMLButtonElement;
+						htmlBtn.dataset.memoryIndex = newIndex.toString();
+					});
 
 				if (currentMemories.length <= 1) {
 					if (textareaElement?.dataset.supermemories) {
-						delete textareaElement.dataset.supermemories
-						delete iconElement.dataset.memoriesData
-						iconElement.innerHTML = iconElement.dataset.originalHtml || ""
-						delete iconElement.dataset.originalHtml
+						delete textareaElement.dataset.supermemories;
+						delete iconElement.dataset.memoriesData;
+						iconElement.innerHTML = iconElement.dataset.originalHtml || "";
+						delete iconElement.dataset.originalHtml;
 					}
-					popup.style.display = "none"
+					popup.style.display = "none";
 					if (document.body.contains(popup)) {
-						document.body.removeChild(popup)
+						document.body.removeChild(popup);
 					}
 				}
-			})
-		})
+			});
+		});
 
 		setTimeout(() => {
 			if (document.body.contains(popup)) {
-				document.body.removeChild(popup)
+				document.body.removeChild(popup);
 			}
-		}, 300000)
+		}, 300000);
 	}
 
-	iconElement.innerHTML = ""
-	iconElement.appendChild(feedbackDiv)
+	iconElement.innerHTML = "";
+	iconElement.appendChild(feedbackDiv);
 
 	if (resetAfter > 0) {
 		setTimeout(() => {
-			iconElement.innerHTML = iconElement.dataset.originalHtml || ""
-			delete iconElement.dataset.originalHtml
-		}, resetAfter)
+			iconElement.innerHTML = iconElement.dataset.originalHtml || "";
+			delete iconElement.dataset.originalHtml;
+		}, resetAfter);
 	}
 }
 
 function setupT3PromptCapture() {
 	if (document.body.hasAttribute("data-t3-prompt-capture-setup")) {
-		return
+		return;
 	}
-	document.body.setAttribute("data-t3-prompt-capture-setup", "true")
+	document.body.setAttribute("data-t3-prompt-capture-setup", "true");
 
 	const captureT3PromptContent = async (source: string) => {
-		let promptContent = ""
+		let promptContent = "";
 
-		const textarea = document.querySelector("textarea") as HTMLTextAreaElement
+		const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
 		if (textarea) {
-			promptContent = textarea.value || ""
+			promptContent = textarea.value || "";
 		}
 
 		if (!promptContent) {
 			const contentEditableDiv = document.querySelector(
 				'div[contenteditable="true"]',
-			) as HTMLElement
+			) as HTMLElement;
 			if (contentEditableDiv) {
 				promptContent =
-					contentEditableDiv.textContent || contentEditableDiv.innerText || ""
+					contentEditableDiv.textContent || contentEditableDiv.innerText || "";
 			}
 		}
 
 		const textareaElement =
 			textarea ||
-			(document.querySelector('div[contenteditable="true"]') as HTMLElement)
-		const storedMemories = textareaElement?.dataset.supermemories
+			(document.querySelector('div[contenteditable="true"]') as HTMLElement);
+		const storedMemories = textareaElement?.dataset.supermemories;
 		if (
 			storedMemories &&
 			textareaElement &&
 			!promptContent.includes("Supermemories of user")
 		) {
 			if (textareaElement.tagName === "TEXTAREA") {
-				;(textareaElement as HTMLTextAreaElement).value =
-					`${promptContent} ${storedMemories}`
-				promptContent = (textareaElement as HTMLTextAreaElement).value
+				(textareaElement as HTMLTextAreaElement).value =
+					`${promptContent} ${storedMemories}`;
+				promptContent = (textareaElement as HTMLTextAreaElement).value;
 			} else {
-				textareaElement.innerHTML = `${textareaElement.innerHTML} ${storedMemories}`
+				textareaElement.innerHTML = `${textareaElement.innerHTML} ${storedMemories}`;
 				promptContent =
-					textareaElement.textContent || textareaElement.innerText || ""
+					textareaElement.textContent || textareaElement.innerText || "";
 			}
 		}
 
 		if (promptContent.trim()) {
-			console.log(`T3 prompt submitted via ${source}:`, promptContent)
+			console.log(`T3 prompt submitted via ${source}:`, promptContent);
 
 			try {
 				await browser.runtime.sendMessage({
@@ -547,48 +554,48 @@ function setupT3PromptCapture() {
 						platform: "t3",
 						source: source,
 					},
-				})
+				});
 			} catch (error) {
-				console.error("Error sending T3 prompt to background:", error)
+				console.error("Error sending T3 prompt to background:", error);
 			}
 		}
 
-		const icons = document.querySelectorAll('[id*="sm-t3-input-bar-element"]')
+		const icons = document.querySelectorAll('[id*="sm-t3-input-bar-element"]');
 
 		icons.forEach((icon) => {
-			const iconElement = icon as HTMLElement
+			const iconElement = icon as HTMLElement;
 			if (iconElement.dataset.originalHtml) {
-				iconElement.innerHTML = iconElement.dataset.originalHtml
-				delete iconElement.dataset.originalHtml
-				delete iconElement.dataset.memoriesData
+				iconElement.innerHTML = iconElement.dataset.originalHtml;
+				delete iconElement.dataset.originalHtml;
+				delete iconElement.dataset.memoriesData;
 			}
-		})
+		});
 
 		if (textareaElement?.dataset.supermemories) {
-			delete textareaElement.dataset.supermemories
+			delete textareaElement.dataset.supermemories;
 		}
-	}
+	};
 
 	document.addEventListener(
 		"click",
 		async (event) => {
-			const target = event.target as HTMLElement
+			const target = event.target as HTMLElement;
 			const sendButton =
 				target.closest("button.focus-visible\\:ring-ring") ||
 				target.closest('button[class*="bg-[rgb(162,59,103)]"]') ||
-				target.closest('button[class*="rounded-lg"]')
+				target.closest('button[class*="rounded-lg"]');
 
 			if (sendButton) {
-				await captureT3PromptContent("button click")
+				await captureT3PromptContent("button click");
 			}
 		},
 		true,
-	)
+	);
 
 	document.addEventListener(
 		"keydown",
 		async (event) => {
-			const target = event.target as HTMLElement
+			const target = event.target as HTMLElement;
 
 			if (
 				(target.matches("textarea") ||
@@ -597,9 +604,9 @@ function setupT3PromptCapture() {
 				!event.shiftKey
 			) {
 				if (target.matches("textarea")) {
-					const promptContent = (target as HTMLTextAreaElement).value || ""
+					const promptContent = (target as HTMLTextAreaElement).value || "";
 					if (promptContent.trim()) {
-						console.log("T3 prompt submitted via Enter key:", promptContent)
+						console.log("T3 prompt submitted via Enter key:", promptContent);
 
 						try {
 							await browser.runtime.sendMessage({
@@ -610,83 +617,83 @@ function setupT3PromptCapture() {
 									source: "Enter key",
 								},
 								actionSource: "t3",
-							})
+							});
 						} catch (error) {
 							console.error(
 								"Error sending T3 textarea prompt to background:",
 								error,
-							)
+							);
 						}
 					}
 				} else {
-					await captureT3PromptContent("Enter key")
+					await captureT3PromptContent("Enter key");
 				}
 			}
 		},
 		true,
-	)
+	);
 }
 
 async function setupT3AutoFetch() {
 	const result = await chrome.storage.local.get([
 		STORAGE_KEYS.AUTO_SEARCH_ENABLED,
-	])
-	const autoSearchEnabled = result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
+	]);
+	const autoSearchEnabled = result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false;
 
 	if (!autoSearchEnabled) {
-		return
+		return;
 	}
 
 	const textareaElement =
 		(document.querySelector("textarea") as HTMLTextAreaElement) ||
-		(document.querySelector('div[contenteditable="true"]') as HTMLElement)
+		(document.querySelector('div[contenteditable="true"]') as HTMLElement);
 
 	if (
 		!textareaElement ||
 		textareaElement.hasAttribute("data-supermemory-auto-fetch")
 	) {
-		return
+		return;
 	}
 
-	textareaElement.setAttribute("data-supermemory-auto-fetch", "true")
+	textareaElement.setAttribute("data-supermemory-auto-fetch", "true");
 
 	const handleInput = () => {
 		if (t3DebounceTimeout) {
-			clearTimeout(t3DebounceTimeout)
+			clearTimeout(t3DebounceTimeout);
 		}
 
 		t3DebounceTimeout = setTimeout(async () => {
-			let content = ""
+			let content = "";
 			if (textareaElement.tagName === "TEXTAREA") {
-				content = (textareaElement as HTMLTextAreaElement).value?.trim() || ""
+				content = (textareaElement as HTMLTextAreaElement).value?.trim() || "";
 			} else {
-				content = textareaElement.textContent?.trim() || ""
+				content = textareaElement.textContent?.trim() || "";
 			}
 
 			if (content.length > 2) {
 				await getRelatedMemoriesForT3(
 					POSTHOG_EVENT_KEY.T3_CHAT_MEMORIES_AUTO_SEARCHED,
-				)
+				);
 			} else if (content.length === 0) {
 				const icons = document.querySelectorAll(
 					'[id*="sm-t3-input-bar-element"]',
-				)
+				);
 
 				icons.forEach((icon) => {
-					const iconElement = icon as HTMLElement
+					const iconElement = icon as HTMLElement;
 					if (iconElement.dataset.originalHtml) {
-						iconElement.innerHTML = iconElement.dataset.originalHtml
-						delete iconElement.dataset.originalHtml
-						delete iconElement.dataset.memoriesData
+						iconElement.innerHTML = iconElement.dataset.originalHtml;
+						delete iconElement.dataset.originalHtml;
+						delete iconElement.dataset.memoriesData;
 					}
-				})
+				});
 
 				if (textareaElement.dataset.supermemories) {
-					delete textareaElement.dataset.supermemories
+					delete textareaElement.dataset.supermemories;
 				}
 			}
-		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
-	}
+		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY);
+	};
 
-	textareaElement.addEventListener("input", handleInput)
+	textareaElement.addEventListener("input", handleInput);
 }

@@ -1,34 +1,35 @@
-import { useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
-import "./App.css"
-import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants"
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import "./App.css";
+import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants";
 import {
 	useDefaultProject,
 	useProjects,
 	useSetDefaultProject,
-} from "../../utils/query-hooks"
-import type { Project } from "../../utils/types"
+} from "../../utils/query-hooks";
+import type { Project } from "../../utils/types";
 
 function App() {
-	const [userSignedIn, setUserSignedIn] = useState<boolean>(false)
-	const [loading, setLoading] = useState<boolean>(true)
-	const [showProjectSelector, setShowProjectSelector] = useState<boolean>(false)
-	const [currentUrl, setCurrentUrl] = useState<string>("")
-	const [currentTitle, setCurrentTitle] = useState<string>("")
-	const [saving, setSaving] = useState<boolean>(false)
+	const [userSignedIn, setUserSignedIn] = useState<boolean>(false);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [showProjectSelector, setShowProjectSelector] =
+		useState<boolean>(false);
+	const [currentUrl, setCurrentUrl] = useState<string>("");
+	const [currentTitle, setCurrentTitle] = useState<string>("");
+	const [saving, setSaving] = useState<boolean>(false);
 	const [activeTab, setActiveTab] = useState<"save" | "imports" | "settings">(
 		"save",
-	)
-	const [autoSearchEnabled, setAutoSearchEnabled] = useState<boolean>(false)
+	);
+	const [autoSearchEnabled, setAutoSearchEnabled] = useState<boolean>(false);
 
-	const queryClient = useQueryClient()
+	const queryClient = useQueryClient();
 	const { data: projects = [], isLoading: loadingProjects } = useProjects({
 		enabled: userSignedIn,
-	})
+	});
 	const { data: defaultProject } = useDefaultProject({
 		enabled: userSignedIn,
-	})
-	const setDefaultProjectMutation = useSetDefaultProject()
+	});
+	const setDefaultProjectMutation = useSetDefaultProject();
 
 	useEffect(() => {
 		const checkAuthStatus = async () => {
@@ -36,131 +37,131 @@ function App() {
 				const result = await chrome.storage.local.get([
 					STORAGE_KEYS.BEARER_TOKEN,
 					STORAGE_KEYS.AUTO_SEARCH_ENABLED,
-				])
-				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN]
-				setUserSignedIn(isSignedIn)
+				]);
+				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN];
+				setUserSignedIn(isSignedIn);
 
 				const autoSearchSetting =
-					result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
-				setAutoSearchEnabled(autoSearchSetting)
+					result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false;
+				setAutoSearchEnabled(autoSearchSetting);
 			} catch (error) {
-				console.error("Error checking auth status:", error)
-				setUserSignedIn(false)
+				console.error("Error checking auth status:", error);
+				setUserSignedIn(false);
 			} finally {
-				setLoading(false)
+				setLoading(false);
 			}
-		}
+		};
 
 		const getCurrentTab = async () => {
 			try {
 				const tabs = await chrome.tabs.query({
 					active: true,
 					currentWindow: true,
-				})
+				});
 				if (tabs.length > 0 && tabs[0].url && tabs[0].title) {
-					setCurrentUrl(tabs[0].url)
-					setCurrentTitle(tabs[0].title)
+					setCurrentUrl(tabs[0].url);
+					setCurrentTitle(tabs[0].title);
 				}
 			} catch (error) {
-				console.error("Error getting current tab:", error)
+				console.error("Error getting current tab:", error);
 			}
-		}
+		};
 
-		checkAuthStatus()
-		getCurrentTab()
-	}, [])
+		checkAuthStatus();
+		getCurrentTab();
+	}, []);
 
 	const handleProjectSelect = (project: Project) => {
 		setDefaultProjectMutation.mutate(project, {
 			onSuccess: () => {
-				setShowProjectSelector(false)
+				setShowProjectSelector(false);
 			},
 			onError: (error) => {
-				console.error("Error setting default project:", error)
+				console.error("Error setting default project:", error);
 			},
-		})
-	}
+		});
+	};
 
 	const handleShowProjectSelector = () => {
-		setShowProjectSelector(true)
-	}
+		setShowProjectSelector(true);
+	};
 
 	useEffect(() => {
 		if (!defaultProject && projects.length > 0) {
-			const firstProject = projects[0]
-			setDefaultProjectMutation.mutate(firstProject)
+			const firstProject = projects[0];
+			setDefaultProjectMutation.mutate(firstProject);
 		}
-	}, [defaultProject, projects, setDefaultProjectMutation])
+	}, [defaultProject, projects, setDefaultProjectMutation]);
 
 	const handleSaveCurrentPage = async () => {
-		setSaving(true)
+		setSaving(true);
 
 		try {
 			const tabs = await chrome.tabs.query({
 				active: true,
 				currentWindow: true,
-			})
+			});
 			if (tabs.length > 0 && tabs[0].id) {
 				const response = await chrome.tabs.sendMessage(tabs[0].id, {
 					action: MESSAGE_TYPES.SAVE_MEMORY,
 					actionSource: "popup",
-				})
+				});
 
 				if (response?.success) {
 					await chrome.tabs.sendMessage(tabs[0].id, {
 						action: MESSAGE_TYPES.SHOW_TOAST,
 						state: "success",
-					})
+					});
 				}
 
-				window.close()
+				window.close();
 			}
 		} catch (error) {
-			console.error("Failed to save current page:", error)
+			console.error("Failed to save current page:", error);
 
 			try {
 				const tabs = await chrome.tabs.query({
 					active: true,
 					currentWindow: true,
-				})
+				});
 				if (tabs.length > 0 && tabs[0].id) {
 					await chrome.tabs.sendMessage(tabs[0].id, {
 						action: MESSAGE_TYPES.SHOW_TOAST,
 						state: "error",
-					})
+					});
 				}
 			} catch (toastError) {
-				console.error("Failed to show error toast:", toastError)
+				console.error("Failed to show error toast:", toastError);
 			}
 
-			window.close()
+			window.close();
 		} finally {
-			setSaving(false)
+			setSaving(false);
 		}
-	}
+	};
 
 	const handleAutoSearchToggle = async (enabled: boolean) => {
 		try {
 			await chrome.storage.local.set({
 				[STORAGE_KEYS.AUTO_SEARCH_ENABLED]: enabled,
-			})
-			setAutoSearchEnabled(enabled)
+			});
+			setAutoSearchEnabled(enabled);
 		} catch (error) {
-			console.error("Error updating auto search setting:", error)
+			console.error("Error updating auto search setting:", error);
 		}
-	}
+	};
 
 	const handleSignOut = async () => {
 		try {
-			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN])
-			await chrome.storage.local.remove([STORAGE_KEYS.USER_DATA])
-			await chrome.storage.local.remove([STORAGE_KEYS.DEFAULT_PROJECT])
-			setUserSignedIn(false)
-			queryClient.clear()
+			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN]);
+			await chrome.storage.local.remove([STORAGE_KEYS.USER_DATA]);
+			await chrome.storage.local.remove([STORAGE_KEYS.DEFAULT_PROJECT]);
+			setUserSignedIn(false);
+			queryClient.clear();
 		} catch (error) {
-			console.error("Error signing out:", error)
+			console.error("Error signing out:", error);
 		}
-	}
+	};
 
 	if (loading) {
 		return (
@@ -179,7 +180,7 @@ function App() {
 					<div>Loading...</div>
 				</div>
 			</div>
-		)
+		);
 	}
 
 	return (
@@ -330,7 +331,7 @@ function App() {
 											onClick={() => {
 												chrome.tabs.create({
 													url: "https://chatgpt.com/#settings/Personalization",
-												})
+												});
 											}}
 											type="button"
 										>
@@ -361,17 +362,17 @@ function App() {
 												const [activeTab] = await chrome.tabs.query({
 													active: true,
 													currentWindow: true,
-												})
+												});
 
-												const targetUrl = "https://x.com/i/bookmarks"
+												const targetUrl = "https://x.com/i/bookmarks";
 
 												if (activeTab?.url === targetUrl) {
-													return
+													return;
 												}
 
 												await chrome.tabs.create({
 													url: targetUrl,
-												})
+												});
 											}}
 											type="button"
 										>
@@ -504,7 +505,7 @@ function App() {
 								<button
 									className="bg-transparent border-none text-blue-500 cursor-pointer underline text-sm p-0 hover:text-blue-700"
 									onClick={() => {
-										window.open("mailto:dhravya@supermemory.com", "_blank")
+										window.open("mailto:dhravya@supermemory.com", "_blank");
 									}}
 									type="button"
 								>
@@ -519,7 +520,7 @@ function App() {
 										url: import.meta.env.PROD
 											? "https://app.supermemory.ai/login"
 											: "http://localhost:3000/login",
-									})
+									});
 								}}
 								type="button"
 							>
@@ -530,7 +531,7 @@ function App() {
 				)}
 			</div>
 		</div>
-	)
+	);
 }
 
-export default App
+export default App;

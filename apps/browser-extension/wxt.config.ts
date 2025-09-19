@@ -1,5 +1,5 @@
-import tailwindcss from "@tailwindcss/vite"
-import { defineConfig, type WxtViteConfig } from "wxt"
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig, type WxtViteConfig } from "wxt";
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -32,4 +32,4 @@ export default defineConfig({
 	webExt: {
 		chromiumArgs: ["--user-data-dir=./.wxt/chrome-data"],
 	},
-})
+});

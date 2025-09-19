@@ -3,8 +3,8 @@
  * Reusable UI components for the browser extension
  */
 
-import { ELEMENT_IDS, UI_CONFIG } from "./constants"
-import type { ToastState } from "./types"
+import { ELEMENT_IDS, UI_CONFIG } from "./constants";
+import type { ToastState } from "./types";
 
 /**
  * Creates a toast notification element
@@ -12,8 +12,8 @@ import type { ToastState } from "./types"
  * @returns HTMLElement - The toast element
  */
 export function createToast(state: ToastState): HTMLElement {
-	const toast = document.createElement("div")
-	toast.id = ELEMENT_IDS.SUPERMEMORY_TOAST
+	const toast = document.createElement("div");
+	toast.id = ELEMENT_IDS.SUPERMEMORY_TOAST;
 
 	toast.style.cssText = `
     position: fixed;
@@ -33,12 +33,12 @@ export function createToast(state: ToastState): HTMLElement {
     max-width: 300px;
     animation: slideIn 0.3s ease-out;
     box-shadow: 0 4px 24px 0 rgba(0,0,0,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.12);
-  `
+  `;
 
 	// Add keyframe animations and fonts if not already present
 	if (!document.getElementById("supermemory-toast-styles")) {
-		const style = document.createElement("style")
-		style.id = "supermemory-toast-styles"
+		const style = document.createElement("style");
+		style.id = "supermemory-toast-styles";
 		style.textContent = `
       @font-face {
         font-family: 'Space Grotesk';
@@ -87,15 +87,15 @@ export function createToast(state: ToastState): HTMLElement {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
       }
-    `
-		document.head.appendChild(style)
+    `;
+		document.head.appendChild(style);
 	}
 
-	const icon = document.createElement("div")
-	icon.style.cssText = "width: 20px; height: 20px; flex-shrink: 0;"
+	const icon = document.createElement("div");
+	icon.style.cssText = "width: 20px; height: 20px; flex-shrink: 0;";
 
-	const text = document.createElement("span")
-	text.style.fontWeight = "500"
+	const text = document.createElement("span");
+	text.style.fontWeight = "500";
 
 	// Configure toast based on state
 	switch (state) {
@@ -111,16 +111,16 @@ export function createToast(state: ToastState): HTMLElement {
           <path d="M20.49 15.49L18.36 17.62" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.9"/>
           <path d="M5.64 6.36L3.51 8.49" stroke="#6366f1" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
         </svg>
-      `
-			icon.style.animation = "spin 1s linear infinite"
-			text.textContent = "Adding to Memory..."
-			break
+      `;
+			icon.style.animation = "spin 1s linear infinite";
+			text.textContent = "Adding to Memory...";
+			break;
 
 		case "success": {
-			const iconUrl = browser.runtime.getURL("/icon-16.png")
-			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
-			text.textContent = "Added to Memory"
-			break
+			const iconUrl = browser.runtime.getURL("/icon-16.png");
+			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`;
+			text.textContent = "Added to Memory";
+			break;
 		}
 
 		case "error":
@@ -130,15 +130,15 @@ export function createToast(state: ToastState): HTMLElement {
           <path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      `
-			text.textContent = "Failed to save memory / Make sure you are logged in"
-			break
+      `;
+			text.textContent = "Failed to save memory / Make sure you are logged in";
+			break;
 	}
 
-	toast.appendChild(icon)
-	toast.appendChild(text)
+	toast.appendChild(icon);
+	toast.appendChild(text);
 
-	return toast
+	return toast;
 }
 
 /**
@@ -147,8 +147,8 @@ export function createToast(state: ToastState): HTMLElement {
  * @returns HTMLElement - The button element
  */
 export function createTwitterImportButton(onClick: () => void): HTMLElement {
-	const button = document.createElement("div")
-	button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON
+	const button = document.createElement("div");
+	button.id = ELEMENT_IDS.TWITTER_IMPORT_BUTTON;
 	button.style.cssText = `
     position: fixed;
     top: 10px;
@@ -164,27 +164,27 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     align-items: center;
     gap: 8px;
     transition: all 0.2s ease;
-  `
+  `;
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/icon-16.png");
 	button.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
     <span style="font-weight: 500; font-size: 12px;">Import Bookmarks</span>
-  `
+  `;
 
 	button.addEventListener("mouseenter", () => {
-		button.style.opacity = "0.8"
-		button.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.4)"
-	})
+		button.style.opacity = "0.8";
+		button.style.boxShadow = "0 4px 12px rgba(29, 155, 240, 0.4)";
+	});
 
 	button.addEventListener("mouseleave", () => {
-		button.style.opacity = "1"
-		button.style.boxShadow = "0 2px 8px rgba(29, 155, 240, 0.3)"
-	})
+		button.style.opacity = "1";
+		button.style.boxShadow = "0 2px 8px rgba(29, 155, 240, 0.3)";
+	});
 
-	button.addEventListener("click", onClick)
+	button.addEventListener("click", onClick);
 
-	return button
+	return button;
 }
 
 /**
@@ -193,7 +193,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createSaveTweetElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div")
+	const iconButton = document.createElement("div");
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: flex-end;
@@ -206,29 +206,29 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
     margin-right: 10px;
     margin-bottom: 2px;
     z-index: 1000;
-  `
+  `;
 
-	const iconFileName = "/icon-16.png"
-	const iconUrl = browser.runtime.getURL(iconFileName)
+	const iconFileName = "/icon-16.png";
+	const iconUrl = browser.runtime.getURL(iconFileName);
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-  `
+  `;
 
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.opacity = "1"
-	})
+		iconButton.style.opacity = "1";
+	});
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.opacity = "0.7"
-	})
+		iconButton.style.opacity = "0.7";
+	});
 
 	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation()
-		event.preventDefault()
-		onClick()
-	})
+		event.stopPropagation();
+		event.preventDefault();
+		onClick();
+	});
 
-	return iconButton
+	return iconButton;
 }
 
 /**
@@ -237,7 +237,7 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div")
+	const iconButton = document.createElement("div");
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -247,30 +247,30 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
     cursor: pointer;
     transition: opacity 0.2s ease;
     border-radius: 50%;
-  `
+  `;
 
 	// Use appropriate icon based on theme
-	const iconFileName = "/icon-16.png"
-	const iconUrl = browser.runtime.getURL(iconFileName)
+	const iconFileName = "/icon-16.png";
+	const iconUrl = browser.runtime.getURL(iconFileName);
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 50%;" />
-  `
+  `;
 
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.opacity = "0.8"
-	})
+		iconButton.style.opacity = "0.8";
+	});
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.opacity = "1"
-	})
+		iconButton.style.opacity = "1";
+	});
 
 	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation()
-		event.preventDefault()
-		onClick()
-	})
+		event.stopPropagation();
+		event.preventDefault();
+		onClick();
+	});
 
-	return iconButton
+	return iconButton;
 }
 
 /**
@@ -279,7 +279,7 @@ export function createChatGPTInputBarElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createClaudeInputBarElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div")
+	const iconButton = document.createElement("div");
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -290,31 +290,31 @@ export function createClaudeInputBarElement(onClick: () => void): HTMLElement {
     transition: all 0.2s ease;
     border-radius: 6px;
     background: transparent;
-  `
+  `;
 
-	const iconFileName = "/icon-16.png"
-	const iconUrl = browser.runtime.getURL(iconFileName)
+	const iconFileName = "/icon-16.png";
+	const iconUrl = browser.runtime.getURL(iconFileName);
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
-  `
+  `;
 
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)"
-		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)"
-	})
+		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)";
+	});
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.backgroundColor = "transparent"
-		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)"
-	})
+		iconButton.style.backgroundColor = "transparent";
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)";
+	});
 
 	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation()
-		event.preventDefault()
-		onClick()
-	})
+		event.stopPropagation();
+		event.preventDefault();
+		onClick();
+	});
 
-	return iconButton
+	return iconButton;
 }
 
 /**
@@ -323,7 +323,7 @@ export function createClaudeInputBarElement(onClick: () => void): HTMLElement {
  * @returns HTMLElement - The save button element
  */
 export function createT3InputBarElement(onClick: () => void): HTMLElement {
-	const iconButton = document.createElement("div")
+	const iconButton = document.createElement("div");
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: center;
@@ -334,31 +334,31 @@ export function createT3InputBarElement(onClick: () => void): HTMLElement {
     transition: all 0.2s ease;
     border-radius: 6px;
     background: transparent;
-  `
+  `;
 
-	const iconFileName = "/icon-16.png"
-	const iconUrl = browser.runtime.getURL(iconFileName)
+	const iconFileName = "/icon-16.png";
+	const iconUrl = browser.runtime.getURL(iconFileName);
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
-  `
+  `;
 
 	iconButton.addEventListener("mouseenter", () => {
-		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)"
-		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)"
-	})
+		iconButton.style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.2)";
+	});
 
 	iconButton.addEventListener("mouseleave", () => {
-		iconButton.style.backgroundColor = "transparent"
-		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)"
-	})
+		iconButton.style.backgroundColor = "transparent";
+		iconButton.style.borderColor = "rgba(0, 0, 0, 0.1)";
+	});
 
 	iconButton.addEventListener("click", (event) => {
-		event.stopPropagation()
-		event.preventDefault()
-		onClick()
-	})
+		event.stopPropagation();
+		event.preventDefault();
+		onClick();
+	});
 
-	return iconButton
+	return iconButton;
 }
 
 /**
@@ -371,7 +371,7 @@ export const DOMUtils = {
 	 * @returns boolean
 	 */
 	isOnDomain(domains: readonly string[]): boolean {
-		return domains.includes(window.location.hostname)
+		return domains.includes(window.location.hostname);
 	},
 
 	/**
@@ -379,9 +379,9 @@ export const DOMUtils = {
 	 * @returns boolean - true if dark mode, false if light mode
 	 */
 	isDarkMode(): boolean {
-		const htmlElement = document.documentElement
-		const style = htmlElement.getAttribute("style")
-		return style?.includes("color-scheme: dark") || false
+		const htmlElement = document.documentElement;
+		const style = htmlElement.getAttribute("style");
+		return style?.includes("color-scheme: dark") || false;
 	},
 
 	/**
@@ -390,7 +390,7 @@ export const DOMUtils = {
 	 * @returns boolean
 	 */
 	elementExists(id: string): boolean {
-		return !!document.getElementById(id)
+		return !!document.getElementById(id);
 	},
 
 	/**
@@ -398,8 +398,8 @@ export const DOMUtils = {
 	 * @param id - Element ID to remove
 	 */
 	removeElement(id: string): void {
-		const element = document.getElementById(id)
-		element?.remove()
+		const element = document.getElementById(id);
+		element?.remove();
 	},
 
 	/**
@@ -412,18 +412,20 @@ export const DOMUtils = {
 		state: ToastState,
 		duration: number = UI_CONFIG.TOAST_DURATION,
 	): HTMLElement {
-		const existingToast = document.getElementById(ELEMENT_IDS.SUPERMEMORY_TOAST)
+		const existingToast = document.getElementById(
+			ELEMENT_IDS.SUPERMEMORY_TOAST,
+		);
 
 		if ((state === "success" || state === "error") && existingToast) {
-			const icon = existingToast.querySelector("div")
-			const text = existingToast.querySelector("span")
+			const icon = existingToast.querySelector("div");
+			const text = existingToast.querySelector("span");
 
 			if (icon && text) {
 				if (state === "success") {
-					const iconUrl = browser.runtime.getURL("/icon-16.png")
-					icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
-					icon.style.animation = ""
-					text.textContent = "Added to Memory"
+					const iconUrl = browser.runtime.getURL("/icon-16.png");
+					icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`;
+					icon.style.animation = "";
+					text.textContent = "Added to Memory";
 				} else if (state === "error") {
 					icon.innerHTML = `
 						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -431,52 +433,52 @@ export const DOMUtils = {
 							<path d="M15 9L9 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 							<path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 						</svg>
-					`
-					icon.style.animation = ""
+					`;
+					icon.style.animation = "";
 					text.textContent =
-						"Failed to save memory / Make sure you are logged in"
+						"Failed to save memory / Make sure you are logged in";
 				}
 
 				// Auto-dismiss
 				setTimeout(() => {
 					if (document.body.contains(existingToast)) {
-						existingToast.style.animation = "fadeOut 0.3s ease-out"
+						existingToast.style.animation = "fadeOut 0.3s ease-out";
 						setTimeout(() => {
 							if (document.body.contains(existingToast)) {
-								existingToast.remove()
+								existingToast.remove();
 							}
-						}, 300)
+						}, 300);
 					}
-				}, duration)
+				}, duration);
 
-				return existingToast
+				return existingToast;
 			}
 		}
 
 		const existingToasts = document.querySelectorAll(
 			`#${ELEMENT_IDS.SUPERMEMORY_TOAST}`,
-		)
+		);
 		existingToasts.forEach((toast) => {
-			toast.remove()
-		})
+			toast.remove();
+		});
 
-		const toast = createToast(state)
-		document.body.appendChild(toast)
+		const toast = createToast(state);
+		document.body.appendChild(toast);
 
 		// Auto-dismiss for success and error states
 		if (state === "success" || state === "error") {
 			setTimeout(() => {
 				if (document.body.contains(toast)) {
-					toast.style.animation = "fadeOut 0.3s ease-out"
+					toast.style.animation = "fadeOut 0.3s ease-out";
 					setTimeout(() => {
 						if (document.body.contains(toast)) {
-							toast.remove()
+							toast.remove();
 						}
-					}, 300)
+					}, 300);
 				}
-			}, duration)
+			}, duration);
 		}
 
-		return toast
+		return toast;
 	},
-}
+};
