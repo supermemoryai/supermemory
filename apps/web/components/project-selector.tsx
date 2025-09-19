@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { $fetch } from "@repo/lib/api";
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants";
-import { Button } from "@repo/ui/components/button";
+import { $fetch } from "@repo/lib/api"
+import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
+import { Button } from "@repo/ui/components/button"
 import {
 	Dialog,
 	DialogContent,
@@ -10,22 +10,22 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@repo/ui/components/dialog";
+} from "@repo/ui/components/dialog"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu";
-import { Label } from "@repo/ui/components/label";
+} from "@repo/ui/components/dropdown-menu"
+import { Label } from "@repo/ui/components/label"
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@repo/ui/components/select";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+} from "@repo/ui/components/select"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
 	ChevronDown,
 	FolderIcon,
@@ -34,97 +34,97 @@ import {
 	MoreVertical,
 	Plus,
 	Trash2,
-} from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useProjectMutations } from "@/hooks/use-project-mutations";
-import { useProjectName } from "@/hooks/use-project-name";
-import { useProject } from "@/stores";
-import { CreateProjectDialog } from "./create-project-dialog";
+} from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { useProjectMutations } from "@/hooks/use-project-mutations"
+import { useProjectName } from "@/hooks/use-project-name"
+import { useProject } from "@/stores"
+import { CreateProjectDialog } from "./create-project-dialog"
 
 interface Project {
-	id: string;
-	name: string;
-	containerTag: string;
-	createdAt: string;
-	updatedAt: string;
-	isExperimental?: boolean;
+	id: string
+	name: string
+	containerTag: string
+	createdAt: string
+	updatedAt: string
+	isExperimental?: boolean
 }
 
 export function ProjectSelector() {
-	const queryClient = useQueryClient();
-	const [isOpen, setIsOpen] = useState(false);
-	const [showCreateDialog, setShowCreateDialog] = useState(false);
-	const { selectedProject } = useProject();
-	const projectName = useProjectName();
-	const { switchProject, deleteProjectMutation } = useProjectMutations();
+	const queryClient = useQueryClient()
+	const [isOpen, setIsOpen] = useState(false)
+	const [showCreateDialog, setShowCreateDialog] = useState(false)
+	const { selectedProject } = useProject()
+	const projectName = useProjectName()
+	const { switchProject, deleteProjectMutation } = useProjectMutations()
 	const [deleteDialog, setDeleteDialog] = useState<{
-		open: boolean;
-		project: null | { id: string; name: string; containerTag: string };
-		action: "move" | "delete";
-		targetProjectId: string;
+		open: boolean
+		project: null | { id: string; name: string; containerTag: string }
+		action: "move" | "delete"
+		targetProjectId: string
 	}>({
 		open: false,
 		project: null,
 		action: "move",
 		targetProjectId: DEFAULT_PROJECT_ID,
-	});
+	})
 	const [expDialog, setExpDialog] = useState<{
-		open: boolean;
-		projectId: string;
+		open: boolean
+		projectId: string
 	}>({
 		open: false,
 		projectId: "",
-	});
+	})
 
 	const { data: projects = [], isLoading } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects");
+			const response = await $fetch("@get/projects")
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects");
+				throw new Error(response.error?.message || "Failed to load projects")
 			}
 
-			return response.data?.projects || [];
+			return response.data?.projects || []
 		},
 		staleTime: 30 * 1000,
-	});
+	})
 
 	const enableExperimentalMutation = useMutation({
 		mutationFn: async (projectId: string) => {
 			const response = await $fetch(
 				`@post/projects/${projectId}/enable-experimental`,
-			);
+			)
 			if (response.error) {
 				throw new Error(
 					response.error?.message || "Failed to enable experimental mode",
-				);
+				)
 			}
-			return response.data;
+			return response.data
 		},
 		onSuccess: () => {
-			toast.success("Experimental mode enabled for project");
-			queryClient.invalidateQueries({ queryKey: ["projects"] });
-			setExpDialog({ open: false, projectId: "" });
+			toast.success("Experimental mode enabled for project")
+			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			setExpDialog({ open: false, projectId: "" })
 		},
 		onError: (error) => {
 			toast.error("Failed to enable experimental mode", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	const handleProjectSelect = (containerTag: string) => {
-		switchProject(containerTag);
-		setIsOpen(false);
-	};
+		switchProject(containerTag)
+		setIsOpen(false)
+	}
 
 	const handleCreateNewProject = () => {
-		setIsOpen(false);
-		setShowCreateDialog(true);
-	};
+		setIsOpen(false)
+		setShowCreateDialog(true)
+	}
 
 	return (
 		<div className="relative">
@@ -230,12 +230,12 @@ export function ProjectSelector() {
 																<DropdownMenuItem
 																	className="text-blue-400 hover:text-blue-300 cursor-pointer text-xs"
 																	onClick={(e) => {
-																		e.stopPropagation();
+																		e.stopPropagation()
 																		setExpDialog({
 																			open: true,
 																			projectId: project.id,
-																		});
-																		setIsOpen(false);
+																		})
+																		setIsOpen(false)
 																	}}
 																>
 																	<div className="h-3 w-3 mr-2 rounded border border-blue-400" />
@@ -254,7 +254,7 @@ export function ProjectSelector() {
 														<DropdownMenuItem
 															className="text-red-400 hover:text-red-300 cursor-pointer text-xs"
 															onClick={(e) => {
-																e.stopPropagation();
+																e.stopPropagation()
 																setDeleteDialog({
 																	open: true,
 																	project: {
@@ -264,8 +264,8 @@ export function ProjectSelector() {
 																	},
 																	action: "move",
 																	targetProjectId: "",
-																});
-																setIsOpen(false);
+																})
+																setIsOpen(false)
 															}}
 														>
 															<Trash2 className="h-3 w-3 mr-2" />
@@ -478,10 +478,10 @@ export function ProjectSelector() {
 																	project: null,
 																	action: "move",
 																	targetProjectId: "",
-																});
+																})
 															},
 														},
-													);
+													)
 												}
 											}}
 											type="button"
@@ -584,5 +584,5 @@ export function ProjectSelector() {
 				)}
 			</AnimatePresence>
 		</div>
-	);
+	)
 }
