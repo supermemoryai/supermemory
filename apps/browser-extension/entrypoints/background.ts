@@ -1,52 +1,52 @@
-import { getDefaultProject, saveMemory, searchMemories } from "../utils/api"
+import { getDefaultProject, saveMemory, searchMemories } from "../utils/api";
 import {
 	CONTAINER_TAGS,
 	CONTEXT_MENU_IDS,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
-} from "../utils/constants"
-import { trackEvent } from "../utils/posthog"
-import { captureTwitterTokens } from "../utils/twitter-auth"
+} from "../utils/constants";
+import { trackEvent } from "../utils/posthog";
+import { captureTwitterTokens } from "../utils/twitter-auth";
 import {
 	type TwitterImportConfig,
 	TwitterImporter,
-} from "../utils/twitter-import"
+} from "../utils/twitter-import";
 import type {
 	ExtensionMessage,
 	MemoryData,
 	MemoryPayload,
-} from "../utils/types"
+} from "../utils/types";
 
 export default defineBackground(() => {
-	let twitterImporter: TwitterImporter | null = null
+	let twitterImporter: TwitterImporter | null = null;
 
 	browser.runtime.onInstalled.addListener(async (details) => {
 		browser.contextMenus.create({
 			id: CONTEXT_MENU_IDS.SAVE_TO_SUPERMEMORY,
 			title: "sync to supermemory",
 			contexts: ["selection", "page", "link"],
-		})
+		});
 
 		if (details.reason === "install") {
 			await trackEvent("extension_installed", {
 				reason: details.reason,
 				version: browser.runtime.getManifest().version,
-			})
+			});
 			browser.tabs.create({
 				url: browser.runtime.getURL("/welcome.html"),
-			})
+			});
 		}
-	})
+	});
 
 	// Intercept Twitter requests to capture authentication headers.
 	browser.webRequest.onBeforeSendHeaders.addListener(
 		(details) => {
-			captureTwitterTokens(details)
-			return {}
+			captureTwitterTokens(details);
+			return {};
 		},
 		{ urls: ["*://x.com/*", "*://twitter.com/*"] },
 		["requestHeaders", "extraHeaders"],
-	)
+	);
 
 	// Handle context menu clicks.
 	browser.contextMenus.onClicked.addListener(async (info, tab) => {
@@ -56,27 +56,27 @@ export default defineBackground(() => {
 					await browser.tabs.sendMessage(tab.id, {
 						action: MESSAGE_TYPES.SAVE_MEMORY,
 						actionSource: "context_menu",
-					})
+					});
 				} catch (error) {
-					console.error("Failed to send message to content script:", error)
+					console.error("Failed to send message to content script:", error);
 				}
 			}
 		}
-	})
+	});
 
 	// Send message to current active tab.
 	const sendMessageToCurrentTab = async (message: string) => {
 		const tabs = await browser.tabs.query({
 			active: true,
 			currentWindow: true,
-		})
+		});
 		if (tabs.length > 0 && tabs[0].id) {
 			await browser.tabs.sendMessage(tabs[0].id, {
 				type: MESSAGE_TYPES.IMPORT_UPDATE,
 				importedMessage: message,
-			})
+			});
 		}
-	}
+	};
 
 	/**
 	 * Send import completion message
@@ -85,14 +85,14 @@ export default defineBackground(() => {
 		const tabs = await browser.tabs.query({
 			active: true,
 			currentWindow: true,
-		})
+		});
 		if (tabs.length > 0 && tabs[0].id) {
 			await browser.tabs.sendMessage(tabs[0].id, {
 				type: MESSAGE_TYPES.IMPORT_DONE,
 				totalImported,
-			})
+			});
 		}
-	}
+	};
 
 	/**
 	 * Save memory to supermemory API
@@ -102,14 +102,14 @@ export default defineBackground(() => {
 		actionSource: string,
 	): Promise<{ success: boolean; data?: unknown; error?: string }> => {
 		try {
-			let containerTag: string = CONTAINER_TAGS.DEFAULT_PROJECT
+			let containerTag: string = CONTAINER_TAGS.DEFAULT_PROJECT;
 			try {
-				const defaultProject = await getDefaultProject()
+				const defaultProject = await getDefaultProject();
 				if (defaultProject?.containerTag) {
-					containerTag = defaultProject.containerTag
+					containerTag = defaultProject.containerTag;
 				}
 			} catch (error) {
-				console.warn("Failed to get default project, using fallback:", error)
+				console.warn("Failed to get default project, using fallback:", error);
 			}
 
 			const payload: MemoryPayload = {
@@ -118,48 +118,48 @@ export default defineBackground(() => {
 					data.content ||
 					`${data.highlightedText}\n\n${data.html}\n\n${data?.url}`,
 				metadata: { sm_source: "consumer" },
-			}
+			};
 
-			const responseData = await saveMemory(payload)
+			const responseData = await saveMemory(payload);
 
 			await trackEvent(POSTHOG_EVENT_KEY.SAVE_MEMORY_ATTEMPTED, {
 				source: `${POSTHOG_EVENT_KEY.SOURCE}_${actionSource}`,
 				has_highlight: !!data.highlightedText,
 				url_domain: data.url ? new URL(data.url).hostname : undefined,
-			})
+			});
 
-			return { success: true, data: responseData }
+			return { success: true, data: responseData };
 		} catch (error) {
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : "Unknown error",
-			}
+			};
 		}
-	}
+	};
 
 	const getRelatedMemories = async (
 		data: string,
 		eventSource: string,
 	): Promise<{ success: boolean; data?: unknown; error?: string }> => {
 		try {
-			const responseData = await searchMemories(data)
+			const responseData = await searchMemories(data);
 			const response = responseData as {
-				results?: Array<{ memory?: string }>
-			}
-			const memories: string[] = []
+				results?: Array<{ memory?: string }>;
+			};
+			const memories: string[] = [];
 			response.results?.forEach((result, index) => {
-				memories.push(`${index + 1}. ${result.memory} \n`)
-			})
-			console.log("Memories:", memories)
-			await trackEvent(eventSource)
-			return { success: true, data: memories }
+				memories.push(`${index + 1}. ${result.memory} \n`);
+			});
+			console.log("Memories:", memories);
+			await trackEvent(eventSource);
+			return { success: true, data: memories };
 		} catch (error) {
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : "Unknown error",
-			}
+			};
 		}
-	}
+	};
 
 	/**
 	 * Handle extension messages
@@ -172,83 +172,83 @@ export default defineBackground(() => {
 					onProgress: sendMessageToCurrentTab,
 					onComplete: sendImportDoneMessage,
 					onError: async (error: Error) => {
-						await sendMessageToCurrentTab(`Error: ${error.message}`)
+						await sendMessageToCurrentTab(`Error: ${error.message}`);
 					},
-				}
+				};
 
-				twitterImporter = new TwitterImporter(importConfig)
-				twitterImporter.startImport().catch(console.error)
-				sendResponse({ success: true })
-				return true
+				twitterImporter = new TwitterImporter(importConfig);
+				twitterImporter.startImport().catch(console.error);
+				sendResponse({ success: true });
+				return true;
 			}
 
 			// Handle regular memory save request
 			if (message.action === MESSAGE_TYPES.SAVE_MEMORY) {
-				;(async () => {
+				(async () => {
 					try {
 						const result = await saveMemoryToSupermemory(
 							message.data as MemoryData,
 							message.actionSource || "unknown",
-						)
-						sendResponse(result)
+						);
+						sendResponse(result);
 					} catch (error) {
 						sendResponse({
 							success: false,
 							error: error instanceof Error ? error.message : "Unknown error",
-						})
+						});
 					}
-				})()
-				return true
+				})();
+				return true;
 			}
 
 			if (message.action === MESSAGE_TYPES.GET_RELATED_MEMORIES) {
-				;(async () => {
+				(async () => {
 					try {
 						const result = await getRelatedMemories(
 							message.data as string,
 							message.actionSource || "unknown",
-						)
-						sendResponse(result)
+						);
+						sendResponse(result);
 					} catch (error) {
 						sendResponse({
 							success: false,
 							error: error instanceof Error ? error.message : "Unknown error",
-						})
+						});
 					}
-				})()
-				return true
+				})();
+				return true;
 			}
 
 			if (message.action === MESSAGE_TYPES.CAPTURE_PROMPT) {
-				;(async () => {
+				(async () => {
 					try {
 						const messageData = message.data as {
-							prompt: string
-							platform: string
-							source: string
-						}
-						console.log("=== PROMPT CAPTURED ===")
-						console.log(messageData)
-						console.log("========================")
+							prompt: string;
+							platform: string;
+							source: string;
+						};
+						console.log("=== PROMPT CAPTURED ===");
+						console.log(messageData);
+						console.log("========================");
 
 						const memoryData: MemoryData = {
 							content: messageData.prompt,
-						}
+						};
 
 						const result = await saveMemoryToSupermemory(
 							memoryData,
 							`prompt_capture_${messageData.platform}`,
-						)
-						sendResponse(result)
+						);
+						sendResponse(result);
 					} catch (error) {
 						sendResponse({
 							success: false,
 							error: error instanceof Error ? error.message : "Unknown error",
-						})
+						});
 					}
-				})()
-				return true
+				})();
+				return true;
 			}
 		},
-	)
-})
+	);
+});

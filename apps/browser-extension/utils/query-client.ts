@@ -1,7 +1,7 @@
 /**
  * React Query configuration for supermemory browser extension
  */
-import { QueryClient } from "@tanstack/react-query"
+import { QueryClient } from "@tanstack/react-query";
 
 export const queryClient = new QueryClient({
 	defaultOptions: {
@@ -11,9 +11,9 @@ export const queryClient = new QueryClient({
 			retry: (failureCount, error) => {
 				// Don't retry on authentication errors
 				if (error?.constructor?.name === "AuthenticationError") {
-					return false
+					return false;
 				}
-				return failureCount < 3
+				return failureCount < 3;
 			},
 			refetchOnWindowFocus: false,
 		},
@@ -21,4 +21,4 @@ export const queryClient = new QueryClient({
 			retry: 1,
 		},
 	},
-})
+});

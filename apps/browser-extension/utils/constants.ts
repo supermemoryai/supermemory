@@ -8,7 +8,7 @@ export const API_ENDPOINTS = {
 	SUPERMEMORY_WEB: import.meta.env.PROD
 		? "https://app.supermemory.ai"
 		: "http://localhost:3000",
-} as const
+} as const;
 
 /**
  * Storage Keys
@@ -22,7 +22,7 @@ export const STORAGE_KEYS = {
 	TWITTER_AUTH_TOKEN: "twitter-auth-token",
 	DEFAULT_PROJECT: "sm-default-project",
 	AUTO_SEARCH_ENABLED: "sm-auto-search-enabled",
-} as const
+} as const;
 
 /**
  * DOM Element IDs
@@ -35,7 +35,7 @@ export const ELEMENT_IDS = {
 	CHATGPT_INPUT_BAR_ELEMENT: "sm-chatgpt-input-bar-element",
 	CLAUDE_INPUT_BAR_ELEMENT: "sm-claude-input-bar-element",
 	T3_INPUT_BAR_ELEMENT: "sm-t3-input-bar-element",
-} as const
+} as const;
 
 /**
  * UI Configuration
@@ -49,7 +49,7 @@ export const UI_CONFIG = {
 	OBSERVER_THROTTLE_DELAY: 300, // milliseconds between observer callback executions
 	ROUTE_CHECK_INTERVAL: 2000, // milliseconds between route change checks
 	API_REQUEST_TIMEOUT: 10000, // milliseconds for API request timeout
-} as const
+} as const;
 
 /**
  * Supported Domains
@@ -60,7 +60,7 @@ export const DOMAINS = {
 	CLAUDE: ["claude.ai"],
 	T3: ["t3.chat"],
 	SUPERMEMORY: ["localhost", "supermemory.ai", "app.supermemory.ai"],
-} as const
+} as const;
 
 /**
  * Container Tags
@@ -68,7 +68,7 @@ export const DOMAINS = {
 export const CONTAINER_TAGS = {
 	TWITTER_BOOKMARKS: "sm_project_twitter_bookmarks",
 	DEFAULT_PROJECT: "sm_project_default",
-} as const
+} as const;
 
 /**
  * Message Types for extension communication
@@ -81,11 +81,11 @@ export const MESSAGE_TYPES = {
 	IMPORT_DONE: "sm-import-done",
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
 	CAPTURE_PROMPT: "sm-capture-prompt",
-} as const
+} as const;
 
 export const CONTEXT_MENU_IDS = {
 	SAVE_TO_SUPERMEMORY: "sm-save-to-supermemory",
-} as const
+} as const;
 
 export const POSTHOG_EVENT_KEY = {
 	TWITTER_IMPORT_STARTED: "twitter_import_started",
@@ -98,4 +98,4 @@ export const POSTHOG_EVENT_KEY = {
 	CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED: "claude_chat_memories_auto_searched",
 	CHATGPT_CHAT_MEMORIES_SEARCHED: "chatgpt_chat_memories_searched",
 	CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED: "chatgpt_chat_memories_auto_searched",
-} as const
+} as const;

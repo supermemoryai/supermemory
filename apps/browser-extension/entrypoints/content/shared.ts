@@ -1,13 +1,13 @@
-import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants"
-import { DOMUtils } from "../../utils/ui-components"
+import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants";
+import { DOMUtils } from "../../utils/ui-components";
 
 export async function saveMemory() {
 	try {
-		DOMUtils.showToast("loading")
+		DOMUtils.showToast("loading");
 
-		const highlightedText = window.getSelection()?.toString() || ""
-		const url = window.location.href
-		const html = document.documentElement.outerHTML
+		const highlightedText = window.getSelection()?.toString() || "";
+		const url = window.location.href;
+		const html = document.documentElement.outerHTML;
 
 		const response = await browser.runtime.sendMessage({
 			action: MESSAGE_TYPES.SAVE_MEMORY,
@@ -17,17 +17,17 @@ export async function saveMemory() {
 				url,
 			},
 			actionSource: "context_menu",
-		})
+		});
 
-		console.log("Response from enxtension:", response)
+		console.log("Response from enxtension:", response);
 		if (response.success) {
-			DOMUtils.showToast("success")
+			DOMUtils.showToast("success");
 		} else {
-			DOMUtils.showToast("error")
+			DOMUtils.showToast("error");
 		}
 	} catch (error) {
-		console.error("Error saving memory:", error)
-		DOMUtils.showToast("error")
+		console.error("Error saving memory:", error);
+		DOMUtils.showToast("error");
 	}
 }
 
@@ -38,19 +38,19 @@ export function setupGlobalKeyboardShortcut() {
 			event.shiftKey &&
 			event.key === "m"
 		) {
-			event.preventDefault()
-			await saveMemory()
+			event.preventDefault();
+			await saveMemory();
 		}
-	})
+	});
 }
 
 export function setupStorageListener() {
 	window.addEventListener("message", (event) => {
 		if (event.source !== window) {
-			return
+			return;
 		}
-		const bearerToken = event.data.token
-		const userData = event.data.userData
+		const bearerToken = event.data.token;
+		const userData = event.data.userData;
 		if (bearerToken && userData) {
 			if (
 				!(
@@ -61,8 +61,8 @@ export function setupStorageListener() {
 			) {
 				console.log(
 					"Bearer token and user data is only allowed to be used on localhost or supermemory.ai",
-				)
-				return
+				);
+				return;
 			}
 
 			chrome.storage.local.set(
@@ -71,7 +71,7 @@ export function setupStorageListener() {
 					[STORAGE_KEYS.USER_DATA]: userData,
 				},
 				() => {},
-			)
+			);
 		}
-	})
+	});
 }
