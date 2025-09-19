@@ -50,12 +50,12 @@ export function ChatRewrite() {
 					{getCurrentChat()?.title ?? "New Chat"}
 				</h3>
 				<div className="flex items-center gap-2">
-					<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+					<Dialog onOpenChange={setIsDialogOpen} open={isDialogOpen}>
 						<DialogTrigger asChild>
 							<Button
-								variant="outline"
-								size="icon"
 								onClick={() => analytics.chatHistoryViewed()}
+								size="icon"
+								variant="outline"
 							>
 								<HistoryIcon className="size-4 text-muted-foreground" />
 							</Button>
@@ -77,19 +77,19 @@ export function ChatRewrite() {
 										const isActive = c.id === currentChatId;
 										return (
 											<div
-												key={c.id}
-												role="button"
-												tabIndex={0}
-												onClick={() => {
-													setCurrentChatId(c.id);
-													setIsDialogOpen(false);
-												}}
+												aria-current={isActive ? "true" : undefined}
 												className={cn(
 													"flex items-center justify-between rounded-md px-3 py-2 outline-none",
 													"transition-colors",
 													isActive ? "bg-primary/10" : "hover:bg-muted",
 												)}
-												aria-current={isActive ? "true" : undefined}
+												key={c.id}
+												onClick={() => {
+													setCurrentChatId(c.id);
+													setIsDialogOpen(false);
+												}}
+												role="button"
+												tabIndex={0}
 											>
 												<div className="min-w-0">
 													<div className="flex items-center gap-2">
@@ -107,14 +107,14 @@ export function ChatRewrite() {
 													</div>
 												</div>
 												<Button
-													type="button"
-													variant="ghost"
-													size="icon"
+													aria-label="Delete conversation"
 													onClick={(e) => {
 														e.stopPropagation();
 														analytics.chatDeleted();
 													}}
-													aria-label="Delete conversation"
+													size="icon"
+													type="button"
+													variant="ghost"
 												>
 													<Trash2 className="size-4 text-muted-foreground" />
 												</Button>
@@ -129,22 +129,22 @@ export function ChatRewrite() {
 								</div>
 							</ScrollArea>
 							<Button
-								variant="outline"
-								size="lg"
 								className="w-full border-dashed"
 								onClick={handleNewChat}
+								size="lg"
+								variant="outline"
 							>
 								<Plus className="size-4 mr-1" /> New Conversation
 							</Button>
 						</DialogContent>
 					</Dialog>
-					<Button variant="outline" size="icon" onClick={handleNewChat}>
+					<Button onClick={handleNewChat} size="icon" variant="outline">
 						<Plus className="size-4 text-muted-foreground" />
 					</Button>
 					<Button
-						variant="outline"
-						size="icon"
 						onClick={() => setIsOpen(false)}
+						size="icon"
+						variant="outline"
 					>
 						<X className="size-4 text-muted-foreground" />
 					</Button>

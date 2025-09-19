@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import { useIsMobile } from "@hooks/use-mobile"
-import { cn } from "@lib/utils"
-import { Badge } from "@repo/ui/components/badge"
-import { Card, CardContent, CardHeader } from "@repo/ui/components/card"
+import { useIsMobile } from "@hooks/use-mobile";
+import { useDeleteDocument } from "@lib/queries";
+import { cn } from "@lib/utils";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -14,43 +13,43 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "@repo/ui/components/alert-dialog"
-import { colors } from "@repo/ui/memory-graph/constants"
-import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { useVirtualizer } from "@tanstack/react-virtual"
-import { Brain, ExternalLink, Sparkles, Trash2 } from "lucide-react"
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { z } from "zod"
-import useResizeObserver from "@/hooks/use-resize-observer"
-import { analytics } from "@/lib/analytics"
-import { useDeleteDocument } from "@lib/queries"
-import { useProject } from "@/stores"
+} from "@repo/ui/components/alert-dialog";
+import { Badge } from "@repo/ui/components/badge";
+import { Card, CardContent, CardHeader } from "@repo/ui/components/card";
+import { colors } from "@repo/ui/memory-graph/constants";
+import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { Brain, ExternalLink, Sparkles, Trash2 } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { z } from "zod";
+import useResizeObserver from "@/hooks/use-resize-observer";
+import { analytics } from "@/lib/analytics";
+import { getDocumentIcon } from "@/lib/document-icon";
+import { useProject } from "@/stores";
+import { formatDate, getSourceUrl } from "./memories";
+import { MemoryDetail } from "./memories/memory-detail";
 
-import { MemoryDetail } from "./memories/memory-detail"
-import { getDocumentIcon } from "@/lib/document-icon"
-import { formatDate, getSourceUrl } from "./memories"
-
-type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
-type DocumentWithMemories = DocumentsResponse["documents"][0]
+type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>;
+type DocumentWithMemories = DocumentsResponse["documents"][0];
 
 interface MemoryListViewProps {
-	children?: React.ReactNode
-	documents: DocumentWithMemories[]
-	isLoading: boolean
-	isLoadingMore: boolean
-	error: Error | null
-	totalLoaded: number
-	hasMore: boolean
-	loadMoreDocuments: () => Promise<void>
+	children?: React.ReactNode;
+	documents: DocumentWithMemories[];
+	isLoading: boolean;
+	isLoadingMore: boolean;
+	error: Error | null;
+	totalLoaded: number;
+	hasMore: boolean;
+	loadMoreDocuments: () => Promise<void>;
 }
 
 const GreetingMessage = memo(() => {
 	const getGreeting = () => {
-		const hour = new Date().getHours()
-		if (hour < 12) return "Good morning"
-		if (hour < 17) return "Good afternoon"
-		return "Good evening"
-	}
+		const hour = new Date().getHours();
+		if (hour < 12) return "Good morning";
+		if (hour < 17) return "Good afternoon";
+		return "Good evening";
+	};
 
 	return (
 		<div className="flex items-center gap-3 mb-3 px-4 md:mb-6 md:mt-3">
@@ -66,8 +65,8 @@ const GreetingMessage = memo(() => {
 				</p>
 			</div>
 		</div>
-	)
-})
+	);
+});
 
 const DocumentCard = memo(
 	({
@@ -75,21 +74,23 @@ const DocumentCard = memo(
 		onOpenDetails,
 		onDelete,
 	}: {
-		document: DocumentWithMemories
-		onOpenDetails: (document: DocumentWithMemories) => void
-		onDelete: (document: DocumentWithMemories) => void
+		document: DocumentWithMemories;
+		onOpenDetails: (document: DocumentWithMemories) => void;
+		onDelete: (document: DocumentWithMemories) => void;
 	}) => {
-		const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten)
-		const forgottenMemories = document.memoryEntries.filter(
+		const activeMemories = (document.memoryEntries || []).filter(
+			(m) => !m.isForgotten,
+		);
+		const forgottenMemories = (document.memoryEntries || []).filter(
 			(m) => m.isForgotten,
-		)
+		);
 
 		return (
 			<Card
 				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden border-0 gap-2 md:w-full"
 				onClick={() => {
-					analytics.documentCardClicked()
-					onOpenDetails(document)
+					analytics.documentCardClicked();
+					onOpenDetails(document);
 				}}
 				style={{
 					backgroundColor: colors.document.primary,
@@ -112,9 +113,9 @@ const DocumentCard = memo(
 							<button
 								className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
 								onClick={(e) => {
-									e.stopPropagation()
-									const sourceUrl = getSourceUrl(document)
-									window.open(sourceUrl ?? undefined, "_blank")
+									e.stopPropagation();
+									const sourceUrl = getSourceUrl(document);
+									window.open(sourceUrl ?? undefined, "_blank");
 								}}
 								style={{
 									backgroundColor: "rgba(255, 255, 255, 0.05)",
@@ -141,7 +142,20 @@ const DocumentCard = memo(
 					)}
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2 flex-wrap">
-							{activeMemories.length > 0 && (
+							{(document as any).isOptimistic && (
+								<Badge
+									className="text-xs text-blue-200 animate-pulse"
+									style={{
+										backgroundColor: "rgba(59, 130, 246, 0.2)",
+										borderColor: "rgba(59, 130, 246, 0.3)",
+									}}
+									variant="outline"
+								>
+									<Sparkles className="w-3 h-3 mr-1" />
+									Supermemory updating...
+								</Badge>
+							)}
+							{!(document as any).isOptimistic && activeMemories.length > 0 && (
 								<Badge
 									className="text-xs text-accent-foreground"
 									style={{
@@ -173,7 +187,7 @@ const DocumentCard = memo(
 								<button
 									className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
 									onClick={(e) => {
-										e.stopPropagation()
+										e.stopPropagation();
 									}}
 									style={{
 										color: colors.text.muted,
@@ -194,7 +208,7 @@ const DocumentCard = memo(
 								<AlertDialogFooter>
 									<AlertDialogCancel
 										onClick={(e) => {
-											e.stopPropagation()
+											e.stopPropagation();
 										}}
 									>
 										Cancel
@@ -202,8 +216,8 @@ const DocumentCard = memo(
 									<AlertDialogAction
 										className="bg-red-600 hover:bg-red-700 text-white"
 										onClick={(e) => {
-											e.stopPropagation()
-											onDelete(document)
+											e.stopPropagation();
+											onDelete(document);
 										}}
 									>
 										Delete
@@ -214,9 +228,9 @@ const DocumentCard = memo(
 					</div>
 				</CardContent>
 			</Card>
-		)
+		);
 	},
-)
+);
 
 export const MemoryListView = ({
 	children,
@@ -227,86 +241,86 @@ export const MemoryListView = ({
 	hasMore,
 	loadMoreDocuments,
 }: MemoryListViewProps) => {
-	const [selectedSpace, _] = useState<string>("all")
+	const [selectedSpace, _] = useState<string>("all");
 	const [selectedDocument, setSelectedDocument] =
-		useState<DocumentWithMemories | null>(null)
-	const [isDetailOpen, setIsDetailOpen] = useState(false)
-	const parentRef = useRef<HTMLDivElement>(null)
-	const containerRef = useRef<HTMLDivElement>(null)
-	const isMobile = useIsMobile()
-	const { selectedProject } = useProject()
-	const deleteDocumentMutation = useDeleteDocument(selectedProject)
+		useState<DocumentWithMemories | null>(null);
+	const [isDetailOpen, setIsDetailOpen] = useState(false);
+	const parentRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const isMobile = useIsMobile();
+	const { selectedProject } = useProject();
+	const deleteDocumentMutation = useDeleteDocument(selectedProject);
 
-	const gap = 14
+	const gap = 14;
 
 	const handleDeleteDocument = useCallback(
 		(document: DocumentWithMemories) => {
-			deleteDocumentMutation.mutate(document.id)
+			deleteDocumentMutation.mutate(document.id);
 		},
 		[deleteDocumentMutation],
-	)
+	);
 
-	const { width: containerWidth } = useResizeObserver(containerRef)
-	const columnWidth = isMobile ? containerWidth : 320
+	const { width: containerWidth } = useResizeObserver(containerRef);
+	const columnWidth = isMobile ? containerWidth : 320;
 	const columns = Math.max(
 		1,
 		Math.floor((containerWidth + gap) / (columnWidth + gap)),
-	)
+	);
 
 	// Filter documents based on selected space
 	const filteredDocuments = useMemo(() => {
-		if (!documents) return []
+		if (!documents) return [];
 
 		if (selectedSpace === "all") {
-			return documents
+			return documents;
 		}
 
 		return documents
 			.map((doc) => ({
 				...doc,
-				memoryEntries: doc.memoryEntries.filter(
+				memoryEntries: (doc.memoryEntries || []).filter(
 					(memory) =>
 						(memory.spaceContainerTag ?? memory.spaceId) === selectedSpace,
 				),
 			}))
-			.filter((doc) => doc.memoryEntries.length > 0)
-	}, [documents, selectedSpace])
+			.filter((doc) => (doc.memoryEntries || []).length > 0);
+	}, [documents, selectedSpace]);
 
 	const handleOpenDetails = useCallback((document: DocumentWithMemories) => {
-		analytics.memoryDetailOpened()
-		setSelectedDocument(document)
-		setIsDetailOpen(true)
-	}, [])
+		analytics.memoryDetailOpened();
+		setSelectedDocument(document);
+		setIsDetailOpen(true);
+	}, []);
 
 	const handleCloseDetails = useCallback(() => {
-		setIsDetailOpen(false)
-		setTimeout(() => setSelectedDocument(null), 300)
-	}, [])
+		setIsDetailOpen(false);
+		setTimeout(() => setSelectedDocument(null), 300);
+	}, []);
 
 	const virtualItems = useMemo(() => {
-		const items = []
+		const items = [];
 		for (let i = 0; i < filteredDocuments.length; i += columns) {
-			items.push(filteredDocuments.slice(i, i + columns))
+			items.push(filteredDocuments.slice(i, i + columns));
 		}
-		return items
-	}, [filteredDocuments, columns])
+		return items;
+	}, [filteredDocuments, columns]);
 
 	const virtualizer = useVirtualizer({
 		count: virtualItems.length,
 		getScrollElement: () => parentRef.current,
 		overscan: 5,
 		estimateSize: () => 200,
-	})
+	});
 
 	useEffect(() => {
-		const [lastItem] = [...virtualizer.getVirtualItems()].reverse()
+		const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
 
 		if (!lastItem || !hasMore || isLoadingMore) {
-			return
+			return;
 		}
 
 		if (lastItem.index >= virtualItems.length - 1) {
-			loadMoreDocuments()
+			loadMoreDocuments();
 		}
 	}, [
 		hasMore,
@@ -314,7 +328,7 @@ export const MemoryListView = ({
 		loadMoreDocuments,
 		virtualizer.getVirtualItems(),
 		virtualItems.length,
-	])
+	]);
 
 	// Always render with consistent structure
 	return (
@@ -355,8 +369,8 @@ export const MemoryListView = ({
 					</div>
 				) : (
 					<div
-						ref={parentRef}
 						className="h-full overflow-auto mt-20 custom-scrollbar"
+						ref={parentRef}
 					>
 						<GreetingMessage />
 
@@ -367,15 +381,15 @@ export const MemoryListView = ({
 							}}
 						>
 							{virtualizer.getVirtualItems().map((virtualRow) => {
-								const rowItems = virtualItems[virtualRow.index]
-								if (!rowItems) return null
+								const rowItems = virtualItems[virtualRow.index];
+								if (!rowItems) return null;
 
 								return (
 									<div
-										key={virtualRow.key}
-										data-index={virtualRow.index}
-										ref={virtualizer.measureElement}
 										className="absolute top-0 left-0 w-full"
+										data-index={virtualRow.index}
+										key={virtualRow.key}
+										ref={virtualizer.measureElement}
 										style={{
 											transform: `translateY(${virtualRow.start + virtualRow.index * gap}px)`,
 										}}
@@ -389,15 +403,15 @@ export const MemoryListView = ({
 										>
 											{rowItems.map((document, columnIndex) => (
 												<DocumentCard
-													key={`${document.id}-${virtualRow.index}-${columnIndex}`}
 													document={document}
-													onOpenDetails={handleOpenDetails}
+													key={`${document.id}-${virtualRow.index}-${columnIndex}`}
 													onDelete={handleDeleteDocument}
+													onOpenDetails={handleOpenDetails}
 												/>
 											))}
 										</div>
 									</div>
-								)
+								);
 							})}
 						</div>
 
@@ -417,10 +431,10 @@ export const MemoryListView = ({
 
 			<MemoryDetail
 				document={selectedDocument}
+				isMobile={isMobile}
 				isOpen={isDetailOpen}
 				onClose={handleCloseDetails}
-				isMobile={isMobile}
 			/>
 		</>
-	)
-}
+	);
+};

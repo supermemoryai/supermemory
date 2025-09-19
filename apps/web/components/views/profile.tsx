@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
-import { authClient } from "@lib/auth"
-import { useAuth } from "@lib/auth-context"
-import { Button } from "@repo/ui/components/button"
-import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
-import { useCustomer } from "autumn-js/react"
+import { $fetch } from "@lib/api";
+import { authClient } from "@lib/auth";
+import { useAuth } from "@lib/auth-context";
+import { Button } from "@repo/ui/components/button";
+import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold";
+import { useCustomer } from "autumn-js/react";
 import {
 	CheckCircle,
 	CreditCard,
@@ -12,48 +13,47 @@ import {
 	LogOut,
 	User,
 	X,
-} from "lucide-react"
-import { motion } from "motion/react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { analytics } from "@/lib/analytics"
-import { $fetch } from "@lib/api"
+} from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { analytics } from "@/lib/analytics";
 
 export function ProfileView() {
-	const router = useRouter()
-	const { user: session } = useAuth()
+	const router = useRouter();
+	const { user: session } = useAuth();
 	const {
 		customer,
 		isLoading: isCustomerLoading,
 		openBillingPortal,
 		attach,
-	} = useCustomer()
-	const [isLoading, setIsLoading] = useState(false)
+	} = useCustomer();
+	const [isLoading, setIsLoading] = useState(false);
 	const [billingData, setBillingData] = useState<{
-		isPro: boolean
-		memoriesUsed: number
-		memoriesLimit: number
-		connectionsUsed: number
-		connectionsLimit: number
+		isPro: boolean;
+		memoriesUsed: number;
+		memoriesLimit: number;
+		connectionsUsed: number;
+		connectionsLimit: number;
 	}>({
 		isPro: false,
 		memoriesUsed: 0,
 		memoriesLimit: 0,
 		connectionsUsed: 0,
 		connectionsLimit: 0,
-	})
+	});
 
 	useEffect(() => {
 		if (!isCustomerLoading) {
 			const memoriesFeature = customer?.features?.memories ?? {
 				usage: 0,
 				included_usage: 0,
-			}
+			};
 			const connectionsFeature = customer?.features?.connections ?? {
 				usage: 0,
 				included_usage: 0,
-			}
+			};
 
 			setBillingData({
 				isPro:
@@ -64,30 +64,30 @@ export function ProfileView() {
 				memoriesLimit: memoriesFeature?.included_usage ?? 0,
 				connectionsUsed: connectionsFeature?.usage ?? 0,
 				connectionsLimit: connectionsFeature?.included_usage ?? 0,
-			})
+			});
 		}
-	}, [isCustomerLoading, customer])
+	}, [isCustomerLoading, customer]);
 
 	const handleLogout = () => {
-		analytics.userSignedOut()
-		authClient.signOut()
-		router.push("/login")
-	}
+		analytics.userSignedOut();
+		authClient.signOut();
+		router.push("/login");
+	};
 
 	const handleUpgrade = async () => {
-		setIsLoading(true)
+		setIsLoading(true);
 		try {
 			const upgradeResult = await attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			})
+			});
 			if (
 				upgradeResult.statusCode === 200 &&
 				upgradeResult.data &&
 				"code" in upgradeResult.data
 			) {
 				const isProPlanActivated =
-					upgradeResult.data.code === "new_product_attached"
+					upgradeResult.data.code === "new_product_attached";
 				if (isProPlanActivated && session?.name && session?.email) {
 					try {
 						await $fetch("@post/emails/welcome/pro", {
@@ -95,24 +95,24 @@ export function ProfileView() {
 								email: session?.email,
 								firstName: session?.name,
 							},
-						})
+						});
 					} catch (error) {
-						console.error(error)
+						console.error(error);
 					}
 				}
 			}
 		} catch (error) {
-			console.error(error)
-			setIsLoading(false)
+			console.error(error);
+			setIsLoading(false);
 		}
-	}
+	};
 
 	// Handle manage billing
 	const handleManageBilling = async () => {
 		await openBillingPortal({
 			returnUrl: "https://app.supermemory.ai",
-		})
-	}
+		});
+	};
 
 	if (session?.isAnonymous) {
 		return (
@@ -137,7 +137,7 @@ export function ProfileView() {
 					</motion.div>
 				</motion.div>
 			</div>
-		)
+		);
 	}
 
 	return (
@@ -337,5 +337,5 @@ export function ProfileView() {
 				Sign Out
 			</Button>
 		</div>
-	)
+	);
 }

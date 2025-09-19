@@ -10,27 +10,27 @@ export const cosineSimilarity = (
 	vectorB: number[],
 ): number => {
 	if (vectorA.length !== vectorB.length) {
-		throw new Error("Vectors must have the same length")
+		throw new Error("Vectors must have the same length");
 	}
 
-	let dotProduct = 0
+	let dotProduct = 0;
 
 	for (let i = 0; i < vectorA.length; i++) {
-		const vectorAi = vectorA[i]
-		const vectorBi = vectorB[i]
+		const vectorAi = vectorA[i];
+		const vectorBi = vectorB[i];
 		if (
 			typeof vectorAi !== "number" ||
 			typeof vectorBi !== "number" ||
 			isNaN(vectorAi) ||
 			isNaN(vectorBi)
 		) {
-			throw new Error("Vectors must contain only numbers")
+			throw new Error("Vectors must contain only numbers");
 		}
-		dotProduct += vectorAi * vectorBi
+		dotProduct += vectorAi * vectorBi;
 	}
 
-	return dotProduct
-}
+	return dotProduct;
+};
 
 /**
  * Calculate semantic similarity between two documents
@@ -47,13 +47,13 @@ export const calculateSemanticSimilarity = (
 		document1Embedding.length > 0 &&
 		document2Embedding.length > 0
 	) {
-		const similarity = cosineSimilarity(document1Embedding, document2Embedding)
+		const similarity = cosineSimilarity(document1Embedding, document2Embedding);
 		// Convert from [-1, 1] to [0, 1] range
-		return similarity >= 0 ? similarity : 0
+		return similarity >= 0 ? similarity : 0;
 	}
 
-	return 0
-}
+	return 0;
+};
 
 /**
  * Calculate semantic similarity between a document and memory entry
@@ -71,34 +71,34 @@ export const calculateDocumentMemorySimilarity = (
 		documentEmbedding.length > 0 &&
 		memoryEmbedding.length > 0
 	) {
-		const similarity = cosineSimilarity(documentEmbedding, memoryEmbedding)
+		const similarity = cosineSimilarity(documentEmbedding, memoryEmbedding);
 		// Convert from [-1, 1] to [0, 1] range
-		return similarity >= 0 ? similarity : 0
+		return similarity >= 0 ? similarity : 0;
 	}
 
 	// Fall back to relevance score from database (0-100 scale)
 	if (relevanceScore !== null && relevanceScore !== undefined) {
-		return Math.max(0, Math.min(1, relevanceScore / 100))
+		return Math.max(0, Math.min(1, relevanceScore / 100));
 	}
 
 	// Default similarity for connections without embeddings or relevance scores
-	return 0.5
-}
+	return 0.5;
+};
 
 /**
  * Get visual properties for connection based on similarity
  */
 export const getConnectionVisualProps = (similarity: number) => {
 	// Ensure similarity is between 0 and 1
-	const normalizedSimilarity = Math.max(0, Math.min(1, similarity))
+	const normalizedSimilarity = Math.max(0, Math.min(1, similarity));
 
 	return {
 		opacity: Math.max(0, normalizedSimilarity), // 0 to 1 range
 		thickness: Math.max(1, normalizedSimilarity * 4), // 1 to 4 pixels
 		glow: normalizedSimilarity * 0.6, // Glow intensity
 		pulseDuration: 2000 + (1 - normalizedSimilarity) * 3000, // Faster pulse for higher similarity
-	}
-}
+	};
+};
 
 /**
  * Generate magical color based on similarity and connection type
@@ -107,9 +107,9 @@ export const getMagicalConnectionColor = (
 	similarity: number,
 	hue = 220,
 ): string => {
-	const normalizedSimilarity = Math.max(0, Math.min(1, similarity))
-	const saturation = 60 + normalizedSimilarity * 40 // 60% to 100%
-	const lightness = 40 + normalizedSimilarity * 30 // 40% to 70%
+	const normalizedSimilarity = Math.max(0, Math.min(1, similarity));
+	const saturation = 60 + normalizedSimilarity * 40; // 60% to 100%
+	const lightness = 40 + normalizedSimilarity * 30; // 40% to 70%
 
-	return `hsl(${hue}, ${saturation}%, ${lightness}%)`
-}
+	return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};

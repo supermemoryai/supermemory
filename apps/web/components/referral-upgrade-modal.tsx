@@ -107,7 +107,7 @@ export function ReferralUpgradeModal({
 
 	if (user?.isAnonymous) {
 		return (
-			<Dialog open={isOpen} onOpenChange={onClose}>
+			<Dialog onOpenChange={onClose} open={isOpen}>
 				<DialogContent className="sm:max-w-md bg-[#0f1419] backdrop-blur-xl border-white/10 text-white">
 					<motion.div
 						animate={{ opacity: 1, scale: 1 }}
@@ -136,7 +136,7 @@ export function ReferralUpgradeModal({
 	}
 
 	return (
-		<Dialog open={isOpen} onOpenChange={onClose}>
+		<Dialog onOpenChange={onClose} open={isOpen}>
 			<DialogContent className="sm:max-w-lg bg-[#0f1419] backdrop-blur-xl border-white/10 text-white">
 				<motion.div
 					animate={{ opacity: 1, scale: 1 }}
@@ -177,16 +177,16 @@ export function ReferralUpgradeModal({
 					</div>
 
 					{/* Tabs */}
-					<Tabs defaultValue="refer" className="w-full">
+					<Tabs className="w-full" defaultValue="refer">
 						<TabsList className="grid w-full grid-cols-2 bg-white/5">
-							<TabsTrigger value="refer" className="flex items-center gap-2">
+							<TabsTrigger className="flex items-center gap-2" value="refer">
 								<Users className="w-4 h-4" />
 								Refer Friends
 							</TabsTrigger>
 							{!isPro && (
 								<TabsTrigger
-									value="upgrade"
 									className="flex items-center gap-2"
+									value="upgrade"
 								>
 									<CreditCard className="w-4 h-4" />
 									Upgrade Plan
@@ -194,7 +194,7 @@ export function ReferralUpgradeModal({
 							)}
 						</TabsList>
 
-						<TabsContent value="refer" className="space-y-4 mt-6">
+						<TabsContent className="space-y-4 mt-6" value="refer">
 							<div className="text-center">
 								<Gift className="w-12 h-12 text-blue-400 mx-auto mb-3" />
 								<HeadingH3Bold className="text-white mb-2">
@@ -241,7 +241,7 @@ export function ReferralUpgradeModal({
 						</TabsContent>
 
 						{!isPro && (
-							<TabsContent value="upgrade" className="space-y-4 mt-6">
+							<TabsContent className="space-y-4 mt-6" value="upgrade">
 								<div className="text-center">
 									<CreditCard className="w-12 h-12 text-purple-400 mx-auto mb-3" />
 									<HeadingH3Bold className="text-white mb-2">

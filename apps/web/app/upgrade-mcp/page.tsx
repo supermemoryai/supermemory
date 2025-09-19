@@ -1,107 +1,107 @@
-"use client"
+"use client";
 
-import { $fetch } from "@lib/api"
-import { useSession } from "@lib/auth"
-import { useMutation } from "@tanstack/react-query"
-import { Logo, LogoFull } from "@ui/assets/Logo"
-import { Button } from "@ui/components/button"
-import { Input } from "@ui/components/input"
-import { GlassMenuEffect } from "@ui/other/glass-effect"
-import { ArrowRight, CheckCircle, Upload, Zap } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
-import { Spinner } from "@/components/spinner"
+import { $fetch } from "@lib/api";
+import { useSession } from "@lib/auth";
+import { useMutation } from "@tanstack/react-query";
+import { Logo, LogoFull } from "@ui/assets/Logo";
+import { Button } from "@ui/components/button";
+import { Input } from "@ui/components/input";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
+import { ArrowRight, CheckCircle, Upload, Zap } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Spinner } from "@/components/spinner";
 
 interface MigrateMCPRequest {
-	userId: string
-	projectId: string
+	userId: string;
+	projectId: string;
 }
 
 interface MigrateMCPResponse {
-	success: boolean
-	migratedCount: number
-	message: string
-	documentIds?: string[]
+	success: boolean;
+	migratedCount: number;
+	message: string;
+	documentIds?: string[];
 }
 
 export default function MigrateMCPPage() {
-	const router = useRouter()
-	const searchParams = useSearchParams()
-	const [mcpUrl, setMcpUrl] = useState("")
-	const [projectId, setProjectId] = useState("default")
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const [mcpUrl, setMcpUrl] = useState("");
+	const [projectId, setProjectId] = useState("default");
 
-	const session = useSession()
+	const session = useSession();
 
 	// Extract MCP URL from query parameter
 	useEffect(() => {
-		const urlParam = searchParams.get("url")
+		const urlParam = searchParams.get("url");
 		if (urlParam) {
-			setMcpUrl(urlParam)
+			setMcpUrl(urlParam);
 		}
-	}, [searchParams])
+	}, [searchParams]);
 
 	useEffect(() => {
-		console.log("session", session)
+		console.log("session", session);
 		if (!session.isPending && !session.data) {
-			const redirectUrl = new URL("/login", window.location.href)
-			redirectUrl.searchParams.set("redirect", window.location.href)
-			router.push(redirectUrl.toString())
-			return
+			const redirectUrl = new URL("/login", window.location.href);
+			redirectUrl.searchParams.set("redirect", window.location.href);
+			router.push(redirectUrl.toString());
+			return;
 		}
-	}, [session, router])
+	}, [session, router]);
 
 	// Extract userId from MCP URL
 	const getUserIdFromUrl = (url: string) => {
-		return url.split("/").at(-2) || ""
-	}
+		return url.split("/").at(-2) || "";
+	};
 
 	const migrateMutation = useMutation({
 		mutationFn: async (data: MigrateMCPRequest) => {
 			const response = await $fetch("@post/documents/migrate-mcp", {
 				body: data,
-			})
+			});
 
 			if (response.error) {
 				throw new Error(
 					response.error?.message || "Failed to migrate documents",
-				)
+				);
 			}
 
-			return response.data
+			return response.data;
 		},
 		onSuccess: (data: MigrateMCPResponse) => {
 			toast.success("Migration completed successfully", {
 				description: data.message,
-			})
+			});
 			// Redirect to home page after successful migration
 			setTimeout(() => {
-				router.push("/?open=mcp")
-			}, 2000) // Wait 2 seconds to show the success message
+				router.push("/?open=mcp");
+			}, 2000); // Wait 2 seconds to show the success message
 		},
 		onError: (error: Error) => {
 			toast.error("Migration failed", {
 				description: error.message || "An unexpected error occurred",
-			})
+			});
 		},
-	})
+	});
 
 	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
+		e.preventDefault();
 
-		const userId = getUserIdFromUrl(mcpUrl)
+		const userId = getUserIdFromUrl(mcpUrl);
 		if (!userId) {
-			toast.error("Please enter a valid MCP URL")
-			return
+			toast.error("Please enter a valid MCP URL");
+			return;
 		}
 
 		migrateMutation.mutate({
 			userId,
 			projectId: projectId.trim() || "default",
-		})
-	}
+		});
+	};
 
 	return (
 		<div className="min-h-screen bg-[#0f1419] overflow-hidden relative">
@@ -320,5 +320,5 @@ export default function MigrateMCPPage() {
 				</motion.div>
 			</div>
 		</div>
-	)
+	);
 }

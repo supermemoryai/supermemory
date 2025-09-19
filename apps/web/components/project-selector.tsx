@@ -150,18 +150,18 @@ export function ProjectSelector() {
 				{isOpen && (
 					<>
 						<motion.div
-							className="fixed inset-0 z-40"
-							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
+							className="fixed inset-0 z-40"
 							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
 							onClick={() => setIsOpen(false)}
 						/>
 
 						<motion.div
-							className="absolute top-full left-0 mt-1 w-56 bg-[#0f1419] backdrop-blur-xl border border-white/10 rounded-md shadow-xl z-50 overflow-hidden"
-							initial={{ opacity: 0, y: -5, scale: 0.98 }}
 							animate={{ opacity: 1, y: 0, scale: 1 }}
+							className="absolute top-full left-0 mt-1 w-56 bg-[#0f1419] backdrop-blur-xl border border-white/10 rounded-md shadow-xl z-50 overflow-hidden"
 							exit={{ opacity: 0, y: -5, scale: 0.98 }}
+							initial={{ opacity: 0, y: -5, scale: 0.98 }}
 							transition={{ duration: 0.15 }}
 						>
 							<div className="p-1.5 max-h-64 overflow-y-auto">
@@ -187,14 +187,14 @@ export function ProjectSelector() {
 									.filter((p: Project) => p.containerTag !== DEFAULT_PROJECT_ID)
 									.map((project: Project, index: number) => (
 										<motion.div
-											key={project.id}
+											animate={{ opacity: 1, x: 0 }}
 											className={`flex items-center justify-between p-2 rounded-md transition-colors group ${
 												selectedProject === project.containerTag
 													? "bg-white/15"
 													: "hover:bg-white/8"
 											}`}
 											initial={{ opacity: 0, x: -5 }}
-											animate={{ opacity: 1, x: 0 }}
+											key={project.id}
 											transition={{ delay: index * 0.03 }}
 										>
 											<div
@@ -278,12 +278,12 @@ export function ProjectSelector() {
 									))}
 
 								<motion.div
-									className="flex items-center gap-2 p-2 rounded-md hover:bg-white/8 transition-colors cursor-pointer border-t border-white/10 mt-1"
-									onClick={handleCreateNewProject}
-									whileHover={{ x: 1 }}
-									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
+									className="flex items-center gap-2 p-2 rounded-md hover:bg-white/8 transition-colors cursor-pointer border-t border-white/10 mt-1"
+									initial={{ opacity: 0 }}
+									onClick={handleCreateNewProject}
 									transition={{ delay: (projects.length + 1) * 0.03 }}
+									whileHover={{ x: 1 }}
 								>
 									<Plus className="h-3.5 w-3.5 text-white/70" />
 									<span className="text-xs font-medium text-white/80">
@@ -297,8 +297,8 @@ export function ProjectSelector() {
 			</AnimatePresence>
 
 			<CreateProjectDialog
-				open={showCreateDialog}
 				onOpenChange={setShowCreateDialog}
+				open={showCreateDialog}
 			/>
 
 			{/* Delete Project Dialog */}

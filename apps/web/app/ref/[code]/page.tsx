@@ -55,8 +55,6 @@ export default function ReferralPage() {
 		checkReferral();
 	}, [referralCode]);
 
-
-
 	const handleCopyLink = async () => {
 		try {
 			await navigator.clipboard.writeText(referralLink);
@@ -146,11 +144,10 @@ export default function ReferralPage() {
 								</p>
 							</div>
 
-
 							<div className="text-center">
 								<Link
-									href="https://supermemory.ai"
 									className="text-orange-500 hover:text-orange-400 text-sm underline"
+									href="https://supermemory.ai"
 								>
 									Learn more about supermemory
 								</Link>
@@ -178,10 +175,10 @@ export default function ReferralPage() {
 									</p>
 								</div>
 								<Button
+									className="shrink-0 border-white/10 hover:bg-white/5"
 									onClick={handleCopyLink}
 									size="sm"
 									variant="outline"
-									className="shrink-0 border-white/10 hover:bg-white/5"
 								>
 									{copiedLink ? (
 										<CheckIcon className="w-4 h-4" />
@@ -192,9 +189,9 @@ export default function ReferralPage() {
 							</div>
 
 							<Button
+								className="w-full border-white/10 text-white hover:bg-white/5"
 								onClick={handleShare}
 								variant="outline"
-								className="w-full border-white/10 text-white hover:bg-white/5"
 							>
 								<ShareIcon className="w-4 h-4" />
 								Share this link

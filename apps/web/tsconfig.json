@@ -1,20 +1,20 @@
 {
-  "compilerOptions": {
-    "incremental": true,
-    "jsx": "preserve",
-    "paths": {
-      "@/*": ["./*"],
-      "@ui/*": ["../../packages/ui/*"],
-      "@lib/*": ["../../packages/lib/*"],
-      "@hooks/*": ["../../packages/hooks/*"]
-    },
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
-  },
-  "exclude": ["node_modules"],
-  "extends": "@total-typescript/tsconfig/bundler/dom/app",
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
+	"compilerOptions": {
+		"incremental": true,
+		"jsx": "preserve",
+		"paths": {
+			"@/*": ["./*"],
+			"@ui/*": ["../../packages/ui/*"],
+			"@lib/*": ["../../packages/lib/*"],
+			"@hooks/*": ["../../packages/hooks/*"]
+		},
+		"plugins": [
+			{
+				"name": "next"
+			}
+		]
+	},
+	"exclude": ["node_modules"],
+	"extends": "@total-typescript/tsconfig/bundler/dom/app",
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
 }

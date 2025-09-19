@@ -1,13 +1,13 @@
-import Supermemory from "supermemory"
-import { tool } from "ai"
-import { z } from "zod"
+import { tool } from "ai";
+import Supermemory from "supermemory";
+import { z } from "zod";
 import {
 	DEFAULT_VALUES,
+	getContainerTags,
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
-	getContainerTags,
-} from "./shared"
-import type { SupermemoryToolsConfig } from "./types"
+} from "./shared";
+import type { SupermemoryToolsConfig } from "./types";
 
 // Export individual tool creators
 export const searchMemoriesTool = (
@@ -17,9 +17,9 @@ export const searchMemoriesTool = (
 	const client = new Supermemory({
 		apiKey,
 		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	});
 
-	const containerTags = getContainerTags(config)
+	const containerTags = getContainerTags(config);
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.searchMemories,
@@ -50,22 +50,22 @@ export const searchMemoriesTool = (
 					limit,
 					chunkThreshold: DEFAULT_VALUES.chunkThreshold,
 					includeFullDocs,
-				})
+				});
 
 				return {
 					success: true,
 					results: response.results,
 					count: response.results?.length || 0,
-				}
+				};
 			} catch (error) {
 				return {
 					success: false,
 					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				};
 			}
 		},
-	})
-}
+	});
+};
 
 export const addMemoryTool = (
 	apiKey: string,
@@ -74,9 +74,9 @@ export const addMemoryTool = (
 	const client = new Supermemory({
 		apiKey,
 		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	});
 
-	const containerTags = getContainerTags(config)
+	const containerTags = getContainerTags(config);
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.addMemory,
@@ -85,27 +85,27 @@ export const addMemoryTool = (
 		}),
 		execute: async ({ memory }) => {
 			try {
-				const metadata: Record<string, string | number | boolean> = {}
+				const metadata: Record<string, string | number | boolean> = {};
 
 				const response = await client.memories.add({
 					content: memory,
 					containerTags,
 					...(Object.keys(metadata).length > 0 && { metadata }),
-				})
+				});
 
 				return {
 					success: true,
 					memory: response,
-				}
+				};
 			} catch (error) {
 				return {
 					success: false,
 					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				};
 			}
 		},
-	})
-}
+	});
+};
 
 /**
  * Create Supermemory tools for AI SDK
@@ -117,5 +117,5 @@ export function supermemoryTools(
 	return {
 		searchMemories: searchMemoriesTool(apiKey, config),
 		addMemory: addMemoryTool(apiKey, config),
-	}
+	};
 }

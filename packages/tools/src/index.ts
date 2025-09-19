@@ -1,2 +1,2 @@
 // Export shared types and utilities
-export type { SupermemoryToolsConfig } from "./types"
+export type { SupermemoryToolsConfig } from "./types";

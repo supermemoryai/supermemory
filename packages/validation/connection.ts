@@ -1,13 +1,13 @@
-import { z } from "zod"
-import { ConnectionProviderEnum } from "./schemas"
+import { z } from "zod";
+import { ConnectionProviderEnum } from "./schemas";
 
-export const providers = ConnectionProviderEnum
-export type Provider = z.infer<typeof providers>
+export const providers = ConnectionProviderEnum;
+export type Provider = z.infer<typeof providers>;
 
 const BaseMetadataSchema = <T extends z.ZodTypeAny>(provider: T) =>
 	z.object({
 		provider,
-	})
+	});
 
 export const NotionMetadataSchema = BaseMetadataSchema(
 	z.literal("notion"),
@@ -17,8 +17,8 @@ export const NotionMetadataSchema = BaseMetadataSchema(
 	workspaceIcon: z.string().optional(),
 	workspaceId: z.string(),
 	workspaceName: z.string(),
-})
-export type NotionMetadata = z.infer<typeof NotionMetadataSchema>
+});
+export type NotionMetadata = z.infer<typeof NotionMetadataSchema>;
 
 export const GoogleDriveMetadataSchema = BaseMetadataSchema(
 	z.literal("google-drive"),
@@ -27,8 +27,8 @@ export const GoogleDriveMetadataSchema = BaseMetadataSchema(
 	webhookChannelId: z.string().optional(),
 	webhookExpiration: z.number().optional(),
 	webhookResourceId: z.string().optional(),
-})
-export type GoogleDriveMetadata = z.infer<typeof GoogleDriveMetadataSchema>
+});
+export type GoogleDriveMetadata = z.infer<typeof GoogleDriveMetadataSchema>;
 
 export const OneDriveMetadataSchema = BaseMetadataSchema(
 	z.literal("onedrive"),
@@ -38,38 +38,38 @@ export const OneDriveMetadataSchema = BaseMetadataSchema(
 	webhookClientState: z.string().optional(),
 	webhookExpiration: z.number().optional(),
 	webhookSubscriptionId: z.string().optional(),
-})
-export type OneDriveMetadata = z.infer<typeof OneDriveMetadataSchema>
+});
+export type OneDriveMetadata = z.infer<typeof OneDriveMetadataSchema>;
 
 export const ConnectionMetadataSchema = z.discriminatedUnion("provider", [
 	NotionMetadataSchema,
 	GoogleDriveMetadataSchema,
 	OneDriveMetadataSchema,
-])
+]);
 export type ConnectionMetadata<T extends Provider> = T extends "notion"
 	? NotionMetadata
 	: T extends "google-drive"
 		? GoogleDriveMetadata
 		: T extends "onedrive"
 			? OneDriveMetadata
-			: never
+			: never;
 
 export function isNotionMetadata(
 	metadata: unknown,
 ): metadata is NotionMetadata {
-	return NotionMetadataSchema.safeParse(metadata).success
+	return NotionMetadataSchema.safeParse(metadata).success;
 }
 
 export function isGoogleDriveMetadata(
 	metadata: unknown,
 ): metadata is GoogleDriveMetadata {
-	return GoogleDriveMetadataSchema.safeParse(metadata).success
+	return GoogleDriveMetadataSchema.safeParse(metadata).success;
 }
 
 export function isOneDriveMetadata(
 	metadata: unknown,
 ): metadata is OneDriveMetadata {
-	return OneDriveMetadataSchema.safeParse(metadata).success
+	return OneDriveMetadataSchema.safeParse(metadata).success;
 }
 
 export const ConnectionStateSchema = z.object({
@@ -77,8 +77,8 @@ export const ConnectionStateSchema = z.object({
 	org: z.string(),
 	provider: providers,
 	userId: z.string(),
-})
-export type ConnectionState = z.infer<typeof ConnectionStateSchema>
+});
+export type ConnectionState = z.infer<typeof ConnectionStateSchema>;
 
 export const TokenDataSchema = z.object({
 	// Only used for Notion connections since they don't support refresh tokens
@@ -90,8 +90,8 @@ export const TokenDataSchema = z.object({
 	metadata: ConnectionMetadataSchema.optional(),
 	refreshToken: z.string().optional(),
 	userId: z.string().optional(),
-})
-export type TokenData = z.infer<typeof TokenDataSchema>
+});
+export type TokenData = z.infer<typeof TokenDataSchema>;
 
 export const NotionTokenResponseSchema = z.object({
 	access_token: z.string(),
@@ -123,8 +123,8 @@ export const NotionTokenResponseSchema = z.object({
 	workspace_icon: z.string().optional(),
 	workspace_id: z.string(),
 	workspace_name: z.string(),
-})
-export type NotionTokenResponse = z.infer<typeof NotionTokenResponseSchema>
+});
+export type NotionTokenResponse = z.infer<typeof NotionTokenResponseSchema>;
 
 export const GoogleDriveTokenResponseSchema = z.object({
 	access_token: z.string(),
@@ -132,10 +132,10 @@ export const GoogleDriveTokenResponseSchema = z.object({
 	refresh_token: z.string().optional(),
 	scope: z.string(),
 	token_type: z.literal("Bearer"),
-})
+});
 export type GoogleDriveTokenResponse = z.infer<
 	typeof GoogleDriveTokenResponseSchema
->
+>;
 
 export const OneDriveTokenResponseSchema = z.object({
 	access_token: z.string(),
@@ -143,8 +143,8 @@ export const OneDriveTokenResponseSchema = z.object({
 	refresh_token: z.string().optional(),
 	scope: z.string(),
 	token_type: z.literal("Bearer"),
-})
-export type OneDriveTokenResponse = z.infer<typeof OneDriveTokenResponseSchema>
+});
+export type OneDriveTokenResponse = z.infer<typeof OneDriveTokenResponseSchema>;
 
 export const NotionConfigSchema = z.object({
 	clientId: z.string(),
@@ -154,23 +154,23 @@ export const NotionConfigSchema = z.object({
 		token: z.string().url(),
 	}),
 	scopes: z.array(z.string()),
-})
-export type NotionConfig = z.infer<typeof NotionConfigSchema>
+});
+export type NotionConfig = z.infer<typeof NotionConfigSchema>;
 
 export const ConnectionQuerySchema = z.object({
 	id: z.string(),
 	redirectUrl: z.string().optional(),
-})
+});
 
 export const GoogleDrivePageTokenResponseSchema = z.object({
 	startPageToken: z.union([z.string(), z.number()]),
-})
+});
 
 export const GoogleDriveWatchResponseSchema = z.object({
 	expiration: z.string(),
 	id: z.string(),
 	resourceId: z.string(),
-})
+});
 
 export const OneDriveSubscriptionResponseSchema = z.object({
 	changeType: z.string(),
@@ -179,13 +179,13 @@ export const OneDriveSubscriptionResponseSchema = z.object({
 	id: z.string(),
 	notificationUrl: z.string(),
 	resource: z.string(),
-})
+});
 
 export const GoogleUserInfoResponseSchema = z.object({
 	email: z.string().email(),
-})
+});
 
 export const MicrosoftUserInfoResponseSchema = z.object({
 	mail: z.string().optional(),
 	userPrincipalName: z.string().optional(),
-})
+});

@@ -29,26 +29,26 @@ export function useGraphData(
 		const allEdges: GraphEdge[] = [];
 
 		// Filter documents that have memories in selected space
-		const filteredDocuments = data.documents
+		const filteredDocuments = (data.documents || [])
 			.map((doc) => ({
 				...doc,
 				memoryEntries:
 					selectedSpace === "all"
-						? doc.memoryEntries
-						: doc.memoryEntries.filter(
+						? doc.memoryEntries || []
+						: (doc.memoryEntries || []).filter(
 								(memory) =>
 									(memory.spaceContainerTag ?? memory.spaceId ?? "default") ===
 									selectedSpace,
 							),
 			}))
-			.filter((doc) => doc.memoryEntries.length > 0);
+			.filter((doc) => (doc.memoryEntries || []).length > 0);
 
 		// Group documents by space for better clustering
 		const documentsBySpace = new Map<string, typeof filteredDocuments>();
 		filteredDocuments.forEach((doc) => {
 			const docSpace =
-				doc.memoryEntries[0]?.spaceContainerTag ??
-				doc.memoryEntries[0]?.spaceId ??
+				(doc.memoryEntries || [])[0]?.spaceContainerTag ??
+				(doc.memoryEntries || [])[0]?.spaceId ??
 				"default";
 			if (!documentsBySpace.has(docSpace)) {
 				documentsBySpace.set(docSpace, []);
@@ -171,7 +171,7 @@ export function useGraphData(
 			const memoryNodeMap = new Map<string, GraphNode>();
 			const doc = docNode.data as DocumentWithMemories;
 
-			doc.memoryEntries.forEach((memory, memIndex) => {
+			(doc.memoryEntries || []).forEach((memory, memIndex) => {
 				const memoryId = `${memory.id}`;
 				const customMemPos = nodePositions.get(memoryId);
 
@@ -231,8 +231,8 @@ export function useGraphData(
 		});
 
 		// Add version-chain edges (old -> new)
-		data.documents.forEach((doc) => {
-			doc.memoryEntries.forEach((mem: MemoryEntry) => {
+		(data.documents || []).forEach((doc) => {
+			(doc.memoryEntries || []).forEach((mem: MemoryEntry) => {
 				// Support both new object structure and legacy array/single parent fields
 				let parentRelations: Record<string, MemoryRelation> = {};
 

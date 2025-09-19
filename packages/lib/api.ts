@@ -10,6 +10,7 @@ import {
 	DeleteProjectSchema,
 	DocumentsWithMemoriesQuerySchema,
 	DocumentsWithMemoriesResponseSchema,
+	GetMemoryResponseSchema,
 	ListMemoriesResponseSchema,
 	ListProjectsResponseSchema,
 	MemoryAddSchema,
@@ -126,7 +127,24 @@ export const apiSchema = createSchema({
 		input: SettingsRequestSchema,
 		output: SettingsResponseSchema,
 	},
+
+	"@get/documents/:id": {
+		output: GetMemoryResponseSchema,
+		params: z.object({ id: z.string() }),
+	},
+
 	// Memory operations
+	"@get/documents": {
+		output: ListMemoriesResponseSchema,
+		query: z
+			.object({
+				limit: z.number().optional(),
+				page: z.number().optional(),
+				status: z.string().optional(),
+				containerTags: z.array(z.string()).optional(),
+			})
+			.optional(),
+	},
 	"@post/documents": {
 		input: MemoryAddSchema,
 		output: MemoryResponseSchema,

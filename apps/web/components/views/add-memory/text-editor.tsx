@@ -399,8 +399,6 @@ export function TextEditor({
 		title: string;
 	}) => (
 		<Button
-			variant="ghost"
-			size="sm"
 			className={cn(
 				"h-8 w-8 !p-0 text-white/70 transition-all duration-200 rounded-sm",
 				"hover:bg-white/15 hover:text-white hover:scale-105",
@@ -408,8 +406,10 @@ export function TextEditor({
 				isActive && "bg-white/20 text-white",
 			)}
 			onMouseDown={onMouseDown}
+			size="sm"
 			title={title}
 			type="button"
+			variant="ghost"
 		>
 			<Icon
 				className={cn(
@@ -426,13 +426,20 @@ export function TextEditor({
 				<Slate
 					editor={editor}
 					initialValue={editorValue}
-					onValueChange={handleSlateChange}
 					onSelectionChange={() => setSelection(editor.selection)}
+					onValueChange={handleSlateChange}
 				>
 					<Editable
+						className={cn(
+							"outline-none w-full h-full text-white placeholder:text-white/50",
+							disabled && "opacity-50 cursor-not-allowed",
+						)}
+						onBlur={onBlur}
+						onKeyDown={handleKeyDown}
+						placeholder={placeholder}
+						readOnly={disabled}
 						renderElement={renderElement}
 						renderLeaf={renderLeaf}
-						placeholder={placeholder}
 						renderPlaceholder={({ children, attributes }) => {
 							return (
 								<div {...attributes} className="mt-2">
@@ -440,13 +447,6 @@ export function TextEditor({
 								</div>
 							);
 						}}
-						onKeyDown={handleKeyDown}
-						onBlur={onBlur}
-						readOnly={disabled}
-						className={cn(
-							"outline-none w-full h-full text-white placeholder:text-white/50",
-							disabled && "opacity-50 cursor-not-allowed",
-						)}
 						style={{
 							minHeight: "11rem",
 							maxHeight: "15rem",

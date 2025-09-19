@@ -1,15 +1,15 @@
-import { tool } from "ai"
-import Supermemory from "supermemory"
-import { z } from "zod"
+import { tool } from "ai";
+import Supermemory from "supermemory";
+import { z } from "zod";
 
 /**
  * Supermemory configuration
  * Only one of `projectId` or `containerTags` can be provided.
  */
 export interface SupermemoryToolsConfig {
-	baseUrl?: string
-	containerTags?: string[]
-	projectId?: string
+	baseUrl?: string;
+	containerTags?: string[];
+	projectId?: string;
 }
 
 /**
@@ -22,11 +22,11 @@ export function supermemoryTools(
 	const client = new Supermemory({
 		apiKey,
 		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
+	});
 
 	const containerTags = config?.projectId
 		? [`sm_project_${config?.projectId}`]
-		: (config?.containerTags ?? ["sm_project_default"])
+		: (config?.containerTags ?? ["sm_project_default"]);
 
 	const searchMemories = tool({
 		description:
@@ -60,21 +60,21 @@ export function supermemoryTools(
 					limit,
 					chunkThreshold: 0.6,
 					includeFullDocs,
-				})
+				});
 
 				return {
 					success: true,
 					results: response.results,
 					count: response.results?.length || 0,
-				}
+				};
 			} catch (error) {
 				return {
 					success: false,
 					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				};
 			}
 		},
-	})
+	});
 
 	const addMemory = tool({
 		description:
@@ -88,31 +88,31 @@ export function supermemoryTools(
 		}),
 		execute: async ({ memory }) => {
 			try {
-				const metadata: Record<string, string | number | boolean> = {}
+				const metadata: Record<string, string | number | boolean> = {};
 
 				const response = await client.memories.add({
 					content: memory,
 					containerTags,
 					...(Object.keys(metadata).length > 0 && { metadata }),
-				})
+				});
 
 				return {
 					success: true,
 					memory: response,
-				}
+				};
 			} catch (error) {
 				return {
 					success: false,
 					error: error instanceof Error ? error.message : "Unknown error",
-				}
+				};
 			}
 		},
-	})
+	});
 
 	return {
 		searchMemories,
 		addMemory,
-	}
+	};
 }
 
 // Export individual tool creators for more flexibility
@@ -120,14 +120,14 @@ export const searchMemoriesTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const { searchMemories } = supermemoryTools(apiKey, config)
-	return searchMemories
-}
+	const { searchMemories } = supermemoryTools(apiKey, config);
+	return searchMemories;
+};
 
 export const addMemoryTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
 ) => {
-	const { addMemory } = supermemoryTools(apiKey, config)
-	return addMemory
-}
+	const { addMemory } = supermemoryTools(apiKey, config);
+	return addMemory;
+};
