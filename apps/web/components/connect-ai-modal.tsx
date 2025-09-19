@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { $fetch } from "@lib/api";
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Button } from "@ui/components/button";
+import { $fetch } from "@lib/api"
+import { useForm } from "@tanstack/react-form"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { Button } from "@ui/components/button"
 import {
 	Dialog,
 	DialogContent,
@@ -11,22 +11,22 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@ui/components/dialog";
-import { Input } from "@ui/components/input";
+} from "@ui/components/dialog"
+import { Input } from "@ui/components/input"
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@ui/components/select";
-import { CopyableCell } from "@ui/copyable-cell";
-import { CopyIcon, ExternalLink, Loader2 } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { z } from "zod/v4";
-import { analytics } from "@/lib/analytics";
+} from "@ui/components/select"
+import { CopyableCell } from "@ui/copyable-cell"
+import { CopyIcon, ExternalLink, Loader2 } from "lucide-react"
+import Image from "next/image"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { z } from "zod/v4"
+import { analytics } from "@/lib/analytics"
 
 const clients = {
 	cursor: "Cursor",
@@ -39,7 +39,7 @@ const clients = {
 	"roo-cline": "Roo Cline",
 	witsy: "Witsy",
 	enconvo: "Enconvo",
-} as const;
+} as const
 
 const mcpMigrationSchema = z.object({
 	url: z
@@ -49,21 +49,21 @@ const mcpMigrationSchema = z.object({
 			/^https:\/\/mcp\.supermemory\.ai\/[^/]+\/sse$/,
 			"Link must be in format: https://mcp.supermemory.ai/userId/sse",
 		),
-});
+})
 
 interface Project {
-	id: string;
-	name: string;
-	containerTag: string;
-	createdAt: string;
-	updatedAt: string;
-	isExperimental?: boolean;
+	id: string
+	name: string
+	containerTag: string
+	createdAt: string
+	updatedAt: string
+	isExperimental?: boolean
 }
 
 interface ConnectAIModalProps {
-	children: React.ReactNode;
-	open?: boolean;
-	onOpenChange?: (open: boolean) => void;
+	children: React.ReactNode
+	open?: boolean
+	onOpenChange?: (open: boolean) => void
 }
 
 export function ConnectAIModal({
@@ -73,103 +73,103 @@ export function ConnectAIModal({
 }: ConnectAIModalProps) {
 	const [selectedClient, setSelectedClient] = useState<
 		keyof typeof clients | null
-	>(null);
-	const [internalIsOpen, setInternalIsOpen] = useState(false);
-	const isOpen = open !== undefined ? open : internalIsOpen;
-	const setIsOpen = onOpenChange || setInternalIsOpen;
-	const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false);
-	const [selectedProject, setSelectedProject] = useState<string | null>("none");
-	const projectId = localStorage.getItem("selectedProject") ?? "default";
+	>(null)
+	const [internalIsOpen, setInternalIsOpen] = useState(false)
+	const isOpen = open !== undefined ? open : internalIsOpen
+	const setIsOpen = onOpenChange || setInternalIsOpen
+	const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false)
+	const [selectedProject, setSelectedProject] = useState<string | null>("none")
+	const projectId = localStorage.getItem("selectedProject") ?? "default"
 
 	useEffect(() => {
-		analytics.mcpViewOpened();
-	}, []);
+		analytics.mcpViewOpened()
+	}, [])
 
 	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects");
+			const response = await $fetch("@get/projects")
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects");
+				throw new Error(response.error?.message || "Failed to load projects")
 			}
-			return response.data?.projects || [];
+			return response.data?.projects || []
 		},
 		staleTime: 30 * 1000,
-	});
+	})
 
 	const mcpMigrationForm = useForm({
 		defaultValues: { url: "" },
 		onSubmit: async ({ value, formApi }) => {
-			const userId = extractUserIdFromMCPUrl(value.url);
+			const userId = extractUserIdFromMCPUrl(value.url)
 			if (userId) {
-				migrateMCPMutation.mutate({ userId, projectId });
-				formApi.reset();
+				migrateMCPMutation.mutate({ userId, projectId })
+				formApi.reset()
 			}
 		},
 		validators: {
 			onChange: mcpMigrationSchema,
 		},
-	});
+	})
 
 	const extractUserIdFromMCPUrl = (url: string): string | null => {
-		const regex = /^https:\/\/mcp\.supermemory\.ai\/([^/]+)\/sse$/;
-		const match = url.trim().match(regex);
-		return match?.[1] || null;
-	};
+		const regex = /^https:\/\/mcp\.supermemory\.ai\/([^/]+)\/sse$/
+		const match = url.trim().match(regex)
+		return match?.[1] || null
+	}
 
 	const migrateMCPMutation = useMutation({
 		mutationFn: async ({
 			userId,
 			projectId,
 		}: {
-			userId: string;
-			projectId: string;
+			userId: string
+			projectId: string
 		}) => {
-			const response = await $fetch("@post/memories/migrate-mcp", {
+			const response = await $fetch("@post/documents/migrate-mcp", {
 				body: { userId, projectId },
-			});
+			})
 
 			if (response.error) {
 				throw new Error(
 					response.error?.message || "Failed to migrate documents",
-				);
+				)
 			}
 
-			return response.data;
+			return response.data
 		},
 		onSuccess: (data) => {
 			toast.success("Migration completed!", {
 				description: `Successfully migrated ${data?.migratedCount} documents`,
-			});
-			setIsMigrateDialogOpen(false);
+			})
+			setIsMigrateDialogOpen(false)
 		},
 		onError: (error) => {
 			toast.error("Migration failed", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			});
+			})
 		},
-	});
+	})
 
 	function generateInstallCommand() {
-		if (!selectedClient) return "";
+		if (!selectedClient) return ""
 
-		let command = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`;
+		let command = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
 
 		if (selectedProject && selectedProject !== "none") {
 			// Remove the "sm_project_" prefix from the containerTag
-			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "");
-			command += ` --project ${projectIdForCommand}`;
+			const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
+			command += ` --project ${projectIdForCommand}`
 		}
 
-		return command;
+		return command
 	}
 
 	const copyToClipboard = () => {
-		const command = generateInstallCommand();
-		navigator.clipboard.writeText(command);
-		analytics.mcpInstallCmdCopied();
-		toast.success("Copied to clipboard!");
-	};
+		const command = generateInstallCommand()
+		navigator.clipboard.writeText(command)
+		analytics.mcpInstallCmdCopied()
+		toast.success("Copied to clipboard!")
+	}
 
 	return (
 		<Dialog onOpenChange={setIsOpen} open={isOpen}>
@@ -219,23 +219,27 @@ export function ConnectAIModal({
 													className="rounded object-contain text-white fill-white"
 													height={20}
 													onError={(e) => {
-														const target = e.target as HTMLImageElement;
-														target.style.display = "none";
-														const parent = target.parentElement;
+														const target = e.target as HTMLImageElement
+														target.style.display = "none"
+														const parent = target.parentElement
 														if (
 															parent &&
 															!parent.querySelector(".fallback-text")
 														) {
-															const fallback = document.createElement("span");
+															const fallback = document.createElement("span")
 															fallback.className =
-																"fallback-text text-sm font-bold text-white/40";
+																"fallback-text text-sm font-bold text-white/40"
 															fallback.textContent = clientName
 																.substring(0, 2)
-																.toUpperCase();
-															parent.appendChild(fallback);
+																.toUpperCase()
+															parent.appendChild(fallback)
 														}
 													}}
-													src={key === "mcp-url" ? "/mcp-icon.svg" : `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`}
+													src={
+														key === "mcp-url"
+															? "/mcp-icon.svg"
+															: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+													}
 													width={20}
 												/>
 											</div>
@@ -275,9 +279,9 @@ export function ConnectAIModal({
 											onClick={() => {
 												navigator.clipboard.writeText(
 													"https://api.supermemory.ai/mcp",
-												);
-												analytics.mcpInstallCmdCopied();
-												toast.success("Copied to clipboard!");
+												)
+												analytics.mcpInstallCmdCopied()
+												toast.success("Copied to clipboard!")
 											}}
 											variant="ghost"
 										>
@@ -459,9 +463,9 @@ export function ConnectAIModal({
 							</DialogHeader>
 							<form
 								onSubmit={(e) => {
-									e.preventDefault();
-									e.stopPropagation();
-									mcpMigrationForm.handleSubmit();
+									e.preventDefault()
+									e.stopPropagation()
+									mcpMigrationForm.handleSubmit()
 								}}
 							>
 								<div className="grid gap-4">
@@ -500,8 +504,8 @@ export function ConnectAIModal({
 									<Button
 										className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 										onClick={() => {
-											setIsMigrateDialogOpen(false);
-											mcpMigrationForm.reset();
+											setIsMigrateDialogOpen(false)
+											mcpMigrationForm.reset()
 										}}
 										type="button"
 										variant="outline"
@@ -532,5 +536,5 @@ export function ConnectAIModal({
 				</Dialog>
 			)}
 		</Dialog>
-	);
+	)
 }
