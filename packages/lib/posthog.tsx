@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { usePathname, useSearchParams } from "next/navigation"
-import posthog from "posthog-js"
-import { Suspense, useEffect } from "react"
-import { useSession } from "./auth"
+import { usePathname, useSearchParams } from "next/navigation";
+import posthog from "posthog-js";
+import { Suspense, useEffect } from "react";
+import { useSession } from "./auth";
 
 function PostHogPageTracking() {
-	const pathname = usePathname()
-	const searchParams = useSearchParams()
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
 
 	// Page tracking
 	useEffect(() => {
 		if (pathname) {
-			let url = window.origin + pathname
+			let url = window.origin + pathname;
 			if (searchParams.toString()) {
-				url = `${url}?${searchParams.toString()}`
+				url = `${url}?${searchParams.toString()}`;
 			}
 
 			// Extract page context for better tracking
@@ -24,17 +24,17 @@ function PostHogPageTracking() {
 				search_params: searchParams.toString(),
 				page_type: getPageType(pathname),
 				org_slug: getOrgSlug(pathname),
-			}
+			};
 
-			posthog.capture("$pageview", pageContext)
+			posthog.capture("$pageview", pageContext);
 		}
-	}, [pathname, searchParams])
+	}, [pathname, searchParams]);
 
-	return null
+	return null;
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-	const { data: session } = useSession()
+	const { data: session } = useSession();
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
@@ -44,9 +44,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 				person_profiles: "identified_only",
 				capture_pageview: false,
 				capture_pageleave: true,
-			})
+			});
 		}
-	}, [])
+	}, []);
 
 	// User identification
 	useEffect(() => {
@@ -56,9 +56,9 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 				name: session.user.name,
 				userId: session.user.id,
 				createdAt: session.user.createdAt,
-			})
+			});
 		}
-	}, [session?.user])
+	}, [session?.user]);
 
 	return (
 		<>
@@ -67,18 +67,18 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 			</Suspense>
 			{children}
 		</>
-	)
+	);
 }
 
 function getPageType(pathname: string): string {
-	return "other"
+	return "other";
 }
 
 function getOrgSlug(pathname: string): string | null {
-	const match = pathname.match(/^\/([^/]+)\//)
-	return match ? (match[1] ?? null) : null
+	const match = pathname.match(/^\/([^/]+)\//);
+	return match ? (match[1] ?? null) : null;
 }
 
 export function usePostHog() {
-	return posthog
+	return posthog;
 }

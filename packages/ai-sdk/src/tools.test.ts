@@ -1,27 +1,29 @@
-import { createOpenAI } from "@ai-sdk/openai"
-import { generateText } from "ai"
-import { describe, expect, it } from "vitest"
-import { type SupermemoryToolsConfig, supermemoryTools } from "./tools"
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { describe, expect, it } from "vitest";
+import { type SupermemoryToolsConfig, supermemoryTools } from "./tools";
 
-import "dotenv/config"
+import "dotenv/config";
 
 describe("supermemoryTools", () => {
 	// Required API keys - tests will fail if not provided
-	const testApiKey = process.env.SUPERMEMORY_API_KEY
-	const testOpenAIKey = process.env.OPENAI_API_KEY
+	const testApiKey = process.env.SUPERMEMORY_API_KEY;
+	const testOpenAIKey = process.env.OPENAI_API_KEY;
 
 	if (!testApiKey) {
 		throw new Error(
 			"SUPERMEMORY_API_KEY environment variable is required for tests",
-		)
+		);
 	}
 	if (!testOpenAIKey) {
-		throw new Error("OPENAI_API_KEY environment variable is required for tests")
+		throw new Error(
+			"OPENAI_API_KEY environment variable is required for tests",
+		);
 	}
 
 	// Optional configuration with defaults
-	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
-	const testModelName = process.env.MODEL_NAME || "gpt-5-mini"
+	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined;
+	const testModelName = process.env.MODEL_NAME || "gpt-5-mini";
 
 	const testPrompts = [
 		"What do you remember about my preferences?",
@@ -29,57 +31,57 @@ describe("supermemoryTools", () => {
 		"What are my current projects?",
 		"Remind me of my interests and hobbies",
 		"What should I focus on today?",
-	]
+	];
 
 	describe("client initialization", () => {
 		it("should create tools with default configuration", () => {
-			const config: SupermemoryToolsConfig = {}
-			const tools = supermemoryTools(testApiKey, config)
+			const config: SupermemoryToolsConfig = {};
+			const tools = supermemoryTools(testApiKey, config);
 
-			expect(tools).toBeDefined()
-			expect(tools.searchMemories).toBeDefined()
-			expect(tools.addMemory).toBeDefined()
-		})
+			expect(tools).toBeDefined();
+			expect(tools.searchMemories).toBeDefined();
+			expect(tools.addMemory).toBeDefined();
+		});
 
 		it("should create tools with custom baseUrl", () => {
 			const config: SupermemoryToolsConfig = {
 				baseUrl: testBaseUrl,
-			}
-			const tools = supermemoryTools(testApiKey, config)
+			};
+			const tools = supermemoryTools(testApiKey, config);
 
-			expect(tools).toBeDefined()
-			expect(tools.searchMemories).toBeDefined()
-			expect(tools.addMemory).toBeDefined()
-		})
+			expect(tools).toBeDefined();
+			expect(tools.searchMemories).toBeDefined();
+			expect(tools.addMemory).toBeDefined();
+		});
 
 		it("should create tools with projectId configuration", () => {
 			const config: SupermemoryToolsConfig = {
 				projectId: "test-project-123",
-			}
-			const tools = supermemoryTools(testApiKey, config)
+			};
+			const tools = supermemoryTools(testApiKey, config);
 
-			expect(tools).toBeDefined()
-			expect(tools.searchMemories).toBeDefined()
-			expect(tools.addMemory).toBeDefined()
-		})
+			expect(tools).toBeDefined();
+			expect(tools.searchMemories).toBeDefined();
+			expect(tools.addMemory).toBeDefined();
+		});
 
 		it("should create tools with custom container tags", () => {
 			const config: SupermemoryToolsConfig = {
 				containerTags: ["custom-tag-1", "custom-tag-2"],
-			}
-			const tools = supermemoryTools(testApiKey, config)
+			};
+			const tools = supermemoryTools(testApiKey, config);
 
-			expect(tools).toBeDefined()
-			expect(tools.searchMemories).toBeDefined()
-			expect(tools.addMemory).toBeDefined()
-		})
-	})
+			expect(tools).toBeDefined();
+			expect(tools.searchMemories).toBeDefined();
+			expect(tools.addMemory).toBeDefined();
+		});
+	});
 
 	describe("AI SDK integration", () => {
 		it("should work with AI SDK generateText", async () => {
 			const openai = createOpenAI({
 				apiKey: testOpenAIKey,
-			})
+			});
 
 			const result = await generateText({
 				model: openai(testModelName),
@@ -100,22 +102,22 @@ describe("supermemoryTools", () => {
 						baseUrl: testBaseUrl,
 					}),
 				},
-			})
+			});
 
-			expect(result).toBeDefined()
-			expect(result.text).toBeDefined()
-			expect(typeof result.text).toBe("string")
-		})
+			expect(result).toBeDefined();
+			expect(result.text).toBeDefined();
+			expect(typeof result.text).toBe("string");
+		});
 
 		it("should use tools when prompted", async () => {
 			const openai = createOpenAI({
 				apiKey: testOpenAIKey,
-			})
+			});
 
 			const tools = supermemoryTools(testApiKey, {
 				projectId: "test-tool-usage",
 				baseUrl: testBaseUrl,
-			})
+			});
 
 			const result = await generateText({
 				model: openai(testModelName),
@@ -133,24 +135,24 @@ describe("supermemoryTools", () => {
 				tools: {
 					addMemory: tools.addMemory,
 				},
-			})
+			});
 
-			expect(result).toBeDefined()
-			expect(result.text).toBeDefined()
-			expect(result.toolCalls).toBeDefined()
+			expect(result).toBeDefined();
+			expect(result.text).toBeDefined();
+			expect(result.toolCalls).toBeDefined();
 
 			if (result.toolCalls && result.toolCalls.length > 0) {
 				const addMemoryCall = result.toolCalls.find(
 					(call) => call.toolName === "addMemory",
-				)
-				expect(addMemoryCall).toBeDefined()
+				);
+				expect(addMemoryCall).toBeDefined();
 			}
-		})
+		});
 
 		it("should handle multiple tool types", async () => {
 			const openai = createOpenAI({
 				apiKey: testOpenAIKey,
-			})
+			});
 
 			const result = await generateText({
 				model: openai(testModelName),
@@ -171,11 +173,11 @@ describe("supermemoryTools", () => {
 						containerTags: ["test-multi-tools"],
 					}),
 				},
-			})
+			});
 
-			expect(result).toBeDefined()
-			expect(result.text).toBeDefined()
-			expect(typeof result.text).toBe("string")
-		})
-	})
-})
+			expect(result).toBeDefined();
+			expect(result.text).toBeDefined();
+			expect(typeof result.text).toBe("string");
+		});
+	});
+});

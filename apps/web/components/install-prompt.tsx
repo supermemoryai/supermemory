@@ -70,9 +70,9 @@ export function InstallPrompt() {
 		<AnimatePresence>
 			<motion.div
 				animate={{ y: 0, opacity: 1 }}
+				className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm md:hidden"
 				exit={{ y: 100, opacity: 0 }}
 				initial={{ y: 100, opacity: 0 }}
-				className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm md:hidden"
 			>
 				<div className="bg-black/90 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-white/10">
 					<div className="flex items-start justify-between mb-3">
@@ -83,10 +83,10 @@ export function InstallPrompt() {
 							<h3 className="font-semibold text-sm">Install Supermemory</h3>
 						</div>
 						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleDismiss}
 							className="text-white/60 hover:text-white h-6 w-6 p-0"
+							onClick={handleDismiss}
+							size="sm"
+							variant="ghost"
 						>
 							<X className="w-4 h-4" />
 						</Button>
@@ -107,19 +107,19 @@ export function InstallPrompt() {
 								2. Select "Add to Home Screen" ➕
 							</p>
 							<Button
-								variant="secondary"
-								size="sm"
-								onClick={handleDismiss}
 								className="w-full text-xs"
+								onClick={handleDismiss}
+								size="sm"
+								variant="secondary"
 							>
 								Got it
 							</Button>
 						</div>
 					) : (
 						<Button
+							className="w-full bg-[#0f1419] hover:bg-[#1a1f2a] text-white text-xs"
 							onClick={handleInstall}
 							size="sm"
-							className="w-full bg-[#0f1419] hover:bg-[#1a1f2a] text-white text-xs"
 						>
 							<Download className="w-3 h-3 mr-1" />
 							Add to Home Screen

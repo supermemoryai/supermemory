@@ -1,4 +1,4 @@
-import { createAuthClient } from "better-auth/client"
+import { createAuthClient } from "better-auth/client";
 import {
 	adminClient,
 	anonymousClient,
@@ -7,7 +7,7 @@ import {
 	magicLinkClient,
 	organizationClient,
 	usernameClient,
-} from "better-auth/client/plugins"
+} from "better-auth/client/plugins";
 
 export const middlewareAuthClient = createAuthClient({
 	baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai",
@@ -23,4 +23,4 @@ export const middlewareAuthClient = createAuthClient({
 		organizationClient(),
 		anonymousClient(),
 	],
-})
+});

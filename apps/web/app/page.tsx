@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useIsMobile } from "@hooks/use-mobile"
-import { useAuth } from "@lib/auth-context"
-import { $fetch } from "@repo/lib/api"
-import { MemoryGraph } from "@repo/ui/memory-graph"
-import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
-import { Logo, LogoFull } from "@ui/assets/Logo"
-import { Button } from "@ui/components/button"
-import { GlassMenuEffect } from "@ui/other/glass-effect"
+import { useIsMobile } from "@hooks/use-mobile";
+import { useAuth } from "@lib/auth-context";
+import { $fetch } from "@repo/lib/api";
+import { MemoryGraph } from "@repo/ui/memory-graph";
+import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Logo, LogoFull } from "@ui/assets/Logo";
+import { Button } from "@ui/components/button";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
 import {
 	HelpCircle,
 	LayoutGrid,
@@ -16,58 +16,59 @@ import {
 	LoaderIcon,
 	MessageSquare,
 	Unplug,
-} from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
-import type { z } from "zod"
-import { ConnectAIModal } from "@/components/connect-ai-modal"
-import { InstallPrompt } from "@/components/install-prompt"
-import { MemoryListView } from "@/components/memory-list-view"
-import Menu from "@/components/menu"
-import { ProjectSelector } from "@/components/project-selector"
-import { ReferralUpgradeModal } from "@/components/referral-upgrade-modal"
-import type { TourStep } from "@/components/tour"
-import { TourAlertDialog, useTour } from "@/components/tour"
-import { AddMemoryView } from "@/components/views/add-memory"
-import { ChatRewrite } from "@/components/views/chat"
-import { TOUR_STEP_IDS, TOUR_STORAGE_KEY } from "@/lib/tour-constants"
-import { useViewMode } from "@/lib/view-mode-context"
-import { useChatOpen, useProject } from "@/stores"
-import { useGraphHighlights } from "@/stores/highlights"
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { z } from "zod";
+import { ConnectAIModal } from "@/components/connect-ai-modal";
+import { GetStarted } from "@/components/get-started";
+import { InstallPrompt } from "@/components/install-prompt";
+import { MemoryListView } from "@/components/memory-list-view";
+import Menu from "@/components/menu";
+import { ProjectSelector } from "@/components/project-selector";
+import { ReferralUpgradeModal } from "@/components/referral-upgrade-modal";
+import type { TourStep } from "@/components/tour";
+import { TourAlertDialog, useTour } from "@/components/tour";
+import { AddMemoryView } from "@/components/views/add-memory";
+import { ChatRewrite } from "@/components/views/chat";
+import { TOUR_STEP_IDS, TOUR_STORAGE_KEY } from "@/lib/tour-constants";
+import { useViewMode } from "@/lib/view-mode-context";
+import { useChatOpen, useProject } from "@/stores";
+import { useGraphHighlights } from "@/stores/highlights";
 
-type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
-type DocumentWithMemories = DocumentsResponse["documents"][0]
+type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>;
+type DocumentWithMemories = DocumentsResponse["documents"][0];
 
 const MemoryGraphPage = () => {
-	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
-	const isMobile = useIsMobile()
-	const { viewMode, setViewMode, isInitialized } = useViewMode()
-	const { selectedProject } = useProject()
-	const { setSteps, isTourCompleted } = useTour()
-	const { isOpen, setIsOpen } = useChatOpen()
-	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([])
-	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
-	const [showReferralModal, setShowReferralModal] = useState(false)
-	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
-	const [isHelpHovered, setIsHelpHovered] = useState(false)
+	const { documentIds: allHighlightDocumentIds } = useGraphHighlights();
+	const isMobile = useIsMobile();
+	const { viewMode, setViewMode, isInitialized } = useViewMode();
+	const { selectedProject } = useProject();
+	const { setSteps, isTourCompleted } = useTour();
+	const { isOpen, setIsOpen } = useChatOpen();
+	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([]);
+	const [showAddMemoryView, setShowAddMemoryView] = useState(false);
+	const [showReferralModal, setShowReferralModal] = useState(false);
+	const [showConnectAIModal, setShowConnectAIModal] = useState(false);
+	const [isHelpHovered, setIsHelpHovered] = useState(false);
 
 	// Fetch projects meta to detect experimental flag
 	const { data: projectsMeta = [] } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects")
-			return response.data?.projects ?? []
+			const response = await $fetch("@get/projects");
+			return response.data?.projects ?? [];
 		},
 		staleTime: 5 * 60 * 1000,
-	})
+	});
 
 	const isCurrentProjectExperimental = !!projectsMeta.find(
 		(p: any) => p.containerTag === selectedProject,
-	)?.isExperimental
+	)?.isExperimental;
 
 	// Tour state
-	const [showTourDialog, setShowTourDialog] = useState(false)
+	const [showTourDialog, setShowTourDialog] = useState(false);
 
 	// Define tour steps with useMemo to prevent recreation
 	const tourSteps: TourStep[] = useMemo(() => {
@@ -200,37 +201,37 @@ const MemoryGraphPage = () => {
 				selectorId: TOUR_STEP_IDS.FLOATING_CHAT,
 				position: "left",
 			},
-		]
-	}, [])
+		];
+	}, []);
 
 	// Check if tour has been completed before
 	useEffect(() => {
-		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true"
+		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true";
 		if (!hasCompletedTour && !isTourCompleted) {
 			const timer = setTimeout(() => {
-				setShowTourDialog(true)
-				setShowConnectAIModal(false)
-			}, 1000) // Show after 1 second
-			return () => clearTimeout(timer)
+				setShowTourDialog(true);
+				setShowConnectAIModal(false);
+			}, 1000); // Show after 1 second
+			return () => clearTimeout(timer);
 		}
-	}, [isTourCompleted])
+	}, [isTourCompleted]);
 
 	// Set up tour steps
 	useEffect(() => {
-		setSteps(tourSteps)
-	}, [setSteps, tourSteps])
+		setSteps(tourSteps);
+	}, [setSteps, tourSteps]);
 
 	// Save tour completion to localStorage
 	useEffect(() => {
 		if (isTourCompleted) {
-			localStorage.setItem(TOUR_STORAGE_KEY, "true")
+			localStorage.setItem(TOUR_STORAGE_KEY, "true");
 		}
-	}, [isTourCompleted])
+	}, [isTourCompleted]);
 
 	// Progressive loading via useInfiniteQuery
-	const IS_DEV = process.env.NODE_ENV === "development"
-	const PAGE_SIZE = IS_DEV ? 100 : 100
-	const MAX_TOTAL = 1000
+	const IS_DEV = process.env.NODE_ENV === "development";
+	const PAGE_SIZE = IS_DEV ? 100 : 100;
+	const MAX_TOTAL = 1000;
 
 	const {
 		data,
@@ -252,75 +253,76 @@ const MemoryGraphPage = () => {
 					containerTags: selectedProject ? [selectedProject] : undefined,
 				},
 				disableValidation: true,
-			})
+			});
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to fetch documents")
+				throw new Error(response.error?.message || "Failed to fetch documents");
 			}
 
-			return response.data
+			return response.data;
 		},
 		getNextPageParam: (lastPage, allPages) => {
 			const loaded = allPages.reduce(
 				(acc, p) => acc + (p.documents?.length ?? 0),
 				0,
-			)
-			if (loaded >= MAX_TOTAL) return undefined
+			);
+			if (loaded >= MAX_TOTAL) return undefined;
 
-			const { currentPage, totalPages } = lastPage.pagination
+			const { currentPage, totalPages } = lastPage.pagination;
 			if (currentPage < totalPages) {
-				return currentPage + 1
+				return currentPage + 1;
 			}
-			return undefined
+			return undefined;
 		},
 		staleTime: 5 * 60 * 1000,
-	})
+	});
 
 	const baseDocuments = useMemo(() => {
 		return (
 			data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
-		)
-	}, [data])
+		);
+	}, [data]);
 
 	const allDocuments = useMemo(() => {
-		if (injectedDocs.length === 0) return baseDocuments
-		const byId = new Map<string, DocumentWithMemories>()
-		for (const d of injectedDocs) byId.set(d.id, d)
-		for (const d of baseDocuments) if (!byId.has(d.id)) byId.set(d.id, d)
-		return Array.from(byId.values())
-	}, [baseDocuments, injectedDocs])
+		if (injectedDocs.length === 0) return baseDocuments;
+		const byId = new Map<string, DocumentWithMemories>();
+		for (const d of injectedDocs) byId.set(d.id, d);
+		for (const d of baseDocuments) if (!byId.has(d.id)) byId.set(d.id, d);
+		return Array.from(byId.values());
+	}, [baseDocuments, injectedDocs]);
 
-	const totalLoaded = allDocuments.length
-	const hasMore = hasNextPage
-	const isLoadingMore = isFetchingNextPage
+	const totalLoaded = allDocuments.length;
+	const hasMore = hasNextPage;
+	const isLoadingMore = isFetchingNextPage;
 
 	const loadMoreDocuments = useCallback(async (): Promise<void> => {
 		if (hasNextPage && !isFetchingNextPage) {
-			await fetchNextPage()
-			return
+			await fetchNextPage();
+			return;
 		}
-		return
-	}, [hasNextPage, isFetchingNextPage, fetchNextPage])
+		return;
+	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
 	// Reset injected docs when project changes
 	useEffect(() => {
-		setInjectedDocs([])
-	}, [selectedProject])
+		setInjectedDocs([]);
+	}, [selectedProject]);
 
 	// Surgical fetch of missing highlighted documents (customId-based IDs from search)
 	useEffect(() => {
-		if (!isOpen) return
-		if (!allHighlightDocumentIds || allHighlightDocumentIds.length === 0) return
-		const present = new Set<string>()
+		if (!isOpen) return;
+		if (!allHighlightDocumentIds || allHighlightDocumentIds.length === 0)
+			return;
+		const present = new Set<string>();
 		for (const d of [...baseDocuments, ...injectedDocs]) {
-			if (d.id) present.add(d.id)
-			if ((d as any).customId) present.add((d as any).customId as string)
+			if (d.id) present.add(d.id);
+			if ((d as any).customId) present.add((d as any).customId as string);
 		}
 		const missing = allHighlightDocumentIds.filter(
 			(id: string) => !present.has(id),
-		)
-		if (missing.length === 0) return
-		let cancelled = false
+		);
+		if (missing.length === 0) return;
+		let cancelled = false;
 		const run = async () => {
 			try {
 				const resp = await $fetch("@post/memories/documents/by-ids", {
@@ -330,32 +332,32 @@ const MemoryGraphPage = () => {
 						containerTags: selectedProject ? [selectedProject] : undefined,
 					},
 					disableValidation: true,
-				})
-				if (cancelled || (resp as any)?.error) return
+				});
+				if (cancelled || (resp as any)?.error) return;
 				const extraDocs = (resp as any)?.data?.documents as
 					| DocumentWithMemories[]
-					| undefined
-				if (!extraDocs || extraDocs.length === 0) return
+					| undefined;
+				if (!extraDocs || extraDocs.length === 0) return;
 				setInjectedDocs((prev) => {
 					const seen = new Set<string>([
 						...prev.map((d) => d.id),
 						...baseDocuments.map((d) => d.id),
-					])
-					const merged = [...prev]
+					]);
+					const merged = [...prev];
 					for (const doc of extraDocs) {
 						if (!seen.has(doc.id)) {
-							merged.push(doc)
-							seen.add(doc.id)
+							merged.push(doc);
+							seen.add(doc.id);
 						}
 					}
-					return merged
-				})
+					return merged;
+				});
 			} catch {}
-		}
-		void run()
+		};
+		void run();
 		return () => {
-			cancelled = true
-		}
+			cancelled = true;
+		};
 	}, [
 		isOpen,
 		allHighlightDocumentIds.join("|"),
@@ -363,39 +365,39 @@ const MemoryGraphPage = () => {
 		injectedDocs,
 		selectedProject,
 		$fetch,
-	])
+	]);
 
 	// Handle view mode change
 	const handleViewModeChange = useCallback(
 		(mode: "graph" | "list") => {
-			setViewMode(mode)
+			setViewMode(mode);
 		},
 		[setViewMode],
-	)
+	);
 
 	useEffect(() => {
-		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true"
+		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true";
 		if (hasCompletedTour && allDocuments.length === 0 && !showTourDialog) {
-			setShowConnectAIModal(true)
+			setShowConnectAIModal(true);
 		} else if (showTourDialog) {
-			setShowConnectAIModal(false)
+			setShowConnectAIModal(false);
 		}
-	}, [allDocuments.length, showTourDialog])
+	}, [allDocuments.length, showTourDialog]);
 
 	// Prevent body scrolling
 	useEffect(() => {
-		document.body.style.overflow = "hidden"
-		document.body.style.height = "100vh"
-		document.documentElement.style.overflow = "hidden"
-		document.documentElement.style.height = "100vh"
+		document.body.style.overflow = "hidden";
+		document.body.style.height = "100vh";
+		document.documentElement.style.overflow = "hidden";
+		document.documentElement.style.height = "100vh";
 
 		return () => {
-			document.body.style.overflow = ""
-			document.body.style.height = ""
-			document.documentElement.style.overflow = ""
-			document.documentElement.style.height = ""
-		}
-	}, [])
+			document.body.style.overflow = "";
+			document.body.style.height = "";
+			document.documentElement.style.overflow = "";
+			document.documentElement.style.height = "";
+		};
+	}, []);
 
 	return (
 		<div className="relative h-screen bg-[#0f1419] overflow-hidden touch-none">
@@ -526,9 +528,9 @@ const MemoryGraphPage = () => {
 													<button
 														className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
 														onClick={(e) => {
-															e.stopPropagation()
-															setShowAddMemoryView(true)
-															setShowConnectAIModal(false)
+															e.stopPropagation();
+															setShowAddMemoryView(true);
+															setShowConnectAIModal(false);
 														}}
 														type="button"
 													>
@@ -564,37 +566,7 @@ const MemoryGraphPage = () => {
 								loadMoreDocuments={loadMoreDocuments}
 								totalLoaded={totalLoaded}
 							>
-								<div className="absolute inset-0 flex items-center justify-center">
-									<ConnectAIModal
-										onOpenChange={setShowConnectAIModal}
-										open={showConnectAIModal}
-									>
-										<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
-											<div className="relative z-10 text-slate-200 text-center">
-												<p className="text-lg font-medium mb-4">
-													Get Started with supermemory
-												</p>
-												<div className="flex flex-col gap-3">
-													<p className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-														Click here to set up your AI connection
-													</p>
-													<p className="text-xs text-white/60">or</p>
-													<button
-														className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
-														onClick={(e) => {
-															e.stopPropagation()
-															setShowAddMemoryView(true)
-															setShowConnectAIModal(false)
-														}}
-														type="button"
-													>
-														Add your first memory
-													</button>
-												</div>
-											</div>
-										</div>
-									</ConnectAIModal>
-								</div>
+								<GetStarted />
 							</MemoryListView>
 						</motion.div>
 					)}
@@ -735,35 +707,35 @@ const MemoryGraphPage = () => {
 				onClose={() => setShowReferralModal(false)}
 			/>
 		</div>
-	)
-}
+	);
+};
 
 // Wrapper component to handle auth and waitlist checks
 export default function Page() {
-	const { user, session } = useAuth()
+	const { user, session } = useAuth();
 
 	useEffect(() => {
-		const url = new URL(window.location.href)
+		const url = new URL(window.location.href);
 		const authenticateChromeExtension = url.searchParams.get(
 			"extension-auth-success",
-		)
+		);
 
 		if (authenticateChromeExtension) {
-			const sessionToken = session?.token
+			const sessionToken = session?.token;
 			const userData = {
 				email: user?.email,
 				name: user?.name,
 				userId: user?.id,
-			}
+			};
 
 			if (sessionToken && userData?.email) {
-				const encodedToken = encodeURIComponent(sessionToken)
-				window.postMessage({ token: encodedToken, userData }, "*")
-				url.searchParams.delete("extension-auth-success")
-				window.history.replaceState({}, "", url.toString())
+				const encodedToken = encodeURIComponent(sessionToken);
+				window.postMessage({ token: encodedToken, userData }, "*");
+				url.searchParams.delete("extension-auth-success");
+				window.history.replaceState({}, "", url.toString());
 			}
 		}
-	}, [user, session])
+	}, [user, session]);
 
 	// Show loading state while checking authentication and waitlist status
 	if (!user) {
@@ -774,7 +746,7 @@ export default function Page() {
 					<p className="text-white/60">Loading...</p>
 				</div>
 			</div>
-		)
+		);
 	}
 
 	// If we have a user and they have access, show the main component
@@ -783,5 +755,5 @@ export default function Page() {
 			<MemoryGraphPage />
 			<InstallPrompt />
 		</>
-	)
+	);
 }

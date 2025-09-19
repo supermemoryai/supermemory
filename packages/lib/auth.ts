@@ -6,8 +6,8 @@ import {
 	magicLinkClient,
 	organizationClient,
 	usernameClient,
-} from "better-auth/client/plugins"
-import { createAuthClient } from "better-auth/react"
+} from "better-auth/client/plugins";
+import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
 	baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai",
@@ -24,9 +24,9 @@ export const authClient = createAuthClient({
 		organizationClient(),
 		anonymousClient(),
 	],
-})
+});
 
-export const signIn = authClient.signIn
-export const signOut = authClient.signOut
-export const useSession = authClient.useSession
-export const getSession = authClient.getSession
+export const signIn = authClient.signIn;
+export const signOut = authClient.signOut;
+export const useSession = authClient.useSession;
+export const getSession = authClient.getSession;

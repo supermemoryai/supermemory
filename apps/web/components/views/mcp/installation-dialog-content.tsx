@@ -1,3 +1,5 @@
+import { $fetch } from "@repo/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@ui/components/button";
 import {
 	DialogContent,
@@ -6,6 +8,7 @@ import {
 	DialogTitle,
 } from "@ui/components/dialog";
 import { Input } from "@ui/components/input";
+import { Label } from "@ui/components/label";
 import {
 	Select,
 	SelectContent,
@@ -13,13 +16,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@ui/components/select";
-import { Label } from "@ui/components/label";
 import { CopyIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { analytics } from "@/lib/analytics";
-import { $fetch } from "@repo/lib/api";
-import { useQuery } from "@tanstack/react-query";
 
 const clients = {
 	cursor: "Cursor",
@@ -67,7 +67,7 @@ export function InstallationDialogContent() {
 
 		if (selectedProject && selectedProject !== "none") {
 			// Remove the "sm_project_" prefix from the containerTag
-			const projectId = selectedProject.replace(/^sm_project_/, '');
+			const projectId = selectedProject.replace(/^sm_project_/, "");
 			command += ` --project ${projectId}`;
 		}
 
@@ -79,8 +79,8 @@ export function InstallationDialogContent() {
 			<DialogHeader>
 				<DialogTitle>Install the supermemory MCP Server</DialogTitle>
 				<DialogDescription>
-					Select the app and project you want to install supermemory MCP to, then run the
-					following command:
+					Select the app and project you want to install supermemory MCP to,
+					then run the following command:
 				</DialogDescription>
 			</DialogHeader>
 
@@ -91,7 +91,7 @@ export function InstallationDialogContent() {
 						onValueChange={(value) => setClient(value as keyof typeof clients)}
 						value={client}
 					>
-						<SelectTrigger id="client-select" className="w-full">
+						<SelectTrigger className="w-full" id="client-select">
 							<SelectValue placeholder="Select client" />
 						</SelectTrigger>
 						<SelectContent>
@@ -107,27 +107,30 @@ export function InstallationDialogContent() {
 				<div className="space-y-2">
 					<Label htmlFor="project-select">Target Project (Optional)</Label>
 					<Select
+						disabled={isLoadingProjects}
 						onValueChange={setSelectedProject}
 						value={selectedProject || "none"}
-						disabled={isLoadingProjects}
 					>
-						<SelectTrigger id="project-select" className="w-full">
+						<SelectTrigger className="w-full" id="project-select">
 							<SelectValue placeholder="Select project" />
 						</SelectTrigger>
 						<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-							<SelectItem value="none" className="text-white hover:bg-white/10">
+							<SelectItem className="text-white hover:bg-white/10" value="none">
 								Auto-select project
 							</SelectItem>
-							<SelectItem value="sm_project_default" className="text-white hover:bg-white/10">
+							<SelectItem
+								className="text-white hover:bg-white/10"
+								value="sm_project_default"
+							>
 								Default Project
 							</SelectItem>
 							{projects
 								.filter((p: Project) => p.containerTag !== "sm_project_default")
 								.map((project: Project) => (
 									<SelectItem
+										className="text-white hover:bg-white/10"
 										key={project.id}
 										value={project.containerTag}
-										className="text-white hover:bg-white/10"
 									>
 										{project.name}
 									</SelectItem>
@@ -139,8 +142,8 @@ export function InstallationDialogContent() {
 				<div className="space-y-2">
 					<Label htmlFor="command-input">Installation Command</Label>
 					<Input
-						id="command-input"
 						className="font-mono text-xs!"
+						id="command-input"
 						readOnly
 						value={generateInstallCommand()}
 					/>

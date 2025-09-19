@@ -1,26 +1,26 @@
-import { AnimatePresence, motion } from "framer-motion"
-import { Brain, Chrome, ExternalLink, Plus } from "lucide-react"
-import { useEffect, useState } from "react"
-import { ConnectAIModal } from "@/components/connect-ai-modal"
-import { analytics } from "@/lib/analytics"
+import { AnimatePresence, motion } from "framer-motion";
+import { Brain, Chrome, ExternalLink, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ConnectAIModal } from "@/components/connect-ai-modal";
+import { analytics } from "@/lib/analytics";
 
 interface GetStartedProps {
-	setShowAddMemoryView?: (show: boolean) => void
+	setShowAddMemoryView?: (show: boolean) => void;
 }
 
 export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
-	const [imageLoaded, setImageLoaded] = useState(false)
-	const [showContent, setShowContent] = useState(false)
-	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
+	const [imageLoaded, setImageLoaded] = useState(false);
+	const [showContent, setShowContent] = useState(false);
+	const [showConnectAIModal, setShowConnectAIModal] = useState(false);
 
 	useEffect(() => {
-		const img = new Image()
+		const img = new Image();
 		img.onload = () => {
-			setImageLoaded(true)
-			setTimeout(() => setShowContent(true), 100)
-		}
-		img.src = "/images/onboarding.png"
-	}, [])
+			setImageLoaded(true);
+			setTimeout(() => setShowContent(true), 100);
+		};
+		img.src = "/images/onboarding.png";
+	}, []);
 
 	const containerVariants = {
 		hidden: { opacity: 0 },
@@ -33,7 +33,7 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				delayChildren: 0.2,
 			},
 		},
-	}
+	};
 
 	const leftColumnVariants = {
 		hidden: {
@@ -49,7 +49,7 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				staggerChildren: 0.1,
 			},
 		},
-	}
+	};
 
 	const rightColumnVariants = {
 		hidden: {
@@ -66,7 +66,7 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				staggerChildren: 0.1,
 			},
 		},
-	}
+	};
 
 	const textLineVariants = {
 		hidden: {
@@ -81,7 +81,7 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				ease: [0.25, 0.1, 0.25, 1] as const,
 			},
 		},
-	}
+	};
 
 	const cardVariants = {
 		hidden: {
@@ -98,7 +98,7 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				ease: [0.25, 0.1, 0.25, 1] as const,
 			},
 		},
-	}
+	};
 
 	const backgroundVariants = {
 		hidden: {
@@ -113,22 +113,22 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				ease: [0.25, 0.1, 0.25, 1] as const,
 			},
 		},
-	}
+	};
 
 	const handleChromeExtension = () => {
-		analytics.extensionInstallClicked()
+		analytics.extensionInstallClicked();
 		window.open(
 			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
 			"_blank",
-		)
-	}
+		);
+	};
 
 	const handleAddMemory = () => {
-		setShowConnectAIModal(false)
+		setShowConnectAIModal(false);
 		if (setShowAddMemoryView) {
-			setShowAddMemoryView(true)
+			setShowAddMemoryView(true);
 		}
-	}
+	};
 
 	return (
 		<div className="fixed inset-0 overflow-hidden bg-black">
@@ -358,5 +358,5 @@ export const GetStarted = ({ setShowAddMemoryView }: GetStartedProps) => {
 				</>
 			)}
 		</div>
-	)
-}
+	);
+};

@@ -1,21 +1,21 @@
-import { z } from "zod"
-import "zod-openapi/extend"
+import { z } from "zod";
+import "zod-openapi/extend";
 import {
 	MetadataSchema as BaseMetadataSchema,
 	DocumentSchema,
 	MemoryEntrySchema,
 	OrganizationSettingsSchema,
 	RequestTypeEnum,
-} from "./schemas"
+} from "./schemas";
 
-export const MetadataSchema = BaseMetadataSchema
+export const MetadataSchema = BaseMetadataSchema;
 
 export const SearchFiltersSchema = z
 	.object({
 		AND: z.array(z.unknown()).optional(),
 		OR: z.array(z.unknown()).optional(),
 	})
-	.or(z.record(z.unknown()))
+	.or(z.record(z.unknown()));
 
 const exampleMetadata: Record<string, string | number | boolean> = {
 	category: "technology",
@@ -24,7 +24,7 @@ const exampleMetadata: Record<string, string | number | boolean> = {
 	source: "web",
 	tag_1: "ai",
 	tag_2: "machine-learning",
-} as const
+} as const;
 
 const exampleMemory = {
 	connectionId: "conn_123",
@@ -45,7 +45,7 @@ const exampleMemory = {
 	type: "text",
 	updatedAt: new Date().toISOString(),
 	url: "https://example.com/article",
-} as const
+} as const;
 
 export const MemorySchema = z
 	.object({
@@ -136,7 +136,7 @@ export const MemorySchema = z
 	.openapi({
 		description: "Memory object",
 		example: exampleMemory,
-	})
+	});
 
 export const MemoryUpdateSchema = z.object({
 	containerTags: z
@@ -162,9 +162,9 @@ export const MemoryUpdateSchema = z.object({
 			"Optional metadata for the memory. This is used to store additional information about the memory. You can use this to store any additional information you need about the memory. Metadata can be filtered through. Keys must be strings and are case sensitive. Values can be strings, numbers, or booleans. You cannot nest objects.",
 		example: exampleMetadata,
 	}),
-})
+});
 
-export const MemoryAddSchema = MemoryUpdateSchema
+export const MemoryAddSchema = MemoryUpdateSchema;
 
 export const PaginationSchema = z
 	.object({
@@ -181,9 +181,9 @@ export const PaginationSchema = z
 			totalItems: 100,
 			totalPages: 10,
 		},
-	})
+	});
 
-export const GetMemoryResponseSchema = MemorySchema
+export const GetMemoryResponseSchema = MemorySchema;
 
 export const ListMemoriesResponseSchema = z
 	.object({
@@ -229,7 +229,7 @@ export const ListMemoriesResponseSchema = z
 				totalPages: 10,
 			},
 		},
-	})
+	});
 
 export const ListMemoriesQuerySchema = z
 	.object({
@@ -317,12 +317,12 @@ export const ListMemoriesQuerySchema = z
 			page: 1,
 			sort: "createdAt",
 		},
-	})
+	});
 
 export const MemoryResponseSchema = z.object({
 	id: z.string(),
 	status: z.string(),
-})
+});
 
 export const SearchRequestSchema = z.object({
 	categoriesFilter: z
@@ -455,7 +455,7 @@ export const SearchRequestSchema = z.object({
 			"If true, rewrites the query to make it easier to find documents. This increases the latency by about 400ms",
 		example: false,
 	}),
-})
+});
 
 export const Searchv4RequestSchema = z.object({
 	containerTag: z.string().optional().openapi({
@@ -546,7 +546,7 @@ export const Searchv4RequestSchema = z.object({
 			"If true, rewrites the query to make it easier to find documents. This increases the latency by about 400ms",
 		example: false,
 	}),
-})
+});
 
 export const SearchResultSchema = z.object({
 	chunks: z
@@ -632,13 +632,13 @@ export const SearchResultSchema = z.object({
 		description: "Document type",
 		example: "web",
 	}),
-})
+});
 
 export const SearchResponseSchema = z.object({
 	results: z.array(SearchResultSchema),
 	timing: z.number(),
 	total: z.number(),
-})
+});
 
 // V4 Memory Search Schemas
 export const MemorySearchDocumentSchema = z.object({
@@ -666,7 +666,7 @@ export const MemorySearchDocumentSchema = z.object({
 		description: "Document last update date",
 		format: "date-time",
 	}),
-})
+});
 
 export const MemorySearchResult = z.object({
 	id: z.string().openapi({
@@ -765,7 +765,7 @@ export const MemorySearchResult = z.object({
 	documents: z.array(MemorySearchDocumentSchema).optional().openapi({
 		description: "Associated documents for this memory entry",
 	}),
-})
+});
 
 export const MemorySearchResponseSchema = z.object({
 	results: z.array(MemorySearchResult).openapi({
@@ -779,7 +779,7 @@ export const MemorySearchResponseSchema = z.object({
 		description: "Total number of results returned",
 		example: 5,
 	}),
-})
+});
 
 export const ErrorResponseSchema = z.object({
 	details: z.string().optional().openapi({
@@ -790,15 +790,15 @@ export const ErrorResponseSchema = z.object({
 		description: "Error message",
 		example: "Invalid request parameters",
 	}),
-})
+});
 
-export type SearchResult = z.infer<typeof SearchResultSchema>
+export type SearchResult = z.infer<typeof SearchResultSchema>;
 
 export const SettingsRequestSchema = OrganizationSettingsSchema.omit({
 	id: true,
 	orgId: true,
 	updatedAt: true,
-})
+});
 
 export const ConnectionResponseSchema = z.object({
 	createdAt: z.string().datetime(),
@@ -808,21 +808,21 @@ export const ConnectionResponseSchema = z.object({
 	id: z.string(),
 	metadata: z.record(z.any()).optional(),
 	provider: z.string(),
-})
+});
 
-export const RequestTypeSchema = RequestTypeEnum
+export const RequestTypeSchema = RequestTypeEnum;
 
 export const HourlyAnalyticsSchema = z.object({
 	count: z.number(),
 	hour: z.union([z.date(), z.string()]),
-})
+});
 
 export const ApiKeyAnalyticsBaseSchema = z.object({
 	count: z.number(),
 	keyId: z.string(),
 	keyName: z.string().nullable(),
 	lastUsed: z.union([z.date(), z.string()]).nullable(),
-})
+});
 
 export const AnalyticsUsageResponseSchema = z.object({
 	byKey: z.array(
@@ -845,7 +845,7 @@ export const AnalyticsUsageResponseSchema = z.object({
 			type: RequestTypeSchema,
 		}),
 	),
-})
+});
 
 export const AnalyticsErrorResponseSchema = z.object({
 	byKey: z.array(
@@ -878,7 +878,7 @@ export const AnalyticsErrorResponseSchema = z.object({
 			type: RequestTypeSchema,
 		}),
 	),
-})
+});
 
 export const AnalyticsLogSchema = z.object({
 	createdAt: z.date(),
@@ -917,12 +917,12 @@ export const AnalyticsLogSchema = z.object({
 	]),
 	statusCode: z.number(),
 	type: RequestTypeSchema,
-})
+});
 
 export const AnalyticsLogsResponseSchema = z.object({
 	logs: z.array(z.unknown()),
 	pagination: PaginationSchema,
-})
+});
 
 export const AnalyticsChatResponseSchema = z.object({
 	analytics: z.object({
@@ -1022,7 +1022,7 @@ export const AnalyticsChatResponseSchema = z.object({
 			}),
 		}),
 	}),
-})
+});
 
 export const AnalyticsMemoryResponseSchema = z.object({
 	connectionsGrowth: z.number(),
@@ -1033,7 +1033,7 @@ export const AnalyticsMemoryResponseSchema = z.object({
 	tokensProcessed: z.number(),
 	totalConnections: z.number(),
 	totalMemories: z.number(),
-})
+});
 
 export const MemoryEntryAPISchema = MemoryEntrySchema.extend({
 	sourceAddedAt: z.date().nullable(), // From join relationship
@@ -1042,7 +1042,7 @@ export const MemoryEntryAPISchema = MemoryEntrySchema.extend({
 	spaceContainerTag: z.string().nullable(), // From join relationship
 }).openapi({
 	description: "Memory entry with source relationship data",
-})
+});
 
 // Extended document schema with memory entries
 export const DocumentWithMemoriesSchema = z
@@ -1075,7 +1075,7 @@ export const DocumentWithMemoriesSchema = z
 	})
 	.openapi({
 		description: "Document with associated memory entries",
-	})
+	});
 
 export const DocumentsWithMemoriesResponseSchema = z
 	.object({
@@ -1084,7 +1084,7 @@ export const DocumentsWithMemoriesResponseSchema = z
 	})
 	.openapi({
 		description: "List of documents with their memory entries",
-	})
+	});
 
 export const DocumentsWithMemoriesQuerySchema = z
 	.object({
@@ -1114,7 +1114,7 @@ export const DocumentsWithMemoriesQuerySchema = z
 	})
 	.openapi({
 		description: "Query parameters for listing documents with memory entries",
-	})
+	});
 
 export const MigrateMCPRequestSchema = z
 	.object({
@@ -1129,7 +1129,7 @@ export const MigrateMCPRequestSchema = z
 	})
 	.openapi({
 		description: "Request body for migrating MCP documents",
-	})
+	});
 
 export const MigrateMCPResponseSchema = z
 	.object({
@@ -1155,7 +1155,7 @@ export const MigrateMCPResponseSchema = z
 	})
 	.openapi({
 		description: "Response for MCP document migration",
-	})
+	});
 
 // Processing documents schema
 export const ProcessingDocumentsResponseSchema = z
@@ -1196,7 +1196,7 @@ export const ProcessingDocumentsResponseSchema = z
 			],
 			totalCount: 5,
 		},
-	})
+	});
 
 // Project schemas
 export const ProjectSchema = z
@@ -1235,7 +1235,7 @@ export const ProjectSchema = z
 	})
 	.openapi({
 		description: "Project object for organizing memories",
-	})
+	});
 
 export const CreateProjectSchema = z
 	.object({
@@ -1248,7 +1248,7 @@ export const CreateProjectSchema = z
 	})
 	.openapi({
 		description: "Request body for creating a new project",
-	})
+	});
 
 export const ListProjectsResponseSchema = z
 	.object({
@@ -1258,7 +1258,7 @@ export const ListProjectsResponseSchema = z
 	})
 	.openapi({
 		description: "Response containing list of projects",
-	})
+	});
 
 export const DeleteProjectSchema = z
 	.object({
@@ -1275,9 +1275,9 @@ export const DeleteProjectSchema = z
 		(data) => {
 			// If action is "move", targetProjectId is required
 			if (data.action === "move") {
-				return !!data.targetProjectId
+				return !!data.targetProjectId;
 			}
-			return true
+			return true;
 		},
 		{
 			message: "targetProjectId is required when action is 'move'",
@@ -1286,7 +1286,7 @@ export const DeleteProjectSchema = z
 	)
 	.openapi({
 		description: "Request body for deleting a project",
-	})
+	});
 
 export const DeleteProjectResponseSchema = z
 	.object({
@@ -1309,7 +1309,7 @@ export const DeleteProjectResponseSchema = z
 	})
 	.openapi({
 		description: "Response for project deletion",
-	})
+	});
 
 // Bulk delete schema - supports both IDs and container tags
 export const BulkDeleteMemoriesSchema = z
@@ -1336,7 +1336,7 @@ export const BulkDeleteMemoriesSchema = z
 	.refine(
 		(data) => {
 			// At least one of ids or containerTags must be provided
-			return !!data.ids?.length || !!data.containerTags?.length
+			return !!data.ids?.length || !!data.containerTags?.length;
 		},
 		{
 			message: "Either 'ids' or 'containerTags' must be provided",
@@ -1348,7 +1348,7 @@ export const BulkDeleteMemoriesSchema = z
 		example: {
 			ids: ["acxV5LHMEsG2hMSNb4umbn", "bxcV5LHMEsG2hMSNb4umbn"],
 		},
-	})
+	});
 
 export const BulkDeleteMemoriesResponseSchema = z
 	.object({
@@ -1383,4 +1383,4 @@ export const BulkDeleteMemoriesResponseSchema = z
 	})
 	.openapi({
 		description: "Response for bulk memory deletion",
-	})
+	});

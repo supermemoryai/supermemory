@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { $fetch } from "@lib/api"
-import { Button } from "@repo/ui/components/button"
-import { Skeleton } from "@repo/ui/components/skeleton"
-import type { ConnectionResponseSchema } from "@repo/validation/api"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
-import { useCustomer } from "autumn-js/react"
-import { Trash2 } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useState } from "react"
-import { toast } from "sonner"
-import type { z } from "zod"
-import { analytics } from "@/lib/analytics"
-import { useProject } from "@/stores"
+import { $fetch } from "@lib/api";
+import { Button } from "@repo/ui/components/button";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import type { ConnectionResponseSchema } from "@repo/validation/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons";
+import { useCustomer } from "autumn-js/react";
+import { Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { z } from "zod";
+import { analytics } from "@/lib/analytics";
+import { useProject } from "@/stores";
 
 // Define types
-type Connection = z.infer<typeof ConnectionResponseSchema>
+type Connection = z.infer<typeof ConnectionResponseSchema>;
 
 // Connector configurations
 const CONNECTORS = {
@@ -35,27 +35,27 @@ const CONNECTORS = {
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
 	},
-} as const
+} as const;
 
-type ConnectorProvider = keyof typeof CONNECTORS
+type ConnectorProvider = keyof typeof CONNECTORS;
 
 export function ConnectionsTabContent() {
-	const queryClient = useQueryClient()
-	const { selectedProject } = useProject()
-	const autumn = useCustomer()
-	const [isProUser, setIsProUser] = useState(false)
+	const queryClient = useQueryClient();
+	const { selectedProject } = useProject();
+	const autumn = useCustomer();
+	const [isProUser, setIsProUser] = useState(false);
 
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
-			})
-			window.location.reload()
+			});
+			window.location.reload();
 		} catch (error) {
-			console.error(error)
+			console.error(error);
 		}
-	}
+	};
 
 	// Set pro user status when autumn data loads
 	useEffect(() => {
@@ -64,16 +64,16 @@ export function ConnectionsTabContent() {
 				autumn.customer?.products.some(
 					(product) => product.id === "consumer_pro",
 				) ?? false,
-			)
+			);
 		}
-	}, [autumn.isLoading, autumn.customer])
+	}, [autumn.isLoading, autumn.customer]);
 
 	// Get connections data directly from autumn customer
-	const connectionsFeature = autumn.customer?.features?.connections
-	const connectionsUsed = connectionsFeature?.usage ?? 0
-	const connectionsLimit = connectionsFeature?.included_usage ?? 0
+	const connectionsFeature = autumn.customer?.features?.connections;
+	const connectionsUsed = connectionsFeature?.usage ?? 0;
+	const connectionsLimit = connectionsFeature?.included_usage ?? 0;
 
-	const canAddConnection = connectionsUsed < connectionsLimit
+	const canAddConnection = connectionsUsed < connectionsLimit;
 
 	// Fetch connections
 	const {
@@ -87,26 +87,28 @@ export function ConnectionsTabContent() {
 				body: {
 					containerTags: [],
 				},
-			})
+			});
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load connections")
+				throw new Error(
+					response.error?.message || "Failed to load connections",
+				);
 			}
 
-			return response.data as Connection[]
+			return response.data as Connection[];
 		},
 		staleTime: 30 * 1000,
 		refetchInterval: 60 * 1000,
-	})
+	});
 
 	// Show error toast if connections fail to load
 	useEffect(() => {
 		if (error) {
 			toast.error("Failed to load connections", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			})
+			});
 		}
-	}, [error])
+	}, [error]);
 
 	// Add connection mutation
 	const addConnectionMutation = useMutation({
@@ -115,7 +117,7 @@ export function ConnectionsTabContent() {
 			if (!canAddConnection && !isProUser) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
-				)
+				);
 			}
 
 			const response = await $fetch("@post/connections/:provider", {
@@ -124,61 +126,61 @@ export function ConnectionsTabContent() {
 					redirectUrl: window.location.href,
 					containerTags: [selectedProject],
 				},
-			})
+			});
 
 			// biome-ignore lint/style/noNonNullAssertion: its fine
 			if ("data" in response && !("error" in response.data!)) {
-				return response.data
+				return response.data;
 			}
 
-			throw new Error(response.error?.message || "Failed to connect")
+			throw new Error(response.error?.message || "Failed to connect");
 		},
 		onSuccess: (data, provider) => {
-			analytics.connectionAdded(provider)
-			analytics.connectionAuthStarted()
+			analytics.connectionAdded(provider);
+			analytics.connectionAuthStarted();
 			autumn.track({
 				featureId: "connections",
 				value: 1,
-			})
+			});
 			if (data?.authLink) {
-				window.location.href = data.authLink
+				window.location.href = data.authLink;
 			}
 		},
 		onError: (error, provider) => {
-			analytics.connectionAuthFailed()
+			analytics.connectionAuthFailed();
 			toast.error(`Failed to connect ${provider}`, {
 				description: error instanceof Error ? error.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	// Delete connection mutation
 	const deleteConnectionMutation = useMutation({
 		mutationFn: async (connectionId: string) => {
-			await $fetch(`@delete/connections/${connectionId}`)
+			await $fetch(`@delete/connections/${connectionId}`);
 		},
 		onSuccess: () => {
-			analytics.connectionDeleted()
+			analytics.connectionDeleted();
 			toast.success(
 				"Connection removal has started. supermemory will permanently delete the documents in the next few minutes.",
-			)
-			queryClient.invalidateQueries({ queryKey: ["connections"] })
+			);
+			queryClient.invalidateQueries({ queryKey: ["connections"] });
 		},
 		onError: (error) => {
 			toast.error("Failed to remove connection", {
 				description: error instanceof Error ? error.message : "Unknown error",
-			})
+			});
 		},
-	})
+	});
 
 	const getProviderIcon = (provider: string) => {
-		const connector = CONNECTORS[provider as ConnectorProvider]
+		const connector = CONNECTORS[provider as ConnectorProvider];
 		if (connector) {
-			const Icon = connector.icon
-			return <Icon className="h-10 w-10" />
+			const Icon = connector.icon;
+			return <Icon className="h-10 w-10" />;
 		}
-		return <span className="text-2xl">📎</span>
-	}
+		return <span className="text-2xl">📎</span>;
+	};
 
 	return (
 		<div className="space-y-4">
@@ -310,7 +312,7 @@ export function ConnectionsTabContent() {
 				</h3>
 				<div className="grid gap-3">
 					{Object.entries(CONNECTORS).map(([provider, config], index) => {
-						const Icon = config.icon
+						const Icon = config.icon;
 						return (
 							<motion.div
 								animate={{ opacity: 1, y: 0 }}
@@ -324,7 +326,7 @@ export function ConnectionsTabContent() {
 									className="justify-start h-auto p-4 bg-white/5 hover:bg-white/10 border-white/10 text-white w-full"
 									disabled={addConnectionMutation.isPending}
 									onClick={() => {
-										addConnectionMutation.mutate(provider as ConnectorProvider)
+										addConnectionMutation.mutate(provider as ConnectorProvider);
 									}}
 									variant="outline"
 								>
@@ -337,10 +339,10 @@ export function ConnectionsTabContent() {
 									</div>
 								</Button>
 							</motion.div>
-						)
+						);
 					})}
 				</div>
 			</div>
 		</div>
-	)
+	);
 }

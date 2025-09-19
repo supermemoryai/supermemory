@@ -8,7 +8,7 @@ export const TOOL_DESCRIPTIONS = {
 		"Search (recall) memories/details/information about the user or other facts or entities. Run when explicitly asked or when context about user's past choices would be helpful.",
 	addMemory:
 		"Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation.",
-} as const
+} as const;
 
 // Parameter descriptions
 export const PARAMETER_DESCRIPTIONS = {
@@ -18,30 +18,30 @@ export const PARAMETER_DESCRIPTIONS = {
 	limit: "Maximum number of results to return",
 	memory:
 		"The text content of the memory to add. This should be a single sentence or a short paragraph.",
-} as const
+} as const;
 
 // Default values
 export const DEFAULT_VALUES = {
 	includeFullDocs: true,
 	limit: 10,
 	chunkThreshold: 0.6,
-} as const
+} as const;
 
 // Container tag constants
 export const CONTAINER_TAG_CONSTANTS = {
 	projectPrefix: "sm_project_",
 	defaultTags: ["sm_project_default"] as string[],
-} as const
+} as const;
 
 /**
  * Helper function to generate container tags based on config
  */
 export function getContainerTags(config?: {
-	projectId?: string
-	containerTags?: string[]
+	projectId?: string;
+	containerTags?: string[];
 }): string[] {
 	if (config?.projectId) {
-		return [`${CONTAINER_TAG_CONSTANTS.projectPrefix}${config.projectId}`]
+		return [`${CONTAINER_TAG_CONSTANTS.projectPrefix}${config.projectId}`];
 	}
-	return config?.containerTags ?? CONTAINER_TAG_CONSTANTS.defaultTags
+	return config?.containerTags ?? CONTAINER_TAG_CONSTANTS.defaultTags;
 }

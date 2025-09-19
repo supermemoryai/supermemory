@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { usePathname } from "next/navigation"
-import { useEffect } from "react"
-import { useSession } from "./auth"
-import { usePostHog } from "./posthog"
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { useSession } from "./auth";
+import { usePostHog } from "./posthog";
 
 export function useErrorTracking() {
-	const posthog = usePostHog()
-	const { data: session } = useSession()
-	const pathname = usePathname()
+	const posthog = usePostHog();
+	const { data: session } = useSession();
+	const pathname = usePathname();
 
 	const trackError = (
 		error: Error | unknown,
@@ -23,10 +23,10 @@ export function useErrorTracking() {
 			user_email: session?.user?.email,
 			timestamp: new Date().toISOString(),
 			...context,
-		}
+		};
 
-		posthog.capture("error_occurred", errorDetails)
-	}
+		posthog.capture("error_occurred", errorDetails);
+	};
 
 	const trackApiError = (
 		error: Error | unknown,
@@ -37,8 +37,8 @@ export function useErrorTracking() {
 			error_type: "api_error",
 			api_endpoint: endpoint,
 			api_method: method,
-		})
-	}
+		});
+	};
 
 	const trackComponentError = (
 		error: Error | unknown,
@@ -47,8 +47,8 @@ export function useErrorTracking() {
 		trackError(error, {
 			error_type: "component_error",
 			component_name: componentName,
-		})
-	}
+		});
+	};
 
 	const trackValidationError = (
 		error: Error | unknown,
@@ -59,24 +59,24 @@ export function useErrorTracking() {
 			error_type: "validation_error",
 			form_name: formName,
 			field_name: field,
-		})
-	}
+		});
+	};
 
 	return {
 		trackError,
 		trackApiError,
 		trackComponentError,
 		trackValidationError,
-	}
+	};
 }
 
 // Global error boundary component
 export function ErrorTrackingProvider({
 	children,
 }: {
-	children: React.ReactNode
+	children: React.ReactNode;
 }) {
-	const { trackError } = useErrorTracking()
+	const { trackError } = useErrorTracking();
 
 	useEffect(() => {
 		// Global error handler for unhandled errors
@@ -87,34 +87,37 @@ export function ErrorTrackingProvider({
 				filename: event.filename,
 				lineno: event.lineno,
 				colno: event.colno,
-			})
-		}
+			});
+		};
 
 		// Global handler for unhandled promise rejections
 		const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
 			trackError(event.reason, {
 				error_type: "unhandled_promise_rejection",
 				source: "promise_rejection",
-			})
-		}
+			});
+		};
 
-		window.addEventListener("error", handleError)
-		window.addEventListener("unhandledrejection", handleUnhandledRejection)
+		window.addEventListener("error", handleError);
+		window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
 		return () => {
-			window.removeEventListener("error", handleError)
-			window.removeEventListener("unhandledrejection", handleUnhandledRejection)
-		}
-	}, [trackError])
+			window.removeEventListener("error", handleError);
+			window.removeEventListener(
+				"unhandledrejection",
+				handleUnhandledRejection,
+			);
+		};
+	}, [trackError]);
 
-	return <>{children}</>
+	return <>{children}</>;
 }
 
 // Hook for tracking user interactions
 export function useInteractionTracking() {
-	const posthog = usePostHog()
-	const { data: session } = useSession()
-	const pathname = usePathname()
+	const posthog = usePostHog();
+	const { data: session } = useSession();
+	const pathname = usePathname();
 
 	const trackInteraction = (action: string, details?: Record<string, any>) => {
 		posthog.capture("user_interaction", {
@@ -123,8 +126,8 @@ export function useInteractionTracking() {
 			user_id: session?.user?.id,
 			timestamp: new Date().toISOString(),
 			...details,
-		})
-	}
+		});
+	};
 
 	const trackFormSubmission = (
 		formName: string,
@@ -138,15 +141,15 @@ export function useInteractionTracking() {
 			user_id: session?.user?.id,
 			timestamp: new Date().toISOString(),
 			...details,
-		})
-	}
+		});
+	};
 
 	const trackButtonClick = (buttonName: string, context?: string) => {
 		trackInteraction("button_click", {
 			button_name: buttonName,
 			context,
-		})
-	}
+		});
+	};
 
 	const trackLinkClick = (
 		url: string,
@@ -157,27 +160,27 @@ export function useInteractionTracking() {
 			url,
 			link_text: linkText,
 			external,
-		})
-	}
+		});
+	};
 
 	const trackModalOpen = (modalName: string) => {
 		trackInteraction("modal_open", {
 			modal_name: modalName,
-		})
-	}
+		});
+	};
 
 	const trackModalClose = (modalName: string) => {
 		trackInteraction("modal_close", {
 			modal_name: modalName,
-		})
-	}
+		});
+	};
 
 	const trackTabChange = (fromTab: string, toTab: string) => {
 		trackInteraction("tab_change", {
 			from_tab: fromTab,
 			to_tab: toTab,
-		})
-	}
+		});
+	};
 
 	return {
 		trackInteraction,
@@ -187,5 +190,5 @@ export function useInteractionTracking() {
 		trackModalOpen,
 		trackModalClose,
 		trackTabChange,
-	}
+	};
 }

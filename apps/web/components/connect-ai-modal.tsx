@@ -235,7 +235,11 @@ export function ConnectAIModal({
 															parent.appendChild(fallback);
 														}
 													}}
-													src={key === "mcp-url" ? "/mcp-icon.svg" : `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`}
+													src={
+														key === "mcp-url"
+															? "/mcp-icon.svg"
+															: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+													}
 													width={20}
 												/>
 											</div>

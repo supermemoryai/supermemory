@@ -5,8 +5,8 @@ import { usePostHog } from "@lib/posthog";
 import { LogoFull } from "@repo/ui/assets/Logo";
 import { TextSeparator } from "@repo/ui/components/text-separator";
 import { ExternalAuthButton } from "@ui/button/external-auth";
-import { Button } from "@ui/components/button";
 import { Badge } from "@ui/components/badge";
+import { Button } from "@ui/components/button";
 import {
 	Carousel,
 	CarouselContent,
@@ -20,7 +20,7 @@ import { Title1Bold } from "@ui/text/title/title-1-bold";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function LoginPage({
 	heroText = "The unified memory API for the AI era.",
