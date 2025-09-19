@@ -323,7 +323,7 @@ const MemoryGraphPage = () => {
 		let cancelled = false
 		const run = async () => {
 			try {
-				const resp = await $fetch("@post/memories/documents/by-ids", {
+				const resp = await $fetch("@post/documents/documents/by-ids", {
 					body: {
 						ids: missing,
 						by: "customId",
