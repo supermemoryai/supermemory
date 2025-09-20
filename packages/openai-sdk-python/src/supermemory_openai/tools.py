@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Union, TypedDict
 from openai.types.chat import (
     ChatCompletionMessageToolCall,
     ChatCompletionToolMessageParam,
-    ChatCompletionToolParam,
+    ChatCompletionFunctionToolParam,
 )
 import supermemory
 from supermemory.types import (
@@ -50,7 +50,7 @@ class MemoryAddResult(TypedDict, total=False):
 
 
 # Function schemas for OpenAI function calling
-MEMORY_TOOL_SCHEMAS = {
+MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
     "search_memories": {
         "name": "search_memories",
         "description": (
@@ -129,7 +129,7 @@ class SupermemoryTools:
         else:
             self.container_tags = ["sm_project_default"]
 
-    def get_tool_definitions(self) -> List[ChatCompletionToolParam]:
+    def get_tool_definitions(self) -> List[ChatCompletionFunctionToolParam]:
         """Get OpenAI function definitions for all memory tools.
 
         Returns:
@@ -247,7 +247,7 @@ def create_supermemory_tools(
     return SupermemoryTools(api_key, config)
 
 
-def get_memory_tool_definitions() -> List[ChatCompletionToolParam]:
+def get_memory_tool_definitions() -> List[ChatCompletionFunctionToolParam]:
     """Get OpenAI function definitions for memory tools.
 
     Returns:
