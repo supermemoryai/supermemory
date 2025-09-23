@@ -14,7 +14,7 @@ export function Intro() {
 
     return (
         <motion.div
-            className="flex flex-col gap-4 relative max-sm:text-4xl max-sm:w-full"
+            className="flex flex-col gap-4 relative max-sm:text-4xl max-sm:w-full text-white"
             layout
             transition={{
                 layout: { duration: 0.8, ease: "anticipate" }
@@ -76,8 +76,6 @@ export function Intro() {
                         }}
                     >
                         <AnimatedText trigger={triggers.third} delay={0.4}>
-                            {/* You just found it. */}
-                            {/* You're about to find it. */}
                             It's right here.
                             {/* It's right in front of you. */}
                             {/* You're looking at it. */}
@@ -101,7 +99,7 @@ export function Intro() {
                 <Button
                     variant={"link"}
                     size={"lg"}
-                    className={cn("text-zinc-600 flex items-center gap-2 hover:text-zinc-950 text-2xl underline group font-normal w-fit px-0! cursor-pointer", !triggers.fourth && "pointer-events-none")}
+                    className={cn("text-white/60 flex items-center gap-2 hover:text-white/90 text-2xl underline group font-normal w-fit px-0! cursor-pointer", !triggers.fourth && "pointer-events-none")}
                     style={{
                         transform: triggers.fourth ? "scale(1)" : "scale(0.95)"
                     }}

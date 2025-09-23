@@ -632,12 +632,12 @@ export function ExtensionForm() {
             <div className="flex items-center justify-between w-full">
                 <div className="flex flex-col items-start text-left gap-4">
                     <NavMenu>
-                        <p className="text-base text-zinc-600">
+                        <p className="text-base text-white/60">
                             Step {getStepNumberFor("extension")} of {totalSteps}
                         </p>
                     </NavMenu>
-                    <h1>Install the Chrome extension</h1>
-                    <p className="text-zinc-600 text-2xl">
+                    <h1 className="text-white">Install the Chrome extension</h1>
+                    <p className="text-white/80 text-2xl">
                         {/* Install the Supermemory extension to start saving and organizing everything that matters. */}
                         Bring Supermemory everywhere
                     </p>
@@ -697,7 +697,7 @@ export function ExtensionForm() {
                 </div>
             </div>
             <div className="flex w-full justify-end">
-                <Button variant="link" size="lg" className="text-zinc-900 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
+                <Button variant="link" size="lg" className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
                     Continue
                     <ChevronRightIcon className="size-4" />
                 </Button>

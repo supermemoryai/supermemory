@@ -55,12 +55,12 @@ export function MCPForm() {
         <div className="relative flex flex-col gap-6">
             <div className="space-y-4">
                 <NavMenu>
-                    <p className="text-base text-zinc-600">
+                    <p className="text-base text-white/60">
                         Step {getStepNumberFor("mcp")} of {totalSteps}
                     </p>
                 </NavMenu>
-                <h1 className="max-sm:text-4xl">Install the MCP server</h1>
-                <p className="text-zinc-600 text-2xl max-sm:text-lg">
+                <h1 className="max-sm:text-4xl text-white">Install the MCP server</h1>
+                <p className="text-2xl max-sm:text-lg text-white/80">
                     Bring Supermemory to all your favourite tools
                 </p>
             </div>
@@ -73,7 +73,7 @@ export function MCPForm() {
                         <div className="size-10 rounded-lg bg-zinc-100 border-zinc-200 border text-zinc-900 font-medium flex items-center justify-center">1</div>
                     </div>
                     <div className="mt-2 space-y-2 w-full">
-                        <p>Select the app you want to install Supermemory MCP to</p>
+                        <p className="text-white/80">Select the app you want to install Supermemory MCP to</p>
                         <Select
                             onValueChange={(value) => setClient(value as keyof typeof clients)}
                             value={client}
@@ -99,7 +99,7 @@ export function MCPForm() {
                         }} className="absolute left-1/2 -z-10 top-8 w-[1px] -translate-x-1/2 transform bg-neutral-200"></div>
                     </div>
                     <div className="mt-2 space-y-2">
-                        <p>Copy the installation command</p>
+                        <p className="text-white/80">Copy the installation command</p>
                         <div className="bg-white relative shadow-xs rounded-lg max-w-md text-balance py-4 px-5 border border-zinc-200">
                             <p className="text-zinc-900 font-mono text-xs w-4/5">
                                 npx -y install-mcp@latest https://api.supermemory.ai/mcp --client {client} --oauth=yes
@@ -124,7 +124,7 @@ export function MCPForm() {
                         <div className="size-10 rounded-lg bg-zinc-100 border-zinc-200 border text-zinc-900 font-medium flex items-center justify-center">3</div>
                     </div>
                     <div className="mt-2 space-y-2 w-full">
-                        <p>Run the command in your terminal of choice</p>
+                        <p className="text-white/80">Run the command in your terminal of choice</p>
                         <motion.div
                             className={cn("px-5 py-4 border shadow-xs rounded-lg flex items-center gap-3 font-mono text-sm")}
                             animate={{
@@ -183,7 +183,7 @@ export function MCPForm() {
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             className="flex justify-end">
 
-                            <Button variant="link" size="lg" className="text-zinc-900 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
+                            <Button variant="link" size="lg" className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
                                 Continue
                             </Button>
                         </motion.div>
@@ -195,7 +195,7 @@ export function MCPForm() {
                         transition={{ duration: 0.2, ease: "easeOut" }}
                         className="flex justify-end">
 
-                        <Button variant="link" size="lg" className="text-zinc-900 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
+                        <Button variant="link" size="lg" className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
                             Skip For Now
                         </Button>
                     </motion.div>

@@ -34,12 +34,12 @@ export function BioForm() {
         <div className="relative">
             <div className="space-y-4">
                 <NavMenu>
-                    <p className="text-base text-zinc-600">
+                    <p className="text-base text-white/60">
                         Step {getStepNumberFor("bio")} of {totalSteps}
                     </p>
                 </NavMenu>
-                <h1 className="max-sm:text-4xl">Tell us about yourself</h1>
-                <p className="text-zinc-600 text-2xl max-sm:text-lg">
+                <h1 className="max-sm:text-4xl text-white">Tell us about yourself</h1>
+                <p className="text-2xl max-sm:text-lg text-white/80">
                     What should Supermemory know about you?
                 </p>
             </div>
@@ -63,7 +63,7 @@ export function BioForm() {
                             transition={{ duration: 0.2, ease: "easeOut" }}
                             className="flex justify-end mt-2 absolute -bottom-12 right-0">
 
-                            <Button variant="link" size="lg" className="text-zinc-900 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={handleNext}>
+                            <Button variant="link" size="lg" className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={handleNext}>
                                 Save & Continue
                             </Button>
                         </motion.div>
@@ -75,7 +75,7 @@ export function BioForm() {
                         transition={{ duration: 0.2, ease: "easeOut" }}
                         className="flex justify-end mt-2 absolute -bottom-12 right-0">
 
-                        <Button variant="link" size="lg" className="text-zinc-900 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={handleNext}>
+                        <Button variant="link" size="lg" className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={handleNext}>
                             Skip For Now
                         </Button>
                     </motion.div>
