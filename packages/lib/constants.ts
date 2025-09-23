@@ -3,7 +3,7 @@ const DEFAULT_PROJECT_ID = "sm_project_default"
 const SEARCH_MEMORY_SHORTCUT_URL =
 	"https://www.icloud.com/shortcuts/f2b5c544372844a38ab4c6900e2a88de"
 const ADD_MEMORY_SHORTCUT_URL =
-	"https://www.icloud.com/shortcuts/ec33b029b2c7481d89eda7640dbb7688"
+	"https://www.icloud.com/shortcuts/0fd3e855be444845b457f94c78c2c8d9"
 
 export {
 	BIG_DIMENSIONS_NEW,
