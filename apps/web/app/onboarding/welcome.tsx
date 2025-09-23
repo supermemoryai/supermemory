@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "@ui/components/button";
-import { ArrowRightIcon, ChevronRightIcon } from "lucide-react";
+import { ArrowRightIcon } from "lucide-react";
 
 export function Welcome() {
     return (

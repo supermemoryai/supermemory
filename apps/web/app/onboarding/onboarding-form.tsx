@@ -7,7 +7,6 @@ import { useOnboarding } from "./onboarding-context"
 import { BioForm } from "./bio-form"
 import { ExtensionForm } from "./extension-form"
 import { MCPForm } from "./mcp-form"
-import { GettingStarted } from "./getting-started"
 import { Welcome } from "./welcome"
 import { Space_Grotesk } from "next/font/google"
 import { cn } from "@lib/utils"
@@ -92,17 +91,6 @@ export function OnboardingForm() {
 						transition={{ duration: 0.3, ease: "easeOut" }}
 					>
 						<ExtensionForm />
-					</motion.div>
-				)}
-				{currentStep === "getting-started" && (
-					<motion.div
-						key="getting-started"
-						initial={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
-						animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-						exit={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
-						transition={{ duration: 0.3, ease: "easeOut" }}
-					>
-						<GettingStarted />
 					</motion.div>
 				)}
 				{currentStep === "welcome" && (

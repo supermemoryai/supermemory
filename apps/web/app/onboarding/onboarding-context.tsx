@@ -46,7 +46,6 @@ const BASE_STEP_ORDER = [
 	"bio",
 	"mcp",
 	"extension",
-	"getting-started",
 	"welcome",
 ] as const
 

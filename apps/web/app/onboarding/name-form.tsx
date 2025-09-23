@@ -57,7 +57,7 @@ export function NameForm() {
 					Step {getStepNumberFor("name")} of {totalSteps}
 				</p>
 			</NavMenu>
-			<p className="text-4xl text-white">What should we call you?</p>
+			<p className="text-4xl text-white font-medium">What should we call you?</p>
 
 			<form onSubmit={handleSubmit} className="flex flex-col group text-white">
 				<div className="relative flex flex-col">

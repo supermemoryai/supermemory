@@ -38,14 +38,14 @@ export function BioForm() {
                         Step {getStepNumberFor("bio")} of {totalSteps}
                     </p>
                 </NavMenu>
-                <h1 className="max-sm:text-4xl text-white">Tell us about yourself</h1>
+                <h1 className="max-sm:text-4xl text-white font-medium">Tell us about yourself</h1>
                 <p className="text-2xl max-sm:text-lg text-white/80">
                     What should Supermemory know about you?
                 </p>
             </div>
             <Textarea
                 autoFocus
-                className="font-sans mt-6 text-base! tracking-normal font-medium border bg-white! border-zinc-200 rounded-lg !field-sizing-normal !min-h-[calc(3*1.5rem+1rem)]"
+                className="font-sans mt-6 text-base! text-white tracking-normal font-medium border bg-white/30 border-zinc-200 rounded-lg !field-sizing-normal !min-h-[calc(3*1.5rem+1rem)]"
                 placeholder="I'm a software engineer from San Francisco..."
                 rows={3}
                 value={bio}
