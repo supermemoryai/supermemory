@@ -16,10 +16,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { Drawer } from "vaul"
 import { useMobilePanel } from "@/lib/mobile-panel-context"
-import { TOUR_STEP_IDS } from "@/lib/tour-constants"
 import { useChatOpen } from "@/stores"
 import { ProjectSelector } from "./project-selector"
-import { useTour } from "./tour"
 import { AddMemoryExpandedView, AddMemoryView } from "./views/add-memory"
 import { IntegrationsView } from "./views/integrations"
 import { ProfileView } from "./views/profile"
@@ -65,7 +63,6 @@ function Menu({ id }: { id?: string }) {
 	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
 	const isMobile = useIsMobile()
 	const { activePanel, setActivePanel } = useMobilePanel()
-	const { setMenuExpanded } = useTour()
 	const autumn = useCustomer()
 	const { setIsOpen } = useChatOpen()
 
@@ -98,14 +95,6 @@ function Menu({ id }: { id?: string }) {
 
 	const shouldShowLimitWarning =
 		!isProUser && memoriesUsed >= memoriesLimit * 0.8
-
-	// Map menu item keys to tour IDs
-	const menuItemTourIds: Record<string, string> = {
-		addUrl: TOUR_STEP_IDS.MENU_ADD_MEMORY,
-		projects: TOUR_STEP_IDS.MENU_PROJECTS,
-		mcp: TOUR_STEP_IDS.MENU_MCP,
-		integrations: "", // No tour ID for integrations yet
-	}
 
 	const menuItems = [
 		{
@@ -221,14 +210,6 @@ function Menu({ id }: { id?: string }) {
 		}
 	}, [isMobile, activePanel])
 
-	// Notify tour provider about expansion state changes
-	useEffect(() => {
-		const isExpanded = isMobile
-			? isMobileMenuOpen || !!expandedView
-			: isHovered || !!expandedView
-		setMenuExpanded(isExpanded)
-	}, [isMobile, isMobileMenuOpen, isHovered, expandedView, setMenuExpanded])
-
 	// Calculate width based on state
 	const menuWidth = expandedView || isCollapsing ? 600 : isHovered ? 160 : 56
 
@@ -324,7 +305,6 @@ function Menu({ id }: { id?: string }) {
 																},
 															}}
 															className={`flex w-full items-center text-white/80 transition-colors duration-100 hover:text-white cursor-pointer relative ${isHovered || expandedView ? "px-1" : ""}`}
-															id={menuItemTourIds[item.key]}
 															initial={{ opacity: 0, y: 20, scale: 0.95 }}
 															layout
 															onClick={() => handleMenuItemClick(item.key)}
@@ -590,7 +570,6 @@ function Menu({ id }: { id?: string }) {
 																	},
 																}}
 																className="flex w-full items-center gap-3 px-2 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer relative"
-																id={menuItemTourIds[item.key]}
 																initial={{ opacity: 0, y: 10 }}
 																layout
 																onClick={() => {
