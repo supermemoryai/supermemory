@@ -100,6 +100,35 @@ export async function setDefaultProject(project: Project): Promise<void> {
 }
 
 /**
+ * Validate if current bearer token is still valid
+ */
+export async function validateAuthToken(): Promise<boolean> {
+	try {
+		await makeAuthenticatedRequest<ProjectsResponse>("/v3/projects")
+		return true
+	} catch (error) {
+		if (error instanceof AuthenticationError) {
+			return false
+		}
+		console.error("Failed to validate auth token:", error)
+		return true
+	}
+}
+
+/**
+ * Get user data from storage
+ */
+export async function getUserData(): Promise<{ email?: string } | null> {
+	try {
+		const result = await chrome.storage.local.get([STORAGE_KEYS.USER_DATA])
+		return result[STORAGE_KEYS.USER_DATA] || null
+	} catch (error) {
+		console.error("Failed to get user data:", error)
+		return null
+	}
+}
+
+/**
  * Save memory to Supermemory API
  */
 export async function saveMemory(payload: MemoryPayload): Promise<unknown> {

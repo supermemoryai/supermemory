@@ -94,8 +94,8 @@ export function createToast(state: ToastState): HTMLElement {
 	const icon = document.createElement("div")
 	icon.style.cssText = "width: 20px; height: 20px; flex-shrink: 0;"
 
-	const text = document.createElement("span")
-	text.style.fontWeight = "500"
+	let textElement: HTMLElement = document.createElement("span")
+	textElement.style.fontWeight = "500"
 
 	// Configure toast based on state
 	switch (state) {
@@ -113,17 +113,17 @@ export function createToast(state: ToastState): HTMLElement {
         </svg>
       `
 			icon.style.animation = "spin 1s linear infinite"
-			text.textContent = "Adding to Memory..."
+			textElement.textContent = "Adding to Memory..."
 			break
 
 		case "success": {
 			const iconUrl = browser.runtime.getURL("/icon-16.png")
 			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
-			text.textContent = "Added to Memory"
+			textElement.textContent = "Added to Memory"
 			break
 		}
 
-		case "error":
+		case "error": {
 			icon.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="12" r="10" fill="#ef4444"/>
@@ -131,12 +131,29 @@ export function createToast(state: ToastState): HTMLElement {
           <path d="M9 9L15 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `
-			text.textContent = "Failed to save memory / Make sure you are logged in"
+			const textContainer = document.createElement("div")
+			textContainer.style.cssText =
+				"display: flex; flex-direction: column; gap: 2px;"
+
+			const mainText = document.createElement("span")
+			mainText.style.cssText = "font-weight: 500; line-height: 1.2;"
+			mainText.textContent = "Failed to save memory"
+
+			const helperText = document.createElement("span")
+			helperText.style.cssText =
+				"font-size: 12px; color: #6b7280; font-weight: 400; line-height: 1.2;"
+			helperText.textContent = "Make sure you are logged in"
+
+			textContainer.appendChild(mainText)
+			textContainer.appendChild(helperText)
+
+			textElement = textContainer
 			break
+		}
 	}
 
 	toast.appendChild(icon)
-	toast.appendChild(text)
+	toast.appendChild(textElement)
 
 	return toast
 }
@@ -433,8 +450,25 @@ export const DOMUtils = {
 						</svg>
 					`
 					icon.style.animation = ""
-					text.textContent =
-						"Failed to save memory / Make sure you are logged in"
+
+					const textContainer = document.createElement("div")
+					textContainer.style.cssText =
+						"display: flex; flex-direction: column; gap: 2px;"
+
+					const mainText = document.createElement("span")
+					mainText.style.cssText = "font-weight: 500; line-height: 1.2;"
+					mainText.textContent = "Failed to save memory"
+
+					const helperText = document.createElement("span")
+					helperText.style.cssText =
+						"font-size: 12px; color: #6b7280; font-weight: 400; line-height: 1.2;"
+					helperText.textContent = "Make sure you are logged in"
+
+					textContainer.appendChild(mainText)
+					textContainer.appendChild(helperText)
+
+					text.innerHTML = ""
+					text.appendChild(textContainer)
 				}
 
 				// Auto-dismiss
