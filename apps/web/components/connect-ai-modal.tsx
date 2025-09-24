@@ -83,7 +83,16 @@ export function ConnectAIModal({
 	const [cursorInstallTab, setCursorInstallTab] = useState<
 		"oneClick" | "manual"
 	>("oneClick")
-	const projectId = localStorage.getItem("selectedProject") ?? "default"
+
+	const [projectId, setProjectId] = useState("default")
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const storedProjectId =
+				localStorage.getItem("selectedProject") ?? "default"
+			setProjectId(storedProjectId)
+		}
+	}, [])
 
 	useEffect(() => {
 		analytics.mcpViewOpened()
