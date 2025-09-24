@@ -11,7 +11,6 @@ import { useOnboarding } from "./onboarding-context"
 import { useEffect, useState } from "react"
 import { Button } from "@ui/components/button"
 import { CheckIcon, CircleCheckIcon, CopyIcon, LoaderIcon } from "lucide-react"
-import { toast } from "sonner"
 import { TextMorph } from "@/components/text-morph"
 import { NavMenu } from "./nav-menu"
 import { cn } from "@lib/utils"
@@ -65,7 +64,9 @@ export function MCPForm() {
 						Step {getStepNumberFor("mcp")} of {totalSteps}
 					</p>
 				</NavMenu>
-				<h1 className="max-sm:text-4xl text-white font-medium">Install the MCP server</h1>
+				<h1 className="max-sm:text-4xl text-white font-medium">
+					Install the MCP server
+				</h1>
 				<p className="text-2xl max-sm:text-lg text-white/80">
 					Bring Supermemory to all your favourite tools
 				</p>
@@ -78,7 +79,7 @@ export function MCPForm() {
 								height: "calc(100% - 0.5rem)",
 							}}
 							className="absolute -z-10 left-1/2 top-8 w-[1px] -translate-x-1/2 transform bg-white/10"
-						></div>
+						/>
 						<div className="size-10 rounded-lg bg-white/10 text-white font-medium flex items-center justify-center">
 							1
 						</div>
@@ -119,7 +120,7 @@ export function MCPForm() {
 								height: "calc(100% - 0.5rem)",
 							}}
 							className="absolute left-1/2 -z-10 top-8 w-[1px] -translate-x-1/2 transform bg-white/10"
-						></div>
+						/>
 					</div>
 					<div className="mt-2 space-y-2">
 						<p className="text-white/80">Copy the installation command</p>
@@ -162,7 +163,7 @@ export function MCPForm() {
 						</p>
 						<motion.div
 							className={cn(
-								"px-5 py-4 bg-white/10 text-white shadow-xs rounded-lg flex items-center gap-3 font-mono text-sm",
+								"px-5 py-4 bg-black/10 text-white shadow-xs rounded-lg flex items-center gap-3 font-mono text-sm",
 							)}
 							transition={{
 								duration: 0.3,
@@ -188,7 +189,7 @@ export function MCPForm() {
 										exit={{ opacity: 0, scale: 0.8 }}
 										transition={{ duration: 0.2 }}
 									>
-										<CircleCheckIcon className="size-4 text-green-500" />
+										<CircleCheckIcon className="size-4 text-white" />
 									</motion.div>
 								)}
 							</AnimatePresence>
@@ -219,7 +220,7 @@ export function MCPForm() {
 						<Button
 							variant="link"
 							size="lg"
-							className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+							className="text-black/40 font-medium! text-lg underline w-fit px-0! cursor-pointer"
 							onClick={nextStep}
 						>
 							Continue
@@ -237,7 +238,7 @@ export function MCPForm() {
 						<Button
 							variant="link"
 							size="lg"
-							className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+							className="text-black/40 font-medium! text-lg underline w-fit px-0! cursor-pointer"
 							onClick={nextStep}
 						>
 							Skip For Now

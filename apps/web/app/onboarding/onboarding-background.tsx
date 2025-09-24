@@ -7,25 +7,29 @@ interface OnboardingBackgroundProps {
 }
 
 export function OnboardingBackground({ children }: OnboardingBackgroundProps) {
-	const { currentStep } = useOnboarding()
+	const { currentStep, visibleSteps } = useOnboarding()
 
-	// Use the completion background for the final "welcome" step
-	const backgroundImage =
-		currentStep === "welcome"
-			? "url(/onboarding-complete.png)"
-			: "url(/onboarding.png)"
+	const backgroundImage = "url(/onboarding.png)"
+
+	const currentZoomStepIndex = visibleSteps.indexOf(currentStep)
+
+	const zoomScale =
+		currentZoomStepIndex >= 0 ? 1.0 + currentZoomStepIndex * 0.1 : 1.0
 
 	return (
-		<div
-			className="min-h-screen w-full overflow-x-hidden text-zinc-900 flex items-center justify-center relative"
-			style={{
-				backgroundImage,
-				backgroundSize: "cover",
-				backgroundPosition: "center",
-				backgroundRepeat: "no-repeat",
-			}}
-		>
-			{children}
+		<div className="min-h-screen w-full overflow-x-hidden text-zinc-900 flex items-center justify-center relative">
+			<div
+				className="absolute inset-0 transition-transform duration-700 ease-in-out"
+				style={{
+					backgroundImage,
+					backgroundSize: "cover",
+					backgroundPosition: "bottom",
+					backgroundRepeat: "no-repeat",
+					transform: `scale(${zoomScale})`,
+					transformOrigin: "center bottom",
+				}}
+			/>
+			<div className="relative z-10">{children}</div>
 		</div>
 	)
 }

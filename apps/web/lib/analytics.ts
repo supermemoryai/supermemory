@@ -2,9 +2,6 @@ import posthog from "posthog-js"
 
 export const analytics = {
 	userSignedOut: () => posthog.capture("user_signed_out"),
-	tourStarted: () => posthog.capture("tour_started"),
-	tourCompleted: () => posthog.capture("tour_completed"),
-	tourSkipped: () => posthog.capture("tour_skipped"),
 
 	memoryAdded: (props: {
 		type: "note" | "link" | "file"

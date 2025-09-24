@@ -1,6 +1,7 @@
 "use client"
 
 import { useIsMobile } from "@hooks/use-mobile"
+import { useOnboardingStorage } from "@hooks/use-onboarding-storage"
 import { useAuth } from "@lib/auth-context"
 import { $fetch } from "@repo/lib/api"
 import { MemoryGraph } from "@repo/ui/memory-graph"
@@ -19,6 +20,7 @@ import {
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { z } from "zod"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
@@ -27,11 +29,8 @@ import { MemoryListView } from "@/components/memory-list-view"
 import Menu from "@/components/menu"
 import { ProjectSelector } from "@/components/project-selector"
 import { ReferralUpgradeModal } from "@/components/referral-upgrade-modal"
-import type { TourStep } from "@/components/tour"
-import { TourAlertDialog, useTour } from "@/components/tour"
 import { AddMemoryView } from "@/components/views/add-memory"
 import { ChatRewrite } from "@/components/views/chat"
-import { TOUR_STEP_IDS, TOUR_STORAGE_KEY } from "@/lib/tour-constants"
 import { useViewMode } from "@/lib/view-mode-context"
 import { useChatOpen, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
@@ -42,9 +41,8 @@ type DocumentWithMemories = DocumentsResponse["documents"][0]
 const MemoryGraphPage = () => {
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
 	const isMobile = useIsMobile()
-	const { viewMode, setViewMode, isInitialized } = useViewMode()
+	const { viewMode, setViewMode } = useViewMode()
 	const { selectedProject } = useProject()
-	const { setSteps, isTourCompleted } = useTour()
 	const { isOpen, setIsOpen } = useChatOpen()
 	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([])
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
@@ -65,167 +63,6 @@ const MemoryGraphPage = () => {
 	const isCurrentProjectExperimental = !!projectsMeta.find(
 		(p: any) => p.containerTag === selectedProject,
 	)?.isExperimental
-
-	// Tour state
-	const [showTourDialog, setShowTourDialog] = useState(false)
-
-	// Define tour steps with useMemo to prevent recreation
-	const tourSteps: TourStep[] = useMemo(() => {
-		return [
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">
-							Memories Overview
-						</h3>
-						<p className="text-gray-200">
-							This is your memory graph. Each node represents a memory, and
-							connections show relationships between them.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.MEMORY_GRAPH,
-				position: "center",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">
-							Add Memories
-						</h3>
-						<p className="text-gray-200">
-							Click here to add new memories to your knowledge base. You can add
-							text, links, or connect external sources.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.MENU_ADD_MEMORY,
-				position: "right",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">
-							Connections
-						</h3>
-						<p className="text-gray-200">
-							Connect your external accounts like Google Drive, Notion, or
-							OneDrive to automatically sync and organize your content.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.MENU_CONNECTIONS,
-				position: "right",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">Projects</h3>
-						<p className="text-gray-200">
-							Organize your memories into projects. Switch between different
-							contexts easily.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.MENU_PROJECTS,
-				position: "right",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">
-							MCP Servers
-						</h3>
-						<p className="text-gray-200">
-							Access Model Context Protocol servers to give AI tools access to
-							your memories securely.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.MENU_MCP,
-				position: "right",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">Billing</h3>
-						<p className="text-gray-200">
-							Manage your subscription and billing information.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.MENU_BILLING,
-				position: "right",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">
-							View Toggle
-						</h3>
-						<p className="text-gray-200">
-							Switch between graph view and list view to see your memories in
-							different ways.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.VIEW_TOGGLE,
-				position: "left",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">Legend</h3>
-						<p className="text-gray-200">
-							Understand the different types of nodes and connections in your
-							memory graph.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.LEGEND,
-				position: "left",
-			},
-			{
-				content: (
-					<div>
-						<h3 className="font-semibold text-lg mb-2 text-white">
-							Chat Assistant
-						</h3>
-						<p className="text-gray-200">
-							Ask questions or add new memories using our AI-powered chat
-							interface.
-						</p>
-					</div>
-				),
-				selectorId: TOUR_STEP_IDS.FLOATING_CHAT,
-				position: "left",
-			},
-		]
-	}, [])
-
-	// Check if tour has been completed before
-	useEffect(() => {
-		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true"
-		if (!hasCompletedTour && !isTourCompleted) {
-			const timer = setTimeout(() => {
-				setShowTourDialog(true)
-				setShowConnectAIModal(false)
-			}, 1000) // Show after 1 second
-			return () => clearTimeout(timer)
-		}
-	}, [isTourCompleted])
-
-	// Set up tour steps
-	useEffect(() => {
-		setSteps(tourSteps)
-	}, [setSteps, tourSteps])
-
-	// Save tour completion to localStorage
-	useEffect(() => {
-		if (isTourCompleted) {
-			localStorage.setItem(TOUR_STORAGE_KEY, "true")
-		}
-	}, [isTourCompleted])
 
 	// Progressive loading via useInfiniteQuery
 	const IS_DEV = process.env.NODE_ENV === "development"
@@ -374,13 +211,10 @@ const MemoryGraphPage = () => {
 	)
 
 	useEffect(() => {
-		const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY) === "true"
-		if (hasCompletedTour && allDocuments.length === 0 && !showTourDialog) {
+		if (allDocuments.length === 0) {
 			setShowConnectAIModal(true)
-		} else if (showTourDialog) {
-			setShowConnectAIModal(false)
 		}
-	}, [allDocuments.length, showTourDialog])
+	}, [allDocuments.length])
 
 	// Prevent body scrolling
 	useEffect(() => {
@@ -413,7 +247,6 @@ const MemoryGraphPage = () => {
 				<motion.div
 					animate={{ opacity: 1, y: 0 }}
 					className="absolute md:top-4 md:right-4 md:bottom-auto md:left-auto bottom-8 left-6 z-20 rounded-xl overflow-hidden"
-					id={TOUR_STEP_IDS.VIEW_TOGGLE}
 					initial={{ opacity: 0, y: -20 }}
 					transition={{ type: "spring", stiffness: 300, damping: 25 }}
 				>
@@ -482,7 +315,6 @@ const MemoryGraphPage = () => {
 							animate={{ opacity: 1, scale: 1 }}
 							className="absolute inset-0"
 							exit={{ opacity: 0, scale: 0.95 }}
-							id={TOUR_STEP_IDS.MEMORY_GRAPH}
 							initial={{ opacity: 0, scale: 0.95 }}
 							key="graph"
 							transition={{
@@ -501,7 +333,7 @@ const MemoryGraphPage = () => {
 								isExperimental={isCurrentProjectExperimental}
 								isLoading={isPending}
 								isLoadingMore={isLoadingMore}
-								legendId={TOUR_STEP_IDS.LEGEND}
+								legendId={undefined}
 								loadMoreDocuments={loadMoreDocuments}
 								occludedRightPx={isOpen && !isMobile ? 600 : 0}
 								showSpacesSelector={false}
@@ -546,7 +378,6 @@ const MemoryGraphPage = () => {
 							animate={{ opacity: 1, scale: 1 }}
 							className="absolute inset-0 md:ml-18"
 							exit={{ opacity: 0, scale: 0.95 }}
-							id={TOUR_STEP_IDS.MEMORY_LIST}
 							initial={{ opacity: 0, scale: 0.95 }}
 							key="list"
 							transition={{
@@ -609,11 +440,8 @@ const MemoryGraphPage = () => {
 							rel="noopener noreferrer"
 							target="_blank"
 						>
-							<LogoFull
-								className="h-8 hidden md:block"
-								id={TOUR_STEP_IDS.LOGO}
-							/>
-							<Logo className="h-8 md:hidden" id={TOUR_STEP_IDS.LOGO} />
+							<LogoFull className="h-8 hidden md:block" />
+							<Logo className="h-8 md:hidden" />
 						</Link>
 
 						<div className="hidden sm:block">
@@ -697,7 +525,6 @@ const MemoryGraphPage = () => {
 			{/* Chat panel - positioned absolutely */}
 			<motion.div
 				className="fixed top-0 right-0 h-full z-50 md:z-auto"
-				id={TOUR_STEP_IDS.FLOATING_CHAT}
 				style={{
 					width: isOpen ? (isMobile ? "100vw" : "600px") : 0,
 					pointerEvents: isOpen ? "auto" : "none",
@@ -726,9 +553,6 @@ const MemoryGraphPage = () => {
 				/>
 			)}
 
-			{/* Tour Alert Dialog */}
-			<TourAlertDialog onOpenChange={setShowTourDialog} open={showTourDialog} />
-
 			{/* Referral/Upgrade Modal */}
 			<ReferralUpgradeModal
 				isOpen={showReferralModal}
@@ -741,6 +565,9 @@ const MemoryGraphPage = () => {
 // Wrapper component to handle auth and waitlist checks
 export default function Page() {
 	const { user, session } = useAuth()
+	const { shouldShowOnboarding, isLoading: onboardingLoading } =
+		useOnboardingStorage()
+	const router = useRouter()
 
 	useEffect(() => {
 		const url = new URL(window.location.href)
@@ -765,8 +592,13 @@ export default function Page() {
 		}
 	}, [user, session])
 
-	// Show loading state while checking authentication and waitlist status
-	if (!user) {
+	useEffect(() => {
+		if (user && !onboardingLoading && shouldShowOnboarding()) {
+			router.push("/onboarding")
+		}
+	}, [user, shouldShowOnboarding, onboardingLoading, router])
+
+	if (!user || onboardingLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
 				<div className="flex flex-col items-center gap-4">
@@ -777,7 +609,10 @@ export default function Page() {
 		)
 	}
 
-	// If we have a user and they have access, show the main component
+	if (shouldShowOnboarding()) {
+		return null
+	}
+
 	return (
 		<>
 			<MemoryGraphPage />
