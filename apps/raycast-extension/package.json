@@ -35,7 +35,7 @@
       "type": "password",
       "required": true,
       "title": "API Key",
-      "description": "Your Supermemory API Key. Get it from https://app.supermemory.ai",
+      "description": "Your Supermemory API Key. Get it from https://supermemory.link/raycast",
       "placeholder": "Enter your Supermemory API Key"
     }
   ],

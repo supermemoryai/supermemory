@@ -30,6 +30,6 @@ A Raycast extension that lets you add memories and search through your Supermemo
 
 ## Authentication
 
-This extension requires a Supermemory API key. You can get your API key from [app.supermemory.ai](https://app.supermemory.ai).
+This extension requires a Supermemory API key. You can get your API key from [supermemory.link/raycast](https://supermemory.link/raycast).
 
 The API key is stored securely in Raycast preferences and is required for all operations.

@@ -110,7 +110,7 @@ async function makeAuthenticatedRequest<T>(
     if (!response.ok) {
       if (response.status === 401) {
         throw new AuthenticationError(
-          "Invalid API key. Please check your API key in preferences. Get a new one from https://app.supermemory.ai",
+          "Invalid API key. Please check your API key in preferences. Get a new one from https://supermemory.link/raycast",
         );
       }
 
@@ -221,7 +221,7 @@ export async function checkApiConnection(): Promise<boolean> {
         style: Toast.Style.Failure,
         title: "API Key Required",
         message:
-          "Please configure your Supermemory API key in preferences. Get it from https://app.supermemory.ai",
+          "Please configure your Supermemory API key in preferences. Get it from https://supermemory.link/raycast",
       });
     }
     return false;
