@@ -56,7 +56,7 @@ We welcome contributions from developers of all skill levels! Whether you're fix
 3. **Set up your environment** by copying `.env.example` to `.env.local`
 4. **Start developing** with `bun run dev`
 
-For detailed guidelines, development setup, coding standards, and the complete contribution workflow, please see our [**Contributing Guide**](CONTRIBUTE.md).
+For detailed guidelines, development setup, coding standards, and the complete contribution workflow, please see our [**Contributing Guide**](CONTRIBUTING.md).
 
 ### Ways to Contribute
 

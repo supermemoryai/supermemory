@@ -27,6 +27,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { z } from "zod/v4"
 import { analytics } from "@/lib/analytics"
+import { cn } from "@lib/utils"
 
 const clients = {
 	cursor: "Cursor",
@@ -79,7 +80,19 @@ export function ConnectAIModal({
 	const setIsOpen = onOpenChange || setInternalIsOpen
 	const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false)
 	const [selectedProject, setSelectedProject] = useState<string | null>("none")
-	const projectId = localStorage.getItem("selectedProject") ?? "default"
+	const [cursorInstallTab, setCursorInstallTab] = useState<
+		"oneClick" | "manual"
+	>("oneClick")
+
+	const [projectId, setProjectId] = useState("default")
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const storedProjectId =
+				localStorage.getItem("selectedProject") ?? "default"
+			setProjectId(storedProjectId)
+		}
+	}, [])
 
 	useEffect(() => {
 		analytics.mcpViewOpened()
@@ -162,6 +175,10 @@ export function ConnectAIModal({
 		}
 
 		return command
+	}
+
+	function getCursorDeeplink() {
+		return "https://cursor.com/en/install-mcp?name=supermemory-mcp&config=eyJjb21tYW5kIjoibnB4IC15IG1jcC1yZW1vdGUgaHR0cHM6Ly9hcGkuc3VwZXJtZW1vcnkuYWkvbWNwIn0%3D"
 	}
 
 	const copyToClipboard = () => {
@@ -252,21 +269,142 @@ export function ConnectAIModal({
 						</div>
 					</div>
 
-					{/* Step 2: Project Selection or MCP URL */}
+					{/* Step 2: One-click Install for Cursor, Project Selection for others, or MCP URL */}
 					{selectedClient && (
 						<div className="space-y-4">
-							<div className="flex items-center gap-3">
-								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
-									2
+							<div className="flex justify-between">
+								<div className="flex items-center gap-3">
+									<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+										2
+									</div>
+									<h3 className="text-sm font-medium">
+										{selectedClient === "cursor"
+											? "Install Supermemory MCP"
+											: selectedClient === "mcp-url"
+												? "MCP Server URL"
+												: "Select Target Project (Optional)"}
+									</h3>
 								</div>
-								<h3 className="text-sm font-medium">
-									{selectedClient === "mcp-url"
-										? "MCP Server URL"
-										: "Select Target Project (Optional)"}
-								</h3>
+
+								<div
+									className={cn(
+										"flex-col gap-2 hidden",
+										selectedClient === "cursor" && "flex",
+									)}
+								>
+									{/* Tabs */}
+									<div className="flex justify-end">
+										<div className="flex bg-white/5 rounded-full p-1 border border-white/10">
+											<button
+												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+													cursorInstallTab === "oneClick"
+														? "bg-white/10 text-white border border-white/20"
+														: "text-white/60 hover:text-white/80"
+												}`}
+												onClick={() => setCursorInstallTab("oneClick")}
+												type="button"
+											>
+												One Click Install
+											</button>
+											<button
+												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+													cursorInstallTab === "manual"
+														? "bg-white/10 text-white border border-white/20"
+														: "text-white/60 hover:text-white/80"
+												}`}
+												onClick={() => setCursorInstallTab("manual")}
+												type="button"
+											>
+												Manual Install
+											</button>
+										</div>
+									</div>
+								</div>
 							</div>
 
-							{selectedClient === "mcp-url" ? (
+							{selectedClient === "cursor" ? (
+								<div className="space-y-4">
+									{/* Tab Content */}
+									{cursorInstallTab === "oneClick" ? (
+										<div className="space-y-4">
+											<div className="flex flex-col items-center gap-4 p-6 border border-green-500/20 rounded-lg bg-green-500/5">
+												<div className="text-center">
+													<p className="text-sm text-white/80 mb-2">
+														Click the button below to automatically install and
+														configure Supermemory in Cursor
+													</p>
+													<p className="text-xs text-white/50">
+														This will install the MCP server without any
+														additional setup required
+													</p>
+												</div>
+												<a
+													href={getCursorDeeplink()}
+													onClick={() => {
+														analytics.mcpInstallCmdCopied()
+														toast.success("Opening Cursor installer...")
+													}}
+												>
+													<img
+														alt="Add Supermemory MCP server to Cursor"
+														className="hover:opacity-80 transition-opacity cursor-pointer"
+														height="40"
+														src="https://cursor.com/deeplink/mcp-install-dark.svg"
+													/>
+												</a>
+											</div>
+											<p className="text-xs text-white/40 text-center">
+												Make sure you have Cursor installed on your system
+											</p>
+										</div>
+									) : (
+										<div className="space-y-4">
+											<p className="text-sm text-white/70">
+												Choose a project and follow the installation steps below
+											</p>
+											<div className="max-w-md">
+												<Select
+													disabled={isLoadingProjects}
+													onValueChange={setSelectedProject}
+													value={selectedProject || "none"}
+												>
+													<SelectTrigger className="w-full">
+														<SelectValue placeholder="Select project" />
+													</SelectTrigger>
+													<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
+														<SelectItem
+															className="text-white hover:bg-white/10"
+															value="none"
+														>
+															Auto-select project
+														</SelectItem>
+														<SelectItem
+															className="text-white hover:bg-white/10"
+															value="sm_project_default"
+														>
+															Default Project
+														</SelectItem>
+														{projects
+															.filter(
+																(p: Project) =>
+																	p.containerTag !== "sm_project_default",
+															)
+															.map((project: Project) => (
+																<SelectItem
+																	className="text-white hover:bg-white/10"
+																	key={project.id}
+																	value={project.containerTag}
+																>
+																	{project.name}
+																</SelectItem>
+															))}
+													</SelectContent>
+												</Select>
+											</div>
+										</div>
+									)}
+								</div>
+							) : selectedClient === "mcp-url" ? (
 								<div className="space-y-2">
 									<div className="relative">
 										<Input
@@ -336,39 +474,47 @@ export function ConnectAIModal({
 						</div>
 					)}
 
-					{/* Step 3: Command Line */}
-					{selectedClient && selectedClient !== "mcp-url" && (
-						<div className="space-y-4">
-							<div className="flex items-center gap-3">
-								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
-									3
+					{/* Step 3: Command Line - Show for manual installation or non-cursor clients */}
+					{selectedClient &&
+						selectedClient !== "mcp-url" &&
+						(selectedClient !== "cursor" || cursorInstallTab === "manual") && (
+							<div className="space-y-4">
+								<div className="flex items-center gap-3">
+									<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+										3
+									</div>
+									<h3 className="text-sm font-medium">
+										{selectedClient === "cursor" &&
+										cursorInstallTab === "manual"
+											? "Manual Installation Command"
+											: "Installation Command"}
+									</h3>
 								</div>
-								<h3 className="text-sm font-medium">Installation Command</h3>
+
+								<div className="relative">
+									<Input
+										className="font-mono text-xs w-full pr-10"
+										readOnly
+										value={generateInstallCommand()}
+									/>
+									<Button
+										className="absolute top-[-1px] right-0 cursor-pointer"
+										onClick={copyToClipboard}
+										variant="ghost"
+									>
+										<CopyIcon className="size-4" />
+									</Button>
+								</div>
+
+								<p className="text-xs text-white/50">
+									{selectedClient === "cursor" && cursorInstallTab === "manual"
+										? "Copy and run this command in your terminal for manual installation (or switch to the one-click option above)"
+										: "Copy and run this command in your terminal to install the MCP server"}
+								</p>
 							</div>
+						)}
 
-							<div className="relative">
-								<Input
-									className="font-mono text-xs w-full pr-10"
-									readOnly
-									value={generateInstallCommand()}
-								/>
-								<Button
-									className="absolute top-[-1px] right-0 cursor-pointer"
-									onClick={copyToClipboard}
-									variant="ghost"
-								>
-									<CopyIcon className="size-4" />
-								</Button>
-							</div>
-
-							<p className="text-xs text-white/50">
-								Copy and run this command in your terminal to install the MCP
-								server
-							</p>
-						</div>
-					)}
-
-					{/* Blurred Command Placeholder */}
+					{/* Blurred Command Placeholder - Only show when no client selected */}
 					{!selectedClient && (
 						<div className="space-y-4">
 							<div className="flex items-center gap-3">

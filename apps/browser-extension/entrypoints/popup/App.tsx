@@ -1,11 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import "./App.css"
+import { validateAuthToken } from "../../utils/api"
 import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants"
 import {
 	useDefaultProject,
 	useProjects,
 	useSetDefaultProject,
+	useUserData,
 } from "../../utils/query-hooks"
 import type { Project } from "../../utils/types"
 
@@ -20,6 +22,7 @@ function App() {
 		"save",
 	)
 	const [autoSearchEnabled, setAutoSearchEnabled] = useState<boolean>(false)
+	const [authInvalidated, setAuthInvalidated] = useState<boolean>(false)
 
 	const queryClient = useQueryClient()
 	const { data: projects = [], isLoading: loadingProjects } = useProjects({
@@ -28,8 +31,12 @@ function App() {
 	const { data: defaultProject } = useDefaultProject({
 		enabled: userSignedIn,
 	})
+	const { data: userData, isLoading: loadingUserData } = useUserData({
+		enabled: userSignedIn,
+	})
 	const setDefaultProjectMutation = useSetDefaultProject()
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: suppress dependency analysis
 	useEffect(() => {
 		const checkAuthStatus = async () => {
 			try {
@@ -37,8 +44,28 @@ function App() {
 					STORAGE_KEYS.BEARER_TOKEN,
 					STORAGE_KEYS.AUTO_SEARCH_ENABLED,
 				])
-				const isSignedIn = !!result[STORAGE_KEYS.BEARER_TOKEN]
-				setUserSignedIn(isSignedIn)
+				const hasToken = !!result[STORAGE_KEYS.BEARER_TOKEN]
+
+				if (hasToken) {
+					const isTokenValid = await validateAuthToken()
+
+					if (isTokenValid) {
+						setUserSignedIn(true)
+						setAuthInvalidated(false)
+					} else {
+						await chrome.storage.local.remove([
+							STORAGE_KEYS.BEARER_TOKEN,
+							STORAGE_KEYS.USER_DATA,
+							STORAGE_KEYS.DEFAULT_PROJECT,
+						])
+						queryClient.clear()
+						setUserSignedIn(false)
+						setAuthInvalidated(true)
+					}
+				} else {
+					setUserSignedIn(false)
+					setAuthInvalidated(false)
+				}
 
 				const autoSearchSetting =
 					result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
@@ -46,6 +73,7 @@ function App() {
 			} catch (error) {
 				console.error("Error checking auth status:", error)
 				setUserSignedIn(false)
+				setAuthInvalidated(false)
 			} finally {
 				setLoading(false)
 			}
@@ -397,6 +425,34 @@ function App() {
 							</div>
 						) : (
 							<div className="flex flex-col gap-4 min-h-[200px]">
+								{/* Account Section */}
+								<div>
+									<h3 className="text-base font-semibold text-black mb-3">
+										Account
+									</h3>
+									<div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+										{loadingUserData ? (
+											<div className="text-sm text-gray-500">
+												Loading account data...
+											</div>
+										) : userData?.email ? (
+											<div className="flex justify-between items-center">
+												<span className="text-xs font-medium text-black">
+													Email
+												</span>
+												<span className="text-sm text-gray-600">
+													{userData.email}
+												</span>
+											</div>
+										) : (
+											<div className="text-sm text-gray-500">
+												No email found
+											</div>
+										)}
+									</div>
+								</div>
+
+								{/* Chat Integration Section */}
 								<div className="mb-4">
 									<h3 className="text-base font-semibold text-black mb-3">
 										Chat Integration
@@ -480,23 +536,37 @@ function App() {
 					</div>
 				) : (
 					<div className="text-center py-2">
-						<div className="mb-8">
-							<h2 className="m-0 mb-4 text-sm font-normal text-black leading-tight">
-								Login to unlock all chrome extension features
-							</h2>
+						{authInvalidated ? (
+							<div className="mb-8">
+								<div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-lg">
+									<h2 className="m-0 mb-2 text-sm font-semibold text-red-800 leading-tight">
+										Session Expired
+									</h2>
+									<p className="m-0 text-xs text-red-600 leading-tight">
+										Logged out since authentication was invalidated. Please
+										login again.
+									</p>
+								</div>
+							</div>
+						) : (
+							<div className="mb-8">
+								<h2 className="m-0 mb-4 text-sm font-normal text-black leading-tight">
+									Login to unlock all chrome extension features
+								</h2>
 
-							<ul className="list-none p-0 m-0 text-left">
-								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
-									Save any page to your supermemory
-								</li>
-								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
-									Import all your Twitter / X Bookmarks
-								</li>
-								<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
-									Import your ChatGPT Memories
-								</li>
-							</ul>
-						</div>
+								<ul className="list-none p-0 m-0 text-left">
+									<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+										Save any page to your supermemory
+									</li>
+									<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+										Import all your Twitter / X Bookmarks
+									</li>
+									<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+										Import your ChatGPT Memories
+									</li>
+								</ul>
+							</div>
+						)}
 
 						<div className="mt-8">
 							<p className="m-0 mb-4 text-sm text-gray-500">
