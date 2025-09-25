@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "supermemory",
-  "title": "supermemory",
-  "description": "Supermemory App",
+  "title": "Supermemory",
+  "description": "Add and search memories with your personal AI-powered knowledge base",
   "icon": "extension-icon.png",
   "author": "MaheshtheDev",
   "platforms": [
@@ -19,13 +19,13 @@
       "name": "add-memory",
       "title": "Add Memory",
       "subtitle": "add memory to your supermemory app",
-      "description": "",
+      "description": "Add text, URLs, or documents to your supermemory knowledge base",
       "mode": "view"
     },
     {
       "name": "search-memories",
       "title": "Search Memories",
-      "description": "",
+      "description": "Search through your saved memories and find relevant information",
       "mode": "view"
     }
   ],
