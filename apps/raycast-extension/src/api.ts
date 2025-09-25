@@ -51,7 +51,7 @@ export interface SearchResponse {
 	total: number
 }
 
-const API_BASE_URL = "http://localhost:8787"
+const API_BASE_URL = "https://api.supermemory.ai"
 
 class SupermemoryAPIError extends Error {
 	constructor(
@@ -92,7 +92,6 @@ async function makeAuthenticatedRequest<T>(
 	options: RequestInit = {},
 ): Promise<T> {
 	const apiKey = await getApiKey()
-	console.log("apiKey", apiKey)
 
 	const url = `${API_BASE_URL}${endpoint}`
 
