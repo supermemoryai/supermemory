@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-openai-sdk"
-version = "1.0.1"
+version = "1.0.2"
 description = "Memory tools for OpenAI function calling with supermemory"
 readme = "README.md"
 license = "MIT"
@@ -26,7 +26,7 @@ classifiers = [
 requires-python = ">=3.8.1"
 dependencies = [
     "openai>=1.102.0",
-    "supermemory>=3.0.0a28",
+    "supermemory>=3.1.0",
     "typing-extensions>=4.0.0",
 ]
 
@@ -46,26 +46,11 @@ Homepage = "https://supermemory.ai"
 Repository = "https://github.com/supermemoryai/supermemory"
 Documentation = "https://supermemory.ai/docs"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
+[tool.hatch.build]
+include = ["src/*"]
 
-[tool.black]
-line-length = 88
-target-version = ['py38']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
+[tool.hatch.build.targets.wheel]
+packages = ["src/supermemory_openai"]
 
 [tool.isort]
 profile = "black"
