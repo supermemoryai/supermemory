@@ -1,7 +1,7 @@
 interface MemoryUsageRingProps {
-	memoriesUsed: number;
-	memoriesLimit: number;
-	className?: string;
+	memoriesUsed: number
+	memoriesLimit: number
+	className?: string
 }
 
 export function MemoryUsageRing({
@@ -9,10 +9,10 @@ export function MemoryUsageRing({
 	memoriesLimit,
 	className = "",
 }: MemoryUsageRingProps) {
-	const usagePercentage = memoriesUsed / memoriesLimit;
+	const usagePercentage = memoriesUsed / memoriesLimit
 	const strokeColor =
-		memoriesUsed >= memoriesLimit * 0.8 ? "rgb(251 191 36)" : "rgb(34 197 94)";
-	const circumference = 2 * Math.PI * 10;
+		memoriesUsed >= memoriesLimit * 0.8 ? "rgb(251 191 36)" : "rgb(34 197 94)"
+	const circumference = 2 * Math.PI * 10
 
 	return (
 		<div
@@ -20,27 +20,28 @@ export function MemoryUsageRing({
 			title={`${memoriesUsed} of ${memoriesLimit} memories used`}
 		>
 			<svg className="w-6 h-6 transform -rotate-90" viewBox="0 0 24 24">
+				<title>{`${memoriesUsed} of ${memoriesLimit} memories used`}</title>
 				{/* Background circle */}
 				<circle
 					cx="12"
 					cy="12"
+					fill="none"
 					r="10"
 					stroke="rgb(255 255 255 / 0.1)"
 					strokeWidth="2"
-					fill="none"
 				/>
 				{/* Progress circle */}
 				<circle
+					className="transition-all duration-300"
 					cx="12"
 					cy="12"
+					fill="none"
 					r="10"
 					stroke={strokeColor}
-					strokeWidth="2"
-					fill="none"
 					strokeDasharray={`${circumference}`}
 					strokeDashoffset={`${circumference * (1 - usagePercentage)}`}
-					className="transition-all duration-300"
 					strokeLinecap="round"
+					strokeWidth="2"
 				/>
 			</svg>
 
@@ -49,5 +50,5 @@ export function MemoryUsageRing({
 				{memoriesUsed} / {memoriesLimit}
 			</div>
 		</div>
-	);
+	)
 }
