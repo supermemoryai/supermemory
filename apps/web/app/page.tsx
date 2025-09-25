@@ -747,6 +747,7 @@ export default function Page() {
 		const authenticateChromeExtension = url.searchParams.get(
 			"extension-auth-success",
 		)
+		const qParam = url.searchParams.get("q")
 
 		if (authenticateChromeExtension) {
 			const sessionToken = session?.token
@@ -762,6 +763,11 @@ export default function Page() {
 				url.searchParams.delete("extension-auth-success")
 				window.history.replaceState({}, "", url.toString())
 			}
+		}
+
+		if (qParam === "raycast") {
+			url.searchParams.set("open", "integrations")
+			window.history.replaceState({}, "", url.toString())
 		}
 	}, [user, session])
 
