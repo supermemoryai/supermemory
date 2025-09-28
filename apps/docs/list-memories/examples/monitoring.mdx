@@ -1,0 +1,118 @@
+---
+title: "Status Monitoring"
+description: "Monitor memory processing status and completion rates"
+---
+
+Monitor memory processing status and track completion rates using the list endpoint.
+
+## Status Overview
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const response = await client.memories.list({ limit: 100 });
+
+    const statusCounts = response.memories.reduce((acc: any, memory) => {
+      acc[memory.status] = (acc[memory.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    console.log('Status breakdown:', statusCounts);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = client.memories.list(limit=100)
+
+    status_counts = {}
+    for memory in response.memories:
+        status = memory.status
+        status_counts[status] = status_counts.get(status, 0) + 1
+
+    print("Status breakdown:", status_counts)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"limit": 100}' | \
+      jq '.memories | group_by(.status) | map({status: .[0].status, count: length})'
+    ```
+  </Tab>
+</Tabs>
+
+## Filter Processing Memories
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const response = await client.memories.list({ limit: 100 });
+
+    const processing = response.memories.filter(m =>
+      ['queued', 'extracting', 'chunking', 'embedding', 'indexing'].includes(m.status)
+    );
+
+    console.log(`${processing.length} memories currently processing`);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = client.memories.list(limit=100)
+
+    processing_statuses = ['queued', 'extracting', 'chunking', 'embedding', 'indexing']
+    processing = [m for m in response.memories if m.status in processing_statuses]
+
+    print(f"{len(processing)} memories currently processing")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"limit": 100}' | \
+      jq '.memories[] | select(.status | IN("queued", "extracting", "chunking", "embedding", "indexing"))'
+    ```
+  </Tab>
+</Tabs>
+
+## Failed Memories
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const failedMemories = await client.memories.list({
+      filters: "status:failed",
+      limit: 50
+    });
+
+    failedMemories.memories.forEach(memory => {
+      console.log(`Failed: ${memory.id} - ${memory.title || 'Untitled'}`);
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    failed_memories = client.memories.list(filters="status:failed", limit=50)
+
+    for memory in failed_memories.memories:
+        title = memory.title or 'Untitled'
+        print(f"Failed: {memory.id} - {title}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"filters": "status:failed", "limit": 50}' | \
+      jq '.memories[] | {id, title, status}'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  For real-time monitoring of individual memories, use the [Track Processing Status](/api/track-progress) guide.
+</Note>

@@ -1,0 +1,156 @@
+---
+title: "Parameters"
+description: "Complete reference for add memory parameters"
+---
+
+Detailed parameter documentation for adding memories to Supermemory.
+
+## Request Parameters
+
+### Required Parameters
+
+<ParamField body="content" type="string" required>
+  The content to process into memories. Can be:
+  - Plain text content
+  - URL to process
+  - HTML content
+  - Markdown text
+
+  ```json
+  {
+    "content": "Machine learning is a subset of AI..."
+  }
+  ```
+
+  **URL Examples:**
+  ```json
+  {
+    "content": "https://youtube.com/watch?v=dQw4w9WgXcQ"
+  }
+  ```
+</ParamField>
+
+### Optional Parameters
+
+<ParamField body="containerTag" type="string">
+  **Recommended.** Single tag to group related memories. Improves search performance.
+
+  Default: `"sm_project_default"`
+
+  ```json
+  {
+    "containerTag": "project_alpha"
+  }
+  ```
+
+  <Note>
+  Use `containerTag` (singular) for better performance than `containerTags` (array).
+  </Note>
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Additional metadata as key-value pairs. Values must be strings, numbers, or booleans.
+
+  ```json
+  {
+    "metadata": {
+      "source": "research-paper",
+      "author": "John Doe",
+      "priority": 1,
+      "reviewed": true
+    }
+  }
+  ```
+
+  **Restrictions:**
+  - No nested objects
+  - No arrays as values
+  - Keys must be strings
+  - Values: string, number, or boolean only
+</ParamField>
+
+<ParamField body="customId" type="string">
+  Your own identifier for the document. Enables deduplication and updates.
+
+  **Maximum length:** 255 characters
+
+  ```json
+  {
+    "customId": "doc_2024_01_research_ml"
+  }
+  ```
+
+  **Use cases:**
+  - Prevent duplicate uploads
+  - Update existing documents
+  - Sync with external systems
+</ParamField>
+
+<ParamField body="raw" type="string">
+  Raw content to store alongside processed content. Useful for preserving original formatting.
+
+  ```json
+  {
+    "content": "# Machine Learning\n\nML is a subset of AI...",
+    "raw": "# Machine Learning\n\nML is a subset of AI..."
+  }
+  ```
+</ParamField>
+
+## File Upload Parameters
+
+For `POST /v3/documents/file` endpoint:
+
+<ParamField body="file" type="file" required>
+  The file to upload. Supported formats:
+  - **Documents:** PDF, DOC, DOCX, TXT, MD
+  - **Images:** JPG, PNG, GIF, WebP
+  - **Videos:** MP4, WebM, AVI
+
+  **Maximum size:** 50MB
+</ParamField>
+
+<ParamField body="containerTags" type="string">
+  Container tag for the uploaded file (sent as form field).
+
+  ```bash
+  curl -X POST "https://api.supermemory.ai/v3/documents/file" \
+    -F "file=@document.pdf" \
+    -F "containerTags=research"
+  ```
+</ParamField>
+
+
+## Container Tag Patterns
+
+### Recommended Patterns
+
+```typescript
+// By user
+"user_123"
+
+// By project
+"project_alpha"
+
+// By organization and type
+"org_456_research"
+
+// By time period
+"2024_q1_reports"
+
+// By data source
+"slack_channel_general"
+```
+
+### Performance Considerations
+
+```typescript
+// ✅ FAST: Single tag
+{ "containerTag": "project_alpha" }
+
+// ⚠️ SLOWER: Multiple tags
+{ "containerTags": ["project_alpha", "backend", "auth"] }
+
+// ❌ AVOID: Too many tags
+{ "containerTags": ["tag1", "tag2", "tag3", "tag4", "tag5"] }
+```

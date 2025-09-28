@@ -1,0 +1,265 @@
+---
+title: "Organization Settings"
+description: "Configure organization-wide settings and content filtering for Supermemory"
+icon: "settings"
+---
+
+Organization settings control how Supermemory processes content across your entire organization. These settings apply to all memories and connectors, helping you:
+
+- Filter content before indexing
+- Configure custom OAuth applications for connectors
+- Set organization-wide processing rules
+- Control what gets indexed and what gets excluded
+
+<Note>
+Settings are organization-wide and apply to all users and memories within your organization.
+</Note>
+
+## Why Settings Matter
+
+The settings endpoint is crucial for teaching Supermemory about your specific use case. It helps Supermemory understand:
+
+- **What you are**: Your organization's specific use case and purpose
+- **What to expect**: The types of content and information flowing through your system
+- **How to interpret**: Context for understanding queries in your specific use case
+- **What to prioritize**: Which content matters most for your users
+
+### Example: Brand Guidelines Use Case
+
+Without proper settings, when a user searches "what are our values?", Supermemory might return random documents mentioning "values". But with proper configuration:
+
+```typescript
+await client.settings.update({
+  shouldLLMFilter: true,
+  filterPrompt: `You are managing brand guidelines for Brand.ai.
+    You will receive all outbound content from our organization.
+    
+    When users search, they're looking for:
+    - "What are our values?" → Return official brand values document
+    - "What's our tone of voice?" → Return brand voice guidelines
+    - "How do we describe our mission?" → Return approved mission statements
+    
+    Focus on the latest approved brand materials, not drafts or outdated versions.`
+});
+```
+
+Now Supermemory understands that:
+- Searches about "values" refer to brand values, not financial values
+- "Tone" means brand voice, not audio settings
+- Priority should be given to official, approved content
+
+This context dramatically improves search relevance and ensures users get the right information for their specific use case.
+
+## API Endpoints
+
+### Get Current Settings
+
+Retrieve your organization's current settings configuration.
+
+<CodeGroup>
+
+```typescript TypeScript
+const settings = await client.settings.get();
+console.log('Current settings:', settings);
+```
+
+```python Python
+settings = client.settings.get()
+print(f'Current settings: {settings}')
+```
+
+```bash cURL
+curl -X GET "https://api.supermemory.ai/v3/settings" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+### Update Settings
+
+Update your organization's settings. You only need to include the fields you want to change.
+
+<CodeGroup>
+
+```typescript TypeScript
+const updatedSettings = await client.settings.update({
+  shouldLLMFilter: true,
+  filterPrompt: "Only index technical documentation and code",
+  includeItems: ["*.md", "*.ts", "*.py"],
+  excludeItems: ["node_modules", ".git", "*.test.*"]
+});
+
+console.log('Updated fields:', updatedSettings.updated);
+```
+
+```python Python
+updated_settings = client.settings.update(
+    should_llm_filter=True,
+    filter_prompt="Only index technical documentation and code",
+    include_items=["*.md", "*.ts", "*.py"],
+    exclude_items=["node_modules", ".git", "*.test.*"]
+)
+
+print(f'Updated fields: {updated_settings.updated}')
+```
+
+```bash cURL
+curl -X PATCH "https://api.supermemory.ai/v3/settings" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shouldLLMFilter": true,
+    "filterPrompt": "Only index technical documentation and code",
+    "includeItems": ["*.md", "*.ts", "*.py"],
+    "excludeItems": ["node_modules", ".git", "*.test.*"]
+  }'
+```
+
+</CodeGroup>
+
+## Content Filtering Settings
+
+Control what content gets indexed into Supermemory.
+
+### Basic Filtering
+
+Use include/exclude patterns to filter content:
+
+```typescript
+await client.settings.update({
+  includeItems: [
+    "*.md",           // All markdown files
+    "*.mdx",          // MDX documentation
+    "docs/**",        // Everything in docs folder
+    "src/**/*.ts"     // TypeScript files in src
+  ],
+  excludeItems: [
+    "node_modules",   // Dependencies
+    ".git",           // Version control
+    "*.test.*",       // Test files
+    "build/**",       // Build outputs
+    "*.tmp"           // Temporary files
+  ]
+});
+```
+
+### Intelligent LLM Filtering
+
+Enable AI-powered content filtering for semantic understanding:
+
+```typescript
+await client.settings.update({
+  shouldLLMFilter: true,
+  filterPrompt: `You are filtering content for a technical documentation system.
+    
+    Include:
+    - API documentation
+    - Code examples and tutorials
+    - Technical guides and references
+    - Architecture documentation
+    
+    Exclude:
+    - Marketing materials
+    - Internal meeting notes
+    - Personal information
+    - Outdated or deprecated content
+    
+    Focus on content that helps developers understand and use our APIs.`
+});
+```
+
+## Connector OAuth Settings
+
+Configure custom OAuth applications for connector integrations.
+
+### Google Drive Custom OAuth
+
+```typescript
+await client.settings.update({
+  googleDriveCustomKeyEnabled: true,
+  googleDriveClientId: "your-client-id.apps.googleusercontent.com",
+  googleDriveClientSecret: "your-client-secret"
+});
+```
+
+### Notion Custom OAuth
+
+```typescript
+await client.settings.update({
+  notionCustomKeyEnabled: true,
+  notionClientId: "your-notion-oauth-client-id",
+  notionClientSecret: "your-notion-oauth-client-secret"
+});
+```
+
+### OneDrive Custom OAuth
+
+```typescript
+await client.settings.update({
+  onedriveCustomKeyEnabled: true,
+  onedriveClientId: "your-azure-app-id",
+  onedriveClientSecret: "your-azure-app-secret"
+});
+```
+
+## Best Practices
+
+### 1. Set Before Bulk Import
+Configure settings before importing large amounts of content. Changes don't retroactively affect existing memories.
+
+### 2. Be Specific in Filter Prompts
+Provide clear context about your organization and expected search patterns:
+
+```typescript
+// Good - Specific and contextual
+filterPrompt: `Technical documentation for developers.
+  Include: API references, code examples, error solutions.
+  Exclude: marketing content, personal data, test files.
+  Users search for: implementation details, troubleshooting, best practices.`
+
+// Bad - Too vague
+filterPrompt: "Only important content"
+```
+
+### 3. Test OAuth Credentials
+Always test custom OAuth credentials in development before production:
+
+```typescript
+// Test connection after updating OAuth settings
+const testConnection = await client.connections.create('google-drive', {
+  redirectUrl: 'https://yourapp.com/callback',
+  containerTags: ['test-connection']
+});
+```
+
+### 4. Monitor Filter Effectiveness
+Check what's being indexed to ensure filters work as expected:
+
+```typescript
+const memories = await client.memories.list({
+  containerTags: ['your-tags'],
+  limit: 10
+});
+
+// Review what's actually being indexed
+memories.memories.forEach(memory => {
+  console.log(`Indexed: ${memory.title} - ${memory.type}`);
+});
+```
+
+## Important Notes
+
+<Warning>
+**Settings Limitations:**
+- Changes are organization-wide, not per-user
+- Settings don't retroactively process existing memories
+- OAuth credentials must be properly configured in respective platforms
+- Filter patterns are applied during content ingestion
+</Warning>
+
+## Related Documentation
+
+- [Connectors Overview](/connectors/overview) - Setting up external integrations
+- [Google Drive Setup](/connectors/google-drive) - Configure Google Drive OAuth
+- [Notion Setup](/connectors/notion) - Configure Notion OAuth
+- [OneDrive Setup](/connectors/onedrive) - Configure OneDrive OAuth

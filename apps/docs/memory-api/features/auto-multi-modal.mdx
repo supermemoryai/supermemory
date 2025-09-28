@@ -1,0 +1,181 @@
+---
+title: "Auto Multi Modal"
+description: "supermemory automatically detects the content type of the document you are adding."
+icon: "sparkles"
+---
+
+supermemory is natively multi-modal, and can automatically detect the content type of the document you are adding.
+
+We use the best of breed tools to extract content from URLs, and process it for optimal memory storage.
+
+## Automatic Content Type Detection
+
+supermemory automatically detects the content type of the document you're adding. Simply pass your content to the API, and supermemory will handle the rest.
+
+<Tabs>
+  <Tab title="How It Works">
+    The content detection system analyzes:
+    - URL patterns and domains
+    - File extensions and MIME types
+    - Content structure and metadata
+    - Headers and response types
+  </Tab>
+  <Tab title="Best Practices">
+    <Accordion title="Content Type Best Practices" defaultOpen icon="sparkles">
+      1. **Type Selection**
+         - Use `note` for simple text
+         - Use `webpage` for online content
+         - Use native types when possible
+
+      2. **URL Content**
+         - Send clean URLs without tracking parameters
+         - Use article URLs, not homepage URLs
+         - Check URL accessibility before sending
+    </Accordion>
+
+  </Tab>
+</Tabs>
+
+### Quick Implementation
+
+All you need to do is pass the content to the `/documents` endpoint:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  --request POST \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  -d '{"content": "https://example.com/article"}'
+```
+
+```typescript
+await client.add.create({
+  content: "https://example.com/article",
+});
+```
+
+```python
+client.add.create(
+    content="https://example.com/article"
+)
+```
+
+</CodeGroup>
+
+<Note>
+  supermemory uses [Markdowner](https://md.dhr.wtf) to extract content from
+  URLs.
+</Note>
+
+## Supported Content Types
+
+supermemory supports a wide range of content formats to ensure versatility in memory creation:
+
+<Grid cols={2}>
+  <Card title="Text Content" icon="document-text">
+    - `note`: Plain text notes and documents
+    - Directly processes raw text content
+    - Automatically chunks content for optimal retrieval
+    - Preserves formatting and structure
+  </Card>
+
+  <Card title="Web Content" icon="globe">
+    - `webpage`: Web pages (just provide the URL)
+    - Intelligently extracts main content
+    - Preserves important metadata (title, description, images)
+    - Extracts OpenGraph metadata when available
+
+    - `tweet`: Twitter content
+    - Captures tweet text, media, and metadata
+    - Preserves thread structure if applicable
+
+  </Card>
+
+  <Card title="Document Types" icon="document">
+    - `pdf`: PDF files
+    - Extracts text content while maintaining structure
+    - Handles both searchable PDFs and scanned documents with OCR
+    - Preserves page breaks and formatting
+
+    - `google_doc`: Google Documents
+    - Seamlessly integrates with Google Docs API
+    - Maintains document formatting and structure
+    - Auto-updates when source document changes
+
+    - `notion_doc`: Notion pages
+    - Extracts content while preserving Notion's block structure
+    - Handles rich text formatting and embedded content
+
+  </Card>
+
+  <Card title="Media Types" icon="photo">
+    - `image`: Images with text content
+    - Advanced OCR for text extraction
+    - Visual content analysis and description
+
+    - `video`: Video content
+    - Transcription and content extraction
+    - Key frame analysis
+
+  </Card>
+</Grid>
+
+## Processing Pipeline
+
+<Steps>
+  <Step title="Content Detection">
+    supermemory automatically identifies the content type based on the input provided.
+  </Step>
+
+<Step title="Content Extraction">
+  Type-specific extractors process the content with: - Specialized parsing for
+  each format - Error handling with retries - Rate limit management
+</Step>
+
+  <Step title="AI Enhancement">
+    ```typescript
+    interface ProcessedContent {
+      content: string;      // Extracted text
+      summary?: string;     // AI-generated summary
+      tags?: string[];     // Extracted tags
+      categories?: string[]; // Content categories
+    }
+    ```
+  </Step>
+
+  <Step title="Chunking & Indexing">
+    - Sentence-level splitting
+    - 2-sentence overlap
+    - Context preservation
+    - Semantic coherence
+  </Step>
+</Steps>
+
+## Technical Specifications
+
+### Size Limits
+
+| Content Type | Max Size |
+| ------------ | -------- |
+| Text/Note    | 1MB      |
+| PDF          | 10MB     |
+| Image        | 5MB      |
+| Video        | 100MB    |
+| Web Page     | N/A      |
+| Google Doc   | N/A      |
+| Notion Page  | N/A      |
+| Tweet        | N/A      |
+
+### Processing Time
+
+| Content Type | Processing Time |
+| ------------ | --------------- |
+| Text/Note    | Almost instant  |
+| PDF          | 1-5 seconds     |
+| Image        | 2-10 seconds    |
+| Video        | 10+ seconds     |
+| Web Page     | 1-3 seconds     |
+| Google Doc   | N/A             |
+| Notion Page  | N/A             |
+| Tweet        | N/A             |

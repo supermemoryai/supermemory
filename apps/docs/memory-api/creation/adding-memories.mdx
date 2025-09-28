@@ -1,0 +1,376 @@
+---
+title: "Adding Memories"
+description: "Learn how to add content to supermemory"
+icon: "plus"
+---
+
+<Accordion title="Best Practices" icon="sparkles">
+1. **Content Organization**
+    - **Use `containerTags` for grouping/partitioning**
+      - Optional tags (array of strings) to group memories.
+      - Can be a user ID, project ID, or any other identifier.
+      - Allows filtering for memories that share specific tags.
+      - Example: `["user_123", "project_alpha"]`
+
+    Read more about [filtering](/memory-api/features/filtering)
+
+2. **Performance Tips**
+   - **Batch Operations**
+     - You can add multiple items in parallel
+     - Use different `containerTags` for different spaces
+     - Don't wait for processing to complete unless needed
+
+   - **Search Optimization**
+     ```json
+     {
+       "q": "error logs",
+       "documentThreshold": 0.7, // Higher = more precise
+       "limit": 5, // Keep it small
+       "onlyMatchingChunks": true // Skip extra context if not needed
+     }
+     ```
+
+3. **URL Content**
+   - Send clean URLs without tracking parameters
+   - Use article URLs, not homepage URLs
+   - Check URL accessibility before sending
+
+</Accordion>
+
+## Basic Usage
+
+To add a memory, send a POST request to `/add` with your content:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --data '{
+  "customId": "xyz-my-db-id",
+  "content": "This is the content of my memory",
+  "metadata": {
+    "category": "technology",
+    "tag_1": "ai",
+    "tag_2": "machine-learning",
+  },
+  "containerTags": ["user_123", "project_xyz"]
+}'
+```
+
+```typescript Typescript
+await client.memory.create({
+	customId: "xyz-mydb-id",
+	content: "This is the content of my memory",
+	metadata: {
+		category: "technology",
+		tag_1": "ai",
+    tag_2": "machine-learning",
+	},
+	containerTags: ["user_123", "project_xyz"]
+})
+```
+
+```python Python
+client.memory.create(
+    customId="xyz-mydb-id",
+    content="documents related to python",
+    metadata={
+        "category": "datascience",
+        "tag_1": "ai",
+        "tag_2": "machine-learning",
+    },
+    containerTags=["user_123", "project_xyz"]
+)
+```
+
+</CodeGroup>
+
+The API will return a response with an ID and initial status:
+
+```json
+{
+  "id": "mem_abc123",
+  "status": "queued"
+}
+```
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  -d '{
+    "content": "https://example.com/article",
+    "metadata": {
+      "source": "web",			# Just example metadata
+      "category": "technology"	# NOT required
+    },
+    "containerTags": ["user_456", "research_papers"]
+  }'
+```
+
+```typescript Typescript
+await client.memory.create({
+  content: "https://example.com/article",
+  userId: "user_456",
+  metadata: {
+    source: "web", // Just example metadata
+    category: "technology", // NOT required
+  },
+  containerTags: ["user_456", "research_papers"],
+});
+```
+
+```python Python
+client.memory.create(
+    content="https://example.com/article",
+    userId="user_456",
+    metadata={
+        "source": "web",
+        "category": "technology"
+    },
+    containerTags=["user_456", "research_papers"]
+)
+```
+
+</CodeGroup>
+
+
+## Metadata and Organization
+
+You can add rich metadata to organize your content:
+
+```json
+{
+  "metadata": {
+    "source": "string", // String
+    "priority": 1234, // Custom numeric field
+    "custom_field": "any" // Any custom field
+  }
+}
+```
+
+
+## Partitioning by user
+
+You can attribute and partition your data by providing a `userId`:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  -d '{
+    "content": "This is space-specific content",
+    "userId": "space_123",
+    "metadata": {
+      "category": "space-content"
+    }
+  }'
+```
+
+```typescript Typescript
+await client.memory.create({
+  content: "This is space-specific content",
+  userId: "space_123",
+  metadata: {
+    category: "space-content",
+  },
+});
+```
+
+```python Python
+client.memory.create(
+    content="This is space-specific content",
+    userId="space_123",
+    metadata={
+        "category": "space-content"
+    }
+)
+```
+
+</CodeGroup>
+
+<Note>
+  When searching, if you provide a `userId`, only memories from that space will
+  be returned.
+</Note>
+
+## Grouping
+
+You can group memories by providing an array of `containerTags`:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  -d '{
+    "content": "This is space-specific content",
+    "containerTags": ["user_123", "project_xyz"]
+  }'
+```
+
+```typescript Typescript
+await client.memory.create({
+  content: "This is space-specific content",
+  containerTags: ["user_123", "project_xyz"],
+});
+```
+
+```python Python
+client.memory.create(
+    content="This is space-specific content",
+    containerTags=["user_123", "project_xyz"]
+)
+```
+
+</CodeGroup>
+
+## Checking Status
+
+Check status using the memory ID:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents/mem_abc123 \
+  --request GET \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY'
+```
+
+```typescript Typescript
+await client.memory.get("mem_abc123");
+```
+
+```python Python
+client.memory.get("mem_abc123")
+```
+
+</CodeGroup>
+
+<Warning>
+
+Memories are deleted after 2 minutes if an irrecoverable error occurs.
+
+</Warning>
+
+## File Uploads
+
+For file uploads, use the dedicated file upload endpoint. You can include `containerTags` directly in the form data:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents/file \
+  --request POST \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --form 'file=@/path/to/your/file.pdf' \
+  --form 'containerTags=["user_123", "project_xyz"]'
+```
+
+```typescript Typescript
+const formData = new FormData();
+formData.append("file", fileBlob);
+formData.append("containerTags", JSON.stringify(["user_123", "project_xyz"]));
+
+const response = await fetch("https://api.supermemory.ai/v3/documents/file", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer SUPERMEMORY_API_KEY",
+  },
+  body: formData,
+});
+```
+
+```python Python
+import requests
+import json
+
+with open('/path/to/your/file.pdf', 'rb') as f:
+    files = {'file': f}
+    data = {'containerTags': json.dumps(["user_123", "project_xyz"])}
+    response = requests.post(
+        'https://api.supermemory.ai/v3/documents/file',
+        headers={'Authorization': 'Bearer SUPERMEMORY_API_KEY'},
+        files=files,
+        data=data
+    )
+```
+
+</CodeGroup>
+
+### Adding Additional Metadata to Files
+
+If you need to add additional metadata (like title or description) after upload, you can use the PATCH endpoint:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents/MEMORY_ID \
+  --request PATCH \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --data '{
+    "metadata": {
+      "title": "My Document",
+      "description": "Important project document"
+    }
+  }'
+```
+
+```typescript Typescript
+await fetch(`https://api.supermemory.ai/v3/documents/${memoryId}`, {
+  method: "PATCH",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: "Bearer SUPERMEMORY_API_KEY",
+  },
+  body: JSON.stringify({
+    metadata: {
+      title: "My Document",
+      description: "Important project document",
+    },
+  }),
+});
+```
+
+```python Python
+import requests
+
+requests.patch(
+    f'https://api.supermemory.ai/v3/documents/{memory_id}',
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer SUPERMEMORY_API_KEY'
+    },
+    json={
+        'metadata': {
+            'title': 'My Document',
+            'description': 'Important project document'
+        }
+    }
+)
+```
+
+</CodeGroup>
+
+<Note>
+  The file upload endpoint returns immediately with a memory ID and processing
+  status. The file will be processed asynchronously, and you can check its
+  status using the GET endpoint.
+</Note>
+
+## Next Steps
+
+Explore more advanced features in our [API Reference](/api-reference/manage-memories/add-memory)

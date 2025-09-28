@@ -1,0 +1,181 @@
+---
+title: "Searching Memories"
+description: "Learn how to search for and retrieve content from supermemory"
+---
+
+<Accordion title="Best Practices" defaultOpen icon="sparkles">
+1. **Query Formulation**:
+   - Use natural language queries
+   - Include relevant keywords
+   - Be specific but not too verbose
+
+2. **Filtering**:
+   - Use metadata filters for precision
+   - Combine multiple filters when needed
+   - Use appropriate thresholds
+
+3. **Performance**:
+   - Set appropriate result limits
+   - Use specific document/chunk filters
+   - Consider response timing
+
+</Accordion>
+
+## Basic Search
+
+To search through your memories, send a POST request to `/search`:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/search?q=machine+learning+concepts&limit=10 \
+  --request GET \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY'
+```
+
+```typescript Typescript
+await client.search.execute({
+  q: "machine learning concepts",
+  limit: 10,
+});
+```
+
+```python Python
+client.search.execute(
+    q="machine learning concepts",
+    limit=10
+)
+```
+
+</CodeGroup>
+
+The API will return relevant matches with their similarity scores:
+
+```json
+{
+  "results": [
+    {
+      "documentId": "doc_xyz789",
+      "chunks": [
+        {
+          "content": "Machine learning is a subset of artificial intelligence...",
+          "isRelevant": true,
+          "score": 0.85
+        }
+      ],
+      "score": 0.95,
+      "metadata": {
+        "source": "web",
+        "category": "technology"
+      },
+      "title": "Introduction to Machine Learning"
+    }
+  ],
+  "total": 1,
+  "timing": 123.45
+}
+```
+
+## Search Parameters
+
+```json
+{
+  "q": "search query", // Required: Search query string
+  "limit": 10, // Optional: Max results (default: 10)
+  "threshold": 0.6, // Optional: Min similarity score (0-1, default: 0.6)
+  "containerTag": "user_123", // Optional: Filter by container tag
+  "rerank": false, // Optional: Rerank results for better relevance
+  "rewriteQuery": false, // Optional: Rewrite query for better matching
+  "include": {
+    "documents": false, // Optional: Include document metadata
+    "summaries": false, // Optional: Include document summaries
+    "relatedMemories": false, // Optional: Include related memory context
+    "forgottenMemories": false // Optional: Include forgotten memories in results
+  },
+  "filters": {
+    // Optional: Metadata filters
+    "AND": [
+      {
+        "key": "category",
+        "value": "technology"
+      }
+    ]
+  }
+}
+```
+
+## Search Response
+
+The search response includes:
+
+```json
+{
+  "results": [
+    {
+      "documentId": "string", // Document ID
+      "chunks": [
+        {
+          // Matching chunks
+          "content": "string", // Chunk content
+          "isRelevant": true, // Is directly relevant
+          "score": 0.95 // Similarity score
+        }
+      ],
+      "score": 0.95, // Document score
+      "metadata": {}, // Document metadata
+      "title": "string", // Document title
+      "createdAt": "string", // Creation date
+      "updatedAt": "string" // Last update date
+    }
+  ],
+  "total": 1, // Total results
+  "timing": 123.45 // Search time (ms)
+}
+```
+
+## Including Forgotten Memories
+
+By default, the search API excludes memories that have been marked as forgotten or have passed their expiration date. To include these in your search results, set `include.forgottenMemories` to `true`:
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v4/search \
+  --request POST \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "q": "old project notes",
+    "include": {
+      "forgottenMemories": true
+    }
+  }'
+```
+
+```typescript Typescript
+await client.search.memories({
+  q: "old project notes",
+  include: {
+    forgottenMemories: true
+  }
+});
+```
+
+```python Python
+await client.search.memories(
+    q="old project notes",
+    include={
+        "forgottenMemories": True
+    }
+)
+```
+
+</CodeGroup>
+
+<Note>
+Forgotten memories are memories that have been explicitly forgotten using the forget API or have passed their automatic expiration date (`forgetAfter`). Including them in search results can help recover information that may still be relevant.
+</Note>
+
+## Next Steps
+
+Explore more advanced features in our [API Reference](/api-reference/search-memories/search-memories).

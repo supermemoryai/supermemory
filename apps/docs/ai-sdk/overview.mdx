@@ -1,0 +1,80 @@
+---
+title: "AI SDK Integration"
+description: "Use Supermemory with Vercel AI SDK for seamless memory management"
+sidebarTitle: "Overview"
+---
+
+The Supermemory AI SDK provides native integration with Vercel's AI SDK through two approaches: **Memory Tools** for agent-based interactions and **Infinite Chat** for automatic context management.
+
+<Card title="Supermemory tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
+    Check out the NPM page for more details
+</Card>
+
+## Installation
+
+```bash
+npm install @supermemory/tools
+```
+
+## Memory Tools
+
+Add memory capabilities to AI agents with search, add, and fetch operations.
+
+```typescript
+import { streamText } from "ai"
+import { createAnthropic } from "@ai-sdk/anthropic"
+import { supermemoryTools } from "@supermemory/tools/ai-sdk"
+
+const anthropic = createAnthropic({
+  apiKey: "YOUR_ANTHROPIC_KEY"
+})
+
+const result = await streamText({
+  model: anthropic("claude-3-sonnet"),
+  prompt: "Remember that my name is Alice",
+  tools: supermemoryTools("YOUR_SUPERMEMORY_KEY")
+})
+```
+
+## Infinite Chat
+
+Automatic memory management for chat applications with unlimited context.
+
+```typescript
+import { streamText } from "ai"
+
+const infiniteChat = createAnthropic({
+  baseUrl: 'https://api.supermemory.ai/v3/https://api.anthropic.com/v1',
+  apiKey: 'your-provider-api-key',
+  headers: {
+    'x-supermemory-api-key': 'supermemory-api-key',
+    'x-sm-conversation-id': 'conversation-id'
+  }
+})
+
+const result = await streamText({
+  model: infiniteChat("claude-3-sonnet"),
+  messages: [
+    { role: "user", content: "What's my name?" }
+  ]
+})
+```
+
+## When to Use
+
+| Approach | Use Case |
+|----------|----------|
+| Memory Tools | AI agents that need explicit memory control |
+| Infinite Chat | Chat applications with automatic context |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Memory Tools" icon="wrench" href="/ai-sdk/memory-tools">
+    Agent-based memory management
+  </Card>
+
+  <Card title="Infinite Chat" icon="infinity" href="/ai-sdk/infinite-chat">
+    Automatic context management
+  </Card>
+</CardGroup>

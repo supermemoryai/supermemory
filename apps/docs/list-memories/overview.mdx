@@ -1,0 +1,153 @@
+---
+title: "List Memories"
+description: "Retrieve paginated memories with filtering and sorting options"
+sidebarTitle: "Overview"
+---
+
+
+Retrieve paginated memories with filtering and sorting options from your Supermemory account.
+
+## Quick Start
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY!
+    });
+
+    const memories = await client.memories.list({ limit: 10 });
+    console.log(memories);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+    import os
+
+    client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+    memories = client.memories.list(limit=10)
+    print(f"Found {len(memories.memories)} memories")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"limit": 10}'
+    ```
+  </Tab>
+</Tabs>
+
+## Response Schema
+
+The endpoint returns a structured response containing your memories and pagination information:
+
+```json
+{
+  "memories": [
+    {
+      "id": "abc123",
+      "connectionId": null,
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:35:00.000Z",
+      "customId": "ml-basics-001",
+      "title": "Introduction to Machine Learning",
+      "summary": "This document introduces machine learning as a subset of artificial intelligence...",
+      "status": "done",
+      "type": "text",
+      "metadata": {
+        "category": "education",
+        "priority": "high",
+        "source": "research-notes"
+      },
+      "containerTags": ["user_123", "ai-research"]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalItems": 25,
+    "limit": 10
+  }
+}
+```
+
+### Memory Object Fields
+
+<Accordion title="Core Fields" defaultOpen>
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique identifier for the memory |
+| `status` | ProcessingStatus | Current processing status (`queued`, `extracting`, `chunking`, `embedding`, `indexing`, `done`, `failed`) |
+| `type` | MemoryType | Content type (`text`, `pdf`, `webpage`, `video`, `image`, etc.) |
+| `title` | string \| null | Auto-generated or custom title |
+| `summary` | string \| null | AI-generated summary of content |
+| `createdAt` | string | ISO 8601 creation timestamp |
+| `updatedAt` | string | ISO 8601 last update timestamp |
+
+</Accordion>
+
+<Accordion title="Optional Fields">
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `customId` | string \| null | Your custom identifier for the memory |
+| `connectionId` | string \| null | ID of connector that created this memory |
+| `metadata` | object \| null | Custom key-value metadata you provided |
+| `containerTags` | string[] | Tags for organizing and filtering memories |
+
+</Accordion>
+
+## Key Parameters
+
+All parameters are optional and sent in the request body since this endpoint uses `POST`:
+
+<ParamField path="limit" type="number/string" default="50">
+  **Number of items per page.** Controls how many memories are returned in a single request. Maximum recommended: 200 for optimal performance.
+</ParamField>
+
+<ParamField path="page" type="number/string" default="1">
+  **Page number to fetch (1-indexed).** Use with `limit` to paginate through large result sets.
+</ParamField>
+
+<ParamField path="containerTags" type="string[]">
+  **Filter by tags.** Memories must match ALL provided tags. Use for filtering by user ID, project, or custom organization tags.
+</ParamField>
+
+<ParamField path="sort" type="string" default="createdAt">
+  **Sort field.** Options: `"createdAt"` (when memory was added) or `"updatedAt"` (when memory was last modified).
+</ParamField>
+
+<ParamField path="order" type="string" default="desc">
+  **Sort direction.** Use `"desc"` for newest first, `"asc"` for oldest first.
+</ParamField>
+
+<ParamField path="filters" type="string">
+  **Advanced filtering.** Filter based on metadata with advanced SQL logic.
+</ParamField>
+
+## Examples
+
+<CardGroup cols={2}>
+  <Card title="Basic Listing" icon="list" href="/list-memories/examples/basic">
+    Simple memory retrieval with default settings
+  </Card>
+  <Card title="Filtering" icon="filter" href="/list-memories/examples/filtering">
+    Filter by tags, status, and other criteria
+  </Card>
+  <Card title="Pagination" icon="arrow-right" href="/list-memories/examples/pagination">
+    Handle large datasets with pagination
+  </Card>
+  <Card title="Status Monitoring" icon="chart-line" href="/list-memories/examples/monitoring">
+    Track processing status across memories
+  </Card>
+</CardGroup>
+
+<Note>
+  The `/v3/documents/list` endpoint uses **POST** method, not GET. This allows for complex filtering parameters in the request body.
+</Note>

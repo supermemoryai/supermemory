@@ -1,0 +1,260 @@
+{
+	"$schema": "https://mintlify.com/docs.json",
+	"api": {
+		"examples": {
+			"defaults": "required",
+			"languages": ["javascript", "python", "curl"]
+		},
+		"openapi": "https://api.supermemory.ai/v3/openapi"
+	},
+	"colors": {
+		"dark": "#1E3A8A",
+		"light": "#3B82F6",
+		"primary": "#1E3A8A"
+	},
+	"contextual": {
+		"options": ["copy", "view", "chatgpt", "claude"]
+	},
+	"favicon": "/favicon.png",
+	"fonts": {
+		"body": {
+			"family": "Space Grotesk",
+			"format": "woff2"
+		},
+		"heading": {
+			"family": "Space Grotesk",
+			"format": "woff2"
+		}
+	},
+	"footer": {
+		"socials": {
+			"github": "https://github.com/supermemoryai",
+			"linkedin": "https://linkedin.com/company/supermemoryai",
+			"x": "https://x.com/supermemoryai"
+		}
+	},
+	"icons": { "library": "lucide" },
+	"logo": {
+		"dark": "/logo/dark.svg",
+		"light": "/logo/light.svg"
+	},
+	"name": "supermemory | Memory API for the AI era",
+	"navbar": {
+		"links": [
+			{
+				"href": "mailto:dhravya@supermemory.com",
+				"label": "Support"
+			}
+		],
+		"primary": {
+			"href": "https://console.supermemory.ai",
+			"label": "Dashboard",
+			"type": "button"
+		}
+	},
+	"navigation": {
+		"tabs": [
+			{
+				"pages": ["introduction"],
+				"tab": "Welcome"
+			},
+			{
+				"icon": "code",
+				"anchors": [
+					{
+						"anchor": "Your Dashboard",
+						"href": "https://console.supermemory.ai",
+						"icon": "play"
+					},
+					{
+						"anchor": "Developer Platform",
+						"pages": [
+							{
+								"group": "Getting Started",
+								"pages": ["intro", "routervsapi", "quickstart"]
+							},
+							{
+								"group": "Memory API",
+								"pages": [
+									"how-it-works",
+									{
+										"group": "Add Memories",
+										"icon": "plus",
+										"pages": [
+											"add-memories/overview",
+											"add-memories/parameters",
+											"memory-api/ingesting",
+											{
+												"group": "Examples",
+												"pages": [
+													"add-memories/examples/basic",
+													"add-memories/examples/file-upload"
+												]
+											}
+										]
+									},
+									{
+										"group": "Search Memories",
+										"icon": "search",
+										"pages": [
+											"search/overview",
+											"search/parameters",
+											"search/response-schema",
+											"search/query-rewriting",
+											"search/reranking",
+											{
+												"group": "Examples",
+												"pages": [
+													"search/examples/document-search",
+													"search/examples/memory-search"
+												]
+											}
+										]
+									},
+									"search/filtering",
+									"memory-api/track-progress",
+									{
+										"group": "List Memories",
+										"icon": "list",
+										"pages": [
+											"list-memories/overview",
+											{
+												"group": "Examples",
+												"pages": [
+													"list-memories/examples/basic",
+													"list-memories/examples/filtering",
+													"list-memories/examples/pagination",
+													"list-memories/examples/monitoring"
+												]
+											}
+										]
+									},
+									"update-delete-memories/overview",
+									{
+										"group": "Connectors",
+										"icon": "link",
+										"pages": [
+											"connectors/overview",
+											"connectors/notion",
+											"connectors/google-drive",
+											"connectors/onedrive",
+											"connectors/troubleshooting"
+										]
+									},
+									"/org-settings",
+									"/analytics",
+									"overview/use-cases"
+								]
+							},
+							{
+								"group": "Memory Router",
+								"icon": "route",
+								"pages": [
+									"memory-router/overview",
+									"memory-router/usage",
+									"memory-router/with-memory-api"
+								]
+							},
+							{
+								"group": "Deployment",
+								"pages": ["deployment/self-hosting"]
+							}
+						]
+					}
+				],
+				"tab": "Developer Platform"
+			},
+			{
+				"icon": "plug",
+				"anchors": [
+					{
+						"anchor": "SDKs",
+						"pages": [
+							"memory-api/sdks/overview",
+							{
+								"group": "Supermemory SDKs",
+								"pages": [
+									"memory-api/sdks/native",
+									"memory-api/sdks/supermemory-npm",
+									"memory-api/sdks/supermemory-pypi"
+								]
+							},
+							{
+								"group": "OpenAI SDK",
+								"icon": "sparkles",
+								"pages": ["memory-api/sdks/openai-plugins", "ai-sdk/npm"]
+							},
+							{
+								"group": "AI SDK",
+								"icon": "triangle",
+								"pages": [
+									"ai-sdk/overview",
+									"ai-sdk/memory-tools",
+									"ai-sdk/infinite-chat",
+									"ai-sdk/npm"
+								]
+							}
+						]
+					}
+				],
+				"tab": "SDKs"
+			},
+			{
+				"icon": "book-open",
+				"anchors": [
+					{
+						"anchor": "API Reference",
+						"icon": "unplug",
+						"openapi": "https://api.supermemory.ai/v3/openapi"
+					}
+				],
+				"tab": "API Reference"
+			},
+			{
+				"icon": "chef-hat",
+				"anchors": [
+					{
+						"anchor": "Cookbook",
+						"icon": "chef-hat",
+						"pages": [
+							"cookbook/overview",
+							{
+								"group": "Quick Start Recipes",
+								"pages": [
+									"cookbook/personal-assistant",
+									"cookbook/document-qa",
+									"cookbook/customer-support",
+									"cookbook/ai-sdk-integration",
+									"cookbook/perplexity-supermemory",
+									"cookbook/chat-with-gdrive",
+									"cookbook/inf-chat-blog"
+								]
+							}
+						]
+					}
+				],
+				"tab": "Cookbook"
+			},
+
+			{
+				"icon": "list-ordered",
+				"anchors": [
+					{
+						"anchor": "Changelog",
+						"pages": ["changelog/overview", "changelog/developer-platform"]
+					}
+				],
+				"tab": "Changelog"
+			}
+		]
+	},
+	"redirects": [
+		{
+			"destination": "/introduction",
+			"permanent": false,
+			"source": "/"
+		}
+	],
+	"styling": { "eyebrows": "breadcrumbs" },
+	"theme": "mint"
+}

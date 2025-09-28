@@ -1,0 +1,300 @@
+---
+title: "Analytics & Monitoring"
+description: "Observe usage, errors, and logs to monitor your Supermemory integration"
+icon: "chart-line"
+---
+
+Monitor your Supermemory usage with detailed analytics on API calls, errors, and performance metrics.
+
+## Overview
+
+The Analytics API provides comprehensive insights into your Supermemory usage:
+
+- **Usage Statistics**: Track API calls by type, hourly trends, and per-API key breakdown
+- **Error Monitoring**: Identify top error types and patterns
+- **Detailed Logs**: Access complete request/response logs for debugging
+- **Performance Metrics**: Monitor average response times and processing duration
+
+<Note>
+Analytics data is available for your entire organization and can be filtered by time period.
+</Note>
+
+## Usage Statistics
+
+Get comprehensive usage statistics including hourly breakdowns and per-key metrics.
+
+### Endpoint
+
+`GET /v3/analytics/usage`
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `from` | string (ISO 8601) | Start date/time for the period |
+| `to` | string (ISO 8601) | End date/time for the period |
+| `period` | string | Alternative to `from`: `1h`, `24h`, `7d`, `30d` |
+| `page` | integer | Page number for pagination (default: 1) |
+| `limit` | integer | Items per page (default: 20, max: 100) |
+
+### Example Request
+
+<CodeGroup>
+
+```typescript TypeScript
+// Get usage for the last 24 hours
+const usage = await fetch('https://api.supermemory.ai/v3/analytics/usage?period=24h', {
+  headers: {
+    'Authorization': `Bearer ${SUPERMEMORY_API_KEY}`
+  }
+});
+
+const data = await usage.json();
+```
+
+```python Python
+import requests
+from datetime import datetime, timedelta
+
+# Get usage for the last 7 days
+response = requests.get(
+    'https://api.supermemory.ai/v3/analytics/usage',
+    params={'period': '7d'},
+    headers={'Authorization': f'Bearer {SUPERMEMORY_API_KEY}'}
+)
+
+data = response.json()
+```
+
+```bash cURL
+# Get usage for a specific date range
+curl -X GET "https://api.supermemory.ai/v3/analytics/usage?from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+### Response Schema
+
+```json
+{
+  "usage": [
+    {
+      "type": "add",
+      "count": 1523,
+      "avgDuration": 245.5,
+      "lastUsed": "2024-01-15T14:30:00Z"
+    },
+    {
+      "type": "search",
+      "count": 3421,
+      "avgDuration": 89.2,
+      "lastUsed": "2024-01-15T14:35:00Z"
+    }
+  ],
+  "hourly": [
+    {
+      "hour": "2024-01-15T14:00:00Z",
+      "count": 156,
+      "avgDuration": 125.3
+    }
+  ],
+  "byKey": [
+    {
+      "keyId": "key_abc123",
+      "keyName": "Production API",
+      "count": 2341,
+      "avgDuration": 98.7,
+      "lastUsed": "2024-01-15T14:35:00Z"
+    }
+  ],
+  "totalMemories": 45678,
+  "pagination": {
+    "currentPage": 1,
+    "limit": 20,
+    "totalItems": 150,
+    "totalPages": 8
+  }
+}
+```
+
+## Error Monitoring
+
+Track and analyze errors to identify issues and improve reliability.
+
+### Endpoint
+
+`GET /v3/analytics/errors`
+
+### Parameters
+
+Same as usage endpoint - supports `from`, `to`, `period`, `page`, and `limit`.
+
+### Example Request
+
+<CodeGroup>
+
+```typescript TypeScript
+// Get errors from the last 24 hours
+const errors = await fetch('https://api.supermemory.ai/v3/analytics/errors?period=24h', {
+  headers: {
+    'Authorization': `Bearer ${SUPERMEMORY_API_KEY}`
+  }
+});
+
+const data = await errors.json();
+```
+
+```python Python
+# Monitor errors and alert on spikes
+response = requests.get(
+    'https://api.supermemory.ai/v3/analytics/errors?period=1h',
+    headers={'Authorization': f'Bearer {SUPERMEMORY_API_KEY}'}
+)
+
+data = response.json()
+```
+
+```bash cURL
+# Get errors for the last 7 days
+curl -X GET "https://api.supermemory.ai/v3/analytics/errors?period=7d" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+### Response Schema
+
+```json
+{
+  "totalErrors": 234,
+  "errorRate": 0.023,
+  "topErrors": [
+    {
+      "type": "ValidationError",
+      "count": 89,
+      "statusCodes": [400],
+      "lastOccurred": "2024-01-15T14:30:00Z"
+    },
+    {
+      "type": "RateLimitError",
+      "count": 45,
+      "statusCodes": [429],
+      "lastOccurred": "2024-01-15T13:15:00Z"
+    }
+  ],
+  "timeline": [
+    {
+      "time": "2024-01-15T14:00:00Z",
+      "count": 12,
+      "types": ["ValidationError", "NotFoundError"]
+    }
+  ],
+  "byStatusCode": {
+    "400": 89,
+    "404": 34,
+    "429": 45,
+    "500": 66
+  }
+}
+```
+
+## Detailed Logs
+
+Access complete request/response logs for debugging and auditing.
+
+### Endpoint
+
+`GET /v3/analytics/logs`
+
+### Parameters
+
+Same as usage endpoint, plus optional filters:
+- `type`: Filter by request type (add, search, update, delete)
+- `statusCode`: Filter by HTTP status code
+- `keyId`: Filter by specific API key
+
+### Example Request
+
+<CodeGroup>
+
+```typescript TypeScript
+// Get recent failed requests
+const logs = await fetch('https://api.supermemory.ai/v3/analytics/logs?period=1h&statusCode=500', {
+  headers: {
+    'Authorization': `Bearer ${SUPERMEMORY_API_KEY}`
+  }
+});
+
+const data = await logs.json();
+```
+
+```python Python
+# Debug specific API key usage
+response = requests.get(
+    'https://api.supermemory.ai/v3/analytics/logs',
+    params={
+        'keyId': 'key_abc123',
+        'period': '24h'
+    },
+    headers={'Authorization': f'Bearer {SUPERMEMORY_API_KEY}'}
+)
+
+logs = response.json()['logs']
+
+```
+
+```bash cURL
+# Get all logs for debugging
+curl -X GET "https://api.supermemory.ai/v3/analytics/logs?period=1h&limit=50" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+### Response Schema
+
+```json
+{
+  "logs": [
+    {
+      "id": "req_xyz789",
+      "createdAt": "2024-01-15T14:30:00Z",
+      "type": "search",
+      "statusCode": 200,
+      "duration": 89,
+      "input": {
+        "q": "user query",
+        "limit": 10
+      },
+      "output": {
+        "results": 10,
+        "processingTime": 85
+      }
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "limit": 20,
+    "totalItems": 500,
+    "totalPages": 25
+  }
+}
+```
+
+## Rate Limits
+
+Analytics endpoints have the following rate limits:
+- 100 requests per minute per organization
+- Maximum time range: 90 days
+- Maximum page size: 100 items
+
+<Warning>
+Analytics data is retained for 90 days. For longer retention, export and store the data in your own systems.
+</Warning>
+
+## Related Resources
+
+- [API Authentication](/essentials/authentication) - Set up API keys
+- [Error Handling](/essentials/errors) - Understanding error codes
+- [Rate Limits](/essentials/rate-limits) - API usage limits

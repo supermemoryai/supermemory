@@ -1,0 +1,387 @@
+---
+title: "Reranking"
+description: "Improve result relevance with secondary ranking algorithms"
+---
+
+
+Reranking applies a secondary ranking algorithm to improve the relevance order of search results. After the initial search returns results, the reranker analyzes the relationship between your query and each result to provide better ordering.
+
+## How Reranking Works
+
+Supermemory's reranking process:
+
+1. **Initial search** returns results using standard semantic similarity
+2. **Reranker model** analyzes query-result pairs
+3. **Scores are recalculated** based on deeper semantic understanding
+4. **Results are reordered** by the new relevance scores
+5. **Final results** maintain the same structure but with improved ordering
+
+The reranker is particularly effective at:
+- **Understanding context** and nuanced relationships
+- **Handling ambiguous queries** with multiple possible meanings
+- **Improving precision** for complex technical topics
+- **Better ranking** when results have similar initial scores
+
+## Basic Reranking Comparison
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY!
+    });
+
+    // Search without reranking
+    const standardResults = await client.search.documents({
+      q: "neural network optimization techniques",
+      rerank: false,
+      limit: 5
+    });
+
+    // Search with reranking
+    const rerankedResults = await client.search.documents({
+      q: "neural network optimization techniques",
+      rerank: true,
+      limit: 5
+    });
+
+    console.log("Standard top result:", standardResults.results[0].score);
+    console.log("Reranked top result:", rerankedResults.results[0].score);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+    import os
+
+    client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+    # Search without reranking
+    standard_results = client.search.documents(
+        q="neural network optimization techniques",
+        rerank=False,
+        limit=5
+    )
+
+    # Search with reranking
+    reranked_results = client.search.documents(
+        q="neural network optimization techniques",
+        rerank=True,
+        limit=5
+    )
+
+    print("Standard top result:", standard_results.results[0].score)
+    print("Reranked top result:", reranked_results.results[0].score)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Without reranking
+    echo "Standard ranking:"
+    curl -X POST "https://api.supermemory.ai/v3/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "neural network optimization techniques",
+        "rerank": false,
+        "limit": 3
+      }' | jq '.results[0] | {title, score}'
+
+    # With reranking
+    echo "Reranked results:"
+    curl -X POST "https://api.supermemory.ai/v3/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "neural network optimization techniques",
+        "rerank": true,
+        "limit": 3
+      }' | jq '.results[0] | {title, score}'
+    ```
+  </Tab>
+</Tabs>
+
+**Sample Output Comparison:**
+
+```json
+// Without reranking - results ordered by semantic similarity
+{
+  "results": [
+    {
+      "title": "Deep Learning Optimization Methods",
+      "score": 0.82,
+      "chunks": [
+        {
+          "content": "Various optimization algorithms like Adam, RMSprop, and SGD are used in neural network training...",
+          "score": 0.79
+        }
+      ]
+    },
+    {
+      "title": "Neural Network Training Techniques",
+      "score": 0.81,
+      "chunks": [
+        {
+          "content": "Batch normalization and dropout are common regularization techniques for neural networks...",
+          "score": 0.78
+        }
+      ]
+    }
+  ],
+  "timing": 145
+}
+
+// With reranking - results reordered by contextual relevance
+{
+  "results": [
+    {
+      "title": "Neural Network Training Techniques",
+      "score": 0.89,  // Boosted by reranker
+      "chunks": [
+        {
+          "content": "Batch normalization and dropout are common regularization techniques for neural networks...",
+          "score": 0.85
+        }
+      ]
+    },
+    {
+      "title": "Deep Learning Optimization Methods",
+      "score": 0.86,  // Slightly adjusted
+      "chunks": [
+        {
+          "content": "Various optimization algorithms like Adam, RMSprop, and SGD are used in neural network training...",
+          "score": 0.83
+        }
+      ]
+    }
+  ],
+  "timing": 267  // Additional ~120ms for reranking
+}
+```
+
+## Complex Query Reranking
+
+Reranking excels with complex, multi-faceted queries:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const results = await client.search.documents({
+      q: "sustainable machine learning carbon footprint energy efficiency",
+      rerank: true,
+      containerTags: ["research", "sustainability"],
+      limit: 8
+    });
+
+    // Reranker understands the connection between:
+    // - Machine learning computational costs
+    // - Environmental impact of AI training
+    // - Energy-efficient model architectures
+    // - Green computing practices in ML
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    results = client.search.documents(
+        q="sustainable machine learning carbon footprint energy efficiency",
+        rerank=True,
+        container_tags=["research", "sustainability"],
+        limit=8
+    )
+
+    # Reranker understands the connection between:
+    # - Machine learning computational costs
+    # - Environmental impact of AI training
+    # - Energy-efficient model architectures
+    # - Green computing practices in ML
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "sustainable machine learning carbon footprint energy efficiency",
+        "rerank": true,
+        "containerTags": ["research", "sustainability"],
+        "limit": 8
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Sample Output:**
+```json
+{
+  "results": [
+    {
+      "documentId": "doc_green_ai",
+      "title": "Green AI: Reducing the Carbon Footprint of Machine Learning",
+      "score": 0.94,  // Highly relevant after reranking
+      "chunks": [
+        {
+          "content": "Training large neural networks can consume as much energy as several cars over their lifetime. Sustainable ML practices focus on model efficiency, pruning, and quantization to reduce computational demands...",
+          "score": 0.92,
+          "isRelevant": true
+        }
+      ]
+    },
+    {
+      "documentId": "doc_efficient_models",
+      "title": "Energy-Efficient Neural Network Architectures",
+      "score": 0.91,  // Boosted for strong topical relevance
+      "chunks": [
+        {
+          "content": "MobileNets and EfficientNets are designed specifically for energy-constrained environments, achieving high accuracy with minimal computational overhead...",
+          "score": 0.88,
+          "isRelevant": true
+        }
+      ]
+    }
+  ],
+  "total": 12,
+  "timing": 298
+}
+```
+
+## Memory Search Reranking
+
+Reranking also improves memory search results:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const memoryResults = await client.search.memories({
+      q: "explain transformer architecture attention mechanism",
+      rerank: true,
+      containerTag: "ai_notes",
+      threshold: 0.6,
+      limit: 5
+    });
+
+    // Reranker identifies memories that best explain
+    // the relationship between transformers and attention
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    memory_results = client.search.memories(
+        q="explain transformer architecture attention mechanism",
+        rerank=True,
+        container_tag="ai_notes",
+        threshold=0.6,
+        limit=5
+    )
+
+    # Reranker identifies memories that best explain
+    # the relationship between transformers and attention
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "explain transformer architecture attention mechanism",
+        "rerank": true,
+        "containerTag": "ai_notes",
+        "threshold": 0.6,
+        "limit": 5
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Sample Output:**
+```json
+{
+  "results": [
+    {
+      "id": "mem_transformer_intro",
+      "memory": "The transformer architecture revolutionized NLP by replacing recurrent layers with self-attention mechanisms. The attention mechanism allows the model to focus on different parts of the input sequence when processing each token, enabling parallel processing and better long-range dependency modeling.",
+      "similarity": 0.93,  // Reranked higher for comprehensive explanation
+      "title": "Transformer Architecture Overview",
+      "metadata": {
+        "topic": "deep-learning",
+        "subtopic": "transformers"
+      }
+    },
+    {
+      "id": "mem_attention_detail",
+      "memory": "Self-attention computes attention weights by taking dot products between query, key, and value vectors derived from the input embeddings. This allows each position to attend to all positions in the previous layer, capturing complex relationships in the data.",
+      "similarity": 0.91,  // Boosted for technical detail
+      "title": "Self-Attention Mechanism Details"
+    }
+  ],
+  "total": 8,
+  "timing": 198
+}
+```
+
+## Domain-Specific Reranking
+
+Reranking understands domain-specific relationships:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Medical domain query
+    const medicalResults = await client.search.documents({
+      q: "diabetes treatment insulin resistance metformin",
+      rerank: true,
+      filters: {
+        AND: [
+          { key: "domain", value: "medical", negate: false }
+        ]
+      },
+      limit: 10
+    });
+
+    // Reranker understands medical relationships:
+    // - Diabetes types and treatments
+    // - Insulin resistance mechanisms
+    // - Metformin's role in diabetes management
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Medical domain query
+    medical_results = client.search.documents(
+        q="diabetes treatment insulin resistance metformin",
+        rerank=True,
+        filters={
+            "AND": [
+                {"key": "domain", "value": "medical", "negate": False}
+            ]
+        },
+        limit=10
+    )
+
+    # Reranker understands medical relationships:
+    # - Diabetes types and treatments
+    # - Insulin resistance mechanisms
+    # - Metformin's role in diabetes management
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "diabetes treatment insulin resistance metformin",
+        "rerank": true,
+        "filters": {
+          "AND": [
+            {"key": "domain", "value": "medical", "negate": false}
+          ]
+        },
+        "limit": 10
+      }'
+    ```
+  </Tab>
+</Tabs>

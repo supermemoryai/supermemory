@@ -1,0 +1,74 @@
+---
+title: 'About supermemory MCP'
+description: 'Carry your memories with you, using supermemory MCP'
+---
+
+supermemory MCP is a lightweight **consumer-facing** component that allows you to carry your memories with you across any AI platform. It serves as a universal memory layer that enables Large Language Models (LLMs) to maintain persistent context and memories across different applications and sessions, solving the fundamental limitation of AI assistants forgetting everything between conversations.
+
+## What supermemory MCP is and how it works
+
+**supermemory MCP** functions as an open-source, universal memory system that bridges the gap between isolated AI applications through the Model Context Protocol (MCP). It operates as a **meta MCP server** that creates individual server instances for each user, providing seamless memory persistence across any MCP-compatible LLM client including ChatGPT, Claude, Windsurf, Cursor, and VS Code.
+
+The system works by running as an MCP server that communicates with MCP-compatible clients, storing and retrieving contextual information through the robust supermemory API infrastructure. When users interact with any connected AI application, the system automatically captures relevant information and makes it available to all other connected platforms through **semantic search and intelligent retrieval**.
+
+
+It is also a great example of how you can use supermemory to build your own consumer-facing applications.
+<Card title="supermemory MCP code" icon="github" href="https://github.com/supermemoryai/supermemory-mcp">
+    Code behind the scenes
+</Card>
+
+
+### Key consumer benefits
+
+- **No login requirements**: Access granted via unique, private URLs that serve as both identifier and API key
+- **Completely free**: Fully functional hosted service available at no cost
+- **One-command setup**: Single CLI installation: `npx install-mcp [URL] --client [CLIENT]`
+- **Universal compatibility**: Works seamlessly across multiple LLM clients and platforms
+
+
+### Core workflow process
+
+1. User interacts with any MCP-compatible AI client 
+2. The client connects to supermemory MCP server via a unique, private URL
+3. During conversations, relevant information is stored using the `addToSupermemory` action
+4. When context is needed, the `searchSupermemory` action retrieves relevant memories
+5. The AI assistant accesses this persistent context regardless of which platform is being used
+
+## Building applications with supermemory
+
+supermemory MCP demonstrates building consumer applications with supermemory through its **API-first architecture**. The system acts as a "customer" of the underlying supermemory API infrastructure, showcasing how developers can leverage the platform to create their own memory-enabled applications.
+
+### Supported platforms
+
+- **Claude Desktop**: Direct SSE connection support
+- **Cursor IDE**: Global MCP server configuration via `~/.cursor/mcp.json`
+- **Windsurf**: Seamless integration for AI-powered development
+- **VS Code**: Compatible with various AI coding extensions
+- **Cline/Roo-Cline**: Full MCP protocol support
+- **Any MCP-compatible application**: Universal compatibility through standard protocol implementation
+
+## Security and privacy considerations
+
+### Security model
+
+- **URL-based authentication**: Random URLs serve as access keys, eliminating traditional login complexity
+- **Session isolation**: Complete user data separation through unique URL paths
+- **Self-hosting option**: Full control over data and infrastructure for privacy-conscious users
+- **No authentication overhead**: Simplified access without traditional username/password systems
+
+### Privacy features
+
+- **Data isolation**: User memories completely separated by unique URLs
+- **Local control option**: Self-hosting capability for enterprise or sensitive use cases
+- **Secure infrastructure**: Built on Cloudflare's enterprise-grade security platform
+
+## Future developments and ecosystem
+
+The project represents a **breakthrough in AI memory portability**, with ongoing developments including:
+
+- **Infinite Chat API**: Enhanced inline memory management with conversation history
+- **Expanded client support**: More MCP clients adding SSE connection capabilities
+- **Enterprise features**: Advanced security and compliance options for business use
+- **Integration expansion**: Potential connections to Google Drive, Notion, OneDrive, and other productivity platforms
+
+supermemory MCP successfully demonstrates how to build compelling consumer-facing applications using supermemory's infrastructure, achieving massive adoption through exceptional user experience design combined with robust technical architecture. Its success validates the market demand for universal AI memory solutions and provides a compelling template for developers building their own memory-enabled applications.

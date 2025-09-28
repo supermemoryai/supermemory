@@ -1,0 +1,74 @@
+---
+title: "Developer Platform"
+description: "API updates, new endpoints, and SDK releases"
+---
+
+
+API updates, new endpoints, SDK releases, and developer-focused features.
+
+## September 17, 2025
+
+- **Forgotten Memories Search:** New `include.forgottenMemories` parameter in v4 search API allows searching through memories that have been explicitly forgotten or expired. Set to `true` to include forgotten memories in search results, helping recover previously archived information.
+
+## September 14, 2025
+
+- **Enhanced Delete API:** `DELETE /v3/documents/:id` endpoint now supports both internal document ID and customId for flexible document deletion. Developers can now delete documents using the same customId provided during creation, improving API consistency with other endpoints.
+- **API Terminology Clarification:** Refined API terminology from "memories" to "documents" for improved developer clarity. New `/v3/documents/*` endpoints provide more intuitive naming while maintaining full backward compatibility via automatic redirects from `/v3/memories/*`. No action required from existing integrations.
+
+## September 13, 2025
+
+- **Documentation v2.0:** Complete rewrite with comprehensive API references, cookbook recipes, and production-ready examples for TypeScript, Python, and cURL
+- **AI SDK Integration:** New `@supermemory/tools/ai-sdk` package for native Vercel AI SDK integration with memory tools and infinite chat capabilities
+- **Bulk Delete Endpoint:** New `DELETE /v3/documents/bulk` endpoint for efficient memory management
+
+## September 5, 2025
+
+- **Memory Search Endpoint:** New `/v4/search` endpoint optimized for conversational AI and memory retrieval (vs document search)
+- **Advanced Memory Management:** Enhanced update/delete operations with better filtering and batch processing capabilities
+
+## August 30, 2025
+
+- **MCP (Model Context Protocol) Server:** Launch of supermemory MCP server for AI model integrations with full project support and auto-detection
+- **Enhanced Filtering API:** Improved SQL-based filtering with array_contains, numeric operators, and complex AND/OR logic
+
+## August 15, 2025
+
+- **Memory Router Proxy:** Enhanced proxy functionality for LLM requests with automatic context management and token optimization
+- **Search Algorithm Updates:** Configurable similarity thresholds, reranking, and query rewriting for better result quality
+
+## April 30, 2025
+
+- **Comprehensive API Documentation:** New interactive API references with detailed parameter explanations and response schemas
+- **Container Tags System:** Enhanced organizational grouping for better memory isolation and user-scoped content
+- **Auto Content Type Detection:** Automatic processing of PDFs, images, videos, and web content regardless of URL extensions
+
+## April 28, 2025
+
+- **Google Drive Connector API:** New endpoints for programmatic Google Drive integration and file syncing
+
+## April 25, 2025
+
+- **Search Threshold Controls:** New `documentThreshold` and `chunkThreshold` parameters for fine-tuning search sensitivity
+- **Document-Specific Search:** New `docId` parameter to search within specific large documents
+- **Enhanced Chunk Control:** `onlyMatchingChunks` parameter for precise result filtering
+
+## April 24, 2025
+
+- **Query Rewriting API:** Automatic query expansion and intent matching for better search results
+- **Search Context Options:** New `includeFullDocs` and `includeSummary` parameters for comprehensive document retrieval
+
+## April 18, 2025
+
+- **Enhanced Content Processing:** Improved ingestion pipeline supporting direct URL processing for images, videos, and PDFs
+- **Stable Web Ingestion:** More reliable processing of website URLs with better content extraction
+
+## April 14, 2025
+
+- **Team API Endpoints:** New endpoints for team management and permission control
+- **Enhanced Analytics API:** Better observability with detailed usage metrics and performance data
+
+## February 1, 2025
+
+- **Multi-Space Search:** Search across multiple container tags simultaneously with array parameter support
+- **API Versioning:** Migration to `/v1` endpoints with improved versioning strategy
+- **Interactive API Playground:** New testing interface for all endpoints with live examples

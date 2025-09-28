@@ -1,0 +1,261 @@
+---
+title: "Response Schema"
+description: "Complete response structure for all search endpoints with scoring details"
+---
+
+
+## Document Search Response (POST `/v3/search`)
+
+Response from `client.search.documents()` and `client.search.execute()`:
+
+```json
+{
+  "results": [
+    {
+      "documentId": "doc_abc123",
+      "title": "Machine Learning Fundamentals",
+      "type": "pdf",
+      "score": 0.89,
+      "chunks": [
+        {
+          "content": "Machine learning is a subset of artificial intelligence...",
+          "score": 0.95,
+          "isRelevant": true
+        }
+      ],
+      "metadata": {
+        "category": "education",
+        "author": "Dr. Smith",
+        "difficulty": "beginner"
+      },
+      "createdAt": "2024-01-15T10:30:00Z",
+      "updatedAt": "2024-01-20T14:45:00Z"
+    }
+  ],
+  "timing": 187,
+  "total": 1
+}
+```
+
+### Document Result Fields
+
+<ResponseField name="documentId" type="string">
+  Unique identifier for the document containing the matching chunks.
+</ResponseField>
+
+<ResponseField name="title" type="string | null">
+  Document title if available. May be null for documents without titles.
+</ResponseField>
+
+<ResponseField name="type" type="string | null">
+  Document type (e.g., "pdf", "text", "webpage", "notion_doc"). May be null if not specified.
+</ResponseField>
+
+<ResponseField name="score" type="number" range="0-1">
+  **Overall document relevance score**. Combines semantic similarity, keyword matching, and metadata relevance.
+
+  - **0.9-1.0**: Extremely relevant
+  - **0.7-0.9**: Highly relevant
+  - **0.5-0.7**: Moderately relevant
+  - **0.3-0.5**: Somewhat relevant
+  - **0.0-0.3**: Marginally relevant
+</ResponseField>
+
+<ResponseField name="chunks" type="Array<Chunk>">
+  Array of matching text chunks from the document. Each chunk represents a portion of the document that matched your query.
+
+  <ResponseField name="chunks[].content" type="string">
+    The actual text content of the matching chunk. May include context from surrounding chunks unless `onlyMatchingChunks=true`.
+  </ResponseField>
+
+  <ResponseField name="chunks[].score" type="number" range="0-1">
+    **Chunk-specific similarity score**. How well this specific chunk matches your query.
+  </ResponseField>
+
+  <ResponseField name="chunks[].isRelevant" type="boolean">
+    Whether this chunk passed the `chunkThreshold`. `true` means the chunk is above the threshold, `false` means it's included for context only.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="metadata" type="object | null">
+  Document metadata as key-value pairs. Structure depends on what was stored with the document.
+
+  ```json
+  {
+    "category": "tutorial",
+    "language": "python",
+    "difficulty": "intermediate",
+    "tags": "web-development,backend"
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp when the document was created.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp when the document was last updated.
+</ResponseField>
+
+<ResponseField name="content" type="string | null" optional>
+  **Full document content**. Only included when `includeFullDocs=true`. Can be very large.
+
+  <Warning>
+    Full document content can make responses extremely large. Use with appropriate limits and only when necessary.
+  </Warning>
+</ResponseField>
+
+<ResponseField name="summary" type="string | null" optional>
+  **AI-generated document summary**. Only included when `includeSummary=true`. Provides a concise overview of the document.
+</ResponseField>
+
+## Memory Search Response
+
+Response from `client.search.memories()`:
+
+```json
+{
+  "results": [
+    {
+      "id": "mem_xyz789",
+      "memory": "Complete memory content about quantum computing applications...",
+      "similarity": 0.87,
+      "metadata": {
+        "category": "research",
+        "topic": "quantum-computing"
+      },
+      "updatedAt": "2024-01-18T09:15:00Z",
+      "version": 3,
+      "context": {
+        "parents": [
+          {
+            "memory": "Earlier discussion about quantum theory basics...",
+            "relation": "extends",
+            "version": 2,
+            "updatedAt": "2024-01-17T16:30:00Z"
+          }
+        ],
+        "children": [
+          {
+            "memory": "Follow-up questions about quantum algorithms...",
+            "relation": "derives",
+            "version": 4,
+            "updatedAt": "2024-01-19T11:20:00Z"
+          }
+        ]
+      },
+      "documents": [
+        {
+          "id": "doc_quantum_paper",
+          "title": "Quantum Computing Applications",
+          "type": "pdf",
+          "createdAt": "2024-01-10T08:00:00Z"
+        }
+      ]
+    }
+  ],
+  "timing": 156,
+  "total": 1
+}
+```
+
+### Memory Result Fields
+
+<ResponseField name="id" type="string">
+  Unique identifier for the memory entry.
+</ResponseField>
+
+<ResponseField name="memory" type="string">
+  **Complete memory content**. Unlike document search which returns chunks, memory search returns the full memory text.
+</ResponseField>
+
+<ResponseField name="similarity" type="number" range="0-1">
+  **Similarity score** between your query and this memory. Higher scores indicate better matches.
+
+  - **0.9-1.0**: Extremely similar
+  - **0.8-0.9**: Very similar
+  - **0.7-0.8**: Similar
+  - **0.6-0.7**: Somewhat similar
+  - **0.5-0.6**: Marginally similar
+</ResponseField>
+
+<ResponseField name="metadata" type="object | null">
+  Memory metadata as key-value pairs. Structure depends on what was stored with the memory.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp when the memory was last updated.
+</ResponseField>
+
+<ResponseField name="version" type="number | null" optional>
+  Version number of this memory entry. Used for tracking memory evolution and relationships.
+</ResponseField>
+
+<ResponseField name="context" type="object" optional>
+  **Contextual memory relationships**. Only included when `include.relatedMemories=true`.
+
+  <ResponseField name="context.parents" type="Array<ContextMemory>" optional>
+    Array of parent memories that this memory extends or derives from.
+  </ResponseField>
+
+  <ResponseField name="context.children" type="Array<ContextMemory>" optional>
+    Array of child memories that extend or derive from this memory.
+  </ResponseField>
+
+  ### Context Memory Structure
+
+  <ResponseField name="memory" type="string">
+    Content of the related memory.
+  </ResponseField>
+
+  <ResponseField name="relation" type="string">
+    Relationship type: `"updates"`, `"extends"`, or `"derives"`.
+
+    - **updates**: This memory updates/replaces the related memory
+    - **extends**: This memory builds upon the related memory
+    - **derives**: This memory is derived from the related memory
+  </ResponseField>
+
+  <ResponseField name="version" type="number | null">
+    Relative version distance:
+    - **Negative values** for parents (-1 = direct parent, -2 = grandparent)
+    - **Positive values** for children (+1 = direct child, +2 = grandchild)
+  </ResponseField>
+
+  <ResponseField name="updatedAt" type="string">
+    When the related memory was last updated.
+  </ResponseField>
+
+  <ResponseField name="metadata" type="object | null" optional>
+    Metadata of the related memory.
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="documents" type="Array<Document>" optional>
+  **Associated documents**. Only included when `include.documents=true`.
+
+  <ResponseField name="documents[].id" type="string">
+    Document identifier.
+  </ResponseField>
+
+  <ResponseField name="documents[].title" type="string">
+    Document title.
+  </ResponseField>
+
+  <ResponseField name="documents[].type" type="string">
+    Document type.
+  </ResponseField>
+
+  <ResponseField name="documents[].metadata" type="object">
+    Document metadata.
+  </ResponseField>
+
+  <ResponseField name="documents[].createdAt" type="string">
+    Document creation timestamp.
+  </ResponseField>
+
+  <ResponseField name="documents[].updatedAt" type="string">
+    Document update timestamp.
+  </ResponseField>
+</ResponseField>

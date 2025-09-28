@@ -1,0 +1,113 @@
+---
+title: "Use with Memory API"
+description: "Combine the Memory Router with Memory API for maximum control"
+sidebarTitle: "Use with Memory API"
+---
+
+The Memory Router and Memory API share the same memory pool. When you use the same `user_id`, memories are automatically shared between both systems.
+
+## How They Work Together
+
+<Note>
+**Key Insight**: Both the Router and API access the same memories when using identical `user_id` values. This enables powerful hybrid implementations.
+</Note>
+
+### Shared Memory Pool
+
+```python
+# Memory created via API
+from supermemory import Client
+
+api_client = Client(api_key="YOUR_SUPERMEMORY_KEY")
+
+# Add memory via API
+api_client.memories.add({
+    "content": "User prefers Python over JavaScript for backend development",
+    "user_id": "user123"
+})
+
+# Later, in your chat application using Router
+from openai import OpenAI
+
+router_client = OpenAI(
+    api_key="YOUR_OPENAI_KEY",
+    base_url="https://api.supermemory.ai/v3/https://api.openai.com/v1/",
+    default_headers={
+        "x-supermemory-api-key": "YOUR_SUPERMEMORY_KEY",
+        "x-sm-user-id": "user123"  # Same user_id
+    }
+)
+
+# Router automatically has access to the API-created memory
+response = router_client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "What language should I use for my new backend?"}]
+)
+# Response will consider the Python preference
+```
+
+## Pre-load Context via API
+
+Use the API to add documents and context before conversations:
+
+```python
+# Step 1: Load user's documents via API
+api_client.memories.add({
+    "content": "https://company.com/product-docs.pdf",
+    "user_id": "support_agent_123",
+    "metadata": {"type": "product_documentation"}
+})
+
+# Step 2: Support agent uses chat with Router
+router_client = OpenAI(
+    base_url="https://api.supermemory.ai/v3/https://api.openai.com/v1/",
+    default_headers={"x-sm-user-id": "support_agent_123"}
+)
+
+# Agent has automatic access to product docs
+response = router_client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "How does the enterprise pricing work?"}]
+)
+```
+
+
+## Best Practices
+
+### 1. Consistent User IDs
+
+Always use the same `user_id` format across both systems:
+
+```python
+# ✅ Good - consistent user_id
+api_client.memories.add({"user_id": "user_123"})
+router_headers = {"x-sm-user-id": "user_123"}
+
+# ❌ Bad - inconsistent user_id
+api_client.memories.add({"user_id": "user-123"})
+router_headers = {"x-sm-user-id": "user_123"}  # Different format!
+```
+
+### 2. Use Container Tags for Organization
+
+```python
+# API: Add memories with tags
+api_client.memories.add({
+    "content": "Q3 revenue report",
+    "user_id": "analyst_1",
+    "containerTag": "financial_reports"
+})
+
+# Router: Memories are automatically organized
+# The Router will intelligently retrieve from the right containers
+```
+
+### 3. Leverage Each System's Strengths
+
+| Use Case | Best Choice | Why |
+|----------|------------|-----|
+| Chat conversations | Router | Automatic context management |
+| Document upload | API | Batch processing, custom IDs |
+| Search & filter | API | Advanced query capabilities |
+| Quick prototypes | Router | Zero code changes |
+| Memory management | API | Full CRUD operations |

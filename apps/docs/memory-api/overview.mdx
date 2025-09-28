@@ -1,0 +1,162 @@
+---
+title: "Quickstart - 5 mins"
+description: "Learn how to integrate supermemory into your application"
+---
+
+## Authentication
+
+Head to [supermemory's Developer Platform](https://console.supermemory.ai) built to help you monitor and manage every aspect of the API.
+
+All API requests require authentication using an API key. Include your API key as follows:
+
+<CodeGroup>
+
+```bash cURL
+Authorization: Bearer YOUR_API_KEY
+```
+
+```typescript Typescript
+// npm install supermemory
+
+const client = new supermemory({
+  apiKey: "YOUR_API_KEY",
+});
+```
+
+```python Python
+# pip install supermemory
+
+client = supermemory(
+    api_key="YOUR_API_KEY",
+)
+```
+
+</CodeGroup>
+
+## Installing the clients
+
+You can use supermemory through the APIs, or using our SDKs
+
+<CodeGroup>
+
+```bash cURL
+https://api.supermemory.ai/v3
+```
+
+```bash Typescript
+npm i supermemory
+```
+
+```bash Python
+pip install supermemory
+```
+
+</CodeGroup>
+
+## Add your first memory
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  -d '{"content": "This is the content of my first memory."}'
+```
+
+```typescript Typescript
+await client.memory.add({
+  content: "This is the content of my first memory.",
+});
+```
+
+```python Python
+client.memory.add(
+    content="This is the content of my first memory.",
+)
+```
+
+</CodeGroup>
+
+This will add a new memory to your supermemory account.
+
+Try it out in the [API Playground](/api-reference/manage-memories/add-memory).
+
+## Content Processing
+
+<Accordion title="Processing steps" icon="sparkles">
+  When you add content to supermemory, it goes through several processing steps:
+
+    1. **Queued**: Initial state when content is submitted
+    2. **Extracting**: Content is being extracted from the source
+    3. **Chunking**: Content is being split into semantic chunks
+    4. **Embedding**: Generating vector embeddings for search
+    5. **Indexing**: Adding content to the search index
+    6. **Done**: Processing complete
+</Accordion>
+
+<Accordion title="Advanced Chunking" icon="sparkles">
+  The system uses advanced NLP techniques for optimal chunking:
+
+    - Sentence-level splitting for natural boundaries
+    - Context preservation with overlapping chunks
+    - Smart handling of long content
+    - Semantic coherence optimization
+
+</Accordion>
+
+## Search your memories
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/search \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  -d '{"q": "This is the content of my first memory."}'
+```
+
+```typescript Typescript
+await client.search.execute({
+  q: "This is the content of my first memory.",
+});
+```
+
+```python Python
+client.search.execute(
+    q="This is the content of my first memory.",
+)
+```
+
+</CodeGroup>
+
+Try it out in the [API Playground](/api-reference/search-memories/search-memories).
+
+You can do a lot more with supermemory, and we will walk through everything you need to.
+
+Next, explore the features available in supermemory
+
+<CardGroup cols={2}>
+  <Card title="Adding memories" icon="plus" href="/memory-api/creation">
+    Adding memories
+  </Card>
+  <Card
+    title="Searching and filtering"
+    icon="search"
+    href="/memory-api/searching"
+  >
+    Searching for items
+  </Card>
+  <Card
+    title="Connectors and Syncing"
+    icon="plug"
+    href="/memory-api/connectors"
+  >
+    Connecting external sources
+  </Card>
+  <Card title="Features" icon="sparkles" href="/memory-api/features">
+    Explore Features
+  </Card>
+</CardGroup>

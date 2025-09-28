@@ -1,0 +1,210 @@
+---
+title: "Add Memories Overview"
+description: "Add content to Supermemory through text, files, or URLs"
+sidebarTitle: "Overview"
+---
+
+Add any type of content to Supermemory - text, files, URLs, images, videos, and more. Everything is automatically processed into searchable memories that form part of your intelligent knowledge graph.
+
+## Quick Start
+
+<CodeGroup>
+
+```typescript TypeScript
+// Add text content
+const result = await client.memories.add({
+  content: "Machine learning enables computers to learn from data",
+  containerTag: "ai-research",
+  metadata: { priority: "high" }
+});
+
+console.log(result);
+// Output: { id: "abc123", status: "queued" }
+```
+
+```python Python
+# Add text content
+result = client.memories.add(
+    content="Machine learning enables computers to learn from data",
+    container_tags=["ai-research"],
+    metadata={"priority": "high"}
+)
+
+print(result)
+# Output: {"id": "abc123", "status": "queued"}
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Machine learning enables computers to learn from data",
+    "containerTag": "ai-research",
+    "metadata": {"priority": "high"}
+  }'
+
+# Response: {"id": "abc123", "status": "queued"}
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+<Note>
+**New to Supermemory?** Read [How Supermemory Works](/how-it-works) to understand the knowledge graph architecture and the distinction between documents and memories.
+</Note>
+
+### Quick Overview
+- **Documents**: Raw content you upload (PDFs, URLs, text)
+- **Memories**: Searchable chunks created automatically with relationships
+- **Container Tags**: Group related content for better context
+- **Metadata**: Additional information for filtering
+
+### Content Sources
+
+Add content through three methods:
+
+1. **Direct Text**: Send text content directly via API
+2. **File Upload**: Upload PDFs, images, videos for extraction
+3. **URL Processing**: Automatic extraction from web pages and platforms
+
+## Endpoints
+
+<Warning>
+Remember, these endpoints add documents. Memories are inferred by Supermemory.
+</Warning>
+
+### Add Content
+
+`POST /v3/documents`
+
+Add text content, URLs, or any supported format.
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.memories.add({
+  content: "Your content here",
+  containerTag: "project"
+});
+```
+
+```python Python
+client.memories.add(
+  content="Your content here",
+  container_tags=["project"]
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Your content here", "containerTag": "project"}'
+```
+
+</CodeGroup>
+
+### Upload File
+
+`POST /v3/documents/file`
+
+Upload files directly for processing.
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.memories.uploadFile({
+  file: fileStream,
+  containerTag: "project"
+});
+```
+
+```python Python
+client.memories.upload_file(
+  file=open('file.pdf', 'rb'),
+  container_tags='project'
+)
+```
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/documents/file" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -F "file=@document.pdf" \
+  -F "containerTags=project"
+```
+
+</CodeGroup>
+
+### Update Memory
+
+`PATCH /v3/documents/{id}`
+
+Update existing document content.
+
+<CodeGroup>
+
+```typescript TypeScript
+await client.memories.update("doc_id", {
+  content: "Updated content"
+});
+```
+
+```python Python
+client.memories.update("doc_id", {
+  "content": "Updated content"
+})
+```
+
+```bash cURL
+curl -X PATCH "https://api.supermemory.ai/v3/documents/doc_id" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Updated content"}'
+```
+
+</CodeGroup>
+
+## Supported Content Types
+
+### Documents
+- PDF with OCR support
+- Google Docs, Sheets, Slides
+- Notion pages
+- Microsoft Office files
+
+### Media
+- Images (JPG, PNG, GIF, WebP) with OCR
+
+### Web Content
+- Twitter/X posts
+- YouTube videos with captions
+
+### Text Formats
+- Plain text
+- Markdown
+- CSV files
+
+<Note> Refer to the [connectors guide](/connectors/overview) to learn how you can connect Google Drive, Notion, and OneDrive and sync files in real-time. </Note>
+
+## Response Format
+
+```json
+{
+  "id": "D2Ar7Vo7ub83w3PRPZcaP1",
+  "status": "queued"
+}
+```
+
+- **`id`**: Unique document identifier
+- **`status`**: Processing state (`queued`, `processing`, `done`)
+
+
+
+## Next Steps
+
+- [Track Processing Status](/api/track-progress) - Monitor document processing
+- [Search Memories](/search/overview) - Search your content
+- [List Memories](/list-memories/overview) - Browse stored memories
+- [Update & Delete](/update-delete-memories/overview) - Manage memories

@@ -1,0 +1,426 @@
+---
+title: "AI SDK Examples"
+description: "Complete examples showing how to use Supermemory with Vercel AI SDK"
+sidebarTitle: "Examples"
+---
+
+This page provides comprehensive examples of using Supermemory with the Vercel AI SDK, covering both Memory Tools and Infinite Chat approaches.
+
+## Personal Assistant with Memory Tools
+
+Build an AI assistant that remembers user preferences and past interactions:
+
+<CodeGroup>
+
+```typescript Next.js API Route
+import { streamText } from 'ai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { supermemoryTools } from '@supermemory/tools/ai-sdk'
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!
+})
+
+export async function POST(request: Request) {
+  const { messages } = await request.json()
+
+  const result = await streamText({
+    model: anthropic('claude-3-sonnet-20240229'),
+    messages,
+    tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!),
+    system: `You are a helpful personal assistant. When users share information about themselves,
+    remember it using the addMemory tool. When they ask questions, search your memories to provide
+    personalized responses. Always be proactive about remembering important details.`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+```typescript Client Component
+'use client'
+
+import { useChat } from 'ai/react'
+
+export default function PersonalAssistant() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat()
+
+  return (
+    <div className="flex flex-col h-screen max-w-2xl mx-auto p-4">
+      <div className="flex-1 overflow-y-auto space-y-4">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`p-4 rounded-lg ${
+              message.role === 'user' ? 'bg-blue-100 ml-auto' : 'bg-gray-100'
+            }`}
+          >
+            <p>{message.content}</p>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-4">
+        <input
+          value={input}
+          onChange={handleInputChange}
+          placeholder="Tell me about yourself or ask me anything..."
+          className="w-full p-2 border rounded"
+        />
+      </form>
+    </div>
+  )
+}
+```
+
+</CodeGroup>
+
+**Example conversation:**
+- User: "I'm allergic to peanuts and I love Italian food"
+- AI: *Uses addMemory tool* "I've remembered that you're allergic to peanuts and love Italian food!"
+- User: "Suggest a restaurant for dinner"
+- AI: *Uses searchMemories tool* "Based on what I know about you, I'd recommend an Italian restaurant that's peanut-free..."
+
+## Customer Support with Context
+
+Build a customer support system that remembers customer history:
+
+```typescript
+import { streamText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai'
+import { supermemoryTools } from '@supermemory/tools/ai-sdk'
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY!
+})
+
+export async function POST(request: Request) {
+  const { messages, customerId } = await request.json()
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+    tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+      headers: {
+        'x-sm-user-id': customerId
+      }
+    }),
+    system: `You are a customer support agent. Before responding to any query:
+    1. Search for the customer's previous interactions and issues
+    2. Remember any new information shared in this conversation
+    3. Provide personalized help based on their history
+    4. Always be empathetic and solution-focused`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+## Infinite Chat for Documentation
+
+Create a documentation assistant with unlimited context:
+
+<CodeGroup>
+
+```typescript Documentation Chat
+import { streamText } from 'ai'
+
+const supermemoryInfiniteChat = createOpenAI({
+  baseUrl: 'https://api.supermemory.ai/v3/https://api.openai.com/v1',
+  apiKey: 'your-provider-api-key',
+  headers: {
+    'x-supermemory-api-key': 'supermemory-api-key',
+    'x-sm-conversation-id': 'conversation-id'
+  }
+})
+
+export async function POST(request: Request) {
+  const { messages } = await request.json()
+
+  const result = await streamText({
+    model: supermemoryInfiniteChat('gpt-4-turbo'),
+    messages,
+    system: `You are a documentation assistant. You have access to all previous
+    conversations and can reference earlier discussions. Help users understand
+    the documentation by building on previous context.`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+```typescript Upload Documentation
+// Separate endpoint to upload documentation to memory
+import { addMemory } from '@supermemory/tools'
+
+export async function POST(request: Request) {
+  const { content, title, url } = await request.json()
+
+  const memory = await addMemory({
+    apiKey: process.env.SUPERMEMORY_API_KEY!,
+    content,
+    title,
+    url,
+    headers: {
+      'x-sm-conversation-id': 'documentation'
+    }
+  })
+
+  return Response.json({ success: true, memory })
+}
+```
+
+</CodeGroup>
+
+## Multi-User Learning Assistant
+
+Build an assistant that learns from multiple users but keeps data separate:
+
+```typescript
+import { streamText } from 'ai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import { supermemoryTools } from '@supermemory/tools/ai-sdk'
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!
+})
+
+export async function POST(request: Request) {
+  const { messages, userId, courseId } = await request.json()
+
+  const result = await streamText({
+    model: anthropic('claude-3-haiku-20240307'),
+    messages,
+    tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+      headers: {
+        'x-sm-user-id': userId,
+        'x-sm-conversation-id': `course-${courseId}`
+      }
+    }),
+    system: `You are a learning assistant. Help students with their coursework by:
+    1. Remembering their learning progress and struggles
+    2. Searching for relevant information from their past sessions
+    3. Providing personalized explanations based on their learning style
+    4. Tracking topics they've mastered vs topics they need more help with`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+## Research Assistant with File Processing
+
+Combine file upload with memory tools for research assistance:
+
+<CodeGroup>
+
+```typescript API Route
+import { streamText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai'
+import { supermemoryTools } from '@supermemory/tools/ai-sdk'
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY!
+})
+
+export async function POST(request: Request) {
+  const { messages, projectId } = await request.json()
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+    tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
+      headers: {
+        'x-sm-conversation-id': projectId
+      }
+    }),
+    system: `You are a research assistant. You can:
+    1. Search through uploaded research papers and documents
+    2. Remember key findings and insights from conversations
+    3. Help synthesize information across multiple sources
+    4. Track research progress and important discoveries`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+```typescript File Upload Handler
+import { addMemory } from '@supermemory/tools'
+
+export async function POST(request: Request) {
+  const formData = await request.formData()
+  const file = formData.get('file') as File
+  const projectId = formData.get('projectId') as string
+
+  // Upload file and add to memory
+  const memory = await addMemory({
+    apiKey: process.env.SUPERMEMORY_API_KEY!,
+    content: file, // Supermemory handles file processing
+    title: file.name,
+    headers: {
+      'x-sm-conversation-id': projectId
+    }
+  })
+
+  return Response.json({
+    success: true,
+    message: "Document uploaded and processed for research",
+    memoryId: memory.id
+  })
+}
+```
+
+</CodeGroup>
+
+## Code Assistant with Project Memory
+
+Create a coding assistant that remembers your codebase and preferences:
+
+```typescript
+import { streamText } from 'ai'
+import { createAnthropic } from '@ai-sdk/anthropic'
+import {
+  supermemoryTools,
+  searchMemoriesTool,
+  addMemoryTool
+} from '@supermemory/tools/ai-sdk'
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!
+})
+
+export async function POST(request: Request) {
+  const { messages, repositoryId } = await request.json()
+
+  const result = await streamText({
+    model: anthropic('claude-3-sonnet-20240229'),
+    messages,
+    tools: {
+      // Use individual tools for more control
+      searchMemories: searchMemoriesTool(process.env.SUPERMEMORY_API_KEY!, {
+        headers: {
+          'x-sm-conversation-id': `repo-${repositoryId}`
+        }
+      }),
+      addMemory: addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+        headers: {
+          'x-sm-conversation-id': `repo-${repositoryId}`
+        }
+      }),
+      // Add custom tools
+      executeCode: {
+        description: 'Execute code in a sandbox environment',
+        parameters: z.object({
+          code: z.string(),
+          language: z.string()
+        }),
+        execute: async ({ code, language }) => {
+          // Your code execution logic
+          return { result: "Code executed successfully" }
+        }
+      }
+    },
+    system: `You are a coding assistant with memory. You can:
+    1. Remember coding patterns and preferences from past conversations
+    2. Search through previous code examples and solutions
+    3. Track project architecture and design decisions
+    4. Learn from debugging sessions and common issues`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+## Advanced: Custom Tool Integration
+
+Combine Supermemory tools with your own custom tools:
+
+```typescript
+import { streamText } from 'ai'
+import { createOpenAI } from '@ai-sdk/openai'
+import { supermemoryTools } from '@supermemory/tools/ai-sdk'
+import { z } from 'zod'
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY!
+})
+
+// Custom tool for calendar integration
+const calendarTool = {
+  description: 'Create calendar events',
+  parameters: z.object({
+    title: z.string(),
+    date: z.string(),
+    duration: z.number()
+  }),
+  execute: async ({ title, date, duration }) => {
+    // Your calendar API integration
+    return { eventId: "cal_123", message: "Event created" }
+  }
+}
+
+export async function POST(request: Request) {
+  const { messages } = await request.json()
+
+  const result = await streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+    tools: {
+      // Spread Supermemory tools
+      ...supermemoryTools(process.env.SUPERMEMORY_API_KEY!),
+      // Add custom tools
+      createEvent: calendarTool,
+    },
+    system: `You are a personal assistant that can remember information and
+    manage calendars. When users mention events or appointments:
+    1. Remember the details using addMemory
+    2. Create calendar events using createEvent
+    3. Search for conflicts using searchMemories`
+  })
+
+  return result.toAIStreamResponse()
+}
+```
+
+## Environment Setup
+
+For all examples, ensure you have these environment variables:
+
+```bash .env.local
+SUPERMEMORY_API_KEY=your_supermemory_key
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+```
+
+## Best Practices
+
+### Memory Tools
+- Use descriptive memory content for better search results
+- Include context in your system prompts about when to use each tool
+- Use project headers to separate different use cases
+- Implement error handling for tool failures
+
+### Infinite Chat
+- Use conversation IDs to maintain separate chat contexts
+- Include user IDs for personalized experiences
+- Test with different providers to find the best fit for your use case
+- Monitor token usage for cost optimization
+
+### General Tips
+- Start with simple examples and gradually add complexity
+- Use the search functionality to avoid duplicate memories
+- Implement proper authentication for production use
+- Consider rate limiting for high-volume applications
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Memory API" icon="database" href="/memory-api/overview">
+    Advanced memory management with full API control
+  </Card>
+
+  <Card title="Memory Router" icon="route" href="/memory-router/overview">
+    Drop-in proxy for existing LLM applications
+  </Card>
+</CardGroup>

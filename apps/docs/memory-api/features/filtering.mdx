@@ -1,0 +1,297 @@
+---
+title: "Filtering"
+description: "Learn how to filter content while searching from supermemory"
+icon: "list-filter-plus"
+---
+
+## Container Tag
+
+Container tag is an identifier for your end users, to group memories together..
+
+This can be:
+- A user using your product
+- An organization using a SaaS
+
+A project ID, or even a dynamic one like `user_project_etc`
+
+We recommend using single containerTag in all API requests.
+
+The graph is built on top of the Container Tags. For example, each user / tag in your supermemory account will have one single graph built for them.
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/search \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --data '{
+    "q": "machine learning",
+    "containerTags": ["user_123"]
+  }'
+```
+
+```typescript Typescript
+await client.search.execute({
+  q: "machine learning",
+  containerTags: ["user_123"],
+});
+```
+
+```python Python
+client.search.execute(
+    q="machine learning",
+    containerTags=["user_123"]
+)
+```
+
+</CodeGroup>
+
+## Metadata
+
+Sometimes, you might want to add metadata and do advanced filtering based on it.
+
+Using metadata filtering, you can search based on:
+
+- AND and OR conditions
+- String matching
+- Numeric matching
+- Date matching
+- Time range queries
+
+### Validation Rules & Limits
+
+To ensure optimal performance and security, the filtering system has the following limits:
+
+- **Metadata keys**: Must contain only alphanumeric characters, underscores, and hyphens (`/^[a-zA-Z0-9_-]+$/`)
+- **Metadata key length**: Maximum of 64 characters
+- **Maximum conditions**: Up to 200 conditions per query
+- **Maximum nesting depth**: Up to 8 levels of nested AND/OR expressions
+- **Valid operators**: `=`, `!=`, `<`, `<=`, `>`, `>=` for numeric filtering
+
+<Warning>
+These limits help prevent overly complex queries that could impact performance. If you need to filter on more conditions, consider breaking your query into multiple requests or using broader search terms with post-processing.
+</Warning>
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/search \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --data '{
+    "q": "machine learning",
+    "filters": {
+        "AND": [
+            {
+                "key": "category",
+                "value": "technology",
+                "negate": false
+            },
+            {
+                "filterType": "numeric",
+                "key": "readingTime",
+                "value": "5",
+                "negate": false,
+                "numericOperator": "<="
+            }
+        ]
+    }
+}'
+```
+
+```typescript Typescript
+await client.search.execute({
+  q: "machine learning",
+  filters: {
+    AND: [
+      {
+        key: "category",
+        value: "technology",
+        negate: false,
+      },
+      {
+        filterType: "numeric",
+        key: "readingTime",
+        value: "5",
+        negate: false,
+        numericOperator: "<=",
+      },
+    ],
+  },
+});
+```
+
+```python Python
+client.search.execute(
+    q="machine learning",
+    filters={
+        "AND": [
+            {
+                "key": "category",
+                "value": "technology",
+                "negate": false
+            },
+            {
+                "filterType": "numeric",
+                "key": "readingTime",
+                "value": "5",
+                "negate": false,
+                "numericOperator": "<="
+            }
+        ]
+    }
+)
+```
+
+</CodeGroup>
+
+## Array Contains Filtering
+
+You can filter memories by array values using the `array_contains` filter type. This is particularly useful for filtering by participants or other array-based metadata.
+
+First, create a memory with participants in the metadata:
+
+<CodeGroup>
+
+```bash cURL
+curl --location 'https://api.supermemory.ai/v3/documents' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+--data '{
+    "content": "quarterly planning meeting discussion",
+    "metadata": {
+        "participants": ["john.doe", "sarah.smith", "mike.wilson"]
+    }
+  }'
+```
+
+```typescript Typescript
+await client.memories.create({
+  content: "quarterly planning meeting discussion",
+  metadata: {
+    participants: ["john.doe", "sarah.smith", "mike.wilson"]
+  }
+});
+```
+
+```python Python
+client.memories.create(
+    content="quarterly planning meeting discussion",
+    metadata={
+        "participants": ["john.doe", "sarah.smith", "mike.wilson"]
+    }
+)
+```
+
+</CodeGroup>
+
+Then search using the `array_contains` filter:
+
+<CodeGroup>
+
+```bash cURL
+curl --location 'https://api.supermemory.ai/v3/search' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+--data '{
+    "q": "meeting",
+    "filters": {
+      "AND": [
+        {
+          "key": "participants",
+          "value": "john.doe",
+          "filterType": "array_contains"
+        }
+      ]
+    },
+    "limit": 5
+  }'
+```
+
+```typescript Typescript
+await client.search.execute({
+  q: "meeting",
+  filters: {
+    AND: [
+      {
+        key: "participants",
+        value: "john.doe",
+        filterType: "array_contains"
+      }
+    ]
+  },
+  limit: 5
+});
+```
+
+```python Python
+client.search.execute(
+    q="meeting",
+    filters={
+        "AND": [
+            {
+                "key": "participants",
+                "value": "john.doe",
+                "filterType": "array_contains"
+            }
+        ]
+    },
+    limit=5
+)
+```
+
+</CodeGroup>
+
+## Migration Notes
+
+<Note>
+**Breaking Changes**: Recent updates to the filtering system have introduced stricter validation rules. If you're experiencing filter validation errors, please check the following:
+
+1. **Metadata Key Format**: Ensure all metadata keys only contain alphanumeric characters, underscores, and hyphens. Keys with spaces, dots, or other special characters will now fail validation.
+
+2. **Key Length**: Metadata keys must be 64 characters or fewer.
+
+3. **Filter Complexity**: Queries with more than 200 conditions or more than 8 levels of nesting will be rejected.
+
+**Example of invalid keys that need updating**:
+- `"user.email"` → `"user_email"`
+- `"reading time"` → `"reading_time"`
+- `"category-with-very-long-name-that-exceeds-the-limit"` → `"category_name"`
+</Note>
+
+## Document
+
+You can also find chunks within a specific, large document.
+
+This can be particularly useful for extremely large documents like Books, Podcasts, etc.
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/search \
+  --request POST \
+  --header 'Content-Type: application/json' \
+  --header 'Authorization: Bearer SUPERMEMORY_API_KEY' \
+  --data '{
+    "q": "machine learning",
+    "docId": "doc_123"
+  }'
+```
+
+```typescript Typescript
+await client.search.execute({
+  q: "machine learning",
+  docId: "doc_123",
+});
+```
+
+```python Python
+client.search.execute(
+    q="machine learning",
+    docId="doc_123"
+)
+```
+
+</CodeGroup>

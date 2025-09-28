@@ -1,0 +1,242 @@
+---
+title: "Search Parameters"
+description: "Complete reference for all search parameters and their effects"
+---
+
+
+Complete parameter reference for all three search endpoints: document search, memory search, and execute search.
+
+## Common Parameters
+
+These parameters work across all search endpoints:
+
+<ParamField query="q" type="string" required>
+  **Search query string**
+
+  The text you want to search for. Can be natural language, keywords, or questions.
+
+  ```typescript
+  q: "machine learning neural networks"
+  q: "What are the applications of quantum computing?"
+  q: "python tutorial beginner"
+  ```
+</ParamField>
+
+<ParamField query="limit" type="number" default="10">
+  **Maximum number of results to return**
+
+  Controls how many results you get back. Higher limits increase response time and size.
+
+  ```typescript
+  limit: 5    // Fast, focused results
+  limit: 20   // Comprehensive results
+  limit: 100  // Maximum recommended
+  ```
+</ParamField>
+
+<ParamField query="containerTags" type="Array<string>">
+  **Filter by container tags**
+
+  Organizational tags for filtering results. Uses **exact array matching** - must match all tags in the same order.
+
+  ```typescript
+  containerTags: ["user_123"]                    // Single tag
+  containerTags: ["user_123", "project_ai"]      // Multiple tags (exact match)
+  ```
+</ParamField>
+
+<ParamField query="filters" type="string">
+  **Metadata filtering with SQL-like structure**
+
+  JSON string containing AND/OR logic for filtering by metadata fields. Uses the same structure as memory listing filters.
+
+  ```typescript
+  filters: JSON.stringify({
+    AND: [
+      { key: "category", value: "tutorial", negate: false },
+      { key: "difficulty", value: "beginner", negate: false }
+    ]
+  })
+  ```
+
+  <Note>
+    See [Metadata Filtering Guide](/search-with-filters/examples/filtering) for complete syntax and examples.
+  </Note>
+</ParamField>
+
+<ParamField query="rerank" type="boolean" default="false">
+  **Re-score results for better relevance**
+
+  Applies a secondary ranking algorithm to improve result quality. Adds ~100-200ms latency but increases accuracy.
+
+  ```typescript
+  rerank: true   // Better accuracy, slower
+  rerank: false  // Faster, standard accuracy
+  ```
+</ParamField>
+
+<ParamField query="rewriteQuery" type="boolean" default="false">
+  **Expand and improve the query**
+
+  Rewrites your query to find more relevant results. Particularly useful for abbreviations and domain-specific terms. **Adds ~400ms latency**.
+
+  ```typescript
+  // Query rewriting examples:
+  "ML" → "machine learning artificial intelligence"
+  "JS" → "JavaScript programming language"
+  "API" → "application programming interface REST"
+  ```
+
+  <Warning>
+    Query rewriting significantly increases latency. Only use when search quality is more important than speed.
+  </Warning>
+</ParamField>
+
+## Document Search Parameters (POST `/v3/search`)
+
+These parameters are specific to `client.search.documents()`:
+
+<ParamField query="chunkThreshold" type="number" range="0-1" default="0.5">
+  **Sensitivity for chunk selection**
+
+  Controls which text chunks are included in results:
+  - **0.0** = Least sensitive (more chunks, more results)
+  - **1.0** = Most sensitive (fewer chunks, higher quality)
+
+  ```typescript
+  chunkThreshold: 0.2   // Broad search, many chunks
+  chunkThreshold: 0.8   // Precise search, only relevant chunks
+  ```
+</ParamField>
+
+<ParamField query="documentThreshold" type="number" range="0-1" default="0.5">
+  **Sensitivity for document selection**
+
+  Controls which documents are considered for search:
+  - **0.0** = Search more documents (comprehensive)
+  - **1.0** = Search only highly relevant documents (focused)
+
+  ```typescript
+  documentThreshold: 0.1   // Cast wide net
+  documentThreshold: 0.9   // Only very relevant documents
+  ```
+</ParamField>
+
+<ParamField query="docId" type="string">
+  **Search within a specific document**
+
+  Limit search to chunks within a single document. Useful for finding content in large documents.
+
+  ```typescript
+  docId: "doc_abc123"  // Only search this document
+  ```
+</ParamField>
+
+<ParamField query="onlyMatchingChunks" type="boolean" default="false">
+  **Return only exact matching chunks**
+
+  By default, Supermemory includes surrounding chunks for context. Set to `true` to get only the exact matching text.
+
+  ```typescript
+  onlyMatchingChunks: false  // Include context chunks (default)
+  onlyMatchingChunks: true   // Only matching chunks
+  ```
+
+  <Note>
+    Context chunks help LLMs understand the full meaning. Only disable if you need precise text extraction.
+  </Note>
+</ParamField>
+
+<ParamField query="includeFullDocs" type="boolean" default="false">
+  **Include complete document content**
+
+  Adds the full document text to each result. Useful for chatbots that need complete context.
+
+  ```typescript
+  includeFullDocs: true   // Full document in response
+  includeFullDocs: false  // Only chunks and metadata
+  ```
+
+  <Warning>
+    Including full documents can make responses very large. Use sparingly and with appropriate limits.
+  </Warning>
+</ParamField>
+
+<ParamField query="includeSummary" type="boolean" default="false">
+  **Include document summaries**
+
+  Adds AI-generated document summaries to results. Good middle-ground between chunks and full documents.
+
+  ```typescript
+  includeSummary: true   // Include document summaries
+  includeSummary: false  // No summaries
+  ```
+</ParamField>
+
+<ParamField query="filters" type="string">
+  **Filter by metadata using SQL queries**
+
+  ```typescript
+
+  // Use this instead:
+  filters: JSON.stringify({
+    OR: [
+      { key: "category", value: "technology", negate: false },
+      { key: "category", value: "science", negate: false }
+    ]
+  })
+  ```
+</ParamField>
+
+## Memory Search Parameters (POST `/v4/search`)
+
+These parameters are specific to `client.search.memories()`:
+
+<ParamField query="threshold" type="number" range="0-1" default="0.5">
+  **Sensitivity for memory selection**
+
+  Controls which memories are returned based on similarity:
+  - **0.0** = Return more memories (broad search)
+  - **1.0** = Return only highly similar memories (precise search)
+
+  ```typescript
+  threshold: 0.3   // Broader memory search
+  threshold: 0.8   // Only very similar memories
+  ```
+</ParamField>
+
+<ParamField query="containerTag" type="string">
+  **Filter by single container tag**
+
+  Note: Memory search uses `containerTag` (singular) while document search uses `containerTags` (plural array).
+
+  ```typescript
+  containerTag: "user_123"  // Single tag for memory search
+  ```
+</ParamField>
+
+<ParamField query="include" type="object">
+  **Control what additional data to include**
+
+  Object specifying what contextual information to include with memory results.
+
+  <ParamField query="include.documents" type="boolean" default="false">
+    Include associated documents for each memory
+  </ParamField>
+
+  <ParamField query="include.relatedMemories" type="boolean" default="false">
+    Include parent and child memories (contextual relationships)
+  </ParamField>
+
+  <ParamField query="include.summaries" type="boolean" default="false">
+    Include memory summaries
+  </ParamField>
+
+  ```typescript
+  include: {
+    documents: true,        // Show related documents
+    relatedMemories: true,  // Show parent/child memories
+    summaries: true         // Include summaries
+  }
+  ```
+</ParamField>

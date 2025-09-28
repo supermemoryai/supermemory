@@ -1,0 +1,14 @@
+{
+  "name": "@repo/docs",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bunx mintlify@latest dev --no-open --port 3003"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "mintlify": "^4.2.112",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,861 @@
+---
+title: "Ingest Documents and Data"
+sidebarTitle: "Ingesting content guide"
+description: "Complete guide to ingesting text, URLs, files, and various content types into Supermemory"
+---
+
+Supermemory provides a powerful and flexible ingestion system that can process virtually any type of content. Whether you're adding simple text notes, web pages, PDFs, images, or complex documents from various platforms, our API handles it all seamlessly.
+
+## Understanding the Mental Model
+
+Before diving into the API, it's important to understand how Supermemory processes your content:
+
+### Documents vs Memories
+
+- **Documents**: Anything you put into Supermemory (files, URLs, text) is considered a **document**
+- **Memories**: Documents are automatically chunked into smaller, searchable pieces called **memories**
+
+When you use the "Add Memory" endpoint, you're actually adding a **document**. Supermemory's job is to intelligently break that document into optimal **memories** that can be searched and retrieved.
+
+```
+Your Content → Document → Processing → Multiple Memories
+     ↓             ↓           ↓            ↓
+   PDF File → Stored Doc → Chunking → Searchable Memories
+```
+
+You can visualize this process in the [Supermemory Console](https://console.supermemory.ai) where you'll see a graph view showing how your documents are broken down into interconnected memories.
+
+### Content Sources
+
+Supermemory accepts content through three main methods:
+
+1. **Direct API**: Upload files or send content via API endpoints
+2. **Connectors**: Automated integrations with platforms like Google Drive, Notion, and OneDrive ([learn more about connectors](/connectors))
+3. **URL Processing**: Automatic extraction from web pages, videos, and social media
+
+## Overview
+
+The ingestion system consists of several key components:
+
+- **Multiple Input Methods**: JSON content, file uploads, and URL processing
+- **Asynchronous Processing**: Background workflows handle content extraction and chunking
+- **Auto Content Detection**: Automatically identifies and processes different content types
+- **Space Organization**: Container tags group related memories for better context inference
+- **Status Tracking**: Real-time status updates throughout the processing pipeline
+
+### How It Works
+
+<Steps>
+  <Step title="Submit Document">
+    Send your content (text, file, or URL) to create a new document
+  </Step>
+  <Step title="Validation">
+    API validates the request and checks rate limits/quotas
+  </Step>
+  <Step title="Document Storage">
+    Your content is stored as a document and queued for processing
+  </Step>
+  <Step title="Content Extraction">
+    Specialized extractors process the document based on its type
+  </Step>
+  <Step title="Memory Creation">
+    Document is intelligently chunked into multiple searchable memories
+  </Step>
+  <Step title="Embedding & Indexing">
+    Memories are converted to vector embeddings and made searchable
+  </Step>
+</Steps>
+
+## Ingestion Endpoints
+
+### Add Document - JSON Content
+
+The primary endpoint for adding content that will be processed into documents.
+
+**Endpoint:** `POST /v3/documents`
+
+<Note>
+Despite the endpoint name, you're creating a **document** that Supermemory will automatically chunk into searchable **memories**.
+</Note>
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions from data without explicit programming.",
+    "containerTags": ["ai-research", "user_123"],
+    "metadata": {
+      "source": "research-notes",
+      "category": "education",
+      "priority": "high"
+    },
+    "customId": "ml-basics-001"
+  }'
+```
+
+```typescript TypeScript
+import Supermemory from 'supermemory'
+
+const client = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY
+})
+
+async function addContent() {
+    const result = await client.memories.add({
+        content: "Machine learning is a subset of artificial intelligence...",
+        containerTags: ["ai-research"],
+        metadata: {
+          source: "research-notes",
+          category: "education",
+          priority: "high"
+        },
+        customId: "ml-basics-001"
+      })
+
+      console.log(result) // { id: "abc123", status: "queued" }
+}
+
+ addContent()
+```
+
+```python Python
+from supermemory import Supermemory
+import os
+
+client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+result = client.memories.add(
+    content="Machine learning is a subset of artificial intelligence...",
+    container_tags=["ai-research"],
+    metadata={
+        "source": "research-notes",
+        "category": "education",
+        "priority": "high"
+    },
+    custom_id="ml-basics-001"
+)
+
+print(result)  # { "id": "abc123", "status": "queued" }
+```
+
+</CodeGroup>
+
+#### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `content` | string | Yes | The content to process into a document. Can be text, URL, or other supported formats |
+| `containerTag` | string | No | **Recommended**: Single tag to group related memories in a space. Defaults to `"sm_project_default"` |
+| `containerTags` | string[] | No | Legacy array format. Use `containerTag` instead for better performance |
+| `metadata` | object | No | Additional key-value metadata (strings, numbers, booleans only) |
+| `customId` | string | No | Your own identifier for this document (max 255 characters) |
+| `raw` | string | No | Raw content to store alongside processed content |
+
+#### Response
+
+When you successfully create a document, you'll get back a simple confirmation with the document ID and its initial processing status:
+
+```json
+{
+  "id": "D2Ar7Vo7ub83w3PRPZcaP1",
+  "status": "queued"
+}
+```
+
+**What this means:**
+- `id`: Your document's unique identifier - save this to track processing or reference later
+- `status`: Current processing state. `"queued"` means it's waiting to be processed into memories
+
+<Note>
+The document starts processing immediately in the background. Within seconds to minutes (depending on content size), it will be chunked into searchable memories.
+</Note>
+
+### File Upload: Drop and Process
+
+Got a PDF, image, or video? Upload it directly and let Supermemory extract the valuable content automatically.
+
+**Endpoint:** `POST /v3/documents/file`
+
+**What makes this powerful:** Instead of manually copying text from PDFs or transcribing videos, just upload the file. Supermemory handles OCR for images, transcription for videos, and intelligent text extraction for documents.
+
+<CodeGroup>
+
+```bash cURL
+curl https://api.supermemory.ai/v3/documents/file \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -F "file=@document.pdf" \
+  -F "containerTags=research_project"
+
+# Response:
+# {
+#   "id": "Mx7fK9pL2qR5tE8yU4nC7",
+#   "status": "processing"
+# }
+```
+
+```typescript TypeScript
+import Supermemory from 'supermemory'
+import fs from 'fs'
+
+const client = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY
+})
+
+// Method 1: Using SDK uploadFile method (RECOMMENDED)
+const result = await client.memories.uploadFile({
+  file: fs.createReadStream('/path/to/document.pdf'),
+  containerTags: 'research_project'  // String, not array!
+})
+
+// Method 2: Using fetch with form data (for browser/manual implementation)
+const formData = new FormData()
+formData.append('file', fileInput.files[0])
+formData.append('containerTags', 'research_project')
+
+const response = await fetch('https://api.supermemory.ai/v3/documents/file', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`
+  },
+  body: formData
+})
+
+const result = await response.json()
+console.log(result)
+// Output: { id: "Mx7fK9pL2qR5tE8yU4nC7", status: "processing" }
+```
+
+```python Python
+from supermemory import Supermemory
+
+client = Supermemory(api_key="your_api_key")
+
+# Method 1: Using SDK upload_file method (RECOMMENDED)
+result = client.memories.upload_file(
+    file=open('document.pdf', 'rb'),
+    container_tags='research_project'  # String parameter name
+)
+
+# Method 2: Using requests with form data
+import requests
+
+files = {'file': open('document.pdf', 'rb')}
+data = {'containerTags': 'research_project'}
+
+response = requests.post(
+    'https://api.supermemory.ai/v3/documents/file',
+    headers={'Authorization': f'Bearer {api_key}'},
+    files=files,
+    data=data
+)
+
+result = response.json()
+print(result)
+# Output: {'id': 'Mx7fK9pL2qR5tE8yU4nC7', 'status': 'processing'}
+```
+
+</CodeGroup>
+
+#### Supported File Types
+
+<Tabs>
+  <Tab title="Documents">
+    - **PDF**: Extracted with OCR support for scanned documents
+    - **Google Docs**: Via Google Drive API integration
+    - **Google Sheets**: Spreadsheet content extraction
+    - **Google Slides**: Presentation content extraction
+    - **Notion Pages**: Rich content with block structure preservation
+    - **OneDrive Documents**: Microsoft Office documents
+  </Tab>
+
+  <Tab title="Media">
+    - **Images**: JPG, PNG, GIF, WebP with OCR text extraction
+    - **Videos**: MP4, WebM, AVI with transcription (YouTube, Vimeo)
+  </Tab>
+
+  <Tab title="Web Content">
+    - **Web Pages**: Any public URL with intelligent content extraction
+    - **Twitter/X Posts**: Tweet content and metadata
+    - **YouTube Videos**: Automatic transcription and metadata
+  </Tab>
+
+  <Tab title="Text Formats">
+    - **Plain Text**: TXT, MD, CSV files
+  </Tab>
+</Tabs>
+
+## Content Types & Processing
+
+### Automatic Detection
+
+Supermemory automatically detects content types based on:
+
+- **URL patterns**: Domain and path analysis for special services
+- **MIME types**: File type detection from headers/metadata
+- **Content analysis**: Structure and format inspection
+- **File extensions**: Fallback identification method
+
+```typescript
+
+type MemoryType =
+  | 'text'        // Plain text content
+  | 'pdf'         // PDF documents
+  | 'tweet'       // Twitter/X posts
+  | 'google_doc'  // Google Docs
+  | 'google_slide'// Google Slides
+  | 'google_sheet'// Google Sheets
+  | 'image'       // Images with OCR
+  | 'video'       // Videos with transcription
+  | 'notion_doc'  // Notion pages
+  | 'webpage'     // Web pages
+  | 'onedrive'    // OneDrive documents
+
+
+
+// Examples of automatic detection
+const examples = {
+  "https://twitter.com/user/status/123": "tweet",
+  "https://youtube.com/watch?v=abc": "video",
+  "https://docs.google.com/document/d/123": "google_doc",
+  "https://docs.google.com/spreadsheets/d/123": "google_sheet",
+  "https://docs.google.com/presentation/d/123": "google_slide",
+  "https://notion.so/page-123": "notion_doc",
+  "https://example.com": "webpage",
+  "Regular text content": "text",
+  // PDF files uploaded → "pdf"
+  // Image files uploaded → "image"
+  // OneDrive links → "onedrive"
+}
+```
+
+### Processing Pipeline
+
+Each content type follows a specialized processing pipeline:
+
+<Accordion title="Text Content" defaultOpen>
+Content is cleaned, normalized, and chunked for optimal retrieval:
+
+1. **Queued**: Memory enters the processing queue
+2. **Extracting**: Text normalization and cleaning
+3. **Chunking**: Intelligent splitting based on content structure
+4. **Embedding**: Convert to vector representations for search
+5. **Indexing**: Add to searchable index
+6. **Done:** Metadata extraction completed
+</Accordion>
+
+<Accordion title="Web Content">
+Web pages undergo sophisticated content extraction:
+
+1. **Queued:** URL queued for processing
+2. **Extracting**: Fetch page content with proper headers, remove navigation and boilerplate, extract title, description, etc.
+3. **Chunking:** Content split for optimal retrieval
+4. **Embedding**: Vector representation generation
+5. **Indexing**: Add to search index
+6. **Done:** Processing complete with `type: 'webpage'`
+</Accordion>
+
+<Accordion title="File Processing">
+Files are processed through specialized extractors:
+
+1. **Queued**: File queued for processing
+2. **Content Extraction**: Type detection and format-specific processing.
+3. **OCR/Transcription**: For images and media files
+4. **Chunking:** Content broken down into searchable segments
+5. **Embedding:** Vector representation creation
+6. **Indexing:** Add to search index
+7. **Done:** Processing completed
+</Accordion>
+
+## Error Handling
+
+### Common Errors
+
+Scroll right to see more.
+
+<Tabs>
+  <Tab title="Authentication Errors">
+    ```json
+    // AuthenticationError class
+    {
+      name: "AuthenticationError",
+      status: 401,
+      message: "401 Unauthorized",
+      error: {
+        message: "Invalid API key",
+        type: "authentication_error"
+      }
+    }
+    ```
+    **Causes:**
+    - Missing or invalid API key
+    - Expired authentication token
+    - Incorrect authorization header format
+  </Tab>
+
+  <Tab title="Bad Request Errors (400)">
+    ```json
+    // BadRequestError class
+    {
+      name: "BadRequestError",
+      status: 400,
+      message: "400 Bad Request",
+      error: {
+        message: "Invalid request parameters",
+        details: {
+          content: "Content cannot be empty",
+          customId: "customId exceeds maximum length"
+        }
+      }
+    }
+    ```
+    **Causes:**
+    - Missing required fields
+    - Invalid parameter types
+    - Content too large
+    - Custom ID too long
+    - Invalid metadata structure
+  </Tab>
+
+  <Tab title="Rate Limiting (429)">
+    ```json
+    // RateLimitError class
+    {
+      name: "RateLimitError",
+      status: 429,  // NOT 402!
+      message: "429 Too Many Requests",
+      error: {
+        message: "Rate limit exceeded",
+        retry_after: 60
+      }
+    }
+    ```
+    **Causes:**
+    - Monthly token quota exceeded
+    - Rate limits exceeded
+    - Subscription limits reached
+
+    **Fix:** Implement exponential backoff and respect rate limits
+  </Tab>
+  <Tab title="Not Found Errors (404)">
+  ```json
+  // NotFoundError class
+  {
+    name: "NotFoundError",
+    status: 404,
+    message: "404 Not Found",
+    error: {
+      message: "Memory not found",
+      resource_id: "invalid_memory_id"
+    }
+  }
+  ```
+  Causes:
+  - Memory ID doesn't exist
+  - Memory was deleted
+  - Invalid endpoint URL
+  </Tab>
+
+  <Tab title="Permission Denied (403)">
+  ```json
+  // PermissionDeniedError class
+  {
+    name: "PermissionDeniedError",
+    status: 403,
+    message: "403 Forbidden",
+    error: {
+      message: "Insufficient permissions",
+      required_permission: "memories:write"
+    }
+  }
+  ```
+
+  Causes:
+  - API key lacks required permissions
+  - Accessing restricted resources
+  - Account limitations
+  </Tab>
+
+  <Tab title="Server Errors (500+)">
+    ```json
+    // InternalServerError class
+    {
+      name: "InternalServerError",
+      status: 500,
+      message: "500 Internal Server Error",
+      error: {
+        message: "Processing failed",
+        details: "Content extraction service unavailable"
+      }
+    }
+    ```
+    **Causes:**
+    - External service unavailable
+    - Content extraction failure
+  </Tab>
+  <Tab title="Network Errors">
+  ```json
+      // APIConnectionError class - NEW
+    {
+      name: "APIConnectionError",
+      message: "Connection error.",
+      cause: Error // Original network error
+    }
+
+    // APIConnectionTimeoutError class - NEW
+    {
+      name: "APIConnectionTimeoutError",
+      message: "Request timed out."
+    }
+  ```
+
+  Causes:
+  - Network connectivity issues
+  - DNS resolution failures
+  - Request timeouts
+  - Proxy/firewall blocking
+
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+### Container Tags: Optimize for Performance
+
+Use single container tags for better query performance. Multiple tags are supported but increase latency.
+
+```json
+{
+  "content": "Updated authentication flow to use JWT tokens",
+  "containerTags": "[project_alpha]",
+  "metadata": {
+    "type": "technical_change",
+    "author": "sarah_dev",
+    "impact": "breaking"
+  }
+}
+```
+
+**Single vs Multiple Tags**
+
+```javascript
+// ✅ Recommended: Single tag, faster queries
+{ "containerTags": ["project_alpha"] }
+
+// ⚠️ Allowed but slower: Multiple tags increase latency
+{ "containerTags": ["project_alpha", "auth", "backend"] }
+```
+
+**Why single tags perform better:**
+- Memories in the same space can reference each other efficiently
+- Search queries don't need to traverse multiple spaces
+- Connection inference is faster within a single space
+
+
+### Custom IDs: Deduplication and Updates
+
+Custom IDs prevent duplicates and enable document updates. Two update methods available.
+
+**Method 1: POST with customId (Upsert)**
+```bash
+# Create document
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "API uses REST endpoints",
+    "customId": "api_docs_v1",
+    "containerTags": ["project_alpha"]
+  }'
+# Response: {"id": "abc123", "status": "queued"}
+
+# Update same document (same customId = upsert)
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "API migrated to GraphQL",
+    "customId": "api_docs_v1",
+    "containerTags": ["project_alpha"]
+  }'
+```
+
+**Method 2: PATCH by ID (Update)**
+```bash
+curl -X PATCH "https://api.supermemory.ai/v3/documents/abc123" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "API now uses GraphQL with caching",
+    "metadata": {"version": 3}
+  }'
+```
+
+**Custom ID Patterns**
+
+```javascript
+// External system sync
+"jira_PROJ_123"
+"confluence_456789"
+"github_issue_987"
+
+// Database entities
+"user_profile_12345"
+"order_67890"
+
+// Versioned content
+"meeting_2024_01_15"
+"api_docs_auth"
+"requirements_v3"
+```
+
+**Update Behavior**
+- Old memories are deleted
+- New memories created from updated content
+- Same document ID maintained
+
+### Rate Limits & Quotas
+
+**Token Usage**
+```javascript
+"Hello world" // ≈ 2 tokens
+"10-page PDF" // ≈ 2,000-4,000 tokens
+"YouTube video (10 min)" // ≈ 1,500-3,000 tokens
+"Web article" // ≈ 500-2,000 tokens
+```
+
+**Current Limits**
+
+| Feature | Free | Starter | Growth |
+|---------|------|-----|------------|
+| Memory Tokens/month | 100,000 | 1,000,000 | 10,000,000 |
+| Search Queries/month | 1,000 | 10,000 | 100,000 |
+
+**Limit Exceeded Response**
+```bash
+curl -X POST "https://api.supermemory.ai/v3/documents" \
+  -H "Authorization: Bearer your_api_key" \
+  -d '{"content": "Some content"}'
+```
+
+Response:
+```json
+{"error": "Memory token limit reached", "status": 402}
+```
+
+## Batch Upload of Documents
+
+Process large volumes efficiently with rate limiting and error recovery.
+
+### Implementation Strategy
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+        import Supermemory, {
+      BadRequestError,
+      RateLimitError,
+      AuthenticationError
+    } from 'supermemory';
+
+    interface Document {
+      id: string;
+      content: string;
+      title?: string;
+      createdAt?: string;
+      metadata?: Record<string, string | number | boolean>;
+    }
+
+    async function batchIngest(documents: Document[], options = {}) {
+      const {
+        batchSize = 5,          // CORRECTED: Conservative batch size
+        delayBetweenBatches = 2000,  // CORRECTED: 2 second delays
+        maxRetries = 3
+      } = options;
+
+      const results = [];
+
+      for (let i = 0; i < documents.length; i += batchSize) {
+        const batch = documents.slice(i, i + batchSize);
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(documents.length/batchSize)}`);
+
+        const batchResults = await Promise.allSettled(
+          batch.map(doc => ingestWithRetry(doc, maxRetries))
+        );
+
+        results.push(...batchResults);
+
+        // Rate limiting between batches
+        if (i + batchSize < documents.length) {
+          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+        }
+      }
+
+      return results;
+    }
+
+    async function ingestWithRetry(doc: Document, maxRetries: number) {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await client.memories.add({
+            content: doc.content,
+            customId: doc.id,
+            containerTags: ["batch_import_user_123"], // CORRECTED: Array
+            metadata: {
+              source: "migration",
+              batch_id: generateBatchId(),
+              original_created: doc.createdAt || new Date().toISOString(),
+              title: doc.title || "",
+              ...doc.metadata
+            }
+          });
+        } catch (error) {
+          // CORRECTED: Proper error handling
+          if (error instanceof AuthenticationError) {
+            console.error('Authentication failed - check API key');
+            throw error; // Don't retry auth errors
+          }
+
+          if (error instanceof BadRequestError) {
+            console.error('Invalid document format:', doc.id);
+            throw error; // Don't retry validation errors
+          }
+
+          if (error instanceof RateLimitError) {
+            console.log(`Rate limited on attempt ${attempt}, waiting longer...`);
+            const delay = Math.pow(2, attempt) * 2000; // Longer delays for rate limits
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+
+          if (attempt === maxRetries) throw error;
+
+          // Exponential backoff for other errors
+          const delay = Math.pow(2, attempt) * 1000;
+          console.log(`Retry ${attempt}/${maxRetries} for ${doc.id} in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    function generateBatchId(): string {
+      return `batch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ```python
+        import asyncio
+    import time
+    import logging
+    from typing import List, Dict, Any, Optional
+    from supermemory import Supermemory, BadRequestError, RateLimitError
+
+    async def batch_ingest(
+        documents: List[Dict[str, Any]],
+        options: Optional[Dict[str, Any]] = None
+    ):
+        options = options or {}
+        batch_size = options.get('batch_size', 5)  # CORRECTED: Conservative size
+        delay_between_batches = options.get('delay_between_batches', 2.0)  # CORRECTED: 2 seconds
+        max_retries = options.get('max_retries', 3)
+
+        results = []
+
+        for i in range(0, len(documents), batch_size):
+            batch = documents[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            total_batches = (len(documents) + batch_size - 1) // batch_size
+
+            print(f"Processing batch {batch_num}/{total_batches}")
+
+            # Process batch with proper error handling
+            tasks = [ingest_with_retry(doc, max_retries) for doc in batch]
+            batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            results.extend(batch_results)
+
+            # Rate limiting between batches
+            if i + batch_size < len(documents):
+                await asyncio.sleep(delay_between_batches)
+
+        return results
+
+    async def ingest_with_retry(doc: Dict[str, Any], max_retries: int):
+        for attempt in range(1, max_retries + 1):
+            try:
+                return await client.memories.add(
+                    content=doc['content'],
+                    custom_id=doc['id'],
+                    container_tags=["batch_import_user_123"],  # CORRECTED: List
+                    metadata={
+                        "source": "migration",
+                        "batch_id": generate_batch_id(),
+                        "original_created": doc.get('created_at', ''),
+                        "title": doc.get('title', ''),
+                        **doc.get('metadata', {})
+                    }
+                )
+            except BadRequestError as e:
+                logging.error(f"Invalid document {doc['id']}: {e}")
+                raise  # Don't retry validation errors
+
+            except RateLimitError as e:
+                logging.warning(f"Rate limited on attempt {attempt}")
+                delay = 2 ** attempt * 2  # Longer delays for rate limits
+                await asyncio.sleep(delay)
+                continue
+
+            except Exception as error:
+                if attempt == max_retries:
+                    raise error
+
+                # Exponential backoff
+                delay = 2 ** attempt
+                logging.info(f"Retry {attempt}/{max_retries} for {doc['id']} in {delay}s")
+                await asyncio.sleep(delay)
+
+    def generate_batch_id() -> str:
+        import random
+        import string
+        return f"batch_{int(time.time())}_{random.choices(string.ascii_lowercase, k=8)}"
+    ```
+  </Tab>
+</Tabs>
+
+### Best Practices for Batch Operations
+
+<Accordion title="Performance Optimization" defaultOpen>
+- **Batch Size**: 3-5 documents at once
+- **Delays**: 2-3 seconds between batches prevents rate limiting
+- **Promise.allSettled()**: Handles mixed success/failure results
+- **Progress Tracking**: Monitor long-running operations
+
+**Sample Output**
+```
+Processing batch 1/50 (documents 1-3)
+Successfully processed: 2/3 documents
+Failed: 1/3 documents (BadRequestError: Invalid content)
+Progress: 3/150 (2.0%) - Next batch in 2s
+```
+</Accordion>
+
+<Accordion title="Error Handling">
+- **Specific Error Types:** Handle `BadRequestError`, `RateLimitError`, `AuthenticationError` differently
+- **No Retry Logic**: Don't retry validation or auth errors
+- **Rate Limit Handling**: Longer backoff delays for rate limit errors
+- **Logging**: Record failures for review/retry
+</Accordion>
+
+<Accordion title="Memory Management">
+- **Streaming**: Process large files in chunks
+- **Cleanup**: Clear processed batches from memory
+- **Progress Persistence**: Resume interrupted migrations
+</Accordion>
+
+<Note>
+Ready to start ingesting? [Get an API key](https://console.supermemory.ai) now!
+</Note>
