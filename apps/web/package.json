@@ -51,7 +51,6 @@
 		"@tanstack/react-virtual": "^3.13.12",
 		"ai": "5.0.0-beta.24",
 		"autumn-js": "0.0.116",
-		"babel-plugin-react-compiler": "^19.1.0-rc.2",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"date-fns": "^4.1.0",
