@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "1.0.41",
+  "version": "1.1.0",
   "description": "Memory tools for AI SDK and OpenAI function calling with supermemory",
   "scripts": {
     "build": "tsdown",
@@ -24,7 +24,8 @@
     "dotenv": "^16.6.1",
     "tsdown": "^0.14.2",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@anthropic-ai/sdk": "^0.65.0"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -32,6 +33,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./ai-sdk": "./dist/ai-sdk.js",
+    "./claude-memory": "./dist/claude-memory.js",
     "./openai": "./dist/openai.js",
     "./package.json": "./package.json"
   },

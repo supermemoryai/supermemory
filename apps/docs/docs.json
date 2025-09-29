@@ -185,6 +185,11 @@
 								"pages": ["memory-api/sdks/openai-plugins", "ai-sdk/npm"]
 							},
 							{
+								"group": "Anthropic SDK",
+								"icon": "sparkles",
+								"pages": ["memory-api/sdks/anthropic-claude-memory"]
+							},
+							{
 								"group": "AI SDK",
 								"icon": "triangle",
 								"pages": [

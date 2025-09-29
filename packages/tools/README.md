@@ -147,9 +147,78 @@ Adds a new memory to the system.
 
 
 
+## Claude Memory Tool
+
+Enable Claude to store and retrieve persistent memory across conversations using supermemory as the backend.
+
+### Installation
+
+```bash
+npm install @supermemory/tools @anthropic-ai/sdk
+```
+
+### Basic Usage
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk'
+import { createClaudeMemoryTool } from '@supermemory/tools/claude-memory'
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+})
+
+const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+  projectId: 'my-app',
+})
+
+async function chatWithMemory(userMessage: string) {
+  // Send message to Claude with memory tool
+  const response = await anthropic.beta.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 2048,
+    messages: [{ role: 'user', content: userMessage }],
+    tools: [{ type: 'memory_20250818', name: 'memory' }],
+    betas: ['context-management-2025-06-27'],
+  })
+
+  // Handle any memory tool calls
+  const toolResults = []
+  for (const block of response.content) {
+    if (block.type === 'tool_use' && block.name === 'memory') {
+      const toolResult = await memoryTool.handleCommandForToolResult(
+        block.input,
+        block.id
+      )
+      toolResults.push(toolResult)
+    }
+  }
+
+  return response
+}
+
+// Example usage
+const response = await chatWithMemory(
+  "Remember that I prefer React with TypeScript for my projects"
+)
+```
+
+### Memory Operations
+
+Claude can perform these memory operations automatically:
+
+- **`view`** - List memory directory contents or read specific files
+- **`create`** - Create new memory files with content
+- **`str_replace`** - Find and replace text within memory files
+- **`insert`** - Insert text at specific line numbers
+- **`delete`** - Delete memory files
+- **`rename`** - Rename or move memory files
+
+All memory files are stored in supermemory with normalized paths and can be searched and retrieved across conversations.
+
 ## Environment Variables
 
 ```env
 SUPERMEMORY_API_KEY=your_supermemory_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key  # for Claude Memory Tool
 SUPERMEMORY_BASE_URL=https://your-custom-url  # optional
 ```
