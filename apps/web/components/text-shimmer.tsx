@@ -38,7 +38,7 @@ function TextShimmerComponent({
 			initial={{ backgroundPosition: "100% center" }}
 			animate={{ backgroundPosition: "0% center" }}
 			transition={{
-				repeat: Infinity,
+				repeat: Number.POSITIVE_INFINITY,
 				duration,
 				ease: "linear",
 			}}

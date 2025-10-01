@@ -50,18 +50,18 @@ export function ProjectSelection({
       value={selectedProject}
     >
       <SelectTrigger
-        className={`bg-white/5 border-white/10 text-white ${className}`}
+        className={`bg-foreground/5 border-foreground/10 ${className}`}
         id={id}
       >
         <SelectValue placeholder="Select a project" />
       </SelectTrigger>
       <SelectContent
-        className="bg-black/90 backdrop-blur-xl border-white/10 z-[90]"
+        className="bg-black/90 backdrop-blur-xl border-foreground/10 z-[90]"
         position="popper"
         sideOffset={5}
       >
         <SelectItem
-          className="text-white hover:bg-white/10"
+          className="hover:bg-foreground/10"
           key="default"
           value="sm_project_default"
         >
@@ -71,7 +71,7 @@ export function ProjectSelection({
           .filter((p) => p.containerTag !== 'sm_project_default' && p.id)
           .map((project) => (
             <SelectItem
-              className="text-white hover:bg-white/10"
+              className="hover:bg-foreground/10"
               key={project.id || project.containerTag}
               value={project.containerTag}
             >
@@ -79,7 +79,7 @@ export function ProjectSelection({
             </SelectItem>
           ))}
         <SelectItem
-          className="text-white hover:bg-white/10 border-t border-white/10 mt-1"
+          className="hover:bg-foreground/10 border-t border-foreground/10 mt-1"
           key="create-new"
           value="create-new-project"
         >

@@ -63,7 +63,6 @@ export function NameForm() {
 				<div className="relative flex flex-col">
 					<input
 						type="text"
-						autoFocus
 						name="name"
 						autoComplete="name"
 						autoCorrect="off"

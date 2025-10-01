@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google"
+import { Space_Grotesk } from "next/font/google"
 import "../globals.css"
 import "@ui/globals.css"
 import { AuthProvider } from "@lib/auth-context"
@@ -11,23 +11,13 @@ import { Suspense } from "react"
 import { Toaster } from "sonner"
 import { MobilePanelProvider } from "@/lib/mobile-panel-context"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
+import { ThemeProvider } from "@/lib/theme-provider"
 
 import { ViewModeProvider } from "@/lib/view-mode-context"
 
-const sans = Inter({
+const font = Space_Grotesk({
 	subsets: ["latin"],
 	variable: "--font-sans",
-})
-
-const mono = JetBrains_Mono({
-	subsets: ["latin"],
-	variable: "--font-mono",
-})
-
-const serif = Instrument_Serif({
-	subsets: ["latin"],
-	variable: "--font-serif",
-	weight: ["400"],
 })
 
 export const metadata: Metadata = {
@@ -42,33 +32,39 @@ export default function RootLayout({
 	children: React.ReactNode
 }>) {
 	return (
-		<html className="dark bg-sm-black" lang="en">
-			<body
-				className={`${sans.variable} ${mono.variable} ${serif.variable} antialiased bg-[#0f1419] overflow-x-hidden`}
-			>
-				<AutumnProvider
-					backendUrl={
-						process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
-					}
-					includeCredentials={true}
+		<html lang="en" suppressHydrationWarning>
+			<body className={`${font.variable} antialiased overflow-x-hidden`}>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
 				>
-					<QueryProvider>
-						<AuthProvider>
-							<ViewModeProvider>
-								<MobilePanelProvider>
-									<PostHogProvider>
-										<ErrorTrackingProvider>
-											<NuqsAdapter>
-												<Suspense>{children}</Suspense>
-												<Toaster richColors theme="dark" />
-											</NuqsAdapter>
-										</ErrorTrackingProvider>
-									</PostHogProvider>
-								</MobilePanelProvider>
-							</ViewModeProvider>
-						</AuthProvider>
-					</QueryProvider>
-				</AutumnProvider>
+					<AutumnProvider
+						backendUrl={
+							process.env.NEXT_PUBLIC_BACKEND_URL ??
+							"https://api.supermemory.ai"
+						}
+						includeCredentials={true}
+					>
+						<QueryProvider>
+							<AuthProvider>
+								<ViewModeProvider>
+									<MobilePanelProvider>
+										<PostHogProvider>
+											<ErrorTrackingProvider>
+												<NuqsAdapter>
+													<Suspense>{children}</Suspense>
+													<Toaster richColors />
+												</NuqsAdapter>
+											</ErrorTrackingProvider>
+										</PostHogProvider>
+									</MobilePanelProvider>
+								</ViewModeProvider>
+							</AuthProvider>
+						</QueryProvider>
+					</AutumnProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	)

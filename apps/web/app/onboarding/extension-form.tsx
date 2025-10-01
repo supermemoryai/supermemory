@@ -636,7 +636,9 @@ export function ExtensionForm() {
 										Step {getStepNumberFor("extension")} of {totalSteps}
 									</p>
 								</NavMenu>
-								<h1 className="text-white">Install the Chrome extension</h1>
+								<h1 className="text-white font-medium">
+									Install the Chrome extension
+								</h1>
 								<p className="text-white/80 text-2xl">
 									{/* Install the Supermemory extension to start saving and organizing everything that matters. */}
 									Bring Supermemory everywhere
@@ -706,7 +708,7 @@ export function ExtensionForm() {
 							<Button
 								variant="link"
 								size="lg"
-								className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+								className="text-black/40 hover:text-black font-medium! text-lg underline w-fit px-0! cursor-pointer"
 								onClick={nextStep}
 							>
 								Continue

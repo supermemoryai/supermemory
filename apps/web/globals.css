@@ -1,2 +1,11 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+
+.sm-tweet-theme .react-tweet-theme {
+	--tweet-container-margin: 0px;
+}
+
+.sm-tweet-theme .tweet-header-module__A9EVQG__authorFollow {
+	display: none;
+}

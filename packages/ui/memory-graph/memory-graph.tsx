@@ -129,17 +129,19 @@ export const MemoryGraph = ({
 			containerSize.width > 0 &&
 			containerSize.height > 0
 		) {
-			// For consumer variant, auto-fit to show all content
-			if (variant === "consumer") {
+			// Auto-fit to show all content for both variants
+			// Add a small delay to ensure the canvas is fully initialized
+			const timer = setTimeout(() => {
 				autoFitToViewport(nodes, containerSize.width, containerSize.height);
 				hasAutoFittedRef.current = true;
-			}
+			}, 100);
+			
+			return () => clearTimeout(timer);
 		}
 	}, [
 		nodes,
 		containerSize.width,
 		containerSize.height,
-		variant,
 		autoFitToViewport,
 	]);
 
@@ -175,16 +177,36 @@ export const MemoryGraph = ({
 	useEffect(() => {
 		const updateSize = () => {
 			if (containerRef.current) {
-				setContainerSize({
-					width: containerRef.current.clientWidth,
-					height: containerRef.current.clientHeight,
+				const newWidth = containerRef.current.clientWidth;
+				const newHeight = containerRef.current.clientHeight;
+				
+				// Only update if size actually changed and is valid
+				setContainerSize((prev) => {
+					if (prev.width !== newWidth || prev.height !== newHeight) {
+						return { width: newWidth, height: newHeight };
+					}
+					return prev;
 				});
 			}
 		};
 
-		updateSize();
+		// Use a slight delay to ensure DOM is fully rendered
+		const timer = setTimeout(updateSize, 0);
+		updateSize(); // Also call immediately
+		
 		window.addEventListener("resize", updateSize);
-		return () => window.removeEventListener("resize", updateSize);
+		
+		// Use ResizeObserver for more accurate container size detection
+		const resizeObserver = new ResizeObserver(updateSize);
+		if (containerRef.current) {
+			resizeObserver.observe(containerRef.current);
+		}
+		
+		return () => {
+			clearTimeout(timer);
+			window.removeEventListener("resize", updateSize);
+			resizeObserver.disconnect();
+		};
 	}, []);
 
 	// Enhanced node drag start that includes nodes data
@@ -390,7 +412,7 @@ export const MemoryGraph = ({
 					WebkitUserSelect: "none",
 				}}
 			>
-				{containerSize.width > 0 && (
+				{(containerSize.width > 0 && containerSize.height > 0) && (
 					<GraphCanvas
 						draggingNodeId={draggingNodeId}
 						edges={edges}

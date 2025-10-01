@@ -183,16 +183,16 @@ export function ConnectionsTabContent() {
 	return (
 		<div className="space-y-4">
 			<div className="mb-4">
-				<p className="text-sm text-white/70">
+				<p className="text-sm text-foreground/70">
 					Connect your favorite services to import documents
 				</p>
 				{isProUser && !autumn.isLoading && (
-					<p className="text-xs text-white/50 mt-1">
+					<p className="text-xs text-foreground/50 mt-1">
 						{connectionsUsed} of {connectionsLimit} connections used
 					</p>
 				)}
 				{!isProUser && !autumn.isLoading && (
-					<p className="text-xs text-white/50 mt-1">
+					<p className="text-xs text-foreground/50 mt-1">
 						Connections require a Pro subscription
 					</p>
 				)}
@@ -208,7 +208,7 @@ export function ConnectionsTabContent() {
 					<p className="text-sm text-yellow-400 mb-2">
 						🔌 Connections are a Pro feature
 					</p>
-					<p className="text-xs text-white/60 mb-3">
+					<p className="text-xs text-foreground/60 mb-3">
 						Connect Google Drive, Notion, OneDrive and more to automatically
 						sync your documents.
 					</p>
@@ -228,12 +228,12 @@ export function ConnectionsTabContent() {
 					{[...Array(2)].map((_, i) => (
 						<motion.div
 							animate={{ opacity: 1 }}
-							className="p-4 bg-white/5 rounded-lg"
+							className="p-4 bg-foreground/5 rounded-lg"
 							initial={{ opacity: 0 }}
 							key={`skeleton-${Date.now()}-${i}`}
 							transition={{ delay: i * 0.1 }}
 						>
-							<Skeleton className="h-12 w-full bg-white/10" />
+							<Skeleton className="h-12 w-full bg-foreground/10" />
 						</motion.div>
 					))}
 				</div>
@@ -244,8 +244,8 @@ export function ConnectionsTabContent() {
 					initial={{ opacity: 0, scale: 0.9 }}
 					transition={{ type: "spring", damping: 20 }}
 				>
-					<p className="text-white/50 mb-2">No connections yet</p>
-					<p className="text-xs text-white/40">
+					<p className="text-foreground/50 mb-2">No connections yet</p>
+					<p className="text-xs text-foreground/40">
 						Choose a service below to connect
 					</p>
 				</motion.div>
@@ -255,7 +255,7 @@ export function ConnectionsTabContent() {
 						{connections.map((connection, index) => (
 							<motion.div
 								animate={{ opacity: 1, x: 0 }}
-								className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors"
+								className="flex items-center justify-between p-3 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors"
 								exit={{ opacity: 0, x: 20 }}
 								initial={{ opacity: 0, x: -20 }}
 								key={connection.id}
@@ -263,19 +263,13 @@ export function ConnectionsTabContent() {
 								transition={{ delay: index * 0.05 }}
 							>
 								<div className="flex items-center gap-3">
-									<motion.div
-										animate={{ rotate: 0, opacity: 1 }}
-										initial={{ rotate: -180, opacity: 0 }}
-										transition={{ delay: index * 0.05 + 0.2 }}
-									>
-										{getProviderIcon(connection.provider)}
-									</motion.div>
+									{getProviderIcon(connection.provider)}
 									<div>
-										<p className="font-medium text-white capitalize">
+										<p className="font-medium text-foreground capitalize">
 											{connection.provider.replace("-", " ")}
 										</p>
 										{connection.email && (
-											<p className="text-sm text-white/60">
+											<p className="text-sm text-foreground/60">
 												{connection.email}
 											</p>
 										)}
@@ -286,7 +280,7 @@ export function ConnectionsTabContent() {
 									whileTap={{ scale: 0.9 }}
 								>
 									<Button
-										className="text-white/50 hover:text-red-400"
+										className="text-foreground/50 hover:text-red-400"
 										disabled={deleteConnectionMutation.isPending}
 										onClick={() =>
 											deleteConnectionMutation.mutate(connection.id)
@@ -305,9 +299,7 @@ export function ConnectionsTabContent() {
 
 			{/* Available Connections Section */}
 			<div className="mt-6">
-				<h3 className="text-lg font-medium text-white mb-4">
-					Available Connections
-				</h3>
+				<h3 className="text-lg font-medium mb-4">Available Connections</h3>
 				<div className="grid gap-3">
 					{Object.entries(CONNECTORS).map(([provider, config], index) => {
 						const Icon = config.icon
@@ -317,11 +309,9 @@ export function ConnectionsTabContent() {
 								initial={{ opacity: 0, y: 20 }}
 								key={provider}
 								transition={{ delay: index * 0.05 }}
-								whileHover={{ scale: 1.02 }}
-								whileTap={{ scale: 0.98 }}
 							>
 								<Button
-									className="justify-start h-auto p-4 bg-white/5 hover:bg-white/10 border-white/10 text-white w-full"
+									className="justify-start h-auto p-4 bg-foreground/5 hover:bg-foreground/10 border-foreground/10 w-full"
 									disabled={addConnectionMutation.isPending}
 									onClick={() => {
 										addConnectionMutation.mutate(provider as ConnectorProvider)
@@ -331,7 +321,7 @@ export function ConnectionsTabContent() {
 									<Icon className="h-8 w-8 mr-3" />
 									<div className="text-left">
 										<div className="font-medium">{config.title}</div>
-										<div className="text-sm text-white/60 mt-0.5">
+										<div className="text-sm text-foreground/60 mt-0.5">
 											{config.description}
 										</div>
 									</div>

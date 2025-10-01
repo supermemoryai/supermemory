@@ -26,9 +26,9 @@ import { analytics } from "@/lib/analytics"
 import { useDeleteDocument } from "@lib/queries"
 import { useProject } from "@/stores"
 
-import { MemoryDetail } from "./memories/memory-detail"
+import { MemoryDetail } from "./memories-utils/memory-detail"
 import { getDocumentIcon } from "@/lib/document-icon"
-import { formatDate, getSourceUrl } from "./memories"
+import { formatDate, getSourceUrl } from "./memories-utils"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -43,31 +43,6 @@ interface MemoryListViewProps {
 	hasMore: boolean
 	loadMoreDocuments: () => Promise<void>
 }
-
-const GreetingMessage = memo(() => {
-	const getGreeting = () => {
-		const hour = new Date().getHours()
-		if (hour < 12) return "Good morning"
-		if (hour < 17) return "Good afternoon"
-		return "Good evening"
-	}
-
-	return (
-		<div className="flex items-center gap-3 mb-3 px-4 md:mb-6 md:mt-3">
-			<div>
-				<h1
-					className="text-lg md:text-xl font-semibold"
-					style={{ color: colors.text.primary }}
-				>
-					{getGreeting()}!
-				</h1>
-				<p className="text-xs md:text-sm" style={{ color: colors.text.muted }}>
-					Welcome back to your memory collection
-				</p>
-			</div>
-		</div>
-	)
-})
 
 const DocumentCard = memo(
 	({
@@ -86,7 +61,7 @@ const DocumentCard = memo(
 
 		return (
 			<Card
-				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden border-0 gap-2 md:w-full"
+				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden gap-2 md:w-full shadow-xs"
 				onClick={() => {
 					analytics.documentCardClicked()
 					onOpenDetails(document)
@@ -312,7 +287,7 @@ export const MemoryListView = ({
 		hasMore,
 		isLoadingMore,
 		loadMoreDocuments,
-		virtualizer.getVirtualItems(),
+		virtualizer.getVirtualItems,
 		virtualItems.length,
 	])
 
@@ -322,7 +297,6 @@ export const MemoryListView = ({
 			<div
 				className="h-full overflow-hidden relative pb-20"
 				ref={containerRef}
-				style={{ backgroundColor: colors.background.primary }}
 			>
 				{error ? (
 					<div className="h-full flex items-center justify-center p-4">
@@ -358,8 +332,6 @@ export const MemoryListView = ({
 						ref={parentRef}
 						className="h-full overflow-auto mt-20 custom-scrollbar"
 					>
-						<GreetingMessage />
-
 						<div
 							className="w-full relative"
 							style={{
@@ -375,13 +347,13 @@ export const MemoryListView = ({
 										key={virtualRow.key}
 										data-index={virtualRow.index}
 										ref={virtualizer.measureElement}
-										className="absolute top-0 left-0 w-full"
+										className="absolute top-0 left-0 w-full sm-tweet-theme"
 										style={{
 											transform: `translateY(${virtualRow.start + virtualRow.index * gap}px)`,
 										}}
 									>
 										<div
-											className="grid justify-start"
+											className="grid justify-center"
 											style={{
 												gridTemplateColumns: `repeat(${columns}, ${columnWidth}px)`,
 												gap: `${gap}px`,

@@ -15,7 +15,7 @@ export function Welcome() {
 
 	return (
 		<div className="flex flex-col gap-4 items-center text-center">
-			<h1 className="text-white">Welcome to Supermemory</h1>
+			<h1 className="text-white font-medium">Welcome to Supermemory</h1>
 			<p className="text-white/80 text-2xl">
 				We're excited to have you on board.
 			</p>

@@ -1,115 +1,61 @@
 "use client"
 
-import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
+import {
+	fetchConnectionsFeature,
+	fetchMemoriesFeature,
+	fetchSubscriptionStatus,
+} from "@lib/queries"
 import { Button } from "@repo/ui/components/button"
+import { Skeleton } from "@repo/ui/components/skeleton"
 import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
 import { useCustomer } from "autumn-js/react"
-import {
-	CheckCircle,
-	CreditCard,
-	LoaderIcon,
-	LogOut,
-	User,
-	X,
-} from "lucide-react"
+import { CheckCircle, CreditCard, LoaderIcon, User, X } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { analytics } from "@/lib/analytics"
-import { $fetch } from "@lib/api"
+import { useState } from "react"
 
 export function ProfileView() {
-	const router = useRouter()
-	const { user: session } = useAuth()
-	const {
-		customer,
-		isLoading: isCustomerLoading,
-		openBillingPortal,
-		attach,
-	} = useCustomer()
+	const { user: session, org } = useAuth()
+	const organizations = org
+	const autumn = useCustomer()
 	const [isLoading, setIsLoading] = useState(false)
-	const [billingData, setBillingData] = useState<{
-		isPro: boolean
-		memoriesUsed: number
-		memoriesLimit: number
-		connectionsUsed: number
-		connectionsLimit: number
-	}>({
-		isPro: false,
-		memoriesUsed: 0,
-		memoriesLimit: 0,
-		connectionsUsed: 0,
-		connectionsLimit: 0,
-	})
 
-	useEffect(() => {
-		if (!isCustomerLoading) {
-			const memoriesFeature = customer?.features?.memories ?? {
-				usage: 0,
-				included_usage: 0,
-			}
-			const connectionsFeature = customer?.features?.connections ?? {
-				usage: 0,
-				included_usage: 0,
-			}
+	const {
+		data: status = {
+			consumer_pro: null,
+		},
+		isLoading: isCheckingStatus,
+	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-			setBillingData({
-				isPro:
-					customer?.products?.some(
-						(product) => product.id === "consumer_pro",
-					) ?? false,
-				memoriesUsed: memoriesFeature?.usage ?? 0,
-				memoriesLimit: memoriesFeature?.included_usage ?? 0,
-				connectionsUsed: connectionsFeature?.usage ?? 0,
-				connectionsLimit: connectionsFeature?.included_usage ?? 0,
-			})
-		}
-	}, [isCustomerLoading, customer])
+	const isPro = status.consumer_pro
 
-	const handleLogout = () => {
-		analytics.userSignedOut()
-		authClient.signOut()
-		router.push("/login")
-	}
+	const { data: memoriesCheck } = fetchMemoriesFeature(
+		autumn,
+		!isCheckingStatus && !autumn.isLoading,
+	)
+	const memoriesUsed = memoriesCheck?.usage ?? 0
+	const memoriesLimit = memoriesCheck?.included_usage ?? 0
+
+	const { data: connectionsCheck } = fetchConnectionsFeature(autumn, !isCheckingStatus && !autumn.isLoading)
+	const connectionsUsed = connectionsCheck?.usage ?? 0
 
 	const handleUpgrade = async () => {
 		setIsLoading(true)
 		try {
-			const upgradeResult = await attach({
+			await autumn.attach({
 				productId: "consumer_pro",
 				successUrl: "https://app.supermemory.ai/",
 			})
-			if (
-				upgradeResult.statusCode === 200 &&
-				upgradeResult.data &&
-				"code" in upgradeResult.data
-			) {
-				const isProPlanActivated =
-					upgradeResult.data.code === "new_product_attached"
-				if (isProPlanActivated && session?.name && session?.email) {
-					try {
-						await $fetch("@post/emails/welcome/pro", {
-							body: {
-								email: session?.email,
-								firstName: session?.name,
-							},
-						})
-					} catch (error) {
-						console.error(error)
-					}
-				}
-			}
+			window.location.reload()
 		} catch (error) {
 			console.error(error)
 			setIsLoading(false)
 		}
 	}
 
-	// Handle manage billing
 	const handleManageBilling = async () => {
-		await openBillingPortal({
+		await autumn.openBillingPortal({
 			returnUrl: "https://app.supermemory.ai",
 		})
 	}
@@ -123,13 +69,13 @@ export function ProfileView() {
 					initial={{ opacity: 0, scale: 0.9 }}
 					transition={{ type: "spring", damping: 20 }}
 				>
-					<p className="text-white/70 mb-4">
+					<p className="text-foreground/70 mb-4">
 						Sign in to access your profile and billing
 					</p>
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
 							asChild
-							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+							className="bg-muted hover:bg-muted/80 text-foreground border-border"
 							size="sm"
 						>
 							<Link href="/login">Sign in</Link>
@@ -143,148 +89,193 @@ export function ProfileView() {
 	return (
 		<div className="space-y-4">
 			{/* Profile Section */}
-			<div className="bg-white/5 rounded-lg p-4 space-y-3">
-				<div className="flex items-center gap-3">
-					<div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-						<User className="w-5 h-5 text-white/80" />
+			<div className="bg-card border border-border rounded-lg p-3 sm:p-4 space-y-4">
+				<div className="flex items-start gap-3 sm:gap-4">
+					<div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+						{session?.image ? (
+							<img
+								src={session.image}
+								alt={session?.name || session?.email || "User"}
+								className="w-full h-full rounded-full object-cover"
+							/>
+						) : (
+							<User className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+						)}
 					</div>
-					<div className="flex-1">
-						<p className="text-white font-medium text-sm">{session?.email}</p>
-						<p className="text-white/60 text-xs">Logged in</p>
+					<div className="flex-1 min-w-0">
+						<div className="space-y-1">
+							{session?.name && (
+								<h3 className="text-foreground font-semibold text-base sm:text-lg truncate">
+									{session.name}
+								</h3>
+							)}
+							<p className="text-foreground font-medium text-sm truncate">
+								{session?.email}
+							</p>
+						</div>
+					</div>
+				</div>
+
+				{/* Additional Profile Details */}
+				<div className="border-t border-border pt-3 space-y-2">
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs">
+						<div>
+							<span className="text-muted-foreground block">Organization</span>
+							<span className="text-foreground font-medium">
+								{organizations?.name || "Personal"}
+							</span>
+						</div>
+						<div>
+							<span className="text-muted-foreground block">Member since</span>
+							<span className="text-foreground font-medium">
+								{session?.createdAt
+									? new Date(session.createdAt).toLocaleDateString("en-US", {
+											month: "short",
+											year: "numeric",
+										})
+									: "Recent"}
+							</span>
+						</div>
 					</div>
 				</div>
 			</div>
 
-			{isCustomerLoading ? (
-				<div className="bg-white/5 rounded-lg p-4 space-y-3 flex items-center justify-center">
-					<LoaderIcon className="h-4 w-4 animate-spin mr-2" />
-					Loading...
+			{/* Billing Section */}
+			{autumn.isLoading || isCheckingStatus ? (
+				<div className="bg-card border border-border rounded-lg p-3 sm:p-4 space-y-3">
+					<div className="flex items-center gap-3 mb-3">
+						<Skeleton className="w-8 h-8 sm:w-10 sm:h-10 rounded-full" />
+						<div className="flex-1 space-y-2">
+							<Skeleton className="h-4 w-20" />
+							<Skeleton className="h-3 w-32" />
+						</div>
+					</div>
+					<div className="space-y-2">
+						<div className="flex justify-between items-center">
+							<Skeleton className="h-3 w-16" />
+							<Skeleton className="h-3 w-12" />
+						</div>
+						<Skeleton className="h-2 w-full rounded-full" />
+					</div>
+					<div className="flex justify-between items-center">
+						<Skeleton className="h-3 w-20" />
+						<Skeleton className="h-3 w-8" />
+					</div>
+					<div className="pt-2">
+						<Skeleton className="h-8 w-full rounded" />
+					</div>
 				</div>
 			) : (
-				<>
-					{/* Billing Section */}
-					<div className="bg-white/5 rounded-lg p-4 space-y-3">
-						<div className="flex items-center gap-3 mb-3">
-							<div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-								<CreditCard className="w-5 h-5 text-white/80" />
-							</div>
-							<div className="flex-1">
-								<HeadingH3Bold className="text-white text-sm">
-									{billingData.isPro ? "Pro Plan" : "Free Plan"}
-									{billingData.isPro && (
-										<span className="ml-2 text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-											Active
-										</span>
-									)}
-								</HeadingH3Bold>
-								<p className="text-white/60 text-xs">
-									{billingData.isPro
-										? "Expanded memory capacity"
-										: "Basic plan"}
-								</p>
-							</div>
+				<div className="bg-card border border-border rounded-lg p-3 sm:p-4 space-y-3">
+					<div className="flex items-center gap-3 mb-3">
+						<div className="w-8 h-8 sm:w-10 sm:h-10 bg-muted rounded-full flex items-center justify-center">
+							<CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
 						</div>
-
-						{/* Usage Stats */}
-						<div className="space-y-2">
-							<div className="flex justify-between items-center">
-								<span className="text-sm text-white/70">Memories</span>
-								<span
-									className={`text-sm ${billingData.memoriesUsed >= billingData.memoriesLimit ? "text-red-400" : "text-white/90"}`}
-								>
-									{billingData.memoriesUsed} / {billingData.memoriesLimit}
-								</span>
-							</div>
-							<div className="w-full bg-white/10 rounded-full h-2">
-								<div
-									className={`h-2 rounded-full transition-all ${
-										billingData.memoriesUsed >= billingData.memoriesLimit
-											? "bg-red-500"
-											: billingData.isPro
-												? "bg-green-500"
-												: "bg-blue-500"
-									}`}
-									style={{
-										width: `${Math.min((billingData.memoriesUsed / billingData.memoriesLimit) * 100, 100)}%`,
-									}}
-								/>
-							</div>
-						</div>
-
-						{billingData.isPro && (
-							<div className="flex justify-between items-center">
-								<span className="text-sm text-white/70">Connections</span>
-								<span className="text-sm text-white/90">
-									{billingData.connectionsUsed} / 10
-								</span>
-							</div>
-						)}
-
-						{/* Billing Actions */}
-						<div className="pt-2">
-							{billingData.isPro ? (
-								<motion.div
-									whileHover={{ scale: 1.02 }}
-									whileTap={{ scale: 0.98 }}
-								>
-									<Button
-										className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
-										onClick={handleManageBilling}
-										size="sm"
-										variant="outline"
-									>
-										Manage Billing
-									</Button>
-								</motion.div>
-							) : (
-								<motion.div
-									whileHover={{ scale: 1.02 }}
-									whileTap={{ scale: 0.98 }}
-								>
-									<Button
-										className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0"
-										disabled={isLoading || isCustomerLoading}
-										onClick={handleUpgrade}
-										size="sm"
-									>
-										{isLoading || isCustomerLoading ? (
-											<>
-												<LoaderIcon className="h-4 w-4 animate-spin mr-2" />
-												Upgrading...
-											</>
-										) : (
-											"Upgrade to Pro - $15/month"
-										)}
-									</Button>
-								</motion.div>
-							)}
+						<div className="flex-1">
+							<HeadingH3Bold className="text-foreground text-sm">
+								{isPro ? "Pro Plan" : "Free Plan"}
+								{isPro && (
+									<span className="ml-2 text-xs bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+										Active
+									</span>
+								)}
+							</HeadingH3Bold>
+							<p className="text-muted-foreground text-xs">
+								{isPro ? "Expanded memory capacity" : "Basic plan"}
+							</p>
 						</div>
 					</div>
 
-					{/* Plan Comparison - Only show for free users */}
-					{!billingData.isPro && (
-						<div className="bg-white/5 rounded-lg p-4 space-y-4">
-							<HeadingH3Bold className="text-white text-sm">
-								Upgrade to Pro
-							</HeadingH3Bold>
+					{/* Usage Stats */}
+					<div className="space-y-2">
+						<div className="flex justify-between items-center">
+							<span className="text-sm text-muted-foreground">Memories</span>
+							<span
+								className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-500" : "text-foreground"}`}
+							>
+								{memoriesUsed} / {memoriesLimit}
+							</span>
+						</div>
+						<div className="w-full bg-muted-foreground/50 rounded-full h-2">
+							<div
+								className={`h-2 rounded-full transition-all ${
+									memoriesUsed >= memoriesLimit
+										? "bg-red-500"
+										: isPro
+											? "bg-green-500"
+											: "bg-blue-500"
+								}`}
+								style={{
+									width: `${Math.min((memoriesUsed / memoriesLimit) * 100, 100)}%`,
+								}}
+							/>
+						</div>
+					</div>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{isPro && (
+						<div className="flex justify-between items-center">
+							<span className="text-sm text-muted-foreground">Connections</span>
+							<span className="text-sm text-foreground">
+								{connectionsUsed} / 10
+							</span>
+						</div>
+					)}
+
+					{/* Billing Actions */}
+					<div className="pt-2">
+						{isPro ? (
+							<Button
+								className="w-full"
+								onClick={handleManageBilling}
+								size="sm"
+								variant="default"
+							>
+								Manage Billing
+							</Button>
+						) : (
+							<Button
+								className="w-full bg-[#267ffa] hover:bg-[#267ffa]/90 text-white border-0"
+								disabled={isLoading || isCheckingStatus}
+								onClick={handleUpgrade}
+								size="lg"
+							>
+								{isLoading || isCheckingStatus ? (
+									<>
+										<LoaderIcon className="h-4 w-4 animate-spin mr-2" />
+										<span className="hidden sm:inline">Upgrading...</span>
+										<span className="sm:hidden">Loading...</span>
+									</>
+								) : (
+									<>
+										<span className="hidden sm:inline">
+											Upgrade to Pro - $15/month
+										</span>
+										<span className="sm:hidden">Upgrade to Pro</span>
+									</>
+								)}
+							</Button>
+						)}
+					</div>
+
+					{!isPro && (
+						<div className="space-y-4">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
 								{/* Free Plan */}
-								<div className="p-3 bg-white/5 rounded-lg border border-white/10">
-									<h4 className="font-medium text-white/90 mb-3 text-sm">
+								<div className="p-3 bg-muted/50 rounded-lg border border-border">
+									<h4 className="font-medium text-foreground mb-3 text-sm">
 										Free Plan
 									</h4>
 									<ul className="space-y-2">
-										<li className="flex items-center gap-2 text-sm text-white/70">
-											<CheckCircle className="h-4 w-4 text-green-400" />
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+											<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
 											200 memories
 										</li>
-										<li className="flex items-center gap-2 text-sm text-white/70">
-											<X className="h-4 w-4 text-red-400" />
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+											<X className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
 											No connections
 										</li>
-										<li className="flex items-center gap-2 text-sm text-white/70">
-											<CheckCircle className="h-4 w-4 text-green-400" />
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+											<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
 											Basic search
 										</li>
 									</ul>
@@ -292,50 +283,43 @@ export function ProfileView() {
 
 								{/* Pro Plan */}
 								<div className="p-3 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
-									<h4 className="font-medium text-white mb-3 flex items-center gap-2 text-sm">
-										Pro Plan
-										<span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
-											Recommended
-										</span>
+									<h4 className="font-medium text-foreground mb-3 text-sm">
+										<div className="flex items-center gap-2 flex-wrap">
+											<span>Pro Plan</span>
+											<span className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">
+												Recommended
+											</span>
+										</div>
 									</h4>
 									<ul className="space-y-2">
-										<li className="flex items-center gap-2 text-sm text-white/90">
+										<li className="flex items-center gap-2 text-sm text-black/90">
 											<CheckCircle className="h-4 w-4 text-green-400" />
 											Unlimited memories
 										</li>
-										<li className="flex items-center gap-2 text-sm text-white/90">
-											<CheckCircle className="h-4 w-4 text-green-400" />
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-foreground">
+											<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
 											10 connections
 										</li>
-										<li className="flex items-center gap-2 text-sm text-white/90">
-											<CheckCircle className="h-4 w-4 text-green-400" />
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-foreground">
+											<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
 											Advanced search
 										</li>
-										<li className="flex items-center gap-2 text-sm text-white/90">
-											<CheckCircle className="h-4 w-4 text-green-400" />
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-foreground">
+											<CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
 											Priority support
 										</li>
 									</ul>
 								</div>
 							</div>
 
-							<p className="text-xs text-white/50 text-center">
+							<p className="text-xs text-muted-foreground text-center leading-relaxed">
 								$15/month (only for first 100 users) • Cancel anytime. No
 								questions asked.
 							</p>
 						</div>
 					)}
-				</>
+				</div>
 			)}
-
-			<Button
-				className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-200 border-red-500/30"
-				onClick={handleLogout}
-				variant="destructive"
-			>
-				<LogOut className="w-4 h-4 mr-2" />
-				Sign Out
-			</Button>
 		</div>
 	)
 }

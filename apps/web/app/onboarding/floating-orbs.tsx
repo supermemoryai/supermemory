@@ -67,19 +67,19 @@ function FloatingOrb({ size, initialX, initialY, duration, delay, revealDelay, s
         return {
             x: {
                 duration: shouldReveal ? duration : 0,
-                repeat: shouldReveal ? Infinity : 0,
+                repeat: shouldReveal ? Number.POSITIVE_INFINITY : 0,
                 ease: [0.42, 0, 0.58, 1],
                 delay: shouldReveal ? delay + revealDelay : 0,
             },
             y: {
                 duration: shouldReveal ? duration : 0,
-                repeat: shouldReveal ? Infinity : 0,
+                repeat: shouldReveal ? Number.POSITIVE_INFINITY : 0,
                 ease: [0.42, 0, 0.58, 1],
                 delay: shouldReveal ? delay + revealDelay : 0,
             },
             scale: {
                 duration: shouldReveal ? duration : 0.8,
-                repeat: shouldReveal ? Infinity : 0,
+                repeat: shouldReveal ? Number.POSITIVE_INFINITY : 0,
                 ease: shouldReveal ? [0.42, 0, 0.58, 1] : [0, 0, 0.58, 1],
                 delay: shouldReveal ? delay + revealDelay : revealDelay,
             },
@@ -163,7 +163,8 @@ export function FloatingOrbs() {
 
         // Generate orb configurations positioned along edges
         const newOrbs = Array.from({ length: 8 }, (_, i) => {
-            let x, y;
+            let x: number;
+            let y: number;
             const zone = i % 4; // Rotate through 4 zones: top, right, bottom, left
 
             switch (zone) {

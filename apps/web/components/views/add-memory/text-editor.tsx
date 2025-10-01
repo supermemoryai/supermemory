@@ -285,7 +285,7 @@ export function TextEditor({
 				return (
 					<blockquote
 						{...props.attributes}
-						className="border-l-4 border-white/20 pl-4 italic text-white/80"
+						className="border-l-4 border-foreground/20 pl-4 italic text-foreground/80"
 					>
 						{props.children}
 					</blockquote>
@@ -312,7 +312,7 @@ export function TextEditor({
 
 		if (leaf.code) {
 			children = (
-				<code className="bg-white/10 px-1 rounded text-sm">{children}</code>
+				<code className="bg-foreground/10 px-1 rounded text-sm">{children}</code>
 			);
 		}
 
@@ -402,10 +402,10 @@ export function TextEditor({
 			variant="ghost"
 			size="sm"
 			className={cn(
-				"h-8 w-8 !p-0 text-white/70 transition-all duration-200 rounded-sm",
-				"hover:bg-white/15 hover:text-white hover:scale-105",
+				"h-8 w-8 !p-0 text-foreground/70 transition-all duration-200 rounded-sm",
+				"hover:bg-foreground/15 hover:text-foreground hover:scale-105",
 				"active:scale-95",
-				isActive && "bg-white/20 text-white",
+				isActive && "bg-foreground/20 text-foreground",
 			)}
 			onMouseDown={onMouseDown}
 			title={title}
@@ -444,7 +444,7 @@ export function TextEditor({
 						onBlur={onBlur}
 						readOnly={disabled}
 						className={cn(
-							"outline-none w-full h-full text-white placeholder:text-white/50",
+							"outline-none w-full h-full placeholder:text-foreground/50",
 							disabled && "opacity-50 cursor-not-allowed",
 						)}
 						style={{
@@ -457,7 +457,7 @@ export function TextEditor({
 			</div>
 
 			{/* Toolbar */}
-			<div className="p-1 flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-b-md">
+			<div className="p-1 flex items-center gap-2 bg-foreground/5 backdrop-blur-sm rounded-b-md">
 				<div className="flex items-center gap-1">
 					{/* Text formatting */}
 					<ToolbarButton
@@ -489,7 +489,7 @@ export function TextEditor({
 					/>
 				</div>
 
-				<div className="w-px h-6 bg-white/30 mx-2" />
+				<div className="w-px h-6 bg-foreground/30 mx-2" />
 
 				<div className="flex items-center gap-1">
 					{/* Block formatting */}

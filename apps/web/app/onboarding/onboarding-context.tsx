@@ -110,7 +110,7 @@ export function OnboardingProvider({
 			}, 400),
 		]
 
-		return () => cleanups.forEach((cleanup) => clearTimeout(cleanup))
+		return () => cleanups.forEach(clearTimeout)
 	}, [currentStep])
 
 	// Set orbs as revealed once the fourth trigger is activated OR if we're on any non-intro step
