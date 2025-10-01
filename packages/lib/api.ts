@@ -187,6 +187,11 @@ export const apiSchema = createSchema({
 		}),
 	},
 
+	// MCP operations
+	"@get/mcp/has-login": {
+		output: z.object({ previousLogin: z.boolean() }),
+	},
+
 	// Waitlist operations
 	"@get/waitlist/status": {
 		output: WaitlistStatusResponseSchema,
