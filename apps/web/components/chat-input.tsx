@@ -7,11 +7,13 @@ import { usePersistentChat } from "@/stores/chat"
 import { ArrowUp } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { ProjectSelector } from "./project-selector"
+import { useAuth } from "@lib/auth-context"
 
 export function ChatInput() {
 	const [message, setMessage] = useState("")
 	const router = useRouter()
 	const { setCurrentChatId } = usePersistentChat()
+	const { user } = useAuth()
 
 	const handleSend = () => {
 		if (!message.trim()) return
@@ -40,7 +42,7 @@ export function ChatInput() {
 			<div className="w-full max-w-4xl">
 				<div className="text-start mb-4">
 					<h2 className="text-3xl font-bold text-foreground">
-						Good evening, <span className="text-primary">Mahesh</span>
+						Welcome, <span className="text-primary">{user?.name}</span>
 					</h2>
 				</div>
 				<div className="relative">
