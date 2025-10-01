@@ -15,7 +15,7 @@ export function NavMenu({ children }: { children: React.ReactNode }) {
         intro: "Intro",
         name: "Name",
         bio: "About you",
-        connections: "Connections",
+        // connections: "Connections",
         mcp: "MCP",
         extension: "Extension",
         welcome: "Welcome",

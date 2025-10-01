@@ -1,47 +1,45 @@
-import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google";
-import "../globals.css";
-import "@ui/globals.css";
-import { AuthProvider } from "@lib/auth-context";
-import { ErrorTrackingProvider } from "@lib/error-tracking";
-import { PostHogProvider } from "@lib/posthog";
-import { QueryProvider } from "@lib/query-client";
-import { AutumnProvider } from "autumn-js/react";
-import { Suspense } from "react";
-import { Toaster } from "sonner";
-import { TourProvider } from "@/components/tour";
-import { MobilePanelProvider } from "@/lib/mobile-panel-context";
-import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import type { Metadata } from "next"
+import { Inter, JetBrains_Mono, Instrument_Serif } from "next/font/google"
+import "../globals.css"
+import "@ui/globals.css"
+import { AuthProvider } from "@lib/auth-context"
+import { ErrorTrackingProvider } from "@lib/error-tracking"
+import { PostHogProvider } from "@lib/posthog"
+import { QueryProvider } from "@lib/query-client"
+import { AutumnProvider } from "autumn-js/react"
+import { Suspense } from "react"
+import { Toaster } from "sonner"
+import { MobilePanelProvider } from "@/lib/mobile-panel-context"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 
-
-import { ViewModeProvider } from "@/lib/view-mode-context";
+import { ViewModeProvider } from "@/lib/view-mode-context"
 
 const sans = Inter({
 	subsets: ["latin"],
 	variable: "--font-sans",
-});
+})
 
 const mono = JetBrains_Mono({
 	subsets: ["latin"],
 	variable: "--font-mono",
-});
+})
 
 const serif = Instrument_Serif({
 	subsets: ["latin"],
 	variable: "--font-serif",
 	weight: ["400"],
-});
+})
 
 export const metadata: Metadata = {
 	metadataBase: new URL("https://app.supermemory.ai"),
 	description: "Your memories, wherever you are",
 	title: "supermemory app",
-};
+}
 
 export default function RootLayout({
 	children,
 }: Readonly<{
-	children: React.ReactNode;
+	children: React.ReactNode
 }>) {
 	return (
 		<html className="dark bg-sm-black" lang="en">
@@ -61,10 +59,8 @@ export default function RootLayout({
 									<PostHogProvider>
 										<ErrorTrackingProvider>
 											<NuqsAdapter>
-												<TourProvider>
-													<Suspense>{children}</Suspense>
-													<Toaster richColors theme="dark" />
-												</TourProvider>
+												<Suspense>{children}</Suspense>
+												<Toaster richColors theme="dark" />
 											</NuqsAdapter>
 										</ErrorTrackingProvider>
 									</PostHogProvider>
@@ -75,5 +71,5 @@ export default function RootLayout({
 				</AutumnProvider>
 			</body>
 		</html>
-	);
+	)
 }

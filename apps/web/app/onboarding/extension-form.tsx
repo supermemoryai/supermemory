@@ -628,80 +628,91 @@ function TwitterDemo() {
 export function ExtensionForm() {
     const { totalSteps, nextStep, getStepNumberFor } = useOnboarding();
     return (
-        <div className="relative flex items-start flex-col gap-6">
-            <div className="flex items-center justify-between w-full">
-                <div className="flex flex-col items-start text-left gap-4">
-                    <NavMenu>
-                        <p className="text-base text-zinc-600">
-                            Step {getStepNumberFor("extension")} of {totalSteps}
-                        </p>
-                    </NavMenu>
-                    <h1>Install the Chrome extension</h1>
-                    <p className="text-zinc-600 text-2xl">
-                        {/* Install the Supermemory extension to start saving and organizing everything that matters. */}
-                        Bring Supermemory everywhere
-                    </p>
-                </div>
-                <div className="flex flex-col items-center text-center gap-4">
-                    <a href="https://supermemory.ai/extension" target="_blank" className="bg-zinc-50/80 backdrop-blur-lg border-2 hover:bg-zinc-100/80 transition-colors duration-100 border-zinc-200/80 shadow-xs rounded-full mt-6 pl-4.5 pr-6 py-4 text-2xl font-sans tracking-tight font-medium flex items-center gap-4">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Google_Chrome_icon_%28February_2022%29.svg/2048px-Google_Chrome_icon_%28February_2022%29.svg.png" alt="Chrome" className="size-8" />
-                        Add to Chrome
-                    </a>
-                </div>
-            </div>
+					<div className="relative flex items-start flex-col gap-6">
+						<div className="flex items-center justify-between w-full">
+							<div className="flex flex-col items-start text-left gap-4">
+								<NavMenu>
+									<p className="text-base text-white/60">
+										Step {getStepNumberFor("extension")} of {totalSteps}
+									</p>
+								</NavMenu>
+								<h1 className="text-white">Install the Chrome extension</h1>
+								<p className="text-white/80 text-2xl">
+									{/* Install the Supermemory extension to start saving and organizing everything that matters. */}
+									Bring Supermemory everywhere
+								</p>
+							</div>
+							<div className="flex flex-col items-center text-center gap-4">
+								<a
+									href="https://chromewebstore.google.com/detail/afpgkkipfdpeaflnpoaffkcankadgjfc?utm_source=item-share-cb"
+									rel="noopener noreferrer"
+									target="_blank"
+									className="bg-zinc-50/80 backdrop-blur-lg border-2 hover:bg-zinc-100/80 transition-colors duration-100 border-zinc-200/80 shadow-xs rounded-full mt-6 pl-4.5 pr-6 py-4 text-2xl font-sans tracking-tight font-medium flex items-center gap-4"
+								>
+									<img
+										src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Google_Chrome_icon_%28February_2022%29.svg/2048px-Google_Chrome_icon_%28February_2022%29.svg.png"
+										alt="Chrome"
+										className="size-8"
+									/>
+									Add to Chrome
+								</a>
+							</div>
+						</div>
 
-            <div className="grid grid-cols-3 w-fit gap-4 text-base font-sans font-medium tracking-normal">
-                <div className="flex flex-col w-80 divide-y divide-zinc-200 border border-zinc-200 shadow-xs rounded-xl overflow-hidden">
-                    <div className="p-4 bg-white">
-                        <h2 className="text-lg">Remember anything, anywhere</h2>
-                        <p className="text-zinc-600 text-sm">
-                            Just right-click to save instantly.
-                        </p>
-                    </div>
-                    <div className="aspect-square bg-blue-500">
-                        <SnippetDemo />
-                    </div>
-
-                </div>
-                <div className="flex flex-col w-80 divide-y divide-zinc-200 border border-zinc-200 shadow-xs rounded-xl overflow-hidden">
-
-                    <div className="p-4 bg-white">
-                        <h2 className="text-lg">Integrate with your AI</h2>
-                        {/* Supercharge your AI with memory */}
-                        {/* Supercharge any AI with Supermemory. */}
-                        {/* ChatGPT is better with Supermemory. */}
-                        {/* Seamless integration with your workflow */}
-                        <p className="text-zinc-600 text-sm">
-                            {/* Integrates with ChatGPT and Claude. */}
-                            {/* Integrates with your chat apps */}
-                            Enhance any prompt with Supermemory.
-                            {/* Seamlessly */}
-                        </p>
-                    </div>
-                    <div className="aspect-square bg-blue-500">
-                        <ChatGPTDemo />
-                    </div>
-                </div>
-                <div className="flex flex-col w-80 divide-y divide-zinc-200 border border-zinc-200 shadow-xs rounded-xl overflow-hidden">
-
-                    <div className="p-4 bg-white">
-                        <h2 className="text-lg">Import Twitter bookmarks</h2>
-                        <p className="text-zinc-600 text-sm">
-                            Search semantically and effortlessly.
-                            {/* Import instantly and search effortlessly. */}
-                        </p>
-                    </div><div className="aspect-square bg-blue-500">
-                        <TwitterDemo />
-                    </div>
-
-                </div>
-            </div>
-            <div className="flex w-full justify-end">
-                <Button variant="link" size="lg" className="text-zinc-900 font-medium! text-lg underline w-fit px-0! cursor-pointer" onClick={nextStep}>
-                    Continue
-                    <ChevronRightIcon className="size-4" />
-                </Button>
-            </div>
-        </div>
-    );
+						<div className="grid grid-cols-3 w-fit gap-4 text-base font-sans font-medium tracking-normal">
+							<div className="flex flex-col w-80 divide-y divide-zinc-200 border border-zinc-200 shadow-xs rounded-xl overflow-hidden">
+								<div className="p-4 bg-white">
+									<h2 className="text-lg">Remember anything, anywhere</h2>
+									<p className="text-zinc-600 text-sm">
+										Just right-click to save instantly.
+									</p>
+								</div>
+								<div className="aspect-square bg-blue-500">
+									<SnippetDemo />
+								</div>
+							</div>
+							<div className="flex flex-col w-80 divide-y divide-zinc-200 border border-zinc-200 shadow-xs rounded-xl overflow-hidden">
+								<div className="p-4 bg-white">
+									<h2 className="text-lg">Integrate with your AI</h2>
+									{/* Supercharge your AI with memory */}
+									{/* Supercharge any AI with Supermemory. */}
+									{/* ChatGPT is better with Supermemory. */}
+									{/* Seamless integration with your workflow */}
+									<p className="text-zinc-600 text-sm">
+										{/* Integrates with ChatGPT and Claude. */}
+										{/* Integrates with your chat apps */}
+										Enhance any prompt with Supermemory.
+										{/* Seamlessly */}
+									</p>
+								</div>
+								<div className="aspect-square bg-blue-500">
+									<ChatGPTDemo />
+								</div>
+							</div>
+							<div className="flex flex-col w-80 divide-y divide-zinc-200 border border-zinc-200 shadow-xs rounded-xl overflow-hidden">
+								<div className="p-4 bg-white">
+									<h2 className="text-lg">Import Twitter bookmarks</h2>
+									<p className="text-zinc-600 text-sm">
+										Search semantically and effortlessly.
+										{/* Import instantly and search effortlessly. */}
+									</p>
+								</div>
+								<div className="aspect-square bg-blue-500">
+									<TwitterDemo />
+								</div>
+							</div>
+						</div>
+						<div className="flex w-full justify-end">
+							<Button
+								variant="link"
+								size="lg"
+								className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+								onClick={nextStep}
+							>
+								Continue
+								<ChevronRightIcon className="size-4" />
+							</Button>
+						</div>
+					</div>
+				)
 }
