@@ -1,6 +1,7 @@
 import type { UIMessage } from "@ai-sdk/react"
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { useCallback } from "react"
 
 /**
  * Deep equality check for UIMessage arrays to prevent unnecessary state updates
@@ -206,39 +207,48 @@ export function usePersistentChat() {
 
 	const currentChatId = projectState?.currentChatId ?? null
 
-	function setCurrentChatId(chatId: string | null): void {
-		setCurrentChatIdRaw(projectId, chatId)
-	}
+	const setCurrentChatId = useCallback(
+		(chatId: string | null): void => {
+			setCurrentChatIdRaw(projectId, chatId)
+		},
+		[projectId, setCurrentChatIdRaw],
+	)
 
-	function setConversation(chatId: string, messages: UIMessage[]): void {
-		setConversationRaw(projectId, chatId, messages)
-	}
+	const setConversation = useCallback(
+		(chatId: string, messages: UIMessage[]): void => {
+			setConversationRaw(projectId, chatId, messages)
+		},
+		[projectId, setConversationRaw],
+	)
 
-	function deleteConversation(chatId: string): void {
-		deleteConversationRaw(projectId, chatId)
-	}
+	const deleteConversation = useCallback(
+		(chatId: string): void => {
+			deleteConversationRaw(projectId, chatId)
+		},
+		[projectId, deleteConversationRaw],
+	)
 
-	function setConversationTitle(
-		chatId: string,
-		title: string | undefined,
-	): void {
-		setConversationTitleRaw(projectId, chatId, title)
-	}
+	const setConversationTitle = useCallback(
+		(chatId: string, title: string | undefined): void => {
+			setConversationTitleRaw(projectId, chatId, title)
+		},
+		[projectId, setConversationTitleRaw],
+	)
 
-	function getCurrentConversation(): UIMessage[] | undefined {
+	const getCurrentConversation = useCallback((): UIMessage[] | undefined => {
 		const convs = projectState?.conversations ?? {}
 		const id = currentChatId
 		if (!id) return undefined
 		return convs[id]?.messages
-	}
+	}, [projectState?.conversations, currentChatId])
 
-	function getCurrentChat(): ConversationSummary | undefined {
+	const getCurrentChat = useCallback((): ConversationSummary | undefined => {
 		const id = currentChatId
 		if (!id) return undefined
 		const rec = projectState?.conversations?.[id]
 		if (!rec) return undefined
 		return { id, title: rec.title, lastUpdated: rec.lastUpdated }
-	}
+	}, [currentChatId, projectState?.conversations])
 
 	return {
 		conversations,

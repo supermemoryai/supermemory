@@ -8,5 +8,12 @@
 				"recommended": true
 			}
 		}
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"useSortedAttributes": "off"
+			}
+		}
 	}
 }

@@ -1,3 +1,4 @@
+import { MCPIcon } from '@/components/menu';
 import { colors } from '@repo/ui/memory-graph/constants';
 import {
   GoogleDocs,
@@ -14,11 +15,15 @@ import {
 } from '@ui/assets/icons';
 import { FileText } from 'lucide-react';
 
-export const getDocumentIcon = (type: string, className: string) => {
+export const getDocumentIcon = (type: string, className: string, source?: string) => {
   const iconProps = {
     className,
     style: { color: colors.text.muted },
   };
+
+  if(source === "mcp") {
+    return <MCPIcon {...iconProps} />;
+  }
 
   switch (type) {
     case 'google_doc':

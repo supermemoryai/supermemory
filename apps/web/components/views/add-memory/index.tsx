@@ -1,8 +1,6 @@
+"use client"
 import { $fetch } from "@lib/api"
-import {
-	fetchConsumerProProduct,
-	fetchMemoriesFeature,
-} from "@repo/lib/queries"
+import { fetchMemoriesFeature } from "@repo/lib/queries"
 import { Button } from "@repo/ui/components/button"
 import {
 	Dialog,
@@ -12,6 +10,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@repo/ui/components/dialog"
+import {
+	Tabs,
+	TabsList,
+	TabsTrigger,
+	TabsContent,
+} from "@repo/ui/components/tabs"
 import { Input } from "@repo/ui/components/input"
 import { Label } from "@repo/ui/components/label"
 import { Textarea } from "@repo/ui/components/textarea"
@@ -43,13 +47,12 @@ import { ConnectionsTabContent } from "../connections-tab-content"
 import { ActionButtons } from "./action-buttons"
 import { MemoryUsageRing } from "./memory-usage-ring"
 import { ProjectSelection } from "./project-selection"
-import { TabButton } from "./tab-button"
 
 const TextEditor = dynamic(
 	() => import("./text-editor").then((mod) => ({ default: mod.TextEditor })),
 	{
 		loading: () => (
-			<div className="bg-white/5 border border-white/10 rounded-md">
+			<div className="bg-foreground/5 border border-foreground/10 rounded-md">
 				<div className="flex-1 min-h-48 max-h-64 overflow-y-auto flex items-center justify-center text-white/70">
 					Loading editor...
 				</div>
@@ -65,28 +68,6 @@ const TextEditor = dynamic(
 		ssr: false,
 	},
 )
-
-// // Processing status component
-// function ProcessingStatus({ status }: { status: string }) {
-// 	const statusConfig = {
-// 		queued: { color: "text-yellow-400", label: "Queued", icon: "⏳" },
-// 		extracting: { color: "text-blue-400", label: "Extracting", icon: "📤" },
-// 		chunking: { color: "text-indigo-400", label: "Chunking", icon: "✂️" },
-// 		embedding: { color: "text-purple-400", label: "Embedding", icon: "🧠" },
-// 		indexing: { color: "text-pink-400", label: "Indexing", icon: "📝" },
-// 		unknown: { color: "text-gray-400", label: "Processing", icon: "⚙️" },
-// 	}
-
-// 	const config =
-// 		statusConfig[status as keyof typeof statusConfig] || statusConfig.unknown
-
-// 	return (
-// 		<div className={`flex items-center gap-1 text-xs ${config.color}`}>
-// 			<span>{config.icon}</span>
-// 			<span>{config.label}</span>
-// 		</div>
-// 	)
-// }
 
 export function AddMemoryView({
 	onClose,
@@ -107,7 +88,7 @@ export function AddMemoryView({
 	const [newProjectName, setNewProjectName] = useState("")
 
 	// Check memory limits
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn)
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn, !autumn.isLoading)
 
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0
@@ -560,460 +541,452 @@ export function AddMemoryView({
 					open={showAddDialog}
 				>
 					<DialogContent
-						className="w-[95vw] max-w-3xl sm:max-w-3xl bg-[#0f1419] backdrop-blur-xl border-white/10 text-white z-[80] max-h-[90vh] overflow-y-auto"
+						className="w-[100vw] max-w-4xl sm:max-w-4xl backdrop-blur-xl border-white/10 z-[80] h-[52vh] overflow-y-auto p-4"
 						showCloseButton={false}
 					>
-						<motion.div
-							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.95 }}
-							initial={{ opacity: 0, scale: 0.95 }}
+						<Tabs
+							value={activeTab}
+							onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+							className="flex flex-row gap-4"
+							orientation="vertical"
 						>
-							<DialogHeader>
-								<div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-									<div className="flex-1">
-										<DialogTitle className="text-base">
-											Add to Memory
-										</DialogTitle>
-										<DialogDescription className="text-white/50">
-											Save any webpage, article, or file to your memory
-										</DialogDescription>
+							<TabsList className="flex flex-col gap-2 max-w-48 h-fit bg-transparent p-0">
+								<TabsTrigger
+									value="note"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+								>
+									<div className="flex gap-1 items-center">
+										<Brain className="h-4 w-4" />
+										Note
 									</div>
-									<div className="sm:ml-4 order-first sm:order-last">
-										<div className="bg-white/5 p-1 h-10 sm:h-8 rounded-md flex overflow-x-auto">
-											<TabButton
-												icon={Brain}
-												isActive={activeTab === "note"}
-												label="Note"
-												onClick={() => setActiveTab("note")}
-											/>
-											<TabButton
-												icon={LinkIcon}
-												isActive={activeTab === "link"}
-												label="Link"
-												onClick={() => setActiveTab("link")}
-											/>
-											<TabButton
-												icon={FileIcon}
-												isActive={activeTab === "file"}
-												label="File"
-												onClick={() => setActiveTab("file")}
-											/>
-											<TabButton
-												icon={PlugIcon}
-												isActive={activeTab === "connect"}
-												label="Connect"
-												onClick={() => setActiveTab("connect")}
+									<span className="text-xs text-muted-foreground text-wrap text-left">
+										Write down your thoughts
+									</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="link"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+								>
+									<div className="flex gap-1 items-center">
+										<LinkIcon className="h-4 w-4" />
+										Link
+									</div>
+									<span className="text-xs text-muted-foreground text-wrap text-left">
+										Save any webpage
+									</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="file"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+								>
+									<div className="flex gap-1 items-center">
+										<FileIcon className="h-4 w-4" />
+										File
+									</div>
+									<span className="text-xs text-muted-foreground text-wrap text-left">
+										Upload any file
+									</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="connect"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+								>
+									<div className="flex gap-1 items-center">
+										<PlugIcon className="h-4 w-4" />
+										Connect
+									</div>
+									<span className="text-xs text-muted-foreground text-wrap text-left">
+										Connect to your favorite apps
+									</span>
+								</TabsTrigger>
+							</TabsList>
+
+							<TabsContent value="note" className="space-y-4">
+								<form
+									onSubmit={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										addContentForm.handleSubmit()
+									}}
+									className="h-full flex flex-col"
+								>
+									<div className="grid gap-4">
+										{/* Note Input */}
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="flex flex-col gap-2"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.1 }}
+										>
+											<addContentForm.Field
+												name="content"
+												validators={{
+													onChange: ({ value }) => {
+														if (!value || value.trim() === "") {
+															return "Note is required"
+														}
+														return undefined
+													},
+												}}
+											>
+												{({ state, handleChange, handleBlur }) => (
+													<>
+														<div
+															className={`bg-black/5 border border-black/10 rounded-md ${
+																addContentMutation.isPending ? "opacity-50" : ""
+															}`}
+														>
+															<TextEditor
+																disabled={addContentMutation.isPending}
+																onBlur={handleBlur}
+																onChange={handleChange}
+																placeholder="Write your note here..."
+																value={state.value}
+															/>
+														</div>
+														{state.meta.errors.length > 0 && (
+															<motion.p
+																animate={{ opacity: 1, height: "auto" }}
+																className="text-sm text-red-400 mt-1"
+																exit={{ opacity: 0, height: 0 }}
+																initial={{ opacity: 0, height: 0 }}
+															>
+																{state.meta.errors
+																	.map((error) =>
+																		typeof error === "string"
+																			? error
+																			: (error?.message ??
+																				`Error: ${JSON.stringify(error)}`),
+																	)
+																	.join(", ")}
+															</motion.p>
+														)}
+													</>
+												)}
+											</addContentForm.Field>
+										</motion.div>
+									</div>
+									<div className="flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4 mt-auto">
+										<div className="flex flex-col sm:flex-row sm:items-end gap-4 order-2 sm:order-1">
+											{/* Project Selection */}
+											<motion.div
+												animate={{ opacity: 1, y: 0 }}
+												className={`flex flex-col gap-2 flex-1 sm:flex-initial ${
+													addContentMutation.isPending ? "opacity-50" : ""
+												}`}
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.15 }}
+											>
+												<addContentForm.Field name="project">
+													{({ state, handleChange }) => (
+														<ProjectSelection
+															disabled={addContentMutation.isPending}
+															id="note-project"
+															isLoading={isLoadingProjects}
+															onCreateProject={() =>
+																setShowCreateProjectDialog(true)
+															}
+															onProjectChange={handleChange}
+															projects={projects}
+															selectedProject={state.value}
+														/>
+													)}
+												</addContentForm.Field>
+											</motion.div>
+
+											<MemoryUsageRing
+												memoriesLimit={memoriesLimit}
+												memoriesUsed={memoriesUsed}
 											/>
 										</div>
-									</div>
-								</div>
-							</DialogHeader>
 
-							<div className="mt-4">
-								{activeTab === "note" && (
-									<div className="space-y-4">
-										<form
-											onSubmit={(e) => {
-												e.preventDefault()
-												e.stopPropagation()
-												addContentForm.handleSubmit()
+										<ActionButtons
+											isSubmitDisabled={!addContentForm.state.canSubmit}
+											isSubmitting={addContentMutation.isPending}
+											onCancel={() => {
+												setShowAddDialog(false)
+												onClose?.()
+												addContentForm.reset()
 											}}
-										>
-											<div className="grid gap-4">
-												{/* Note Input */}
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className="flex flex-col gap-2"
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.1 }}
-												>
-													<addContentForm.Field
-														name="content"
-														validators={{
-															onChange: ({ value }) => {
-																if (!value || value.trim() === "") {
-																	return "Note is required"
-																}
-																return undefined
-															},
-														}}
-													>
-														{({ state, handleChange, handleBlur }) => (
-															<>
-																<div
-																	className={`bg-white/5 border border-white/10 rounded-md ${
-																		addContentMutation.isPending
-																			? "opacity-50"
-																			: ""
-																	}`}
-																>
-																	<TextEditor
-																		className="text-white"
-																		disabled={addContentMutation.isPending}
-																		onBlur={handleBlur}
-																		onChange={handleChange}
-																		placeholder="Write your note here..."
-																		value={state.value}
-																	/>
-																</div>
-																{state.meta.errors.length > 0 && (
-																	<motion.p
-																		animate={{ opacity: 1, height: "auto" }}
-																		className="text-sm text-red-400 mt-1"
-																		exit={{ opacity: 0, height: 0 }}
-																		initial={{ opacity: 0, height: 0 }}
-																	>
-																		{state.meta.errors
-																			.map((error) =>
-																				typeof error === "string"
-																					? error
-																					: (error?.message ??
-																						`Error: ${JSON.stringify(error)}`),
-																			)
-																			.join(", ")}
-																	</motion.p>
-																)}
-															</>
-														)}
-													</addContentForm.Field>
-												</motion.div>
-											</div>
-											<div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4">
-												<div className="flex flex-col sm:flex-row sm:items-end gap-4 order-2 sm:order-1">
-													{/* Project Selection */}
-													<motion.div
-														animate={{ opacity: 1, y: 0 }}
-														className={`flex flex-col gap-2 flex-1 sm:flex-initial ${
-															addContentMutation.isPending ? "opacity-50" : ""
-														}`}
-														initial={{ opacity: 0, y: 10 }}
-														transition={{ delay: 0.15 }}
-													>
-														<addContentForm.Field name="project">
-															{({ state, handleChange }) => (
-																<ProjectSelection
-																	disabled={addContentMutation.isPending}
-																	id="note-project"
-																	isLoading={isLoadingProjects}
-																	onCreateProject={() =>
-																		setShowCreateProjectDialog(true)
-																	}
-																	onProjectChange={handleChange}
-																	projects={projects}
-																	selectedProject={state.value}
-																/>
-															)}
-														</addContentForm.Field>
-													</motion.div>
-
-													<MemoryUsageRing
-														memoriesLimit={memoriesLimit}
-														memoriesUsed={memoriesUsed}
-													/>
-												</div>
-
-												<ActionButtons
-													isSubmitDisabled={!addContentForm.state.canSubmit}
-													isSubmitting={addContentMutation.isPending}
-													onCancel={() => {
-														setShowAddDialog(false)
-														onClose?.()
-														addContentForm.reset()
-													}}
-													submitIcon={Plus}
-													submitText="Add Note"
-												/>
-											</div>
-										</form>
+											submitIcon={Plus}
+											submitText="Add Note"
+										/>
 									</div>
-								)}
+								</form>
+							</TabsContent>
 
-								{activeTab === "link" && (
-									<div className="space-y-4">
-										<form
-											onSubmit={(e) => {
-												e.preventDefault()
-												e.stopPropagation()
-												addContentForm.handleSubmit()
-											}}
+							<TabsContent value="link" className="space-y-4">
+								<form
+									onSubmit={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										addContentForm.handleSubmit()
+									}}
+									className="h-full flex flex-col"
+								>
+									<div className="grid gap-4">
+										{/* Link Input */}
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="flex flex-col gap-2"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.1 }}
 										>
-											<div className="grid gap-4">
-												{/* Link Input */}
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className="flex flex-col gap-2"
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.1 }}
-												>
-													<label
-														className="text-sm font-medium"
-														htmlFor="link-content"
-													>
-														Link
-													</label>
-													<addContentForm.Field
-														name="content"
-														validators={{
-															onChange: ({ value }) => {
-																if (!value || value.trim() === "") {
-																	return "Link is required"
-																}
-																try {
-																	new URL(value)
-																	return undefined
-																} catch {
-																	return "Please enter a valid link"
-																}
-															},
-														}}
-													>
-														{({ state, handleChange, handleBlur }) => (
-															<>
-																<Input
-																	className={`bg-white/5 border-white/10 text-white ${
-																		addContentMutation.isPending
-																			? "opacity-50"
-																			: ""
-																	}`}
-																	disabled={addContentMutation.isPending}
-																	id="link-content"
-																	onBlur={handleBlur}
-																	onChange={(e) => handleChange(e.target.value)}
-																	placeholder="https://example.com/article"
-																	value={state.value}
-																/>
-																{state.meta.errors.length > 0 && (
-																	<motion.p
-																		animate={{ opacity: 1, height: "auto" }}
-																		className="text-sm text-red-400 mt-1"
-																		exit={{ opacity: 0, height: 0 }}
-																		initial={{ opacity: 0, height: 0 }}
-																	>
-																		{state.meta.errors
-																			.map((error) =>
-																				typeof error === "string"
-																					? error
-																					: (error?.message ??
-																						`Error: ${JSON.stringify(error)}`),
-																			)
-																			.join(", ")}
-																	</motion.p>
-																)}
-															</>
-														)}
-													</addContentForm.Field>
-												</motion.div>
-											</div>
-											<div className="mt-6 flex justify-between items-end w-full">
-												<div className="flex items-end gap-4">
-													{/* Left side - Project Selection */}
-													<motion.div
-														animate={{ opacity: 1, y: 0 }}
-														className={`flex flex-col gap-2 ${
-															addContentMutation.isPending ? "opacity-50" : ""
-														}`}
-														initial={{ opacity: 0, y: 10 }}
-														transition={{ delay: 0.15 }}
-													>
-														<addContentForm.Field name="project">
-															{({ state, handleChange }) => (
-																<ProjectSelection
-																	disabled={addContentMutation.isPending}
-																	id="link-project-2"
-																	isLoading={isLoadingProjects}
-																	onCreateProject={() =>
-																		setShowCreateProjectDialog(true)
-																	}
-																	onProjectChange={handleChange}
-																	projects={projects}
-																	selectedProject={state.value}
-																/>
-															)}
-														</addContentForm.Field>
-													</motion.div>
-
-													<MemoryUsageRing
-														memoriesLimit={memoriesLimit}
-														memoriesUsed={memoriesUsed}
-													/>
-												</div>
-
-												<ActionButtons
-													isSubmitDisabled={!addContentForm.state.canSubmit}
-													isSubmitting={addContentMutation.isPending}
-													onCancel={() => {
-														setShowAddDialog(false)
-														onClose?.()
-														addContentForm.reset()
-													}}
-													submitIcon={Plus}
-													submitText="Add Link"
-												/>
-											</div>
-										</form>
-									</div>
-								)}
-
-								{activeTab === "file" && (
-									<div className="space-y-4">
-										<form
-											onSubmit={(e) => {
-												e.preventDefault()
-												e.stopPropagation()
-												fileUploadForm.handleSubmit()
-											}}
-										>
-											<div className="grid gap-4">
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className="flex flex-col gap-2"
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.1 }}
-												>
-													<label className="text-sm font-medium" htmlFor="file">
-														File
-													</label>
-													<Dropzone
-														accept={{
-															"application/pdf": [".pdf"],
-															"application/msword": [".doc"],
-															"application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-																[".docx"],
-															"text/plain": [".txt"],
-															"text/markdown": [".md"],
-															"text/csv": [".csv"],
-															"application/json": [".json"],
-															"image/*": [
-																".png",
-																".jpg",
-																".jpeg",
-																".gif",
-																".webp",
-															],
-														}}
-														className="bg-white/5 border-white/10 hover:bg-white/10 min-h-40"
-														maxFiles={10}
-														maxSize={10 * 1024 * 1024} // 10MB
-														onDrop={(acceptedFiles) =>
-															setSelectedFiles(acceptedFiles)
+											<label
+												className="text-sm font-medium"
+												htmlFor="link-content"
+											>
+												Link
+											</label>
+											<addContentForm.Field
+												name="content"
+												validators={{
+													onChange: ({ value }) => {
+														if (!value || value.trim() === "") {
+															return "Link is required"
 														}
-														src={selectedFiles}
-													>
-														<DropzoneEmptyState />
-														<DropzoneContent className="overflow-auto" />
-													</Dropzone>
-												</motion.div>
-
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className="flex flex-col gap-2"
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.15 }}
-												>
-													<label
-														className="text-sm font-medium"
-														htmlFor="file-title"
-													>
-														Title (optional)
-													</label>
-													<fileUploadForm.Field name="title">
-														{({ state, handleChange, handleBlur }) => (
-															<Input
-																className="bg-white/5 border-white/10 text-white"
-																id="file-title"
-																onBlur={handleBlur}
-																onChange={(e) => handleChange(e.target.value)}
-																placeholder="Give this file a title"
-																value={state.value}
-															/>
+														try {
+															new URL(value)
+															return undefined
+														} catch {
+															return "Please enter a valid link"
+														}
+													},
+												}}
+											>
+												{({ state, handleChange, handleBlur }) => (
+													<>
+														<Input
+															className={`bg-black/5 border-black/10 text-black ${
+																addContentMutation.isPending ? "opacity-50" : ""
+															}`}
+															disabled={addContentMutation.isPending}
+															id="link-content"
+															onBlur={handleBlur}
+															onChange={(e) => handleChange(e.target.value)}
+															placeholder="https://example.com/article"
+															value={state.value}
+														/>
+														{state.meta.errors.length > 0 && (
+															<motion.p
+																animate={{ opacity: 1, height: "auto" }}
+																className="text-sm text-red-400 mt-1"
+																exit={{ opacity: 0, height: 0 }}
+																initial={{ opacity: 0, height: 0 }}
+															>
+																{state.meta.errors
+																	.map((error) =>
+																		typeof error === "string"
+																			? error
+																			: (error?.message ??
+																				`Error: ${JSON.stringify(error)}`),
+																	)
+																	.join(", ")}
+															</motion.p>
 														)}
-													</fileUploadForm.Field>
-												</motion.div>
+													</>
+												)}
+											</addContentForm.Field>
+										</motion.div>
+									</div>
+									<div className="mt-auto flex justify-between items-end w-full">
+										<div className="flex items-end gap-4">
+											{/* Left side - Project Selection */}
+											<motion.div
+												animate={{ opacity: 1, y: 0 }}
+												className={`flex flex-col gap-2 ${
+													addContentMutation.isPending ? "opacity-50" : ""
+												}`}
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.15 }}
+											>
+												<addContentForm.Field name="project">
+													{({ state, handleChange }) => (
+														<ProjectSelection
+															disabled={addContentMutation.isPending}
+															id="link-project-2"
+															isLoading={isLoadingProjects}
+															onCreateProject={() =>
+																setShowCreateProjectDialog(true)
+															}
+															onProjectChange={handleChange}
+															projects={projects}
+															selectedProject={state.value}
+														/>
+													)}
+												</addContentForm.Field>
+											</motion.div>
 
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className="flex flex-col gap-2"
-													initial={{ opacity: 0, y: 10 }}
-													transition={{ delay: 0.2 }}
-												>
-													<label
-														className="text-sm font-medium"
-														htmlFor="file-description"
-													>
-														Description (optional)
-													</label>
-													<fileUploadForm.Field name="description">
-														{({ state, handleChange, handleBlur }) => (
-															<Textarea
-																className="bg-white/5 border-white/10 text-white min-h-20 max-h-40 overflow-y-auto resize-none"
-																id="file-description"
-																onBlur={handleBlur}
-																onChange={(e) => handleChange(e.target.value)}
-																placeholder="Add notes or context about this file"
-																value={state.value}
-															/>
-														)}
-													</fileUploadForm.Field>
-												</motion.div>
-											</div>
-											<div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4">
-												<div className="flex items-end gap-4">
-													{/* Left side - Project Selection */}
-													<motion.div
-														animate={{ opacity: 1, y: 0 }}
-														className={`flex flex-col gap-2 flex-1 sm:flex-initial ${
-															fileUploadMutation.isPending ? "opacity-50" : ""
-														}`}
-														initial={{ opacity: 0, y: 10 }}
-														transition={{ delay: 0.25 }}
-													>
-														<fileUploadForm.Field name="project">
-															{({ state, handleChange }) => (
-																<ProjectSelection
-																	disabled={fileUploadMutation.isPending}
-																	id="file-project"
-																	isLoading={isLoadingProjects}
-																	onCreateProject={() =>
-																		setShowCreateProjectDialog(true)
-																	}
-																	onProjectChange={handleChange}
-																	projects={projects}
-																	selectedProject={state.value}
-																/>
-															)}
-														</fileUploadForm.Field>
-													</motion.div>
+											<MemoryUsageRing
+												memoriesLimit={memoriesLimit}
+												memoriesUsed={memoriesUsed}
+											/>
+										</div>
 
-													<MemoryUsageRing
-														memoriesLimit={memoriesLimit}
-														memoriesUsed={memoriesUsed}
+										<ActionButtons
+											isSubmitDisabled={!addContentForm.state.canSubmit}
+											isSubmitting={addContentMutation.isPending}
+											onCancel={() => {
+												setShowAddDialog(false)
+												onClose?.()
+												addContentForm.reset()
+											}}
+											submitIcon={Plus}
+											submitText="Add Link"
+										/>
+									</div>
+								</form>
+							</TabsContent>
+
+							<TabsContent value="file" className="space-y-4">
+								<form
+									onSubmit={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										fileUploadForm.handleSubmit()
+									}}
+								>
+									<div className="grid gap-4">
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="flex flex-col gap-2"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.1 }}
+										>
+											<label className="text-sm font-medium" htmlFor="file">
+												File
+											</label>
+											<Dropzone
+												accept={{
+													"application/pdf": [".pdf"],
+													"application/msword": [".doc"],
+													"application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+														[".docx"],
+													"text/plain": [".txt"],
+													"text/markdown": [".md"],
+													"text/csv": [".csv"],
+													"application/json": [".json"],
+													"image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"],
+												}}
+												className="bg-black/5 border-black/10 hover:bg-black/10 min-h-40"
+												maxFiles={10}
+												maxSize={10 * 1024 * 1024} // 10MB
+												onDrop={(acceptedFiles) =>
+													setSelectedFiles(acceptedFiles)
+												}
+												src={selectedFiles}
+											>
+												<DropzoneEmptyState />
+												<DropzoneContent className="overflow-auto" />
+											</Dropzone>
+										</motion.div>
+
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="flex flex-col gap-2"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.15 }}
+										>
+											<label
+												className="text-sm font-medium"
+												htmlFor="file-title"
+											>
+												Title (optional)
+											</label>
+											<fileUploadForm.Field name="title">
+												{({ state, handleChange, handleBlur }) => (
+													<Input
+														className="bg-black/5 border-black/10"
+														id="file-title"
+														onBlur={handleBlur}
+														onChange={(e) => handleChange(e.target.value)}
+														placeholder="Give this file a title"
+														value={state.value}
 													/>
-												</div>
+												)}
+											</fileUploadForm.Field>
+										</motion.div>
 
-												<ActionButtons
-													isSubmitDisabled={selectedFiles.length === 0}
-													isSubmitting={fileUploadMutation.isPending}
-													onCancel={() => {
-														setShowAddDialog(false)
-														onClose?.()
-														fileUploadForm.reset()
-														setSelectedFiles([])
-													}}
-													submitIcon={UploadIcon}
-													submitText="Upload File"
-												/>
-											</div>
-										</form>
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className="flex flex-col gap-2"
+											initial={{ opacity: 0, y: 10 }}
+											transition={{ delay: 0.2 }}
+										>
+											<label
+												className="text-sm font-medium"
+												htmlFor="file-description"
+											>
+												Description (optional)
+											</label>
+											<fileUploadForm.Field name="description">
+												{({ state, handleChange, handleBlur }) => (
+													<Textarea
+														className="bg-black/5 border-black/10 min-h-20 max-h-40 overflow-y-auto resize-none"
+														id="file-description"
+														onBlur={handleBlur}
+														onChange={(e) => handleChange(e.target.value)}
+														placeholder="Add notes or context about this file"
+														value={state.value}
+													/>
+												)}
+											</fileUploadForm.Field>
+										</motion.div>
 									</div>
-								)}
+									<div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4">
+										<div className="flex items-end gap-4">
+											{/* Left side - Project Selection */}
+											<motion.div
+												animate={{ opacity: 1, y: 0 }}
+												className={`flex flex-col gap-2 flex-1 sm:flex-initial ${
+													fileUploadMutation.isPending ? "opacity-50" : ""
+												}`}
+												initial={{ opacity: 0, y: 10 }}
+												transition={{ delay: 0.25 }}
+											>
+												<fileUploadForm.Field name="project">
+													{({ state, handleChange }) => (
+														<ProjectSelection
+															disabled={fileUploadMutation.isPending}
+															id="file-project"
+															isLoading={isLoadingProjects}
+															onCreateProject={() =>
+																setShowCreateProjectDialog(true)
+															}
+															onProjectChange={handleChange}
+															projects={projects}
+															selectedProject={state.value}
+														/>
+													)}
+												</fileUploadForm.Field>
+											</motion.div>
 
-								{activeTab === "connect" && (
-									<div className="space-y-4">
-										<ConnectionsTabContent />
+											<MemoryUsageRing
+												memoriesLimit={memoriesLimit}
+												memoriesUsed={memoriesUsed}
+											/>
+										</div>
+
+										<ActionButtons
+											isSubmitDisabled={selectedFiles.length === 0}
+											isSubmitting={fileUploadMutation.isPending}
+											onCancel={() => {
+												setShowAddDialog(false)
+												onClose?.()
+												fileUploadForm.reset()
+												setSelectedFiles([])
+											}}
+											submitIcon={UploadIcon}
+											submitText="Upload File"
+										/>
 									</div>
-								)}
-							</div>
-						</motion.div>
+								</form>
+							</TabsContent>
+
+							<TabsContent value="connect" className="space-y-4">
+								<ConnectionsTabContent />
+							</TabsContent>
+						</Tabs>
 					</DialogContent>
 				</Dialog>
 			)}
@@ -1025,7 +998,7 @@ export function AddMemoryView({
 					onOpenChange={setShowCreateProjectDialog}
 					open={showCreateProjectDialog}
 				>
-					<DialogContent className="w-[95vw] max-w-2xl sm:max-w-2xl bg-black/90 backdrop-blur-xl border-white/10 text-white z-[80] max-h-[90vh] overflow-y-auto">
+					<DialogContent className="w-[95vw] max-w-2xl sm:max-w-2xl bg-black/90 backdrop-blur-xl border-white/10 z-[80] max-h-[90vh] overflow-y-auto">
 						<motion.div
 							animate={{ opacity: 1, scale: 1 }}
 							initial={{ opacity: 0, scale: 0.95 }}
@@ -1045,7 +1018,7 @@ export function AddMemoryView({
 								>
 									<Label htmlFor="projectName">Project Name</Label>
 									<Input
-										className="bg-white/5 border-white/10 text-white"
+										className="bg-white/5 border-white/10"
 										id="projectName"
 										onChange={(e) => setNewProjectName(e.target.value)}
 										placeholder="My Awesome Project"
@@ -1063,7 +1036,7 @@ export function AddMemoryView({
 									whileTap={{ scale: 0.95 }}
 								>
 									<Button
-										className="bg-white/5 hover:bg-white/10 border-white/10 text-white w-full sm:w-auto"
+										className="bg-white/5 hover:bg-white/10 border-white/10 w-full sm:w-auto"
 										onClick={() => {
 											setShowCreateProjectDialog(false)
 											setNewProjectName("")
@@ -1080,7 +1053,7 @@ export function AddMemoryView({
 									whileTap={{ scale: 0.95 }}
 								>
 									<Button
-										className="bg-white/10 hover:bg-white/20 text-white border-white/20 w-full sm:w-auto"
+										className="bg-white/10 hover:bg-white/20 border-white/20 w-full sm:w-auto"
 										disabled={
 											createProjectMutation.isPending || !newProjectName.trim()
 										}
@@ -1131,7 +1104,7 @@ export function AddMemoryExpandedView() {
 				<div className="flex flex-wrap gap-2">
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20"
 							onClick={() => handleOpenDialog("note")}
 							size="sm"
 							variant="outline"
@@ -1143,7 +1116,7 @@ export function AddMemoryExpandedView() {
 
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20"
 							onClick={() => handleOpenDialog("link")}
 							size="sm"
 							variant="outline"
@@ -1155,7 +1128,7 @@ export function AddMemoryExpandedView() {
 
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20"
 							onClick={() => handleOpenDialog("file")}
 							size="sm"
 							variant="outline"
@@ -1167,7 +1140,7 @@ export function AddMemoryExpandedView() {
 
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20"
 							onClick={() => handleOpenDialog("connect")}
 							size="sm"
 							variant="outline"

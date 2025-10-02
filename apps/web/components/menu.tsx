@@ -10,21 +10,19 @@ import { ConnectAIModal } from "./connect-ai-modal"
 import { HeadingH2Bold } from "@repo/ui/text/heading/heading-h2-bold"
 import { GlassMenuEffect } from "@ui/other/glass-effect"
 import { useCustomer } from "autumn-js/react"
-import { MessageSquareMore, Plus, Puzzle, User, X } from "lucide-react"
+import { Plus, Puzzle, User, X } from "lucide-react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { Drawer } from "vaul"
 import { useMobilePanel } from "@/lib/mobile-panel-context"
-import { TOUR_STEP_IDS } from "@/lib/tour-constants"
 import { useChatOpen } from "@/stores"
 import { ProjectSelector } from "./project-selector"
-import { useTour } from "./tour"
 import { AddMemoryExpandedView, AddMemoryView } from "./views/add-memory"
 import { IntegrationsView } from "./views/integrations"
 import { ProfileView } from "./views/profile"
 
-const MCPIcon = ({ className }: { className?: string }) => {
+export const MCPIcon = ({ className }: { className?: string }) => {
 	return (
 		<svg
 			className={className}
@@ -65,11 +63,10 @@ function Menu({ id }: { id?: string }) {
 	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
 	const isMobile = useIsMobile()
 	const { activePanel, setActivePanel } = useMobilePanel()
-	const { setMenuExpanded } = useTour()
 	const autumn = useCustomer()
 	const { setIsOpen } = useChatOpen()
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn)
+	const { data: memoriesCheck } = fetchMemoriesFeature(autumn, !autumn.isLoading)
 
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0
@@ -99,25 +96,11 @@ function Menu({ id }: { id?: string }) {
 	const shouldShowLimitWarning =
 		!isProUser && memoriesUsed >= memoriesLimit * 0.8
 
-	// Map menu item keys to tour IDs
-	const menuItemTourIds: Record<string, string> = {
-		addUrl: TOUR_STEP_IDS.MENU_ADD_MEMORY,
-		projects: TOUR_STEP_IDS.MENU_PROJECTS,
-		mcp: TOUR_STEP_IDS.MENU_MCP,
-		integrations: "", // No tour ID for integrations yet
-	}
-
 	const menuItems = [
 		{
 			icon: Plus,
 			text: "Add Memory",
 			key: "addUrl" as const,
-			disabled: false,
-		},
-		{
-			icon: MessageSquareMore,
-			text: "Chat",
-			key: "chat" as const,
 			disabled: false,
 		},
 		{
@@ -221,14 +204,6 @@ function Menu({ id }: { id?: string }) {
 		}
 	}, [isMobile, activePanel])
 
-	// Notify tour provider about expansion state changes
-	useEffect(() => {
-		const isExpanded = isMobile
-			? isMobileMenuOpen || !!expandedView
-			: isHovered || !!expandedView
-		setMenuExpanded(isExpanded)
-	}, [isMobile, isMobileMenuOpen, isHovered, expandedView, setMenuExpanded])
-
 	// Calculate width based on state
 	const menuWidth = expandedView || isCollapsing ? 600 : isHovered ? 160 : 56
 
@@ -267,14 +242,9 @@ function Menu({ id }: { id?: string }) {
 								},
 							}}
 						>
-							{/* Glass effect background */}
-							<motion.div className="absolute inset-0" layout>
-								<GlassMenuEffect />
-							</motion.div>
-
 							{/* Menu content */}
 							<motion.div
-								className="relative z-20 flex flex-col gap-6 w-full"
+								className="relative z-20 flex flex-col gap-6 w-full bg-white"
 								layout
 							>
 								<AnimatePresence
@@ -323,8 +293,7 @@ function Menu({ id }: { id?: string }) {
 																	duration: 0.1,
 																},
 															}}
-															className={`flex w-full items-center text-white/80 transition-colors duration-100 hover:text-white cursor-pointer relative ${isHovered || expandedView ? "px-1" : ""}`}
-															id={menuItemTourIds[item.key]}
+															className={`flex w-full items-center transition-colors duration-100 cursor-pointer relative ${isHovered || expandedView ? "px-1" : ""}`}
 															initial={{ opacity: 0, y: 20, scale: 0.95 }}
 															layout
 															onClick={() => handleMenuItemClick(item.key)}
@@ -346,14 +315,14 @@ function Menu({ id }: { id?: string }) {
 																initial={{ scale: 0.8 }}
 																layout="position"
 															>
-																<item.icon className="duration-200 h-6 w-6 drop-shadow-lg flex-shrink-0" />
+																<item.icon className="duration-200 h-6 w-6 flex-shrink-0" />
 															</motion.div>
 															<motion.p
 																animate={{
 																	opacity: isHovered ? 1 : 0,
 																	x: isHovered ? 0 : -10,
 																}}
-																className="drop-shadow-lg pl-3 whitespace-nowrap"
+																className="pl-3 whitespace-nowrap"
 																initial={{ opacity: 0, x: -10 }}
 																style={{
 																	transform: "translateZ(0)",
@@ -373,7 +342,7 @@ function Menu({ id }: { id?: string }) {
 																	opacity: 1,
 																	scaleX: 1,
 																}}
-																className="w-full h-px bg-white/20 mt-3 origin-left"
+																className="w-full h-px bg-black/20 mt-3 origin-left"
 																initial={{ opacity: 0, scaleX: 0 }}
 																transition={{
 																	duration: 0.3,
@@ -590,7 +559,6 @@ function Menu({ id }: { id?: string }) {
 																	},
 																}}
 																className="flex w-full items-center gap-3 px-2 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer relative"
-																id={menuItemTourIds[item.key]}
 																initial={{ opacity: 0, y: 10 }}
 																layout
 																onClick={() => {

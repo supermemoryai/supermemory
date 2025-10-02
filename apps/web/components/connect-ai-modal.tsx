@@ -193,7 +193,7 @@ export function ConnectAIModal({
 			<DialogTrigger asChild>{children}</DialogTrigger>
 			<DialogContent className="sm:max-w-4xl">
 				<DialogHeader>
-					<DialogTitle>Connect Supermemory to Your AI</DialogTitle>
+					<DialogTitle>Connect supermemory to Your AI</DialogTitle>
 					<DialogDescription>
 						Connect supermemory to your favorite AI tools using the Model
 						Context Protocol (MCP). This allows your AI assistant to create,
@@ -205,9 +205,7 @@ export function ConnectAIModal({
 					{/* Step 1: Client Selection */}
 					<div className="space-y-4">
 						<div className="flex items-center gap-3">
-							<div
-								className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${"bg-white/10 text-white/60"}`}
-							>
+							<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-muted text-muted-foreground">
 								1
 							</div>
 							<h3 className="text-sm font-medium">Select Your AI Client</h3>
@@ -220,8 +218,8 @@ export function ConnectAIModal({
 									<button
 										className={`pr-3 pl-1 rounded-full border cursor-pointer transition-all ${
 											selectedClient === key
-												? "border-blue-500 bg-blue-500/10"
-												: "border-white/10 hover:border-white/20 hover:bg-white/5"
+												? "border-primary bg-primary/10"
+												: "border-border hover:border-border/60 hover:bg-muted/50"
 										}`}
 										key={key}
 										onClick={() =>
@@ -233,7 +231,7 @@ export function ConnectAIModal({
 											<div className="w-8 h-8 flex items-center justify-center">
 												<Image
 													alt={clientName}
-													className="rounded object-contain text-white fill-white"
+													className="rounded object-contain"
 													height={20}
 													onError={(e) => {
 														const target = e.target as HTMLImageElement
@@ -245,7 +243,7 @@ export function ConnectAIModal({
 														) {
 															const fallback = document.createElement("span")
 															fallback.className =
-																"fallback-text text-sm font-bold text-white/40"
+																"fallback-text text-sm font-bold text-muted-foreground"
 															fallback.textContent = clientName
 																.substring(0, 2)
 																.toUpperCase()
@@ -260,7 +258,7 @@ export function ConnectAIModal({
 													width={20}
 												/>
 											</div>
-											<span className="text-sm font-medium text-white/80">
+											<span className="text-sm font-medium text-foreground/80">
 												{clientName}
 											</span>
 										</div>
@@ -274,7 +272,7 @@ export function ConnectAIModal({
 						<div className="space-y-4">
 							<div className="flex justify-between">
 								<div className="flex items-center gap-3">
-									<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+									<div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
 										2
 									</div>
 									<h3 className="text-sm font-medium">
@@ -294,12 +292,12 @@ export function ConnectAIModal({
 								>
 									{/* Tabs */}
 									<div className="flex justify-end">
-										<div className="flex bg-white/5 rounded-full p-1 border border-white/10">
+										<div className="flex bg-muted/50 rounded-full p-1 border border-border">
 											<button
 												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
 													cursorInstallTab === "oneClick"
-														? "bg-white/10 text-white border border-white/20"
-														: "text-white/60 hover:text-white/80"
+														? "bg-background text-foreground border border-border shadow-sm"
+														: "text-muted-foreground hover:text-foreground"
 												}`}
 												onClick={() => setCursorInstallTab("oneClick")}
 												type="button"
@@ -309,8 +307,8 @@ export function ConnectAIModal({
 											<button
 												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
 													cursorInstallTab === "manual"
-														? "bg-white/10 text-white border border-white/20"
-														: "text-white/60 hover:text-white/80"
+														? "bg-background text-foreground border border-border shadow-sm"
+														: "text-muted-foreground hover:text-foreground"
 												}`}
 												onClick={() => setCursorInstallTab("manual")}
 												type="button"
@@ -329,11 +327,11 @@ export function ConnectAIModal({
 										<div className="space-y-4">
 											<div className="flex flex-col items-center gap-4 p-6 border border-green-500/20 rounded-lg bg-green-500/5">
 												<div className="text-center">
-													<p className="text-sm text-white/80 mb-2">
+													<p className="text-sm text-foreground/80 mb-2">
 														Click the button below to automatically install and
 														configure Supermemory in Cursor
 													</p>
-													<p className="text-xs text-white/50">
+													<p className="text-xs text-muted-foreground">
 														This will install the MCP server without any
 														additional setup required
 													</p>
@@ -353,13 +351,13 @@ export function ConnectAIModal({
 													/>
 												</a>
 											</div>
-											<p className="text-xs text-white/40 text-center">
+											<p className="text-xs text-muted-foreground/60 text-center">
 												Make sure you have Cursor installed on your system
 											</p>
 										</div>
 									) : (
 										<div className="space-y-4">
-											<p className="text-sm text-white/70">
+											<p className="text-sm text-muted-foreground">
 												Choose a project and follow the installation steps below
 											</p>
 											<div className="max-w-md">
@@ -371,17 +369,11 @@ export function ConnectAIModal({
 													<SelectTrigger className="w-full">
 														<SelectValue placeholder="Select project" />
 													</SelectTrigger>
-													<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-														<SelectItem
-															className="text-white hover:bg-white/10"
-															value="none"
-														>
+													<SelectContent>
+														<SelectItem value="none">
 															Auto-select project
 														</SelectItem>
-														<SelectItem
-															className="text-white hover:bg-white/10"
-															value="sm_project_default"
-														>
+														<SelectItem value="sm_project_default">
 															Default Project
 														</SelectItem>
 														{projects
@@ -391,7 +383,6 @@ export function ConnectAIModal({
 															)
 															.map((project: Project) => (
 																<SelectItem
-																	className="text-white hover:bg-white/10"
 																	key={project.id}
 																	value={project.containerTag}
 																>
@@ -426,7 +417,7 @@ export function ConnectAIModal({
 											<CopyIcon className="size-4" />
 										</Button>
 									</div>
-									<p className="text-xs text-white/50">
+									<p className="text-xs text-muted-foreground">
 										Use this URL to configure supermemory in your AI assistant
 									</p>
 								</div>
@@ -440,17 +431,9 @@ export function ConnectAIModal({
 										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select project" />
 										</SelectTrigger>
-										<SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
-											<SelectItem
-												className="text-white hover:bg-white/10"
-												value="none"
-											>
-												Auto-select project
-											</SelectItem>
-											<SelectItem
-												className="text-white hover:bg-white/10"
-												value="sm_project_default"
-											>
+										<SelectContent>
+											<SelectItem value="none">Auto-select project</SelectItem>
+											<SelectItem value="sm_project_default">
 												Default Project
 											</SelectItem>
 											{projects
@@ -460,7 +443,6 @@ export function ConnectAIModal({
 												)
 												.map((project: Project) => (
 													<SelectItem
-														className="text-white hover:bg-white/10"
 														key={project.id}
 														value={project.containerTag}
 													>
@@ -480,7 +462,7 @@ export function ConnectAIModal({
 						(selectedClient !== "cursor" || cursorInstallTab === "manual") && (
 							<div className="space-y-4">
 								<div className="flex items-center gap-3">
-									<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+									<div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
 										3
 									</div>
 									<h3 className="text-sm font-medium">
@@ -506,7 +488,7 @@ export function ConnectAIModal({
 									</Button>
 								</div>
 
-								<p className="text-xs text-white/50">
+								<p className="text-xs text-muted-foreground">
 									{selectedClient === "cursor" && cursorInstallTab === "manual"
 										? "Copy and run this command in your terminal for manual installation (or switch to the one-click option above)"
 										: "Copy and run this command in your terminal to install the MCP server"}
@@ -518,19 +500,19 @@ export function ConnectAIModal({
 					{!selectedClient && (
 						<div className="space-y-4">
 							<div className="flex items-center gap-3">
-								<div className="w-8 h-8 rounded-full bg-white/10 text-white/60 flex items-center justify-center text-sm font-medium">
+								<div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
 									3
 								</div>
 								<h3 className="text-sm font-medium">Installation Command</h3>
 							</div>
 
 							<div className="relative">
-								<div className="w-full h-10 bg-white/5 border border-white/10 rounded-md flex items-center px-3">
-									<div className="w-full h-4 bg-white/20 rounded animate-pulse blur-sm" />
+								<div className="w-full h-10 bg-muted border border-border rounded-md flex items-center px-3">
+									<div className="w-full h-4 bg-muted-foreground/20 rounded animate-pulse blur-sm" />
 								</div>
 							</div>
 
-							<p className="text-xs text-white/30">
+							<p className="text-xs text-muted-foreground/50">
 								Select a client above to see the installation command
 							</p>
 						</div>
@@ -539,18 +521,18 @@ export function ConnectAIModal({
 					<div className="gap-2 hidden">
 						<div>
 							<label
-								className="text-sm font-medium text-white/80 block mb-2"
+								className="text-sm font-medium text-foreground/80 block mb-2"
 								htmlFor="mcp-server-url-desktop"
 							>
 								MCP Server URL
 							</label>
-							<p className="text-xs text-white/50 mt-2">
+							<p className="text-xs text-muted-foreground mt-2">
 								Use this URL to configure supermemory in your AI assistant
 							</p>
 						</div>
-						<div className="p-1 bg-white/5 rounded-lg border border-white/10 items-center flex px-2">
+						<div className="p-1 bg-muted rounded-lg border border-border items-center flex px-2">
 							<CopyableCell
-								className="font-mono text-xs text-blue-400"
+								className="font-mono text-xs text-primary"
 								value="https://api.supermemory.ai/mcp"
 							/>
 						</div>
@@ -599,11 +581,11 @@ export function ConnectAIModal({
 					onOpenChange={setIsMigrateDialogOpen}
 					open={isMigrateDialogOpen}
 				>
-					<DialogContent className="sm:max-w-2xl bg-black/90 backdrop-blur-xl border-white/10 text-white">
+					<DialogContent className="sm:max-w-2xl bg-popover border-border text-popover-foreground">
 						<div>
 							<DialogHeader>
 								<DialogTitle>Migrate from MCP v1</DialogTitle>
-								<DialogDescription className="text-white/60">
+								<DialogDescription className="text-muted-foreground">
 									Migrate your MCP documents from the legacy system.
 								</DialogDescription>
 							</DialogHeader>
@@ -623,7 +605,7 @@ export function ConnectAIModal({
 											{({ state, handleChange, handleBlur }) => (
 												<>
 													<Input
-														className="bg-white/5 border-white/10 text-white"
+														className="bg-input border-border text-foreground"
 														id="mcpUrl"
 														onBlur={handleBlur}
 														onChange={(e) => handleChange(e.target.value)}
@@ -631,14 +613,14 @@ export function ConnectAIModal({
 														value={state.value}
 													/>
 													{state.meta.errors.length > 0 && (
-														<p className="text-sm text-red-400 mt-1">
+														<p className="text-sm text-destructive mt-1">
 															{state.meta.errors.join(", ")}
 														</p>
 													)}
 												</>
 											)}
 										</mcpMigrationForm.Field>
-										<p className="text-xs text-white/50">
+										<p className="text-xs text-muted-foreground">
 											Enter your old MCP Link in the format: <br />
 											<span className="font-mono">
 												https://mcp.supermemory.ai/userId/sse
@@ -648,7 +630,6 @@ export function ConnectAIModal({
 								</div>
 								<div className="flex justify-end gap-3 mt-4">
 									<Button
-										className="bg-white/5 hover:bg-white/10 border-white/10 text-white"
 										onClick={() => {
 											setIsMigrateDialogOpen(false)
 											mcpMigrationForm.reset()
@@ -659,7 +640,6 @@ export function ConnectAIModal({
 										Cancel
 									</Button>
 									<Button
-										className="bg-white/10 hover:bg-white/20 text-white border-white/20"
 										disabled={
 											migrateMCPMutation.isPending ||
 											!mcpMigrationForm.state.canSubmit
