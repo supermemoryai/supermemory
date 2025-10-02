@@ -1,0 +1,1 @@
+export { wrapVercelLanguageModel as withSupermemory } from "./middleware"
