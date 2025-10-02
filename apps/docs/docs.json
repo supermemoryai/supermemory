@@ -71,7 +71,11 @@
 						"pages": [
 							{
 								"group": "Getting Started",
-								"pages": ["intro", "routervsapi", "quickstart"]
+								"pages": ["intro", "routervsapi", "quickstart", "memory-vs-rag"]
+							},
+							{
+								"group": "Migration Guides",
+								"pages": ["migration/from-mem0"]
 							},
 							{
 								"group": "Memory API",
@@ -83,7 +87,7 @@
 										"pages": [
 											"add-memories/overview",
 											"add-memories/parameters",
-											"memory-api/ingesting",
+											"api/ingesting",
 											{
 												"group": "Examples",
 												"pages": [
@@ -112,7 +116,7 @@
 										]
 									},
 									"search/filtering",
-									"memory-api/track-progress",
+									"api/track-progress",
 									{
 										"group": "List Memories",
 										"icon": "list",
@@ -183,11 +187,6 @@
 								"group": "OpenAI SDK",
 								"icon": "sparkles",
 								"pages": ["memory-api/sdks/openai-plugins", "ai-sdk/npm"]
-							},
-							{
-								"group": "Anthropic SDK",
-								"icon": "sparkles",
-								"pages": ["memory-api/sdks/anthropic-claude-memory"]
 							},
 							{
 								"group": "AI SDK",

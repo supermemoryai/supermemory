@@ -1,6 +1,6 @@
 import Supermemory from "supermemory"
-import type { SupermemoryToolsConfig } from "./types"
 import { getContainerTags } from "./shared"
+import type { SupermemoryToolsConfig } from "./types"
 
 // Claude Memory Tool Types
 export interface ClaudeMemoryConfig extends SupermemoryToolsConfig {
@@ -92,24 +92,45 @@ export class ClaudeMemoryTool {
 					return await this.view(command.path, command.view_range)
 				case "create":
 					if (!command.file_text) {
-						return { success: false, error: "file_text is required for create command" }
+						return {
+							success: false,
+							error: "file_text is required for create command",
+						}
 					}
 					return await this.create(command.path, command.file_text)
 				case "str_replace":
 					if (!command.old_str || !command.new_str) {
-						return { success: false, error: "old_str and new_str are required for str_replace command" }
+						return {
+							success: false,
+							error: "old_str and new_str are required for str_replace command",
+						}
 					}
-					return await this.strReplace(command.path, command.old_str, command.new_str)
+					return await this.strReplace(
+						command.path,
+						command.old_str,
+						command.new_str,
+					)
 				case "insert":
 					if (command.insert_line === undefined || !command.insert_text) {
-						return { success: false, error: "insert_line and insert_text are required for insert command" }
+						return {
+							success: false,
+							error:
+								"insert_line and insert_text are required for insert command",
+						}
 					}
-					return await this.insert(command.path, command.insert_line, command.insert_text)
+					return await this.insert(
+						command.path,
+						command.insert_line,
+						command.insert_text,
+					)
 				case "delete":
 					return await this.delete(command.path)
 				case "rename":
 					if (!command.new_path) {
-						return { success: false, error: "new_path is required for rename command" }
+						return {
+							success: false,
+							error: "new_path is required for rename command",
+						}
 					}
 					return await this.rename(command.path, command.new_path)
 				default:
@@ -129,14 +150,17 @@ export class ClaudeMemoryTool {
 	/**
 	 * Handle command and return properly formatted tool result
 	 */
-	async handleCommandForToolResult(command: MemoryCommand, toolUseId: string): Promise<MemoryToolResult> {
+	async handleCommandForToolResult(
+		command: MemoryCommand,
+		toolUseId: string,
+	): Promise<MemoryToolResult> {
 		const response = await this.handleCommand(command)
 
 		return {
 			type: "tool_result",
 			tool_use_id: toolUseId,
 			content: response.success
-				? (response.content || "Operation completed successfully")
+				? response.content || "Operation completed successfully"
 				: `Error: ${response.error}`,
 			is_error: !response.success,
 		}
@@ -145,7 +169,10 @@ export class ClaudeMemoryTool {
 	/**
 	 * View command: List directory contents or read file with optional line range
 	 */
-	private async view(path: string, viewRange?: [number, number]): Promise<MemoryResponse> {
+	private async view(
+		path: string,
+		viewRange?: [number, number],
+	): Promise<MemoryResponse> {
 		// If path ends with / or is exactly /memories, it's a directory listing request
 		if (path.endsWith("/") || path === "/memories") {
 			// Normalize path to end with /
@@ -202,10 +229,7 @@ export class ClaudeMemoryTool {
 			}
 
 			// Format directory listing
-			const entries = [
-				...Array.from(dirs).sort(),
-				...files.sort()
-			]
+			const entries = [...Array.from(dirs).sort(), ...files.sort()]
 
 			if (entries.length === 0) {
 				return {
@@ -216,7 +240,7 @@ export class ClaudeMemoryTool {
 
 			return {
 				success: true,
-				content: `Directory: ${dirPath}\n${entries.map(entry => `- ${entry}`).join('\n')}`,
+				content: `Directory: ${dirPath}\n${entries.map((entry) => `- ${entry}`).join("\n")}`,
 			}
 		} catch (error) {
 			return {
@@ -229,7 +253,10 @@ export class ClaudeMemoryTool {
 	/**
 	 * Read file contents with optional line range
 	 */
-	private async readFile(filePath: string, viewRange?: [number, number]): Promise<MemoryResponse> {
+	private async readFile(
+		filePath: string,
+		viewRange?: [number, number],
+	): Promise<MemoryResponse> {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
@@ -241,7 +268,9 @@ export class ClaudeMemoryTool {
 			})
 
 			// Try to find exact match by customId
-			const exactMatch = response.results?.find(r => r.customId === normalizedId)
+			const exactMatch = response.results?.find(
+				(r) => r.documentId === normalizedId,
+			)
 			const document = exactMatch || response.results?.[0]
 
 			if (!document) {
@@ -251,29 +280,31 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			let content = document.raw || document.content || ""
+			let content = document.content || ""
 
 			// Apply line range if specified
 			if (viewRange) {
-				const lines = content.split('\n')
+				const lines = content.split("\n")
 				const [startLine, endLine] = viewRange
 				const selectedLines = lines.slice(startLine - 1, endLine)
 
 				// Format with line numbers
-				const numberedLines = selectedLines.map((line, index) => {
-					const lineNum = startLine + index
-					return `${lineNum.toString().padStart(4)}\t${line}`
-				})
+				const numberedLines = selectedLines.map(
+					(line: string, index: number) => {
+						const lineNum = startLine + index
+						return `${lineNum.toString().padStart(4)}\t${line}`
+					},
+				)
 
-				content = numberedLines.join('\n')
+				content = numberedLines.join("\n")
 			} else {
 				// Format all lines with line numbers
-				const lines = content.split('\n')
+				const lines = content.split("\n")
 				const numberedLines = lines.map((line, index) => {
 					const lineNum = index + 1
 					return `${lineNum.toString().padStart(4)}\t${line}`
 				})
-				content = numberedLines.join('\n')
+				content = numberedLines.join("\n")
 			}
 
 			return {
@@ -291,7 +322,10 @@ export class ClaudeMemoryTool {
 	/**
 	 * Create command: Create or overwrite a memory file
 	 */
-	private async create(filePath: string, fileText: string): Promise<MemoryResponse> {
+	private async create(
+		filePath: string,
+		fileText: string,
+	): Promise<MemoryResponse> {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
@@ -302,7 +336,7 @@ export class ClaudeMemoryTool {
 				metadata: {
 					claude_memory_type: "file",
 					file_path: filePath,
-					line_count: fileText.split('\n').length,
+					line_count: fileText.split("\n").length,
 					created_by: "claude_memory_tool",
 					last_modified: new Date().toISOString(),
 				},
@@ -323,7 +357,11 @@ export class ClaudeMemoryTool {
 	/**
 	 * String replace command: Replace text in existing file
 	 */
-	private async strReplace(filePath: string, oldStr: string, newStr: string): Promise<MemoryResponse> {
+	private async strReplace(
+		filePath: string,
+		oldStr: string,
+		newStr: string,
+	): Promise<MemoryResponse> {
 		try {
 			// First, find and read the existing file
 			const readResult = await this.getFileDocument(filePath)
@@ -334,7 +372,8 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent = readResult.document.raw || readResult.document.content || ""
+			const originalContent =
+				readResult.document.raw || readResult.document.content || ""
 
 			// Check if old_str exists in the content
 			if (!originalContent.includes(oldStr)) {
@@ -355,7 +394,7 @@ export class ClaudeMemoryTool {
 				containerTags: this.containerTags,
 				metadata: {
 					...readResult.document.metadata,
-					line_count: newContent.split('\n').length,
+					line_count: newContent.split("\n").length,
 					last_modified: new Date().toISOString(),
 				},
 			})
@@ -375,7 +414,11 @@ export class ClaudeMemoryTool {
 	/**
 	 * Insert command: Insert text at specific line
 	 */
-	private async insert(filePath: string, insertLine: number, insertText: string): Promise<MemoryResponse> {
+	private async insert(
+		filePath: string,
+		insertLine: number,
+		insertText: string,
+	): Promise<MemoryResponse> {
 		try {
 			// First, find and read the existing file
 			const readResult = await this.getFileDocument(filePath)
@@ -386,8 +429,9 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent = readResult.document.raw || readResult.document.content || ""
-			const lines = originalContent.split('\n')
+			const originalContent =
+				readResult.document.raw || readResult.document.content || ""
+			const lines = originalContent.split("\n")
 
 			// Validate line number
 			if (insertLine < 1 || insertLine > lines.length + 1) {
@@ -399,7 +443,7 @@ export class ClaudeMemoryTool {
 
 			// Insert the text (insertLine is 1-based)
 			lines.splice(insertLine - 1, 0, insertText)
-			const newContent = lines.join('\n')
+			const newContent = lines.join("\n")
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
@@ -409,7 +453,7 @@ export class ClaudeMemoryTool {
 				containerTags: this.containerTags,
 				metadata: {
 					...readResult.document.metadata,
-					line_count: newContent.split('\n').length,
+					line_count: newContent.split("\n").length,
 					last_modified: new Date().toISOString(),
 				},
 			})
@@ -459,7 +503,10 @@ export class ClaudeMemoryTool {
 	/**
 	 * Rename command: Move/rename memory file
 	 */
-	private async rename(oldPath: string, newPath: string): Promise<MemoryResponse> {
+	private async rename(
+		oldPath: string,
+		newPath: string,
+	): Promise<MemoryResponse> {
 		try {
 			// Validate new path
 			if (!this.isValidPath(newPath)) {
@@ -478,7 +525,8 @@ export class ClaudeMemoryTool {
 				}
 			}
 
-			const originalContent = readResult.document.raw || readResult.document.content || ""
+			const originalContent =
+				readResult.document.raw || readResult.document.content || ""
 			const newNormalizedId = this.normalizePathToCustomId(newPath)
 
 			// Create new document with new path
@@ -526,7 +574,9 @@ export class ClaudeMemoryTool {
 			})
 
 			// Try to find exact match by customId first
-			const exactMatch = response.results?.find(r => r.customId === normalizedId)
+			const exactMatch = response.results?.find(
+				(r) => r.documentId === normalizedId,
+			)
 			const document = exactMatch || response.results?.[0]
 
 			if (!document) {
@@ -552,13 +602,20 @@ export class ClaudeMemoryTool {
 	 * Validate that path starts with /memories for security
 	 */
 	private isValidPath(path: string): boolean {
-		return (path.startsWith("/memories/") || path === "/memories") && !path.includes("../") && !path.includes("..\\")
+		return (
+			(path.startsWith("/memories/") || path === "/memories") &&
+			!path.includes("../") &&
+			!path.includes("..\\")
+		)
 	}
 }
 
 /**
  * Create a Claude memory tool instance
  */
-export function createClaudeMemoryTool(apiKey: string, config?: ClaudeMemoryConfig) {
+export function createClaudeMemoryTool(
+	apiKey: string,
+	config?: ClaudeMemoryConfig,
+) {
 	return new ClaudeMemoryTool(apiKey, config)
 }
