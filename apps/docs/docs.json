@@ -74,10 +74,6 @@
 								"pages": ["intro", "routervsapi", "quickstart", "memory-vs-rag"]
 							},
 							{
-								"group": "Migration Guides",
-								"pages": ["migration/from-mem0"]
-							},
-							{
 								"group": "Memory API",
 								"pages": [
 									"how-it-works",
@@ -158,6 +154,10 @@
 									"memory-router/usage",
 									"memory-router/with-memory-api"
 								]
+							},
+							{
+								"group": "Migration Guides",
+								"pages": ["migration/from-mem0"]
 							},
 							{
 								"group": "Deployment",
