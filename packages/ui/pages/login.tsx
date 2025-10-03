@@ -188,10 +188,10 @@ export function LoginPage({
 			{submittedEmail ? (
 				<div className="w-full max-w-md lg:max-w-none lg:col-span-5 flex flex-col gap-4 lg:gap-6 min-h-2/3 ">
 					<div className="flex flex-col gap-2 text-center lg:text-left">
-						<Title1Bold className="text-sm-white">Almost there!</Title1Bold>
-						<HeadingH3Medium className="text-sm-gray">
+						<Title1Bold className="text-foreground">Almost there!</Title1Bold>
+						<HeadingH3Medium className="text-muted-foreground">
 							Click the magic link we've sent to{" "}
-							<span className="text-sm-white">{submittedEmail}</span>.
+							<span className="text-foreground">{submittedEmail}</span>.
 						</HeadingH3Medium>
 					</div>
 
@@ -221,11 +221,11 @@ export function LoginPage({
 			) : (
 				<div className="w-full max-w-md lg:max-w-none lg:col-span-5 flex flex-col gap-4 lg:gap-6 min-h-2/3 ">
 					<div className="flex flex-col gap-2 text-center lg:text-left md:mb-12">
-						<Title1Bold className="text-sm-white flex flex-col justify-center md:justify-start md:flex-row items-center gap-3">
+						<Title1Bold className="text-foreground flex flex-col justify-center md:justify-start md:flex-row items-center gap-3">
 							<span className="block md:hidden">Welcome to </span>{" "}
 							<LogoFull className="h-8" />
 						</Title1Bold>
-						<HeadingH1Medium className="text-sm-silver-chalice">
+						<HeadingH1Medium className="text-muted-foreground">
 							{heroText}
 						</HeadingH1Medium>
 					</div>
@@ -348,7 +348,7 @@ export function LoginPage({
 								<ExternalAuthButton
 									authIcon={
 										<svg
-											className="w-4 h-4 sm:w-5 sm:h-5"
+											className="w-4 h-4 sm:w-5 sm:h-5 text-foreground"
 											fill="none"
 											height="25"
 											viewBox="0 0 26 25"
@@ -360,14 +360,14 @@ export function LoginPage({
 												<path
 													clipRule="evenodd"
 													d="M12.9635 0.214844C6.20975 0.214844 0.75 5.71484 0.75 12.5191C0.75 17.9581 4.24825 22.5621 9.10125 24.1916C9.708 24.3141 9.93025 23.9268 9.93025 23.6011C9.93025 23.3158 9.91025 22.3381 9.91025 21.3193C6.51275 22.0528 5.80525 19.8526 5.80525 19.8526C5.25925 18.4266 4.45025 18.0601 4.45025 18.0601C3.33825 17.3063 4.53125 17.3063 4.53125 17.3063C5.76475 17.3878 6.412 18.5693 6.412 18.5693C7.50375 20.4433 9.263 19.9138 9.97075 19.5878C10.0718 18.7933 10.3955 18.2433 10.7393 17.9378C8.0295 17.6526 5.1785 16.5933 5.1785 11.8671C5.1785 10.5226 5.6635 9.42259 6.432 8.56709C6.31075 8.26159 5.886 6.99834 6.5535 5.30759C6.5535 5.30759 7.58475 4.98159 9.91 6.57059C10.9055 6.30126 11.9322 6.16425 12.9635 6.16309C13.9948 6.16309 15.046 6.30584 16.0168 6.57059C18.3423 4.98159 19.3735 5.30759 19.3735 5.30759C20.041 6.99834 19.616 8.26159 19.4948 8.56709C20.2835 9.42259 20.7485 10.5226 20.7485 11.8671C20.7485 16.5933 17.8975 17.6321 15.1675 17.9378C15.6125 18.3248 15.9965 19.0581 15.9965 20.2193C15.9965 21.8693 15.9765 23.1936 15.9765 23.6008C15.9765 23.9268 16.199 24.3141 16.8055 24.1918C21.6585 22.5618 25.1568 17.9581 25.1568 12.5191C25.1768 5.71484 19.697 0.214844 12.9635 0.214844Z"
-													fill="white"
+													fill="currentColor"
 													fillRule="evenodd"
 												/>
 											</g>
 											<defs>
 												<clipPath id="clip0_2579_3356">
 													<rect
-														fill="white"
+														fill="currentColor"
 														height="24"
 														transform="translate(0.75 0.214844)"
 														width="24.5"
@@ -408,18 +408,18 @@ export function LoginPage({
 						) : null}
 					</div>
 
-					<Label1Regular className="text-sm-gray text-center text-xs sm:text-sm">
+					<Label1Regular className="text-muted-foreground text-center text-xs sm:text-sm">
 						By continuing, you agree to our{" "}
 						<span className="inline-block">
 							<a
-								className="text-sm-white hover:underline"
+								className="text-foreground hover:underline"
 								href="https://supermemory.ai/terms-of-service"
 							>
 								Terms
 							</a>{" "}
 							and{" "}
 							<a
-								className="text-sm-white hover:underline"
+								className="text-foreground hover:underline"
 								href="https://supermemory.ai/privacy-policy"
 							>
 								Privacy Policy
