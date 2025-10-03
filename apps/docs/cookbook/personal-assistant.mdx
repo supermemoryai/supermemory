@@ -76,9 +76,7 @@ A personal AI assistant that:
         model: openai('gpt-4-turbo'),
         messages,
         tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-          headers: {
-            'x-sm-user-id': userId,
-          }
+          containerTags: [userId]
         }),
         system: `You are a highly personalized AI assistant. Your primary goal is to learn about the user and provide increasingly personalized help over time.
 
