@@ -259,6 +259,10 @@ export function IntegrationsView() {
 
 	const createRaycastApiKeyMutation = useMutation({
 		mutationFn: async () => {
+			if (!org?.id) {
+				throw new Error("Organization ID is required")
+			}
+			
 			const res = await authClient.apiKey.create({
 				metadata: {
 					organizationId: org?.id,
@@ -287,12 +291,13 @@ export function IntegrationsView() {
 		if (
 			qParam === "raycast" &&
 			!hasTriggeredRaycast &&
-			!createRaycastApiKeyMutation.isPending
+			!createRaycastApiKeyMutation.isPending &&
+			org?.id
 		) {
 			setHasTriggeredRaycast(true)
 			createRaycastApiKeyMutation.mutate()
 		}
-	}, [searchParams, hasTriggeredRaycast, createRaycastApiKeyMutation])
+	}, [searchParams, hasTriggeredRaycast, createRaycastApiKeyMutation, org])
 
 	const handleShortcutClick = (shortcutType: "add" | "search") => {
 		setSelectedShortcutType(shortcutType)
