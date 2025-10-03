@@ -466,7 +466,7 @@ https://api.supermemory.ai/v3/[openai-api-url-here]
     async function chatWithOpenAI() {
     try {
         const response = await client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5',
         messages: [
             { role: 'user', content: 'Hello my name is Naman. How are you?' }
         ],
@@ -639,7 +639,7 @@ https://api.supermemory.ai/v3/[openai-api-url-here]
         def chat_with_openai():
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-5",
                     messages=[
                         {"role": "user", "content": "Hello my name is Naman. How are you?"}
                     ],
@@ -785,7 +785,7 @@ https://api.supermemory.ai/v3/[openai-api-url-here]
         -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
         -H "x-sm-user-id: user_123" \
         -d '{
-            "model": "gpt-4o",
+            "model": "gpt-5",
             "messages": [
             {"role": "user", "content": "Hello my name is Naman. How are you?"}
             ],

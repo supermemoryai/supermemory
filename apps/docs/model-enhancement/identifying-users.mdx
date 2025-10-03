@@ -15,18 +15,18 @@ You can add a default header of x-sm-user-id with any client and model
 
 ### `user` in body
 
-For models that support the `user` parameter in the body, such as OpenAI, you can also attach it to the body. 
+For models that support the `user` parameter in the body, such as OpenAI, you can also attach it to the body.
 
 ### `userId` in search params
 
-You can also add `?userId=xyz` in the URL search parameters, incase the models don't support it. 
+You can also add `?userId=xyz` in the URL search parameters, incase the models don't support it.
 
 ## Conversation ID
 
-If a conversation identifier is provided, You do not need to send the entire array of messages to supermemory. 
+If a conversation identifier is provided, You do not need to send the entire array of messages to supermemory.
 
 ```typescript
-// if you provide conversation ID, You do not need to send all the messages every single time. supermemory automatically backfills it. 
+// if you provide conversation ID, You do not need to send all the messages every single time. supermemory automatically backfills it.
 const client = new OpenAI({
     baseURL:
 "https://api.supermemory.ai/v3/https://api.openai.com/v1",
@@ -93,7 +93,7 @@ async function main() {
       'x-sm-user-id': "user_123"
     }
   });
-  
+
   console.debug(msg);
 }
 ```
@@ -110,10 +110,10 @@ async function main() {
     messages: [
       { role: "user", content: "Hello, Assistant" }
     ],
-    model: "gpt-4o",
+    model: "gpt-5",
     user: "user_123"
   });
-  
+
   console.debug(completion.choices[0].message);
 }
 ```

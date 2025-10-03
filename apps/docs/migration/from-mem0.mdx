@@ -9,7 +9,7 @@ Migrating from Mem0.ai to Supermemory is straightforward. This guide walks you t
 ## Why Migrate to Supermemory?
 
 Supermemory offers enhanced capabilities over Mem0.ai:
-- **Memory Router** for zero-code LLM integration  
+- **Memory Router** for zero-code LLM integration
 - **Knowledge graph** architecture for better context relationships
 - **Multiple content types** (URLs, PDFs, images, videos)
 - **Generous free tier** (100k tokens) with affordable pricing
@@ -58,17 +58,17 @@ print("Migration complete!")
     3. Download your memories as JSON
 
     ### Option 2: Export via API
-    
+
     Simple script to export all your memories from Mem0:
 
     ```python
     from mem0 import MemoryClient
     import json
     import time
-    
+
     # Connect to Mem0
     client = MemoryClient(api_key="your_mem0_api_key")
-    
+
     # Create export job
     schema = {
         "type": "object",
@@ -87,19 +87,19 @@ print("Migration complete!")
             }
         }
     }
-    
+
     response = client.create_memory_export(schema=schema, filters={})
     export_id = response["id"]
-    
+
     # Wait and retrieve
     print("Exporting memories...")
     time.sleep(5)
     export_data = client.get_memory_export(memory_export_id=export_id)
-    
+
     # Save to file
     with open("mem0_export.json", "w") as f:
         json.dump(export_data, f, indent=2)
-    
+
     print(f"Exported {len(export_data['memories'])} memories")
     ```
   </Step>
@@ -110,7 +110,7 @@ print("Migration complete!")
     1. Sign up at [console.supermemory.ai](https://console.supermemory.ai)
     2. Create a new project
     3. Generate an API key from the dashboard
-    
+
     ```bash
     # Set your environment variable
     export SUPERMEMORY_API_KEY="your_supermemory_api_key"
@@ -123,22 +123,22 @@ print("Migration complete!")
     ```python
     import json
     from supermemory import Supermemory
-    
+
     # Load your Mem0 export
     with open("mem0_export.json", "r") as f:
         mem0_data = json.load(f)
-    
+
     # Connect to Supermemory
     client = Supermemory(api_key="your_supermemory_api_key")
-    
+
     # Import memories
     for memory in mem0_data["memories"]:
         content = memory.get("content", "")
-        
+
         # Skip empty memories
         if not content:
             continue
-        
+
         # Import to Supermemory
         try:
             result = client.memories.add(
@@ -153,7 +153,7 @@ print("Migration complete!")
             print(f"Imported: {content[:50]}...")
         except Exception as e:
             print(f"Failed: {e}")
-    
+
     print("Migration complete!")
     ```
   </Step>
@@ -264,7 +264,7 @@ messages = [
 ]
 
 response = openai.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5",
     messages=messages
 )
 ```
@@ -284,7 +284,7 @@ client = OpenAI(
 
 # Memories handled automatically!
 response = client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5",
     messages=[{"role": "user", "content": "What are my preferences?"}]
 )
 ```
@@ -300,4 +300,3 @@ For enterprise migrations, [contact us](mailto:dhravya@supermemory.com) for assi
 1. [Explore](/how-it-works) how Supermemory works
 2. Read the [quickstart](/quickstart) and add and retrieve your first memories
 3. [Connect](/connectors/overview) to Google Drive, Notion, and OneDrive with automatic syncing
-

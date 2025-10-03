@@ -97,7 +97,7 @@ export async function POST(request: Request) {
   const { messages, customerId } = await request.json()
 
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
       containerTags: [customerId]
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
   const { messages } = await request.json()
 
   const result = await streamText({
-    model: infiniteChat('gpt-4-turbo'),
+    model: infiniteChat('gpt-5'),
     messages,
     system: `You are a documentation assistant. You have access to all previous
     conversations and can reference earlier discussions. Help users understand
@@ -221,7 +221,7 @@ export async function POST(request: Request) {
   const { messages, projectId } = await request.json()
 
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
       containerTags: [projectId]
@@ -354,7 +354,7 @@ export async function POST(request: Request) {
   const { messages } = await request.json()
 
   const result = await streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5'),
     messages,
     tools: {
       // Spread Supermemory tools

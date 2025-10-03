@@ -40,7 +40,7 @@ router_client = OpenAI(
 
 # Router automatically has access to the API-created memory
 response = router_client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5",
     messages=[{"role": "user", "content": "What language should I use for my new backend?"}]
 )
 # Response will consider the Python preference
@@ -66,7 +66,7 @@ router_client = OpenAI(
 
 # Agent has automatic access to product docs
 response = router_client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5",
     messages=[{"role": "user", "content": "How does the enterprise pricing work?"}]
 )
 ```

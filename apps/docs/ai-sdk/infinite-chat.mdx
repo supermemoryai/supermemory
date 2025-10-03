@@ -45,7 +45,7 @@ const infiniteChat = createOpenAI({
 })
 
 const result = await streamText({
-  model: infiniteChat("gpt-4-turbo"),
+  model: infiniteChat("gpt-5"),
   messages: [...]
 })
 ```
@@ -128,7 +128,7 @@ const infiniteChat = createOpenAI({
 })
 
 const result = await streamText({
-  model: infiniteChat("gpt-4-turbo"),
+  model: infiniteChat("gpt-5"),
   messages: [
     { role: "user", content: "What did we discuss yesterday?" }
   ]

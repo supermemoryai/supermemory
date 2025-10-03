@@ -23,7 +23,7 @@ describe("@supermemory/tools", () => {
 
 	// Optional configuration with defaults
 	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
-	const testModelName = process.env.MODEL_NAME || "gpt-4o-mini"
+	const testModelName = process.env.MODEL_NAME || "gpt-5-nano"
 
 	describe("aiSdk module", () => {
 		describe("client initialization", () => {

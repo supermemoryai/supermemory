@@ -73,7 +73,7 @@ A personal AI assistant that:
       const { messages, userId = 'default-user' } = await request.json()
 
       const result = await streamText({
-        model: openai('gpt-4-turbo'),
+        model: openai('gpt-5'),
         messages,
         tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
           containerTags: [userId]
@@ -190,7 +190,7 @@ A personal AI assistant that:
 
         try:
             response = await openai_client.chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-5",
                 messages=enhanced_messages,
                 stream=True,
                 temperature=0.7

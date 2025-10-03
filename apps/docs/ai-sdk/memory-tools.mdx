@@ -18,7 +18,7 @@ const openai = createOpenAI({
 })
 
 const result = await streamText({
-  model: openai("gpt-4-turbo"),
+  model: openai("gpt-5"),
   prompt: "Remember that my name is Alice",
   tools: supermemoryTools("YOUR_SUPERMEMORY_KEY")
 })
@@ -32,7 +32,7 @@ Semantic search through user memories:
 
 ```typescript
 const result = await streamText({
-  model: openai("gpt-4"),
+  model: openai("gpt-5"),
   prompt: "What are my dietary preferences?",
   tools: supermemoryTools("API_KEY")
 })
@@ -64,7 +64,7 @@ Retrieve specific memory by ID:
 
 ```typescript
 const result = await streamText({
-  model: openai("gpt-4"),
+  model: openai("gpt-5"),
   prompt: "Get the details of memory abc123",
   tools: supermemoryTools("API_KEY")
 })
@@ -87,7 +87,7 @@ import {
 
 // Use only search tool
 const result = await streamText({
-  model: openai("gpt-4"),
+  model: openai("gpt-5"),
   prompt: "What do you know about me?",
   tools: {
     searchMemories: searchMemoriesTool("API_KEY", {

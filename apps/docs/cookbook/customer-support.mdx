@@ -9,7 +9,7 @@ Create a customer support system that remembers every interaction, tracks issues
 
 A customer support bot that:
 - **Remembers customer history** across all conversations and channels
-- **Tracks ongoing issues** and follows up automatically  
+- **Tracks ongoing issues** and follows up automatically
 - **Provides personalized responses** based on customer tier and preferences
 - **Escalates complex issues** to human agents with full context
 - **Learns from resolutions** to improve future responses
@@ -231,7 +231,7 @@ A customer support bot that:
             """Add a customer interaction to memory"""
             try:
                 content = f"{interaction['type'].upper()}: {interaction['content']}"
-                
+
                 result = self.client.memories.add(
                     content=content,
                     container_tag=self._get_container_tag(customer_id),
@@ -378,10 +378,10 @@ Status: {issue['status']}"""
     }
 
     export async function POST(request: Request) {
-      const { 
-        message, 
-        customerId, 
-        customer, 
+      const {
+        message,
+        customerId,
+        customer,
         conversationHistory = [],
         agentId
       } = await request.json()
@@ -410,7 +410,7 @@ ${contextResults.map(c => `- ${c.content.substring(0, 150)}... (${(c.similarity 
 
         // Determine if escalation is needed
         const escalationKeywords = ['angry', 'frustrated', 'cancel', 'refund', 'legal', 'complaint', 'manager', 'supervisor']
-        const needsEscalation = escalationKeywords.some(keyword => 
+        const needsEscalation = escalationKeywords.some(keyword =>
           message.toLowerCase().includes(keyword)
         ) || customer.tier === 'enterprise'
 
@@ -445,7 +445,7 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
         ]
 
         const result = await streamText({
-          model: openai('gpt-4-turbo'),
+          model: openai('gpt-5'),
           messages,
           temperature: 0.3,
           maxTokens: 800,
@@ -468,7 +468,7 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
             if (message.length > 50 && !contextResults.some(c => c.similarity > 0.8)) {
               const issueCategory = categorizeIssue(message)
               const priority = determinePriority(customer.tier, message)
-              
+
               await contextManager.trackIssue(customerId, {
                 subject: message.substring(0, 100),
                 description: message,
@@ -506,34 +506,34 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
       }
 
       const messageLower = message.toLowerCase()
-      
+
       for (const [category, keywords] of Object.entries(categories)) {
         if (keywords.some(keyword => messageLower.includes(keyword))) {
           return category
         }
       }
-      
+
       return 'general'
     }
 
     function determinePriority(tier: string, message: string): 'low' | 'medium' | 'high' | 'urgent' {
       const urgentKeywords = ['urgent', 'critical', 'emergency', 'down', 'broken']
       const highKeywords = ['important', 'asap', 'soon', 'problem']
-      
+
       const messageLower = message.toLowerCase()
-      
+
       if (urgentKeywords.some(keyword => messageLower.includes(keyword))) {
         return 'urgent'
       }
-      
+
       if (tier === 'enterprise') {
         return highKeywords.some(keyword => messageLower.includes(keyword)) ? 'urgent' : 'high'
       }
-      
+
       if (tier === 'pro') {
         return highKeywords.some(keyword => messageLower.includes(keyword)) ? 'high' : 'medium'
       }
-      
+
       return 'low'
     }
     ```
@@ -580,29 +580,29 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
         }
 
         message_lower = message.lower()
-        
+
         for category, keywords in categories.items():
             if any(keyword in message_lower for keyword in keywords):
                 return category
-        
+
         return 'general'
 
     def determine_priority(tier: str, message: str) -> str:
         """Determine issue priority based on tier and message content"""
         urgent_keywords = ['urgent', 'critical', 'emergency', 'down', 'broken']
         high_keywords = ['important', 'asap', 'soon', 'problem']
-        
+
         message_lower = message.lower()
-        
+
         if any(keyword in message_lower for keyword in urgent_keywords):
             return 'urgent'
-        
+
         if tier == 'enterprise':
             return 'urgent' if any(keyword in message_lower for keyword in high_keywords) else 'high'
-        
+
         if tier == 'pro':
             return 'high' if any(keyword in message_lower for keyword in high_keywords) else 'medium'
-        
+
         return 'low'
 
     @app.post("/support/chat")
@@ -662,7 +662,7 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
             ]
 
             response = await openai_client.chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-5",
                 messages=messages,
                 temperature=0.3,
                 max_tokens=800,
@@ -676,7 +676,7 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
                         content = chunk.choices[0].delta.content
                         full_response += content
                         yield f"data: {json.dumps({'content': content})}\n\n"
-                
+
                 # Store interaction after completion
                 context_manager.add_interaction(request.customerId, {
                     'type': 'chat',
@@ -695,7 +695,7 @@ If you cannot resolve the issue completely, prepare a clear summary for escalati
                 if len(request.message) > 50 and not any(c['similarity'] > 0.8 for c in context_results):
                     issue_category = categorize_issue(request.message)
                     priority = determine_priority(request.customer.tier, request.message)
-                    
+
                     context_manager.track_issue(request.customerId, {
                         'subject': request.message[:100],
                         'description': request.message,
@@ -750,7 +750,7 @@ export default function SupportDashboard() {
   const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [showEscalation, setShowEscalation] = useState(false)
   const [agentId] = useState('agent_001') // In real app, get from auth
-  
+
   const contextManager = new CustomerContextManager()
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
@@ -781,7 +781,7 @@ export default function SupportDashboard() {
       joinDate: '2023-06-15'
     },
     {
-      id: 'cust_002', 
+      id: 'cust_002',
       name: 'TechCorp Inc',
       email: 'support@techcorp.com',
       tier: 'enterprise',
@@ -978,7 +978,7 @@ export default function SupportDashboard() {
                         </span>
                       </div>
                       <p className="text-gray-700 line-clamp-3">
-                        {interaction.content.length > 100 
+                        {interaction.content.length > 100
                           ? `${interaction.content.substring(0, 100)}...`
                           : interaction.content
                         }
@@ -986,10 +986,10 @@ export default function SupportDashboard() {
                       {interaction.outcome && (
                         <div className="mt-2">
                           <span className={`text-xs px-2 py-1 rounded ${
-                            interaction.outcome === 'resolved' 
+                            interaction.outcome === 'resolved'
                               ? 'bg-green-100 text-green-800'
                               : interaction.outcome === 'escalated'
-                              ? 'bg-red-100 text-red-800' 
+                              ? 'bg-red-100 text-red-800'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
                             {interaction.outcome}

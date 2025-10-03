@@ -21,7 +21,7 @@ describe("supermemoryTools", () => {
 
 	// Optional configuration with defaults
 	const testBaseUrl = process.env.SUPERMEMORY_BASE_URL ?? undefined
-	const testModelName = process.env.MODEL_NAME || "gpt-5-mini"
+	const testModelName = process.env.MODEL_NAME || "gpt-5-nano"
 
 	const testPrompts = [
 		"What do you remember about my preferences?",

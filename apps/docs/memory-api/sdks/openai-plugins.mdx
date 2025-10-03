@@ -53,7 +53,7 @@ async def main():
 
     # Chat with memory tools
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5",
         messages=[
             {
                 "role": "system",
@@ -99,7 +99,7 @@ const executeToolCall = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!,
 
 // Use with OpenAI Chat Completions
 const completion = await client.chat.completions.create({
-  model: "gpt-4",
+  model: "gpt-5",
   messages: [
     {
       role: "user",
@@ -300,7 +300,7 @@ async def chat_with_memory():
 
         # Get AI response with tools
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5",
             messages=messages,
             tools=tools.get_tool_definitions()
         )
@@ -319,7 +319,7 @@ async def chat_with_memory():
 
             # Get final response after tool execution
             final_response = await client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=messages
             )
 
@@ -370,7 +370,7 @@ async function chatWithMemory() {
 
       // Get AI response with tools
       const response = await client.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-5",
         messages,
         tools: getToolDefinitions(),
       })
@@ -391,7 +391,7 @@ async function chatWithMemory() {
 
         // Get final response after tool execution
         const finalResponse = await client.chat.completions.create({
-          model: "gpt-4",
+          model: "gpt-5",
           messages,
         })
 
@@ -433,7 +433,7 @@ async def safe_chat():
         tools = SupermemoryTools(api_key="your-api-key")
 
         response = await client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5",
             messages=[{"role": "user", "content": "Hello"}],
             tools=tools.get_tool_definitions()
         )
@@ -453,7 +453,7 @@ async function safeChat() {
     const client = new OpenAI()
 
     const response = await client.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-5",
       messages: [{ role: "user", content: "Hello" }],
       tools: getToolDefinitions(),
     })

@@ -81,7 +81,7 @@ https://api.supermemory.ai/v3/https://api.groq.com/openai/v1/
 
     # Use as normal
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="gpt-5",
         messages=[
             {"role": "user", "content": "Hello!"}
         ]
@@ -106,7 +106,7 @@ https://api.supermemory.ai/v3/https://api.groq.com/openai/v1/
 
     // Use as normal
     const response = await client.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-5',
       messages: [
         { role: 'user', content: 'Hello!' }
       ]
@@ -124,7 +124,7 @@ https://api.supermemory.ai/v3/https://api.groq.com/openai/v1/
       -H "x-sm-user-id: user123" \
       -H "Content-Type: application/json" \
       -d '{
-        "model": "gpt-4",
+        "model": "gpt-5",
         "messages": [{"role": "user", "content": "Hello!"}]
       }'
     ```
@@ -162,7 +162,7 @@ curl -X POST "https://api.supermemory.ai/v3/https://api.openai.com/v1/chat/compl
   -H "Authorization: Bearer YOUR_OPENAI_API_KEY" \
   -H "x-supermemory-api-key: YOUR_SUPERMEMORY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello!"}]}'
+  -d '{"model": "gpt-5", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
 </CodeGroup>
@@ -176,7 +176,7 @@ Use `x-sm-conversation-id` to maintain conversation context across requests:
 ```python
 # Start a new conversation
 response1 = client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5",
     messages=[{"role": "user", "content": "My name is Alice"}],
     extra_headers={
         "x-sm-conversation-id": "conv_123"
@@ -185,7 +185,7 @@ response1 = client.chat.completions.create(
 
 # Continue the same conversation later
 response2 = client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-5",
     messages=[{"role": "user", "content": "What's my name?"}],
     extra_headers={
         "x-sm-conversation-id": "conv_123"

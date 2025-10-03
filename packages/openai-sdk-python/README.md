@@ -30,29 +30,29 @@ from supermemory_openai import SupermemoryTools, execute_memory_tool_calls
 async def main():
     # Initialize OpenAI client
     client = openai.AsyncOpenAI(api_key="your-openai-api-key")
-    
+
     # Initialize Supermemory tools
     tools = SupermemoryTools(
         api_key="your-supermemory-api-key",
         config={"project_id": "my-project"}
     )
-    
+
     # Chat with memory tools
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-5",
         messages=[
             {
                 "role": "system",
                 "content": "You are a helpful assistant with access to user memories."
             },
             {
-                "role": "user", 
+                "role": "user",
                 "content": "Remember that I prefer tea over coffee"
             }
         ],
         tools=tools.get_tool_definitions()
     )
-    
+
     # Handle tool calls if present
     if response.choices[0].message.tool_calls:
         tool_results = await execute_memory_tool_calls(
@@ -61,7 +61,7 @@ async def main():
             config={"project_id": "my-project"}
         )
         print("Tool results:", tool_results)
-    
+
     print(response.choices[0].message.content)
 
 asyncio.run(main())
@@ -91,7 +91,7 @@ result = await tools.search_memories(
     include_full_docs=True
 )
 
-# Add memory  
+# Add memory
 result = await tools.add_memory(
     memory="User prefers tea over coffee"
 )
@@ -107,7 +107,7 @@ result = await tools.fetch_memory(
 ```python
 from supermemory_openai import (
     create_search_memories_tool,
-    create_add_memory_tool, 
+    create_add_memory_tool,
     create_fetch_memory_tool
 )
 
@@ -128,7 +128,7 @@ if response.choices[0].message.tool_calls:
         tool_calls=response.choices[0].message.tool_calls,
         config={"project_id": "my-project"}
     )
-    
+
     # Add tool results to conversation
     messages.append(response.choices[0].message)
     messages.extend(tool_results)
@@ -163,7 +163,7 @@ SupermemoryTools(
 try:
     response = await client.chat_completion(
         messages=[{"role": "user", "content": "Hello"}],
-        model="gpt-4o"
+        model="gpt-5"
     )
 except Exception as e:
     print(f"Error: {e}")
@@ -175,7 +175,7 @@ Set these environment variables for testing:
 
 - `SUPERMEMORY_API_KEY` - Your Supermemory API key
 - `OPENAI_API_KEY` - Your OpenAI API key
-- `MODEL_NAME` - Model to use (default: "gpt-4o-mini")
+- `MODEL_NAME` - Model to use (default: "gpt-5-nano")
 - `SUPERMEMORY_BASE_URL` - Custom Supermemory base URL (optional)
 
 ## Development

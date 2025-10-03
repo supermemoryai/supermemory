@@ -71,7 +71,7 @@ def test_base_url() -> str:
 @pytest.fixture
 def test_model_name() -> str:
     """Get test model name from environment."""
-    return os.getenv("MODEL_NAME", "gpt-4o-mini")
+    return os.getenv("MODEL_NAME", "gpt-5-nano")
 
 
 class TestToolInitialization:

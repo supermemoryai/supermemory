@@ -9,7 +9,7 @@ Create a powerful document Q&A system that can ingest PDFs, text files, and web 
 
 A document Q&A system that:
 - **Ingests multiple file types** (PDFs, DOCX, text, URLs)
-- **Answers questions accurately** with source citations  
+- **Answers questions accurately** with source citations
 - **Provides source references** with page numbers and document titles
 - **Handles follow-up questions** with conversation context
 - **Supports multiple document collections** for different topics
@@ -192,7 +192,7 @@ A document Q&A system that:
             """Upload a local file to Supermemory"""
             if metadata is None:
                 metadata = {}
-            
+
             try:
                 with open(file_path, 'rb') as file:
                     result = self.client.memories.upload_file(
@@ -214,7 +214,7 @@ A document Q&A system that:
             """Upload URL content to Supermemory"""
             if metadata is None:
                 metadata = {}
-            
+
             try:
                 result = self.client.memories.add(
                     content=url,
@@ -258,11 +258,11 @@ A document Q&A system that:
                 return [
                     {
                         'id': memory.id,
-                        'title': (memory.title or 
-                                memory.metadata.get('originalName') or 
+                        'title': (memory.title or
+                                memory.metadata.get('originalName') or
                                 'Untitled' if memory.metadata else 'Untitled'),
-                        'type': (memory.metadata.get('fileType') or 
-                               memory.metadata.get('type') or 
+                        'type': (memory.metadata.get('fileType') or
+                               memory.metadata.get('type') or
                                'unknown' if memory.metadata else 'unknown'),
                         'uploadedAt': memory.metadata.get('uploadedAt') if memory.metadata else None,
                         'status': memory.status,
@@ -349,9 +349,9 @@ A document Q&A system that:
         ]
 
         const result = await streamText({
-          model: openai('gpt-4-turbo'),
+          model: openai('gpt-5'),
           messages,
-          system: `You are a helpful document Q&A assistant. Answer questions based ONLY on the provided document context. 
+          system: `You are a helpful document Q&A assistant. Answer questions based ONLY on the provided document context.
 
 CONTEXT FROM DOCUMENTS:
 ${context}
@@ -450,13 +450,13 @@ If the question cannot be answered from the provided documents, respond with: "I
 
             for index, result in enumerate(search_results.results):
                 relevant_chunks = [
-                    chunk.content for chunk in result.chunks 
+                    chunk.content for chunk in result.chunks
                     if chunk.is_relevant
                 ][:3]
-                
+
                 chunk_text = '\n\n'.join(relevant_chunks)
                 context_parts.append(f'[Document {index + 1}: "{result.title}"]\n{chunk_text}')
-                
+
                 sources.append({
                     'id': result.document_id,
                     'title': result.title,
@@ -472,7 +472,7 @@ If the question cannot be answered from the provided documents, respond with: "I
             messages = [
                 {
                     "role": "system",
-                    "content": f"""You are a helpful document Q&A assistant. Answer questions based ONLY on the provided document context. 
+                    "content": f"""You are a helpful document Q&A assistant. Answer questions based ONLY on the provided document context.
 
 CONTEXT FROM DOCUMENTS:
 {context}
@@ -500,7 +500,7 @@ If the question cannot be answered from the provided documents, respond with: "I
 
             # Get AI response
             response = await openai_client.chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-5",
                 messages=messages,
                 temperature=0.1,
                 max_tokens=1000
@@ -557,7 +557,7 @@ export default function DocumentQA() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const processor = new DocumentProcessor()
 
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
@@ -599,7 +599,7 @@ export default function DocumentQA() {
 
       // Refresh document list
       await loadDocuments()
-      
+
       // Clear file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
@@ -653,7 +653,7 @@ export default function DocumentQA() {
         <div className="lg:col-span-1">
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Document Collection</h2>
-            
+
             {/* Collection Selector */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -732,13 +732,13 @@ export default function DocumentQA() {
         <div className="lg:col-span-2">
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Ask Questions</h2>
-            
+
             {/* Messages */}
             <div className="h-96 overflow-y-auto mb-4 space-y-4">
               {messages.length === 0 && (
                 <div className="text-gray-500 text-center py-8">
                   Upload documents and ask questions to get started!
-                  
+
                   <div className="mt-4 text-sm">
                     <p className="font-medium">Try asking:</p>
                     <ul className="mt-2 space-y-1">
@@ -760,7 +760,7 @@ export default function DocumentQA() {
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{message.content}</div>
-                  
+
                   {message.role === 'assistant' && sources.length > 0 && (
                     formatSources(sources)
                   )}

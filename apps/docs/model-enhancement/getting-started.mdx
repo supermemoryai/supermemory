@@ -60,7 +60,7 @@ curl https://api.supermemory.ai/v3/https://api.openai.com/v1/chat/completions \
   -H "x-supermemory--api-key: $SUPERMEMORY_API_KEY" \
   -H 'x-sm-user-id: user_id' \
   -d '{
-    "model": "gpt-4o",
+    "model": "gpt-5",
     "messages": [
       {"role": "user", "content": "What is the capital of France?"}
     ]
@@ -85,7 +85,7 @@ const openai = new OpenAI({
 });
 
 const completion = await openai.chat.completions.create({
-  model: "gpt-4o",
+  model: "gpt-5",
 /// you can also add user here
   user: "user",
   messages: [

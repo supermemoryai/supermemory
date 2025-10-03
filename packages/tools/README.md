@@ -40,7 +40,7 @@ const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
 
 // Use with AI SDK
 const result = await generateText({
-  model: openai("gpt-4"),
+  model: openai("gpt-5"),
   messages: [
     {
       role: "user",
@@ -80,7 +80,7 @@ const executeToolCall = createToolCallExecutor(process.env.SUPERMEMORY_API_KEY!,
 
 // Use with OpenAI Chat Completions
 const completion = await client.chat.completions.create({
-  model: "gpt-4",
+  model: "gpt-5",
   messages: [
     {
       role: "user",
