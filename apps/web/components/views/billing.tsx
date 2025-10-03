@@ -118,16 +118,8 @@ export function BillingView() {
 						<div className="flex justify-between items-center">
 							<span className="text-sm text-muted-foreground">Memories</span>
 							<span className="text-sm text-foreground">
-								{memoriesUsed} / {memoriesLimit}
+								Unlimited
 							</span>
-						</div>
-						<div className="w-full bg-muted-foreground/50 rounded-full h-2">
-							<div
-								className="bg-green-500 h-2 rounded-full transition-all"
-								style={{
-									width: `${Math.min((memoriesUsed / memoriesLimit) * 100, 100)}%`,
-								}}
-							/>
 						</div>
 					</div>
 					<div className="space-y-2">
