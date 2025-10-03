@@ -1,7 +1,17 @@
 import { Button } from "@ui/components/button"
 import { Logo, LogoFull } from "@ui/assets/Logo"
 import Link from "next/link"
-import { MoonIcon, Plus, SunIcon, MonitorIcon, Network } from "lucide-react"
+import {
+	MoonIcon,
+	Plus,
+	SunIcon,
+	MonitorIcon,
+	Network,
+	User,
+	CreditCard,
+	Chrome,
+	LogOut,
+} from "lucide-react"
 import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
@@ -93,12 +103,26 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem onClick={() => router.push("/settings")}>
+								<User className="h-4 w-4 mr-2" />
 								Profile
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => router.push("/settings/billing")}
 							>
+								<CreditCard className="h-4 w-4 mr-2" />
 								Billing
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() => {
+									window.open(
+										"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
+										"_blank",
+										"noopener,noreferrer",
+									)
+								}}
+							>
+								<Chrome className="h-4 w-4 mr-2" />
+								Chrome Extension
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								className="flex items-center justify-between p-2 cursor-default hover:bg-transparent focus:bg-transparent data-[highlighted]:bg-transparent"
@@ -164,6 +188,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem onClick={() => handleSignOut()}>
+								<LogOut className="h-4 w-4 mr-2" />
 								Logout
 							</DropdownMenuItem>
 						</DropdownMenuContent>
