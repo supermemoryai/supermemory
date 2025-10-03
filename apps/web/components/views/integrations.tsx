@@ -4,6 +4,7 @@ import { useAuth } from "@lib/auth-context"
 import { generateId } from "@lib/generate-id"
 import {
 	ADD_MEMORY_SHORTCUT_URL,
+	RAYCAST_EXTENSION_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
 } from "@repo/lib/constants"
 import { fetchConnectionsFeature } from "@repo/lib/queries"
@@ -20,9 +21,17 @@ import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
-import { Check, Copy, Smartphone, Trash2 } from "lucide-react"
+import {
+	Check,
+	Copy,
+	DownloadIcon,
+	KeyIcon,
+	Smartphone,
+	Trash2,
+} from "lucide-react"
 import { motion } from "motion/react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 import { toast } from "sonner"
 import type { z } from "zod"
@@ -87,6 +96,7 @@ export function IntegrationsView() {
 	const queryClient = useQueryClient()
 	const { selectedProject } = useProject()
 	const autumn = useCustomer()
+	const searchParams = useSearchParams()
 	const [showApiKeyModal, setShowApiKeyModal] = useState(false)
 	const [apiKey, setApiKey] = useState<string>("")
 	const [copied, setCopied] = useState(false)
@@ -94,7 +104,12 @@ export function IntegrationsView() {
 	const [selectedShortcutType, setSelectedShortcutType] = useState<
 		"add" | "search" | null
 	>(null)
+	const [showRaycastApiKeyModal, setShowRaycastApiKeyModal] = useState(false)
+	const [raycastApiKey, setRaycastApiKey] = useState<string>("")
+	const [raycastCopied, setRaycastCopied] = useState(false)
+	const [hasTriggeredRaycast, setHasTriggeredRaycast] = useState(false)
 	const apiKeyId = useId()
+	const raycastApiKeyId = useId()
 
 	const handleUpgrade = async () => {
 		try {
@@ -233,7 +248,7 @@ export function IntegrationsView() {
 			setApiKey(apiKey)
 			setShowApiKeyModal(true)
 			setCopied(false)
-			handleCopyApiKey()
+			handleCopyApiKey(apiKey)
 		},
 		onError: (error) => {
 			toast.error("Failed to create API key", {
@@ -242,12 +257,54 @@ export function IntegrationsView() {
 		},
 	})
 
+	const createRaycastApiKeyMutation = useMutation({
+		mutationFn: async () => {
+			if (!org?.id) {
+				throw new Error("Organization ID is required")
+			}
+			
+			const res = await authClient.apiKey.create({
+				metadata: {
+					organizationId: org?.id,
+					type: "raycast-extension",
+				},
+				name: `raycast-${generateId().slice(0, 8)}`,
+				prefix: `sm_${org?.id}_`,
+			})
+			return res.key
+		},
+		onSuccess: (apiKey) => {
+			setRaycastApiKey(apiKey)
+			setShowRaycastApiKeyModal(true)
+			setRaycastCopied(false)
+			handleCopyApiKey(apiKey)
+		},
+		onError: (error) => {
+			toast.error("Failed to create Raycast API key", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+	})
+
+	useEffect(() => {
+		const qParam = searchParams.get("q")
+		if (
+			qParam === "raycast" &&
+			!hasTriggeredRaycast &&
+			!createRaycastApiKeyMutation.isPending &&
+			org?.id
+		) {
+			setHasTriggeredRaycast(true)
+			createRaycastApiKeyMutation.mutate()
+		}
+	}, [searchParams, hasTriggeredRaycast, createRaycastApiKeyMutation, org])
+
 	const handleShortcutClick = (shortcutType: "add" | "search") => {
 		setSelectedShortcutType(shortcutType)
 		createApiKeyMutation.mutate()
 	}
 
-	const handleCopyApiKey = async () => {
+	const handleCopyApiKey = async (apiKey: string) => {
 		try {
 			await navigator.clipboard.writeText(apiKey)
 			setCopied(true)
@@ -279,6 +336,18 @@ export function IntegrationsView() {
 			setApiKey("")
 			setCopied(false)
 		}
+	}
+
+	const handleRaycastDialogClose = (open: boolean) => {
+		setShowRaycastApiKeyModal(open)
+		if (!open) {
+			setRaycastApiKey("")
+			setRaycastCopied(false)
+		}
+	}
+
+	const handleRaycastClick = () => {
+		createRaycastApiKeyMutation.mutate()
 	}
 
 	return (
@@ -331,6 +400,64 @@ export function IntegrationsView() {
 							{createApiKeyMutation.isPending
 								? "Creating..."
 								: "Search Memory Shortcut"}
+						</Button>
+					</div>
+				</div>
+			</div>
+
+			{/* Raycast Extension */}
+			<div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+				<div className="p-4 sm:p-5">
+					<div className="flex items-start gap-3 mb-3">
+						<div className="p-2 bg-purple-500/10 rounded-lg flex-shrink-0">
+							<svg
+								width="24"
+								height="24"
+								viewBox="0 0 28 28"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg"
+							>
+								<title>Raycast Icon</title>
+								<path
+									fill-rule="evenodd"
+									clip-rule="evenodd"
+									d="M7 18.079V21L0 14L1.46 12.54L7 18.081V18.079ZM9.921 21H7L14 28L15.46 26.54L9.921 21ZM26.535 15.462L27.996 14L13.996 0L12.538 1.466L18.077 7.004H14.73L10.864 3.146L9.404 4.606L11.809 7.01H10.129V17.876H20.994V16.196L23.399 18.6L24.859 17.14L20.994 13.274V9.927L26.535 15.462ZM7.73 6.276L6.265 7.738L7.833 9.304L9.294 7.844L7.73 6.276ZM20.162 18.708L18.702 20.17L20.268 21.738L21.73 20.276L20.162 18.708ZM4.596 9.41L3.134 10.872L7 14.738V11.815L4.596 9.41ZM16.192 21.006H13.268L17.134 24.872L18.596 23.41L16.192 21.006Z"
+									fill="#FF6363"
+								/>
+							</svg>
+						</div>
+						<div className="flex-1 min-w-0">
+							<h3 className="text-card-foreground font-semibold text-base mb-1">
+								Raycast Extension
+							</h3>
+							<p className="text-muted-foreground text-sm leading-relaxed">
+								Add and search memories directly from Raycast on Mac and
+								Windows.
+							</p>
+						</div>
+					</div>
+					<div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+						<Button
+							variant="secondary"
+							className="flex-1"
+							onClick={handleRaycastClick}
+							disabled={createRaycastApiKeyMutation.isPending}
+						>
+							<KeyIcon className="h-4 w-4" />
+							{createRaycastApiKeyMutation.isPending
+								? "Generating..."
+								: "Get API Key"}
+						</Button>
+						<Button
+							variant="secondary"
+							className="flex-1"
+							onClick={() => {
+								window.open(RAYCAST_EXTENSION_URL, "_blank")
+								analytics.extensionInstallClicked()
+							}}
+						>
+							<DownloadIcon className="h-4 w-4" />
+							Install Extension
 						</Button>
 					</div>
 				</div>
@@ -630,8 +757,8 @@ export function IntegrationsView() {
 									<Button
 										size="sm"
 										variant="ghost"
-										onClick={handleCopyApiKey}
-										className="hover:bg-accent"
+										onClick={() => handleCopyApiKey(apiKey)}
+										className="text-white/70 hover:text-white hover:bg-white/10"
 									>
 										{copied ? (
 											<Check className="h-4 w-4 text-chart-2" />
@@ -690,6 +817,115 @@ export function IntegrationsView() {
 										className="mr-2"
 									/>
 									Add to Shortcuts
+								</Button>
+							</div>
+						</div>
+					</DialogContent>
+				</DialogPortal>
+			</Dialog>
+
+			<Dialog
+				open={showRaycastApiKeyModal}
+				onOpenChange={handleRaycastDialogClose}
+			>
+				<DialogPortal>
+					<DialogContent className="bg-card border-border text-card-foreground md:max-w-md z-[100]">
+						<DialogHeader>
+							<DialogTitle className="text-card-foreground text-lg font-semibold">
+								Setup Raycast Extension
+							</DialogTitle>
+						</DialogHeader>
+
+						<div className="space-y-4">
+							{/* API Key Section */}
+							<div className="space-y-2">
+								<label
+									htmlFor={raycastApiKeyId}
+									className="text-sm font-medium text-muted-foreground"
+								>
+									Your Raycast API Key
+								</label>
+								<div className="flex items-center gap-2">
+									<input
+										id={raycastApiKeyId}
+										type="text"
+										value={raycastApiKey}
+										readOnly
+										className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono"
+									/>
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() => handleCopyApiKey(raycastApiKey)}
+										className="text-muted-foreground hover:text-foreground hover:bg-accent"
+									>
+										{raycastCopied ? (
+											<Check className="h-4 w-4 text-chart-2" />
+										) : (
+											<Copy className="h-4 w-4" />
+										)}
+									</Button>
+								</div>
+							</div>
+
+							{/* Steps */}
+							<div className="space-y-3">
+								<h4 className="text-sm font-medium text-muted-foreground">
+									Follow these steps:
+								</h4>
+								<div className="space-y-2">
+									<div className="flex items-start gap-3">
+										<div className="flex-shrink-0 w-6 h-6 bg-purple-500/20 text-purple-500 rounded-full flex items-center justify-center text-xs font-medium">
+											1
+										</div>
+										<p className="text-sm text-muted-foreground">
+											Install the Raycast extension from the Raycast Store
+										</p>
+									</div>
+									<div className="flex items-start gap-3">
+										<div className="flex-shrink-0 w-6 h-6 bg-purple-500/20 text-purple-500 rounded-full flex items-center justify-center text-xs font-medium">
+											2
+										</div>
+										<p className="text-sm text-muted-foreground">
+											Open Raycast preferences and paste your API key
+										</p>
+									</div>
+									<div className="flex items-start gap-3">
+										<div className="flex-shrink-0 w-6 h-6 bg-purple-500/20 text-purple-500 rounded-full flex items-center justify-center text-xs font-medium">
+											3
+										</div>
+										<p className="text-sm text-muted-foreground">
+											Use "Add Memory" or "Search Memories" commands!
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<div className="flex gap-2 pt-2">
+								<Button
+									onClick={() => {
+										window.open(RAYCAST_EXTENSION_URL, "_blank")
+										analytics.extensionInstallClicked()
+									}}
+									className="flex-1"
+									variant="default"
+								>
+									<svg
+										width="24"
+										height="24"
+										viewBox="0 0 28 28"
+										fill="none"
+										xmlns="http://www.w3.org/2000/svg"
+									>
+										<title>Raycast Icon</title>
+										<path
+											fill-rule="evenodd"
+											clip-rule="evenodd"
+											d="M7 18.079V21L0 14L1.46 12.54L7 18.081V18.079ZM9.921 21H7L14 28L15.46 26.54L9.921 21ZM26.535 15.462L27.996 14L13.996 0L12.538 1.466L18.077 7.004H14.73L10.864 3.146L9.404 4.606L11.809 7.01H10.129V17.876H20.994V16.196L23.399 18.6L24.859 17.14L20.994 13.274V9.927L26.535 15.462ZM7.73 6.276L6.265 7.738L7.833 9.304L9.294 7.844L7.73 6.276ZM20.162 18.708L18.702 20.17L20.268 21.738L21.73 20.276L20.162 18.708ZM4.596 9.41L3.134 10.872L7 14.738V11.815L4.596 9.41ZM16.192 21.006H13.268L17.134 24.872L18.596 23.41L16.192 21.006Z"
+											fill="#FF6363"
+										/>
+									</svg>
+									Install Extension
 								</Button>
 							</div>
 						</div>

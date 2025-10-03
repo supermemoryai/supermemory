@@ -14,7 +14,18 @@ import {
 	enrichTweet,
 } from "react-tweet"
 import { Badge } from "@repo/ui/components/badge"
-import { Brain } from "lucide-react"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog"
+import { Brain, Trash2 } from "lucide-react"
 import { colors } from "@repo/ui/memory-graph/constants"
 import { getPastelBackgroundColor } from "../memories-utils"
 
@@ -71,18 +82,69 @@ const CustomTweet = ({
 export const TweetCard = ({
 	data,
 	activeMemories,
+	onDelete,
 }: {
 	data: Tweet
 	activeMemories?: Array<{ id: string; isForgotten?: boolean }>
+	onDelete?: () => void
 }) => {
 	return (
 		<div
-			className="relative transition-all"
+			className="relative transition-all group"
 			style={{
 				backgroundColor: getPastelBackgroundColor(data.id_str || "tweet"),
 			}}
 		>
 			<CustomTweet components={{}} tweet={data} />
+
+			{onDelete && (
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<button
+							className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
+							onClick={(e) => {
+								e.stopPropagation()
+							}}
+							style={{
+								color: colors.text.muted,
+								backgroundColor: "rgba(255, 255, 255, 0.1)",
+								backdropFilter: "blur(4px)",
+							}}
+							type="button"
+						>
+							<Trash2 className="w-3.5 h-3.5" />
+						</button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete Document</AlertDialogTitle>
+							<AlertDialogDescription>
+								Are you sure you want to delete this document and all its
+								related memories? This action cannot be undone.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel
+								onClick={(e) => {
+									e.stopPropagation()
+								}}
+							>
+								Cancel
+							</AlertDialogCancel>
+							<AlertDialogAction
+								className="bg-red-600 hover:bg-red-700 text-white"
+								onClick={(e) => {
+									e.stopPropagation()
+									onDelete()
+								}}
+							>
+								Delete
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
+
 			{activeMemories && activeMemories.length > 0 && (
 				<div className="absolute bottom-2 left-4 z-10">
 					<Badge

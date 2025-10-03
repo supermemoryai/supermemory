@@ -63,6 +63,7 @@ const DocumentCard = memo(
 					description={document.content}
 					activeMemories={activeMemories}
 					lastModified={document.updatedAt || document.createdAt}
+					onDelete={() => onDelete(document)}
 				/>
 			)
 		}
@@ -77,6 +78,7 @@ const DocumentCard = memo(
 						document.metadata?.sm_internal_twitter_metadata as unknown as Tweet
 					}
 					activeMemories={activeMemories}
+					onDelete={() => onDelete(document)}
 				/>
 			)
 		}
@@ -87,6 +89,7 @@ const DocumentCard = memo(
 					url={document.url}
 					title={document.title || "Untitled Document"}
 					image={document.ogImage}
+					onDelete={() => onDelete(document)}
 				/>
 			)
 		}
@@ -212,9 +215,7 @@ export const MasonryMemoryList = ({
 				) : isLoading ? (
 					<div className="h-full flex items-center justify-center p-4">
 						<div className="rounded-xl overflow-hidden">
-							<div
-								className="relative z-10 px-6 py-4"
-							>
+							<div className="relative z-10 px-6 py-4">
 								<div className="flex items-center gap-2">
 									<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
 									<span>Loading memory list...</span>
@@ -232,6 +233,7 @@ export const MasonryMemoryList = ({
 						data-theme="light"
 					>
 						<Masonry
+							key={`masonry-${filteredDocuments.length}-${filteredDocuments.map((d) => d.id).join(",")}`}
 							items={filteredDocuments}
 							render={renderDocumentCard}
 							columnGutter={16}

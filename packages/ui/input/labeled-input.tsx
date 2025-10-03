@@ -21,11 +21,11 @@ export function LabeledInput({
 }: LabeledInputProps) {
 	return (
 		<div className={cn("flex flex-col gap-2", className)} {...props}>
-			<Label1Regular className="text-sm-white">{label}</Label1Regular>
+			<Label1Regular className="text-foreground">{label}</Label1Regular>
 
 			<Input
 				className={cn(
-					"w-full leading-[1.375rem] tracking-[-0.4px] rounded-2xl p-5 placeholder:text-sm-gray text-sm-white border-[1.5px] border-sm-gray disabled:cursor-not-allowed disabled:opacity-50",
+					"w-full leading-[1.375rem] tracking-[-0.4px] rounded-2xl p-5 placeholder:text-muted-foreground text-foreground border-[1.5px] border-border disabled:cursor-not-allowed disabled:opacity-50",
 					inputProps?.className,
 				)}
 				placeholder={inputPlaceholder}

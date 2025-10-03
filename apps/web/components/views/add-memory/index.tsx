@@ -88,7 +88,10 @@ export function AddMemoryView({
 	const [newProjectName, setNewProjectName] = useState("")
 
 	// Check memory limits
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn, !autumn.isLoading)
+	const { data: memoriesCheck } = fetchMemoriesFeature(
+		autumn,
+		!autumn.isLoading,
+	)
 
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0
@@ -757,7 +760,7 @@ export function AddMemoryView({
 												{({ state, handleChange, handleBlur }) => (
 													<>
 														<Input
-															className={`bg-black/5 border-black/10 text-black ${
+															className={`bg-black/5 border-black/10 ${
 																addContentMutation.isPending ? "opacity-50" : ""
 															}`}
 															disabled={addContentMutation.isPending}

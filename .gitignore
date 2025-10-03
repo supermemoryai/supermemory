@@ -7,6 +7,7 @@ drizzle.config.ts
 node_modules
 .pnp
 .pnp.js
+bun.lock
 
 # Local env files
 .env

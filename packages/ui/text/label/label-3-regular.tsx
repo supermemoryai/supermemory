@@ -10,7 +10,7 @@ export function Label3Regular({
 	return (
 		<Comp
 			className={cn(
-				"text-[0.125rem] sm:text-[0.25rem] md:text-[0.375rem] lg:text-[0.5rem] font-normal leading-[16px] tracking-[-0.2px] text-sm-silver-chalice",
+				"text-[0.125rem] sm:text-[0.25rem] md:text-[0.375rem] lg:text-[0.5rem] font-normal leading-[16px] tracking-[-0.2px] text-muted-foreground",
 				className,
 			)}
 			{...props}

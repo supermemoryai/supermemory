@@ -6,6 +6,7 @@ import { ChevronsDown, LoaderIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { InstallPrompt } from "@/components/install-prompt"
+import { ChromeExtensionButton } from "@/components/chrome-extension-button"
 import { ChatInput } from "@/components/chat-input"
 import { BackgroundPlus } from "@ui/components/grid-plus"
 import { Memories } from "@/components/memories"
@@ -76,6 +77,7 @@ export default function Page() {
 			<Memories />
 
 			<InstallPrompt />
+			<ChromeExtensionButton />
 		</div>
 	)
 }

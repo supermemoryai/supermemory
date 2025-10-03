@@ -37,7 +37,10 @@ export function ProfileView() {
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn, !isCheckingStatus && !autumn.isLoading)
+	const { data: connectionsCheck } = fetchConnectionsFeature(
+		autumn,
+		!isCheckingStatus && !autumn.isLoading,
+	)
 	const connectionsUsed = connectionsCheck?.usage ?? 0
 
 	const handleUpgrade = async () => {
@@ -190,26 +193,32 @@ export function ProfileView() {
 					<div className="space-y-2">
 						<div className="flex justify-between items-center">
 							<span className="text-sm text-muted-foreground">Memories</span>
-							<span
-								className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-500" : "text-foreground"}`}
-							>
-								{memoriesUsed} / {memoriesLimit}
-							</span>
+							{isPro ? (
+								<span className="text-sm text-foreground">Unlimited</span>
+							) : (
+								<span
+									className={`text-sm ${memoriesUsed >= memoriesLimit ? "text-red-500" : "text-foreground"}`}
+								>
+									{memoriesUsed} / {memoriesLimit}
+								</span>
+							)}
 						</div>
-						<div className="w-full bg-muted-foreground/50 rounded-full h-2">
-							<div
-								className={`h-2 rounded-full transition-all ${
-									memoriesUsed >= memoriesLimit
-										? "bg-red-500"
-										: isPro
-											? "bg-green-500"
-											: "bg-blue-500"
-								}`}
-								style={{
-									width: `${Math.min((memoriesUsed / memoriesLimit) * 100, 100)}%`,
-								}}
-							/>
-						</div>
+						{!isPro && (
+							<div className="w-full bg-muted-foreground/50 rounded-full h-2">
+								<div
+									className={`h-2 rounded-full transition-all ${
+										memoriesUsed >= memoriesLimit
+											? "bg-red-500"
+											: isPro
+												? "bg-green-500"
+												: "bg-blue-500"
+									}`}
+									style={{
+										width: `${Math.min((memoriesUsed / memoriesLimit) * 100, 100)}%`,
+									}}
+								/>
+							</div>
+						)}
 					</div>
 
 					{isPro && (
