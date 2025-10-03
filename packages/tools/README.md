@@ -35,7 +35,7 @@ const openai = createOpenAI({
 
 // Create all tools
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  containerTags: ["your-user-id"],
 })
 
 // Use with AI SDK
@@ -100,7 +100,7 @@ if (completion.choices[0]?.message.tool_calls) {
 
 // Or create individual function-based tools
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  containerTags: ["your-user-id"],
 })
 
 const searchResult = await tools.searchMemories({

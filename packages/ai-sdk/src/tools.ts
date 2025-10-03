@@ -26,7 +26,7 @@ export function supermemoryTools(
 
 	const containerTags = config?.projectId
 		? [`sm_project_${config?.projectId}`]
-		: (config?.containerTags ?? ["sm_project_default"])
+		: config?.containerTags
 
 	const searchMemories = tool({
 		description:

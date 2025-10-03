@@ -142,7 +142,7 @@ tools = SupermemoryTools(
 import { supermemoryTools } from "@supermemory/tools/openai"
 
 const tools = supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-  projectId: "your-project-id",
+  containerTags: ["your-user-id"],
   baseUrl: "https://custom-endpoint.com", // optional
 })
 ```

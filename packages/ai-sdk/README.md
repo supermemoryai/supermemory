@@ -154,7 +154,7 @@ async function chatWithTools(userMessage: string) {
     ],
     tools: {
       ...supermemoryTools(supermemoryApiKey, {
-        projectId: 'my-project'
+        containerTags: ['my-user-id']
       })
     },
     maxToolRoundtrips: 5

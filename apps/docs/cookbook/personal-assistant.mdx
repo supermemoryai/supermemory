@@ -627,9 +627,7 @@ Check that memories are being stored properly:
    ```typescript
    // Always use user-specific container tags
    const tools = supermemoryTools(apiKey, {
-     headers: {
-       'x-sm-user-id': userId
-     }
+     containerTags: [userId]
    })
    ```
 

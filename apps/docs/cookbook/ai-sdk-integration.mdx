@@ -100,10 +100,7 @@ export async function POST(request: Request) {
     model: openai('gpt-4-turbo'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-      headers: {
-        'x-sm-user-id': customerId,
-        'x-sm-conversation-id': 'customer-support'
-      }
+      containerTags: [customerId]
     }),
     system: `You are a customer support agent. Before responding to any query:
     1. Search for the customer's previous interactions and issues
@@ -192,10 +189,7 @@ export async function POST(request: Request) {
     model: anthropic('claude-3-haiku-20240307'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-      headers: {
-        'x-sm-user-id': userId,
-        'x-sm-conversation-id': `course-${courseId}`
-      }
+      containerTags: [userId]
     }),
     system: `You are a learning assistant. Help students with their coursework by:
     1. Remembering their learning progress and struggles
@@ -230,9 +224,7 @@ export async function POST(request: Request) {
     model: openai('gpt-4-turbo'),
     messages,
     tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
-      headers: {
-        'x-sm-conversation-id': projectId
-      }
+      containerTags: [projectId]
     }),
     system: `You are a research assistant. You can:
     1. Search through uploaded research papers and documents
