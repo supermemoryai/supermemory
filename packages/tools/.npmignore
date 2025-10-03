@@ -3,3 +3,6 @@ src/
 .env
 tsdown.config.ts
 tsconfig.json
+test/
+node_modules/
+*.tsbuildinfo
