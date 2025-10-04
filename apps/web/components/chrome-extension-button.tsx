@@ -130,42 +130,42 @@ export function ChromeExtensionButton() {
 
 						<div className="px-6 py-2 pb-4 space-y-4">
 							<div className="flex items-start gap-3">
-								<div className="w-10 h-10 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-center flex-shrink-0">
-									<TwitterIcon className="fill-blue-500 text-blue-500" />
+								<div className="w-10 h-10 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center flex-shrink-0">
+									<TwitterIcon className="fill-blue-500 dark:fill-blue-400 text-blue-500 dark:text-blue-400" />
 								</div>
 								<div>
-									<h3 className="font-semibold text-sm text-gray-800">
+									<h3 className="font-semibold text-sm text-foreground">
 										Twitter Imports
 									</h3>
-									<p className="text-xs text-gray-600">
+									<p className="text-xs text-muted-foreground">
 										Import your twitter timeline & save tweets.
 									</p>
 								</div>
 							</div>
 
 							<div className="flex items-start gap-3">
-								<div className="w-10 h-10 bg-orange-50 border border-orange-200 rounded-lg flex items-center justify-center flex-shrink-0">
-									<Bookmark className="w-5 h-5 text-orange-600" />
+								<div className="w-10 h-10 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg flex items-center justify-center flex-shrink-0">
+									<Bookmark className="w-5 h-5 text-orange-600 dark:text-orange-400" />
 								</div>
 								<div>
-									<h3 className="font-semibold text-sm text-gray-800">
+									<h3 className="font-semibold text-sm text-foreground">
 										Save All Bookmarks
 									</h3>
-									<p className="text-xs text-gray-600">
+									<p className="text-xs text-muted-foreground">
 										Instantly save any webpage to your memory.
 									</p>
 								</div>
 							</div>
 
 							<div className="flex items-start gap-3">
-								<div className="w-10 h-10 bg-green-50 border border-green-200 rounded-lg flex items-center justify-center flex-shrink-0">
-									<Zap className="w-5 h-5 text-green-600" />
+								<div className="w-10 h-10 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-center flex-shrink-0">
+									<Zap className="w-5 h-5 text-green-600 dark:text-green-400" />
 								</div>
 								<div>
-									<h3 className="font-semibold text-sm text-gray-800">
+									<h3 className="font-semibold text-sm text-foreground">
 										Charge Empty Memory
 									</h3>
-									<p className="text-xs text-gray-600">
+									<p className="text-xs text-muted-foreground">
 										Automatically capture & organize your browsing history.
 									</p>
 								</div>
@@ -175,7 +175,7 @@ export function ChromeExtensionButton() {
 						<div className="px-6 pb-4">
 							<Button
 								onClick={handleInstall}
-								className="w-full bg-white border border-[#686CFD] text-gray-800 hover:bg-gray-50 font-semibold rounded-lg h-10 flex items-center justify-center gap-3"
+								className="w-full bg-background border border-primary text-foreground hover:bg-accent font-semibold rounded-lg h-10 flex items-center justify-center gap-3"
 							>
 								<div className="w-6 h-6 bg-[#686CFD] rounded-full flex items-center justify-center">
 									<Image
@@ -189,7 +189,7 @@ export function ChromeExtensionButton() {
 							</Button>
 						</div>
 
-						<div className="px-6 pb-4 flex items-center justify-center gap-6 text-xs text-gray-500">
+						<div className="px-6 pb-4 flex items-center justify-center gap-6 text-xs text-muted-foreground">
 							<div className="flex items-center gap-1">
 								<Users className="w-3 h-3" />
 								<span>4K+ users</span>

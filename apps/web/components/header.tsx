@@ -142,7 +142,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 										<MonitorIcon
 											className={cn(
 												theme === "system"
-													? "text-primay-foreground"
+													? "text-primary-foreground"
 													: "text-muted-foreground",
 												"h-3 w-3 group-hover:text-foreground",
 											)}
@@ -160,7 +160,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 										<SunIcon
 											className={cn(
 												theme === "light"
-													? "text-primay-foreground"
+													? "text-primary-foreground"
 													: "text-muted-foreground",
 												"h-3 w-3 group-hover:text-foreground",
 											)}
@@ -178,7 +178,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 										<MoonIcon
 											className={cn(
 												theme === "dark"
-													? "text-primay-foreground"
+													? "text-primary-foreground"
 													: "text-muted-foreground",
 												"h-3 w-3 group-hover:text-foreground",
 											)}
