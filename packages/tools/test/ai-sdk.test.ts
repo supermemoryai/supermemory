@@ -13,7 +13,6 @@ describe("Supermemory AI SDK Integration Tests", () => {
 		if (!SUPERMEMORY_API_KEY) {
 			throw new Error("SUPERMEMORY_API_KEY environment variable is required")
 		}
-		console.log("SUPERMEMORY_API_KEY", SUPERMEMORY_API_KEY)
 		if (!OPENAI_API_KEY) {
 			throw new Error("OPENAI_API_KEY environment variable is required")
 		}
@@ -53,7 +52,7 @@ describe("Supermemory AI SDK Integration Tests", () => {
 				{
 					role: "user",
 					content:
-						"Tell me about my preferences and remember that I like coffee",
+						"Tell me about my preferences",
 				},
 			],
 			tools: {
