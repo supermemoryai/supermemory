@@ -12,6 +12,8 @@ import {
 	LogOut,
 	WaypointsIcon,
 	Gauge,
+	HistoryIcon,
+	Trash2,
 } from "lucide-react"
 import {
 	DropdownMenuContent,
@@ -26,20 +28,57 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useAuth } from "@lib/auth-context"
 import { ConnectAIModal } from "./connect-ai-modal"
 import { useTheme } from "next-themes"
-import { cn } from "@lib/utils"
 import { usePathname, useRouter } from "next/navigation"
 import { MCPIcon } from "./menu"
 import { authClient } from "@lib/auth"
 import { analytics } from "@/lib/analytics"
-import { useGraphModal, usePersistentChat } from "@/stores"
+import { useGraphModal, usePersistentChat, useProject } from "@/stores"
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@ui/components/dialog"
+import { ScrollArea } from "@ui/components/scroll-area"
+import { formatDistanceToNow } from "date-fns"
+import { cn } from "@lib/utils"
+import { useMemo, useState } from "react"
 
 export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const { user } = useAuth()
 	const { theme, setTheme } = useTheme()
 	const router = useRouter()
 	const { setIsOpen: setGraphModalOpen } = useGraphModal()
-	const { getCurrentChat } = usePersistentChat()
+	const {
+		getCurrentChat,
+		conversations,
+		currentChatId,
+		setCurrentChatId,
+		deleteConversation,
+	} = usePersistentChat()
+	const { selectedProject } = useProject()
 	const pathname = usePathname()
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+	const sorted = useMemo(() => {
+		return [...conversations].sort((a, b) =>
+			a.lastUpdated < b.lastUpdated ? 1 : -1,
+		)
+	}, [conversations])
+
+	function handleNewChat() {
+		analytics.newChatStarted()
+		const newId = crypto.randomUUID()
+		setCurrentChatId(newId)
+		router.push(`/chat/${newId}`)
+		setIsDialogOpen(false)
+	}
+
+	function formatRelativeTime(isoString: string): string {
+		return formatDistanceToNow(new Date(isoString), { addSuffix: true })
+	}
 
 	const handleSignOut = () => {
 		analytics.userSignedOut()
@@ -87,6 +126,106 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							c
 						</span>
 					</Button>
+					<Dialog
+						open={isDialogOpen}
+						onOpenChange={(open) => {
+							setIsDialogOpen(open)
+							if (open) {
+								analytics.chatHistoryViewed()
+							}
+						}}
+					>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<DialogTrigger asChild>
+									<Button variant="ghost" size="sm">
+										<HistoryIcon className="h-4 w-4" />
+									</Button>
+								</DialogTrigger>
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>Chat History</p>
+							</TooltipContent>
+						</Tooltip>
+						<DialogContent className="sm:max-w-lg">
+							<DialogHeader className="pb-4 border-b rounded-t-lg">
+								<DialogTitle className="">Conversations</DialogTitle>
+								<DialogDescription>
+									Project{" "}
+									<span className="font-mono font-medium">
+										{selectedProject}
+									</span>
+								</DialogDescription>
+							</DialogHeader>
+
+							<ScrollArea className="max-h-96">
+								<div className="flex flex-col gap-1">
+									{sorted.map((c) => {
+										const isActive = c.id === currentChatId
+										return (
+											<button
+												key={c.id}
+												type="button"
+												onClick={() => {
+													setCurrentChatId(c.id)
+													router.push(`/chat/${c.id}`)
+													setIsDialogOpen(false)
+												}}
+												className={cn(
+													"flex items-center justify-between rounded-md px-3 py-2 outline-none w-full text-left",
+													"transition-colors",
+													isActive ? "bg-primary/10" : "hover:bg-muted",
+												)}
+												aria-current={isActive ? "true" : undefined}
+											>
+												<div className="min-w-0">
+													<div className="flex items-center gap-2">
+														<span
+															className={cn(
+																"text-sm font-medium truncate",
+																isActive ? "text-foreground" : undefined,
+															)}
+														>
+															{c.title || "Untitled Chat"}
+														</span>
+													</div>
+													<div className="text-xs text-muted-foreground">
+														Last updated {formatRelativeTime(c.lastUpdated)}
+													</div>
+												</div>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													onClick={(e) => {
+														e.stopPropagation()
+														analytics.chatDeleted()
+														deleteConversation(c.id)
+													}}
+													aria-label="Delete conversation"
+												>
+													<Trash2 className="size-4 text-muted-foreground" />
+												</Button>
+											</button>
+										)
+									})}
+									{sorted.length === 0 && (
+										<div className="text-xs text-muted-foreground px-3 py-2">
+											No conversations yet
+										</div>
+									)}
+								</div>
+							</ScrollArea>
+							<Button
+								variant="outline"
+								size="lg"
+								className="w-full border-dashed"
+								onClick={handleNewChat}
+							>
+								<Plus className="size-4 mr-1" /> New Conversation
+							</Button>
+						</DialogContent>
+					</Dialog>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button

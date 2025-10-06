@@ -10,7 +10,6 @@ import {
 	ChevronDown,
 	ChevronRight,
 	Copy,
-	Plus,
 	RotateCcw,
 	X,
 } from "lucide-react"
@@ -221,14 +220,19 @@ export function ChatMessages() {
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<
 		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
-	>((sessionStorage.getItem(storageKey) as "gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro" || "gemini-2.5-pro") || "gemini-2.5-pro")
+	>(
+		(sessionStorage.getItem(storageKey) as
+			| "gpt-5"
+			| "claude-sonnet-4.5"
+			| "gemini-2.5-pro") ||
+			"gemini-2.5-pro" ||
+			"gemini-2.5-pro",
+	)
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
 
 	const { setDocumentIds } = useGraphHighlights()
-
-	console.log("selectedModel", selectedModel)
 
 	const { messages, sendMessage, status, stop, setMessages, id, regenerate } =
 		useChat({
@@ -277,7 +281,6 @@ export function ChatMessages() {
 				savedModel &&
 				["gpt-5", "claude-sonnet-4.5", "gemini-2.5-pro"].includes(savedModel)
 			) {
-				console.log("savedModel", savedModel)
 				setSelectedModel(savedModel)
 			}
 		}
