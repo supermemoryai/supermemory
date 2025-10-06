@@ -14,12 +14,14 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import { analytics } from "@/lib/analytics"
+import { useIsMobile } from "@hooks/use-mobile"
 
 export function ChromeExtensionButton() {
 	const [isExtensionInstalled, setIsExtensionInstalled] = useState(false)
 	const [isChecking, setIsChecking] = useState(true)
 	const [isDismissed, setIsDismissed] = useState(false)
 	const [isMinimized, setIsMinimized] = useState(false)
+	const isMobile = useIsMobile()
 
 	useEffect(() => {
 		const dismissed =
@@ -80,8 +82,8 @@ export function ChromeExtensionButton() {
 		setIsDismissed(true)
 	}
 
-	// Don't show if extension is installed, checking, or dismissed
-	if (isExtensionInstalled || isChecking || isDismissed) {
+	// Don't show if extension is installed, checking, dismissed, or on mobile
+	if (isExtensionInstalled || isChecking || isDismissed || isMobile) {
 		return null
 	}
 

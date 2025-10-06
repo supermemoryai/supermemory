@@ -1,11 +1,9 @@
 "use client"
 
-import { Button } from "@repo/ui/components/button"
 import { useOnboarding } from "./onboarding-context"
 import { useAuth } from "@lib/auth-context"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Input } from "@ui/components/input"
 import { CheckIcon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { NavMenu } from "./nav-menu"
@@ -20,8 +18,7 @@ export function NameForm() {
 		if (!name && user?.name) {
 			setName(user.name)
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [user?.name])
+	}, [name, user?.name])
 
 	function handleNext(): void {
 		const trimmed = name.trim()
@@ -51,13 +48,15 @@ export function NameForm() {
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-4 w-full">
 			<NavMenu>
 				<p className="text-base text-white/60">
 					Step {getStepNumberFor("name")} of {totalSteps}
 				</p>
 			</NavMenu>
-			<p className="text-4xl text-white font-medium">What should we call you?</p>
+			<p className="text-2xl md:text-4xl text-white font-medium">
+				What should we call you?
+			</p>
 
 			<form onSubmit={handleSubmit} className="flex flex-col group text-white">
 				<div className="relative flex flex-col">
