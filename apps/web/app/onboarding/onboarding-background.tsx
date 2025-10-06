@@ -26,7 +26,6 @@ export function OnboardingBackground({ children }: OnboardingBackgroundProps) {
 					backgroundPosition: "bottom",
 					backgroundRepeat: "no-repeat",
 					transform: `scale(${zoomScale})`,
-					transformOrigin: "center bottom",
 				}}
 			/>
 			<div className="relative z-10 w-full max-w-4xl mx-auto">{children}</div>

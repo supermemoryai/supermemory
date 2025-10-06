@@ -62,7 +62,7 @@ export function ChatInput() {
 							className="w-full text-foreground placeholder-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-6 py-4 bg-transparent"
 							rows={2}
 						/>
-						<div className="flex items-center gap-2 w-full justify-between bg-accent py-2 px-3 rounded-b-[14px]">
+						<div className="flex items-center gap-2 w-full justify-between py-2 px-3 rounded-b-[14px]">
 							<ProjectSelector />
 							<Button
 								onClick={handleSend}

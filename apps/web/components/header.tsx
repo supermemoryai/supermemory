@@ -6,11 +6,12 @@ import {
 	Plus,
 	SunIcon,
 	MonitorIcon,
-	Network,
 	User,
 	CreditCard,
 	Chrome,
 	LogOut,
+	WaypointsIcon,
+	Gauge,
 } from "lucide-react"
 import {
 	DropdownMenuContent,
@@ -25,17 +26,19 @@ import { useAuth } from "@lib/auth-context"
 import { ConnectAIModal } from "./connect-ai-modal"
 import { useTheme } from "next-themes"
 import { cn } from "@lib/utils"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { MCPIcon } from "./menu"
 import { authClient } from "@lib/auth"
 import { analytics } from "@/lib/analytics"
-import { useGraphModal } from "@/stores"
+import { useGraphModal, usePersistentChat } from "@/stores"
 
 export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const { user } = useAuth()
 	const { theme, setTheme } = useTheme()
 	const router = useRouter()
 	const { setIsOpen: setGraphModalOpen } = useGraphModal()
+	const { getCurrentChat } = usePersistentChat()
+	const pathname = usePathname()
 
 	const handleSignOut = () => {
 		analytics.userSignedOut()
@@ -46,20 +49,31 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	return (
 		<div className="flex items-center justify-between w-full p-3 md:p-4">
 			<div className="flex items-center gap-2 md:gap-3 justify-between w-full">
-				<Link
-					className="pointer-events-auto"
-					href={
-						process.env.NODE_ENV === "development"
-							? "http://localhost:3000"
-							: "https://app.supermemory.ai"
-					}
-					rel="noopener noreferrer"
-				>
-					<LogoFull className="h-8 hidden md:block" />
-					<Logo className="h-8 md:hidden" />
-				</Link>
+				<div className="flex items-center gap-1.5 md:gap-2">
+					<Link
+						className="pointer-events-auto"
+						href={
+							process.env.NODE_ENV === "development"
+								? "http://localhost:3000"
+								: "https://app.supermemory.ai"
+						}
+						rel="noopener noreferrer"
+					>
+						{getCurrentChat()?.title && pathname.includes("/chat") ? (
+							<div className="flex items-center gap-4">
+								<Logo className="h-6 block text-foreground" />
+								<span className="truncate">{getCurrentChat()?.title}</span>
+							</div>
+						) : (
+							<>
+								<LogoFull className="h-8 hidden md:block" />
+								<Logo className="h-8 md:hidden text-foreground" />
+							</>
+						)}
+					</Link>
+				</div>
 
-				<div className="flex items-center gap-1.5 md:gap-3">
+				<div className="flex items-center gap-1.5 md:gap-2">
 					<Button
 						variant="secondary"
 						size="sm"
@@ -76,15 +90,14 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 						variant="ghost"
 						size="sm"
 						onClick={() => setGraphModalOpen(true)}
-						className="gap-1.5"
 					>
-						<Network className="h-4 w-4" />
-						<span className="hidden sm:inline">Graph View</span>
+						<WaypointsIcon className="h-5 w-5" />
+						{/*<span className="hidden md:inline">Graph View</span>*/}
 					</Button>
 					<ConnectAIModal>
 						<Button variant="ghost" size="sm" className="gap-1.5">
 							<MCPIcon className="h-4 w-4" />
-							<span className="hidden lg:inline">Connect to AI (MCP)</span>
+							{/*<span className="hidden lg:inline">Connect to AI (MCP)</span>*/}
 						</Button>
 					</ConnectAIModal>
 					<DropdownMenu>
@@ -103,14 +116,20 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem onClick={() => router.push("/settings")}>
-								<User className="h-4 w-4 mr-2" />
+								<User className="h-4 w-4" />
 								Profile
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => router.push("/settings/billing")}
 							>
-								<CreditCard className="h-4 w-4 mr-2" />
+								<CreditCard className="h-4 w-4" />
 								Billing
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() => router.push("/settings/integrations")}
+							>
+								<Gauge className="h-4 w-4" />
+								Integrations
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => {
@@ -121,7 +140,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 									)
 								}}
 							>
-								<Chrome className="h-4 w-4 mr-2" />
+								<Chrome className="h-4 w-4" />
 								Chrome Extension
 							</DropdownMenuItem>
 							<DropdownMenuItem
@@ -188,7 +207,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem onClick={() => handleSignOut()}>
-								<LogOut className="h-4 w-4 mr-2" />
+								<LogOut className="h-4 w-4" />
 								Logout
 							</DropdownMenuItem>
 						</DropdownMenuContent>

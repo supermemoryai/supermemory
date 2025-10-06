@@ -1021,7 +1021,6 @@ export function AddMemoryView({
 								>
 									<Label htmlFor="projectName">Project Name</Label>
 									<Input
-										className="bg-white/5 border-white/10"
 										id="projectName"
 										onChange={(e) => setNewProjectName(e.target.value)}
 										placeholder="My Awesome Project"
