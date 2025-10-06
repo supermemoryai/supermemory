@@ -26,7 +26,11 @@ export function ChromeExtensionButton() {
 	useEffect(() => {
 		const dismissed =
 			localStorage.getItem("chrome-extension-dismissed") === "true"
+		const minimized =
+			localStorage.getItem("chrome-extension-minimized") === "true"
+
 		setIsDismissed(dismissed)
+		setIsMinimized(minimized)
 
 		const checkExtension = () => {
 			const message = { action: "check-extension" }
@@ -35,9 +39,10 @@ export function ChromeExtensionButton() {
 				setIsExtensionInstalled(false)
 				setIsChecking(false)
 				// Auto-minimize after 3 seconds if extension is not installed and not dismissed
-				if (!dismissed) {
+				if (!dismissed && !minimized) {
 					setTimeout(() => {
 						setIsMinimized(true)
+						localStorage.setItem("chrome-extension-minimized", "true")
 					}, 3000)
 				}
 			}, 1000)
@@ -79,6 +84,7 @@ export function ChromeExtensionButton() {
 
 	const handleDismiss = () => {
 		localStorage.setItem("chrome-extension-dismissed", "true")
+		localStorage.removeItem("chrome-extension-minimized")
 		setIsDismissed(true)
 	}
 

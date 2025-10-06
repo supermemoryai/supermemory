@@ -216,12 +216,19 @@ export function ChatMessages() {
 		getCurrentChat,
 	} = usePersistentChat()
 
+	const storageKey = `chat-model-${currentChatId}`
+
 	const [input, setInput] = useState("")
+	const [selectedModel, setSelectedModel] = useState<
+		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
+	>((sessionStorage.getItem(storageKey) as "gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro" || "gemini-2.5-pro") || "gemini-2.5-pro")
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
 
 	const { setDocumentIds } = useGraphHighlights()
+
+	console.log("selectedModel", selectedModel)
 
 	const { messages, sendMessage, status, stop, setMessages, id, regenerate } =
 		useChat({
@@ -229,7 +236,12 @@ export function ChatMessages() {
 			transport: new DefaultChatTransport({
 				api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
 				credentials: "include",
-				body: { metadata: { projectId: selectedProject } },
+				body: {
+					metadata: {
+						projectId: selectedProject,
+						model: selectedModel,
+					},
+				},
 			}),
 			maxSteps: 2,
 			onFinish: (result) => {
@@ -253,6 +265,23 @@ export function ChatMessages() {
 	useEffect(() => {
 		activeChatIdRef.current = currentChatId ?? id ?? null
 	}, [currentChatId, id])
+
+	useEffect(() => {
+		if (currentChatId) {
+			const savedModel = sessionStorage.getItem(storageKey) as
+				| "gpt-5"
+				| "claude-sonnet-4.5"
+				| "gemini-2.5-pro"
+
+			if (
+				savedModel &&
+				["gpt-5", "claude-sonnet-4.5", "gemini-2.5-pro"].includes(savedModel)
+			) {
+				console.log("savedModel", savedModel)
+				setSelectedModel(savedModel)
+			}
+		}
+	}, [currentChatId])
 
 	useEffect(() => {
 		if (currentChatId && !hasRunInitialMessageRef.current) {

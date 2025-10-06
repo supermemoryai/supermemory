@@ -1,19 +1,43 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { generateId } from "@lib/generate-id"
 import { usePersistentChat } from "@/stores/chat"
 import { ArrowUp } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { ProjectSelector } from "./project-selector"
+import { ModelSelector } from "./model-selector"
 import { useAuth } from "@lib/auth-context"
 
 export function ChatInput() {
 	const [message, setMessage] = useState("")
+	const [selectedModel, setSelectedModel] = useState<
+		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
+	>("gemini-2.5-pro")
 	const router = useRouter()
 	const { setCurrentChatId } = usePersistentChat()
 	const { user } = useAuth()
+
+	useEffect(() => {
+		const savedModel = localStorage.getItem("selectedModel") as
+			| "gpt-5"
+			| "claude-sonnet-4.5"
+			| "gemini-2.5-pro"
+		if (
+			savedModel &&
+			["gpt-5", "claude-sonnet-4.5", "gemini-2.5-pro"].includes(savedModel)
+		) {
+			setSelectedModel(savedModel)
+		}
+	}, [])
+
+	const handleModelChange = (
+		modelId: "gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro",
+	) => {
+		setSelectedModel(modelId)
+		localStorage.setItem("selectedModel", modelId)
+	}
 
 	const handleSend = () => {
 		if (!message.trim()) return
@@ -22,8 +46,8 @@ export function ChatInput() {
 
 		setCurrentChatId(newChatId)
 
-		// Store the initial message in sessionStorage for the chat page to pick up
 		sessionStorage.setItem(`chat-initial-${newChatId}`, message.trim())
+		sessionStorage.setItem(`chat-model-${newChatId}`, selectedModel)
 
 		router.push(`/chat/${newChatId}`)
 
@@ -64,15 +88,21 @@ export function ChatInput() {
 						/>
 						<div className="flex items-center gap-2 w-full justify-between py-2 px-3 rounded-b-[14px]">
 							<ProjectSelector />
-							<Button
-								onClick={handleSend}
-								disabled={!message.trim()}
-								className="text-primary-foreground border-0 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed !bg-primary h-8 w-8"
-								variant="outline"
-								size="icon"
-							>
-								<ArrowUp className="size-3.5" />
-							</Button>
+							<div className="flex items-center gap-2">
+								<ModelSelector
+									selectedModel={selectedModel}
+									onModelChange={handleModelChange}
+								/>
+								<Button
+									onClick={handleSend}
+									disabled={!message.trim()}
+									className="text-primary-foreground border-0 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed !bg-primary h-8 w-8"
+									variant="outline"
+									size="icon"
+								>
+									<ArrowUp className="size-3.5" />
+								</Button>
+							</div>
 						</div>
 					</form>
 				</div>

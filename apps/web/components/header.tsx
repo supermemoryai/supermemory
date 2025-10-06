@@ -22,6 +22,7 @@ import {
 import { DropdownMenuItem } from "@ui/components/dropdown-menu"
 import { DropdownMenu } from "@ui/components/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useAuth } from "@lib/auth-context"
 import { ConnectAIModal } from "./connect-ai-modal"
 import { useTheme } from "next-themes"
@@ -86,19 +87,31 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							c
 						</span>
 					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => setGraphModalOpen(true)}
-					>
-						<WaypointsIcon className="h-5 w-5" />
-						{/*<span className="hidden md:inline">Graph View</span>*/}
-					</Button>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setGraphModalOpen(true)}
+							>
+								<WaypointsIcon className="h-5 w-5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							<p>Graph View</p>
+						</TooltipContent>
+					</Tooltip>
 					<ConnectAIModal>
-						<Button variant="ghost" size="sm" className="gap-1.5">
-							<MCPIcon className="h-4 w-4" />
-							{/*<span className="hidden lg:inline">Connect to AI (MCP)</span>*/}
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="ghost" size="sm" className="gap-1.5">
+									<MCPIcon className="h-4 w-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								<p>Connect to AI (MCP)</p>
+							</TooltipContent>
+						</Tooltip>
 					</ConnectAIModal>
 					<DropdownMenu>
 						<DropdownMenuTrigger>
