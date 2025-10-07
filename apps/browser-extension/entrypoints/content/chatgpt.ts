@@ -653,7 +653,10 @@ function setupChatGPTPromptCapture() {
 			promptTextarea &&
 			!promptContent.includes("Supermemories of user")
 		) {
-			promptTextarea.innerHTML = `${promptTextarea.innerHTML} ${storedMemories}`
+			// Fix: Use textContent to prevent XSS injection
+			const memoriesContainer = document.createElement('div')
+			memoriesContainer.textContent = storedMemories
+			promptTextarea.appendChild(memoriesContainer)
 			promptContent = promptTextarea.textContent || ""
 		}
 
