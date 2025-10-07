@@ -22,9 +22,15 @@ export default async function middleware(request: Request) {
 		console.debug(
 			"[MIDDLEWARE] No session cookie and not on public path, redirecting to /login",
 		)
-		const url = new URL("/login", request.url)
-		url.searchParams.set("redirect", request.url)
-		return NextResponse.redirect(url)
+		const loginUrl = new URL("/login", request.url)
+
+		// Only allow same-origin redirects to prevent open redirect attacks
+		const requestUrl = new URL(request.url)
+		if (requestUrl.origin === loginUrl.origin) {
+			loginUrl.searchParams.set("redirect", requestUrl.pathname)
+		}
+
+		return NextResponse.redirect(loginUrl)
 	}
 
 	// TEMPORARILY DISABLED: Waitlist check
@@ -47,6 +53,11 @@ export default async function middleware(request: Request) {
 		name: "last-site-visited",
 		value: "https://app.supermemory.ai",
 		domain: "supermemory.ai",
+		secure: true,
+		httpOnly: true,
+		sameSite: "strict",
+		path: "/",
+		maxAge: 60 * 60 * 24,
 	})
 	return response
 }
