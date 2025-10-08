@@ -301,7 +301,7 @@ export function ProfileView() {
 										</div>
 									</h4>
 									<ul className="space-y-2">
-										<li className="flex items-center gap-2 text-sm text-black/90">
+										<li className="flex items-center gap-2 text-xs sm:text-sm text-foreground">
 											<CheckCircle className="h-4 w-4 text-green-400" />
 											Unlimited memories
 										</li>

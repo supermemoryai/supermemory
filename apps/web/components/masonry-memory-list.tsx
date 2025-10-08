@@ -89,6 +89,7 @@ const DocumentCard = memo(
 					url={document.url}
 					title={document.title || "Untitled Document"}
 					image={document.ogImage}
+					onOpenDetails={() => onOpenDetails(document)}
 					onDelete={() => onDelete(document)}
 				/>
 			)

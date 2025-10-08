@@ -25,7 +25,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@repo/ui/components/select"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import {
 	ChevronDown,
 	FolderIcon,
@@ -36,7 +36,6 @@ import {
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useState } from "react"
-import { toast } from "sonner"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProjectName } from "@/hooks/use-project-name"
 import { useProject } from "@/stores"
@@ -52,7 +51,6 @@ interface Project {
 }
 
 export function ProjectSelector() {
-	const queryClient = useQueryClient()
 	const [isOpen, setIsOpen] = useState(false)
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 	const { selectedProject } = useProject()
@@ -69,13 +67,6 @@ export function ProjectSelector() {
 		action: "move",
 		targetProjectId: DEFAULT_PROJECT_ID,
 	})
-	const [expDialog, setExpDialog] = useState<{
-		open: boolean
-		projectId: string
-	}>({
-		open: false,
-		projectId: "",
-	})
 
 	const { data: projects = [], isLoading } = useQuery({
 		queryKey: ["projects"],
@@ -89,30 +80,6 @@ export function ProjectSelector() {
 			return response.data?.projects || []
 		},
 		staleTime: 30 * 1000,
-	})
-
-	const enableExperimentalMutation = useMutation({
-		mutationFn: async (projectId: string) => {
-			const response = await $fetch(
-				`@post/projects/${projectId}/enable-experimental`,
-			)
-			if (response.error) {
-				throw new Error(
-					response.error?.message || "Failed to enable experimental mode",
-				)
-			}
-			return response.data
-		},
-		onSuccess: () => {
-			toast.success("Experimental mode enabled for project")
-			queryClient.invalidateQueries({ queryKey: ["projects"] })
-			setExpDialog({ open: false, projectId: "" })
-		},
-		onError: (error) => {
-			toast.error("Failed to enable experimental mode", {
-				description: error instanceof Error ? error.message : "Unknown error",
-			})
-		},
 	})
 
 	const handleProjectSelect = (containerTag: string) => {
@@ -138,7 +105,7 @@ export function ProjectSelector() {
 				</span>
 				<motion.div
 					animate={{ rotate: isOpen ? 180 : 0 }}
-					transition={{ duration: 0.15 }}
+					transition={{ duration: 0.25 }}
 				>
 					<ChevronDown className="h-3 w-3" />
 				</motion.div>
@@ -165,33 +132,30 @@ export function ProjectSelector() {
 							<div className="p-1.5 max-h-64 overflow-y-auto">
 								<Button
 									variant="ghost"
-									className={`flex items-center justify-between p-2 rounded-md transition-colors cursor-pointer ${
+									className={`flex items-center w-full justify-between p-2 rounded-md transition-colors cursor-pointer ${
 										selectedProject === DEFAULT_PROJECT_ID
 											? "bg-accent"
-											: "hover:bg-accent/50"
+											: "hover:bg-accent/20"
 									}`}
 									onClick={() => handleProjectSelect(DEFAULT_PROJECT_ID)}
 								>
 									<div className="flex items-center gap-2">
 										<FolderIcon className="h-3.5 w-3.5" />
-										<span className="text-xs font-medium">Default</span>
+										<span className="text-xs font-medium">Default Project</span>
 									</div>
 								</Button>
 
 								{/* User Projects */}
 								{projects
 									.filter((p: Project) => p.containerTag !== DEFAULT_PROJECT_ID)
-									.map((project: Project, index: number) => (
-										<motion.div
+									.map((project: Project) => (
+										<div
 											key={project.id}
 											className={`flex items-center justify-between p-2 rounded-md transition-colors group ${
 												selectedProject === project.containerTag
 													? "bg-accent"
 													: "hover:bg-accent/50"
 											}`}
-											initial={{ opacity: 0, x: -5 }}
-											animate={{ opacity: 1, x: 0 }}
-											transition={{ delay: index * 0.03 }}
 										>
 											<button
 												className="flex items-center gap-2 flex-1 cursor-pointer"
@@ -208,45 +172,18 @@ export function ProjectSelector() {
 											<div className="flex items-center gap-1">
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
-														<motion.button
-															className="p-1 hover:bg-accent rounded transition-all"
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-6 w-6"
 															onClick={(e) => e.stopPropagation()}
-															whileHover={{ scale: 1.1 }}
-															whileTap={{ scale: 0.9 }}
 														>
 															<MoreHorizontal className="h-3 w-3" />
-														</motion.button>
+														</Button>
 													</DropdownMenuTrigger>
 													<DropdownMenuContent align="end">
-														{/* Show experimental toggle only if NOT experimental and NOT default project */}
-														{!project.isExperimental &&
-															project.containerTag !== DEFAULT_PROJECT_ID && (
-																<DropdownMenuItem
-																	className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 cursor-pointer text-xs"
-																	onClick={(e) => {
-																		e.stopPropagation()
-																		setExpDialog({
-																			open: true,
-																			projectId: project.id,
-																		})
-																		setIsOpen(false)
-																	}}
-																>
-																	<div className="h-3 w-3 mr-2 rounded border border-blue-600 dark:border-blue-400" />
-																	Enable Experimental Mode
-																</DropdownMenuItem>
-															)}
-														{project.isExperimental && (
-															<DropdownMenuItem
-																className="text-blue-600/50 dark:text-blue-300/50 text-xs"
-																disabled
-															>
-																<div className="h-3 w-3 mr-2 rounded bg-blue-600 dark:bg-blue-400" />
-																Experimental Mode Active
-															</DropdownMenuItem>
-														)}
 														<DropdownMenuItem
-															className="text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 cursor-pointer text-xs"
+															className="cursor-pointer text-xs hover:text-red-500"
 															onClick={(e) => {
 																e.stopPropagation()
 																setDeleteDialog({
@@ -262,13 +199,13 @@ export function ProjectSelector() {
 																setIsOpen(false)
 															}}
 														>
-															<Trash2 className="h-3 w-3 mr-2" />
+															<Trash2 className="h-3 w-3" />
 															Delete Project
 														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>
 											</div>
-										</motion.div>
+										</div>
 									))}
 
 								<motion.div
@@ -480,82 +417,6 @@ export function ProjectSelector() {
 												"Move & Delete Project"
 											) : (
 												"Delete Everything"
-											)}
-										</Button>
-									</motion.div>
-								</DialogFooter>
-							</motion.div>
-						</DialogContent>
-					</Dialog>
-				)}
-			</AnimatePresence>
-
-			{/* Experimental Mode Confirmation Dialog */}
-			<AnimatePresence>
-				{expDialog.open && (
-					<Dialog
-						onOpenChange={(open) => setExpDialog({ ...expDialog, open })}
-						open={expDialog.open}
-					>
-						<DialogContent className="sm:max-w-lg">
-							<motion.div
-								animate={{ opacity: 1, scale: 1 }}
-								className="flex flex-col gap-4"
-								exit={{ opacity: 0, scale: 0.95 }}
-								initial={{ opacity: 0, scale: 0.95 }}
-							>
-								<DialogHeader>
-									<DialogTitle>Enable Experimental Mode?</DialogTitle>
-									<DialogDescription>
-										Experimental mode enables beta features and advanced memory
-										relationships for this project.
-										<br />
-										<br />
-										<span className="text-yellow-600 dark:text-yellow-400 font-medium">
-											Warning:
-										</span>{" "}
-										This action is{" "}
-										<span className="text-red-600 dark:text-red-400 font-bold">
-											irreversible
-										</span>
-										. Once enabled, you cannot return to regular mode for this
-										project.
-									</DialogDescription>
-								</DialogHeader>
-								<DialogFooter>
-									<motion.div
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
-									>
-										<Button
-											onClick={() =>
-												setExpDialog({ open: false, projectId: "" })
-											}
-											type="button"
-											variant="outline"
-										>
-											Cancel
-										</Button>
-									</motion.div>
-									<motion.div
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
-									>
-										<Button
-											className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
-											disabled={enableExperimentalMutation.isPending}
-											onClick={() =>
-												enableExperimentalMutation.mutate(expDialog.projectId)
-											}
-											type="button"
-										>
-											{enableExperimentalMutation.isPending ? (
-												<>
-													<Loader2 className="h-4 w-4 animate-spin mr-2" />
-													Enabling...
-												</>
-											) : (
-												"Enable Experimental Mode"
 											)}
 										</Button>
 									</motion.div>

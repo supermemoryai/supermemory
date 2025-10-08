@@ -28,6 +28,7 @@ import type { z } from "zod"
 import { formatDate, getSourceUrl } from "."
 import { Label1Regular } from "@ui/text/label/label-1-regular"
 import { HTMLContentRenderer } from "./html-content-renderer"
+import { Button } from "@ui/components/button"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -141,11 +142,13 @@ export const MemoryDetail = memo(
 			TitleComponent: typeof DialogTitle | typeof DrawerTitle
 		}) => (
 			<div className="flex items-start justify-between gap-2">
-				<div className="flex items-start gap-2 md:gap-3 flex-1 min-w-0">
+				<div className="flex items-end gap-2 md:gap-3 flex-1 min-w-0">
 					<div className="p-1.5 md:p-2 rounded-lg bg-muted/10 flex-shrink-0">
 						{getDocumentIcon(
 							document.type,
 							"w-4 h-4 md:w-5 md:h-5 text-foreground",
+							document.source ?? undefined,
+							document.url ?? undefined,
 						)}
 					</div>
 					<div className="flex-1 min-w-0">
@@ -156,25 +159,24 @@ export const MemoryDetail = memo(
 							<span>{formatDocumentType(document.type)}</span>
 							<span>•</span>
 							<span>{formatDate(document.createdAt)}</span>
-							{document.url && (
-								<>
-									<span>•</span>
-									<button
-										className="flex items-center gap-0.5 md:gap-1 transition-all hover:gap-1 md:hover:gap-2 text-primary hover:text-primary/80 whitespace-nowrap"
-										onClick={() => {
-											const sourceUrl = getSourceUrl(document)
-											window.open(sourceUrl ?? undefined, "_blank")
-										}}
-										type="button"
-									>
-										<span className="hidden sm:inline">View source</span>
-										<span className="sm:hidden">Source</span>
-										<ExternalLink className="w-2.5 h-2.5 md:w-3 md:h-3" />
-									</button>
-								</>
-							)}
 						</div>
 					</div>
+					{document.url && (
+						<div className="flex items-end">
+							<Button
+								onClick={() => {
+									const sourceUrl = getSourceUrl(document)
+									window.open(sourceUrl ?? undefined, "_blank")
+								}}
+								variant="secondary"
+								size="sm"
+							>
+								<span className="hidden sm:inline">visit source</span>
+								<span className="sm:hidden">Source</span>
+								<ExternalLink className="w-2.5 h-2.5 md:w-3 md:h-3" />
+							</Button>
+						</div>
+					)}
 				</div>
 			</div>
 		)
@@ -227,10 +229,10 @@ export const MemoryDetail = memo(
 			<div className="space-y-6">
 				{activeMemories.length > 0 && (
 					<div>
-						<div className="text-sm font-medium mb-2 flex items-start gap-2 py-2 text-muted-foreground">
+						<div className="text-sm font-medium flex items-start gap-2 pb-2 text-muted-foreground">
 							Active Memories ({activeMemories.length})
 						</div>
-						<div className="space-y-3">
+						<div className="space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar">
 							{activeMemories.map((memory) => (
 								<div key={memory.id}>
 									<MemoryDetailItem memory={memory} />
@@ -281,7 +283,7 @@ export const MemoryDetail = memo(
 										Content
 									</h4>
 								</div>
-								<div className="p-3 md:p-4">
+								<div className="p-3 md:p-4 m-4">
 									<ContentDisplaySection />
 								</div>
 							</div>
@@ -324,8 +326,8 @@ export const MemoryDetail = memo(
 
 					<div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
 						<div className="flex-1 flex flex-col h-full justify-between min-w-0">
-							<div className="p-2 px-3 md:px-4 overflow-y-auto custom-scrollbar transition-all duration-300">
-								<h3 className="font-medium text-[10px] md:text-xs text-muted-foreground uppercase pb-1 px-1">
+							<div className="p-2 px-3 md:pl-4 overflow-y-auto custom-scrollbar transition-all duration-300">
+								<h3 className="font-medium text-[10px] md:text-sm text-muted-foreground pb-2 px-1">
 									Content
 								</h3>
 								<ContentDisplaySection />
@@ -370,9 +372,9 @@ export const MemoryDetail = memo(
 							</div>
 						</div>
 
-						<div className="w-full lg:w-96 flex flex-col border-t lg:border-t-0 lg:border-l border-border">
+						<div className="w-full lg:w-96 flex flex-col border-t lg:border-t-0 border-border">
 							<div className="flex-1 flex flex-col">
-								<div className="flex-1 memory-dialog-scroll overflow-y-auto p-3 md:p-4">
+								<div className="flex-1 memory-dialog-scroll overflow-y-auto p-2 md:p-3">
 									<MemoryContent />
 								</div>
 							</div>

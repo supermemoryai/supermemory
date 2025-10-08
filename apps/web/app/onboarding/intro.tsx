@@ -11,7 +11,7 @@ export function Intro() {
 
 	return (
 		<motion.div
-			className="flex flex-col gap-4 relative max-sm:text-4xl max-sm:w-full text-white text-center"
+			className="flex flex-col gap-4 relative text-2xl md:text-4xl w-full text-white text-center"
 			layout
 			transition={{
 				layout: { duration: 0.8, ease: "anticipate" },

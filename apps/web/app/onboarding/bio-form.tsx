@@ -31,23 +31,23 @@ export function BioForm() {
 		})
 	}
 	return (
-		<div className="relative">
+		<div className="relative w-full">
 			<div className="space-y-4">
 				<NavMenu>
 					<p className="text-base text-white/60">
 						Step {getStepNumberFor("bio")} of {totalSteps}
 					</p>
 				</NavMenu>
-				<h1 className="max-sm:text-4xl text-white font-medium">
-					Tell us about yourself
+				<h1 className="text-2xl md:text-4xl text-white font-medium">
+					Tell Supermemory about yourself
 				</h1>
-				<p className="text-2xl max-sm:text-lg text-white/80">
-					What should Supermemory know about you?
+				<p className="text-lg md:text-xl text-white/80">
+					share with Supermemory what you do, who you are, and what you're interested in
 				</p>
 			</div>
 			<Textarea
 				autoFocus
-				className="font-sans mt-6 text-base! text-white tracking-normal font-medium border bg-white/30 border-zinc-200 rounded-lg !field-sizing-normal !min-h-[calc(3*1.5rem+1rem)]"
+				className="font-sans mt-6 text-base! placeholder:text-white/80 text-white tracking-normal font-medium border bg-white/30 border-zinc-200 rounded-lg !field-sizing-normal !min-h-[calc(3*1.5rem+1rem)] w-full"
 				placeholder="I'm a software engineer from San Francisco..."
 				rows={3}
 				value={bio}
@@ -61,12 +61,12 @@ export function BioForm() {
 						animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
 						exit={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
 						transition={{ duration: 0.2, ease: "easeOut" }}
-						className="flex justify-end mt-2 absolute -bottom-12 right-0"
+						className="flex justify-end mt-4 md:mt-2 md:absolute md:-bottom-12 md:right-0"
 					>
 						<Button
 							variant="link"
 							size="lg"
-							className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+							className="text-white/80 font-medium! text-base md:text-lg underline w-fit px-0! cursor-pointer"
 							onClick={handleNext}
 						>
 							Save & Continue
@@ -79,12 +79,12 @@ export function BioForm() {
 						animate={{ opacity: 1, filter: "blur(0px)" }}
 						exit={{ opacity: 0, filter: "blur(5px)" }}
 						transition={{ duration: 0.2, ease: "easeOut" }}
-						className="flex justify-end mt-2 absolute -bottom-12 right-0"
+						className="flex justify-end mt-4 md:mt-2 md:absolute md:-bottom-12 md:right-0"
 					>
 						<Button
 							variant="link"
 							size="lg"
-							className="text-white/80 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+							className="text-white/80 font-medium! text-base md:text-lg underline w-fit px-0! cursor-pointer"
 							onClick={handleNext}
 						>
 							Skip For Now

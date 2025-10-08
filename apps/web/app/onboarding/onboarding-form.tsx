@@ -22,7 +22,7 @@ export function OnboardingForm() {
 	return (
 		<div
 			className={cn(
-				"text-4xl px-6 py-8 flex flex-col justify-center max-sm:w-full",
+				"text-2xl md:text-4xl px-4 md:px-6 py-6 md:py-8 flex flex-col justify-center w-full max-w-4xl mx-auto",
 				sans.variable,
 			)}
 		>

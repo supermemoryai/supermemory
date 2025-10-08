@@ -220,7 +220,7 @@ export function MCPForm() {
 						<Button
 							variant="link"
 							size="lg"
-							className="text-black/40 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+							className="text-white not-odd:font-medium! text-lg underline w-fit px-0! cursor-pointer"
 							onClick={nextStep}
 						>
 							Continue
@@ -238,7 +238,7 @@ export function MCPForm() {
 						<Button
 							variant="link"
 							size="lg"
-							className="text-black/40 font-medium! text-lg underline w-fit px-0! cursor-pointer"
+							className="text-white font-medium! text-lg underline w-fit px-0! cursor-pointer"
 							onClick={nextStep}
 						>
 							Skip For Now

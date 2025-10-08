@@ -69,7 +69,7 @@ export default function SupportPage() {
 								What's included in the Pro plan?
 							</h4>
 							<p className="text-muted-foreground text-sm">
-								Pro includes 5,000 memories (vs 200 in free), 10 connections to
+								Pro includes unlimited memories (vs 200 in free), 10 connections to
 								external services like Google Drive and Notion, advanced search
 								features, and priority support.
 							</p>

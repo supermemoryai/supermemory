@@ -294,10 +294,7 @@ export const MemoryListView = ({
 	// Always render with consistent structure
 	return (
 		<>
-			<div
-				className="h-full overflow-hidden relative pb-20"
-				ref={containerRef}
-			>
+			<div className="h-full overflow-hidden relative pb-20" ref={containerRef}>
 				{error ? (
 					<div className="h-full flex items-center justify-center p-4">
 						<div className="rounded-xl overflow-hidden">

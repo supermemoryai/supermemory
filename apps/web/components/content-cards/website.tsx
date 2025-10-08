@@ -25,6 +25,7 @@ interface WebsiteCardProps {
 	description?: string
 	className?: string
 	onClick?: () => void
+	onOpenDetails?: () => void
 	onDelete?: () => void
 	showExternalLink?: boolean
 }
@@ -36,6 +37,7 @@ export const WebsiteCard = ({
 	description,
 	className,
 	onClick,
+	onOpenDetails,
 	onDelete,
 	showExternalLink = true,
 }: WebsiteCardProps) => {
@@ -44,6 +46,8 @@ export const WebsiteCard = ({
 	const handleCardClick = () => {
 		if (onClick) {
 			onClick()
+		} else if (onOpenDetails) {
+			onOpenDetails()
 		} else {
 			window.open(url, "_blank", "noopener,noreferrer")
 		}
