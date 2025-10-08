@@ -294,7 +294,13 @@ export function ProjectSelector() {
 														<SelectValue placeholder="Select target project..." />
 													</SelectTrigger>
 													<SelectContent>
-														<SelectItem value={DEFAULT_PROJECT_ID}>
+														<SelectItem
+															value={
+																projects.find(
+																	(p) => p.containerTag === DEFAULT_PROJECT_ID,
+																)?.id || ""
+															}
+														>
 															Default Project
 														</SelectItem>
 														{projects
