@@ -670,8 +670,8 @@ Process large volumes efficiently with rate limiting and error recovery.
 
     async function batchIngest(documents: Document[], options = {}) {
       const {
-        batchSize = 5,          // CORRECTED: Conservative batch size
-        delayBetweenBatches = 2000,  // CORRECTED: 2 second delays
+        batchSize = 5,
+        delayBetweenBatches = 2000,
         maxRetries = 3
       } = options;
 
