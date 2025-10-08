@@ -28,7 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useAuth } from "@lib/auth-context"
 import { ConnectAIModal } from "./connect-ai-modal"
 import { useTheme } from "next-themes"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { MCPIcon } from "./menu"
 import { authClient } from "@lib/auth"
 import { analytics } from "@/lib/analytics"
@@ -44,10 +44,11 @@ import {
 import { ScrollArea } from "@ui/components/scroll-area"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@lib/utils"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const { user } = useAuth()
+	const searchParams = useSearchParams()
 	const { theme, setTheme } = useTheme()
 	const router = useRouter()
 	const { setIsOpen: setGraphModalOpen } = useGraphModal()
@@ -61,12 +62,35 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const { selectedProject } = useProject()
 	const pathname = usePathname()
 	const [isDialogOpen, setIsDialogOpen] = useState(false)
+	const [mcpModalOpen, setMcpModalOpen] = useState(false)
+	const [mcpInitialClient, setMcpInitialClient] = useState<"mcp-url" | null>(
+		null,
+	)
+	const [mcpInitialTab, setMcpInitialTab] = useState<
+		"oneClick" | "manual" | null
+	>(null)
 
 	const sorted = useMemo(() => {
 		return [...conversations].sort((a, b) =>
 			a.lastUpdated < b.lastUpdated ? 1 : -1,
 		)
 	}, [conversations])
+
+	useEffect(() => {
+		console.log("searchParams", searchParams.get("mcp"))
+		const mcpParam = searchParams.get("mcp")
+		if (mcpParam === "manual") {
+			setMcpInitialClient("mcp-url")
+			setMcpInitialTab("manual")
+			setMcpModalOpen(true)
+			const newSearchParams = new URLSearchParams(searchParams.toString())
+			newSearchParams.delete("mcp")
+			const newUrl = `${
+				window.location.pathname
+			}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`
+			window.history.replaceState({}, "", newUrl)
+		}
+	}, [searchParams])
 
 	function handleNewChat() {
 		analytics.newChatStarted()
@@ -240,18 +264,28 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							<p>Graph View</p>
 						</TooltipContent>
 					</Tooltip>
-					<ConnectAIModal>
-						<Tooltip>
+					<Tooltip>
+						<ConnectAIModal
+							open={mcpModalOpen}
+							onOpenChange={setMcpModalOpen}
+							openInitialClient={mcpInitialClient}
+							openInitialTab={mcpInitialTab}
+						>
 							<TooltipTrigger asChild>
-								<Button variant="ghost" size="sm" className="gap-1.5">
+								<Button
+									variant="ghost"
+									size="sm"
+									className="gap-1.5"
+									onClick={() => setMcpModalOpen(true)}
+								>
 									<MCPIcon className="h-4 w-4" />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>
-								<p>Connect to AI (MCP)</p>
-							</TooltipContent>
-						</Tooltip>
-					</ConnectAIModal>
+						</ConnectAIModal>
+						<TooltipContent>
+							<p>Connect to AI (MCP)</p>
+						</TooltipContent>
+					</Tooltip>
 					<DropdownMenu>
 						<DropdownMenuTrigger>
 							<Avatar className="border border-border h-8 w-8 md:h-10 md:w-10">

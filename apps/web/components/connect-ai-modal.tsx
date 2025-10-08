@@ -1,6 +1,9 @@
 "use client"
 
 import { $fetch } from "@lib/api"
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
+import { generateId } from "@lib/generate-id"
 import { useForm } from "@tanstack/react-form"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { Button } from "@ui/components/button"
@@ -21,7 +24,7 @@ import {
 	SelectValue,
 } from "@ui/components/select"
 import { CopyableCell } from "@ui/copyable-cell"
-import { CopyIcon, ExternalLink, Loader2 } from "lucide-react"
+import { CheckIcon, CopyIcon, ExternalLink, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -65,16 +68,21 @@ interface ConnectAIModalProps {
 	children: React.ReactNode
 	open?: boolean
 	onOpenChange?: (open: boolean) => void
+	openInitialClient?: "mcp-url" | null
+	openInitialTab?: "oneClick" | "manual" | null
 }
 
 export function ConnectAIModal({
 	children,
 	open,
 	onOpenChange,
+	openInitialClient,
+	openInitialTab,
 }: ConnectAIModalProps) {
+	const { org } = useAuth()
 	const [selectedClient, setSelectedClient] = useState<
 		keyof typeof clients | null
-	>(null)
+	>(openInitialClient || null)
 	const [internalIsOpen, setInternalIsOpen] = useState(false)
 	const isOpen = open !== undefined ? open : internalIsOpen
 	const setIsOpen = onOpenChange || setInternalIsOpen
@@ -83,6 +91,11 @@ export function ConnectAIModal({
 	const [cursorInstallTab, setCursorInstallTab] = useState<
 		"oneClick" | "manual"
 	>("oneClick")
+	const [mcpUrlTab, setMcpUrlTab] = useState<"oneClick" | "manual">(
+		openInitialTab || "oneClick",
+	)
+	const [manualApiKey, setManualApiKey] = useState<string | null>(null)
+	const [isCopied, setIsCopied] = useState(false)
 
 	const [projectId, setProjectId] = useState("default")
 
@@ -162,6 +175,46 @@ export function ConnectAIModal({
 			})
 		},
 	})
+
+	const createMcpApiKeyMutation = useMutation({
+		mutationFn: async () => {
+			if (!org?.id) {
+				throw new Error("Organization ID is required")
+			}
+
+			const res = await authClient.apiKey.create({
+				metadata: {
+					organizationId: org?.id,
+					type: "mcp-manual",
+				},
+				name: `mcp-manual-${generateId().slice(0, 8)}`,
+				prefix: `sm_${org?.id}_`,
+			})
+			return res.key
+		},
+		onSuccess: (apiKey) => {
+			setManualApiKey(apiKey)
+			toast.success("API key created successfully!")
+		},
+		onError: (error) => {
+			toast.error("Failed to create API key", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+	})
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies(createMcpApiKeyMutation.mutate): we need to mutate the mutation
+	useEffect(() => {
+		if (openInitialClient) {
+			setSelectedClient(openInitialClient as keyof typeof clients)
+			if (openInitialTab) {
+				setMcpUrlTab(openInitialTab)
+				if (org?.id) {
+					createMcpApiKeyMutation.mutate()
+				}
+			}
+		}
+	}, [openInitialClient, openInitialTab, org?.id])
 
 	function generateInstallCommand() {
 		if (!selectedClient) return ""
@@ -279,7 +332,7 @@ export function ConnectAIModal({
 										{selectedClient === "cursor"
 											? "Install Supermemory MCP"
 											: selectedClient === "mcp-url"
-												? "MCP Server URL"
+												? "MCP Server Configuration"
 												: "Select Target Project (Optional)"}
 									</h3>
 								</div>
@@ -287,7 +340,9 @@ export function ConnectAIModal({
 								<div
 									className={cn(
 										"flex-col gap-2 hidden",
-										selectedClient === "cursor" && "flex",
+										(selectedClient === "cursor" ||
+											selectedClient === "mcp-url") &&
+											"flex",
 									)}
 								>
 									{/* Tabs */}
@@ -295,25 +350,51 @@ export function ConnectAIModal({
 										<div className="flex bg-muted/50 rounded-full p-1 border border-border">
 											<button
 												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-													cursorInstallTab === "oneClick"
+													(
+														selectedClient === "cursor"
+															? cursorInstallTab
+															: mcpUrlTab
+													) === "oneClick"
 														? "bg-background text-foreground border border-border shadow-sm"
 														: "text-muted-foreground hover:text-foreground"
 												}`}
-												onClick={() => setCursorInstallTab("oneClick")}
+												onClick={() =>
+													selectedClient === "cursor"
+														? setCursorInstallTab("oneClick")
+														: setMcpUrlTab("oneClick")
+												}
 												type="button"
 											>
-												One Click Install
+												{selectedClient === "mcp-url"
+													? "Quick Setup"
+													: "One Click Install"}
 											</button>
 											<button
 												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-													cursorInstallTab === "manual"
+													(
+														selectedClient === "cursor"
+															? cursorInstallTab
+															: mcpUrlTab
+													) === "manual"
 														? "bg-background text-foreground border border-border shadow-sm"
 														: "text-muted-foreground hover:text-foreground"
 												}`}
-												onClick={() => setCursorInstallTab("manual")}
+												onClick={() => {
+													if (selectedClient === "cursor") {
+														setCursorInstallTab("manual")
+													} else {
+														setMcpUrlTab("manual")
+														if (
+															!manualApiKey &&
+															!createMcpApiKeyMutation.isPending
+														) {
+															createMcpApiKeyMutation.mutate()
+														}
+													}
+												}}
 												type="button"
 											>
-												Manual Install
+												Manual Config
 											</button>
 										</div>
 									</div>
@@ -396,30 +477,98 @@ export function ConnectAIModal({
 									)}
 								</div>
 							) : selectedClient === "mcp-url" ? (
-								<div className="space-y-2">
-									<div className="relative">
-										<Input
-											className="font-mono text-xs w-full pr-10"
-											readOnly
-											value="https://api.supermemory.ai/mcp"
-										/>
-										<Button
-											className="absolute top-[-1px] right-0 cursor-pointer"
-											onClick={() => {
-												navigator.clipboard.writeText(
-													"https://api.supermemory.ai/mcp",
-												)
-												analytics.mcpInstallCmdCopied()
-												toast.success("Copied to clipboard!")
-											}}
-											variant="ghost"
-										>
-											<CopyIcon className="size-4" />
-										</Button>
-									</div>
-									<p className="text-xs text-muted-foreground">
-										Use this URL to configure supermemory in your AI assistant
-									</p>
+								<div className="space-y-4">
+									{mcpUrlTab === "oneClick" ? (
+										<div className="space-y-2">
+											<p className="text-sm text-muted-foreground">
+												Use this URL to quickly configure supermemory in your AI
+												assistant
+											</p>
+											<div className="relative">
+												<Input
+													className="font-mono text-xs w-full pr-10"
+													readOnly
+													value="https://api.supermemory.ai/mcp"
+												/>
+												<Button
+													className="absolute top-[-1px] right-0 cursor-pointer"
+													onClick={() => {
+														navigator.clipboard.writeText(
+															"https://api.supermemory.ai/mcp",
+														)
+														analytics.mcpInstallCmdCopied()
+														toast.success("Copied to clipboard!")
+													}}
+													variant="ghost"
+												>
+													<CopyIcon className="size-4" />
+												</Button>
+											</div>
+										</div>
+									) : (
+										<div className="space-y-3">
+											<p className="text-sm text-muted-foreground">
+												Add this configuration to your MCP settings file with
+												authentication
+											</p>
+											{createMcpApiKeyMutation.isPending ? (
+												<div className="flex items-center justify-center p-8">
+													<Loader2 className="h-6 w-6 animate-spin text-primary" />
+												</div>
+											) : (
+												<>
+													<div className="relative">
+														<pre className="bg-muted border border-border rounded-lg p-4 pr-12 text-xs overflow-x-auto max-w-full">
+															<code className="font-mono block whitespace-pre-wrap break-all">
+																{`{
+  "supermemory-mcp": {
+    "command": "npx",
+    "args": ["-y", "mcp-remote", "https://api.supermemory.ai/mcp"],
+    "env": {},
+    "headers": {
+      "Authorization": "Bearer ${manualApiKey || "your-api-key-here"}"
+    }
+  }
+}`}
+															</code>
+														</pre>
+														<Button
+															className="absolute top-2 right-2 cursor-pointer h-8 w-8 p-0 bg-muted/80 hover:bg-muted"
+															onClick={() => {
+																const config = `{
+  "supermemory-mcp": {
+    "command": "npx",
+    "args": ["-y", "mcp-remote", "https://api.supermemory.ai/mcp"],
+    "env": {},
+    "headers": {
+      "Authorization": "Bearer ${manualApiKey || "your-api-key-here"}"
+    }
+  }
+}`
+																navigator.clipboard.writeText(config)
+																analytics.mcpInstallCmdCopied()
+																toast.success("Copied to clipboard!")
+																setIsCopied(true)
+																setTimeout(() => setIsCopied(false), 2000)
+															}}
+															variant="ghost"
+															size="icon"
+														>
+															{isCopied ? (
+																<CheckIcon className="size-3.5 text-green-600" />
+															) : (
+																<CopyIcon className="size-3.5" />
+															)}
+														</Button>
+													</div>
+													<p className="text-xs text-muted-foreground">
+														The API key is included as a Bearer token in the
+														Authorization header
+													</p>
+												</>
+											)}
+										</div>
+									)}
 								</div>
 							) : (
 								<div className="max-w-md">
