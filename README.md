@@ -14,26 +14,26 @@
 - **[Chat with Your Memories](#chat-memories)**: Converse with your stored content using natural language chat.
 - **[Supermemory MCP Integration](#mcp-integration)**: Seamlessly connect with all major AI tools (Claude, Cursor, etc.) via Supermemory MCP.
 
-## How do i use this?
+## How do I use this?
 
-Go to [app.supermemory.ai](https://app.supermemory.ai) and sign into with your account
+Go to [app.supermemory.ai](https://app.supermemory.ai) and sign in with your account
 
-1. <a id="add-memory"></a>Start Adding Memory with your choose of format (Note, Link, File)
+1. <a id="add-memory"></a>Start Adding Memory with your choice of format (Note, Link, File)
 <div align="center" style="padding-bottom:10px;padding-top:10px">
   <img src="apps/web/public/add-memory.png" alt="supermemory" width="100%" />
 </div>
 
-2. You can also Connect to your favourite services (Notion, Google Drive, OneDrive)
+2. You can also Connect to your favorite services (Notion, Google Drive, OneDrive)
 <div align="center" style="padding-bottom:10px;padding-top:10px">
   <img src="apps/web/public/add-connections.png" alt="supermemory" width="100%" />
 </div>
 
-3. <a id="chat-memories"></a>Once Memories are added, you can chat with Supermemory by clicking on "Open Chat" and retrieve info from your saved memories
+3. <a id="chat-memories"></a>Once memories are added, you can chat with Supermemory by clicking on "Open Chat" and retrieve info from your saved memories
 <div align="center" style="padding-bottom:10px;padding-top:10px">
   <img src="apps/web/public/chat.png" alt="supermemory" width="100%" />
 </div>
 
-4. <a id="mcp-integration"></a>Add MCP to your AI Tools (by clicking on "Connect to your AI" and select the AI tool you are trying to integrate)
+4. <a id="mcp-integration"></a>Add MCP to your AI Tools (by clicking on "Connect to your AI" and selecting the AI tool you are trying to integrate)
 <div align="center" style="padding-bottom:10px;padding-top:10px">
   <img src="apps/web/public/mcp.png" alt="supermemory" width="100%" />
 </div>
@@ -69,7 +69,7 @@ Check out our [Issues](https://github.com/supermemoryai/supermemory/issues) page
 
 ## Updates & Roadmap
 
-Stay up to date with the latest improvements:
+Stay up-to-date with the latest improvements:
 
 - [Changelog](https://docs.supermemory.ai/changelog/overview)
 - [X](https://x.com/supermemoryai).

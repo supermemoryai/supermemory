@@ -1,6 +1,6 @@
-# Contributing to supermemory
+# Contributing to Supermemory
 
-Thank you for your interest in contributing to supermemory! We welcome contributions from developers of all skill levels. This guide will help you get started with contributing to our AI-powered memory layer API.
+Thank you for your interest in contributing to Supermemory! We welcome contributions from developers of all skill levels. This guide will help you get started with contributing to our AI-powered memory layer API.
 
 ## 🚀 Quick Start
 
@@ -13,10 +13,10 @@ Before you begin, ensure you have the following installed:
 
 ### Setting Up the Development Environment
 
-1. **Fork and Clone the Repository**
+1. **Fork and clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/supermemory-app.git
+   git clone https://github.com/your-username/supermemory.git
    cd supermemory-app
    ```
 
@@ -46,10 +46,10 @@ Before you begin, ensure you have the following installed:
 
 ## 📁 Project Structure
 
-supermemory is organized as a monorepo using Turbo:
+Supermemory is organized as a monorepo using Turbo:
 
 ```
-supermemory-app/
+supermemory/
 ├── apps/
 │   └── web/                 # Next.js web application
 ├── packages/
