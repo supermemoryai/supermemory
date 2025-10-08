@@ -23,12 +23,10 @@ export default async function middleware(request: Request) {
 			"[MIDDLEWARE] No session cookie and not on public path, redirecting to /login",
 		)
 		const loginUrl = new URL("/login", request.url)
-
-		// Only allow same-origin redirects to prevent open redirect attacks
 		const requestUrl = new URL(request.url)
-		if (requestUrl.origin === loginUrl.origin) {
-			loginUrl.searchParams.set("redirect", requestUrl.pathname)
-		}
+
+		// Set pathname only (not full URL) to prevent open redirect attacks
+		loginUrl.searchParams.set("redirect", requestUrl.pathname)
 
 		return NextResponse.redirect(loginUrl)
 	}

@@ -48,14 +48,13 @@ export function LoginPage({
 	const getCallbackURL = () => {
 		const origin = window.location.origin;
 		if (redirectUrl) {
-			// Validate that the redirect URL is safe (same origin or allow external based on your security requirements)
-			try {
-				const url = new URL(redirectUrl, origin);
-				return url.toString();
-			} catch {
-				// If redirect URL is invalid, fall back to origin
-				return origin;
+			// Validate that redirect is a safe pathname (not a full URL)
+			// Middleware only sends pathname, but validate to prevent manipulation
+			if (redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+				return `${origin}${redirectUrl}`;
 			}
+			// If redirect is not a safe pathname, ignore it
+			return origin;
 		}
 		return origin;
 	};
