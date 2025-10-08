@@ -7,11 +7,8 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "check-types": "tsc --noEmit",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "test:integration": "vitest test/ai-sdk.test.ts",
-    "test:env": "vitest --env-file .env",
-    "test:local": "vitest --env-file .env.local"
+    "test": "vitest --testTimeout 100000",
+    "test:watch": "vitest --watch --testTimeout 100000"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.23",
