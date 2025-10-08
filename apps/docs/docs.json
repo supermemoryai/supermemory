@@ -83,7 +83,7 @@
 										"pages": [
 											"add-memories/overview",
 											"add-memories/parameters",
-											"api/ingesting",
+											"memory-api/ingesting",
 											{
 												"group": "Examples",
 												"pages": [
@@ -112,7 +112,7 @@
 										]
 									},
 									"search/filtering",
-									"api/track-progress",
+									"memory-api/track-progress",
 									{
 										"group": "List Memories",
 										"icon": "list",
