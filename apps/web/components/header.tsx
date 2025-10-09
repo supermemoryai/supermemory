@@ -275,7 +275,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 								<Button
 									variant="ghost"
 									size="sm"
-									className="gap-1.5"
+									className="gap-1.5 hidden md:block"
 									onClick={() => setMcpModalOpen(true)}
 								>
 									<MCPIcon className="h-4 w-4" />

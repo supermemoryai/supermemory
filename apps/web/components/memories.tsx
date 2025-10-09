@@ -13,6 +13,7 @@ import { MasonryMemoryList } from "@/components/masonry-memory-list"
 import { AddMemoryView } from "@/components/views/add-memory"
 import { useChatOpen, useProject, useGraphModal } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
+import { useIsMobile } from "@hooks/use-mobile"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -27,6 +28,7 @@ export function Memories() {
 	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([])
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
 	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
+	const isMobile = useIsMobile()
 
 	const IS_DEV = process.env.NODE_ENV === "development"
 	const PAGE_SIZE = IS_DEV ? 100 : 100
@@ -162,10 +164,10 @@ export function Memories() {
 
 	// Show connect AI modal if no documents
 	useEffect(() => {
-		if (allDocuments.length === 0) {
+		if (allDocuments.length === 0 && !isMobile) {
 			setShowConnectAIModal(true)
 		}
-	}, [allDocuments.length])
+	}, [allDocuments.length, isMobile])
 
 	if (!user) {
 		return (
@@ -190,10 +192,30 @@ export function Memories() {
 					totalLoaded={totalLoaded}
 				>
 					<div className="absolute inset-0 flex items-center justify-center">
-						<ConnectAIModal
-							onOpenChange={setShowConnectAIModal}
-							open={showConnectAIModal}
-						>
+						{!isMobile ? (
+							<ConnectAIModal
+								onOpenChange={setShowConnectAIModal}
+								open={showConnectAIModal}
+							>
+								<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
+									<div className="relative z-10 text-slate-200 text-center">
+										<div className="flex flex-col gap-3">
+											<button
+												className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+												onClick={(e) => {
+													e.stopPropagation()
+													setShowAddMemoryView(true)
+													setShowConnectAIModal(false)
+												}}
+												type="button"
+											>
+												Add your first memory
+											</button>
+										</div>
+									</div>
+								</div>
+							</ConnectAIModal>
+						) : (
 							<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
 								<div className="relative z-10 text-slate-200 text-center">
 									<div className="flex flex-col gap-3">
@@ -202,7 +224,6 @@ export function Memories() {
 											onClick={(e) => {
 												e.stopPropagation()
 												setShowAddMemoryView(true)
-												setShowConnectAIModal(false)
 											}}
 											type="button"
 										>
@@ -211,7 +232,7 @@ export function Memories() {
 									</div>
 								</div>
 							</div>
-						</ConnectAIModal>
+						)}
 					</div>
 				</MasonryMemoryList>
 
@@ -244,10 +265,30 @@ export function Memories() {
 							highlightsVisible={isOpen}
 						>
 							<div className="absolute inset-0 flex items-center justify-center">
-								<ConnectAIModal
-									onOpenChange={setShowConnectAIModal}
-									open={showConnectAIModal}
-								>
+								{!isMobile ? (
+									<ConnectAIModal
+										onOpenChange={setShowConnectAIModal}
+										open={showConnectAIModal}
+									>
+										<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
+											<div className="relative z-10 text-slate-200 text-center">
+												<div className="flex flex-col gap-3">
+													<button
+														className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+														onClick={(e) => {
+															e.stopPropagation()
+															setShowAddMemoryView(true)
+															setShowConnectAIModal(false)
+														}}
+														type="button"
+													>
+														Add your first memory
+													</button>
+												</div>
+											</div>
+										</div>
+									</ConnectAIModal>
+								) : (
 									<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
 										<div className="relative z-10 text-slate-200 text-center">
 											<div className="flex flex-col gap-3">
@@ -256,7 +297,6 @@ export function Memories() {
 													onClick={(e) => {
 														e.stopPropagation()
 														setShowAddMemoryView(true)
-														setShowConnectAIModal(false)
 													}}
 													type="button"
 												>
@@ -265,7 +305,7 @@ export function Memories() {
 											</div>
 										</div>
 									</div>
-								</ConnectAIModal>
+								)}
 							</div>
 						</MemoryGraph>
 					</div>
