@@ -48,6 +48,7 @@ export function ModelSelector({
 	return (
 		<div className="relative">
 			<Button
+				type="button"
 				variant="ghost"
 				className="flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors"
 				onClick={() => !disabled && setIsOpen(!isOpen)}
