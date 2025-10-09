@@ -18,7 +18,7 @@
 
 Go to [app.supermemory.ai](https://app.supermemory.ai) and sign into with your account
 
-1. <a id="add-memory"></a>Start Adding Memory with your choose of format (Note, Link, File)
+1. <a id="add-memory"></a>Start Adding Memory with your choice of format (Note, Link, File)
 <div align="center" style="padding-bottom:10px;padding-top:10px">
   <img src="apps/web/public/add-memory.png" alt="supermemory" width="100%" />
 </div>
