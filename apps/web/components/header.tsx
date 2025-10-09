@@ -107,6 +107,10 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const handleSignOut = () => {
 		analytics.userSignedOut()
 		authClient.signOut()
+		// Broadcast logout event to all tabs
+		if (typeof window !== "undefined") {
+			localStorage.setItem("supermemory-logout", Date.now().toString())
+		}
 		router.push("/login")
 	}
 
