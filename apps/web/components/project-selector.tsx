@@ -95,6 +95,7 @@ export function ProjectSelector() {
 	return (
 		<div className="relative">
 			<Button
+				type="button"
 				variant="ghost"
 				className="flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors"
 				onClick={() => setIsOpen(!isOpen)}
