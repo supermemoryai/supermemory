@@ -49,17 +49,21 @@ Before you begin, ensure you have the following installed:
 supermemory is organized as a monorepo using Turbo:
 
 ```
-supermemory-app/
+supermemory/
 ├── apps/
-│   └── web/                 # Next.js web application
+│   ├── browser-extension/     # Browser extension (WXT)
+│   ├── docs/                  # Documentation site
+│   ├── raycast-extension/     # Raycast extension
+│   └── web/                   # Next.js web application
 ├── packages/
-│   ├── ui/                  # Shared UI components
-│   ├── lib/                 # Shared utilities and logic
-│   ├── hooks/               # Shared React hooks
-│   ├── validation/          # Zod schemas and validation
-│   ├── eslint-config/       # ESLint configurations
-│   └── typescript-config/   # TypeScript configurations
-└── turbo.json              # Turbo configuration
+│   ├── ai-sdk/                # TypeScript AI SDK
+│   ├── hooks/                 # Shared React hooks
+│   ├── lib/                   # Shared utilities and logic
+│   ├── openai-sdk-python/     # Python SDK
+│   ├── tools/                 # Tooling and MCP tools
+│   ├── ui/                    # Shared UI components
+│   └── validation/            # Zod schemas and validation
+└── turbo.json                 # Turbo configuration
 ```
 
 ## 🛠️ Development Workflow
