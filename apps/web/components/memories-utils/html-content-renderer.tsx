@@ -1,5 +1,7 @@
 import { memo, useMemo } from "react"
 import DOMPurify from "dompurify"
+import ReactMarkdown from "react-markdown"
+import type { Components } from "react-markdown"
 
 interface HTMLContentRendererProps {
 	content: string
@@ -21,21 +23,84 @@ const isHTMLContent = (content: string): boolean => {
 	return htmlPatterns.some((pattern) => pattern.test(content))
 }
 
+/**
+ * Detects if content is likely markdown based on common markdown patterns
+ */
+const isMarkdownContent = (content: string): boolean => {
+	// Check for markdown patterns like headers, links, code blocks, etc.
+	const markdownPatterns = [
+		/^#{1,6}\s+/m, // Headers
+		/\[([^\]]+)\]\([^)]+\)/, // Links
+		/`{1,3}[^`]*`{1,3}/, // Inline code
+		/^\s*```[\s\S]*?```/m, // Code blocks
+		/^\s*[\-*+]\s+/m, // Lists
+		/^\s*\d+\.\s+/m, // Numbered lists
+		/\*\*([^*]+)\*\*/, // Bold
+		/_([^_]+)_/, // Italic
+		/https?:\/\/[^\s]+/, // URLs
+		/\*\s+|\-\s+/, // List markers
+	]
+
+	return markdownPatterns.some((pattern) => pattern.test(content))
+}
+
 export const HTMLContentRenderer = memo(
 	({ content, className = "" }: HTMLContentRendererProps) => {
-		const { isHTML, processedContent } = useMemo(() => {
+		const { isHTML, isMarkdown, processedContent } = useMemo(() => {
 			const contentIsHTML = isHTMLContent(content)
+			const contentIsMarkdown = isMarkdownContent(content)
 
 			if (contentIsHTML) {
 				return {
 					isHTML: true,
+					isMarkdown: false,
 					processedContent: DOMPurify.sanitize(content),
+				}
+			}
+
+			// Preprocess content to improve markdown detection and formatting
+			let processed = content
+
+			// Handle terminal commands (lines starting with $)
+			if (content.includes('\n$ ')) {
+				// Convert terminal commands to code blocks for better formatting
+				processed = content.replace(/^\$ (.*$)/gm, '```bash\n$ $1\n```')
+			}
+
+			// Handle cases where content looks like JSON but isn't in code blocks
+			if (content.trim().startsWith('{') && content.includes('"') && content.includes(':')) {
+				// Check if it looks like JSON and wrap it in a code block
+				const lines = content.split('\n')
+				let inJsonBlock = false
+				let jsonLines: string[] = []
+				let otherLines: string[] = []
+
+				for (const line of lines) {
+					if (line.trim() === '{' || line.trim() === '[') {
+						inJsonBlock = true
+					}
+
+					if (inJsonBlock) {
+						jsonLines.push(line)
+						if (line.trim() === '}' || line.trim() === ']') {
+							inJsonBlock = false
+						}
+					} else {
+						otherLines.push(line)
+					}
+				}
+
+				if (jsonLines.length > 0 && jsonLines.join('\n').trim()) {
+					const jsonBlock = jsonLines.join('\n')
+					const otherContent = otherLines.join('\n')
+					processed = otherContent + (otherContent ? '\n\n' : '') + '```json\n' + jsonBlock + '\n```'
 				}
 			}
 
 			return {
 				isHTML: false,
-				processedContent: content,
+				isMarkdown: true, // Try markdown rendering for all non-HTML content
+				processedContent: processed,
 			}
 		}, [content])
 
@@ -49,13 +114,49 @@ export const HTMLContentRenderer = memo(
 			)
 		}
 
-		return (
-			<p
-				className={`text-sm leading-relaxed whitespace-pre-wrap text-foreground ${className}`}
-			>
-				{processedContent}
-			</p>
-		)
+		if (isMarkdown) {
+			try {
+				const components: Components = {
+					h1: ({ children }) => <h1 className="text-foreground text-lg font-semibold mb-1.5">{children}</h1>,
+					h2: ({ children }) => <h2 className="text-foreground text-base font-semibold mb-1.5">{children}</h2>,
+					h3: ({ children }) => <h3 className="text-foreground text-sm font-semibold mb-1">{children}</h3>,
+					h4: ({ children }) => <h4 className="text-foreground text-sm font-medium mb-1">{children}</h4>,
+					h5: ({ children }) => <h5 className="text-foreground text-sm font-medium mb-1">{children}</h5>,
+					h6: ({ children }) => <h6 className="text-foreground text-sm font-medium mb-1">{children}</h6>,
+					p: ({ children }) => <p className="text-foreground text-sm leading-relaxed mb-1.5">{children}</p>,
+					strong: ({ children }) => <strong className="text-foreground font-semibold">{children}</strong>,
+					em: ({ children }) => <em className="text-foreground italic">{children}</em>,
+					code: ({ children, className }) => <code className={`text-foreground bg-muted px-1.5 py-0.5 rounded text-xs font-mono ${className || ''}`}>{children}</code>,
+					pre: ({ children }) => (
+						<pre className="text-foreground bg-muted border border-border p-2 rounded text-xs overflow-x-auto mb-2 whitespace-pre font-mono text-xs leading-tight">
+							{children}
+						</pre>
+					),
+					blockquote: ({ children }) => <blockquote className="text-muted-foreground border-l-4 border-muted-foreground pl-3 italic mb-2">{children}</blockquote>,
+					a: ({ children, href }) => <a href={href} className="text-primary hover:text-primary/80 underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+					ul: ({ children }) => <ul className="text-foreground text-sm mb-2 ml-4 list-disc">{children}</ul>,
+					ol: ({ children }) => <ol className="text-foreground text-sm mb-2 ml-4 list-decimal">{children}</ol>,
+					li: ({ children }) => <li className="mb-1">{children}</li>,
+				}
+
+				return (
+					<div className={`${className} bg-background`}>
+						<ReactMarkdown components={components}>
+							{processedContent}
+						</ReactMarkdown>
+					</div>
+				)
+			} catch (error) {
+				// Fallback to plain text if markdown parsing fails
+				return (
+					<p
+						className={`text-sm leading-relaxed whitespace-pre-wrap text-foreground ${className}`}
+					>
+						{processedContent}
+					</p>
+				)
+			}
+		}
 	},
 )
 
