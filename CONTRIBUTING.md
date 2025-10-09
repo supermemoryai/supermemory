@@ -16,8 +16,8 @@ Before you begin, ensure you have the following installed:
 1. **Fork and Clone the Repository**
 
    ```bash
-   git clone https://github.com/your-username/supermemory-app.git
-   cd supermemory-app
+   git clone https://github.com/supermemoryai/supermemory.git
+   cd supermemory
    ```
 
 2. **Install Dependencies**
@@ -49,17 +49,26 @@ Before you begin, ensure you have the following installed:
 supermemory is organized as a monorepo using Turbo:
 
 ```
-supermemory-app/
+supermemory/
 ├── apps/
-│   └── web/                 # Next.js web application
+│   ├── web/                 # Next.js web application
+│   ├── browser-extension/  # Browser extension (WXT-based)
+│   ├── docs/               # Documentation site
+│   └── raycast-extension/  # Raycast extension
 ├── packages/
 │   ├── ui/                  # Shared UI components
 │   ├── lib/                 # Shared utilities and logic
 │   ├── hooks/               # Shared React hooks
 │   ├── validation/          # Zod schemas and validation
+│   ├── ai-sdk/              # AI SDK for memory operations
+│   ├── tools/               # Development tools and utilities
+│   ├── openai-sdk-python/   # Python SDK for OpenAI integration
+│   ├── openai-sdk-ts/       # TypeScript SDK for OpenAI integration
 │   ├── eslint-config/       # ESLint configurations
 │   └── typescript-config/   # TypeScript configurations
-└── turbo.json              # Turbo configuration
+├── turbo.json              # Turbo configuration
+├── biome.json              # Biome configuration
+└── package.json            # Root package configuration
 ```
 
 ## 🛠️ Development Workflow
