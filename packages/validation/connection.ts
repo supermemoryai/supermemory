@@ -41,10 +41,31 @@ export const OneDriveMetadataSchema = BaseMetadataSchema(
 })
 export type OneDriveMetadata = z.infer<typeof OneDriveMetadataSchema>
 
+export const GitHubMetadataSchema = BaseMetadataSchema(
+	z.literal("github"),
+).extend({
+	login: z.string(),
+	userId: z.number(),
+	avatarUrl: z.string().optional(),
+	webhookId: z.number().optional(),
+	webhookSecret: z.string().optional(),
+	lastSyncCursor: z.string().optional(),
+	repositories: z.array(z.object({
+		id: z.number(),
+		name: z.string(),
+		fullName: z.string(),
+		owner: z.string(),
+		private: z.boolean(),
+		lastSyncAt: z.number().optional(),
+	})).optional(),
+})
+export type GitHubMetadata = z.infer<typeof GitHubMetadataSchema>
+
 export const ConnectionMetadataSchema = z.discriminatedUnion("provider", [
 	NotionMetadataSchema,
 	GoogleDriveMetadataSchema,
 	OneDriveMetadataSchema,
+	GitHubMetadataSchema,
 ])
 export type ConnectionMetadata<T extends Provider> = T extends "notion"
 	? NotionMetadata
@@ -52,7 +73,9 @@ export type ConnectionMetadata<T extends Provider> = T extends "notion"
 		? GoogleDriveMetadata
 		: T extends "onedrive"
 			? OneDriveMetadata
-			: never
+			: T extends "github"
+				? GitHubMetadata
+				: never
 
 export function isNotionMetadata(
 	metadata: unknown,
@@ -70,6 +93,12 @@ export function isOneDriveMetadata(
 	metadata: unknown,
 ): metadata is OneDriveMetadata {
 	return OneDriveMetadataSchema.safeParse(metadata).success
+}
+
+export function isGitHubMetadata(
+	metadata: unknown,
+): metadata is GitHubMetadata {
+	return GitHubMetadataSchema.safeParse(metadata).success
 }
 
 export const ConnectionStateSchema = z.object({
@@ -145,6 +174,13 @@ export const OneDriveTokenResponseSchema = z.object({
 	token_type: z.literal("Bearer"),
 })
 export type OneDriveTokenResponse = z.infer<typeof OneDriveTokenResponseSchema>
+
+export const GitHubTokenResponseSchema = z.object({
+	access_token: z.string(),
+	scope: z.string(),
+	token_type: z.literal("bearer"),
+})
+export type GitHubTokenResponse = z.infer<typeof GitHubTokenResponseSchema>
 
 export const NotionConfigSchema = z.object({
 	clientId: z.string(),

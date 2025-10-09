@@ -1,6 +1,6 @@
 ---
 title: "Connector Troubleshooting"
-description: "Diagnose and resolve common issues with Google Drive, Notion, and OneDrive connectors"
+description: "Diagnose and resolve common issues with Google Drive, Notion, OneDrive, and GitHub connectors"
 ---
 
 Quick guide to resolve common connector issues with authentication, syncing, and permissions.
@@ -179,6 +179,29 @@ Business accounts may have additional restrictions:
 - Admin consent might be required
 - Some SharePoint sites may be restricted
 - Compliance policies may block certain files
+
+### GitHub
+
+**Repository Access Issues**
+
+If repositories aren't syncing, check:
+- Repository is public or user has access
+- OAuth app has `repo` scope for private repositories
+- Webhook permissions are properly configured
+
+**Webhook Failures**
+
+GitHub webhooks may fail if:
+- Webhook URL is not accessible from GitHub
+- SSL certificate issues
+- Rate limiting from too many webhook calls
+
+**Organization Repository Access**
+
+For organization repositories:
+- User must be a member of the organization
+- Organization must allow third-party access
+- Admin approval may be required for OAuth apps
 
 
 ## Best Practices

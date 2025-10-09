@@ -20,6 +20,11 @@ export const DocumentTypeEnum = z.enum([
 	"notion_doc",
 	"webpage",
 	"onedrive",
+	"github_repo",
+	"github_issue",
+	"github_pr",
+	"github_discussion",
+	"github_wiki",
 ])
 export type DocumentType = z.infer<typeof DocumentTypeEnum>
 
@@ -127,6 +132,7 @@ export const ConnectionProviderEnum = z.enum([
 	"notion",
 	"google-drive",
 	"onedrive",
+	"github",
 ])
 export type ConnectionProvider = z.infer<typeof ConnectionProviderEnum>
 
@@ -329,6 +335,23 @@ export const OrganizationSettingsSchema = z.object({
 	onedriveCustomKeyEnabled: z.boolean().default(false),
 	onedriveClientId: z.string().nullable().optional(),
 	onedriveClientSecret: z.string().nullable().optional(),
+
+	// GitHub custom keys
+	githubCustomKeyEnabled: z.boolean().default(false),
+	githubClientId: z.string().nullable().optional(),
+	githubClientSecret: z.string().nullable().optional(),
+
+	// GitHub-specific settings
+	githubRepositories: z.array(z.string()).nullable().optional(),
+	githubSyncIssues: z.boolean().default(true),
+	githubSyncPRs: z.boolean().default(true),
+	githubSyncDiscussions: z.boolean().default(true),
+	githubSyncWiki: z.boolean().default(true),
+	githubIncludePatterns: z.array(z.string()).nullable().optional(),
+	githubExcludePatterns: z.array(z.string()).nullable().optional(),
+	githubSyncPrivateRepos: z.boolean().default(true),
+	githubSyncForks: z.boolean().default(false),
+	githubSyncArchived: z.boolean().default(false),
 
 	updatedAt: z.coerce.date(),
 })

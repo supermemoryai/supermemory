@@ -1,14 +1,14 @@
 ---
 title: "Connectors Overview"
-description: "Integrate Google Drive, Notion, and OneDrive to automatically sync documents into your knowledge base"
+description: "Integrate Google Drive, Notion, OneDrive, and GitHub to automatically sync documents into your knowledge base"
 sidebarTitle: "Overview"
 ---
 
-Connect external platforms to automatically sync documents into Supermemory. Supported connectors include Google Drive, Notion, and OneDrive with real-time synchronization and intelligent content processing.
+Connect external platforms to automatically sync documents into Supermemory. Supported connectors include Google Drive, Notion, OneDrive, and GitHub with real-time synchronization and intelligent content processing.
 
 ## Supported Connectors
 
-<CardGroup cols={3}>
+<CardGroup cols={2}>
   <Card title="Google Drive" icon="google-drive" href="/connectors/google-drive">
     **Google Docs, Slides, Sheets**
 
@@ -25,6 +25,12 @@ Connect external platforms to automatically sync documents into Supermemory. Sup
     **Word, Excel, PowerPoint**
 
     Scheduled sync every 4 hours. Supports personal and business accounts with file versioning.
+  </Card>
+
+  <Card title="GitHub" icon="git-branch" href="/connectors/github">
+    **Repositories, Issues, PRs**
+
+    Real-time sync via webhooks. Syncs code documentation, issues, pull requests, and discussions.
   </Card>
 </CardGroup>
 
@@ -206,6 +212,7 @@ graph TD
 | **Google Drive** | ✅ Webhooks (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
 | **Notion** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
 | **OneDrive** | ✅ Webhooks (30-day expiry) | ✅ Every 4 hours | ✅ On-demand |
+| **GitHub** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
 
 
 ## Connection Management

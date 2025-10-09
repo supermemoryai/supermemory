@@ -4,7 +4,7 @@ sidebarTitle: 'Overview'
 description: 'Sync external connections like Google Drive, Notion, OneDrive with supermemory'
 ---
 
-supermemory can sync external connections like Google Drive, Notion, OneDrive with more coming soon.
+supermemory can sync external connections like Google Drive, Notion, OneDrive, and GitHub with more coming soon.
 
 ### The Flow
 
@@ -20,7 +20,7 @@ supermemory can sync external connections like Google Drive, Notion, OneDrive wi
 supermemory syncs documents:
 - **A document is modified or created (Webhook recieved)**
     - Note that not all providers are synced via webhook (Instant sync right now)
-    - `Google-Drive` and `Notion` documents are synced instantaneously
+    - `Google-Drive`, `Notion`, and `GitHub` documents are synced instantaneously
 - Every **four hours**
 - On **Manual Sync** (API call)
     - You can call `/v3/connections/{provider}/sync` to sync documents manually

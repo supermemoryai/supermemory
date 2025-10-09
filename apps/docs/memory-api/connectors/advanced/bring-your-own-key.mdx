@@ -17,7 +17,8 @@ To configure custom OAuth credentials for your organization, use the `PATCH /v3/
 
 Google: https://console.developers.google.com/apis/credentials/oauthclient \
 Notion: https://www.notion.so/my-integrations \
-OneDrive: https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsMenu 
+OneDrive: https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsMenu \
+GitHub: https://github.com/settings/developers 
 
 2. If using Google drive, 
 
@@ -30,11 +31,9 @@ OneDrive: https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/Applicatio
 https://api.supermemory.ai/v3/connections/auth/callback/{provider}
 ```
 
-For example, if you are using Google Drive, the redirect URL would be:
-
-```
-https://api.supermemory.ai/v3/connections/auth/callback/google-drive
-```
+For example:
+- Google Drive: `https://api.supermemory.ai/v3/connections/auth/callback/google-drive`
+- GitHub: `https://api.supermemory.ai/v3/connections/auth/callback/github`
 
 4. Configure the client ID and client secret in the `PATCH /v3/settings` endpoint.
 
@@ -66,6 +65,13 @@ const settings = await client.settings.update({
   onedriveClientId: "your-onedrive-client-id",
   onedriveClientSecret: "your-onedrive-client-secret"
 });
+
+// Example: Configure GitHub custom OAuth credentials
+const settings = await client.settings.update({
+  githubCustomKeyEnabled: true,
+  githubClientId: "your-github-client-id",
+  githubClientSecret: "your-github-client-secret"
+});
 ```
 
 ```python Python
@@ -94,6 +100,13 @@ settings = client.settings.update(
     onedrive_custom_key_enabled=True,
     onedrive_client_id="your-onedrive-client-id",
     onedrive_client_secret="your-onedrive-client-secret"
+)
+
+# Example: Configure GitHub custom OAuth credentials
+settings = client.settings.update(
+    github_custom_key_enabled=True,
+    github_client_id="your-github-client-id",
+    github_client_secret="your-github-client-secret"
 )
 ```
 
@@ -129,6 +142,17 @@ curl --request PATCH \
   "onedriveCustomKeyEnabled": true,
   "onedriveClientId": "your-onedrive-client-id",
   "onedriveClientSecret": "your-onedrive-client-secret"
+}'
+
+# Example: Configure GitHub custom OAuth credentials
+curl --request PATCH \
+  --url https://api.supermemory.ai/v3/settings \
+  --header 'Authorization: Bearer <token>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+  "githubCustomKeyEnabled": true,
+  "githubClientId": "your-github-client-id",
+  "githubClientSecret": "your-github-client-secret"
 }'
 ```
 </CodeGroup>

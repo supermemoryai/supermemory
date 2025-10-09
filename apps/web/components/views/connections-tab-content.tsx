@@ -5,7 +5,7 @@ import { Button } from "@repo/ui/components/button"
 import { Skeleton } from "@repo/ui/components/skeleton"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Notion, OneDrive, GitHub } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { Trash2 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
@@ -34,6 +34,11 @@ const CONNECTORS = {
 		title: "OneDrive",
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
+	},
+	github: {
+		title: "GitHub",
+		description: "Sync repositories, issues, and discussions",
+		icon: GitHub,
 	},
 } as const
 

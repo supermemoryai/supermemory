@@ -168,6 +168,42 @@ await client.settings.update({
 });
 ```
 
+### GitHub-Specific Filtering
+
+Configure GitHub content filtering with repository and content type settings:
+
+```typescript
+await client.settings.update({
+  // Repository-level filtering
+  githubRepositories: [
+    "company/core-api",      // Only sync specific repos
+    "company/documentation",
+    "company/frontend-app"
+  ],
+  
+  // Content type filtering
+  githubSyncIssues: true,        // Include issues and comments
+  githubSyncPRs: true,           // Include pull requests and reviews
+  githubSyncDiscussions: false,  // Skip community discussions
+  githubSyncWiki: true,          // Include wiki pages
+  
+  // File pattern filtering
+  githubIncludePatterns: [
+    "*.md", "docs/**", "README*", "CHANGELOG*",
+    "src/**/*.ts", "src/**/*.js", "*.py"
+  ],
+  githubExcludePatterns: [
+    "*.lock", "package-lock.json", "yarn.lock",
+    "node_modules/**", ".git/**", "*.test.*"
+  ],
+  
+  // Repository type filtering
+  githubSyncPrivateRepos: true,  // Include private repositories
+  githubSyncForks: false,        // Skip forked repositories
+  githubSyncArchived: false      // Skip archived repositories
+});
+```
+
 ## Connector OAuth Settings
 
 Configure custom OAuth applications for connector integrations.
@@ -199,6 +235,51 @@ await client.settings.update({
   onedriveCustomKeyEnabled: true,
   onedriveClientId: "your-azure-app-id",
   onedriveClientSecret: "your-azure-app-secret"
+});
+```
+
+### GitHub Custom OAuth
+
+```typescript
+await client.settings.update({
+  githubCustomKeyEnabled: true,
+  githubClientId: "your-github-client-id",
+  githubClientSecret: "your-github-client-secret"
+});
+```
+
+### GitHub Advanced Configuration
+
+Configure GitHub-specific settings for repository selection and content filtering:
+
+```typescript
+await client.settings.update({
+  // Basic OAuth configuration
+  githubCustomKeyEnabled: true,
+  githubClientId: "your-github-client-id",
+  githubClientSecret: "your-github-client-secret",
+  
+  // Repository selection
+  githubRepositories: [
+    "your-org/important-repo",
+    "your-org/documentation",
+    "your-org/api-specs"
+  ],
+  
+  // Content type filtering
+  githubSyncIssues: true,
+  githubSyncPRs: true,
+  githubSyncDiscussions: true,
+  githubSyncWiki: true,
+  
+  // Advanced filtering
+  githubIncludePatterns: ["*.md", "docs/**", "README*"],
+  githubExcludePatterns: ["*.lock", "package-lock.json", "yarn.lock"],
+  
+  // Organization-specific settings
+  githubSyncPrivateRepos: true,
+  githubSyncForks: false,
+  githubSyncArchived: false
 });
 ```
 
@@ -247,6 +328,67 @@ memories.memories.forEach(memory => {
 });
 ```
 
+### 5. GitHub-Specific Best Practices
+
+Configure GitHub settings for optimal content discovery:
+
+```typescript
+// Example: Engineering team configuration
+await client.settings.update({
+  githubCustomKeyEnabled: true,
+  githubClientId: "your-github-client-id",
+  githubClientSecret: "your-github-client-secret",
+  
+  // Focus on important repositories
+  githubRepositories: [
+    "company/core-api",
+    "company/frontend-app",
+    "company/documentation"
+  ],
+  
+  // Sync technical content only
+  githubSyncIssues: true,
+  githubSyncPRs: true,
+  githubSyncDiscussions: false, // Skip community discussions
+  githubSyncWiki: true,
+  
+  // Filter for documentation and code
+  githubIncludePatterns: [
+    "*.md", "docs/**", "README*", "CHANGELOG*",
+    "src/**/*.ts", "src/**/*.js", "*.py"
+  ],
+  githubExcludePatterns: [
+    "*.lock", "package-lock.json", "yarn.lock",
+    "node_modules/**", ".git/**", "*.test.*"
+  ],
+  
+  // Organization settings
+  githubSyncPrivateRepos: true,
+  githubSyncForks: false,
+  githubSyncArchived: false
+});
+```
+
+### 6. Test GitHub Integration
+Always test GitHub OAuth and content sync:
+
+```typescript
+// Test GitHub connection after updating settings
+const testConnection = await client.connections.create('github', {
+  redirectUrl: 'https://yourapp.com/auth/github/callback',
+  containerTags: ['test-connection'],
+  documentLimit: 10 // Start small for testing
+});
+
+// Verify synced content
+const githubMemories = await client.memories.list({
+  containerTags: ['test-connection'],
+  filters: { source: 'github' }
+});
+
+console.log(`Synced ${githubMemories.memories.length} GitHub documents`);
+```
+
 ## Important Notes
 
 <Warning>
@@ -263,3 +405,4 @@ memories.memories.forEach(memory => {
 - [Google Drive Setup](/connectors/google-drive) - Configure Google Drive OAuth
 - [Notion Setup](/connectors/notion) - Configure Notion OAuth
 - [OneDrive Setup](/connectors/onedrive) - Configure OneDrive OAuth
+- [GitHub Setup](/connectors/github) - Configure GitHub OAuth and content filtering

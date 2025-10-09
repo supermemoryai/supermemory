@@ -1,0 +1,91 @@
+---
+title: 'GitHub'
+description: 'Sync your GitHub repositories, issues, pull requests, and discussions with supermemory'
+---
+
+Supermemory syncs GitHub content automatically and instantaneously via webhooks.
+
+## Supported content types
+
+- **Repositories**: README files, documentation, and code comments
+- **Issues**: Issue descriptions, comments, and labels
+- **Pull Requests**: PR descriptions, comments, and review discussions
+- **Discussions**: GitHub Discussions posts and comments
+- **Wikis**: Repository wiki pages and documentation
+
+## Document types
+
+GitHub content is identified with these types:
+- `github_repo` - Repository READMEs and documentation
+- `github_issue` - Issues and their comments
+- `github_pr` - Pull requests and their comments
+- `github_discussion` - GitHub Discussions
+- `github_wiki` - Repository wiki pages
+
+## Conversions
+
+To import items, supermemory converts GitHub content into markdown, and then ingests them into supermemory. This conversion is lossy, and some formatting may be lost.
+
+## Sync frequency
+
+Supermemory syncs GitHub documents:
+- **A document is modified or created (Webhook received)**
+    - GitHub documents are synced instantaneously via webhooks
+- Every **four hours** (scheduled sync)
+- On **Manual Sync** (API call)
+    - You can call `/v3/connections/github/sync` to sync documents manually
+
+## OAuth scopes required
+
+GitHub OAuth application requires these scopes:
+- `repo` - Access to private repositories
+- `read:org` - Read organization membership
+- `read:user` - Read user profile data
+- `read:discussion` - Read repository discussions
+
+## Webhook events
+
+GitHub webhooks are automatically configured for:
+- `push` - Repository pushes and commits
+- `issues` - Issue opened, closed, edited
+- `pull_request` - PR opened, closed, merged
+- `discussion` - Discussion created, edited, answered
+- `gollum` - Wiki page created or edited
+
+## Repository access
+
+- **Public repositories**: Automatically accessible
+- **Private repositories**: Requires user to grant access
+- **Organization repositories**: Requires organization approval
+- **Forked repositories**: Only synced if user has write access
+
+## Content filtering
+
+You can configure which content to sync using the settings API:
+
+```typescript
+await client.settings.update({
+  githubSyncIssues: true,
+  githubSyncPRs: true,
+  githubSyncDiscussions: true,
+  githubSyncWiki: true,
+  githubRepositories: [
+    'owner/repo1',
+    'owner/repo2'
+  ]
+});
+```
+
+## Rate limits
+
+GitHub API rate limits apply:
+- **Authenticated requests**: 5,000 requests per hour
+- **Webhook events**: No rate limit
+- **Large repositories**: May take time for initial sync
+
+## Security considerations
+
+- OAuth tokens are encrypted and stored securely
+- Webhook secrets are validated for security
+- Repository access is scoped to user permissions
+- Content is processed in isolated environments

@@ -138,6 +138,7 @@
 											"connectors/notion",
 											"connectors/google-drive",
 											"connectors/onedrive",
+											"connectors/github",
 											"connectors/troubleshooting"
 										]
 									},
