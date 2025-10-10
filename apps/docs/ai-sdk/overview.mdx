@@ -4,7 +4,7 @@ description: "Use Supermemory with Vercel AI SDK for seamless memory management"
 sidebarTitle: "Overview"
 ---
 
-The Supermemory AI SDK provides native integration with Vercel's AI SDK through two approaches: **Memory Tools** for agent-based interactions and **Infinite Chat** for automatic context management.
+The Supermemory AI SDK provides native integration with Vercel's AI SDK through three approaches: **User Profiles** for automatic personalization, **Memory Tools** for agent-based interactions, and **Infinite Chat** for automatic context management.
 
 <Card title="Supermemory tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
@@ -14,6 +14,25 @@ The Supermemory AI SDK provides native integration with Vercel's AI SDK through 
 
 ```bash
 npm install @supermemory/tools
+```
+
+## User Profiles with Middleware
+
+Automatically inject user profiles into every LLM call for instant personalization.
+
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+// Wrap your model with Supermemory - profiles are automatically injected
+const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123")
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: "user", content: "What do you know about me?" }]
+})
+// The model automatically has the user's profile context!
 ```
 
 ## Memory Tools
@@ -64,12 +83,17 @@ const result = await streamText({
 
 | Approach | Use Case |
 |----------|----------|
+| User Profiles | Personalized LLM responses with automatic user context |
 | Memory Tools | AI agents that need explicit memory control |
 | Infinite Chat | Chat applications with automatic context |
 
 ## Next Steps
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
+  <Card title="User Profiles" icon="user" href="/ai-sdk/user-profiles">
+    Automatic personalization with profiles
+  </Card>
+
   <Card title="Memory Tools" icon="wrench" href="/ai-sdk/memory-tools">
     Agent-based memory management
   </Card>
