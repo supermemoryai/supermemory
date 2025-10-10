@@ -112,6 +112,7 @@
 										]
 									},
 									"search/filtering",
+									"user-profiles",
 									"memory-api/track-progress",
 									{
 										"group": "List Memories",
@@ -193,6 +194,7 @@
 								"icon": "triangle",
 								"pages": [
 									"ai-sdk/overview",
+									"ai-sdk/user-profiles",
 									"ai-sdk/memory-tools",
 									"ai-sdk/infinite-chat",
 									"ai-sdk/npm"
