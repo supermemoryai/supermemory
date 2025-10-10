@@ -119,3 +119,5 @@ export function supermemoryTools(
 		addMemory: addMemoryTool(apiKey, config),
 	}
 }
+
+export { withSupermemory } from "./vercel"

@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "1.1.12",
+  "version": "1.2.0",
   "description": "Memory tools for AI SDK and OpenAI function calling with supermemory",
   "scripts": {
     "build": "tsdown",
@@ -11,6 +11,7 @@
     "test:watch": "vitest --watch --testTimeout 100000"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.25",
     "@ai-sdk/openai": "^2.0.23",
     "@ai-sdk/provider": "^2.0.0",
     "ai": "^5.0.29",

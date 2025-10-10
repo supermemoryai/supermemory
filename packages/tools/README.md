@@ -60,6 +60,124 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 })
 ```
 
+#### AI SDK Middleware with Supermemory
+
+> [!CAUTION]
+> `withSupermemory` is in beta
+
+- `withSupermemory` will take advantage supermemory profile v4 endpoint personalized based on container tag
+- Make sure you have `SUPERMEMORY_API_KEY` in env
+
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life")
+
+const result = await generateText({
+	model: modelWithMemory,
+	messages: [{ role: "user", content: "where do i live?" }],
+})
+
+console.log(result.text)
+```
+
+#### Verbose Mode
+
+Enable verbose logging to see detailed information about memory search and transformation:
+
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life", {
+	verbose: true
+})
+
+const result = await generateText({
+	model: modelWithMemory,
+	messages: [{ role: "user", content: "where do i live?" }],
+})
+
+console.log(result.text)
+```
+
+When verbose mode is enabled, you'll see console output like:
+```
+[supermemory] Searching memories for container: user_id_life
+[supermemory] User message: where do i live?
+[supermemory] System prompt exists: false
+[supermemory] Found 3 memories
+[supermemory] Memory content: You live in San Francisco, California. Your address is 123 Main Street...
+[supermemory] Creating new system prompt with memories
+```
+
+#### Memory Search Modes
+
+The middleware supports different modes for memory retrieval:
+
+**Profile Mode (Default)** - Retrieves user profile memories without query filtering:
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+// Uses profile mode by default - gets all user profile memories
+const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123")
+
+// Explicitly specify profile mode
+const modelWithProfile = withSupermemory(openai("gpt-4"), "user-123", { 
+  mode: "profile" 
+})
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: "user", content: "What do you know about me?" }],
+})
+```
+
+**Query Mode** - Searches memories based on the user's message:
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithQuery = withSupermemory(openai("gpt-4"), "user-123", { 
+  mode: "query" 
+})
+
+const result = await generateText({
+  model: modelWithQuery,
+  messages: [{ role: "user", content: "What's my favorite programming language?" }],
+})
+```
+
+**Full Mode** - Combines both profile and query results:
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithFull = withSupermemory(openai("gpt-4"), "user-123", { 
+  mode: "full" 
+})
+
+const result = await generateText({
+  model: modelWithFull,
+  messages: [{ role: "user", content: "Tell me about my preferences" }],
+})
+```
+
+**Combined Options** - Use verbose logging with specific modes:
+```typescript
+const modelWithOptions = withSupermemory(openai("gpt-4"), "user-123", {
+  mode: "profile",
+  verbose: true
+})
+```
+
 ### OpenAI Function Calling Usage
 
 ```typescript
