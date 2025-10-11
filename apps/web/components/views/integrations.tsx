@@ -35,6 +35,7 @@ import {
 	DownloadIcon,
 	FolderIcon,
 	KeyIcon,
+	Loader,
 	Plus,
 	Smartphone,
 	Trash2,
@@ -42,7 +43,7 @@ import {
 import { motion } from "motion/react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useId, useState } from "react"
+import { startTransition, useEffect, useId, useMemo, useState } from "react"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
@@ -99,6 +100,8 @@ const CONNECTORS = {
 
 type ConnectorProvider = keyof typeof CONNECTORS
 
+const COMING_SOON_CONNECTOR = "more-coming" as const
+
 const ChromeIcon = ({ className }: { className?: string }) => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
@@ -153,6 +156,9 @@ export function IntegrationsView() {
 	const [newProjectName, setNewProjectName] = useState("")
 	const [creatingProjectForConnector, setCreatingProjectForConnector] =
 		useState<string | null>(null)
+	const [connectingProvider, setConnectingProvider] = useState<string | null>(
+		null,
+	)
 	const apiKeyId = useId()
 	const raycastApiKeyId = useId()
 
@@ -237,25 +243,25 @@ export function IntegrationsView() {
 
 	useEffect(() => {
 		if (selectedProject) {
-			const updatedProjects = { ...selectedProjectForConnection }
-			let hasChanges = false
+			setSelectedProjectForConnection((prev) => {
+				const updatedProjects = { ...prev }
+				let hasChanges = false
 
-			Object.keys(CONNECTORS).forEach((provider) => {
-				if (!updatedProjects[provider]) {
-					updatedProjects[provider] = selectedProject
-					hasChanges = true
-				}
+				Object.keys(CONNECTORS).forEach((provider) => {
+					if (!updatedProjects[provider]) {
+						updatedProjects[provider] = selectedProject
+						hasChanges = true
+					}
+				})
+
+				return hasChanges ? updatedProjects : prev
 			})
-
-			if (hasChanges) {
-				setSelectedProjectForConnection(updatedProjects)
-			}
 		}
-	}, [selectedProject, selectedProjectForConnection])
+	}, [selectedProject])
 
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
-			if (provider === "more-coming") {
+			if (provider === COMING_SOON_CONNECTOR) {
 				throw new Error("This integration is coming soon!")
 			}
 
@@ -287,11 +293,15 @@ export function IntegrationsView() {
 			analytics.connectionAdded(provider)
 			analytics.connectionAuthStarted()
 			if (data?.authLink) {
+				setConnectingProvider(provider)
 				window.location.href = data.authLink
+			} else {
+				setConnectingProvider(null)
 			}
 		},
 		onError: (error, provider) => {
 			analytics.connectionAuthFailed()
+			setConnectingProvider(null)
 			toast.error(`Failed to connect ${provider}`, {
 				description: error instanceof Error ? error.message : "Unknown error",
 			})
@@ -330,15 +340,17 @@ export function IntegrationsView() {
 		},
 		onSuccess: (newProject) => {
 			toast.success("Project created successfully!")
-			setNewProjectName("")
-			setShowCreateProjectForm(false)
-			if (newProject?.containerTag && creatingProjectForConnector) {
-				setSelectedProjectForConnection((prev) => ({
-					...prev,
-					[creatingProjectForConnector]: newProject.containerTag,
-				}))
-			}
-			setCreatingProjectForConnector(null)
+			startTransition(() => {
+				setNewProjectName("")
+				setShowCreateProjectForm(false)
+				if (newProject?.containerTag && creatingProjectForConnector) {
+					setSelectedProjectForConnection((prev) => ({
+						...prev,
+						[creatingProjectForConnector]: newProject.containerTag,
+					}))
+				}
+				setCreatingProjectForConnector(null)
+			})
 			queryClient.invalidateQueries({ queryKey: ["projects"] })
 		},
 		onError: (error) => {
@@ -466,14 +478,31 @@ export function IntegrationsView() {
 		createRaycastApiKeyMutation.mutate()
 	}
 
-	const handleConnectClick = (provider: ConnectorProvider) => {
-		addConnectionMutation.mutate(provider)
+	const validateProjectName = (name: string): string | null => {
+		const trimmed = name.trim()
+		if (!trimmed) {
+			return "Project name is required"
+		}
+		if (trimmed.length < 2) {
+			return "Project name must be at least 2 characters"
+		}
+		if (trimmed.length > 50) {
+			return "Project name must be less than 50 characters"
+		}
+		// Allow alphanumeric, spaces, hyphens, and underscores
+		if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmed)) {
+			return "Project name can only contain letters, numbers, spaces, hyphens, and underscores"
+		}
+		return null
 	}
 
 	const handleCreateProject = () => {
-		if (newProjectName.trim()) {
-			createProjectMutation.mutate(newProjectName.trim())
+		const validationError = validateProjectName(newProjectName)
+		if (validationError) {
+			toast.error(validationError)
+			return
 		}
+		createProjectMutation.mutate(newProjectName.trim())
 	}
 
 	const handleCreateProjectCancel = () => {
@@ -498,6 +527,16 @@ export function IntegrationsView() {
 			[provider]: projectTag,
 		}))
 	}
+
+	const filteredProjects = useMemo(
+		() =>
+			projects.filter(
+				(project: Project) =>
+					project.containerTag !== selectedProject &&
+					project.name !== "Default Project",
+			),
+		[projects, selectedProject],
+	)
 
 	return (
 		<div className="space-y-4 sm:space-y-4 custom-scrollbar">
@@ -530,9 +569,23 @@ export function IntegrationsView() {
 								width={20}
 								height={20}
 							/>
-							{createApiKeyMutation.isPending
-								? "Creating..."
-								: "Add Memory Shortcut"}
+							<motion.div
+								key={createApiKeyMutation.isPending ? "loading" : "add"}
+								initial={{ opacity: 0, scale: 0.8 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.2, ease: "easeInOut" }}
+								className="flex items-center gap-2"
+							>
+								{createApiKeyMutation.isPending ? (
+									<>
+										<Loader className="h-4 w-4 animate-spin" />
+										Creating...
+									</>
+								) : (
+									"Add Memory Shortcut"
+								)}
+							</motion.div>
 						</Button>
 						<Button
 							variant="secondary"
@@ -546,9 +599,23 @@ export function IntegrationsView() {
 								width={20}
 								height={20}
 							/>
-							{createApiKeyMutation.isPending
-								? "Creating..."
-								: "Search Memory Shortcut"}
+							<motion.div
+								key={createApiKeyMutation.isPending ? "loading" : "search"}
+								initial={{ opacity: 0, scale: 0.8 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.2, ease: "easeInOut" }}
+								className="flex items-center gap-2"
+							>
+								{createApiKeyMutation.isPending ? (
+									<>
+										<Loader className="h-4 w-4 animate-spin" />
+										Creating...
+									</>
+								) : (
+									"Search Memory Shortcut"
+								)}
+							</motion.div>
 						</Button>
 					</div>
 				</div>
@@ -593,9 +660,25 @@ export function IntegrationsView() {
 							disabled={createRaycastApiKeyMutation.isPending}
 						>
 							<KeyIcon className="h-4 w-4" />
-							{createRaycastApiKeyMutation.isPending
-								? "Generating..."
-								: "Get API Key"}
+							<motion.div
+								key={
+									createRaycastApiKeyMutation.isPending ? "loading" : "raycast"
+								}
+								initial={{ opacity: 0, scale: 0.8 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.2, ease: "easeInOut" }}
+								className="flex items-center gap-2"
+							>
+								{createRaycastApiKeyMutation.isPending ? (
+									<>
+										<Loader className="h-4 w-4 animate-spin" />
+										Generating...
+									</>
+								) : (
+									"Get API Key"
+								)}
+							</motion.div>
 						</Button>
 						<Button
 							variant="secondary"
@@ -703,11 +786,7 @@ export function IntegrationsView() {
 
 					{/* Show upgrade prompt for free users */}
 					{!autumn.isLoading && !isProUser && (
-						<motion.div
-							animate={{ opacity: 1, y: 0 }}
-							className="p-4 bg-accent border border-border rounded-lg mb-3"
-							initial={{ opacity: 0, y: -10 }}
-						>
+						<div className="p-4 bg-accent border border-border rounded-lg mb-3">
 							<p className="text-sm text-accent-foreground mb-2 font-medium">
 								🔌 Connections are a Pro feature
 							</p>
@@ -723,45 +802,39 @@ export function IntegrationsView() {
 							>
 								Upgrade to Pro
 							</Button>
-						</motion.div>
+						</div>
 					)}
 
 					{/* All Connections with Status */}
 					{connectionsLoading ? (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							{Object.keys(CONNECTORS).map((_, i) => (
-								<motion.div
-									animate={{ opacity: 1 }}
+							{Object.keys(CONNECTORS).map((_, _i) => (
+								<div
 									className="p-4 bg-accent rounded-lg border border-border/50"
-									initial={{ opacity: 0 }}
-									key={`skeleton-${Date.now()}-${i}`}
-									transition={{ delay: i * 0.1 }}
+									key={`skeleton-${Date.now()}-${_i}`}
 								>
 									<Skeleton className="h-32 w-full bg-muted rounded-lg" />
-								</motion.div>
+								</div>
 							))}
 						</div>
 					) : (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							{Object.entries(CONNECTORS).map(([provider, config], index) => {
+							{Object.entries(CONNECTORS).map(([provider, config]) => {
 								const Icon = config.icon
 								const connection = connections.find(
 									(conn) => conn.provider === provider,
 								)
 								const isConnected = !!connection
-								const isMoreComing = provider === "more-coming"
+								const isMoreComing = provider === COMING_SOON_CONNECTOR
 
 								return (
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
+									<div
 										className={`p-4 rounded-lg border border-border/50 transition-all duration-200 ${
 											isMoreComing
 												? "bg-muted/30 hover:bg-muted/50"
 												: "bg-card hover:border-border hover:shadow-sm"
 										}`}
-										initial={{ opacity: 0, y: 20 }}
 										key={provider}
-										transition={{ delay: index * 0.05 }}
 									>
 										<div className="flex items-start justify-between mb-3">
 											<div className="flex items-center gap-3">
@@ -827,7 +900,7 @@ export function IntegrationsView() {
 
 										{!isConnected && !isMoreComing && (
 											<div className="flex items-center gap-2">
-												<DropdownMenu key={`project-selector-${provider}`}>
+												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
 														<Button
 															variant="outline"
@@ -864,13 +937,8 @@ export function IntegrationsView() {
 															)}
 														</DropdownMenuItem>
 
-														{projects
-															.filter(
-																(project: Project) =>
-																	project.containerTag !== selectedProject &&
-																	project.name !== "Default Project",
-															)
-															.map((project: Project) => (
+														{filteredProjects.length > 0 ? (
+															filteredProjects.map((project: Project) => (
 																<DropdownMenuItem
 																	key={project.id}
 																	onClick={() =>
@@ -891,7 +959,15 @@ export function IntegrationsView() {
 																		<Check className="h-4 w-4 ml-auto" />
 																	)}
 																</DropdownMenuItem>
-															))}
+															))
+														) : (
+															<DropdownMenuItem
+																disabled
+																className="text-muted-foreground"
+															>
+																No additional projects available
+															</DropdownMenuItem>
+														)}
 
 														<DropdownMenuItem
 															onClick={() => {
@@ -907,20 +983,42 @@ export function IntegrationsView() {
 												</DropdownMenu>
 
 												<Button
-													className="flex-shrink-0 disabled:cursor-not-allowed"
+													className="flex-shrink-0 disabled:cursor-not-allowed w-20 justify-center"
 													disabled={
-														addConnectionMutation.isPending || !isProUser
+														addConnectionMutation.isPending ||
+														connectingProvider === provider ||
+														!isProUser
 													}
 													onClick={() => {
-														handleConnectClick(provider as ConnectorProvider)
+														addConnectionMutation.mutate(
+															provider as ConnectorProvider,
+														)
 													}}
 													size="sm"
 													variant="default"
 												>
-													{addConnectionMutation.isPending &&
-													addConnectionMutation.variables === provider
-														? "Connecting..."
-														: "Connect"}
+													<motion.div
+														key={
+															(addConnectionMutation.isPending &&
+																addConnectionMutation.variables === provider) ||
+															connectingProvider === provider
+																? "loading"
+																: "connect"
+														}
+														initial={{ opacity: 0, scale: 0.8 }}
+														animate={{ opacity: 1, scale: 1 }}
+														exit={{ opacity: 0, scale: 0.8 }}
+														transition={{ duration: 0.2, ease: "easeInOut" }}
+														className="flex items-center justify-center"
+													>
+														{(addConnectionMutation.isPending &&
+															addConnectionMutation.variables === provider) ||
+														connectingProvider === provider ? (
+															<Loader className="h-4 w-4 animate-spin" />
+														) : (
+															"Connect"
+														)}
+													</motion.div>
 												</Button>
 											</div>
 										)}
@@ -937,7 +1035,7 @@ export function IntegrationsView() {
 												</Button>
 											</div>
 										)}
-									</motion.div>
+									</div>
 								)
 							})}
 						</div>
@@ -1176,7 +1274,12 @@ export function IntegrationsView() {
 			<Dialog
 				key="create-project-dialog"
 				open={showCreateProjectForm}
-				onOpenChange={setShowCreateProjectForm}
+				onOpenChange={(open) => {
+					if (!open) {
+						handleCreateProjectCancel()
+					}
+					setShowCreateProjectForm(open)
+				}}
 			>
 				<DialogPortal>
 					<DialogContent className="bg-card border-border text-card-foreground md:max-w-md z-[100]">
@@ -1199,8 +1302,19 @@ export function IntegrationsView() {
 									placeholder="Enter project name..."
 									value={newProjectName}
 									onChange={(e) => setNewProjectName(e.target.value)}
+									onKeyDown={(e) => {
+										if (
+											e.key === "Enter" &&
+											newProjectName.trim() &&
+											!validateProjectName(newProjectName) &&
+											!createProjectMutation.isPending
+										) {
+											handleCreateProject()
+										}
+									}}
 									className="w-full"
 									autoFocus
+									disabled={createProjectMutation.isPending}
 								/>
 							</div>
 
@@ -1215,11 +1329,29 @@ export function IntegrationsView() {
 								<Button
 									onClick={handleCreateProject}
 									disabled={
-										!newProjectName.trim() || createProjectMutation.isPending
+										!newProjectName.trim() ||
+										createProjectMutation.isPending ||
+										!!validateProjectName(newProjectName)
 									}
 									className="flex-1"
 								>
-									{createProjectMutation.isPending ? "Creating..." : "Create"}
+									<motion.div
+										key={createProjectMutation.isPending ? "loading" : "create"}
+										initial={{ opacity: 0, scale: 0.8 }}
+										animate={{ opacity: 1, scale: 1 }}
+										exit={{ opacity: 0, scale: 0.8 }}
+										transition={{ duration: 0.2, ease: "easeInOut" }}
+										className="flex items-center gap-2"
+									>
+										{createProjectMutation.isPending ? (
+											<>
+												<Loader className="h-4 w-4 animate-spin" />
+												Creating...
+											</>
+										) : (
+											"Create"
+										)}
+									</motion.div>
 								</Button>
 							</div>
 						</div>
