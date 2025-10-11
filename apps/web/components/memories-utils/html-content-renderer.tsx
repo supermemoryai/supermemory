@@ -36,22 +36,17 @@ export const HTMLContentRenderer = memo(
 				}
 			}
 
-			// Preprocess content to improve markdown detection and formatting
 			let processed = content
 
-			// Handle terminal commands (lines starting with $)
 			if (content.includes("\n$ ")) {
-				// Convert terminal commands to code blocks for better formatting
 				processed = content.replace(/^\$ (.*$)/gm, "```bash\n$ $1\n```")
 			}
 
-			// Handle cases where content looks like JSON but isn't in code blocks
 			if (
 				content.trim().startsWith("{") &&
 				content.includes('"') &&
 				content.includes(":")
 			) {
-				// Check if it looks like JSON and wrap it in a code block
 				const lines = content.split("\n")
 				let inJsonBlock = false
 				const jsonLines: string[] = []
@@ -86,7 +81,7 @@ export const HTMLContentRenderer = memo(
 
 			return {
 				isHTML: false,
-				isMarkdown: true, // Try markdown rendering for all non-HTML content
+				isMarkdown: true,
 				processedContent: processed,
 			}
 		}, [content])
@@ -195,7 +190,6 @@ export const HTMLContentRenderer = memo(
 					</div>
 				)
 			} catch {
-				// Fallback to plain text if markdown parsing fails
 				return (
 					<p
 						className={`text-sm leading-relaxed whitespace-pre-wrap text-foreground ${className}`}
