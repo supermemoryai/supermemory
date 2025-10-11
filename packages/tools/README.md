@@ -170,10 +170,37 @@ const result = await generateText({
 })
 ```
 
-**Combined Options** - Use verbose logging with specific modes:
+#### Automatic Memory Capture
+
+The middleware can automatically save user messages as memories:
+
+**Always Save Memories** - Automatically stores every user message as a memory:
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithAutoSave = withSupermemory(openai("gpt-4"), "user-123", {
+  addMemory: "always"
+})
+
+const result = await generateText({
+  model: modelWithAutoSave,
+  messages: [{ role: "user", content: "I prefer React with TypeScript for my projects" }],
+})
+// This message will be automatically saved as a memory
+```
+
+**Never Save Memories (Default)** - Only retrieves memories without storing new ones:
+```typescript
+const modelWithNoSave = withSupermemory(openai("gpt-4"), "user-123")
+```
+
+**Combined Options** - Use verbose logging with specific modes and memory storage:
 ```typescript
 const modelWithOptions = withSupermemory(openai("gpt-4"), "user-123", {
   mode: "profile",
+  addMemory: "always",
   verbose: true
 })
 ```
@@ -246,6 +273,22 @@ interface SupermemoryToolsConfig {
 - **baseUrl**: Custom base URL for the supermemory API
 - **containerTags**: Array of custom container tags (mutually exclusive with projectId)
 - **projectId**: Project ID which gets converted to container tag format (mutually exclusive with containerTags)
+
+### withSupermemory Middleware Options
+
+The `withSupermemory` middleware accepts additional configuration options:
+
+```typescript
+interface WithSupermemoryOptions {
+  verbose?: boolean
+  mode?: "profile" | "query" | "full"
+  addMemory?: "always" | "never"
+}
+```
+
+- **verbose**: Enable detailed logging of memory search and injection process (default: false)
+- **mode**: Memory search mode - "profile" (default), "query", or "full"
+- **addMemory**: Automatic memory storage mode - "always" or "never" (default: "never")
 
 ## Available Tools
 
