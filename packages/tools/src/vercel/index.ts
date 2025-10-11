@@ -37,7 +37,11 @@ import { createSupermemoryMiddleware } from "./middleware"
 const wrapVercelLanguageModel = (
 	model: LanguageModelV2,
 	containerTag: string,
-	options?: { verbose?: boolean; mode?: "profile" | "query" | "full" },
+	options?: { 
+		verbose?: boolean; 
+		mode?: "profile" | "query" | "full";
+		addMemory?: "always" | "never";
+	},
 ): LanguageModelV2 => {
 	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
 
@@ -47,10 +51,11 @@ const wrapVercelLanguageModel = (
 
 	const verbose = options?.verbose ?? false
 	const mode = options?.mode ?? "profile"
+	const addMemory = options?.addMemory ?? "never"
 
 	const wrappedModel = wrapLanguageModel({
 		model,
-		middleware: createSupermemoryMiddleware(containerTag, verbose, mode),
+		middleware: createSupermemoryMiddleware(containerTag, verbose, mode, addMemory),
 	})
 
 	return wrappedModel

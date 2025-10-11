@@ -3,6 +3,7 @@ import type {
 	LanguageModelV2Middleware,
 	LanguageModelV2Message,
 } from "@ai-sdk/provider"
+import Supermemory from "supermemory"
 import { createLogger, type Logger } from "./logger"
 import { convertProfileToMarkdown, type ProfileStructure } from "./util"
 
@@ -137,18 +138,60 @@ const addSystemPrompt = async (
 	}
 }
 
+const addMemoryTool = async (
+	client: Supermemory,
+	containerTag: string,
+	content: string,
+	logger: Logger,
+): Promise<void> => {
+	try {
+		const response = await client.memories.add({
+			content,
+			containerTags: [containerTag],
+		})
+
+		logger.info("Memory saved successfully", {
+			containerTag,
+			contentLength: content.length,
+			memoryId: response.id,
+		})
+	} catch (error) {
+		logger.error("Error saving memory", {
+			error: error instanceof Error ? error.message : "Unknown error",
+		})
+	}
+}
+
 export const createSupermemoryMiddleware = (
 	containerTag: string,
 	verbose = false,
 	mode: "profile" | "query" | "full" = "profile",
+	addMemory: "always" | "never" = "never"
 ): LanguageModelV2Middleware => {
 	const logger = createLogger(verbose)
+	
+	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
+	if (!SUPERMEMORY_API_KEY) {
+		throw new Error("SUPERMEMORY_API_KEY is not set")
+	}
+	
+	const client = new Supermemory({
+		apiKey: SUPERMEMORY_API_KEY,
+	})
 
 	return {
 		transformParams: async ({ params }) => {
+			const userMessage = getLastUserMessage(params)
+
+			// Add userMessage to memories based on addMemory setting
+			if (addMemory === "always" && userMessage && userMessage.trim()) {
+				addMemoryTool(client, containerTag, userMessage, logger).catch((error) => {
+					logger.error("Failed to create memories", { error })
+				})
+			}
+
 			if (mode !== "profile") {
-				const lastUserMessage = getLastUserMessage(params)
-				if (!lastUserMessage) {
+				if (!userMessage) {
 					logger.debug("No user message found, skipping memory search")
 					return params
 				}
