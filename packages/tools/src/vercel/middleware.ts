@@ -22,12 +22,6 @@ const supermemoryprofilesearch = async (
 	containerTag: string,
 	queryText: string,
 ): Promise<ProfileStructure> => {
-	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
-
-	if (!SUPERMEMORY_API_KEY) {
-		throw new Error("SUPERMEMORY_API_KEY is not set")
-	}
-
 	const payload = queryText
 		? JSON.stringify({
 				q: queryText,
@@ -42,7 +36,7 @@ const supermemoryprofilesearch = async (
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${SUPERMEMORY_API_KEY}`,
+				Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
 			},
 			body: payload,
 		})
@@ -118,7 +112,7 @@ const addSystemPrompt = async (
 	}
 
 	if (systemPromptExists) {
-		logger.debug("Appending memories to existing system prompt")
+		logger.debug("Added memories to existing system prompt")
 		return {
 			...params,
 			prompt: params.prompt.map((prompt) =>
@@ -130,7 +124,7 @@ const addSystemPrompt = async (
 	}
 
 	logger.debug(
-		"System prompt does not exist, creating system prompt with memories",
+		"System prompt does not exist, created system prompt with memories",
 	)
 	return {
 		...params,
@@ -169,25 +163,17 @@ export const createSupermemoryMiddleware = (
 	addMemory: "always" | "never" = "never"
 ): LanguageModelV2Middleware => {
 	const logger = createLogger(verbose)
-	
-	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
-	if (!SUPERMEMORY_API_KEY) {
-		throw new Error("SUPERMEMORY_API_KEY is not set")
-	}
-	
+
 	const client = new Supermemory({
-		apiKey: SUPERMEMORY_API_KEY,
+		apiKey: process.env.SUPERMEMORY_API_KEY,
 	})
 
 	return {
 		transformParams: async ({ params }) => {
 			const userMessage = getLastUserMessage(params)
 
-			// Add userMessage to memories based on addMemory setting
 			if (addMemory === "always" && userMessage && userMessage.trim()) {
-				addMemoryTool(client, containerTag, userMessage, logger).catch((error) => {
-					logger.error("Failed to create memories", { error })
-				})
+				addMemoryTool(client, containerTag, userMessage, logger)
 			}
 
 			if (mode !== "profile") {

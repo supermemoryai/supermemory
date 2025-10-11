@@ -15,6 +15,7 @@ import { createSupermemoryMiddleware } from "./middleware"
  * @param options - Optional configuration options for the middleware
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
+ * @param options.addMemory - Optional mode for memory search: "always" (default), "never"
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts
  *
