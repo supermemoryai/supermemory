@@ -205,7 +205,7 @@ export function ConnectionsTabContent() {
 					className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg"
 					initial={{ opacity: 0, y: -10 }}
 				>
-					<p className="text-sm text-yellow-400 mb-2">
+					<p className="text-sm text-black-400 dark:text-yellow-400 mb-2">
 						🔌 Connections are a Pro feature
 					</p>
 					<p className="text-xs text-foreground/60 mb-3">
@@ -213,7 +213,7 @@ export function ConnectionsTabContent() {
 						sync your documents.
 					</p>
 					<Button
-						className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 border-yellow-500/30"
+						className="bg-yellow-500/20 text-black-400 hover:bg-yellow-500/30 dark:text-yellow-400 border-yellow-500/30"
 						onClick={handleUpgrade}
 						size="sm"
 						variant="secondary"

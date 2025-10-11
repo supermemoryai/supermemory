@@ -91,6 +91,7 @@ interface TextEditorProps {
 	placeholder?: string;
 	disabled?: boolean;
 	className?: string;
+	containerClassName?: string;
 }
 
 const initialValue: Descendant[] = [
@@ -243,6 +244,7 @@ export function TextEditor({
 	placeholder = "Start writing...",
 	disabled = false,
 	className,
+	containerClassName,
 }: TextEditorProps) {
 	const editor = useMemo(() => withReact(createEditor()) as CustomEditor, []);
 	const [editorValue, setEditorValue] = useState<Descendant[]>(() =>
@@ -421,7 +423,8 @@ export function TextEditor({
 	);
 
 	return (
-		<div className={cn("flex flex-col", className)}>
+		<div className={cn("bg-foreground/5 border border-foreground/10 rounded-md", containerClassName)}>
+			<div className={cn("flex flex-col", className)}>
 			<div className="flex-1 min-h-48 max-h-64 overflow-y-auto">
 				<Slate
 					editor={editor}
@@ -451,6 +454,7 @@ export function TextEditor({
 							minHeight: "11rem",
 							maxHeight: "15rem",
 							padding: "12px",
+							overflowX: "hidden",
 						}}
 					/>
 				</Slate>
@@ -539,6 +543,7 @@ export function TextEditor({
 						title="Quote"
 					/>
 				</div>
+			</div>
 			</div>
 		</div>
 	);

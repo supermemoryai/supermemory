@@ -634,12 +634,9 @@ export function AddMemoryView({
 											>
 												{({ state, handleChange, handleBlur }) => (
 													<>
-														<div
-															className={`bg-black/5 border border-black/10 rounded-md ${
-																addContentMutation.isPending ? "opacity-50" : ""
-															}`}
-														>
-															<TextEditor
+								<div className={addContentMutation.isPending ? "opacity-50" : ""}>
+									<TextEditor
+										containerClassName="bg-white/5 border-white/10 rounded-md"
 																disabled={addContentMutation.isPending}
 																onBlur={handleBlur}
 																onChange={handleChange}
@@ -842,13 +839,14 @@ export function AddMemoryView({
 							</TabsContent>
 
 							<TabsContent value="file" className="space-y-4">
-								<form
+						<form
 									onSubmit={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
 										fileUploadForm.handleSubmit()
 									}}
-								>
+						className="h-full flex flex-col"
+						>
 									<div className="grid gap-4">
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
@@ -936,7 +934,7 @@ export function AddMemoryView({
 											</fileUploadForm.Field>
 										</motion.div>
 									</div>
-									<div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4">
+						<div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4 mt-auto">
 										<div className="flex items-end gap-4">
 											{/* Left side - Project Selection */}
 											<motion.div

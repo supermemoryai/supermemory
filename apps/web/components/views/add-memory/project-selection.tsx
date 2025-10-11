@@ -55,11 +55,7 @@ export function ProjectSelection({
       >
         <SelectValue placeholder="Select a project" />
       </SelectTrigger>
-      <SelectContent
-        className="bg-black/90 backdrop-blur-xl border-foreground/10 z-[90]"
-        position="popper"
-        sideOffset={5}
-      >
+      <SelectContent position="popper" sideOffset={5} className="z-[90]">
         <SelectItem
           className="hover:bg-foreground/10"
           key="default"
