@@ -91,7 +91,6 @@ interface TextEditorProps {
 	placeholder?: string;
 	disabled?: boolean;
 	className?: string;
-	/** Optional container classes when rendering editor inside a panel */
 	containerClassName?: string;
 }
 
