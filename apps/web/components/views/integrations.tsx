@@ -16,6 +16,13 @@ import {
 	DialogPortal,
 	DialogTitle,
 } from "@repo/ui/components/dialog"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu"
+import { Input } from "@repo/ui/components/input"
 import { Skeleton } from "@repo/ui/components/skeleton"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -23,22 +30,35 @@ import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
+	ChevronDown,
 	Copy,
 	DownloadIcon,
+	FolderIcon,
 	KeyIcon,
+	Loader,
+	Plus,
 	Smartphone,
 	Trash2,
 } from "lucide-react"
 import { motion } from "motion/react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useId, useState } from "react"
+import { startTransition, useEffect, useId, useMemo, useState } from "react"
 import { toast } from "sonner"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
 import { useProject } from "@/stores"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
+
+interface Project {
+	id: string
+	name: string
+	containerTag: string
+	createdAt: string
+	updatedAt: string
+	isExperimental?: boolean
+}
 
 const CONNECTORS = {
 	"google-drive": {
@@ -56,9 +76,31 @@ const CONNECTORS = {
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
 	},
+	"more-coming": {
+		title: "More Coming Soon",
+		description: "Additional integrations are in development",
+		icon: () => (
+			<svg
+				className="h-6 w-6"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<title>More Coming Soon Icon</title>
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					strokeWidth={2}
+					d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+				/>
+			</svg>
+		),
+	},
 } as const
 
 type ConnectorProvider = keyof typeof CONNECTORS
+
+const COMING_SOON_CONNECTOR = "more-coming" as const
 
 const ChromeIcon = ({ className }: { className?: string }) => (
 	<svg
@@ -108,6 +150,15 @@ export function IntegrationsView() {
 	const [raycastApiKey, setRaycastApiKey] = useState<string>("")
 	const [raycastCopied, setRaycastCopied] = useState(false)
 	const [hasTriggeredRaycast, setHasTriggeredRaycast] = useState(false)
+	const [selectedProjectForConnection, setSelectedProjectForConnection] =
+		useState<Record<string, string>>({})
+	const [showCreateProjectForm, setShowCreateProjectForm] = useState(false)
+	const [newProjectName, setNewProjectName] = useState("")
+	const [creatingProjectForConnector, setCreatingProjectForConnector] =
+		useState<string | null>(null)
+	const [connectingProvider, setConnectingProvider] = useState<string | null>(
+		null,
+	)
 	const apiKeyId = useId()
 	const raycastApiKeyId = useId()
 
@@ -165,6 +216,20 @@ export function IntegrationsView() {
 		refetchInterval: 60 * 1000,
 	})
 
+	const { data: projects = [] } = useQuery({
+		queryKey: ["projects"],
+		queryFn: async () => {
+			const response = await $fetch("@get/projects")
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to load projects")
+			}
+
+			return response.data?.projects || []
+		},
+		staleTime: 30 * 1000,
+	})
+
 	useEffect(() => {
 		if (connectionsError) {
 			toast.error("Failed to load connections", {
@@ -176,19 +241,44 @@ export function IntegrationsView() {
 		}
 	}, [connectionsError])
 
+	useEffect(() => {
+		if (selectedProject) {
+			setSelectedProjectForConnection((prev) => {
+				const updatedProjects = { ...prev }
+				let hasChanges = false
+
+				Object.keys(CONNECTORS).forEach((provider) => {
+					if (!updatedProjects[provider]) {
+						updatedProjects[provider] = selectedProject
+						hasChanges = true
+					}
+				})
+
+				return hasChanges ? updatedProjects : prev
+			})
+		}
+	}, [selectedProject])
+
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
+			if (provider === COMING_SOON_CONNECTOR) {
+				throw new Error("This integration is coming soon!")
+			}
+
 			if (!canAddConnection && !isProUser) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
 				)
 			}
 
+			const projectToUse =
+				selectedProjectForConnection[provider] || selectedProject
+
 			const response = await $fetch("@post/connections/:provider", {
 				params: { provider },
 				body: {
 					redirectUrl: window.location.href,
-					containerTags: [selectedProject],
+					containerTags: [projectToUse],
 				},
 			})
 
@@ -203,11 +293,15 @@ export function IntegrationsView() {
 			analytics.connectionAdded(provider)
 			analytics.connectionAuthStarted()
 			if (data?.authLink) {
+				setConnectingProvider(provider)
 				window.location.href = data.authLink
+			} else {
+				setConnectingProvider(null)
 			}
 		},
 		onError: (error, provider) => {
 			analytics.connectionAuthFailed()
+			setConnectingProvider(null)
 			toast.error(`Failed to connect ${provider}`, {
 				description: error instanceof Error ? error.message : "Unknown error",
 			})
@@ -227,6 +321,40 @@ export function IntegrationsView() {
 		},
 		onError: (error) => {
 			toast.error("Failed to remove connection", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+	})
+
+	const createProjectMutation = useMutation({
+		mutationFn: async (name: string) => {
+			const response = await $fetch("@post/projects", {
+				body: { name },
+			})
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to create project")
+			}
+
+			return response.data
+		},
+		onSuccess: (newProject) => {
+			toast.success("Project created successfully!")
+			startTransition(() => {
+				setNewProjectName("")
+				setShowCreateProjectForm(false)
+				if (newProject?.containerTag && creatingProjectForConnector) {
+					setSelectedProjectForConnection((prev) => ({
+						...prev,
+						[creatingProjectForConnector]: newProject.containerTag,
+					}))
+				}
+				setCreatingProjectForConnector(null)
+			})
+			queryClient.invalidateQueries({ queryKey: ["projects"] })
+		},
+		onError: (error) => {
+			toast.error("Failed to create project", {
 				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
@@ -262,7 +390,7 @@ export function IntegrationsView() {
 			if (!org?.id) {
 				throw new Error("Organization ID is required")
 			}
-			
+
 			const res = await authClient.apiKey.create({
 				metadata: {
 					organizationId: org?.id,
@@ -350,6 +478,66 @@ export function IntegrationsView() {
 		createRaycastApiKeyMutation.mutate()
 	}
 
+	const validateProjectName = (name: string): string | null => {
+		const trimmed = name.trim()
+		if (!trimmed) {
+			return "Project name is required"
+		}
+		if (trimmed.length < 2) {
+			return "Project name must be at least 2 characters"
+		}
+		if (trimmed.length > 50) {
+			return "Project name must be less than 50 characters"
+		}
+		// Allow alphanumeric, spaces, hyphens, and underscores
+		if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmed)) {
+			return "Project name can only contain letters, numbers, spaces, hyphens, and underscores"
+		}
+		return null
+	}
+
+	const handleCreateProject = () => {
+		const validationError = validateProjectName(newProjectName)
+		if (validationError) {
+			toast.error(validationError)
+			return
+		}
+		createProjectMutation.mutate(newProjectName.trim())
+	}
+
+	const handleCreateProjectCancel = () => {
+		setShowCreateProjectForm(false)
+		setNewProjectName("")
+		setCreatingProjectForConnector(null)
+	}
+
+	const getProjectName = (containerTag: string) => {
+		if (containerTag === selectedProject) {
+			return "Default Project"
+		}
+		const project = projects.find(
+			(p: Project) => p.containerTag === containerTag,
+		)
+		return project?.name || "Unknown Project"
+	}
+
+	const updateProjectForConnector = (provider: string, projectTag: string) => {
+		setSelectedProjectForConnection((prev) => ({
+			...prev,
+			[provider]: projectTag,
+		}))
+	}
+
+	const filteredProjects = useMemo(
+		() =>
+			projects.filter(
+				(project: Project) =>
+					project.containerTag !== selectedProject &&
+					project.name !== "Default Project",
+			),
+		[projects, selectedProject],
+	)
+
 	return (
 		<div className="space-y-4 sm:space-y-4 custom-scrollbar">
 			{/* iOS Shortcuts */}
@@ -381,9 +569,23 @@ export function IntegrationsView() {
 								width={20}
 								height={20}
 							/>
-							{createApiKeyMutation.isPending
-								? "Creating..."
-								: "Add Memory Shortcut"}
+							<motion.div
+								key={createApiKeyMutation.isPending ? "loading" : "add"}
+								initial={{ opacity: 0, scale: 0.8 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.2, ease: "easeInOut" }}
+								className="flex items-center gap-2"
+							>
+								{createApiKeyMutation.isPending ? (
+									<>
+										<Loader className="h-4 w-4 animate-spin" />
+										Creating...
+									</>
+								) : (
+									"Add Memory Shortcut"
+								)}
+							</motion.div>
 						</Button>
 						<Button
 							variant="secondary"
@@ -397,9 +599,23 @@ export function IntegrationsView() {
 								width={20}
 								height={20}
 							/>
-							{createApiKeyMutation.isPending
-								? "Creating..."
-								: "Search Memory Shortcut"}
+							<motion.div
+								key={createApiKeyMutation.isPending ? "loading" : "search"}
+								initial={{ opacity: 0, scale: 0.8 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.2, ease: "easeInOut" }}
+								className="flex items-center gap-2"
+							>
+								{createApiKeyMutation.isPending ? (
+									<>
+										<Loader className="h-4 w-4 animate-spin" />
+										Creating...
+									</>
+								) : (
+									"Search Memory Shortcut"
+								)}
+							</motion.div>
 						</Button>
 					</div>
 				</div>
@@ -444,9 +660,25 @@ export function IntegrationsView() {
 							disabled={createRaycastApiKeyMutation.isPending}
 						>
 							<KeyIcon className="h-4 w-4" />
-							{createRaycastApiKeyMutation.isPending
-								? "Generating..."
-								: "Get API Key"}
+							<motion.div
+								key={
+									createRaycastApiKeyMutation.isPending ? "loading" : "raycast"
+								}
+								initial={{ opacity: 0, scale: 0.8 }}
+								animate={{ opacity: 1, scale: 1 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.2, ease: "easeInOut" }}
+								className="flex items-center gap-2"
+							>
+								{createRaycastApiKeyMutation.isPending ? (
+									<>
+										<Loader className="h-4 w-4 animate-spin" />
+										Generating...
+									</>
+								) : (
+									"Get API Key"
+								)}
+							</motion.div>
 						</Button>
 						<Button
 							variant="secondary"
@@ -554,11 +786,7 @@ export function IntegrationsView() {
 
 					{/* Show upgrade prompt for free users */}
 					{!autumn.isLoading && !isProUser && (
-						<motion.div
-							animate={{ opacity: 1, y: 0 }}
-							className="p-4 bg-accent border border-border rounded-lg mb-3"
-							initial={{ opacity: 0, y: -10 }}
-						>
+						<div className="p-4 bg-accent border border-border rounded-lg mb-3">
 							<p className="text-sm text-accent-foreground mb-2 font-medium">
 								🔌 Connections are a Pro feature
 							</p>
@@ -574,57 +802,69 @@ export function IntegrationsView() {
 							>
 								Upgrade to Pro
 							</Button>
-						</motion.div>
+						</div>
 					)}
 
 					{/* All Connections with Status */}
 					{connectionsLoading ? (
-						<div className="space-y-2">
-							{Object.keys(CONNECTORS).map((_, i) => (
-								<motion.div
-									animate={{ opacity: 1 }}
-									className="p-3 bg-accent rounded-lg"
-									initial={{ opacity: 0 }}
-									key={`skeleton-${Date.now()}-${i}`}
-									transition={{ delay: i * 0.1 }}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							{Object.keys(CONNECTORS).map((_, _i) => (
+								<div
+									className="p-4 bg-accent rounded-lg border border-border/50"
+									key={`skeleton-${Date.now()}-${_i}`}
 								>
-									<Skeleton className="h-12 w-full bg-muted" />
-								</motion.div>
+									<Skeleton className="h-32 w-full bg-muted rounded-lg" />
+								</div>
 							))}
 						</div>
 					) : (
-						<div className="space-y-2">
-							{Object.entries(CONNECTORS).map(([provider, config], index) => {
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							{Object.entries(CONNECTORS).map(([provider, config]) => {
 								const Icon = config.icon
 								const connection = connections.find(
 									(conn) => conn.provider === provider,
 								)
 								const isConnected = !!connection
+								const isMoreComing = provider === COMING_SOON_CONNECTOR
 
 								return (
-									<motion.div
-										animate={{ opacity: 1, y: 0 }}
-										className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-accent rounded-lg hover:bg-accent/80 transition-colors border border-border/50"
-										initial={{ opacity: 0, y: 20 }}
+									<div
+										className={`p-4 rounded-lg border border-border/50 transition-all duration-200 ${
+											isMoreComing
+												? "bg-muted/30 hover:bg-muted/50"
+												: "bg-card hover:border-border hover:shadow-sm"
+										}`}
 										key={provider}
-										transition={{ delay: index * 0.05 }}
 									>
-										<div className="flex items-center gap-3 flex-1">
-											<Icon className="h-8 w-8" />
-											<div className="flex-1 min-w-0">
-												<div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-													<p className="font-medium text-card-foreground text-sm">
+										<div className="flex items-start justify-between mb-3">
+											<div className="flex items-center gap-3">
+												<div
+													className={`p-2 rounded-lg ${
+														isMoreComing ? "bg-muted" : "bg-accent"
+													}`}
+												>
+													<Icon className="h-6 w-6" />
+												</div>
+												<div>
+													<h3 className="font-semibold text-card-foreground text-sm">
 														{config.title}
-													</p>
-													{isConnected ? (
-														<div className="flex items-center gap-1">
+													</h3>
+													{isMoreComing ? (
+														<div className="flex items-center gap-1 mt-1">
+															<div className="w-2 h-2 bg-muted-foreground rounded-full" />
+															<span className="text-xs text-muted-foreground font-medium">
+																Coming Soon
+															</span>
+														</div>
+													) : isConnected ? (
+														<div className="flex items-center gap-1 mt-1">
 															<div className="w-2 h-2 bg-chart-2 rounded-full" />
 															<span className="text-xs text-chart-2 font-medium">
 																Connected
 															</span>
 														</div>
 													) : (
-														<div className="hidden sm:flex items-center gap-1">
+														<div className="flex items-center gap-1 mt-1">
 															<div className="w-2 h-2 bg-muted-foreground rounded-full" />
 															<span className="text-xs text-muted-foreground font-medium">
 																Disconnected
@@ -632,72 +872,170 @@ export function IntegrationsView() {
 														</div>
 													)}
 												</div>
-												<p className="text-xs text-muted-foreground mt-0.5">
-													{config.description}
-												</p>
-												{connection?.email && (
-													<p className="text-xs text-muted-foreground/70 mt-1">
-														{connection.email}
-													</p>
-												)}
 											</div>
-										</div>
-
-										<div className="flex items-center justify-end gap-2 sm:flex-shrink-0">
-											{isConnected ? (
-												<motion.div
-													whileHover={{ scale: 1.05 }}
-													whileTap={{ scale: 0.95 }}
+											{isConnected && !isMoreComing && (
+												<Button
+													className="text-destructive hover:bg-destructive/10"
+													disabled={deleteConnectionMutation.isPending}
+													onClick={() =>
+														deleteConnectionMutation.mutate(connection.id)
+													}
+													size="sm"
+													variant="ghost"
 												>
-													<Button
-														className="text-destructive hover:bg-destructive/10 w-full sm:w-auto"
-														disabled={deleteConnectionMutation.isPending}
-														onClick={() =>
-															deleteConnectionMutation.mutate(connection.id)
-														}
-														size="sm"
-														variant="ghost"
-													>
-														<Trash2 className="h-4 w-4 sm:mr-2" />
-														<span className="hidden sm:inline">Disconnect</span>
-													</Button>
-												</motion.div>
-											) : (
-												<div className="flex items-center justify-between gap-2 w-full sm:w-auto">
-													<div className="sm:hidden flex items-center gap-1">
-														<div className="w-2 h-2 bg-muted-foreground rounded-full" />
-														<span className="text-xs text-muted-foreground font-medium">
-															Disconnected
-														</span>
-													</div>
-													<motion.div
-														whileHover={{ scale: 1.02 }}
-														whileTap={{ scale: 0.98 }}
-														className="flex-shrink-0"
-													>
-														<Button
-															className="min-w-[80px] disabled:cursor-not-allowed"
-															disabled={
-																addConnectionMutation.isPending || !isProUser
-															}
-															onClick={() => {
-																addConnectionMutation.mutate(
-																	provider as ConnectorProvider,
-																)
-															}}
-															size="sm"
-															variant="default"
-														>
-															{addConnectionMutation.isPending &&
-															addConnectionMutation.variables === provider
-																? "Connecting..."
-																: "Connect"}
-														</Button>
-													</motion.div>
-												</div>
+													<Trash2 className="h-4 w-4" />
+												</Button>
 											)}
 										</div>
-									</motion.div>
+
+										<p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+											{config.description}
+										</p>
+
+										{connection?.email && !isMoreComing && (
+											<p className="text-xs text-muted-foreground/70 mb-4">
+												{connection.email}
+											</p>
+										)}
+
+										{!isConnected && !isMoreComing && (
+											<div className="flex items-center gap-2">
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="outline"
+															size="sm"
+															className="flex-1 flex items-center gap-2 justify-between min-w-0"
+														>
+															<div className="flex items-center gap-2 min-w-0">
+																<FolderIcon className="h-4 w-4 flex-shrink-0" />
+																<span className="truncate">
+																	{getProjectName(
+																		selectedProjectForConnection[provider] ||
+																			selectedProject,
+																	)}
+																</span>
+															</div>
+															<ChevronDown className="h-3 w-3 flex-shrink-0" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end" className="w-56">
+														<DropdownMenuItem
+															onClick={() =>
+																updateProjectForConnector(
+																	provider,
+																	selectedProject,
+																)
+															}
+															className="flex items-center gap-2"
+														>
+															<FolderIcon className="h-4 w-4 text-primary" />
+															<span>Default Project</span>
+															{(selectedProjectForConnection[provider] ||
+																selectedProject) === selectedProject && (
+																<Check className="h-4 w-4 ml-auto" />
+															)}
+														</DropdownMenuItem>
+
+														{filteredProjects.length > 0 ? (
+															filteredProjects.map((project: Project) => (
+																<DropdownMenuItem
+																	key={project.id}
+																	onClick={() =>
+																		updateProjectForConnector(
+																			provider,
+																			project.containerTag,
+																		)
+																	}
+																	className="flex items-center gap-2"
+																>
+																	<FolderIcon className="h-4 w-4 text-muted-foreground" />
+																	<span className="truncate">
+																		{project.name}
+																	</span>
+																	{(selectedProjectForConnection[provider] ||
+																		selectedProject) ===
+																		project.containerTag && (
+																		<Check className="h-4 w-4 ml-auto" />
+																	)}
+																</DropdownMenuItem>
+															))
+														) : (
+															<DropdownMenuItem
+																disabled
+																className="text-muted-foreground"
+															>
+																No additional projects available
+															</DropdownMenuItem>
+														)}
+
+														<DropdownMenuItem
+															onClick={() => {
+																setCreatingProjectForConnector(provider)
+																setShowCreateProjectForm(true)
+															}}
+															className="flex items-center gap-2 text-muted-foreground"
+														>
+															<Plus className="h-4 w-4" />
+															<span>Create New Project</span>
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+
+												<Button
+													className="flex-shrink-0 disabled:cursor-not-allowed w-20 justify-center"
+													disabled={
+														addConnectionMutation.isPending ||
+														connectingProvider === provider ||
+														!isProUser
+													}
+													onClick={() => {
+														addConnectionMutation.mutate(
+															provider as ConnectorProvider,
+														)
+													}}
+													size="sm"
+													variant="default"
+												>
+													<motion.div
+														key={
+															(addConnectionMutation.isPending &&
+																addConnectionMutation.variables === provider) ||
+															connectingProvider === provider
+																? "loading"
+																: "connect"
+														}
+														initial={{ opacity: 0, scale: 0.8 }}
+														animate={{ opacity: 1, scale: 1 }}
+														exit={{ opacity: 0, scale: 0.8 }}
+														transition={{ duration: 0.2, ease: "easeInOut" }}
+														className="flex items-center justify-center"
+													>
+														{(addConnectionMutation.isPending &&
+															addConnectionMutation.variables === provider) ||
+														connectingProvider === provider ? (
+															<Loader className="h-4 w-4 animate-spin" />
+														) : (
+															"Connect"
+														)}
+													</motion.div>
+												</Button>
+											</div>
+										)}
+
+										{isMoreComing && (
+											<div className="flex items-center justify-center">
+												<Button
+													variant="outline"
+													size="sm"
+													disabled
+													className="text-muted-foreground"
+												>
+													Coming Soon
+												</Button>
+											</div>
+										)}
+									</div>
 								)
 							})}
 						</div>
@@ -926,6 +1264,94 @@ export function IntegrationsView() {
 										/>
 									</svg>
 									Install Extension
+								</Button>
+							</div>
+						</div>
+					</DialogContent>
+				</DialogPortal>
+			</Dialog>
+
+			<Dialog
+				key="create-project-dialog"
+				open={showCreateProjectForm}
+				onOpenChange={(open) => {
+					if (!open) {
+						handleCreateProjectCancel()
+					}
+					setShowCreateProjectForm(open)
+				}}
+			>
+				<DialogPortal>
+					<DialogContent className="bg-card border-border text-card-foreground md:max-w-md z-[100]">
+						<DialogHeader>
+							<DialogTitle className="text-card-foreground text-lg font-semibold">
+								Create New Project
+							</DialogTitle>
+						</DialogHeader>
+
+						<div className="space-y-4">
+							<div className="space-y-2">
+								<label
+									htmlFor="newProjectName"
+									className="text-sm font-medium text-muted-foreground"
+								>
+									Project Name
+								</label>
+								<Input
+									id="newProjectName"
+									placeholder="Enter project name..."
+									value={newProjectName}
+									onChange={(e) => setNewProjectName(e.target.value)}
+									onKeyDown={(e) => {
+										if (
+											e.key === "Enter" &&
+											newProjectName.trim() &&
+											!validateProjectName(newProjectName) &&
+											!createProjectMutation.isPending
+										) {
+											handleCreateProject()
+										}
+									}}
+									className="w-full"
+									autoFocus
+									disabled={createProjectMutation.isPending}
+								/>
+							</div>
+
+							<div className="flex gap-2">
+								<Button
+									onClick={handleCreateProjectCancel}
+									variant="outline"
+									className="flex-1"
+								>
+									Cancel
+								</Button>
+								<Button
+									onClick={handleCreateProject}
+									disabled={
+										!newProjectName.trim() ||
+										createProjectMutation.isPending ||
+										!!validateProjectName(newProjectName)
+									}
+									className="flex-1"
+								>
+									<motion.div
+										key={createProjectMutation.isPending ? "loading" : "create"}
+										initial={{ opacity: 0, scale: 0.8 }}
+										animate={{ opacity: 1, scale: 1 }}
+										exit={{ opacity: 0, scale: 0.8 }}
+										transition={{ duration: 0.2, ease: "easeInOut" }}
+										className="flex items-center gap-2"
+									>
+										{createProjectMutation.isPending ? (
+											<>
+												<Loader className="h-4 w-4 animate-spin" />
+												Creating...
+											</>
+										) : (
+											"Create"
+										)}
+									</motion.div>
 								</Button>
 							</div>
 						</div>
