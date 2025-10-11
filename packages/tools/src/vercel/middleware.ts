@@ -173,7 +173,7 @@ export const createSupermemoryMiddleware = (
 			const userMessage = getLastUserMessage(params)
 
 			if (addMemory === "always" && userMessage && userMessage.trim()) {
-				await addMemoryTool(client, containerTag, userMessage, logger)
+				addMemoryTool(client, containerTag, userMessage, logger)
 			}
 
 			if (mode !== "profile") {
