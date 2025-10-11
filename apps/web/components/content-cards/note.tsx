@@ -1,19 +1,10 @@
-import { Badge } from "@repo/ui/components/badge"
-import { Card, CardContent, CardHeader } from "@repo/ui/components/card"
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@repo/ui/components/alert-dialog"
+import { DocumentCardFrame } from "./document-card-frame"
+import { MemoryBadge } from "./memory-badge"
 
-import { colors } from "@repo/ui/memory-graph/constants"
-import { Brain, ExternalLink, Trash2 } from "lucide-react"
+import { Trash2, MoreHorizontal, StickyNote } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui/components/dropdown-menu"
+import { AlertDialog as AlertDialog2, AlertDialogAction as AlertDialogAction2, AlertDialogCancel as AlertDialogCancel2, AlertDialogContent as AlertDialogContent2, AlertDialogDescription as AlertDialogDescription2, AlertDialogFooter as AlertDialogFooter2, AlertDialogHeader as AlertDialogHeader2, AlertDialogTitle as AlertDialogTitle2 } from "@repo/ui/components/alert-dialog"
+import { useState } from "react"
 import { cn } from "@lib/utils"
 import {
 	formatDate,
@@ -29,165 +20,122 @@ type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
 interface NoteCardProps {
-	document: DocumentWithMemories
-	width: number
-	activeMemories: Array<{ id: string; isForgotten?: boolean }>
-	forgottenMemories: Array<{ id: string; isForgotten?: boolean }>
-	onOpenDetails: (document: DocumentWithMemories) => void
-	onDelete: (document: DocumentWithMemories) => void
+    document: DocumentWithMemories
+    width: number
+    activeMemories: Array<{ id: string; isForgotten?: boolean }>
+    forgottenMemories: Array<{ id: string; isForgotten?: boolean }>
+    onOpenDetails: (document: DocumentWithMemories) => void
+    onDelete: (document: DocumentWithMemories) => void
+    label?: string
 }
 
 export const NoteCard = ({
-	document,
-	width,
-	activeMemories,
-	forgottenMemories,
-	onOpenDetails,
-	onDelete,
+    document,
+    width,
+    activeMemories,
+    forgottenMemories,
+    onOpenDetails,
+    onDelete,
+    label,
 }: NoteCardProps) => {
+	const [confirmOpen, setConfirmOpen] = useState(false)
+
 	return (
-		<Card
-			className="w-full p-4 transition-all cursor-pointer group relative overflow-hidden gap-2 shadow-xs"
-			onClick={() => {
-				analytics.documentCardClicked()
-				onOpenDetails(document)
+		<div
+			onMouseDownCapture={(e) => {
+				// Only suppress events that originate from inside the card wrapper.
+				if (confirmOpen && (e.currentTarget as HTMLElement).contains(e.target as Node)) {
+					e.stopPropagation()
+					e.preventDefault()
+				}
 			}}
-			style={{
-				backgroundColor: getPastelBackgroundColor(
-					document.id || document.title || "note",
-				),
-				width: width,
+			onClickCapture={(e) => {
+				if (confirmOpen && (e.currentTarget as HTMLElement).contains(e.target as Node)) {
+					e.stopPropagation()
+					e.preventDefault()
+				}
 			}}
 		>
-			<AlertDialog>
-				<AlertDialogTrigger asChild>
-					<button
-						className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 group-hover:cursor-pointer transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
-						onClick={(e) => {
-							e.stopPropagation()
-						}}
-						style={{
-							color: colors.text.muted,
-							backgroundColor: "rgba(255, 255, 255, 0.1)",
-							backdropFilter: "blur(4px)",
-						}}
-						type="button"
-					>
-						<Trash2 className="w-3.5 h-3.5" />
-					</button>
-				</AlertDialogTrigger>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete Document</AlertDialogTitle>
-						<AlertDialogDescription>
-							Are you sure you want to delete this document and all its related
-							memories? This action cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel
-							onClick={(e) => {
-								e.stopPropagation()
-							}}
-						>
-							Cancel
-						</AlertDialogCancel>
-						<AlertDialogAction
-							className="bg-red-600 hover:bg-red-700 text-white"
-							onClick={(e) => {
-								e.stopPropagation()
-								onDelete(document)
-							}}
-						>
-							Delete
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-
-			<CardHeader className="relative z-10 px-0 pb-0">
-				<div className="flex items-center justify-between gap-2">
-					<div className="flex items-center gap-1">
-						<p
-							className={cn(
-								"text-sm font-medium line-clamp-1",
-								document.url ? "max-w-[190px]" : "max-w-[200px]",
-							)}
-						>
-							{document.title || "Untitled Document"}
-						</p>
-					</div>
-					<div className="flex items-center gap-1">
-						{document.url && (
-							<button
-								className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
-								onClick={(e) => {
-									e.stopPropagation()
-									const sourceUrl = getSourceUrl(document)
-									window.open(sourceUrl ?? undefined, "_blank")
-								}}
-								style={{
-									backgroundColor: "rgba(255, 255, 255, 0.05)",
-									color: colors.text.secondary,
-								}}
-								type="button"
-							>
-								<ExternalLink className="w-3 h-3" />
-							</button>
-						)}
-					</div>
-					<div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-						<span>{formatDate(document.createdAt)}</span>
-					</div>
-				</div>
-			</CardHeader>
-			<CardContent className="relative z-10 px-0">
-				{document.content && (
-					<p
-						className="text-xs line-clamp-6"
-						style={{ color: colors.text.muted }}
-					>
-						{document.content}
-					</p>
-				)}
-				<div className="flex items-center justify-between">
-					<div className="flex items-center gap-2 flex-wrap">
-						{activeMemories.length > 0 && (
-							<Badge
-								className="text-xs text-accent-foreground mt-2"
-								style={{
-									backgroundColor: colors.memory.secondary,
-								}}
-								variant="secondary"
-							>
-								<Brain className="w-3 h-3 mr-1" />
-								{activeMemories.length}{" "}
-								{activeMemories.length === 1 ? "memory" : "memories"}
-							</Badge>
-						)}
-						{forgottenMemories.length > 0 && (
-							<Badge
-								className="text-xs mt-2"
-								style={{
-									borderColor: "rgba(255, 255, 255, 0.2)",
-									color: colors.text.muted,
-								}}
-								variant="outline"
-							>
-								{forgottenMemories.length} forgotten
-							</Badge>
-						)}
-						{document.source === "mcp" && (
-							<Badge variant="outline" className="mt-2">
-								<MCPIcon className="w-3 h-3 mr-1" />
-								MCP
-							</Badge>
-						)}
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+			<DocumentCardFrame
+				onClick={() => {
+					if (confirmOpen) return
+					analytics.documentCardClicked()
+					onOpenDetails(document)
+				}}
+				media={null}
+				title={document.title || "Untitled Document"}
+				metaRight={
+					<NoteMenuWithConfirm
+						onConfirm={() => onDelete(document)}
+						open={confirmOpen}
+						setOpen={setConfirmOpen}
+					/>
+				}
+                subtitle={
+                    <div className="flex items-center gap-1.5">
+                        <StickyNote className="w-3 h-3" aria-hidden="true" />
+                        <span>{label ?? "Note"}</span>
+                    </div>
+                }
+				body={document.content}
+				footerLeft={<MemoryBadge count={activeMemories.length} />}
+				footerRight={null}
+			/>
+		</div>
 	)
 }
 
 NoteCard.displayName = "NoteCard"
+
+function NoteMenuWithConfirm({ onConfirm, open, setOpen }: { onConfirm: () => void, open: boolean, setOpen: (v: boolean) => void }) {
+    return (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        className="rounded p-1 text-muted-foreground/80 hover:bg-muted"
+                        onClick={(e) => e.stopPropagation()}
+                        type="button"
+                        aria-label="More actions"
+                    >
+                        <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            setOpen(true)
+                        }}
+                        className="cursor-pointer text-xs text-red-600 focus:text-red-600"
+                    >
+                        <Trash2 className="w-3 h-3 mr-2" /> Delete
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialog2 open={open} onOpenChange={setOpen}>
+                <AlertDialogContent2>
+                    <AlertDialogHeader2>
+                        <AlertDialogTitle2>Delete Document</AlertDialogTitle2>
+                        <AlertDialogDescription2>
+                            Are you sure you want to delete this document and all its related memories? This action cannot be undone.
+                        </AlertDialogDescription2>
+                    </AlertDialogHeader2>
+                    <AlertDialogFooter2>
+                        <AlertDialogCancel2>Cancel</AlertDialogCancel2>
+                        <AlertDialogAction2
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onConfirm()
+                                setOpen(false)
+                            }}
+                        >
+                            Delete
+                        </AlertDialogAction2>
+                    </AlertDialogFooter2>
+                </AlertDialogContent2>
+            </AlertDialog2>
+        </>
+    )
+}

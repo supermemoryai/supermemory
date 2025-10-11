@@ -4,7 +4,23 @@ import { useIsMobile } from "@hooks/use-mobile"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { colors } from "@repo/ui/memory-graph/constants"
 import { Sparkles } from "lucide-react"
-import { Masonry, useInfiniteLoader } from "masonic"
+// Fallback to untyped import to avoid TS type resolution issues for masonic
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Masonry, useInfiniteLoader } = require("masonic") as {
+    Masonry: any
+    useInfiniteLoader: (
+        loader: (
+            startIndex: number,
+            stopIndex: number,
+            currentItems: unknown[],
+        ) => Promise<void>,
+        options: {
+            isItemLoaded: (index: number, items: unknown[]) => boolean
+            minimumBatchSize: number
+            threshold: number
+        },
+    ) => any
+}
 import { memo, useCallback, useMemo, useState } from "react"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
@@ -16,6 +32,7 @@ import { TweetCard } from "./content-cards/tweet"
 import { WebsiteCard } from "./content-cards/website"
 import { NoteCard } from "./content-cards/note"
 import { GoogleDocsCard } from "./content-cards/google-docs"
+import { FileCard } from "./content-cards/file"
 import type { Tweet } from "react-tweet/api"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -83,12 +100,41 @@ const DocumentCard = memo(
 			)
 		}
 
+		// Treat Supermemory-hosted files and explicit file-like types as files
+		const isFilesHost = (() => {
+			try {
+				if (!document.url) return false
+				const host = new URL(document.url).hostname
+				return host.endsWith("files.supermemory.ai")
+			} catch {
+				return false
+			}
+		})()
+
+		if (
+			isFilesHost ||
+			["pdf", "image", "video", "onedrive"].includes(
+				(document.type as unknown as string) ?? "",
+			)
+		) {
+			return (
+				<FileCard
+					title={document.title || "Untitled Document"}
+					url={document.url}
+					memoryCount={activeMemories.length}
+					onOpenDetails={() => onOpenDetails(document)}
+					onDelete={() => onDelete(document)}
+				/>
+			)
+		}
+
 		if (document.url?.includes("https://")) {
 			return (
 				<WebsiteCard
 					url={document.url}
 					title={document.title || "Untitled Document"}
 					image={document.ogImage}
+					memoryCount={activeMemories.length}
 					onOpenDetails={() => onOpenDetails(document)}
 					onDelete={() => onDelete(document)}
 				/>
@@ -103,6 +149,7 @@ const DocumentCard = memo(
 				forgottenMemories={forgottenMemories}
 				onOpenDetails={onOpenDetails}
 				onDelete={onDelete}
+				label={(document.type as unknown as string) === "text" ? "Text" : undefined}
 			/>
 		)
 	},
@@ -165,14 +212,18 @@ export const MasonryMemoryList = ({
 	}, [])
 
 	// Infinite loading with Masonic
-	const maybeLoadMore = useInfiniteLoader(
-		async (_startIndex, _stopIndex, _currentItems) => {
+    const maybeLoadMore = useInfiniteLoader(
+        async (
+            _startIndex: number,
+            _stopIndex: number,
+            _currentItems: unknown[],
+        ) => {
 			if (hasMore && !isLoadingMore) {
 				await loadMoreDocuments()
 			}
 		},
 		{
-			isItemLoaded: (index, items) => !!items[index],
+            isItemLoaded: (index: number, items: unknown[]) => !!(items as unknown[])[index],
 			minimumBatchSize: 10,
 			threshold: 5,
 		},
@@ -230,8 +281,7 @@ export const MasonryMemoryList = ({
 					</div>
 				) : (
 					<div
-						className="h-full overflow-auto custom-scrollbar sm-tweet-theme"
-						data-theme="light"
+						className="h-full overflow-auto custom-scrollbar"
 					>
 						<Masonry
 							key={`masonry-${filteredDocuments.length}-${filteredDocuments.map((d) => d.id).join(",")}`}

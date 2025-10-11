@@ -1,4 +1,4 @@
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import type { Tweet } from "react-tweet/api"
 import {
 	type TwitterComponents,
@@ -13,19 +13,11 @@ import {
 	TweetSkeleton,
 	enrichTweet,
 } from "react-tweet"
-import { Badge } from "@repo/ui/components/badge"
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@repo/ui/components/alert-dialog"
-import { Brain, Trash2 } from "lucide-react"
+import { DocumentCardFrame } from "./document-card-frame"
+import { MemoryBadge } from "./memory-badge"
+import { ConfirmDelete } from "./confirm-delete"
+import { Brain, Trash2, MessageSquareQuote, MoreHorizontal } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@repo/ui/components/dropdown-menu"
 import { colors } from "@repo/ui/memory-graph/constants"
 import { getPastelBackgroundColor } from "../memories-utils"
 
@@ -80,88 +72,51 @@ const CustomTweet = ({
 )
 
 export const TweetCard = ({
-	data,
-	activeMemories,
-	onDelete,
+    data,
+    activeMemories,
+    onDelete,
 }: {
-	data: Tweet
-	activeMemories?: Array<{ id: string; isForgotten?: boolean }>
-	onDelete?: () => void
+    data: Tweet
+    activeMemories?: Array<{ id: string; isForgotten?: boolean }>
+    onDelete?: () => void
 }) => {
-	return (
-		<div
-			className="relative transition-all group"
-			style={{
-				backgroundColor: getPastelBackgroundColor(data.id_str || "tweet"),
-			}}
-		>
-			<CustomTweet components={{}} tweet={data} />
-
-			{onDelete && (
-				<AlertDialog>
-					<AlertDialogTrigger asChild>
-						<button
-							className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
-							onClick={(e) => {
-								e.stopPropagation()
-							}}
-							style={{
-								color: colors.text.muted,
-								backgroundColor: "rgba(255, 255, 255, 0.1)",
-								backdropFilter: "blur(4px)",
-							}}
-							type="button"
-						>
-							<Trash2 className="w-3.5 h-3.5" />
-						</button>
-					</AlertDialogTrigger>
-					<AlertDialogContent>
-						<AlertDialogHeader>
-							<AlertDialogTitle>Delete Document</AlertDialogTitle>
-							<AlertDialogDescription>
-								Are you sure you want to delete this document and all its
-								related memories? This action cannot be undone.
-							</AlertDialogDescription>
-						</AlertDialogHeader>
-						<AlertDialogFooter>
-							<AlertDialogCancel
-								onClick={(e) => {
-									e.stopPropagation()
-								}}
-							>
-								Cancel
-							</AlertDialogCancel>
-							<AlertDialogAction
-								className="bg-red-600 hover:bg-red-700 text-white"
-								onClick={(e) => {
-									e.stopPropagation()
-									onDelete()
-								}}
-							>
-								Delete
-							</AlertDialogAction>
-						</AlertDialogFooter>
-					</AlertDialogContent>
-				</AlertDialog>
-			)}
-
-			{activeMemories && activeMemories.length > 0 && (
-				<div className="absolute bottom-2 left-4 z-10">
-					<Badge
-						className="text-xs text-accent-foreground"
-						style={{
-							backgroundColor: colors.memory.secondary,
-						}}
-						variant="secondary"
-					>
-						<Brain className="w-3 h-3 mr-1" />
-						{activeMemories.length}{" "}
-						{activeMemories.length === 1 ? "memory" : "memories"}
-					</Badge>
-				</div>
-			)}
-		</div>
-	)
+    const [confirmOpen, setConfirmOpen] = useState(false)
+    return (
+        <>
+            <DocumentCardFrame
+                media={null}
+                title={`@${data.user?.screen_name ?? "unknown"}`}
+                subtitle={<><MessageSquareQuote className="w-3 h-3" aria-hidden="true" /><span>Tweet</span></>}
+                body={undefined}
+                footerLeft={<MemoryBadge count={activeMemories?.length ?? 0} />}
+                metaRight={
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <button onClick={(e) => e.stopPropagation()} className="rounded p-1 text-muted-foreground/80 hover:bg-muted" type="button" aria-label="More actions">
+                                <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {onDelete && (
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setConfirmOpen(true) }} className="cursor-pointer text-xs text-red-600 focus:text-red-600">
+                                    <Trash2 className="w-3 h-3 mr-2" /> Delete
+                                </DropdownMenuItem>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                }
+            />
+            {onDelete && (
+                <ConfirmDelete
+                    open={confirmOpen}
+                    onOpenChange={setConfirmOpen}
+                    onConfirm={() => {
+                        onDelete?.()
+                        setConfirmOpen(false)
+                    }}
+                />
+            )}
+        </>
+    )
 }
 
-TweetCard.displayName = "TweetCard"
