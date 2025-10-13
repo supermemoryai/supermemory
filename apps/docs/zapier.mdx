@@ -1,0 +1,64 @@
+---
+title: "Integrate supermemory in your Zapier workflows"
+sidebarTitle: "Zapier"
+description: "Learn how to use the code block to integrate supermemory with  Zapier and add memory to your automations."
+---
+
+With Supermemory you can now easily add memory to your Zapier workflow steps. Here's how:
+
+## Prerequisites
+- A Supermemory API Key. Get yours [here](console.supermemory.ai)
+
+## Step-by-step tutorial
+
+For this tutorial, we're building a simple flow that adds incoming emails in Gmail to Supermemory.
+
+<Steps>
+    <Step title="Make a flow">
+        Open your Zapier account and click on 'Zap' to make a new automation.
+        ![make a zap - annotated](/images/make-zap.png)
+    </Step>
+    <Step title="Add Gmail node">
+        Add a new Gmail node that gets triggered on every new email. Connect to your Google account.
+        ![add gmail](/images/add-gmail-node-zapier.png)
+    </Step>
+    <Step title="Add code block">
+        Now, add a new 'Code by Zapier' block. Set it up to run Python.
+
+        In the **Input Data** section, map the content field to the Gmail raw snippet.
+
+        ![](/images/map-content-to-gmail.png)
+    </Step>
+    <Step title="Integrate Supermemory">
+        Since we're ingesting data here, we'll use the [add documents endpoint.](/api-reference/manage-documents/add-document)
+
+        Add the following code block:
+        
+        ```python 
+            import requests
+
+            url = "https://api.supermemory.ai/v3/documents"
+
+            payload = { "content": inputData['content'], "containerTag": "gmail" }
+            headers = {
+                "Authorization": "Bearer YOUR_SM_API_KEY",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(url, json=payload, headers=headers)
+
+            print(response.json())
+        ```
+
+        The `inputData['content']` field maps to the Gmail content fetched from Zapier. 
+
+        ![](/images/zapier-output.png)
+    </Step>
+</Steps>
+
+<Note>
+    Sometimes Zapier might show an error on the first test run. It usually works right after. Weird bug, we know.
+</Note>
+
+
+You can perform other operations like search, filtering, user profiles, etc., by using other Supermemory API endpoints which can be found in our [API Reference.](api-reference/search/search-memory-entries)

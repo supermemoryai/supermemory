@@ -157,6 +157,13 @@
 								]
 							},
 							{
+								"group": "Integrations with no-code tools",
+								"pages": [
+									"n8n",
+									"zapier"
+								]
+							},
+							{
 								"group": "Migration Guides",
 								"pages": ["migration/from-mem0"]
 							},

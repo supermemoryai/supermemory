@@ -31,7 +31,8 @@ Monitor all documents currently being processed across your account.
 
 <CodeGroup>
 
-```typescript
+```typescript Typescript
+
 // Direct API call (not in SDK)
 const response = await fetch('https://api.supermemory.ai/v3/documents/processing', {
   headers: {
@@ -43,7 +44,7 @@ const processing = await response.json();
 console.log(`${processing.documents.length} documents processing`);
 ```
 
-```python
+```python Python
 # Direct API call (not in SDK)
 import requests
 
@@ -56,7 +57,7 @@ processing = response.json()
 print(f"{len(processing['documents'])} documents processing")
 ```
 
-```bash
+```bash cURL
 curl -X GET "https://api.supermemory.ai/v3/documents/processing" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 ```
@@ -103,7 +104,7 @@ Track specific document processing status.
 
 <CodeGroup>
 
-```typescript
+```typescript Typescript
 const memory = await client.memories.get("doc_abc123");
 
 console.log(`Status: ${memory.status}`);
@@ -116,7 +117,7 @@ while (memory.status !== 'done') {
 }
 ```
 
-```python
+```python Python
 memory = client.memories.get("doc_abc123")
 
 print(f"Status: {memory['status']}")
@@ -129,7 +130,7 @@ while memory['status'] != 'done':
     print(f"Status: {memory['status']}")
 ```
 
-```bash
+```bash cURL
 curl -X GET "https://api.supermemory.ai/v3/documents/doc_abc123" \
   -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 ```
@@ -251,24 +252,3 @@ async function addWithRetry(content: string, maxRetries = 3) {
   }
 }
 ```
-
-## Processing Times by Content Type
-
-Documents: Created near instantly (200-500ms)
-
-Memories: Supermemory creates a memory graph understanding based on semantic analysis and contextual understanding.
-
-| Content Type | Memory Processing Time | Notes |
-|--------------|------------------------|-------|
-| Plain Text | 5-10 seconds | Fastest processing |
-| Markdown | 5-10 seconds | Similar to plain text |
-| PDF (< 10 pages) | 15-30 seconds | OCR if needed |
-| PDF (> 100 pages) | 1-3 minutes | Depends on complexity |
-| Images | 10-20 seconds | OCR processing |
-| YouTube Videos | 1-2 min per 10 min video | Transcription required |
-| Web Pages | 10-20 seconds | Content extraction |
-| Google Docs | 10-15 seconds | API extraction |
-
-<Note>
-**Pro Tip**: Use the processing status endpoint to provide real-time feedback to users, especially for larger documents or batch uploads.
-</Note>
