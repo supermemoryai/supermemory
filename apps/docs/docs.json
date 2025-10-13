@@ -159,7 +159,8 @@
 							{
 								"group": "Integrations with no-code tools",
 								"pages": [
-									"n8n"
+									"n8n",
+									"zapier"
 								]
 							},
 							{

@@ -4,6 +4,46 @@ description: "Semantic and hybrid search with metadata filters, scoring, and pre
 sidebarTitle : "Overview"
 ---
 
+## Prerequisites
+
+Before searching memories, you need to set up the Supermemory client:
+
+- **Install the SDK** for your language
+- **Get your API key** from [Supermemory Console](https://console.supermemory.ai)
+- **Initialize the client** with your API key
+
+<CodeGroup>
+
+```bash npm
+npm install supermemory
+```
+
+```bash pip
+pip install supermemory
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```typescript TypeScript
+import Supermemory from 'supermemory';
+
+const client = new Supermemory({
+  apiKey: process.env.SUPERMEMORY_API_KEY!
+});
+```
+
+```python Python
+from supermemory import Supermemory
+import os
+
+client = Supermemory(
+    api_key=os.environ.get("SUPERMEMORY_API_KEY")
+)
+```
+
+</CodeGroup>
 
 ## Search Endpoints Overview
 
