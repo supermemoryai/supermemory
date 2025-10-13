@@ -157,6 +157,12 @@
 								]
 							},
 							{
+								"group": "Integrations with no-code tools",
+								"pages": [
+									"n8n"
+								]
+							},
+							{
 								"group": "Migration Guides",
 								"pages": ["migration/from-mem0"]
 							},
