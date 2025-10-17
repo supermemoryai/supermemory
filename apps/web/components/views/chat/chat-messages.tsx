@@ -17,9 +17,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Streamdown } from "streamdown"
 import { TextShimmer } from "@/components/text-shimmer"
-import { usePersistentChat, useProject } from "@/stores"
+import { useChatOpen, usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { Spinner } from "../../spinner"
+import { useRouter } from "next/navigation"
 
 interface MemoryResult {
 	documentId?: string
@@ -205,6 +206,8 @@ function useStickyAutoScroll(triggerKeys: ReadonlyArray<unknown>) {
 }
 
 export function ChatMessages() {
+	const router = useRouter()
+	const { setIsOpen } = useChatOpen()
 	const { selectedProject } = useProject()
 	const {
 		currentChatId,
@@ -386,8 +389,25 @@ export function ChatMessages() {
 		scrollToBottom,
 	} = useStickyAutoScroll([messages, status])
 
+	const handleCloseChat = () => {
+		setIsOpen(false)
+		router.push("/")
+	}
+
 	return (
 		<div className="h-full flex flex-col w-full">
+			{/* Close chat button */}
+			<div className="flex items-center justify-between px-4 py-3 border-b border-border">
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={handleCloseChat}
+					className="gap-2"
+				>
+					<X className="h-4 w-4" />
+					Close Chat
+				</Button>
+			</div>
 			<div className="flex-1 relative">
 				<div
 					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7 custom-scrollbar"
