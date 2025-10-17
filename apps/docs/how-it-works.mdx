@@ -136,6 +136,16 @@ Understanding the pipeline helps you optimize your usage:
 **Tip**: Larger documents and videos take longer. A 100-page PDF might take 1-2 minutes, while a 1-hour video could take 5-10 minutes.
 </Note>
 
+## Temporal View (Beta)
+
+Supermemory is built for change—the graph keeps every version of a memory, recording when it became true and when it expired. The web console now exposes an optional **temporal view** (behind the `NEXT_PUBLIC_ENABLE_TEMPORAL_QUERIES` flag):
+
+- Pick an **"as of"** timestamp to see the graph dim older facts and highlight what was valid at that moment.
+- Specify a **validity window** (`validFromGte`, `validUntilLte`) to focus on project phases or campaign bursts.
+- The SDKs/CLI forward these parameters only when enabled, so existing integrations stay untouched.
+
+Server-side temporal indexing is rolling out separately; until then the client applies the filters locally, making it safe for teams to experiment today.
+
 
 ## Next Steps
 

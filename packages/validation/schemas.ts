@@ -264,6 +264,10 @@ export const MemoryEntrySchema = z.object({
 	forgetAfter: z.coerce.date().nullable().optional(),
 	forgetReason: z.string().nullable().optional(),
 
+	// Temporal validity (optional beta fields)
+	validFrom: z.coerce.date().nullable().optional(),
+	validUntil: z.coerce.date().nullable().optional(),
+
 	// Embeddings
 	memoryEmbedding: z.array(z.number()).nullable().optional(),
 	memoryEmbeddingModel: z.string().nullable().optional(),

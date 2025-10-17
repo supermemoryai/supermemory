@@ -37,19 +37,55 @@ export const searchMemoriesTool = (
 				.optional()
 				.default(DEFAULT_VALUES.limit)
 				.describe(PARAMETER_DESCRIPTIONS.limit),
+			asOf: z
+				.string()
+				.datetime()
+				.optional()
+				.describe(
+					"[Beta] Point-in-time filter (ISO 8601). Only forwarded when temporal queries are enabled.",
+				),
+			timeWindow: z
+				.object({
+					from: z
+						.string()
+						.datetime()
+						.optional()
+						.describe("[Beta] Lower bound of the validity window (ISO 8601)."),
+					to: z
+						.string()
+						.datetime()
+						.optional()
+						.describe("[Beta] Upper bound of the validity window (ISO 8601)."),
+				})
+				.optional()
+				.describe(
+					"[Beta] Validity window filter. Only forwarded when temporal queries are enabled.",
+				),
 		}),
 		execute: async ({
 			informationToGet,
 			includeFullDocs = DEFAULT_VALUES.includeFullDocs,
 			limit = DEFAULT_VALUES.limit,
+			asOf,
+			timeWindow,
 		}) => {
 			try {
+				const temporalFilters =
+					config?.enableTemporalQueries === true
+						? {
+								...(asOf ? { asOf } : {}),
+								...(timeWindow?.from ? { validFromGte: timeWindow.from } : {}),
+								...(timeWindow?.to ? { validUntilLte: timeWindow.to } : {}),
+							}
+						: undefined
+
 				const response = await client.search.execute({
 					q: informationToGet,
 					containerTags,
 					limit,
 					chunkThreshold: DEFAULT_VALUES.chunkThreshold,
 					includeFullDocs,
+					...(temporalFilters ?? {}),
 				})
 
 				return {

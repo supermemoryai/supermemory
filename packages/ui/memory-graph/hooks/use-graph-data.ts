@@ -14,19 +14,26 @@ import type {
 	GraphNode,
 	MemoryEntry,
 	MemoryRelation,
+	TemporalFilterState,
 } from "../types";
+import {
+	evaluateTemporalStatus,
+	parseTemporalFilterState,
+} from "../utils/temporal";
 
 export function useGraphData(
 	data: DocumentsResponse | null,
 	selectedSpace: string,
 	nodePositions: Map<string, { x: number; y: number }>,
 	draggingNodeId: string | null,
+	temporalFilterState?: TemporalFilterState | null,
 ) {
 	return useMemo(() => {
 		if (!data?.documents) return { nodes: [], edges: [] };
 
 		const allNodes: GraphNode[] = [];
 		const allEdges: GraphEdge[] = [];
+		const parsedTemporalFilters = parseTemporalFilterState(temporalFilterState);
 
 		// Filter documents that have memories in selected space
 		const filteredDocuments = data.documents
@@ -42,6 +49,11 @@ export function useGraphData(
 							),
 			}))
 			.filter((doc) => doc.memoryEntries.length > 0);
+
+		const temporalStatus = evaluateTemporalStatus(
+			filteredDocuments,
+			parsedTemporalFilters,
+		);
 
 		// Group documents by space for better clustering
 		const documentsBySpace = new Map<string, typeof filteredDocuments>();
@@ -103,6 +115,8 @@ export function useGraphData(
 				const defaultY = spaceCenterY + Math.sin(angleInRing) * radius;
 
 				const customPos = nodePositions.get(doc.id);
+				const isDocDimmed =
+					temporalStatus !== null && !temporalStatus.documentStatus.get(doc.id);
 
 				documentNodes.push({
 					id: doc.id,
@@ -111,9 +125,12 @@ export function useGraphData(
 					y: customPos?.y ?? defaultY,
 					data: doc,
 					size: 58,
-					color: colors.document.primary,
+					color: isDocDimmed
+						? colors.document.secondary
+						: colors.document.primary,
 					isHovered: false,
 					isDragging: draggingNodeId === doc.id,
+					isDimmed: isDocDimmed,
 				} satisfies GraphNode);
 			});
 
@@ -191,6 +208,9 @@ export function useGraphData(
 					docNode.y + Math.sin(clusterAngle) * distance + offsetY;
 
 				if (!memoryNodeMap.has(memoryId)) {
+					const isMemoryDimmed =
+						temporalStatus !== null &&
+						!temporalStatus.memoryStatus.get(memory.id);
 					const memoryNode: GraphNode = {
 						id: memoryId,
 						type: "memory",
@@ -201,22 +221,39 @@ export function useGraphData(
 							32,
 							Math.min(48, (memory.memory?.length || 50) * 0.5),
 						),
-						color: colors.memory.primary,
+						color: isMemoryDimmed
+							? colors.memory.secondary
+							: colors.memory.primary,
 						isHovered: false,
 						isDragging: draggingNodeId === memoryId,
+						isDimmed: isMemoryDimmed,
 					};
 					memoryNodeMap.set(memoryId, memoryNode);
 					allNodes.push(memoryNode);
 				}
 
 				// Create doc-memory edge with similarity
+				const edgeDimmed =
+					temporalStatus !== null &&
+					(!temporalStatus.documentStatus.get(docNode.id) ||
+						!temporalStatus.memoryStatus.get(memory.id));
+
 				allEdges.push({
 					id: `edge-${docNode.id}-${memory.id}`,
 					source: docNode.id,
 					target: memoryId,
 					similarity: 1,
-					visualProps: getConnectionVisualProps(1),
-					color: colors.connection.memory,
+					visualProps: edgeDimmed
+						? {
+								opacity: 0.2,
+								thickness: 1,
+								glow: 0,
+								pulseDuration: 4000,
+							}
+						: getConnectionVisualProps(1),
+					color: edgeDimmed
+						? colors.connection.medium
+						: colors.connection.memory,
 					edgeType: "doc-memory",
 				});
 			});
@@ -251,19 +288,32 @@ export function useGraphData(
 					const fromId = memNodeIdMap.get(pid);
 					const toId = memNodeIdMap.get(mem.id);
 					if (fromId && toId) {
+						const versionDimmed =
+							temporalStatus !== null &&
+							(!temporalStatus.memoryStatus.get(pid) ||
+								!temporalStatus.memoryStatus.get(mem.id));
 						allEdges.push({
 							id: `version-${fromId}-${toId}`,
 							source: fromId,
 							target: toId,
 							similarity: 1,
-							visualProps: {
-								opacity: 0.8,
-								thickness: 1,
-								glow: 0,
-								pulseDuration: 3000,
-							},
+							visualProps: versionDimmed
+								? {
+										opacity: 0.2,
+										thickness: 1,
+										glow: 0,
+										pulseDuration: 4000,
+									}
+								: {
+										opacity: 0.8,
+										thickness: 1,
+										glow: 0,
+										pulseDuration: 3000,
+									},
 							// choose color based on relation type
-							color: colors.relations[relationType] ?? colors.relations.updates,
+							color: versionDimmed
+								? colors.connection.medium
+								: (colors.relations[relationType] ?? colors.relations.updates),
 							edgeType: "version",
 							relationType: relationType as MemoryRelation,
 						});
@@ -286,13 +336,26 @@ export function useGraphData(
 					docJ.summaryEmbedding ? Array.from(docJ.summaryEmbedding) : null,
 				);
 				if (sim > 0.725) {
+					const docEdgeDimmed =
+						temporalStatus !== null &&
+						(!temporalStatus.documentStatus.get(docI.id) ||
+							!temporalStatus.documentStatus.get(docJ.id));
 					allEdges.push({
 						id: `doc-doc-${docI.id}-${docJ.id}`,
 						source: docI.id,
 						target: docJ.id,
 						similarity: sim,
-						visualProps: getConnectionVisualProps(sim),
-						color: getMagicalConnectionColor(sim, 200),
+						visualProps: docEdgeDimmed
+							? {
+									opacity: 0.15,
+									thickness: 1,
+									glow: 0,
+									pulseDuration: 4000,
+								}
+							: getConnectionVisualProps(sim),
+						color: docEdgeDimmed
+							? colors.connection.medium
+							: getMagicalConnectionColor(sim, 200),
 						edgeType: "doc-doc",
 					});
 				}
@@ -300,5 +363,5 @@ export function useGraphData(
 		}
 
 		return { nodes: allNodes, edges: allEdges };
-	}, [data, selectedSpace, nodePositions, draggingNodeId]);
+	}, [data, selectedSpace, nodePositions, draggingNodeId, temporalFilterState]);
 }

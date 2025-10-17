@@ -6,4 +6,5 @@ export interface SupermemoryToolsConfig {
 	baseUrl?: string
 	containerTags?: string[]
 	projectId?: string
+	enableTemporalQueries?: boolean
 }

@@ -45,6 +45,40 @@ These parameters work across all search endpoints:
   ```
 </ParamField>
 
+<ParamField query="asOf" type="string" default="now">
+  **(Beta) Point-in-time view**
+
+  Return memories/documents as they existed at this instant. Only applied when the temporal queries feature flag is enabled.
+
+  ```typescript
+  asOf: "2024-09-30T23:59:59Z"
+  ```
+
+  <Note>
+    Temporal parameters are currently beta and behind the `NEXT_PUBLIC_ENABLE_TEMPORAL_QUERIES` flag. Servers that don’t yet support them simply ignore the fields.
+  </Note>
+</ParamField>
+
+<ParamField query="validFromGte" type="string">
+  **(Beta) Filter by validity start**
+
+  Only return memories whose validity begins at or after this timestamp.
+
+  ```typescript
+  validFromGte: "2024-09-01T00:00:00Z"
+  ```
+</ParamField>
+
+<ParamField query="validUntilLte" type="string">
+  **(Beta) Filter by validity end**
+
+  Only return memories whose validity ends at or before this timestamp.
+
+  ```typescript
+  validUntilLte: "2024-09-30T23:59:59Z"
+  ```
+</ParamField>
+
 <ParamField query="filters" type="string">
   **Metadata filtering with SQL-like structure**
 

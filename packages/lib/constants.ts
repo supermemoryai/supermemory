@@ -6,10 +6,15 @@ const ADD_MEMORY_SHORTCUT_URL =
 	"https://www.icloud.com/shortcuts/0fd3e855be444845b457f94c78c2c8d9"
 const RAYCAST_EXTENSION_URL = "https://www.raycast.com/supermemory/supermemory"
 
+const ENABLE_TEMPORAL_QUERIES =
+	(process.env.NEXT_PUBLIC_ENABLE_TEMPORAL_QUERIES ?? "false").toLowerCase() ===
+	"true"
+
 export {
 	BIG_DIMENSIONS_NEW,
 	DEFAULT_PROJECT_ID,
 	SEARCH_MEMORY_SHORTCUT_URL,
 	ADD_MEMORY_SHORTCUT_URL,
 	RAYCAST_EXTENSION_URL,
+	ENABLE_TEMPORAL_QUERIES,
 }

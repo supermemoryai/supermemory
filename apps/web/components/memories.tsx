@@ -2,11 +2,19 @@
 
 import { useAuth } from "@lib/auth-context"
 import { $fetch } from "@repo/lib/api"
+import { ENABLE_TEMPORAL_QUERIES } from "@repo/lib/constants"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { z } from "zod"
-import { MemoryGraph } from "@repo/ui/memory-graph"
+import {
+	MemoryGraph,
+	isMemoryWithinFilters,
+	parseTemporalFilterState,
+	type TemporalFilterState,
+} from "@repo/ui/memory-graph"
+import { Input } from "@repo/ui/components/input"
+import { Button } from "@repo/ui/components/button"
 import { Dialog, DialogContent } from "@repo/ui/components/dialog"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { MasonryMemoryList } from "@/components/masonry-memory-list"
@@ -14,9 +22,25 @@ import { AddMemoryView } from "@/components/views/add-memory"
 import { useChatOpen, useProject, useGraphModal } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { useIsMobile } from "@hooks/use-mobile"
+import { analytics } from "@/lib/analytics"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
+
+const toDateTimeLocalValue = (iso?: string | null) => {
+	if (!iso) return ""
+	const date = new Date(iso)
+	if (Number.isNaN(date.getTime())) return ""
+	const pad = (value: number) => value.toString().padStart(2, "0")
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+const fromDateTimeLocalValue = (value: string): string | null => {
+	if (!value) return null
+	const date = new Date(value)
+	if (Number.isNaN(date.getTime())) return null
+	return date.toISOString()
+}
 
 export function Memories() {
 	const { user } = useAuth()
@@ -29,10 +53,30 @@ export function Memories() {
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
 	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
 	const isMobile = useIsMobile()
+	const [temporalFilters, setTemporalFilters] = useState<TemporalFilterState>({
+		asOf: null,
+		from: null,
+		to: null,
+	})
+	const [showTemporalControls, setShowTemporalControls] = useState(false)
 
 	const IS_DEV = process.env.NODE_ENV === "development"
 	const PAGE_SIZE = IS_DEV ? 100 : 100
 	const MAX_TOTAL = 1000
+	const queryKey = useMemo(
+		() => [
+			"documents-with-memories",
+			selectedProject,
+			...(ENABLE_TEMPORAL_QUERIES
+				? [
+						temporalFilters.asOf ?? null,
+						temporalFilters.from ?? null,
+						temporalFilters.to ?? null,
+					]
+				: []),
+		],
+		[selectedProject, temporalFilters],
+	)
 
 	const {
 		data,
@@ -42,7 +86,7 @@ export function Memories() {
 		hasNextPage,
 		fetchNextPage,
 	} = useInfiniteQuery<DocumentsResponse, Error>({
-		queryKey: ["documents-with-memories", selectedProject],
+		queryKey,
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
 			const response = await $fetch("@post/documents/documents", {
@@ -93,7 +137,36 @@ export function Memories() {
 		return Array.from(byId.values())
 	}, [baseDocuments, injectedDocs])
 
-	const totalLoaded = allDocuments.length
+	const parsedTemporalFilters = useMemo(
+		() =>
+			ENABLE_TEMPORAL_QUERIES
+				? parseTemporalFilterState(temporalFilters)
+				: null,
+		[temporalFilters],
+	)
+
+	const hasTemporalFilters =
+		Boolean(temporalFilters.asOf) ||
+		Boolean(temporalFilters.from) ||
+		Boolean(temporalFilters.to)
+
+	const displayDocuments = useMemo(() => {
+		if (!parsedTemporalFilters) return allDocuments
+
+		return allDocuments
+			.map((doc) => {
+				const filteredMemories = doc.memoryEntries.filter((memory) =>
+					isMemoryWithinFilters(memory, parsedTemporalFilters),
+				)
+				return {
+					...doc,
+					memoryEntries: filteredMemories,
+				}
+			})
+			.filter((doc) => doc.memoryEntries.length > 0)
+	}, [allDocuments, parsedTemporalFilters])
+
+	const totalLoaded = displayDocuments.length
 	const hasMore = hasNextPage
 	const isLoadingMore = isFetchingNextPage
 
@@ -104,6 +177,39 @@ export function Memories() {
 		}
 		return
 	}, [hasNextPage, isFetchingNextPage, fetchNextPage])
+
+	const handleTemporalInputChange = useCallback(
+		(field: keyof TemporalFilterState, value: string) => {
+			const isoValue = fromDateTimeLocalValue(value)
+			setTemporalFilters((prev) => {
+				if (prev[field] === isoValue) {
+					return prev
+				}
+				const next = { ...prev, [field]: isoValue }
+				if (field === "asOf") {
+					analytics.temporalAsOfSet(next.asOf ?? null)
+				} else {
+					analytics.temporalWindowSet(next.from ?? null, next.to ?? null)
+				}
+				return next
+			})
+		},
+		[],
+	)
+
+	const handleResetTemporal = useCallback(() => {
+		setTemporalFilters({ asOf: null, from: null, to: null })
+		analytics.temporalAsOfSet(null)
+		analytics.temporalWindowSet(null, null)
+	}, [])
+
+	const toggleTemporalControls = useCallback(() => {
+		setShowTemporalControls((prev) => {
+			const next = !prev
+			analytics.temporalFilterVisibilityChanged(next, hasTemporalFilters)
+			return next
+		})
+	}, [hasTemporalFilters])
 
 	// Handle highlighted documents injection for chat
 	useEffect(() => {
@@ -164,10 +270,16 @@ export function Memories() {
 
 	// Show connect AI modal if no documents
 	useEffect(() => {
-		if (allDocuments.length === 0 && !isMobile) {
+		if (displayDocuments.length === 0 && !isMobile) {
 			setShowConnectAIModal(true)
 		}
-	}, [allDocuments.length, isMobile])
+	}, [displayDocuments.length, isMobile])
+
+	useEffect(() => {
+		if (ENABLE_TEMPORAL_QUERIES && hasTemporalFilters) {
+			setShowTemporalControls(true)
+		}
+	}, [hasTemporalFilters])
 
 	if (!user) {
 		return (
@@ -181,9 +293,81 @@ export function Memories() {
 
 	return (
 		<>
+			{ENABLE_TEMPORAL_QUERIES && (
+				<div className="mx-4 mb-6 md:mx-24">
+					<div className="rounded-xl border border-border/40 bg-background/60 p-4 backdrop-blur">
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<p className="text-sm font-semibold text-foreground">
+									Temporal filters{" "}
+									<span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-primary">
+										Beta
+									</span>
+								</p>
+								<p className="text-xs text-muted-foreground">
+									View memories from a specific moment or window. When server
+									support lands, queries will apply remotely.
+								</p>
+							</div>
+							<div className="flex items-center gap-2">
+								{hasTemporalFilters && (
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={handleResetTemporal}
+									>
+										Reset
+									</Button>
+								)}
+								<Button
+									size="sm"
+									variant="ghost"
+									onClick={toggleTemporalControls}
+								>
+									{showTemporalControls ? "Hide" : "Show"}
+								</Button>
+							</div>
+						</div>
+						{showTemporalControls && (
+							<div className="mt-4 grid gap-3 sm:grid-cols-3">
+								<label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+									<span>As of</span>
+									<Input
+										type="datetime-local"
+										value={toDateTimeLocalValue(temporalFilters.asOf)}
+										onChange={(event) =>
+											handleTemporalInputChange("asOf", event.target.value)
+										}
+									/>
+								</label>
+								<label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+									<span>Valid from</span>
+									<Input
+										type="datetime-local"
+										value={toDateTimeLocalValue(temporalFilters.from)}
+										onChange={(event) =>
+											handleTemporalInputChange("from", event.target.value)
+										}
+									/>
+								</label>
+								<label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
+									<span>Valid until</span>
+									<Input
+										type="datetime-local"
+										value={toDateTimeLocalValue(temporalFilters.to)}
+										onChange={(event) =>
+											handleTemporalInputChange("to", event.target.value)
+										}
+									/>
+								</label>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
 			<div className="relative h-full mx-4 md:mx-24">
 				<MasonryMemoryList
-					documents={allDocuments}
+					documents={displayDocuments}
 					error={error}
 					hasMore={hasMore}
 					isLoading={isPending}
@@ -263,6 +447,7 @@ export function Memories() {
 							showSpacesSelector={true}
 							highlightDocumentIds={allHighlightDocumentIds}
 							highlightsVisible={isOpen}
+							temporalFilters={ENABLE_TEMPORAL_QUERIES ? temporalFilters : null}
 						>
 							<div className="absolute inset-0 flex items-center justify-center">
 								{!isMobile ? (

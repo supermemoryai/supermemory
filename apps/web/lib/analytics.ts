@@ -40,4 +40,19 @@ export const analytics = {
 	mcpInstallCmdCopied: () => posthog.capture("mcp_install_cmd_copied"),
 
 	extensionInstallClicked: () => posthog.capture("extension_install_clicked"),
+
+	temporalFilterVisibilityChanged: (visible: boolean, hasFilters: boolean) =>
+		posthog.capture("temporal_filter_enabled", {
+			visible,
+			has_active_filters: hasFilters,
+		}),
+	temporalAsOfSet: (isoTimestamp: string | null) =>
+		posthog.capture("temporal_as_of_set", {
+			as_of: isoTimestamp,
+		}),
+	temporalWindowSet: (from: string | null, to: string | null) =>
+		posthog.capture("temporal_window_set", {
+			valid_from_gte: from,
+			valid_until_lte: to,
+		}),
 }

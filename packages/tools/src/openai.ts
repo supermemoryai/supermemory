@@ -48,6 +48,31 @@ export const memoryToolSchemas = {
 					description: PARAMETER_DESCRIPTIONS.limit,
 					default: DEFAULT_VALUES.limit,
 				},
+				asOf: {
+					type: "string",
+					format: "date-time",
+					description:
+						"[Beta] Point-in-time filter (ISO 8601). Only forwarded when temporal queries are enabled.",
+				},
+				timeWindow: {
+					type: "object",
+					description:
+						"[Beta] Validity window filter. Only forwarded when temporal queries are enabled.",
+					properties: {
+						from: {
+							type: "string",
+							format: "date-time",
+							description:
+								"[Beta] Lower bound of the validity window (ISO 8601).",
+						},
+						to: {
+							type: "string",
+							format: "date-time",
+							description:
+								"[Beta] Upper bound of the validity window (ISO 8601).",
+						},
+					},
+				},
 			},
 			required: ["informationToGet"],
 		},
@@ -96,18 +121,32 @@ export function createSearchMemoriesFunction(
 		informationToGet,
 		includeFullDocs = DEFAULT_VALUES.includeFullDocs,
 		limit = DEFAULT_VALUES.limit,
+		asOf,
+		timeWindow,
 	}: {
 		informationToGet: string
 		includeFullDocs?: boolean
 		limit?: number
+		asOf?: string
+		timeWindow?: { from?: string; to?: string }
 	}): Promise<MemorySearchResult> {
 		try {
+			const temporalFilters =
+				config?.enableTemporalQueries === true
+					? {
+							...(asOf ? { asOf } : {}),
+							...(timeWindow?.from ? { validFromGte: timeWindow.from } : {}),
+							...(timeWindow?.to ? { validUntilLte: timeWindow.to } : {}),
+						}
+					: undefined
+
 			const response = await client.search.execute({
 				q: informationToGet,
 				containerTags,
 				limit,
 				chunkThreshold: DEFAULT_VALUES.chunkThreshold,
 				includeFullDocs,
+				...(temporalFilters ?? {}),
 			})
 
 			return {
