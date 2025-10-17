@@ -35,6 +35,7 @@ export const ELEMENT_IDS = {
 	CHATGPT_INPUT_BAR_ELEMENT: "sm-chatgpt-input-bar-element",
 	CLAUDE_INPUT_BAR_ELEMENT: "sm-claude-input-bar-element",
 	T3_INPUT_BAR_ELEMENT: "sm-t3-input-bar-element",
+	PROJECT_SELECTION_MODAL: "sm-project-selection-modal",
 } as const
 
 /**
@@ -81,6 +82,7 @@ export const MESSAGE_TYPES = {
 	IMPORT_DONE: "sm-import-done",
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
 	CAPTURE_PROMPT: "sm-capture-prompt",
+	FETCH_PROJECTS: "sm-fetch-projects",
 } as const
 
 export const CONTEXT_MENU_IDS = {
