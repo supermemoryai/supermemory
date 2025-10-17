@@ -47,17 +47,20 @@ export function LoginPage({
 	// Create callback URL that includes redirect parameter if provided
 	const getCallbackURL = () => {
 		const origin = window.location.origin;
+		let finalUrl: URL;
+
 		if (redirectUrl) {
-			// Validate that the redirect URL is safe (same origin or allow external based on your security requirements)
 			try {
-				const url = new URL(redirectUrl, origin);
-				return url.toString();
+				finalUrl = new URL(redirectUrl, origin);
 			} catch {
-				// If redirect URL is invalid, fall back to origin
-				return origin;
+				finalUrl = new URL(origin);
 			}
+		} else {
+			finalUrl = new URL(origin);
 		}
-		return origin;
+
+		finalUrl.searchParams.set("extension-auth-success", "true");
+		return finalUrl.toString();
 	};
 
 	// Load last used method from localStorage on mount
