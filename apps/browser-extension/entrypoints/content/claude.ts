@@ -511,7 +511,10 @@ function setupClaudePromptCapture() {
 			contentEditableDiv &&
 			!promptContent.includes("Supermemories of user")
 		) {
-			contentEditableDiv.innerHTML = `${contentEditableDiv.innerHTML} ${storedMemories}`
+			// Fix: Use textContent to prevent XSS injection
+			const memoriesContainer = document.createElement('div')
+			memoriesContainer.textContent = storedMemories
+			contentEditableDiv.appendChild(memoriesContainer)
 			promptContent =
 				contentEditableDiv.textContent || contentEditableDiv.innerText || ""
 		}
