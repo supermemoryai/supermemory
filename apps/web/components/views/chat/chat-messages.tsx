@@ -10,6 +10,7 @@ import {
 	ChevronDown,
 	ChevronRight,
 	Copy,
+	Download,
 	RotateCcw,
 	X,
 } from "lucide-react"
@@ -20,6 +21,16 @@ import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { Spinner } from "../../spinner"
+import { AttachmentPicker } from "@/components/attachments/attachment-picker"
+import {
+	ALLOWED_MIME_PREFIXES,
+	ALLOWED_MIME_TYPES,
+	MAX_ATTACHMENTS,
+	MAX_FILE_BYTES,
+	buildAttachmentKey,
+	downscaleImageToDataUrl,
+	fileToDataUrl,
+} from "@/lib/attachments"
 
 interface MemoryResult {
 	documentId?: string
@@ -220,14 +231,22 @@ export function ChatMessages() {
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<
 		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
-	>(
-		(sessionStorage.getItem(storageKey) as
-			| "gpt-5"
-			| "claude-sonnet-4.5"
-			| "gemini-2.5-pro") ||
-			"gemini-2.5-pro" ||
-			"gemini-2.5-pro",
-	)
+	>("gemini-2.5-pro")
+
+	// Attachments state
+
+	interface AttachmentItem {
+		id: string
+		file: File
+		kind: "image" | "doc"
+		previewUrl?: string
+		mimeType: string
+		name: string
+		size: number
+	}
+
+	const [attachments, setAttachments] = useState<AttachmentItem[]>([])
+	const [isDraggingOverForm, setIsDraggingOverForm] = useState(false)
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
@@ -288,15 +307,31 @@ export function ChatMessages() {
 
 	useEffect(() => {
 		if (currentChatId && !hasRunInitialMessageRef.current) {
-			// Check if there's an initial message from the home page in sessionStorage
-			const storageKey = `chat-initial-${currentChatId}`
-			const initialMessage = sessionStorage.getItem(storageKey)
+			const textKey = `chat-initial-${currentChatId}`
+			const attachmentsKey = `chat-initial-attachments-${currentChatId}`
+			const initialMessage = sessionStorage.getItem(textKey)
+			const initialAttachmentsRaw = sessionStorage.getItem(attachmentsKey)
 
-			if (initialMessage) {
-				// Clean up the storage and send the message
-				sessionStorage.removeItem(storageKey)
-				sendMessage({ text: initialMessage })
-				hasRunInitialMessageRef.current = true
+			let parts: any[] = []
+			try {
+				if (initialAttachmentsRaw) {
+					const parsed = JSON.parse(initialAttachmentsRaw)
+					if (Array.isArray(parsed)) parts = parts.concat(parsed)
+				}
+			} catch {}
+
+			if (initialMessage && initialMessage.trim().length > 0) {
+				parts.push({ type: "text", text: initialMessage.trim() })
+			}
+
+			if (parts.length > 0) {
+				try {
+					sendMessage({ parts })
+				} finally {
+					if (initialMessage) sessionStorage.removeItem(textKey)
+					if (initialAttachmentsRaw) sessionStorage.removeItem(attachmentsKey)
+					hasRunInitialMessageRef.current = true
+				}
 			}
 		}
 	}, [currentChatId])
@@ -372,9 +407,155 @@ export function ChatMessages() {
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			sendMessage({ text: input })
-			setInput("")
+			handleSubmit()
 		}
+	}
+
+	function validateFile(file: File): string | null {
+		if (file.size > MAX_FILE_BYTES) return `File exceeds 25MB: ${file.name}`
+		const type = file.type
+		const isImage = ALLOWED_MIME_PREFIXES.some((p) => type.startsWith(p))
+		const allowed = isImage || ALLOWED_MIME_TYPES.includes(type)
+		if (!allowed) return `Unsupported type: ${file.name}`
+		return null
+	}
+
+	function onFilesSelected(files: File[]) {
+		const existingKeys = new Set(attachments.map((a) => buildAttachmentKey(a.file)))
+		const accepted: File[] = []
+		const seen = new Set<string>()
+		for (const file of files) {
+			const key = buildAttachmentKey(file)
+			if (existingKeys.has(key) || seen.has(key)) {
+				toast.error(`Already attached: ${file.name}`)
+				continue
+			}
+			const err = validateFile(file)
+			if (err) {
+				toast.error(err)
+				continue
+			}
+			accepted.push(file)
+			seen.add(key)
+		}
+		if (attachments.length + accepted.length > MAX_ATTACHMENTS) {
+			toast.error(`You can attach up to ${MAX_ATTACHMENTS} files`)
+			return
+		}
+		const newItems: AttachmentItem[] = []
+		for (const file of accepted) {
+			const isImage = file.type.startsWith("image/")
+			const item: AttachmentItem = {
+				id: crypto.randomUUID(),
+				file,
+				kind: isImage ? "image" : "doc",
+				previewUrl: isImage ? URL.createObjectURL(file) : undefined,
+				mimeType: file.type,
+				name: file.name,
+				size: file.size,
+			}
+			newItems.push(item)
+		}
+		if (newItems.length > 0) setAttachments((prev) => [...prev, ...newItems])
+	}
+
+	function removeAttachment(id: string) {
+		setAttachments((prev) => {
+			const next = prev.filter((a) => a.id !== id)
+			const removed = prev.find((a) => a.id === id)
+			if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl)
+			return next
+		})
+	}
+
+	function fileToDataUrl(file: File): Promise<string> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader()
+			reader.onload = () => resolve(String(reader.result))
+			reader.onerror = reject
+			reader.readAsDataURL(file)
+		})
+	}
+
+	async function downscaleImageToDataUrl(
+		file: File,
+		maxDim = 1600,
+		quality = 0.85,
+	): Promise<{ dataUrl: string; mimeType: string }> {
+		const originalDataUrl = await fileToDataUrl(file)
+		return new Promise((resolve) => {
+			const img = new Image()
+			img.onload = () => {
+				let { width, height } = img
+				if (width <= maxDim && height <= maxDim) {
+					// no resize
+					resolve({ dataUrl: originalDataUrl, mimeType: file.type || "image/jpeg" })
+					return
+				}
+				const scale = Math.min(maxDim / width, maxDim / height)
+				width = Math.floor(width * scale)
+				height = Math.floor(height * scale)
+				const canvas = document.createElement("canvas")
+				canvas.width = width
+				canvas.height = height
+				const ctx = canvas.getContext("2d")
+				if (!ctx) {
+					resolve({ dataUrl: originalDataUrl, mimeType: file.type || "image/jpeg" })
+					return
+				}
+				ctx.drawImage(img, 0, 0, width, height)
+				const outType = file.type && file.type.startsWith("image/png") ? "image/png" : "image/jpeg"
+				const dataUrl = canvas.toDataURL(outType, outType === "image/jpeg" ? quality : undefined)
+				resolve({ dataUrl, mimeType: outType })
+			}
+			img.onerror = () => resolve({ dataUrl: originalDataUrl, mimeType: file.type || "image/jpeg" })
+			img.src = originalDataUrl
+		})
+	}
+
+	async function handleSubmit() {
+		if (status === "submitted") return
+		if (status === "streaming") {
+			stop()
+			return
+		}
+		const hasText = Boolean(input.trim())
+		const hasFiles = attachments.length > 0
+		if (!hasText && !hasFiles) return
+
+		enableAutoScroll()
+		scrollToBottom("auto")
+
+		const parts: any[] = []
+		// attachments first
+		if (hasFiles) {
+			const processed = await Promise.all(
+				attachments.map(async (a) => {
+					if (a.kind === "image") {
+						const res = await downscaleImageToDataUrl(a.file)
+						return { ...a, dataUrl: res.dataUrl, outMime: res.mimeType }
+					}
+					const dataUrl = await fileToDataUrl(a.file)
+					return { ...a, dataUrl, outMime: a.mimeType }
+				}),
+			)
+			processed.forEach((a) => {
+				if (a.kind === "image") {
+					parts.push({ type: "image", mimeType: a.outMime, data: a.dataUrl })
+				} else {
+					parts.push({ type: "file", name: a.name, mimeType: a.outMime, data: a.dataUrl })
+				}
+			})
+		}
+		// then the text content
+		if (hasText) {
+			parts.push({ type: "text", text: input.trim() })
+		}
+
+		sendMessage({ parts })
+		setInput("")
+		attachments.forEach((a) => a.previewUrl && URL.revokeObjectURL(a.previewUrl))
+		setAttachments([])
 	}
 
 	const {
@@ -412,55 +593,87 @@ export function ChatMessages() {
 										: "",
 								)}
 							>
-								{message.parts
-									.filter((part) =>
-										["text", "tool-searchMemories", "tool-addMemory"].includes(
-											part.type,
-										),
-									)
-									.map((part, index) => {
-										switch (part.type) {
+				{message.parts
+					.filter((part) => {
+						const pType = ((part as any)?.type as string) ?? ""
+						return (
+							[
+								"text",
+								"image",
+								"file",
+								"tool-searchMemories",
+								"tool-addMemory",
+							] as string[]
+						).includes(pType)
+					})
+					.map((part, index) => {
+						const pType = ((part as any)?.type as string) ?? ""
+						switch (pType) {
 											case "text":
 												return (
-													<div key={`${message.id}-${part.type}-${index}`}>
-														<Streamdown>{part.text}</Streamdown>
+									<div key={`${message.id}-${(part as any).type}-${index}`}>
+										<Streamdown>{(part as any).text}</Streamdown>
 													</div>
 												)
-											case "tool-searchMemories": {
-												switch (part.state) {
+							case "image": {
+								const src = (part as any).data as string
+								return (
+									<div key={`${message.id}-${(part as any).type}-${index}`} className="mt-1">
+										<img src={src} alt="attachment" className="max-w-[320px] rounded border border-border" />
+									</div>
+								)
+							}
+							case "file": {
+								const dataUrl = (part as any).data as string | undefined
+								const name = (part as any).name as string | undefined
+								return (
+									<div
+										key={`${message.id}-${(part as any).type}-${index}`}
+										className="inline-flex items-center gap-2 text-sm border border-border rounded-md px-2 py-1 bg-accent/40 w-fit"
+									>
+										<span className="truncate max-w-48">{name ?? "file"}</span>
+										{dataUrl ? (
+											<a href={dataUrl} download={name ?? "file"} title="Download file" className="inline-flex">
+												<Download className="size-3.5" />
+											</a>
+										) : null}
+									</div>
+								)
+							}
+							case "tool-searchMemories": {
+									const toolState = (part as any).state as string | undefined
+									switch (toolState) {
 													case "input-available":
 													case "input-streaming":
 														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
+									<div
+										className="text-sm flex items-center gap-2 text-muted-foreground"
+										key={`${message.id}-${(part as any).type}-${index}`}
+									>
 																<Spinner className="size-4" /> Searching
 																memories...
 															</div>
 														)
 													case "output-error":
 														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
+									<div
+										className="text-sm flex items-center gap-2 text-muted-foreground"
+										key={`${message.id}-${(part as any).type}-${index}`}
+									>
 																<X className="size-4" /> Error recalling
 																memories
 															</div>
 														)
 													case "output-available": {
-														const output = part.output
+									const output = (part as any).output
 														const foundCount =
 															typeof output === "object" &&
 															output !== null &&
 															"count" in output
 																? Number(output.count) || 0
 																: 0
-														// @ts-expect-error
-														const results = Array.isArray(output?.results)
-															? // @ts-expect-error
-																output.results
+									const results = Array.isArray((output as any)?.results)
+										? (output as any).results
 															: []
 
 														return (
@@ -475,8 +688,9 @@ export function ChatMessages() {
 														return null
 												}
 											}
-											case "tool-addMemory": {
-												switch (part.state) {
+							case "tool-addMemory": {
+									const toolState = (part as any).state as string | undefined
+									switch (toolState) {
 													case "input-available":
 														return (
 															<div
@@ -537,6 +751,7 @@ export function ChatMessages() {
 										}}
 										size="icon"
 										variant="ghost"
+							aria-label="Copy assistant text"
 									>
 										<Copy className="size-3.5" />
 									</Button>
@@ -584,23 +799,67 @@ export function ChatMessages() {
 			</div>
 
 			<div className="px-4 pb-4 pt-1 relative flex-shrink-0">
-				<form
-					className="flex flex-col items-end gap-3 bg-card border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
-					onSubmit={(e) => {
-						e.preventDefault()
-						if (status === "submitted") return
-						if (status === "streaming") {
-							stop()
-							return
-						}
-						if (input.trim()) {
-							enableAutoScroll()
-							scrollToBottom("auto")
-							sendMessage({ text: input })
-							setInput("")
-						}
-					}}
+		<form
+				className={cn(
+					"flex flex-col items-end gap-3 bg-card border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl",
+					isDraggingOverForm ? "ring-2 ring-primary/40" : "",
+				)}
+				onSubmit={(e) => {
+					e.preventDefault()
+					handleSubmit()
+				}}
+				onDragEnter={(e) => {
+					e.preventDefault()
+					e.stopPropagation()
+					setIsDraggingOverForm(true)
+				}}
+				onDragOver={(e) => {
+					e.preventDefault()
+					e.stopPropagation()
+					setIsDraggingOverForm(true)
+				}}
+				onDragLeave={(e) => {
+					e.preventDefault()
+					e.stopPropagation()
+					setIsDraggingOverForm(false)
+				}}
+				onDrop={(e) => {
+					e.preventDefault()
+					e.stopPropagation()
+					setIsDraggingOverForm(false)
+					const files = Array.from(e.dataTransfer.files || [])
+					if (files.length > 0) onFilesSelected(files)
+				}}
 				>
+				{/* Attached files preview */}
+				{attachments.length > 0 && (
+					<div className="w-full flex flex-wrap gap-2 px-1">
+						{attachments.map((a) => (
+							<div
+								key={a.id}
+								className="flex items-center gap-2 border border-border rounded-md px-2 py-1 bg-accent/40"
+							>
+								{a.kind === "image" && a.previewUrl ? (
+									<img
+										src={a.previewUrl}
+										alt={a.name}
+										className="w-8 h-8 rounded object-cover"
+									/>
+								) : null}
+								<div className="text-xs max-w-40 truncate">{a.name}</div>
+								<Button
+									variant="ghost"
+									size="icon"
+									type="button"
+									onClick={() => removeAttachment(a.id)}
+									aria-label={`Remove ${a.name}`}
+								>
+									<X className="size-3.5" />
+								</Button>
+							</div>
+						))}
+					</div>
+				)}
 					<textarea
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
@@ -609,10 +868,18 @@ export function ChatMessages() {
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
+				<div className="absolute bottom-2 left-2">
+					<AttachmentPicker
+						onFilesSelected={onFilesSelected}
+						disabled={status === "submitted" || status === "streaming"}
+						accept=".pdf,.doc,.docx,.txt,image/*"
+						multiple
+					/>
+				</div>
 					<div className="absolute bottom-2 right-2">
 						<Button
-							type="submit"
-							disabled={!input.trim()}
+						type="submit"
+						disabled={!input.trim() && attachments.length === 0}
 							className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
 							size="icon"
 						>
