@@ -1,4 +1,3 @@
-// apps/web/components/graph-dialog.tsx
 "use client"
 
 import { useAuth } from "@lib/auth-context"
