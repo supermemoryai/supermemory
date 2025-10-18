@@ -26,6 +26,7 @@ class SupermemoryToolsConfig(TypedDict, total=False):
     base_url: Optional[str]
     container_tags: Optional[List[str]]
     project_id: Optional[str]
+    enable_temporal_queries: Optional[bool]
 
 
 # Type aliases using inferred types from supermemory package
@@ -75,6 +76,33 @@ MEMORY_TOOL_SCHEMAS: Dict[str, ChatCompletionFunctionToolParam] = {
                     "type": "number",
                     "description": "Maximum number of results to return",
                     "default": 10,
+                },
+                "as_of": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": (
+                        "[Beta] Point-in-time filter (ISO 8601). Only forwarded when "
+                        "temporal queries are enabled."
+                    ),
+                },
+                "time_window": {
+                    "type": "object",
+                    "description": (
+                        "[Beta] Validity window filter. Only forwarded when temporal "
+                        "queries are enabled."
+                    ),
+                    "properties": {
+                        "from": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "[Beta] Lower bound of the validity window (ISO 8601).",
+                        },
+                        "to": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "[Beta] Upper bound of the validity window (ISO 8601).",
+                        },
+                    },
                 },
             },
             "required": ["information_to_get"],
@@ -129,6 +157,10 @@ class SupermemoryTools:
         else:
             self.container_tags = ["sm_project_default"]
 
+        self.enable_temporal_queries: bool = bool(
+            config.get("enable_temporal_queries", False)
+        )
+
     def get_tool_definitions(self) -> List[ChatCompletionFunctionToolParam]:
         """Get OpenAI function definitions for all memory tools.
 
@@ -169,6 +201,8 @@ class SupermemoryTools:
         information_to_get: str,
         include_full_docs: bool = True,
         limit: int = 10,
+        as_of: Optional[str] = None,
+        time_window: Optional[Dict[str, Optional[str]]] = None,
     ) -> MemorySearchResult:
         """Search memories.
 
@@ -181,12 +215,27 @@ class SupermemoryTools:
             MemorySearchResult
         """
         try:
+            search_params = {
+                "q": information_to_get,
+                "container_tags": self.container_tags,
+                "limit": limit,
+                "chunk_threshold": 0.6,
+                "include_full_docs": include_full_docs,
+            }
+
+            if self.enable_temporal_queries:
+                if as_of:
+                    search_params["asOf"] = as_of
+                if time_window:
+                    from_value = time_window.get("from")
+                    to_value = time_window.get("to")
+                    if from_value:
+                        search_params["validFromGte"] = from_value
+                    if to_value:
+                        search_params["validUntilLte"] = to_value
+
             response: SearchExecuteResponse = await self.client.search.execute(
-                q=information_to_get,
-                container_tags=self.container_tags,
-                limit=limit,
-                chunk_threshold=0.6,
-                include_full_docs=include_full_docs,
+                **search_params
             )
 
             return MemorySearchResult(
@@ -312,12 +361,16 @@ class SearchMemoriesTool:
         information_to_get: str,
         include_full_docs: bool = True,
         limit: int = 10,
+        as_of: Optional[str] = None,
+        time_window: Optional[Dict[str, Optional[str]]] = None,
     ) -> MemorySearchResult:
         """Execute search memories."""
         return await self.tools.search_memories(
             information_to_get=information_to_get,
             include_full_docs=include_full_docs,
             limit=limit,
+            as_of=as_of,
+            time_window=time_window,
         )
 
 

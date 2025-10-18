@@ -10,6 +10,7 @@ export interface SupermemoryToolsConfig {
 	baseUrl?: string
 	containerTags?: string[]
 	projectId?: string
+	enableTemporalQueries?: boolean
 }
 
 /**
@@ -47,19 +48,55 @@ export function supermemoryTools(
 				.optional()
 				.default(10)
 				.describe("Maximum number of results to return"),
+			asOf: z
+				.string()
+				.datetime()
+				.optional()
+				.describe(
+					"[Beta] Point-in-time filter (ISO 8601). Only applied when temporal queries are enabled.",
+				),
+			timeWindow: z
+				.object({
+					from: z
+						.string()
+						.datetime()
+						.optional()
+						.describe("[Beta] Lower bound of validity window (ISO 8601)."),
+					to: z
+						.string()
+						.datetime()
+						.optional()
+						.describe("[Beta] Upper bound of validity window (ISO 8601)."),
+				})
+				.optional()
+				.describe(
+					"[Beta] Validity window filter. Only applied when temporal queries are enabled.",
+				),
 		}),
 		execute: async ({
 			informationToGet,
 			includeFullDocs = true,
 			limit = 10,
+			asOf,
+			timeWindow,
 		}) => {
 			try {
+				const temporalFilters =
+					config?.enableTemporalQueries === true
+						? {
+								...(asOf ? { asOf } : {}),
+								...(timeWindow?.from ? { validFromGte: timeWindow.from } : {}),
+								...(timeWindow?.to ? { validUntilLte: timeWindow.to } : {}),
+							}
+						: undefined
+
 				const response = await client.search.execute({
 					q: informationToGet,
 					containerTags,
 					limit,
 					chunkThreshold: 0.6,
 					includeFullDocs,
+					...(temporalFilters ?? {}),
 				})
 
 				return {

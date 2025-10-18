@@ -363,6 +363,21 @@ export const SearchRequestSchema = z.object({
 				"Optional tags this search should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to filter memories.",
 			example: ["user_123", "project_123"],
 		}),
+	asOf: z.string().datetime().optional().openapi({
+		description:
+			"Point-in-time filter (ISO 8601). When provided, results reflect memory state as of this timestamp.",
+		example: "2024-09-30T23:59:59Z",
+	}),
+	validFromGte: z.string().datetime().optional().openapi({
+		description:
+			"Lower bound for memory validity start (ISO 8601). Results include memories whose validity begins at or after this timestamp.",
+		example: "2024-09-01T00:00:00Z",
+	}),
+	validUntilLte: z.string().datetime().optional().openapi({
+		description:
+			"Upper bound for memory validity end (ISO 8601). Results include memories whose validity ends at or before this timestamp.",
+		example: "2024-09-30T23:59:59Z",
+	}),
 	docId: z.string().max(255).optional().openapi({
 		description:
 			"Optional document ID to search within. You can use this to find chunks in a very large document.",
@@ -698,6 +713,18 @@ export const MemorySearchResult = z.object({
 		description: "Version number of this memory entry",
 		example: 3,
 	}),
+	validFrom: z.coerce.date().nullable().optional().openapi({
+		description:
+			"Start of the memory's validity window (if provided by the server).",
+		example: new Date().toISOString(),
+		format: "date-time",
+	}),
+	validUntil: z.coerce.date().nullable().optional().openapi({
+		description:
+			"End of the memory's validity window (if provided by the server).",
+		example: new Date().toISOString(),
+		format: "date-time",
+	}),
 	context: z
 		.object({
 			parents: z
@@ -720,6 +747,16 @@ export const MemorySearchResult = z.object({
 						}),
 						metadata: z.record(z.unknown()).nullable().optional().openapi({
 							description: "Contextual memory metadata",
+						}),
+						validFrom: z.coerce.date().nullable().optional().openapi({
+							description: "Start of the contextual memory's validity window.",
+							example: new Date().toISOString(),
+							format: "date-time",
+						}),
+						validUntil: z.coerce.date().nullable().optional().openapi({
+							description: "End of the contextual memory's validity window.",
+							example: new Date().toISOString(),
+							format: "date-time",
 						}),
 						updatedAt: z.coerce.date().openapi({
 							description: "Contextual memory last update date",
@@ -751,6 +788,16 @@ export const MemorySearchResult = z.object({
 						}),
 						updatedAt: z.coerce.date().openapi({
 							description: "Contextual memory last update date",
+							format: "date-time",
+						}),
+						validFrom: z.coerce.date().nullable().optional().openapi({
+							description: "Start of the contextual memory's validity window.",
+							example: new Date().toISOString(),
+							format: "date-time",
+						}),
+						validUntil: z.coerce.date().nullable().optional().openapi({
+							description: "End of the contextual memory's validity window.",
+							example: new Date().toISOString(),
 							format: "date-time",
 						}),
 					}),

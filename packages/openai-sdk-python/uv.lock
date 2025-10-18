@@ -1159,7 +1159,7 @@ wheels = [
 
 [[package]]
 name = "supermemory"
-version = "3.0.0a28"
+version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio", version = "4.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -1172,14 +1172,14 @@ dependencies = [
     { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/22/ce/bef26605ee03599bd12c461eb95c41fe8e5da24968060f73ad186c4e088d/supermemory-3.0.0a28.tar.gz", hash = "sha256:f63f05b98ed979c53ca4622cea0249dd1ea58290af5c324981f4ae6c81297463", size = 111084, upload-time = "2025-08-24T22:22:02.46Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/e9/1f6c34145b368ce95bc68c350e4b378b4da2ab4ce2d25035ee0e436b7c76/supermemory-3.4.0.tar.gz", hash = "sha256:449bc5b637ee8f5c6510c8e7bb41415b182bc6e68d30f1fdb602f632dde8f7c8", size = 119910, upload-time = "2025-10-09T18:49:28.254Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ab/29/90e6ccfc4ffdf2284a7fa8163415c8901a500c75f1234af2b27920f9e802/supermemory-3.0.0a28-py3-none-any.whl", hash = "sha256:3818438aa65918eaf6cc8ff80c46464533b4243fbd4a373119e3f99a571e88e5", size = 101077, upload-time = "2025-08-24T22:22:01.125Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/2b/22925c7235a44b9f214c27b30ccfdfc6ffa13e2fd7e2bc730eea92330502/supermemory-3.4.0-py3-none-any.whl", hash = "sha256:c81b4ddfc89c21fc71317bf6aaa80a4d3362de9bc17a153d5e01aff68a2a61fc", size = 119275, upload-time = "2025-10-09T18:49:26.936Z" },
 ]
 
 [[package]]
 name = "supermemory-openai-sdk"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "openai" },
@@ -1209,7 +1209,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "openai", specifier = ">=1.102.0" },
-    { name = "supermemory", specifier = ">=3.0.0a28" },
+    { name = "supermemory", specifier = ">=3.1.0" },
     { name = "typing-extensions", specifier = ">=4.0.0" },
 ]
 

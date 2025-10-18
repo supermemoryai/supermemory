@@ -40,6 +40,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		onTouchEnd,
 		draggingNodeId,
 		highlightDocumentIds,
+		temporalFilters: _temporalFilters,
 	}) => {
 		const canvasRef = useRef<HTMLCanvasElement>(null);
 		const animationRef = useRef<number>(0);

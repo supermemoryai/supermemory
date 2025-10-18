@@ -17,6 +17,7 @@ export interface GraphNode {
 	color: string;
 	isHovered: boolean;
 	isDragging: boolean;
+	isDimmed?: boolean;
 }
 
 export type MemoryRelation = "updates" | "extends" | "derives";
@@ -75,6 +76,7 @@ export interface GraphCanvasProps {
 	// Optional list of document IDs (customId or internal id) to highlight
 	highlightDocumentIds?: string[];
 	isExperimental?: boolean;
+	temporalFilters?: TemporalFilterState | null;
 }
 
 export interface MemoryGraphProps {
@@ -99,6 +101,7 @@ export interface MemoryGraphProps {
 	// Whether to auto-load more documents based on viewport visibility
 	autoLoadOnViewport?: boolean;
 	isExperimental?: boolean;
+	temporalFilters?: TemporalFilterState | null;
 }
 
 export interface LegendProps {
@@ -121,4 +124,16 @@ export interface ControlsProps {
 	onZoomOut: () => void;
 	onResetView: () => void;
 	variant?: "console" | "consumer";
+}
+
+export interface TemporalFilterState {
+	asOf?: string | null;
+	from?: string | null;
+	to?: string | null;
+}
+
+export interface ParsedTemporalFilter {
+	asOf?: Date;
+	from?: Date;
+	to?: Date;
 }
