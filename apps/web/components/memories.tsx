@@ -1,3 +1,4 @@
+// apps/web/components/memories.tsx
 "use client"
 
 import { useAuth } from "@lib/auth-context"
@@ -7,6 +8,7 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { z } from "zod"
+
 import {
 	MemoryGraph,
 	isMemoryWithinFilters,
@@ -16,10 +18,12 @@ import {
 import { Input } from "@repo/ui/components/input"
 import { Button } from "@repo/ui/components/button"
 import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+
+
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { MasonryMemoryList } from "@/components/masonry-memory-list"
 import { AddMemoryView } from "@/components/views/add-memory"
-import { useChatOpen, useProject, useGraphModal } from "@/stores"
+import { useChatOpen, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { useIsMobile } from "@hooks/use-mobile"
 import { analytics } from "@/lib/analytics"
@@ -47,8 +51,6 @@ export function Memories() {
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
 	const { selectedProject } = useProject()
 	const { isOpen } = useChatOpen()
-	const { isOpen: showGraphModal, setIsOpen: setShowGraphModal } =
-		useGraphModal()
 	const [injectedDocs, setInjectedDocs] = useState<DocumentWithMemories[]>([])
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
 	const [showConnectAIModal, setShowConnectAIModal] = useState(false)
@@ -428,6 +430,7 @@ export function Memories() {
 				)}
 			</div>
 
+
 			{/* Memory Graph Modal */}
 			<Dialog open={showGraphModal} onOpenChange={setShowGraphModal}>
 				<DialogContent
@@ -496,6 +499,8 @@ export function Memories() {
 					</div>
 				</DialogContent>
 			</Dialog>
+
+
 		</>
 	)
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { GraphDialog } from "@/components/graph-dialog"
 import { Header } from "@/components/header"
 import { AddMemoryView } from "@/components/views/add-memory"
 import { useEffect, useState } from "react"
@@ -52,6 +53,8 @@ export default function NavigationLayout({
 					onClose={() => setShowAddMemoryView(false)}
 				/>
 			)}
+
+			<GraphDialog />
 		</div>
 	)
 }
