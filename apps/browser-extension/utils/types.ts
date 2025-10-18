@@ -11,6 +11,8 @@ export type ToastState = "loading" | "success" | "error"
  * Message types for extension communication
  */
 export interface ExtensionMessage {
+	isFolderImport?: boolean
+	bookmarkCollectionId?: string
 	action?: string
 	type?: string
 	data?: unknown
@@ -18,6 +20,11 @@ export interface ExtensionMessage {
 	importedMessage?: string
 	totalImported?: number
 	actionSource?: string
+	selectedProject?: {
+		id: string
+		name: string
+		containerTag: string
+	}
 }
 
 /**

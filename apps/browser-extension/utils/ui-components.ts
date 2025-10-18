@@ -181,6 +181,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     align-items: center;
     gap: 8px;
     transition: all 0.2s ease;
+	font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `
 
 	const iconUrl = browser.runtime.getURL("/icon-16.png")
@@ -214,7 +215,6 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
 	iconButton.style.cssText = `
     display: inline-flex;
     align-items: flex-end;
-    opacity: 0.7;
     justify-content: center;
     width: 20px;
     height: 20px;
@@ -376,6 +376,264 @@ export function createT3InputBarElement(onClick: () => void): HTMLElement {
 	})
 
 	return iconButton
+}
+
+/**
+ * Creates a project selection modal for Twitter folder imports
+ * @param projects - Array of available projects
+ * @param onImport - Callback when import is clicked with selected project
+ * @param onClose - Callback when modal is closed
+ * @returns HTMLElement - The modal element
+ */
+export function createProjectSelectionModal(
+	projects: Array<{ id: string; name: string; containerTag: string }>,
+	onImport: (project: {
+		id: string
+		name: string
+		containerTag: string
+	}) => void,
+	onClose: () => void,
+): HTMLElement {
+	const modal = document.createElement("div")
+	modal.id = "sm-project-selection-modal"
+	modal.style.cssText = `
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 2147483648;
+		font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	`
+
+	const dialog = document.createElement("div")
+	dialog.style.cssText = `
+		background: #05070A;
+		border-radius: 12px;
+		padding: 24px;
+		max-width: 400px;
+		width: 90%;
+		box-shadow: 0 8px 32px rgba(5, 7, 10, 0.2);
+		position: relative;
+	`
+
+	const header = document.createElement("div")
+	header.style.cssText = `
+		margin-bottom: 20px;
+	`
+
+	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	header.innerHTML = `
+	<div style="display: flex; flex-direction: column; gap: 8px;">
+	    <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+			<img src="${iconUrl}" width="20" height="20" alt="Supermemory" style="border-radius: 4px;" />
+			Import to Supermemory
+		</h3>
+		<p style="margin: 0; font-size: 14px; font-weight: 400; color: #ffffff; opacity: 0.7;">
+			The project you want to import your bookmarks to.
+		</p>
+	</div>
+	`
+
+	const form = document.createElement("div")
+	form.style.cssText = `
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	`
+
+	const selectContainer = document.createElement("div")
+	selectContainer.style.cssText = `
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	`
+
+	const label = document.createElement("label")
+	label.style.cssText = `
+		font-size: 14px;
+		font-weight: 500;
+		color: #ffffff;
+	`
+	label.textContent = "Select Project to import"
+
+	const select = document.createElement("select")
+	select.id = "project-select"
+	select.style.cssText = `
+		padding: 12px 40px 12px 16px;
+		border: none;
+		border-radius: 12px;
+		font-size: 14px;
+		background: rgba(91, 126, 245, 0.04);
+		box-shadow: -1px -1px 1px 0 rgba(82, 89, 102, 0.08) inset, 2px 2px 1px 0 rgba(0, 0, 0, 0.50) inset;
+		color: #ffffff;
+		cursor: pointer;
+		transition: border-color 0.2s ease;
+		appearance: none;
+		background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+		background-repeat: no-repeat;
+		background-position: right 16px center;
+		background-size: 16px;
+		font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	`
+	select.addEventListener("focus", () => {
+		select.style.borderColor = "#1A88FF"
+	})
+	select.addEventListener("blur", () => {
+		select.style.borderColor = "#374151"
+	})
+
+	// Add default option
+	const defaultOption = document.createElement("option")
+	defaultOption.value = ""
+	defaultOption.textContent = "Choose a project..."
+	defaultOption.disabled = true
+	defaultOption.selected = true
+	select.appendChild(defaultOption)
+
+	// Add project options
+	projects.forEach((project) => {
+		const option = document.createElement("option")
+		option.value = project.id
+		option.textContent = project.name
+		option.dataset.containerTag = project.containerTag
+		select.appendChild(option)
+	})
+
+	const buttonContainer = document.createElement("div")
+	buttonContainer.style.cssText = `
+		display: flex;
+		gap: 12px;
+		justify-content: flex-end;
+		margin-top: 8px;
+	`
+
+	const cancelButton = document.createElement("button")
+	cancelButton.textContent = "Cancel"
+	cancelButton.style.cssText = `
+		padding: 10px 16px;
+		color: #ffffff;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		border-radius: 10px;
+		border: none;
+		background: #05070A;
+	`
+	cancelButton.addEventListener("mouseenter", () => {
+		cancelButton.style.backgroundColor = "#f9fafb"
+		cancelButton.style.color = "#05070A"
+	})
+	cancelButton.addEventListener("mouseleave", () => {
+		cancelButton.style.backgroundColor = "#05070A"
+		cancelButton.style.color = "#ffffff"
+	})
+
+	const importButton = document.createElement("button")
+	importButton.textContent = "Import"
+	importButton.style.cssText = `
+		padding: 10px 16px;
+		border: none;
+		border-radius: 12px;
+		background: #d1d5db;
+		color: #9ca3af;
+		font-size: 14px;
+		font-weight: 500;
+		cursor: not-allowed;
+		transition: all 0.2s ease;
+	`
+	importButton.disabled = true
+
+	// Handle project selection
+	select.addEventListener("change", () => {
+		const selectedOption = select.options[select.selectedIndex]
+		if (selectedOption.value) {
+			importButton.disabled = false
+			importButton.style.cssText = `
+				padding: 10px 16px;
+				border: none;
+				border-radius: 12px;
+				background: linear-gradient(203deg, #0FF0D2 -49.88%, #5BD3FB -33.14%, #1E0FF0 81.81%);
+				box-shadow: 1px 1px 2px 1px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20);
+				color: #ffffff;
+				font-size: 14px;
+				font-weight: 500;
+				cursor: pointer;
+				transition: all 0.2s ease;
+			`
+		} else {
+			importButton.disabled = true
+			importButton.style.cssText = `
+				padding: 10px 16px;
+				border: none;
+				border-radius: 8px;
+				background: #d1d5db;
+				color: #9ca3af;
+				font-size: 14px;
+				font-weight: 500;
+				cursor: not-allowed;
+				transition: all 0.2s ease;
+			`
+		}
+	})
+
+	// Handle import button click
+	importButton.addEventListener("click", () => {
+		const selectedOption = select.options[select.selectedIndex]
+		if (selectedOption.value) {
+			const selectedProject = {
+				id: selectedOption.value,
+				name: selectedOption.textContent,
+				containerTag: selectedOption.dataset.containerTag || "",
+			}
+			onImport(selectedProject)
+		}
+	})
+
+	// Handle cancel button click
+	cancelButton.addEventListener("click", onClose)
+
+	// Handle overlay click to close
+	modal.addEventListener("click", (e) => {
+		if (e.target === modal) {
+			onClose()
+		}
+	})
+
+	// Handle escape key
+	const handleKeyDown = (e: KeyboardEvent) => {
+		if (e.key === "Escape") {
+			onClose()
+		}
+	}
+	document.addEventListener("keydown", handleKeyDown)
+
+	// Clean up event listener when modal is removed
+	const observer = new MutationObserver(() => {
+		if (!document.contains(modal)) {
+			document.removeEventListener("keydown", handleKeyDown)
+			observer.disconnect()
+		}
+	})
+	observer.observe(document.body, { childList: true, subtree: true })
+
+	selectContainer.appendChild(label)
+	selectContainer.appendChild(select)
+	form.appendChild(selectContainer)
+	buttonContainer.appendChild(cancelButton)
+	buttonContainer.appendChild(importButton)
+	form.appendChild(buttonContainer)
+
+	dialog.appendChild(header)
+	dialog.appendChild(form)
+	modal.appendChild(dialog)
+
+	return modal
 }
 
 /**

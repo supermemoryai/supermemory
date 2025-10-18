@@ -2,12 +2,14 @@
  * Twitter Bookmarks Import Module
  * Handles the import process for Twitter bookmarks
  */
-
 import { saveAllTweets } from "./api"
+import type { MemoryPayload } from "./types"
 import { createTwitterAPIHeaders, getTwitterTokens } from "./twitter-auth"
 import {
 	BOOKMARKS_URL,
+	BOOKMARK_COLLECTION_URL,
 	buildRequestVariables,
+	buildBookmarkCollectionVariables,
 	extractNextCursor,
 	getAllTweets,
 	type TwitterAPIResponse,
@@ -18,6 +20,13 @@ export type ImportProgressCallback = (message: string) => Promise<void>
 export type ImportCompleteCallback = (totalImported: number) => Promise<void>
 
 export interface TwitterImportConfig {
+	isFolderImport?: boolean
+	bookmarkCollectionId?: string
+	selectedProject?: {
+		id: string
+		name: string
+		containerTag: string
+	}
 	onProgress: ImportProgressCallback
 	onComplete: ImportCompleteCallback
 	onError: (error: Error) => Promise<void>
@@ -81,7 +90,11 @@ export class TwitterImporter {
 	 * @param cursor - Pagination cursor for Twitter API
 	 * @param totalImported - Number of tweets imported so far
 	 */
-	private async batchImportAll(cursor = "", totalImported = 0, uniqueGroupId = "twitter_bookmarks"): Promise<void> {
+	private async batchImportAll(
+		cursor = "",
+		totalImported = 0,
+		uniqueGroupId = "twitter_bookmarks",
+	): Promise<void> {
 		try {
 			// Use a local variable to track imported count
 			let importedCount = totalImported
@@ -99,10 +112,19 @@ export class TwitterImporter {
 			const headers = createTwitterAPIHeaders(tokens)
 
 			// Build API request with pagination
-			const variables = buildRequestVariables(cursor)
+			const variables =
+				this.config.isFolderImport && this.config.bookmarkCollectionId
+					? buildBookmarkCollectionVariables(this.config.bookmarkCollectionId)
+					: buildRequestVariables(cursor)
 			const urlWithCursor = cursor
-				? `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
-				: BOOKMARKS_URL
+				? `${
+						this.config.isFolderImport && this.config.bookmarkCollectionId
+							? `${BOOKMARK_COLLECTION_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
+							: BOOKMARKS_URL
+					}&variables=${encodeURIComponent(JSON.stringify(variables))}`
+				: this.config.isFolderImport && this.config.bookmarkCollectionId
+					? `${BOOKMARK_COLLECTION_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
+					: `${BOOKMARKS_URL}&variables=${encodeURIComponent(JSON.stringify(variables))}`
 
 			const response = await fetch(urlWithCursor, {
 				method: "GET",
@@ -140,14 +162,20 @@ export class TwitterImporter {
 						retweets: tweet.retweet_count || 0,
 						sm_internal_group_id: uniqueGroupId,
 					}
+					const containerTag =
+						this.config.selectedProject?.containerTag ||
+						"sm_project_twitter_bookmarks"
+
 					documents.push({
-						containerTags: ["sm_project_twitter_bookmarks"],
+						containerTags: [containerTag],
 						content: `https://x.com/${tweet.user.screen_name}/status/${tweet.id_str}`,
 						metadata,
 						customId: tweet.id_str,
 					})
 					importedCount++
-					await this.config.onProgress(`Imported ${importedCount} tweets, so far...`)
+					await this.config.onProgress(
+						`Imported ${importedCount} tweets, so far...`,
+					)
 				} catch (error) {
 					console.error("Error importing tweet:", error)
 				}
@@ -167,13 +195,15 @@ export class TwitterImporter {
 
 			// Handle pagination
 			const instructions =
-				data.data?.bookmark_timeline_v2?.timeline?.instructions
-			const nextCursor = extractNextCursor(instructions || [])
+				data.data?.bookmark_timeline_v2?.timeline?.instructions ||
+				data.data?.bookmark_collection_timeline?.timeline?.instructions ||
+				[]
+			const nextCursor = extractNextCursor(instructions)
 
 			console.log("Next cursor:", nextCursor)
 			console.log("Tweets length:", tweets.length)
 
-			if (nextCursor && tweets.length > 0) {
+			if (nextCursor && tweets.length > 0 && !this.config.isFolderImport) {
 				await new Promise((resolve) => setTimeout(resolve, 1000)) // Rate limiting
 				await this.batchImportAll(nextCursor, importedCount, uniqueGroupId)
 			} else {

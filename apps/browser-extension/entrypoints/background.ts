@@ -1,4 +1,9 @@
-import { getDefaultProject, saveMemory, searchMemories } from "../utils/api"
+import {
+	getDefaultProject,
+	saveMemory,
+	searchMemories,
+	fetchProjects,
+} from "../utils/api"
 import {
 	CONTAINER_TAGS,
 	CONTEXT_MENU_IDS,
@@ -169,6 +174,9 @@ export default defineBackground(() => {
 			// Handle Twitter import request
 			if (message.type === MESSAGE_TYPES.BATCH_IMPORT_ALL) {
 				const importConfig: TwitterImportConfig = {
+					isFolderImport: message.isFolderImport,
+					bookmarkCollectionId: message.bookmarkCollectionId,
+					selectedProject: message.selectedProject,
 					onProgress: sendMessageToCurrentTab,
 					onComplete: sendImportDoneMessage,
 					onError: async (error: Error) => {
@@ -240,6 +248,21 @@ export default defineBackground(() => {
 							`prompt_capture_${messageData.platform}`,
 						)
 						sendResponse(result)
+					} catch (error) {
+						sendResponse({
+							success: false,
+							error: error instanceof Error ? error.message : "Unknown error",
+						})
+					}
+				})()
+				return true
+			}
+
+			if (message.action === MESSAGE_TYPES.FETCH_PROJECTS) {
+				;(async () => {
+					try {
+						const projects = await fetchProjects()
+						sendResponse({ success: true, data: projects })
 					} catch (error) {
 						sendResponse({
 							success: false,
