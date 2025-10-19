@@ -115,32 +115,35 @@ function setupT3RouteChangeDetection() {
 
 function addSupermemoryIconToT3Input() {
 	const targetContainers = document.querySelectorAll(
-		".flex.min-w-0.items-center.gap-2.overflow-hidden",
+		".flex.min-w-0.items-center.gap-2",
 	)
 
-	targetContainers.forEach((container) => {
-		if (container.hasAttribute("data-supermemory-icon-added")) {
-			return
-		}
+	const container = targetContainers[0]
+	if (!container) {
+		return
+	}
 
-		const existingIcon = container.querySelector(
-			`#${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}`,
-		)
-		if (existingIcon) {
-			container.setAttribute("data-supermemory-icon-added", "true")
-			return
-		}
+	if (container.hasAttribute("data-supermemory-icon-added")) {
+		return
+	}
 
-		const supermemoryIcon = createT3InputBarElement(async () => {
-			await getRelatedMemoriesForT3(POSTHOG_EVENT_KEY.T3_CHAT_MEMORIES_SEARCHED)
-		})
-
-		supermemoryIcon.id = `${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-
+	const existingIcon = container.querySelector(
+		`#${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}`,
+	)
+	if (existingIcon) {
 		container.setAttribute("data-supermemory-icon-added", "true")
+		return
+	}
 
-		container.insertBefore(supermemoryIcon, container.firstChild)
+	const supermemoryIcon = createT3InputBarElement(async () => {
+		await getRelatedMemoriesForT3(POSTHOG_EVENT_KEY.T3_CHAT_MEMORIES_SEARCHED)
 	})
+
+	supermemoryIcon.id = `${ELEMENT_IDS.T3_INPUT_BAR_ELEMENT}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+
+	container.setAttribute("data-supermemory-icon-added", "true")
+
+	container.insertBefore(supermemoryIcon, container.firstChild)
 }
 
 async function getRelatedMemoriesForT3(actionSource: string) {
@@ -150,11 +153,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 		const supermemoryContainer = document.querySelector(
 			'[data-supermemory-icon-added="true"]',
 		)
-		if (
-			supermemoryContainer?.parentElement?.parentElement?.previousElementSibling
-		) {
+		if (supermemoryContainer?.parentElement?.previousElementSibling) {
 			const textareaElement =
-				supermemoryContainer.parentElement.parentElement.previousElementSibling.querySelector(
+				supermemoryContainer.parentElement.previousElementSibling.querySelector(
 					"textarea",
 				)
 			userQuery = textareaElement?.value || ""
@@ -220,12 +221,9 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			const supermemoryContainer = document.querySelector(
 				'[data-supermemory-icon-added="true"]',
 			)
-			if (
-				supermemoryContainer?.parentElement?.parentElement
-					?.previousElementSibling
-			) {
+			if (supermemoryContainer?.parentElement?.previousElementSibling) {
 				textareaElement =
-					supermemoryContainer.parentElement.parentElement.previousElementSibling.querySelector(
+					supermemoryContainer.parentElement.previousElementSibling.querySelector(
 						"textarea",
 					)
 			}
