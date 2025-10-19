@@ -132,20 +132,36 @@ const addSystemPrompt = async (
 	}
 }
 
+const getConversationContent = (params: LanguageModelV2CallOptions) => {
+	return params.prompt
+		.map((msg) => {
+			const role = msg.role === "user" ? "User" : "Assistant"
+			const content = msg.content
+				.filter((c) => c.type === "text")
+				.map((c) => c.text)
+				.join(" ")
+			return `${role}: ${content}`
+		})
+		.join("\n\n")
+}
+
 const addMemoryTool = async (
 	client: Supermemory,
 	containerTag: string,
 	content: string,
+	customId: string | undefined,
 	logger: Logger,
 ): Promise<void> => {
 	try {
 		const response = await client.memories.add({
 			content,
 			containerTags: [containerTag],
+			customId,
 		})
 
 		logger.info("Memory saved successfully", {
 			containerTag,
+			customId,
 			contentLength: content.length,
 			memoryId: response.id,
 		})
@@ -158,6 +174,7 @@ const addMemoryTool = async (
 
 export const createSupermemoryMiddleware = (
 	containerTag: string,
+	conversationId?: string,
 	verbose = false,
 	mode: "profile" | "query" | "full" = "profile",
 	addMemory: "always" | "never" = "never"
@@ -173,7 +190,14 @@ export const createSupermemoryMiddleware = (
 			const userMessage = getLastUserMessage(params)
 
 			if (addMemory === "always" && userMessage && userMessage.trim()) {
-				addMemoryTool(client, containerTag, userMessage, logger)
+				const content = conversationId
+					? getConversationContent(params)
+					: userMessage
+				const customId = conversationId
+					? `conversation:${conversationId}`
+					: undefined
+
+				addMemoryTool(client, containerTag, content, customId, logger)
 			}
 
 			if (mode !== "profile") {
@@ -185,6 +209,7 @@ export const createSupermemoryMiddleware = (
 
 			logger.info("Starting memory search", {
 				containerTag,
+				conversationId,
 				mode,
 			})
 
