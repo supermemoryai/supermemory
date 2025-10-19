@@ -1,4 +1,4 @@
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 
 interface GreetingStepProps {
 	name: string
@@ -7,7 +7,6 @@ interface GreetingStepProps {
 export function GreetingStep({ name }: GreetingStepProps) {
 	return (
 		<motion.div
-			key="greeting"
 			className="text-center"
 			initial={{ opacity: 0, y: 0 }}
 			animate={{ opacity: 1, y: 0 }}

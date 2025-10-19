@@ -7,7 +7,7 @@ import { IntegrationsStep } from "./integrations-step"
 import { ChatSidebar } from "./chat-sidebar"
 import { useState } from "react"
 
-function AnimatedGradientBackground() {
+export function AnimatedGradientBackground() {
 	return (
 		<div className="fixed inset-0 z-0 overflow-hidden">
 			<motion.div
@@ -43,7 +43,7 @@ function AnimatedGradientBackground() {
 				}}
 			/>
 			<motion.div
-				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
+				className="absolute top-20 left-0 right-0 bottom-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{ y: 0 }}
 				transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}
