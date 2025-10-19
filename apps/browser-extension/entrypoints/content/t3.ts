@@ -497,6 +497,16 @@ function setupT3PromptCapture() {
 	document.body.setAttribute("data-t3-prompt-capture-setup", "true")
 
 	const captureT3PromptContent = async (source: string) => {
+		const result = await chrome.storage.local.get([
+			STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
+		])
+		const autoCapturePromptsEnabled =
+			result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+
+		if (!autoCapturePromptsEnabled) {
+			console.log("Auto capture prompts is disabled, skipping prompt capture")
+			return
+		}
 		let promptContent = ""
 
 		const textarea = document.querySelector("textarea") as HTMLTextAreaElement
@@ -598,6 +608,19 @@ function setupT3PromptCapture() {
 					const promptContent = (target as HTMLTextAreaElement).value || ""
 					if (promptContent.trim()) {
 						console.log("T3 prompt submitted via Enter key:", promptContent)
+
+						const result = await chrome.storage.local.get([
+							STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
+						])
+						const autoCapturePromptsEnabled =
+							result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+
+						if (!autoCapturePromptsEnabled) {
+							console.log(
+								"Auto capture prompts is disabled, skipping prompt capture",
+							)
+							return
+						}
 
 						try {
 							await browser.runtime.sendMessage({
