@@ -3,7 +3,6 @@ import { motion } from "motion/react"
 export function WelcomeStep() {
 	return (
 		<motion.div
-			key="welcome"
 			className="text-center"
 			initial={{ opacity: 0, y: 0 }}
 			animate={{ opacity: 1, y: 0 }}

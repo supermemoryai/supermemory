@@ -17,7 +17,6 @@ export function InputStep({
 }: InputStepProps) {
 	return (
 		<motion.div
-			key="input"
 			className="text-center min-w-[250px]"
 			initial={{
 				opacity: 0,
@@ -29,6 +28,12 @@ export function InputStep({
 			}}
 			exit={{
 				opacity: 0,
+				y: -10,
+				transition: {
+					duration: 0.5,
+					ease: "easeOut",
+					bounce: 0,
+				},
 			}}
 			transition={{
 				duration: 0.8,
@@ -52,6 +57,7 @@ export function InputStep({
 								handleSubmit()
 							}
 						},
+						className: "!text-white placeholder:!text-white",
 					}}
 					onChange={(e) => setName((e.target as HTMLInputElement).value)}
 					style={{

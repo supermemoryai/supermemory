@@ -12,6 +12,7 @@ import { FeaturesStep } from "./features-step"
 import { Logo } from "@ui/assets/Logo"
 import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
+import { AnimatedGradientBackground } from "../setup/page"
 
 type OnboardStep = "input" | "greeting" | "welcome" | "username" | "features"
 
@@ -80,6 +81,7 @@ export default function OnboardPage() {
 				showUserSupermemory={currentStep === "features"}
 				name={name}
 			/>
+			<AnimatedGradientBackground />
 			<div className="flex flex-col items-center justify-start h-[calc(100vh-86px)] relative">
 				<motion.div
 					className="absolute inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
@@ -90,7 +92,10 @@ export default function OnboardPage() {
 					}}
 				/>
 				<motion.div
-					className={cn("relative z-10 flex flex-col items-center justify-center", currentStep === "features" ? "mt-0" : "mt-16")}
+					className={cn(
+						"relative z-10 flex flex-col items-center justify-center",
+						currentStep === "features" ? "mt-0" : "mt-16",
+					)}
 					animate={{
 						gap: currentStep === "features" ? 0 : 16,
 					}}
@@ -104,7 +109,7 @@ export default function OnboardPage() {
 						initial={{ opacity: 0, scale: 0.8 }}
 						animate={{
 							opacity: 1,
-							scale: currentStep === "features" ? 0.6 : 1,
+							scale: currentStep === "features" ? 0.7 : 1,
 							padding: currentStep === "features" ? 0 : 32,
 						}}
 						transition={{
@@ -122,6 +127,7 @@ export default function OnboardPage() {
 					<AnimatePresence mode="wait">
 						{currentStep === "input" && (
 							<InputStep
+								key="input"
 								name={name}
 								setName={setName}
 								handleSubmit={handleSubmit}
@@ -129,16 +135,19 @@ export default function OnboardPage() {
 							/>
 						)}
 
-						{currentStep === "greeting" && <GreetingStep name={name} />}
+						{currentStep === "greeting" && (
+							<GreetingStep key="greeting" name={name} />
+						)}
 
-						{currentStep === "welcome" && <WelcomeStep />}
+						{currentStep === "welcome" && <WelcomeStep key="welcome" />}
 
 						{currentStep === "username" && (
 							<ContinueStep
+								key="username"
 								setCurrentStep={(step) => setCurrentStep(step as OnboardStep)}
 							/>
 						)}
-						{currentStep === "features" && <FeaturesStep />}
+						{currentStep === "features" && <FeaturesStep key="features" />}
 					</AnimatePresence>
 				</motion.div>
 			</div>
