@@ -50,7 +50,7 @@ export function ProjectSelection({
       value={selectedProject}
     >
       <SelectTrigger
-        className={`bg-foreground/5 border-foreground/10 ${className}`}
+        className={`bg-foreground/5 border-foreground/10 cursor-pointer ${className}`}
         id={id}
       >
         <SelectValue placeholder="Select a project" />
