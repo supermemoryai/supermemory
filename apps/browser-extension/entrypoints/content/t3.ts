@@ -577,75 +577,103 @@ function setupT3PromptCapture() {
 		}
 	}
 
-	document.addEventListener(
-		"click",
-		async (event) => {
-			const target = event.target as HTMLElement
-			const sendButton =
-				target.closest("button.focus-visible\\:ring-ring") ||
-				target.closest('button[class*="bg-[rgb(162,59,103)]"]') ||
-				target.closest('button[class*="rounded-lg"]')
+	const handleT3SendButtonClick = async (event: Event) => {
+		const target = event.target as HTMLElement
+		const sendButton =
+			target.closest("button.focus-visible\\:ring-ring") ||
+			target.closest('button[class*="bg-[rgb(162,59,103)]"]') ||
+			target.closest('button[class*="rounded-lg"]')
 
-			if (sendButton) {
-				await captureT3PromptContent("button click")
+		if (sendButton) {
+			const textareaElement =
+				(document.querySelector("textarea") as HTMLTextAreaElement) ||
+				(document.querySelector('div[contenteditable="true"]') as HTMLElement)
+
+			const hasMemories =
+				textareaElement?.dataset.supermemories ||
+				(
+					document.querySelector(
+						'[id*="sm-t3-input-bar-element"]',
+					) as HTMLElement
+				)?.dataset.memoriesData
+
+			if (!hasMemories) {
+				return // No memories present, let the button click proceed normally
 			}
-		},
-		true,
-	)
 
-	document.addEventListener(
-		"keydown",
-		async (event) => {
-			const target = event.target as HTMLElement
+			event.preventDefault()
+			event.stopPropagation()
 
-			if (
-				(target.matches("textarea") ||
-					target.matches('div[contenteditable="true"]')) &&
-				event.key === "Enter" &&
-				!event.shiftKey
-			) {
-				if (target.matches("textarea")) {
-					const promptContent = (target as HTMLTextAreaElement).value || ""
-					if (promptContent.trim()) {
-						console.log("T3 prompt submitted via Enter key:", promptContent)
+			await captureT3PromptContent("button click")
 
-						const result = await chrome.storage.local.get([
-							STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
-						])
-						const autoCapturePromptsEnabled =
-							result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
-
-						if (!autoCapturePromptsEnabled) {
-							console.log(
-								"Auto capture prompts is disabled, skipping prompt capture",
-							)
-							return
-						}
-
-						try {
-							await browser.runtime.sendMessage({
-								action: MESSAGE_TYPES.CAPTURE_PROMPT,
-								data: {
-									prompt: promptContent,
-									platform: "t3",
-									source: "Enter key",
-								},
-								actionSource: "t3",
-							})
-						} catch (error) {
-							console.error(
-								"Error sending T3 textarea prompt to background:",
-								error,
-							)
-						}
-					}
+			setTimeout(() => {
+				const form = sendButton.closest("form")
+				if (form) {
+					form.requestSubmit()
 				} else {
-					await captureT3PromptContent("Enter key")
+					const newEvent = new MouseEvent("click", {
+						bubbles: true,
+						cancelable: true,
+						view: window,
+					})
+					document.removeEventListener("click", handleT3SendButtonClick, true)
+					sendButton.dispatchEvent(newEvent)
+					setTimeout(() => {
+						document.addEventListener("click", handleT3SendButtonClick, true)
+					}, 100)
 				}
+			}, 100)
+		}
+	}
+
+	const handleT3EnterKey = async (event: KeyboardEvent) => {
+		const target = event.target as HTMLElement
+
+		if (
+			(target.matches("textarea") ||
+				target.matches('div[contenteditable="true"]')) &&
+			event.key === "Enter" &&
+			!event.shiftKey
+		) {
+			const textareaElement =
+				(document.querySelector("textarea") as HTMLTextAreaElement) ||
+				(document.querySelector('div[contenteditable="true"]') as HTMLElement)
+
+			const hasMemories =
+				textareaElement?.dataset.supermemories ||
+				(
+					document.querySelector(
+						'[id*="sm-t3-input-bar-element"]',
+					) as HTMLElement
+				)?.dataset.memoriesData
+
+			if (!hasMemories) {
+				return // No memories present, let the Enter key proceed normally
 			}
-		},
-		true,
-	)
+
+			event.preventDefault()
+			event.stopPropagation()
+			await captureT3PromptContent("Enter key")
+
+			setTimeout(() => {
+				const form = target.closest("form")
+				if (form) {
+					form.requestSubmit()
+				} else {
+					const newEvent = new KeyboardEvent("keydown", {
+						key: "Enter",
+						code: "Enter",
+						bubbles: true,
+						cancelable: true,
+					})
+					target.dispatchEvent(newEvent)
+				}
+			}, 100)
+		}
+	}
+
+	document.addEventListener("click", handleT3SendButtonClick, true)
+	document.addEventListener("keydown", handleT3EnterKey, true)
 }
 
 async function setupT3AutoFetch() {
