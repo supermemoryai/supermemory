@@ -62,9 +62,6 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 
 #### AI SDK Middleware with Supermemory
 
-> [!CAUTION]
-> `withSupermemory` is in beta
-
 - `withSupermemory` will take advantage supermemory profile v4 endpoint personalized based on container tag
 - Make sure you have `SUPERMEMORY_API_KEY` in env
 
@@ -74,6 +71,27 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life")
+
+const result = await generateText({
+	model: modelWithMemory,
+	messages: [{ role: "user", content: "where do i live?" }],
+})
+
+console.log(result.text)
+```
+
+#### Conversation Grouping
+
+Use the `conversationId` option to group messages into a single document for contextual memory generation:
+
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life", {
+	conversationId: "conversation-456"
+})
 
 const result = await generateText({
 	model: modelWithMemory,
@@ -280,12 +298,14 @@ The `withSupermemory` middleware accepts additional configuration options:
 
 ```typescript
 interface WithSupermemoryOptions {
+  conversationId?: string
   verbose?: boolean
   mode?: "profile" | "query" | "full"
   addMemory?: "always" | "never"
 }
 ```
 
+- **conversationId**: Optional conversation ID to group messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
 - **addMemory**: Automatic memory storage mode - "always" or "never" (default: "never")
