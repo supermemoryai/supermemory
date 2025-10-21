@@ -42,7 +42,7 @@
 	"navbar": {
 		"links": [
 			{
-				"href": "mailto:dhravya@supermemory.com",
+				"href": "mailto:support@supermemory.com",
 				"label": "Support"
 			}
 		],
@@ -158,10 +158,7 @@
 							},
 							{
 								"group": "Integrations with no-code tools",
-								"pages": [
-									"n8n",
-									"zapier"
-								]
+								"pages": ["n8n", "zapier"]
 							},
 							{
 								"group": "Migration Guides",

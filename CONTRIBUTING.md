@@ -282,7 +282,7 @@ For feature requests, please provide:
 - **Discord**: Join our community server
 - **GitHub Discussions**: For questions and ideas
 - **Issues**: For bug reports and feature requests
-- **Email**: [dhravya@supermemory.com](mailto:dhravya@supermemory.com)
+- **Email**: [support@supermemory.com](mailto:support@supermemory.com)
 
 ## 📄 License
 

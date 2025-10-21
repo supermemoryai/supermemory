@@ -657,7 +657,7 @@ function App() {
 								<button
 									className="bg-transparent border-none text-blue-500 cursor-pointer underline text-sm p-0 hover:text-blue-700"
 									onClick={() => {
-										window.open("mailto:dhravya@supermemory.com", "_blank")
+										window.open("mailto:support@supermemory.com", "_blank")
 									}}
 									type="button"
 								>
