@@ -488,6 +488,16 @@ function setupClaudePromptCapture() {
 	}
 	document.body.setAttribute("data-claude-prompt-capture-setup", "true")
 	const captureClaudePromptContent = async (source: string) => {
+		const result = await chrome.storage.local.get([
+			STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
+		])
+		const autoCapturePromptsEnabled =
+			result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+
+		if (!autoCapturePromptsEnabled) {
+			console.log("Auto capture prompts is disabled, skipping prompt capture")
+			return
+		}
 		let promptContent = ""
 
 		const contentEditableDiv = document.querySelector(

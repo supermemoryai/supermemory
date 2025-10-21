@@ -640,6 +640,16 @@ function setupChatGPTPromptCapture() {
 	document.body.setAttribute("data-chatgpt-prompt-capture-setup", "true")
 
 	const capturePromptContent = async (source: string) => {
+		const result = await chrome.storage.local.get([
+			STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
+		])
+		const autoCapturePromptsEnabled =
+			result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+
+		if (!autoCapturePromptsEnabled) {
+			console.log("Auto capture prompts is disabled, skipping prompt capture")
+			return
+		}
 		const promptTextarea = document.getElementById("prompt-textarea")
 
 		let promptContent = ""
