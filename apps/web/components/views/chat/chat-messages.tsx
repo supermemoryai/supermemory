@@ -247,7 +247,7 @@ export function ChatMessages() {
 					},
 				},
 			}),
-			maxSteps: 2,
+			maxSteps: 10,
 			onFinish: (result) => {
 				const activeId = activeChatIdRef.current
 				if (!activeId) return
