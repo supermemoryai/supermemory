@@ -1,8 +1,19 @@
 import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
-import Link from "next/link"
 
-export function FeaturesStep() {
+interface FeaturesStepProps {
+	setCurrentStep: (
+		step:
+			| "input"
+			| "greeting"
+			| "welcome"
+			| "username"
+			| "features"
+			| "memories",
+	) => void
+}
+
+export function FeaturesStep({ setCurrentStep }: FeaturesStepProps) {
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 40 }}
@@ -83,13 +94,11 @@ export function FeaturesStep() {
 			>
 				<Button
 					className="rounded-xl px-6 py-3 bg-black border border-gray-800 hover:bg-gray-900 max-w-[10rem]"
-					asChild
+					onClick={() => setCurrentStep("memories")}
 				>
-					<Link href="/onboarding/setup">
-						<motion.button whileTap={{ scale: 0.95 }} className="w-full">
-							Continue setup →
-						</motion.button>
-					</Link>
+					<motion.button whileTap={{ scale: 0.95 }} className="w-full">
+						Continue setup →
+					</motion.button>
 				</Button>
 			</motion.div>
 		</motion.div>
