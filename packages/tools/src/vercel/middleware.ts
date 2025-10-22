@@ -106,7 +106,7 @@ const addSystemPrompt = async (
 	const memories = `${profileData}\n${searchResultsMemories}`.trim()
 	if (memories) {
 		logger.debug("Memory content preview", {
-			content: memories.substring(0, 200),
+			content: memories,
 			fullLength: memories.length,
 		})
 	}
