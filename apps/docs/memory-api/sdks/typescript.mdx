@@ -13,9 +13,9 @@ npm install supermemory
 ## Usage
 
 ```js
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 
-const client = new supermemory({
+const client = new Supermemory({
   apiKey: process.env['SUPERMEMORY_API_KEY'], // This is the default and can be omitted
 });
 
@@ -34,9 +34,9 @@ This library includes TypeScript definitions for all request params and response
 
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 
-const client = new supermemory({
+const client = new Supermemory({
   apiKey: process.env['SUPERMEMORY_API_KEY'], // This is the default and can be omitted
 });
 
@@ -63,9 +63,9 @@ Request parameters that correspond to file uploads can be passed in many differe
 
 ```ts
 import fs from 'fs';
-import supermemory, { toFile } from 'supermemory';
+import Supermemory, { toFile } from 'supermemory';
 
-const client = new supermemory();
+const client = new Supermemory();
 
 // If you have access to Node `fs` we recommend using `fs.createReadStream()`:
 await client.memories.uploadFile({ file: fs.createReadStream('/path/to/file') });
@@ -130,7 +130,7 @@ You can use the `maxRetries` option to configure or disable this:
 
 ```js
 // Configure the default for all requests:
-const client = new supermemory({
+const client = new Supermemory({
   maxRetries: 0, // default is 2
 });
 
@@ -147,7 +147,7 @@ Requests time out after 1 minute by default. You can configure this with a `time
 
 ```ts
 // Configure the default for all requests:
-const client = new supermemory({
+const client = new Supermemory({
   timeout: 20 * 1000, // 20 seconds (default is 1 minute)
 });
 
@@ -173,7 +173,7 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 
 
 ```ts
-const client = new supermemory();
+const client = new Supermemory();
 
 const response = await client.memories
   .add({ content: 'This is a detailed article about machine learning concepts...' })
@@ -202,9 +202,9 @@ The log level can be configured in two ways:
 2. Using the `logLevel` client option (overrides the environment variable if set)
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 
-const client = new supermemory({
+const client = new Supermemory({
   logLevel: 'debug', // Show all log messages
 });
 ```
@@ -230,12 +230,12 @@ When providing a custom logger, the `logLevel` option still controls which messa
 below the configured level will not be sent to your logger.
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 import pino from 'pino';
 
 const logger = pino();
 
-const client = new supermemory({
+const client = new Supermemory({
   logger: logger.child({ name: 'supermemory' }),
   logLevel: 'debug', // Send all messages to pino, allowing it to filter
 });
@@ -300,10 +300,10 @@ globalThis.fetch = fetch;
 Or pass it to the client:
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 import fetch from 'my-fetch';
 
-const client = new supermemory({ fetch });
+const client = new Supermemory({ fetch });
 ```
 
 ### Fetch options
@@ -311,9 +311,9 @@ const client = new supermemory({ fetch });
 If you want to set custom `fetch` options without overriding the `fetch` function, you can provide a `fetchOptions` object when instantiating the client or making a request. (Request-specific options override client options.)
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 
-const client = new supermemory({
+const client = new Supermemory({
   fetchOptions: {
     // `RequestInit` options
   },
@@ -325,11 +325,11 @@ const client = new supermemory({
 To modify proxy behavior, you can provide custom `fetchOptions` that add runtime-specific proxy options to requests:
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 import * as undici from 'undici';
 
 const proxyAgent = new undici.ProxyAgent('http://localhost:8888');
-const client = new supermemory({
+const client = new Supermemory({
   fetchOptions: {
     dispatcher: proxyAgent,
   },
@@ -337,9 +337,9 @@ const client = new supermemory({
 ```
 
 ```ts
-import supermemory from 'supermemory';
+import Supermemory from 'supermemory';
 
-const client = new supermemory({
+const client = new Supermemory({
   fetchOptions: {
     proxy: 'http://localhost:8888',
   },
@@ -347,10 +347,10 @@ const client = new supermemory({
 ```
 
 ```ts
-import supermemory from 'npm:supermemory';
+import Supermemory from 'npm:supermemory';
 
 const httpClient = Deno.createHttpClient({ proxy: { url: 'http://localhost:8888' } });
-const client = new supermemory({
+const client = new Supermemory({
   fetchOptions: {
     client: httpClient,
   },
