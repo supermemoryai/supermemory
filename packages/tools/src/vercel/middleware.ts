@@ -70,7 +70,6 @@ const addSystemPrompt = async (
 	const queryText =
 		mode !== "profile"
 			? params.prompt
-			    // Create a shallow copy before reversing to avoid mutating the original array
 			.slice().reverse()
 					.find((prompt) => prompt.role === "user")
 					?.content?.filter((content) => content.type === "text")
