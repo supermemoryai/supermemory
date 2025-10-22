@@ -9,12 +9,19 @@ import { GreetingStep } from "./greeting-step"
 import { WelcomeStep } from "./welcome-step"
 import { ContinueStep } from "./continue-step"
 import { FeaturesStep } from "./features-step"
+import { MemoriesStep } from "./memories-step"
 import { Logo } from "@ui/assets/Logo"
 import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
 import { AnimatedGradientBackground } from "../setup/page"
 
-type OnboardStep = "input" | "greeting" | "welcome" | "username" | "features"
+type OnboardStep =
+	| "input"
+	| "greeting"
+	| "welcome"
+	| "username"
+	| "features"
+	| "memories"
 
 function UserSupermemory({ name }: { name: string }) {
 	return (
@@ -94,10 +101,13 @@ export default function OnboardPage() {
 				<motion.div
 					className={cn(
 						"relative z-10 flex flex-col items-center justify-center",
-						currentStep === "features" ? "mt-0" : "mt-16",
+						currentStep === "features" || currentStep === "memories"
+							? "mt-0"
+							: "mt-16",
 					)}
 					animate={{
-						gap: currentStep === "features" ? 0 : 16,
+						gap:
+							currentStep === "features" || currentStep === "memories" ? 0 : 16,
 					}}
 					transition={{
 						duration: 0.6,
@@ -109,8 +119,16 @@ export default function OnboardPage() {
 						initial={{ opacity: 0, scale: 0.8 }}
 						animate={{
 							opacity: 1,
-							scale: currentStep === "features" ? 0.7 : 1,
-							padding: currentStep === "features" ? 0 : 32,
+							scale:
+								currentStep === "features"
+									? 0.7
+									: currentStep === "memories"
+										? 0.4
+										: 1,
+							padding:
+								currentStep === "features" || currentStep === "memories"
+									? 0
+									: 32,
 						}}
 						transition={{
 							duration: 0.8,
@@ -120,7 +138,7 @@ export default function OnboardPage() {
 						layout
 						className="relative"
 					>
-						<NovaOrb size={300} />
+						<NovaOrb size={currentStep === "memories" ? 150 : 300} />
 						{currentStep === "username" && <UserSupermemory name={name} />}
 					</motion.div>
 
@@ -147,7 +165,13 @@ export default function OnboardPage() {
 								setCurrentStep={(step) => setCurrentStep(step as OnboardStep)}
 							/>
 						)}
-						{currentStep === "features" && <FeaturesStep key="features" />}
+						{currentStep === "features" && (
+							<FeaturesStep
+								key="features"
+								setCurrentStep={(step) => setCurrentStep(step as OnboardStep)}
+							/>
+						)}
+						{currentStep === "memories" && <MemoriesStep key="memories" />}
 					</AnimatePresence>
 				</motion.div>
 			</div>
