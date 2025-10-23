@@ -17,6 +17,18 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
+	if (url.pathname.startsWith("/api/")) {
+		if (!sessionCookie) {
+			console.debug("[MIDDLEWARE] API route without session, returning 401")
+			return new Response(JSON.stringify({ error: "Unauthorized" }), {
+				status: 401,
+				headers: { "Content-Type": "application/json" },
+			})
+		}
+		console.debug("[MIDDLEWARE] API route with session, allowing access")
+		return NextResponse.next()
+	}
+
 	// If no session cookie and not on a public path, redirect to login
 	if (!sessionCookie) {
 		console.debug(
@@ -53,6 +65,6 @@ export default async function proxy(request: Request) {
 
 export const config = {
 	matcher: [
-		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|api|login|api/emails).*)",
+		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails).*)",
 	],
 }

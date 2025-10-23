@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@ui/components/button"
 import { MCPDetailView } from "@/components/mcp-detail-view"
+import { useRouter } from "next/navigation"
 
 const integrationCards = [
 	{
@@ -52,11 +53,8 @@ const integrationCards = [
 	},
 ]
 
-interface IntegrationsStepProps {
-	onBack: () => void
-}
-
-export function IntegrationsStep({ onBack }: IntegrationsStepProps) {
+export function IntegrationsStep() {
+	const router = useRouter()
 	const [selectedCard, setSelectedCard] = useState<string | null>(null)
 
 	if (selectedCard === "Connect to AI") {
@@ -120,7 +118,7 @@ export function IntegrationsStep({ onBack }: IntegrationsStepProps) {
 				<Button
 					variant="link"
 					className="text-white hover:text-gray-300"
-					onClick={onBack}
+					onClick={() => router.push("/onboarding?flow=setup&step=relatable")}
 				>
 					← Back
 				</Button>

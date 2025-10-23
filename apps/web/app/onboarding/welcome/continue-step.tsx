@@ -1,13 +1,14 @@
 import { Button } from "@ui/components/button"
 import { motion } from "motion/react"
+import { useRouter } from "next/navigation"
 
-interface ContinueStepProps {
-	setCurrentStep: (
-		step: "input" | "greeting" | "welcome" | "username" | "features",
-	) => void
-}
+export function ContinueStep() {
+	const router = useRouter()
 
-export function ContinueStep({ setCurrentStep }: ContinueStepProps) {
+	const handleContinue = () => {
+		router.push("/onboarding?flow=welcome&step=features")
+	}
+
 	return (
 		<motion.div
 			className="text-center"
@@ -23,7 +24,7 @@ export function ContinueStep({ setCurrentStep }: ContinueStepProps) {
 			</p>
 			<Button
 				className="rounded-xl px-6 py-3 bg-black border border-gray-800 hover:bg-gray-900"
-				onClick={() => setCurrentStep("features")}
+				onClick={handleContinue}
 			>
 				Continue →
 			</Button>
