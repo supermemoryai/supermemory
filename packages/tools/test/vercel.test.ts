@@ -521,5 +521,29 @@ describe("withSupermemory / wrapVercelLanguageModel", () => {
 				containerTags: [customTag],
 			})
 		})
+
+		it("should not mutate the original params.prompt array", async () => {
+			mockSupermemory.search.execute.mockResolvedValue(
+				createMockSearchResponse([]),
+			)
+
+			const middleware = createSupermemoryMiddleware(
+				mockSupermemory,
+				TEST_CONFIG.containerTag,
+			)
+
+			const originalPrompt = [
+				{ role: "user" as const, content: [{ type: "text" as const, text: "First" }] },
+				{ role: "user" as const, content: [{ type: "text" as const, text: "Last" }] }
+			]
+			const params: LanguageModelV2CallOptions = { prompt: [...originalPrompt] }
+
+			await callTransformParams(middleware, params)
+
+			// Verify order is unchanged
+			expect(params.prompt[0]?.content[0]).toBe("First")
+			expect(params.prompt[1]?.content[0]).toBe("Last")
+		})
+
 	})
 })

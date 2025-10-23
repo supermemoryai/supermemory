@@ -2,6 +2,13 @@ import type { LanguageModelV2 } from "@ai-sdk/provider"
 import { wrapLanguageModel } from "ai"
 import { createSupermemoryMiddleware } from "./middleware"
 
+interface WrapVercelLanguageModelOptions {
+	conversationId?: string;
+	verbose?: boolean;
+	mode?: "profile" | "query" | "full";
+	addMemory?: "always" | "never";
+}
+
 /**
  * Wraps a language model with supermemory middleware to automatically inject relevant memories
  * into the system prompt based on the user's message content.
@@ -43,12 +50,7 @@ import { createSupermemoryMiddleware } from "./middleware"
 const wrapVercelLanguageModel = (
 	model: LanguageModelV2,
 	containerTag: string,
-	options?: {
-		conversationId?: string;
-		verbose?: boolean;
-		mode?: "profile" | "query" | "full";
-		addMemory?: "always" | "never";
-	},
+	options?: WrapVercelLanguageModelOptions,
 ): LanguageModelV2 => {
 	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
 
@@ -69,4 +71,4 @@ const wrapVercelLanguageModel = (
 	return wrappedModel
 }
 
-export { wrapVercelLanguageModel as withSupermemory }
+export { wrapVercelLanguageModel as withSupermemory, type WrapVercelLanguageModelOptions as WithSupermemoryOptions }

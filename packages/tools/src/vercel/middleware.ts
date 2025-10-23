@@ -9,7 +9,7 @@ import { convertProfileToMarkdown, type ProfileStructure } from "./util"
 
 const getLastUserMessage = (params: LanguageModelV2CallOptions) => {
 	const lastUserMessage = params.prompt
-		.reverse()
+		.slice().reverse()
 		.find((prompt: LanguageModelV2Message) => prompt.role === "user")
 	const memories = lastUserMessage?.content
 		.filter((content) => content.type === "text")
@@ -70,7 +70,7 @@ const addSystemPrompt = async (
 	const queryText =
 		mode !== "profile"
 			? params.prompt
-					.reverse()
+			.slice().reverse()
 					.find((prompt) => prompt.role === "user")
 					?.content?.filter((content) => content.type === "text")
 					?.map((content) => (content.type === "text" ? content.text : ""))
@@ -106,7 +106,7 @@ const addSystemPrompt = async (
 	const memories = `${profileData}\n${searchResultsMemories}`.trim()
 	if (memories) {
 		logger.debug("Memory content preview", {
-			content: memories.substring(0, 200),
+			content: memories,
 			fullLength: memories.length,
 		})
 	}
@@ -136,14 +136,20 @@ const getConversationContent = (params: LanguageModelV2CallOptions) => {
 	return params.prompt
 		.map((msg) => {
 			const role = msg.role === "user" ? "User" : "Assistant"
+
+			if (typeof msg.content === "string") {
+				return `${role}: ${msg.content}`
+			}
+
 			const content = msg.content
 				.filter((c) => c.type === "text")
-				.map((c) => c.text)
+				.map((c) => (c.type === "text" ? c.text : ""))
 				.join(" ")
 			return `${role}: ${content}`
 		})
 		.join("\n\n")
 }
+
 
 const addMemoryTool = async (
 	client: Supermemory,
