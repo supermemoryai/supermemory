@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
+import { useRouter } from "next/navigation"
 
 const relatableOptions = [
 	{
@@ -27,14 +28,13 @@ const relatableOptions = [
 	},
 ]
 
-interface RelatableQuestionProps {
-	onContinueOrSkip: () => void
-}
-
-export function RelatableQuestion({
-	onContinueOrSkip,
-}: RelatableQuestionProps) {
+export function RelatableQuestion() {
+	const router = useRouter()
 	const [selectedOptions, setSelectedOptions] = useState<number[]>([])
+
+	const handleContinueOrSkip = () => {
+		router.push("/onboarding?flow=setup&step=integrations")
+	}
 
 	return (
 		<motion.div
@@ -86,7 +86,7 @@ export function RelatableQuestion({
 					>
 						<div className="flex flex-col items-start justify-between space-y-8">
 							<span className="text-2xl">{option.emoji}</span>
-							<p className="text-white text-xs leading-relaxed max-w-[115px] align-bottom text-left">
+							<p className="text-white text-xs leading-relaxed max-w-[130px] align-bottom text-left">
 								{option.text}
 							</p>
 						</div>
@@ -99,7 +99,7 @@ export function RelatableQuestion({
 						className="text-foreground font-medium"
 						variant="link"
 						size="lg"
-						onClick={onContinueOrSkip}
+						onClick={handleContinueOrSkip}
 					>
 						{selectedOptions.length === 0 ? "Skip for now →" : "Continue →"}
 					</Button>

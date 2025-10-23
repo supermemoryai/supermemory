@@ -1,14 +1,33 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import { PanelRightCloseIcon, SendIcon } from "lucide-react"
+import { collectValidUrls } from "@/utils/url-helpers"
 
-export function ChatSidebar() {
+interface ChatSidebarProps {
+	formData: {
+		twitter: string
+		linkedin: string
+		description: string
+		otherLinks: string[]
+	} | null
+}
+
+export function ChatSidebar({ formData }: ChatSidebarProps) {
 	const [message, setMessage] = useState("")
 	const [isChatOpen, setIsChatOpen] = useState(true)
+	const [messages, setMessages] = useState<
+		{
+			url: string
+			title?: string
+			description: string
+			fullContent: string
+		}[]
+	>([])
+	const [isLoading, setIsLoading] = useState(false)
 
 	const handleSend = () => {
 		console.log("Message:", message)
@@ -25,6 +44,53 @@ export function ChatSidebar() {
 	const toggleChat = () => {
 		setIsChatOpen(!isChatOpen)
 	}
+
+	// Helper function to truncate text to 2 lines
+	const truncateText = (text: string, maxLength = 120) => {
+		if (text.length <= maxLength) return text
+		return text.slice(0, maxLength).trim() + "..."
+	}
+
+	// Fetch content when formData is available
+	useEffect(() => {
+		if (!formData) return
+
+		const fetchContent = async () => {
+			setIsLoading(true)
+			const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
+
+			if (urls.length > 0) {
+				try {
+					const response = await fetch("/api/exa/fetch-content", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ urls }),
+					})
+					const { results } = await response.json()
+
+					const newMessages = results.map(
+						(result: {
+							url: string
+							title?: string
+							text?: string
+							description?: string
+						}) => ({
+							url: result.url,
+							title: result.title,
+							description: result.text || result.description || "",
+							fullContent: result.text || result.description || "",
+						}),
+					)
+					setMessages(newMessages)
+				} catch (error) {
+					console.warn("Error fetching content:", error)
+				}
+			}
+			setIsLoading(false)
+		}
+
+		fetchContent()
+	}, [formData])
 
 	return (
 		<AnimatePresence mode="wait">
@@ -64,19 +130,41 @@ export function ChatSidebar() {
 						<PanelRightCloseIcon className="size-4" />
 						Close chat
 					</motion.button>
-					<div className="flex-1 flex items-end justify-start px-4">
-						<div className="flex flex-col items-center gap-4">
-							<motion.div
-								className="flex items-center gap-2 text-foreground/70"
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								transition={{ delay: 0.5 }}
-							>
+					<div className="flex-1 flex flex-col justify-end px-4 py-6 space-y-3">
+						{messages.length === 0 && !isLoading && (
+							<div className="flex items-center gap-2 text-foreground/70">
 								<NovaOrb size={24} />
-
 								<span className="text-sm">Waiting for your input</span>
-							</motion.div>
-						</div>
+							</div>
+						)}
+						{isLoading && (
+							<div className="text-sm text-foreground/50">
+								Fetching your memories...
+							</div>
+						)}
+						{messages.map((msg, i) => (
+							<div
+								key={`message-${i}-${msg.url}`}
+								className="bg-[#0D121A] rounded-lg p-4 space-y-2"
+							>
+								{msg.title && (
+									<h3 className="text-sm font-medium text-foreground">
+										{msg.title}
+									</h3>
+								)}
+								<a
+									href={msg.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-xs text-blue-400 hover:underline break-all"
+								>
+									{msg.url}
+								</a>
+								<p className="text-sm text-foreground/70 line-clamp-2">
+									{truncateText(msg.description)}
+								</p>
+							</div>
+						))}
 					</div>
 
 					<div className="p-4">

@@ -1,19 +1,13 @@
 import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
+import { useRouter } from "next/navigation"
 
-interface FeaturesStepProps {
-	setCurrentStep: (
-		step:
-			| "input"
-			| "greeting"
-			| "welcome"
-			| "username"
-			| "features"
-			| "memories",
-	) => void
-}
+export function FeaturesStep() {
+	const router = useRouter()
 
-export function FeaturesStep({ setCurrentStep }: FeaturesStepProps) {
+	const handleContinue = () => {
+		router.push("/onboarding?flow=welcome&step=memories")
+	}
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 40 }}
@@ -94,7 +88,7 @@ export function FeaturesStep({ setCurrentStep }: FeaturesStepProps) {
 			>
 				<Button
 					className="rounded-xl px-6 py-3 bg-black border border-gray-800 hover:bg-gray-900 max-w-[10rem]"
-					onClick={() => setCurrentStep("memories")}
+					onClick={handleContinue}
 				>
 					<motion.button whileTap={{ scale: 0.95 }} className="w-full">
 						Continue setup →

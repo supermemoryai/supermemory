@@ -1,11 +1,4 @@
-"use client"
-
-import { SetupHeader } from "./header"
-import { AnimatePresence, motion } from "motion/react"
-import { RelatableQuestion } from "./relatable-question"
-import { IntegrationsStep } from "./integrations-step"
-import { ChatSidebar } from "./chat-sidebar"
-import { useState } from "react"
+import { motion } from "motion/react"
 
 export function AnimatedGradientBackground() {
 	return (
@@ -53,42 +46,5 @@ export function AnimatedGradientBackground() {
 				}}
 			/>
 		</div>
-	)
-}
-
-export default function SetupPage() {
-	const [currentStep, setCurrentStep] = useState<"relatable" | "integrations">(
-		"relatable",
-	)
-
-	const handleContinueOrSkip = () => {
-		setCurrentStep("integrations")
-	}
-
-	const handleBack = () => {
-		setCurrentStep("relatable")
-	}
-
-	return (
-		<main className="relative min-h-screen bg-[#080A0D]">
-			<AnimatedGradientBackground />
-			<div className="relative z-10">
-				<SetupHeader />
-				<div className="flex flex-row h-[calc(100vh-90px)] relative">
-					<div className="flex-1 flex flex-col items-center justify-start p-8">
-						{currentStep === "relatable" && (
-							<RelatableQuestion onContinueOrSkip={handleContinueOrSkip} />
-						)}
-						{currentStep === "integrations" && (
-							<IntegrationsStep onBack={handleBack} />
-						)}
-					</div>
-
-					<AnimatePresence mode="popLayout">
-						<ChatSidebar />
-					</AnimatePresence>
-				</div>
-			</div>
-		</main>
 	)
 }

@@ -1,14 +1,24 @@
 import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useState } from "react"
-import { fetchContentFromUrls, type ExaContentResult } from "@/utils/exa-api"
+import { useRouter } from "next/navigation"
 
-export function MemoriesStep() {
+interface MemoriesStepProps {
+	onSubmit: (data: {
+		twitter: string
+		linkedin: string
+		description: string
+		otherLinks: string[]
+	}) => void
+}
+
+export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
+	const router = useRouter()
+	const [otherLinks, setOtherLinks] = useState([""])
 	const [twitterHandle, setTwitterHandle] = useState("")
 	const [linkedinProfile, setLinkedinProfile] = useState("")
-	const [otherLinks, setOtherLinks] = useState([""])
 	const [description, setDescription] = useState("")
-	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [isSubmitting] = useState(false)
 
 	const addOtherLink = () => {
 		if (otherLinks.length < 3) {
@@ -27,66 +37,6 @@ export function MemoriesStep() {
 			const updated = otherLinks.filter((_, i) => i !== index)
 			setOtherLinks(updated)
 		}
-	}
-
-	// URL validation and filtering helpers
-	const isValidUrl = (url: string): boolean => {
-		try {
-			new URL(url)
-			return true
-		} catch {
-			return false
-		}
-	}
-
-	const normalizeUrl = (url: string): string => {
-		if (!url.trim()) return ""
-		if (url.startsWith("http://") || url.startsWith("https://")) {
-			return url
-		}
-		return `https://${url}`
-	}
-
-	const isTwitterUrl = (url: string): boolean => {
-		const normalizedUrl = url.toLowerCase()
-		return (
-			normalizedUrl.includes("twitter.com") || normalizedUrl.includes("x.com")
-		)
-	}
-
-	const isLinkedInProfileUrl = (url: string): boolean => {
-		const normalizedUrl = url.toLowerCase()
-		return (
-			normalizedUrl.includes("linkedin.com/in/") &&
-			!normalizedUrl.includes("linkedin.com/company/")
-		)
-	}
-
-	const collectValidUrls = (): string[] => {
-		const urls: string[] = []
-
-		// Add LinkedIn profile if valid and not empty
-		if (linkedinProfile.trim()) {
-			const normalizedLinkedIn = normalizeUrl(linkedinProfile.trim())
-			if (
-				isValidUrl(normalizedLinkedIn) &&
-				isLinkedInProfileUrl(normalizedLinkedIn)
-			) {
-				urls.push(normalizedLinkedIn)
-			}
-		}
-
-		// Add other links if valid and not empty, excluding Twitter
-		otherLinks
-			.filter((link) => link.trim())
-			.forEach((link) => {
-				const normalizedLink = normalizeUrl(link.trim())
-				if (isValidUrl(normalizedLink) && !isTwitterUrl(normalizedLink)) {
-					urls.push(normalizedLink)
-				}
-			})
-
-		return urls
 	}
 
 	return (
@@ -211,47 +161,15 @@ export function MemoriesStep() {
 				<Button
 					className="rounded-xl px-6 py-3 bg-[#070E1B] border border-[#525966]/20 hover:bg-[#2A2A2A] max-w-[12rem] text-white disabled:opacity-50 disabled:cursor-not-allowed"
 					disabled={isSubmitting}
-					onClick={async () => {
-						setIsSubmitting(true)
-
-						try {
-							// Collect valid URLs for fetching
-							const urlsToFetch = collectValidUrls()
-
-							// Fetch content from URLs using Exa API
-							let fetchedData: Record<string, ExaContentResult> = {}
-							if (urlsToFetch.length > 0) {
-								const contentResults = await fetchContentFromUrls(urlsToFetch)
-								fetchedData = Object.fromEntries(
-									contentResults.map((result) => [result.url, result]),
-								)
-							}
-
-							// Log complete form data including fetched content
-							console.log("Form submitted:", {
-								twitterHandle,
-								linkedinProfile,
-								otherLinks: otherLinks.filter((link) => link.trim()),
-								description,
-								fetchedContent: fetchedData,
-							})
-
-							// Navigate to setup page after form submission
-							window.location.href = "/onboarding/setup"
-						} catch (error) {
-							console.warn("Error during form submission:", error)
-							// Continue with form submission even if API fails
-							console.log("Form submitted (without fetched content):", {
-								twitterHandle,
-								linkedinProfile,
-								otherLinks: otherLinks.filter((link) => link.trim()),
-								description,
-								fetchedContent: {},
-							})
-							window.location.href = "/onboarding/setup"
-						} finally {
-							setIsSubmitting(false)
+					onClick={() => {
+						const formData = {
+							twitter: twitterHandle,
+							linkedin: linkedinProfile,
+							description: description,
+							otherLinks: otherLinks.filter((l) => l.trim()),
 						}
+						onSubmit(formData)
+						router.push("/onboarding?flow=setup&step=relatable")
 					}}
 				>
 					{isSubmitting ? "Fetching..." : "Remember this →"}
