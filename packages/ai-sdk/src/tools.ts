@@ -31,7 +31,7 @@ export function supermemoryTools(
 	const searchMemories = tool({
 		description:
 			"Search (recall) memories/details/information about the user or other facts or entities. Run when explicitly asked or when context about user's past choices would be helpful.",
-		inputSchema: z.object({
+		parameters: z.object({
 			informationToGet: z
 				.string()
 				.describe("Terms to search for in the user's memories"),
@@ -48,10 +48,15 @@ export function supermemoryTools(
 				.default(10)
 				.describe("Maximum number of results to return"),
 		}),
+		// @ts-expect-error - Zod v4 compatibility with AI SDK v5
 		execute: async ({
 			informationToGet,
 			includeFullDocs = true,
 			limit = 10,
+		}: {
+			informationToGet: string
+			includeFullDocs?: boolean
+			limit?: number
 		}) => {
 			try {
 				const response = await client.search.execute({
@@ -79,14 +84,15 @@ export function supermemoryTools(
 	const addMemory = tool({
 		description:
 			"Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation.",
-		inputSchema: z.object({
+		parameters: z.object({
 			memory: z
 				.string()
 				.describe(
 					"The text content of the memory to add. This should be a single sentence or a short paragraph.",
 				),
 		}),
-		execute: async ({ memory }) => {
+		// @ts-expect-error - Zod v4 compatibility with AI SDK v5
+		execute: async ({ memory }: { memory: string }) => {
 			try {
 				const metadata: Record<string, string | number | boolean> = {}
 
