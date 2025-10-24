@@ -159,12 +159,6 @@ export const useDeleteDocument = (selectedProject: string) => {
 	})
 }
 
-/**
- * Hook to fetch user profile data from the /v4/profile endpoint
- * @param containerTag - User identifier (typically user.email or user.id)
- * @param enabled - Whether the query should run (defaults to true)
- * @returns React Query result with profile data (static and dynamic facts)
- */
 export const useUserProfile = (containerTag: string | null, enabled = true) => {
 	return useQuery({
 		queryKey: ["user-profile", containerTag],
