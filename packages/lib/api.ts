@@ -16,9 +16,11 @@ import {
 	MemoryResponseSchema,
 	MigrateMCPRequestSchema,
 	MigrateMCPResponseSchema,
+	ProfileResponseSchema,
 	ProjectSchema,
 	SearchRequestSchema,
 	SearchResponseSchema,
+	type ProfileResponse,
 	type SearchResult,
 	SettingsRequestSchema,
 } from "../validation/api"
@@ -220,4 +222,4 @@ export const $fetch = createFetch({
 })
 
 // Re-export types that might be used elsewhere
-export type { SearchResult }
+export type { SearchResult, ProfileResponse }
