@@ -5,6 +5,7 @@ import {
 	fetchConnectionsFeature,
 	fetchMemoriesFeature,
 	fetchSubscriptionStatus,
+	useUserProfile,
 } from "@lib/queries"
 import { Button } from "@repo/ui/components/button"
 import { Skeleton } from "@repo/ui/components/skeleton"
@@ -14,6 +15,7 @@ import { CheckCircle, CreditCard, LoaderIcon, User, X } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
 import { useState } from "react"
+import { ProfileFactsSection } from "./profile-facts-section"
 
 export function ProfileView() {
 	const { user: session, org } = useAuth()
@@ -42,6 +44,13 @@ export function ProfileView() {
 		!isCheckingStatus && !autumn.isLoading,
 	)
 	const connectionsUsed = connectionsCheck?.usage ?? 0
+
+	const {
+		data: profileData,
+		isLoading: isLoadingProfile,
+		error: profileError,
+		refetch: refetchProfile,
+	} = useUserProfile(session?.email ?? null, !session?.isAnonymous)
 
 	const handleUpgrade = async () => {
 		setIsLoading(true)
@@ -329,6 +338,15 @@ export function ProfileView() {
 					)}
 				</div>
 			)}
+
+			{/* Profile Facts Section */}
+			<ProfileFactsSection
+				static={profileData?.profile?.static}
+				dynamic={profileData?.profile?.dynamic}
+				isLoading={isLoadingProfile}
+				error={profileError}
+				onRetry={() => refetchProfile()}
+			/>
 		</div>
 	)
 }
