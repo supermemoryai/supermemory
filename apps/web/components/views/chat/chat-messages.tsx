@@ -254,7 +254,9 @@ export function ChatMessages() {
 				if (result.message.role !== "assistant") return
 
 				if (shouldGenerateTitleRef.current) {
+					// biome-ignore lint/suspicious/noExplicitAny: AI SDK message parts have dynamic types
 					const textPart = result.message.parts.find(
+						// biome-ignore lint/suspicious/noExplicitAny: AI SDK message parts have dynamic types
 						(p: any) => p?.type === "text",
 					) as any
 					const text = textPart?.text?.trim()
@@ -284,7 +286,7 @@ export function ChatMessages() {
 				setSelectedModel(savedModel)
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, storageKey])
 
 	useEffect(() => {
 		if (currentChatId && !hasRunInitialMessageRef.current) {
@@ -299,13 +301,13 @@ export function ChatMessages() {
 				hasRunInitialMessageRef.current = true
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, sendMessage])
 
 	useEffect(() => {
 		if (id && id !== currentChatId) {
 			setCurrentChatId(id)
 		}
-	}, [id])
+	}, [id, currentChatId, setCurrentChatId])
 
 	useEffect(() => {
 		const msgs = getCurrentConversation()
@@ -315,14 +317,14 @@ export function ChatMessages() {
 			setMessages([])
 		}
 		setInput("")
-	}, [currentChatId])
+	}, [currentChatId, getCurrentConversation, setMessages])
 
 	useEffect(() => {
 		const activeId = currentChatId ?? id
 		if (activeId && messages.length > 0) {
 			setConversation(activeId, messages)
 		}
-	}, [messages, currentChatId, id])
+	}, [messages, currentChatId, id, setConversation])
 
 	const { complete } = useCompletion({
 		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
@@ -341,6 +343,7 @@ export function ChatMessages() {
 				.reverse()
 				.find((m) => m.role === "assistant")
 			if (!lastAssistant) return
+			// biome-ignore lint/suspicious/noExplicitAny: AI SDK types are complex and dynamically typed
 			const lastSearchPart = [...(lastAssistant.parts as any[])]
 				.reverse()
 				.find(
@@ -349,9 +352,11 @@ export function ChatMessages() {
 						p?.state === "output-available",
 				)
 			if (!lastSearchPart) return
+			// biome-ignore lint/suspicious/noExplicitAny: AI SDK tool output has dynamic types
 			const output = (lastSearchPart as any).output
 			const ids = Array.isArray(output?.results)
-				? ((output.results as any[])
+				? // biome-ignore lint/suspicious/noExplicitAny: Tool output results have dynamic structure
+					((output.results as any[])
 						.map((r) => r?.documentId)
 						.filter(Boolean) as string[])
 				: []
@@ -359,7 +364,7 @@ export function ChatMessages() {
 				setDocumentIds(ids)
 			}
 		} catch {}
-	}, [messages])
+	}, [messages, setDocumentIds])
 
 	useEffect(() => {
 		const currentSummary = getCurrentChat()
@@ -367,7 +372,7 @@ export function ChatMessages() {
 			currentSummary?.title && currentSummary.title.trim().length > 0,
 		)
 		shouldGenerateTitleRef.current = !hasTitle
-	}, [])
+	}, [getCurrentChat])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
