@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import { PanelRightCloseIcon, SendIcon } from "lucide-react"
 import { collectValidUrls } from "@/utils/url-helpers"
+import { $fetch } from "@lib/api"
 
 interface ChatSidebarProps {
 	formData: {
@@ -25,9 +26,11 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 			title?: string
 			description: string
 			fullContent: string
+			type?: "formData" | "exa" | "memory" | "waiting"
 		}[]
 	>([])
 	const [isLoading, setIsLoading] = useState(false)
+	const displayedMemoriesRef = useRef<Set<string>>(new Set())
 
 	const handleSend = () => {
 		console.log("Message:", message)
@@ -45,52 +48,277 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		setIsChatOpen(!isChatOpen)
 	}
 
-	// Helper function to truncate text to 2 lines
-	const truncateText = (text: string, maxLength = 120) => {
-		if (text.length <= maxLength) return text
-		return text.slice(0, maxLength).trim() + "..."
-	}
+	const pollForMemories = useCallback(
+		async (documentIds: string[]) => {
+			const maxAttempts = 30 // 30 attempts * 3 seconds = 90 seconds max
+			const pollInterval = 3000 // 3 seconds
 
-	// Fetch content when formData is available
+			for (let attempt = 0; attempt < maxAttempts; attempt++) {
+				try {
+					const response = await $fetch("@get/documents/:id", {
+						params: { id: documentIds[0] ?? "" },
+						disableValidation: true,
+					})
+
+					console.log("response", response)
+
+					if (response.data) {
+						const document = response.data
+
+						if (document.memoryEntries && document.memoryEntries.length > 0) {
+							const newMemories: typeof messages = []
+
+							document.memoryEntries.forEach((memory) => {
+								if (!displayedMemoriesRef.current.has(memory.memory)) {
+									displayedMemoriesRef.current.add(memory.memory)
+									newMemories.push({
+										url: document.url || "",
+										title: memory.title || document.title || "Memory",
+										description: memory.memory || "",
+										fullContent: memory.memory || "",
+										type: "memory" as const,
+									})
+								}
+							})
+
+							if (newMemories.length > 0) {
+								setMessages((prev) => [...prev, ...newMemories])
+							}
+						}
+
+						if (document.status === "done") {
+							const waitingMessage = {
+								url: "",
+								title: "",
+								description: "Waiting for your input",
+								fullContent: "Waiting for your input",
+								type: "waiting" as const,
+							}
+
+							setMessages((prev) => {
+								const withoutWaiting = prev.filter(
+									(msg) => msg.type !== "waiting",
+								)
+								return [...withoutWaiting, waitingMessage]
+							})
+							break
+						}
+					}
+
+					await new Promise((resolve) => setTimeout(resolve, pollInterval))
+				} catch (error) {
+					console.warn("Error polling for memories:", error)
+					await new Promise((resolve) => setTimeout(resolve, pollInterval))
+				}
+			}
+
+			const waitingMessage = {
+				url: "",
+				title: "",
+				description: "Waiting for your input",
+				fullContent: "Waiting for your input",
+				type: "waiting" as const,
+			}
+
+			setMessages((prev) => {
+				const withoutWaiting = prev.filter((msg) => msg.type !== "waiting")
+				return [...withoutWaiting, waitingMessage]
+			})
+		},
+		[],
+	)
+
 	useEffect(() => {
 		if (!formData) return
 
-		const fetchContent = async () => {
-			setIsLoading(true)
-			const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
+		const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
 
-			if (urls.length > 0) {
+		console.log("urls", urls)
+
+		if (urls.length > 0) {
+			const processContent = async () => {
+				setIsLoading(true)
+
 				try {
+					// Step 1: Fetch content from Exa
 					const response = await fetch("/api/exa/fetch-content", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ urls }),
 					})
 					const { results } = await response.json()
+					console.log("results", results)
 
-					const newMessages = results.map(
-						(result: {
-							url: string
-							title?: string
-							text?: string
-							description?: string
-						}) => ({
-							url: result.url,
-							title: result.title,
-							description: result.text || result.description || "",
-							fullContent: result.text || result.description || "",
-						}),
-					)
-					setMessages(newMessages)
+					// Step 2: Create documents from Exa results
+					const documentIds: string[] = []
+					for (const result of results) {
+						try {
+							const docResponse = await $fetch("@post/documents", {
+								body: {
+									content: result.text || result.description || "",
+									containerTags: ["sm_project_default"],
+									metadata: {
+										sm_source: "consumer",
+										exa_url: result.url,
+										exa_title: result.title,
+									},
+								},
+							})
+
+							if (docResponse.data?.id) {
+								documentIds.push(docResponse.data.id)
+							}
+						} catch (error) {
+							console.warn("Error creating document:", error)
+						}
+					}
+
+					// Step 2.5: Create document from description if it exists
+					if (formData.description?.trim()) {
+						try {
+							const descDocResponse = await $fetch("@post/documents", {
+								body: {
+									content: formData.description,
+									containerTags: ["sm_project_default"],
+									metadata: {
+										sm_source: "consumer",
+										description_source: "user_input",
+									},
+								},
+							})
+
+							if (descDocResponse.data?.id) {
+								documentIds.push(descDocResponse.data.id)
+							}
+						} catch (error) {
+							console.warn("Error creating description document:", error)
+						}
+					}
+
+					// Step 3: Poll for memories
+					if (documentIds.length > 0) {
+						await pollForMemories(documentIds)
+					} else {
+						// No documents created, show waiting
+						const waitingMessage = {
+							url: "",
+							title: "",
+							description: "Waiting for your input",
+							fullContent: "Waiting for your input",
+							type: "waiting" as const,
+						}
+						setMessages([waitingMessage])
+					}
 				} catch (error) {
-					console.warn("Error fetching content:", error)
-				}
-			}
-			setIsLoading(false)
-		}
+					console.warn("Error processing content:", error)
 
-		fetchContent()
-	}, [formData])
+					const waitingMessage = {
+						url: "",
+						title: "",
+						description: "Waiting for your input",
+						fullContent: "Waiting for your input",
+						type: "waiting" as const,
+					}
+
+					setMessages([waitingMessage])
+				}
+				setIsLoading(false)
+			}
+
+			processContent()
+		} else {
+			console.log("description", formData.description)
+			if (formData.description?.trim()) {
+				const processDescription = async () => {
+					setIsLoading(true)
+					try {
+						const descDocResponse = await $fetch("@post/documents", {
+							body: {
+								content: formData.description,
+								containerTags: ["sm_project_default"],
+								metadata: {
+									sm_source: "consumer",
+									description_source: "user_input",
+								},
+							},
+						})
+
+						if (descDocResponse.data?.id) {
+							console.log("descDocResponse.data.id", descDocResponse.data.id)
+							await pollForMemories([descDocResponse.data.id])
+						} else {
+							const waitingMessage = {
+								url: "",
+								title: "",
+								description: "Waiting for your input",
+								fullContent: "Waiting for your input",
+								type: "waiting" as const,
+							}
+							setMessages([waitingMessage])
+						}
+					} catch (error) {
+						console.warn("Error processing description:", error)
+
+						const waitingMessage = {
+							url: "",
+							title: "",
+							description: "Waiting for your input",
+							fullContent: "Waiting for your input",
+							type: "waiting" as const,
+						}
+						setMessages([waitingMessage])
+					}
+					setIsLoading(false)
+				}
+
+				processDescription()
+			} else {
+				const formDataMessages = []
+
+				if (formData.twitter) {
+					formDataMessages.push({
+						url: formData.twitter,
+						title: "Twitter Profile",
+						description: `Twitter: ${formData.twitter}`,
+						fullContent: formData.twitter,
+						type: "formData" as const,
+					})
+				}
+
+				if (formData.linkedin) {
+					formDataMessages.push({
+						url: formData.linkedin,
+						title: "LinkedIn Profile",
+						description: `LinkedIn: ${formData.linkedin}`,
+						fullContent: formData.linkedin,
+						type: "formData" as const,
+					})
+				}
+
+				if (formData.otherLinks.length > 0) {
+					formData.otherLinks.forEach((link) => {
+						formDataMessages.push({
+							url: link,
+							title: "Other Link",
+							description: `Link: ${link}`,
+							fullContent: link,
+							type: "formData" as const,
+						})
+					})
+				}
+
+				const waitingMessage = {
+					url: "",
+					title: "",
+					description: "Waiting for your input",
+					fullContent: "Waiting for your input",
+					type: "waiting" as const,
+				}
+
+				setMessages([...formDataMessages, waitingMessage])
+			}
+		}
+	}, [formData, pollForMemories])
 
 	return (
 		<AnimatePresence mode="wait">
@@ -130,10 +358,10 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						<PanelRightCloseIcon className="size-4" />
 						Close chat
 					</motion.button>
-					<div className="flex-1 flex flex-col justify-end px-4 py-6 space-y-3">
-						{messages.length === 0 && !isLoading && (
+					<div className="flex-1 flex flex-col justify-end px-4 space-y-3">
+						{messages.length === 0 && !isLoading && !formData && (
 							<div className="flex items-center gap-2 text-foreground/70">
-								<NovaOrb size={24} />
+								<NovaOrb size={28} className="!blur-none" />
 								<span className="text-sm">Waiting for your input</span>
 							</div>
 						)}
@@ -145,24 +373,49 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						{messages.map((msg, i) => (
 							<div
 								key={`message-${i}-${msg.url}`}
-								className="bg-[#0D121A] rounded-lg p-4 space-y-2"
+								className="flex items-start gap-4"
 							>
-								{msg.title && (
-									<h3 className="text-sm font-medium text-foreground">
-										{msg.title}
-									</h3>
+								{msg.type === "waiting" ? (
+									<div className="flex items-center gap-2 text-foreground/70">
+										<NovaOrb size={30} className="!blur-none" />
+										<span className="text-sm">{msg.description}</span>
+									</div>
+								) : (
+									<>
+										<div className="w-4 h-3 bg-[#293952]/40 rounded-full" />
+										<div className="bg-[#293952]/40 rounded-lg p-2 px-3 space-y-2">
+											{msg.title && (
+												<h3
+													className="text-sm font-medium"
+													style={{
+														background:
+															"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
+														WebkitBackgroundClip: "text",
+														WebkitTextFillColor: "transparent",
+														backgroundClip: "text",
+													}}
+												>
+													{msg.title}
+												</h3>
+											)}
+											{msg.url && (
+												<a
+													href={msg.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-xs text-blue-400 hover:underline break-all"
+												>
+													{msg.url}
+												</a>
+											)}
+											{msg.description && msg.type === "memory" && (
+												<p className="text-xs text-foreground/70 mt-1">
+													{msg.description}
+												</p>
+											)}
+										</div>
+									</>
 								)}
-								<a
-									href={msg.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-xs text-blue-400 hover:underline break-all"
-								>
-									{msg.url}
-								</a>
-								<p className="text-sm text-foreground/70 line-clamp-2">
-									{truncateText(msg.description)}
-								</p>
 							</div>
 						))}
 					</div>

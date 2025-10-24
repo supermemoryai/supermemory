@@ -73,7 +73,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 	return (
 		<>
 			<Suspense fallback={null}>
-				<PostHogPageTracking />
+				{process.env.NODE_ENV === "production" && <PostHogPageTracking />}
 			</Suspense>
 			{children}
 		</>
