@@ -7,7 +7,7 @@ import { useInfiniteQuery } from "@tanstack/react-query"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { z } from "zod"
 import { MemoryGraph } from "@repo/ui/memory-graph"
-import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { AddMemoryView } from "@/components/views/add-memory"
 import { useChatOpen, useProject, useGraphModal } from "@/stores"
@@ -170,6 +170,7 @@ export function GraphDialog() {
 					className="w-[95vw] h-[95vh] p-0  max-w-6xl sm:max-w-6xl"
 					showCloseButton={true}
 				>
+					<DialogTitle className="sr-only">Memory Graph</DialogTitle>
 					<div className="w-full h-full">
 						<MemoryGraph
 							documents={allDocuments}

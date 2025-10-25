@@ -62,27 +62,27 @@ export function ModelSelector({
 					fill="none"
 				>
 					<title>Model Selector</title>
-					<g clip-path="url(#clip0_4418_9868)">
+					<g clipPath="url(#clip0_4418_9868)">
 						<path
 							d="M12.92 2.25984L19.43 5.76984C20.19 6.17984 20.19 7.34984 19.43 7.75984L12.92 11.2698C12.34 11.5798 11.66 11.5798 11.08 11.2698L4.57 7.75984C3.81 7.34984 3.81 6.17984 4.57 5.76984L11.08 2.25984C11.66 1.94984 12.34 1.94984 12.92 2.25984Z"
 							stroke="currentColor"
-							stroke-width="1.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
+							strokeWidth="1.5"
+							strokeLinecap="round"
+							strokeLinejoin="round"
 						/>
 						<path
 							d="M3.61 10.1297L9.66 13.1597C10.41 13.5397 10.89 14.3097 10.89 15.1497V20.8697C10.89 21.6997 10.02 22.2297 9.28 21.8597L3.23 18.8297C2.48 18.4497 2 17.6797 2 16.8397V11.1197C2 10.2897 2.87 9.75968 3.61 10.1297Z"
 							stroke="currentColor"
-							stroke-width="1.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
+							strokeWidth="1.5"
+							strokeLinecap="round"
+							strokeLinejoin="round"
 						/>
 						<path
 							d="M20.39 10.1297L14.34 13.1597C13.59 13.5397 13.11 14.3097 13.11 15.1497V20.8697C13.11 21.6997 13.98 22.2297 14.72 21.8597L20.77 18.8297C21.52 18.4497 22 17.6797 22 16.8397V11.1197C22 10.2897 21.13 9.75968 20.39 10.1297Z"
 							stroke="currentColor"
-							stroke-width="1.5"
-							stroke-linecap="round"
-							stroke-linejoin="round"
+							strokeWidth="1.5"
+							strokeLinecap="round"
+							strokeLinejoin="round"
 						/>
 					</g>
 					<defs>
