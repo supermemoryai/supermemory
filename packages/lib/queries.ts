@@ -3,7 +3,7 @@ import type { useCustomer } from "autumn-js/react"
 import { toast } from "sonner"
 import type { z } from "zod"
 import type { DocumentsWithMemoriesResponseSchema } from "../validation/api"
-import { $fetch } from "./api"
+import { $fetch, type ProfileResponse } from "./api"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -156,5 +156,38 @@ export const useDeleteDocument = (selectedProject: string) => {
 				queryKey: ["documents-with-memories", selectedProject],
 			})
 		},
+	})
+}
+
+export const useUserProfile = (containerTag: string | null, enabled = true) => {
+	return useQuery({
+		queryKey: ["user-profile", containerTag],
+		queryFn: async (): Promise<ProfileResponse> => {
+			if (!containerTag) {
+				throw new Error("No containerTag provided")
+			}
+
+			const response = await fetch(
+				`${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/v4/profile`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify({ containerTag }),
+				},
+			)
+
+			if (!response.ok) {
+				throw new Error(`Profile fetch failed: ${response.status}`)
+			}
+
+			return response.json()
+		},
+		enabled: enabled && !!containerTag,
+		staleTime: 30 * 1000, // 30 seconds
+		gcTime: 5 * 60 * 1000, // 5 minutes
+		retry: 2,
 	})
 }

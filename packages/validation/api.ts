@@ -1384,3 +1384,93 @@ export const BulkDeleteMemoriesResponseSchema = z
 	.openapi({
 		description: "Response for bulk memory deletion",
 	})
+
+// User Profile schemas
+export const ProfileResponseSchema = z
+	.object({
+		profile: z
+			.object({
+				static: z
+					.array(z.string())
+					.optional()
+					.openapi({
+						description:
+							"Long-term, stable facts about the user that rarely change",
+						example: [
+							"User is a software engineer at TechCorp",
+							"User specializes in distributed systems and Kubernetes",
+							"User prefers technical documentation over video tutorials",
+						],
+					}),
+				dynamic: z
+					.array(z.string())
+					.optional()
+					.openapi({
+						description:
+							"Recent context and temporary information about current activities",
+						example: [
+							"User is currently migrating the payment service to microservices",
+							"User recently started learning Rust for a side project",
+							"User is debugging a memory leak in the authentication service",
+						],
+					}),
+			})
+			.openapi({
+				description:
+					"User profile with static (long-term) and dynamic (recent) facts automatically extracted from interactions",
+			}),
+		searchResults: z
+			.object({
+				results: z
+					.array(
+						z.object({
+							memory: z.string().openapi({
+								description: "Memory content",
+								example: "User prefers React over Vue",
+							}),
+						}),
+					)
+					.openapi({
+						description: "Array of memory search results",
+					}),
+				total: z.number().openapi({
+					description: "Total number of search results",
+					example: 10,
+				}),
+				timing: z.number().openapi({
+					description: "Search execution time in milliseconds",
+					example: 45.2,
+				}),
+			})
+			.optional()
+			.openapi({
+				description:
+					"Optional search results when 'q' query parameter is provided",
+			}),
+	})
+	.openapi({
+		description:
+			"User profile response with automatically maintained facts and optional search results",
+		example: {
+			profile: {
+				static: [
+					"User is a software engineer",
+					"User specializes in Python and React",
+				],
+				dynamic: [
+					"User is working on Project Alpha",
+					"User recently started learning Rust",
+				],
+			},
+			searchResults: {
+				results: [
+					{ memory: "User prefers dark mode" },
+					{ memory: "User uses VSCode as primary editor" },
+				],
+				total: 2,
+				timing: 45.2,
+			},
+		},
+	})
+
+export type ProfileResponse = z.infer<typeof ProfileResponseSchema>
