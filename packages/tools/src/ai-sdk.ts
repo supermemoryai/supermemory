@@ -23,7 +23,7 @@ export const searchMemoriesTool = (
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.searchMemories,
-		inputSchema: z.object({
+		parameters: z.object({
 			informationToGet: z
 				.string()
 				.describe(PARAMETER_DESCRIPTIONS.informationToGet),
@@ -38,10 +38,15 @@ export const searchMemoriesTool = (
 				.default(DEFAULT_VALUES.limit)
 				.describe(PARAMETER_DESCRIPTIONS.limit),
 		}),
+		// @ts-expect-error - Zod v4 compatibility with AI SDK v5
 		execute: async ({
 			informationToGet,
 			includeFullDocs = DEFAULT_VALUES.includeFullDocs,
 			limit = DEFAULT_VALUES.limit,
+		}: {
+			informationToGet: string
+			includeFullDocs?: boolean
+			limit?: number
 		}) => {
 			try {
 				const response = await client.search.execute({
@@ -80,10 +85,11 @@ export const addMemoryTool = (
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.addMemory,
-		inputSchema: z.object({
+		parameters: z.object({
 			memory: z.string().describe(PARAMETER_DESCRIPTIONS.memory),
 		}),
-		execute: async ({ memory }) => {
+		// @ts-expect-error - Zod v4 compatibility with AI SDK v5
+		execute: async ({ memory }: { memory: string }) => {
 			try {
 				const metadata: Record<string, string | number | boolean> = {}
 
