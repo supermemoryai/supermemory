@@ -48,85 +48,82 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		setIsChatOpen(!isChatOpen)
 	}
 
-	const pollForMemories = useCallback(
-		async (documentIds: string[]) => {
-			const maxAttempts = 30 // 30 attempts * 3 seconds = 90 seconds max
-			const pollInterval = 3000 // 3 seconds
+	const pollForMemories = useCallback(async (documentIds: string[]) => {
+		const maxAttempts = 30 // 30 attempts * 3 seconds = 90 seconds max
+		const pollInterval = 3000 // 3 seconds
 
-			for (let attempt = 0; attempt < maxAttempts; attempt++) {
-				try {
-					const response = await $fetch("@get/documents/:id", {
-						params: { id: documentIds[0] ?? "" },
-						disableValidation: true,
-					})
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			try {
+				const response = await $fetch("@get/documents/:id", {
+					params: { id: documentIds[0] ?? "" },
+					disableValidation: true,
+				})
 
-					console.log("response", response)
+				console.log("response", response)
 
-					if (response.data) {
-						const document = response.data
+				if (response.data) {
+					const document = response.data
 
-						if (document.memoryEntries && document.memoryEntries.length > 0) {
-							const newMemories: typeof messages = []
+					if (document.memories && document.memories.length > 0) {
+						const newMemories: typeof messages = []
 
-							document.memoryEntries.forEach((memory) => {
-								if (!displayedMemoriesRef.current.has(memory.memory)) {
-									displayedMemoriesRef.current.add(memory.memory)
-									newMemories.push({
-										url: document.url || "",
-										title: memory.title || document.title || "Memory",
-										description: memory.memory || "",
-										fullContent: memory.memory || "",
-										type: "memory" as const,
-									})
-								}
-							})
-
-							if (newMemories.length > 0) {
-								setMessages((prev) => [...prev, ...newMemories])
+						document.memories.forEach((memory) => {
+							if (!displayedMemoriesRef.current.has(memory.memory)) {
+								displayedMemoriesRef.current.add(memory.memory)
+								newMemories.push({
+									url: document.url || "",
+									title: memory.title || document.title || "Memory",
+									description: memory.memory || "",
+									fullContent: memory.memory || "",
+									type: "memory" as const,
+								})
 							}
-						}
+						})
 
-						if (document.status === "done") {
-							const waitingMessage = {
-								url: "",
-								title: "",
-								description: "Waiting for your input",
-								fullContent: "Waiting for your input",
-								type: "waiting" as const,
-							}
-
-							setMessages((prev) => {
-								const withoutWaiting = prev.filter(
-									(msg) => msg.type !== "waiting",
-								)
-								return [...withoutWaiting, waitingMessage]
-							})
-							break
+						if (newMemories.length > 0) {
+							setMessages((prev) => [...prev, ...newMemories])
 						}
 					}
 
-					await new Promise((resolve) => setTimeout(resolve, pollInterval))
-				} catch (error) {
-					console.warn("Error polling for memories:", error)
-					await new Promise((resolve) => setTimeout(resolve, pollInterval))
+					if (document.memories && document.memories.length > 0) {
+						const waitingMessage = {
+							url: "",
+							title: "",
+							description: "Waiting for your input",
+							fullContent: "Waiting for your input",
+							type: "waiting" as const,
+						}
+
+						setMessages((prev) => {
+							const withoutWaiting = prev.filter(
+								(msg) => msg.type !== "waiting",
+							)
+							return [...withoutWaiting, waitingMessage]
+						})
+						break
+					}
 				}
-			}
 
-			const waitingMessage = {
-				url: "",
-				title: "",
-				description: "Waiting for your input",
-				fullContent: "Waiting for your input",
-				type: "waiting" as const,
+				await new Promise((resolve) => setTimeout(resolve, pollInterval))
+			} catch (error) {
+				console.warn("Error polling for memories:", error)
+				await new Promise((resolve) => setTimeout(resolve, pollInterval))
 			}
+		}
 
-			setMessages((prev) => {
-				const withoutWaiting = prev.filter((msg) => msg.type !== "waiting")
-				return [...withoutWaiting, waitingMessage]
-			})
-		},
-		[],
-	)
+		const waitingMessage = {
+			url: "",
+			title: "",
+			description: "Waiting for your input",
+			fullContent: "Waiting for your input",
+			type: "waiting" as const,
+		}
+
+		setMessages((prev) => {
+			const withoutWaiting = prev.filter((msg) => msg.type !== "waiting")
+			return [...withoutWaiting, waitingMessage]
+		})
+	}, [])
 
 	useEffect(() => {
 		if (!formData) return
@@ -135,12 +132,14 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 
 		console.log("urls", urls)
 
-		if (urls.length > 0) {
-			const processContent = async () => {
-				setIsLoading(true)
+		const processContent = async () => {
+			setIsLoading(true)
 
-				try {
-					// Step 1: Fetch content from Exa
+			try {
+				const documentIds: string[] = []
+
+				// Step 1: Fetch content from Exa if URLs exist
+				if (urls.length > 0) {
 					const response = await fetch("/api/exa/fetch-content", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
@@ -149,8 +148,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					const { results } = await response.json()
 					console.log("results", results)
 
-					// Step 2: Create documents from Exa results
-					const documentIds: string[] = []
+					// Create documents from Exa results
 					for (const result of results) {
 						try {
 							const docResponse = await $fetch("@post/documents", {
@@ -172,65 +170,10 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 							console.warn("Error creating document:", error)
 						}
 					}
-
-					// Step 2.5: Create document from description if it exists
-					if (formData.description?.trim()) {
-						try {
-							const descDocResponse = await $fetch("@post/documents", {
-								body: {
-									content: formData.description,
-									containerTags: ["sm_project_default"],
-									metadata: {
-										sm_source: "consumer",
-										description_source: "user_input",
-									},
-								},
-							})
-
-							if (descDocResponse.data?.id) {
-								documentIds.push(descDocResponse.data.id)
-							}
-						} catch (error) {
-							console.warn("Error creating description document:", error)
-						}
-					}
-
-					// Step 3: Poll for memories
-					if (documentIds.length > 0) {
-						await pollForMemories(documentIds)
-					} else {
-						// No documents created, show waiting
-						const waitingMessage = {
-							url: "",
-							title: "",
-							description: "Waiting for your input",
-							fullContent: "Waiting for your input",
-							type: "waiting" as const,
-						}
-						setMessages([waitingMessage])
-					}
-				} catch (error) {
-					console.warn("Error processing content:", error)
-
-					const waitingMessage = {
-						url: "",
-						title: "",
-						description: "Waiting for your input",
-						fullContent: "Waiting for your input",
-						type: "waiting" as const,
-					}
-
-					setMessages([waitingMessage])
 				}
-				setIsLoading(false)
-			}
 
-			processContent()
-		} else {
-			console.log("description", formData.description)
-			if (formData.description?.trim()) {
-				const processDescription = async () => {
-					setIsLoading(true)
+				// Step 2: Create document from description if it exists
+				if (formData.description?.trim()) {
 					try {
 						const descDocResponse = await $fetch("@post/documents", {
 							body: {
@@ -244,68 +187,64 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						})
 
 						if (descDocResponse.data?.id) {
-							console.log("descDocResponse.data.id", descDocResponse.data.id)
-							await pollForMemories([descDocResponse.data.id])
-						} else {
-							const waitingMessage = {
-								url: "",
-								title: "",
-								description: "Waiting for your input",
-								fullContent: "Waiting for your input",
-								type: "waiting" as const,
-							}
-							setMessages([waitingMessage])
+							documentIds.push(descDocResponse.data.id)
 						}
 					} catch (error) {
-						console.warn("Error processing description:", error)
-
-						const waitingMessage = {
-							url: "",
-							title: "",
-							description: "Waiting for your input",
-							fullContent: "Waiting for your input",
-							type: "waiting" as const,
-						}
-						setMessages([waitingMessage])
+						console.warn("Error creating description document:", error)
 					}
-					setIsLoading(false)
 				}
 
-				processDescription()
-			} else {
-				const formDataMessages = []
+				// Step 3: Poll for memories or show form data
+				if (documentIds.length > 0) {
+					await pollForMemories(documentIds)
+				} else {
+					// No documents created, show form data or waiting
+					const formDataMessages = []
 
-				if (formData.twitter) {
-					formDataMessages.push({
-						url: formData.twitter,
-						title: "Twitter Profile",
-						description: `Twitter: ${formData.twitter}`,
-						fullContent: formData.twitter,
-						type: "formData" as const,
-					})
-				}
-
-				if (formData.linkedin) {
-					formDataMessages.push({
-						url: formData.linkedin,
-						title: "LinkedIn Profile",
-						description: `LinkedIn: ${formData.linkedin}`,
-						fullContent: formData.linkedin,
-						type: "formData" as const,
-					})
-				}
-
-				if (formData.otherLinks.length > 0) {
-					formData.otherLinks.forEach((link) => {
+					if (formData.twitter) {
 						formDataMessages.push({
-							url: link,
-							title: "Other Link",
-							description: `Link: ${link}`,
-							fullContent: link,
+							url: formData.twitter,
+							title: "Twitter Profile",
+							description: `Twitter: ${formData.twitter}`,
+							fullContent: formData.twitter,
 							type: "formData" as const,
 						})
-					})
+					}
+
+					if (formData.linkedin) {
+						formDataMessages.push({
+							url: formData.linkedin,
+							title: "LinkedIn Profile",
+							description: `LinkedIn: ${formData.linkedin}`,
+							fullContent: formData.linkedin,
+							type: "formData" as const,
+						})
+					}
+
+					if (formData.otherLinks.length > 0) {
+						formData.otherLinks.forEach((link) => {
+							formDataMessages.push({
+								url: link,
+								title: "Other Link",
+								description: `Link: ${link}`,
+								fullContent: link,
+								type: "formData" as const,
+							})
+						})
+					}
+
+					const waitingMessage = {
+						url: "",
+						title: "",
+						description: "Waiting for your input",
+						fullContent: "Waiting for your input",
+						type: "waiting" as const,
+					}
+
+					setMessages([...formDataMessages, waitingMessage])
 				}
+			} catch (error) {
+				console.warn("Error processing content:", error)
 
 				const waitingMessage = {
 					url: "",
@@ -315,9 +254,12 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					type: "waiting" as const,
 				}
 
-				setMessages([...formDataMessages, waitingMessage])
+				setMessages([waitingMessage])
 			}
+			setIsLoading(false)
 		}
+
+		processContent()
 	}, [formData, pollForMemories])
 
 	return (
