@@ -26,7 +26,7 @@ export function ActionButtons({
 	return (
 		<div className={`flex gap-3 order-1 sm:order-2 justify-end ${className}`}>
 			<Button
-				className="hover:bg-foreground/10 border-none flex-1 sm:flex-initial"
+				className="hover:bg-foreground/10 border-none flex-1 sm:flex-initial cursor-pointer"
 				onClick={onCancel}
 				type="button"
 				variant="ghost"
@@ -40,7 +40,7 @@ export function ActionButtons({
 				className="flex-1 sm:flex-initial"
 			>
 				<Button
-					className="w-full"
+					className="w-full cursor-pointer"
 					disabled={isSubmitting || isSubmitDisabled}
 					onClick={submitType === "button" ? onSubmit : undefined}
 					type={submitType}

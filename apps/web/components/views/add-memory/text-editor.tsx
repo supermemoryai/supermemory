@@ -404,7 +404,7 @@ export function TextEditor({
 			variant="ghost"
 			size="sm"
 			className={cn(
-				"h-8 w-8 !p-0 text-foreground/70 transition-all duration-200 rounded-sm",
+				"h-8 w-8 !p-0 text-foreground/70 transition-all duration-200 rounded-sm cursor-pointer",
 				"hover:bg-foreground/15 hover:text-foreground hover:scale-105",
 				"active:scale-95",
 				isActive && "bg-foreground/20 text-foreground",
@@ -425,7 +425,7 @@ export function TextEditor({
 	return (
 		<div className={cn("bg-foreground/5 border border-foreground/10 rounded-md", containerClassName)}>
 			<div className={cn("flex flex-col", className)}>
-			<div className="flex-1 min-h-48 max-h-64 overflow-y-auto">
+			<div className="flex-1 min-h-48 overflow-y-auto">
 				<Slate
 					editor={editor}
 					initialValue={editorValue}
@@ -451,8 +451,8 @@ export function TextEditor({
 							disabled && "opacity-50 cursor-not-allowed",
 						)}
 						style={{
-							minHeight: "11rem",
-							maxHeight: "15rem",
+							minHeight: "23rem",
+							maxHeight: "23rem",
 							padding: "12px",
 							overflowX: "hidden",
 						}}
