@@ -543,6 +543,7 @@ export function AddMemoryView({
 					}}
 					open={showAddDialog}
 				>
+					<DialogTitle>Memory Dialog</DialogTitle>
 					<DialogContent
 						className="w-[100vw] max-w-4xl sm:max-w-4xl backdrop-blur-xl border-white/10 z-[80] h-[52vh] overflow-y-auto p-4"
 						showCloseButton={false}
