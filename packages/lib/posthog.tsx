@@ -11,7 +11,7 @@ function PostHogPageTracking() {
 
 	// Page tracking
 	useEffect(() => {
-		if (pathname) {
+		if (pathname && posthog.__loaded) {
 			let url = window.origin + pathname
 			if (searchParams.toString()) {
 				url = `${url}?${searchParams.toString()}`
@@ -38,19 +38,24 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "", {
+			const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+			if (posthogKey){
+			posthog.init(posthogKey, {
 				api_host: process.env.NEXT_PUBLIC_BACKEND_URL + "/orange",
 				ui_host: "https://us.i.posthog.com",
 				person_profiles: "identified_only",
 				capture_pageview: false,
 				capture_pageleave: true,
-			})
+			})}
+			else{
+				console.warn("PostHog API key is not set. PostHog will not be initialized.")
+			}
 		}
 	}, [])
 
 	// User identification
 	useEffect(() => {
-		if (session?.user) {
+		if (session?.user && posthog.__loaded) {
 			posthog.identify(session.user.id, {
 				email: session.user.email,
 				name: session.user.name,

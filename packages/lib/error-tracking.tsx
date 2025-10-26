@@ -14,6 +14,7 @@ export function useErrorTracking() {
 		error: Error | unknown,
 		context?: Record<string, any>,
 	) => {
+		if (!posthog.__loaded) return
 		const errorDetails = {
 			error_message: error instanceof Error ? error.message : String(error),
 			error_stack: error instanceof Error ? error.stack : undefined,
@@ -117,6 +118,7 @@ export function useInteractionTracking() {
 	const pathname = usePathname()
 
 	const trackInteraction = (action: string, details?: Record<string, any>) => {
+		if (!posthog.__loaded) return
 		posthog.capture("user_interaction", {
 			action,
 			pathname,
@@ -131,6 +133,7 @@ export function useInteractionTracking() {
 		success: boolean,
 		details?: Record<string, any>,
 	) => {
+		if (!posthog.__loaded) return
 		posthog.capture("form_submission", {
 			form_name: formName,
 			success,
