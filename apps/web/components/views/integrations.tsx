@@ -133,6 +133,20 @@ const ChromeIcon = ({ className }: { className?: string }) => (
 	</svg>
 )
 
+const getRelativeTime = (timestamp: number): string => {
+	const now = Date.now()
+	const diff = now - timestamp
+	const minutes = Math.floor(diff / (1000 * 60))
+	const hours = Math.floor(diff / (1000 * 60 * 60))
+	const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+	if (minutes < 1) return "Just now"
+	if (minutes < 60) return `${minutes}m ago`
+	if (hours < 24) return `${hours}h ago`
+	if (days < 7) return `${days}d ago`
+	return new Date(timestamp).toLocaleDateString()
+}
+
 export function IntegrationsView() {
 	const { org } = useAuth()
 	const queryClient = useQueryClient()
@@ -214,6 +228,7 @@ export function IntegrationsView() {
 		},
 		staleTime: 30 * 1000,
 		refetchInterval: 60 * 1000,
+		refetchIntervalInBackground: true,
 	})
 
 	const { data: projects = [] } = useQuery({
@@ -824,12 +839,13 @@ export function IntegrationsView() {
 								const connection = connections.find(
 									(conn) => conn.provider === provider,
 								)
+								console.log(connection)
 								const isConnected = !!connection
 								const isMoreComing = provider === COMING_SOON_CONNECTOR
 
 								return (
 									<div
-										className={`p-4 rounded-lg border border-border/50 transition-all duration-200 ${
+										className={`p-4 flex flex-col justify-between rounded-lg border border-border/50 transition-all duration-200 ${
 											isMoreComing
 												? "bg-muted/30 hover:bg-muted/50"
 												: "bg-card hover:border-border hover:shadow-sm"
@@ -858,10 +874,21 @@ export function IntegrationsView() {
 														</div>
 													) : isConnected ? (
 														<div className="flex items-center gap-1 mt-1">
-															<div className="w-2 h-2 bg-chart-2 rounded-full" />
-															<span className="text-xs text-chart-2 font-medium">
-																Connected
-															</span>
+															{connection.metadata?.syncInProgress ? (
+																<>
+																	<Loader className="h-3 w-3 animate-spin text-primary" />
+																	<span className="text-xs text-primary font-medium">
+																		Syncing...
+																	</span>
+																</>
+															) : (
+																<div className="flex items-center gap-1">
+																	<div className="w-2 h-2 bg-chart-2 rounded-full" />
+																	<span className="text-xs text-chart-2 font-medium">
+																		Connected
+																	</span>
+																</div>
+															)}
 														</div>
 													) : (
 														<div className="flex items-center gap-1 mt-1">
@@ -888,14 +915,28 @@ export function IntegrationsView() {
 											)}
 										</div>
 
-										<p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+										<p className="text-xs text-muted-foreground mb-3 leading-relaxed">
 											{config.description}
 										</p>
 
-										{connection?.email && !isMoreComing && (
-											<p className="text-xs text-muted-foreground/70 mb-4">
-												{connection.email}
-											</p>
+										{isConnected && !isMoreComing && (
+											<div className="space-y-1">
+												{connection?.email && (
+													<p className="text-xs text-muted-foreground/70">
+														Email:{" "}
+														{connection.email}
+													</p>
+												)}
+												{connection?.metadata?.lastSyncedAt && (
+													<p
+														className="text-xs text-muted-foreground/70 cursor-help"
+														title={`Last synced at ${new Date(connection.metadata.lastSyncedAt).toLocaleString()}`}
+													>
+														Last synced:{" "}
+														{getRelativeTime(connection.metadata.lastSyncedAt)}
+													</p>
+												)}
+											</div>
 										)}
 
 										{!isConnected && !isMoreComing && (
