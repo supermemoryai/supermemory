@@ -25,6 +25,7 @@ classifiers = [
 ]
 requires-python = ">=3.8.1"
 dependencies = [
+    "httpx>=0.28.1",
     "openai>=1.102.0",
     "supermemory>=3.1.0",
     "typing-extensions>=4.0.0",
