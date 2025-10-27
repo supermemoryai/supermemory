@@ -18,7 +18,7 @@ import {
  * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
- * @param options.addMemory - Optional mode for memory addition: "always" (default), "never"
+ * @param options.addMemory - Optional mode for memory addition: "always", "never" (default)
  *
  * @returns An OpenAI client with SuperMemory middleware injected
  *
