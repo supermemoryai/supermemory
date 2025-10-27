@@ -39,14 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (session?.session.activeOrganizationId) {
 			authClient.organization.getFullOrganization().then((org) => {
-				if (org.metadata?.isConsumer === true) {
-					setOrg(org)
-				} else {
-					const consumerOrg = orgs?.find((o) => o.metadata?.isConsumer === true)
-					if (consumerOrg) {
-						setActiveOrg(consumerOrg.slug)
-					}
-				}
+				// TODO: Uncomment this when we have a way to handle consumer organizations better way
+				//if (org.metadata?.isConsumer === true) {
+				setOrg(org)
+				//} else {
+				//	const consumerOrg = orgs?.find((o) => o.metadata?.isConsumer === true)
+				//	if (consumerOrg) {
+				//		setActiveOrg(consumerOrg.slug)
+				//	}
+				//}
 			})
 		}
 	}, [session?.session.activeOrganizationId, orgs])
