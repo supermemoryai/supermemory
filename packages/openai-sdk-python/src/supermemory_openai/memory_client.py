@@ -34,6 +34,29 @@ class MemoryClient:
 
         self.base_url = base_url
         self.verbose = verbose
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, *args):
+        """Async context manager exit - cleanup client."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    def _get_client(self) -> httpx.AsyncClient:
+        """Get or create httpx client instance."""
+        if self._client is None:
+            self._client = httpx.AsyncClient(
+                timeout=30.0,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}",
+                }
+            )
+        return self._client
 
     def _log(self, message: str, data: Optional[Dict] = None) -> None:
         """Log message if verbose mode is enabled."""
@@ -72,41 +95,36 @@ class MemoryClient:
         })
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.base_url}/v4/profile",
-                    json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {self.api_key}",
-                    },
-                    timeout=30.0,
+            client = self._get_client()
+            response = await client.post(
+                f"{self.base_url}/v4/profile",
+                json=payload,
+            )
+
+            if not response.is_success:
+                error_text = response.text
+                self._log("Profile search failed", {
+                    "status": response.status_code,
+                    "error": error_text,
+                })
+                raise Exception(
+                    f"Supermemory profile search failed: {response.status_code} {response.reason_phrase}. {error_text}"
                 )
 
-                if not response.is_success:
-                    error_text = response.text
-                    self._log("Profile search failed", {
-                        "status": response.status_code,
-                        "error": error_text,
-                    })
-                    raise Exception(
-                        f"Supermemory profile search failed: {response.status_code} {response.reason_phrase}. {error_text}"
-                    )
+            result = response.json()
 
-                result = response.json()
+            # Log results
+            static_count = len(result.get("profile", {}).get("static", []))
+            dynamic_count = len(result.get("profile", {}).get("dynamic", []))
+            search_count = len(result.get("searchResults", {}).get("results", []))
 
-                # Log results
-                static_count = len(result.get("profile", {}).get("static", []))
-                dynamic_count = len(result.get("profile", {}).get("dynamic", []))
-                search_count = len(result.get("searchResults", {}).get("results", []))
+            self._log("Profile search completed", {
+                "staticMemories": static_count,
+                "dynamicMemories": dynamic_count,
+                "searchResults": search_count,
+            })
 
-                self._log("Profile search completed", {
-                    "staticMemories": static_count,
-                    "dynamicMemories": dynamic_count,
-                    "searchResults": search_count,
-                })
-
-                return result
+            return result
 
         except httpx.TimeoutException:
             self._log("Profile search timed out")
