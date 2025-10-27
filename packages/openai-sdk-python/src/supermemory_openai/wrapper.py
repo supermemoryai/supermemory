@@ -32,7 +32,15 @@ class WithSupermemoryOptions:
             verbose: Enable detailed logging
             mode: Memory search mode ("profile", "query", or "full")
             add_memory: Memory addition mode ("always" or "never")
+
+        Raises:
+            ValueError: If mode or add_memory values are invalid
         """
+        if mode not in ("profile", "query", "full"):
+            raise ValueError(f"Invalid mode: {mode}. Must be 'profile', 'query', or 'full'")
+        if add_memory not in ("always", "never"):
+            raise ValueError(f"Invalid add_memory: {add_memory}. Must be 'always' or 'never'")
+
         self.conversation_id = conversation_id
         self.verbose = verbose
         self.mode = mode
@@ -54,7 +62,13 @@ class SupermemoryOpenAIWrapper:
             client: OpenAI client instance
             container_tag: Container tag for memory operations
             options: Configuration options
+
+        Raises:
+            ValueError: If container_tag is empty or None
         """
+        if not container_tag or not container_tag.strip():
+            raise ValueError("container_tag cannot be empty or None")
+
         self.client = client
         self.container_tag = container_tag
         self.options = options or WithSupermemoryOptions()
