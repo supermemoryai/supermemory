@@ -4,8 +4,8 @@ export default defineConfig({
 	entry: [
 		"src/index.ts",
 		"src/ai-sdk.ts",
-		"src/openai.ts",
 		"src/claude-memory.ts",
+		"src/openai/index.ts",
 	],
 	format: "esm",
 	sourcemap: false,

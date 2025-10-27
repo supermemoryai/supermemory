@@ -19,8 +19,8 @@ yarn add @supermemory/tools
 ## Usage
 
 The package provides two submodule imports:
-- `@supermemory/tools/ai-sdk` - For use with the AI SDK framework
-- `@supermemory/tools/openai` - For use with OpenAI's function calling
+- `@supermemory/tools/ai-sdk` - For use with the AI SDK framework (includes `withSupermemory` middleware)
+- `@supermemory/tools/openai` - For use with OpenAI SDK (includes `withSupermemory` middleware and function calling tools)
 
 ### AI SDK Usage
 
@@ -221,6 +221,105 @@ const modelWithOptions = withSupermemory(openai("gpt-4"), "user-123", {
   addMemory: "always",
   verbose: true
 })
+```
+
+### OpenAI SDK Usage
+
+#### OpenAI Middleware with Supermemory
+
+The `withSupermemory` function creates an OpenAI client with SuperMemory middleware automatically injected:
+
+```typescript
+import { withSupermemory } from "@supermemory/tools/openai"
+
+// Create OpenAI client with supermemory middleware
+const openaiWithSupermemory = withSupermemory("user-123", {
+  conversationId: "conversation-456",
+  mode: "full",
+  addMemory: "always",
+  verbose: true,
+})
+
+// Use directly with chat completions - memories are automatically injected
+const completion = await openaiWithSupermemory.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [
+    { role: "user", content: "What do you remember about my preferences?" }
+  ],
+})
+
+console.log(completion.choices[0]?.message?.content)
+```
+
+#### OpenAI Middleware Options
+
+The middleware supports the same configuration options as the AI SDK version:
+
+```typescript
+const openaiWithSupermemory = withSupermemory("user-123", {
+  conversationId: "conversation-456", // Group messages for contextual memory
+  mode: "full",                       // "profile" | "query" | "full"
+  addMemory: "always",                // "always" | "never"
+  verbose: true,                      // Enable detailed logging
+})
+```
+
+#### Advanced Usage with Custom OpenAI Options
+
+You can also pass custom OpenAI client options:
+
+```typescript
+import { withSupermemory } from "@supermemory/tools/openai"
+
+const openaiWithSupermemory = withSupermemory(
+  "user-123", 
+  {
+    mode: "profile",
+    addMemory: "always",
+  },
+  {
+    baseURL: "https://api.openai.com/v1",
+    organization: "org-123",
+  },
+  "custom-api-key" // Optional: custom API key
+)
+
+const completion = await openaiWithSupermemory.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [{ role: "user", content: "Tell me about my preferences" }],
+})
+```
+
+#### Next.js API Route Example
+
+Here's a complete example for a Next.js API route:
+
+```typescript
+// app/api/chat/route.ts
+import { withSupermemory } from "@supermemory/tools/openai"
+import type { OpenAI as OpenAIType } from "openai"
+
+export async function POST(req: Request) {
+  const { messages, conversationId } = (await req.json()) as {
+    messages: OpenAIType.Chat.Completions.ChatCompletionMessageParam[]
+    conversationId: string
+  }
+
+  const openaiWithSupermemory = withSupermemory("user-123", {
+    conversationId,
+    mode: "full",
+    addMemory: "always",
+    verbose: true,
+  })
+
+  const completion = await openaiWithSupermemory.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages,
+  })
+
+  const message = completion.choices?.[0]?.message
+  return Response.json({ message, usage: completion.usage })
+}
 ```
 
 ### OpenAI Function Calling Usage
