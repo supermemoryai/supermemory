@@ -175,7 +175,8 @@ class SupermemoryOpenAIWrapper:
 
     async def _process_chat_completion(self, **kwargs) -> ChatCompletion:
         """Process chat completion with memory integration."""
-        messages = kwargs.get("messages", [])
+        # Create a copy to avoid mutating the original messages
+        messages = list(kwargs.get("messages", []))
 
         # Add memory if configured
         await self._add_memory_if_needed(messages)
@@ -183,17 +184,18 @@ class SupermemoryOpenAIWrapper:
         # Inject memories into conversation
         updated_messages = await self._inject_memories(messages)
 
-        # Update kwargs with modified messages
-        kwargs["messages"] = updated_messages
+        # Create a copy of kwargs to avoid mutating the original
+        updated_kwargs = kwargs.copy()
+        updated_kwargs["messages"] = updated_messages
 
         # Call the original client
         if isinstance(self.client, AsyncOpenAI):
-            return await self.client.chat.completions.create(**kwargs)
+            return await self.client.chat.completions.create(**updated_kwargs)
         else:
             # For sync client, we need to run in thread pool
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(self.client.chat.completions.create, **kwargs)
+                future = executor.submit(self.client.chat.completions.create, **updated_kwargs)
                 return future.result()
 
     def __getattr__(self, name: str) -> Any:
