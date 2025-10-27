@@ -15,6 +15,10 @@ from .tools import (
     create_search_memories_tool,
     create_add_memory_tool,
 )
+from .wrapper import (
+    with_supermemory,
+    WithSupermemoryOptions,
+)
 
 __all__ = [
     # Tools
@@ -31,4 +35,7 @@ __all__ = [
     "execute_memory_tool_calls",
     "create_search_memories_tool",
     "create_add_memory_tool",
+    # Wrapper
+    "with_supermemory",
+    "WithSupermemoryOptions",
 ]

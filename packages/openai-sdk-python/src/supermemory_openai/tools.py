@@ -7,6 +7,7 @@ from openai.types.chat import (
     ChatCompletionMessageToolCall,
     ChatCompletionToolMessageParam,
     ChatCompletionFunctionToolParam,
+    ChatCompletionToolParam,
 )
 import supermemory
 from supermemory.types import (
