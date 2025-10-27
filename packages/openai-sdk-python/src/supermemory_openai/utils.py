@@ -121,8 +121,13 @@ def inject_memories_into_messages(
                 content = message.get("content", "")
                 if isinstance(content, str):
                     updated_content = f"{content}\n\n{memories}"
+                elif isinstance(content, list):
+                    # Handle multimodal content - append text to existing text parts or add new text part
+                    updated_content = list(content)  # Copy the list
+                    # Add memories as a new text part
+                    updated_content.append({"type": "text", "text": f"\n\n{memories}"})
                 else:
-                    # If content is not a string, just append as string
+                    # Fallback: convert to string and append
                     updated_content = f"{content}\n\n{memories}"
 
                 updated_message = dict(message)
