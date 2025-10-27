@@ -238,7 +238,7 @@ export function BillingView() {
 							Upgrading...
 						</>
 					) : (
-						<div>Upgrade to Pro - $15/month (only for first 100 users)</div>
+						<div>Upgrade to Pro - $9/month (only for first 100 users)</div>
 					)}
 				</Button>
 
