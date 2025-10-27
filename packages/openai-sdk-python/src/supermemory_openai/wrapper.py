@@ -1,6 +1,7 @@
 """OpenAI client wrapper with Supermemory integration."""
 
 import asyncio
+import concurrent.futures
 import warnings
 from typing import Any, Dict, List, Optional, Union, overload
 from openai import OpenAI, AsyncOpenAI
@@ -81,6 +82,9 @@ class SupermemoryOpenAIWrapper:
         api_key = self.memory_client.api_key
         self.supermemory_client = supermemory.Supermemory(api_key=api_key)
 
+        # Initialize thread pool executor for sync client (if needed)
+        self._executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
+
     def _log(self, message: str, data: Optional[Dict] = None) -> None:
         """Log message if verbose mode is enabled."""
         if self.options.verbose:
@@ -88,6 +92,26 @@ class SupermemoryOpenAIWrapper:
                 print(f"[supermemory] {message}: {data}")
             else:
                 print(f"[supermemory] {message}")
+
+    def _get_executor(self) -> concurrent.futures.ThreadPoolExecutor:
+        """Get or create thread pool executor for sync operations."""
+        if self._executor is None:
+            self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        return self._executor
+
+    def close(self) -> None:
+        """Clean up resources."""
+        if self._executor:
+            self._executor.shutdown(wait=True)
+            self._executor = None
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, *args):
+        """Context manager exit - cleanup resources."""
+        self.close()
 
     async def _add_memory_if_needed(self, messages: List[ChatCompletionMessageParam]) -> None:
         """Add conversation to memory if configured to do so."""
@@ -193,10 +217,9 @@ class SupermemoryOpenAIWrapper:
             return await self.client.chat.completions.create(**updated_kwargs)
         else:
             # For sync client, we need to run in thread pool
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(self.client.chat.completions.create, **updated_kwargs)
-                return future.result()
+            executor = self._get_executor()
+            future = executor.submit(self.client.chat.completions.create, **updated_kwargs)
+            return future.result()
 
     def __getattr__(self, name: str) -> Any:
         """Forward all other attributes to the original client."""
