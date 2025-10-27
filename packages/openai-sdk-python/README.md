@@ -20,7 +20,47 @@ pip install supermemory-openai-sdk
 
 ## Quick Start
 
-### Using Memory Tools with OpenAI
+### Using the withSupermemory Wrapper (Recommended)
+
+The `withSupermemory` wrapper automatically injects relevant memories into your conversations without requiring manual function calls:
+
+```python
+import asyncio
+import openai
+from supermemory_openai import with_supermemory, WithSupermemoryOptions
+
+async def main():
+    # Initialize OpenAI client
+    client = openai.AsyncOpenAI(api_key="your-openai-api-key")
+
+    # Wrap with Supermemory integration
+    enhanced_client = with_supermemory(
+        client,
+        container_tag="user-123",  # Your user/project identifier
+        options=WithSupermemoryOptions(
+            conversation_id="chat-456",  # Optional: group related messages
+            mode="full",  # "profile", "query", or "full"
+            add_memory="always",  # "always" or "never"
+            verbose=True  # Enable detailed logging
+        )
+    )
+
+    # Use exactly like a normal OpenAI client - memories are injected automatically
+    response = await enhanced_client.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {"role": "user", "content": "What's my favorite programming language?"}
+        ]
+    )
+
+    print(response.choices[0].message.content)
+
+asyncio.run(main())
+```
+
+### Using Memory Tools with OpenAI (Manual Control)
+
+For manual control over when memories are retrieved and stored:
 
 ```python
 import asyncio
@@ -68,6 +108,36 @@ asyncio.run(main())
 ```
 
 ## Configuration
+
+### withSupermemory Wrapper Options
+
+```python
+from supermemory_openai import with_supermemory, WithSupermemoryOptions
+
+# Basic usage with minimal configuration
+enhanced_client = with_supermemory(client, "user-123")
+
+# Full configuration
+enhanced_client = with_supermemory(
+    client,
+    container_tag="user-123",
+    options=WithSupermemoryOptions(
+        conversation_id="chat-456",  # Optional: groups messages for contextual memory
+        mode="full",  # "profile" (default), "query", or "full"
+        add_memory="never",  # "always" or "never" (default)
+        verbose=False  # Enable detailed logging (default: False)
+    )
+)
+```
+
+**Mode Options:**
+- `"profile"`: Retrieves user's static and dynamic profile data only
+- `"query"`: Searches memories based on the latest user message only
+- `"full"`: Combines both profile data and query-based search results
+
+**Memory Storage:**
+- `"always"`: Automatically saves conversation content to memory
+- `"never"`: No automatic memory storage (default)
 
 ## Memory Tools
 
