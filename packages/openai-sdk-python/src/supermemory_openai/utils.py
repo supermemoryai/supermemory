@@ -69,7 +69,12 @@ def get_conversation_content(messages: List[ChatCompletionMessageParam]) -> str:
 
     for message in messages:
         role = message.get("role", "")
-        role_label = "User" if role == "user" else "Assistant"
+        role_label = {
+            "user": "User",
+            "assistant": "Assistant",
+            "system": "System",
+            "tool": "Tool"
+        }.get(role, "Unknown")
 
         content = message.get("content")
         if isinstance(content, str):
