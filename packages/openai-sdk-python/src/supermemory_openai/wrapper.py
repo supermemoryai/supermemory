@@ -1,6 +1,7 @@
 """OpenAI client wrapper with Supermemory integration."""
 
 import asyncio
+import warnings
 from typing import Any, Dict, List, Optional, Union, overload
 from openai import OpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
@@ -124,6 +125,8 @@ class SupermemoryOpenAIWrapper:
 
         except Exception as error:
             self._log("Error saving memory", {"error": str(error)})
+            if self.options.verbose:
+                warnings.warn(f"Failed to save memory: {error}", RuntimeWarning)
 
     async def _inject_memories(self, messages: List[ChatCompletionMessageParam]) -> List[ChatCompletionMessageParam]:
         """Inject relevant memories into the messages."""
@@ -165,6 +168,8 @@ class SupermemoryOpenAIWrapper:
 
         except Exception as error:
             self._log("Error during memory search", {"error": str(error)})
+            if self.options.verbose:
+                warnings.warn(f"Failed to retrieve memories: {error}", RuntimeWarning)
             # Return original messages if memory search fails
             return messages
 
