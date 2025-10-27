@@ -207,14 +207,18 @@ class SupermemorySyncChatCompletions:
 
     def create(self, **kwargs) -> ChatCompletion:
         """Create chat completion with memory integration."""
-        # Run async method in event loop
+        # Use asyncio.run for safer event loop management
         try:
-            loop = asyncio.get_event_loop()
+            # Check if we're already in an event loop
+            asyncio.get_running_loop()
+            # If we reach here, we're in an async context - not supported
+            raise RuntimeError(
+                "Cannot use sync client from within an async context. "
+                "Use AsyncOpenAI with with_supermemory instead."
+            )
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        return loop.run_until_complete(self.wrapper._process_chat_completion(**kwargs))
+            # No running loop, safe to use asyncio.run
+            return asyncio.run(self.wrapper._process_chat_completion(**kwargs))
 
     def __getattr__(self, name: str) -> Any:
         """Forward all other attributes to the original completions."""
