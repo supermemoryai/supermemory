@@ -120,7 +120,6 @@ export function updateTwitterImportUI(message: {
 	)
 	if (!importButton) return
 
-	// Handle backward compatibility: if there's an old <img> element, remove it and apply CSS background
 	const existingImg = importButton.querySelector("img")
 	if (existingImg) {
 		existingImg.remove()
@@ -128,12 +127,13 @@ export function updateTwitterImportUI(message: {
 		importButton.style.backgroundImage = `url("${iconUrl}")`
 		importButton.style.backgroundRepeat = "no-repeat"
 		importButton.style.backgroundSize = "20px 20px"
-		importButton.style.backgroundPosition = "left center"
-		importButton.style.paddingLeft = "28px"
+		importButton.style.backgroundPosition = "8px center"
+		importButton.style.padding = "10px 16px 10px 32px"
 	}
 
-	// Get or create the text span
-	let textSpan = importButton.querySelector("#sm-import-text") as HTMLSpanElement
+	let textSpan = importButton.querySelector(
+		"#sm-import-text",
+	) as HTMLSpanElement
 	if (!textSpan) {
 		textSpan = document.createElement("span")
 		textSpan.id = "sm-import-text"

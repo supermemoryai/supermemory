@@ -175,7 +175,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     color: black;
     border: none;
     border-radius: 50px;
-    padding: 10px 12px;
+    padding: 10px 16px 10px 32px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -189,8 +189,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
 	button.style.backgroundImage = `url("${iconUrl}")`
 	button.style.backgroundRepeat = "no-repeat"
 	button.style.backgroundSize = "20px 20px"
-	button.style.backgroundPosition = "left center"
-	button.style.paddingLeft = "28px" 
+	button.style.backgroundPosition = "8px center"
 
 	const textSpan = document.createElement("span")
 	textSpan.id = "sm-import-text"
