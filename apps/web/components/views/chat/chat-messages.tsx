@@ -21,6 +21,7 @@ import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { Spinner } from "../../spinner"
+import { STATUS } from "../../global-constants"
 
 interface MemoryResult {
 	documentId?: string
@@ -373,7 +374,7 @@ export function ChatMessages() {
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			if (["streaming", "submitted"].includes(status)) {
+			if ([STATUS.STREAMING, STATUS.SUBMITTED].includes(status)) {
          		stop();
          		return;
             }
@@ -563,7 +564,7 @@ export function ChatMessages() {
 							)}
 						</div>
 					))}
-					{status === "submitted" && (
+					{status === STATUS.SUBMITTED && (
 						<div className="flex text-muted-foreground justify-start gap-2 px-4 py-3 items-center w-full">
 							<Spinner className="size-4" />
 							<TextShimmer className="text-sm" duration={1.5}>
@@ -599,7 +600,7 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 bg-card border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (["submitted", "streaming"].includes(status)) return
+						if ([STATUS.SUBMITTED, STATUS.STREAMING].includes(status)) return
 						if (input.trim()) {
 							enableAutoScroll()
 							scrollToBottom("auto")
@@ -616,7 +617,7 @@ export function ChatMessages() {
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
-					{["submitted", "streaming"]?.includes(status) ? (
+					{[STATUS.SUBMITTED, STATUS.STREAMING].includes(status) ? (
               	       <Button
                 			type="button"
                             onClick={(e) => handleStop(e)}
