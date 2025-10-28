@@ -213,7 +213,7 @@ export function ConnectionsTabContent() {
 						sync your documents.
 					</p>
 					<Button
-						className="bg-yellow-500/20 text-black-400 hover:bg-yellow-500/30 dark:text-yellow-400 border-yellow-500/30"
+						className="bg-yellow-500/20 text-black-400 hover:bg-yellow-500/30 dark:text-yellow-400 border-yellow-500/30 cursor-pointer"
 						onClick={handleUpgrade}
 						size="sm"
 						variant="secondary"
@@ -280,7 +280,7 @@ export function ConnectionsTabContent() {
 									whileTap={{ scale: 0.9 }}
 								>
 									<Button
-										className="text-foreground/50 hover:text-red-400"
+										className="text-foreground/50 hover:text-red-400 cursor-pointer"
 										disabled={deleteConnectionMutation.isPending}
 										onClick={() =>
 											deleteConnectionMutation.mutate(connection.id)
@@ -311,7 +311,7 @@ export function ConnectionsTabContent() {
 								transition={{ delay: index * 0.05 }}
 							>
 								<Button
-									className="justify-start h-auto p-4 bg-foreground/5 hover:bg-foreground/10 border-foreground/10 w-full"
+									className="justify-start h-auto p-4 bg-foreground/5 hover:bg-foreground/10 border-foreground/10 w-full cursor-pointer"
 									disabled={addConnectionMutation.isPending}
 									onClick={() => {
 										addConnectionMutation.mutate(provider as ConnectorProvider)

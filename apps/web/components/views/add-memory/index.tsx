@@ -557,7 +557,7 @@ export function AddMemoryView({
 							<TabsList className="flex flex-col gap-2 max-w-48 h-fit bg-transparent p-0">
 								<TabsTrigger
 									value="note"
-									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full cursor-pointer"
 								>
 									<div className="flex gap-1 items-center">
 										<Brain className="h-4 w-4" />
@@ -569,7 +569,7 @@ export function AddMemoryView({
 								</TabsTrigger>
 								<TabsTrigger
 									value="link"
-									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full cursor-pointer"
 								>
 									<div className="flex gap-1 items-center">
 										<LinkIcon className="h-4 w-4" />
@@ -581,7 +581,7 @@ export function AddMemoryView({
 								</TabsTrigger>
 								<TabsTrigger
 									value="file"
-									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full cursor-pointer"
 								>
 									<div className="flex gap-1 items-center">
 										<FileIcon className="h-4 w-4" />
@@ -593,7 +593,7 @@ export function AddMemoryView({
 								</TabsTrigger>
 								<TabsTrigger
 									value="connect"
-									className="flex flex-col gap-1 justify-start items-start h-auto w-full"
+									className="flex flex-col gap-1 justify-start items-start h-auto w-full cursor-pointer"
 								>
 									<div className="flex gap-1 items-center">
 										<PlugIcon className="h-4 w-4" />
@@ -1037,7 +1037,7 @@ export function AddMemoryView({
 									whileTap={{ scale: 0.95 }}
 								>
 									<Button
-										className="bg-white/5 hover:bg-white/10 border-white/10 w-full sm:w-auto"
+										className="bg-white/5 hover:bg-white/10 border-white/10 w-full sm:w-auto cursor-pointer"
 										onClick={() => {
 											setShowCreateProjectDialog(false)
 											setNewProjectName("")
@@ -1054,7 +1054,7 @@ export function AddMemoryView({
 									whileTap={{ scale: 0.95 }}
 								>
 									<Button
-										className="bg-white/10 hover:bg-white/20 border-white/20 w-full sm:w-auto"
+										className="bg-white/10 hover:bg-white/20 border-white/20 w-full sm:w-auto cursor-pointer"
 										disabled={
 											createProjectMutation.isPending || !newProjectName.trim()
 										}
@@ -1105,7 +1105,7 @@ export function AddMemoryExpandedView() {
 				<div className="flex flex-wrap gap-2">
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20 cursor-pointer"
 							onClick={() => handleOpenDialog("note")}
 							size="sm"
 							variant="outline"
@@ -1117,7 +1117,7 @@ export function AddMemoryExpandedView() {
 
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20 cursor-pointer"
 							onClick={() => handleOpenDialog("link")}
 							size="sm"
 							variant="outline"
@@ -1129,7 +1129,7 @@ export function AddMemoryExpandedView() {
 
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20 cursor-pointer"
 							onClick={() => handleOpenDialog("file")}
 							size="sm"
 							variant="outline"
@@ -1141,7 +1141,7 @@ export function AddMemoryExpandedView() {
 
 					<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 						<Button
-							className="bg-white/10 hover:bg-white/20 border-white/20"
+							className="bg-white/10 hover:bg-white/20 border-white/20 cursor-pointer"
 							onClick={() => handleOpenDialog("connect")}
 							size="sm"
 							variant="outline"
