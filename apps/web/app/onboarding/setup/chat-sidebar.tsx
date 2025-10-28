@@ -7,6 +7,8 @@ import { Button } from "@ui/components/button"
 import { PanelRightCloseIcon, SendIcon } from "lucide-react"
 import { collectValidUrls } from "@/utils/url-helpers"
 import { $fetch } from "@lib/api"
+import { cn } from "@lib/utils"
+import { dmSansFont } from "@/utils/fonts"
 
 interface ChatSidebarProps {
 	formData: {
@@ -22,11 +24,17 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 	const [isChatOpen, setIsChatOpen] = useState(true)
 	const [messages, setMessages] = useState<
 		{
-			url: string
-			title?: string
-			description: string
-			fullContent: string
+			message: string
 			type?: "formData" | "exa" | "memory" | "waiting"
+			memories?: {
+				url: string
+				title: string
+				description: string
+				fullContent: string
+			}[]
+			url?: string
+			title?: string
+			description?: string
 		}[]
 	>([])
 	const [isLoading, setIsLoading] = useState(false)
@@ -48,82 +56,73 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		setIsChatOpen(!isChatOpen)
 	}
 
-	const pollForMemories = useCallback(async (documentIds: string[]) => {
-		const maxAttempts = 30 // 30 attempts * 3 seconds = 90 seconds max
-		const pollInterval = 3000 // 3 seconds
+	const pollForMemories = useCallback(
+		async (documentIds: string[]) => {
+			const maxAttempts = 30 // 30 attempts * 3 seconds = 90 seconds max
+			const pollInterval = 3000 // 3 seconds
 
-		for (let attempt = 0; attempt < maxAttempts; attempt++) {
-			try {
-				const response = await $fetch("@get/documents/:id", {
-					params: { id: documentIds[0] ?? "" },
-					disableValidation: true,
-				})
+			for (let attempt = 0; attempt < maxAttempts; attempt++) {
+				try {
+					const response = await $fetch("@get/documents/:id", {
+						params: { id: documentIds[0] ?? "" },
+						disableValidation: true,
+					})
 
-				console.log("response", response)
+					console.log("response", response)
 
-				if (response.data) {
-					const document = response.data
+					if (response.data) {
+						const document = response.data
 
-					if (document.memories && document.memories.length > 0) {
-						const newMemories: typeof messages = []
+						if (document.memories && document.memories.length > 0) {
+							const newMemories: {
+								url: string
+								title: string
+								description: string
+								fullContent: string
+							}[] = []
 
-						document.memories.forEach((memory) => {
-							if (!displayedMemoriesRef.current.has(memory.memory)) {
-								displayedMemoriesRef.current.add(memory.memory)
-								newMemories.push({
-									url: document.url || "",
-									title: memory.title || document.title || "Memory",
-									description: memory.memory || "",
-									fullContent: memory.memory || "",
-									type: "memory" as const,
-								})
-							}
-						})
-
-						if (newMemories.length > 0) {
-							setMessages((prev) => [...prev, ...newMemories])
-						}
-					}
-
-					if (document.memories && document.memories.length > 0) {
-						const waitingMessage = {
-							url: "",
-							title: "",
-							description: "Waiting for your input",
-							fullContent: "Waiting for your input",
-							type: "waiting" as const,
-						}
-
-						setMessages((prev) => {
-							const withoutWaiting = prev.filter(
-								(msg) => msg.type !== "waiting",
+							document.memories.forEach(
+								(memory: { memory: string; title?: string }) => {
+									if (!displayedMemoriesRef.current.has(memory.memory)) {
+										displayedMemoriesRef.current.add(memory.memory)
+										newMemories.push({
+											url: document.url || "",
+											title: memory.title || document.title || "Memory",
+											description: memory.memory || "",
+											fullContent: memory.memory || "",
+										})
+									}
+								},
 							)
-							return [...withoutWaiting, waitingMessage]
-						})
-						break
+
+							if (newMemories.length > 0 && messages.length < 10) {
+								setMessages((prev) => [
+									...prev,
+									{
+										message: newMemories
+											.map((memory) => memory.description)
+											.join("\n"),
+										type: "memory" as const,
+										memories: newMemories,
+									},
+								])
+							}
+						}
+
+						if (document.memories && document.memories.length > 0) {
+							break
+						}
 					}
+
+					await new Promise((resolve) => setTimeout(resolve, pollInterval))
+				} catch (error) {
+					console.warn("Error polling for memories:", error)
+					await new Promise((resolve) => setTimeout(resolve, pollInterval))
 				}
-
-				await new Promise((resolve) => setTimeout(resolve, pollInterval))
-			} catch (error) {
-				console.warn("Error polling for memories:", error)
-				await new Promise((resolve) => setTimeout(resolve, pollInterval))
 			}
-		}
-
-		const waitingMessage = {
-			url: "",
-			title: "",
-			description: "Waiting for your input",
-			fullContent: "Waiting for your input",
-			type: "waiting" as const,
-		}
-
-		setMessages((prev) => {
-			const withoutWaiting = prev.filter((msg) => msg.type !== "waiting")
-			return [...withoutWaiting, waitingMessage]
-		})
-	}, [])
+		},
+		[messages.length],
+	)
 
 	useEffect(() => {
 		if (!formData) return
@@ -203,20 +202,20 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 
 					if (formData.twitter) {
 						formDataMessages.push({
+							message: `Twitter: ${formData.twitter}`,
 							url: formData.twitter,
 							title: "Twitter Profile",
 							description: `Twitter: ${formData.twitter}`,
-							fullContent: formData.twitter,
 							type: "formData" as const,
 						})
 					}
 
 					if (formData.linkedin) {
 						formDataMessages.push({
+							message: `LinkedIn: ${formData.linkedin}`,
 							url: formData.linkedin,
 							title: "LinkedIn Profile",
 							description: `LinkedIn: ${formData.linkedin}`,
-							fullContent: formData.linkedin,
 							type: "formData" as const,
 						})
 					}
@@ -224,20 +223,20 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					if (formData.otherLinks.length > 0) {
 						formData.otherLinks.forEach((link) => {
 							formDataMessages.push({
+								message: `Link: ${link}`,
 								url: link,
 								title: "Other Link",
 								description: `Link: ${link}`,
-								fullContent: link,
 								type: "formData" as const,
 							})
 						})
 					}
 
 					const waitingMessage = {
+						message: "Waiting for your input",
 						url: "",
 						title: "",
 						description: "Waiting for your input",
-						fullContent: "Waiting for your input",
 						type: "waiting" as const,
 					}
 
@@ -247,10 +246,10 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 				console.warn("Error processing content:", error)
 
 				const waitingMessage = {
+					message: "Waiting for your input",
 					url: "",
 					title: "",
 					description: "Waiting for your input",
-					fullContent: "Waiting for your input",
 					type: "waiting" as const,
 				}
 
@@ -267,23 +266,30 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 			{!isChatOpen ? (
 				<motion.div
 					key="closed"
-					className="absolute top-0 right-0 flex items-start justify-start m-4"
+					className={cn(
+						"absolute top-0 right-0 flex items-start justify-start m-4",
+						dmSansFont.className,
+					)}
 					layoutId="chat-toggle-button"
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium border-[1px] border-[#17181A]"
+						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border-[1px] border-[#17181A]"
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
 					>
+						<NovaOrb size={24} className="!blur-none z-10" />
 						Chat with Nova
 					</motion.button>
 				</motion.div>
 			) : (
 				<motion.div
 					key="open"
-					className="w-[450px] h-[calc(100vh-110px)] bg-[#0A0E14] backdrop-blur-md flex flex-col rounded-2xl m-4"
+					className={cn(
+						"w-[450px] h-[calc(100vh-110px)] bg-[#0A0E14] backdrop-blur-md flex flex-col rounded-2xl m-4",
+						dmSansFont.className,
+					)}
 					initial={{ x: "100px", opacity: 0 }}
 					animate={{ x: 0, opacity: 1 }}
 					exit={{ x: "100px", opacity: 0 }}
@@ -300,62 +306,82 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						<PanelRightCloseIcon className="size-4" />
 						Close chat
 					</motion.button>
-					<div className="flex-1 flex flex-col justify-end px-4 space-y-3">
+					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end">
 						{messages.length === 0 && !isLoading && !formData && (
-							<div className="flex items-center gap-2 text-foreground/70">
+							<div className="flex items-center gap-2 text-foreground/50">
 								<NovaOrb size={28} className="!blur-none" />
 								<span className="text-sm">Waiting for your input</span>
 							</div>
 						)}
 						{isLoading && (
-							<div className="text-sm text-foreground/50">
-								Fetching your memories...
+							<div className="flex items-center gap-2 text-foreground/50">
+								<NovaOrb size={28} className="!blur-none" />
+								<span className="text-sm">Fetching your memories...</span>
 							</div>
 						)}
 						{messages.map((msg, i) => (
 							<div
-								key={`message-${i}-${msg.url}`}
-								className="flex items-start gap-4"
+								key={`message-${i}-${msg.message}`}
+								className="flex items-start gap-2"
 							>
 								{msg.type === "waiting" ? (
 									<div className="flex items-center gap-2 text-foreground/70">
 										<NovaOrb size={30} className="!blur-none" />
-										<span className="text-sm">{msg.description}</span>
+										<span className="text-sm">{msg.message}</span>
 									</div>
 								) : (
 									<>
-										<div className="w-4 h-3 bg-[#293952]/40 rounded-full" />
-										<div className="bg-[#293952]/40 rounded-lg p-2 px-3 space-y-2">
-											{msg.title && (
-												<h3
-													className="text-sm font-medium"
-													style={{
-														background:
-															"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
-														WebkitBackgroundClip: "text",
-														WebkitTextFillColor: "transparent",
-														backgroundClip: "text",
-													}}
-												>
-													{msg.title}
-												</h3>
+										<div
+											className={cn(
+												"flex flex-col items-center justify-center w-[30px] h-full",
+												i !== 0 && "",
 											)}
-											{msg.url && (
-												<a
-													href={msg.url}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-xs text-blue-400 hover:underline break-all"
-												>
-													{msg.url}
-												</a>
+										>
+											{i === 0 && (
+												<div className="w-3 h-3 bg-[#293952]/40 rounded-full mb-1" />
 											)}
-											{msg.description && msg.type === "memory" && (
-												<p className="text-xs text-foreground/70 mt-1">
-													{msg.description}
-												</p>
-											)}
+											<div className="w-[1px] flex-1 bg-[#293952]/40" />
 										</div>
+										{msg.type === "memory" && (
+											<div className="space-y-2 w-full max-h-60 overflow-y-auto scrollbar-thin">
+												{msg.memories?.map((memory) => (
+													<div
+														key={memory.url + memory.title}
+														className="bg-[#293952]/40 rounded-lg p-2 px-3 space-y-2"
+													>
+														{memory.title && (
+															<h3
+																className="text-sm font-medium"
+																style={{
+																	background:
+																		"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
+																	WebkitBackgroundClip: "text",
+																	WebkitTextFillColor: "transparent",
+																	backgroundClip: "text",
+																}}
+															>
+																{memory.title}
+															</h3>
+														)}
+														{memory.url && (
+															<a
+																href={memory.url}
+																target="_blank"
+																rel="noopener noreferrer"
+																className="text-xs text-blue-400 hover:underline break-all"
+															>
+																{memory.url}
+															</a>
+														)}
+														{memory.description && (
+															<p className="text-xs text-foreground/70 mt-1">
+																{memory.description}
+															</p>
+														)}
+													</div>
+												))}
+											</div>
+										)}
 									</>
 								)}
 							</div>
