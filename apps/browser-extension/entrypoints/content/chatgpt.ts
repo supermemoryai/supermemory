@@ -10,6 +10,7 @@ import {
 	createChatGPTInputBarElement,
 	DOMUtils,
 } from "../../utils/ui-components"
+import type { PlatformAdapter } from "./adapters/platform-adapter"
 
 let chatGPTDebounceTimeout: NodeJS.Timeout | null = null
 let chatGPTRouteObserver: MutationObserver | null = null
@@ -37,6 +38,7 @@ export function initializeChatGPT() {
 
 	document.body.setAttribute("data-chatgpt-initialized", "true")
 }
+
 
 function setupChatGPTRouteChangeDetection() {
 	if (chatGPTRouteObserver) {
@@ -253,6 +255,13 @@ function addSupermemoryButtonToMemoriesDialog() {
 		deleteAllContainer.firstChild,
 	)
 }
+
+export const chatGPTAdapter: PlatformAdapter = {
+	id: "chatgpt",
+	matches: () => DOMUtils.isOnDomain(DOMAINS.CHATGPT),
+	init: initializeChatGPT,
+}
+
 
 async function saveMemoriesToSupermemory() {
 	try {

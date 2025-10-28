@@ -1,7 +1,7 @@
 import { DOMAINS, MESSAGE_TYPES } from "../../utils/constants"
 import { DOMUtils } from "../../utils/ui-components"
-import { initializeChatGPT } from "./chatgpt"
-import { initializeClaude } from "./claude"
+import { chatGPTAdapter } from "./chatgpt"
+import { claudeAdapter } from "./claude"
 import { saveMemory, setupGlobalKeyboardShortcut, setupStorageListener } from "./shared"
 import { initializeT3 } from "./t3"
 import { handleTwitterNavigation, initializeTwitter, updateTwitterImportUI } from "./twitter"
@@ -28,40 +28,40 @@ export default defineContentScript({
 		// Setup storage listener
 		setupStorageListener()
 
-		// Observer for dynamic content changes
-		const observeForDynamicChanges = () => {
-			const observer = new MutationObserver(() => {
-				if (DOMUtils.isOnDomain(DOMAINS.CHATGPT)) {
-					initializeChatGPT()
-				}
-				if (DOMUtils.isOnDomain(DOMAINS.CLAUDE)) {
-					initializeClaude()
-				}
-				if (DOMUtils.isOnDomain(DOMAINS.T3)) {
-					initializeT3()
-				}
-				if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
-					handleTwitterNavigation()
+		const platformAdapters = [chatGPTAdapter, claudeAdapter]
+
+		const runPlatformAdapters = () => {
+			platformAdapters.forEach((adapter) => {
+				if (adapter.matches()) {
+					adapter.init()
 				}
 			})
 
+			if (DOMUtils.isOnDomain(DOMAINS.T3)) {
+				initializeT3()
+			}
+
+			if (DOMUtils.isOnDomain(DOMAINS.TWITTER)) {
+				handleTwitterNavigation()
+			}
+		}
+
+		runPlatformAdapters()
+		initializeTwitter()
+
+		const observer = new MutationObserver(runPlatformAdapters)
+		const startObserving = () =>
 			observer.observe(document.body, {
 				childList: true,
 				subtree: true,
 			})
-		}
 
-		// Initialize platform-specific functionality
-		initializeChatGPT()
-		initializeClaude()
-		initializeT3()
-		initializeTwitter()
-
-		// Start observing for dynamic changes
 		if (document.readyState === "loading") {
-			document.addEventListener("DOMContentLoaded", observeForDynamicChanges)
+			document.addEventListener("DOMContentLoaded", startObserving, {
+				once: true,
+			})
 		} else {
-			observeForDynamicChanges()
+			startObserving()
 		}
 	},
 })
