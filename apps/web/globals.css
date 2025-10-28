@@ -9,3 +9,16 @@
 .sm-tweet-theme .tweet-header-module__A9EVQG__authorFollow {
 	display: none;
 }
+
+.scrollbar-thin {
+	scrollbar-width: thin;
+	scrollbar-color: #293952 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+	width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}

@@ -4,6 +4,8 @@ import { useState } from "react"
 import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
+import { cn } from "@lib/utils"
+import { dmSansFont } from "@/utils/fonts"
 
 const relatableOptions = [
 	{
@@ -53,7 +55,7 @@ export function RelatableQuestion() {
 				Which of these sound most relatable?
 			</motion.h1>
 
-			<div className="flex flex-wrap justify-center gap-4 max-w-7xl">
+			<div className={cn("flex flex-wrap justify-center gap-4 max-w-7xl", dmSansFont.className)}>
 				{relatableOptions.map((option, index) => (
 					<button
 						key={option.text}

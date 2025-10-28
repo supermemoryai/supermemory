@@ -93,7 +93,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 
 				<div className="w-full max-w-2xl space-y-6">
 					<div className="flex items-start space-x-4">
-						<div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
+						<div className="bg-[#29395266] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
 							1
 						</div>
 						<div className="flex-1">
@@ -132,14 +132,14 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className="bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
+						<div className="bg-[#29395266] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
 							2
 						</div>
 						<div className="flex-1">
-							<h3 className="text-white text-lg font-medium mb-2">
+							<h3 className="text-white text-lg font-medium">
 								Copy the installation command
 							</h3>
-							{selectedClient ? (
+							{selectedClient && (
 								<div className="space-y-3">
 									{selectedClient === "mcp-url" ? (
 										<div className="space-y-4">
@@ -276,27 +276,18 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										</div>
 									)}
 								</div>
-							) : (
-								<p className="text-gray-400 text-sm">
-									The command will be provided once you select an AI client
-									above.
-								</p>
 							)}
 						</div>
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className="bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
+						<div className="bg-[#29395266] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
 							3
 						</div>
 						<div className="flex-1">
-							<h3 className="text-white text-lg font-medium mb-2">
+							<h3 className="text-white text-lg font-medium">
 								Run command in your terminal
 							</h3>
-							<p className="text-gray-400 text-sm">
-								Execute the copied command in your terminal to complete the
-								setup.
-							</p>
 						</div>
 					</div>
 				</div>
