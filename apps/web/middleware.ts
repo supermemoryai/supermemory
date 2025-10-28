@@ -6,11 +6,6 @@ export default async function middleware(request: Request) {
 	const url = new URL(request.url)
 	console.debug("[MIDDLEWARE] Path:", url.pathname)
 	console.debug("[MIDDLEWARE] Method:", request.method)
-
-	if (url.hostname === "localhost") {
-		return NextResponse.next()
-	}
-
 	const sessionCookie = getSessionCookie(request)
 	console.debug("[MIDDLEWARE] Session cookie exists:", !!sessionCookie)
 
