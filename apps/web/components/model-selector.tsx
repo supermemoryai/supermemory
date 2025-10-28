@@ -55,41 +55,26 @@ export function ModelSelector({
 				disabled={disabled}
 			>
 				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					viewBox="0 0 24 24"
-					fill="none"
+				xmlns="http://www.w3.org/2000/svg"
+				width="24"
+				height="24"
+				fill="none"
+				viewBox="0 0 24 24"
 				>
-					<title>Model Selector</title>
-					<g clipPath="url(#clip0_4418_9868)">
-						<path
-							d="M12.92 2.25984L19.43 5.76984C20.19 6.17984 20.19 7.34984 19.43 7.75984L12.92 11.2698C12.34 11.5798 11.66 11.5798 11.08 11.2698L4.57 7.75984C3.81 7.34984 3.81 6.17984 4.57 5.76984L11.08 2.25984C11.66 1.94984 12.34 1.94984 12.92 2.25984Z"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-						/>
-						<path
-							d="M3.61 10.1297L9.66 13.1597C10.41 13.5397 10.89 14.3097 10.89 15.1497V20.8697C10.89 21.6997 10.02 22.2297 9.28 21.8597L3.23 18.8297C2.48 18.4497 2 17.6797 2 16.8397V11.1197C2 10.2897 2.87 9.75968 3.61 10.1297Z"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-						/>
-						<path
-							d="M20.39 10.1297L14.34 13.1597C13.59 13.5397 13.11 14.3097 13.11 15.1497V20.8697C13.11 21.6997 13.98 22.2297 14.72 21.8597L20.77 18.8297C21.52 18.4497 22 17.6797 22 16.8397V11.1197C22 10.2897 21.13 9.75968 20.39 10.1297Z"
-							stroke="currentColor"
-							strokeWidth="1.5"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-						/>
-					</g>
-					<defs>
-						<clipPath id="clip0_4418_9868">
-							<rect width="24" height="24" fill="white" />
-						</clipPath>
-					</defs>
+				<g
+					stroke="currentColor"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					strokeWidth="1.5"
+					clipPath="url(#clip0_4418_9868)"
+				>
+					<path d="m12.92 2.26 6.51 3.51c.76.41.76 1.58 0 1.99l-6.51 3.51c-.58.31-1.26.31-1.84 0L4.57 7.76c-.76-.41-.76-1.58 0-1.99l6.51-3.51c.58-.31 1.26-.31 1.84 0M3.61 10.13l6.05 3.03c.75.38 1.23 1.15 1.23 1.99v5.72c0 .83-.87 1.36-1.61.99l-6.05-3.03A2.24 2.24 0 0 1 2 16.84v-5.72c0-.83.87-1.36 1.61-.99M20.39 10.13l-6.05 3.03c-.75.38-1.23 1.15-1.23 1.99v5.72c0 .83.87 1.36 1.61.99l6.05-3.03c.75-.38 1.23-1.15 1.23-1.99v-5.72c0-.83-.87-1.36-1.61-.99"></path>
+				</g>
+				<defs>
+					<clipPath id="clip0_4418_9868">
+					<path fill="#fff" d="M0 0h24v24H0z"></path>
+					</clipPath>
+				</defs>
 				</svg>
 				<span className="text-xs font-medium max-w-32 truncate">
 					{currentModel.name}

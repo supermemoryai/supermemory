@@ -1,7 +1,14 @@
 import posthog from "posthog-js"
 
+// Helper function to safely capture events
+const safeCapture = (eventName: string, properties?: Record<string, any>) => {
+    if (posthog.__loaded) {
+        posthog.capture(eventName, properties)
+    }
+}
+
 export const analytics = {
-	userSignedOut: () => posthog.capture("user_signed_out"),
+	userSignedOut: () => safeCapture("user_signed_out"),
 
 	memoryAdded: (props: {
 		type: "note" | "link" | "file"
@@ -9,35 +16,35 @@ export const analytics = {
 		content_length?: number
 		file_size?: number
 		file_type?: string
-	}) => posthog.capture("memory_added", props),
+	}) => safeCapture("memory_added", props),
 
-	memoryDetailOpened: () => posthog.capture("memory_detail_opened"),
+	memoryDetailOpened: () => safeCapture("memory_detail_opened"),
 
-	projectCreated: () => posthog.capture("project_created"),
+	projectCreated: () => safeCapture("project_created"),
 
-	newChatStarted: () => posthog.capture("new_chat_started"),
-	chatHistoryViewed: () => posthog.capture("chat_history_viewed"),
-	chatDeleted: () => posthog.capture("chat_deleted"),
+	newChatStarted: () => safeCapture("new_chat_started"),
+	chatHistoryViewed: () => safeCapture("chat_history_viewed"),
+	chatDeleted: () => safeCapture("chat_deleted"),
 
 	viewModeChanged: (mode: "graph" | "list") =>
-		posthog.capture("view_mode_changed", { mode }),
+		safeCapture("view_mode_changed", { mode }),
 
-	documentCardClicked: () => posthog.capture("document_card_clicked"),
+	documentCardClicked: () => safeCapture("document_card_clicked"),
 
-	billingViewed: () => posthog.capture("billing_viewed"),
-	upgradeInitiated: () => posthog.capture("upgrade_initiated"),
-	upgradeCompleted: () => posthog.capture("upgrade_completed"),
-	billingPortalOpened: () => posthog.capture("billing_portal_opened"),
+	billingViewed: () => safeCapture("billing_viewed"),
+	upgradeInitiated: () => safeCapture("upgrade_initiated"),
+	upgradeCompleted: () => safeCapture("upgrade_completed"),
+	billingPortalOpened: () => safeCapture("billing_portal_opened"),
 
 	connectionAdded: (provider: string) =>
-		posthog.capture("connection_added", { provider }),
-	connectionDeleted: () => posthog.capture("connection_deleted"),
-	connectionAuthStarted: () => posthog.capture("connection_auth_started"),
-	connectionAuthCompleted: () => posthog.capture("connection_auth_completed"),
-	connectionAuthFailed: () => posthog.capture("connection_auth_failed"),
+		safeCapture("connection_added", { provider }),
+	connectionDeleted: () => safeCapture("connection_deleted"),
+	connectionAuthStarted: () => safeCapture("connection_auth_started"),
+	connectionAuthCompleted: () => safeCapture("connection_auth_completed"),
+	connectionAuthFailed: () => safeCapture("connection_auth_failed"),
 
-	mcpViewOpened: () => posthog.capture("mcp_view_opened"),
-	mcpInstallCmdCopied: () => posthog.capture("mcp_install_cmd_copied"),
+	mcpViewOpened: () => safeCapture("mcp_view_opened"),
+	mcpInstallCmdCopied: () => safeCapture("mcp_install_cmd_copied"),
 
-	extensionInstallClicked: () => posthog.capture("extension_install_clicked"),
+	extensionInstallClicked: () => safeCapture("extension_install_clicked"),
 }

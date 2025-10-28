@@ -257,7 +257,7 @@ export function ProfileView() {
 								) : (
 									<>
 										<span className="hidden sm:inline">
-											Upgrade to Pro - $15/month
+											Upgrade to Pro - $9/month
 										</span>
 										<span className="sm:hidden">Upgrade to Pro</span>
 									</>
@@ -322,7 +322,7 @@ export function ProfileView() {
 							</div>
 
 							<p className="text-xs text-muted-foreground text-center leading-relaxed">
-								$15/month (only for first 100 users) • Cancel anytime. No
+								$9/month (only for first 100 users) • Cancel anytime. No
 								questions asked.
 							</p>
 						</div>

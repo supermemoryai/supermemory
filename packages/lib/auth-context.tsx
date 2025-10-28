@@ -24,14 +24,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const { data: session } = useSession()
 	const [org, setOrg] = useState<Organization | null>(null)
+	const { data: orgs } = authClient.useListOrganizations()
 
+	const setActiveOrg = async (slug: string) => {
+		if (!slug) return
+
+		const activeOrg = await authClient.organization.setActive({
+			organizationSlug: slug,
+		})
+		setOrg(activeOrg)
+	}
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: ignoring the setActiveOrg dependency
 	useEffect(() => {
 		if (session?.session.activeOrganizationId) {
 			authClient.organization.getFullOrganization().then((org) => {
+				// TODO: Uncomment this when we have a way to handle consumer organizations better way
+				//if (org.metadata?.isConsumer === true) {
 				setOrg(org)
+				//} else {
+				//	const consumerOrg = orgs?.find((o) => o.metadata?.isConsumer === true)
+				//	if (consumerOrg) {
+				//		setActiveOrg(consumerOrg.slug)
+				//	}
+				//}
 			})
 		}
-	}, [session?.session.activeOrganizationId])
+	}, [session?.session.activeOrganizationId, orgs])
 
 	// When a session exists and there is a pending login method recorded,
 	// promote it to the last-used method (successful login) and clear pending.
@@ -53,28 +72,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				const isFresh = Number.isFinite(ts) && now - ts < 10 * 60 * 1000 // 10 minutes TTL
 
 				if (isFresh) {
-					localStorage.setItem(
-						"supermemory-last-login-method",
-						pendingMethod,
-					)
+					localStorage.setItem("supermemory-last-login-method", pendingMethod)
 				}
 			}
-		} catch { }
+		} catch {}
 		// Always clear pending markers once a session is present
 		try {
 			localStorage.removeItem("supermemory-pending-login-method")
 			localStorage.removeItem("supermemory-pending-login-timestamp")
-		} catch { }
+		} catch {}
 	}, [session?.session])
-
-	const setActiveOrg = async (slug: string) => {
-		if (!slug) return
-
-		const activeOrg = await authClient.organization.setActive({
-			organizationSlug: slug,
-		})
-		setOrg(activeOrg)
-	}
 
 	return (
 		<AuthContext.Provider
