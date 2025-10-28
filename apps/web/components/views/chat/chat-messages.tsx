@@ -254,11 +254,9 @@ export function ChatMessages() {
 				if (result.message.role !== "assistant") return
 
 				if (shouldGenerateTitleRef.current) {
-					// biome-ignore lint/suspicious/noExplicitAny: AI SDK message parts have dynamic types
 					const textPart = result.message.parts.find(
-						// biome-ignore lint/suspicious/noExplicitAny: AI SDK message parts have dynamic types
-						(p: any) => p?.type === "text",
-					) as any
+						(p: { type?: string; text?: string }) => p?.type === "text",
+					) as { text?: string } | undefined
 					const text = textPart?.text?.trim()
 					if (text) {
 						shouldGenerateTitleRef.current = false
@@ -343,7 +341,7 @@ export function ChatMessages() {
 				.reverse()
 				.find((m) => m.role === "assistant")
 			if (!lastAssistant) return
-			// biome-ignore lint/suspicious/noExplicitAny: AI SDK types are complex and dynamically typed
+			// biome-ignore lint/suspicious/noExplicitAny: AI SDK types
 			const lastSearchPart = [...(lastAssistant.parts as any[])]
 				.reverse()
 				.find(
@@ -352,10 +350,10 @@ export function ChatMessages() {
 						p?.state === "output-available",
 				)
 			if (!lastSearchPart) return
-			// biome-ignore lint/suspicious/noExplicitAny: AI SDK tool output has dynamic types
+			// biome-ignore lint/suspicious/noExplicitAny: AI SDK types
 			const output = (lastSearchPart as any).output
 			const ids = Array.isArray(output?.results)
-				? // biome-ignore lint/suspicious/noExplicitAny: Tool output results have dynamic structure
+				? // biome-ignore lint/suspicious/noExplicitAny: Dynamic structure
 					((output.results as any[])
 						.map((r) => r?.documentId)
 						.filter(Boolean) as string[])
@@ -535,6 +533,7 @@ export function ChatMessages() {
 											navigator.clipboard.writeText(
 												message.parts
 													.filter((p) => p.type === "text")
+													// biome-ignore lint/suspicious/noExplicitAny: Dynamic types
 													?.map((p) => (p as any).text)
 													.join("\n") ?? "",
 											)
