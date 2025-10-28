@@ -34,6 +34,28 @@ interface ExpandableMemoriesProps {
 	results: MemoryResult[]
 }
 
+interface MessagePart {
+	type: string
+	state?: string
+	text?: string
+	output?: {
+		count?: number
+		results?: Array<{
+			documentId?: string
+			title?: string
+			content?: string
+			url?: string
+			score?: number
+		}>
+	}
+}
+
+interface ChatMessage {
+	id: string
+	role: "user" | "assistant"
+	parts: MessagePart[]
+}
+
 function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 	const [isExpanded, setIsExpanded] = useState(false)
 
@@ -339,22 +361,19 @@ export function ChatMessages() {
 		try {
 			const lastAssistant = [...messages]
 				.reverse()
-				.find((m) => m.role === "assistant")
+				.find((m) => m.role === "assistant") as ChatMessage | undefined
 			if (!lastAssistant) return
-			// biome-ignore lint/suspicious/noExplicitAny: AI SDK types
-			const lastSearchPart = [...(lastAssistant.parts as any[])]
+			const lastSearchPart = [...(lastAssistant.parts as MessagePart[])]
 				.reverse()
 				.find(
 					(p) =>
 						p?.type === "tool-searchMemories" &&
 						p?.state === "output-available",
-				)
+				) as MessagePart | undefined
 			if (!lastSearchPart) return
-			// biome-ignore lint/suspicious/noExplicitAny: AI SDK types
-			const output = (lastSearchPart as any).output
+			const output = lastSearchPart.output
 			const ids = Array.isArray(output?.results)
-				? // biome-ignore lint/suspicious/noExplicitAny: Dynamic structure
-					((output.results as any[])
+				? ((output.results as MemoryResult[])
 						.map((r) => r?.documentId)
 						.filter(Boolean) as string[])
 				: []
@@ -533,8 +552,7 @@ export function ChatMessages() {
 											navigator.clipboard.writeText(
 												message.parts
 													.filter((p) => p.type === "text")
-													// biome-ignore lint/suspicious/noExplicitAny: Dynamic types
-													?.map((p) => (p as any).text)
+													?.map((p) => (p as MessagePart).text ?? "")
 													.join("\n") ?? "",
 											)
 											toast.success("Copied to clipboard")
