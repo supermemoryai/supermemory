@@ -12,6 +12,7 @@ import {
 	Copy,
 	RotateCcw,
 	X,
+	Square,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -372,9 +373,19 @@ export function ChatMessages() {
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
+			if (["streaming", "submitted"].includes(status)) {
+         		stop();
+         		return;
+            }
 			sendMessage({ text: input })
 			setInput("")
 		}
+	}
+
+	const handleStop = (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		stop();
 	}
 
 	const {
@@ -588,11 +599,7 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 bg-card border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted") return
-						if (status === "streaming") {
-							stop()
-							return
-						}
+						if (["submitted", "streaming"].includes(status)) return
 						if (input.trim()) {
 							enableAutoScroll()
 							scrollToBottom("auto")
@@ -609,16 +616,25 @@ export function ChatMessages() {
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
-					<div className="absolute bottom-2 right-2">
-						<Button
-							type="submit"
-							disabled={!input.trim()}
-							className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
-							size="icon"
-						>
-							<ArrowUp className="size-4" />
-						</Button>
-					</div>
+					{["submitted", "streaming"]?.includes(status) ? (
+              	       <Button
+                			type="button"
+                            onClick={(e) => handleStop(e)}
+                            className="text-white rounded-xl transition-all bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700"
+                            size="icon"
+                        >
+                            <Square className="size-4" />
+                        </Button>
+                        ) : (
+                       <Button
+                	        type="submit"
+                            disabled={!input.trim()}
+                            className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
+                            size="icon"
+                        >
+                            <ArrowUp className="size-4" />
+                        </Button>
+                    )}
 				</form>
 			</div>
 		</div>
