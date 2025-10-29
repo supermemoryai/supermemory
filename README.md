@@ -1,5 +1,5 @@
 <div align="center" style="padding-bottom:20px;padding-top:20px">
-  <img src="logo.svg" alt="supermemory Logo" width="400" />
+  <img src="apps/web/public/logo-fullmark.svg" alt="supermemory Logo" width="400" />
 </div>
 
 <div align="center" style="padding-bottom:10px;padding-top:10px">
