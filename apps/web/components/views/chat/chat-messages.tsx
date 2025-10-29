@@ -34,6 +34,28 @@ interface ExpandableMemoriesProps {
 	results: MemoryResult[]
 }
 
+interface MessagePart {
+	type: string
+	state?: string
+	text?: string
+	output?: {
+		count?: number
+		results?: Array<{
+			documentId?: string
+			title?: string
+			content?: string
+			url?: string
+			score?: number
+		}>
+	}
+}
+
+interface ChatMessage {
+	id: string
+	role: "user" | "assistant"
+	parts: MessagePart[]
+}
+
 function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 	const [isExpanded, setIsExpanded] = useState(false)
 
@@ -255,8 +277,8 @@ export function ChatMessages() {
 
 				if (shouldGenerateTitleRef.current) {
 					const textPart = result.message.parts.find(
-						(p: any) => p?.type === "text",
-					) as any
+						(p: { type?: string; text?: string }) => p?.type === "text",
+					) as { text?: string } | undefined
 					const text = textPart?.text?.trim()
 					if (text) {
 						shouldGenerateTitleRef.current = false
@@ -284,7 +306,7 @@ export function ChatMessages() {
 				setSelectedModel(savedModel)
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, storageKey])
 
 	useEffect(() => {
 		if (currentChatId && !hasRunInitialMessageRef.current) {
@@ -299,13 +321,13 @@ export function ChatMessages() {
 				hasRunInitialMessageRef.current = true
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, sendMessage])
 
 	useEffect(() => {
 		if (id && id !== currentChatId) {
 			setCurrentChatId(id)
 		}
-	}, [id])
+	}, [id, currentChatId, setCurrentChatId])
 
 	useEffect(() => {
 		const msgs = getCurrentConversation()
@@ -315,14 +337,14 @@ export function ChatMessages() {
 			setMessages([])
 		}
 		setInput("")
-	}, [currentChatId])
+	}, [currentChatId, getCurrentConversation, setMessages])
 
 	useEffect(() => {
 		const activeId = currentChatId ?? id
 		if (activeId && messages.length > 0) {
 			setConversation(activeId, messages)
 		}
-	}, [messages, currentChatId, id])
+	}, [messages, currentChatId, id, setConversation])
 
 	const { complete } = useCompletion({
 		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
@@ -339,19 +361,19 @@ export function ChatMessages() {
 		try {
 			const lastAssistant = [...messages]
 				.reverse()
-				.find((m) => m.role === "assistant")
+				.find((m) => m.role === "assistant") as ChatMessage | undefined
 			if (!lastAssistant) return
-			const lastSearchPart = [...(lastAssistant.parts as any[])]
+			const lastSearchPart = [...(lastAssistant.parts as MessagePart[])]
 				.reverse()
 				.find(
 					(p) =>
 						p?.type === "tool-searchMemories" &&
 						p?.state === "output-available",
-				)
+				) as MessagePart | undefined
 			if (!lastSearchPart) return
-			const output = (lastSearchPart as any).output
+			const output = lastSearchPart.output
 			const ids = Array.isArray(output?.results)
-				? ((output.results as any[])
+				? ((output.results as MemoryResult[])
 						.map((r) => r?.documentId)
 						.filter(Boolean) as string[])
 				: []
@@ -359,7 +381,7 @@ export function ChatMessages() {
 				setDocumentIds(ids)
 			}
 		} catch {}
-	}, [messages])
+	}, [messages, setDocumentIds])
 
 	useEffect(() => {
 		const currentSummary = getCurrentChat()
@@ -367,7 +389,7 @@ export function ChatMessages() {
 			currentSummary?.title && currentSummary.title.trim().length > 0,
 		)
 		shouldGenerateTitleRef.current = !hasTitle
-	}, [])
+	}, [getCurrentChat])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -530,7 +552,7 @@ export function ChatMessages() {
 											navigator.clipboard.writeText(
 												message.parts
 													.filter((p) => p.type === "text")
-													?.map((p) => (p as any).text)
+													?.map((p) => (p as MessagePart).text ?? "")
 													.join("\n") ?? "",
 											)
 											toast.success("Copied to clipboard")
