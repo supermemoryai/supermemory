@@ -20,7 +20,7 @@ export default function ChatPage() {
 	return (
 		<div className="flex flex-col w-full">
 			<div className="flex flex-col h-[93vh]">
-				<div className="flex-1 flex justify-center min-h-0 w-full px-4">
+				<div className="flex-1 flex justify-center min-h-0 w-full md:px-4">
 					<div className="flex flex-col min-h-0 w-full max-w-4xl">
 						<ChatMessages />
 					</div>

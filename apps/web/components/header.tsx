@@ -124,9 +124,11 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 						rel="noopener noreferrer"
 					>
 						{getCurrentChat()?.title && pathname.includes("/chat") ? (
-							<div className="flex items-center gap-4">
-								<Logo className="h-6 block text-foreground" />
-								<span className="truncate">{getCurrentChat()?.title}</span>
+							<div className="flex items-center gap-2 md:gap-4 min-w-0 max-w-[200px] md:max-w-md">
+								<Logo className="h-6 block text-foreground flex-shrink-0" />
+								<span className="truncate text-sm md:text-base">
+									{getCurrentChat()?.title}
+								</span>
 							</div>
 						) : (
 							<>

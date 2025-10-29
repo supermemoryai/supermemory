@@ -428,7 +428,7 @@ export function ChatMessages() {
 						>
 							<div
 								className={cn(
-									"flex flex-col gap-2 max-w-4/5",
+									"flex flex-col gap-2 md:max-w-4/5",
 									message.role === "user"
 										? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
 										: "",
