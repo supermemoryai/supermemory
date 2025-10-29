@@ -2,6 +2,13 @@ import type { LanguageModelV2 } from "@ai-sdk/provider"
 import { wrapLanguageModel } from "ai"
 import { createSupermemoryMiddleware } from "./middleware"
 
+interface WrapVercelLanguageModelOptions {
+	conversationId?: string;
+	verbose?: boolean;
+	mode?: "profile" | "query" | "full";
+	addMemory?: "always" | "never";
+}
+
 /**
  * Wraps a language model with supermemory middleware to automatically inject relevant memories
  * into the system prompt based on the user's message content.
@@ -13,6 +20,7 @@ import { createSupermemoryMiddleware } from "./middleware"
  * @param model - The language model to wrap with supermemory capabilities
  * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
  * @param options - Optional configuration options for the middleware
+ * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
  * @param options.addMemory - Optional mode for memory search: "always" (default), "never"
@@ -24,7 +32,11 @@ import { createSupermemoryMiddleware } from "./middleware"
  * import { withSupermemory } from "@supermemory/tools/ai-sdk"
  * import { openai } from "@ai-sdk/openai"
  *
- * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123")
+ * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123", {
+ *   conversationId: "conversation-456",
+ *   mode: "full",
+ *   addMemory: "always"
+ * })
  *
  * const result = await generateText({
  *   model: modelWithMemory,
@@ -38,11 +50,7 @@ import { createSupermemoryMiddleware } from "./middleware"
 const wrapVercelLanguageModel = (
 	model: LanguageModelV2,
 	containerTag: string,
-	options?: { 
-		verbose?: boolean; 
-		mode?: "profile" | "query" | "full";
-		addMemory?: "always" | "never";
-	},
+	options?: WrapVercelLanguageModelOptions,
 ): LanguageModelV2 => {
 	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
 
@@ -50,16 +58,17 @@ const wrapVercelLanguageModel = (
 		throw new Error("SUPERMEMORY_API_KEY is not set")
 	}
 
+	const conversationId = options?.conversationId
 	const verbose = options?.verbose ?? false
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "never"
 
 	const wrappedModel = wrapLanguageModel({
 		model,
-		middleware: createSupermemoryMiddleware(containerTag, verbose, mode, addMemory),
+		middleware: createSupermemoryMiddleware(containerTag, conversationId, verbose, mode, addMemory),
 	})
 
 	return wrappedModel
 }
 
-export { wrapVercelLanguageModel as withSupermemory }
+export { wrapVercelLanguageModel as withSupermemory, type WrapVercelLanguageModelOptions as WithSupermemoryOptions }

@@ -22,6 +22,7 @@ export const STORAGE_KEYS = {
 	TWITTER_AUTH_TOKEN: "twitter-auth-token",
 	DEFAULT_PROJECT: "sm-default-project",
 	AUTO_SEARCH_ENABLED: "sm-auto-search-enabled",
+	AUTO_CAPTURE_PROMPTS_ENABLED: "sm-auto-capture-prompts-enabled",
 } as const
 
 /**

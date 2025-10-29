@@ -42,7 +42,7 @@ Go to [app.supermemory.ai](https://app.supermemory.ai) and sign into with your a
 
 Have questions or feedback? We're here to help:
 
-- Email: [dhravya@supermemory.com](mailto:dhravya@supermemory.com)
+- Email: [support@supermemory.com](mailto:support@supermemory.com)
 - Documentation: [docs.supermemory.ai](https://docs.supermemory.ai)
 
 ## Contributing

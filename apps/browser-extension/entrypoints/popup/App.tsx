@@ -11,6 +11,57 @@ import {
 } from "../../utils/query-hooks"
 import type { Project } from "../../utils/types"
 
+const Tooltip = ({
+	children,
+	content,
+}: {
+	children: React.ReactNode
+	content: string
+}) => {
+	const [isVisible, setIsVisible] = useState(false)
+
+	return (
+		<div className="relative inline-flex items-center gap-1">
+			<button
+				type="button"
+				onMouseEnter={() => setIsVisible(true)}
+				onMouseLeave={() => setIsVisible(false)}
+				className="cursor-help bg-transparent border-none p-0 text-left"
+			>
+				{children}
+			</button>
+			<button
+				type="button"
+				onMouseEnter={() => setIsVisible(true)}
+				onMouseLeave={() => setIsVisible(false)}
+				className="cursor-help bg-transparent border-none p-0 text-gray-400 hover:text-gray-600 transition-colors"
+			>
+				<svg
+					width="14"
+					height="14"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+				>
+					<title>More information</title>
+					<circle cx="12" cy="12" r="10" />
+					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+					<line x1="12" y1="17" x2="12.01" y2="17" />
+				</svg>
+			</button>
+			{isVisible && (
+				<div className="absolute z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg bottom-full right-0 mb-1 max-w-xs break-words">
+					{content}
+					<div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800" />
+				</div>
+			)}
+		</div>
+	)
+}
+
 function App() {
 	const [userSignedIn, setUserSignedIn] = useState<boolean>(false)
 	const [loading, setLoading] = useState<boolean>(true)
@@ -22,6 +73,8 @@ function App() {
 		"save",
 	)
 	const [autoSearchEnabled, setAutoSearchEnabled] = useState<boolean>(false)
+	const [autoCapturePromptsEnabled, setAutoCapturePromptsEnabled] =
+		useState<boolean>(false)
 	const [authInvalidated, setAuthInvalidated] = useState<boolean>(false)
 
 	const queryClient = useQueryClient()
@@ -43,6 +96,7 @@ function App() {
 				const result = await chrome.storage.local.get([
 					STORAGE_KEYS.BEARER_TOKEN,
 					STORAGE_KEYS.AUTO_SEARCH_ENABLED,
+					STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
 				])
 				const hasToken = !!result[STORAGE_KEYS.BEARER_TOKEN]
 
@@ -70,6 +124,10 @@ function App() {
 				const autoSearchSetting =
 					result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
 				setAutoSearchEnabled(autoSearchSetting)
+
+				const autoCapturePromptsSetting =
+					result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+				setAutoCapturePromptsEnabled(autoCapturePromptsSetting)
 			} catch (error) {
 				console.error("Error checking auth status:", error)
 				setUserSignedIn(false)
@@ -178,6 +236,17 @@ function App() {
 		}
 	}
 
+	const handleAutoCapturePromptsToggle = async (enabled: boolean) => {
+		try {
+			await chrome.storage.local.set({
+				[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED]: enabled,
+			})
+			setAutoCapturePromptsEnabled(enabled)
+		} catch (error) {
+			console.error("Error updating auto capture prompts setting:", error)
+		}
+	}
+
 	const handleSignOut = async () => {
 		try {
 			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN])
@@ -197,14 +266,35 @@ function App() {
 					<img
 						alt="supermemory"
 						className="w-8 h-8 flex-shrink-0"
-						src="/icon-48.png"
+						src="./dark-transparent.svg"
+						style={{ width: "80%", height: "45px" }}
 					/>
-					<h1 className="m-0 text-lg font-semibold text-black flex-1">
-						supermemory
-					</h1>
 				</div>
-				<div className="p-4">
-					<div>Loading...</div>
+
+				<div className="p-4 text-black min-h-[300px] flex items-center justify-center">
+					<div className="flex items-center gap-3 text-base text-black">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="1em"
+							height="1em"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+							className="text-black"
+							aria-hidden="true"
+						>
+							<path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z">
+								<animateTransform
+									attributeName="transform"
+									type="rotate"
+									values="0 12 12;360 12 12"
+									dur="0.75s"
+									repeatCount="indefinite"
+								/>
+							</path>
+						</svg>
+
+						<span className="font-semibold">Loading...</span>
+					</div>
 				</div>
 			</div>
 		)
@@ -216,7 +306,7 @@ function App() {
 				<img
 					alt="supermemory"
 					className="w-8 h-8 flex-shrink-0"
-					src="https://assets.supermemory.ai/brand/wordmark/dark-transparent.svg"
+					src="./dark-transparent.svg"
 					style={{ width: "80%", height: "45px" }}
 				/>
 				{userSignedIn && (
@@ -244,7 +334,7 @@ function App() {
 					</button>
 				)}
 			</div>
-			<div className="p-4">
+			<div className="p-4 min-h-[250px]">
 				{userSignedIn ? (
 					<div className="text-left">
 						{/* Tab Navigation */}
@@ -457,15 +547,13 @@ function App() {
 									<h3 className="text-base font-semibold text-black mb-3">
 										Chat Integration
 									</h3>
-									<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-										<div className="flex flex-col">
-											<span className="text-sm font-medium text-black">
-												Auto Search Memories
-											</span>
-											<span className="text-xs text-gray-500">
-												Automatically search your memories while typing in chat
-												apps
-											</span>
+									<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 mb-3">
+										<div className="flex items-center">
+											<Tooltip content="Automatically search your memories while typing in chat apps">
+												<span className="text-sm font-medium text-black cursor-help">
+													Auto Search Memories
+												</span>
+											</Tooltip>
 										</div>
 										<label className="relative inline-flex items-center cursor-pointer">
 											<input
@@ -479,10 +567,26 @@ function App() {
 											<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-700" />
 										</label>
 									</div>
-									<p className="text-xs text-gray-500 mt-2">
-										When enabled, supermemory will search your memories as you
-										type in ChatGPT, Claude, and T3.chat
-									</p>
+									<div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+										<div className="flex items-center">
+											<Tooltip content="Automatically save your prompts as memories in chat apps">
+												<span className="text-sm font-medium text-black cursor-help">
+													Auto Capture Prompts
+												</span>
+											</Tooltip>
+										</div>
+										<label className="relative inline-flex items-center cursor-pointer">
+											<input
+												checked={autoCapturePromptsEnabled}
+												className="sr-only peer"
+												onChange={(e) =>
+													handleAutoCapturePromptsToggle(e.target.checked)
+												}
+												type="checkbox"
+											/>
+											<div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-700" />
+										</label>
+									</div>
 								</div>
 							</div>
 						)}
@@ -574,7 +678,7 @@ function App() {
 								<button
 									className="bg-transparent border-none text-blue-500 cursor-pointer underline text-sm p-0 hover:text-blue-700"
 									onClick={() => {
-										window.open("mailto:dhravya@supermemory.com", "_blank")
+										window.open("mailto:support@supermemory.com", "_blank")
 									}}
 									type="button"
 								>

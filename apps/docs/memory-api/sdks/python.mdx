@@ -18,7 +18,7 @@ pip install --pre supermemory
 import os
 from supermemory import Supermemory
 
-client = supermemory(
+client = Supermemory(
     api_key=os.environ.get("SUPERMEMORY_API_KEY"),  # This is the default and can be omitted
 )
 
@@ -35,7 +35,7 @@ so that your API Key is not stored in source control.
 
 ## Async usage
 
-Simply import `AsyncSupermemory` instead of `supermemory` and use `await` with each API call:
+Simply import `AsyncSupermemory` instead of `Supermemory` and use `await` with each API call:
 
 ```python
 import os
@@ -76,7 +76,7 @@ Request parameters that correspond to file uploads can be passed as `bytes`, or 
 from pathlib import Path
 from supermemory import Supermemory
 
-client = supermemory()
+client = Supermemory()
 
 client.memories.upload_file(
     file=Path("/path/to/file"),
@@ -98,7 +98,7 @@ All errors inherit from `supermemory.APIError`.
 import supermemory
 from supermemory import Supermemory
 
-client = supermemory()
+client = Supermemory()
 
 try:
     client.memories.add(
@@ -140,7 +140,7 @@ You can use the `max_retries` option to configure or disable retry settings:
 from supermemory import Supermemory
 
 # Configure the default for all requests:
-client = supermemory(
+client = Supermemory(
     # default is 2
     max_retries=0,
 )
@@ -160,13 +160,13 @@ which accepts a float or an [`httpx.Timeout`](https://www.python-httpx.org/advan
 from supermemory import Supermemory
 
 # Configure the default for all requests:
-client = supermemory(
+client = Supermemory(
     # 20 seconds (default is 1 minute)
     timeout=20.0,
 )
 
 # More granular control:
-client = supermemory(
+client = Supermemory(
     timeout=httpx.Timeout(60.0, read=5.0, write=10.0, connect=2.0),
 )
 
@@ -213,7 +213,7 @@ The "raw" Response object can be accessed by prefixing `.with_raw_response.` to 
 ```py
 from supermemory import Supermemory
 
-client = supermemory()
+client = Supermemory()
 response = client.memories.with_raw_response.add(
     content="This is a detailed article about machine learning concepts...",
 )
@@ -291,7 +291,7 @@ You can directly override the [httpx client](https://www.python-httpx.org/api/#c
 import httpx
 from supermemory import Supermemory, DefaultHttpxClient
 
-client = supermemory(
+client = Supermemory(
     # Or use the `SUPERMEMORY_BASE_URL` env var
     base_url="http://my.test.server.example.com:8083",
     http_client=DefaultHttpxClient(
@@ -314,7 +314,7 @@ By default the library closes underlying HTTP connections whenever the client is
 ```py
 from supermemory import Supermemory
 
-with supermemory() as client:
+with Supermemory() as client:
   # make requests here
   ...
 

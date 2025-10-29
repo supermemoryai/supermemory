@@ -5,8 +5,8 @@ import {
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
-} from "./shared"
-import type { SupermemoryToolsConfig } from "./types"
+} from "../shared"
+import type { SupermemoryToolsConfig } from "../types"
 
 /**
  * Result types for memory operations
