@@ -1,6 +1,8 @@
 import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
+import { cn } from "@lib/utils"
+import { dmSansFont } from "@/utils/fonts"
 
 export function FeaturesStep() {
 	const router = useRouter()
@@ -20,7 +22,7 @@ export function FeaturesStep() {
 				What I can do for you
 			</h2>
 
-			<div className="space-y-6 mb-8">
+			<div className={cn("space-y-4 mb-8 letter-spacing-[-0.01em] ", dmSansFont.className)}>
 				<div className="flex items-start space-x-2">
 					<div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0">
 						<img
@@ -30,10 +32,10 @@ export function FeaturesStep() {
 						/>
 					</div>
 					<div className="text-left">
-						<h3 className="text-white font-light text-lg mb-1">
+						<p className="text-white font-light text-[14px]">
 							Remember every context
-						</h3>
-						<p className="text-[#8A8A8A] text-xs">
+						</p>
+						<p className="text-[#8A8A8A] text-[14px]">
 							I keep track of what you've saved and shared with your
 							supermemory.
 						</p>
@@ -49,9 +51,9 @@ export function FeaturesStep() {
 						/>
 					</div>
 					<div className="text-left">
-						<h3 className="text-white font-light text-lg mb-1">
+						<p className="text-white font-light text-lg">
 							Find when you need it
-						</h3>
+						</p>
 						<p className="text-[#8A8A8A] text-xs">
 							I surface the right memories inside your supermemory, superfast.
 						</p>
@@ -67,9 +69,9 @@ export function FeaturesStep() {
 						/>
 					</div>
 					<div className="text-left">
-						<h3 className="text-white font-light text-lg mb-1">
+						<p className="text-white font-light text-lg">
 							Grow with your supermemory
-						</h3>
+						</p>
 						<p className="text-[#8A8A8A] text-xs">
 							I learn and personalize over time, so every interaction feels
 							natural.
@@ -87,11 +89,11 @@ export function FeaturesStep() {
 				initial={{ opacity: 0, y: 10 }}
 			>
 				<Button
-					className="rounded-xl px-6 py-3 bg-black border border-gray-800 hover:bg-gray-900 max-w-[10rem]"
+					className="rounded-xl px-6 py-3 bg-black border border-gray-800 hover:bg-gray-900 max-w-[10rem] h-[40px] cursor-pointer"
 					onClick={handleContinue}
 				>
 					<motion.button whileTap={{ scale: 0.95 }} className="w-full">
-						Continue setup →
+						Add memories →
 					</motion.button>
 				</Button>
 			</motion.div>

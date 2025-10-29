@@ -175,7 +175,7 @@ export default function OnboardingPage() {
 			)}
 			{isSetupFlow && <SetupHeader />}
 
-			<AnimatedGradientBackground />
+			{isSetupFlow && <AnimatedGradientBackground />}
 
 			{isWelcomeFlow && (
 				<div className="flex flex-col items-center justify-start h-[calc(100vh-86px)] relative">

@@ -81,6 +81,13 @@
 				"useNumberNamespace": "error",
 				"useSelfClosingElements": "error",
 				"useSingleVarDeclarator": "error"
+			},
+			"suspicious": {
+				"noUnknownAtRules": {
+					"options": {
+						"ignore": ["source", "theme", "apply"]
+					}
+				}
 			}
 		}
 	},
