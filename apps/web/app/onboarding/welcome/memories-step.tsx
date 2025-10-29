@@ -47,7 +47,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 			className="text-center max-w-[28rem] w-full"
 			layout
 		>
-			<h2 className="text-white text-3xl font-medium mb-4">
+			<h2 className="text-white text-3xl font-medium mb-4 mt-[-36px]">
 				Let's add your memories
 			</h2>
 
@@ -55,7 +55,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				<div className="text-left" id="x-twitter-field">
 					<label
 						htmlFor="twitter-handle"
-						className="text-white text-sm font-medium mb-2 block"
+						className="text-white text-sm font-medium mb-2 block pl-2"
 					>
 						X/Twitter
 					</label>
@@ -72,7 +72,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				<div className="text-left" id="linkedin-field">
 					<label
 						htmlFor="linkedin-profile"
-						className="text-white text-sm font-medium mb-2 block"
+						className="text-white text-sm font-medium mb-2 block pl-2"
 					>
 						LinkedIn
 					</label>
@@ -90,7 +90,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 					<div className="flex items-center justify-between mb-2">
 						<label
 							htmlFor="other-links"
-							className="text-white text-sm font-medium"
+							className="text-white text-sm font-medium pl-2"
 						>
 							Other links
 						</label>
@@ -109,15 +109,6 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 								onChange={(e) => updateOtherLink(index, e.target.value)}
 								className="flex-1 px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors"
 							/>
-							{otherLinks.length > 1 && (
-								<button
-									type="button"
-									onClick={() => removeOtherLink(index)}
-									className="w-10 h-10 bg-[#070E1B] border border-[#525966]/20 rounded-xl flex items-center justify-center text-white hover:bg-[#2A2A2A] transition-colors"
-								>
-									×
-								</button>
-							)}
 							{index === otherLinks.length - 1 && otherLinks.length < 3 && (
 								<button
 									type="button"
@@ -134,7 +125,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				<div className="text-left" id="description-field">
 					<label
 						htmlFor="description"
-						className="text-white text-sm font-medium mb-2 block"
+						className="text-white text-sm font-medium mb-2 block pl-2"
 					>
 						What do you do? What do you like?
 					</label>
@@ -144,7 +135,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 						rows={4}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors resize-none"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors"
 					/>
 				</div>
 			</div>
@@ -156,10 +147,10 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				}}
 				transition={{ duration: 1, ease: "easeOut", delay: 1 }}
 				initial={{ opacity: 0, y: 10 }}
-				className="mt-8"
+				className="mt-6"
 			>
 				<Button
-					className="rounded-xl px-6 py-3 bg-[#070E1B] border border-[#525966]/20 hover:bg-[#2A2A2A] max-w-[12rem] text-white disabled:opacity-50 disabled:cursor-not-allowed"
+					className="rounded-xl px-6 py-3 bg-[#070E1B] border border-[#525966]/20 hover:bg-[#2A2A2A] max-w-[12rem] text-white disabled:opacity-50 disabled:cursor-not-allowed h-[40px] cursor-pointer"
 					disabled={isSubmitting}
 					onClick={() => {
 						const formData = {

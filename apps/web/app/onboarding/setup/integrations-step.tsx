@@ -100,7 +100,7 @@ export function IntegrationsStep() {
 					return (
 						<div
 							key={card.title}
-							className="bg-[#080B0F] relative rounded-lg p-4 hover:border-gray-600 transition-colors duration-300 border-2 border-[#0D121A] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:250%_auto] hover:bg-[center_top_3rem] hover:bg-no-repeat"
+							className="bg-[#080B0F] relative rounded-lg p-4 hover:border-gray-600 transition-colors duration-300 border-2 border-[#0D121A] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:150%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat"
 						>
 							<div className="flex-1 mt-10">
 								<h3 className="text-white text-sm font-medium">{card.title}</h3>

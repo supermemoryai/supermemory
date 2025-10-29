@@ -55,12 +55,17 @@ export function RelatableQuestion() {
 				Which of these sound most relatable?
 			</motion.h1>
 
-			<div className={cn("flex flex-wrap justify-center gap-4 max-w-7xl", dmSansFont.className)}>
+			<div
+				className={cn(
+					"flex flex-wrap justify-center gap-4 max-w-3xl",
+					dmSansFont.className,
+				)}
+			>
 				{relatableOptions.map((option, index) => (
 					<button
 						key={option.text}
 						className={`
-						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 border-[#0D121A] 
+						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 border-[#0D121A] max-w-[140px] min-h-[159px]
 						${
 							selectedOptions.includes(index)
 								? "border-[#3374FF] border-[0.1px] opacity-100 bg-[url('/onboarding/bg-gradient-1.png')] bg-[length:250%_auto] bg-[center_top_3rem] bg-no-repeat"
@@ -86,9 +91,9 @@ export function RelatableQuestion() {
 						}}
 						type="button"
 					>
-						<div className="flex flex-col items-start justify-between space-y-8">
+						<div className="flex flex-col items-start justify-between h-full">
 							<span className="text-2xl">{option.emoji}</span>
-							<p className="text-white text-xs leading-relaxed max-w-[130px] align-bottom text-left">
+							<p className="text-white text-sm leading-[135%] align-bottom text-left">
 								{option.text}
 							</p>
 						</div>
@@ -103,7 +108,9 @@ export function RelatableQuestion() {
 						size="lg"
 						onClick={handleContinueOrSkip}
 					>
-						{selectedOptions.length === 0 ? "Skip for now →" : "Continue →"}
+						{selectedOptions.length === 0
+							? "Skip for now →"
+							: "Remember this →"}
 					</Button>
 				</div>
 			</div>
