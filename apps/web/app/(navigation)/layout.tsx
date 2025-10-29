@@ -42,11 +42,11 @@ export default function NavigationLayout({
 		}
 	}, [])
 	return (
-		<div className="relative min-h-screen">
+		<div className="relative h-screen flex flex-col">
 			<div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/10">
 				<Header onAddMemory={() => setShowAddMemoryView(true)} />
 			</div>
-			{children}
+			<div className="flex-1">{children}</div>
 			{showAddMemoryView && (
 				<AddMemoryView
 					initialTab="note"
