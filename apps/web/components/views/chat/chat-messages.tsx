@@ -416,7 +416,7 @@ export function ChatMessages() {
 					onScroll={onScroll}
 					ref={scrollContainerRef}
 				>
-					<div className="flex flex-col gap-2 max-w-4xl mx-auto px-2 pt-4 pb-7 scroll-pb-7">
+					<div className="flex flex-col gap-2 max-w-4xl mx-auto px-4 md:px-2 pt-4 pb-7 scroll-pb-7">
 						{messages.map((message) => (
 							<div
 								className={cn(
@@ -611,7 +611,7 @@ export function ChatMessages() {
 				</Button>
 			</div>
 
-			<div className="pb-4 max-w-4xl mx-auto w-full">
+			<div className="pb-4 px-4 md:px-2 max-w-4xl mx-auto w-full">
 				<form
 					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
