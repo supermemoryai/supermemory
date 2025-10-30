@@ -260,7 +260,9 @@ class SupermemorySyncChatCompletions:
                 "Cannot use sync client from within an async context. "
                 "Use AsyncOpenAI with with_supermemory instead."
             )
-        except RuntimeError:
+        except RuntimeError as e:
+            if "Cannot use sync client" in str(e):
+                raise
             # No running loop, safe to use asyncio.run
             return asyncio.run(self.wrapper._process_chat_completion(**kwargs))
 
