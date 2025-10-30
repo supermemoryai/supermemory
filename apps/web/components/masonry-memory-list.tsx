@@ -214,14 +214,30 @@ export const MasonryMemoryList = ({
 						</div>
 					</div>
 				) : isLoading ? (
-					<div className="h-full flex items-center justify-center p-4">
-						<div className="rounded-xl overflow-hidden">
-							<div className="relative z-10 px-6 py-4">
-								<div className="flex items-center gap-2">
-									<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
-									<span>Loading memory list...</span>
+					<div className="h-full overflow-auto px-4 pt-4">
+						<div
+							className={`grid gap-4 ${isMobile ? "grid-cols-1" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"}`}
+						>
+							{Array.from({ length: 8 }, (_, i) => ({
+								id: `skeleton-${Math.random()}-${i}`,
+								height: 100 + (i % 3),
+							})).map((item) => (
+								<div
+									key={item.id}
+									className="rounded-xl border border-gray-200 dark:border-gray-800 p-4 animate-pulse"
+									style={{ height: `${item.height}px` }}
+								>
+									<div className="flex flex-col gap-3 h-full">
+										<div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+										<div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-full" />
+										<div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-5/6" />
+										<div className="mt-auto flex gap-2">
+											<div className="h-6 w-16 bg-gray-200 dark:bg-gray-800 rounded-full" />
+											<div className="h-6 w-16 bg-gray-200 dark:bg-gray-800 rounded-full" />
+										</div>
+									</div>
 								</div>
-							</div>
+							))}
 						</div>
 					</div>
 				) : filteredDocuments.length === 0 && !isLoading ? (

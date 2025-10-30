@@ -36,6 +36,28 @@ interface ExpandableMemoriesProps {
 	results: MemoryResult[]
 }
 
+interface MessagePart {
+	type: string
+	state?: string
+	text?: string
+	output?: {
+		count?: number
+		results?: Array<{
+			documentId?: string
+			title?: string
+			content?: string
+			url?: string
+			score?: number
+		}>
+	}
+}
+
+interface ChatMessage {
+	id: string
+	role: "user" | "assistant"
+	parts: MessagePart[]
+}
+
 function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
 	const [isExpanded, setIsExpanded] = useState(false)
 
@@ -257,8 +279,8 @@ export function ChatMessages() {
 
 				if (shouldGenerateTitleRef.current) {
 					const textPart = result.message.parts.find(
-						(p: any) => p?.type === "text",
-					) as any
+						(p: { type?: string; text?: string }) => p?.type === "text",
+					) as { text?: string } | undefined
 					const text = textPart?.text?.trim()
 					if (text) {
 						shouldGenerateTitleRef.current = false
@@ -286,7 +308,7 @@ export function ChatMessages() {
 				setSelectedModel(savedModel)
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, storageKey])
 
 	useEffect(() => {
 		if (currentChatId && !hasRunInitialMessageRef.current) {
@@ -301,13 +323,13 @@ export function ChatMessages() {
 				hasRunInitialMessageRef.current = true
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, sendMessage])
 
 	useEffect(() => {
 		if (id && id !== currentChatId) {
 			setCurrentChatId(id)
 		}
-	}, [id])
+	}, [id, currentChatId, setCurrentChatId])
 
 	useEffect(() => {
 		const msgs = getCurrentConversation()
@@ -317,14 +339,14 @@ export function ChatMessages() {
 			setMessages([])
 		}
 		setInput("")
-	}, [currentChatId])
+	}, [currentChatId, getCurrentConversation, setMessages])
 
 	useEffect(() => {
 		const activeId = currentChatId ?? id
 		if (activeId && messages.length > 0) {
 			setConversation(activeId, messages)
 		}
-	}, [messages, currentChatId, id])
+	}, [messages, currentChatId, id, setConversation])
 
 	const { complete } = useCompletion({
 		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
@@ -341,19 +363,19 @@ export function ChatMessages() {
 		try {
 			const lastAssistant = [...messages]
 				.reverse()
-				.find((m) => m.role === "assistant")
+				.find((m) => m.role === "assistant") as ChatMessage | undefined
 			if (!lastAssistant) return
-			const lastSearchPart = [...(lastAssistant.parts as any[])]
+			const lastSearchPart = [...(lastAssistant.parts as MessagePart[])]
 				.reverse()
 				.find(
 					(p) =>
 						p?.type === "tool-searchMemories" &&
 						p?.state === "output-available",
-				)
+				) as MessagePart | undefined
 			if (!lastSearchPart) return
-			const output = (lastSearchPart as any).output
+			const output = lastSearchPart.output
 			const ids = Array.isArray(output?.results)
-				? ((output.results as any[])
+				? ((output.results as MemoryResult[])
 						.map((r) => r?.documentId)
 						.filter(Boolean) as string[])
 				: []
@@ -361,7 +383,7 @@ export function ChatMessages() {
 				setDocumentIds(ids)
 			}
 		} catch {}
-	}, [messages])
+	}, [messages, setDocumentIds])
 
 	useEffect(() => {
 		const currentSummary = getCurrentChat()
@@ -369,7 +391,7 @@ export function ChatMessages() {
 			currentSummary?.title && currentSummary.title.trim().length > 0,
 		)
 		shouldGenerateTitleRef.current = !hasTitle
-	}, [])
+	}, [getCurrentChat])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -402,177 +424,183 @@ export function ChatMessages() {
 		<div className="h-full flex flex-col w-full">
 			<div className="flex-1 relative">
 				<div
-					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7 custom-scrollbar"
+					className="absolute inset-0 overflow-y-auto custom-scrollbar"
 					onScroll={onScroll}
 					ref={scrollContainerRef}
 				>
-					{messages.map((message) => (
-						<div
-							className={cn(
-								"flex my-2",
-								message.role === "user"
-									? "items-center flex-row-reverse gap-2"
-									: "flex-col",
-							)}
-							key={message.id}
-						>
+					<div className="flex flex-col gap-2 max-w-4xl mx-auto px-4 md:px-2 pt-4 pb-7 scroll-pb-7">
+						{messages.map((message) => (
 							<div
 								className={cn(
-									"flex flex-col gap-2 max-w-4/5",
+									"flex my-2",
 									message.role === "user"
-										? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
-										: "",
+										? "items-center flex-row-reverse gap-2"
+										: "flex-col",
 								)}
+								key={message.id}
 							>
-								{message.parts
-									.filter((part) =>
-										["text", "tool-searchMemories", "tool-addMemory"].includes(
-											part.type,
-										),
-									)
-									.map((part, index) => {
-										switch (part.type) {
-											case "text":
-												return (
-													<div key={`${message.id}-${part.type}-${index}`}>
-														<Streamdown>{part.text}</Streamdown>
-													</div>
-												)
-											case "tool-searchMemories": {
-												switch (part.state) {
-													case "input-available":
-													case "input-streaming":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Spinner className="size-4" /> Searching
-																memories...
-															</div>
-														)
-													case "output-error":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<X className="size-4" /> Error recalling
-																memories
-															</div>
-														)
-													case "output-available": {
-														const output = part.output
-														const foundCount =
-															typeof output === "object" &&
-															output !== null &&
-															"count" in output
-																? Number(output.count) || 0
-																: 0
-														// @ts-expect-error
-														const results = Array.isArray(output?.results)
-															? // @ts-expect-error
-																output.results
-															: []
+								<div
+									className={cn(
+										"flex flex-col gap-2 ",
+										message.role === "user"
+											? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
+											: "",
+									)}
+								>
+									{message.parts
+										.filter((part) =>
+											[
+												"text",
+												"tool-searchMemories",
+												"tool-addMemory",
+											].includes(part.type),
+										)
+										.map((part, index) => {
+											switch (part.type) {
+												case "text":
+													return (
+														<div key={`${message.id}-${part.type}-${index}`}>
+															<Streamdown>{part.text}</Streamdown>
+														</div>
+													)
+												case "tool-searchMemories": {
+													switch (part.state) {
+														case "input-available":
+														case "input-streaming":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Spinner className="size-4" /> Searching
+																	memories...
+																</div>
+															)
+														case "output-error":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<X className="size-4" /> Error recalling
+																	memories
+																</div>
+															)
+														case "output-available": {
+															const output = part.output
+															const foundCount =
+																typeof output === "object" &&
+																output !== null &&
+																"count" in output
+																	? Number(output.count) || 0
+																	: 0
+															// @ts-expect-error
+															const results = Array.isArray(output?.results)
+																? // @ts-expect-error
+																	output.results
+																: []
 
-														return (
-															<ExpandableMemories
-																foundCount={foundCount}
-																key={`${message.id}-${part.type}-${index}`}
-																results={results}
-															/>
-														)
+															return (
+																<ExpandableMemories
+																	foundCount={foundCount}
+																	key={`${message.id}-${part.type}-${index}`}
+																	results={results}
+																/>
+															)
+														}
+														default:
+															return null
 													}
-													default:
-														return null
 												}
-											}
-											case "tool-addMemory": {
-												switch (part.state) {
-													case "input-available":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Spinner className="size-4" /> Adding memory...
-															</div>
-														)
-													case "output-error":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<X className="size-4" /> Error adding memory
-															</div>
-														)
-													case "output-available":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Check className="size-4" /> Memory added
-															</div>
-														)
-													case "input-streaming":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Spinner className="size-4" /> Adding memory...
-															</div>
-														)
-													default:
-														return null
+												case "tool-addMemory": {
+													switch (part.state) {
+														case "input-available":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Spinner className="size-4" /> Adding
+																	memory...
+																</div>
+															)
+														case "output-error":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<X className="size-4" /> Error adding memory
+																</div>
+															)
+														case "output-available":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Check className="size-4" /> Memory added
+																</div>
+															)
+														case "input-streaming":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Spinner className="size-4" /> Adding
+																	memory...
+																</div>
+															)
+														default:
+															return null
+													}
 												}
+												default:
+													return null
 											}
-											default:
-												return null
-										}
-									})}
-							</div>
-							{message.role === "assistant" && (
-								<div className="flex items-center gap-0.5 mt-0.5">
-									<Button
-										className="size-7 text-muted-foreground hover:text-foreground"
-										onClick={() => {
-											navigator.clipboard.writeText(
-												message.parts
-													.filter((p) => p.type === "text")
-													?.map((p) => (p as any).text)
-													.join("\n") ?? "",
-											)
-											toast.success("Copied to clipboard")
-										}}
-										size="icon"
-										variant="ghost"
-									>
-										<Copy className="size-3.5" />
-									</Button>
-									<Button
-										className="size-6 text-muted-foreground hover:text-foreground"
-										onClick={() => regenerate({ messageId: message.id })}
-										size="icon"
-										variant="ghost"
-									>
-										<RotateCcw className="size-3.5" />
-									</Button>
+										})}
 								</div>
-							)}
-						</div>
-					))}
-					{status === STATUS.SUBMITTED && (
-						<div className="flex text-muted-foreground justify-start gap-2 px-4 py-3 items-center w-full">
-							<Spinner className="size-4" />
-							<TextShimmer className="text-sm" duration={1.5}>
-								Thinking...
-							</TextShimmer>
-						</div>
-					)}
-					<div ref={bottomRef} />
+								{message.role === "assistant" && (
+									<div className="flex items-center gap-0.5 mt-0.5">
+										<Button
+											className="size-7 text-muted-foreground hover:text-foreground"
+											onClick={() => {
+												navigator.clipboard.writeText(
+													message.parts
+														.filter((p) => p.type === "text")
+														?.map((p) => (p as MessagePart).text ?? "")
+														.join("\n") ?? "",
+												)
+												toast.success("Copied to clipboard")
+											}}
+											size="icon"
+											variant="ghost"
+										>
+											<Copy className="size-3.5" />
+										</Button>
+										<Button
+											className="size-6 text-muted-foreground hover:text-foreground"
+											onClick={() => regenerate({ messageId: message.id })}
+											size="icon"
+											variant="ghost"
+										>
+											<RotateCcw className="size-3.5" />
+										</Button>
+									</div>
+								)}
+							</div>
+						))}
+						{status === "submitted" && (
+							<div className="flex text-muted-foreground justify-start gap-2 px-4 py-3 items-center w-full">
+								<Spinner className="size-4" />
+								<TextShimmer className="text-sm" duration={1.5}>
+									Thinking...
+								</TextShimmer>
+							</div>
+						)}
+						<div ref={bottomRef} />
+					</div>
 				</div>
 
 				<Button
@@ -595,9 +623,9 @@ export function ChatMessages() {
 				</Button>
 			</div>
 
-			<div className="px-4 pb-4 pt-1 relative flex-shrink-0">
+			<div className="pb-4 px-4 md:px-2 max-w-4xl mx-auto w-full">
 				<form
-					className="flex flex-col items-end gap-3 bg-card border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
+					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
 						if ([STATUS.SUBMITTED, STATUS.STREAMING].includes(status)) return
