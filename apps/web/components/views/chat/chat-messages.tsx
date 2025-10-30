@@ -645,6 +645,7 @@ export function ChatMessages() {
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
+					<div className="absolute bottom-2 right-2">
 					{[STATUS.SUBMITTED, STATUS.STREAMING].includes(status) ? (
               	       <Button
                 			type="button"
@@ -664,6 +665,7 @@ export function ChatMessages() {
                             <ArrowUp className="size-4" />
                         </Button>
                     )}
+					</div>
 				</form>
 			</div>
 		</div>
