@@ -663,7 +663,7 @@ export function ChatMessages() {
                             size="icon"
                         >
                             <ArrowUp className="size-4" />
-                        </Button>
+                        </Button> 
                     )}
 					</div>
 				</form>
