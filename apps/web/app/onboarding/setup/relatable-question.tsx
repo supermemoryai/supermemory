@@ -5,7 +5,7 @@ import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
-import { dmSansFont } from "@/utils/fonts"
+import { dmSansClassName } from "@/utils/fonts"
 
 const relatableOptions = [
 	{
@@ -58,18 +58,18 @@ export function RelatableQuestion() {
 			<div
 				className={cn(
 					"flex flex-wrap justify-center gap-4 max-w-3xl",
-					dmSansFont.className,
+					dmSansClassName(),
 				)}
 			>
 				{relatableOptions.map((option, index) => (
 					<button
 						key={option.text}
 						className={`
-						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 border-[#0D121A] max-w-[140px] min-h-[159px]
+						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 hover:border-[#4C608B] hover:border-[1px] border-[#0D121A] max-w-[140px] min-h-[159px]
 						${
 							selectedOptions.includes(index)
 								? "border-[#3374FF] border-[0.1px] opacity-100 bg-[url('/onboarding/bg-gradient-1.png')] bg-[length:250%_auto] bg-[center_top_3rem] bg-no-repeat"
-								: "border-2 bg-[#080B0F] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:250%_auto] hover:bg-[center_top_3rem] hover:bg-no-repeat"
+								: "border-2 bg-[#080B0F] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:450%_auto] hover:bg-[center_top_3rem] hover:bg-no-repeat"
 						} 
 					`}
 						onClick={() => {
@@ -103,8 +103,11 @@ export function RelatableQuestion() {
 			<div className="flex gap-4 my-8">
 				<div key={selectedOptions.length === 0 ? "skip" : "continue"}>
 					<Button
-						className="text-foreground font-medium"
-						variant="link"
+						className={cn(
+							"font-medium text-white",
+							selectedOptions.length !== 0 ? "rounded-xl" : "",
+						)}
+						variant={selectedOptions.length !== 0 ? "onboarding" : "link"}
 						size="lg"
 						onClick={handleContinueOrSkip}
 					>

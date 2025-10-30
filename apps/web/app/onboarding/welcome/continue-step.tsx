@@ -1,4 +1,4 @@
-import { dmSansFont } from "@/utils/fonts"
+import { dmSansClassName } from "@/utils/fonts"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { motion } from "motion/react"
@@ -22,8 +22,8 @@ export function ContinueStep() {
 		>
 			<p
 				className={cn(
-					"text-[#8A8A8A] text-sm opacity-80 mb-6 max-w-sm",
-					dmSansFont.className,
+					"text-[#8A8A8A] text-sm mb-6 max-w-sm",
+					dmSansClassName(),
 				)}
 			>
 				I'm built with Supermemory's super fast memory API,
@@ -31,7 +31,7 @@ export function ContinueStep() {
 				across your AI apps.
 			</p>
 			<Button
-				className="rounded-xl px-6 py-3 bg-black border border-gray-800 hover:bg-gray-900 h-[40px] cursor-pointer"
+				variant="onboarding"
 				onClick={handleContinue}
 			>
 				Continue →

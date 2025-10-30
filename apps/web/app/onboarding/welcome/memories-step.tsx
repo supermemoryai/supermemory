@@ -65,7 +65,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						placeholder="x.com/yourhandle"
 						value={twitterHandle}
 						onChange={(e) => setTwitterHandle(e.target.value)}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors"
 					/>
 				</div>
 
@@ -82,7 +82,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						placeholder="linkedin.com/in/yourname"
 						value={linkedinProfile}
 						onChange={(e) => setLinkedinProfile(e.target.value)}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors"
 					/>
 				</div>
 
@@ -99,7 +99,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 					{otherLinks.map((link, index) => (
 						<div
 							key={`other-link-${index}-${link.length}`}
-							className="flex items-center space-x-2 mb-2"
+							className="flex items-center mb-2 relative"
 						>
 							<input
 								id={`other-links-${index}`}
@@ -107,13 +107,13 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 								placeholder="Add your website, GitHub, Notion..."
 								value={link}
 								onChange={(e) => updateOtherLink(index, e.target.value)}
-								className="flex-1 px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors"
+								className="flex-1 px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors"
 							/>
 							{index === otherLinks.length - 1 && otherLinks.length < 3 && (
 								<button
 									type="button"
 									onClick={addOtherLink}
-									className="w-10 h-10 bg-[#070E1B] border border-[#525966]/20 rounded-xl flex items-center justify-center text-white hover:bg-[#2A2A2A] transition-colors"
+									className="size-8 m-1 absolute right-0 top-0 bg-black border border-[#161F2C] rounded-lg flex items-center justify-center text-white hover:bg-[#161F2C] transition-colors text-xl"
 								>
 									+
 								</button>
@@ -135,7 +135,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 						rows={4}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-[#8A8A8A] focus:outline-none focus:border-[#4A4A4A] transition-colors"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors min-h-[4rem]"
 					/>
 				</div>
 			</div>
