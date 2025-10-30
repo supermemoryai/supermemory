@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@ui/components/button"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@ui/components/select"
 import { CircleCheckIcon, CopyIcon } from "lucide-react"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
+import { cn } from "@lib/utils"
+import { dmSansClassName } from "@/utils/fonts"
 
 const clients = {
 	cursor: "Cursor",
@@ -65,42 +74,67 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 				</Button>
 			</div>
 
-			<div className="flex-1 flex flex-col items-center justify-start">
-				<h1 className="text-white text-3xl font-medium mb-6 text-center">
+			<div className="flex-1 flex flex-col items-start justify-start">
+				<h1 className="text-white text-3xl font-medium mb-6 text-start">
 					Connect your AI to supermemory MCP
 				</h1>
 
 				<div className="mb-8 space-x-4 flex max-w-2xl">
-					<div className="flex items-start space-x-3">
+					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
 						<CircleCheckIcon className="size-10 text-green-500" />
-						<p className="text-foreground/40 text-sm">
+						<p className="text-white/40 text-sm">
 							MCP connects your AI apps to create and use memories directly
 						</p>
 					</div>
-					<div className="flex items-start space-x-3">
+					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
 						<CircleCheckIcon className="size-10 text-green-500" />
-						<p className="text-foreground/40 text-sm">
+						<p className="text-white/40 text-sm">
 							Auto-fetch the right context from anything you've saved
 						</p>
 					</div>
-					<div className="flex items-start space-x-3">
+					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
 						<CircleCheckIcon className="size-10 text-green-500" />
-						<p className="text-foreground/40 text-sm">
+						<p className="text-white/40 text-sm">
 							One-time setup, seamless integration across your workflow
 						</p>
 					</div>
 				</div>
 
-				<div className="w-full max-w-2xl space-y-6">
-					<div className="flex items-start space-x-4">
-						<div className="bg-[#29395266] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
+				<div className="w-full max-w-2xl relative">
+					<div className="absolute left-4 top-0 w-[1px] h-full bg-[#1E293B] z-10" />
+					<div className="flex items-start space-x-4 z-20">
+						<div className="bg-[#161F2B] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20">
 							1
 						</div>
-						<div className="flex-1">
-							<h3 className="text-white text-lg font-medium mb-4">
-								Select your AI client
-							</h3>
-							<div className="flex flex-wrap gap-2 mb-4">
+						<div className="flex-1 mb-4">
+							<div className="flex gap-4 mb-4">
+								<h3 className="text-white text-lg font-medium">
+									Select your AI client
+								</h3>
+								{selectedClient && <Select
+									onValueChange={(value) =>
+										setSelectedClient(value as keyof typeof clients)
+									}
+									value={selectedClient || undefined}
+								>
+									<SelectTrigger className="max-w-md rounded-full border-[#242A33] text-white hover:border-gray-600 !bg-transparent">
+										<SelectValue placeholder="Select a client" />
+									</SelectTrigger>
+									<SelectContent className="bg-black border-none">
+										{Object.entries(clients).slice(0, 7).map(([key, clientName]) => (
+											<SelectItem
+												key={key}
+												value={key}
+												className="text-white hover:bg-[#080B0F]"
+											>
+												{clientName}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								}
+							</div>
+							<div className={cn("flex flex-wrap gap-2 mb-4", selectedClient ? "hidden" : "")}>
 								{Object.entries(clients)
 									.slice(0, 7)
 									.map(([key, clientName]) => (
@@ -132,11 +166,11 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className="bg-[#29395266] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
+						<div className="bg-[#161F2B] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20">
 							2
 						</div>
-						<div className="flex-1">
-							<h3 className="text-white text-lg font-medium">
+						<div className="flex-1 mb-4">
+							<h3 className="text-white text-lg font-medium mb-4">
 								Copy the installation command
 							</h3>
 							{selectedClient && (
@@ -257,7 +291,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										<div className="space-y-3">
 											<div className="relative">
 												<input
-													className="font-mono text-xs w-full pr-10 p-2 bg-black border border-gray-600 rounded text-green-400"
+													className="font-mono text-xs w-full pr-10 p-2 bg-black border border-gray-600 rounded-lg text-green-400"
 													readOnly
 													value={generateInstallCommand()}
 												/>
@@ -281,7 +315,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className="bg-[#29395266] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0">
+						<div className="bg-[#161F2B] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20">
 							3
 						</div>
 						<div className="flex-1">

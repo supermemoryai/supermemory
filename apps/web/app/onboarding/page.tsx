@@ -169,7 +169,7 @@ export default function OnboardingPage() {
 		<div className="min-h-screen bg-black">
 			{isWelcomeFlow && (
 				<InitialHeader
-					showUserSupermemory={currentStep === "features"}
+					showUserSupermemory={currentStep === "features" || currentStep === "memories"}
 					name={name}
 				/>
 			)}

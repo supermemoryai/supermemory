@@ -8,7 +8,7 @@ import { PanelRightCloseIcon, SendIcon } from "lucide-react"
 import { collectValidUrls } from "@/utils/url-helpers"
 import { $fetch } from "@lib/api"
 import { cn } from "@lib/utils"
-import { dmSansFont } from "@/utils/fonts"
+import { dmSansClassName } from "@/utils/fonts"
 
 interface ChatSidebarProps {
 	formData: {
@@ -268,13 +268,13 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					key="closed"
 					className={cn(
 						"absolute top-0 right-0 flex items-start justify-start m-4",
-						dmSansFont.className,
+						dmSansClassName(),
 					)}
 					layoutId="chat-toggle-button"
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border-[1px] border-[#17181A]"
+						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border-[1px] border-[#17181A] text-white cursor-pointer"
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
@@ -288,7 +288,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					key="open"
 					className={cn(
 						"w-[450px] h-[calc(100vh-110px)] bg-[#0A0E14] backdrop-blur-md flex flex-col rounded-2xl m-4",
-						dmSansFont.className,
+						dmSansClassName(),
 					)}
 					initial={{ x: "100px", opacity: 0 }}
 					animate={{ x: 0, opacity: 1 }}
@@ -297,7 +297,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="absolute top-4 right-4 flex items-center gap-2 rounded-full p-2 text-xs"
+						className="absolute top-4 right-4 flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer"
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
@@ -308,7 +308,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					</motion.button>
 					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end">
 						{messages.length === 0 && !isLoading && !formData && (
-							<div className="flex items-center gap-2 text-foreground/50">
+							<div className="flex items-center gap-2 text-white/50">
 								<NovaOrb size={28} className="!blur-none" />
 								<span className="text-sm">Waiting for your input</span>
 							</div>
@@ -325,7 +325,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 								className="flex items-start gap-2"
 							>
 								{msg.type === "waiting" ? (
-									<div className="flex items-center gap-2 text-foreground/70">
+									<div className="flex items-center gap-2 text-white/50">
 										<NovaOrb size={30} className="!blur-none" />
 										<span className="text-sm">{msg.message}</span>
 									</div>
@@ -374,7 +374,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 															</a>
 														)}
 														{memory.description && (
-															<p className="text-xs text-foreground/70 mt-1">
+															<p className="text-xs text-white/50 mt-1">
 																{memory.description}
 															</p>
 														)}
@@ -403,13 +403,13 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 								onChange={(e) => setMessage(e.target.value)}
 								onKeyDown={handleKeyDown}
 								placeholder="Chat with your Supermemory"
-								className="w-full text-foreground placeholder:text-foreground/20 rounded-sm outline-none resize-none text-base leading-relaxed bg-transparent px-2 h-10"
+								className="w-full text-white placeholder:text-white/20 rounded-sm outline-none resize-none text-base leading-relaxed bg-transparent px-2 h-10"
 							/>
 							<div className="flex justify-end absolute bottom-3 right-2">
 								<Button
 									type="submit"
 									disabled={!message.trim()}
-									className="text-foreground/20 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
+									className="text-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
 									size="icon"
 								>
 									<SendIcon className="size-4" />

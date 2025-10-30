@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@theme {
+	--color-onboarding: #525966;
+}
+
+:root {
+	--color-placeholder-onboarding: #525966;
+}
+
 .sm-tweet-theme .react-tweet-theme {
 	--tweet-container-margin: 0px;
 }
@@ -20,4 +28,10 @@
 
 .scrollbar-thin::-webkit-scrollbar-track {
 	background: transparent;
+}
+
+[class*="dmSans"],
+.font-dm-sans {
+	letter-spacing: -0.01em;
+	line-height: 135%;
 }
