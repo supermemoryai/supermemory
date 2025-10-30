@@ -13,3 +13,9 @@ export {
 	ADD_MEMORY_SHORTCUT_URL,
 	RAYCAST_EXTENSION_URL,
 }
+
+export const STATUS = {
+  SUBMITTED: "submitted",
+  STREAMING: "streaming",
+  READY: "ready",
+};

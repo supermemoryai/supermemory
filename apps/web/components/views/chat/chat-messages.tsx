@@ -21,7 +21,7 @@ import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { Spinner } from "../../spinner"
-import { STATUS } from "../../global-constants"
+import { STATUS } from "@lib/constants"
 
 interface MemoryResult {
 	documentId?: string
