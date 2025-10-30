@@ -42,6 +42,10 @@ class MemoryClient:
 
     async def __aexit__(self, *args):
         """Async context manager exit - cleanup client."""
+        await self.aclose()
+
+    async def aclose(self):
+        """Close the httpx client."""
         if self._client:
             await self._client.aclose()
             self._client = None

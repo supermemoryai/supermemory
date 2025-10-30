@@ -105,6 +105,11 @@ class SupermemoryOpenAIWrapper:
             self._executor.shutdown(wait=True)
             self._executor = None
 
+    async def aclose(self) -> None:
+        """Async cleanup of resources."""
+        await self.memory_client.aclose()
+        self.close()
+
     def __enter__(self):
         """Context manager entry."""
         return self
@@ -112,6 +117,14 @@ class SupermemoryOpenAIWrapper:
     def __exit__(self, *args):
         """Context manager exit - cleanup resources."""
         self.close()
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, *args):
+        """Async context manager exit - cleanup resources."""
+        await self.aclose()
 
     async def _add_memory_if_needed(self, messages: List[ChatCompletionMessageParam]) -> None:
         """Add conversation to memory if configured to do so."""
