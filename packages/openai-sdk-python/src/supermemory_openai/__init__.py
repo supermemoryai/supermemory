@@ -19,6 +19,11 @@ from .wrapper import (
     with_supermemory,
     WithSupermemoryOptions,
 )
+from .memory_client import (
+    SupermemoryAPIError,
+    SupermemoryTimeoutError,
+    SupermemoryRequestError,
+)
 
 __all__ = [
     # Tools
@@ -38,4 +43,8 @@ __all__ = [
     # Wrapper
     "with_supermemory",
     "WithSupermemoryOptions",
+    # Exceptions
+    "SupermemoryAPIError",
+    "SupermemoryTimeoutError",
+    "SupermemoryRequestError",
 ]

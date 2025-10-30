@@ -5,6 +5,21 @@ from typing import Dict, List, Optional, TypedDict
 import httpx
 
 
+class SupermemoryAPIError(Exception):
+    """Base exception for Supermemory API errors."""
+    pass
+
+
+class SupermemoryTimeoutError(SupermemoryAPIError):
+    """Timeout error for Supermemory API."""
+    pass
+
+
+class SupermemoryRequestError(SupermemoryAPIError):
+    """Request error for Supermemory API."""
+    pass
+
+
 class ProfileStructure(TypedDict, total=False):
     """Structure for profile response from Supermemory API."""
 
@@ -111,7 +126,7 @@ class MemoryClient:
                     "status": response.status_code,
                     "error": error_text,
                 })
-                raise Exception(
+                raise SupermemoryRequestError(
                     f"Supermemory profile search failed: {response.status_code} {response.reason_phrase}. {error_text}"
                 )
 
@@ -130,11 +145,12 @@ class MemoryClient:
 
             return result
 
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as e:
             self._log("Profile search timed out")
-            raise Exception("Supermemory API request timed out")
+            raise SupermemoryTimeoutError("Supermemory API request timed out") from e
+        except SupermemoryAPIError:
+            # Re-raise our custom exceptions
+            raise
         except Exception as error:
             self._log("Profile search error", {"error": str(error)})
-            if isinstance(error, Exception) and "Supermemory" in str(error):
-                raise error
-            raise Exception(f"Supermemory API request failed: {error}")
+            raise SupermemoryAPIError(f"Supermemory API request failed: {error}") from error
