@@ -338,7 +338,132 @@ export function createOpenAIMiddleware(
 		apiKey: process.env.SUPERMEMORY_API_KEY,
 	})
 
+	const conversationId = options?.conversationId
+	const mode = options?.mode ?? "profile"
+	const addMemory = options?.addMemory ?? "never"
+
 	const originalCreate = openaiClient.chat.completions.create
+	const originalResponsesCreate = openaiClient.responses?.create
+
+	/**
+	 * Formats memories for injection into Responses API instructions.
+	 *
+	 * Searches for relevant memories and formats them for inclusion in the
+	 * instructions parameter of the Responses API.
+	 *
+	 * @param input - The input text from the Responses API call
+	 * @param containerTag - The container tag for memory search
+	 * @param logger - Logger instance
+	 * @param mode - Memory search mode
+	 * @returns Formatted memories string for instructions
+	 */
+	const getMemoriesForInstructions = async (
+		input: string,
+		containerTag: string,
+		logger: Logger,
+		mode: "profile" | "query" | "full",
+	) => {
+		const queryText = mode !== "profile" ? input : ""
+
+		const memoriesResponse = await supermemoryProfileSearch(
+			containerTag,
+			queryText,
+		)
+
+		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
+		const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
+
+		logger.info("Memory search completed for Responses API", {
+			containerTag,
+			memoryCountStatic,
+			memoryCountDynamic,
+			queryText:
+				queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+			mode,
+		})
+
+		const profileData =
+			mode !== "query"
+				? convertProfileToMarkdown({
+						profile: {
+							static: memoriesResponse.profile.static?.map((item) => item.memory),
+							dynamic: memoriesResponse.profile.dynamic?.map(
+								(item) => item.memory,
+							),
+						},
+						searchResults: {
+							results: memoriesResponse.searchResults.results.map((item) => ({
+								memory: item.memory,
+							})) as [{ memory: string }],
+						},
+					})
+				: ""
+		const searchResultsMemories =
+			mode !== "profile"
+				? `Search results for user's input: \n${memoriesResponse.searchResults.results
+						.map((result) => `- ${result.memory}`)
+						.join("\n")}`
+				: ""
+
+		const memories = `${profileData}\n${searchResultsMemories}`.trim()
+
+		if (memories) {
+			logger.debug("Memory content preview for Responses API", {
+				content: memories,
+				fullLength: memories.length,
+			})
+		}
+
+		return memories
+	}
+
+	const createResponsesWithMemory = async (
+		params: Parameters<typeof originalResponsesCreate>[0],
+	) => {
+		if (!originalResponsesCreate) {
+			throw new Error("Responses API is not available in this OpenAI client version")
+		}
+
+		const input = typeof params.input === "string" ? params.input : ""
+
+		if (addMemory === "always" && input?.trim()) {
+			const content = conversationId
+				? `Input: ${input}`
+				: input
+			const customId = conversationId
+				? `conversation:${conversationId}`
+				: undefined
+
+			addMemoryTool(client, containerTag, content, customId, logger)
+		}
+
+		if (mode !== "profile" && !input) {
+			logger.debug("No input found for Responses API, skipping memory search")
+			return originalResponsesCreate.call(openaiClient.responses, params)
+		}
+
+		logger.info("Starting memory search for Responses API", {
+			containerTag,
+			conversationId,
+			mode,
+		})
+
+		const memories = await getMemoriesForInstructions(
+			input,
+			containerTag,
+			logger,
+			mode,
+		)
+
+		const enhancedInstructions = memories
+			? `${params.instructions || ""}\n\n${memories}`.trim()
+			: params.instructions
+
+		return originalResponsesCreate.call(openaiClient.responses, {
+			...params,
+			instructions: enhancedInstructions,
+		})
+	}
 
 	const createWithMemory = async (
 		params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
@@ -388,6 +513,12 @@ export function createOpenAIMiddleware(
 
 	openaiClient.chat.completions.create =
 		createWithMemory as typeof originalCreate
+
+	// Wrap Responses API if available
+	if (originalResponsesCreate) {
+		openaiClient.responses.create =
+			createResponsesWithMemory as typeof originalResponsesCreate
+	}
 
 	return openaiClient
 }

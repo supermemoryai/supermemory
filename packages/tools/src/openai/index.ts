@@ -6,11 +6,13 @@ import {
 
 /**
  * Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
- * into the system prompt based on the user's message content.
+ * into both Chat Completions and Responses APIs based on the user's input content.
  *
- * This middleware searches the supermemory API for relevant memories using the container tag
- * and user message, then either appends memories to an existing system prompt or creates
- * a new system prompt with the memories.
+ * For Chat Completions API: Searches for memories using the user message content and injects
+ * them into the system prompt (appends to existing or creates new system prompt).
+ *
+ * For Responses API: Searches for memories using the input parameter and injects them into
+ * the instructions parameter (appends to existing or creates new instructions).
  *
  * @param openaiClient - The OpenAI client to wrap with SuperMemory middleware
  * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
@@ -20,7 +22,7 @@ import {
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
  * @param options.addMemory - Optional mode for memory addition: "always", "never" (default)
  *
- * @returns An OpenAI client with SuperMemory middleware injected
+ * @returns An OpenAI client with SuperMemory middleware injected for both Chat Completions and Responses APIs
  *
  * @example
  * ```typescript
@@ -37,12 +39,19 @@ import {
  *   addMemory: "always"
  * })
  *
- * // Use normally - memories will be automatically injected
- * const response = await openaiWithSupermemory.chat.completions.create({
+ * // Use with Chat Completions API - memories injected into system prompt
+ * const chatResponse = await openaiWithSupermemory.chat.completions.create({
  *   model: "gpt-4",
  *   messages: [
  *     { role: "user", content: "What's my favorite programming language?" }
  *   ]
+ * })
+ *
+ * // Use with Responses API - memories injected into instructions
+ * const response = await openaiWithSupermemory.responses.create({
+ *   model: "gpt-4o",
+ *   instructions: "You are a helpful coding assistant",
+ *   input: "What's my favorite programming language?"
  * })
  * ```
  *
