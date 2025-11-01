@@ -152,54 +152,13 @@ const addSystemPrompt = async (
 
 	const queryText = mode !== "profile" ? getLastUserMessage(messages) : ""
 
-	const memoriesResponse = await supermemoryProfileSearch(
-		containerTag,
+	const memories = await searchAndFormatMemories(
 		queryText,
-	)
-
-	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
-	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
-
-	logger.info("Memory search completed", {
 		containerTag,
-		memoryCountStatic,
-		memoryCountDynamic,
-		queryText:
-			queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+		logger,
 		mode,
-	})
-
-	const profileData =
-		mode !== "query"
-			? convertProfileToMarkdown({
-					profile: {
-						static: memoriesResponse.profile.static?.map((item) => item.memory),
-						dynamic: memoriesResponse.profile.dynamic?.map(
-							(item) => item.memory,
-						),
-					},
-					searchResults: {
-						results: memoriesResponse.searchResults.results.map((item) => ({
-							memory: item.memory,
-						})) as [{ memory: string }],
-					},
-				})
-			: ""
-	const searchResultsMemories =
-		mode !== "profile"
-			? `Search results for user's recent message: \n${memoriesResponse.searchResults.results
-					.map((result) => `- ${result.memory}`)
-					.join("\n")}`
-			: ""
-
-	const memories = `${profileData}\n${searchResultsMemories}`.trim()
-
-	if (memories) {
-		logger.debug("Memory content preview", {
-			content: memories,
-			fullLength: memories.length,
-		})
-	}
+		"chat",
+	)
 
 	if (systemPromptExists) {
 		logger.debug("Added memories to existing system prompt")
@@ -346,25 +305,25 @@ export function createOpenAIMiddleware(
 	const originalResponsesCreate = openaiClient.responses?.create
 
 	/**
-	 * Formats memories for injection into Responses API instructions.
+	 * Searches for memories and formats them for injection into API calls.
 	 *
-	 * Searches for relevant memories and formats them for inclusion in the
-	 * instructions parameter of the Responses API.
+	 * This shared function handles memory search and formatting for both Chat Completions
+	 * and Responses APIs, reducing code duplication.
 	 *
-	 * @param input - The input text from the Responses API call
+	 * @param queryText - The text to search for (empty string for profile-only mode)
 	 * @param containerTag - The container tag for memory search
 	 * @param logger - Logger instance
 	 * @param mode - Memory search mode
-	 * @returns Formatted memories string for instructions
+	 * @param context - API context for logging differentiation
+	 * @returns Formatted memories string
 	 */
-	const getMemoriesForInstructions = async (
-		input: string,
+	const searchAndFormatMemories = async (
+		queryText: string,
 		containerTag: string,
 		logger: Logger,
 		mode: "profile" | "query" | "full",
+		context: "chat" | "responses",
 	) => {
-		const queryText = mode !== "profile" ? input : ""
-
 		const memoriesResponse = await supermemoryProfileSearch(
 			containerTag,
 			queryText,
@@ -373,7 +332,7 @@ export function createOpenAIMiddleware(
 		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
 		const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
 
-		logger.info("Memory search completed for Responses API", {
+		logger.info(`Memory search completed for ${context} API`, {
 			containerTag,
 			memoryCountStatic,
 			memoryCountDynamic,
@@ -400,7 +359,7 @@ export function createOpenAIMiddleware(
 				: ""
 		const searchResultsMemories =
 			mode !== "profile"
-				? `Search results for user's input: \n${memoriesResponse.searchResults.results
+				? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${memoriesResponse.searchResults.results
 						.map((result) => `- ${result.memory}`)
 						.join("\n")}`
 				: ""
@@ -408,7 +367,7 @@ export function createOpenAIMiddleware(
 		const memories = `${profileData}\n${searchResultsMemories}`.trim()
 
 		if (memories) {
-			logger.debug("Memory content preview for Responses API", {
+			logger.debug(`Memory content preview for ${context} API`, {
 				content: memories,
 				fullLength: memories.length,
 			})
@@ -426,17 +385,6 @@ export function createOpenAIMiddleware(
 
 		const input = typeof params.input === "string" ? params.input : ""
 
-		if (addMemory === "always" && input?.trim()) {
-			const content = conversationId
-				? `Input: ${input}`
-				: input
-			const customId = conversationId
-				? `conversation:${conversationId}`
-				: undefined
-
-			addMemoryTool(client, containerTag, content, customId, logger)
-		}
-
 		if (mode !== "profile" && !input) {
 			logger.debug("No input found for Responses API, skipping memory search")
 			return originalResponsesCreate.call(openaiClient.responses, params)
@@ -448,12 +396,30 @@ export function createOpenAIMiddleware(
 			mode,
 		})
 
-		const memories = await getMemoriesForInstructions(
-			input,
+		const operations: Promise<any>[] = []
+
+		if (addMemory === "always" && input?.trim()) {
+			const content = conversationId
+				? `Input: ${input}`
+				: input
+			const customId = conversationId
+				? `conversation:${conversationId}`
+				: undefined
+
+			operations.push(addMemoryTool(client, containerTag, content, customId, logger))
+		}
+
+		const queryText = mode !== "profile" ? input : ""
+		operations.push(searchAndFormatMemories(
+			queryText,
 			containerTag,
 			logger,
 			mode,
-		)
+			"responses",
+		))
+
+		const results = await Promise.all(operations)
+		const memories = results[results.length - 1] // Memory search result is always last
 
 		const enhancedInstructions = memories
 			? `${params.instructions || ""}\n\n${memories}`.trim()
@@ -470,20 +436,6 @@ export function createOpenAIMiddleware(
 	) => {
 		const messages = Array.isArray(params.messages) ? params.messages : []
 
-		if (addMemory === "always") {
-			const userMessage = getLastUserMessage(messages)
-			if (userMessage?.trim()) {
-				const content = conversationId
-					? getConversationContent(messages)
-					: userMessage
-				const customId = conversationId
-					? `conversation:${conversationId}`
-					: undefined
-
-				addMemoryTool(client, containerTag, content, customId, logger)
-			}
-		}
-
 		if (mode !== "profile") {
 			const userMessage = getLastUserMessage(messages)
 			if (!userMessage) {
@@ -498,12 +450,31 @@ export function createOpenAIMiddleware(
 			mode,
 		})
 
-		const enhancedMessages = await addSystemPrompt(
+		const operations: Promise<any>[] = []
+
+		if (addMemory === "always") {
+			const userMessage = getLastUserMessage(messages)
+			if (userMessage?.trim()) {
+				const content = conversationId
+					? getConversationContent(messages)
+					: userMessage
+				const customId = conversationId
+					? `conversation:${conversationId}`
+					: undefined
+
+				operations.push(addMemoryTool(client, containerTag, content, customId, logger))
+			}
+		}
+
+		operations.push(addSystemPrompt(
 			messages,
 			containerTag,
 			logger,
 			mode,
-		)
+		))
+
+		const results = await Promise.all(operations)
+		const enhancedMessages = results[results.length - 1] // Enhanced messages result is always last
 
 		return originalCreate.call(openaiClient.chat.completions, {
 			...params,
