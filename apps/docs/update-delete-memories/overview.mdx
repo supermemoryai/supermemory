@@ -151,6 +151,12 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 The `customId` enables idempotency across all endpoints. The `memoryId` doesn't support idempotency, only the `customId` does.
 </Note>
 
+<Warning> 
+
+The `customId` can have a maximum length of 100 characters.
+
+</Warning>
+
 ## Single Delete
 
 Delete individual memories by their ID. This is a permanent hard delete with no recovery mechanism.
