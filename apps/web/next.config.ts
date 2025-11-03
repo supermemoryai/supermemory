@@ -5,9 +5,6 @@ const nextConfig: NextConfig = {
 	experimental: {
 		viewTransition: true,
 	},
-	eslint: {
-		ignoreDuringBuilds: true,
-	},
 	poweredByHeader: false,
 	async rewrites() {
 		return [
