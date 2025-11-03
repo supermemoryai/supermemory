@@ -90,8 +90,6 @@
     "@types/node": "^24.0.4",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.1",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3",
     "wrangler": "^4.26.0"
