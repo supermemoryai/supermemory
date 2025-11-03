@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "biome check --write",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
@@ -83,6 +83,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.2.2",
     "@sentry/cli": "^2.52.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@total-typescript/tsconfig": "^1.0.4",
