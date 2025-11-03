@@ -1,5 +1,6 @@
 import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants"
 import { DOMUtils } from "../../utils/ui-components"
+import { default as TurndownService } from "turndown"
 
 export async function saveMemory() {
 	try {
@@ -7,15 +8,64 @@ export async function saveMemory() {
 
 		const highlightedText = window.getSelection()?.toString() || ""
 		const url = window.location.href
-		const html = document.documentElement.outerHTML
+
+		const ogImage =
+			document
+				.querySelector('meta[property="og:image"]')
+				?.getAttribute("content") ||
+			document
+				.querySelector('meta[name="og:image"]')
+				?.getAttribute("content") ||
+			undefined
+
+		const title =
+			document
+				.querySelector('meta[property="og:title"]')
+				?.getAttribute("content") ||
+			document
+				.querySelector('meta[name="og:title"]')
+				?.getAttribute("content") ||
+			document.title ||
+			undefined
+
+		const data: {
+			html?: string
+			markdown?: string
+			highlightedText?: string
+			url: string
+			ogImage?: string
+			title?: string
+		} = {
+			url,
+		}
+
+		if (ogImage) {
+			data.ogImage = ogImage
+		}
+
+		if (title) {
+			data.title = title
+		}
+
+		if (highlightedText) {
+			data.highlightedText = highlightedText
+		} else {
+			const bodyClone = document.body.cloneNode(true) as HTMLElement
+			const scripts = bodyClone.querySelectorAll("script")
+			for (const script of scripts) {
+				script.remove()
+			}
+			const html = bodyClone.innerHTML
+
+			// Convert HTML to markdown
+			const turndownService = new TurndownService()
+			const markdown = turndownService.turndown(html)
+			data.markdown = markdown
+		}
 
 		const response = await browser.runtime.sendMessage({
 			action: MESSAGE_TYPES.SAVE_MEMORY,
-			data: {
-				html,
-				highlightedText,
-				url,
-			},
+			data,
 			actionSource: "context_menu",
 		})
 
