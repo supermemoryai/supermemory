@@ -1,7 +1,7 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextResponse } from "next/server"
 
-export default async function middleware(request: Request) {
+export default async function proxy(request: Request) {
 	console.debug("[MIDDLEWARE] === MIDDLEWARE START ===")
 	const url = new URL(request.url)
 	console.debug("[MIDDLEWARE] Path:", url.pathname)
