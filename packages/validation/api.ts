@@ -269,6 +269,12 @@ export const ListMemoriesQuerySchema = z
 			.regex(/^\d+$/)
 			.or(z.number())
 			.transform(Number)
+			.refine((value) => value % 1 === 0, {
+				message: "Limit must be an integer",
+			})
+			.refine((value) => value >= 1, {
+				message: "Limit must be at least 1",
+			})
 			.refine((value) => value <= 1100, {
 				message: "Limit cannot be greater than 1100",
 			})
