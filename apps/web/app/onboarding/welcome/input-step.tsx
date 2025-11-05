@@ -49,7 +49,7 @@ export function InputStep({
 				<LabeledInput
 					inputType="text"
 					inputPlaceholder="your name"
-					className="w-full flex-1"
+					className="w-full flex-1 !h-11"
 					inputProps={{
 						value: name,
 						onKeyDown: (e) => {

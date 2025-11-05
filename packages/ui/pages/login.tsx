@@ -14,6 +14,8 @@ import { InitialHeader } from "../../../apps/web/components/initial-header";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { dmSansClassName } from "../../../apps/web/utils/fonts"
+import { cn } from "@lib/utils";
 
 function AnimatedGradientBackground() {
 	return (
@@ -397,7 +399,7 @@ export function LoginPage() {
 
 								<TextSeparator text="OR" />
 
-								<form onSubmit={handleSubmit} className="flex flex-col gap-4">
+								<form onSubmit={handleSubmit} className="flex flex-col gap-6">
 									<LabeledInput
 										error={error}
 										inputPlaceholder="your@email.com"
@@ -423,7 +425,7 @@ export function LoginPage() {
 												background:
 													"linear-gradient(180deg, #0FF0D2 0%, #5349dd 1%, #1E0FF0 100%)",
 												boxShadow:
-													"1px 1px 2px 1px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
+													"1px 1px 1px 1px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
 											}}
 											disabled={isLoading}
 											type="submit"
@@ -442,18 +444,18 @@ export function LoginPage() {
 									</div>
 								</form>
 
-								<Label1Regular className="text-muted-foreground text-center !text-xs">
+								<Label1Regular className={cn("text-center !text-xs text-[#737373B2]", dmSansClassName())}>
 									By continuing, you agree to our{" "}
 									<span className="inline-block">
 										<a
-											className="text-foreground hover:underline"
+											className="underline"
 											href="https://supermemory.ai/terms-of-service"
 										>
 											Terms
 										</a>{" "}
 										and{" "}
 										<a
-											className="text-foreground hover:underline"
+											className="underline"
 											href="https://supermemory.ai/privacy-policy"
 										>
 											Privacy Policy

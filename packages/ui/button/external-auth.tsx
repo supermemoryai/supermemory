@@ -15,7 +15,7 @@ export function ExternalAuthButton({
 	return (
 		<Button
 			className={cn(
-				"flex flex-grow cursor-pointer max-w-full items-center justify-center gap-[0.625rem] rounded-xl px-6 py-5 hover:opacity-75",
+				"flex flex-grow cursor-pointer max-w-full items-center justify-center gap-[0.625rem] rounded-xl px-6 py-5 hover:opacity-75 h-11",
 				className,
 			)}
 			style={{
