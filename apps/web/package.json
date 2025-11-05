@@ -59,6 +59,7 @@
 		"embla-carousel-autoplay": "^8.6.0",
 		"embla-carousel-react": "^8.6.0",
 		"framer-motion": "^12.23.12",
+		"idb-keyval": "^6.2.2",
 		"is-hotkey": "^0.2.0",
 		"lucide-react": "^0.525.0",
 		"masonic": "^4.1.0",

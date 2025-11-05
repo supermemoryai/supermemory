@@ -1,7 +1,8 @@
 import type { UIMessage } from "@ai-sdk/react"
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { persist, createJSONStorage } from "zustand/middleware"
 import { useCallback } from "react"
+import { indexedDBStorage } from "./indexeddb-storage"
 
 /**
  * Deep equality check for UIMessage arrays to prevent unnecessary state updates
@@ -175,6 +176,7 @@ export const usePersistentChatStore = create<ConversationsStoreState>()(
 		}),
 		{
 			name: "supermemory-chats",
+			storage: createJSONStorage(() => indexedDBStorage),
 		},
 	),
 )
