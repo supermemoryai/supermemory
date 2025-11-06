@@ -10,6 +10,7 @@ import {
 	SelectValue,
 } from "@ui/components/select"
 import { CircleCheckIcon, CopyIcon } from "lucide-react"
+import Image from "next/image"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
@@ -39,6 +40,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 	const [selectedProject] = useState<string>("sm_project_default")
 	const [mcpUrlTab, setMcpUrlTab] = useState<"oneClick" | "manual">("oneClick")
 	const [isCopied, setIsCopied] = useState(false)
+	const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1)
 
 	useEffect(() => {
 		analytics.mcpViewOpened()
@@ -60,6 +62,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 		navigator.clipboard.writeText(command)
 		analytics.mcpInstallCmdCopied()
 		toast.success("Copied to clipboard!")
+		setActiveStep(3)
 	}
 
 	return (
@@ -103,18 +106,31 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 				<div className="w-full max-w-2xl relative">
 					<div className="absolute left-4 top-0 w-[1px] h-full bg-[#1E293B] z-10" />
 					<div className="flex items-start space-x-4 z-20">
-						<div className="bg-[#161F2B] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20">
-							1
+						<div className={cn(
+							"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 bg-[#161F2B] text-white",
+						)} >
+							<span style={activeStep === 1 ? {
+								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							} : undefined}>1</span>
 						</div>
 						<div className="flex-1 mb-4">
 							<div className="flex gap-4 mb-4">
-								<h3 className="text-white text-lg font-medium">
+								<h3 className="text-white text-lg font-medium" style={activeStep === 1 ? {
+									background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+									backgroundClip: "text",
+									WebkitBackgroundClip: "text",
+									WebkitTextFillColor: "transparent",
+								} : undefined}>
 									Select your AI client
 								</h3>
 								{selectedClient && <Select
-									onValueChange={(value) =>
+									onValueChange={(value) => {
 										setSelectedClient(value as keyof typeof clients)
-									}
+										setActiveStep(2)
+									}}
 									value={selectedClient || undefined}
 								>
 									<SelectTrigger className="max-w-md rounded-full border-[#242A33] text-white hover:border-gray-600 !bg-transparent">
@@ -141,16 +157,47 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										<button
 											key={key}
 											type="button"
-											onClick={() =>
+											onClick={() => {
 												setSelectedClient(key as keyof typeof clients)
-											}
-											className={`px-3 py-2 rounded-full border-2 transition-colors duration-200 ${
+												setActiveStep(2)
+											}}
+											className={`px-3 py-1 rounded-full border-1 transition-colors cursor-pointer duration-200 ${
 												selectedClient === key
 													? "border-blue-500 bg-blue-500/10"
 													: "border-[#0D121A] bg-[#080B0F] hover:border-gray-600"
 											}`}
 										>
 											<div className="flex items-center space-x-2">
+												<div className="w-5 h-5 flex items-center justify-center">
+													<Image
+														alt={clientName}
+														className="rounded object-contain"
+														height={20}
+														onError={(e) => {
+															const target = e.target as HTMLImageElement
+															target.style.display = "none"
+															const parent = target.parentElement
+															if (
+																parent &&
+																!parent.querySelector(".fallback-text")
+															) {
+																const fallback = document.createElement("span")
+																fallback.className =
+																	"fallback-text text-xs font-bold text-white"
+																fallback.textContent = clientName
+																	.substring(0, 2)
+																	.toUpperCase()
+																parent.appendChild(fallback)
+															}
+														}}
+														src={
+															key === "mcp-url"
+																? "/mcp-icon.svg"
+																: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+														}
+														width={20}
+													/>
+												</div>
 												<span className="text-sm font-medium text-white">
 													{clientName}
 												</span>
@@ -166,11 +213,24 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className="bg-[#161F2B] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20">
-							2
+						<div className={cn(
+							"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 text-white bg-[#161F2B]",
+							""
+						)} >
+							<span style={activeStep === 2 ? {
+								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							} : undefined}>2</span>
 						</div>
 						<div className="flex-1 mb-4">
-							<h3 className="text-white text-lg font-medium mb-4">
+							<h3 className="text-white text-lg font-medium mb-4" style={activeStep === 2 ? {
+								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							} : undefined}>
 								Copy the installation command
 							</h3>
 							{selectedClient && (
@@ -225,6 +285,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 																)
 																analytics.mcpInstallCmdCopied()
 																toast.success("Copied to clipboard!")
+																setActiveStep(3)
 															}}
 														>
 															<CopyIcon className="size-4 text-gray-400 hover:text-white" />
@@ -270,6 +331,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 																analytics.mcpInstallCmdCopied()
 																toast.success("Copied to clipboard!")
 																setIsCopied(true)
+																setActiveStep(3)
 																setTimeout(() => setIsCopied(false), 2000)
 															}}
 														>
@@ -315,11 +377,24 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className="bg-[#161F2B] text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20">
-							3
+						<div className={cn(
+							"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20",
+							"bg-[#161F2B] text-white"
+						)} >
+							<span style={activeStep === 3 ? {
+								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							} : undefined}>3</span>
 						</div>
 						<div className="flex-1">
-							<h3 className="text-white text-lg font-medium">
+							<h3 className="text-white text-lg font-medium" style={activeStep === 3 ? {
+								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+								backgroundClip: "text",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+							} : undefined}>
 								Run command in your terminal
 							</h3>
 						</div>
