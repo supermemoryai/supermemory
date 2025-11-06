@@ -307,18 +307,6 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						Close chat
 					</motion.button>
 					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end">
-						{messages.length === 0 && !isLoading && !formData && (
-							<div className="flex items-center gap-2 text-white/50">
-								<NovaOrb size={28} className="!blur-none" />
-								<span className="text-sm">Waiting for your input</span>
-							</div>
-						)}
-						{isLoading && (
-							<div className="flex items-center gap-2 text-foreground/50">
-								<NovaOrb size={28} className="!blur-none" />
-								<span className="text-sm">Fetching your memories...</span>
-							</div>
-						)}
 						{messages.map((msg, i) => (
 							<div
 								key={`message-${i}-${msg.message}`}
@@ -386,6 +374,18 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 								)}
 							</div>
 						))}
+						{messages.length === 0 && !isLoading && !formData && (
+							<div className="flex items-center gap-2 text-white/50">
+								<NovaOrb size={28} className="!blur-none" />
+								<span className="text-sm">Waiting for your input</span>
+							</div>
+						)}
+						{isLoading && (
+							<div className="flex items-center gap-2 text-foreground/50">
+								<NovaOrb size={28} className="!blur-none" />
+								<span className="text-sm">Fetching your memories...</span>
+							</div>
+						)}
 					</div>
 
 					<div className="p-4">

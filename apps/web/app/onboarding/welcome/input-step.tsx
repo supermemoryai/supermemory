@@ -45,11 +45,11 @@ export function InputStep({
 			<h2 className="text-white text-3xl font-medium mb-2">
 				What should I call you?
 			</h2>
-			<div className="flex items-center space-x-3 w-full relative">
+			<div className="flex items-center w-full relative">
 				<LabeledInput
 					inputType="text"
 					inputPlaceholder="your name"
-					className="w-full flex-1 !h-11"
+					className="w-full flex-1"
 					inputProps={{
 						value: name,
 						onKeyDown: (e) => {
@@ -57,7 +57,7 @@ export function InputStep({
 								handleSubmit()
 							}
 						},
-						className: "!text-white placeholder:!text-white",
+						className: "!text-white placeholder:!text-[#525966] !h-10",
 					}}
 					onChange={(e) => setName((e.target as HTMLInputElement).value)}
 					style={{
@@ -66,7 +66,7 @@ export function InputStep({
 					}}
 				/>
 				<Button
-					className={`rounded-xl p-2 !bg-black absolute right-4 border-[0.5px] border-gray-800 hover:cursor-pointer hover:scale-[0.95] active:scale-[0.95] transition-transform ${
+					className={`rounded-[10px] size-8 p-2 !bg-black absolute right-1 border-[0.5px] border-gray-800 hover:cursor-pointer hover:scale-[0.95] active:scale-[0.95] transition-transform ${
 						isSubmitting ? "scale-[0.90]" : ""
 					}`}
 					size="icon"
