@@ -19,6 +19,11 @@ import { WebsitePreview } from "./document-cards/website-preview"
 import { GoogleDocsPreview } from "./document-cards/google-docs-preview"
 import { FilePreview } from "./document-cards/file-preview"
 import { NotePreview } from "./document-cards/note-preview"
+import { YoutubePreview } from "./document-cards/youtube-preview"
+import {
+	isYouTubeUrl,
+	useYouTubeChannelName,
+} from "./document-cards/youtube-utils"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -193,6 +198,37 @@ export function MemoriesGrid() {
 	)
 }
 
+function DocumentUrlDisplay({ url }: { url: string }) {
+	const isYouTube = isYouTubeUrl(url)
+	const { data: channelName, isLoading } = useYouTubeChannelName(
+		isYouTube ? url : null,
+	)
+
+	if (isYouTube) {
+		return (
+			<p
+				className={cn(
+					dmSansClassName(),
+					"text-[10px] text-[#737373] line-clamp-1",
+				)}
+			>
+				{isLoading ? "YouTube" : channelName || "YouTube"}
+			</p>
+		)
+	}
+
+	return (
+		<p
+			className={cn(
+				dmSansClassName(),
+				"text-[10px] text-[#737373] line-clamp-1",
+			)}
+		>
+			{getAbsoluteUrl(url)}
+		</p>
+	)
+}
+
 const DocumentCard = memo(
 	({
 		index: _index,
@@ -207,6 +243,7 @@ const DocumentCard = memo(
 			<div className="rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1" style={{ width }}>
 				<ContentPreview document={document} />
 				<div className="pb-[10px] space-y-1">
+					{document.url && !document.url.includes("x.com") && !document.url.includes("twitter.com") && !document.url.includes("files.supermemory.ai") && (
 					<div className="px-3">
 						<p
 							className={cn(
@@ -216,17 +253,10 @@ const DocumentCard = memo(
 						>
 							{document.title}
 						</p>
-						{document.url && (
-							<p
-								className={cn(
-									dmSansClassName(),
-									"text-[10px] text-[#737373] line-clamp-1",
-								)}
-							>
-								{getAbsoluteUrl(document.url)}
-							</p>
-						)}
+						
+						<DocumentUrlDisplay url={document.url} />
 					</div>
+					)}
 					<div className="flex items-center justify-between px-3">
 						<p
 							className={cn(
@@ -351,6 +381,10 @@ function ContentPreview({ document }: { document: DocumentWithMemories }) {
 				}
 			/>
 		)
+	}
+
+	if (isYouTubeUrl(document.url)) {
+		return <YoutubePreview document={document} />
 	}
 
 	if (
