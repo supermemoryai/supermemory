@@ -4,8 +4,11 @@ import { Logo } from "@ui/assets/Logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { useAuth } from "@lib/auth-context"
 import { useEffect, useState } from "react"
-import { ChevronsLeftRight, Plus } from "lucide-react"
+import { ChevronsLeftRight, LayoutGridIcon, Plus, SearchIcon } from "lucide-react"
 import { Button } from "@ui/components/button"
+import { cn } from "@lib/utils"
+import { dmSansClassName } from "@/utils/fonts"
+import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
 
 export function Header() {
     const { user } = useAuth()
@@ -30,19 +33,34 @@ export function Header() {
                         </div>
                     )}
                 </div>
-                <div className="self-stretch w-[2px] bg-[#FFFFFF33]" />
+                <div className="self-stretch w-[1px] bg-[#FFFFFF33]" />
                 <div className="flex items-center gap-2">
                     <p>📁 My Space</p>
                     <ChevronsLeftRight className="size-4 rotate-90" />
                 </div>
             </div>
+            <Tabs defaultValue="grid">
+                <TabsList className="rounded-full border border-[#161F2C] !h-11">
+                    <TabsTrigger value="grid" className={cn("rounded-full data-[state=active]:!bg-[#00173C] dark:data-[state=active]:!border-[#2261CA33] px-4 py-4", dmSansClassName())}><LayoutGridIcon className="size-4" />Grid</TabsTrigger>
+                    <TabsTrigger value="graph" className={cn("rounded-full dark:data-[state=active]:!bg-[#00173C] dark:data-[state=active]:!border-[#2261CA33] px-4 py-4", dmSansClassName())}><LayoutGridIcon className="size-4" />Graph</TabsTrigger>
+                </TabsList>
+            </Tabs>
             <div className="flex items-center gap-2">
                 <Button variant="headers" className="rounded-full text-base gap-2 !h-10">
                     <div className="flex items-center gap-2">
                     <Plus className="size-4" />
                     Add memory
                     </div>
-                    <span className="bg-[#21212180] border border-[#73737333] text-[#737373] rounded-md px-1 py-0.5 size-6 text-xs">c</span>
+                    <span className={cn("bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center", dmSansClassName())}>C</span>
+                </Button>
+                <Button variant="headers" className="rounded-full text-base gap-2 !h-10">
+                    <SearchIcon className="size-4" />
+                    <span className="bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm text-[10px] flex items-center justify-center gap-0.5 px-1">
+                        <svg className="size-[7.5px]" viewBox="0 0 9 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6.66663 0.416626C6.33511 0.416626 6.01716 0.548322 5.78274 0.782743C5.54832 1.01716 5.41663 1.33511 5.41663 1.66663V6.66663C5.41663 6.99815 5.54832 7.31609 5.78274 7.55051C6.01716 7.78493 6.33511 7.91663 6.66663 7.91663C6.99815 7.91663 7.31609 7.78493 7.55051 7.55051C7.78493 7.31609 7.91663 6.99815 7.91663 6.66663C7.91663 6.33511 7.78493 6.01716 7.55051 5.78274C7.31609 5.54832 6.99815 5.41663 6.66663 5.41663H1.66663C1.33511 5.41663 1.01716 5.54832 0.782743 5.78274C0.548322 6.01716 0.416626 6.33511 0.416626 6.66663C0.416626 6.99815 0.548322 7.31609 0.782743 7.55051C1.01716 7.78493 1.33511 7.91663 1.66663 7.91663C1.99815 7.91663 2.31609 7.78493 2.55051 7.55051C2.78493 7.31609 2.91663 6.99815 2.91663 6.66663V1.66663C2.91663 1.33511 2.78493 1.01716 2.55051 0.782743C2.31609 0.548322 1.99815 0.416626 1.66663 0.416626C1.33511 0.416626 1.01716 0.548322 0.782743 0.782743C0.548322 1.01716 0.416626 1.33511 0.416626 1.66663C0.416626 1.99815 0.548322 2.31609 0.782743 2.55051C1.01716 2.78493 1.33511 2.91663 1.66663 2.91663H6.66663C6.99815 2.91663 7.31609 2.78493 7.55051 2.55051C7.78493 2.31609 7.91663 1.99815 7.91663 1.66663C7.91663 1.33511 7.78493 1.01716 7.55051 0.782743C7.31609 0.548322 6.99815 0.416626 6.66663 0.416626Z" stroke="#737373" strokeWidth="0.833333" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className={cn(dmSansClassName())}>K</span>
+                    </span>
                 </Button>
                 {user && (
                     <Avatar className="border border-border h-8 w-8 md:h-10 md:w-10">
