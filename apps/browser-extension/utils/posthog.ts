@@ -1,15 +1,14 @@
 import { PostHog } from "posthog-js/dist/module.no-external"
-import { STORAGE_KEYS } from "./constants"
+import { userData } from "./storage"
 
 export async function identifyUser(posthog: PostHog): Promise<void> {
-	const stored = await chrome.storage.local.get([STORAGE_KEYS.USER_DATA])
-	const userData = stored[STORAGE_KEYS.USER_DATA]
+	const storedUserData = await userData.getValue()
 
-	if (userData?.userId) {
-		posthog.identify(userData.userId, {
-			email: userData.email,
-			name: userData.name,
-			userId: userData.userId,
+	if (storedUserData?.userId) {
+		posthog.identify(storedUserData.userId, {
+			email: storedUserData.email,
+			name: storedUserData.name,
+			userId: storedUserData.userId,
 		})
 	}
 }

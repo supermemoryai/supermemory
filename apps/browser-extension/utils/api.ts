@@ -1,7 +1,8 @@
 /**
  * API service for supermemory browser extension
  */
-import { API_ENDPOINTS, STORAGE_KEYS } from "./constants"
+import { API_ENDPOINTS } from "./constants"
+import { bearerToken, defaultProject, userData } from "./storage"
 import {
 	AuthenticationError,
 	type MemoryPayload,
@@ -14,8 +15,7 @@ import {
  * Get bearer token from storage
  */
 async function getBearerToken(): Promise<string> {
-	const result = await chrome.storage.local.get([STORAGE_KEYS.BEARER_TOKEN])
-	const token = result[STORAGE_KEYS.BEARER_TOKEN]
+	const token = await bearerToken.getValue()
 
 	if (!token) {
 		throw new AuthenticationError("Bearer token not found")
@@ -75,10 +75,8 @@ export async function fetchProjects(): Promise<Project[]> {
  */
 export async function getDefaultProject(): Promise<Project | null> {
 	try {
-		const result = await chrome.storage.local.get([
-			STORAGE_KEYS.DEFAULT_PROJECT,
-		])
-		return result[STORAGE_KEYS.DEFAULT_PROJECT] || null
+		const defaultProjectValue = await defaultProject.getValue()
+		return defaultProjectValue || null
 	} catch (error) {
 		console.error("Failed to get default project:", error)
 		return null
@@ -90,9 +88,7 @@ export async function getDefaultProject(): Promise<Project | null> {
  */
 export async function setDefaultProject(project: Project): Promise<void> {
 	try {
-		await chrome.storage.local.set({
-			[STORAGE_KEYS.DEFAULT_PROJECT]: project,
-		})
+		await defaultProject.setValue(project)
 	} catch (error) {
 		console.error("Failed to set default project:", error)
 		throw error
@@ -120,8 +116,7 @@ export async function validateAuthToken(): Promise<boolean> {
  */
 export async function getUserData(): Promise<{ email?: string } | null> {
 	try {
-		const result = await chrome.storage.local.get([STORAGE_KEYS.USER_DATA])
-		return result[STORAGE_KEYS.USER_DATA] || null
+		return (await userData.getValue()) || null
 	} catch (error) {
 		console.error("Failed to get user data:", error)
 		return null
