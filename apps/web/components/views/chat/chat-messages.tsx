@@ -19,6 +19,7 @@ import { Streamdown } from "streamdown"
 import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
+import { modelNames, ModelIcon } from "@/lib/models"
 import { Spinner } from "../../spinner"
 
 interface MemoryResult {
@@ -242,14 +243,7 @@ export function ChatMessages() {
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<
 		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
-	>(
-		(sessionStorage.getItem(storageKey) as
-			| "gpt-5"
-			| "claude-sonnet-4.5"
-			| "gemini-2.5-pro") ||
-			"gemini-2.5-pro" ||
-			"gemini-2.5-pro",
-	)
+	>("gemini-2.5-pro")
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
@@ -293,6 +287,7 @@ export function ChatMessages() {
 	}, [currentChatId, id])
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (currentChatId) {
 			const savedModel = sessionStorage.getItem(storageKey) as
 				| "gpt-5"
@@ -309,6 +304,7 @@ export function ChatMessages() {
 	}, [currentChatId, storageKey])
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (currentChatId && !hasRunInitialMessageRef.current) {
 			// Check if there's an initial message from the home page in sessionStorage
 			const storageKey = `chat-initial-${currentChatId}`
@@ -637,7 +633,17 @@ export function ChatMessages() {
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
-					<div className="absolute bottom-2 right-2">
+					<div className="absolute bottom-2 right-2 flex items-center gap-4">
+						<div className="flex items-center gap-1.5">
+							<ModelIcon
+								width={16}
+								height={16}
+								className="text-muted-foreground"
+							/>
+							<span className="text-xs text-muted-foreground">
+								{modelNames[selectedModel]}
+							</span>
+						</div>
 						<Button
 							type="submit"
 							disabled={!input.trim()}
