@@ -7,7 +7,7 @@ import { indexedDBStorage } from "./indexeddb-storage"
 /**
  * Deep equality check for UIMessage arrays to prevent unnecessary state updates
  */
-function areUIMessageArraysEqual(a: UIMessage[], b: UIMessage[]): boolean {
+export function areUIMessageArraysEqual(a: UIMessage[], b: UIMessage[]): boolean {
 	if (a === b) return true
 	if (a.length !== b.length) return false
 

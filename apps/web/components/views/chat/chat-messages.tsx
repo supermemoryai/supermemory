@@ -1,6 +1,6 @@
 "use client"
 
-import { useChat, useCompletion } from "@ai-sdk/react"
+import { useChat, useCompletion, type UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { DefaultChatTransport } from "ai"
@@ -21,6 +21,7 @@ import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
 import { modelNames, ModelIcon } from "@/lib/models"
 import { Spinner } from "../../spinner"
+import { areUIMessageArraysEqual } from "@/stores/chat"
 
 interface MemoryResult {
 	documentId?: string
@@ -247,6 +248,10 @@ export function ChatMessages() {
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
+	const lastSavedMessagesRef = useRef<UIMessage[] | null>(null)
+	const lastSavedActiveIdRef = useRef<string | null>(null)
+	const lastLoadedChatIdRef = useRef<string | null>(null)
+	const lastLoadedMessagesRef = useRef<UIMessage[] | null>(null)
 
 	const { setDocumentIds } = useGraphHighlights()
 
@@ -281,6 +286,10 @@ export function ChatMessages() {
 				}
 			},
 		})
+
+	useEffect(() => {
+		lastLoadedMessagesRef.current = messages
+	}, [messages])
 
 	useEffect(() => {
 		activeChatIdRef.current = currentChatId ?? id ?? null
@@ -326,20 +335,56 @@ export function ChatMessages() {
 	}, [id, currentChatId, setCurrentChatId])
 
 	useEffect(() => {
-		const msgs = getCurrentConversation()
-		if (msgs && msgs.length > 0) {
-			setMessages(msgs)
-		} else if (!currentChatId) {
-			setMessages([])
+		if (currentChatId !== lastLoadedChatIdRef.current) {
+			lastLoadedMessagesRef.current = null
+			lastSavedMessagesRef.current = null
 		}
+
+		if (currentChatId === lastLoadedChatIdRef.current) {
+			setInput("")
+			return
+		}
+
+		const msgs = getCurrentConversation()
+
+		if (msgs && msgs.length > 0) {
+			const currentMessages = lastLoadedMessagesRef.current
+			if (!currentMessages || !areUIMessageArraysEqual(currentMessages, msgs)) {
+				lastLoadedMessagesRef.current = msgs
+				setMessages(msgs)
+			}
+		} else if (!currentChatId) {
+			if (
+				lastLoadedMessagesRef.current &&
+				lastLoadedMessagesRef.current.length > 0
+			) {
+				lastLoadedMessagesRef.current = []
+				setMessages([])
+			}
+		}
+
+		lastLoadedChatIdRef.current = currentChatId
 		setInput("")
 	}, [currentChatId, getCurrentConversation, setMessages])
 
 	useEffect(() => {
 		const activeId = currentChatId ?? id
-		if (activeId && messages.length > 0) {
-			setConversation(activeId, messages)
+		if (!activeId || messages.length === 0) {
+			return
 		}
+
+		if (activeId !== lastSavedActiveIdRef.current) {
+			lastSavedMessagesRef.current = null
+			lastSavedActiveIdRef.current = activeId
+		}
+
+		const lastSaved = lastSavedMessagesRef.current
+		if (lastSaved && areUIMessageArraysEqual(lastSaved, messages)) {
+			return
+		}
+
+		lastSavedMessagesRef.current = messages
+		setConversation(activeId, messages)
 	}, [messages, currentChatId, id, setConversation])
 
 	const { complete } = useCompletion({
