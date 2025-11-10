@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { dmSansClassName } from "@/utils/fonts"
@@ -69,10 +70,15 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 }
 
 export function FilePreview({ document }: { document: DocumentWithMemories }) {
+	const [imageError, setImageError] = useState(false)
 	const { icon, extension, color } = getFileTypeInfo(document)
+	
+	const type = document.type?.toLowerCase()
+	const mimeType = document.metadata?.mimeType as string | undefined
+	const isImage = (mimeType?.startsWith("image/") || type === "image") && document.url && !imageError
 
 	return (
-		<div className="bg-[#0B1017] p-3 rounded-[18px] gap-3 relative">
+		<div className="bg-[#0B1017] rounded-[18px] gap-3 relative overflow-hidden">
 			{color && (
 				<div
 					className="absolute left-0 top-3 bottom-3 w-[2px]"
@@ -81,19 +87,42 @@ export function FilePreview({ document }: { document: DocumentWithMemories }) {
 					}}
 				/>
 			)}
-			<div className="flex items-center gap-1 mb-2">
-				{icon}
-				<p
-					className={cn(dmSansClassName(), "text-[12px] font-semibold")}
-					style={{ color: color }}
-				>
-					{extension}
-				</p>
-			</div>
-			{document.content && (
-				<p className="text-[10px] text-[#737373] line-clamp-4">
-					{document.content}
-				</p>
+			{isImage ? (
+				<>
+					<div className="relative w-full aspect-video bg-gray-100 overflow-hidden">
+						<img
+							src={document.url!}
+							alt={document.title || "Image preview"}
+							className="w-full h-full object-cover"
+							onError={() => setImageError(true)}
+							loading="lazy"
+						/>
+					</div>
+					{document.content && (
+						<div className="p-3 pt-2">
+							<p className="text-[10px] text-[#737373] line-clamp-4">
+								{document.content}
+							</p>
+						</div>
+					)}
+				</>
+			) : (
+				<div className="p-3">
+					<div className="flex items-center gap-1 mb-2">
+						{icon}
+						<p
+							className={cn(dmSansClassName(), "text-[12px] font-semibold")}
+							style={{ color: color }}
+						>
+							{extension}
+						</p>
+					</div>
+					{document.content && (
+						<p className="text-[10px] text-[#737373] line-clamp-4">
+							{document.content}
+						</p>
+					)}
+				</div>
 			)}
 		</div>
 	)
