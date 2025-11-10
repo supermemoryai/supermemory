@@ -19,13 +19,16 @@
     <img src="https://img.shields.io/badge/Raycast-Extension-FF6363?style=for-the-badge&logo=raycast&logoColor=white" alt="Raycast Extension" />
   </a>
   &nbsp;
-  <a href="https://discord.gg/HXvsGK2f" style="text-decoration: none;">
+  <a href="https://supermemory.link/discord" style="text-decoration: none;">
     <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" />
   </a>
 </p>
 
 <p style="font-size: 0.9em; color: #666;">
     <strong>Building with Supermemory?</strong> Check out the <a href="https://console.supermemory.ai?utm_source=github&utm_medium=readme&utm_campaign=consumer_app">Developer Console</a> and <a href="https://docs.supermemory.ai?utm_source=github&utm_medium=readme&utm_campaign=consumer_app">Documentation</a> for API access.
+</p>
+<p style="font-size: 0.9em; color: #666;">
+    <strong>Want to self-host?</strong> See our <a href="https://supermemory.ai/docs/deployment/self-hosting#self-hosting">Self-Hosting Guide</a> for enterprise deployment options.
 </p>
 <br/>
 
