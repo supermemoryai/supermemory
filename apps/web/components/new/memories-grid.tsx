@@ -7,8 +7,8 @@ import { useInfiniteQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo } from "react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
-import { Sparkles } from "lucide-react"
 import { dmSansClassName } from "@/utils/fonts"
+import { SuperLoader } from "@/components/superloader"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { useProject } from "@/stores"
@@ -158,10 +158,7 @@ export function MemoriesGrid() {
 				</div>
 			) : isPending ? (
 				<div className="h-full flex items-center justify-center p-4">
-					<div className="flex items-center gap-2">
-						<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
-						<span>Loading memory list...</span>
-					</div>
+					<SuperLoader />
 				</div>
 			) : documents.length === 0 && !isPending ? (
 				<div className="h-full flex items-center justify-center p-4">
@@ -186,10 +183,7 @@ export function MemoriesGrid() {
 
 					{isLoadingMore && (
 						<div className="py-8 flex items-center justify-center">
-							<div className="flex items-center gap-2">
-								<Sparkles className="w-4 h-4 animate-spin text-blue-400" />
-								<span>Loading more memories...</span>
-							</div>
+							<SuperLoader />
 						</div>
 					)}
 				</div>

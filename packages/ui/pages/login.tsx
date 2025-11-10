@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { dmSansClassName } from "../../../apps/web/utils/fonts"
 import { cn } from "@lib/utils";
+import { Logo } from "@ui/assets/Logo";
 
 function AnimatedGradientBackground() {
 	return (
@@ -419,17 +420,17 @@ export function LoginPage() {
 
 									<div className="relative">
 										<Button
-											className="w-full h-11"
+											className='flex justify-center items-center w-full h-[44px] relative gap-3 p-2 rounded-xl'
 											style={{
-												borderRadius: "12px",
-												background:
-													"linear-gradient(180deg, #0FF0D2 0%, #5349dd 1%, #1E0FF0 100%)",
-												boxShadow:
-													"1px 1px 1px 1px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
+											background:
+												'linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)',
+											boxShadow:
+												'1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)',
 											}}
 											disabled={isLoading}
 											type="submit"
 										>
+											<Logo className="size-4" />
 											{isLoadingEmail
 												? "Sending login link..."
 												: "Log in with Supermemory"}

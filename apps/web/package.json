@@ -58,6 +58,7 @@
     "dotenv": "^16.6.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "flubber": "^0.4.2",
     "framer-motion": "^12.23.12",
 	"idb-keyval": "^6.2.2",
     "is-hotkey": "^0.2.0",
