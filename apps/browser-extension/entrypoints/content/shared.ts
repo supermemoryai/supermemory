@@ -1,4 +1,5 @@
-import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants"
+import { MESSAGE_TYPES } from "../../utils/constants"
+import { bearerToken, userData } from "../../utils/storage"
 import { DOMUtils } from "../../utils/ui-components"
 import { default as TurndownService } from "turndown"
 
@@ -95,13 +96,13 @@ export function setupGlobalKeyboardShortcut() {
 }
 
 export function setupStorageListener() {
-	window.addEventListener("message", (event) => {
+	window.addEventListener("message", async (event) => {
 		if (event.source !== window) {
 			return
 		}
-		const bearerToken = event.data.token
-		const userData = event.data.userData
-		if (bearerToken && userData) {
+		const token = event.data.token
+		const user = event.data.userData
+		if (token && user) {
 			if (
 				!(
 					window.location.hostname === "localhost" ||
@@ -115,13 +116,11 @@ export function setupStorageListener() {
 				return
 			}
 
-			chrome.storage.local.set(
-				{
-					[STORAGE_KEYS.BEARER_TOKEN]: bearerToken,
-					[STORAGE_KEYS.USER_DATA]: userData,
-				},
-				() => {},
-			)
+			try {
+				await Promise.all([bearerToken.setValue(token), userData.setValue(user)])
+			} catch {
+				// Do nothing
+			}
 		}
 	})
 }

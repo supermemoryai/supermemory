@@ -2,24 +2,23 @@
  * Twitter Authentication Module
  * Handles token capture and storage for Twitter API access
  */
-import { STORAGE_KEYS } from "./constants"
-
-export interface TwitterAuthTokens {
-	cookie: string
-	csrf: string
-	auth: string
-}
+import {
+	getTokensLogged,
+	setTokensLogged,
+	setTwitterTokens,
+	type TwitterAuthTokens,
+} from "./storage"
 
 /**
  * Captures Twitter authentication tokens from web request headers
  * @param details - Web request details containing headers
  * @returns True if tokens were captured, false otherwise
  */
-export function captureTwitterTokens(
+export async function captureTwitterTokens(
 	details: chrome.webRequest.WebRequestDetails & {
 		requestHeaders?: chrome.webRequest.HttpHeader[]
 	},
-): boolean {
+): Promise<boolean> {
 	if (!(details.url.includes("x.com") || details.url.includes("twitter.com"))) {
 		return false
 	}
@@ -35,49 +34,22 @@ export function captureTwitterTokens(
 	)
 
 	if (authHeader?.value && cookieHeader?.value && csrfHeader?.value) {
-		chrome.storage.session.get([STORAGE_KEYS.TOKENS_LOGGED], (result) => {
-			if (!result[STORAGE_KEYS.TOKENS_LOGGED]) {
-				console.log("Twitter auth tokens captured successfully")
-				chrome.storage.session.set({ [STORAGE_KEYS.TOKENS_LOGGED]: true })
-			}
-		})
+		const tokensAlreadyLogged = await getTokensLogged()
+		if (!tokensAlreadyLogged) {
+			console.log("Twitter auth tokens captured successfully")
+			await setTokensLogged()
+		}
 
-		chrome.storage.session.set({
-			[STORAGE_KEYS.TWITTER_COOKIE]: cookieHeader.value,
-			[STORAGE_KEYS.TWITTER_CSRF]: csrfHeader.value,
-			[STORAGE_KEYS.TWITTER_AUTH_TOKEN]: authHeader.value,
+		await setTwitterTokens({
+			cookie: cookieHeader.value,
+			csrf: csrfHeader.value,
+			auth: authHeader.value,
 		})
 
 		return true
 	}
 
 	return false
-}
-
-/**
- * Retrieves stored Twitter authentication tokens
- * @returns Promise resolving to tokens or null if not available
- */
-export async function getTwitterTokens(): Promise<TwitterAuthTokens | null> {
-	const result = await chrome.storage.session.get([
-		STORAGE_KEYS.TWITTER_COOKIE,
-		STORAGE_KEYS.TWITTER_CSRF,
-		STORAGE_KEYS.TWITTER_AUTH_TOKEN,
-	])
-
-	if (
-		!result[STORAGE_KEYS.TWITTER_COOKIE] ||
-		!result[STORAGE_KEYS.TWITTER_CSRF] ||
-		!result[STORAGE_KEYS.TWITTER_AUTH_TOKEN]
-	) {
-		return null
-	}
-
-	return {
-		cookie: result[STORAGE_KEYS.TWITTER_COOKIE],
-		csrf: result[STORAGE_KEYS.TWITTER_CSRF],
-		auth: result[STORAGE_KEYS.TWITTER_AUTH_TOKEN],
-	}
 }
 
 /**

@@ -3,9 +3,12 @@ import {
 	ELEMENT_IDS,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
-	STORAGE_KEYS,
 	UI_CONFIG,
 } from "../../utils/constants"
+import {
+	autoSearchEnabled,
+	autoCapturePromptsEnabled,
+} from "../../utils/storage"
 import { createT3InputBarElement, DOMUtils } from "../../utils/ui-components"
 
 let t3DebounceTimeout: NodeJS.Timeout | null = null
@@ -497,13 +500,9 @@ function setupT3PromptCapture() {
 	document.body.setAttribute("data-t3-prompt-capture-setup", "true")
 
 	const captureT3PromptContent = async (source: string) => {
-		const result = await chrome.storage.local.get([
-			STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
-		])
-		const autoCapturePromptsEnabled =
-			result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
-		if (!autoCapturePromptsEnabled) {
+		if (!autoCapture) {
 			console.log("Auto capture prompts is disabled, skipping prompt capture")
 			return
 		}
@@ -677,12 +676,9 @@ function setupT3PromptCapture() {
 }
 
 async function setupT3AutoFetch() {
-	const result = await chrome.storage.local.get([
-		STORAGE_KEYS.AUTO_SEARCH_ENABLED,
-	])
-	const autoSearchEnabled = result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
+	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
 
-	if (!autoSearchEnabled) {
+	if (!autoSearch) {
 		return
 	}
 

@@ -2,13 +2,20 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import "./App.css"
 import { validateAuthToken } from "../../utils/api"
-import { MESSAGE_TYPES, STORAGE_KEYS } from "../../utils/constants"
+import { MESSAGE_TYPES } from "../../utils/constants"
 import {
 	useDefaultProject,
 	useProjects,
 	useSetDefaultProject,
 	useUserData,
 } from "../../utils/query-hooks"
+import {
+	autoSearchEnabled as autoSearchEnabledStorage,
+	autoCapturePromptsEnabled as autoCapturePromptsEnabledStorage,
+	bearerToken,
+	defaultProject as defaultProjectStorage,
+	userData as userDataStorage,
+} from "../../utils/storage"
 import type { Project } from "../../utils/types"
 
 const Tooltip = ({
@@ -93,12 +100,13 @@ function App() {
 	useEffect(() => {
 		const checkAuthStatus = async () => {
 			try {
-				const result = await chrome.storage.local.get([
-					STORAGE_KEYS.BEARER_TOKEN,
-					STORAGE_KEYS.AUTO_SEARCH_ENABLED,
-					STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
+				const [token, autoSearch, autoCapturePrompts] = await Promise.all([
+					bearerToken.getValue(),
+					autoSearchEnabledStorage.getValue(),
+					autoCapturePromptsEnabledStorage.getValue(),
 				])
-				const hasToken = !!result[STORAGE_KEYS.BEARER_TOKEN]
+
+				const hasToken = !!token
 
 				if (hasToken) {
 					const isTokenValid = await validateAuthToken()
@@ -107,10 +115,10 @@ function App() {
 						setUserSignedIn(true)
 						setAuthInvalidated(false)
 					} else {
-						await chrome.storage.local.remove([
-							STORAGE_KEYS.BEARER_TOKEN,
-							STORAGE_KEYS.USER_DATA,
-							STORAGE_KEYS.DEFAULT_PROJECT,
+						await Promise.all([
+							bearerToken.removeValue(),
+							userDataStorage.removeValue(),
+							defaultProjectStorage.removeValue(),
 						])
 						queryClient.clear()
 						setUserSignedIn(false)
@@ -121,13 +129,8 @@ function App() {
 					setAuthInvalidated(false)
 				}
 
-				const autoSearchSetting =
-					result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
-				setAutoSearchEnabled(autoSearchSetting)
-
-				const autoCapturePromptsSetting =
-					result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
-				setAutoCapturePromptsEnabled(autoCapturePromptsSetting)
+				setAutoSearchEnabled(autoSearch ?? false)
+				setAutoCapturePromptsEnabled(autoCapturePrompts ?? false)
 			} catch (error) {
 				console.error("Error checking auth status:", error)
 				setUserSignedIn(false)
@@ -227,9 +230,7 @@ function App() {
 
 	const handleAutoSearchToggle = async (enabled: boolean) => {
 		try {
-			await chrome.storage.local.set({
-				[STORAGE_KEYS.AUTO_SEARCH_ENABLED]: enabled,
-			})
+			await autoSearchEnabledStorage.setValue(enabled)
 			setAutoSearchEnabled(enabled)
 		} catch (error) {
 			console.error("Error updating auto search setting:", error)
@@ -238,9 +239,7 @@ function App() {
 
 	const handleAutoCapturePromptsToggle = async (enabled: boolean) => {
 		try {
-			await chrome.storage.local.set({
-				[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED]: enabled,
-			})
+			await autoCapturePromptsEnabledStorage.setValue(enabled)
 			setAutoCapturePromptsEnabled(enabled)
 		} catch (error) {
 			console.error("Error updating auto capture prompts setting:", error)
@@ -249,9 +248,11 @@ function App() {
 
 	const handleSignOut = async () => {
 		try {
-			await chrome.storage.local.remove([STORAGE_KEYS.BEARER_TOKEN])
-			await chrome.storage.local.remove([STORAGE_KEYS.USER_DATA])
-			await chrome.storage.local.remove([STORAGE_KEYS.DEFAULT_PROJECT])
+			await Promise.all([
+				bearerToken.removeValue(),
+				userDataStorage.removeValue(),
+				defaultProjectStorage.removeValue(),
+			])
 			setUserSignedIn(false)
 			queryClient.clear()
 		} catch (error) {
