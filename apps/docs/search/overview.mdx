@@ -285,6 +285,48 @@ Companies like Composio [Rube.app](https://rube.app) use memories search for let
 
 The `/v4/search` endpoint searches through and returns memories.
 
+## Direct Document Retrieval
+
+If you don't need semantic search and just want to retrieve a specific document you've uploaded by its ID, use the GET document endpoint:
+
+`GET /v3/documents/{id}`
+
+This is useful when:
+- You know the exact document ID
+- You want to retrieve the full document content and metadata
+- You need to check processing status or document details
+
+<CodeGroup>
+
+```typescript TypeScript
+// Get a specific document by ID
+const document = await client.memories.get("doc_abc123");
+
+console.log(document.content);    // Full document content
+console.log(document.status);     // Processing status
+console.log(document.metadata);   // Document metadata
+console.log(document.summary);    // AI-generated summary
+```
+
+```python Python
+# Get a specific document by ID
+document = client.memories.get("doc_abc123")
+
+print(document.content)    # Full document content
+print(document.status)     # Processing status
+```
+
+```bash cURL
+curl -X GET "https://api.supermemory.ai/v3/documents/{YOUR-DOCUMENT-ID}" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+</CodeGroup>
+
+<Note>
+This endpoint returns the complete document with all fields including content, metadata, containerTags, summary, and processing status. For more details, see the [API reference](/api-reference/manage-documents/get-document).
+</Note>
+
 ## Search Flow Architecture
 
 ### Document Search (`/v3/search`) Flow
