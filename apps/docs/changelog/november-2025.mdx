@@ -1,0 +1,99 @@
+---
+title: "November 2025 Release"
+description: "SDK enhancements, critical bug fixes, and platform improvements"
+---
+
+Major improvements to developer experience, platform stability, and user interface enhancements with expanded SDK capabilities and critical bug fixes.
+
+## November 11, 2025
+
+- **Python SDK OpenAI Middleware:** Added OpenAI middleware functionality to the Python SDK, enabling seamless integration with OpenAI's API while automatically capturing conversations to Supermemory. Developers can now build AI applications that automatically save context without manual integration work.
+- **Enhanced API Documentation:** Improved documentation for the `/document/by-id` endpoint with additional warnings and clarifications based on developer feedback from the Mintlify community.
+- **Self-hosting Documentation:** Added comprehensive self-hosting guide to help users deploy Supermemory on their own infrastructure.
+
+## November 10, 2025
+
+- **Browser Extension Icon Optimization:** Fixed performance issue where bookmark icons were being fetched repeatedly during import, significantly improving bookmark import speed and reducing unnecessary network requests.
+- **Chrome Extension Storage Modernization:** Replaced Chrome's storage API with WXT's storage API for better cross-browser compatibility and improved reliability.
+- **Past Due User Handling:** Improved handling of users with past due or pending payment states for better subscription management.
+
+## November 9, 2025
+
+- **Application Stability Improvements:** Resolved six critical Sentry errors across the web app (CONSUMER-APP-FF, CONSUMER-APP-1T, CONSUMER-APP-86, CONSUMER-APP-7H, CONSUMER-APP-4F, CONSUMER-APP-7X), improving overall application stability and error handling.
+- **Model Selector Hydration Fix:** Resolved hydration issues in the model selector and added the ability to display the currently selected model in chat.
+- **Analytics Tracking Updates:** Refined PostHog analytics tracking based on usage insights for better observability.
+
+## November 7, 2025
+
+- **TypeScript SDK Responses API Support:** Added support for OpenAI's Responses API in the TypeScript SDK, providing developers with more flexible ways to handle streaming and non-streaming AI responses.
+- **Chat Storage Migration:** Migrated chat persistence from localStorage to IndexedDB to fix QuotaExceededError for users with large conversation histories. IndexedDB provides much higher storage limits and better performance, preventing data loss for power users.
+- **Security: Postmessage Validation Fix:** Fixed a security vulnerability where messages could be sent to any website without verifying the recipient. The app now properly validates message origins.
+
+## November 5, 2025
+
+- **⚠️ Next.js 16 Upgrade:** Upgraded the web application to Next.js 16, bringing improved performance, better caching strategies, and enhanced developer experience. Self-hosted deployments should review the Next.js 16 upgrade guide before updating.
+
+## November 4, 2025
+
+- **Google Drive Integration Temporarily Disabled:** Due to an upstream provider issue, Google Drive connections have been temporarily disabled. The UI now clearly indicates this status with appropriate error messages. Users with existing connections are unaffected, but new connections cannot be established until the provider issue is resolved.
+
+## November 3, 2025
+
+- **Markdown Webpage Capture:** Browser extension now converts entire webpages to clean Markdown format when saving, making captured content more readable and searchable. The extension intelligently handles different content types: explicit content, highlighted text, markdown, HTML, or URLs.
+- **Documentation Updates:** Completely refreshed README with light/dark mode compatible logo, new screenshots, feature highlights for browser and Raycast extensions, and developer resource links.
+- **MCP Connection Improvements:** Added better navigation to manual MCP connection setup when automatic connection fails.
+
+## November 2, 2025
+
+- **Dependency Cleanup:** Removed unused packages from package.json, reducing bundle size and improving build times.
+
+## October 29, 2025
+
+- **Mobile Chat Improvements:** Enhanced responsive design across the chat interface with better padding, header layouts, and message container constraints on mobile devices.
+- **Enhanced Loading States:** Replaced simple loading spinners with skeleton loading cards in the memory list, providing better visual feedback during data loading.
+- **Chat Scroll Behavior Fix:** Fixed scrolling behavior in chat to ensure new messages are properly visible and the interface scrolls smoothly.
+- **Repository Cleanup:** Relocated logo assets and removed empty configuration files to keep the repository clean.
+- **Type Safety Enhancements:** Added proper type annotations and fixed React hook dependencies in chat components, preventing potential runtime errors.
+- **Contributing Documentation:** Enhanced CONTRIBUTING.md and .env.example files to help new contributors get started more easily.
+
+## October 28, 2025
+
+- **Streaming Response Capture:** Enhanced the AI SDK middleware to capture assistant responses during streaming, ensuring no conversation data is lost even in real-time applications. Memory content now includes filtered supermemories with improved formatting.
+- **Array Contains Filter Documentation:** Updated documentation to cover new array filtering capabilities for more precise memory searches.
+- **Improved Memory UI:** Enhanced the "Add Memory" interface with better visual design and user experience improvements.
+
+## October 27, 2025
+
+- **Optional Analytics Initialization:** Made PostHog analytics initialization optional for self-hosted deployments, giving users more control over telemetry.
+
+---
+
+## Migration Notes
+
+### For Developers
+
+**Python SDK Users:** The new OpenAI middleware is a non-breaking addition. Update to the latest version to use this feature.
+
+**TypeScript SDK Users:** The Responses API support is backward compatible. Existing implementations will continue to work without changes.
+
+### For Self-Hosters
+
+**Next.js 16 Upgrade:** Review your deployment configuration before upgrading to ensure compatibility. Check build commands and environment variables.
+
+**PostHog Analytics:** Analytics are now optional. Skip PostHog configuration in your environment variables if you don't want telemetry.
+
+### For Extension Users
+
+Browser extension updates will be automatic through your browser's extension store. If you experience issues, try disabling and re-enabling the extension.
+
+---
+
+## Statistics
+
+- **Total Commits:** 30
+- **Contributors:** 14
+- **Release Period:** October 27 - November 11, 2025
+
+## Top Contributors
+
+Special thanks to: [@nexxeln](https://github.com/nexxeln), [@PhantomInTheWire](https://github.com/PhantomInTheWire), [@aryankeluskar](https://github.com/aryankeluskar), [@MaheshtheDev](https://github.com/MaheshtheDev), [@naman06dev](https://github.com/naman06dev), [@orbisai0security](https://github.com/orbisai0security), [@fyzanshaik](https://github.com/fyzanshaik), [@AntonVishal](https://github.com/AntonVishal), [@amannhq](https://github.com/amannhq), [@ryujan404](https://github.com/ryujan404), [@vorahardik7](https://github.com/vorahardik7), [@lirena00](https://github.com/lirena00), and [@Dhravya](https://github.com/Dhravya).
