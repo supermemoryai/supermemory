@@ -4,7 +4,12 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
-import { HistoryIcon, PanelRightCloseIcon, SendIcon, SquarePenIcon } from "lucide-react"
+import {
+	HistoryIcon,
+	PanelRightCloseIcon,
+	SendIcon,
+	SquarePenIcon,
+} from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
 
@@ -77,26 +82,38 @@ export function ChatSidebar() {
 					exit={{ x: "100px", opacity: 0 }}
 					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
 				>
-                    <div className="flex items-center justify-between p-4 px-6">
+					<div className="flex items-center justify-between p-4 px-6">
 						<p>Chat Title</p>
 						<div className="flex items-center gap-2">
-
-                    <Button variant="headers" className="rounded-full text-base gap-2 !h-10 border-[#73737333] bg-[#0D121A]">
-						<HistoryIcon className="size-4 text-[#737373]" />
-                </Button>
-                    <Button variant="headers" className="rounded-full text-base gap-2 !h-10 border-[#73737333] bg-[#0D121A]">
-						<SquarePenIcon className="size-4 text-[#737373]" />
-						<span className={cn("bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center", dmSansClassName())}>T</span>
-                </Button>
-					<motion.button
-						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer"
-						layoutId="chat-toggle-button"
-					>
-						<PanelRightCloseIcon className="size-4" />
-					</motion.button>
+							<Button
+								variant="headers"
+								className="rounded-full text-base gap-2 !h-10 border-[#73737333] bg-[#0D121A]"
+							>
+								<HistoryIcon className="size-4 text-[#737373]" />
+							</Button>
+							<Button
+								variant="headers"
+								className="rounded-full text-base gap-2 !h-10 border-[#73737333] bg-[#0D121A]"
+							>
+								<SquarePenIcon className="size-4 text-[#737373]" />
+								<span
+									className={cn(
+										"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
+										dmSansClassName(),
+									)}
+								>
+									T
+								</span>
+							</Button>
+							<motion.button
+								onClick={toggleChat}
+								className="flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer"
+								layoutId="chat-toggle-button"
+							>
+								<PanelRightCloseIcon className="size-4" />
+							</motion.button>
 						</div>
-                    </div>
+					</div>
 					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end">
 						{messages.map((msg, i) => (
 							<div
@@ -201,4 +218,3 @@ export function ChatSidebar() {
 		</AnimatePresence>
 	)
 }
-

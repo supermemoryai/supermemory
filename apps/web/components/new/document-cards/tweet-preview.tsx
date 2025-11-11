@@ -36,4 +36,3 @@ export function TweetPreview({ data }: { data: Tweet }) {
 		</div>
 	)
 }
-

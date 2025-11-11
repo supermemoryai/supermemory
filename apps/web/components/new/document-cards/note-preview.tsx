@@ -17,6 +17,7 @@ function NoteIcon() {
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 		>
+			<title>Note Icon</title>
 			<mask
 				id="mask0_344_4970"
 				style={{ maskType: "alpha" }}
@@ -87,21 +88,17 @@ export function NotePreview({ document }: { document: DocumentWithMemories }) {
 				</p>
 			</div>
 			<div>
-
-			{
-				document.title && (
+				{document.title && (
 					<p className={cn(dmSansClassName(), "text-[12px] font-semibold")}>
 						{document.title}
 					</p>
-				)
-			}
-			{document.content && (
-				<p className="text-[10px] text-[#737373] line-clamp-4">
-					{document.content}
-				</p>
-			)}
+				)}
+				{document.content && (
+					<p className="text-[10px] text-[#737373] line-clamp-4">
+						{document.content}
+					</p>
+				)}
 			</div>
 		</div>
 	)
 }
-

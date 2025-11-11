@@ -24,7 +24,7 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 			return {
 				icon: <PDF className="w-4 h-4 text-[#DC2626]" />,
 				extension: ".pdf",
-                color: "#DC2626",
+				color: "#DC2626",
 			}
 		}
 		if (mimeType.startsWith("image/")) {
@@ -49,7 +49,7 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 			return {
 				icon: <PDF className="w-4 h-4 text-[#DC2626]" />,
 				extension: ".pdf",
-                color: "#DC2626",
+				color: "#DC2626",
 			}
 		case "image":
 			return {
@@ -72,10 +72,13 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 export function FilePreview({ document }: { document: DocumentWithMemories }) {
 	const [imageError, setImageError] = useState(false)
 	const { icon, extension, color } = getFileTypeInfo(document)
-	
+
 	const type = document.type?.toLowerCase()
 	const mimeType = document.metadata?.mimeType as string | undefined
-	const isImage = (mimeType?.startsWith("image/") || type === "image") && document.url && !imageError
+	const isImage =
+		(mimeType?.startsWith("image/") || type === "image") &&
+		document.url &&
+		!imageError
 
 	return (
 		<div className="bg-[#0B1017] rounded-[18px] gap-3 relative overflow-hidden">
@@ -87,25 +90,25 @@ export function FilePreview({ document }: { document: DocumentWithMemories }) {
 					}}
 				/>
 			)}
-			{isImage ? (
-				<>
-					<div className="relative w-full aspect-video bg-gray-100 overflow-hidden">
-						<img
-							src={document.url!}
-							alt={document.title || "Image preview"}
-							className="w-full h-full object-cover"
-							onError={() => setImageError(true)}
-							loading="lazy"
-						/>
-					</div>
-					{document.content && (
-						<div className="p-3 pt-2">
-							<p className="text-[10px] text-[#737373] line-clamp-4">
-								{document.content}
-							</p>
-						</div>
-					)}
-				</>
+			{isImage && document.url ? (
+				<div className="relative w-full overflow-hidden flex items-center justify-center">
+					<div
+						className="absolute inset-0 bg-cover bg-center"
+						style={{
+							backgroundImage: `url(${document.url})`,
+							filter: "blur(10px)",
+							transform: "scale(1.1)",
+						}}
+					/>
+					<div className="absolute inset-0 bg-black/20" />
+					<img
+						src={document.url}
+						alt={document.title || "Image preview"}
+						className="relative max-w-full max-h-full w-auto h-auto object-contain z-10"
+						onError={() => setImageError(true)}
+						loading="lazy"
+					/>
+				</div>
 			) : (
 				<div className="p-3">
 					<div className="flex items-center gap-1 mb-2">
@@ -127,4 +130,3 @@ export function FilePreview({ document }: { document: DocumentWithMemories }) {
 		</div>
 	)
 }
-
