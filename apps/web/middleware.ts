@@ -33,7 +33,7 @@ export default async function proxy(request: Request) {
 	// 		headers: {
 	// 			Authorization: `Bearer ${sessionCookie}`,
 	// 		},
-	// 	});
+
 	// 	console.debug("[PROXY] Waitlist status:", response.data);
 	// 	if (response.data && !response.data.accessGranted) {
 	// 		return NextResponse.redirect(new URL("/waitlist", request.url));

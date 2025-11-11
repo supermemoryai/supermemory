@@ -41,15 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			authClient.organization
 				.getFullOrganization()
 				.then((org) => {
-					// TODO: Uncomment this when we have a way to handle consumer organizations better way
-					//if (org.metadata?.isConsumer === true) {
-					setOrg(org)
-					//} else {
-					//	const consumerOrg = orgs?.find((o) => o.metadata?.isConsumer === true)
-					//	if (consumerOrg) {
-					//		setActiveOrg(consumerOrg.slug)
-					//	}
-					//}
+					if (org.metadata?.isConsumer === true) {
+						console.log("Consumer organization:", org)
+					   setOrg(org)
+					} else {
+						console.log("ALl orgs:", orgs)
+						const consumerOrg = orgs?.find((o) => o.metadata?.isConsumer === true)
+						if (consumerOrg) {
+							setActiveOrg(consumerOrg.slug)
+						}
+					}
 				})
 				.catch((error) => {
 					// Silently handle organization fetch failures to prevent unhandled rejections
