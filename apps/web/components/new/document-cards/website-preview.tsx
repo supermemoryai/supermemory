@@ -9,9 +9,14 @@ import { cn } from "@lib/utils"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
-export function WebsitePreview({ document }: { document: DocumentWithMemories }) {
+export function WebsitePreview({
+	document,
+}: {
+	document: DocumentWithMemories
+}) {
 	const [imageError, setImageError] = useState(false)
-	const ogImage = (document as DocumentWithMemories & { ogImage?: string }).ogImage
+	const ogImage = (document as DocumentWithMemories & { ogImage?: string })
+		.ogImage
 
 	return (
 		<div className="bg-[#0B1017] rounded-[18px] overflow-hidden">
@@ -45,4 +50,3 @@ export function WebsitePreview({ document }: { document: DocumentWithMemories })
 		</div>
 	)
 }
-

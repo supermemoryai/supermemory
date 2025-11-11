@@ -11,7 +11,9 @@ export function isYouTubeUrl(url: string | undefined | null): boolean {
 	)
 }
 
-export function extractYouTubeVideoId(url: string | undefined | null): string | null {
+export function extractYouTubeVideoId(
+	url: string | undefined | null,
+): string | null {
 	if (!url) return null
 
 	// Handle youtu.be format
@@ -27,7 +29,9 @@ export function extractYouTubeVideoId(url: string | undefined | null): string | 
 	if (embedMatch?.[1]) return embedMatch[1]
 
 	// Handle m.youtube.com format
-	const mobileMatch = url.match(/(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/)
+	const mobileMatch = url.match(
+		/(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+	)
 	if (mobileMatch?.[1]) return mobileMatch[1]
 
 	return null
@@ -61,3 +65,14 @@ export function useYouTubeChannelName(url: string | undefined | null) {
 	})
 }
 
+
+export function getAbsoluteUrl(url: string): string {
+	try {
+		const urlObj = new URL(url)
+		return urlObj.host.replace(/^www\./, "")
+	} catch {
+		const match = url.match(/^https?:\/\/([^\/]+)/)
+		const host = match?.[1] ?? url.replace(/^https?:\/\//, "")
+		return host.replace(/^www\./, "")
+	}
+}

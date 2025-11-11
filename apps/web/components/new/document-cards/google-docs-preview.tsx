@@ -8,7 +8,11 @@ import { cn } from "@lib/utils"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
-export function GoogleDocsPreview({ document }: { document: DocumentWithMemories }) {
+export function GoogleDocsPreview({
+	document,
+}: {
+	document: DocumentWithMemories
+}) {
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] gap-3">
 			<div className="flex items-center gap-2 mb-2">
@@ -56,4 +60,3 @@ export function GoogleDocsPreview({ document }: { document: DocumentWithMemories
 		</div>
 	)
 }
-

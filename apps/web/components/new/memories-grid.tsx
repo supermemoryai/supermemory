@@ -20,10 +20,9 @@ import { GoogleDocsPreview } from "./document-cards/google-docs-preview"
 import { FilePreview } from "./document-cards/file-preview"
 import { NotePreview } from "./document-cards/note-preview"
 import { YoutubePreview } from "./document-cards/youtube-preview"
-import {
-	isYouTubeUrl,
-	useYouTubeChannelName,
-} from "./document-cards/youtube-utils"
+import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
+import { SyncLogoIcon } from "@ui/assets/icons"
+import { McpPreview } from "./document-cards/mcp-preview"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -83,7 +82,9 @@ export function MemoriesGrid() {
 	})
 
 	const documents = useMemo(() => {
-		return data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
+		return (
+			data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
+		)
 	}, [data])
 
 	const hasMore = hasNextPage
@@ -119,13 +120,7 @@ export function MemoriesGrid() {
 			index: number
 			data: DocumentWithMemories
 			width: number
-		}) => (
-			<DocumentCard
-				index={index}
-				data={data}
-				width={width}
-			/>
-		),
+		}) => <DocumentCard index={index} data={data} width={width} />,
 		[],
 	)
 
@@ -234,54 +229,71 @@ const DocumentCard = memo(
 		width: number
 	}) => {
 		return (
-			<div className="rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1" style={{ width }}>
+			<div
+				className={cn(
+					"rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1",
+					document.type === "image" ||
+						document.metadata?.mimeType?.toString().startsWith("image/")
+						? "pb-1"
+						: "",
+				)}
+				style={{ width }}
+			>
 				<ContentPreview document={document} />
-				<div className="pb-[10px] space-y-1">
-					{document.url && !document.url.includes("x.com") && !document.url.includes("twitter.com") && !document.url.includes("files.supermemory.ai") && (
-					<div className="px-3">
-						<p
-							className={cn(
-								dmSansClassName(),
-								"text-[12px] text-[#E5E5E5] line-clamp-1 font-semibold",
+				{!(
+					document.type === "image" ||
+					document.metadata?.mimeType?.toString().startsWith("image/")
+				) && (
+					<div className="pb-[10px] space-y-1">
+						{document.url &&
+							!document.url.includes("x.com") &&
+							!document.url.includes("twitter.com") &&
+							!document.url.includes("files.supermemory.ai") && (
+								<div className="px-3">
+									<p
+										className={cn(
+											dmSansClassName(),
+											"text-[12px] text-[#E5E5E5] line-clamp-1 font-semibold",
+										)}
+									>
+										{document.title}
+									</p>
+
+									<DocumentUrlDisplay url={document.url} />
+								</div>
 							)}
-						>
-							{document.title}
-						</p>
-						
-						<DocumentUrlDisplay url={document.url} />
+						<div className="flex items-center justify-between px-3">
+							<p
+								className={cn(
+									dmSansClassName(),
+									"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
+								)}
+								style={{
+									background:
+										"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+									backgroundClip: "text",
+									WebkitBackgroundClip: "text",
+									WebkitTextFillColor: "transparent",
+								}}
+							>
+								<SyncLogoIcon className="size-2" />
+								{document.memoryEntries.length} memories
+							</p>
+							<p
+								className={cn(
+									dmSansClassName(),
+									"text-[10px] text-[#737373] line-clamp-1",
+								)}
+							>
+								{new Date(document.createdAt).toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+									year: "numeric",
+								})}
+							</p>
+						</div>
 					</div>
-					)}
-					<div className="flex items-center justify-between px-3">
-						<p
-							className={cn(
-								dmSansClassName(),
-								"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
-							)}
-							style={{
-								background:
-									"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							}}
-						>
-							<SyncLogoIcon className="size-2" />
-							{document.memoryEntries.length} memories
-						</p>
-						<p
-							className={cn(
-								dmSansClassName(),
-								"text-[10px] text-[#737373] line-clamp-1",
-							)}
-						>
-							{new Date(document.createdAt).toLocaleDateString("en-US", {
-								month: "short",
-								day: "numeric",
-								year: "numeric",
-							})}
-						</p>
-					</div>
-				</div>
+				)}
 			</div>
 		)
 	},
@@ -289,72 +301,7 @@ const DocumentCard = memo(
 
 DocumentCard.displayName = "DocumentCard"
 
-function getAbsoluteUrl(url: string): string {
-	try {
-		const urlObj = new URL(url)
-		return urlObj.host.replace(/^www\./, "")
-	} catch {
-		const match = url.match(/^https?:\/\/([^\/]+)/)
-		const host = match?.[1] ?? url.replace(/^https?:\/\//, "")
-		return host.replace(/^www\./, "")
-	}
-}
-
-function SyncLogoIcon({ className }: { className?: string }) {
-	return (
-		<svg
-			width="11"
-			height="9"
-			viewBox="0 0 11 9"
-			fill="none"
-			xmlns="http://www.w3.org/2000/svg"
-			className={className}
-		>
-			<g clipPath="url(#clip0_344_4856)">
-				<path
-					d="M10.596 3.41884H6.66329V0.000488281H5.39264V3.70946C5.39264 4.10339 5.54815 4.48172 5.82456 4.76047L9.03576 7.99894L9.9342 7.09287L7.56245 4.70102H10.5968V3.41959L10.596 3.41884Z"
-					fill="url(#paint0_linear_344_4856)"
-				/>
-				<path
-					d="M0.662587 1.57476L3.03434 3.96665H0V5.24807H3.93276V8.66641H5.20341V4.95745C5.20341 4.56349 5.0479 4.18516 4.77149 3.90644L1.56102 0.668701L0.662587 1.57476Z"
-					fill="url(#paint1_linear_344_4856)"
-				/>
-			</g>
-			<defs>
-				<linearGradient
-					id="paint0_linear_344_4856"
-					x1="5.65905"
-					y1="-0.00784643"
-					x2="15.4099"
-					y2="0.406611"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop stopColor="#369BFD" />
-					<stop offset="0.41" stopColor="#36FDFD" />
-					<stop offset="0.79" stopColor="#36FDB5" />
-				</linearGradient>
-				<linearGradient
-					id="paint1_linear_344_4856"
-					x1="0.266373"
-					y1="0.660367"
-					x2="10.0159"
-					y2="1.07475"
-					gradientUnits="userSpaceOnUse"
-				>
-					<stop stopColor="#369BFD" />
-					<stop offset="0.41" stopColor="#36FDFD" />
-					<stop offset="0.79" stopColor="#36FDB5" />
-				</linearGradient>
-				<clipPath id="clip0_344_4856">
-					<rect width="10.6889" height="8.66667" fill="white" />
-				</clipPath>
-			</defs>
-		</svg>
-	)
-}
-
 function ContentPreview({ document }: { document: DocumentWithMemories }) {
-	// Check for Google Docs
 	if (
 		document.url?.includes("https://docs.googleapis.com/v1/documents") ||
 		document.url?.includes("docs.google.com/document") ||
@@ -363,7 +310,6 @@ function ContentPreview({ document }: { document: DocumentWithMemories }) {
 		return <GoogleDocsPreview document={document} />
 	}
 
-	// Check for Twitter
 	if (
 		document.url?.includes("x.com/") &&
 		document.metadata?.sm_internal_twitter_metadata
@@ -375,6 +321,10 @@ function ContentPreview({ document }: { document: DocumentWithMemories }) {
 				}
 			/>
 		)
+	}
+
+	if (document.source === "mcp") {
+		return <McpPreview document={document} />
 	}
 
 	if (isYouTubeUrl(document.url)) {
@@ -390,7 +340,6 @@ function ContentPreview({ document }: { document: DocumentWithMemories }) {
 		return <FilePreview document={document} />
 	}
 
-	// Check for Website
 	if (document.url?.includes("https://")) {
 		return <WebsitePreview document={document} />
 	}

@@ -4,12 +4,16 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { dmSansClassName } from "@/utils/fonts"
 import { cn } from "@lib/utils"
-import { extractYouTubeVideoId } from "./youtube-utils"
+import { extractYouTubeVideoId } from "../utils"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
-export function YoutubePreview({ document }: { document: DocumentWithMemories }) {
+export function YoutubePreview({
+	document,
+}: {
+	document: DocumentWithMemories
+}) {
 	const videoId = extractYouTubeVideoId(document.url)
 
 	if (!videoId) {
@@ -46,4 +50,3 @@ export function YoutubePreview({ document }: { document: DocumentWithMemories })
 		</div>
 	)
 }
-
