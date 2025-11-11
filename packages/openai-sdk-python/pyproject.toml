@@ -28,7 +28,11 @@ dependencies = [
     "openai>=1.102.0",
     "supermemory>=3.1.0",
     "typing-extensions>=4.0.0",
+    "requests>=2.25.0",
 ]
+
+[project.optional-dependencies]
+async = ["aiohttp>=3.8.0"]
 
 [dependency-groups]
 dev = [
