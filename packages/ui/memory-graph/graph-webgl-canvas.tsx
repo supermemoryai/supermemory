@@ -761,6 +761,7 @@ export const GraphWebGLCanvas = memo<GraphCanvasProps>(
 				}}
 			>
 				<Application
+					preference="webgl"
 					antialias
 					autoDensity
 					backgroundColor={0x0f1419}

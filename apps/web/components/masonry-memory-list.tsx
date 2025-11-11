@@ -83,12 +83,25 @@ const DocumentCard = memo(
 			)
 		}
 
-		if (document.url?.includes("https://")) {
+		// Check if this is a website document saved from the Chrome extension
+		const websiteUrl =
+			(document.metadata?.website_url as string | undefined) ||
+			(document.url?.includes("https://") ? document.url : undefined)
+
+		if (websiteUrl) {
 			return (
 				<WebsiteCard
-					url={document.url}
-					title={document.title || "Untitled Document"}
-					image={document.ogImage}
+					url={websiteUrl}
+					title={
+						(document.metadata?.website_title as string | undefined) ||
+						document.title ||
+						"Untitled Document"
+					}
+					image={
+						(document.metadata?.website_og_image as string | undefined) ||
+						document.ogImage
+					}
+					description={document.content && typeof document.content === "string" ? document.content : undefined}
 					onOpenDetails={() => onOpenDetails(document)}
 					onDelete={() => onDelete(document)}
 				/>

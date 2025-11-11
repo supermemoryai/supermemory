@@ -16,6 +16,12 @@ from supermemory.types import (
 )
 from supermemory.types.search_execute_response import Result
 
+from .exceptions import (
+    SupermemoryConfigurationError,
+    SupermemoryMemoryOperationError,
+    SupermemoryNetworkError,
+)
+
 
 class SupermemoryToolsConfig(TypedDict, total=False):
     """Configuration for Supermemory tools.
@@ -194,10 +200,15 @@ class SupermemoryTools:
                 results=response.results,
                 count=len(response.results),
             )
+        except (OSError, ConnectionError) as network_error:
+            return MemorySearchResult(
+                success=False,
+                error=f"Network error: {network_error}",
+            )
         except Exception as error:
             return MemorySearchResult(
                 success=False,
-                error=str(error),
+                error=f"Memory search failed: {error}",
             )
 
     async def add_memory(self, memory: str) -> MemoryAddResult:
@@ -225,10 +236,15 @@ class SupermemoryTools:
                 success=True,
                 memory=response,
             )
+        except (OSError, ConnectionError) as network_error:
+            return MemoryAddResult(
+                success=False,
+                error=f"Network error: {network_error}",
+            )
         except Exception as error:
             return MemoryAddResult(
                 success=False,
-                error=str(error),
+                error=f"Memory add failed: {error}",
             )
 
 

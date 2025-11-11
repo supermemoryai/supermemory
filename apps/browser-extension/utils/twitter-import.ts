@@ -4,7 +4,8 @@
  */
 import { saveAllTweets } from "./api"
 import type { MemoryPayload } from "./types"
-import { createTwitterAPIHeaders, getTwitterTokens } from "./twitter-auth"
+import { createTwitterAPIHeaders } from "./twitter-auth"
+import { getTwitterTokens } from "./storage"
 import {
 	BOOKMARKS_URL,
 	BOOKMARK_COLLECTION_URL,

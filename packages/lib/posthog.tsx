@@ -22,7 +22,7 @@ function PostHogPageTracking() {
 				$current_url: url,
 				path: pathname,
 				search_params: searchParams.toString(),
-				page_type: getPageType(pathname),
+				page_type: getPageType(),
 				org_slug: getOrgSlug(pathname),
 			}
 
@@ -39,16 +39,21 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 	useEffect(() => {
 		if (typeof window !== "undefined") {
 			const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
-			if (posthogKey){
-			posthog.init(posthogKey, {
-				api_host: process.env.NEXT_PUBLIC_BACKEND_URL + "/orange",
-				ui_host: "https://us.i.posthog.com",
-				person_profiles: "identified_only",
-				capture_pageview: false,
-				capture_pageleave: true,
-			})}
-			else{
-				console.warn("PostHog API key is not set. PostHog will not be initialized.")
+			const backendUrl =
+				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
+			if (posthogKey) {
+				posthog.init(posthogKey, {
+					api_host: `${backendUrl}/orange`,
+					ui_host: "https://us.i.posthog.com",
+					person_profiles: "identified_only",
+					capture_pageview: false,
+					capture_pageleave: true,
+				})
+			} else {
+				console.warn(
+					"PostHog API key is not set. PostHog will not be initialized.",
+				)
 			}
 		}
 	}, [])
@@ -75,7 +80,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 	)
 }
 
-function getPageType(pathname: string): string {
+function getPageType(): string {
 	return "other"
 }
 

@@ -31,6 +31,7 @@ import { toast } from "sonner"
 import { z } from "zod/v4"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
 
 const clients = {
 	cursor: "Cursor",
@@ -70,6 +71,50 @@ interface ConnectAIModalProps {
 	onOpenChange?: (open: boolean) => void
 	openInitialClient?: "mcp-url" | null
 	openInitialTab?: "oneClick" | "manual" | null
+}
+
+interface ManualMCPHelpLinkProps {
+	onClick: () => void
+}
+
+function ManualMCPHelpLink({ onClick }: ManualMCPHelpLinkProps) {
+	const [isHovered, setIsHovered] = useState(false)
+
+	return (
+		<button
+			className="text-xs text-muted-foreground hover:text-foreground hover:underline opacity-70 hover:opacity-100 transition-all relative overflow-hidden"
+			onClick={onClick}
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+			type="button"
+		>
+			<AnimatePresence mode="wait">
+				{!isHovered ? (
+					<motion.span
+						key="default"
+						initial={{ opacity: 0, y: 10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -10 }}
+						transition={{ duration: 0.2 }}
+						className="inline-block"
+					>
+						Having trouble to connect?
+					</motion.span>
+				) : (
+					<motion.span
+						key="hover"
+						initial={{ opacity: 0, y: 10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -10 }}
+						transition={{ duration: 0.2 }}
+						className="inline-block underline cursor-pointer"
+					>
+						Try Manual MCP config
+					</motion.span>
+				)}
+			</AnimatePresence>
+		</button>
+	)
 }
 
 export function ConnectAIModal({
@@ -248,9 +293,8 @@ export function ConnectAIModal({
 				<DialogHeader>
 					<DialogTitle>Connect supermemory to Your AI</DialogTitle>
 					<DialogDescription>
-						Connect supermemory to your favorite AI tools using the Model
-						Context Protocol (MCP). This allows your AI assistant to create,
-						search, and access your memories directly.
+						Enable your AI assistant to create, search, and access your memories
+						directly using the Model Context Protocol (MCP).
 					</DialogDescription>
 				</DialogHeader>
 
@@ -258,7 +302,7 @@ export function ConnectAIModal({
 					{/* Step 1: Client Selection */}
 					<div className="space-y-4">
 						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium bg-muted text-muted-foreground">
+							<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold bg-accent text-accent-foreground">
 								1
 							</div>
 							<h3 className="text-sm font-medium">Select Your AI Client</h3>
@@ -325,7 +369,7 @@ export function ConnectAIModal({
 						<div className="space-y-4">
 							<div className="flex justify-between">
 								<div className="flex items-center gap-3">
-									<div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
+									<div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold">
 										2
 									</div>
 									<h3 className="text-sm font-medium">
@@ -337,65 +381,82 @@ export function ConnectAIModal({
 									</h3>
 								</div>
 
-								<div
-									className={cn(
-										"flex-col gap-2 hidden",
-										(selectedClient === "cursor" ||
-											selectedClient === "mcp-url") &&
-											"flex",
-									)}
-								>
-									{/* Tabs */}
-									<div className="flex justify-end">
-										<div className="flex bg-muted/50 rounded-full p-1 border border-border">
-											<button
-												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-													(
-														selectedClient === "cursor"
-															? cursorInstallTab
-															: mcpUrlTab
-													) === "oneClick"
-														? "bg-background text-foreground border border-border shadow-sm"
-														: "text-muted-foreground hover:text-foreground"
-												}`}
-												onClick={() =>
-													selectedClient === "cursor"
-														? setCursorInstallTab("oneClick")
-														: setMcpUrlTab("oneClick")
+								<div className="flex items-center gap-3">
+									{selectedClient && selectedClient !== "mcp-url" && (
+										<ManualMCPHelpLink
+											onClick={() => {
+												setSelectedClient("mcp-url")
+												setMcpUrlTab("manual")
+												if (
+													!manualApiKey &&
+													!createMcpApiKeyMutation.isPending
+												) {
+													createMcpApiKeyMutation.mutate()
 												}
-												type="button"
-											>
-												{selectedClient === "mcp-url"
-													? "Quick Setup"
-													: "One Click Install"}
-											</button>
-											<button
-												className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
-													(
+											}}
+										/>
+									)}
+
+									<div
+										className={cn(
+											"flex-col gap-2 hidden",
+											(selectedClient === "cursor" ||
+												selectedClient === "mcp-url") &&
+												"flex",
+										)}
+									>
+										{/* Tabs */}
+										<div className="flex justify-end">
+											<div className="flex bg-muted/50 rounded-full p-1 border border-border">
+												<button
+													className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+														(
+															selectedClient === "cursor"
+																? cursorInstallTab
+																: mcpUrlTab
+														) === "oneClick"
+															? "bg-background text-foreground border border-border shadow-sm"
+															: "text-muted-foreground hover:text-foreground"
+													}`}
+													onClick={() =>
 														selectedClient === "cursor"
-															? cursorInstallTab
-															: mcpUrlTab
-													) === "manual"
-														? "bg-background text-foreground border border-border shadow-sm"
-														: "text-muted-foreground hover:text-foreground"
-												}`}
-												onClick={() => {
-													if (selectedClient === "cursor") {
-														setCursorInstallTab("manual")
-													} else {
-														setMcpUrlTab("manual")
-														if (
-															!manualApiKey &&
-															!createMcpApiKeyMutation.isPending
-														) {
-															createMcpApiKeyMutation.mutate()
-														}
+															? setCursorInstallTab("oneClick")
+															: setMcpUrlTab("oneClick")
 													}
-												}}
-												type="button"
-											>
-												Manual Config
-											</button>
+													type="button"
+												>
+													{selectedClient === "mcp-url"
+														? "Quick Setup"
+														: "One Click Install"}
+												</button>
+												<button
+													className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+														(
+															selectedClient === "cursor"
+																? cursorInstallTab
+																: mcpUrlTab
+														) === "manual"
+															? "bg-background text-foreground border border-border shadow-sm"
+															: "text-muted-foreground hover:text-foreground"
+													}`}
+													onClick={() => {
+														if (selectedClient === "cursor") {
+															setCursorInstallTab("manual")
+														} else {
+															setMcpUrlTab("manual")
+															if (
+																!manualApiKey &&
+																!createMcpApiKeyMutation.isPending
+															) {
+																createMcpApiKeyMutation.mutate()
+															}
+														}
+													}}
+													type="button"
+												>
+													Manual Config
+												</button>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -411,10 +472,6 @@ export function ConnectAIModal({
 													<p className="text-sm text-foreground/80 mb-2">
 														Click the button below to automatically install and
 														configure Supermemory in Cursor
-													</p>
-													<p className="text-xs text-muted-foreground">
-														This will install the MCP server without any
-														additional setup required
 													</p>
 												</div>
 												<a
@@ -432,9 +489,6 @@ export function ConnectAIModal({
 													/>
 												</a>
 											</div>
-											<p className="text-xs text-muted-foreground/60 text-center">
-												Make sure you have Cursor installed on your system
-											</p>
 										</div>
 									) : (
 										<div className="space-y-4">
@@ -611,7 +665,7 @@ export function ConnectAIModal({
 						(selectedClient !== "cursor" || cursorInstallTab === "manual") && (
 							<div className="space-y-4">
 								<div className="flex items-center gap-3">
-									<div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
+									<div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold">
 										3
 									</div>
 									<h3 className="text-sm font-medium">
@@ -649,7 +703,7 @@ export function ConnectAIModal({
 					{!selectedClient && (
 						<div className="space-y-4">
 							<div className="flex items-center gap-3">
-								<div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
+								<div className="w-8 h-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-sm font-semibold">
 									3
 								</div>
 								<h3 className="text-sm font-medium">Installation Command</h3>
@@ -687,17 +741,17 @@ export function ConnectAIModal({
 						</div>
 					</div>
 
-					<div>
+					{/* TODO: Show when connection successful or not */}
+					{/*<div>
 						<h3 className="text-sm font-medium mb-3">What You Can Do</h3>
 						<ul className="space-y-2 text-sm text-muted-foreground">
 							<li>• Ask your AI to save important information as memories</li>
 							<li>• Search through your saved memories during conversations</li>
 							<li>• Get contextual information from your knowledge base</li>
-							<li>• Seamlessly integrate with your existing AI workflow</li>
 						</ul>
-					</div>
+					</div>*/}
 
-					<div className="flex justify-between items-center pt-4 border-t">
+					<div className="flex justify-between items-center pt-4">
 						<div className="flex items-center gap-4">
 							<Button
 								onClick={() =>

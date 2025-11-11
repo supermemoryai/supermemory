@@ -120,27 +120,39 @@ export function updateTwitterImportUI(message: {
 	)
 	if (!importButton) return
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const existingImg = importButton.querySelector("img")
+	if (existingImg) {
+		existingImg.remove()
+		const iconUrl = browser.runtime.getURL("/icon-16.png")
+		importButton.style.backgroundImage = `url("${iconUrl}")`
+		importButton.style.backgroundRepeat = "no-repeat"
+		importButton.style.backgroundSize = "20px 20px"
+		importButton.style.backgroundPosition = "8px center"
+		importButton.style.padding = "10px 16px 10px 32px"
+	}
+
+	let textSpan = importButton.querySelector(
+		"#sm-import-text",
+	) as HTMLSpanElement
+	if (!textSpan) {
+		textSpan = document.createElement("span")
+		textSpan.id = "sm-import-text"
+		textSpan.style.cssText = "font-weight: 500; font-size: 14px;"
+		importButton.appendChild(textSpan)
+	}
 
 	if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
-		importButton.innerHTML = `
-			<img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-			<span style="font-weight: 500; font-size: 14px;">${message.importedMessage}</span>
-		`
+		textSpan.textContent = message.importedMessage || ""
 		importButton.style.cursor = "default"
 	}
 
 	if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
-		importButton.innerHTML = `
-			<img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-			<span style="font-weight: 500; font-size: 14px; color: #059669;">✓ Imported ${message.totalImported} tweets!</span>
-		`
+		textSpan.textContent = `✓ Imported ${message.totalImported} tweets!`
+		textSpan.style.color = "#059669"
 
 		setTimeout(() => {
-			importButton.innerHTML = `
-				<img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-				<span style="font-weight: 500; font-size: 14px;">Import Bookmarks</span>
-			`
+			textSpan.textContent = "Import Bookmarks"
+			textSpan.style.color = ""
 			importButton.style.cursor = "pointer"
 		}, 3000)
 	}

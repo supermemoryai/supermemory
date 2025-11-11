@@ -32,9 +32,12 @@ export interface ExtensionMessage {
  */
 export interface MemoryData {
 	html?: string
+	markdown?: string
 	content?: string
 	highlightedText?: string
 	url?: string
+	ogImage?: string
+	title?: string
 }
 
 /**
