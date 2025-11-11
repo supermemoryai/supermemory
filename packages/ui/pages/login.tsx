@@ -80,6 +80,27 @@ export function LoginPage({
 		} catch {}
 	}
 
+	function isNetworkError(error: unknown): boolean {
+		if (!(error instanceof Error)) return false;
+		const message = error.message.toLowerCase();
+		return (
+			message.includes("load failed") ||
+			message.includes("networkerror") ||
+			message.includes("failed to fetch") ||
+			message.includes("network request failed")
+		);
+	}
+
+	function getErrorMessage(error: unknown): string {
+		if (isNetworkError(error)) {
+			return "Network error. Please check your connection and try again.";
+		}
+		if (error instanceof Error) {
+			return error.message;
+		}
+		return "An unexpected error occurred. Please try again.";
+	}
+
 	// If we land back on this page with an error, clear any pending marker
 	useEffect(() => {
 		if (params.get("error")) {
@@ -121,13 +142,10 @@ export function LoginPage({
 				method: "magic_link",
 				error: error instanceof Error ? error.message : "Unknown error",
 				email_domain: email.split("@")[1] || "unknown",
+				is_network_error: isNetworkError(error),
 			});
 
-			setError(
-				error instanceof Error
-					? error.message
-					: "Failed to send login link. Please try again.",
-			);
+			setError(getErrorMessage(error));
 			setIsLoading(false);
 			setIsLoadingEmail(false);
 			return;
@@ -321,6 +339,7 @@ export function LoginPage({
 									onClick={() => {
 										if (isLoading) return;
 										setIsLoading(true);
+										setError(null);
 										posthog.capture("login_attempt", {
 											method: "social",
 											provider: "google",
@@ -330,6 +349,19 @@ export function LoginPage({
 											.social({
 												callbackURL: getCallbackURL(),
 												provider: "google",
+											})
+											.catch((error) => {
+												console.error("Google login error:", error);
+												posthog.capture("login_failed", {
+													method: "social",
+													provider: "google",
+													error:
+														error instanceof Error
+															? error.message
+															: "Unknown error",
+													is_network_error: isNetworkError(error),
+												});
+												setError(getErrorMessage(error));
 											})
 											.finally(() => {
 												setIsLoading(false);
@@ -385,6 +417,7 @@ export function LoginPage({
 									onClick={() => {
 										if (isLoading) return;
 										setIsLoading(true);
+										setError(null);
 										posthog.capture("login_attempt", {
 											method: "social",
 											provider: "github",
@@ -394,6 +427,19 @@ export function LoginPage({
 											.social({
 												callbackURL: getCallbackURL(),
 												provider: "github",
+											})
+											.catch((error) => {
+												console.error("GitHub login error:", error);
+												posthog.capture("login_failed", {
+													method: "social",
+													provider: "github",
+													error:
+														error instanceof Error
+															? error.message
+															: "Unknown error",
+													is_network_error: isNetworkError(error),
+												});
+												setError(getErrorMessage(error));
 											})
 											.finally(() => {
 												setIsLoading(false);

@@ -32,7 +32,46 @@ export function BioForm() {
 	}
 	return (
 		<div className="relative w-full">
-			<div className="space-y-4">
+			<div className="space-y-4 relative">
+				<div className="absolute top-0 right-0">
+					<AnimatePresence mode="sync">
+						{bio ? (
+							<motion.div
+								key="save"
+								initial={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
+								animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+								exit={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
+								transition={{ duration: 0.2, ease: "easeOut" }}
+							>
+								<Button
+									variant="link"
+									size="lg"
+									className="text-white/60 font-medium! text-base md:text-lg w-fit px-0! cursor-pointer"
+									onClick={handleNext}
+								>
+									Save & Continue
+								</Button>
+							</motion.div>
+						) : (
+							<motion.div
+								key="skip"
+								initial={{ opacity: 0, filter: "blur(5px)" }}
+								animate={{ opacity: 1, filter: "blur(0px)" }}
+								exit={{ opacity: 0, filter: "blur(5px)" }}
+								transition={{ duration: 0.2, ease: "easeOut" }}
+							>
+								<Button
+									variant="link"
+									size="lg"
+									className="text-white/60 font-medium! text-base md:text-lg w-fit px-0! cursor-pointer"
+									onClick={handleNext}
+								>
+									Skip For Now
+								</Button>
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
 				<NavMenu>
 					<p className="text-base text-white/60">
 						Step {getStepNumberFor("bio")} of {totalSteps}
@@ -53,45 +92,6 @@ export function BioForm() {
 				value={bio}
 				onChange={(e) => setBio(e.target.value)}
 			/>
-			<AnimatePresence mode="sync">
-				{bio ? (
-					<motion.div
-						key="save"
-						initial={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
-						animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-						exit={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
-						transition={{ duration: 0.2, ease: "easeOut" }}
-						className="flex justify-end mt-4 md:mt-2 md:absolute md:-bottom-12 md:right-0"
-					>
-						<Button
-							variant="link"
-							size="lg"
-							className="text-white/80 font-medium! text-base md:text-lg underline w-fit px-0! cursor-pointer"
-							onClick={handleNext}
-						>
-							Save & Continue
-						</Button>
-					</motion.div>
-				) : (
-					<motion.div
-						key="skip"
-						initial={{ opacity: 0, filter: "blur(5px)" }}
-						animate={{ opacity: 1, filter: "blur(0px)" }}
-						exit={{ opacity: 0, filter: "blur(5px)" }}
-						transition={{ duration: 0.2, ease: "easeOut" }}
-						className="flex justify-end mt-4 md:mt-2 md:absolute md:-bottom-12 md:right-0"
-					>
-						<Button
-							variant="link"
-							size="lg"
-							className="text-white/80 font-medium! text-base md:text-lg underline w-fit px-0! cursor-pointer"
-							onClick={handleNext}
-						>
-							Skip For Now
-						</Button>
-					</motion.div>
-				)}
-			</AnimatePresence>
 		</div>
 	)
 }

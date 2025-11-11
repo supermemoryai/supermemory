@@ -11,21 +11,6 @@ export const API_ENDPOINTS = {
 } as const
 
 /**
- * Storage Keys
- */
-export const STORAGE_KEYS = {
-	BEARER_TOKEN: "bearer-token",
-	USER_DATA: "user-data",
-	TOKENS_LOGGED: "tokens-logged",
-	TWITTER_COOKIE: "twitter-cookie",
-	TWITTER_CSRF: "twitter-csrf",
-	TWITTER_AUTH_TOKEN: "twitter-auth-token",
-	DEFAULT_PROJECT: "sm-default-project",
-	AUTO_SEARCH_ENABLED: "sm-auto-search-enabled",
-	AUTO_CAPTURE_PROMPTS_ENABLED: "sm-auto-capture-prompts-enabled",
-} as const
-
-/**
  * DOM Element IDs
  */
 export const ELEMENT_IDS = {
