@@ -42,7 +42,7 @@ export default function Page() {
 
 	useEffect(() => {
 		if (user && !onboardingLoading && shouldShowOnboarding()) {
-			router.push("/onboarding/welcome")
+			router.push("/onboarding?step=input&flow=welcome")
 		}
 	}, [user, shouldShowOnboarding, onboardingLoading, router])
 
