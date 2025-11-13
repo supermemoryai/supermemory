@@ -6,6 +6,7 @@ import { MCPDetailView } from "@/components/mcp-detail-view"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
+import { useOnboardingStorage } from "@hooks/use-onboarding-storage"
 
 const integrationCards = [
 	{
@@ -58,6 +59,12 @@ const integrationCards = [
 export function IntegrationsStep() {
 	const router = useRouter()
 	const [selectedCard, setSelectedCard] = useState<string | null>(null)
+	const { markOnboardingCompleted } = useOnboardingStorage()
+
+	const handleContinue = () => {
+		markOnboardingCompleted()
+		router.push("/")
+	}
 
 	if (selectedCard === "Connect to AI") {
 		return <MCPDetailView onBack={() => setSelectedCard(null)} />
@@ -126,7 +133,7 @@ export function IntegrationsStep() {
 				>
 					← Back
 				</Button>
-				<Button variant="link" className="text-white hover:text-gray-300">
+				<Button variant="link" className="text-white hover:text-gray-300" onClick={handleContinue}>
 					Continue →
 				</Button>
 			</div>
