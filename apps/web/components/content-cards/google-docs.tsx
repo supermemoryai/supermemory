@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@repo/ui/components/card"
 import { Badge } from "@repo/ui/components/badge"
 import {
@@ -41,11 +42,15 @@ export const GoogleDocsCard = ({
 	activeMemories,
 	lastModified,
 }: GoogleDocsCardProps) => {
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
+
 	const handleCardClick = () => {
-		if (onClick) {
-			onClick()
-		} else if (url) {
-			window.open(url, "_blank", "noopener,noreferrer")
+		if (!isDialogOpen) {
+			if (onClick) {
+				onClick()
+			} else if (url) {
+				window.open(url, "_blank", "noopener,noreferrer")
+			}
 		}
 	}
 
@@ -68,7 +73,7 @@ export const GoogleDocsCard = ({
 			}}
 		>
 			{onDelete && (
-				<AlertDialog>
+				<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 					<AlertDialogTrigger asChild>
 						<button
 							className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
@@ -85,7 +90,7 @@ export const GoogleDocsCard = ({
 							<Trash2 className="w-3.5 h-3.5" />
 						</button>
 					</AlertDialogTrigger>
-					<AlertDialogContent>
+					<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete Document</AlertDialogTitle>
 							<AlertDialogDescription>

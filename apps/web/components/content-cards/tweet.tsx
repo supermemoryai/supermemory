@@ -1,4 +1,4 @@
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import type { Tweet } from "react-tweet/api"
 import {
 	type TwitterComponents,
@@ -88,6 +88,8 @@ export const TweetCard = ({
 	activeMemories?: Array<{ id: string; isForgotten?: boolean }>
 	onDelete?: () => void
 }) => {
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
+
 	return (
 		<div
 			className="relative transition-all group"
@@ -98,7 +100,7 @@ export const TweetCard = ({
 			<CustomTweet components={{}} tweet={data} />
 
 			{onDelete && (
-				<AlertDialog>
+				<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 					<AlertDialogTrigger asChild>
 						<button
 							className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
@@ -115,7 +117,7 @@ export const TweetCard = ({
 							<Trash2 className="w-3.5 h-3.5" />
 						</button>
 					</AlertDialogTrigger>
-					<AlertDialogContent>
+					<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete Document</AlertDialogTitle>
 							<AlertDialogDescription>
