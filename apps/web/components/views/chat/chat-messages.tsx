@@ -12,6 +12,7 @@ import {
 	Copy,
 	RotateCcw,
 	X,
+	Square
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -435,9 +436,22 @@ export function ChatMessages() {
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			sendMessage({ text: input })
-			setInput("")
+			if (status === "streaming" || status === "submitted") {
+				toast.warning("Please wait for the current response to complete.", {
+					id: "wait-for-response",
+				})
+				return
+			}
+			if (input.trim()) {
+				sendMessage({ text: input })
+				setInput("")
+			}
 		}
+	}
+
+	const handleStop = (e: React.MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault()
+		stop()
 	}
 
 	const {
@@ -657,9 +671,10 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted") return
-						if (status === "streaming") {
-							stop()
+						if (status === "submitted" || status === "streaming") {
+							toast.warning("Please wait for the current response to complete.", {
+								id: "wait-for-response",
+							})
 							return
 						}
 						if (input.trim()) {
@@ -689,14 +704,27 @@ export function ChatMessages() {
 								{modelNames[selectedModel]}
 							</span>
 						</div>
-						<Button
-							type="submit"
-							disabled={!input.trim()}
-							className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
-							size="icon"
-						>
-							<ArrowUp className="size-4" />
-						</Button>
+						{status === "streaming" || status === "submitted" ? (
+							<Button
+								onClick={handleStop}
+								aria-label="Stop generation"
+								className="rounded-xl"
+								variant="destructive"
+								size="sm"
+								type="button"
+							>
+								<Square className="size-4" />
+							</Button>
+						) : (
+							<Button
+								type="submit"
+								disabled={!input.trim()}
+								className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
+								size="icon"
+							>
+								<ArrowUp className="size-4" />
+							</Button>
+						)}
 					</div>
 				</form>
 			</div>
