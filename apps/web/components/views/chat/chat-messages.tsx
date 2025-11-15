@@ -436,10 +436,14 @@ export function ChatMessages() {
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			if (status === "streaming" || status === "submitted") {
+			if (status === "submitted") {
 				toast.warning("Please wait for the current response to complete.", {
 					id: "wait-for-response",
 				})
+				return
+			}
+			if (status === "streaming") {
+				stop()
 				return
 			}
 			if (input.trim()) {
@@ -671,10 +675,14 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted" || status === "streaming") {
+						if (status === "submitted") {
 							toast.warning("Please wait for the current response to complete.", {
 								id: "wait-for-response",
 							})
+							return
+						}
+						if (status === "streaming") {
+							stop()
 							return
 						}
 						if (input.trim()) {
@@ -710,7 +718,7 @@ export function ChatMessages() {
 								aria-label="Stop generation"
 								className="rounded-xl"
 								variant="destructive"
-								size="sm"
+								size="icon"
 								type="button"
 							>
 								<Square className="size-4" />
@@ -718,6 +726,7 @@ export function ChatMessages() {
 						) : (
 							<Button
 								type="submit"
+								aria-label="Send message"
 								disabled={!input.trim()}
 								className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
 								size="icon"
