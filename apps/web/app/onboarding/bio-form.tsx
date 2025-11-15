@@ -20,7 +20,7 @@ export function BioForm() {
 		}
 
 		nextStep()
-		void $fetch("@post/memories", {
+		void $fetch("@post/documents", {
 			body: {
 				content: trimmed,
 				containerTags: ["sm_project_default"],
