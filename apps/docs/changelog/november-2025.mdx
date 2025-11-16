@@ -1,0 +1,67 @@
+---
+title: "November 2025 Updates"
+description: "Security fixes, SDK enhancements, and major platform improvements"
+---
+
+Platform updates including security fixes, SDK enhancements, framework upgrades, and UX improvements.
+
+## November 15, 2025
+
+- **Document Source Display Fix:** Resolved issues with document sources not displaying correctly in the onboarding flow, ensuring users can properly track content origin from the start ([#580](https://github.com/supermemoryai/supermemory/pull/580))
+- **Memory Dialog Interaction Improvements:** Fixed issue where memory items could be opened while the delete confirmation dialog was active, preventing unintended actions and improving user experience ([#582](https://github.com/supermemoryai/supermemory/pull/582))
+- **Chat Deletion Confirmation:** Added inline confirmation dialogs when deleting chats to prevent accidental deletions and give users more confidence in their actions ([#581](https://github.com/supermemoryai/supermemory/pull/581))
+
+## November 13, 2025
+
+- **File Upload Source Attribution:** Fixed proper source attribution for uploaded files, ensuring accurate tracking of document origins across the platform ([#579](https://github.com/supermemoryai/supermemory/pull/579))
+
+## November 11, 2025
+
+- **Organization Switching Fix:** Resolved critical bug preventing users from switching to consumer organizations when development organizations existed in their account, improving multi-org workflow ([#577](https://github.com/supermemoryai/supermemory/pull/577))
+- **Personal Assistant Cookbook Update:** Refreshed the personal assistant cookbook with latest best practices and implementation examples for building AI assistants ([#575](https://github.com/supermemoryai/supermemory/pull/575))
+- **OpenAI Python SDK Middleware:** Launched comprehensive middleware functionality for the Python SDK, enabling automatic memory capture and context injection for OpenAI chat completions. Developers can now seamlessly integrate Supermemory with Python applications using the new middleware API ([#546](https://github.com/supermemoryai/supermemory/pull/546))
+- **Enhanced API Documentation:** Improved documentation for the `/document/by-id` endpoint with additional warnings and clarifications based on community feedback from Mintlify questions ([#550](https://github.com/supermemoryai/supermemory/pull/550))
+
+## November 10, 2025
+
+- **README Enhancements:** Comprehensive README update featuring light/dark mode compatible logo, developer resources section, detailed feature highlights for browser and Raycast extensions, and improved onboarding information ([#547](https://github.com/supermemoryai/supermemory/pull/547))
+- **Subscription Management Improvements:** Enhanced handling of past-due and pending user subscriptions for better billing workflow ([#572](https://github.com/supermemoryai/supermemory/pull/572))
+- **Self-Hosting Documentation:** Added self-hosting guide link to README for users wanting to run Supermemory on their own infrastructure ([#573](https://github.com/supermemoryai/supermemory/pull/573))
+- **Bookmark Import Optimization:** Significantly reduced excessive icon refetching during bookmark imports, dramatically improving import speed and reducing server load ([#496](https://github.com/supermemoryai/supermemory/pull/496))
+- **Browser Extension Storage Migration:** Migrated from Chrome Storage API to WXT's storage API for improved reliability and better developer experience ([#566](https://github.com/supermemoryai/supermemory/pull/566))
+
+## November 9, 2025
+
+- **Sentry Error Resolution:** Fixed multiple Sentry-reported errors across the web application (CONSUMER-APP-FF, 1T, 86, 7H, 4F, 7X), significantly improving overall platform stability and user experience ([#570](https://github.com/supermemoryai/supermemory/pull/570))
+- **PostHog Analytics Update:** Updated PostHog integration configuration for improved product analytics and user insights ([#569](https://github.com/supermemoryai/supermemory/pull/569))
+- **Chat UI Enhancements:** Fixed hydration issues and model selector display in the chat interface, ensuring the selected AI model is properly shown to users during conversations ([#568](https://github.com/supermemoryai/supermemory/pull/568))
+
+## November 7, 2025
+
+- **OpenAI TypeScript SDK Responses API:** Added support for the OpenAI Responses API in the TypeScript SDK, providing developers with more flexibility when working with chat completions ([#549](https://github.com/supermemoryai/supermemory/pull/549))
+- **PostMessage Security Fix:** Enhanced security by adding origin verification for postMessage communications, preventing messages from being sent to untrusted websites. This critical fix protects user data from potential cross-site vulnerabilities ([#565](https://github.com/supermemoryai/supermemory/pull/565))
+- **IndexedDB Chat Migration:** Replaced localStorage with IndexedDB for chat persistence, eliminating QuotaExceededError issues for users with large chat histories. This provides virtually unlimited storage capacity for conversations ([#560](https://github.com/supermemoryai/supermemory/pull/560))
+
+## November 5, 2025
+
+- **Next.js 16 Upgrade:** Migrated the web application to Next.js 16, bringing significant performance improvements, better developer experience, and access to the latest React 19 features ([#557](https://github.com/supermemoryai/supermemory/pull/557))
+
+## November 4, 2025
+
+- **Google Drive Temporary Disable:** Temporarily disabled new Google Drive connections due to an upstream provider issue. Existing connections remain fully functional. Users attempting new connections will see clear notifications explaining the temporary limitation with guidance to check status updates ([#559](https://github.com/supermemoryai/supermemory/pull/559))
+- **Chrome Extension Package Update:** Updated Chrome extension dependencies for improved compatibility and security ([#556](https://github.com/supermemoryai/supermemory/pull/556))
+
+## November 3, 2025
+
+- **Browser Extension Markdown Conversion:** Enhanced the browser extension to automatically convert saved webpages to clean markdown format using TurndownService, making captured content more readable and portable. Content is now intelligently prioritized (explicit content > highlighted text > markdown > HTML > URL) ([#548](https://github.com/supermemoryai/supermemory/pull/548))
+- **MCP Connection Troubleshooting:** Added navigation to manual MCP setup documentation when users encounter connection issues, improving self-service support ([#552](https://github.com/supermemoryai/supermemory/pull/552))
+
+## November 2, 2025
+
+- **Dependency Cleanup:** Removed unused packages across the monorepo for improved build times and reduced bundle size ([#551](https://github.com/supermemoryai/supermemory/pull/551))
+
+## October 29, 2025
+
+- **Chat Scroll Improvements:** Resolved scrolling issues in chat messages for smoother conversation navigation and better user experience ([#544](https://github.com/supermemoryai/supermemory/pull/544))
+- **Mobile Responsiveness:** Enhanced mobile chat interface with improved padding, responsive header layouts with proper text truncation, and skeleton loading states for better perceived performance ([#541](https://github.com/supermemoryai/supermemory/pull/541))
+- **Code Cleanup:** Relocated logo assets and removed unnecessary configuration files for better project organization. Moved logo to `apps/web/public/logo-fullmark.svg` and removed empty configuration files ([#540](https://github.com/supermemoryai/supermemory/pull/540))
