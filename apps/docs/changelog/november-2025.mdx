@@ -1,0 +1,169 @@
+---
+title: "November 2025 Release"
+description: "Stability improvements, Next.js 16 upgrade, and enhanced SDK capabilities"
+---
+
+**Release Date:** November 17, 2025
+
+This release focuses on stability improvements, enhanced user experience, and developer SDK enhancements. We've shipped 30+ improvements including critical bug fixes, new SDK capabilities, and major infrastructure upgrades.
+
+## 🎉 Added
+
+### SDK Enhancements
+
+<Card title="OpenAI Middleware for Python SDK" icon="python" href="https://github.com/supermemoryai/supermemory/pull/546">
+Python developers can now integrate Supermemory directly with OpenAI's Python SDK through middleware functionality. This enables automatic memory capture and retrieval in your AI applications without manual API calls.
+</Card>
+
+- **OpenAI Responses API Support in TypeScript SDK** ([#549](https://github.com/supermemoryai/supermemory/pull/549)) - Added support for OpenAI's Responses API in the TypeScript SDK, allowing seamless integration with the latest OpenAI features.
+
+### Browser Extension
+
+- **Markdown Conversion for Webpage Capture** ([#548](https://github.com/supermemoryai/supermemory/pull/548)) - When saving entire webpages, content is now automatically converted to clean markdown format. The extension intelligently prioritizes content types (explicit content, highlighted text, markdown, HTML, or URL) and removes script tags for cleaner storage.
+
+### User Experience
+
+- **Inline Chat Deletion Confirmation** ([#581](https://github.com/supermemoryai/supermemory/pull/581)) - Added inline confirmation dialog when deleting chats, preventing accidental deletions and improving the user workflow.
+
+- **Skeleton Loading States** ([#541](https://github.com/supermemoryai/supermemory/pull/541)) - Replaced simple loading spinners with skeleton loading cards in the memory list, providing better visual feedback while content loads.
+
+## 🔄 Changed
+
+### Infrastructure
+
+<Warning>
+**Major Upgrade:** This release includes Next.js 16, which brings significant performance improvements and new capabilities.
+</Warning>
+
+- **Upgraded to Next.js 16** ([#557](https://github.com/supermemoryai/supermemory/pull/557)) - Major framework upgrade bringing improved performance, better caching strategies, and access to the latest React features. This lays the foundation for future performance optimizations.
+
+- **Migrated Chat Storage from localStorage to IndexedDB** ([#560](https://github.com/supermemoryai/supermemory/pull/560)) - Chat persistence now uses IndexedDB instead of localStorage, eliminating `QuotaExceededError` issues for users with large chat histories. This allows virtually unlimited chat storage without browser limitations.
+
+### Browser Extension
+
+- **Replaced Chrome Storage API with WXT Storage API** ([#566](https://github.com/supermemoryai/supermemory/pull/566)) - Modernized the extension's storage layer for better cross-browser compatibility and improved performance.
+
+- **Optimized Icon Fetching for Bookmarks** ([#496](https://github.com/supermemoryai/supermemory/pull/496)) - Fixed excessive icon refetch operations when importing bookmarks, significantly reducing API calls and improving import performance.
+
+### UI/UX Improvements
+
+- **Enhanced Mobile Chat Interface** ([#541](https://github.com/supermemoryai/supermemory/pull/541)) - Improved responsive padding, header layout with proper text truncation, and better message container width constraints on mobile devices.
+
+- **Improved Chat Messages Scroll Behavior** ([#544](https://github.com/supermemoryai/supermemory/pull/544)) - Fixed scroll effects in chat messages for smoother conversation navigation.
+
+- **Model Selector Hydration Fix** ([#568](https://github.com/supermemoryai/supermemory/pull/568)) - Resolved hydration issues on the model selector and added the ability to display the currently selected model in chat.
+
+### Documentation
+
+- **Updated README with Recent Features** ([#547](https://github.com/supermemoryai/supermemory/pull/547)) - Comprehensive README update including light/dark mode compatible logo, developer resources section, detailed Browser Extension and Raycast Extension sections, and updated screenshots.
+
+- **Personal Assistant Cookbook Updates** ([#575](https://github.com/supermemoryai/supermemory/pull/575)) - Enhanced cookbook documentation for building personal assistants with Supermemory.
+
+- **Improved API Endpoint Documentation** ([#550](https://github.com/supermemoryai/supermemory/pull/550)) - Better documentation for the `document/by-id` endpoint with additional warnings based on user questions.
+
+- **Self-Hosting Link Added to README** ([#573](https://github.com/supermemoryai/supermemory/pull/573)) - Added clear documentation for self-hosting Supermemory.
+
+## 🐛 Fixed
+
+### Critical Fixes
+
+<Check>
+**Security Fix:** Message recipient verification issue has been resolved.
+</Check>
+
+- **Security: Message Recipient Verification** ([#565](https://github.com/supermemoryai/supermemory/pull/565)) - Fixed a security issue where messages could be sent to any website without verifying the recipient in the home page component.
+
+- **Multiple Sentry Issues Resolved** ([#570](https://github.com/supermemoryai/supermemory/pull/570)) - Fixed 6 production issues identified through Sentry monitoring:
+  - CONSUMER-APP-FF
+  - CONSUMER-APP-1T
+  - CONSUMER-APP-86
+  - CONSUMER-APP-7H
+  - CONSUMER-APP-4F
+  - CONSUMER-APP-7X
+
+### Data & Content Fixes
+
+- **Document Source Tracking** ([#580](https://github.com/supermemoryai/supermemory/pull/580)) - Fixed document source attribution to ensure proper tracking of where memories originated.
+
+- **File Upload Source Handling** ([#579](https://github.com/supermemoryai/supermemory/pull/579)) - Corrected source information for file uploads to accurately reflect the upload origin.
+
+### Organization & Account Management
+
+- **Organization Switch Issue** ([#577](https://github.com/supermemoryai/supermemory/pull/577)) - Fixed bug preventing users from switching organizations on the consumer app when a development organization exists.
+
+- **Past Due User Improvements** ([#572](https://github.com/supermemoryai/supermemory/pull/572)) - Enhanced handling of users with past due subscriptions, improving the billing flow.
+
+### UI Fixes
+
+- **Memory Deletion Dialog Interaction** ([#582](https://github.com/supermemoryai/supermemory/pull/582)) - Prevented memories from opening when the delete memory dialog is active, avoiding confusing UI states.
+
+- **MCP Connection Troubleshooting** ([#552](https://github.com/supermemoryai/supermemory/pull/552)) - Added navigation to manual MCP setup when users experience connection issues.
+
+## ⚠️ Deprecated
+
+### Temporary Feature Disablement
+
+<Warning>
+**Google Drive Connections Temporarily Disabled** - Due to upstream provider issues, Google Drive connections have been temporarily disabled. UI now shows clear "Temporarily disabled" indicators with explanatory messages. This is a temporary measure while the upstream issue is resolved.
+</Warning>
+
+## 🧹 Maintenance
+
+### Codebase Cleanup
+
+- **Removed Unused Packages** ([#551](https://github.com/supermemoryai/supermemory/pull/551)) - Cleaned up package dependencies to reduce bundle size and improve build times.
+
+- **Removed Unused Files** ([#540](https://github.com/supermemoryai/supermemory/pull/540)) - Relocated logo files and removed unnecessary configuration files including empty `.npmrc` and outdated `_headers` file.
+
+- **Chrome Extension Package Update** ([#556](https://github.com/supermemoryai/supermemory/pull/556)) - Updated browser extension package with latest dependencies.
+
+### Telemetry & Monitoring
+
+- **Updated PostHog Configuration** ([#569](https://github.com/supermemoryai/supermemory/pull/569)) - Refined analytics tracking for better product insights.
+
+## 👥 Contributors
+
+Special thanks to all contributors who made this release possible:
+
+- @MaheshtheDev
+- @vorahardik7
+- @nexxeln
+- @naman06dev
+- @PhantomInTheWire
+- @aryankeluskar
+- @orbisai0security
+- @fyzanshaik
+- @AntonVishal
+- @Dhravya
+
+## 📊 Statistics
+
+- **30 commits** merged
+- **25 pull requests** closed
+- **10 contributors** participated
+- **6 critical bugs** fixed
+- **2 security issues** resolved
+
+## 🚀 What's Next
+
+We're continuing to focus on:
+- Re-enabling Google Drive integration once upstream issues are resolved
+- Further performance optimizations with Next.js 16
+- Enhanced mobile experience improvements
+- Additional SDK language support
+
+## 📝 Upgrade Notes
+
+### For Developers
+- If you're using the Python SDK, check out the new OpenAI middleware functionality for easier integration
+- TypeScript SDK users should update to get Responses API support
+- No breaking changes in this release - all updates are backward compatible
+
+### For Users
+- Your chat history will be automatically migrated from localStorage to IndexedDB on next login
+- If you were experiencing storage quota errors, these should now be resolved
+- Google Drive integration is temporarily unavailable - we'll notify you when it's back
+
+<Note>
+For detailed technical information, visit our [documentation](https://docs.supermemory.ai) or check individual pull requests linked above.
+</Note>
