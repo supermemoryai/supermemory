@@ -433,29 +433,38 @@ export function ChatMessages() {
 		shouldGenerateTitleRef.current = !hasTitle
 	}, [getCurrentChat])
 
+	/**
+	 * Handles sending a message from the input area.
+	 * - Prevents sending during submitted (shows toast)
+	 * - Stops streaming when active
+	 * - Validates non-empty input (shows toast)
+	 * Returns true when a message is sent.
+	 */
+	const handleSendMessage = useCallback(() => {
+		if (status === "submitted") {
+			toast.warning("Please wait for the current response to complete", {
+				id: "wait-for-response",
+			})
+			return false
+		}
+		if (status === "streaming") {
+			stop()
+			return false
+		}
+		if (!input.trim()) {
+			toast.warning("Please enter a message", { id: "empty-message" })
+			return false
+		}
+		sendMessage({ text: input })
+		setInput("")
+		return true
+	}, [status, input, sendMessage, stop])
+
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			if (status === "submitted") {
-				toast.warning("Please wait for the current response to complete.", {
-					id: "wait-for-response",
-				})
-				return
-			}
-			if (status === "streaming") {
-				stop()
-				return
-			}
-			if (input.trim()) {
-				sendMessage({ text: input })
-				setInput("")
-			}
+			handleSendMessage()
 		}
-	}
-
-	const handleStop = (e: React.MouseEvent<HTMLButtonElement>) => {
-		e.preventDefault()
-		stop()
 	}
 
 	const {
@@ -675,21 +684,10 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted") {
-							toast.warning("Please wait for the current response to complete.", {
-								id: "wait-for-response",
-							})
-							return
-						}
-						if (status === "streaming") {
-							stop()
-							return
-						}
-						if (input.trim()) {
+						const sent = handleSendMessage()
+						if (sent) {
 							enableAutoScroll()
 							scrollToBottom("auto")
-							sendMessage({ text: input })
-							setInput("")
 						}
 					}}
 				>
@@ -697,6 +695,8 @@ export function ChatMessages() {
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={handleKeyDown}
+						aria-busy={status === "streaming" || status === "submitted"}
+						aria-disabled={status === "submitted"}
 						placeholder="Ask your follow-up question..."
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
@@ -714,7 +714,7 @@ export function ChatMessages() {
 						</div>
 						{status === "streaming" || status === "submitted" ? (
 							<Button
-								onClick={handleStop}
+								onClick={() => stop()}
 								aria-label="Stop generation"
 								className="rounded-xl"
 								variant="destructive"
