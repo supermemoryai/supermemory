@@ -1,0 +1,66 @@
+---
+title: "November 2025"
+description: "Platform improvements, security fixes, and SDK enhancements"
+---
+
+Platform updates, bug fixes, and developer experience improvements for November 2025.
+
+## November 15, 2025
+
+- **Document Source Fix:** Fixed document source metadata display issues to properly show the origin of saved content
+- **Delete Confirmation Dialog:** Added inline confirmation when deleting chats to prevent accidental deletions and improve user confidence
+- **Memory Modal Interaction:** Fixed issue where memory cards would open inadvertently when the delete confirmation dialog was active
+
+## November 13, 2025
+
+- **File Upload Source Fix:** Resolved issues with file upload source metadata not displaying correctly in the UI
+
+## November 11, 2025
+
+- **Organization Switching Fix:** Fixed critical issue where organization switching failed when development organizations existed alongside production organizations
+- **Personal Assistant Cookbook:** Added comprehensive cookbook documentation for building personal AI assistants using Supermemory's API
+- **Python SDK Middleware:** Added OpenAI middleware functionality to the Python SDK, enabling seamless integration with OpenAI's API through Supermemory's memory layer
+- **API Documentation Improvements:** Enhanced documentation for the `document/by-id` endpoint with additional warnings and clarifications based on user feedback
+
+## November 10, 2025
+
+- **Self-Host Documentation:** Updated README with direct links to self-hosting documentation for easier deployment
+- **Subscription Management:** Improved handling of past-due and pending subscription states for better billing reliability
+- **Bookmark Import Optimization:** Fixed excessive icon refetching during bookmark imports, significantly improving import performance
+
+## November 9, 2025
+
+- **Model Selector Hydration Fix:** Resolved React hydration issues in the chat model selector and improved visibility of currently selected models
+- **Production Stability:** Fixed 6 critical issues tracked in Sentry (CONSUMER-APP-FF, CONSUMER-APP-1T, CONSUMER-APP-86, CONSUMER-APP-7H, CONSUMER-APP-4F, CONSUMER-APP-7X) improving overall application reliability
+- **Analytics Updates:** Updated PostHog tracking configuration for better analytics insights
+
+## November 7, 2025
+
+- **TypeScript SDK Responses API:** Added support for OpenAI's Responses API in the TypeScript SDK, allowing developers to leverage structured outputs
+- **Security Fix - PostMessage Validation:** Fixed critical security vulnerability where messages could be sent to any website without verifying the recipient
+- **Chat Storage Migration:** Migrated chat persistence from localStorage to IndexedDB, resolving QuotaExceededError issues that occurred with large chat histories. This significantly improves storage capacity and reliability for power users
+
+## November 5, 2025
+
+- **Next.js 16 Upgrade:** Upgraded the web application to Next.js 16, bringing performance improvements and access to the latest React features and optimizations
+
+## November 4, 2025
+
+- **Google Drive Temporary Disable:** Temporarily disabled Google Drive connections due to upstream provider issues. UI now clearly indicates this status with explanatory messaging. Working with the provider to restore functionality
+- **Chrome Extension Package Update:** Updated Chrome extension dependencies for improved stability and security
+
+## November 3, 2025
+
+- **Browser Extension Markdown Conversion:** Added HTML-to-Markdown conversion when saving web pages through the browser extension, making captured content more readable and easier to search
+- **README Overhaul:** Updated README with light/dark mode compatible logos, latest screenshots, and comprehensive feature descriptions for better onboarding
+- **MCP Connection Help:** Improved navigation to manual MCP setup documentation when users encounter connection issues
+
+## November 2, 2025
+
+- **WXT Storage API Migration:** Replaced Chrome Storage API with WXT's modern storage API in the browser extension, providing better type safety and developer experience
+- **Code Cleanup:** Removed unused packages and configuration files to reduce repository size and improve maintainability
+
+## October 29, 2025
+
+- **Mobile Chat Improvements:** Enhanced mobile responsiveness across chat interface with improved padding, text truncation, and skeleton loading states for better user experience on mobile devices
+- **Chat Scroll Behavior Fix:** Fixed automatic scrolling issues in chat message containers, ensuring messages stay properly visible during conversations
