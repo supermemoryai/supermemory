@@ -12,6 +12,7 @@ import {
 	Copy,
 	RotateCcw,
 	X,
+	Square
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -432,11 +433,37 @@ export function ChatMessages() {
 		shouldGenerateTitleRef.current = !hasTitle
 	}, [getCurrentChat])
 
+	/**
+	 * Handles sending a message from the input area.
+	 * - Prevents sending during submitted (shows toast)
+	 * - Stops streaming when active
+	 * - Validates non-empty input (shows toast)
+	 * Returns true when a message is sent.
+	 */
+	const handleSendMessage = useCallback(() => {
+		if (status === "submitted") {
+			toast.warning("Please wait for the current response to complete", {
+				id: "wait-for-response",
+			})
+			return false
+		}
+		if (status === "streaming") {
+			stop()
+			return false
+		}
+		if (!input.trim()) {
+			toast.warning("Please enter a message", { id: "empty-message" })
+			return false
+		}
+		sendMessage({ text: input })
+		setInput("")
+		return true
+	}, [status, input, sendMessage, stop])
+
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			sendMessage({ text: input })
-			setInput("")
+			handleSendMessage()
 		}
 	}
 
@@ -657,16 +684,10 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted") return
-						if (status === "streaming") {
-							stop()
-							return
-						}
-						if (input.trim()) {
+						const sent = handleSendMessage()
+						if (sent) {
 							enableAutoScroll()
 							scrollToBottom("auto")
-							sendMessage({ text: input })
-							setInput("")
 						}
 					}}
 				>
@@ -674,6 +695,8 @@ export function ChatMessages() {
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={handleKeyDown}
+						aria-busy={status === "streaming" || status === "submitted"}
+						aria-disabled={status === "submitted"}
 						placeholder="Ask your follow-up question..."
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
@@ -689,14 +712,28 @@ export function ChatMessages() {
 								{modelNames[selectedModel]}
 							</span>
 						</div>
-						<Button
-							type="submit"
-							disabled={!input.trim()}
-							className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
-							size="icon"
-						>
-							<ArrowUp className="size-4" />
-						</Button>
+						{status === "streaming" || status === "submitted" ? (
+							<Button
+								onClick={() => stop()}
+								aria-label="Stop generation"
+								className="rounded-xl"
+								variant="destructive"
+								size="icon"
+								type="button"
+							>
+								<Square className="size-4" />
+							</Button>
+						) : (
+							<Button
+								type="submit"
+								aria-label="Send message"
+								disabled={!input.trim()}
+								className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
+								size="icon"
+							>
+								<ArrowUp className="size-4" />
+							</Button>
+						)}
 					</div>
 				</form>
 			</div>
