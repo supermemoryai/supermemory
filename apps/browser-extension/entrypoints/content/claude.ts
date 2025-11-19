@@ -3,9 +3,12 @@ import {
 	ELEMENT_IDS,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
-	STORAGE_KEYS,
 	UI_CONFIG,
 } from "../../utils/constants"
+import {
+	autoSearchEnabled,
+	autoCapturePromptsEnabled,
+} from "../../utils/storage"
 import {
 	createClaudeInputBarElement,
 	DOMUtils,
@@ -488,13 +491,9 @@ function setupClaudePromptCapture() {
 	}
 	document.body.setAttribute("data-claude-prompt-capture-setup", "true")
 	const captureClaudePromptContent = async (source: string) => {
-		const result = await chrome.storage.local.get([
-			STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED,
-		])
-		const autoCapturePromptsEnabled =
-			result[STORAGE_KEYS.AUTO_CAPTURE_PROMPTS_ENABLED] ?? false
+		const autoCapture = (await autoCapturePromptsEnabled.getValue()) ?? false
 
-		if (!autoCapturePromptsEnabled) {
+		if (!autoCapture) {
 			console.log("Auto capture prompts is disabled, skipping prompt capture")
 			return
 		}
@@ -600,11 +599,8 @@ function setupClaudePromptCapture() {
 }
 
 async function setupClaudeAutoFetch() {
-	const result = await chrome.storage.local.get([
-		STORAGE_KEYS.AUTO_SEARCH_ENABLED,
-	])
-	const autoSearchEnabled = result[STORAGE_KEYS.AUTO_SEARCH_ENABLED] ?? false
-	if (!autoSearchEnabled) {
+	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
+	if (!autoSearch) {
 		return
 	}
 

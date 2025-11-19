@@ -58,7 +58,46 @@ export function MCPForm() {
 
 	return (
 		<div className="relative flex flex-col gap-6">
-			<div className="space-y-4">
+			<div className="space-y-4 relative">
+				<div className="absolute top-0 right-0">
+					<AnimatePresence mode="sync">
+						{!isInstalling ? (
+							<motion.div
+								key="save"
+								initial={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
+								animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+								exit={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
+								transition={{ duration: 0.2, ease: "easeOut" }}
+							>
+								<Button
+									variant="link"
+									size="lg"
+									className="text-white/80 not-odd:font-medium! text-lg w-fit px-0! cursor-pointer"
+									onClick={nextStep}
+								>
+									Continue
+								</Button>
+							</motion.div>
+						) : (
+							<motion.div
+								key="skip"
+								initial={{ opacity: 0, filter: "blur(5px)" }}
+								animate={{ opacity: 1, filter: "blur(0px)" }}
+								exit={{ opacity: 0, filter: "blur(5px)" }}
+								transition={{ duration: 0.2, ease: "easeOut" }}
+							>
+								<Button
+									variant="link"
+									size="lg"
+									className="text-white/80 font-medium! text-lg w-fit px-0! cursor-pointer"
+									onClick={nextStep}
+								>
+									Skip For Now
+								</Button>
+							</motion.div>
+						)}
+					</AnimatePresence>
+				</div>
 				<NavMenu>
 					<p className="text-base text-white/60">
 						Step {getStepNumberFor("mcp")} of {totalSteps}
@@ -207,45 +246,6 @@ export function MCPForm() {
 					</div>
 				</div>
 			</div>
-			<AnimatePresence mode="sync">
-				{!isInstalling ? (
-					<motion.div
-						key="save"
-						initial={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
-						animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-						exit={{ opacity: 0, filter: "blur(10px)", scale: 0.95 }}
-						transition={{ duration: 0.2, ease: "easeOut" }}
-						className="flex justify-end"
-					>
-						<Button
-							variant="link"
-							size="lg"
-							className="text-white not-odd:font-medium! text-lg underline w-fit px-0! cursor-pointer"
-							onClick={nextStep}
-						>
-							Continue
-						</Button>
-					</motion.div>
-				) : (
-					<motion.div
-						key="skip"
-						initial={{ opacity: 0, filter: "blur(5px)" }}
-						animate={{ opacity: 1, filter: "blur(0px)" }}
-						exit={{ opacity: 0, filter: "blur(5px)" }}
-						transition={{ duration: 0.2, ease: "easeOut" }}
-						className="flex justify-end"
-					>
-						<Button
-							variant="link"
-							size="lg"
-							className="text-white font-medium! text-lg underline w-fit px-0! cursor-pointer"
-							onClick={nextStep}
-						>
-							Skip For Now
-						</Button>
-					</motion.div>
-				)}
-			</AnimatePresence>
 		</div>
 	)
 }

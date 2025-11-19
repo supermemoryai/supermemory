@@ -1,16 +1,35 @@
+import type { LanguageModelV2CallOptions, LanguageModelV2Message } from "@ai-sdk/provider"
+
 export interface ProfileStructure {
 	profile: {
 		static?: string[]
 		dynamic?: string[]
-	},
+	}
 	searchResults: {
 		results: [
 			{
-				memory: string,
-			}
+				memory: string
+			},
 		]
 	}
 }
+
+export type OutputContentItem =
+	| { type: "text"; text: string }
+	| { type: "reasoning"; text: string }
+	| {
+			type: "tool-call"
+			id: string
+			function: { name: string; arguments: string }
+	  }
+	| { type: "file"; name: string; mediaType: string; data: string }
+	| {
+			type: "source"
+			sourceType: string
+			id: string
+			url: string
+			title: string
+	  }
 
 /**
  * Convert ProfileStructure to markdown
@@ -33,3 +52,21 @@ export function convertProfileToMarkdown(data: ProfileStructure): string {
 
 	return sections.join("\n\n")
 }
+
+export const getLastUserMessage = (params: LanguageModelV2CallOptions) => {
+	const lastUserMessage = params.prompt
+		.slice()
+		.reverse()
+		.find((prompt: LanguageModelV2Message) => prompt.role === "user")
+	const memories = lastUserMessage?.content
+		.filter((content) => content.type === "text")
+		.map((content) => content.text)
+		.join(" ")
+	return memories
+}
+
+
+export const filterOutSupermemories = (content: string) => {
+	return content.split("User Supermemories: ")[0]
+}
+

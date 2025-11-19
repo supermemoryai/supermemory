@@ -60,6 +60,9 @@ export function Memories() {
 			return response.data
 		},
 		getNextPageParam: (lastPage, allPages) => {
+			if (!lastPage || !lastPage.pagination) return undefined
+			if (!Array.isArray(allPages)) return undefined
+
 			const loaded = allPages.reduce(
 				(acc, p) => acc + (p.documents?.length ?? 0),
 				0,
@@ -177,42 +180,22 @@ export function Memories() {
 	}
 
 	return (
-		<>
-			<div className="relative h-full mx-4 md:mx-24">
-				<MasonryMemoryList
-					documents={allDocuments}
-					error={error}
-					hasMore={hasMore}
-					isLoading={isPending}
-					isLoadingMore={isLoadingMore}
-					loadMoreDocuments={loadMoreDocuments}
-					totalLoaded={totalLoaded}
-				>
-					<div className="absolute inset-0 flex items-center justify-center">
-						{!isMobile ? (
-							<ConnectAIModal
-								onOpenChange={setShowConnectAIModal}
-								open={showConnectAIModal}
-							>
-								<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
-									<div className="relative z-10 text-slate-200 text-center">
-										<div className="flex flex-col gap-3">
-											<button
-												className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
-												onClick={(e) => {
-													e.stopPropagation()
-													setShowAddMemoryView(true)
-													setShowConnectAIModal(false)
-												}}
-												type="button"
-											>
-												Add your first memory
-											</button>
-										</div>
-									</div>
-								</div>
-							</ConnectAIModal>
-						) : (
+		<div className="relative h-full mx-4 md:mx-24">
+			<MasonryMemoryList
+				documents={allDocuments}
+				error={error}
+				hasMore={hasMore}
+				isLoading={isPending}
+				isLoadingMore={isLoadingMore}
+				loadMoreDocuments={loadMoreDocuments}
+				totalLoaded={totalLoaded}
+			>
+				<div className="absolute inset-0 flex items-center justify-center">
+					{!isMobile ? (
+						<ConnectAIModal
+							onOpenChange={setShowConnectAIModal}
+							open={showConnectAIModal}
+						>
 							<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
 								<div className="relative z-10 text-slate-200 text-center">
 									<div className="flex flex-col gap-3">
@@ -221,6 +204,7 @@ export function Memories() {
 											onClick={(e) => {
 												e.stopPropagation()
 												setShowAddMemoryView(true)
+												setShowConnectAIModal(false)
 											}}
 											type="button"
 										>
@@ -229,17 +213,34 @@ export function Memories() {
 									</div>
 								</div>
 							</div>
-						)}
-					</div>
-				</MasonryMemoryList>
+						</ConnectAIModal>
+					) : (
+						<div className="rounded-xl overflow-hidden cursor-pointer hover:bg-white/5 transition-colors p-6">
+							<div className="relative z-10 text-slate-200 text-center">
+								<div className="flex flex-col gap-3">
+									<button
+										className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+										onClick={(e) => {
+											e.stopPropagation()
+											setShowAddMemoryView(true)
+										}}
+										type="button"
+									>
+										Add your first memory
+									</button>
+								</div>
+							</div>
+						</div>
+					)}
+				</div>
+			</MasonryMemoryList>
 
-				{showAddMemoryView && (
-					<AddMemoryView
-						initialTab="note"
-						onClose={() => setShowAddMemoryView(false)}
-					/>
-				)}
-			</div>
-		</>
+			{showAddMemoryView && (
+				<AddMemoryView
+					initialTab="note"
+					onClose={() => setShowAddMemoryView(false)}
+				/>
+			)}
+		</div>
 	)
 }

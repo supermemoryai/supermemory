@@ -1,6 +1,6 @@
 "use client"
 
-import { useChat, useCompletion } from "@ai-sdk/react"
+import { useChat, useCompletion, type UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { DefaultChatTransport } from "ai"
@@ -12,6 +12,7 @@ import {
 	Copy,
 	RotateCcw,
 	X,
+	Square
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -19,7 +20,9 @@ import { Streamdown } from "streamdown"
 import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
+import { modelNames, ModelIcon } from "@/lib/models"
 import { Spinner } from "../../spinner"
+import { areUIMessageArraysEqual } from "@/stores/chat"
 
 interface MemoryResult {
 	documentId?: string
@@ -32,6 +35,28 @@ interface MemoryResult {
 interface ExpandableMemoriesProps {
 	foundCount: number
 	results: MemoryResult[]
+}
+
+interface MessagePart {
+	type: string
+	state?: string
+	text?: string
+	output?: {
+		count?: number
+		results?: Array<{
+			documentId?: string
+			title?: string
+			content?: string
+			url?: string
+			score?: number
+		}>
+	}
+}
+
+interface ChatMessage {
+	id: string
+	role: "user" | "assistant"
+	parts: MessagePart[]
 }
 
 function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
@@ -220,17 +245,14 @@ export function ChatMessages() {
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<
 		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
-	>(
-		(sessionStorage.getItem(storageKey) as
-			| "gpt-5"
-			| "claude-sonnet-4.5"
-			| "gemini-2.5-pro") ||
-			"gemini-2.5-pro" ||
-			"gemini-2.5-pro",
-	)
+	>("gemini-2.5-pro")
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
+	const lastSavedMessagesRef = useRef<UIMessage[] | null>(null)
+	const lastSavedActiveIdRef = useRef<string | null>(null)
+	const lastLoadedChatIdRef = useRef<string | null>(null)
+	const lastLoadedMessagesRef = useRef<UIMessage[] | null>(null)
 
 	const { setDocumentIds } = useGraphHighlights()
 
@@ -255,8 +277,8 @@ export function ChatMessages() {
 
 				if (shouldGenerateTitleRef.current) {
 					const textPart = result.message.parts.find(
-						(p: any) => p?.type === "text",
-					) as any
+						(p: { type?: string; text?: string }) => p?.type === "text",
+					) as { text?: string } | undefined
 					const text = textPart?.text?.trim()
 					if (text) {
 						shouldGenerateTitleRef.current = false
@@ -267,10 +289,15 @@ export function ChatMessages() {
 		})
 
 	useEffect(() => {
+		lastLoadedMessagesRef.current = messages
+	}, [messages])
+
+	useEffect(() => {
 		activeChatIdRef.current = currentChatId ?? id ?? null
 	}, [currentChatId, id])
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (currentChatId) {
 			const savedModel = sessionStorage.getItem(storageKey) as
 				| "gpt-5"
@@ -284,9 +311,10 @@ export function ChatMessages() {
 				setSelectedModel(savedModel)
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, storageKey])
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (currentChatId && !hasRunInitialMessageRef.current) {
 			// Check if there's an initial message from the home page in sessionStorage
 			const storageKey = `chat-initial-${currentChatId}`
@@ -299,30 +327,66 @@ export function ChatMessages() {
 				hasRunInitialMessageRef.current = true
 			}
 		}
-	}, [currentChatId])
+	}, [currentChatId, sendMessage])
 
 	useEffect(() => {
 		if (id && id !== currentChatId) {
 			setCurrentChatId(id)
 		}
-	}, [id])
+	}, [id, currentChatId, setCurrentChatId])
 
 	useEffect(() => {
-		const msgs = getCurrentConversation()
-		if (msgs && msgs.length > 0) {
-			setMessages(msgs)
-		} else if (!currentChatId) {
-			setMessages([])
+		if (currentChatId !== lastLoadedChatIdRef.current) {
+			lastLoadedMessagesRef.current = null
+			lastSavedMessagesRef.current = null
 		}
+
+		if (currentChatId === lastLoadedChatIdRef.current) {
+			setInput("")
+			return
+		}
+
+		const msgs = getCurrentConversation()
+
+		if (msgs && msgs.length > 0) {
+			const currentMessages = lastLoadedMessagesRef.current
+			if (!currentMessages || !areUIMessageArraysEqual(currentMessages, msgs)) {
+				lastLoadedMessagesRef.current = msgs
+				setMessages(msgs)
+			}
+		} else if (!currentChatId) {
+			if (
+				lastLoadedMessagesRef.current &&
+				lastLoadedMessagesRef.current.length > 0
+			) {
+				lastLoadedMessagesRef.current = []
+				setMessages([])
+			}
+		}
+
+		lastLoadedChatIdRef.current = currentChatId
 		setInput("")
-	}, [currentChatId])
+	}, [currentChatId, getCurrentConversation, setMessages])
 
 	useEffect(() => {
 		const activeId = currentChatId ?? id
-		if (activeId && messages.length > 0) {
-			setConversation(activeId, messages)
+		if (!activeId || messages.length === 0) {
+			return
 		}
-	}, [messages, currentChatId, id])
+
+		if (activeId !== lastSavedActiveIdRef.current) {
+			lastSavedMessagesRef.current = null
+			lastSavedActiveIdRef.current = activeId
+		}
+
+		const lastSaved = lastSavedMessagesRef.current
+		if (lastSaved && areUIMessageArraysEqual(lastSaved, messages)) {
+			return
+		}
+
+		lastSavedMessagesRef.current = messages
+		setConversation(activeId, messages)
+	}, [messages, currentChatId, id, setConversation])
 
 	const { complete } = useCompletion({
 		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
@@ -339,19 +403,19 @@ export function ChatMessages() {
 		try {
 			const lastAssistant = [...messages]
 				.reverse()
-				.find((m) => m.role === "assistant")
+				.find((m) => m.role === "assistant") as ChatMessage | undefined
 			if (!lastAssistant) return
-			const lastSearchPart = [...(lastAssistant.parts as any[])]
+			const lastSearchPart = [...(lastAssistant.parts as MessagePart[])]
 				.reverse()
 				.find(
 					(p) =>
 						p?.type === "tool-searchMemories" &&
 						p?.state === "output-available",
-				)
+				) as MessagePart | undefined
 			if (!lastSearchPart) return
-			const output = (lastSearchPart as any).output
+			const output = lastSearchPart.output
 			const ids = Array.isArray(output?.results)
-				? ((output.results as any[])
+				? ((output.results as MemoryResult[])
 						.map((r) => r?.documentId)
 						.filter(Boolean) as string[])
 				: []
@@ -359,7 +423,7 @@ export function ChatMessages() {
 				setDocumentIds(ids)
 			}
 		} catch {}
-	}, [messages])
+	}, [messages, setDocumentIds])
 
 	useEffect(() => {
 		const currentSummary = getCurrentChat()
@@ -367,13 +431,39 @@ export function ChatMessages() {
 			currentSummary?.title && currentSummary.title.trim().length > 0,
 		)
 		shouldGenerateTitleRef.current = !hasTitle
-	}, [])
+	}, [getCurrentChat])
+
+	/**
+	 * Handles sending a message from the input area.
+	 * - Prevents sending during submitted (shows toast)
+	 * - Stops streaming when active
+	 * - Validates non-empty input (shows toast)
+	 * Returns true when a message is sent.
+	 */
+	const handleSendMessage = useCallback(() => {
+		if (status === "submitted") {
+			toast.warning("Please wait for the current response to complete", {
+				id: "wait-for-response",
+			})
+			return false
+		}
+		if (status === "streaming") {
+			stop()
+			return false
+		}
+		if (!input.trim()) {
+			toast.warning("Please enter a message", { id: "empty-message" })
+			return false
+		}
+		sendMessage({ text: input })
+		setInput("")
+		return true
+	}, [status, input, sendMessage, stop])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			sendMessage({ text: input })
-			setInput("")
+			handleSendMessage()
 		}
 	}
 
@@ -390,177 +480,183 @@ export function ChatMessages() {
 		<div className="h-full flex flex-col w-full">
 			<div className="flex-1 relative">
 				<div
-					className="flex flex-col gap-2 absolute inset-0 overflow-y-auto px-4 pt-4 pb-7 scroll-pb-7 custom-scrollbar"
+					className="absolute inset-0 overflow-y-auto custom-scrollbar"
 					onScroll={onScroll}
 					ref={scrollContainerRef}
 				>
-					{messages.map((message) => (
-						<div
-							className={cn(
-								"flex my-2",
-								message.role === "user"
-									? "items-center flex-row-reverse gap-2"
-									: "flex-col",
-							)}
-							key={message.id}
-						>
+					<div className="flex flex-col gap-2 max-w-4xl mx-auto px-4 md:px-2 pt-4 pb-7 scroll-pb-7">
+						{messages.map((message) => (
 							<div
 								className={cn(
-									"flex flex-col gap-2 max-w-4/5",
+									"flex my-2",
 									message.role === "user"
-										? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
-										: "",
+										? "items-center flex-row-reverse gap-2"
+										: "flex-col",
 								)}
+								key={message.id}
 							>
-								{message.parts
-									.filter((part) =>
-										["text", "tool-searchMemories", "tool-addMemory"].includes(
-											part.type,
-										),
-									)
-									.map((part, index) => {
-										switch (part.type) {
-											case "text":
-												return (
-													<div key={`${message.id}-${part.type}-${index}`}>
-														<Streamdown>{part.text}</Streamdown>
-													</div>
-												)
-											case "tool-searchMemories": {
-												switch (part.state) {
-													case "input-available":
-													case "input-streaming":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Spinner className="size-4" /> Searching
-																memories...
-															</div>
-														)
-													case "output-error":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<X className="size-4" /> Error recalling
-																memories
-															</div>
-														)
-													case "output-available": {
-														const output = part.output
-														const foundCount =
-															typeof output === "object" &&
-															output !== null &&
-															"count" in output
-																? Number(output.count) || 0
-																: 0
-														// @ts-expect-error
-														const results = Array.isArray(output?.results)
-															? // @ts-expect-error
-																output.results
-															: []
+								<div
+									className={cn(
+										"flex flex-col gap-2 ",
+										message.role === "user"
+											? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
+											: "",
+									)}
+								>
+									{message.parts
+										.filter((part) =>
+											[
+												"text",
+												"tool-searchMemories",
+												"tool-addMemory",
+											].includes(part.type),
+										)
+										.map((part, index) => {
+											switch (part.type) {
+												case "text":
+													return (
+														<div key={`${message.id}-${part.type}-${index}`}>
+															<Streamdown>{part.text}</Streamdown>
+														</div>
+													)
+												case "tool-searchMemories": {
+													switch (part.state) {
+														case "input-available":
+														case "input-streaming":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Spinner className="size-4" /> Searching
+																	memories...
+																</div>
+															)
+														case "output-error":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<X className="size-4" /> Error recalling
+																	memories
+																</div>
+															)
+														case "output-available": {
+															const output = part.output
+															const foundCount =
+																typeof output === "object" &&
+																output !== null &&
+																"count" in output
+																	? Number(output.count) || 0
+																	: 0
+															// @ts-expect-error
+															const results = Array.isArray(output?.results)
+																? // @ts-expect-error
+																	output.results
+																: []
 
-														return (
-															<ExpandableMemories
-																foundCount={foundCount}
-																key={`${message.id}-${part.type}-${index}`}
-																results={results}
-															/>
-														)
+															return (
+																<ExpandableMemories
+																	foundCount={foundCount}
+																	key={`${message.id}-${part.type}-${index}`}
+																	results={results}
+																/>
+															)
+														}
+														default:
+															return null
 													}
-													default:
-														return null
 												}
-											}
-											case "tool-addMemory": {
-												switch (part.state) {
-													case "input-available":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Spinner className="size-4" /> Adding memory...
-															</div>
-														)
-													case "output-error":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<X className="size-4" /> Error adding memory
-															</div>
-														)
-													case "output-available":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Check className="size-4" /> Memory added
-															</div>
-														)
-													case "input-streaming":
-														return (
-															<div
-																className="text-sm flex items-center gap-2 text-muted-foreground"
-																key={`${message.id}-${part.type}-${index}`}
-															>
-																<Spinner className="size-4" /> Adding memory...
-															</div>
-														)
-													default:
-														return null
+												case "tool-addMemory": {
+													switch (part.state) {
+														case "input-available":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Spinner className="size-4" /> Adding
+																	memory...
+																</div>
+															)
+														case "output-error":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<X className="size-4" /> Error adding memory
+																</div>
+															)
+														case "output-available":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Check className="size-4" /> Memory added
+																</div>
+															)
+														case "input-streaming":
+															return (
+																<div
+																	className="text-sm flex items-center gap-2 text-muted-foreground"
+																	key={`${message.id}-${part.type}-${index}`}
+																>
+																	<Spinner className="size-4" /> Adding
+																	memory...
+																</div>
+															)
+														default:
+															return null
+													}
 												}
+												default:
+													return null
 											}
-											default:
-												return null
-										}
-									})}
-							</div>
-							{message.role === "assistant" && (
-								<div className="flex items-center gap-0.5 mt-0.5">
-									<Button
-										className="size-7 text-muted-foreground hover:text-foreground"
-										onClick={() => {
-											navigator.clipboard.writeText(
-												message.parts
-													.filter((p) => p.type === "text")
-													?.map((p) => (p as any).text)
-													.join("\n") ?? "",
-											)
-											toast.success("Copied to clipboard")
-										}}
-										size="icon"
-										variant="ghost"
-									>
-										<Copy className="size-3.5" />
-									</Button>
-									<Button
-										className="size-6 text-muted-foreground hover:text-foreground"
-										onClick={() => regenerate({ messageId: message.id })}
-										size="icon"
-										variant="ghost"
-									>
-										<RotateCcw className="size-3.5" />
-									</Button>
+										})}
 								</div>
-							)}
-						</div>
-					))}
-					{status === "submitted" && (
-						<div className="flex text-muted-foreground justify-start gap-2 px-4 py-3 items-center w-full">
-							<Spinner className="size-4" />
-							<TextShimmer className="text-sm" duration={1.5}>
-								Thinking...
-							</TextShimmer>
-						</div>
-					)}
-					<div ref={bottomRef} />
+								{message.role === "assistant" && (
+									<div className="flex items-center gap-0.5 mt-0.5">
+										<Button
+											className="size-7 text-muted-foreground hover:text-foreground"
+											onClick={() => {
+												navigator.clipboard.writeText(
+													message.parts
+														.filter((p) => p.type === "text")
+														?.map((p) => (p as MessagePart).text ?? "")
+														.join("\n") ?? "",
+												)
+												toast.success("Copied to clipboard")
+											}}
+											size="icon"
+											variant="ghost"
+										>
+											<Copy className="size-3.5" />
+										</Button>
+										<Button
+											className="size-6 text-muted-foreground hover:text-foreground"
+											onClick={() => regenerate({ messageId: message.id })}
+											size="icon"
+											variant="ghost"
+										>
+											<RotateCcw className="size-3.5" />
+										</Button>
+									</div>
+								)}
+							</div>
+						))}
+						{status === "submitted" && (
+							<div className="flex text-muted-foreground justify-start gap-2 px-4 py-3 items-center w-full">
+								<Spinner className="size-4" />
+								<TextShimmer className="text-sm" duration={1.5}>
+									Thinking...
+								</TextShimmer>
+							</div>
+						)}
+						<div ref={bottomRef} />
+					</div>
 				</div>
 
 				<Button
@@ -583,21 +679,15 @@ export function ChatMessages() {
 				</Button>
 			</div>
 
-			<div className="px-4 pb-4 pt-1 relative flex-shrink-0">
+			<div className="pb-4 px-4 md:px-2 max-w-4xl mx-auto w-full">
 				<form
-					className="flex flex-col items-end gap-3 bg-card border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
+					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted") return
-						if (status === "streaming") {
-							stop()
-							return
-						}
-						if (input.trim()) {
+						const sent = handleSendMessage()
+						if (sent) {
 							enableAutoScroll()
 							scrollToBottom("auto")
-							sendMessage({ text: input })
-							setInput("")
 						}
 					}}
 				>
@@ -605,19 +695,45 @@ export function ChatMessages() {
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={handleKeyDown}
+						aria-busy={status === "streaming" || status === "submitted"}
+						aria-disabled={status === "submitted"}
 						placeholder="Ask your follow-up question..."
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
-					<div className="absolute bottom-2 right-2">
-						<Button
-							type="submit"
-							disabled={!input.trim()}
-							className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
-							size="icon"
-						>
-							<ArrowUp className="size-4" />
-						</Button>
+					<div className="absolute bottom-2 right-2 flex items-center gap-4">
+						<div className="flex items-center gap-1.5">
+							<ModelIcon
+								width={16}
+								height={16}
+								className="text-muted-foreground"
+							/>
+							<span className="text-xs text-muted-foreground">
+								{modelNames[selectedModel]}
+							</span>
+						</div>
+						{status === "streaming" || status === "submitted" ? (
+							<Button
+								onClick={() => stop()}
+								aria-label="Stop generation"
+								className="rounded-xl"
+								variant="destructive"
+								size="icon"
+								type="button"
+							>
+								<Square className="size-4" />
+							</Button>
+						) : (
+							<Button
+								type="submit"
+								aria-label="Send message"
+								disabled={!input.trim()}
+								className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
+								size="icon"
+							>
+								<ArrowUp className="size-4" />
+							</Button>
+						)}
 					</div>
 				</form>
 			</div>

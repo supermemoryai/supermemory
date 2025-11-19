@@ -117,12 +117,36 @@ export default defineBackground(() => {
 				console.warn("Failed to get default project, using fallback:", error)
 			}
 
+			let content: string
+			if (data.content) {
+				content = data.content
+			} else if (data.highlightedText) {
+				content = `${data.highlightedText}\n\n${data?.url || ""}`
+			} else if (data.markdown) {
+				content = `${data.markdown}\n\n${data?.url || ""}`
+			} else if (data.html) {
+				content = `${data.html}\n\n${data?.url || ""}`
+			} else {
+				content = data?.url || ""
+			}
+
+			const metadata: MemoryPayload["metadata"] = {
+				sm_source: "consumer",
+				website_url: data.url,
+			}
+
+			if (data.ogImage) {
+				metadata.website_og_image = data.ogImage
+			}
+
+			if (data.title) {
+				metadata.website_title = data.title
+			}
+
 			const payload: MemoryPayload = {
 				containerTags: [containerTag],
-				content:
-					data.content ||
-					`${data.highlightedText}\n\n${data.html}\n\n${data?.url}`,
-				metadata: { sm_source: "consumer" },
+				content,
+				metadata,
 			}
 
 			const responseData = await saveMemory(payload)

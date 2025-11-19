@@ -816,7 +816,7 @@ export function ExtensionForm() {
 	const { totalSteps, nextStep, getStepNumberFor } = useOnboarding()
 	return (
 		<div className="relative flex items-start flex-col gap-6 w-full">
-			<div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-6">
+			<div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-6 relative">
 				<div className="flex flex-col items-start text-left gap-4 flex-1">
 					<NavMenu>
 						<p className="text-base text-white/60">
@@ -827,21 +827,29 @@ export function ExtensionForm() {
 						Install the Chrome extension
 					</h1>
 					<p className="text-white/80 text-lg md:text-2xl">
-						{/* Install the Supermemory extension to start saving and organizing everything that matters. */}
 						Bring Supermemory everywhere
 					</p>
 				</div>
-				<div className="flex flex-col items-center text-center gap-4 w-full md:w-auto">
+				<div className="flex flex-col items-end text-center gap-3 w-full md:w-auto">
+					<Button
+						variant="link"
+						size="lg"
+						className="text-white/80 hover:text-white font-medium! text-lg w-fit px-0! cursor-pointer"
+						onClick={nextStep}
+					>
+						Continue
+						<ChevronRightIcon className="size-4" />
+					</Button>
 					<a
 						href="https://chromewebstore.google.com/detail/afpgkkipfdpeaflnpoaffkcankadgjfc?utm_source=item-share-cb"
 						rel="noopener noreferrer"
 						target="_blank"
-						className="bg-zinc-50/80 backdrop-blur-lg border-2 hover:bg-zinc-100/80 transition-colors duration-100 border-zinc-200/80 shadow-xs rounded-full pl-4.5 pr-6 py-4 text-lg md:text-2xl font-sans tracking-tight font-medium flex items-center gap-4 w-full md:w-auto justify-center"
+						className="bg-zinc-50/80 backdrop-blur-lg border-2 hover:bg-zinc-100/80 transition-colors duration-100 border-zinc-200/80 shadow-xs rounded-full pl-3.5 pr-4 py-2.5 text-base font-sans tracking-tight font-medium flex items-center gap-3 w-full md:w-auto justify-center"
 					>
 						<img
 							src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Google_Chrome_icon_%28February_2022%29.svg/2048px-Google_Chrome_icon_%28February_2022%29.svg.png"
 							alt="Chrome"
-							className="size-6 md:size-8"
+							className="size-5"
 						/>
 						Add to Chrome
 					</a>
@@ -890,17 +898,6 @@ export function ExtensionForm() {
 						<TwitterDemo />
 					</div>
 				</div>
-			</div>
-			<div className="flex w-full justify-end">
-				<Button
-					variant="link"
-					size="lg"
-					className="text-black/40 hover:text-black font-medium! text-lg underline w-fit px-0! cursor-pointer"
-					onClick={nextStep}
-				>
-					Continue
-					<ChevronRightIcon className="size-4" />
-				</Button>
 			</div>
 		</div>
 	)

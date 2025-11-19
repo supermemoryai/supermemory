@@ -7,7 +7,7 @@ import {
 import { Button } from "@ui/components/button"
 import { HeadingH3Bold } from "@ui/text/heading/heading-h3-bold"
 import { useCustomer } from "autumn-js/react"
-import { CheckCircle, LoaderIcon, X } from "lucide-react"
+import { AlertTriangle, CheckCircle, LoaderIcon, X } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -24,10 +24,15 @@ export function BillingView() {
 
 	const {
 		data: status = {
-			consumer_pro: null,
+			consumer_pro: { allowed: false, status: null },
 		},
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
+
+	const proStatus = status.consumer_pro
+	const proProductStatus = proStatus?.status
+	const isPastDue = proProductStatus === "past_due"
+	const hasProProduct = proProductStatus !== null
 
 	const { data: memoriesCheck } = fetchMemoriesFeature(
 		autumn,
@@ -37,7 +42,10 @@ export function BillingView() {
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
-	const { data: connectionsCheck } = fetchConnectionsFeature(autumn, !autumn.isLoading && !isCheckingStatus)
+	const { data: connectionsCheck } = fetchConnectionsFeature(
+		autumn,
+		!autumn.isLoading && !isCheckingStatus,
+	)
 
 	const connectionsUsed = connectionsCheck?.usage ?? 0
 
@@ -66,8 +74,6 @@ export function BillingView() {
 		})
 	}
 
-	const isPro = status.consumer_pro
-
 	if (user?.isAnonymous) {
 		return (
 			<motion.div
@@ -92,7 +98,7 @@ export function BillingView() {
 		)
 	}
 
-	if (isPro) {
+	if (hasProProduct) {
 		return (
 			<motion.div
 				animate={{ opacity: 1, y: 0 }}
@@ -102,14 +108,37 @@ export function BillingView() {
 				<div className="space-y-3">
 					<HeadingH3Bold className="text-foreground flex items-center gap-2">
 						Pro Plan
-						<span className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
-							Active
-						</span>
+						{isPastDue ? (
+							<span className="text-xs bg-red-500/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">
+								Past Due
+							</span>
+						) : (
+							<span className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+								Active
+							</span>
+						)}
 					</HeadingH3Bold>
 					<p className="text-sm text-muted-foreground">
-						You're enjoying expanded memory capacity with supermemory Pro!
+						{isPastDue
+							? "Your payment is past due. Please update your payment method to restore access."
+							: "You're enjoying expanded memory capacity with supermemory Pro!"}
 					</p>
 				</div>
+
+				{isPastDue && (
+					<div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+						<AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+						<div className="flex-1">
+							<p className="text-sm text-red-600 dark:text-red-400 font-medium mb-1">
+								Payment Required
+							</p>
+							<p className="text-xs text-red-600/80 dark:text-red-400/80">
+								Your payment method failed or payment is past due. Update your
+								payment information to restore access to all Pro features.
+							</p>
+						</div>
+					</div>
+				)}
 
 				{/* Current Usage */}
 				<div className="space-y-3">
@@ -117,9 +146,7 @@ export function BillingView() {
 					<div className="space-y-2">
 						<div className="flex justify-between items-center">
 							<span className="text-sm text-muted-foreground">Memories</span>
-							<span className="text-sm text-foreground">
-								Unlimited
-							</span>
+							<span className="text-sm text-foreground">Unlimited</span>
 						</div>
 					</div>
 					<div className="space-y-2">
@@ -132,8 +159,13 @@ export function BillingView() {
 					</div>
 				</div>
 
-				<Button onClick={handleManageBilling} size="sm" variant="default">
-					Manage Billing
+				<Button
+					onClick={handleManageBilling}
+					size="sm"
+					variant="default"
+					className={isPastDue ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+				>
+					{isPastDue ? "Pay Past Due" : "Manage Billing"}
 				</Button>
 			</motion.div>
 		)

@@ -62,6 +62,9 @@ export function GraphDialog() {
 			return response.data
 		},
 		getNextPageParam: (lastPage, allPages) => {
+			if (!lastPage || !lastPage.pagination) return undefined
+			if (!Array.isArray(allPages)) return undefined
+
 			const loaded = allPages.reduce(
 				(acc, p) => acc + (p.documents?.length ?? 0),
 				0,

@@ -175,7 +175,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
     color: black;
     border: none;
     border-radius: 50px;
-    padding: 10px 12px;
+    padding: 10px 16px 10px 32px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -185,10 +185,17 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
   `
 
 	const iconUrl = browser.runtime.getURL("/icon-16.png")
-	button.innerHTML = `
-    <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
-    <span style="font-weight: 500; font-size: 12px;">Import Bookmarks</span>
-  `
+
+	button.style.backgroundImage = `url("${iconUrl}")`
+	button.style.backgroundRepeat = "no-repeat"
+	button.style.backgroundSize = "20px 20px"
+	button.style.backgroundPosition = "8px center"
+
+	const textSpan = document.createElement("span")
+	textSpan.id = "sm-import-text"
+	textSpan.style.cssText = "font-weight: 500; font-size: 12px;"
+	textSpan.textContent = "Import Bookmarks"
+	button.appendChild(textSpan)
 
 	button.addEventListener("mouseenter", () => {
 		button.style.opacity = "0.8"

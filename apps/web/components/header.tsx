@@ -14,6 +14,8 @@ import {
 	Gauge,
 	HistoryIcon,
 	Trash2,
+	X,
+	Check,
 } from "lucide-react"
 import {
 	DropdownMenuContent,
@@ -62,6 +64,9 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const { selectedProject } = useProject()
 	const pathname = usePathname()
 	const [isDialogOpen, setIsDialogOpen] = useState(false)
+	const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+		null,
+	)
 	const [mcpModalOpen, setMcpModalOpen] = useState(false)
 	const [mcpInitialClient, setMcpInitialClient] = useState<"mcp-url" | null>(
 		null,
@@ -124,9 +129,11 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 						rel="noopener noreferrer"
 					>
 						{getCurrentChat()?.title && pathname.includes("/chat") ? (
-							<div className="flex items-center gap-4">
-								<Logo className="h-6 block text-foreground" />
-								<span className="truncate">{getCurrentChat()?.title}</span>
+							<div className="flex items-center gap-2 md:gap-4 min-w-0 max-w-[200px] md:max-w-md">
+								<Logo className="h-6 block text-foreground flex-shrink-0" />
+								<span className="truncate text-sm md:text-base">
+									{getCurrentChat()?.title}
+								</span>
 							</div>
 						) : (
 							<>
@@ -156,6 +163,9 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 							setIsDialogOpen(open)
 							if (open) {
 								analytics.chatHistoryViewed()
+							}
+							if (!open) {
+								setConfirmingDeleteId(null)
 							}
 						}}
 					>
@@ -194,6 +204,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 													setCurrentChatId(c.id)
 													router.push(`/chat/${c.id}`)
 													setIsDialogOpen(false)
+													setConfirmingDeleteId(null)
 												}}
 												className={cn(
 													"flex items-center justify-between rounded-md px-3 py-2 outline-none w-full text-left",
@@ -217,19 +228,49 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 														Last updated {formatRelativeTime(c.lastUpdated)}
 													</div>
 												</div>
-												<Button
-													type="button"
-													variant="ghost"
-													size="icon"
-													onClick={(e) => {
-														e.stopPropagation()
-														analytics.chatDeleted()
-														deleteConversation(c.id)
-													}}
-													aria-label="Delete conversation"
-												>
-													<Trash2 className="size-4 text-muted-foreground" />
-												</Button>
+												{confirmingDeleteId === c.id ? (
+													<div className="flex items-center gap-1">
+														<Button
+															type="button"
+															size="icon"
+															onClick={(e) => {
+																e.stopPropagation()
+																analytics.chatDeleted()
+																deleteConversation(c.id)
+																setConfirmingDeleteId(null)
+															}}
+															className="bg-red-500 text-white hover:bg-red-600 hover:text-white"
+															aria-label="Confirm delete"
+														>
+															<Check className="size-4" />
+														</Button>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															onClick={(e) => {
+																e.stopPropagation()
+																setConfirmingDeleteId(null)
+															}}
+															aria-label="Cancel delete"
+														>
+															<X className="size-4 text-muted-foreground" />
+														</Button>
+													</div>
+												) : (
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														onClick={(e) => {
+															e.stopPropagation()
+															setConfirmingDeleteId(c.id)
+														}}
+														aria-label="Delete conversation"
+													>
+														<Trash2 className="size-4 text-muted-foreground" />
+													</Button>
+												)}
 											</button>
 										)
 									})}

@@ -1,8 +1,8 @@
 # Supermemory OpenAI Python SDK
 
-Memory tools for OpenAI function calling with Supermemory integration.
+Memory tools and middleware for OpenAI with Supermemory integration.
 
-This package provides memory management tools for the official [OpenAI Python SDK](https://github.com/openai/openai-python) using [Supermemory](https://supermemory.ai) capabilities.
+This package provides both **automatic memory injection middleware** and **manual memory tools** for the official [OpenAI Python SDK](https://github.com/openai/openai-python) using [Supermemory](https://supermemory.ai) capabilities.
 
 ## Installation
 
@@ -18,7 +18,52 @@ Or with pip:
 pip install supermemory-openai-sdk
 ```
 
+For async HTTP support (recommended):
+
+```bash
+uv add supermemory-openai-sdk[async]
+# or
+pip install supermemory-openai-sdk[async]
+```
+
 ## Quick Start
+
+### Automatic Memory Injection (Recommended)
+
+The easiest way to add memory capabilities to your OpenAI client is using the `with_supermemory()` wrapper:
+
+```python
+import asyncio
+from openai import AsyncOpenAI
+from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
+
+async def main():
+    # Create OpenAI client
+    openai = AsyncOpenAI(api_key="your-openai-api-key")
+
+    # Wrap with Supermemory middleware
+    openai_with_memory = with_supermemory(
+        openai,
+        container_tag="user-123",  # Unique identifier for user's memories
+        options=OpenAIMiddlewareOptions(
+            mode="full",        # "profile", "query", or "full"
+            verbose=True,       # Enable logging
+            add_memory="always" # Automatically save conversations
+        )
+    )
+
+    # Use normally - memories are automatically injected!
+    response = await openai_with_memory.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "user", "content": "What's my favorite programming language?"}
+        ]
+    )
+
+    print(response.choices[0].message.content)
+
+asyncio.run(main())
+```
 
 ### Using Memory Tools with OpenAI
 
@@ -67,9 +112,110 @@ async def main():
 asyncio.run(main())
 ```
 
-## Configuration
+### Sync Client Support
 
-## Memory Tools
+The middleware also works with synchronous OpenAI clients:
+
+```python
+from openai import OpenAI
+from supermemory_openai import with_supermemory
+
+# Sync client
+openai = OpenAI(api_key="your-openai-api-key")
+openai_with_memory = with_supermemory(openai, "user-123")
+
+# Works the same way
+response = openai_with_memory.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+**Event Loop Management**: The middleware properly handles event loops using `asyncio.run()` for sync clients. If called from within an existing async context, it automatically runs in a separate thread to avoid conflicts.
+
+**Background Task Management**: When `add_memory="always"`, memory storage happens in background tasks. Use context managers or manual cleanup to ensure tasks complete:
+
+```python
+# Async context manager (recommended)
+async with with_supermemory(openai, "user-123") as client:
+    response = await client.chat.completions.create(...)
+# Background tasks automatically waited for on exit
+
+# Manual cleanup
+client = with_supermemory(openai, "user-123")
+response = await client.chat.completions.create(...)
+await client.wait_for_background_tasks()  # Ensure memory is saved
+```
+
+## Middleware Configuration
+
+### Memory Modes
+
+The middleware supports three different modes for memory injection:
+
+#### `"profile"` mode (default)
+Injects all static and dynamic profile memories into every request. Best for maintaining consistent user context.
+
+```python
+openai_with_memory = with_supermemory(
+    openai,
+    "user-123",
+    OpenAIMiddlewareOptions(mode="profile")
+)
+```
+
+#### `"query"` mode
+Only searches for memories relevant to the current user message. More efficient for large memory stores.
+
+```python
+openai_with_memory = with_supermemory(
+    openai,
+    "user-123",
+    OpenAIMiddlewareOptions(mode="query")
+)
+```
+
+#### `"full"` mode
+Combines both profile and query modes - includes all profile memories plus relevant search results.
+
+```python
+openai_with_memory = with_supermemory(
+    openai,
+    "user-123",
+    OpenAIMiddlewareOptions(mode="full")
+)
+```
+
+### Memory Storage
+
+Control when conversations are automatically saved as memories:
+
+```python
+# Always save conversations as memories
+OpenAIMiddlewareOptions(add_memory="always")
+
+# Never save conversations (default)
+OpenAIMiddlewareOptions(add_memory="never")
+```
+
+### Complete Configuration Example
+
+```python
+from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
+
+openai_with_memory = with_supermemory(
+    openai_client,
+    container_tag="user-123",
+    options=OpenAIMiddlewareOptions(
+        conversation_id="chat-session-456",  # Group messages into conversations
+        verbose=True,                        # Enable detailed logging
+        mode="full",                         # Use both profile and query
+        add_memory="always"                  # Auto-save conversations
+    )
+)
+```
+
+## Manual Memory Tools
 
 ### SupermemoryTools Class
 
@@ -136,6 +282,38 @@ if response.choices[0].message.tool_calls:
 
 ## API Reference
 
+### Middleware Functions
+
+#### `with_supermemory()`
+
+Wraps an OpenAI client with automatic memory injection middleware.
+
+```python
+def with_supermemory(
+    openai_client: Union[OpenAI, AsyncOpenAI],
+    container_tag: str,
+    options: Optional[OpenAIMiddlewareOptions] = None
+) -> Union[OpenAI, AsyncOpenAI]
+```
+
+**Parameters:**
+- `openai_client`: OpenAI or AsyncOpenAI client instance
+- `container_tag`: Unique identifier for memory storage (e.g., user ID)
+- `options`: Configuration options (see `OpenAIMiddlewareOptions`)
+
+#### `OpenAIMiddlewareOptions`
+
+Configuration dataclass for middleware behavior.
+
+```python
+@dataclass
+class OpenAIMiddlewareOptions:
+    conversation_id: Optional[str] = None      # Group messages into conversations
+    verbose: bool = False                      # Enable detailed logging
+    mode: Literal["profile", "query", "full"] = "profile"  # Memory injection mode
+    add_memory: Literal["always", "never"] = "never"       # Auto-save behavior
+```
+
 ### SupermemoryTools
 
 Memory management tools for function calling.
@@ -154,29 +332,77 @@ SupermemoryTools(
 - `get_tool_definitions()` - Get OpenAI function definitions
 - `search_memories()` - Search user memories
 - `add_memory()` - Add new memory
-- `fetch_memory()` - Fetch specific memory by ID
 - `execute_tool_call()` - Execute individual tool call
 
 ## Error Handling
 
+The package provides specific exception types for better error handling:
+
 ```python
+from supermemory_openai import (
+    with_supermemory,
+    SupermemoryConfigurationError,
+    SupermemoryAPIError,
+    SupermemoryNetworkError,
+    SupermemoryMemoryOperationError,
+)
+
 try:
-    response = await client.chat_completion(
+    # This will raise SupermemoryConfigurationError if API key is missing
+    client = with_supermemory(openai_client, "user-123")
+
+    response = await client.chat.completions.create(
         messages=[{"role": "user", "content": "Hello"}],
-        model="gpt-5"
+        model="gpt-4"
     )
+except SupermemoryConfigurationError as e:
+    print(f"Configuration issue: {e}")
+except SupermemoryAPIError as e:
+    print(f"Supermemory API error: {e} (Status: {e.status_code})")
+except SupermemoryNetworkError as e:
+    print(f"Network error: {e}")
+except SupermemoryMemoryOperationError as e:
+    print(f"Memory operation failed: {e}")
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"Unexpected error: {e}")
 ```
+
+### Exception Types
+
+- **`SupermemoryError`** - Base class for all Supermemory exceptions
+- **`SupermemoryConfigurationError`** - Missing API keys, invalid configuration
+- **`SupermemoryAPIError`** - API request failures (includes status codes)
+- **`SupermemoryNetworkError`** - Network connectivity issues
+- **`SupermemoryMemoryOperationError`** - Memory search/add operation failures
+- **`SupermemoryTimeoutError`** - Operation timeouts
+
+All exceptions include the original error for debugging and have descriptive error messages.
 
 ## Environment Variables
 
-Set these environment variables for testing:
+Set these environment variables:
 
-- `SUPERMEMORY_API_KEY` - Your Supermemory API key
-- `OPENAI_API_KEY` - Your OpenAI API key
-- `MODEL_NAME` - Model to use (default: "gpt-5-nano")
-- `SUPERMEMORY_BASE_URL` - Custom Supermemory base URL (optional)
+- `SUPERMEMORY_API_KEY` - Your Supermemory API key (required)
+- `OPENAI_API_KEY` - Your OpenAI API key (required for examples)
+
+Optional for testing:
+- `MODEL_NAME` - Model to use (default: "gpt-4")
+- `SUPERMEMORY_BASE_URL` - Custom Supermemory base URL
+
+## Dependencies
+
+### Required
+- `openai>=1.102.0` - Official OpenAI Python SDK
+- `supermemory>=3.1.0` - Supermemory client
+- `requests>=2.25.0` - HTTP requests (fallback)
+
+### Optional
+- `aiohttp>=3.8.0` - Async HTTP requests (recommended for async clients)
+
+Install with async support:
+```bash
+pip install supermemory-openai-sdk[async]
+```
 
 ## Development
 

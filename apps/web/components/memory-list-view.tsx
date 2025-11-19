@@ -54,6 +54,7 @@ const DocumentCard = memo(
 		onOpenDetails: (document: DocumentWithMemories) => void
 		onDelete: (document: DocumentWithMemories) => void
 	}) => {
+		const [isDialogOpen, setIsDialogOpen] = useState(false)
 		const activeMemories = document.memoryEntries.filter((m) => !m.isForgotten)
 		const forgottenMemories = document.memoryEntries.filter(
 			(m) => m.isForgotten,
@@ -63,8 +64,10 @@ const DocumentCard = memo(
 			<Card
 				className="h-full mx-4 p-4 transition-all cursor-pointer group relative overflow-hidden gap-2 md:w-full shadow-xs"
 				onClick={() => {
-					analytics.documentCardClicked()
-					onOpenDetails(document)
+					if (!isDialogOpen) {
+						analytics.documentCardClicked()
+						onOpenDetails(document)
+					}
 				}}
 				style={{
 					backgroundColor: colors.document.primary,
@@ -143,7 +146,7 @@ const DocumentCard = memo(
 							)}
 						</div>
 
-						<AlertDialog>
+						<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 							<AlertDialogTrigger asChild>
 								<button
 									className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
@@ -158,7 +161,7 @@ const DocumentCard = memo(
 									<Trash2 className="w-3.5 h-3.5" />
 								</button>
 							</AlertDialogTrigger>
-							<AlertDialogContent>
+							<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 								<AlertDialogHeader>
 									<AlertDialogTitle>Delete Document</AlertDialogTitle>
 									<AlertDialogDescription>

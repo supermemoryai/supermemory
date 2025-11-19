@@ -36,7 +36,16 @@ Before you begin, ensure you have the following installed:
    # You'll need to add your API keys and database URLs
    ```
 
-4. **Start the Development Server**
+4. **Change proxy for local development**
+
+   Add this in your `proxy.ts`(apps/web) before retrieving the cookie (`getSessionCookie(request)`):
+
+   ```ts
+   if (url.hostname === "localhost") {
+     return NextResponse.next();
+   }
+
+5. **Start the Development Server**
 
    ```bash
    bun run dev
