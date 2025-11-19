@@ -1,19 +1,19 @@
 "use client";
 
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { GlassMenuEffect } from "@/ui/glass-effect";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { colors } from "./constants";
-import { GraphWebGLCanvas as GraphCanvas } from "./graph-webgl-canvas";
-import { useGraphData } from "./hooks/use-graph-data";
-import { useGraphInteractions } from "./hooks/use-graph-interactions";
+import { GraphCanvas } from "./graph-canvas";
+import { useGraphData } from "@/hooks/use-graph-data";
+import { useGraphInteractions } from "@/hooks/use-graph-interactions";
 import { Legend } from "./legend";
 import { LoadingIndicator } from "./loading-indicator";
 import { NavigationControls } from "./navigation-controls";
 import { NodeDetailPanel } from "./node-detail-panel";
 import { SpacesDropdown } from "./spaces-dropdown";
+import * as styles from "./memory-graph.css";
 
-import type { MemoryGraphProps } from "./types";
+import type { MemoryGraphProps } from "@/types";
 
 export const MemoryGraph = ({
 	children,
@@ -31,6 +31,7 @@ export const MemoryGraph = ({
 	highlightsVisible = true,
 	occludedRightPx = 0,
 	autoLoadOnViewport = true,
+	themeClassName,
 }: MemoryGraphProps) => {
 	// Derive showSpacesSelector from variant if not explicitly provided
 	// console variant shows spaces selector, consumer variant hides it
@@ -40,7 +41,7 @@ export const MemoryGraph = ({
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	// Create data object with dummy pagination to satisfy type requirements
+	// Create data object with pagination to satisfy type requirements
 	const data = useMemo(() => {
 		return documents && documents.length > 0
 			? {
@@ -337,15 +338,12 @@ export const MemoryGraph = ({
 
 	if (error) {
 		return (
-			<div
-				className="h-full flex items-center justify-center"
-				style={{ backgroundColor: colors.background.primary }}
-			>
-				<div className="rounded-xl overflow-hidden">
+			<div className={styles.errorContainer}>
+				<div className={styles.errorCard}>
 					{/* Glass effect background */}
-					<GlassMenuEffect rounded="rounded-xl" />
+					<GlassMenuEffect rounded="xl" />
 
-					<div className="relative z-10 text-slate-200 px-6 py-4">
+					<div className={styles.errorContent}>
 						Error loading documents: {error.message}
 					</div>
 				</div>
@@ -354,13 +352,10 @@ export const MemoryGraph = ({
 	}
 
 	return (
-		<div
-			className="h-full rounded-xl overflow-hidden"
-			style={{ backgroundColor: colors.background.primary }}
-		>
+		<div className={themeClassName ? `${themeClassName} ${styles.mainContainer}` : styles.mainContainer}>
 			{/* Spaces selector - only shown for console */}
 			{finalShowSpacesSelector && availableSpaces.length > 0 && (
-				<div className="absolute top-4 left-4 z-10">
+				<div className={styles.spacesSelectorContainer}>
 					<SpacesDropdown
 						availableSpaces={availableSpaces}
 						onSpaceChange={setSelectedSpace}
@@ -406,13 +401,8 @@ export const MemoryGraph = ({
 
 			{/* Graph container */}
 			<div
-				className="w-full h-full relative overflow-hidden"
+				className={styles.graphContainer}
 				ref={containerRef}
-				style={{
-					touchAction: "none",
-					userSelect: "none",
-					WebkitUserSelect: "none",
-				}}
 			>
 				{(containerSize.width > 0 && containerSize.height > 0) && (
 					<GraphCanvas
@@ -449,7 +439,7 @@ export const MemoryGraph = ({
 						onZoomOut={() => zoomOut(containerSize.width / 2, containerSize.height / 2)}
 						onAutoFit={handleAutoFit}
 						nodes={nodes}
-						className="absolute bottom-4 left-4"
+						className={styles.navControlsContainer}
 					/>
 				)}
 			</div>

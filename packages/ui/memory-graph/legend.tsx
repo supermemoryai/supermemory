@@ -39,7 +39,6 @@ interface ExtendedLegendProps extends LegendProps {
 	nodes?: GraphNode[];
 	edges?: GraphEdge[];
 	isLoading?: boolean;
-	isExperimental?: boolean;
 }
 
 export const Legend = memo(function Legend({
@@ -48,19 +47,10 @@ export const Legend = memo(function Legend({
 	nodes = [],
 	edges = [],
 	isLoading = false,
-	isExperimental = false,
 }: ExtendedLegendProps) {
 	const isMobile = useIsMobile();
 	const [isExpanded, setIsExpanded] = useState(true);
 	const [isInitialized, setIsInitialized] = useState(false);
-
-	const relationData = isExperimental
-		? [
-				["updates", colors.relations.updates],
-				["extends", colors.relations.extends],
-				["derives", colors.relations.derives],
-			]
-		: [["updates", colors.relations.updates]];
 
 	// Load saved preference on client side
 	useEffect(() => {
@@ -271,14 +261,11 @@ export const Legend = memo(function Legend({
 											Relations
 										</div>
 										<div className="space-y-1.5">
-											{(isExperimental
-												? [
-														["updates", colors.relations.updates],
-														["extends", colors.relations.extends],
-														["derives", colors.relations.derives],
-													]
-												: [["updates", colors.relations.updates]]
-											).map(([label, color]) => (
+											{[
+												["updates", colors.relations.updates],
+												["extends", colors.relations.extends],
+												["derives", colors.relations.derives],
+											].map(([label, color]) => (
 												<div className="flex items-center gap-2" key={label}>
 													<div
 														className="w-4 h-0 border-t-2 flex-shrink-0"

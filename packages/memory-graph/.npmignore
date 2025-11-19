@@ -1,0 +1,42 @@
+# Source files (only publish dist)
+src
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+vite.config.ts
+.gitignore
+.npmignore
+
+# Development
+node_modules
+*.log
+.env*
+
+# Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage
+.nyc_output
+*.test.*
+*.spec.*
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Docs (except README)
+docs
+examples
+.changeset

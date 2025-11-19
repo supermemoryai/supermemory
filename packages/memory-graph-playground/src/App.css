@@ -1,0 +1,119 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f1419;
+  color: #e2e8f0;
+}
+
+.header {
+  padding: 1.5rem;
+  background: #1a1f29;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #fff;
+}
+
+.header p {
+  margin: 0.5rem 0 0 0;
+  color: #94a3b8;
+}
+
+.controls {
+  padding: 1rem 1.5rem;
+  display: flex;
+  gap: 1rem;
+  background: #1a1f29;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.api-key-input::placeholder {
+  color: #64748b;
+}
+
+.api-key-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+
+.load-button {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #3b82f6;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.load-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.load-button:disabled {
+  background: #334155;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.graph-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+.instructions {
+  flex: 1;
+  padding: 3rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.instructions h2 {
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.instructions h3 {
+  color: #e2e8f0;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.instructions ol,
+.instructions ul {
+  text-align: left;
+  line-height: 2;
+}
+
+.instructions li {
+  margin-bottom: 0.5rem;
+  color: #cbd5e1;
+}
+
+.instructions a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+.instructions a:hover {
+  text-decoration: underline;
+}

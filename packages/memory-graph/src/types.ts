@@ -1,11 +1,7 @@
-import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
-import type { z } from "zod";
+import type { DocumentsResponse, DocumentWithMemories, MemoryEntry } from "./api-types";
 
-export type DocumentsResponse = z.infer<
-	typeof DocumentsWithMemoriesResponseSchema
->;
-export type DocumentWithMemories = DocumentsResponse["documents"][0];
-export type MemoryEntry = DocumentWithMemories["memoryEntries"][0];
+// Re-export for convenience
+export type { DocumentsResponse, DocumentWithMemories, MemoryEntry };
 
 export interface GraphNode {
 	id: string;
@@ -97,6 +93,8 @@ export interface MemoryGraphProps {
 	occludedRightPx?: number;
 	// Whether to auto-load more documents based on viewport visibility
 	autoLoadOnViewport?: boolean;
+	// Theme class name to apply
+	themeClassName?: string;
 }
 
 export interface LegendProps {
