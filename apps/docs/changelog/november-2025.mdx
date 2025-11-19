@@ -1,0 +1,116 @@
+---
+title: "November 2025 Release"
+description: "Major SDK improvements, security fixes, and UX enhancements"
+---
+
+Comprehensive updates including OpenAI SDK middleware, Next.js 16 upgrade, IndexedDB migration, and critical security fixes.
+
+## November 18, 2025
+
+- **Multiple Prompt Prevention:** Fixed issue preventing users from submitting multiple prompts while AI response is being generated, improving chat reliability and preventing duplicate submissions ([#583](https://github.com/supermemoryai/supermemory/pull/583))
+
+## November 15, 2025
+
+- **Document Source Fix:** Resolved document source tracking issues to ensure proper attribution of uploaded files and imported content ([#580](https://github.com/supermemoryai/supermemory/pull/580))
+- **Memory Dialog UX:** Fixed interaction bug where memories would open when clicking while delete memory dialog is active ([#582](https://github.com/supermemoryai/supermemory/pull/582))
+- **Chat Deletion Confirmation:** Added inline confirmation dialog for chat deletion to prevent accidental data loss ([#581](https://github.com/supermemoryai/supermemory/pull/581))
+
+## November 13, 2025
+
+- **File Upload Source Tracking:** Enhanced source tracking for file uploads to maintain proper document metadata ([#579](https://github.com/supermemoryai/supermemory/pull/579))
+
+## November 11, 2025
+
+- **Organization Switching:** Fixed org switch issues on consumer platform when dev organization exists, ensuring smoother navigation between environments ([#577](https://github.com/supermemoryai/supermemory/pull/577))
+- **Personal Assistant Cookbook:** Updated documentation with improved examples and guidance for building personal assistants with Supermemory ([#575](https://github.com/supermemoryai/supermemory/pull/575))
+- **API Documentation Improvements:** Enhanced documentation for document/by-id endpoint with detailed warnings and usage guidelines based on community feedback ([#550](https://github.com/supermemoryai/supermemory/pull/550))
+- **OpenAI Python SDK Middleware:** Added middleware functionality for Python SDK enabling automatic memory injection without AI SDK dependency ([#546](https://github.com/supermemoryai/supermemory/pull/546))
+
+## November 10, 2025
+
+- **Self-Hosting Documentation:** Added comprehensive self-hosting guide link to README for users wanting to run Supermemory on their own infrastructure ([#573](https://github.com/supermemoryai/supermemory/pull/573))
+- **Past Due User Improvements:** Enhanced handling of past due and pending users with better error messages and recovery flows ([#572](https://github.com/supermemoryai/supermemory/pull/572))
+- **Bookmark Import Optimization:** Fixed excessive icon refetch issue when importing large numbers of bookmarks, significantly improving import performance ([#496](https://github.com/supermemoryai/supermemory/pull/496))
+- **WXT Storage API Migration:** Browser extension now uses WXT's storage API instead of raw Chrome storage API for improved reliability and consistency ([#566](https://github.com/supermemoryai/supermemory/pull/566))
+
+## November 9, 2025
+
+- **Sentry Error Resolution:** Fixed multiple production errors reported by Sentry (CONSUMER-APP-FF, CONSUMER-APP-1T, CONSUMER-APP-86, CONSUMER-APP-7H, CONSUMER-APP-4F, CONSUMER-APP-7X), improving overall application stability ([#570](https://github.com/supermemoryai/supermemory/pull/570))
+- **PostHog Updates:** Updated analytics tracking based on PostHog findings to improve data quality ([#569](https://github.com/supermemoryai/supermemory/pull/569))
+- **Hydration Fix:** Resolved React hydration issue affecting the model selector component ([#568](https://github.com/supermemoryai/supermemory/pull/568))
+
+## November 7, 2025
+
+- **OpenAI Response API Support:** Added support for OpenAI TypeScript SDK's responses API, expanding integration possibilities ([#549](https://github.com/supermemoryai/supermemory/pull/549))
+- **Security Fix - Message Verification:** Fixed critical security vulnerability where messages could be sent to any website without verifying the recipient ([#565](https://github.com/supermemoryai/supermemory/pull/565))
+- **IndexedDB Migration:** Migrated chat persistence from localStorage to IndexedDB to resolve QuotaExceededError and support larger chat histories ([#560](https://github.com/supermemoryai/supermemory/pull/560))
+
+## November 5, 2025
+
+- **Next.js 16 Upgrade:** Upgraded to Next.js 16 for improved performance, better developer experience, and access to latest features ([#557](https://github.com/supermemoryai/supermemory/pull/557))
+
+## November 4, 2025
+
+- **Google Drive Temporarily Disabled:** Google Drive connections temporarily disabled with clear UI indicators due to upstream provider issues. Users will see explanatory messages until the issue is resolved ([#559](https://github.com/supermemoryai/supermemory/pull/559))
+- **Chrome Extension Update:** Updated Chrome extension package with latest dependencies and improvements ([#556](https://github.com/supermemoryai/supermemory/pull/556))
+
+## November 3, 2025
+
+- **Browser Extension Markdown Conversion:** Browser extension now converts HTML to markdown when saving entire web pages using TurndownService, making saved content more readable and portable ([#548](https://github.com/supermemoryai/supermemory/pull/548))
+- **README 2.0:** Major README overhaul with light/dark mode compatible logo, badges for Web App/Chrome Extension/Raycast Extension, and detailed feature sections ([#547](https://github.com/supermemoryai/supermemory/pull/547))
+- **MCP Connection Helper:** Added navigation to manual MCP setup documentation when users encounter connection issues ([#552](https://github.com/supermemoryai/supermemory/pull/552))
+
+## November 2, 2025
+
+- **Package Cleanup:** Removed unused dependencies to reduce bundle size and improve build performance ([#551](https://github.com/supermemoryai/supermemory/pull/551))
+
+## October 29, 2025
+
+- **Chat Message Scrolling:** Improved scroll behavior in chat interface for smoother user experience ([#544](https://github.com/supermemoryai/supermemory/pull/544))
+- **Logo Relocation:** Moved logo file to public directory and updated references ([#540](https://github.com/supermemoryai/supermemory/pull/540))
+- **Mobile Responsiveness:** Enhanced mobile chat interface with better skeleton loading states and responsive padding ([#541](https://github.com/supermemoryai/supermemory/pull/541))
+- **Type Safety Improvements:** Added type safety annotations and fixed hook dependencies in chat components ([#521](https://github.com/supermemoryai/supermemory/pull/521))
+- **Contributing Guide Updates:** Enhanced CONTRIBUTING.md and .env.example for better developer onboarding experience ([#536](https://github.com/supermemoryai/supermemory/pull/536))
+
+## October 28, 2025
+
+- **Streaming Memory Capture:** Added streaming support to @supermemory/tools middleware with improved memory handling for real-time assistant responses ([#539](https://github.com/supermemoryai/supermemory/pull/539))
+- **Array Contains Documentation:** Added documentation for new array contains filtering functionality ([#534](https://github.com/supermemoryai/supermemory/pull/534))
+- **Add Memory UI Improvements:** Enhanced add memory interface with better visual design and user experience ([#502](https://github.com/supermemoryai/supermemory/pull/502))
+
+## October 27, 2025
+
+- **OpenAI SDK Middleware:** Launched `withSupermemory` middleware for OpenAI SDK enabling direct memory injection without AI SDK dependency ([#531](https://github.com/supermemoryai/supermemory/pull/531))
+- **Optional PostHog:** PostHog analytics now initializes optionally based on configuration, improving privacy options ([#525](https://github.com/supermemoryai/supermemory/pull/525))
+- **Invalid DOM Property Fix:** Corrected invalid DOM property usage throughout the application ([#526](https://github.com/supermemoryai/supermemory/pull/526))
+- **OpenAI SDK Packaging:** Fixed OpenAI SDK packaging issues affecting distribution ([#532](https://github.com/supermemoryai/supermemory/pull/532))
+- **Organization Switch Enhancement:** Improved automatic organization switching for better auth state sharing ([#533](https://github.com/supermemoryai/supermemory/pull/533))
+- **Connector Sync Clarity:** Added visual indicators showing connector sync status and metadata after connection ([#523](https://github.com/supermemoryai/supermemory/pull/523))
+- **Pricing Display Fix:** Fixed pricing information display in settings panel ([#528](https://github.com/supermemoryai/supermemory/pull/528))
+
+## October 25, 2025
+
+- **Auto Organization Switch:** Implemented automatic switching to expected organization for smoother user experience ([#522](https://github.com/supermemoryai/supermemory/pull/522))
+
+## October 24, 2025
+
+- **Build Issue Fix:** Resolved bun lock build issues affecting deployment ([#519](https://github.com/supermemoryai/supermemory/pull/519))
+- **Better Loading Screen:** Enhanced loading screen with animated SVG and improved visual design ([#517](https://github.com/supermemoryai/supermemory/pull/517))
+
+## October 23, 2025
+
+- **Prompt Mutation Fix:** Fixed prompt mutation bug in withSupermemory and improved type definitions for props ([#509](https://github.com/supermemoryai/supermemory/pull/509))
+
+---
+
+## Package Updates
+
+- **@supermemory/tools:** Version 1.3.0 → 1.3.1 with streaming support and enhanced memory handling
+
+## Contributors
+
+Special thanks to all contributors who made this release possible: @vorahardik7, @MaheshtheDev, @nexxeln, @fyzanshaik, @AntonVishal, @orbisai0security, @aryankeluskar, @Dhravya, @PhantomInTheWire, @naman06dev, @amannhq, @ryujan404, @lirena00, and the entire Supermemory community.
+
+---
+
+**Note:** This release represents a major step forward in SDK integration capabilities, security, and user experience. The migration to IndexedDB and Next.js 16 provides a more stable foundation for future development.
