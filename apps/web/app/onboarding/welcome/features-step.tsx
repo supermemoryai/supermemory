@@ -18,7 +18,7 @@ export function FeaturesStep() {
 			className="text-center max-w-[22rem] space-y-6"
 			layout
 		>
-			<h2 className="text-white text-3xl font-medium">
+			<h2 className="text-white text-[32px] font-medium">
 				What I can do for you
 			</h2>
 

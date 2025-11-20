@@ -27,3 +27,13 @@ export function dmSansClassName(additionalClasses?: string) {
 		additionalClasses,
 	)
 }
+
+
+export function dmMonoClassName(additionalClasses?: string) {
+	return cn(
+		dmMonoFont.className,
+		"tracking-[-0.01em]",
+		"leading-[135%]",
+		additionalClasses,
+	)
+}

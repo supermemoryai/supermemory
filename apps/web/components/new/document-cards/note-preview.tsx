@@ -89,7 +89,12 @@ export function NotePreview({ document }: { document: DocumentWithMemories }) {
 			</div>
 			<div>
 				{document.title && (
-					<p className={cn(dmSansClassName(), "text-[12px] font-semibold")}>
+					<p
+						className={cn(
+							dmSansClassName(),
+							"text-[12px] font-semibold line-clamp-2 leading-[125%]",
+						)}
+					>
 						{document.title}
 					</p>
 				)}

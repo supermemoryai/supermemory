@@ -43,13 +43,12 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 		}
 	}
 
-	// Fall back to document type
 	switch (type) {
 		case "pdf":
 			return {
-				icon: <PDF className="w-4 h-4 text-[#DC2626]" />,
+				icon: <PDF className="w-4 h-4 text-[#FF7673]" />,
 				extension: ".pdf",
-				color: "#DC2626",
+				color: "#FF7673",
 			}
 		case "image":
 			return {

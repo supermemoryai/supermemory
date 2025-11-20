@@ -216,7 +216,7 @@ export function LoginPage() {
 			<AnimatedGradientBackground />
 			<div className="relative z-10">
 				<InitialHeader />
-				<section className="flex flex-col items-center justify-center p-4 space-y-8 sm:p-6 md:p-8 lg:px-[5rem] lg:py-[3.125rem] min-h-[calc(100vh-80px)]">
+				<section className="flex flex-col items-center justify-center p-4 space-y-12 sm:p-6 md:p-8 lg:px-[5rem] lg:py-[3.125rem] min-h-[calc(100vh-80px)]">
 					<div className="text-center">
 						<div className="text-5xl font-medium">
 							Never forget anything, anywhere
@@ -262,7 +262,7 @@ export function LoginPage() {
 						</LoginCard>
 					) : (
 						<LoginCard>
-							<div className="w-full flex flex-col gap-4">
+							<div className="w-full flex flex-col" style={{ gap: "12px" }}>
 								{params.get("error") && (
 									<div className="text-red-500">
 										Error: {params.get("error")}. Please try again!
@@ -398,72 +398,79 @@ export function LoginPage() {
 									) : null}
 								</div>
 
-								<TextSeparator text="OR" />
+								<TextSeparator text="OR" className={cn(dmSansClassName())} />
 
-								<form onSubmit={handleSubmit} className="flex flex-col gap-6">
-									<LabeledInput
-										error={error}
-										inputPlaceholder="your@email.com"
-										inputProps={{
-											"aria-invalid": error ? "true" : "false",
-											disabled: isLoading,
-											id: "email",
-											onChange: (e) => {
-												setEmail(e.target.value);
-												error && setError(null);
-											},
-											required: true,
-											value: email,
-										}}
-										inputType="email"
-									/>
-
-									<div className="relative">
-										<Button
-											className='flex justify-center items-center w-full h-[44px] relative gap-3 p-2 rounded-xl'
-											style={{
-											background:
-												'linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)',
-											boxShadow:
-												'1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)',
+								<div className="flex flex-col gap-6">
+									<form onSubmit={handleSubmit} className="flex flex-col gap-6">
+										<LabeledInput
+											error={error}
+											inputPlaceholder="your@email.com"
+											inputProps={{
+												"aria-invalid": error ? "true" : "false",
+												disabled: isLoading,
+												id: "email",
+												onChange: (e) => {
+													setEmail(e.target.value);
+													error && setError(null);
+												},
+												required: true,
+												value: email,
 											}}
-											disabled={isLoading}
-											type="submit"
-										>
-											<Logo className="size-4" />
-											{isLoadingEmail
-												? "Sending login link..."
-												: "Log in with Supermemory"}
-										</Button>
-										{lastUsedMethod === "magic_link" && (
-											<div className="absolute -top-2 -right-2">
-												<Badge variant="default" className="text-xs">
-													Last used
-												</Badge>
-											</div>
-										)}
-									</div>
-								</form>
+											inputType="email"
+										/>
 
-								<Label1Regular className={cn("text-center !text-xs text-[#737373B2]", dmSansClassName())}>
-									By continuing, you agree to our{" "}
-									<span className="inline-block">
-										<a
-											className="underline"
-											href="https://supermemory.ai/terms-of-service"
-										>
-											Terms
-										</a>{" "}
-										and{" "}
-										<a
-											className="underline"
-											href="https://supermemory.ai/privacy-policy"
-										>
-											Privacy Policy
-										</a>
-										.
-									</span>
-								</Label1Regular>
+										<div className="relative">
+											<Button
+												className="flex justify-center items-center w-full h-[44px] relative gap-3 p-2 rounded-xl"
+												style={{
+													background:
+														"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
+													boxShadow:
+														"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
+												}}
+												disabled={isLoading}
+												type="submit"
+											>
+												<Logo className="size-4" />
+												{isLoadingEmail
+													? "Sending login link..."
+													: "Log in with Supermemory"}
+											</Button>
+											{lastUsedMethod === "magic_link" && (
+												<div className="absolute -top-2 -right-2">
+													<Badge variant="default" className="text-xs">
+														Last used
+													</Badge>
+												</div>
+											)}
+										</div>
+									</form>
+
+									<Label1Regular
+										className={cn(
+											"text-center !text-xs text-[#737373B2]",
+											dmSansClassName(),
+										)}
+									>
+										By continuing, you agree to our{" "}
+										<span className="inline-block">
+											<a
+												className="underline"
+												href="https://supermemory.ai/terms-of-service"
+											>
+												Terms
+											</a>{" "}
+											and{" "}
+											<a
+												className="underline"
+												href="https://supermemory.ai/privacy-policy"
+											>
+												Privacy Policy
+											</a>
+											.
+										</span>
+									</Label1Regular>
+								</div>
 							</div>
 						</LoginCard>
 					)}

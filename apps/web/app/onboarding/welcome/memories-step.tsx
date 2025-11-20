@@ -32,30 +32,23 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 		setOtherLinks(updated)
 	}
 
-	const removeOtherLink = (index: number) => {
-		if (otherLinks.length > 1) {
-			const updated = otherLinks.filter((_, i) => i !== index)
-			setOtherLinks(updated)
-		}
-	}
-
 	return (
 		<motion.div
 			initial={{ opacity: 0, y: 40 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-			className="text-center max-w-[28rem] w-full"
+			className="text-center w-full"
 			layout
 		>
-			<h2 className="text-white text-3xl font-medium mb-4 mt-[-36px]">
+			<h2 className="text-white text-[32px] font-medium mb-4 mt-[-36px]">
 				Let's add your memories
 			</h2>
 
-			<div className="space-y-6">
-				<div className="text-left" id="x-twitter-field">
+			<div className="space-y-4 max-w-[329px] mx-auto">
+				<div className="text-left gap-[6px] flex flex-col" id="x-twitter-field">
 					<label
 						htmlFor="twitter-handle"
-						className="text-white text-sm font-medium mb-2 block pl-2"
+						className="text-white text-sm font-medium block pl-2"
 					>
 						X/Twitter
 					</label>
@@ -65,14 +58,14 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						placeholder="x.com/yourhandle"
 						value={twitterHandle}
 						onChange={(e) => setTwitterHandle(e.target.value)}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px]"
 					/>
 				</div>
 
-				<div className="text-left" id="linkedin-field">
+				<div className="text-left gap-[6px] flex flex-col" id="linkedin-field">
 					<label
 						htmlFor="linkedin-profile"
-						className="text-white text-sm font-medium mb-2 block pl-2"
+						className="text-white text-sm font-medium block pl-2"
 					>
 						LinkedIn
 					</label>
@@ -82,19 +75,22 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						placeholder="linkedin.com/in/yourname"
 						value={linkedinProfile}
 						onChange={(e) => setLinkedinProfile(e.target.value)}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px]"
 					/>
 				</div>
 
-				<div className="text-left" id="other-links-field">
-					<div className="flex items-center justify-between mb-2">
+				<div
+					className="text-left gap-[6px] flex flex-col"
+					id="other-links-field"
+				>
+					<div className="flex items-center justify-between">
 						<label
 							htmlFor="other-links"
 							className="text-white text-sm font-medium pl-2"
 						>
 							Other links
 						</label>
-						<span className="text-[#8A8A8A] text-xs">Upto 3</span>
+						<span className="text-[#525966] text-[10px]">Upto 3</span>
 					</div>
 					{otherLinks.map((link, index) => (
 						<div
@@ -107,7 +103,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 								placeholder="Add your website, GitHub, Notion..."
 								value={link}
 								onChange={(e) => updateOtherLink(index, e.target.value)}
-								className="flex-1 px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors"
+								className="flex-1 px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px]"
 							/>
 							{index === otherLinks.length - 1 && otherLinks.length < 3 && (
 								<button
@@ -122,10 +118,13 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 					))}
 				</div>
 
-				<div className="text-left" id="description-field">
+				<div
+					className="text-left gap-[6px] flex flex-col"
+					id="description-field"
+				>
 					<label
 						htmlFor="description"
-						className="text-white text-sm font-medium mb-2 block pl-2"
+						className="text-white text-sm font-medium block pl-2"
 					>
 						What do you do? What do you like?
 					</label>
@@ -134,7 +133,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						placeholder="Tell me the basics in your words. A few lines about your work, interests, etc."
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
-						rows={4}
+						rows={2}
 						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors min-h-[4rem]"
 					/>
 				</div>
@@ -147,11 +146,14 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				}}
 				transition={{ duration: 1, ease: "easeOut", delay: 1 }}
 				initial={{ opacity: 0, y: 10 }}
-				className="mt-6"
+				className="mt-[24px]"
 			>
 				<Button
-					className="rounded-xl px-6 py-3 bg-[#070E1B] border border-[#525966]/20 hover:bg-[#2A2A2A] max-w-[12rem] text-white disabled:opacity-50 disabled:cursor-not-allowed h-[40px] cursor-pointer"
+					className="rounded-xl px-6 py-3 border border-[#525966]/20 max-w-[12rem] text-white disabled:opacity-50 disabled:cursor-not-allowed h-[40px] cursor-pointer"
 					disabled={isSubmitting}
+					style={{
+						background: "linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+					}}
 					onClick={() => {
 						const formData = {
 							twitter: twitterHandle,

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@ui/components/button"
 import { MCPDetailView } from "@/components/mcp-detail-view"
+import { ChromeExtensionDetailView } from "@/components/chrome-extension-detail-view"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
@@ -69,31 +70,41 @@ export function IntegrationsStep() {
 	if (selectedCard === "Connect to AI") {
 		return <MCPDetailView onBack={() => setSelectedCard(null)} />
 	}
+	if (selectedCard === "Capture") {
+		return <ChromeExtensionDetailView onBack={() => setSelectedCard(null)} />
+	}
 	return (
 		<div className="flex flex-col items-center justify-center h-full p-8">
 			<div className="text-center mb-6 flex flex-col items-center justify-center space-y-2">
-				<h1 className="text-white text-3xl font-medium">
+				<h1 className="text-white text-[32px] font-medium">
 					Build your personal memory
 				</h1>
-				<p className={cn("text-white text-sm opacity-60 max-w-xs", dmSansClassName())}>
-					Your supermemory comes alive when you capture and connect what's
-					important
+				<p
+					className={cn(
+						"text-white text-sm opacity-60 max-w-xs",
+						dmSansClassName(),
+					)}
+				>
+					Your supermemory comes alive when you <br /> capture and connect
+					what's important
 				</p>
 			</div>
 
 			<div className="grid grid-cols-2 gap-3 max-w-lg w-full mb-12">
 				{integrationCards.map((card) => {
-					const isClickable = card.title === "Connect to AI"
+					const isClickable =
+						card.title === "Connect to AI" || card.title === "Capture"
 
 					if (isClickable) {
 						return (
 							<button
 								key={card.title}
 								type="button"
-								className={cn("bg-[#080B0F] relative rounded-lg p-4 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] cursor-pointer text-left w-full hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat",
-									"hover:border-b-0 border-b-0"
+								className={cn(
+									"bg-[#080B0F] relative rounded-lg p-4 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] cursor-pointer text-left w-full hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat",
+									"hover:border-b-0 border-b-0",
 								)}
-								onClick={() => setSelectedCard("Connect to AI")}
+								onClick={() => setSelectedCard(card.title)}
 							>
 								<div className="flex-1 mt-10">
 									<h3 className="text-white text-sm font-medium">
@@ -111,7 +122,7 @@ export function IntegrationsStep() {
 					return (
 						<div
 							key={card.title}
-							className="bg-[#080B0F] relative rounded-lg p-4 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat"
+							className="bg-[#080B0F] relative rounded-lg p-3 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat"
 						>
 							<div className="flex-1 mt-10">
 								<h3 className="text-white text-sm font-medium">{card.title}</h3>
@@ -133,7 +144,11 @@ export function IntegrationsStep() {
 				>
 					← Back
 				</Button>
-				<Button variant="link" className="text-white hover:text-gray-300" onClick={handleContinue}>
+				<Button
+					variant="link"
+					className="text-white hover:text-gray-300"
+					onClick={handleContinue}
+				>
 					Continue →
 				</Button>
 			</div>

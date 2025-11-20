@@ -9,12 +9,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@ui/components/select"
-import { CircleCheckIcon, CopyIcon } from "lucide-react"
+import { CircleCheckIcon, CopyIcon, Check } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmMonoClassName, dmSansClassName } from "@/utils/fonts"
+import { SyncLogoIcon } from "@ui/assets/icons"
 
 const clients = {
 	cursor: "Cursor",
@@ -61,8 +62,9 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 		const command = generateInstallCommand()
 		navigator.clipboard.writeText(command)
 		analytics.mcpInstallCmdCopied()
-		toast.success("Copied to clipboard!")
+		setIsCopied(true)
 		setActiveStep(3)
+		setTimeout(() => setIsCopied(false), 2000)
 	}
 
 	return (
@@ -84,73 +86,139 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 
 				<div className="mb-8 space-x-4 flex max-w-2xl">
 					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
-						<CircleCheckIcon className="size-10 text-green-500" />
-						<p className="text-white/40 text-sm">
+						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
+						<p className="text-[#8B8B8B] text-sm">
 							MCP connects your AI apps to create and use memories directly
 						</p>
 					</div>
 					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
-						<CircleCheckIcon className="size-10 text-green-500" />
-						<p className="text-white/40 text-sm">
+						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
+						<p className="text-[#8B8B8B] text-sm">
 							Auto-fetch the right context from anything you've saved
 						</p>
 					</div>
 					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
-						<CircleCheckIcon className="size-10 text-green-500" />
-						<p className="text-white/40 text-sm">
+						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
+						<p className="text-[#8B8B8B] text-sm">
 							One-time setup, seamless integration across your workflow
 						</p>
 					</div>
 				</div>
 
 				<div className="w-full max-w-2xl relative">
-					<div className="absolute left-4 top-0 w-[1px] h-full bg-[#1E293B] z-10" />
+					<div
+						className="absolute left-4 top-0 w-[1px] bg-[#1E293B] z-10"
+						style={{ height: activeStep === 3 ? "calc(100% - 4rem)" : "100%" }}
+					/>
 					<div className="flex items-start space-x-4 z-20">
-						<div className={cn(
-							"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 bg-[#161F2B] text-white",
-						)} >
-							<span style={activeStep === 1 ? {
-								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							} : undefined}>1</span>
+						<div
+							className={cn(
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 bg-[#161F2B] text-white",
+							)}
+						>
+							<span
+								style={
+									activeStep === 1
+										? {
+												background:
+													"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+												backgroundClip: "text",
+												WebkitBackgroundClip: "text",
+												WebkitTextFillColor: "transparent",
+											}
+										: undefined
+								}
+							>
+								1
+							</span>
 						</div>
 						<div className="flex-1 mb-4">
 							<div className="flex gap-4 mb-4">
-								<h3 className="text-white text-lg font-medium" style={activeStep === 1 ? {
-									background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-									backgroundClip: "text",
-									WebkitBackgroundClip: "text",
-									WebkitTextFillColor: "transparent",
-								} : undefined}>
+								<h3
+									className="text-white text-lg font-medium"
+									style={
+										activeStep === 1
+											? {
+													background:
+														"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+													backgroundClip: "text",
+													WebkitBackgroundClip: "text",
+													WebkitTextFillColor: "transparent",
+												}
+											: undefined
+									}
+								>
 									Select your AI client
 								</h3>
-								{selectedClient && <Select
-									onValueChange={(value) => {
-										setSelectedClient(value as keyof typeof clients)
-										setActiveStep(2)
-									}}
-									value={selectedClient || undefined}
-								>
-									<SelectTrigger className="max-w-md rounded-full border-[#242A33] text-white hover:border-gray-600 !bg-transparent">
-										<SelectValue placeholder="Select a client" />
-									</SelectTrigger>
-									<SelectContent className="bg-black border-none">
-										{Object.entries(clients).slice(0, 7).map(([key, clientName]) => (
-											<SelectItem
-												key={key}
-												value={key}
-												className="text-white hover:bg-[#080B0F]"
-											>
-												{clientName}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-								}
+								{selectedClient && (
+									<Select
+										onValueChange={(value) => {
+											setSelectedClient(value as keyof typeof clients)
+											setActiveStep(2)
+										}}
+										value={selectedClient || undefined}
+									>
+										<SelectTrigger
+											className="max-w-md rounded-full border-[#242A33] text-white hover:border-gray-600 !bg-transparent"
+											style={{
+												background:
+													"linear-gradient(0deg, #0A0E14 0%, #080B0F 100%)",
+											}}
+										>
+											{selectedClient ? (
+												<div className="flex items-center gap-2">
+													<Image
+														alt={clients[selectedClient]}
+														height={20}
+														width={20}
+														unoptimized
+														src={
+															selectedClient === "mcp-url"
+																? "/mcp-icon.svg"
+																: `/mcp-supported-tools/${selectedClient === "claude-code" ? "claude" : selectedClient}.png`
+														}
+													/>
+													<span>{clients[selectedClient]}</span>
+												</div>
+											) : (
+												<SelectValue placeholder="Select a client" />
+											)}
+										</SelectTrigger>
+										<SelectContent className="bg-black border-none">
+											{Object.entries(clients)
+												.slice(0, 7)
+												.map(([key, clientName]) => (
+													<SelectItem
+														key={key}
+														value={key}
+														className="text-white hover:bg-[#080B0F]"
+													>
+														<div className="flex items-center gap-2">
+															<Image
+																alt={clientName}
+																height={20}
+																width={20}
+																unoptimized
+																src={
+																	key === "mcp-url"
+																		? "/mcp-icon.svg"
+																		: `/mcp-supported-tools/${key === "claude-code" ? "claude" : key}.png`
+																}
+															/>
+															<span>{clientName}</span>
+														</div>
+													</SelectItem>
+												))}
+										</SelectContent>
+									</Select>
+								)}
 							</div>
-							<div className={cn("flex flex-wrap gap-2 mb-4", selectedClient ? "hidden" : "")}>
+							<div
+								className={cn(
+									"flex flex-wrap gap-2 mb-4",
+									selectedClient ? "hidden" : "",
+								)}
+							>
 								{Object.entries(clients)
 									.slice(0, 7)
 									.map(([key, clientName]) => (
@@ -171,6 +239,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												<div className="w-5 h-5 flex items-center justify-center">
 													<Image
 														alt={clientName}
+														unoptimized
 														className="rounded object-contain"
 														height={20}
 														onError={(e) => {
@@ -205,32 +274,53 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										</button>
 									))}
 							</div>
-							<p className="text-gray-400 text-xs">
-								*You can connect to all of these, setup is different for each
-								one
-							</p>
+							{!selectedClient && (
+								<p className="text-gray-400 text-xs">
+									*You can connect to all of these, setup is different for each
+									one
+								</p>
+							)}
 						</div>
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className={cn(
-							"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 text-white bg-[#161F2B]",
-							""
-						)} >
-							<span style={activeStep === 2 ? {
-								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							} : undefined}>2</span>
+						<div
+							className={cn(
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 text-white bg-[#161F2B]",
+								"",
+							)}
+						>
+							<span
+								style={
+									activeStep === 2
+										? {
+												background:
+													"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+												backgroundClip: "text",
+												WebkitBackgroundClip: "text",
+												WebkitTextFillColor: "transparent",
+											}
+										: undefined
+								}
+							>
+								2
+							</span>
 						</div>
 						<div className="flex-1 mb-4">
-							<h3 className="text-white text-lg font-medium mb-4" style={activeStep === 2 ? {
-								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							} : undefined}>
+							<h3
+								className="text-white text-lg font-medium mb-4"
+								style={
+									activeStep === 2
+										? {
+												background:
+													"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+												backgroundClip: "text",
+												WebkitBackgroundClip: "text",
+												WebkitTextFillColor: "transparent",
+											}
+										: undefined
+								}
+							>
 								Copy the installation command
 							</h3>
 							{selectedClient && (
@@ -353,22 +443,39 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										<div className="space-y-3">
 											<div className="relative">
 												<input
-													className="font-mono text-xs w-full pr-10 p-2 bg-black border border-gray-600 rounded-lg text-green-400"
+													className="font-mono text-xs w-full pr-10 p-4 px-2 bg-[#0D121A] rounded-xl text-white pl-3"
+													style={{
+														border: "1px solid rgba(61, 67, 77, 0.10)",
+													}}
 													readOnly
 													value={generateInstallCommand()}
 												/>
 												<button
 													type="button"
-													className="absolute top-1 right-1 cursor-pointer p-1"
+													className={cn(
+														"absolute top-1.5 right-1 cursor-pointer p-1 flex items-center rounded-[10px] px-3 py-2 gap-2",
+														dmSansClassName(),
+													)}
+													style={{
+														background:
+															"linear-gradient(180deg, #267BF1 40.23%, #15468B 100%), linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+														border: "1px solid #000",
+													}}
 													onClick={copyToClipboard}
 												>
-													<CopyIcon className="size-4 text-gray-400 hover:text-white" />
+													{isCopied ? (
+														<>
+															<Check className="size-4 text-white" />
+															<span className="text-white">Copied</span>
+														</>
+													) : (
+														<>
+															<CopyIcon className="size-3 text-white" />
+															<span className="text-white">Copy</span>
+														</>
+													)}
 												</button>
 											</div>
-											<p className="text-gray-400 text-sm">
-												Copy and run this command in your terminal to install
-												the MCP server.
-											</p>
 										</div>
 									)}
 								</div>
@@ -377,26 +484,59 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					</div>
 
 					<div className="flex items-start space-x-4">
-						<div className={cn(
-							"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20",
-							"bg-[#161F2B] text-white"
-						)} >
-							<span style={activeStep === 3 ? {
-								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							} : undefined}>3</span>
+						<div
+							className={cn(
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20",
+								"bg-[#161F2B] text-white",
+							)}
+						>
+							<span
+								style={
+									activeStep === 3
+										? {
+												background:
+													"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+												backgroundClip: "text",
+												WebkitBackgroundClip: "text",
+												WebkitTextFillColor: "transparent",
+											}
+										: undefined
+								}
+							>
+								3
+							</span>
 						</div>
-						<div className="flex-1">
-							<h3 className="text-white text-lg font-medium" style={activeStep === 3 ? {
-								background: "linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-								backgroundClip: "text",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-							} : undefined}>
+						<div className="flex-1 space-y-4">
+							<h3
+								className="text-white text-lg font-medium"
+								style={
+									activeStep === 3
+										? {
+												background:
+													"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+												backgroundClip: "text",
+												WebkitBackgroundClip: "text",
+												WebkitTextFillColor: "transparent",
+											}
+										: undefined
+								}
+							>
 								Run command in your terminal
 							</h3>
+							{activeStep === 3 && (
+								<p
+									className={cn(
+										"font-mono text-xs w-full pr-10 p-4 px-2 bg-[#0D121A] rounded-xl text-white pl-3 flex items-center gap-2",
+										dmMonoClassName(),
+									)}
+									style={{
+										border: "1px solid rgba(61, 67, 77, 0.10)",
+									}}
+								>
+									<SyncLogoIcon className="size-4" />
+									Waiting for installation
+								</p>
+							)}
 						</div>
 					</div>
 				</div>
