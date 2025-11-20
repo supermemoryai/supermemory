@@ -74,7 +74,6 @@ export interface GraphCanvasProps {
 	draggingNodeId: string | null;
 	// Optional list of document IDs (customId or internal id) to highlight
 	highlightDocumentIds?: string[];
-	isExperimental?: boolean;
 }
 
 export interface MemoryGraphProps {
@@ -98,7 +97,6 @@ export interface MemoryGraphProps {
 	occludedRightPx?: number;
 	// Whether to auto-load more documents based on viewport visibility
 	autoLoadOnViewport?: boolean;
-	isExperimental?: boolean;
 }
 
 export interface LegendProps {

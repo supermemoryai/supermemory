@@ -24,15 +24,18 @@ export const MemoryGraph = ({
 	totalLoaded,
 	hasMore,
 	loadMoreDocuments,
-	showSpacesSelector = true,
+	showSpacesSelector,
 	variant = "console",
 	legendId,
 	highlightDocumentIds = [],
 	highlightsVisible = true,
 	occludedRightPx = 0,
 	autoLoadOnViewport = true,
-	isExperimental = false,
 }: MemoryGraphProps) => {
+	// Derive showSpacesSelector from variant if not explicitly provided
+	// console variant shows spaces selector, consumer variant hides it
+	const finalShowSpacesSelector = showSpacesSelector ?? (variant === "console");
+
 	const [selectedSpace, setSelectedSpace] = useState<string>("all");
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -356,7 +359,7 @@ export const MemoryGraph = ({
 			style={{ backgroundColor: colors.background.primary }}
 		>
 			{/* Spaces selector - only shown for console */}
-			{showSpacesSelector && availableSpaces.length > 0 && (
+			{finalShowSpacesSelector && availableSpaces.length > 0 && (
 				<div className="absolute top-4 left-4 z-10">
 					<SpacesDropdown
 						availableSpaces={availableSpaces}
@@ -382,7 +385,6 @@ export const MemoryGraph = ({
 				isLoading={isLoading}
 				nodes={nodes}
 				variant={variant}
-				isExperimental={isExperimental}
 			/>
 
 			{/* Node detail panel */}

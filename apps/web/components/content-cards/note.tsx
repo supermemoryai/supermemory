@@ -15,6 +15,7 @@ import {
 import { colors } from "@repo/ui/memory-graph/constants"
 import { Brain, ExternalLink, Trash2 } from "lucide-react"
 import { cn } from "@lib/utils"
+import { useState } from "react"
 import {
 	formatDate,
 	getPastelBackgroundColor,
@@ -45,12 +46,16 @@ export const NoteCard = ({
 	onOpenDetails,
 	onDelete,
 }: NoteCardProps) => {
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
+
 	return (
 		<Card
 			className="w-full p-4 transition-all cursor-pointer group relative overflow-hidden gap-2 shadow-xs"
 			onClick={() => {
-				analytics.documentCardClicked()
-				onOpenDetails(document)
+				if (!isDialogOpen) {
+					analytics.documentCardClicked()
+					onOpenDetails(document)
+				}
 			}}
 			style={{
 				backgroundColor: getPastelBackgroundColor(
@@ -59,7 +64,7 @@ export const NoteCard = ({
 				width: width,
 			}}
 		>
-			<AlertDialog>
+			<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 				<AlertDialogTrigger asChild>
 					<button
 						className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 group-hover:cursor-pointer transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
@@ -76,7 +81,7 @@ export const NoteCard = ({
 						<Trash2 className="w-3.5 h-3.5" />
 					</button>
 				</AlertDialogTrigger>
-				<AlertDialogContent>
+				<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete Document</AlertDialogTitle>
 						<AlertDialogDescription>

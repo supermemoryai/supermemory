@@ -42,14 +42,17 @@ export const WebsiteCard = ({
 	showExternalLink = true,
 }: WebsiteCardProps) => {
 	const [imageError, setImageError] = useState(false)
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
 
 	const handleCardClick = () => {
-		if (onClick) {
-			onClick()
-		} else if (onOpenDetails) {
-			onOpenDetails()
-		} else {
-			window.open(url, "_blank", "noopener,noreferrer")
+		if (!isDialogOpen) {
+			if (onClick) {
+				onClick()
+			} else if (onOpenDetails) {
+				onOpenDetails()
+			} else {
+				window.open(url, "_blank", "noopener,noreferrer")
+			}
 		}
 	}
 
@@ -78,7 +81,7 @@ export const WebsiteCard = ({
 			}}
 		>
 			{onDelete && (
-				<AlertDialog>
+				<AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
 					<AlertDialogTrigger asChild>
 						<button
 							className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/20"
@@ -95,7 +98,7 @@ export const WebsiteCard = ({
 							<Trash2 className="w-3.5 h-3.5" />
 						</button>
 					</AlertDialogTrigger>
-					<AlertDialogContent>
+					<AlertDialogContent onClick={(e) => e.stopPropagation()}>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete Document</AlertDialogTitle>
 							<AlertDialogDescription>

@@ -1,0 +1,81 @@
+{
+  "name": "@supermemory/memory-graph",
+  "version": "0.1.0",
+  "description": "Interactive graph visualization component for Supermemory - visualize and explore your memory connections",
+  "type": "module",
+  "main": "./dist/memory-graph.cjs",
+  "module": "./dist/memory-graph.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/memory-graph.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/memory-graph.cjs"
+      }
+    },
+    "./styles.css": "./dist/memory-graph.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build && tsc --emitDeclarationOnly",
+    "check-types": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "supermemory",
+    "graph",
+    "visualization",
+    "memory",
+    "interactive",
+    "canvas",
+    "react",
+    "component"
+  ],
+  "author": "Supermemory",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supermemoryai/supermemory",
+    "directory": "packages/memory-graph"
+  },
+  "bugs": {
+    "url": "https://github.com/supermemoryai/supermemory/issues"
+  },
+  "homepage": "https://github.com/supermemoryai/supermemory/tree/main/packages/memory-graph#readme",
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@emotion/is-prop-valid": "^1.4.0",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@tanstack/react-query": "^5.90.7",
+    "@vanilla-extract/css": "^1.17.4",
+    "@vanilla-extract/recipes": "^0.5.7",
+    "@vanilla-extract/sprinkles": "^1.6.5",
+    "lucide-react": "^0.552.0",
+    "motion": "^12.23.24"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vanilla-extract/vite-plugin": "^5.1.1",
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.1",
+    "vite-plugin-lib-inject-css": "^2.2.2"
+  }
+}

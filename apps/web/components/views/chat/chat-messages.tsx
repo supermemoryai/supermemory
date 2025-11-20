@@ -1,6 +1,6 @@
 "use client"
 
-import { useChat, useCompletion } from "@ai-sdk/react"
+import { useChat, useCompletion, type UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { DefaultChatTransport } from "ai"
@@ -12,6 +12,7 @@ import {
 	Copy,
 	RotateCcw,
 	X,
+	Square
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -19,7 +20,9 @@ import { Streamdown } from "streamdown"
 import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
+import { modelNames, ModelIcon } from "@/lib/models"
 import { Spinner } from "../../spinner"
+import { areUIMessageArraysEqual } from "@/stores/chat"
 
 interface MemoryResult {
 	documentId?: string
@@ -242,17 +245,14 @@ export function ChatMessages() {
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<
 		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
-	>(
-		(sessionStorage.getItem(storageKey) as
-			| "gpt-5"
-			| "claude-sonnet-4.5"
-			| "gemini-2.5-pro") ||
-			"gemini-2.5-pro" ||
-			"gemini-2.5-pro",
-	)
+	>("gemini-2.5-pro")
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
+	const lastSavedMessagesRef = useRef<UIMessage[] | null>(null)
+	const lastSavedActiveIdRef = useRef<string | null>(null)
+	const lastLoadedChatIdRef = useRef<string | null>(null)
+	const lastLoadedMessagesRef = useRef<UIMessage[] | null>(null)
 
 	const { setDocumentIds } = useGraphHighlights()
 
@@ -289,10 +289,15 @@ export function ChatMessages() {
 		})
 
 	useEffect(() => {
+		lastLoadedMessagesRef.current = messages
+	}, [messages])
+
+	useEffect(() => {
 		activeChatIdRef.current = currentChatId ?? id ?? null
 	}, [currentChatId, id])
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (currentChatId) {
 			const savedModel = sessionStorage.getItem(storageKey) as
 				| "gpt-5"
@@ -309,6 +314,7 @@ export function ChatMessages() {
 	}, [currentChatId, storageKey])
 
 	useEffect(() => {
+		if (typeof window === "undefined") return
 		if (currentChatId && !hasRunInitialMessageRef.current) {
 			// Check if there's an initial message from the home page in sessionStorage
 			const storageKey = `chat-initial-${currentChatId}`
@@ -330,20 +336,56 @@ export function ChatMessages() {
 	}, [id, currentChatId, setCurrentChatId])
 
 	useEffect(() => {
-		const msgs = getCurrentConversation()
-		if (msgs && msgs.length > 0) {
-			setMessages(msgs)
-		} else if (!currentChatId) {
-			setMessages([])
+		if (currentChatId !== lastLoadedChatIdRef.current) {
+			lastLoadedMessagesRef.current = null
+			lastSavedMessagesRef.current = null
 		}
+
+		if (currentChatId === lastLoadedChatIdRef.current) {
+			setInput("")
+			return
+		}
+
+		const msgs = getCurrentConversation()
+
+		if (msgs && msgs.length > 0) {
+			const currentMessages = lastLoadedMessagesRef.current
+			if (!currentMessages || !areUIMessageArraysEqual(currentMessages, msgs)) {
+				lastLoadedMessagesRef.current = msgs
+				setMessages(msgs)
+			}
+		} else if (!currentChatId) {
+			if (
+				lastLoadedMessagesRef.current &&
+				lastLoadedMessagesRef.current.length > 0
+			) {
+				lastLoadedMessagesRef.current = []
+				setMessages([])
+			}
+		}
+
+		lastLoadedChatIdRef.current = currentChatId
 		setInput("")
 	}, [currentChatId, getCurrentConversation, setMessages])
 
 	useEffect(() => {
 		const activeId = currentChatId ?? id
-		if (activeId && messages.length > 0) {
-			setConversation(activeId, messages)
+		if (!activeId || messages.length === 0) {
+			return
 		}
+
+		if (activeId !== lastSavedActiveIdRef.current) {
+			lastSavedMessagesRef.current = null
+			lastSavedActiveIdRef.current = activeId
+		}
+
+		const lastSaved = lastSavedMessagesRef.current
+		if (lastSaved && areUIMessageArraysEqual(lastSaved, messages)) {
+			return
+		}
+
+		lastSavedMessagesRef.current = messages
+		setConversation(activeId, messages)
 	}, [messages, currentChatId, id, setConversation])
 
 	const { complete } = useCompletion({
@@ -391,11 +433,37 @@ export function ChatMessages() {
 		shouldGenerateTitleRef.current = !hasTitle
 	}, [getCurrentChat])
 
+	/**
+	 * Handles sending a message from the input area.
+	 * - Prevents sending during submitted (shows toast)
+	 * - Stops streaming when active
+	 * - Validates non-empty input (shows toast)
+	 * Returns true when a message is sent.
+	 */
+	const handleSendMessage = useCallback(() => {
+		if (status === "submitted") {
+			toast.warning("Please wait for the current response to complete", {
+				id: "wait-for-response",
+			})
+			return false
+		}
+		if (status === "streaming") {
+			stop()
+			return false
+		}
+		if (!input.trim()) {
+			toast.warning("Please enter a message", { id: "empty-message" })
+			return false
+		}
+		sendMessage({ text: input })
+		setInput("")
+		return true
+	}, [status, input, sendMessage, stop])
+
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
-			sendMessage({ text: input })
-			setInput("")
+			handleSendMessage()
 		}
 	}
 
@@ -616,16 +684,10 @@ export function ChatMessages() {
 					className="flex flex-col items-end gap-3 border border-border rounded-[22px] p-3 relative shadow-lg dark:shadow-2xl"
 					onSubmit={(e) => {
 						e.preventDefault()
-						if (status === "submitted") return
-						if (status === "streaming") {
-							stop()
-							return
-						}
-						if (input.trim()) {
+						const sent = handleSendMessage()
+						if (sent) {
 							enableAutoScroll()
 							scrollToBottom("auto")
-							sendMessage({ text: input })
-							setInput("")
 						}
 					}}
 				>
@@ -633,19 +695,45 @@ export function ChatMessages() {
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
 						onKeyDown={handleKeyDown}
+						aria-busy={status === "streaming" || status === "submitted"}
+						aria-disabled={status === "submitted"}
 						placeholder="Ask your follow-up question..."
 						className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-3 py-3 bg-transparent"
 						rows={3}
 					/>
-					<div className="absolute bottom-2 right-2">
-						<Button
-							type="submit"
-							disabled={!input.trim()}
-							className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
-							size="icon"
-						>
-							<ArrowUp className="size-4" />
-						</Button>
+					<div className="absolute bottom-2 right-2 flex items-center gap-4">
+						<div className="flex items-center gap-1.5">
+							<ModelIcon
+								width={16}
+								height={16}
+								className="text-muted-foreground"
+							/>
+							<span className="text-xs text-muted-foreground">
+								{modelNames[selectedModel]}
+							</span>
+						</div>
+						{status === "streaming" || status === "submitted" ? (
+							<Button
+								onClick={() => stop()}
+								aria-label="Stop generation"
+								className="rounded-xl"
+								variant="destructive"
+								size="icon"
+								type="button"
+							>
+								<Square className="size-4" />
+							</Button>
+						) : (
+							<Button
+								type="submit"
+								aria-label="Send message"
+								disabled={!input.trim()}
+								className="text-primary-foreground rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary hover:bg-primary/90"
+								size="icon"
+							>
+								<ArrowUp className="size-4" />
+							</Button>
+						)}
 					</div>
 				</form>
 			</div>

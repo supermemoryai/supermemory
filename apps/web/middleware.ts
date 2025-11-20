@@ -1,26 +1,26 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextResponse } from "next/server"
 
-export default async function middleware(request: Request) {
-	console.debug("[MIDDLEWARE] === MIDDLEWARE START ===")
+export default async function proxy(request: Request) {
+	console.debug("[PROXY] === PROXY START ===")
 	const url = new URL(request.url)
-	console.debug("[MIDDLEWARE] Path:", url.pathname)
-	console.debug("[MIDDLEWARE] Method:", request.method)
+	console.debug("[PROXY] Path:", url.pathname)
+	console.debug("[PROXY] Method:", request.method)
 
 	const sessionCookie = getSessionCookie(request)
-	console.debug("[MIDDLEWARE] Session cookie exists:", !!sessionCookie)
+	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
 	// Always allow access to login and waitlist pages
 	const publicPaths = ["/login"]
 	if (publicPaths.includes(url.pathname)) {
-		console.debug("[MIDDLEWARE] Public path, allowing access")
+		console.debug("[PROXY] Public path, allowing access")
 		return NextResponse.next()
 	}
 
 	// If no session cookie and not on a public path, redirect to login
 	if (!sessionCookie) {
 		console.debug(
-			"[MIDDLEWARE] No session cookie and not on public path, redirecting to /login",
+			"[PROXY] No session cookie and not on public path, redirecting to /login",
 		)
 		const url = new URL("/login", request.url)
 		url.searchParams.set("redirect", request.url)
@@ -33,15 +33,15 @@ export default async function middleware(request: Request) {
 	// 		headers: {
 	// 			Authorization: `Bearer ${sessionCookie}`,
 	// 		},
-	// 	});
-	// 	console.debug("[MIDDLEWARE] Waitlist status:", response.data);
+
+	// 	console.debug("[PROXY] Waitlist status:", response.data);
 	// 	if (response.data && !response.data.accessGranted) {
 	// 		return NextResponse.redirect(new URL("/waitlist", request.url));
 	// 	}
 	// }
 
-	console.debug("[MIDDLEWARE] Passing through to next handler")
-	console.debug("[MIDDLEWARE] === MIDDLEWARE END ===")
+	console.debug("[PROXY] Passing through to next handler")
+	console.debug("[PROXY] === PROXY END ===")
 	const response = NextResponse.next()
 	response.cookies.set({
 		name: "last-site-visited",

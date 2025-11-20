@@ -14,10 +14,11 @@ export const fetchSubscriptionStatus = (
 ) =>
 	useQuery({
 		queryFn: async () => {
-			const allPlans = [
-				"consumer_pro",
-			]
-			const statusMap: Record<string, boolean | null> = {}
+			const allPlans = ["consumer_pro"]
+			const statusMap: Record<
+				string,
+				{ allowed: boolean; status: string | null }
+			> = {}
 
 			await Promise.all(
 				allPlans.map(async (plan) => {
@@ -25,10 +26,20 @@ export const fetchSubscriptionStatus = (
 						const res = autumn.check({
 							productId: plan,
 						})
-						statusMap[plan] = res.data?.allowed ?? false
+						const allowed = res.data?.allowed ?? false
+
+						const product = autumn.customer?.products?.find(
+							(p) => p.id === plan,
+						)
+						const productStatus = product?.status ?? null
+
+						statusMap[plan] = {
+							allowed,
+							status: productStatus,
+						}
 					} catch (error) {
 						console.error(`Error checking status for ${plan}:`, error)
-						statusMap[plan] = false
+						statusMap[plan] = { allowed: false, status: null }
 					}
 				}),
 			)
@@ -42,7 +53,10 @@ export const fetchSubscriptionStatus = (
 	})
 
 // Feature checks
-export const fetchMemoriesFeature = (autumn: ReturnType<typeof useCustomer>, isEnabled: boolean) =>
+export const fetchMemoriesFeature = (
+	autumn: ReturnType<typeof useCustomer>,
+	isEnabled: boolean,
+) =>
 	useQuery({
 		queryFn: async () => {
 			const res = autumn.check({ featureId: "memories" })

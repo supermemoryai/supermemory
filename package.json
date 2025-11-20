@@ -29,6 +29,7 @@
     "@google/generative-ai": "^0.24.1",
     "@hono/zod-validator": "^0.7.1",
     "@scalar/hono-api-reference": "^0.9.11",
+    "@vanilla-extract/recipes": "^0.5.7",
     "ai": "^5.0.59",
     "alchemy": "^0.55.2",
     "atmn": "^0.0.16",

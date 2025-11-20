@@ -161,7 +161,7 @@ export const MemoryDetail = memo(
 							<span>{formatDate(document.createdAt)}</span>
 						</div>
 					</div>
-					{document.url && (
+					{(document.url || document.metadata?.website_url) && (
 						<div className="flex items-end">
 							<Button
 								onClick={() => {
