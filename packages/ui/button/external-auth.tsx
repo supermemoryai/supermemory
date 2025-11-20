@@ -15,13 +15,14 @@ export function ExternalAuthButton({
 	return (
 		<Button
 			className={cn(
-				"flex flex-grow cursor-pointer max-w-full items-center justify-center gap-[0.625rem] rounded-xl px-6 py-5 hover:opacity-75 h-11",
+				"flex flex-grow cursor-pointer max-w-full items-center justify-center gap-[0.625rem] rounded-xl px-6 py-5 hover:opacity-75",
 				className,
 			)}
 			style={{
 				borderRadius: "12px",
 				background: "linear-gradient(180deg, #00264F 0%, #001933 100%), linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 				boxShadow: "0 1px 2px 0 rgba(0, 43, 87, 0.10), 1px 1px 1px 1px #002B57 inset",
+				height: "44px",
 			}}
 			{...props}
 		>

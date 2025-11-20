@@ -47,7 +47,7 @@ export function RelatableQuestion() {
 			transition={{ duration: 0.6 }}
 		>
 			<motion.h1
-				className="text-white text-3xl font-medium mb-6 text-center"
+				className="text-white text-[32px] font-medium mb-6 text-center"
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.6, delay: 0.2 }}

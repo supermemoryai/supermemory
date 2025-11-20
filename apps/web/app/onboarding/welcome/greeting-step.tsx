@@ -14,7 +14,7 @@ export function GreetingStep({ name }: GreetingStepProps) {
 			transition={{ duration: 1, ease: "easeOut" }}
 			layout
 		>
-			<h2 className="text-white text-2xl font-medium mb-2">
+			<h2 className="text-white text-[32px] font-medium mb-2">
 				Hi {name}, I'm Nova
 			</h2>
 		</motion.div>

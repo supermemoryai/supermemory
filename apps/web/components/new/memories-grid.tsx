@@ -276,8 +276,8 @@ const DocumentCard = memo(
 									WebkitTextFillColor: "transparent",
 								}}
 							>
-								<SyncLogoIcon className="size-2" />
-								{document.memoryEntries.length} memories
+								<SyncLogoIcon className="w-[12.33px] h-[10px]" />
+								{document.memoryEntries.length} {document.memoryEntries.length === 1 ? "memory" : "memories"}
 							</p>
 							<p
 								className={cn(

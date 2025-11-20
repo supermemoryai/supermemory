@@ -33,7 +33,7 @@ function UserSupermemory({ name }: { name: string }) {
 		>
 			<Logo className="h-14 text-white" />
 			<div className="flex flex-col items-start justify-center ml-4">
-				<p className="text-white text-xl leading-none">{name}'s</p>
+				<p className="text-white text-xl font-medium leading-none">{name}'s</p>
 				<p className="text-white font-bold text-4xl leading-none -mt-2">
 					supermemory
 				</p>
@@ -211,7 +211,7 @@ export default function OnboardingPage() {
 										: currentStep === "memories"
 											? 0.4
 											: 1,
-								padding: minimizeNovaOrb ? 0 : 32,
+								padding: minimizeNovaOrb ? 0 : 48,
 							}}
 							transition={{
 								duration: 0.8,

@@ -17,7 +17,8 @@ export function InputStep({
 }: InputStepProps) {
 	return (
 		<motion.div
-			className="text-center min-w-[250px]"
+			className="text-center min-w-[250px] flex flex-col"
+			style={{ gap: "24px" }}
 			initial={{
 				opacity: 0,
 				y: 10,
@@ -42,7 +43,7 @@ export function InputStep({
 			}}
 			layout
 		>
-			<h2 className="text-white text-3xl font-medium mb-2">
+			<h2 className="text-white text-[32px] font-medium">
 				What should I call you?
 			</h2>
 			<div className="flex items-center w-full relative">
@@ -57,7 +58,7 @@ export function InputStep({
 								handleSubmit()
 							}
 						},
-						className: "!text-white placeholder:!text-[#525966] !h-10",
+						className: "!text-white placeholder:!text-[#525966] !h-[40px] pl-4",
 					}}
 					onChange={(e) => setName((e.target as HTMLInputElement).value)}
 					style={{
