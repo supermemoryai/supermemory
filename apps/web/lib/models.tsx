@@ -18,10 +18,10 @@ export const models = [
 
 export type ModelId = (typeof models)[number]["id"]
 
-export const modelNames: Record<ModelId, string> = {
-	"gpt-5": "GPT 5",
-	"claude-sonnet-4.5": "Claude Sonnet 4.5",
-	"gemini-2.5-pro": "Gemini 2.5 Pro",
+export const modelNames: Record<ModelId, { name: string; version: string }> = {
+	"gpt-5": { name: "GPT", version: "5" },
+	"claude-sonnet-4.5": { name: "Claude", version: "4.5" },
+	"gemini-2.5-pro": { name: "Gemini", version: "2.5 Pro" },
 }
 
 interface ModelIconProps {

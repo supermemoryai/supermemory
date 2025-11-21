@@ -1,7 +1,7 @@
 "use client"
 
 import { Header } from "@/components/new/header"
-import { ChatSidebar } from "@/components/new/chat-sidebar"
+import { ChatSidebar } from "@/components/chat"
 import { AnimatePresence } from "motion/react"
 import { MemoriesGrid } from "@/components/new/memories-grid"
 
