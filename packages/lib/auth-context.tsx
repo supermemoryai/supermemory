@@ -22,9 +22,39 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+	// Check for Auth Agent session cookie
+	const [isAuthAgentSession, setIsAuthAgentSession] = useState(false)
+	const [authAgentData, setAuthAgentData] = useState<any>(null)
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const cookies = document.cookie
+			const hasAuthAgentSession = cookies.includes("auth_agent_session")
+			setIsAuthAgentSession(hasAuthAgentSession)
+
+			if (hasAuthAgentSession) {
+				// Extract Auth Agent session data from cookie
+				const match = cookies.match(/auth_agent_session=([^;]+)/)
+				if (match) {
+					try {
+						const sessionData = JSON.parse(decodeURIComponent(match[1]))
+						setAuthAgentData(sessionData)
+					} catch (e) {
+						console.error("Failed to parse auth_agent_session cookie:", e)
+					}
+				}
+			}
+		}
+	}, [])
+
 	const { data: session } = useSession()
 	const [org, setOrg] = useState<Organization | null>(null)
-	const { data: orgs } = authClient.useListOrganizations()
+	// Only fetch organizations if NOT an Auth Agent session
+	const { data: orgs } = authClient.useListOrganizations({
+		query: {
+			enabled: !isAuthAgentSession,
+		},
+	})
 
 	const setActiveOrg = async (slug: string) => {
 		if (!slug) return
@@ -89,6 +119,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			localStorage.removeItem("supermemory-pending-login-timestamp")
 		} catch {}
 	}, [session?.session])
+
+	// If Auth Agent session exists, provide mock data
+	if (isAuthAgentSession && authAgentData) {
+		const mockSession = {
+			id: authAgentData.agentId,
+			userId: authAgentData.agentId,
+			token: authAgentData.authCode,
+			expiresAt: new Date(authAgentData.expiresAt),
+			createdAt: new Date(authAgentData.authenticatedAt),
+			updatedAt: new Date(authAgentData.authenticatedAt),
+			ipAddress: null,
+			userAgent: null,
+			activeOrganizationId: null,
+		}
+
+		const mockUser = {
+			id: authAgentData.agentId,
+			email: `${authAgentData.agentId}@auth-agent.local`,
+			name: `AI Agent (${authAgentData.model})`,
+			emailVerified: true,
+			image: null,
+			createdAt: new Date(authAgentData.authenticatedAt),
+			updatedAt: new Date(authAgentData.authenticatedAt),
+		}
+
+		return (
+			<AuthContext.Provider
+				value={{
+					org: null,
+					session: mockSession as any,
+					user: mockUser as any,
+					setActiveOrg: async () => {},
+				}}
+			>
+				{children}
+			</AuthContext.Provider>
+		)
+	}
 
 	return (
 		<AuthContext.Provider

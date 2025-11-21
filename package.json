@@ -32,6 +32,7 @@
     "ai": "^5.0.59",
     "alchemy": "^0.55.2",
     "atmn": "^0.0.16",
+    "auth-agent-sdk": "^0.0.4",
     "better-auth": "^1.3.3",
     "boxen": "^8.0.1",
     "cloudflare": "^4.5.0",
