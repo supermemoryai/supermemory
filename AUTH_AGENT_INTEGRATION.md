@@ -6,7 +6,7 @@
 
 This PR adds [Auth Agent](https://auth-agent.com) OAuth 2.1 authentication to Supermemory, enabling AI agents to authenticate and access the platform.
 
-## 🤖 Why Auth Agent for Supermemory?
+## Why Auth Agent for Supermemory?
 
 **Enable AI agents to autonomously manage memories on behalf of users.**
 
@@ -43,7 +43,7 @@ This PR implements **Scenario 1: Full Account Access** as a starting point. This
 | **Scenario 2: Contextual Profile** | Separate agent profile linked to user | Audit trail, agent reads user context |
 | **Scenario 3: Fresh Profile** | Independent agent profile | Agent-specific memories, privacy |
 
-**👉 You can choose a different scenario or modify this implementation.**
+** You can choose a different scenario or modify this implementation.**
 
 See the [Auth Agent Integration Scenarios Guide](https://docs.auth-agent.com/guides/website-quickstart) for detailed comparison and implementation examples.
 
