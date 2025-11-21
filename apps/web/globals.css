@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
@@ -27,8 +27,8 @@
 	padding: 0 !important;
 	font-family: "DM Sans", sans-serif !important;
 	font-size: 10px !important;
-	 --tweet-header-font-size: 10px !important;
-    --tweet-header-line-height: 1.25rem !important;
+	--tweet-header-font-size: 10px !important;
+	--tweet-header-line-height: 1.25rem !important;
 }
 
 .tweet-body-module__ZNRZja__root > * {

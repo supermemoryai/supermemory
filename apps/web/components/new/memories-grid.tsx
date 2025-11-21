@@ -162,7 +162,7 @@ export function MemoriesGrid() {
 					</div>
 				</div>
 			) : (
-				<div className="h-full overflow-auto custom-scrollbar">
+				<div className="h-full overflow-auto scrollbar-thin">
 					<Masonry
 						key={`masonry-${documents.length}-${documents.map((d) => d.id).join(",")}`}
 						items={documents}
@@ -237,7 +237,11 @@ const DocumentCard = memo(
 						? "pb-1"
 						: "",
 				)}
-				style={{ width }}
+				style={{
+					width,
+					boxShadow:
+						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+				}}
 			>
 				<ContentPreview document={document} />
 				{!(
@@ -277,7 +281,8 @@ const DocumentCard = memo(
 								}}
 							>
 								<SyncLogoIcon className="w-[12.33px] h-[10px]" />
-								{document.memoryEntries.length} {document.memoryEntries.length === 1 ? "memory" : "memories"}
+								{document.memoryEntries.length}{" "}
+								{document.memoryEntries.length === 1 ? "memory" : "memories"}
 							</p>
 							<p
 								className={cn(

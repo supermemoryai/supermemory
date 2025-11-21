@@ -49,3 +49,267 @@ export const LogoFull = ({
 		</svg>
 	);
 };
+
+export const GradientLogo = ({ className = ""} : { className?: string }) => {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="65"
+			height="53"
+			viewBox="0 0 65 53"
+			fill="none"
+			className={className}
+		>
+			<title>Gradient supermemory logo</title>
+			<g clip-path="url(#clip0_503_43779)">
+				<path
+					d="M64.1607 20.7042H40.3439V0.00268555H32.6488V22.4642C32.6488 24.8499 33.5906 27.141 35.2645 28.8291L54.7116 48.4414L60.1526 42.9542L45.7893 28.4691H64.1651V20.7088L64.1607 20.7042Z"
+					fill="url(#paint0_linear_503_43779)"
+				/>
+				<path
+					d="M3.9992 9.536L18.3626 24.0213H-0.0134277V31.7816H23.8034V52.483H31.4984V30.0216C31.4984 27.6358 30.5567 25.3446 28.8827 23.6567L9.44012 4.0489L3.9992 9.536Z"
+					fill="url(#paint1_linear_503_43779)"
+				/>
+			</g>
+			<defs>
+				<linearGradient
+					id="paint0_linear_503_43779"
+					x1="3.272"
+					y1="-0.0520011"
+					x2="122.975"
+					y2="9.51098"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop stop-color="#369BFD" />
+					<stop offset="0.41" stop-color="#36FDFD" />
+					<stop offset="0.79" stop-color="#36FDB5" />
+				</linearGradient>
+				<linearGradient
+					id="paint1_linear_503_43779"
+					x1="3.272"
+					y1="-0.0520011"
+					x2="122.975"
+					y2="9.51098"
+					gradientUnits="userSpaceOnUse"
+				>
+					<stop stop-color="#369BFD" />
+					<stop offset="0.41" stop-color="#36FDFD" />
+					<stop offset="0.79" stop-color="#36FDB5" />
+				</linearGradient>
+				<clipPath id="clip0_503_43779">
+					<rect
+						width="64.732"
+						height="52.4854"
+						fill="white"
+						transform="translate(-0.0136719)"
+					/>
+				</clipPath>
+			</defs>
+		</svg>
+	);
+}
+
+export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="182"
+			height="184"
+			viewBox="0 0 182 184"
+			fill="none"
+			className={className}
+		>
+			<title>Logo background gradient</title>
+			<g opacity="0.7">
+				<g filter="url(#filter0_f_503_43757)">
+					<ellipse
+						cx="14.2835"
+						cy="24.7691"
+						rx="14.2835"
+						ry="24.7691"
+						transform="matrix(1 0 0 -1 86.3853 115.758)"
+						fill="#1410FF"
+					/>
+				</g>
+				<g filter="url(#filter1_f_503_43757)">
+					<ellipse
+						cx="80.5032"
+						cy="92.8882"
+						rx="14.2835"
+						ry="24.7691"
+						transform="rotate(-180 80.5032 92.8882)"
+						fill="#1410FF"
+					/>
+				</g>
+				<g filter="url(#filter2_f_503_43757)">
+					<ellipse
+						cx="23.4137"
+						cy="11.8923"
+						rx="23.4137"
+						ry="11.8923"
+						transform="matrix(0.979973 -0.199127 -0.12394 -0.99229 69.9859 107.485)"
+						fill="#0091FF"
+					/>
+				</g>
+				<g filter="url(#filter3_f_503_43757)">
+					<ellipse
+						cx="9.9778"
+						cy="7.53189"
+						rx="9.9778"
+						ry="7.53189"
+						transform="matrix(0.829871 -0.557955 -0.381948 -0.924183 98.8062 105.408)"
+						fill="#0099FF"
+					/>
+				</g>
+				<g filter="url(#filter4_f_503_43757)">
+					<ellipse
+						cx="9.9778"
+						cy="7.53189"
+						rx="9.9778"
+						ry="7.53189"
+						transform="matrix(-0.829871 -0.557955 0.381948 -0.924184 82.4371 105.912)"
+						fill="#0099FF"
+					/>
+				</g>
+				<g filter="url(#filter5_f_503_43757)">
+					<ellipse
+						cx="5.38795"
+						cy="10.704"
+						rx="5.38795"
+						ry="10.704"
+						transform="matrix(-3.03601e-08 -1 -1 5.00629e-08 99.5963 84.5005)"
+						fill="#47A8FD"
+					/>
+				</g>
+			</g>
+			<defs>
+				<filter
+					id="filter0_f_503_43757"
+					x="20.1657"
+					y="9.15527e-05"
+					width="161.006"
+					height="181.977"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feGaussianBlur
+						stdDeviation="33.1098"
+						result="effect1_foregroundBlur_503_43757"
+					/>
+				</filter>
+				<filter
+					id="filter1_f_503_43757"
+					x="3.05176e-05"
+					y="1.89951"
+					width="161.006"
+					height="181.977"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feGaussianBlur
+						stdDeviation="33.1098"
+						result="effect1_foregroundBlur_503_43757"
+					/>
+				</filter>
+				<filter
+					id="filter2_f_503_43757"
+					x="18.7991"
+					y="28.6653"
+					width="145.315"
+					height="124.713"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feGaussianBlur
+						stdDeviation="24.8324"
+						result="effect1_foregroundBlur_503_43757"
+					/>
+				</filter>
+				<filter
+					id="filter3_f_503_43757"
+					x="54.0543"
+					y="42.579"
+					width="100.311"
+					height="100.602"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feGaussianBlur
+						stdDeviation="20.6936"
+						result="effect1_foregroundBlur_503_43757"
+					/>
+				</filter>
+				<filter
+					id="filter4_f_503_43757"
+					x="26.8781"
+					y="43.0827"
+					width="100.311"
+					height="100.602"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feGaussianBlur
+						stdDeviation="20.6936"
+						result="effect1_foregroundBlur_503_43757"
+					/>
+				</filter>
+				<filter
+					id="filter5_f_503_43757"
+					x="28.5235"
+					y="24.0599"
+					width="120.737"
+					height="110.105"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feGaussianBlur
+						stdDeviation="24.8324"
+						result="effect1_foregroundBlur_503_43757"
+					/>
+				</filter>
+			</defs>
+		</svg>
+	);
+}
