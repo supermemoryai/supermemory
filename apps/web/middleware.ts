@@ -10,6 +10,10 @@ export default async function proxy(request: Request) {
 	const sessionCookie = getSessionCookie(request)
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
+	// Check for Auth Agent session cookie
+	const authAgentSession = request.headers.get("cookie")?.includes("auth_agent_session")
+	console.debug("[PROXY] Auth Agent session exists:", !!authAgentSession)
+
 	// Always allow access to login and waitlist pages
 	const publicPaths = ["/login"]
 	if (publicPaths.includes(url.pathname)) {
@@ -17,8 +21,8 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
-	// If no session cookie and not on a public path, redirect to login
-	if (!sessionCookie) {
+	// If no session cookie (Better Auth or Auth Agent) and not on a public path, redirect to login
+	if (!sessionCookie && !authAgentSession) {
 		console.debug(
 			"[PROXY] No session cookie and not on public path, redirecting to /login",
 		)

@@ -5,6 +5,7 @@ import { usePostHog } from "@lib/posthog";
 import { LogoFull } from "@repo/ui/assets/Logo";
 import { TextSeparator } from "@repo/ui/components/text-separator";
 import { ExternalAuthButton } from "@ui/button/external-auth";
+import { AuthAgentButton } from "@ui/button/auth-agent-button";
 import { Button } from "@ui/components/button";
 import { Badge } from "@ui/components/badge";
 import {
@@ -447,6 +448,48 @@ export function LoginPage({
 									}}
 								/>
 								{lastUsedMethod === "github" && (
+									<div className="absolute -top-2 -right-2">
+										<Badge variant="default" className="text-xs">
+											Last used
+										</Badge>
+									</div>
+								)}
+							</div>
+						) : null}
+						{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
+						process.env.NEXT_PUBLIC_AUTH_AGENT_ENABLED === "true" ? (
+							<div className="relative flex-grow">
+								<AuthAgentButton
+									clientId={process.env.NEXT_PUBLIC_AUTH_AGENT_CLIENT_ID || ""}
+									redirectUri={`${typeof window !== "undefined" ? window.location.origin : ""}/api/auth/auth-agent/callback`}
+									authServerUrl={
+										process.env.NEXT_PUBLIC_AUTH_AGENT_SERVER_URL ||
+										"https://api.auth-agent.com"
+									}
+									onSignInStart={() => {
+										if (isLoading) return;
+										setIsLoading(true);
+										setError(null);
+										posthog.capture("login_attempt", {
+											method: "social",
+											provider: "auth-agent",
+										});
+										setPendingLoginMethod("auth-agent");
+									}}
+									onError={(error) => {
+										console.error("Auth Agent login error:", error);
+										posthog.capture("login_failed", {
+											method: "social",
+											provider: "auth-agent",
+											error: error.message,
+											is_network_error: isNetworkError(error),
+										});
+										setError(getErrorMessage(error));
+										setIsLoading(false);
+									}}
+									className="w-full"
+								/>
+								{lastUsedMethod === "auth-agent" && (
 									<div className="absolute -top-2 -right-2">
 										<Badge variant="default" className="text-xs">
 											Last used

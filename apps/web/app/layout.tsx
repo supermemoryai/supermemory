@@ -14,6 +14,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { ThemeProvider } from "@/lib/theme-provider"
 
 import { ViewModeProvider } from "@/lib/view-mode-context"
+import { FetchInterceptor } from "@lib/fetch-interceptor"
 
 const font = Space_Grotesk({
 	subsets: ["latin"],
@@ -49,6 +50,7 @@ export default function RootLayout({
 					>
 						<QueryProvider>
 							<AuthProvider>
+								<FetchInterceptor />
 								<ViewModeProvider>
 									<MobilePanelProvider>
 										<PostHogProvider>
