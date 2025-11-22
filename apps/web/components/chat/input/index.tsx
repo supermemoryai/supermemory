@@ -1,10 +1,12 @@
 "use client"
 
-import { ArrowUpIcon, ChevronUpIcon, SquareIcon } from "lucide-react"
-import NovaOrb from "../nova/nova-orb"
+import { ChevronUpIcon } from "lucide-react"
+import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
 import { useRef, useState } from "react"
+import { motion } from "motion/react"
+import { SendButton, StopButton } from "./actions"
 
 interface ChatInputProps {
 	value: string
@@ -13,6 +15,8 @@ interface ChatInputProps {
 	onStop: () => void
 	onKeyDown?: (e: React.KeyboardEvent) => void
 	isResponding?: boolean
+	activeStatus?: string
+	chainOfThoughtComponent?: React.ReactNode
 }
 
 export default function ChatInput({
@@ -22,8 +26,11 @@ export default function ChatInput({
 	onStop,
 	onKeyDown,
 	isResponding = false,
+	activeStatus,
+	chainOfThoughtComponent,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
+	const [isExpanded, setIsExpanded] = useState(false)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 
 	const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -40,16 +47,59 @@ export default function ChatInput({
 	}
 
 	return (
-		<div className="bg-[#01173C] rounded-xl">
-			<div className=" p-3 pr-4 flex items-center justify-between">
+		<motion.div
+			className={cn("bg-[#01173C] relative")}
+			animate={{
+				padding: isExpanded ? "0.5rem" : "0",
+				margin: isExpanded ? "0" : "0.5rem",
+				borderRadius: isExpanded ? "0 0 12px 12px" : "12px",
+			}}
+			transition={{
+				duration: 0.3,
+				ease: "easeOut",
+			}}
+		>
+			<div
+				className={cn(
+					"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#01173C]",
+					isExpanded
+						? "max-h-[80vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-2"
+						: "max-h-0 opacity-0",
+				)}
+				style={{
+					zIndex: isExpanded ? 50 : 0,
+				}}
+			>
+				{isExpanded && (
+					<div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-[#01173C] via-[#01173C]/50 to-transparent pointer-events-none z-10" />
+				)}
+				{chainOfThoughtComponent}
+			</div>
+			<button
+				type="button"
+				className={cn(
+					"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left",
+					!chainOfThoughtComponent && "disabled:cursor-not-allowed",
+				)}
+				onClick={() => {
+					setIsExpanded(!isExpanded)
+				}}
+			>
 				<div className="flex items-center gap-2">
 					<NovaOrb size={24} className="!blur-none z-10" />
 					<p className={cn("text-[#525D6E]", dmSansClassName())}>
-						Waiting for input...
+						{activeStatus || "Waiting for input..."}
 					</p>
 				</div>
-				<ChevronUpIcon className="size-4 text-[#525D6E]" />
-			</div>
+				{chainOfThoughtComponent && (
+					<ChevronUpIcon
+						className={cn(
+							"size-4 text-[#525D6E] transition-transform duration-300",
+							isExpanded && "rotate-180",
+						)}
+					/>
+				)}
+			</button>
 			<div
 				className={cn(
 					"flex items-end gap-2 bg-[#070E1B] rounded-xl p-2 border-[#52596633] border focus-within:outline-[#525D6EB2] focus-within:outline-1 transition-all duration-200",
@@ -75,42 +125,6 @@ export default function ChatInput({
 					)}
 				</div>
 			</div>
-		</div>
-	)
-}
-
-function SendButton({
-	onClick,
-	disabled,
-}: {
-	onClick: () => void
-	disabled: boolean
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={disabled}
-			className={cn(
-				"bg-[#000000] border-[#161F2C] border p-2 rounded-lg flex-shrink-0 transition-opacity",
-				disabled
-					? "opacity-50 cursor-not-allowed"
-					: "cursor-pointer hover:bg-[#161F2C]",
-			)}
-		>
-			<ArrowUpIcon className="size-5 text-white" />
-		</button>
-	)
-}
-
-function StopButton({ onClick }: { onClick: () => void }) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className="bg-[#000000] border-[#161F2C] border p-2 rounded-lg flex-shrink-0 cursor-pointer hover:bg-[#161F2C] transition-opacity"
-		>
-			<SquareIcon className="size-4 text-white fill-white" />
-		</button>
+		</motion.div>
 	)
 }

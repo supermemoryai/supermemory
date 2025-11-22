@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -22,6 +22,7 @@ import type { ModelId } from "@/lib/models"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
+import { ChainOfThought } from "./input/chain-of-thought"
 
 export function ChatSidebar() {
 	const [input, setInput] = useState("")
@@ -29,10 +30,18 @@ export function ChatSidebar() {
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
+	const [chainOfThought, setChainOfThought] = useState<any[] | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
 		Record<string, "like" | "dislike" | null>
 	>({})
 	const [expandedMemories, setExpandedMemories] = useState<string | null>(null)
+	const [followUpQuestions, setFollowUpQuestions] = useState<
+		Record<string, string[]>
+	>({})
+	const [loadingFollowUps, setLoadingFollowUps] = useState<
+		Record<string, boolean>
+	>({})
+	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const { selectedProject } = useProject()
 	const { setCurrentChatId } = usePersistentChat()
 
@@ -48,7 +57,112 @@ export function ChatSidebar() {
 			},
 		}),
 		maxSteps: 10,
+		onFinish: async (result) => {
+			if (result.message.role !== "assistant") return
+
+			// Mark this message as needing follow-up generation
+			// We'll generate it after the message is fully in the messages array
+			if (result.message.id) {
+				pendingFollowUpGenerations.current.add(result.message.id)
+			}
+		},
 	})
+
+	// Generate follow-up questions after assistant messages are complete
+	useEffect(() => {
+		const generateFollowUps = async () => {
+			// Find assistant messages that need follow-up generation
+			const messagesToProcess = messages.filter(
+				(msg) =>
+					msg.role === "assistant" &&
+					pendingFollowUpGenerations.current.has(msg.id) &&
+					!followUpQuestions[msg.id] &&
+					!loadingFollowUps[msg.id],
+			)
+
+			for (const message of messagesToProcess) {
+				// Get complete text from the message
+				const assistantText = message.parts
+					.filter((p) => p.type === "text")
+					.map((p) => p.text)
+					.join(" ")
+					.trim()
+
+				// Only generate if we have substantial text (at least 50 chars)
+				// This ensures the message is complete, not just the first chunk
+				// Also check if status is idle to ensure streaming is complete
+				if (
+					assistantText.length < 50 ||
+					status === "streaming" ||
+					status === "submitted"
+				) {
+					continue
+				}
+
+				// Mark as processing
+				pendingFollowUpGenerations.current.delete(message.id)
+				setLoadingFollowUps((prev) => ({
+					...prev,
+					[message.id]: true,
+				}))
+
+				try {
+					// Get recent messages for context
+					const recentMessages = messages.slice(-5).map((msg) => ({
+						role: msg.role,
+						content: msg.parts
+							.filter((p) => p.type === "text")
+							.map((p) => p.text)
+							.join(" "),
+					}))
+
+					const response = await fetch(
+						`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/follow-ups`,
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								messages: recentMessages,
+								assistantResponse: assistantText,
+							}),
+						},
+					)
+
+					if (response.ok) {
+						const data = await response.json()
+						if (data.questions && Array.isArray(data.questions)) {
+							setFollowUpQuestions((prev) => ({
+								...prev,
+								[message.id]: data.questions,
+							}))
+						}
+					}
+				} catch (error) {
+					console.error("Failed to generate follow-up questions:", error)
+				} finally {
+					setLoadingFollowUps((prev) => ({
+						...prev,
+						[message.id]: false,
+					}))
+				}
+			}
+		}
+
+		// Only generate if not currently streaming or submitted
+		// Small delay to ensure message is fully processed
+		if (status !== "streaming" && status !== "submitted") {
+			const timeoutId = setTimeout(() => {
+				generateFollowUps()
+			}, 300)
+
+			return () => clearTimeout(timeoutId)
+		}
+	}, [messages, followUpQuestions, loadingFollowUps, status])
+
+	console.log(messages)
 
 	const handleSend = () => {
 		if (!input.trim() || status === "submitted" || status === "streaming")
@@ -197,7 +311,12 @@ export function ChatSidebar() {
 							</motion.button>
 						</div>
 					</div>
-					<div className="flex-1 overflow-y-auto px-4 scrollbar-thin">
+					<div
+						className={cn(
+							"flex-1 overflow-y-auto px-4 scrollbar-thin",
+							dmSansClassName(),
+						)}
+					>
 						{messages.length === 0 && <ChatEmptyStatePlaceholder />}
 						<div
 							className={cn(
@@ -237,10 +356,15 @@ export function ChatSidebar() {
 											copiedMessageId={copiedMessageId}
 											messageFeedback={messageFeedback}
 											expandedMemories={expandedMemories}
+											followUpQuestions={followUpQuestions[message.id] || []}
+											isLoadingFollowUps={loadingFollowUps[message.id] || false}
 											onCopy={handleCopyMessage}
 											onLike={handleLikeMessage}
 											onDislike={handleDislikeMessage}
 											onToggleMemories={handleToggleMemories}
+											onQuestionClick={(question) => {
+												setInput(question)
+											}}
 										/>
 									)}
 								</div>
@@ -254,16 +378,39 @@ export function ChatSidebar() {
 						</div>
 					</div>
 
-					<div className="px-4 pb-4 pt-2">
-						<ChatInput
-							value={input}
-							onChange={(e) => setInput(e.target.value)}
-							onSend={handleSend}
-							onStop={stop}
-							onKeyDown={handleKeyDown}
-							isResponding={status === "submitted" || status === "streaming"}
-						/>
-					</div>
+					<ChatInput
+						value={input}
+						onChange={(e) => setInput(e.target.value)}
+						onSend={handleSend}
+						onStop={stop}
+						onKeyDown={handleKeyDown}
+						isResponding={status === "submitted" || status === "streaming"}
+						activeStatus={
+							status === "submitted"
+								? "Thinking..."
+								: status === "streaming"
+									? "Structuring response..."
+									: "Waiting for input..."
+						}
+						chainOfThoughtComponent={(() => {
+							const lastUserMessage = [...messages]
+								.reverse()
+								.find((msg) => msg.role === "user")
+							const lastAgentMessage = [...messages]
+								.reverse()
+								.find((msg) => msg.role === "assistant")
+							const userMessageText =
+								lastUserMessage?.parts.find((part) => part.type === "text")
+									?.text ?? ""
+
+							return userMessageText ? (
+								<ChainOfThought
+									userMessage={userMessageText}
+									lastAgentMessage={lastAgentMessage}
+								/>
+							) : null
+						})()}
+					/>
 				</motion.div>
 			)}
 		</AnimatePresence>

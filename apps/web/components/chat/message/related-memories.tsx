@@ -84,8 +84,19 @@ export function RelatedMemories({
 									)}
 								</div>
 								{result.score && (
-									<div className="text-xs text-white/50 mt-1 p-1 text-center">
-										Relevance Score: {(result.score * 100).toFixed(1)}%
+									<div className="flex justify-center p-1">
+										<div
+											className={cn(
+												"text-[10px] inline-block bg-clip-text text-transparent font-medium",
+												dmSansClassName(),
+											)}
+											style={{
+												backgroundImage:
+													"var(--grad-1, linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%))",
+											}}
+										>
+											Relevancy score: {(result.score * 100).toFixed(1)}%
+										</div>
 									</div>
 								)}
 							</div>
