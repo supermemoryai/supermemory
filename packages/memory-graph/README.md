@@ -7,13 +7,13 @@
 
 ## Features
 
-- 🎨 **WebGL-powered rendering** - Smooth performance with hundreds of nodes using PixiJS
-- 🔍 **Interactive exploration** - Pan, zoom, drag nodes, and explore connections
-- 🧠 **Semantic connections** - Visualizes relationships based on content similarity
-- 📱 **Responsive design** - Works seamlessly on mobile and desktop
-- 🎯 **Zero configuration** - Works out of the box with automatic CSS injection
-- 📦 **Lightweight** - Tree-shakeable and optimized bundle
-- 🎭 **TypeScript** - Full TypeScript support with exported types
+- **WebGL-powered rendering** - Smooth performance with hundreds of nodes
+- **Interactive exploration** - Pan, zoom, drag nodes, and explore connections
+- **Semantic connections** - Visualizes relationships based on content similarity
+- **Responsive design** - Works seamlessly on mobile and desktop
+- **Zero configuration** - Works out of the box with automatic CSS injection
+- **Lightweight** - Tree-shakeable and optimized bundle
+- **TypeScript** - Full TypeScript support with exported types
 
 ## Installation
 
@@ -29,52 +29,75 @@ bun add @supermemory/memory-graph
 
 ## Quick Start
 
+The component accepts document data directly - you fetch the data from your backend, which proxies requests to the Supermemory API with proper authentication.
+
 ```tsx
 import { MemoryGraph } from '@supermemory/memory-graph'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
 
 function App() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    // Fetch from YOUR backend (which proxies to Supermemory API)
+    fetch('/api/supermemory-graph')
+      .then(res => res.json())
+      .then(data => {
+        setDocuments(data.documents)
+        setIsLoading(false)
+      })
+      .catch(err => {
+        setError(err)
+        setIsLoading(false)
+      })
+  }, [])
+
   return (
     <MemoryGraph
-      apiKey="your-api-key"
-      id="optional-document-id"
+      documents={documents}
+      isLoading={isLoading}
+      error={error}
     />
   )
 }
 ```
 
-That's it! The CSS is automatically injected, no manual imports needed.
+## Backend Proxy Example
 
-## Usage
+Create an API route in your backend that authenticates and proxies requests to Supermemory:
 
-### Basic Usage
+### Next.js API Route
 
-```tsx
-import { MemoryGraph } from '@supermemory/memory-graph'
+```typescript
+// app/api/supermemory-graph/route.ts
+import { NextResponse } from 'next/server'
 
-<MemoryGraph
-  apiKey="your-supermemory-api-key"
-  variant="console"
-/>
-```
+export async function GET(request: Request) {
+  // Add your own auth check here
+  const user = await getAuthenticatedUser(request)
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-### Advanced Usage
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({
+      page: 1,
+      limit: 500,
+      sort: 'createdAt',
+      order: 'desc',
+    }),
+  })
 
-```tsx
-import { MemoryGraph } from '@supermemory/memory-graph'
-
-<MemoryGraph
-  apiKey="your-api-key"
-  id="document-123"
-  baseUrl="https://api.supermemory.ai"
-  variant="consumer"
-  showSpacesSelector={true}
-  onError={(error) => {
-    console.error('Failed to load graph:', error)
-  }}
-  onSuccess={(data) => {
-    console.log('Graph loaded:', data)
-  }}
-/>
+  const data = await response.json()
+  return NextResponse.json(data)
+}
 ```
 
 ## API Reference
@@ -83,94 +106,114 @@ import { MemoryGraph } from '@supermemory/memory-graph'
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `apiKey` | `string` | **required** | Your Supermemory API key |
-| `id` | `string` | `undefined` | Optional document ID to filter the graph |
-| `baseUrl` | `string` | `"https://api.supermemory.ai"` | API base URL |
-| `variant` | `"console" \| "consumer"` | `"console"` | Visual variant - console for full view, consumer for embedded |
-| `showSpacesSelector` | `boolean` | `true` | Show/hide the spaces filter dropdown |
-| `onError` | `(error: Error) => void` | `undefined` | Callback when data fetching fails |
-| `onSuccess` | `(data: any) => void` | `undefined` | Callback when data is successfully loaded |
+| `documents` | `DocumentWithMemories[]` | **required** | Array of documents to display |
+| `isLoading` | `boolean` | `false` | Whether data is currently loading |
+| `error` | `Error \| null` | `null` | Error that occurred during fetching |
+| `variant` | `"console" \| "consumer"` | `"console"` | Visual variant |
+| `showSpacesSelector` | `boolean` | Based on variant | Show/hide the spaces filter |
+| `children` | `ReactNode` | - | Content to show when no documents |
+| `highlightDocumentIds` | `string[]` | `[]` | Document IDs to highlight |
+| `highlightsVisible` | `boolean` | `true` | Whether highlights are visible |
 
-## Framework Integration
+### Pagination Props (Optional)
 
-### Next.js
+For large datasets, you can implement pagination:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `isLoadingMore` | `boolean` | `false` | Whether loading more data |
+| `hasMore` | `boolean` | `false` | Whether more data is available |
+| `totalLoaded` | `number` | `documents.length` | Total documents loaded |
+| `loadMoreDocuments` | `() => Promise<void>` | - | Callback to load more |
+
+### Types
+
+```typescript
+import type {
+  DocumentWithMemories,
+  MemoryEntry,
+  DocumentsResponse,
+  MemoryGraphProps
+} from '@supermemory/memory-graph'
+```
+
+## Advanced Usage
+
+### With Pagination
 
 ```tsx
-// app/graph/page.tsx
-'use client'
-
 import { MemoryGraph } from '@supermemory/memory-graph'
 
-export default function GraphPage() {
+function GraphWithPagination() {
+  const [documents, setDocuments] = useState([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  const loadMore = async () => {
+    setIsLoadingMore(true)
+    const res = await fetch(`/api/supermemory-graph?page=${page + 1}`)
+    const data = await res.json()
+    setDocuments(prev => [...prev, ...data.documents])
+    setHasMore(data.pagination.currentPage < data.pagination.totalPages)
+    setPage(p => p + 1)
+    setIsLoadingMore(false)
+  }
+
   return (
-    <div className="w-full h-screen">
-      <MemoryGraph apiKey={process.env.NEXT_PUBLIC_SUPERMEMORY_API_KEY!} />
-    </div>
+    <MemoryGraph
+      documents={documents}
+      isLoading={isLoading}
+      isLoadingMore={isLoadingMore}
+      hasMore={hasMore}
+      loadMoreDocuments={loadMore}
+      totalLoaded={documents.length}
+    />
   )
 }
 ```
 
-### Vite/React
+### Custom Empty State
 
 ```tsx
-// src/App.tsx
-import { MemoryGraph } from '@supermemory/memory-graph'
-
-function App() {
-  return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <MemoryGraph apiKey={import.meta.env.VITE_SUPERMEMORY_API_KEY} />
-    </div>
-  )
-}
+<MemoryGraph documents={[]} isLoading={false}>
+  <div className="empty-state">
+    <h2>No memories yet</h2>
+    <p>Start adding content to see your knowledge graph</p>
+  </div>
+</MemoryGraph>
 ```
 
-### Create React App
+### Variants
+
+The `variant` prop controls the visual layout and initial viewport settings:
+
+| Variant | Initial Zoom | Spaces Selector | Legend Position | Use Case |
+|---------|-------------|-----------------|-----------------|----------|
+| `console` | 0.8 | Shown | Bottom-right | Full-page dashboard views |
+| `consumer` | 0.5 | Hidden | Top-right | Embedded/widget views |
 
 ```tsx
-// src/App.tsx
-import { MemoryGraph } from '@supermemory/memory-graph'
+// Full dashboard view
+<MemoryGraph
+  documents={documents}
+  variant="console"
+/>
 
-function App() {
-  return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <MemoryGraph apiKey={process.env.REACT_APP_SUPERMEMORY_API_KEY} />
-    </div>
-  )
-}
+// Embedded widget
+<MemoryGraph
+  documents={documents}
+  variant="consumer"
+/>
 ```
 
-## Getting an API Key
-
-1. Visit [supermemory.ai](https://supermemory.ai)
-2. Sign up or log in to your account
-3. Navigate to Settings > API Keys
-4. Generate a new API key
-5. Copy and use it in your application
-
-⚠️ **Security Note**: Never commit API keys to version control. Use environment variables.
-
-## Features in Detail
-
-### WebGL Rendering
-
-The graph uses PixiJS for hardware-accelerated WebGL rendering, enabling smooth interaction with hundreds of nodes and connections.
-
-### Semantic Similarity
-
-Connections between memories are visualized based on semantic similarity, with stronger connections appearing more prominent.
-
-### Interactive Controls
+## Interactive Controls
 
 - **Pan**: Click and drag the background
 - **Zoom**: Mouse wheel or pinch on mobile
 - **Select Node**: Click on any document or memory
 - **Drag Nodes**: Click and drag individual nodes
 - **Fit to View**: Auto-fit button to center all content
-
-### Touch Support
-
-Full support for touch gestures including pinch-to-zoom and touch-drag for mobile devices.
 
 ## Browser Support
 
@@ -202,23 +245,8 @@ bun run check-types
 
 ## License
 
-MIT © [Supermemory](https://supermemory.ai)
+MIT
 
 ## Support
 
-- 📧 Email: support@supermemory.ai
-- 🐛 Issues: [GitHub Issues](https://github.com/supermemoryai/supermemory/issues)
-- 💬 Discord: [Join our community](https://discord.gg/supermemory)
-
-## Roadmap
-
-- [ ] Custom theme support
-- [ ] Export graph as image
-- [ ] Advanced filtering options
-- [ ] Graph animation presets
-- [ ] Accessibility improvements
-- [ ] Collaboration features
-
----
-
-Made with ❤️ by the Supermemory team
+- Issues: [GitHub Issues](https://github.com/supermemoryai/supermemory/issues)

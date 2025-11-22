@@ -73,27 +73,37 @@ export interface GraphCanvasProps {
 }
 
 export interface MemoryGraphProps {
-	children?: React.ReactNode;
+	/** The documents to display in the graph */
 	documents: DocumentWithMemories[];
-	isLoading: boolean;
-	isLoadingMore: boolean;
-	error: Error | null;
-	totalLoaded: number;
-	hasMore: boolean;
-	loadMoreDocuments: () => Promise<void>;
-	// App-specific props
-	showSpacesSelector?: boolean; // true for console, false for consumer
-	variant?: "console" | "consumer"; // for different positioning and styling
-	legendId?: string; // Optional ID for the legend component
-	// Optional document highlight list (document custom IDs)
+	/** Whether the initial data is loading */
+	isLoading?: boolean;
+	/** Error that occurred during data fetching */
+	error?: Error | null;
+	/** Optional children to render when no documents exist */
+	children?: React.ReactNode;
+	/** Whether more data is being loaded (for pagination) */
+	isLoadingMore?: boolean;
+	/** Total number of documents loaded */
+	totalLoaded?: number;
+	/** Whether there are more documents to load */
+	hasMore?: boolean;
+	/** Callback to load more documents (for pagination) */
+	loadMoreDocuments?: () => Promise<void>;
+	/** Show/hide the spaces filter dropdown */
+	showSpacesSelector?: boolean;
+	/** Visual variant - "console" for full view, "consumer" for embedded */
+	variant?: "console" | "consumer";
+	/** Optional ID for the legend component */
+	legendId?: string;
+	/** Document IDs to highlight in the graph */
 	highlightDocumentIds?: string[];
-	// Whether highlights are currently visible (e.g., chat open)
+	/** Whether highlights are currently visible */
 	highlightsVisible?: boolean;
-	// Pixels occluded on the right side of the viewport (e.g., chat panel)
+	/** Pixels occluded on the right side of the viewport */
 	occludedRightPx?: number;
-	// Whether to auto-load more documents based on viewport visibility
+	/** Whether to auto-load more documents based on viewport visibility */
 	autoLoadOnViewport?: boolean;
-	// Theme class name to apply
+	/** Theme class name to apply */
 	themeClassName?: string;
 }
 

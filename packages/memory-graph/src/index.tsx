@@ -1,13 +1,11 @@
-// Auto-inject global styles (side effect import)
-import "./styles";
-
 // Export the main component
-export { MemoryGraphWrapper as MemoryGraph } from "./components/memory-graph-wrapper";
+export { MemoryGraph } from "./components/memory-graph";
+
+// Export style injector for manual use if needed
+export { injectStyles } from "./lib/inject-styles";
 
 // Export types for consumers
-export type {
-	MemoryGraphWrapperProps as MemoryGraphProps,
-} from "./components/memory-graph-wrapper";
+export type { MemoryGraphProps } from "./types";
 
 export type {
 	DocumentWithMemories,
@@ -20,25 +18,6 @@ export type {
 	GraphEdge,
 	MemoryRelation,
 } from "./types";
-
-// Export API client for advanced usage
-export {
-	fetchDocuments,
-	fetchDocumentsPage,
-	validateApiKey,
-	type FetchDocumentsOptions,
-	type ApiClientError,
-} from "./lib/api-client";
-
-// Export hooks for advanced usage (if users want to bring their own QueryClient)
-export {
-	useDocumentsQuery,
-	useInfiniteDocumentsQuery,
-	flattenDocuments,
-	getTotalDocuments,
-	getLoadedCount,
-	type UseDocumentsQueryOptions,
-} from "./hooks/use-documents-query";
 
 // Export theme system for custom theming
 export { themeContract, defaultTheme } from "./styles/theme.css";

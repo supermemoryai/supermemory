@@ -1,6 +1,6 @@
 {
   "name": "@supermemory/memory-graph",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Interactive graph visualization component for Supermemory - visualize and explore your memory connections",
   "type": "module",
   "main": "./dist/memory-graph.cjs",
@@ -62,7 +62,6 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-slot": "^1.2.4",
-    "@tanstack/react-query": "^5.90.7",
     "@vanilla-extract/css": "^1.17.4",
     "@vanilla-extract/recipes": "^0.5.7",
     "@vanilla-extract/sprinkles": "^1.6.5",
@@ -75,7 +74,6 @@
     "@vanilla-extract/vite-plugin": "^5.1.1",
     "@vitejs/plugin-react": "^5.1.0",
     "typescript": "^5.9.3",
-    "vite": "^7.2.1",
-    "vite-plugin-lib-inject-css": "^2.2.2"
+    "vite": "^7.2.1"
   }
 }

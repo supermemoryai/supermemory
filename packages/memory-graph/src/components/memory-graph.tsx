@@ -6,23 +6,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GraphCanvas } from "./graph-canvas";
 import { useGraphData } from "@/hooks/use-graph-data";
 import { useGraphInteractions } from "@/hooks/use-graph-interactions";
+import { injectStyles } from "@/lib/inject-styles";
 import { Legend } from "./legend";
 import { LoadingIndicator } from "./loading-indicator";
 import { NavigationControls } from "./navigation-controls";
 import { NodeDetailPanel } from "./node-detail-panel";
 import { SpacesDropdown } from "./spaces-dropdown";
 import * as styles from "./memory-graph.css";
+import { defaultTheme } from "@/styles/theme.css";
 
 import type { MemoryGraphProps } from "@/types";
 
 export const MemoryGraph = ({
 	children,
 	documents,
-	isLoading,
-	isLoadingMore,
-	error,
+	isLoading = false,
+	isLoadingMore = false,
+	error = null,
 	totalLoaded,
-	hasMore,
+	hasMore = false,
 	loadMoreDocuments,
 	showSpacesSelector,
 	variant = "console",
@@ -33,6 +35,15 @@ export const MemoryGraph = ({
 	autoLoadOnViewport = true,
 	themeClassName,
 }: MemoryGraphProps) => {
+	// Inject styles on first render (client-side only)
+	useEffect(() => {
+		injectStyles();
+	}, []);
+
+	// Derive totalLoaded from documents if not provided
+	const effectiveTotalLoaded = totalLoaded ?? documents.length;
+	// No-op for loadMoreDocuments if not provided
+	const effectiveLoadMoreDocuments = loadMoreDocuments ?? (async () => {});
 	// Derive showSpacesSelector from variant if not explicitly provided
 	// console variant shows spaces selector, consumer variant hides it
 	const finalShowSpacesSelector = showSpacesSelector ?? (variant === "console");
@@ -293,7 +304,7 @@ export const MemoryGraph = ({
 		// If 80% or more of documents are visible, load more
 		const visibilityRatio = visibleDocuments.length / data.documents.length;
 		if (visibilityRatio >= 0.8) {
-			loadMoreDocuments();
+			effectiveLoadMoreDocuments();
 		}
 	}, [
 		isLoadingMore,
@@ -305,7 +316,7 @@ export const MemoryGraph = ({
 		containerSize.width,
 		containerSize.height,
 		nodes,
-		loadMoreDocuments,
+		effectiveLoadMoreDocuments,
 	]);
 
 	// Throttled version to avoid excessive checks
@@ -352,7 +363,7 @@ export const MemoryGraph = ({
 	}
 
 	return (
-		<div className={themeClassName ? `${themeClassName} ${styles.mainContainer}` : styles.mainContainer}>
+		<div className={`${themeClassName ?? defaultTheme} ${styles.mainContainer}`}>
 			{/* Spaces selector - only shown for console */}
 			{finalShowSpacesSelector && availableSpaces.length > 0 && (
 				<div className={styles.spacesSelectorContainer}>
@@ -369,7 +380,7 @@ export const MemoryGraph = ({
 			<LoadingIndicator
 				isLoading={isLoading}
 				isLoadingMore={isLoadingMore}
-				totalLoaded={totalLoaded}
+				totalLoaded={effectiveTotalLoaded}
 				variant={variant}
 			/>
 
