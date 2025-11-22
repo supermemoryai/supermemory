@@ -15,7 +15,7 @@ export interface GraphNode {
 	isDragging: boolean;
 }
 
-export type MemoryRelation = "updates" | "extends" | "derives";
+export type MemoryRelation = "updates" | "extends" | "derives" | "merges";
 
 export interface GraphEdge {
 	id: string;

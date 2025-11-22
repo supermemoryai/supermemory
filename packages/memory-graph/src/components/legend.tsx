@@ -229,11 +229,15 @@ export const Legend = memo(function Legend({
 												["updates", colors.relations.updates],
 												["extends", colors.relations.extends],
 												["derives", colors.relations.derives],
+												["merges", colors.relations.merges],
 											].map(([label, color]) => (
 												<div className={styles.legendItem} key={label}>
 													<div
 														className={styles.relationLine}
-														style={{ borderColor: color }}
+														style={{
+															borderColor: color,
+															borderStyle: label === "merges" ? "dashed" : "solid"
+														}}
 													/>
 													<span
 														className={styles.legendText}

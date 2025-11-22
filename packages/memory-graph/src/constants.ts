@@ -46,6 +46,7 @@ export const colors = {
 		updates: "rgba(147, 77, 253, 0.5)", // purple
 		extends: "rgba(16, 185, 129, 0.5)", // green
 		derives: "rgba(147, 197, 253, 0.5)", // blue
+		merges: "rgba(251, 165, 36, 0.5)", // orange
 	},
 };
 
