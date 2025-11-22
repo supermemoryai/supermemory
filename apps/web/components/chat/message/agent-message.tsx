@@ -4,6 +4,7 @@ import type { UIMessage } from "@ai-sdk/react"
 import { Streamdown } from "streamdown"
 import { RelatedMemories } from "./related-memories"
 import { MessageActions } from "./message-actions"
+import { FollowUpQuestions } from "./follow-up-questions"
 
 interface AgentMessageProps {
 	message: UIMessage
@@ -13,10 +14,13 @@ interface AgentMessageProps {
 	copiedMessageId: string | null
 	messageFeedback: Record<string, "like" | "dislike" | null>
 	expandedMemories: string | null
+	followUpQuestions?: string[]
+	isLoadingFollowUps?: boolean
 	onCopy: (messageId: string, text: string) => void
 	onLike: (messageId: string) => void
 	onDislike: (messageId: string) => void
 	onToggleMemories: (messageId: string) => void
+	onQuestionClick?: (question: string) => void
 }
 
 export function AgentMessage({
@@ -27,10 +31,13 @@ export function AgentMessage({
 	copiedMessageId,
 	messageFeedback,
 	expandedMemories,
+	followUpQuestions = [],
+	isLoadingFollowUps = false,
 	onCopy,
 	onLike,
 	onDislike,
 	onToggleMemories,
+	onQuestionClick,
 }: AgentMessageProps) {
 	const isLastAgentMessage =
 		index === messagesLength - 1 && message.role === "assistant"
@@ -78,6 +85,11 @@ export function AgentMessage({
 						}
 						return null
 					})}
+					<FollowUpQuestions
+						questions={followUpQuestions}
+						isLoading={isLoadingFollowUps}
+						onQuestionClick={onQuestionClick || (() => {})}
+					/>
 				</div>
 			</div>
 			<MessageActions
