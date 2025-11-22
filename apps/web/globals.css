@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-
 .sm-tweet-theme .react-tweet-theme {
 	--tweet-container-margin: 0px;
 }
