@@ -139,6 +139,7 @@
 											"connectors/notion",
 											"connectors/google-drive",
 											"connectors/onedrive",
+											"connectors/web-crawler",
 											"connectors/troubleshooting"
 										]
 									},

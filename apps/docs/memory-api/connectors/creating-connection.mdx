@@ -13,9 +13,15 @@ const client = new Supermemory({
   apiKey: process.env['SUPERMEMORY_API_KEY'], // This is the default and can be omitted
 });
 
+// For OAuth providers (notion, google-drive, onedrive)
 const connection = await client.connections.create('notion');
-
 console.debug(connection.authLink);
+
+// For web-crawler (no OAuth required)
+const webCrawlerConnection = await client.connections.create('web-crawler', {
+  metadata: { startUrl: 'https://docs.example.com' }
+});
+console.debug(webCrawlerConnection.id); // authLink will be null
 ```
 
 ```python Python
@@ -57,12 +63,14 @@ curl --request POST \
 
 ### Parameters
 
-- `provider`: The provider to connect to. Currently supported providers are `notion`, `google-drive`, `one-drive`
+- `provider`: The provider to connect to. Currently supported providers are `notion`, `google-drive`, `onedrive`, `web-crawler`
 - `redirectUrl`: The URL to redirect to after the connection is created (your app URL)
+    - Note: For `web-crawler`, this is optional as no OAuth flow is required
 - `containerTags`: Optional. For partitioning users, organizations, etc. in your app.
     - Example: `["user_123", "project_alpha"]`
 - `metadata`: Optional. Any metadata you want to associate with the connection.
     - This metadata is added to every document synced from this connection.
+    - For `web-crawler`, must include `startUrl` in metadata: `{"startUrl": "https://example.com"}`
 - `documentLimit`: Optional. The maximum number of documents to sync from this connection.
     - Default: 10,000
     - This can be used to limit costs and sync a set number of documents for a specific user.
@@ -80,6 +88,10 @@ supermemory sends a response with the following schema:
 }
 ```
 
-You can use the `authLink` to redirect the user to the provider's login page.
+For most providers (notion, google-drive, onedrive), you can use the `authLink` to redirect the user to the provider's login page.
+
+<Note>
+**Web Crawler Exception:** For `web-crawler` provider, `authLink` and `expiresIn` will be `null` since no OAuth flow is required. The connection is established immediately upon creation.
+</Note>
 
 Next up, managing connections. 

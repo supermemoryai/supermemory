@@ -1,0 +1,396 @@
+---
+title: "Web Crawler Connector"
+description: "Crawl and sync websites automatically with scheduled recrawling and robots.txt compliance"
+icon: "globe"
+---
+
+Connect websites to automatically crawl and sync web pages into your Supermemory knowledge base. The web crawler respects robots.txt rules, includes SSRF protection, and automatically recrawls sites on a schedule.
+
+<Warning>
+The web crawler connector requires a **Scale Plan** or **Enterprise Plan**.
+</Warning>
+
+## Quick Setup
+
+### 1. Create Web Crawler Connection
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY!
+    });
+
+    const connection = await client.connections.create('web-crawler', {
+      redirectUrl: 'https://yourapp.com/callback',
+      containerTags: ['user-123', 'website-sync'],
+      documentLimit: 5000,
+      metadata: {
+        startUrl: 'https://docs.example.com'
+      }
+    });
+
+    // Web crawler doesn't require OAuth - connection is ready immediately
+    console.log('Connection ID:', connection.id);
+    console.log('Connection created:', connection.createdAt);
+    // Note: connection.authLink is undefined for web-crawler
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+    import os
+
+    client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+    connection = client.connections.create(
+        'web-crawler',
+        redirect_url='https://yourapp.com/callback',
+        container_tags=['user-123', 'website-sync'],
+        document_limit=5000,
+        metadata={
+            'startUrl': 'https://docs.example.com'
+        }
+    )
+
+    # Web crawler doesn't require OAuth - connection is ready immediately
+    print(f'Connection ID: {connection.id}')
+    print(f'Connection created: {connection.created_at}')
+    # Note: connection.auth_link is None for web-crawler
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "redirectUrl": "https://yourapp.com/callback",
+        "containerTags": ["user-123", "website-sync"],
+        "documentLimit": 5000,
+        "metadata": {
+          "startUrl": "https://docs.example.com"
+        }
+      }'
+
+    # Response: {
+    #   "id": "conn_wc123",
+    #   "redirectsTo": "https://yourapp.com/callback",
+    #   "authLink": null,
+    #   "expiresIn": null
+    # }
+    ```
+  </Tab>
+</Tabs>
+
+### 2. Connection Established
+
+Unlike other connectors, the web crawler doesn't require OAuth authentication. The connection is established immediately upon creation, and crawling begins automatically.
+
+### 3. Monitor Sync Progress
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Check connection details
+    const connection = await client.connections.getByTags('web-crawler', {
+      containerTags: ['user-123', 'website-sync']
+    });
+
+    console.log('Start URL:', connection.metadata?.startUrl);
+    console.log('Connection created:', connection.createdAt);
+
+    // List synced web pages
+    const documents = await client.connections.listDocuments('web-crawler', {
+      containerTags: ['user-123', 'website-sync']
+    });
+
+    console.log(`Synced ${documents.length} web pages`);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Check connection details
+    connection = client.connections.get_by_tags(
+        'web-crawler',
+        container_tags=['user-123', 'website-sync']
+    )
+
+    print(f'Start URL: {connection.metadata.get("startUrl")}')
+    print(f'Connection created: {connection.created_at}')
+
+    # List synced web pages
+    documents = client.connections.list_documents(
+        'web-crawler',
+        container_tags=['user-123', 'website-sync']
+    )
+
+    print(f'Synced {len(documents)} web pages')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Get connection details by provider and tags
+    curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler/connection" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTags": ["user-123", "website-sync"]}'
+
+    # Response includes connection details:
+    # {
+    #   "id": "conn_wc123",
+    #   "provider": "web-crawler",
+    #   "createdAt": "2024-01-15T10:00:00Z",
+    #   "documentLimit": 5000,
+    #   "metadata": {"startUrl": "https://docs.example.com", ...}
+    # }
+
+    # List synced documents
+    curl -X POST "https://api.supermemory.ai/v3/connections/web-crawler/documents" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTags": ["user-123", "website-sync"]}'
+
+    # Response: Array of document objects
+    # [
+    #   {"title": "Home Page", "type": "webpage", "status": "done", "url": "https://docs.example.com"},
+    #   {"title": "Getting Started", "type": "webpage", "status": "done", "url": "https://docs.example.com/getting-started"}
+    # ]
+    ```
+  </Tab>
+</Tabs>
+
+## Supported Content Types
+
+### Web Pages
+- **HTML content** extracted and converted to markdown
+- **Same-domain crawling** only (respects hostname boundaries)
+- **Robots.txt compliance** - respects disallow rules
+- **Content filtering** - only HTML pages (skips non-HTML content)
+
+### URL Requirements
+
+The web crawler only processes valid public URLs:
+- Must be a public URL (not localhost, private IPs, or internal domains)
+- Must be accessible from the internet
+- Must return HTML content (non-HTML files are skipped)
+
+## Sync Mechanism
+
+The web crawler uses **scheduled recrawling** rather than real-time webhooks:
+
+- **Initial Crawl**: Begins immediately after connection creation
+- **Scheduled Recrawling**: Automatically recrawls sites that haven't been synced in 7+ days
+- **No Real-time Updates**: Unlike other connectors, web crawler doesn't support webhook-based real-time sync
+
+<Note>
+The recrawl schedule is automatically assigned when the connection is created. Sites are recrawled periodically to keep content up to date, but updates are not instantaneous.
+</Note>
+
+## Connection Management
+
+### List All Connections
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // List all web crawler connections
+    const connections = await client.connections.list({
+      containerTags: ['user-123']
+    });
+
+    const webCrawlerConnections = connections.filter(
+      conn => conn.provider === 'web-crawler'
+    );
+
+    webCrawlerConnections.forEach(conn => {
+      console.log(`Start URL: ${conn.metadata?.startUrl}`);
+      console.log(`Connection ID: ${conn.id}`);
+      console.log(`Created: ${conn.createdAt}`);
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # List all web crawler connections
+    connections = client.connections.list(container_tags=['user-123'])
+
+    web_crawler_connections = [
+        conn for conn in connections if conn.provider == 'web-crawler'
+    ]
+
+    for conn in web_crawler_connections:
+        print(f'Start URL: {conn.metadata.get("startUrl")}')
+        print(f'Connection ID: {conn.id}')
+        print(f'Created: {conn.created_at}')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # List all connections
+    curl -X POST "https://api.supermemory.ai/v3/connections/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTags": ["user-123"]}'
+
+    # Response: [
+    #   {
+    #     "id": "conn_wc123",
+    #     "provider": "web-crawler",
+    #     "createdAt": "2024-01-15T10:30:00.000Z",
+    #     "documentLimit": 5000,
+    #     "metadata": {"startUrl": "https://docs.example.com", ...}
+    #   }
+    # ]
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Connection
+
+Remove a web crawler connection when no longer needed:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Delete by connection ID
+    const result = await client.connections.delete('connection_id_123');
+    console.log('Deleted connection:', result.id);
+
+    // Delete by provider and container tags
+    const providerResult = await client.connections.deleteByProvider('web-crawler', {
+      containerTags: ['user-123']
+    });
+    console.log('Deleted web crawler connection for user');
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Delete by connection ID
+    result = client.connections.delete('connection_id_123')
+    print(f'Deleted connection: {result.id}')
+
+    # Delete by provider and container tags
+    provider_result = client.connections.delete_by_provider(
+        'web-crawler',
+        container_tags=['user-123']
+    )
+    print('Deleted web crawler connection for user')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Delete by connection ID
+    curl -X DELETE "https://api.supermemory.ai/v3/connections/connection_id_123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Delete by provider and container tags
+    curl -X DELETE "https://api.supermemory.ai/v3/connections/web-crawler" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTags": ["user-123"]}'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Deleting a connection will:
+- Stop all future crawls from the website
+- Keep existing synced documents in Supermemory (they won't be deleted)
+- Remove the connection configuration
+</Note>
+
+## Advanced Configuration
+
+### Content Filtering
+
+Control which web pages get synced using the settings API:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Configure intelligent filtering for web content
+    await client.settings.update({
+      shouldLLMFilter: true,
+      includeItems: {
+        urlPatterns: ['*docs*', '*documentation*', '*guide*'],
+        titlePatterns: ['*Getting Started*', '*API Reference*', '*Tutorial*']
+      },
+      excludeItems: {
+        urlPatterns: ['*admin*', '*private*', '*test*'],
+        titlePatterns: ['*Draft*', '*Archive*', '*Old*']
+      },
+      filterPrompt: "Sync documentation pages, guides, and API references. Skip admin pages, private content, drafts, and archived pages."
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Configure intelligent filtering for web content
+    client.settings.update(
+        should_llm_filter=True,
+        include_items={
+            'urlPatterns': ['*docs*', '*documentation*', '*guide*'],
+            'titlePatterns': ['*Getting Started*', '*API Reference*', '*Tutorial*']
+        },
+        exclude_items={
+            'urlPatterns': ['*admin*', '*private*', '*test*'],
+            'titlePatterns': ['*Draft*', '*Archive*', '*Old*']
+        },
+        filter_prompt="Sync documentation pages, guides, and API references. Skip admin pages, private content, drafts, and archived pages."
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Configure intelligent filtering for web content
+    curl -X PATCH "https://api.supermemory.ai/v3/settings" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "shouldLLMFilter": true,
+        "includeItems": {
+          "urlPatterns": ["*docs*", "*documentation*", "*guide*"],
+          "titlePatterns": ["*Getting Started*", "*API Reference*", "*Tutorial*"]
+        },
+        "excludeItems": {
+          "urlPatterns": ["*admin*", "*private*", "*test*"],
+          "titlePatterns": ["*Draft*", "*Archive*", "*Old*"]
+        },
+        "filterPrompt": "Sync documentation pages, guides, and API references. Skip admin pages, private content, drafts, and archived pages."
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Security & Compliance
+
+### SSRF Protection
+
+Built-in protection against Server-Side Request Forgery (SSRF) attacks:
+- Blocks private IP addresses (10.x.x.x, 192.168.x.x, 172.16-31.x.x)
+- Blocks localhost and internal domains
+- Blocks cloud metadata endpoints
+- Only allows public, internet-accessible URLs
+
+### URL Validation
+
+All URLs are validated before crawling:
+- Must be valid HTTP/HTTPS URLs
+- Must be publicly accessible
+- Must return HTML content
+- Response size limited to 10MB
+
+
+<Warning>
+**Important Limitations:**
+- Requires Scale Plan or Enterprise Plan
+- Only crawls same-domain URLs
+- Scheduled recrawling means updates are not real-time
+- Large websites may take significant time to crawl initially
+- Robots.txt restrictions may prevent crawling some pages
+- URLs must be publicly accessible (no authentication required)
+</Warning>
+
