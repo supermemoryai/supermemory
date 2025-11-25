@@ -1,0 +1,405 @@
+---
+title: "API Reference"
+description: "Complete reference for props, types, and configuration options"
+sidebarTitle: "API Reference"
+---
+
+## Component Props
+
+### Core Props
+
+<ParamField path="documents" type="DocumentWithMemories[]" required>
+  Array of documents with their associated memories to display in the graph. This is the primary data source for the visualization.
+
+  ```tsx
+  <MemoryGraph
+    documents={[
+      {
+        id: "doc-1",
+        title: "Meeting Notes",
+        memoryEntries: [
+          {
+            id: "mem-1",
+            documentId: "doc-1",
+            content: "Discussed project roadmap",
+            // ... other memory fields
+          }
+        ]
+      }
+    ]}
+  />
+  ```
+</ParamField>
+
+<ParamField path="isLoading" type="boolean" default="false">
+  Indicates whether the initial data is currently loading. Shows a loading indicator overlay.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    isLoading={true}
+  />
+  ```
+</ParamField>
+
+<ParamField path="error" type="Error | null" default="null">
+  Error object to display if data fetching fails. Shows an error state with the error message.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    error={new Error('Failed to load graph data')}
+  />
+  ```
+</ParamField>
+
+<ParamField path="children" type="ReactNode">
+  Content to display when no documents are available. Useful for custom empty states.
+
+  ```tsx
+  <MemoryGraph documents={[]}>
+    <div>
+      <h2>No memories yet</h2>
+      <button>Add Memory</button>
+    </div>
+  </MemoryGraph>
+  ```
+</ParamField>
+
+### Display Props
+
+<ParamField path="variant" type="'console' | 'consumer'" default="'console'">
+  Visual variant that determines the default zoom level and UI layout.
+
+  - **console**: Full dashboard view (zoom: 0.8, spaces selector shown, legend bottom-right)
+  - **consumer**: Embedded widget view (zoom: 0.5, spaces selector hidden, legend top-right)
+
+  ```tsx
+  {/* Full dashboard */}
+  <MemoryGraph documents={documents} variant="console" />
+
+  {/* Embedded widget */}
+  <MemoryGraph documents={documents} variant="consumer" />
+  ```
+</ParamField>
+
+<ParamField path="showSpacesSelector" type="boolean" default="Based on variant">
+  Controls visibility of the spaces/container filter dropdown. Defaults to `true` for console variant, `false` for consumer variant.
+
+  ```tsx
+  {/* Force show on consumer variant */}
+  <MemoryGraph
+    documents={documents}
+    variant="consumer"
+    showSpacesSelector={true}
+  />
+  ```
+</ParamField>
+
+<ParamField path="legendId" type="string">
+  Custom ID for the legend element. Useful for DOM targeting or testing.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    legendId="my-custom-legend"
+  />
+  ```
+</ParamField>
+
+### Highlighting Props
+
+<ParamField path="highlightDocumentIds" type="string[]" default="[]">
+  Array of document IDs to highlight in the graph. Supports both internal IDs and custom IDs. Perfect for showing search results or filtered content.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    highlightDocumentIds={['doc-123', 'custom-id-456']}
+  />
+  ```
+</ParamField>
+
+<ParamField path="highlightsVisible" type="boolean" default="true">
+  Controls whether highlights are currently visible. Useful for toggling highlights on/off.
+
+  ```tsx
+  const [showHighlights, setShowHighlights] = useState(true)
+
+  <MemoryGraph
+    documents={documents}
+    highlightDocumentIds={searchResults}
+    highlightsVisible={showHighlights}
+  />
+  ```
+</ParamField>
+
+### Pagination Props
+
+For large datasets, implement pagination to load documents incrementally:
+
+<ParamField path="isLoadingMore" type="boolean" default="false">
+  Indicates whether additional data is being loaded. Shows a loading indicator without blocking interactions.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    isLoadingMore={true}
+  />
+  ```
+</ParamField>
+
+<ParamField path="hasMore" type="boolean" default="false">
+  Indicates whether more documents are available to load.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    hasMore={page < totalPages}
+  />
+  ```
+</ParamField>
+
+<ParamField path="totalLoaded" type="number" default="documents.length">
+  Total number of documents currently loaded. Displayed in the loading indicator.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    totalLoaded={documents.length}
+  />
+  ```
+</ParamField>
+
+<ParamField path="loadMoreDocuments" type="() => Promise<void>">
+  Async callback function to load more documents. Called automatically when user scrolls near the viewport edge.
+
+  ```tsx
+  const loadMore = async () => {
+    const nextPage = await fetchNextPage()
+    setDocuments(prev => [...prev, ...nextPage])
+  }
+
+  <MemoryGraph
+    documents={documents}
+    hasMore={true}
+    loadMoreDocuments={loadMore}
+  />
+  ```
+</ParamField>
+
+### Advanced Props
+
+<ParamField path="occludedRightPx" type="number" default="0">
+  Number of pixels occluded on the right side (e.g., by a chat panel). Used to adjust auto-fit calculations.
+
+  ```tsx
+  {/* Account for 400px chat panel on the right */}
+  <MemoryGraph
+    documents={documents}
+    occludedRightPx={400}
+  />
+  ```
+</ParamField>
+
+<ParamField path="autoLoadOnViewport" type="boolean" default="true">
+  Enable automatic loading when 80% of documents are visible in viewport. Set to `false` for manual pagination control.
+
+  ```tsx
+  <MemoryGraph
+    documents={documents}
+    hasMore={true}
+    loadMoreDocuments={loadMore}
+    autoLoadOnViewport={false}
+  />
+  ```
+</ParamField>
+
+<ParamField path="themeClassName" type="string">
+  Custom theme class name for styling overrides. Use with Vanilla Extract theme system.
+
+  ```tsx
+  import { customTheme } from './my-theme.css'
+
+  <MemoryGraph
+    documents={documents}
+    themeClassName={customTheme}
+  />
+  ```
+</ParamField>
+
+## TypeScript Types
+
+### Core Data Types
+
+```typescript
+interface DocumentWithMemories {
+  id: string
+  customId?: string | null
+  title?: string
+  content?: string
+  summary?: string
+  url?: string
+  summaryEmbedding?: number[]  // For similarity calculations
+  memoryEntries: MemoryEntry[]
+  createdAt: string
+  updatedAt: string
+  userId?: string
+  spaceId?: string
+  spaceContainerTag?: string
+}
+
+interface MemoryEntry {
+  id: string
+  documentId: string
+  content: string | null
+  embedding?: number[]
+  spaceContainerTag?: string
+  spaceId?: string
+  updatesMemoryId?: string | null
+  relation?: 'updates' | 'extends' | 'derives' | null
+  isForgotten?: boolean
+  isLatest?: boolean
+  forgetAfter?: string | null
+  createdAt: string
+  updatedAt: string
+}
+```
+
+### Graph Types
+
+```typescript
+interface GraphNode {
+  id: string
+  type: 'document' | 'memory'
+  x: number
+  y: number
+  data: DocumentWithMemories | MemoryEntry
+  size: number
+  color: string
+  isHovered: boolean
+  isDragging: boolean
+}
+
+interface GraphEdge {
+  id: string
+  source: string
+  target: string
+  similarity: number  // 0-1 for semantic similarity
+  visualProps: {
+    opacity: number
+    thickness: number
+    glow: number
+    pulseDuration: number
+  }
+  color: string
+  edgeType: 'doc-memory' | 'doc-doc' | 'version'
+  relationType?: 'updates' | 'extends' | 'derives'
+}
+```
+
+### Component Props Type
+
+```typescript
+interface MemoryGraphProps {
+  // Core
+  documents: DocumentWithMemories[]
+  isLoading?: boolean
+  error?: Error | null
+  children?: ReactNode
+
+  // Display
+  variant?: 'console' | 'consumer'
+  showSpacesSelector?: boolean
+  legendId?: string
+
+  // Highlighting
+  highlightDocumentIds?: string[]
+  highlightsVisible?: boolean
+
+  // Pagination
+  isLoadingMore?: boolean
+  hasMore?: boolean
+  totalLoaded?: number
+  loadMoreDocuments?: () => Promise<void>
+
+  // Advanced
+  occludedRightPx?: number
+  autoLoadOnViewport?: boolean
+  themeClassName?: string
+}
+```
+
+## Variants Comparison
+
+| Feature | Console | Consumer |
+|---------|---------|----------|
+| **Initial Zoom** | 0.8 (closer view) | 0.5 (wider view) |
+| **Spaces Selector** | Shown by default | Hidden by default |
+| **Legend Position** | Bottom-right | Top-right |
+| **Best For** | Full-page dashboards | Embedded widgets |
+| **Use Cases** | Admin panels, analytics | Sidebars, chat integration |
+
+### Console Variant
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  variant="console"
+  // Spaces selector shown
+  // Legend in bottom-right
+  // Closer initial view
+/>
+```
+
+{/* TODO: Add console variant screenshot */}
+
+### Consumer Variant
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  variant="consumer"
+  // Spaces selector hidden
+  // Legend in top-right
+  // Wider initial view
+/>
+```
+
+{/* TODO: Add consumer variant screenshot */}
+
+## Type Imports
+
+Import all types you need for TypeScript:
+
+```typescript
+import type {
+  // Data types
+  DocumentWithMemories,
+  MemoryEntry,
+  DocumentsResponse,
+
+  // Graph types
+  GraphNode,
+  GraphEdge,
+  MemoryRelation,
+
+  // Component types
+  MemoryGraphProps,
+
+  // Theme types (if customizing)
+  Sprinkles,
+} from '@supermemory/memory-graph'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Examples" icon="code" href="/memory-graph/examples">
+    See real-world implementation patterns
+  </Card>
+
+  <Card title="Troubleshooting" icon="wrench" href="/memory-graph/troubleshooting">
+    Solve common issues
+  </Card>
+</CardGroup>

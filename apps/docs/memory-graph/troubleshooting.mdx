@@ -1,0 +1,336 @@
+---
+title: "Troubleshooting"
+description: "Common issues and their solutions"
+sidebarTitle: "Troubleshooting"
+---
+
+## Graph Not Rendering
+
+### Container Has No Dimensions
+
+**Problem**: The graph appears blank or shows nothing.
+
+**Cause**: The parent container has no explicit width or height (0x0 dimensions).
+
+**Solution**: Always set explicit dimensions on the container:
+
+```tsx
+{/* ✅ Correct */}
+<div style={{ width: '100%', height: '100vh' }}>
+  <MemoryGraph documents={documents} />
+</div>
+
+{/* ❌ Wrong - no height set */}
+<div style={{ width: '100%' }}>
+  <MemoryGraph documents={documents} />
+</div>
+
+{/* ❌ Wrong - using auto height */}
+<div style={{ width: '100%', height: 'auto' }}>
+  <MemoryGraph documents={documents} />
+</div>
+```
+
+<Tip>
+Use browser DevTools to inspect the container element and verify it has non-zero width and height.
+</Tip>
+
+### CSS Not Loading
+
+**Problem**: Graph renders but has no styling or looks broken.
+
+**Cause**: CSS injection failed or was blocked.
+
+**Solution**:
+
+1. Check browser console for errors
+2. Try manual CSS import:
+
+```tsx
+import '@supermemory/memory-graph/styles.css'
+import { MemoryGraph } from '@supermemory/memory-graph'
+```
+
+3. Verify your bundler supports CSS imports
+
+### No Data Displayed
+
+**Problem**: Loading completes but no nodes appear.
+
+**Diagnosis**:
+
+```tsx
+// Add console logs to debug
+console.log('Documents:', documents)
+console.log('Document count:', documents.length)
+console.log('Has memories:', documents.some(d => d.memoryEntries.length > 0))
+```
+
+**Common Causes**:
+- Empty `documents` array
+- Documents have no `memoryEntries`
+- Data structure doesn't match expected type
+
+**Solution**: Verify your data matches the expected structure:
+
+```typescript
+interface DocumentWithMemories {
+  id: string
+  title?: string
+  memoryEntries: MemoryEntry[]  // Must be present
+  // ... other fields
+}
+```
+
+## Performance Issues
+
+### Slow Rendering with Large Datasets
+
+**Problem**: Graph becomes sluggish with 500+ documents.
+
+**Solution**: Implement pagination:
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  hasMore={true}
+  loadMoreDocuments={loadMore}
+  isLoadingMore={isLoadingMore}
+/>
+```
+
+<Note>
+The graph uses viewport culling and Level-of-Detail (LOD) rendering automatically. Performance degradation typically starts around 1000+ nodes.
+</Note>
+
+### High Memory Usage
+
+**Problem**: Browser uses excessive memory.
+
+**Cause**: Too many documents loaded at once.
+
+**Solution**:
+1. Limit initial load to 200-500 documents
+2. Use pagination to load incrementally
+3. Consider filtering by space/container
+
+```typescript
+// Backend: Limit documents
+body: JSON.stringify({
+  page: 1,
+  limit: 200,  // Start with smaller limit
+  containerTags: [selectedSpace],
+})
+```
+
+### Laggy Interactions
+
+**Problem**: Pan/zoom feels sluggish.
+
+**Diagnosis**:
+1. Check document count: `documents.length`
+2. Check browser FPS in DevTools Performance tab
+3. Check canvas size (very large canvases are slower)
+
+**Solutions**:
+- Reduce number of visible documents
+- Ensure container isn't larger than viewport
+- Close other resource-intensive tabs
+
+## Data Fetching Errors
+
+### CORS Errors
+
+**Problem**: `Access-Control-Allow-Origin` error in console.
+
+**Cause**: Trying to fetch directly from client to Supermemory API.
+
+**Solution**: Always use a backend proxy:
+
+```tsx
+{/* ❌ Wrong - CORS error */}
+fetch('https://api.supermemory.ai/v3/documents/documents', {
+  headers: { 'Authorization': `Bearer ${apiKey}` }  // API key exposed!
+})
+
+{/* ✅ Correct - through your backend */}
+fetch('/api/graph-data')  // Your backend proxies the request
+```
+
+<Warning>
+Never call the Supermemory API directly from client code. This exposes your API key and causes CORS errors.
+</Warning>
+
+### 401 Unauthorized
+
+**Problem**: Backend returns 401 error.
+
+**Common Causes**:
+1. API key is missing or invalid
+2. API key not in environment variables
+3. Environment variables not loaded
+
+**Solution**:
+
+```bash
+# .env.local
+SUPERMEMORY_API_KEY=your_api_key_here
+```
+
+```typescript
+// Verify in backend
+console.log('API Key present:', !!process.env.SUPERMEMORY_API_KEY)
+```
+
+### 500 Internal Server Error
+
+**Problem**: Backend returns 500 error.
+
+**Diagnosis**: Check backend logs for details.
+
+**Common Causes**:
+1. Network error reaching Supermemory API
+2. Invalid request body
+3. API key lacks permissions
+
+**Solution**: Add detailed error logging:
+
+```typescript
+try {
+  const response = await fetch('https://api.supermemory.ai/...')
+
+  if (!response.ok) {
+    const error = await response.text()
+    console.error('Supermemory API error:', response.status, error)
+    throw new Error(`API error: ${response.status}`)
+  }
+
+  return await response.json()
+} catch (error) {
+  console.error('Fetch error:', error)
+  throw error
+}
+```
+
+### API Key Exposure Warning
+
+**Problem**: API key visible in Network tab or client code.
+
+**Risk**: Anyone can steal your API key and make unauthorized requests.
+
+**Solution**:
+1. Remove API key from client code immediately
+2. Rotate your API key in Supermemory dashboard
+3. Implement backend proxy (see Quick Start guide)
+
+```tsx
+{/* ❌ NEVER do this */}
+const apiKey = 'sk_123...'  // Exposed in source code!
+fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` }})
+
+{/* ✅ Always use backend proxy */}
+fetch('/api/graph-data')  // API key stays on server
+```
+
+## TypeScript Errors
+
+### Type Mismatch
+
+**Problem**: TypeScript errors on `documents` prop.
+
+**Solution**: Import and use the correct type:
+
+```tsx
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+```
+
+### Missing Type Definitions
+
+**Problem**: TypeScript can't find types.
+
+**Solution**:
+1. Verify package is installed: `npm list @supermemory/memory-graph`
+2. Restart TypeScript server in your IDE
+3. Check `node_modules/@supermemory/memory-graph/dist/index.d.ts` exists
+
+## Browser Compatibility
+
+### Not Working in Safari
+
+**Issue**: Graph doesn't render in Safari.
+
+**Cause**: Older Safari versions lack some Canvas 2D features.
+
+**Solution**: Ensure users are on Safari 14+ or suggest Chrome/Firefox.
+
+### Mobile Touch Gestures Not Working
+
+**Issue**: Can't pinch-to-zoom on mobile.
+
+**Cause**: Browser or container blocking touch events.
+
+**Solution**: Ensure parent has no conflicting touch handlers:
+
+```tsx
+<div
+  style={{ touchAction: 'none' }}  // Let graph handle touches
+  onTouchStart={(e) => e.stopPropagation()}
+>
+  <MemoryGraph documents={documents} />
+</div>
+```
+
+### Canvas Appears Blurry
+
+**Issue**: Graph looks pixelated or blurry.
+
+**Cause**: High-DPI displays not being handled correctly.
+
+**Solution**: This should be automatic. If it persists:
+1. Check browser zoom is at 100%
+2. Verify `devicePixelRatio` is being respected
+3. Try different browser
+
+## Build Errors
+
+### Module Not Found
+
+**Error**: `Cannot find module '@supermemory/memory-graph'`
+
+**Solution**:
+1. Reinstall package: `npm install @supermemory/memory-graph`
+2. Clear node_modules: `rm -rf node_modules && npm install`
+3. Check package.json includes the package
+
+### Build Fails with CSS Error
+
+**Error**: `Failed to parse CSS` or similar.
+
+**Cause**: Bundler doesn't support CSS-in-JS.
+
+**Solution**: The package uses automatic CSS injection - no CSS import needed. If you must import CSS:
+
+```tsx
+import '@supermemory/memory-graph/styles.css'
+```
+
+## Still Having Issues?
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/supermemoryai/supermemory/issues">
+    Report bugs or request features
+  </Card>
+
+  <Card title="Support" icon="life-buoy" href="mailto:support@supermemory.com">
+    Contact the Supermemory team
+  </Card>
+</CardGroup>
+
+When reporting issues, please include:
+- Browser and version
+- Package version (`npm list @supermemory/memory-graph`)
+- Framework (Next.js, React, etc.) and version
+- Minimal reproduction code
+- Console errors or screenshots

@@ -1,0 +1,307 @@
+---
+title: "Quick Start"
+description: "Build your first knowledge graph in 5 minutes"
+sidebarTitle: "Quick Start"
+---
+
+Get your first interactive memory graph up and running in just a few minutes.
+
+<Warning>
+**Security First**: Never expose your Supermemory API key in client-side code. Always use a backend proxy to authenticate requests.
+</Warning>
+
+## Step 1: Create Backend Proxy
+
+Create an API route in your backend that authenticates users and proxies requests to the Supermemory API.
+
+<CodeGroup>
+
+```typescript Next.js App Router
+// app/api/supermemory-graph/route.ts
+import { NextResponse } from 'next/server'
+
+export async function GET(request: Request) {
+  // Add your authentication logic here
+  const user = await getAuthenticatedUser(request)
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.supermemory.ai/v3/documents/documents',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          page: 1,
+          limit: 500,
+          sort: 'createdAt',
+          order: 'desc',
+          // Optional: Filter by user-specific container
+          containerTags: [user.id],
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch documents')
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Error fetching graph data:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch data' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+```typescript Next.js Pages Router
+// pages/api/supermemory-graph.ts
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  // Add your authentication logic here
+  const user = await getAuthenticatedUser(req)
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.supermemory.ai/v3/documents/documents',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          page: 1,
+          limit: 500,
+          sort: 'createdAt',
+          order: 'desc',
+          containerTags: [user.id],
+        }),
+      }
+    )
+
+    const data = await response.json()
+    res.status(200).json(data)
+  } catch (error) {
+    console.error('Error fetching graph data:', error)
+    res.status(500).json({ error: 'Failed to fetch data' })
+  }
+}
+```
+
+</CodeGroup>
+
+<Tip>
+Use `containerTags` to filter documents by user in multi-user applications. This ensures users only see their own data.
+</Tip>
+
+## Step 2: Create Frontend Component
+
+Create a component that fetches data and renders the graph.
+
+```tsx GraphComponent.tsx
+'use client' // Required for Next.js App Router
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useState, useEffect } from 'react'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+export default function GraphComponent() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    fetch('/api/supermemory-graph')
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch documents')
+        }
+        return res.json()
+      })
+      .then((data) => {
+        setDocuments(data.documents)
+        setIsLoading(false)
+      })
+      .catch((err) => {
+        setError(err)
+        setIsLoading(false)
+      })
+  }, [])
+
+  return (
+    {/* CRITICAL: Container must have explicit width and height */}
+    <div style={{ width: '100%', height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        error={error}
+      >
+        {/* Custom empty state when no documents exist */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          gap: '1rem'
+        }}>
+          <h2>No memories yet</h2>
+          <p>Start adding content to see your knowledge graph</p>
+        </div>
+      </MemoryGraph>
+    </div>
+  )
+}
+```
+
+<Warning>
+**Container Sizing**: The graph component requires its parent container to have explicit width and height. Without this, the canvas will have 0 dimensions and won't render.
+</Warning>
+
+## Step 3: Add to Your Page
+
+Use the component in your page:
+
+<CodeGroup>
+
+```tsx Next.js App Router
+// app/graph/page.tsx
+import GraphComponent from '@/components/GraphComponent'
+
+export default function GraphPage() {
+  return (
+    <main style={{ height: '100vh' }}>
+      <GraphComponent />
+    </main>
+  )
+}
+```
+
+```tsx Next.js Pages Router
+// pages/graph.tsx
+import GraphComponent from '@/components/GraphComponent'
+
+export default function GraphPage() {
+  return (
+    <div style={{ height: '100vh' }}>
+      <GraphComponent />
+    </div>
+  )
+}
+```
+
+```tsx React SPA
+// src/App.tsx
+import GraphComponent from './components/GraphComponent'
+
+function App() {
+  return (
+    <div className="App" style={{ height: '100vh' }}>
+      <GraphComponent />
+    </div>
+  )
+}
+
+export default App
+```
+
+</CodeGroup>
+
+## Complete Example
+
+Here's a complete, production-ready example with proper error handling and loading states:
+
+```tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useState, useEffect } from 'react'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+export default function GraphDashboard() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/supermemory-graph')
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        setDocuments(data.documents || [])
+      } catch (err) {
+        console.error('Failed to fetch graph data:', err)
+        setError(err instanceof Error ? err : new Error('Unknown error'))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  return (
+    <div className="dashboard" style={{
+      width: '100%',
+      height: '100vh',
+      position: 'relative'
+    }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        error={error}
+        variant="console"
+      >
+        <div className="empty-state">
+          <h2>No memories yet</h2>
+          <p>Start adding content to visualize your knowledge graph</p>
+          <button onClick={() => window.location.href = '/add-memory'}>
+            Add Your First Memory
+          </button>
+        </div>
+      </MemoryGraph>
+    </div>
+  )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="API Reference" icon="book" href="/memory-graph/api-reference">
+    Explore all props and customization options
+  </Card>
+
+  <Card title="Examples" icon="code" href="/memory-graph/examples">
+    See advanced patterns like pagination and highlighting
+  </Card>
+
+  <Card title="Troubleshooting" icon="wrench" href="/memory-graph/troubleshooting">
+    Solve common issues
+  </Card>
+</CardGroup>
