@@ -16,7 +16,7 @@ import {
 } from "@repo/ui/components/alert-dialog"
 import { ExternalLink, FileText, Brain, Trash2 } from "lucide-react"
 import { cn } from "@lib/utils"
-import { colors } from "@repo/ui/memory-graph/constants"
+import { colors } from "@repo/ui/colors"
 import { getPastelBackgroundColor } from "../memories-utils"
 
 interface GoogleDocsCardProps {
