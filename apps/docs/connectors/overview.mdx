@@ -1,14 +1,14 @@
 ---
 title: "Connectors Overview"
-description: "Integrate Google Drive, Notion, and OneDrive to automatically sync documents into your knowledge base"
+description: "Integrate Google Drive, Notion, OneDrive, and Web Crawler to automatically sync documents into your knowledge base"
 sidebarTitle: "Overview"
 ---
 
-Connect external platforms to automatically sync documents into Supermemory. Supported connectors include Google Drive, Notion, and OneDrive with real-time synchronization and intelligent content processing.
+Connect external platforms to automatically sync documents into Supermemory. Supported connectors include Google Drive, Notion, OneDrive, and Web Crawler with real-time synchronization and intelligent content processing.
 
 ## Supported Connectors
 
-<CardGroup cols={3}>
+<CardGroup cols={2}>
   <Card title="Google Drive" icon="google-drive" href="/connectors/google-drive">
     **Google Docs, Slides, Sheets**
 
@@ -25,6 +25,12 @@ Connect external platforms to automatically sync documents into Supermemory. Sup
     **Word, Excel, PowerPoint**
 
     Scheduled sync every 4 hours. Supports personal and business accounts with file versioning.
+  </Card>
+
+  <Card title="Web Crawler" icon="globe" href="/connectors/web-crawler">
+    **Web Pages, Documentation**
+
+    Crawl websites automatically with robots.txt compliance. Scheduled recrawling keeps content up to date.
   </Card>
 </CardGroup>
 
@@ -181,10 +187,10 @@ curl -X POST "https://api.supermemory.ai/v3/documents/list" \
 
 ### Authentication Flow
 
-1. **Create Connection**: Call `/v3/connections/{provider}` to get OAuth URL
-2. **User Authorization**: Redirect user to complete OAuth flow
+1. **Create Connection**: Call `/v3/connections/{provider}` to get OAuth URL (or direct connection for web-crawler)
+2. **User Authorization**: Redirect user to complete OAuth flow (not required for web-crawler)
 3. **Automatic Setup**: Connection established, sync begins immediately
-4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours
+4. **Continuous Sync**: Real-time updates via webhooks + scheduled sync every 4 hours (or scheduled recrawling for web-crawler)
 
 ### Document Processing Pipeline
 
@@ -206,6 +212,7 @@ graph TD
 | **Google Drive** | ✅ Webhooks (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
 | **Notion** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
 | **OneDrive** | ✅ Webhooks (30-day expiry) | ✅ Every 4 hours | ✅ On-demand |
+| **Web Crawler** | ❌ Not supported | ✅ Scheduled recrawling (7+ days) | ✅ On-demand |
 
 
 ## Connection Management
