@@ -1,0 +1,316 @@
+---
+title: "Profile Examples"
+description: "Complete code examples for integrating user profiles"
+sidebarTitle: "Examples"
+icon: "laptop-code"
+---
+
+## Building a Personalized Prompt
+
+The most common use case: inject profile data into your LLM's system prompt.
+
+<CodeGroup>
+
+```typescript TypeScript
+async function handleChatMessage(userId: string, message: string) {
+  // Get user profile
+  const profileResponse = await fetch('https://api.supermemory.ai/v4/profile', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ containerTag: userId })
+  });
+
+  const { profile } = await profileResponse.json();
+
+  // Build personalized system prompt
+  const systemPrompt = `You are assisting a user with the following context:
+
+ABOUT THE USER:
+${profile.static?.join('\n') || 'No profile information yet.'}
+
+CURRENT CONTEXT:
+${profile.dynamic?.join('\n') || 'No recent activity.'}
+
+Provide responses personalized to their expertise level and preferences.`;
+
+  // Send to your LLM
+  const response = await llm.chat({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message }
+    ]
+  });
+
+  return response;
+}
+```
+
+```python Python
+import requests
+import os
+
+async def handle_chat_message(user_id: str, message: str):
+    # Get user profile
+    response = requests.post(
+        'https://api.supermemory.ai/v4/profile',
+        headers={
+            'Authorization': f'Bearer {os.getenv("SUPERMEMORY_API_KEY")}',
+            'Content-Type': 'application/json'
+        },
+        json={'containerTag': user_id}
+    )
+
+    profile = response.json()['profile']
+
+    # Build personalized system prompt
+    static_facts = '\n'.join(profile.get('static', ['No profile information yet.']))
+    dynamic_context = '\n'.join(profile.get('dynamic', ['No recent activity.']))
+
+    system_prompt = f"""You are assisting a user with the following context:
+
+ABOUT THE USER:
+{static_facts}
+
+CURRENT CONTEXT:
+{dynamic_context}
+
+Provide responses personalized to their expertise level and preferences."""
+
+    # Send to your LLM
+    llm_response = await llm.chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": message}
+        ]
+    )
+
+    return llm_response
+```
+
+</CodeGroup>
+
+## Full Context Mode
+
+Combine profile data with query-specific search for comprehensive context:
+
+<CodeGroup>
+
+```typescript TypeScript
+async function getFullContext(userId: string, userQuery: string) {
+  // Single call gets both profile and search results
+  const response = await fetch('https://api.supermemory.ai/v4/profile', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      containerTag: userId,
+      q: userQuery  // Include the user's query
+    })
+  });
+
+  const data = await response.json();
+
+  return {
+    // Static background about the user
+    userBackground: data.profile.static,
+    // Current activities and context
+    currentContext: data.profile.dynamic,
+    // Query-specific memories
+    relevantMemories: data.searchResults?.results || []
+  };
+}
+
+// Usage
+const context = await getFullContext('user_123', 'deployment error last week');
+
+const systemPrompt = `
+User Background:
+${context.userBackground.join('\n')}
+
+Current Context:
+${context.currentContext.join('\n')}
+
+Relevant Information:
+${context.relevantMemories.map(m => m.content).join('\n')}
+`;
+```
+
+```python Python
+async def get_full_context(user_id: str, user_query: str):
+    # Single call gets both profile and search results
+    response = requests.post(
+        'https://api.supermemory.ai/v4/profile',
+        headers={
+            'Authorization': f'Bearer {os.getenv("SUPERMEMORY_API_KEY")}',
+            'Content-Type': 'application/json'
+        },
+        json={
+            'containerTag': user_id,
+            'q': user_query  # Include the user's query
+        }
+    )
+
+    data = response.json()
+
+    return {
+        'user_background': data['profile'].get('static', []),
+        'current_context': data['profile'].get('dynamic', []),
+        'relevant_memories': data.get('searchResults', {}).get('results', [])
+    }
+
+# Usage
+context = await get_full_context('user_123', 'deployment error last week')
+
+system_prompt = f"""
+User Background:
+{chr(10).join(context['user_background'])}
+
+Current Context:
+{chr(10).join(context['current_context'])}
+
+Relevant Information:
+{chr(10).join(m['content'] for m in context['relevant_memories'])}
+"""
+```
+
+</CodeGroup>
+
+## Separate Profile and Search
+
+For more control, you can call profile and search endpoints separately:
+
+```typescript TypeScript
+async function advancedContext(userId: string, query: string) {
+  // Parallel requests for profile and search
+  const [profileRes, searchRes] = await Promise.all([
+    fetch('https://api.supermemory.ai/v4/profile', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ containerTag: userId })
+    }),
+    fetch('https://api.supermemory.ai/v3/search', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        q: query,
+        containerTag: userId,
+        limit: 5
+      })
+    })
+  ]);
+
+  const profile = await profileRes.json();
+  const search = await searchRes.json();
+
+  return { profile: profile.profile, searchResults: search.results };
+}
+```
+
+## Express.js Middleware
+
+Add profile context to all authenticated requests:
+
+```typescript TypeScript
+import express from 'express';
+
+// Middleware to fetch user profile
+async function withUserProfile(req, res, next) {
+  if (!req.user?.id) {
+    return next();
+  }
+
+  try {
+    const response = await fetch('https://api.supermemory.ai/v4/profile', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ containerTag: req.user.id })
+    });
+
+    req.userProfile = await response.json();
+  } catch (error) {
+    console.error('Failed to fetch profile:', error);
+    req.userProfile = null;
+  }
+
+  next();
+}
+
+const app = express();
+
+// Apply to all routes
+app.use(withUserProfile);
+
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+
+  // Profile is automatically available
+  const profile = req.userProfile?.profile;
+
+  // Use in your LLM call...
+});
+```
+
+## Next.js API Route
+
+```typescript TypeScript
+// app/api/chat/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(req: NextRequest) {
+  const { userId, message } = await req.json();
+
+  // Fetch profile
+  const profileRes = await fetch('https://api.supermemory.ai/v4/profile', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ containerTag: userId })
+  });
+
+  const { profile } = await profileRes.json();
+
+  // Build context and call your LLM...
+  const response = await generateResponse(message, profile);
+
+  return NextResponse.json({ response });
+}
+```
+
+## AI SDK Integration
+
+For the cleanest integration, use the Supermemory AI SDK middleware:
+
+```typescript TypeScript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+// One line setup - profiles automatically injected
+const model = withSupermemory(openai("gpt-4"), "user-123")
+
+const result = await generateText({
+  model,
+  messages: [{ role: "user", content: "Help me with my current project" }]
+})
+// Model automatically has access to user's profile!
+```
+
+<Card title="AI SDK User Profiles" icon="triangle" href="/ai-sdk/user-profiles">
+  Learn more about automatic profile injection with the AI SDK
+</Card>

@@ -71,7 +71,7 @@
 						"pages": [
 							{
 								"group": "Getting Started",
-								"pages": ["intro", "routervsapi", "quickstart", "memory-vs-rag"]
+								"pages": ["intro", "quickstart", "memory-vs-rag"]
 							},
 							{
 								"group": "Memory API",
@@ -112,7 +112,6 @@
 										]
 									},
 									"search/filtering",
-									"user-profiles",
 									"memory-api/track-progress",
 									{
 										"group": "List Memories",
@@ -145,6 +144,16 @@
 									"/org-settings",
 									"/analytics",
 									"overview/use-cases"
+								]
+							},
+							{
+								"group": "User Profiles",
+								"icon": "user",
+								"pages": [
+									"user-profiles/overview",
+									"user-profiles/api",
+									"user-profiles/examples",
+									"user-profiles/use-cases"
 								]
 							},
 							{
