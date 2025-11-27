@@ -1,0 +1,135 @@
+---
+title: "User Profiles"
+description: "Automatically maintained user context that gives your LLMs instant, comprehensive knowledge about each user"
+sidebarTitle: "Overview"
+icon: "user"
+---
+
+User profiles are **automatically maintained collections of facts about your users** that Supermemory builds from all their interactions and content. Think of it as a persistent "about me" document that's always up-to-date and instantly accessible.
+
+<CardGroup cols={2}>
+  <Card title="Instant Context" icon="bolt">
+    No search queries needed - comprehensive user information is always ready
+  </Card>
+  <Card title="Auto-Updated" icon="rotate">
+    Profiles update automatically as users interact with your system
+  </Card>
+  <Card title="Two-Tier Structure" icon="layer-group">
+    Static facts + dynamic context for perfect personalization
+  </Card>
+  <Card title="Zero Setup" icon="wand-magic-sparkles">
+    Just ingest content normally - profiles build themselves
+  </Card>
+</CardGroup>
+
+## Why Profiles?
+
+Traditional memory systems rely entirely on search, which has fundamental limitations:
+
+| Problem | With Search Only | With Profiles |
+|---------|-----------------|---------------|
+| **Context retrieval** | 3-5 search queries | 1 profile call |
+| **Response time** | 200-500ms | 50-100ms |
+| **Consistency** | Varies by search quality | Always comprehensive |
+| **Basic user info** | Requires specific queries | Always available |
+
+**Search is too narrow**: When you search for "project updates", you miss that the user prefers bullet points, works in PST timezone, and uses specific terminology.
+
+**Profiles provide the foundation**: Instead of repeatedly searching for basic context, profiles give your LLM a complete picture of who the user is.
+
+## Static vs Dynamic
+
+Profiles intelligently separate two types of information:
+
+![](/images/static-dynamic-profile.png)
+
+### Static Profile
+
+Long-term, stable facts that rarely change:
+
+- "Sarah Chen is a senior software engineer at TechCorp"
+- "Sarah specializes in distributed systems and Kubernetes"
+- "Sarah has a PhD in Computer Science from MIT"
+- "Sarah prefers technical documentation over video tutorials"
+
+### Dynamic Profile
+
+Recent context and temporary states:
+
+- "Sarah is currently migrating the payment service to microservices"
+- "Sarah recently started learning Rust for a side project"
+- "Sarah is preparing for a conference talk next month"
+- "Sarah is debugging a memory leak in the authentication service"
+
+## How It Works
+
+Profiles are **automatically built and maintained** through Supermemory's ingestion pipeline:
+
+<Steps>
+  <Step title="Content Ingestion">
+    When users add documents, chat, or any content to Supermemory, it goes through the standard ingestion workflow.
+  </Step>
+
+  <Step title="Intelligence Extraction">
+    AI analyzes the content to extract not just memories, but also facts about the user themselves.
+  </Step>
+
+  <Step title="Profile Operations">
+    The system generates profile operations (add, update, or remove facts) based on the new information.
+  </Step>
+
+  <Step title="Automatic Updates">
+    Profiles are updated in real-time, ensuring they always reflect the latest information.
+  </Step>
+</Steps>
+
+<Note>
+  You don't need to manually manage profiles - they build themselves as users interact with your system.
+</Note>
+
+## Profiles + Search
+
+Profiles don't replace search - they complement it:
+
+<Steps>
+  <Step title="Profile provides foundation">
+    The user's profile gives your LLM comprehensive background context about who they are, what they know, and what they're working on.
+  </Step>
+
+  <Step title="Search adds specificity">
+    When you need specific information (like "error in deployment yesterday"), search finds those exact memories.
+  </Step>
+
+  <Step title="Combined for perfect context">
+    Your LLM gets both the broad understanding from profiles AND the specific details from search.
+  </Step>
+</Steps>
+
+### Example
+
+User asks: **"Can you help me debug this?"**
+
+**Without profiles**: The LLM has no context about the user's expertise level, current projects, or debugging preferences.
+
+**With profiles**: The LLM knows:
+- The user is a senior engineer (adjust technical level)
+- They're working on a payment service migration (likely context)
+- They prefer command-line tools over GUIs (tool suggestions)
+- They recently had issues with memory leaks (possible connection)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/user-profiles/api">
+    Learn how to fetch and use profiles via the API
+  </Card>
+  <Card title="Code Examples" icon="laptop-code" href="/user-profiles/examples">
+    See complete integration examples
+  </Card>
+  <Card title="AI SDK Integration" icon="triangle" href="/ai-sdk/user-profiles">
+    Use the AI SDK for automatic profile injection
+  </Card>
+  <Card title="Use Cases" icon="lightbulb" href="/user-profiles/use-cases">
+    Common patterns and applications
+  </Card>
+</CardGroup>

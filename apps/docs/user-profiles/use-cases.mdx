@@ -1,0 +1,153 @@
+---
+title: "Profile Use Cases"
+description: "Common patterns and applications for user profiles"
+sidebarTitle: "Use Cases"
+icon: "lightbulb"
+---
+
+## Personalized AI Assistants
+
+The most common use case: building AI assistants that truly know your users.
+
+**What profiles provide:**
+- User's expertise level (adjust technical depth)
+- Communication preferences (brief vs detailed, formal vs casual)
+- Tools and technologies they use
+- Current projects and priorities
+
+**Example prompt enhancement:**
+
+```typescript
+const systemPrompt = `You are assisting ${userName}.
+
+Their background:
+${profile.static.join('\n')}
+
+Current focus:
+${profile.dynamic.join('\n')}
+
+Adjust your responses to match their expertise level and preferences.`;
+```
+
+**Result:** An assistant that explains React hooks differently to a junior developer vs a senior architect.
+
+## Customer Support Systems
+
+Give support agents (or AI) instant context about customers.
+
+**What profiles provide:**
+- Customer's product usage history
+- Previous issues and resolutions
+- Preferred communication channels
+- Technical proficiency level
+
+**Benefits:**
+- No more "let me look up your account"
+- Agents immediately understand customer context
+- AI support can reference past interactions naturally
+
+```typescript
+// Support agent dashboard
+async function loadCustomerContext(customerId: string) {
+  const { profile } = await getProfile(customerId);
+
+  return {
+    summary: profile.static,      // Long-term customer info
+    recentIssues: profile.dynamic // Current tickets, recent problems
+  };
+}
+```
+
+## Educational Platforms
+
+Adapt learning content to each student's level and progress.
+
+**What profiles provide:**
+- Learning style preferences
+- Completed courses and topics
+- Areas of strength and weakness
+- Current learning goals
+
+**Example adaptation:**
+
+```typescript
+// Profile might contain:
+// static: ["Visual learner", "Strong in algebra, struggles with geometry"]
+// dynamic: ["Currently studying calculus", "Preparing for AP exam"]
+
+const tutorPrompt = `You're helping a student with:
+${profile.static.join('\n')}
+
+Current focus: ${profile.dynamic.join('\n')}
+
+Adapt explanations to their learning style and build on their strengths.`;
+```
+
+## Development Tools
+
+IDE assistants and coding tools that understand your codebase and habits.
+
+**What profiles provide:**
+- Preferred languages and frameworks
+- Coding style and conventions
+- Current project context
+- Frequently used patterns
+
+**Example:**
+
+```typescript
+// Profile for a developer:
+// static: ["Prefers TypeScript", "Uses functional patterns", "Senior engineer"]
+// dynamic: ["Working on auth refactor", "Recently learning Rust"]
+
+// Code assistant knows to:
+// - Suggest TypeScript solutions
+// - Use functional patterns in examples
+// - Provide senior-level explanations
+// - Connect suggestions to the auth refactor when relevant
+```
+
+## Knowledge Base Assistants
+
+Internal tools that understand each employee's role and responsibilities.
+
+**What profiles provide:**
+- Department and role
+- Projects they're involved in
+- Access level and permissions context
+- Areas of expertise (for routing questions)
+
+**Example:**
+
+```typescript
+// HR assistant that knows:
+// - Employee's team and manager
+// - Their location/timezone
+// - Recent PTO requests
+// - Benefits elections
+
+const response = await hrAssistant.answer(
+  "When is my next performance review?",
+  { profile: employeeProfile }
+);
+// Can answer with specific dates, manager name, etc.
+```
+
+## E-commerce Recommendations
+
+Personalized shopping experiences beyond basic recommendation engines.
+
+**What profiles provide:**
+- Style preferences
+- Size information
+- Past purchases and returns
+- Budget range
+- Occasions they shop for
+
+**Example conversation:**
+
+```
+User: "I need something for a wedding next month"
+
+// Profile knows: prefers classic styles, size M, budget-conscious,
+// previously bought navy suits

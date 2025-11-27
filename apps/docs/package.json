@@ -10,5 +10,8 @@
     "@types/bun": "latest",
     "mintlify": "^4.2.112",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "supermemory": "3.10.0"
   }
 }
