@@ -45,10 +45,13 @@ export function RelatedMemories({
 		<div className="mb-2">
 			<button
 				type="button"
-				className="flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors text-sm"
+				className={cn(
+					"flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors text-sm",
+					dmSansClassName(),
+				)}
 				onClick={() => onToggle(message.id)}
 			>
-				Related Memories
+				Related memories
 				{isExpanded ? (
 					<ChevronUpIcon className="size-3.5" />
 				) : (
@@ -57,7 +60,7 @@ export function RelatedMemories({
 			</button>
 
 			{isExpanded && (
-				<div className="mt-2 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+				<div className="mt-2 grid grid-cols-2 gap-2 max-h-64 overflow-y-auto items-start">
 					{memoryResults.map((result, idx) => {
 						const isClickable =
 							result.url &&
@@ -66,19 +69,19 @@ export function RelatedMemories({
 
 						const content = (
 							<div className="">
-								<div className="bg-[#060D17] p-2 rounded-xl">
+								<div className="bg-[#060D17] p-2 rounded-t-[11px] rounded-b-[6px] m-[2px]">
 									{result.title && (
-										<div className="text-xs text-white/60 line-clamp-2">
+										<div className="text-xs text-[#525D6E] line-clamp-2">
 											{result.title}
 										</div>
 									)}
 									{result.content && (
-										<div className="text-xs text-white/60 line-clamp-2">
+										<div className="text-xs text-[#525D6E] line-clamp-2">
 											{result.content}
 										</div>
 									)}
 									{result.url && (
-										<div className="text-xs text-blue-400 mt-1 truncate">
+										<div className="text-xs text-[#525D6E] mt-1 truncate">
 											{result.url}
 										</div>
 									)}
@@ -118,10 +121,7 @@ export function RelatedMemories({
 
 						return (
 							<div
-								className={cn(
-									"bg-[#0C1829] rounded-xl border border-white/10",
-									dmSansClassName(),
-								)}
+								className={cn("bg-[#0C1829] rounded-xl", dmSansClassName())}
 								key={result.documentId || idx}
 							>
 								{content}
