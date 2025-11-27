@@ -10,6 +10,19 @@
 	--color-placeholder-onboarding: #525966;
 }
 
+.scrollbar-thin {
+	scrollbar-width: thin;
+	scrollbar-color: #293952 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+	width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}
+
 .sm-tweet-theme .react-tweet-theme {
 	--tweet-container-margin: 0px;
 	font-size: inherit !important;
@@ -34,19 +47,6 @@
 .tweet-body-module__ZNRZja__root > * {
 	font-size: 10px !important;
 	line-height: 0.25rem !important;
-}
-
-.scrollbar-thin {
-	scrollbar-width: thin;
-	scrollbar-color: #293952 transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-	width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-	background: transparent;
 }
 
 [class*="dmSans"],

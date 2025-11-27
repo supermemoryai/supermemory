@@ -64,7 +64,7 @@ export function IntegrationsStep() {
 
 	const handleContinue = () => {
 		markOnboardingCompleted()
-		router.push("/")
+		router.push("/new")
 	}
 
 	if (selectedCard === "Connect to AI") {

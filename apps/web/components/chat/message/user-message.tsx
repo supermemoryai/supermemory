@@ -21,7 +21,7 @@ export function UserMessage({
 
 	return (
 		<div className="flex flex-col items-end w-full">
-			<div className="bg-[#293952]/60 rounded-lg p-3 px-[14px] max-w-[80%]">
+			<div className="bg-[#1B1F24] rounded-lg p-3 px-[14px] max-w-[80%]">
 				<p className="text-sm text-white">{text}</p>
 			</div>
 			<button
