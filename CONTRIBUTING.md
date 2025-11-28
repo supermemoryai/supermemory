@@ -288,7 +288,7 @@ For feature requests, please provide:
 
 ### Getting Help
 
-- **Discord**: Join our community server
+- **Discord**: [Join our Discord server](https://supermemory.link/discord)
 - **GitHub Discussions**: For questions and ideas
 - **Issues**: For bug reports and feature requests
 - **Email**: [support@supermemory.com](mailto:support@supermemory.com)
