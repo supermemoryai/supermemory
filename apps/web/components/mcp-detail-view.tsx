@@ -85,19 +85,34 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 				</h1>
 
 				<div className="mb-8 space-x-4 flex max-w-2xl">
-					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
+					<div
+						className={cn(
+							"flex items-start space-x-3 w-[200px]",
+							dmSansClassName(),
+						)}
+					>
 						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
 						<p className="text-[#8B8B8B] text-sm">
 							MCP connects your AI apps to create and use memories directly
 						</p>
 					</div>
-					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
+					<div
+						className={cn(
+							"flex items-start space-x-3 w-[200px]",
+							dmSansClassName(),
+						)}
+					>
 						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
 						<p className="text-[#8B8B8B] text-sm">
 							Auto-fetch the right context from anything you've saved
 						</p>
 					</div>
-					<div className={cn("flex items-start space-x-3", dmSansClassName())}>
+					<div
+						className={cn(
+							"flex items-start space-x-3 w-[200px]",
+							dmSansClassName(),
+						)}
+					>
 						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
 						<p className="text-[#8B8B8B] text-sm">
 							One-time setup, seamless integration across your workflow
@@ -229,10 +244,10 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												setSelectedClient(key as keyof typeof clients)
 												setActiveStep(2)
 											}}
-											className={`px-3 py-1 rounded-full border-1 transition-colors cursor-pointer duration-200 ${
+											className={`mcp-client-button-group px-3 py-1 rounded-full border-1 transition-colors cursor-pointer duration-200 ${
 												selectedClient === key
 													? "border-blue-500 bg-blue-500/10"
-													: "border-[#0D121A] bg-[#080B0F] hover:border-gray-600"
+													: "border-[#242A33] bg-[#080B0F] hover:border-[#3273FC4D] hover:bg-[#08142D]"
 											}`}
 										>
 											<div className="flex items-center space-x-2">
@@ -267,7 +282,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 														width={20}
 													/>
 												</div>
-												<span className="text-sm font-medium text-white">
+												<span className="mcp-client-gradient-text text-sm font-medium text-white">
 													{clientName}
 												</span>
 											</div>
@@ -275,7 +290,12 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 									))}
 							</div>
 							{!selectedClient && (
-								<p className="text-gray-400 text-xs">
+								<p
+									className={cn(
+										"text-[#8B8B8B] text-[14px]",
+										dmSansClassName(),
+									)}
+								>
 									*You can connect to all of these, setup is different for each
 									one
 								</p>

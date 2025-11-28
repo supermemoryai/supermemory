@@ -50,7 +50,7 @@ export const LogoFull = ({
 	);
 };
 
-export const GradientLogo = ({ className = ""} : { className?: string }) => {
+export const GradientLogo = ({ className = "" }: { className?: string }) => {
 	return (
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
@@ -61,7 +61,7 @@ export const GradientLogo = ({ className = ""} : { className?: string }) => {
 			className={className}
 		>
 			<title>Gradient supermemory logo</title>
-			<g clip-path="url(#clip0_503_43779)">
+			<g clipPath="url(#clip0_503_43779)">
 				<path
 					d="M64.1607 20.7042H40.3439V0.00268555H32.6488V22.4642C32.6488 24.8499 33.5906 27.141 35.2645 28.8291L54.7116 48.4414L60.1526 42.9542L45.7893 28.4691H64.1651V20.7088L64.1607 20.7042Z"
 					fill="url(#paint0_linear_503_43779)"
@@ -80,9 +80,9 @@ export const GradientLogo = ({ className = ""} : { className?: string }) => {
 					y2="9.51098"
 					gradientUnits="userSpaceOnUse"
 				>
-					<stop stop-color="#369BFD" />
-					<stop offset="0.41" stop-color="#36FDFD" />
-					<stop offset="0.79" stop-color="#36FDB5" />
+					<stop stopColor="#369BFD" />
+					<stop offset="0.41" stopColor="#36FDFD" />
+					<stop offset="0.79" stopColor="#36FDB5" />
 				</linearGradient>
 				<linearGradient
 					id="paint1_linear_503_43779"
@@ -92,9 +92,9 @@ export const GradientLogo = ({ className = ""} : { className?: string }) => {
 					y2="9.51098"
 					gradientUnits="userSpaceOnUse"
 				>
-					<stop stop-color="#369BFD" />
-					<stop offset="0.41" stop-color="#36FDFD" />
-					<stop offset="0.79" stop-color="#36FDB5" />
+					<stop stopColor="#369BFD" />
+					<stop offset="0.41" stopColor="#36FDFD" />
+					<stop offset="0.79" stopColor="#36FDB5" />
 				</linearGradient>
 				<clipPath id="clip0_503_43779">
 					<rect
@@ -107,7 +107,7 @@ export const GradientLogo = ({ className = ""} : { className?: string }) => {
 			</defs>
 		</svg>
 	);
-}
+};
 
 export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 	return (
@@ -190,9 +190,9 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 					width="161.006"
 					height="181.977"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
-					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
 						mode="normal"
 						in="SourceGraphic"
@@ -211,9 +211,9 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 					width="161.006"
 					height="181.977"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
-					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
 						mode="normal"
 						in="SourceGraphic"
@@ -232,9 +232,9 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 					width="145.315"
 					height="124.713"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
-					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
 						mode="normal"
 						in="SourceGraphic"
@@ -253,9 +253,9 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 					width="100.311"
 					height="100.602"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
-					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
 						mode="normal"
 						in="SourceGraphic"
@@ -274,9 +274,9 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 					width="100.311"
 					height="100.602"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
-					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
 						mode="normal"
 						in="SourceGraphic"
@@ -295,9 +295,9 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 					width="120.737"
 					height="110.105"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
-					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
 						mode="normal"
 						in="SourceGraphic"
@@ -312,4 +312,4 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 			</defs>
 		</svg>
 	);
-}
+};

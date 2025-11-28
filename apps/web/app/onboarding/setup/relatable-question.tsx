@@ -65,11 +65,11 @@ export function RelatableQuestion() {
 					<button
 						key={option.text}
 						className={`
-						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 hover:border-[#4C608B] hover:border-[1px] border-[#0D121A] max-w-[140px] min-h-[159px]
+						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 hover:border-[#4C608B66] border-[1px] border-[#0D121A] max-w-[140px] min-h-[159px]
 						${
 							selectedOptions.includes(index)
-								? "border-[#3374FF] border-[0.1px] opacity-100 bg-[url('/onboarding/bg-gradient-1.png')] bg-[length:250%_auto] bg-[center_top_3rem] bg-no-repeat"
-								: "border-2 bg-[#080B0F] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:450%_auto] hover:bg-[center_top_3rem] hover:bg-no-repeat"
+								? "border-[#3374FF] border-[1px] opacity-100 bg-[url('/onboarding/bg-gradient-1.png')] bg-[length:250%_auto] bg-[center_top_3rem] bg-no-repeat"
+								: "bg-[#080B0F] hover:bg-no-repeat"
 						} 
 					`}
 						onClick={() => {
