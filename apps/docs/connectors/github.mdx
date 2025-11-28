@@ -1,0 +1,641 @@
+---
+title: "GitHub Connector"
+description: "Connect GitHub repositories to sync documentation and code files into your Supermemory knowledge base"
+icon: "github"
+---
+
+Connect GitHub repositories to sync documentation and code files into your Supermemory knowledge base with OAuth authentication, webhook support, and custom app configuration.
+
+## Quick Setup
+
+### 1. Create GitHub Connection
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY!
+    });
+
+    const connection = await client.connections.create('github', {
+      redirectUrl: 'https://yourapp.com/auth/github/callback',
+      containerTags: ['user-123', 'github-sync'],
+      documentLimit: 5000,
+      metadata: {
+        source: 'github',
+        team: 'engineering'
+      }
+    });
+
+    // Redirect user to GitHub OAuth
+    window.location.href = connection.authLink;
+    console.log('Auth expires in:', connection.expiresIn);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+    import os
+
+    client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+    connection = client.connections.create(
+        'github',
+        redirect_url='https://yourapp.com/auth/github/callback',
+        container_tags=['user-123', 'github-sync'],
+        document_limit=5000,
+        metadata={
+            'source': 'github',
+            'team': 'engineering'
+        }
+    )
+
+    # Redirect user to GitHub OAuth
+    print(f'Redirect to: {connection.auth_link}')
+    print(f'Expires in: {connection.expires_in}')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/connections/github" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "redirectUrl": "https://yourapp.com/auth/github/callback",
+        "containerTags": ["user-123", "github-sync"],
+        "documentLimit": 5000,
+        "metadata": {
+          "source": "github",
+          "team": "engineering"
+        }
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**OAuth Scopes:** The GitHub connector requires these scopes:
+- `repo` - Access to private and public repositories
+- `user:email` - Access to user's email address
+- `admin:repo_hook` - Manage webhooks for incremental sync
+</Note>
+
+### 2. Handle OAuth Callback
+
+After the user grants permissions, GitHub redirects to your callback URL. The connection is automatically established, and the user can now select which repositories to sync.
+
+### 3. List and Configure Repositories
+
+Unlike other connectors, GitHub requires repository selection before syncing begins. This gives your users control over which repositories to index.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // List available repositories for the user
+    const repositories = await client.connections.github.listRepositories({
+      containerTags: ['user-123', 'github-sync']
+    });
+
+    // Display repositories in your UI
+    repositories.forEach(repo => {
+      console.log(`${repo.full_name} - ${repo.description}`);
+      console.log(`Private: ${repo.private}`);
+      console.log(`Default branch: ${repo.default_branch}`);
+      console.log(`Last updated: ${repo.updated_at}`);
+    });
+
+    // After user selects repositories, configure them
+    await client.connections.github.configure({
+      containerTags: ['user-123', 'github-sync'],
+      repositories: [
+        {
+          owner: 'your-org',
+          repo: 'documentation',
+          branch: 'main'
+        },
+        {
+          owner: 'your-org',
+          repo: 'api-docs',
+          branch: 'main'
+        }
+      ]
+    });
+
+    console.log('Repository sync initiated');
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # List available repositories for the user
+    repositories = client.connections.github.list_repositories(
+        container_tags=['user-123', 'github-sync']
+    )
+
+    # Display repositories in your UI
+    for repo in repositories:
+        print(f'{repo.full_name} - {repo.description}')
+        print(f'Private: {repo.private}')
+        print(f'Default branch: {repo.default_branch}')
+        print(f'Last updated: {repo.updated_at}')
+
+    # After user selects repositories, configure them
+    client.connections.github.configure(
+        container_tags=['user-123', 'github-sync'],
+        repositories=[
+            {
+                'owner': 'your-org',
+                'repo': 'documentation',
+                'branch': 'main'
+            },
+            {
+                'owner': 'your-org',
+                'repo': 'api-docs',
+                'branch': 'main'
+            }
+        ]
+    )
+
+    print('Repository sync initiated')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # List available repositories
+    curl -X POST "https://api.supermemory.ai/v3/connections/github/repositories" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123", "github-sync"]
+      }'
+
+    # Response example:
+    # [
+    #   {
+    #     "id": 123456789,
+    #     "name": "documentation",
+    #     "full_name": "your-org/documentation",
+    #     "description": "Product documentation",
+    #     "private": false,
+    #     "default_branch": "main",
+    #     "updated_at": "2024-01-15T10:30:00Z"
+    #   }
+    # ]
+
+    # Configure selected repositories
+    curl -X POST "https://api.supermemory.ai/v3/connections/github/configure" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123", "github-sync"],
+        "repositories": [
+          {
+            "owner": "your-org",
+            "repo": "documentation",
+            "branch": "main"
+          },
+          {
+            "owner": "your-org",
+            "repo": "api-docs",
+            "branch": "main"
+          }
+        ]
+      }'
+
+    # Response: {
+    #   "message": "Repository sync initiated",
+    #   "repositories": 2,
+    #   "webhookConfigured": true
+    # }
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+**API-First Design:**
+
+Supermemory provides the API endpoints to list and configure repositories. As a Supermemory customer, you need to build the UI in your application where your end-users can:
+1. View their available GitHub repositories
+2. Select which repositories to sync
+3. Confirm the selection
+
+This gives you complete control over the user experience and allows you to integrate repository selection seamlessly into your application's workflow.
+</Warning>
+
+## Supported Document Types
+
+The GitHub connector syncs documentation and text files with the following extensions:
+
+- **Markdown files**: `.md`, `.mdx`, `.markdown`
+- **Text files**: `.txt`
+- **reStructuredText**: `.rst`
+- **AsciiDoc**: `.adoc`
+- **Org-mode**: `.org`
+
+Files are indexed as `github_markdown` document type in Supermemory.
+
+<Note>
+Only text-based documentation files are synced. Binary files, images, and code files (`.js`, `.py`, `.go`, etc.) are excluded by default to focus on searchable documentation content.
+</Note>
+
+## Incremental Sync with Webhooks
+
+The GitHub connector automatically sets up webhooks for real-time incremental syncing. When files are pushed or deleted in configured repositories, Supermemory is notified immediately.
+
+### How It Works
+
+1. **Initial Sync**: When you configure repositories, Supermemory performs a full sync of all documentation files
+2. **Webhook Setup**: A webhook is automatically installed in each repository
+3. **Push Events**: When commits are pushed to the configured branch, only changed files are synced
+4. **Delete Events**: When files are deleted, they're removed from your Supermemory knowledge base
+
+### Webhook Security
+
+Webhooks are secured using HMAC-SHA256 signature validation. Supermemory automatically validates that webhook events come from GitHub before processing them.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Check webhook status
+    const connection = await client.connections.getByTags('github', {
+      containerTags: ['user-123', 'github-sync']
+    });
+
+    console.log('Webhook configured:', connection.metadata.webhookConfigured);
+    console.log('Last sync:', connection.metadata.lastSyncedAt);
+    console.log('Repositories:', connection.metadata.repositories);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Check webhook status
+    connection = client.connections.get_by_tags(
+        'github',
+        container_tags=['user-123', 'github-sync']
+    )
+
+    print(f'Webhook configured: {connection.metadata.webhook_configured}')
+    print(f'Last sync: {connection.metadata.last_synced_at}')
+    print(f'Repositories: {connection.metadata.repositories}')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Get connection details including webhook status
+    curl -X POST "https://api.supermemory.ai/v3/connections/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123", "github-sync"],
+        "provider": "github"
+      }'
+
+    # Response includes:
+    # {
+    #   "id": "conn_gh123",
+    #   "provider": "github",
+    #   "metadata": {
+    #     "webhookConfigured": true,
+    #     "lastSyncedAt": 1705320600000,
+    #     "repositories": [
+    #       {
+    #         "owner": "your-org",
+    #         "repo": "documentation",
+    #         "branch": "main"
+    #       }
+    #     ]
+    #   }
+    # }
+    ```
+  </Tab>
+</Tabs>
+
+## Connection Management
+
+### List All Connections
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // List all GitHub connections for specific container tags
+    const connections = await client.connections.list({
+      containerTags: ['user-123'],
+      provider: 'github'
+    });
+
+    connections.forEach(conn => {
+      console.log(`Provider: ${conn.provider}`);
+      console.log(`ID: ${conn.id}`);
+      console.log(`Email: ${conn.email}`);
+      console.log(`Created: ${conn.createdAt}`);
+      console.log(`Document limit: ${conn.documentLimit}`);
+      console.log(`Repositories: ${conn.metadata.repositories?.length || 0}`);
+      console.log('---');
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # List all GitHub connections for specific container tags
+    connections = client.connections.list(
+        container_tags=['user-123'],
+        provider='github'
+    )
+
+    for conn in connections:
+        print(f'Provider: {conn.provider}')
+        print(f'ID: {conn.id}')
+        print(f'Email: {conn.email}')
+        print(f'Created: {conn.created_at}')
+        print(f'Document limit: {conn.document_limit}')
+        print(f'Repositories: {len(conn.metadata.get("repositories", []))}')
+        print('---')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # List all GitHub connections for specific container tags
+    curl -X POST "https://api.supermemory.ai/v3/connections/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123"],
+        "provider": "github"
+      }'
+
+    # Response example:
+    # [
+    #   {
+    #     "id": "conn_gh123",
+    #     "provider": "github",
+    #     "email": "user@example.com",
+    #     "createdAt": "2024-01-15T10:30:00.000Z",
+    #     "documentLimit": 5000,
+    #     "metadata": {
+    #       "repositories": [
+    #         {"owner": "your-org", "repo": "docs", "branch": "main"}
+    #       ]
+    #     }
+    #   }
+    # ]
+    ```
+  </Tab>
+</Tabs>
+
+### Update Repository Configuration
+
+You can update which repositories are synced at any time:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Add or remove repositories
+    await client.connections.github.configure({
+      containerTags: ['user-123', 'github-sync'],
+      repositories: [
+        {
+          owner: 'your-org',
+          repo: 'documentation',
+          branch: 'main'
+        },
+        {
+          owner: 'your-org',
+          repo: 'new-repo',
+          branch: 'develop'  // Can specify different branch
+        }
+      ]
+    });
+
+    console.log('Repository configuration updated');
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Add or remove repositories
+    client.connections.github.configure(
+        container_tags=['user-123', 'github-sync'],
+        repositories=[
+            {
+                'owner': 'your-org',
+                'repo': 'documentation',
+                'branch': 'main'
+            },
+            {
+                'owner': 'your-org',
+                'repo': 'new-repo',
+                'branch': 'develop'  # Can specify different branch
+            }
+        ]
+    )
+
+    print('Repository configuration updated')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Update repository configuration
+    curl -X POST "https://api.supermemory.ai/v3/connections/github/configure" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123", "github-sync"],
+        "repositories": [
+          {
+            "owner": "your-org",
+            "repo": "documentation",
+            "branch": "main"
+          },
+          {
+            "owner": "your-org",
+            "repo": "new-repo",
+            "branch": "develop"
+          }
+        ]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+When you update the repository configuration:
+- New repositories are added and synced immediately
+- Removed repositories have their webhooks deleted
+- Existing documents from removed repositories remain in Supermemory unless you delete them manually
+</Note>
+
+### Delete Connection
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Delete by connection ID
+    const result = await client.connections.deleteByID('connection_id_123');
+    console.log('Deleted connection:', result.id);
+
+    // Delete by provider and container tags
+    const providerResult = await client.connections.deleteByProvider('github', {
+      containerTags: ['user-123']
+    });
+    console.log('Deleted GitHub connection:', providerResult.id);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Delete by connection ID
+    result = client.connections.delete_by_id('connection_id_123')
+    print(f'Deleted connection: {result.id}')
+
+    # Delete by provider and container tags
+    provider_result = client.connections.delete_by_provider(
+        'github',
+        container_tags=['user-123']
+    )
+    print(f'Deleted GitHub connection: {provider_result.id}')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Delete by connection ID
+    curl -X DELETE "https://api.supermemory.ai/v3/connections/connection_id_123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Response: {"id": "connection_id_123", "provider": "github"}
+
+    # Delete by provider and container tags
+    curl -X DELETE "https://api.supermemory.ai/v3/connections/github" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123"]
+      }'
+
+    # Response: {"id": "conn_gh123", "provider": "github"}
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Deleting a GitHub connection will:
+- Stop all future syncs from configured repositories
+- Remove all webhooks from the repositories
+- Revoke the OAuth authorization
+- **Permanently delete all synced documents** from your Supermemory knowledge base
+</Warning>
+
+### Manual Sync
+
+Trigger a manual synchronization for all configured repositories:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Trigger sync for GitHub connections
+    await client.connections.import('github');
+
+    // Trigger sync for specific container tags
+    await client.connections.import('github', {
+      containerTags: ['user-123']
+    });
+
+    console.log('Manual sync initiated');
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Trigger sync for GitHub connections
+    client.connections.import_('github')
+
+    # Trigger sync for specific container tags
+    client.connections.import_(
+        'github',
+        container_tags=['user-123']
+    )
+
+    print('Manual sync initiated')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Trigger sync for all GitHub connections
+    curl -X POST "https://api.supermemory.ai/v3/connections/github/import" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Trigger sync for specific container tags
+    curl -X POST "https://api.supermemory.ai/v3/connections/github/import" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "containerTags": ["user-123"]
+      }'
+
+    # Response: {"message": "Manual sync initiated", "provider": "github"}
+    ```
+  </Tab>
+</Tabs>
+
+## Advanced Configuration
+
+### Custom OAuth Application
+
+Configure your own GitHub OAuth app using the settings API:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Update organization settings with your GitHub OAuth app
+    await client.settings.update({
+      githubCustomKeyEnabled: true,
+      githubClientId: 'Iv1.1234567890abcdef',
+      githubClientSecret: 'your-github-client-secret'
+    });
+
+    // Get current settings
+    const settings = await client.settings.get();
+    console.log('GitHub custom key enabled:', settings.githubCustomKeyEnabled);
+    console.log('Client ID configured:', !!settings.githubClientId);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Update organization settings with your GitHub OAuth app
+    client.settings.update(
+        github_custom_key_enabled=True,
+        github_client_id='Iv1.1234567890abcdef',
+        github_client_secret='your-github-client-secret'
+    )
+
+    # Get current settings
+    settings = client.settings.get()
+    print(f'GitHub custom key enabled: {settings.github_custom_key_enabled}')
+    print(f'Client ID configured: {bool(settings.github_client_id)}')
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Update organization settings
+    curl -X PATCH "https://api.supermemory.ai/v3/settings" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "githubCustomKeyEnabled": true,
+        "githubClientId": "Iv1.1234567890abcdef",
+        "githubClientSecret": "your-github-client-secret"
+      }'
+
+    # Get current settings
+    curl -X GET "https://api.supermemory.ai/v3/settings" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+**Setting up a GitHub OAuth App:**
+
+1. Go to GitHub Settings → Developer settings → OAuth Apps
+2. Click "New OAuth App"
+3. Set Authorization callback URL to: `https://api.supermemory.ai/api/auth/callback/github`
+4. Copy the Client ID and generate a Client Secret
+5. Configure them in Supermemory using the settings API above
+</Note>
