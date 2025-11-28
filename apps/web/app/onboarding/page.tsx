@@ -169,7 +169,9 @@ export default function OnboardingPage() {
 		<div className="min-h-screen bg-black">
 			{isWelcomeFlow && (
 				<InitialHeader
-					showUserSupermemory={currentStep === "features" || currentStep === "memories"}
+					showUserSupermemory={
+						currentStep === "features" || currentStep === "memories"
+					}
 					name={name}
 				/>
 			)}
@@ -178,9 +180,9 @@ export default function OnboardingPage() {
 			{isSetupFlow && <AnimatedGradientBackground />}
 
 			{isWelcomeFlow && (
-				<div className="flex flex-col items-center justify-start h-[calc(100vh-86px)] relative">
+				<div className="flex flex-col items-center justify-start min-h-[calc(100vh-86px)] relative">
 					<motion.div
-						className="absolute inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
+						className="fixed inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat pointer-events-none"
 						transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}
 						style={{
 							mixBlendMode: "soft-light",

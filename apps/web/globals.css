@@ -54,3 +54,15 @@
 	letter-spacing: -0.01em;
 	line-height: 135%;
 }
+
+.mcp-client-button-group:hover .mcp-client-gradient-text {
+	background: linear-gradient(
+		94deg,
+		#369bfd 4.8%,
+		#36fdfd 77.04%,
+		#36fdb5 143.99%
+	);
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}

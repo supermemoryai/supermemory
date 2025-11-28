@@ -293,9 +293,9 @@ export const MCPIcon = ({ className }: { className?: string }) => {
 					y2="7.53871"
 					gradientUnits="userSpaceOnUse"
 				>
-					<stop stop-color="#369BFD" />
-					<stop offset="0.41" stop-color="#36FDFD" />
-					<stop offset="0.79" stop-color="#36FDB5" />
+					<stop stopColor="#369BFD" />
+					<stop offset="0.41" stopColor="#36FDFD" />
+					<stop offset="0.79" stopColor="#36FDB5" />
 				</linearGradient>
 				<linearGradient
 					id="paint1_linear_336_3565"
@@ -305,9 +305,9 @@ export const MCPIcon = ({ className }: { className?: string }) => {
 					y2="7.53871"
 					gradientUnits="userSpaceOnUse"
 				>
-					<stop stop-color="#369BFD" />
-					<stop offset="0.41" stop-color="#36FDFD" />
-					<stop offset="0.79" stop-color="#36FDB5" />
+					<stop stopColor="#369BFD" />
+					<stop offset="0.41" stopColor="#36FDFD" />
+					<stop offset="0.79" stopColor="#36FDB5" />
 				</linearGradient>
 				<linearGradient
 					id="paint2_linear_336_3565"
@@ -317,9 +317,9 @@ export const MCPIcon = ({ className }: { className?: string }) => {
 					y2="7.53871"
 					gradientUnits="userSpaceOnUse"
 				>
-					<stop stop-color="#369BFD" />
-					<stop offset="0.41" stop-color="#36FDFD" />
-					<stop offset="0.79" stop-color="#36FDB5" />
+					<stop stopColor="#369BFD" />
+					<stop offset="0.41" stopColor="#36FDFD" />
+					<stop offset="0.79" stopColor="#36FDB5" />
 				</linearGradient>
 			</defs>
 		</svg>
