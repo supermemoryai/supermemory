@@ -1,0 +1,141 @@
+---
+title: "Installation"
+description: "Install and set up the graph visualization component"
+sidebarTitle: "Installation"
+---
+
+## Installation
+
+Install the package using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install @supermemory/memory-graph
+```
+
+```bash yarn
+yarn add @supermemory/memory-graph
+```
+
+```bash pnpm
+pnpm add @supermemory/memory-graph
+```
+
+```bash bun
+bun add @supermemory/memory-graph
+```
+
+</CodeGroup>
+
+## Requirements
+
+### Peer Dependencies
+
+The package requires React 18 or higher:
+
+```json
+{
+  "react": "^18.0.0",
+  "react-dom": "^18.0.0"
+}
+```
+
+If you don't have React installed, add it first:
+
+```bash
+npm install react react-dom
+```
+
+### Browser Requirements
+
+The component works in all modern browsers that support:
+- **HTML5 Canvas 2D API**: For rendering the graph
+- **ES2020+**: Modern JavaScript features
+- **Touch Events**: For mobile gesture support (optional)
+
+Supported browsers:
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## Setup
+
+### Automatic CSS Injection (Recommended)
+
+The component automatically injects its styles at runtime - no additional setup needed!
+
+```tsx
+import { MemoryGraph } from '@supermemory/memory-graph'
+
+// Styles are automatically injected when the component mounts
+function App() {
+  return <MemoryGraph documents={documents} />
+}
+```
+
+<Note>
+The CSS is embedded in the JavaScript bundle and injected only once, even if you use multiple graph components.
+</Note>
+
+### Manual CSS Import (Alternative)
+
+If you prefer to import CSS manually through your bundler:
+
+```tsx
+import { MemoryGraph } from '@supermemory/memory-graph'
+import '@supermemory/memory-graph/styles.css'
+```
+
+<Warning>
+If you import CSS manually, the automatic injection will be skipped. Only use this if you have specific bundler requirements.
+</Warning>
+
+## Verification
+
+Verify the installation by importing the component and types:
+
+```tsx
+import { MemoryGraph } from '@supermemory/memory-graph'
+import type {
+  DocumentWithMemories,
+  MemoryEntry,
+  MemoryGraphProps
+} from '@supermemory/memory-graph'
+
+// TypeScript will provide full type checking
+const props: MemoryGraphProps = {
+  documents: [],
+  isLoading: false,
+  error: null
+}
+```
+
+<Tip>
+The package exports all types you need for TypeScript. Check the [API Reference](/memory-graph/api-reference) for a complete list.
+</Tip>
+
+## Universal Bundler Support
+
+The package works with all modern bundlers:
+
+- **Vite**: ✅ Works out of the box
+- **webpack**: ✅ Works out of the box
+- **Next.js**: ✅ Supports both App Router and Pages Router
+- **Turbopack**: ✅ Fully compatible
+- **Parcel**: ✅ Works out of the box
+
+No special configuration required for any bundler.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/memory-graph/quick-start">
+    Build your first graph in 5 minutes
+  </Card>
+
+  <Card title="API Reference" icon="book" href="/memory-graph/api-reference">
+    Explore all available props and types
+  </Card>
+</CardGroup>

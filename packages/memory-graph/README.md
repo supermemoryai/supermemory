@@ -5,9 +5,15 @@
 [![npm version](https://img.shields.io/npm/v/@supermemory/memory-graph.svg)](https://www.npmjs.com/package/@supermemory/memory-graph)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Documentation
+
+📚 **[View full documentation](https://supermemory.ai/docs/memory-graph/overview)**
+
+Comprehensive guides, API reference, and examples available in the official docs.
+
 ## Features
 
-- **WebGL-powered rendering** - Smooth performance with hundreds of nodes
+- **High-performance canvas rendering** - Smooth performance with hundreds of nodes using LOD optimization and viewport culling
 - **Interactive exploration** - Pan, zoom, drag nodes, and explore connections
 - **Semantic connections** - Visualizes relationships based on content similarity
 - **Responsive design** - Works seamlessly on mobile and desktop
@@ -220,12 +226,12 @@ The `variant` prop controls the visual layout and initial viewport settings:
 - Chrome/Edge (latest)
 - Firefox (latest)
 - Safari (latest)
-- Mobile browsers with WebGL support
+- Mobile browsers with Canvas support
 
 ## Requirements
 
 - React 18+
-- Modern browser with WebGL support
+- Modern browser with Canvas 2D support
 
 ## Development
 
@@ -249,4 +255,5 @@ MIT
 
 ## Support
 
+- Documentation: [docs.supermemory.ai/memory-graph](https://docs.supermemory.ai/memory-graph/overview)
 - Issues: [GitHub Issues](https://github.com/supermemoryai/supermemory/issues)

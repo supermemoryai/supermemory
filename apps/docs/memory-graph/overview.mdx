@@ -1,0 +1,87 @@
+---
+title: "Graph Visualization"
+description: "Interactive canvas-based component for visualizing your memory connections"
+sidebarTitle: "Overview"
+---
+
+[![npm version](https://img.shields.io/npm/v/@supermemory/memory-graph.svg)](https://www.npmjs.com/package/@supermemory/memory-graph)
+
+The `@supermemory/memory-graph` package provides an interactive, high-performance visualization component that transforms your documents and memories into an explorable knowledge graph. Built with React and powered by HTML5 Canvas, it offers smooth interactions and sophisticated rendering optimizations.
+
+{/* TODO: Add graph interaction GIF showing pan, zoom, and node interactions */}
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="High-Performance Rendering" icon="zap">
+    Canvas-based rendering with LOD optimization, viewport culling, and change-based rendering for smooth performance with hundreds of nodes
+  </Card>
+
+  <Card title="Interactive Exploration" icon="move">
+    Pan, zoom, drag nodes, double-click to focus, and navigate with intuitive controls on both desktop and mobile
+  </Card>
+
+  <Card title="Semantic Connections" icon="network">
+    Visualizes relationships between documents based on content similarity and memory version chains
+  </Card>
+
+  <Card title="Zero Configuration" icon="sparkles">
+    Works out of the box with automatic CSS injection - no build configuration or style imports needed
+  </Card>
+
+  <Card title="TypeScript Support" icon="code">
+    Full TypeScript support with comprehensive type definitions for all props and data structures
+  </Card>
+
+  <Card title="Responsive Design" icon="smartphone">
+    Optimized for both desktop and mobile with touch gesture support (pinch-to-zoom, pan)
+  </Card>
+</CardGroup>
+
+## When to Use
+
+The graph visualization component is ideal for:
+
+- **Knowledge Management Dashboards**: Visualize how documents and memories connect
+- **Document Explorers**: Let users navigate through related content visually
+- **Memory Analytics**: Show patterns in how information is structured and related
+- **Search Result Visualization**: Display search results in context of the broader knowledge graph
+
+## Variants
+
+The component offers two visual variants optimized for different use cases:
+
+| Variant | Initial Zoom | Spaces Selector | Legend Position | Best For |
+|---------|-------------|-----------------|-----------------|----------|
+| **Console** | 0.8 (closer) | Shown | Bottom-right | Full-page dashboards, admin panels |
+| **Consumer** | 0.5 (wider) | Hidden | Top-right | Embedded widgets, sidebars |
+
+## Graph Elements
+
+The visualization displays three types of nodes and three types of connections:
+
+**Nodes**:
+- **Documents**: Rendered as rounded rectangles with glassmorphism styling
+- **Memory Entries**: Rendered as hexagons (or circles when zoomed out)
+- **Status Indicators**: Visual markers for forgotten, expiring, and new memories
+
+**Connections**:
+- **Doc-Memory**: Solid thin lines connecting documents to their memory chunks
+- **Doc-Doc**: Dashed lines showing semantic similarity (threshold: 0.725)
+- **Version Chains**: Double-line arrows showing memory evolution (updates/extends/derives)
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Installation" icon="download" href="/memory-graph/installation">
+    Install the package and get set up
+  </Card>
+
+  <Card title="Quick Start" icon="rocket" href="/memory-graph/quick-start">
+    Build your first graph in 5 minutes
+  </Card>
+
+  <Card title="Examples" icon="code" href="/memory-graph/examples">
+    Explore real-world implementation patterns
+  </Card>
+</CardGroup>

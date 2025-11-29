@@ -1,0 +1,566 @@
+---
+title: "Examples"
+description: "Real-world implementation patterns and use cases"
+sidebarTitle: "Examples"
+---
+
+Explore production-ready examples for common use cases and integration patterns.
+
+## Basic Example
+
+Simple implementation with static data - perfect for testing and learning:
+
+```tsx BasicGraph.tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+// Sample data for testing
+const sampleDocuments: DocumentWithMemories[] = [
+  {
+    id: "doc-1",
+    title: "Project Roadmap",
+    content: "Q1 goals and milestones",
+    summary: "Planning for Q1 2024",
+    memoryEntries: [
+      {
+        id: "mem-1",
+        documentId: "doc-1",
+        content: "Launch new feature by end of Q1",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+]
+
+export default function BasicGraph() {
+  return (
+    <div style={{ width: '100%', height: '600px' }}>
+      <MemoryGraph documents={sampleDocuments} />
+    </div>
+  )
+}
+```
+
+{/* TODO: Add basic example screenshot */}
+
+## Next.js Integration
+
+### With App Router
+
+Complete example with backend proxy, authentication, and error handling:
+
+```typescript app/api/graph-data/route.ts
+import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+
+export async function GET() {
+  // Authenticate user
+  const session = await auth()
+  if (!session?.user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.supermemory.ai/v3/documents/documents',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          page: 1,
+          limit: 500,
+          containerTags: [session.user.id], // User isolation
+          sort: 'createdAt',
+          order: 'desc',
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`Supermemory API error: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error('Graph data fetch error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch graph data' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+```tsx app/graph/page.tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useState, useEffect } from 'react'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+export default function GraphPage() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    fetch('/api/graph-data')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await res.text())
+        return res.json()
+      })
+      .then((data) => {
+        setDocuments(data.documents)
+        setIsLoading(false)
+      })
+      .catch((err) => {
+        setError(err)
+        setIsLoading(false)
+      })
+  }, [])
+
+  return (
+    <main style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        error={error}
+        variant="console"
+      />
+    </main>
+  )
+}
+```
+
+{/* TODO: Add Next.js example screenshot */}
+
+## With Pagination
+
+Implement infinite scroll for large datasets:
+
+```tsx GraphWithPagination.tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useState, useCallback } from 'react'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+export default function GraphWithPagination() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+
+  // Initial load
+  useState(() => {
+    fetchPage(1)
+  }, [])
+
+  const fetchPage = async (pageNum: number) => {
+    try {
+      if (pageNum === 1) {
+        setIsLoading(true)
+      } else {
+        setIsLoadingMore(true)
+      }
+
+      const response = await fetch(
+        `/api/graph-data?page=${pageNum}&limit=100`
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch documents')
+      }
+
+      const data = await response.json()
+
+      setDocuments(prev =>
+        pageNum === 1 ? data.documents : [...prev, ...data.documents]
+      )
+
+      setHasMore(
+        data.pagination.currentPage < data.pagination.totalPages
+      )
+      setPage(pageNum)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error'))
+    } finally {
+      setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }
+
+  const loadMore = useCallback(async () => {
+    if (!isLoadingMore && hasMore) {
+      await fetchPage(page + 1)
+    }
+  }, [page, isLoadingMore, hasMore])
+
+  return (
+    <div style={{ width: '100%', height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        totalLoaded={documents.length}
+        loadMoreDocuments={loadMore}
+      />
+    </div>
+  )
+}
+```
+
+<Tip>
+The graph automatically loads more documents when 80% of current documents are visible in the viewport. Set `autoLoadOnViewport={false}` for manual control.
+</Tip>
+
+{/* TODO: Add pagination example screenshot */}
+
+## Search Integration with Highlighting
+
+Highlight search results in the graph:
+
+```tsx SearchableGraph.tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useState, useEffect } from 'react'
+import type { DocumentWithMemories } from '@supermemory/memory-graph'
+
+export default function SearchableGraph() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [highlightedIds, setHighlightedIds] = useState<string[]>([])
+  const [showHighlights, setShowHighlights] = useState(true)
+
+  // Fetch all documents
+  useEffect(() => {
+    fetch('/api/graph-data')
+      .then(res => res.json())
+      .then(data => setDocuments(data.documents))
+  }, [])
+
+  // Search and highlight
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setHighlightedIds([])
+      return
+    }
+
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery })
+      })
+
+      const results = await response.json()
+
+      // Extract document IDs from search results
+      const docIds = results.documents.map((doc: any) => doc.id)
+      setHighlightedIds(docIds)
+      setShowHighlights(true)
+    } catch (error) {
+      console.error('Search error:', error)
+    }
+  }
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Search bar */}
+      <div style={{
+        padding: '1rem',
+        display: 'flex',
+        gap: '0.5rem',
+        borderBottom: '1px solid #e5e7eb'
+      }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Search documents..."
+          style={{ flex: 1, padding: '0.5rem', borderRadius: '0.375rem' }}
+        />
+        <button onClick={handleSearch}>Search</button>
+        <button onClick={() => {
+          setHighlightedIds([])
+          setSearchQuery('')
+        }}>
+          Clear
+        </button>
+        <label>
+          <input
+            type="checkbox"
+            checked={showHighlights}
+            onChange={(e) => setShowHighlights(e.target.checked)}
+          />
+          Show highlights
+        </label>
+      </div>
+
+      {/* Graph */}
+      <div style={{ flex: 1 }}>
+        <MemoryGraph
+          documents={documents}
+          highlightDocumentIds={highlightedIds}
+          highlightsVisible={showHighlights}
+          variant="console"
+        />
+      </div>
+    </div>
+  )
+}
+```
+
+<Note>
+Highlighting supports both internal document IDs and custom IDs. The graph will automatically match either.
+</Note>
+
+{/* TODO: Add search highlighting screenshot */}
+
+## Custom Empty State
+
+Provide a custom UI when no documents exist:
+
+```tsx GraphWithEmpty.tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useState, useEffect } from 'react'
+
+export default function GraphWithEmpty() {
+  const [documents, setDocuments] = useState([])
+
+  return (
+    <div style={{ width: '100%', height: '100vh' }}>
+      <MemoryGraph documents={documents}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '2rem',
+          padding: '2rem',
+          textAlign: 'center'
+        }}>
+          <div>
+            <svg
+              width="120"
+              height="120"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+              No memories yet
+            </h2>
+            <p style={{ color: '#6b7280', maxWidth: '400px' }}>
+              Start adding content to see your knowledge graph come to life.
+              Documents and their connections will appear here.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => window.location.href = '/add-memory'}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                borderRadius: '0.5rem',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Add Your First Memory
+            </button>
+
+            <button
+              onClick={() => window.location.href = '/docs'}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: 'transparent',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              Learn More
+            </button>
+          </div>
+        </div>
+      </MemoryGraph>
+    </div>
+  )
+}
+```
+
+## Backend Patterns
+
+### Express.js
+
+```typescript server.ts
+import express from 'express'
+
+const app = express()
+
+app.get('/api/graph-data', async (req, res) => {
+  // Authenticate user
+  const user = await authenticateRequest(req)
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.supermemory.ai/v3/documents/documents',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          page: 1,
+          limit: 500,
+          containerTags: [user.id],
+        }),
+      }
+    )
+
+    const data = await response.json()
+    res.json(data)
+  } catch (error) {
+    console.error('Error:', error)
+    res.status(500).json({ error: 'Failed to fetch data' })
+  }
+})
+
+app.listen(3000)
+```
+
+### Cloudflare Workers
+
+```typescript worker.ts
+export default {
+  async fetch(request: Request, env: Env) {
+    // Authenticate
+    const user = await authenticateRequest(request, env)
+    if (!user) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    try {
+      const response = await fetch(
+        'https://api.supermemory.ai/v3/documents/documents',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${env.SUPERMEMORY_API_KEY}`,
+          },
+          body: JSON.stringify({
+            page: 1,
+            limit: 500,
+            containerTags: [user.id],
+          }),
+        }
+      )
+
+      return new Response(await response.text(), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    } catch (error) {
+      return new Response('Internal Server Error', { status: 500 })
+    }
+  }
+}
+```
+
+### User Isolation with Container Tags
+
+For multi-user applications, always filter documents by user:
+
+```typescript
+// Backend: Filter by user ID
+body: JSON.stringify({
+  containerTags: [user.id], // Only fetch this user's documents
+  page: 1,
+  limit: 500,
+})
+```
+
+<Warning>
+Always implement user isolation on the backend. Never trust client-side filtering for security.
+</Warning>
+
+## React Query Integration
+
+For better data management and caching:
+
+```tsx GraphWithReactQuery.tsx
+'use client'
+
+import { MemoryGraph } from '@supermemory/memory-graph'
+import { useQuery } from '@tanstack/react-query'
+
+export default function GraphWithReactQuery() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['graph-data'],
+    queryFn: async () => {
+      const response = await fetch('/api/graph-data')
+      if (!response.ok) {
+        throw new Error('Failed to fetch graph data')
+      }
+      return response.json()
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  })
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={data?.documents || []}
+        isLoading={isLoading}
+        error={error}
+      />
+    </div>
+  )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="book" href="/memory-graph/api-reference">
+    Explore all props and types
+  </Card>
+
+  <Card title="Troubleshooting" icon="wrench" href="/memory-graph/troubleshooting">
+    Solve common issues
+  </Card>
+</CardGroup>
