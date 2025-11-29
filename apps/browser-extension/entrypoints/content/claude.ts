@@ -13,6 +13,7 @@ import {
 	createClaudeInputBarElement,
 	DOMUtils,
 } from "../../utils/ui-components"
+import type { PlatformAdapter } from "./adapters/platform-adapter"
 
 let claudeDebounceTimeout: NodeJS.Timeout | null = null
 let claudeRouteObserver: MutationObserver | null = null
@@ -597,6 +598,13 @@ function setupClaudePromptCapture() {
 		true,
 	)
 }
+
+export const claudeAdapter: PlatformAdapter = {
+	id: "claude",
+	matches: () => DOMUtils.isOnDomain(DOMAINS.CLAUDE),
+	init: initializeClaude,
+}
+
 
 async function setupClaudeAutoFetch() {
 	const autoSearch = (await autoSearchEnabled.getValue()) ?? false
