@@ -26,7 +26,7 @@ import {
 	AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog"
 import { Brain, Trash2 } from "lucide-react"
-import { colors } from "@repo/ui/memory-graph/constants"
+import { colors } from "@repo/ui/colors"
 import { getPastelBackgroundColor } from "../memories-utils"
 
 type MyTweetProps = {

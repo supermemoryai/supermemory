@@ -16,7 +16,7 @@ import { ExternalLink, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@lib/utils"
 import { getPastelBackgroundColor } from "../memories-utils"
-import { colors } from "@repo/ui/memory-graph/constants"
+import { colors } from "@repo/ui/colors"
 
 interface WebsiteCardProps {
 	title: string
