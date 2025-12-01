@@ -72,11 +72,12 @@ export const createSupermemoryMiddleware = (
 	verbose = false,
 	mode: "profile" | "query" | "full" = "profile",
 	addMemory: "always" | "never" = "never",
+	apiKey?: string,
 ): LanguageModelV2Middleware => {
 	const logger = createLogger(verbose)
 
 	const client = new Supermemory({
-		apiKey: process.env.SUPERMEMORY_API_KEY,
+		apiKey: apiKey ?? process.env.SUPERMEMORY_API_KEY,
 	})
 
 	return {

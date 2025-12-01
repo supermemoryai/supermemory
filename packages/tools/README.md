@@ -57,7 +57,7 @@ const addTool = addMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
 #### AI SDK Middleware with Supermemory
 
 - `withSupermemory` will take advantage supermemory profile v4 endpoint personalized based on container tag
-- Make sure you have `SUPERMEMORY_API_KEY` in env
+- You can provide the Supermemory API key via the `apiKey` option to `withSupermemory` (recommended for browser usage), or fall back to `SUPERMEMORY_API_KEY` in the environment for server usage.
 
 ```typescript
 import { generateText } from "ai"
@@ -395,6 +395,8 @@ interface WithSupermemoryOptions {
   verbose?: boolean
   mode?: "profile" | "query" | "full"
   addMemory?: "always" | "never"
+  /** Optional Supermemory API key. Use this in browser environments. */
+  apiKey?: string
 }
 ```
 

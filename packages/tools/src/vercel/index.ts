@@ -7,6 +7,8 @@ interface WrapVercelLanguageModelOptions {
 	verbose?: boolean;
 	mode?: "profile" | "query" | "full";
 	addMemory?: "always" | "never";
+	/** Optional Supermemory API key — will fall back to `process.env.SUPERMEMORY_API_KEY` if not provided */
+	apiKey?: string;
 }
 
 /**
@@ -44,7 +46,7 @@ interface WrapVercelLanguageModelOptions {
  * })
  * ```
  *
- * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
+ * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
  * @throws {Error} When supermemory API request fails
  */
 const wrapVercelLanguageModel = (
@@ -52,10 +54,10 @@ const wrapVercelLanguageModel = (
 	containerTag: string,
 	options?: WrapVercelLanguageModelOptions,
 ): LanguageModelV2 => {
-	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
+	const providedApiKey = options?.apiKey ?? process.env.SUPERMEMORY_API_KEY
 
-	if (!SUPERMEMORY_API_KEY) {
-		throw new Error("SUPERMEMORY_API_KEY is not set")
+	if (!providedApiKey) {
+		throw new Error("SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`")
 	}
 
 	const conversationId = options?.conversationId
@@ -65,7 +67,7 @@ const wrapVercelLanguageModel = (
 
 	const wrappedModel = wrapLanguageModel({
 		model,
-		middleware: createSupermemoryMiddleware(containerTag, conversationId, verbose, mode, addMemory),
+		middleware: createSupermemoryMiddleware(containerTag, conversationId, verbose, mode, addMemory, providedApiKey),
 	})
 
 	return wrappedModel
