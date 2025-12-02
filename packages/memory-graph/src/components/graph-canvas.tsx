@@ -241,7 +241,8 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 							connectionColor = colors.connection.medium;
 					} else if (edge.edgeType === "version") {
 						// Version chains: Double line effect with relation-specific colors
-						dashPattern = [];
+						// Special dashed pattern for "merges" relation
+						dashPattern = edge.relationType === "merges" ? [8, 4] : [];
 						connectionColor = edge.color || colors.relations.updates;
 						opacity = 0.8;
 						lineWidth = 2;

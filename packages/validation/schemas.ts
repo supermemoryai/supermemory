@@ -236,7 +236,7 @@ export const SpaceSchema = z.object({
 })
 export type Space = z.infer<typeof SpaceSchema>
 
-export const MemoryRelationEnum = z.enum(["updates", "extends", "derives"])
+export const MemoryRelationEnum = z.enum(["updates", "extends", "derives", "merges"])
 export type MemoryRelation = z.infer<typeof MemoryRelationEnum>
 
 export const MemoryEntrySchema = z.object({
