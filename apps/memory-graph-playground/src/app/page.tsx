@@ -1,169 +1,240 @@
 "use client"
 
-import { useState, useCallback } from 'react'
-import { MemoryGraph, type DocumentWithMemories } from '@supermemory/memory-graph'
+import { useState, useCallback } from "react"
+import {
+	MemoryGraph,
+	type DocumentWithMemories,
+} from "@supermemory/memory-graph"
 
 interface DocumentsResponse {
-  documents: DocumentWithMemories[]
-  pagination: {
-    currentPage: number
-    limit: number
-    totalItems: number
-    totalPages: number
-  }
+	documents: DocumentWithMemories[]
+	pagination: {
+		currentPage: number
+		limit: number
+		totalItems: number
+		totalPages: number
+	}
 }
 
 export default function Home() {
-  const [apiKey, setApiKey] = useState('')
-  const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
-  const [hasMore, setHasMore] = useState(false)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [showGraph, setShowGraph] = useState(false)
+	const [apiKey, setApiKey] = useState("")
+	const [documents, setDocuments] = useState<DocumentWithMemories[]>([])
+	const [isLoading, setIsLoading] = useState(false)
+	const [isLoadingMore, setIsLoadingMore] = useState(false)
+	const [error, setError] = useState<Error | null>(null)
+	const [hasMore, setHasMore] = useState(false)
+	const [currentPage, setCurrentPage] = useState(0)
+	const [showGraph, setShowGraph] = useState(false)
 
-  const PAGE_SIZE = 500
+	// State for controlled space selection
+	const [selectedSpace, setSelectedSpace] = useState<string>("all")
 
-  const fetchDocuments = useCallback(async (page: number, append = false) => {
-    if (!apiKey) return
+	const PAGE_SIZE = 500
 
-    if (page === 1) {
-      setIsLoading(true)
-    } else {
-      setIsLoadingMore(true)
-    }
-    setError(null)
+	const fetchDocuments = useCallback(
+		async (page: number, append = false) => {
+			if (!apiKey) return
 
-    try {
-      const response = await fetch('/api/graph', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          apiKey,
-          page,
-          limit: PAGE_SIZE,
-          sort: 'createdAt',
-          order: 'desc',
-        }),
-      })
+			if (page === 1) {
+				setIsLoading(true)
+			} else {
+				setIsLoadingMore(true)
+			}
+			setError(null)
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to fetch documents')
-      }
+			try {
+				const response = await fetch("/api/graph", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						apiKey,
+						page,
+						limit: PAGE_SIZE,
+						sort: "createdAt",
+						order: "desc",
+					}),
+				})
 
-      const data: DocumentsResponse = await response.json()
+				if (!response.ok) {
+					const errorData = await response.json()
+					throw new Error(errorData.error || "Failed to fetch documents")
+				}
 
-      if (append) {
-        setDocuments(prev => [...prev, ...data.documents])
-      } else {
-        setDocuments(data.documents)
-      }
+				const data: DocumentsResponse = await response.json()
 
-      setCurrentPage(data.pagination.currentPage)
-      setHasMore(data.pagination.currentPage < data.pagination.totalPages)
-      setShowGraph(true)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'))
-    } finally {
-      setIsLoading(false)
-      setIsLoadingMore(false)
-    }
-  }, [apiKey])
+				if (append) {
+					setDocuments((prev) => [...prev, ...data.documents])
+				} else {
+					setDocuments(data.documents)
+				}
 
-  const loadMoreDocuments = useCallback(async () => {
-    if (hasMore && !isLoadingMore) {
-      await fetchDocuments(currentPage + 1, true)
-    }
-  }, [hasMore, isLoadingMore, currentPage, fetchDocuments])
+				setCurrentPage(data.pagination.currentPage)
+				setHasMore(data.pagination.currentPage < data.pagination.totalPages)
+				setShowGraph(true)
+			} catch (err) {
+				setError(err instanceof Error ? err : new Error("Unknown error"))
+			} finally {
+				setIsLoading(false)
+				setIsLoadingMore(false)
+			}
+		},
+		[apiKey],
+	)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (apiKey) {
-      setDocuments([])
-      setCurrentPage(0)
-      fetchDocuments(1)
-    }
-  }
+	const loadMoreDocuments = useCallback(async () => {
+		if (hasMore && !isLoadingMore) {
+			await fetchDocuments(currentPage + 1, true)
+		}
+	}, [hasMore, isLoadingMore, currentPage, fetchDocuments])
 
-  return (
-    <div className="flex flex-col h-screen bg-zinc-950">
-      {/* Header */}
-      <header className="shrink-0 border-b border-zinc-800 bg-zinc-900 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-white">Memory Graph Playground</h1>
-            <p className="text-sm text-zinc-400">Test the @supermemory/memory-graph package</p>
-          </div>
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault()
+		if (apiKey) {
+			setDocuments([])
+			setCurrentPage(0)
+			setSelectedSpace("all")
+			fetchDocuments(1)
+		}
+	}
 
-          <form onSubmit={handleSubmit} className="flex items-center gap-3">
-            <input
-              type="password"
-              placeholder="Enter your Supermemory API key"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-80 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              type="submit"
-              disabled={!apiKey || isLoading}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoading ? 'Loading...' : 'Load Graph'}
-            </button>
-          </form>
-        </div>
-      </header>
+	// Handle space change
+	const handleSpaceChange = useCallback((spaceId: string) => {
+		setSelectedSpace(spaceId)
+	}, [])
 
-      {/* Main content */}
-      <main className="flex-1 overflow-hidden">
-        {!showGraph ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="max-w-md text-center">
-              <div className="mb-6 text-6xl">
-                <svg className="mx-auto h-16 w-16 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
-              </div>
-              <h2 className="mb-2 text-xl font-semibold text-white">Get Started</h2>
-              <p className="mb-6 text-zinc-400">
-                Enter your Supermemory API key above to visualize your memory graph.
-              </p>
-              <div className="text-left text-sm text-zinc-500">
-                <p className="mb-2 font-medium text-zinc-400">Features to test:</p>
-                <ul className="list-inside list-disc space-y-1">
-                  <li>Pan and zoom the graph</li>
-                  <li>Click on nodes to see details</li>
-                  <li>Drag nodes around</li>
-                  <li>Use the space selector to filter</li>
-                  <li>Pagination loads more documents</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="h-full w-full">
-            <MemoryGraph
-              documents={documents}
-              isLoading={isLoading}
-              isLoadingMore={isLoadingMore}
-              error={error}
-              hasMore={hasMore}
-              loadMoreDocuments={loadMoreDocuments}
-              totalLoaded={documents.length}
-              variant="console"
-              showSpacesSelector={true}
-            >
-              <div className="flex h-full items-center justify-center">
-                <p className="text-zinc-400">No memories found. Add some content to see your graph.</p>
-              </div>
-            </MemoryGraph>
-          </div>
-        )}
-      </main>
-    </div>
-  )
+	// Reset to defaults
+	const handleReset = () => {
+		setSelectedSpace("all")
+	}
+
+	return (
+		<div className="flex flex-col h-screen bg-zinc-950">
+			{/* Header */}
+			<header className="shrink-0 border-b border-zinc-800 bg-zinc-900 px-6 py-4">
+				<div className="flex items-center justify-between">
+					<div>
+						<h1 className="text-xl font-semibold text-white">
+							Memory Graph Playground
+						</h1>
+						<p className="text-sm text-zinc-400">
+							Test the @supermemory/memory-graph package
+						</p>
+					</div>
+
+					<form onSubmit={handleSubmit} className="flex items-center gap-3">
+						<input
+							type="password"
+							placeholder="Enter your Supermemory API key"
+							value={apiKey}
+							onChange={(e) => setApiKey(e.target.value)}
+							className="w-80 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+						/>
+						<button
+							type="submit"
+							disabled={!apiKey || isLoading}
+							className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{isLoading ? "Loading..." : "Load Graph"}
+						</button>
+					</form>
+				</div>
+			</header>
+
+			{/* State Display Panel - For Testing */}
+			{showGraph && (
+				<div className="shrink-0 border-b border-zinc-800 bg-zinc-900/50 px-6 py-3">
+					<div className="flex items-center justify-between text-sm">
+						<div className="flex items-center gap-6">
+							<div className="flex items-center gap-2">
+								<span className="text-zinc-400">Selected Space:</span>
+								<span className="font-mono text-blue-400">{selectedSpace}</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<span className="text-zinc-400">Documents:</span>
+								<span className="font-mono text-emerald-400">
+									{documents.length}
+								</span>
+							</div>
+						</div>
+						<button
+							onClick={handleReset}
+							className="rounded-lg border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
+						>
+							Reset Filters
+						</button>
+					</div>
+				</div>
+			)}
+
+			{/* Main content */}
+			<main className="flex-1 overflow-hidden">
+				{!showGraph ? (
+					<div className="flex h-full items-center justify-center">
+						<div className="max-w-md text-center">
+							<div className="mb-6 text-6xl">
+								<svg
+									className="mx-auto h-16 w-16 text-zinc-600"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={1.5}
+										d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+									/>
+								</svg>
+							</div>
+							<h2 className="mb-2 text-xl font-semibold text-white">
+								Get Started
+							</h2>
+							<p className="mb-6 text-zinc-400">
+								Enter your Supermemory API key above to visualize your memory
+								graph.
+							</p>
+							<div className="text-left text-sm text-zinc-500">
+								<p className="mb-2 font-medium text-zinc-400">
+									Features to test:
+								</p>
+								<ul className="list-inside list-disc space-y-1">
+									<li>✨ Search and filter by spaces</li>
+									<li>✨ Arrow key navigation in spaces dropdown</li>
+									<li>Pan and zoom the graph</li>
+									<li>Click on nodes to see details</li>
+									<li>Drag nodes around</li>
+									<li>Filter by space</li>
+									<li>Pagination loads more documents</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				) : (
+					<div className="h-full w-full">
+						<MemoryGraph
+							documents={documents}
+							isLoading={isLoading}
+							isLoadingMore={isLoadingMore}
+							error={error}
+							hasMore={hasMore}
+							loadMoreDocuments={loadMoreDocuments}
+							totalLoaded={documents.length}
+							variant="consumer"
+							// Controlled space selection
+							selectedSpace={selectedSpace}
+							onSpaceChange={handleSpaceChange}
+						>
+							<div className="flex h-full items-center justify-center">
+								<p className="text-zinc-400">
+									No memories found. Add some content to see your graph.
+								</p>
+							</div>
+						</MemoryGraph>
+					</div>
+				)}
+			</main>
+		</div>
+	)
 }

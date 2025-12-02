@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import { memo } from "react";
-import type { GraphNode } from "@/types";
+import { memo } from "react"
+import type { GraphNode } from "@/types"
 import {
 	navContainer,
 	navButton,
 	zoomContainer,
 	zoomInButton,
 	zoomOutButton,
-} from "./navigation-controls.css";
+} from "./navigation-controls.css"
 
 interface NavigationControlsProps {
-	onCenter: () => void;
-	onZoomIn: () => void;
-	onZoomOut: () => void;
-	onAutoFit: () => void;
-	nodes: GraphNode[];
-	className?: string;
+	onCenter: () => void
+	onZoomIn: () => void
+	onZoomOut: () => void
+	onAutoFit: () => void
+	nodes: GraphNode[]
+	className?: string
 }
 
 export const NavigationControls = memo<NavigationControlsProps>(
 	({ onCenter, onZoomIn, onZoomOut, onAutoFit, nodes, className = "" }) => {
 		if (nodes.length === 0) {
-			return null;
+			return null
 		}
 
 		const containerClassName = className
 			? `${navContainer} ${className}`
-			: navContainer;
+			: navContainer
 
 		return (
 			<div className={containerClassName}>
@@ -66,8 +66,8 @@ export const NavigationControls = memo<NavigationControlsProps>(
 					</button>
 				</div>
 			</div>
-		);
+		)
 	},
-);
+)
 
-NavigationControls.displayName = "NavigationControls";
+NavigationControls.displayName = "NavigationControls"

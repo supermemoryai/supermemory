@@ -1,11 +1,8 @@
-import {
-	glassMenuContainer,
-	glassMenuEffect,
-} from "./glass-effect.css";
+import { glassMenuContainer, glassMenuEffect } from "./glass-effect.css"
 
 interface GlassMenuEffectProps {
-	rounded?: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
-	className?: string;
+	rounded?: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full"
+	className?: string
 }
 
 export function GlassMenuEffect({
@@ -17,5 +14,5 @@ export function GlassMenuEffect({
 			{/* Frosted glass effect with translucent border */}
 			<div className={glassMenuEffect({ rounded })} />
 		</div>
-	);
+	)
 }

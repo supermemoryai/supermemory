@@ -1,6 +1,6 @@
-import { style } from "@vanilla-extract/css";
-import { recipe } from "@vanilla-extract/recipes";
-import { themeContract } from "../styles/theme.css";
+import { style } from "@vanilla-extract/css"
+import { recipe } from "@vanilla-extract/recipes"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Glass menu effect container
@@ -8,7 +8,7 @@ import { themeContract } from "../styles/theme.css";
 export const glassMenuContainer = style({
 	position: "absolute",
 	inset: 0,
-});
+})
 
 /**
  * Glass menu effect with customizable border radius
@@ -55,4 +55,4 @@ export const glassMenuEffect = recipe({
 	defaultVariants: {
 		rounded: "3xl",
 	},
-});
+})

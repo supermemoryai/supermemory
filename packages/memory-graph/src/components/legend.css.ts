@@ -1,5 +1,5 @@
-import { style, styleVariants, globalStyle } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { style, styleVariants, globalStyle } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Legend container base
@@ -12,7 +12,7 @@ const legendContainerBase = style({
 	width: "fit-content",
 	height: "fit-content",
 	maxHeight: "calc(100vh - 2rem)", // Prevent overflow
-});
+})
 
 /**
  * Legend container variants for positioning
@@ -59,7 +59,7 @@ export const legendContainer = styleVariants({
 			},
 		},
 	],
-});
+})
 
 /**
  * Mobile size variants
@@ -72,7 +72,7 @@ export const mobileSize = styleVariants({
 		width: "4rem", // w-16
 		height: "3rem", // h-12
 	},
-});
+})
 
 /**
  * Legend content wrapper
@@ -80,7 +80,7 @@ export const mobileSize = styleVariants({
 export const legendContent = style({
 	position: "relative",
 	zIndex: 10,
-});
+})
 
 /**
  * Collapsed trigger button
@@ -99,26 +99,26 @@ export const collapsedTrigger = style({
 			backgroundColor: "rgba(255, 255, 255, 0.05)",
 		},
 	},
-});
+})
 
 export const collapsedContent = style({
 	display: "flex",
 	flexDirection: "column",
 	alignItems: "center",
 	gap: themeContract.space[1],
-});
+})
 
 export const collapsedText = style({
 	fontSize: themeContract.typography.fontSize.xs,
 	color: themeContract.colors.text.secondary,
 	fontWeight: themeContract.typography.fontWeight.medium,
-});
+})
 
 export const collapsedIcon = style({
 	width: "0.75rem",
 	height: "0.75rem",
 	color: themeContract.colors.text.muted,
-});
+})
 
 /**
  * Header
@@ -132,13 +132,13 @@ export const legendHeader = style({
 	paddingTop: themeContract.space[3],
 	paddingBottom: themeContract.space[3],
 	borderBottom: "1px solid rgba(71, 85, 105, 0.5)", // slate-600/50
-});
+})
 
 export const legendTitle = style({
 	fontSize: themeContract.typography.fontSize.sm,
 	fontWeight: themeContract.typography.fontWeight.medium,
 	color: themeContract.colors.text.primary,
-});
+})
 
 export const headerTrigger = style({
 	padding: themeContract.space[1],
@@ -150,13 +150,13 @@ export const headerTrigger = style({
 			backgroundColor: "rgba(255, 255, 255, 0.1)",
 		},
 	},
-});
+})
 
 export const headerIcon = style({
 	width: "1rem",
 	height: "1rem",
 	color: themeContract.colors.text.muted,
-});
+})
 
 /**
  * Content sections
@@ -168,7 +168,7 @@ export const sectionsContainer = style({
 	paddingRight: themeContract.space[4],
 	paddingTop: themeContract.space[3],
 	paddingBottom: themeContract.space[3],
-});
+})
 
 export const sectionWrapper = style({
 	marginTop: themeContract.space[3],
@@ -177,7 +177,7 @@ export const sectionWrapper = style({
 			marginTop: 0,
 		},
 	},
-});
+})
 
 export const sectionTitle = style({
 	fontSize: themeContract.typography.fontSize.xs,
@@ -186,36 +186,36 @@ export const sectionTitle = style({
 	textTransform: "uppercase",
 	letterSpacing: "0.05em",
 	marginBottom: themeContract.space[2],
-});
+})
 
 export const itemsList = style({
 	display: "flex",
 	flexDirection: "column",
 	gap: "0.375rem", // gap-1.5
-});
+})
 
 export const legendItem = style({
 	display: "flex",
 	alignItems: "center",
 	gap: themeContract.space[2],
-});
+})
 
 export const legendIcon = style({
 	width: "0.75rem",
 	height: "0.75rem",
 	flexShrink: 0,
-});
+})
 
 export const legendText = style({
 	fontSize: themeContract.typography.fontSize.xs,
-});
+})
 
 /**
  * Shape styles
  */
 export const hexagon = style({
 	clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)",
-});
+})
 
 export const documentNode = style({
 	width: "1rem",
@@ -224,7 +224,7 @@ export const documentNode = style({
 	border: "1px solid rgba(255, 255, 255, 0.25)",
 	borderRadius: themeContract.radii.sm,
 	flexShrink: 0,
-});
+})
 
 export const memoryNode = style([
 	hexagon,
@@ -235,14 +235,14 @@ export const memoryNode = style([
 		border: "1px solid rgba(147, 197, 253, 0.35)",
 		flexShrink: 0,
 	},
-]);
+])
 
 export const memoryNodeOlder = style([
 	memoryNode,
 	{
 		opacity: 0.4,
 	},
-]);
+])
 
 export const forgottenNode = style([
 	hexagon,
@@ -254,7 +254,7 @@ export const forgottenNode = style([
 		position: "relative",
 		flexShrink: 0,
 	},
-]);
+])
 
 export const forgottenIcon = style({
 	position: "absolute",
@@ -265,7 +265,7 @@ export const forgottenIcon = style({
 	color: "rgb(248, 113, 113)",
 	fontSize: themeContract.typography.fontSize.xs,
 	lineHeight: "1",
-});
+})
 
 export const expiringNode = style([
 	hexagon,
@@ -276,7 +276,7 @@ export const expiringNode = style([
 		border: "2px solid rgb(245, 158, 11)",
 		flexShrink: 0,
 	},
-]);
+])
 
 export const newNode = style([
 	hexagon,
@@ -288,7 +288,7 @@ export const newNode = style([
 		position: "relative",
 		flexShrink: 0,
 	},
-]);
+])
 
 export const newBadge = style({
 	position: "absolute",
@@ -298,28 +298,28 @@ export const newBadge = style({
 	height: "0.5rem",
 	backgroundColor: "rgb(16, 185, 129)",
 	borderRadius: themeContract.radii.full,
-});
+})
 
 export const connectionLine = style({
 	width: "1rem",
 	height: 0,
 	borderTop: "1px solid rgb(148, 163, 184)",
 	flexShrink: 0,
-});
+})
 
 export const similarityLine = style({
 	width: "1rem",
 	height: 0,
 	borderTop: "2px dashed rgb(148, 163, 184)",
 	flexShrink: 0,
-});
+})
 
 export const relationLine = style({
 	width: "1rem",
 	height: 0,
 	borderTop: "2px solid",
 	flexShrink: 0,
-});
+})
 
 export const weakSimilarity = style({
 	width: "0.75rem",
@@ -327,7 +327,7 @@ export const weakSimilarity = style({
 	borderRadius: themeContract.radii.full,
 	background: "rgba(148, 163, 184, 0.2)",
 	flexShrink: 0,
-});
+})
 
 export const strongSimilarity = style({
 	width: "0.75rem",
@@ -335,11 +335,12 @@ export const strongSimilarity = style({
 	borderRadius: themeContract.radii.full,
 	background: "rgba(148, 163, 184, 0.6)",
 	flexShrink: 0,
-});
+})
 
 export const gradientCircle = style({
 	width: "0.75rem",
 	height: "0.75rem",
-	background: "linear-gradient(to right, rgb(148, 163, 184), rgb(96, 165, 250))",
+	background:
+		"linear-gradient(to right, rgb(148, 163, 184), rgb(96, 165, 250))",
 	borderRadius: themeContract.radii.full,
-});
+})

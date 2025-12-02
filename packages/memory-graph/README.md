@@ -10,6 +10,9 @@
 - **WebGL-powered rendering** - Smooth performance with hundreds of nodes
 - **Interactive exploration** - Pan, zoom, drag nodes, and explore connections
 - **Semantic connections** - Visualizes relationships based on content similarity
+- **Space filtering with search** - Dynamically search and filter by spaces/tags
+- **Memory limit control** - Limit memories per document (50-3000) for performance
+- **Controlled/uncontrolled modes** - Flexible state management for integration
 - **Responsive design** - Works seamlessly on mobile and desktop
 - **Zero configuration** - Works out of the box with automatic CSS injection
 - **Lightweight** - Tree-shakeable and optimized bundle
@@ -115,6 +118,17 @@ export async function GET(request: Request) {
 | `highlightDocumentIds` | `string[]` | `[]` | Document IDs to highlight |
 | `highlightsVisible` | `boolean` | `true` | Whether highlights are visible |
 
+### Space & Memory Control Props (Optional)
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `selectedSpace` | `string` | `"all"` | Currently selected space (controlled) |
+| `onSpaceChange` | `(spaceId: string) => void` | - | Callback when space changes |
+| `onSearchSpaces` | `(query: string) => Promise<string[]>` | - | Async space search function |
+| `memoryLimit` | `number` | `500` | Max memories per document when space selected |
+| `onMemoryLimitChange` | `(limit: number) => void` | - | Callback when limit changes |
+| `isExperimental` | `boolean` | `false` | Enable experimental features |
+
 ### Pagination Props (Optional)
 
 For large datasets, you can implement pagination:
@@ -133,8 +147,16 @@ import type {
   DocumentWithMemories,
   MemoryEntry,
   DocumentsResponse,
-  MemoryGraphProps
+  MemoryGraphProps,
+  MemoryLimit,
+  MemoryCountSelectorProps,
+  GraphNode,
+  GraphEdge,
+  MemoryRelation
 } from '@supermemory/memory-graph'
+
+// Memory limit can be one of these values
+type MemoryLimit = 50 | 100 | 250 | 500 | 1000 | 2000 | 3000
 ```
 
 ## Advanced Usage
@@ -184,6 +206,107 @@ function GraphWithPagination() {
 </MemoryGraph>
 ```
 
+### Controlled Space Selection & Memory Limiting
+
+Control the selected space and memory limit externally for integration with your app's state management:
+
+```tsx
+import { MemoryGraph } from '@supermemory/memory-graph'
+
+function ControlledGraph() {
+  const [selectedSpace, setSelectedSpace] = useState("all")
+  const [memoryLimit, setMemoryLimit] = useState(500)
+  const [searchResults, setSearchResults] = useState([])
+
+  // Handle space search via your API
+  const handleSpaceSearch = async (query: string) => {
+    const response = await fetch(`/api/spaces/search?q=${query}`)
+    const spaces = await response.json()
+    setSearchResults(spaces)
+    return spaces
+  }
+
+  return (
+    <div>
+      {/* Display current state */}
+      <div className="controls">
+        <p>Selected Space: {selectedSpace}</p>
+        <p>Memory Limit: {memoryLimit}</p>
+        <button onClick={() => {
+          setSelectedSpace("all")
+          setMemoryLimit(500)
+        }}>
+          Reset Filters
+        </button>
+      </div>
+
+      {/* Controlled graph */}
+      <MemoryGraph
+        documents={documents}
+        selectedSpace={selectedSpace}
+        onSpaceChange={setSelectedSpace}
+        onSearchSpaces={handleSpaceSearch}
+        memoryLimit={memoryLimit}
+        onMemoryLimitChange={setMemoryLimit}
+        variant="console"
+        showSpacesSelector={true}
+      />
+    </div>
+  )
+}
+```
+
+### Uncontrolled Mode (Automatic)
+
+If you don't provide `selectedSpace` or `memoryLimit` props, the component manages its own state:
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  // Component manages space selection and memory limit internally
+  onSearchSpaces={handleSpaceSearch} // Still can provide search function
+  showSpacesSelector={true}
+/>
+```
+
+### Space Search Integration
+
+Implement server-side space search for dynamic filtering:
+
+```tsx
+// Frontend
+const handleSpaceSearch = async (query: string): Promise<string[]> => {
+  const response = await fetch('/api/spaces/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query })
+  })
+  return response.json()
+}
+
+<MemoryGraph
+  documents={documents}
+  onSearchSpaces={handleSpaceSearch}
+  showSpacesSelector={true}
+/>
+
+// Backend (Next.js example)
+// app/api/spaces/search/route.ts
+export async function POST(request: Request) {
+  const { query } = await request.json()
+
+  const response = await fetch('https://api.supermemory.ai/v3/search/spaces', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    params: { q: query }
+  })
+
+  return response.json()
+}
+```
+
 ### Variants
 
 The `variant` prop controls the visual layout and initial viewport settings:
@@ -214,6 +337,9 @@ The `variant` prop controls the visual layout and initial viewport settings:
 - **Select Node**: Click on any document or memory
 - **Drag Nodes**: Click and drag individual nodes
 - **Fit to View**: Auto-fit button to center all content
+- **Space Filter**: Click the space selector to filter by space
+- **Space Search**: Type in the search box and press Enter to find spaces
+- **Memory Limit**: Select a limit (50-3K) when filtering by space
 
 ## Browser Support
 

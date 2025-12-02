@@ -1,5 +1,5 @@
-import { style, styleVariants } from "@vanilla-extract/css";
-import { themeContract } from "./theme.css";
+import { style, styleVariants } from "@vanilla-extract/css"
+import { themeContract } from "./theme.css"
 
 /**
  * Base glass-morphism effect
@@ -10,7 +10,7 @@ const glassBase = style({
 	WebkitBackdropFilter: "blur(12px)",
 	border: `1px solid ${themeContract.colors.document.border}`,
 	borderRadius: themeContract.radii.lg,
-});
+})
 
 /**
  * Glass effect variants
@@ -47,7 +47,7 @@ export const glass = styleVariants({
 			WebkitBackdropFilter: "blur(20px)",
 		},
 	],
-});
+})
 
 /**
  * Glass panel styles for larger containers
@@ -67,7 +67,7 @@ export const glassPanel = styleVariants({
 		border: `2px solid ${themeContract.colors.document.border}`,
 		borderRadius: themeContract.radii.xl,
 	},
-});
+})
 
 /**
  * Focus ring styles for accessibility
@@ -80,7 +80,7 @@ export const focusRing = style({
 			outlineOffset: "2px",
 		},
 	},
-});
+})
 
 /**
  * Transition presets
@@ -104,7 +104,7 @@ export const transition = styleVariants({
 	transform: {
 		transition: `transform ${themeContract.transitions.normal}`,
 	},
-});
+})
 
 /**
  * Hover glow effect
@@ -117,4 +117,4 @@ export const hoverGlow = style({
 			boxShadow: `0 0 20px ${themeContract.colors.document.glow}`,
 		},
 	},
-});
+})

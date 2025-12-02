@@ -1,5 +1,5 @@
-import { style } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { style } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Responsive heading style with bold weight
@@ -21,4 +21,4 @@ export const headingH3Bold = style({
 			fontSize: themeContract.typography.fontSize.base, // 16px
 		},
 	},
-});
+})
