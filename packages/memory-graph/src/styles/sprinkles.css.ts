@@ -1,5 +1,5 @@
-import { defineProperties, createSprinkles } from "@vanilla-extract/sprinkles";
-import { themeContract } from "./theme.css";
+import { defineProperties, createSprinkles } from "@vanilla-extract/sprinkles"
+import { themeContract } from "./theme.css"
 
 /**
  * Responsive conditions for mobile-first design
@@ -122,7 +122,7 @@ const responsiveProperties = defineProperties({
 		// User select
 		userSelect: ["auto", "none", "text", "all"],
 	},
-});
+})
 
 /**
  * Color properties (non-responsive)
@@ -152,7 +152,7 @@ const colorProperties = defineProperties({
 			memoryBorder: themeContract.colors.memory.border,
 		},
 	},
-});
+})
 
 /**
  * Border properties
@@ -167,7 +167,7 @@ const borderProperties = defineProperties({
 		},
 		borderStyle: ["none", "solid", "dashed", "dotted"],
 	},
-});
+})
 
 /**
  * Opacity properties
@@ -188,7 +188,7 @@ const opacityProperties = defineProperties({
 			100: "1",
 		},
 	},
-});
+})
 
 /**
  * Combined sprinkles system
@@ -199,6 +199,6 @@ export const sprinkles = createSprinkles(
 	colorProperties,
 	borderProperties,
 	opacityProperties,
-);
+)
 
-export type Sprinkles = Parameters<typeof sprinkles>[0];
+export type Sprinkles = Parameters<typeof sprinkles>[0]

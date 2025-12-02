@@ -1,5 +1,5 @@
-import { style } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { style } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Error state container
@@ -10,12 +10,12 @@ export const errorContainer = style({
 	alignItems: "center",
 	justifyContent: "center",
 	backgroundColor: themeContract.colors.background.primary,
-});
+})
 
 export const errorCard = style({
 	borderRadius: themeContract.radii.xl,
 	overflow: "hidden",
-});
+})
 
 export const errorContent = style({
 	position: "relative",
@@ -25,7 +25,7 @@ export const errorContent = style({
 	paddingRight: themeContract.space[6],
 	paddingTop: themeContract.space[4],
 	paddingBottom: themeContract.space[4],
-});
+})
 
 /**
  * Main graph container
@@ -37,7 +37,7 @@ export const mainContainer = style({
 	borderRadius: themeContract.radii.xl,
 	overflow: "hidden",
 	backgroundColor: themeContract.colors.background.primary,
-});
+})
 
 /**
  * Spaces selector positioning
@@ -48,7 +48,7 @@ export const spacesSelectorContainer = style({
 	top: themeContract.space[4],
 	left: themeContract.space[4],
 	zIndex: 15, // Above base elements, below loading/panels
-});
+})
 
 /**
  * Graph canvas container
@@ -61,7 +61,7 @@ export const graphContainer = style({
 	touchAction: "none",
 	userSelect: "none",
 	WebkitUserSelect: "none",
-});
+})
 
 /**
  * Navigation controls positioning
@@ -72,4 +72,4 @@ export const navControlsContainer = style({
 	bottom: themeContract.space[4],
 	left: themeContract.space[4],
 	zIndex: 15, // Same level as spaces dropdown
-});
+})

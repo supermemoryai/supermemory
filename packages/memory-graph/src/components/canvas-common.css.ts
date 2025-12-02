@@ -1,4 +1,4 @@
-import { style } from "@vanilla-extract/css";
+import { style } from "@vanilla-extract/css"
 
 /**
  * Canvas wrapper/container that fills its parent
@@ -7,4 +7,4 @@ import { style } from "@vanilla-extract/css";
 export const canvasWrapper = style({
 	position: "absolute",
 	inset: 0,
-});
+})

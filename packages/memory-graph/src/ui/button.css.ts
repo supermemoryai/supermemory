@@ -1,6 +1,6 @@
-import { recipe, type RecipeVariants } from "@vanilla-extract/recipes";
-import { style } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { recipe, type RecipeVariants } from "@vanilla-extract/recipes"
+import { style } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Base styles for SVG icons inside buttons
@@ -14,7 +14,7 @@ export const buttonIcon = style({
 			height: "1rem",
 		},
 	},
-});
+})
 
 /**
  * Button recipe with variants
@@ -205,6 +205,6 @@ export const button = recipe({
 		variant: "default",
 		size: "default",
 	},
-});
+})
 
-export type ButtonVariants = RecipeVariants<typeof button>;
+export type ButtonVariants = RecipeVariants<typeof button>

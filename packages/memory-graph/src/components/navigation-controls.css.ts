@@ -1,5 +1,5 @@
-import { style } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { style } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Navigation controls container
@@ -8,7 +8,7 @@ export const navContainer = style({
 	display: "flex",
 	flexDirection: "column",
 	gap: themeContract.space[1],
-});
+})
 
 /**
  * Base button styles for navigation controls
@@ -34,12 +34,12 @@ const navButtonBase = style({
 			color: "rgba(255, 255, 255, 1)",
 		},
 	},
-});
+})
 
 /**
  * Standard navigation button
  */
-export const navButton = navButtonBase;
+export const navButton = navButtonBase
 
 /**
  * Zoom controls container
@@ -47,7 +47,7 @@ export const navButton = navButtonBase;
 export const zoomContainer = style({
 	display: "flex",
 	flexDirection: "column",
-});
+})
 
 /**
  * Zoom in button (top rounded)
@@ -61,7 +61,7 @@ export const zoomInButton = style([
 		borderBottomRightRadius: 0,
 		borderBottom: 0,
 	},
-]);
+])
 
 /**
  * Zoom out button (bottom rounded)
@@ -74,4 +74,4 @@ export const zoomOutButton = style([
 		borderBottomLeftRadius: themeContract.radii.lg,
 		borderBottomRightRadius: themeContract.radii.lg,
 	},
-]);
+])

@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import { GlassMenuEffect } from "@/ui/glass-effect";
-import { Sparkles } from "lucide-react";
-import { memo } from "react";
-import type { LoadingIndicatorProps } from "@/types";
+import { GlassMenuEffect } from "@/ui/glass-effect"
+import { Sparkles } from "lucide-react"
+import { memo } from "react"
+import type { LoadingIndicatorProps } from "@/types"
 import {
 	loadingContainer,
 	loadingContent,
 	loadingFlex,
 	loadingIcon,
 	loadingText,
-} from "./loading-indicator.css";
+} from "./loading-indicator.css"
 
 export const LoadingIndicator = memo<LoadingIndicatorProps>(
 	({ isLoading, isLoadingMore, totalLoaded, variant = "console" }) => {
-		if (!isLoading && !isLoadingMore) return null;
+		if (!isLoading && !isLoadingMore) return null
 
 		return (
 			<div className={loadingContainer}>
@@ -33,8 +33,8 @@ export const LoadingIndicator = memo<LoadingIndicatorProps>(
 					</div>
 				</div>
 			</div>
-		);
+		)
 	},
-);
+)
 
-LoadingIndicator.displayName = "LoadingIndicator";
+LoadingIndicator.displayName = "LoadingIndicator"
