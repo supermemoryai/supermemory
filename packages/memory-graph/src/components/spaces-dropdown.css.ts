@@ -1,12 +1,17 @@
-import { style } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { style, keyframes } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
+
+const spin = keyframes({
+	"0%": { transform: "rotate(0deg)" },
+	"100%": { transform: "rotate(360deg)" },
+})
 
 /**
  * Dropdown container
  */
 export const container = style({
 	position: "relative",
-});
+})
 
 /**
  * Main trigger button with gradient border effect
@@ -37,40 +42,40 @@ export const trigger = style({
 			boxShadow: "inset 0px 2px 1px rgba(84, 84, 84, 0.25)",
 		},
 	},
-});
+})
 
 export const triggerIcon = style({
 	width: "1rem",
 	height: "1rem",
 	color: themeContract.colors.text.secondary,
-});
+})
 
 export const triggerContent = style({
 	flex: 1,
 	textAlign: "left",
-});
+})
 
 export const triggerLabel = style({
 	fontSize: themeContract.typography.fontSize.sm,
 	color: themeContract.colors.text.secondary,
 	fontWeight: themeContract.typography.fontWeight.medium,
-});
+})
 
 export const triggerSubtext = style({
 	fontSize: themeContract.typography.fontSize.xs,
 	color: themeContract.colors.text.muted,
-});
+})
 
 export const triggerChevron = style({
 	width: "1rem",
 	height: "1rem",
 	color: themeContract.colors.text.secondary,
 	transition: "transform 200ms ease",
-});
+})
 
 export const triggerChevronOpen = style({
 	transform: "rotate(180deg)",
-});
+})
 
 /**
  * Dropdown menu
@@ -90,11 +95,97 @@ export const dropdown = style({
 		"0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)", // shadow-xl
 	zIndex: 20,
 	overflow: "hidden",
-});
+})
 
 export const dropdownInner = style({
 	padding: themeContract.space[1],
-});
+})
+
+/**
+ * Search container and form
+ */
+export const searchContainer = style({
+	display: "flex",
+	alignItems: "center",
+	gap: themeContract.space[2],
+	padding: themeContract.space[2],
+	borderBottom: "1px solid rgba(71, 85, 105, 0.4)", // slate-700/40
+})
+
+export const searchForm = style({
+	flex: 1,
+	display: "flex",
+	alignItems: "center",
+	gap: themeContract.space[2],
+})
+
+export const searchButton = style({
+	color: themeContract.colors.text.muted,
+	padding: themeContract.space[1],
+	cursor: "pointer",
+	border: "none",
+	background: "transparent",
+	transition: themeContract.transitions.normal,
+
+	selectors: {
+		"&:hover:not(:disabled)": {
+			color: themeContract.colors.text.secondary,
+		},
+		"&:disabled": {
+			opacity: 0.5,
+			cursor: "not-allowed",
+		},
+	},
+})
+
+export const searchIcon = style({
+	width: "1rem",
+	height: "1rem",
+})
+
+export const searchInput = style({
+	flex: 1,
+	backgroundColor: "transparent",
+	fontSize: themeContract.typography.fontSize.sm,
+	color: themeContract.colors.text.secondary,
+	border: "none",
+	outline: "none",
+
+	"::placeholder": {
+		color: themeContract.colors.text.muted,
+	},
+})
+
+export const searchSpinner = style({
+	width: "1rem",
+	height: "1rem",
+	borderRadius: "50%",
+	border: "2px solid rgba(148, 163, 184, 0.3)", // slate-400 with opacity
+	borderTopColor: "rgb(148, 163, 184)", // slate-400
+	animation: `${spin} 1s linear infinite`,
+})
+
+export const searchClearButton = style({
+	color: themeContract.colors.text.muted,
+	cursor: "pointer",
+	border: "none",
+	background: "transparent",
+	transition: themeContract.transitions.normal,
+
+	selectors: {
+		"&:hover": {
+			color: themeContract.colors.text.secondary,
+		},
+	},
+})
+
+/**
+ * Dropdown list container
+ */
+export const dropdownList = style({
+	maxHeight: "16rem", // max-h-64
+	overflowY: "auto",
+})
 
 /**
  * Dropdown items
@@ -114,7 +205,7 @@ const dropdownItemBase = style({
 	cursor: "pointer",
 	border: "none",
 	background: "transparent",
-});
+})
 
 export const dropdownItem = style([
 	dropdownItemBase,
@@ -127,7 +218,7 @@ export const dropdownItem = style([
 			},
 		},
 	},
-]);
+])
 
 export const dropdownItemActive = style([
 	dropdownItemBase,
@@ -135,12 +226,20 @@ export const dropdownItemActive = style([
 		backgroundColor: "rgba(59, 130, 246, 0.2)", // blue-500/20
 		color: "rgb(147, 197, 253)", // blue-300
 	},
-]);
+])
+
+export const dropdownItemHighlighted = style([
+	dropdownItemBase,
+	{
+		backgroundColor: "rgba(51, 65, 85, 0.7)", // slate-700/70
+		color: themeContract.colors.text.secondary,
+	},
+])
 
 export const dropdownItemLabel = style({
 	fontSize: themeContract.typography.fontSize.sm,
 	flex: 1,
-});
+})
 
 export const dropdownItemLabelTruncate = style({
 	fontSize: themeContract.typography.fontSize.sm,
@@ -148,11 +247,24 @@ export const dropdownItemLabelTruncate = style({
 	overflow: "hidden",
 	textOverflow: "ellipsis",
 	whiteSpace: "nowrap",
-});
+})
 
 export const dropdownItemBadge = style({
 	backgroundColor: "rgba(51, 65, 85, 0.5)", // slate-700/50
 	color: themeContract.colors.text.secondary,
 	fontSize: themeContract.typography.fontSize.xs,
 	marginLeft: themeContract.space[2],
-});
+})
+
+/**
+ * Empty state message
+ */
+export const emptyState = style({
+	paddingLeft: themeContract.space[3],
+	paddingRight: themeContract.space[3],
+	paddingTop: themeContract.space[2],
+	paddingBottom: themeContract.space[2],
+	fontSize: themeContract.typography.fontSize.sm,
+	color: themeContract.colors.text.muted,
+	textAlign: "center",
+})

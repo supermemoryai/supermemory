@@ -1,4 +1,4 @@
-import { createTheme, createThemeContract } from "@vanilla-extract/css";
+import { createTheme, createThemeContract } from "@vanilla-extract/css"
 
 /**
  * Theme contract defines the structure of the design system.
@@ -124,7 +124,7 @@ export const themeContract = createThemeContract({
 		modal: null,
 		tooltip: null,
 	},
-});
+})
 
 /**
  * Default theme implementation based on the original constants.ts colors
@@ -242,4 +242,4 @@ export const defaultTheme = createTheme(themeContract, {
 		modal: "30",
 		tooltip: "40",
 	},
-});
+})

@@ -1,4 +1,4 @@
-import { keyframes } from "@vanilla-extract/css";
+import { keyframes } from "@vanilla-extract/css"
 
 /**
  * Animation keyframes
@@ -8,12 +8,12 @@ import { keyframes } from "@vanilla-extract/css";
 export const fadeIn = keyframes({
 	from: { opacity: 0 },
 	to: { opacity: 1 },
-});
+})
 
 export const fadeOut = keyframes({
 	from: { opacity: 1 },
 	to: { opacity: 0 },
-});
+})
 
 export const slideInFromRight = keyframes({
 	from: {
@@ -24,7 +24,7 @@ export const slideInFromRight = keyframes({
 		transform: "translateX(0)",
 		opacity: 1,
 	},
-});
+})
 
 export const slideInFromLeft = keyframes({
 	from: {
@@ -35,7 +35,7 @@ export const slideInFromLeft = keyframes({
 		transform: "translateX(0)",
 		opacity: 1,
 	},
-});
+})
 
 export const slideInFromTop = keyframes({
 	from: {
@@ -46,7 +46,7 @@ export const slideInFromTop = keyframes({
 		transform: "translateY(0)",
 		opacity: 1,
 	},
-});
+})
 
 export const slideInFromBottom = keyframes({
 	from: {
@@ -57,12 +57,12 @@ export const slideInFromBottom = keyframes({
 		transform: "translateY(0)",
 		opacity: 1,
 	},
-});
+})
 
 export const spin = keyframes({
 	from: { transform: "rotate(0deg)" },
 	to: { transform: "rotate(360deg)" },
-});
+})
 
 export const pulse = keyframes({
 	"0%, 100%": {
@@ -71,7 +71,7 @@ export const pulse = keyframes({
 	"50%": {
 		opacity: 0.5,
 	},
-});
+})
 
 export const bounce = keyframes({
 	"0%, 100%": {
@@ -82,7 +82,7 @@ export const bounce = keyframes({
 		transform: "translateY(0)",
 		animationTimingFunction: "cubic-bezier(0, 0, 0.2, 1)",
 	},
-});
+})
 
 export const scaleIn = keyframes({
 	from: {
@@ -93,7 +93,7 @@ export const scaleIn = keyframes({
 		transform: "scale(1)",
 		opacity: 1,
 	},
-});
+})
 
 export const scaleOut = keyframes({
 	from: {
@@ -104,7 +104,7 @@ export const scaleOut = keyframes({
 		transform: "scale(0.95)",
 		opacity: 0,
 	},
-});
+})
 
 export const shimmer = keyframes({
 	"0%": {
@@ -113,4 +113,4 @@ export const shimmer = keyframes({
 	"100%": {
 		backgroundPosition: "1000px 0",
 	},
-});
+})

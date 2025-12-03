@@ -23,8 +23,8 @@ interface WrapVercelLanguageModelOptions {
  * @param options - Optional configuration options for the middleware
  * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
- * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
- * @param options.addMemory - Optional mode for memory search: "always" (default), "never"
+ * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
+ * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
  * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts

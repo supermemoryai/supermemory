@@ -1,6 +1,6 @@
-import { recipe, type RecipeVariants } from "@vanilla-extract/recipes";
-import { style, globalStyle } from "@vanilla-extract/css";
-import { themeContract } from "../styles/theme.css";
+import { recipe, type RecipeVariants } from "@vanilla-extract/recipes"
+import { style, globalStyle } from "@vanilla-extract/css"
+import { themeContract } from "../styles/theme.css"
 
 /**
  * Base styles for SVG icons inside badges
@@ -9,7 +9,7 @@ export const badgeIcon = style({
 	width: "0.75rem",
 	height: "0.75rem",
 	pointerEvents: "none",
-});
+})
 
 /**
  * Badge recipe with variants
@@ -44,14 +44,14 @@ const badgeBase = style({
 			borderColor: themeContract.colors.status.forgotten,
 		},
 	},
-});
+})
 
 // Global style for SVG children
 globalStyle(`${badgeBase} > svg`, {
 	width: "0.75rem",
 	height: "0.75rem",
 	pointerEvents: "none",
-});
+})
 
 export const badge = recipe({
 	base: badgeBase,
@@ -114,6 +114,6 @@ export const badge = recipe({
 	defaultVariants: {
 		variant: "default",
 	},
-});
+})
 
-export type BadgeVariants = RecipeVariants<typeof badge>;
+export type BadgeVariants = RecipeVariants<typeof badge>

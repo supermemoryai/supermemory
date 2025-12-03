@@ -209,8 +209,9 @@ function addSupermemoryButtonToMemoriesDialog() {
 
 	if (memoriesDialog.querySelector("#supermemory-save-button")) return
 
+
 	const deleteAllContainer = memoriesDialog.querySelector(
-		".mt-5.flex.justify-end",
+		".flex.items-center.gap-0\\.5",
 	)
 	if (!deleteAllContainer) return
 
@@ -267,24 +268,12 @@ async function saveMemoriesToSupermemory() {
 			return
 		}
 
-		const memoryRows = memoriesTable.querySelectorAll("tr")
-		const memories: string[] = []
-
-		memoryRows.forEach((row) => {
-			const memoryCell = row.querySelector("td .py-2.whitespace-pre-wrap")
-			if (memoryCell?.textContent) {
-				memories.push(memoryCell.textContent.trim())
-			}
-		})
-
-		console.log("Memories:", memories)
-
-		if (memories.length === 0) {
+		if (!memoriesTable.textContent) {
 			DOMUtils.showToast("error")
 			return
 		}
 
-		const combinedContent = `ChatGPT Saved Memories:\n\n${memories.map((memory, index) => `${index + 1}. ${memory}`).join("\n\n")}`
+		const combinedContent = `Memories from ChatGPT:\n\n${memoriesTable.textContent}`
 
 		const response = await browser.runtime.sendMessage({
 			action: MESSAGE_TYPES.SAVE_MEMORY,
