@@ -7,7 +7,6 @@ interface WrapVercelLanguageModelOptions {
 	verbose?: boolean;
 	mode?: "profile" | "query" | "full";
 	addMemory?: "always" | "never";
-	/** Optional Supermemory API key — will fall back to `process.env.SUPERMEMORY_API_KEY` if not provided */
 	apiKey?: string;
 }
 
@@ -26,6 +25,7 @@ interface WrapVercelLanguageModelOptions {
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
  * @param options.addMemory - Optional mode for memory search: "always" (default), "never"
+ * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts
  *
@@ -67,7 +67,7 @@ const wrapVercelLanguageModel = (
 
 	const wrappedModel = wrapLanguageModel({
 		model,
-		middleware: createSupermemoryMiddleware(containerTag, conversationId, verbose, mode, addMemory, providedApiKey),
+		middleware: createSupermemoryMiddleware(containerTag, providedApiKey, conversationId, verbose, mode, addMemory),
 	})
 
 	return wrappedModel
