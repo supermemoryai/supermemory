@@ -7,6 +7,7 @@ interface WrapVercelLanguageModelOptions {
 	verbose?: boolean;
 	mode?: "profile" | "query" | "full";
 	addMemory?: "always" | "never";
+	apiKey?: string;
 }
 
 /**
@@ -24,6 +25,7 @@ interface WrapVercelLanguageModelOptions {
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
  * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
+ * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts
  *
@@ -44,7 +46,7 @@ interface WrapVercelLanguageModelOptions {
  * })
  * ```
  *
- * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
+ * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
  * @throws {Error} When supermemory API request fails
  */
 const wrapVercelLanguageModel = (
@@ -52,10 +54,10 @@ const wrapVercelLanguageModel = (
 	containerTag: string,
 	options?: WrapVercelLanguageModelOptions,
 ): LanguageModelV2 => {
-	const SUPERMEMORY_API_KEY = process.env.SUPERMEMORY_API_KEY
+	const providedApiKey = options?.apiKey ?? process.env.SUPERMEMORY_API_KEY
 
-	if (!SUPERMEMORY_API_KEY) {
-		throw new Error("SUPERMEMORY_API_KEY is not set")
+	if (!providedApiKey) {
+		throw new Error("SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`")
 	}
 
 	const conversationId = options?.conversationId
@@ -65,7 +67,7 @@ const wrapVercelLanguageModel = (
 
 	const wrappedModel = wrapLanguageModel({
 		model,
-		middleware: createSupermemoryMiddleware(containerTag, conversationId, verbose, mode, addMemory),
+		middleware: createSupermemoryMiddleware(containerTag, providedApiKey, conversationId, verbose, mode, addMemory),
 	})
 
 	return wrappedModel

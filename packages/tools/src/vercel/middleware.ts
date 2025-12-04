@@ -68,6 +68,7 @@ const addMemoryTool = async (
 
 export const createSupermemoryMiddleware = (
 	containerTag: string,
+	apiKey: string,
 	conversationId?: string,
 	verbose = false,
 	mode: "profile" | "query" | "full" = "profile",
@@ -76,7 +77,7 @@ export const createSupermemoryMiddleware = (
 	const logger = createLogger(verbose)
 
 	const client = new Supermemory({
-		apiKey: process.env.SUPERMEMORY_API_KEY,
+		apiKey,
 	})
 
 	return {
