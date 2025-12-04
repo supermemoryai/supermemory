@@ -5,6 +5,10 @@
   "description": "Add and search memories with your personal AI-powered knowledge base",
   "icon": "extension-icon.png",
   "author": "supermemory",
+  "contributors": [
+    "xmok",
+    "maheshthedev"
+  ],
   "platforms": [
     "macOS",
     "Windows"
@@ -18,14 +22,22 @@
     {
       "name": "add-memory",
       "title": "Add Memory",
-      "subtitle": "add memory to your supermemory app",
+      "subtitle": "Supermemory",
       "description": "Add text, URLs, or documents to your supermemory knowledge base",
       "mode": "view"
     },
     {
       "name": "search-memories",
       "title": "Search Memories",
+      "subtitle": "Supermemory",
       "description": "Search through your saved memories and find relevant information",
+      "mode": "view"
+    },
+    {
+      "name": "search-projects",
+      "title": "Search Projects",
+      "subtitle": "Supermemory",
+      "description": "Search through your saved projects and find relevant information",
       "mode": "view"
     }
   ],
@@ -40,8 +52,8 @@
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.103.2",
-    "@raycast/utils": "^1.17.0"
+    "@raycast/api": "^1.103.3",
+    "@raycast/utils": "^2.2.1"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.0.4",

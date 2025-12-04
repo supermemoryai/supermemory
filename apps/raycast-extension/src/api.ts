@@ -35,6 +35,10 @@ export interface AddMemoryRequest {
   metadata?: Record<string, unknown>;
 }
 
+interface AddProjectRequest {
+  name: string;
+}
+
 export interface SearchRequest {
   q: string;
   containerTags?: string[];
@@ -66,28 +70,16 @@ class AuthenticationError extends Error {
   }
 }
 
-async function getApiKey(): Promise<string> {
-  try {
-    const preferences = getPreferenceValues<{ apiKey: string }>();
-    const apiKey = preferences.apiKey?.trim();
-
-    if (!apiKey) {
-      throw new AuthenticationError(
-        "API key is required. Please add your Supermemory API key in preferences.",
-      );
-    }
-
-    return apiKey;
-  } catch {
-    throw new AuthenticationError("Failed to get API key from preferences.");
-  }
+function getApiKey(): string {
+  const { apiKey } = getPreferenceValues<Preferences>();
+  return apiKey;
 }
 
 async function makeAuthenticatedRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const apiKey = await getApiKey();
+  const apiKey = getApiKey();
 
   const url = `${API_BASE_URL}${endpoint}`;
 
@@ -159,6 +151,21 @@ export async function fetchProjects(): Promise<Project[]> {
   }
 }
 
+export async function addProject(request: AddProjectRequest): Promise<Project> {
+  const response = await makeAuthenticatedRequest<Project>("/v3/projects", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+
+  await showToast({
+    style: Toast.Style.Success,
+    title: "Project Added",
+    message: "Successfully added project to Supermemory",
+  });
+
+  return response;
+}
+
 export async function addMemory(request: AddMemoryRequest): Promise<Memory> {
   try {
     const response = await makeAuthenticatedRequest<Memory>("/v3/documents", {
@@ -209,19 +216,7 @@ export async function searchMemories(
 }
 
 // Helper function to check if API key is configured and valid
-export async function checkApiConnection(): Promise<boolean> {
-  try {
-    await fetchProjects();
-    return true;
-  } catch (error) {
-    if (error instanceof AuthenticationError) {
-      await showToast({
-        style: Toast.Style.Failure,
-        title: "API Key Required",
-        message:
-          "Please configure your Supermemory API key in preferences. Get it from https://supermemory.link/raycast",
-      });
-    }
-    return false;
-  }
+export async function fetchSettings(): Promise<object> {
+  const response = await makeAuthenticatedRequest<object>("/v3/settings");
+  return response;
 }
