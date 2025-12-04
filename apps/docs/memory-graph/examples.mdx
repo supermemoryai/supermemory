@@ -1,0 +1,407 @@
+---
+title: 'Examples'
+description: 'Common use cases and implementation patterns'
+---
+
+## With Pagination
+
+Load documents in chunks for better performance with large datasets.
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import type { DocumentWithMemories } from '@supermemory/memory-graph';
+import { useCallback, useEffect, useState } from 'react';
+
+export default function PaginatedGraph() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Initial load
+  useEffect(() => {
+    fetchPage(1, false);
+  }, []);
+
+  const fetchPage = async (pageNum: number, append: boolean) => {
+    if (pageNum === 1) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
+    const res = await fetch(`/api/graph?page=${pageNum}&limit=100`);
+    const data = await res.json();
+
+    if (append) {
+      setDocuments(prev => [...prev, ...data.documents]);
+    } else {
+      setDocuments(data.documents);
+    }
+
+    setHasMore(data.pagination.currentPage < data.pagination.totalPages);
+    setIsLoading(false);
+    setIsLoadingMore(false);
+  };
+
+  const loadMore = useCallback(async () => {
+    if (!isLoadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      await fetchPage(nextPage, true);
+    }
+  }, [page, hasMore, isLoadingMore]);
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        hasMore={hasMore}
+        totalLoaded={documents.length}
+        loadMoreDocuments={loadMore}
+      />
+    </div>
+  );
+}
+```
+
+## Highlighting Search Results
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import { useState } from 'react';
+
+export default function SearchableGraph() {
+  const [documents, setDocuments] = useState([]);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+
+    if (!query) {
+      setSearchResults([]);
+      return;
+    }
+
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    // Extract document IDs from search results
+    const docIds = data.results.map(r => r.documentId);
+    setSearchResults(docIds);
+  };
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <div style={{ position: 'absolute', top: 16, left: 16, zIndex: 10 }}>
+        <input
+          type="text"
+          placeholder="Search memories..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: '1px solid #333',
+            background: '#1a1a1a',
+            color: 'white',
+          }}
+        />
+      </div>
+
+      <MemoryGraph
+        documents={documents}
+        highlightDocumentIds={searchResults}
+        highlightsVisible={searchResults.length > 0}
+      />
+    </div>
+  );
+}
+```
+
+## Controlled Space Selection
+
+Control space filtering from outside the component.
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import { useState } from 'react';
+
+export default function ControlledSpaceGraph() {
+  const [documents, setDocuments] = useState([]);
+  const [selectedSpace, setSelectedSpace] = useState('all');
+
+  // Extract available spaces from documents
+  const spaces = Array.from(
+    new Set(
+      documents.flatMap(doc =>
+        doc.memoryEntries.map(m => m.spaceId || 'default')
+      )
+    )
+  );
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <div style={{
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        zIndex: 10,
+        background: '#1a1a1a',
+        padding: 16,
+        borderRadius: 8,
+        border: '1px solid #333',
+      }}>
+        <h3 style={{ margin: '0 0 12px 0', color: 'white' }}>Filters</h3>
+
+        <select
+          value={selectedSpace}
+          onChange={(e) => setSelectedSpace(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 6,
+            background: '#2a2a2a',
+            color: 'white',
+            border: '1px solid #444',
+            width: '100%',
+          }}
+        >
+          <option value="all">All Spaces</option>
+          {spaces.map(space => (
+            <option key={space} value={space}>{space}</option>
+          ))}
+        </select>
+
+        <button
+          onClick={() => setSelectedSpace('all')}
+          style={{
+            marginTop: 12,
+            padding: '6px 12px',
+            borderRadius: 6,
+            background: '#333',
+            color: 'white',
+            border: 'none',
+            width: '100%',
+            cursor: 'pointer',
+          }}
+        >
+          Reset
+        </button>
+      </div>
+
+      <MemoryGraph
+        documents={documents}
+        selectedSpace={selectedSpace}
+        onSpaceChange={setSelectedSpace}
+        showSpacesSelector={false}
+      />
+    </div>
+  );
+}
+```
+
+## Embedded Widget
+
+Use the consumer variant for embedded views with custom styling.
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+
+export default function EmbeddedGraph({ documents }) {
+  return (
+    <div
+      style={{
+        height: 400,
+        borderRadius: 12,
+        overflow: 'hidden',
+        border: '1px solid #2a2a2a',
+      }}
+    >
+      <MemoryGraph
+        documents={documents}
+        variant="consumer"
+        showSpacesSelector={false}
+      >
+        <div style={{
+          textAlign: 'center',
+          padding: '2rem',
+          color: '#888',
+        }}>
+          <p>No memories to display</p>
+        </div>
+      </MemoryGraph>
+    </div>
+  );
+}
+```
+
+## With Loading States
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import { useEffect, useState } from 'react';
+
+export default function LoadingGraph() {
+  const [documents, setDocuments] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetch('/api/graph')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load graph');
+        return res.json();
+      })
+      .then(data => {
+        setDocuments(data.documents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        error={error}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          color: '#888',
+        }}>
+          <div>
+            <h2>Welcome to your Memory Graph</h2>
+            <p>Add some content to get started</p>
+            <button
+              style={{
+                marginTop: 16,
+                padding: '8px 16px',
+                borderRadius: 6,
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              onClick={() => window.location.href = '/add-memory'}
+            >
+              Add First Memory
+            </button>
+          </div>
+        </div>
+      </MemoryGraph>
+    </div>
+  );
+}
+```
+
+## React Server Component
+
+```tsx
+// Next.js App Router with Server Component
+import { MemoryGraphClient } from './memory-graph-client';
+
+async function getGraphData() {
+  const res = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      page: 1,
+      limit: 500,
+      sort: 'createdAt',
+      order: 'desc',
+    }),
+    cache: 'no-store', // or use revalidation
+  });
+
+  return res.json();
+}
+
+export default async function GraphPage() {
+  const data = await getGraphData();
+
+  return <MemoryGraphClient initialDocuments={data.documents} />;
+}
+```
+
+```tsx
+// memory-graph-client.tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import type { DocumentWithMemories } from '@supermemory/memory-graph';
+
+interface Props {
+  initialDocuments: DocumentWithMemories[];
+}
+
+export function MemoryGraphClient({ initialDocuments }: Props) {
+  return (
+    <div style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={initialDocuments}
+        isLoading={false}
+      />
+    </div>
+  );
+}
+```
+
+## Mobile-Responsive Layout
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import { useState, useEffect } from 'react';
+
+export default function ResponsiveGraph({ documents }) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return (
+    <div style={{
+      height: isMobile ? '60vh' : '100vh',
+      width: '100%',
+    }}>
+      <MemoryGraph
+        documents={documents}
+        variant={isMobile ? 'consumer' : 'console'}
+        showSpacesSelector={!isMobile}
+      />
+    </div>
+  );
+}
+```

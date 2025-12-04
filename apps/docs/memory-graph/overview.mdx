@@ -1,0 +1,38 @@
+---
+title: 'Overview'
+description: 'Interactive visualization for documents, memories and connections'
+---
+
+## What is Memory Graph?
+
+Memory Graph is a React component that visualizes your Supermemory documents and memories as an interactive network. Documents appear as rectangular nodes, memories as hexagonal nodes, and connections between them show relationships and similarity.
+
+The graph renders using Canvas 2D, providing smooth interactions with hundreds of nodes through pan, zoom, and drag operations.
+
+## When to Use It
+
+Use Memory Graph when you need to:
+
+- **Visualize knowledge graphs** - Show how documents and memories connect
+- **Navigate memory spaces** - Filter and browse by workspace or tag
+- **Create memory browsers** - Give users a visual overview of their stored content
+
+## Performance
+
+The graph handles hundreds of nodes efficiently through:
+- Canvas-based rendering (not DOM elements)
+- Viewport culling (only draws visible nodes)
+- Level-of-detail optimization (simplifies rendering when zoomed out)
+- Change-based rendering (only redraws when state changes)
+- Throttled viewport calculations
+
+For very large datasets (1000+ documents), use pagination to load data in chunks.
+
+## Browser Support
+
+Works in all modern browsers that support:
+- Canvas 2D API
+- ES2020 JavaScript
+- CSS custom properties
+
+Tested on Chrome, Firefox, Safari, and Edge (latest versions).

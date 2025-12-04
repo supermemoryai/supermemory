@@ -213,6 +213,18 @@
 									"ai-sdk/infinite-chat",
 									"ai-sdk/npm"
 								]
+							},
+							{
+								"group": "Memory Graph",
+								"icon": "network",
+								"pages": [
+									"memory-graph/overview",
+									"memory-graph/installation",
+									"memory-graph/quickstart",
+									"memory-graph/api-reference",
+									"memory-graph/examples",
+									"memory-graph/npm"
+								]
 							}
 						]
 					}

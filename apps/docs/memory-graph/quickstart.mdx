@@ -1,0 +1,207 @@
+---
+title: 'Quick Start'
+description: 'Get Memory Graph running in 2 minutes'
+---
+
+## Basic Setup
+
+Here's a minimal example to get the graph running:
+
+```tsx
+'use client'; // For Next.js App Router
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import type { DocumentWithMemories } from '@supermemory/memory-graph';
+import { useEffect, useState } from 'react';
+
+export default function GraphPage() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetch('/api/graph')
+      .then(res => res.json())
+      .then(data => {
+        setDocuments(data.documents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        error={error}
+        variant="console"
+      />
+    </div>
+  );
+}
+```
+
+## Backend API Route
+
+Create an API route to fetch documents from Supermemory:
+
+<CodeGroup>
+
+```typescript Next.js App Router
+// app/api/graph/route.ts
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({
+      page: 1,
+      limit: 500,
+      sort: 'createdAt',
+      order: 'desc',
+    }),
+  });
+
+  const data = await response.json();
+  return NextResponse.json(data);
+}
+```
+
+```typescript Next.js Pages Router
+// pages/api/graph.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({
+      page: 1,
+      limit: 500,
+      sort: 'createdAt',
+      order: 'desc',
+    }),
+  });
+
+  const data = await response.json();
+  res.json(data);
+}
+```
+
+```javascript Express
+// routes/graph.js
+app.get('/api/graph', async (req, res) => {
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({
+      page: 1,
+      limit: 500,
+      sort: 'createdAt',
+      order: 'desc',
+    }),
+  });
+
+  const data = await response.json();
+  res.json(data);
+});
+```
+
+</CodeGroup>
+
+<Warning>
+  Never expose your Supermemory API key to the client. Always fetch data through your backend.
+</Warning>
+
+## Environment Variables
+
+Add your API key to `.env.local`:
+
+```bash
+SUPERMEMORY_API_KEY=your_api_key_here
+```
+
+Get your API key from the [Supermemory dashboard](https://console.supermemory.ai).
+
+## Common Customizations
+
+### Embedded Mode
+
+For a widget-style view, use the consumer variant:
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  isLoading={isLoading}
+  variant="consumer"
+/>
+```
+
+### CSS Import
+
+The component includes bundled styles. You don't need to import CSS separately. Styles are automatically injected when the component mounts.
+
+If you want explicit control, you can import the stylesheet:
+
+```typescript
+import '@supermemory/memory-graph/styles.css';
+```
+
+<Note>
+  The automatic CSS injection works for most setups. Only use the explicit import if you need custom control over style loading order.
+</Note>
+
+
+### Custom Empty State
+
+Show custom content when no documents exist:
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  isLoading={isLoading}
+>
+  <div style={{ textAlign: 'center', padding: '2rem' }}>
+    <h2>No memories yet</h2>
+    <p>Add content to see your knowledge graph</p>
+  </div>
+</MemoryGraph>
+```
+
+### Hide Space Selector
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  isLoading={isLoading}
+  showSpacesSelector={false}
+/>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Examples" icon="code" href="/memory-graph/examples">
+    See more usage examples
+  </Card>
+  <Card title="API Reference" icon="book" href="/memory-graph/api-reference">
+    Full API documentation
+  </Card>
+</CardGroup>
