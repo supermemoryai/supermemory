@@ -1,4 +1,4 @@
-import type { DocumentWithMemories } from "@ui/memory-graph/types"
+import type { DocumentWithMemories } from "@supermemory/memory-graph"
 
 export const formatDate = (date: string | Date) => {
 	const dateObj = new Date(date)

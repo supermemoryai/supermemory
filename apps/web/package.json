@@ -18,6 +18,7 @@
     "@ai-sdk/google": "^2.0.0-beta.13",
     "@ai-sdk/react": "2.0.0-beta.24",
     "@better-fetch/fetch": "^1.1.18",
+    "@supermemory/memory-graph": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
