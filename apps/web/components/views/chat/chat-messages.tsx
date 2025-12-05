@@ -10,6 +10,7 @@ import {
 	ChevronDown,
 	ChevronRight,
 	Copy,
+	Pencil,
 	RotateCcw,
 	X,
 	Square
@@ -246,6 +247,9 @@ export function ChatMessages() {
 	const [selectedModel, setSelectedModel] = useState<
 		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
 	>("gemini-2.5-pro")
+	const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+	const [editedText, setEditedText] = useState<string>("")
+	const pendingRegenerateRef = useRef<string | null>(null)
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
@@ -433,6 +437,94 @@ export function ChatMessages() {
 		shouldGenerateTitleRef.current = !hasTitle
 	}, [getCurrentChat])
 
+	useEffect(() => {
+		if (pendingRegenerateRef.current) {
+			const messageId = pendingRegenerateRef.current
+			pendingRegenerateRef.current = null
+			// Use setTimeout to ensure state update has been processed
+			// This ensures regenerate reads the updated messages array
+			setTimeout(() => {
+				regenerate({ messageId })
+			}, 0)
+		}
+	}, [messages, regenerate])
+
+	const getUserMessageText = useCallback((message: UIMessage): string => {
+		return message.parts
+			.filter((p) => p.type === "text")
+			.map((p) => (p as MessagePart).text ?? "")
+			.join("\n")
+	}, [])
+
+	const handleStartEdit = useCallback(
+		(message: UIMessage) => {
+			const text = getUserMessageText(message)
+			setEditedText(text)
+			setEditingMessageId(message.id)
+		},
+		[getUserMessageText],
+	)
+
+	const handleCancelEdit = useCallback(() => {
+		setEditingMessageId(null)
+		setEditedText("")
+	}, [])
+
+	const handleSaveEdit = useCallback(() => {
+		if (!editingMessageId || !editedText.trim()) {
+			toast.warning("Please enter a message", { id: "empty-edit" })
+			return
+		}
+
+		stop()
+
+		const messageIndex = messages.findIndex((m) => m.id === editingMessageId)
+		if (messageIndex === -1) {
+			toast.error("Message not found", { id: "message-not-found" })
+			handleCancelEdit()
+			return
+		}
+
+		const messageToEdit = messages[messageIndex]
+		if (!messageToEdit || messageToEdit.role !== "user" || !messageToEdit.id) {
+			handleCancelEdit()
+			return
+		}
+
+		const updatedMessage: UIMessage = {
+			...messageToEdit,
+			id: messageToEdit.id,
+			parts: [{ type: "text", text: editedText.trim() }],
+		}
+
+		// Truncate all messages after the edited message
+		const truncatedMessages = messages.slice(0, messageIndex + 1)
+		truncatedMessages[messageIndex] = updatedMessage
+		setMessages(truncatedMessages)
+
+		const activeId = currentChatId ?? id
+		if (activeId) {
+			setConversation(activeId, truncatedMessages)
+		}
+
+		setEditingMessageId(null)
+		setEditedText("")
+
+		// Store the message ID to regenerate after state update
+		// React state updates are asynchronous, so we need to defer regenerate
+		pendingRegenerateRef.current = editingMessageId
+	}, [
+		editingMessageId,
+		editedText,
+		messages,
+		setMessages,
+		currentChatId,
+		id,
+		setConversation,
+		handleCancelEdit,
+		stop,
+	])
+
 	/**
 	 * Handles sending a message from the input area.
 	 * - Prevents sending during submitted (shows toast)
@@ -485,41 +577,93 @@ export function ChatMessages() {
 					ref={scrollContainerRef}
 				>
 					<div className="flex flex-col gap-2 max-w-4xl mx-auto px-4 md:px-2 pt-4 pb-7 scroll-pb-7">
-						{messages.map((message) => (
-							<div
-								className={cn(
-									"flex my-2",
-									message.role === "user"
-										? "items-center flex-row-reverse gap-2"
-										: "flex-col",
-								)}
-								key={message.id}
-							>
+						{messages.map((message) => {
+							const isEditing = editingMessageId === message.id
+							const canEdit = message.role === "user" && !isEditing
+
+							return (
 								<div
 									className={cn(
-										"flex flex-col gap-2 ",
+										"flex my-2",
 										message.role === "user"
-											? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
-											: "",
+											? "items-center flex-row-reverse gap-2"
+											: "flex-col",
 									)}
+									key={message.id}
 								>
-									{message.parts
-										.filter((part) =>
-											[
-												"text",
-												"tool-searchMemories",
-												"tool-addMemory",
-											].includes(part.type),
-										)
-										.map((part, index) => {
-											switch (part.type) {
-												case "text":
-													return (
-														<div key={`${message.id}-${part.type}-${index}`}>
-															<Streamdown>{part.text}</Streamdown>
-														</div>
-													)
-												case "tool-searchMemories": {
+									{isEditing ? (
+										<div className="flex flex-col gap-2 bg-accent/50 px-3 py-1.5 border border-border rounded-lg w-full">
+											<textarea
+												value={editedText}
+												onChange={(e) => setEditedText(e.target.value)}
+												onKeyDown={(e) => {
+													if (
+														e.key === "Enter" &&
+														(e.metaKey || e.ctrlKey)
+													) {
+														e.preventDefault()
+														handleSaveEdit()
+													} else if (e.key === "Escape") {
+														e.preventDefault()
+														handleCancelEdit()
+													}
+												}}
+												onFocus={(e) =>{
+													const len = e.target.value.length
+													e.target.setSelectionRange(len, len)
+												}}
+												className="w-full text-foreground placeholder:text-muted-foreground rounded-md outline-none resize-none text-base leading-relaxed px-2 py-2 bg-transparent border border-border/50 focus:border-primary"
+												rows={Math.max(2, editedText.split("\n").length)}
+												autoFocus
+											/>
+											<div className="flex items-center gap-2 justify-end">
+												<Button
+													onClick={handleCancelEdit}
+													size="sm"
+													variant="ghost"
+													className="text-muted-foreground hover:text-foreground"
+												>
+													<X className="size-3.5 mr-1" />
+													Cancel
+												</Button>
+												<Button
+													onClick={handleSaveEdit}
+													size="sm"
+													variant="default"
+													disabled={!editedText.trim()}
+													className="text-primary-foreground bg-primary hover:bg-primary/90"
+												>
+													<Check className="size-3.5 mr-1" />
+													Save
+												</Button>
+											</div>
+										</div>
+									) : (
+										<div
+											className={cn(
+												"flex flex-col gap-2 ",
+												message.role === "user"
+													? "bg-accent/50 px-3 py-1.5 border border-border rounded-lg"
+													: "",
+											)}
+										>
+											{message.parts
+												.filter((part) =>
+													[
+														"text",
+														"tool-searchMemories",
+														"tool-addMemory",
+													].includes(part.type),
+												)
+												.map((part, index) => {
+													switch (part.type) {
+														case "text":
+															return (
+																<div key={`${message.id}-${part.type}-${index}`}>
+																	<Streamdown>{part.text}</Streamdown>
+																</div>
+															)
+														case "tool-searchMemories": {
 													switch (part.state) {
 														case "input-available":
 														case "input-streaming":
@@ -567,8 +711,8 @@ export function ChatMessages() {
 														default:
 															return null
 													}
-												}
-												case "tool-addMemory": {
+														}
+													case "tool-addMemory": {
 													switch (part.state) {
 														case "input-available":
 															return (
@@ -611,42 +755,57 @@ export function ChatMessages() {
 														default:
 															return null
 													}
-												}
+													}
 												default:
 													return null
 											}
 										})}
+										</div>
+									)}
+									{message.role === "user" && canEdit && (
+										<div className="flex items-center gap-0.5 mt-0.5">
+											<Button
+												className="size-7 text-muted-foreground hover:text-foreground"
+												onClick={() => handleStartEdit(message)}
+												size="icon"
+												variant="ghost"
+												aria-label="Edit message"
+											>
+												<Pencil className="size-3.5" />
+											</Button>
+										</div>
+									)}
+									{message.role === "assistant" && (
+										<div className="flex items-center gap-0.5 mt-0.5">
+											<Button
+												className="size-7 text-muted-foreground hover:text-foreground"
+												onClick={() => {
+													navigator.clipboard.writeText(
+														message.parts
+															.filter((p) => p.type === "text")
+															?.map((p) => (p as MessagePart).text ?? "")
+															.join("\n") ?? "",
+													)
+													toast.success("Copied to clipboard")
+												}}
+												size="icon"
+												variant="ghost"
+											>
+												<Copy className="size-3.5" />
+											</Button>
+											<Button
+												className="size-6 text-muted-foreground hover:text-foreground"
+												onClick={() => regenerate({ messageId: message.id })}
+												size="icon"
+												variant="ghost"
+											>
+												<RotateCcw className="size-3.5" />
+											</Button>
+										</div>
+									)}
 								</div>
-								{message.role === "assistant" && (
-									<div className="flex items-center gap-0.5 mt-0.5">
-										<Button
-											className="size-7 text-muted-foreground hover:text-foreground"
-											onClick={() => {
-												navigator.clipboard.writeText(
-													message.parts
-														.filter((p) => p.type === "text")
-														?.map((p) => (p as MessagePart).text ?? "")
-														.join("\n") ?? "",
-												)
-												toast.success("Copied to clipboard")
-											}}
-											size="icon"
-											variant="ghost"
-										>
-											<Copy className="size-3.5" />
-										</Button>
-										<Button
-											className="size-6 text-muted-foreground hover:text-foreground"
-											onClick={() => regenerate({ messageId: message.id })}
-											size="icon"
-											variant="ghost"
-										>
-											<RotateCcw className="size-3.5" />
-										</Button>
-									</div>
-								)}
-							</div>
-						))}
+							)
+						})}
 						{status === "submitted" && (
 							<div className="flex text-muted-foreground justify-start gap-2 px-4 py-3 items-center w-full">
 								<Spinner className="size-4" />
