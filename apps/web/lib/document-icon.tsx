@@ -1,5 +1,5 @@
 import { MCPIcon } from "@/components/menu"
-import { colors } from "@repo/ui/colors"
+import { colors } from "@repo/ui/memory-graph/constants"
 import {
 	GoogleDocs,
 	MicrosoftWord,
