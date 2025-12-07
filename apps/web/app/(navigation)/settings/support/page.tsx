@@ -23,9 +23,7 @@ export default function SupportPage() {
 					<div className="space-y-3">
 						<Button
 							className="w-full justify-start bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 border-blue-500/30"
-							onClick={() =>
-								window.open("https://x.com/supermemoryai", "_blank")
-							}
+							onClick={() => window.open("https://x.com/supermemory", "_blank")}
 							variant="outline"
 						>
 							<MessageCircle className="w-4 h-4 mr-2" />
@@ -69,9 +67,9 @@ export default function SupportPage() {
 								What's included in the Pro plan?
 							</h4>
 							<p className="text-muted-foreground text-sm">
-								Pro includes unlimited memories (vs 200 in free), 10 connections to
-								external services like Google Drive and Notion, advanced search
-								features, and priority support.
+								Pro includes unlimited memories (vs 200 in free), 10 connections
+								to external services like Google Drive and Notion, advanced
+								search features, and priority support.
 							</p>
 						</div>
 
@@ -111,7 +109,7 @@ export default function SupportPage() {
 
 					<Button
 						className="w-full justify-start bg-purple-500/20 hover:bg-purple-500/30 text-purple-600 dark:text-purple-400 border-purple-500/30"
-						onClick={() => window.open("https://x.com/supermemoryai", "_blank")}
+						onClick={() => window.open("https://x.com/supermemory", "_blank")}
 						variant="outline"
 					>
 						<MessageCircle className="w-4 h-4 mr-2" />

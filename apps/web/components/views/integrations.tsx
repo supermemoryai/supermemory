@@ -1111,7 +1111,7 @@ export function IntegrationsView() {
 					More integrations are coming soon! Have a suggestion? Share it with us
 					on{" "}
 					<a
-						href="https://x.com/supermemoryai"
+						href="https://x.com/supermemory"
 						target="_blank"
 						rel="noopener noreferrer"
 						className="text-primary hover:text-primary/80 underline"
