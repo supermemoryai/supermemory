@@ -1,0 +1,198 @@
+---
+title: "Migrating from Zep AI to Supermemory"
+description: "Quick guide to migrate from Zep AI to Supermemory"
+sidebarTitle: "From Zep AI"
+---
+
+## Key Differences
+
+| Zep AI | Supermemory |
+|--------|-------------|
+| Sessions & Messages | Documents & Container Tags |
+| `session.create()` | Use `containerTags` parameter |
+| `memory.add(session_id, ...)` | `memories.add({containerTags: [...]})` |
+| `memory.search(session_id, {text: ...})` | `search.execute({q: ..., containerTags: [...]})` |
+
+## Installation
+
+<CodeGroup>
+
+```bash Python
+pip install supermemory
+```
+
+```bash TypeScript
+npm install supermemory
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```python Python
+from supermemory import Supermemory
+client = Supermemory(api_key="your-api-key")
+```
+
+```typescript TypeScript
+import { Supermemory } from "supermemory";
+const client = new Supermemory({ apiKey: "your-api-key" });
+```
+
+</CodeGroup>
+
+## API Mapping
+
+### Session Management
+
+<CodeGroup>
+
+```python Zep AI
+session = client.session.create(
+    session_id="user_123",
+    user_id="user_123"
+)
+```
+
+```python Supermemory
+# No explicit session creation - use containerTags
+container_tags = ["user_123"]
+```
+
+</CodeGroup>
+
+### Adding Memories
+
+<CodeGroup>
+
+```python Zep AI
+client.memory.add(
+    session_id="user_123",
+    memory={"content": "User prefers dark mode"}
+)
+```
+
+```python Supermemory
+client.memories.add({
+    "content": "User prefers dark mode",
+    "container_tags": ["user_123"]
+})
+```
+
+</CodeGroup>
+
+### Searching
+
+<CodeGroup>
+
+```python Zep AI
+results = client.memory.search(
+    session_id="user_123",
+    search_payload={"text": "preferences", "limit": 5}
+)
+```
+
+```python Supermemory
+results = client.search.execute({
+    "q": "preferences",
+    "container_tags": ["user_123"],
+    "limit": 5
+})
+```
+
+</CodeGroup>
+
+### Getting All Memories
+
+<CodeGroup>
+
+```python Zep AI
+memories = client.memory.get(session_id="user_123")
+```
+
+```python Supermemory
+documents = client.memories.list({
+    "container_tags": ["user_123"],
+    "limit": 100
+})
+```
+
+</CodeGroup>
+
+## Migration Steps
+
+1. **Replace client initialization** - Use Supermemory client instead of Zep
+2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTags: ["user_123"]`
+3. **Update method calls** - Use `memories.add()` and `search.execute()` instead of `memory.add()` and `memory.search()`
+4. **Change search parameter** - Use `q` instead of `text`
+5. **Handle async processing** - Documents process asynchronously (status: `queued` → `done`)
+
+## Complete Example
+
+<CodeGroup>
+
+```python Zep AI
+from zep_python import ZepClient
+
+client = ZepClient(api_key="...")
+session = client.session.create(session_id="user_123", user_id="user_123")
+
+client.memory.add("user_123", {
+    "content": "I love Python",
+    "role": "user"
+})
+
+results = client.memory.search("user_123", {
+    "text": "programming",
+    "limit": 3
+})
+```
+
+```python Supermemory
+from supermemory import Supermemory
+
+client = Supermemory(api_key="...")
+container_tags = ["user_123"]
+
+client.memories.add({
+    "content": "I love Python",
+    "container_tags": container_tags,
+    "metadata": {"role": "user"}
+})
+
+results = client.search.execute({
+    "q": "programming",
+    "container_tags": container_tags,
+    "limit": 3
+})
+```
+
+</CodeGroup>
+
+## Important Notes
+
+- **No session creation needed** - Just use `containerTags` in requests
+- **Messages are documents** - Store with `metadata.role` and `metadata.type`
+- **Async processing** - Documents may take a moment to be searchable
+- **Response structure** - Supermemory returns chunks with scores, not direct memory content
+
+## Migrating Existing Data
+
+```python
+# Export from Zep AI
+zep_memories = client.memory.get(session_id="user_123")
+
+# Import to Supermemory
+for memory in zep_memories.memories:
+    client.memories.add({
+        "content": memory.content,
+        "container_tags": [memory.session_id],
+        "metadata": memory.metadata or {}
+    })
+```
+
+## Resources
+
+- [Supermemory SDKs](/memory-api/sdks/overview)
+- [API Reference](/memory-api/overview)
+- [Search Documentation](/search/overview)
