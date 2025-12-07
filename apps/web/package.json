@@ -72,6 +72,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-dropzone": "^14.3.8",
+    "react-markdown": "^10.1.0",
     "react-tweet": "^3.2.2",
     "recharts": "2",
     "slate": "^0.118.0",
