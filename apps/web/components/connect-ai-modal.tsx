@@ -276,7 +276,7 @@ export function ConnectAIModal({
 	}
 
 	function getCursorDeeplink() {
-		return "https://cursor.com/en/install-mcp?name=supermemory-mcp&config=eyJjb21tYW5kIjoibnB4IC15IG1jcC1yZW1vdGUgaHR0cHM6Ly9hcGkuc3VwZXJtZW1vcnkuYWkvbWNwIn0%3D"
+		return "cursor://anysphere.cursor-deeplink/mcp/install?name=supermemory&config=eyJ1cmwiOiJodHRwczovL2FwaS5zdXBlcm1lbW9yeS5haS9tY3AifQ%3D%3D"
 	}
 
 	const copyToClipboard = () => {
