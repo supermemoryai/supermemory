@@ -1,7 +1,7 @@
 ---
-title: "Migrating from Zep AI to Supermemory"
-description: "Quick guide to migrate from Zep AI to Supermemory"
-sidebarTitle: "From Zep AI"
+title: "Migrating from Zep to Supermemory"
+description: "Quick guide to migrate from Zep to Supermemory"
+sidebarTitle: "From Zep"
 ---
 
 ## Key Differences
@@ -10,7 +10,7 @@ sidebarTitle: "From Zep AI"
 |--------|-------------|
 | Sessions & Messages | Documents & Container Tags |
 | `session.create()` | Use `containerTags` parameter |
-| `memory.add(session_id, ...)` | `memories.add({containerTags: [...]})` |
+| `memory.add(session_id, ...)` | `add({containerTag: [...]})` |
 | `memory.search(session_id, {text: ...})` | `search.execute({q: ..., containerTags: [...]})` |
 
 ## Installation
@@ -55,8 +55,8 @@ session = client.session.create(
 ```
 
 ```python Supermemory
-# No explicit session creation - use containerTags
-container_tags = ["user_123"]
+# No explicit session creation - use containerTag
+containerTag = ["user_123"]
 ```
 
 </CodeGroup>
@@ -73,9 +73,9 @@ client.memory.add(
 ```
 
 ```python Supermemory
-client.memories.add({
+client.add({
     "content": "User prefers dark mode",
-    "container_tags": ["user_123"]
+    "containerTag": ["user_123"]
 })
 ```
 
@@ -95,7 +95,7 @@ results = client.memory.search(
 ```python Supermemory
 results = client.search.execute({
     "q": "preferences",
-    "container_tags": ["user_123"],
+    "containerTag": ["user_123"],
     "limit": 5
 })
 ```
@@ -112,7 +112,7 @@ memories = client.memory.get(session_id="user_123")
 
 ```python Supermemory
 documents = client.memories.list({
-    "container_tags": ["user_123"],
+    "containerTag": ["user_123"],
     "limit": 100
 })
 ```
@@ -122,8 +122,8 @@ documents = client.memories.list({
 ## Migration Steps
 
 1. **Replace client initialization** - Use Supermemory client instead of Zep
-2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTags: ["user_123"]`
-3. **Update method calls** - Use `memories.add()` and `search.execute()` instead of `memory.add()` and `memory.search()`
+2. **Map sessions to container tags** - Replace `session_id="user_123"` with `containerTag: ["user_123"]`
+3. **Update method calls** - Use `add()` and `search.execute()` instead of `memory.add()` and `memory.search()`
 4. **Change search parameter** - Use `q` instead of `text`
 5. **Handle async processing** - Documents process asynchronously (status: `queued` → `done`)
 
@@ -152,17 +152,17 @@ results = client.memory.search("user_123", {
 from supermemory import Supermemory
 
 client = Supermemory(api_key="...")
-container_tags = ["user_123"]
+containerTag = ["user_123"]
 
-client.memories.add({
+client.add({
     "content": "I love Python",
-    "container_tags": container_tags,
+    "containerTag": containerTag,
     "metadata": {"role": "user"}
 })
 
 results = client.search.execute({
     "q": "programming",
-    "container_tags": container_tags,
+    "containerTag": containerTag,
     "limit": 3
 })
 ```
@@ -171,25 +171,199 @@ results = client.search.execute({
 
 ## Important Notes
 
-- **No session creation needed** - Just use `containerTags` in requests
+- **No session creation needed** - Just use `containerTag` in requests
 - **Messages are documents** - Store with `metadata.role` and `metadata.type`
 - **Async processing** - Documents may take a moment to be searchable
 - **Response structure** - Supermemory returns chunks with scores, not direct memory content
 
 ## Migrating Existing Data
 
-```python
-# Export from Zep AI
-zep_memories = client.memory.get(session_id="user_123")
+### Quick Migration (All-in-One)
 
-# Import to Supermemory
-for memory in zep_memories.memories:
-    client.memories.add({
-        "content": memory.content,
-        "container_tags": [memory.session_id],
-        "metadata": memory.metadata or {}
-    })
+Complete migration in one script:
+
+<CodeGroup>
+
+```typescript TypeScript
+import { ZepClient } from "@getzep/zep-js";
+import { Supermemory } from "supermemory";
+
+// Initialize clients
+const zep = new ZepClient({ apiKey: "your_zep_api_key" });
+const supermemory = new Supermemory({ apiKey: "your_supermemory_api_key" });
+
+// Export from Zep and import to Supermemory
+const sessionIds = ["session_1", "session_2"]; // Add your session IDs
+
+for (const sessionId of sessionIds) {
+  const memory = await zep.memory.get(sessionId);
+  const memories = memory?.memories || [];
+
+  for (const mem of memories) {
+    if (mem.content) {
+      await supermemory.add({
+        content: mem.content,
+        containerTag: [`session_${sessionId}`, `user_${memory.user_id || "unknown"}`],
+        metadata: {
+          role: mem.role,
+          type: "message",
+          original_uuid: mem.uuid,
+          ...mem.metadata
+        }
+      });
+      console.log(`✅ Imported: ${mem.content.substring(0, 50)}...`);
+    }
+  }
+}
+
+console.log("Migration complete!");
 ```
+
+```python Python
+from zep_python import ZepClient
+from supermemory import Supermemory
+
+# Initialize clients
+zep = ZepClient(api_key="your_zep_api_key")
+supermemory = Supermemory(api_key="your_supermemory_api_key")
+
+# Export from Zep and import to Supermemory
+session_ids = ["session_1", "session_2"]  # Add your session IDs
+
+for session_id in session_ids:
+    memory = zep.memory.get(session_id)
+    memories = memory.memories if memory else []
+
+    for mem in memories:
+        if mem.content:
+            supermemory.add({
+                "content": mem.content,
+                "containerTag": [f"session_{session_id}", f"user_{memory.user_id or 'unknown'}"],
+                "metadata": {
+                    "role": mem.role,
+                    "type": "message",
+                    "original_uuid": mem.uuid,
+                    **(mem.metadata or {})
+                }
+            })
+            print(f"✅ Imported: {mem.content[:50]}...")
+
+print("Migration complete!")
+```
+
+</CodeGroup>
+
+### Full Migration Script
+
+For a complete migration script with error handling, verification, and progress tracking, copy this TypeScript script:
+
+```typescript
+import { ZepClient } from "@getzep/zep-js";
+import { Supermemory } from "supermemory";
+import * as dotenv from "dotenv";
+import * as fs from "fs";
+
+dotenv.config();
+
+interface MigrationStats {
+  imported: number;
+  failed: number;
+  skipped: number;
+}
+
+async function migrateFromZep(
+  zepApiKey: string,
+  supermemoryApiKey: string,
+  sessionIds: string[]
+) {
+  const zep = new ZepClient({ apiKey: zepApiKey });
+  const supermemory = new Supermemory({ apiKey: supermemoryApiKey });
+
+  const stats: MigrationStats = { imported: 0, failed: 0, skipped: 0 };
+  const exportedData: any = {};
+
+  console.log("🔄 Starting migration...");
+
+  // Export from Zep
+  for (const sessionId of sessionIds) {
+    try {
+      const session = await zep.session.get(sessionId);
+      const memory = await zep.memory.get(sessionId);
+      const memories = memory?.memories || [];
+
+      exportedData[sessionId] = {
+        session: { session_id: sessionId, user_id: session?.user_id },
+        memories: memories.map((m: any) => ({
+          content: m.content,
+          role: m.role,
+          metadata: m.metadata,
+          uuid: m.uuid,
+        })),
+      };
+
+      console.log(`✅ Exported ${memories.length} memories from ${sessionId}`);
+    } catch (error: any) {
+      console.log(`❌ Error exporting ${sessionId}: ${error.message}`);
+    }
+  }
+
+  // Save backup
+  const backupFile = `zep_export_${Date.now()}.json`;
+  fs.writeFileSync(backupFile, JSON.stringify(exportedData, null, 2));
+  console.log(`💾 Backup saved to: ${backupFile}`);
+
+  // Import to Supermemory
+  let totalMemories = 0;
+  for (const [sessionId, data] of Object.entries(exportedData) as any) {
+    const containerTag = ["imported_from_zep", `session_${sessionId}`];
+    if (data.session.user_id) {
+      containerTag.push(`user_${data.session.user_id}`);
+    }
+
+    for (const memory of data.memories) {
+      totalMemories++;
+      try {
+        if (!memory.content?.trim()) {
+          stats.skipped++;
+          continue;
+        }
+
+        await supermemory.add({
+          content: memory.content,
+          containerTag: containerTag,
+          metadata: {
+            source: "zep_migration",
+            role: memory.role,
+            type: "message",
+            original_uuid: memory.uuid,
+            ...memory.metadata,
+          },
+        });
+
+        stats.imported++;
+        console.log(`✅ [${stats.imported}/${totalMemories}] Imported`);
+      } catch (error: any) {
+        stats.failed++;
+        console.log(`❌ Failed: ${error.message}`);
+      }
+    }
+  }
+
+  console.log("\n📊 Migration Summary:");
+  console.log(`✅ Imported: ${stats.imported}`);
+  console.log(`⚠️  Skipped: ${stats.skipped}`);
+  console.log(`❌ Failed: ${stats.failed}`);
+}
+
+// Usage
+const sessionIds = ["session_1", "session_2"]; // Add your session IDs
+migrateFromZep(
+  process.env.ZEP_API_KEY!,
+  process.env.SUPERMEMORY_API_KEY!,
+  sessionIds
+).catch(console.error);
+```
+
 
 ## Resources
 
