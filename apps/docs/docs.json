@@ -140,7 +140,8 @@
 											"connectors/onedrive",
 											"connectors/github",
 											"connectors/web-crawler",
-											"connectors/troubleshooting"
+											"connectors/troubleshooting",
+											"memory-api/connectors/managing-resources"
 										]
 									},
 									"/org-settings",

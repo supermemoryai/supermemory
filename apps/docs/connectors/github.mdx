@@ -6,6 +6,10 @@ icon: "github"
 
 Connect GitHub repositories to sync documentation files into your Supermemory knowledge base with OAuth authentication, webhook support, and automatic incremental syncing.
 
+<Warning>
+The GitHub connector requires a **Scale Plan** or **Enterprise Plan**.
+</Warning>
+
 ## Quick Setup
 
 ### 1. Create GitHub Connection
@@ -90,6 +94,10 @@ After the user grants permissions, GitHub redirects to your callback URL. The co
 
 Unlike other connectors, GitHub requires repository selection before syncing begins. This gives your users control over which repositories to index.
 
+<Note>
+**Generic Endpoints:** GitHub uses the generic resource management endpoints (Get Resources and Configure Connection) that work for any provider supporting resource management. See [Managing Connection Resources](/memory-api/connectors/managing-resources) for detailed API documentation.
+</Note>
+
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
@@ -158,15 +166,15 @@ Unlike other connectors, GitHub requires repository selection before syncing beg
   <Tab title="cURL">
     ```bash
     # List available repositories
-    curl -X GET "https://api.supermemory.ai/v3/connections/{connectionId}/github/repositories?page=1&per_page=100" \
+    curl -X GET "https://api.supermemory.ai/v3/connections/{connectionId}/resources?page=1&per_page=100" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
     # Configure selected repositories
-    curl -X POST "https://api.supermemory.ai/v3/connections/{connectionId}/github/configure" \
+    curl -X POST "https://api.supermemory.ai/v3/connections/{connectionId}/configure" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "repositories": [
+        "resources": [
           {
             "id": 123456789,
             "name": "your-org/documentation",
@@ -368,11 +376,11 @@ You can update which repositories are synced at any time:
   <Tab title="cURL">
     ```bash
     # Update repository configuration
-    curl -X POST "https://api.supermemory.ai/v3/connections/{connectionId}/github/configure" \
+    curl -X POST "https://api.supermemory.ai/v3/connections/{connectionId}/configure" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "repositories": [
+        "resources": [
           {
             "id": 123456789,
             "name": "your-org/documentation",

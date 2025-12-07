@@ -1,0 +1,342 @@
+---
+title: 'Managing Connection Resources'
+sidebarTitle: 'Managing Resources'
+description: 'Get and configure resources for connections that support resource management'
+---
+
+<Note>
+**Currently Available for GitHub:** Resource management endpoints are currently only available for the GitHub connector. These endpoints allow you to select which repositories to sync before syncing begins.
+</Note>
+
+Some connectors require you to select which resources (e.g., repositories) to sync before syncing begins. Use these generic endpoints to list and configure resources for connections that support resource management.
+
+## Get Resources
+
+`GET /v3/connections/:connectionId/resources`
+
+Get available resources (e.g., repositories, folders) for a connection using stored credentials.
+
+<CodeGroup>
+```typescript Typescript
+import Supermemory from 'supermemory';
+
+const client = new Supermemory({
+  apiKey: process.env['SUPERMEMORY_API_KEY'],
+});
+
+// Get resources with pagination
+const response = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connectionId}/resources?page=1&per_page=30`,
+  {
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+  }
+);
+
+const data = await response.json();
+console.log('Resources:', data.resources);
+console.log('Total count:', data.total_count);
+```
+
+```python Python
+import requests
+
+url = f"https://api.supermemory.ai/v3/connections/{connection_id}/resources"
+params = {
+    "page": 1,
+    "per_page": 30
+}
+headers = {
+    "Authorization": f"Bearer {api_key}",
+}
+
+response = requests.get(url, params=params, headers=headers)
+data = response.json()
+
+print(f"Resources: {data['resources']}")
+print(f"Total count: {data.get('total_count')}")
+```
+
+```bash cURL
+curl -X GET \
+  "https://api.supermemory.ai/v3/connections/{connectionId}/resources?page=1&per_page=30" \
+  -H "Authorization: Bearer <token>"
+```
+</CodeGroup>
+
+### Query Parameters
+
+- `page`: Optional. Page number for pagination. Default: `1`
+- `per_page`: Optional. Number of resources per page. Default: `30`
+
+### Response
+
+```json
+{
+  "resources": [
+    {
+      "id": 123456789,
+      "name": "your-org/documentation",
+      "full_name": "your-org/documentation",
+      "description": "Documentation repository",
+      "private": false,
+      "default_branch": "main",
+      "updated_at": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "total_count": 45
+}
+```
+
+### Error Responses
+
+- `400`: Connection missing refresh token
+- `401`: Unauthorized
+- `404`: Connection not found
+- `501`: Provider does not support resource fetching
+
+<Note>
+**Provider Support:** Not all providers support resource fetching. This endpoint is only available for providers that implement the `fetchResources()` method (e.g., GitHub). For providers that don't support this, you'll receive a `501 Not Implemented` response.
+</Note>
+
+## Configure Connection
+
+`POST /v3/connections/:connectionId/configure`
+
+Configure selected resources (e.g., repositories) for a connection and set up webhooks/subscriptions.
+
+<CodeGroup>
+```typescript Typescript
+import Supermemory from 'supermemory';
+
+const client = new Supermemory({
+  apiKey: process.env['SUPERMEMORY_API_KEY'],
+});
+
+// Configure connection
+const response = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connectionId}/configure`,
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      resources: [
+        {
+          id: 123456789,
+          name: 'your-org/documentation',
+          defaultBranch: 'main',
+        },
+        {
+          id: 987654321,
+          name: 'your-org/api-docs',
+          defaultBranch: 'main',
+        },
+      ],
+    }),
+  }
+);
+
+const data = await response.json();
+console.log('Success:', data.success);
+console.log('Message:', data.message);
+console.log('Webhooks registered:', data.webhooksRegistered);
+```
+
+```python Python
+import requests
+
+url = f"https://api.supermemory.ai/v3/connections/{connection_id}/configure"
+headers = {
+    "Authorization": f"Bearer {api_key}",
+    "Content-Type": "application/json",
+}
+payload = {
+    "resources": [
+        {
+            "id": 123456789,
+            "name": "your-org/documentation",
+            "defaultBranch": "main",
+        },
+        {
+            "id": 987654321,
+            "name": "your-org/api-docs",
+            "defaultBranch": "main",
+        },
+    ]
+}
+
+response = requests.post(url, json=payload, headers=headers)
+data = response.json()
+
+print(f"Success: {data['success']}")
+print(f"Message: {data['message']}")
+print(f"Webhooks registered: {data.get('webhooksRegistered')}")
+```
+
+```bash cURL
+curl -X POST \
+  "https://api.supermemory.ai/v3/connections/{connectionId}/configure" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resources": [
+      {
+        "id": 123456789,
+        "name": "your-org/documentation",
+        "defaultBranch": "main"
+      },
+      {
+        "id": 987654321,
+        "name": "your-org/api-docs",
+        "defaultBranch": "main"
+      }
+    ]
+  }'
+```
+</CodeGroup>
+
+### Request Body
+
+```json
+{
+  "resources": [
+    {
+      "id": 123456789,
+      "name": "your-org/documentation",
+      "defaultBranch": "main"
+    }
+  ]
+}
+```
+
+The structure of each resource object depends on the provider. For GitHub, resources include:
+- `id`: Repository ID (number)
+- `name`: Repository full name (string)
+- `defaultBranch`: Default branch name (string)
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Resources configured successfully",
+  "webhooksRegistered": 2
+}
+```
+
+### Error Responses
+
+- `400`: Connection missing refresh token
+- `401`: Unauthorized
+- `404`: Connection not found
+- `501`: Provider does not support resource configuration
+
+<Note>
+**Automatic Sync:** After successfully configuring resources, an initial sync is automatically triggered for the connection. You don't need to manually trigger a sync after configuration.
+</Note>
+
+<Warning>
+**Provider Support:** Not all providers support resource configuration. This endpoint is only available for providers that implement the `configureConnection()` method (e.g., GitHub). For providers that don't support this, you'll receive a `501 Not Implemented` response.
+</Warning>
+
+## Example: GitHub Repository Selection
+
+Here's a complete example for GitHub:
+
+<CodeGroup>
+```typescript Typescript
+// 1. Create connection (see creating-connection.mdx)
+const connection = await client.connections.create('github', {
+  redirectUrl: 'https://yourapp.com/callback',
+});
+
+// 2. After OAuth callback, fetch available repositories
+const resourcesResponse = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connection.id}/resources?page=1&per_page=100`,
+  {
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+  }
+);
+const { resources } = await resourcesResponse.json();
+
+// 3. Display repositories to user and let them select
+// (Build your UI here)
+
+// 4. Configure selected repositories
+const configureResponse = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connection.id}/configure`,
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      resources: selectedRepositories, // User's selection
+    }),
+  }
+);
+const result = await configureResponse.json();
+console.log('Sync initiated:', result.success);
+```
+
+```python Python
+# 1. Create connection (see creating-connection.mdx)
+connection = client.connections.create(
+    'github',
+    redirect_url='https://yourapp.com/callback'
+)
+
+# 2. After OAuth callback, fetch available repositories
+resources_response = requests.get(
+    f"https://api.supermemory.ai/v3/connections/{connection.id}/resources",
+    params={"page": 1, "per_page": 100},
+    headers={"Authorization": f"Bearer {api_key}"}
+)
+resources = resources_response.json()["resources"]
+
+# 3. Display repositories to user and let them select
+# (Build your UI here)
+
+# 4. Configure selected repositories
+configure_response = requests.post(
+    f"https://api.supermemory.ai/v3/connections/{connection.id}/configure",
+    json={"resources": selected_repositories},  # User's selection
+    headers={"Authorization": f"Bearer {api_key}"}
+)
+result = configure_response.json()
+print(f"Sync initiated: {result['success']}")
+```
+
+```bash cURL
+# 1. Create connection (see creating-connection.mdx)
+# ... (OAuth flow) ...
+
+# 2. Fetch available repositories
+curl -X GET \
+  "https://api.supermemory.ai/v3/connections/{connectionId}/resources?page=1&per_page=100" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+# 3. Configure selected repositories
+curl -X POST \
+  "https://api.supermemory.ai/v3/connections/{connectionId}/configure" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resources": [
+      {
+        "id": 123456789,
+        "name": "your-org/documentation",
+        "defaultBranch": "main"
+      }
+    ]
+  }'
+```
+</CodeGroup>
+
