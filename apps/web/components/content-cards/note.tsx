@@ -12,7 +12,7 @@ import {
 	AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog"
 
-import { colors } from "@repo/ui/colors"
+import { colors } from "@repo/ui/memory-graph/constants"
 import { Brain, ExternalLink, Trash2 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { useState } from "react"

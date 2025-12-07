@@ -15,7 +15,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "@repo/ui/components/alert-dialog"
-import { colors } from "@repo/ui/colors"
+import { colors } from "@repo/ui/memory-graph/constants"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Brain, ExternalLink, Sparkles, Trash2 } from "lucide-react"

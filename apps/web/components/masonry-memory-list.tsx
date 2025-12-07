@@ -2,7 +2,7 @@
 
 import { useIsMobile } from "@hooks/use-mobile"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { colors } from "@repo/ui/colors"
+import { colors } from "@repo/ui/memory-graph/constants"
 import { Sparkles } from "lucide-react"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { memo, useCallback, useMemo, useState } from "react"
