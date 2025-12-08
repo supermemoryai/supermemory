@@ -101,7 +101,7 @@ export function IntegrationsStep() {
 								key={card.title}
 								type="button"
 								className={cn(
-									"bg-[#080B0F] relative rounded-lg p-4 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] cursor-pointer text-left w-full hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat",
+									"bg-[#080B0F] relative rounded-lg p-3 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] cursor-pointer text-left w-full hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat",
 									"hover:border-b-0 border-b-0",
 								)}
 								onClick={() => setSelectedCard(card.title)}
@@ -110,7 +110,12 @@ export function IntegrationsStep() {
 									<h3 className="text-white text-sm font-medium">
 										{card.title}
 									</h3>
-									<p className="text-gray-400 text-xs leading-relaxed">
+									<p
+										className={cn(
+											"text-[#8B8B8B] text-xs leading-relaxed",
+											dmSansClassName(),
+										)}
+									>
 										{card.description}
 									</p>
 								</div>
@@ -126,7 +131,12 @@ export function IntegrationsStep() {
 						>
 							<div className="flex-1 mt-10">
 								<h3 className="text-white text-sm font-medium">{card.title}</h3>
-								<p className="text-gray-400 text-xs leading-relaxed">
+								<p
+									className={cn(
+										"text-[#8B8B8B] text-xs leading-relaxed",
+										dmSansClassName(),
+									)}
+								>
 									{card.description}
 								</p>
 							</div>

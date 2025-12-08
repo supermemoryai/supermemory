@@ -10,7 +10,7 @@ export function WelcomeStep() {
 			transition={{ duration: 1, ease: "easeOut" }}
 			layout
 		>
-			<h2 className="text-white text-[32px] font-medium mb-2">Welcome to</h2>
+			<h2 className="text-white text-[32px] font-medium mb-2">Welcome to...</h2>
 		</motion.div>
 	)
 }

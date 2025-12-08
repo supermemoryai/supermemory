@@ -23,7 +23,7 @@ export function InitialHeader({
 			</div>
 			<Button
 				variant="newDefault"
-				className="rounded-2xl text-base gap-1 !h-11"
+				className="rounded-2xl text-base gap-1 h-11! z-10"
 				size={"lg"}
 			>
 				Memory API <span className="text-xs mt-[4px]">↗</span>

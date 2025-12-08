@@ -33,6 +33,10 @@ export function ContinueStep() {
 			<Button
 				variant="onboarding"
 				onClick={handleContinue}
+				style={{
+					background: "linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+					width: "147px",
+				}}
 			>
 				Continue →
 			</Button>
