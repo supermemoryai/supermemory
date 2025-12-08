@@ -51,13 +51,13 @@ export function ChromeExtensionDetailView({
 
 			<div className="flex flex-col items-start justify-start flex-1">
 				<div>
-					<h1 className="text-white text-[20px] font-medium mb-4 text-start">
+					<h1 className="text-white text-[20px] font-medium mb-3 text-start">
 						Import your X bookmarks via the Chrome Extension
 					</h1>
 
 					<p
 						className={cn(
-							"text-[#8B8B8B] text-sm mb-12 text-start max-w-2xl",
+							"text-[#8B8B8B] text-sm mb-6 text-start max-w-2xl",
 							dmSansClassName(),
 						)}
 					>
@@ -66,7 +66,7 @@ export function ChromeExtensionDetailView({
 						need, right when you need it.
 					</p>
 
-					<div className="grid grid-cols-3 gap-6 mb-12 max-w-5xl w-full">
+					<div className="grid grid-cols-3 gap-6 mb-6 max-w-5xl w-full">
 						{steps.map((step) => (
 							<div
 								key={step.number}

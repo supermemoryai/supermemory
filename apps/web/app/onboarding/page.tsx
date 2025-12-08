@@ -25,7 +25,7 @@ import { AnimatedGradientBackground } from "./setup/page"
 function UserSupermemory({ name }: { name: string }) {
 	return (
 		<motion.div
-			className="absolute inset-0 flex items-center justify-center"
+			className="absolute inset-0 flex items-center justify-center z-10"
 			initial={{ opacity: 0, y: 0 }}
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: 0 }}
@@ -33,7 +33,7 @@ function UserSupermemory({ name }: { name: string }) {
 		>
 			<Logo className="h-14 text-white" />
 			<div className="flex flex-col items-start justify-center ml-4">
-				<p className="text-white text-xl font-medium leading-none">{name}'s</p>
+				<p className="text-white text-xs font-medium leading-none">{name}'s</p>
 				<p className="text-white font-bold text-4xl leading-none -mt-2">
 					supermemory
 				</p>
@@ -166,7 +166,7 @@ export default function OnboardingPage() {
 	const showUserSupermemory = isWelcomeFlow && currentStep === "username"
 
 	return (
-		<div className="min-h-screen bg-black">
+		<div className="h-screen overflow-hidden bg-black">
 			{isWelcomeFlow && (
 				<InitialHeader
 					showUserSupermemory={
@@ -180,7 +180,7 @@ export default function OnboardingPage() {
 			{isSetupFlow && <AnimatedGradientBackground />}
 
 			{isWelcomeFlow && (
-				<div className="flex flex-col items-center justify-start min-h-[calc(100vh-86px)] relative">
+				<div className="flex flex-col items-center justify-start h-[calc(100vh-86px)] overflow-y-auto relative">
 					<motion.div
 						className="fixed inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat pointer-events-none"
 						transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}

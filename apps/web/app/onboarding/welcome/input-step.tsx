@@ -43,7 +43,7 @@ export function InputStep({
 			}}
 			layout
 		>
-			<h2 className="text-white text-[32px] font-medium">
+			<h2 className="text-white text-[32px] font-medium leading-[110%]">
 				What should I call you?
 			</h2>
 			<div className="flex items-center w-full relative">
@@ -67,16 +67,19 @@ export function InputStep({
 					}}
 				/>
 				<Button
-					className={`rounded-[10px] size-8 p-2 !bg-black absolute right-1 border-[0.5px] border-gray-800 hover:cursor-pointer hover:scale-[0.95] active:scale-[0.95] transition-transform ${
+					className={`rounded-[8px] w-8 h-8 p-2 absolute right-1 border-[0.5px] border-[#161F2C] hover:cursor-pointer hover:scale-[0.95] active:scale-[0.95] transition-transform ${
 						isSubmitting ? "scale-[0.90]" : ""
 					}`}
 					size="icon"
 					onClick={handleSubmit}
+					style={{
+						background: "linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+					}}
 				>
 					<svg
 						width="12"
-						height="10"
-						viewBox="0 0 12 10"
+						height="9"
+						viewBox="0 0 12 9"
 						fill="none"
 						xmlns="http://www.w3.org/2000/svg"
 					>

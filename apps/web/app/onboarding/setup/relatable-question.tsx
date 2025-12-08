@@ -65,10 +65,10 @@ export function RelatableQuestion() {
 					<button
 						key={option.text}
 						className={`
-						relative rounded-lg p-2 cursor-pointer transition-all duration-300 opacity-50 hover:opacity-100 hover:border-[#4C608B66] border-[1px] border-[#0D121A] max-w-[140px] min-h-[159px]
+						group relative rounded-lg p-2 cursor-pointer transition-all duration-300 hover:border-[#4C608B66] border border-[#0D121A] max-w-[140px] min-h-[159px]
 						${
 							selectedOptions.includes(index)
-								? "border-[#3374FF] border-[1px] opacity-100 bg-[url('/onboarding/bg-gradient-1.png')] bg-[length:250%_auto] bg-[center_top_3rem] bg-no-repeat"
+								? "border-[#3374FF] border bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[350%_auto] bg-top bg-no-repeat"
 								: "bg-[#080B0F] hover:bg-no-repeat"
 						} 
 					`}
@@ -93,7 +93,13 @@ export function RelatableQuestion() {
 					>
 						<div className="flex flex-col items-start justify-between h-full">
 							<span className="text-2xl">{option.emoji}</span>
-							<p className="text-white text-sm leading-[135%] align-bottom text-left">
+							<p
+								className={`text-white text-sm leading-[135%] align-bottom text-left transition-opacity duration-300 ${
+									selectedOptions.includes(index)
+										? "opacity-100"
+										: "opacity-50 group-hover:opacity-100"
+								}`}
+							>
 								{option.text}
 							</p>
 						</div>
@@ -104,12 +110,20 @@ export function RelatableQuestion() {
 				<div key={selectedOptions.length === 0 ? "skip" : "continue"}>
 					<Button
 						className={cn(
-							"font-medium text-white",
+							"font-medium text-white hover:no-underline",
 							selectedOptions.length !== 0 ? "rounded-xl" : "",
 						)}
 						variant={selectedOptions.length !== 0 ? "onboarding" : "link"}
 						size="lg"
 						onClick={handleContinueOrSkip}
+						style={
+							selectedOptions.length !== 0
+								? {
+										background:
+											"linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+									}
+								: undefined
+						}
 					>
 						{selectedOptions.length === 0
 							? "Skip for now →"

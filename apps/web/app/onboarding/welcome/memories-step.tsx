@@ -108,8 +108,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 			initial={{ opacity: 0, y: 40 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-			className="text-center w-full"
-			layout
+			className="text-center w-full "
 		>
 			<h2 className="text-white text-[32px] font-medium mb-4 mt-[-36px]">
 				Let's add your memories
@@ -139,13 +138,13 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 							className={`w-full px-4 py-2 bg-[#070E1B] border rounded-xl text-white placeholder-onboarding focus:outline-none transition-colors h-[40px] ${
 								errors.twitter
 									? "border-[#52596633] bg-[#290F0A]"
-									: "border-[#525966]/20"
+									: "border-onboarding/20"
 							}`}
 						/>
 						{errors.twitter && (
 							<div className="absolute left-full ml-3">
-								<div className="relative flex-shrink-0 px-3 py-2 bg-red-500/20 rounded-xl">
-									<div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[8px] border-t-transparent border-b-transparent border-r-red-500/20" />
+								<div className="relative shrink-0 px-3 py-2 bg-red-500/20 rounded-xl">
+									<div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-8 border-t-transparent border-b-transparent border-r-red-500/20" />
 									<p className="text-red-500 text-xs whitespace-nowrap">
 										{errors.twitter}
 									</p>
@@ -178,18 +177,18 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 							className={`w-full px-4 py-2 bg-[#070E1B] border rounded-xl text-white placeholder-onboarding focus:outline-none transition-colors h-[40px] ${
 								errors.linkedin
 									? "border-[#52596633] bg-[#290F0A]"
-									: "border-[#525966]/20"
+									: "border-onboarding/20"
 							}`}
 						/>
 						{errors.linkedin && (
 							<div className="absolute left-full ml-3">
 								<div
 									className={cn(
-										"relative flex-shrink-0 px-3 py-2 bg-red-500/20 rounded-xl",
+										"relative shrink-0 px-3 py-2 bg-red-500/20 rounded-xl",
 										dmSansClassName(),
 									)}
 								>
-									<div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[8px] border-t-transparent border-b-transparent border-r-red-500/20" />
+									<div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-8 border-t-transparent border-b-transparent border-r-red-500/20" />
 									<p className="text-red-500 text-xs whitespace-nowrap">
 										{errors.linkedin}
 									</p>
@@ -210,11 +209,11 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						>
 							Other links
 						</label>
-						<span className="text-[#525966] text-[10px]">Upto 3</span>
+						<span className="text-onboarding text-[10px]">Upto 3</span>
 					</div>
 					{otherLinks.map((link, index) => (
 						<div
-							key={`other-link-${index}-${link.length}`}
+							key={`other-link-${index}`}
 							className="flex items-center mb-2 relative"
 						>
 							<input
@@ -223,12 +222,16 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 								placeholder="Add your website, GitHub, Notion..."
 								value={link}
 								onChange={(e) => updateOtherLink(index, e.target.value)}
-								className="flex-1 px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px]"
+								className="flex-1 px-4 py-2 bg-[#070E1B] border border-onboarding/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px]"
 							/>
 							{index === otherLinks.length - 1 && otherLinks.length < 3 && (
 								<button
 									type="button"
-									onClick={addOtherLink}
+									onClick={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										addOtherLink()
+									}}
 									className="size-8 m-1 absolute right-0 top-0 bg-black border border-[#161F2C] rounded-lg flex items-center justify-center text-white hover:bg-[#161F2C] transition-colors text-xl"
 								>
 									+
@@ -254,7 +257,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 						rows={2}
-						className="w-full px-4 py-2 bg-[#070E1B] border border-[#525966]/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors min-h-[4rem]"
+						className="w-full px-4 py-2 bg-[#070E1B] border border-onboarding/20 rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors min-h-16"
 					/>
 				</div>
 			</div>
@@ -266,10 +269,10 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				}}
 				transition={{ duration: 1, ease: "easeOut", delay: 1 }}
 				initial={{ opacity: 0, y: 10 }}
-				className="mt-[24px]"
+				className="mt-[24px] pb-8"
 			>
 				<Button
-					className="rounded-xl px-6 py-3 border border-[#525966]/20 max-w-[12rem] text-white disabled:opacity-50 disabled:cursor-not-allowed h-[40px] cursor-pointer"
+					className="rounded-xl px-6 py-3 border border-onboarding/20 max-w-48 text-white disabled:opacity-50 disabled:cursor-not-allowed h-[40px] cursor-pointer"
 					disabled={isSubmitting}
 					style={{
 						background: "linear-gradient(180deg, #0D121A -26.14%, #000 100%)",

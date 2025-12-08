@@ -80,11 +80,11 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 			</div>
 
 			<div className="flex-1 flex flex-col items-start justify-start">
-				<h1 className="text-white text-3xl font-medium mb-6 text-start">
+				<h1 className="text-white text-xl font-medium mb-4 text-start">
 					Connect your AI to supermemory MCP
 				</h1>
 
-				<div className="mb-8 space-x-4 flex max-w-2xl">
+				<div className="mb-12 space-x-4 flex max-w-2xl">
 					<div
 						className={cn(
 							"flex items-start space-x-3 w-[200px]",
@@ -102,7 +102,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							dmSansClassName(),
 						)}
 					>
-						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
+						<CircleCheckIcon className="size-4 text-green-500 shrink-0 mt-0.5" />
 						<p className="text-[#8B8B8B] text-sm">
 							Auto-fetch the right context from anything you've saved
 						</p>
@@ -113,22 +113,22 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							dmSansClassName(),
 						)}
 					>
-						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
+						<CircleCheckIcon className="size-4 text-green-500 shrink-0 mt-0.5" />
 						<p className="text-[#8B8B8B] text-sm">
-							One-time setup, seamless integration across your workflow
+							One-time setup, <br /> seamless integration across your workflow
 						</p>
 					</div>
 				</div>
 
 				<div className="w-full max-w-2xl relative">
 					<div
-						className="absolute left-4 top-0 w-[1px] bg-[#1E293B] z-10"
+						className="absolute left-4 top-0 w-px bg-[#1E293B] z-10"
 						style={{ height: activeStep === 3 ? "calc(100% - 4rem)" : "100%" }}
 					/>
 					<div className="flex items-start space-x-4 z-20">
 						<div
 							className={cn(
-								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 bg-[#161F2B] text-white",
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 bg-[#161F2B] text-white",
 							)}
 						>
 							<span
@@ -174,7 +174,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										value={selectedClient || undefined}
 									>
 										<SelectTrigger
-											className="max-w-md rounded-full border-[#242A33] text-white hover:border-gray-600 !bg-transparent"
+											className="max-w-md rounded-full border-[#242A33] text-white hover:border-gray-600 bg-transparent!"
 											style={{
 												background:
 													"linear-gradient(0deg, #0A0E14 0%, #080B0F 100%)",
@@ -244,7 +244,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												setSelectedClient(key as keyof typeof clients)
 												setActiveStep(2)
 											}}
-											className={`mcp-client-button-group px-3 py-1 rounded-full border-1 transition-colors cursor-pointer duration-200 ${
+											className={`mcp-client-button-group px-3 py-1 rounded-full border transition-colors cursor-pointer duration-200 ${
 												selectedClient === key
 													? "border-blue-500 bg-blue-500/10"
 													: "border-[#242A33] bg-[#080B0F] hover:border-[#3273FC4D] hover:bg-[#08142D]"
@@ -306,7 +306,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					<div className="flex items-start space-x-4">
 						<div
 							className={cn(
-								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20 text-white bg-[#161F2B]",
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 text-white bg-[#161F2B]",
 								"",
 							)}
 						>
@@ -506,7 +506,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					<div className="flex items-start space-x-4">
 						<div
 							className={cn(
-								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium flex-shrink-0 z-20",
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20",
 								"bg-[#161F2B] text-white",
 							)}
 						>

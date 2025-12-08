@@ -14,7 +14,7 @@ import { InitialHeader } from "../../../apps/web/components/initial-header";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { dmSansClassName } from "../../../apps/web/utils/fonts"
+import { dmSansClassName } from "../../../apps/web/utils/fonts";
 import { cn } from "@lib/utils";
 import { Logo } from "@ui/assets/Logo";
 
@@ -22,7 +22,7 @@ function AnimatedGradientBackground() {
 	return (
 		<div className="fixed inset-0 z-0 overflow-hidden">
 			<motion.div
-				className="absolute top-[40%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-[length:150%_auto] bg-top bg-no-repeat"
+				className="absolute top-[40%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{
 					y: 0,
@@ -34,7 +34,7 @@ function AnimatedGradientBackground() {
 				}}
 			/>
 			<motion.div
-				className="absolute top-[40%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-[length:150%_auto] bg-top bg-no-repeat"
+				className="absolute top-[40%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{
 					y: 0,
@@ -62,7 +62,7 @@ function AnimatedGradientBackground() {
 function LoginCard({ children }: { children: React.ReactNode }) {
 	return (
 		<motion.div
-			className="flex w-[448px] p-8 flex-col items-start gap-2 rounded-[22px] bg-gradient-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]"
+			className="flex max-w-[360px] p-8 flex-col items-start gap-2 rounded-[22px] bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]"
 			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.75, ease: "easeOut" }}
@@ -212,11 +212,11 @@ export function LoginPage() {
 	};
 
 	return (
-		<main className="relative min-h-screen">
+		<main className="relative h-screen overflow-hidden">
 			<AnimatedGradientBackground />
 			<div className="relative z-10">
 				<InitialHeader />
-				<section className="flex flex-col items-center justify-center p-4 space-y-12 sm:p-6 md:p-8 lg:px-[5rem] lg:py-[3.125rem] min-h-[calc(100vh-80px)]">
+				<section className="flex flex-col items-center justify-center p-4 space-y-12 sm:p-6 md:p-8 lg:px-20 lg:py-12.5 min-h-[calc(100vh-80px)]">
 					<div className="text-center">
 						<div className="text-5xl font-medium">
 							Never forget anything, anywhere
@@ -236,7 +236,7 @@ export function LoginPage() {
 									</HeadingH3Medium>
 								</div>
 
-								<TextSeparator text="OR" />
+								<TextSeparator text="OR" className={cn(dmSansClassName())} />
 
 								<form
 									className="flex flex-col gap-4 lg:gap-6"
@@ -272,7 +272,7 @@ export function LoginPage() {
 								<div className="flex flex-col gap-3">
 									{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
 									!process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED ? (
-										<div className="relative flex-grow">
+										<div className="relative grow">
 											<ExternalAuthButton
 												authIcon={
 													<svg
@@ -334,7 +334,7 @@ export function LoginPage() {
 									) : null}
 									{process.env.NEXT_PUBLIC_HOST_ID === "supermemory" ||
 									!process.env.NEXT_PUBLIC_GITHUB_AUTH_ENABLED ? (
-										<div className="relative flex-grow">
+										<div className="relative grow">
 											<ExternalAuthButton
 												authIcon={
 													<svg
@@ -448,7 +448,7 @@ export function LoginPage() {
 
 									<Label1Regular
 										className={cn(
-											"text-center !text-xs text-[#737373B2]",
+											"text-center text-xs! text-[#737373B2]",
 											dmSansClassName(),
 										)}
 									>

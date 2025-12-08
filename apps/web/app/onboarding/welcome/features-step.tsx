@@ -15,16 +15,16 @@ export function FeaturesStep() {
 			initial={{ opacity: 0, y: 40 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-			className="text-center max-w-[22rem] space-y-6"
+			className="text-center max-w-88 space-y-6"
 			layout
 		>
-			<h2 className="text-white text-[32px] font-medium">
+			<h2 className="text-white text-[32px] font-medium leading-[110%]">
 				What I can do for you
 			</h2>
 
-			<div className={cn("space-y-4 mb-8 mx-4", dmSansClassName())}>
+			<div className={cn("space-y-4 mb-[24px] mx-4", dmSansClassName())}>
 				<div className="flex items-start space-x-2">
-					<div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0">
+					<div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0">
 						<img
 							src="/onboarding/human-brain.png"
 							alt="Brain icon"
@@ -32,17 +32,16 @@ export function FeaturesStep() {
 						/>
 					</div>
 					<div className="text-left">
-						<p className="text-white font-light">
-							Remember every context
-						</p>
+						<p className="text-white font-light">Remember every context</p>
 						<p className="text-[#8A8A8A]">
-							I keep track of what you've saved and shared with your supermemory.
+							I keep track of what you've saved and shared with your
+							supermemory.
 						</p>
 					</div>
 				</div>
 
 				<div className="flex items-start space-x-2">
-					<div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0">
+					<div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0">
 						<img
 							src="/onboarding/search.png"
 							alt="Search icon"
@@ -50,17 +49,16 @@ export function FeaturesStep() {
 						/>
 					</div>
 					<div className="text-left">
-						<p className="text-white font-light">
-							Find when you need it
-						</p>
+						<p className="text-white font-light">Find when you need it</p>
 						<p className="text-[#8A8A8A]">
-							I surface the right memories inside <br /> your supermemory, superfast.
+							I surface the right memories inside <br /> your supermemory,
+							superfast.
 						</p>
 					</div>
 				</div>
 
 				<div className="flex items-start space-x-2">
-					<div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0">
+					<div className="w-14 h-14 rounded-lg flex items-center justify-center shrink-0">
 						<img
 							src="/onboarding/plant.png"
 							alt="Growth icon"
@@ -68,9 +66,7 @@ export function FeaturesStep() {
 						/>
 					</div>
 					<div className="text-left">
-						<p className="text-white font-light">
-							Grow with your supermemory
-						</p>
+						<p className="text-white font-light">Grow with your supermemory</p>
 						<p className="text-[#8A8A8A]">
 							I learn and personalize over time, so every interaction feels
 							natural.
@@ -89,6 +85,9 @@ export function FeaturesStep() {
 			>
 				<Button
 					variant="onboarding"
+					style={{
+						background: "linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+					}}
 					onClick={handleContinue}
 				>
 					Add memories →
