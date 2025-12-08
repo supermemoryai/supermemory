@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 export default async function proxy(request: Request) {
 	console.debug("[PROXY] === PROXY START ===")
 	const url = new URL(request.url)
+  
 	console.debug("[PROXY] Path:", url.pathname)
 	console.debug("[PROXY] Method:", request.method)
 

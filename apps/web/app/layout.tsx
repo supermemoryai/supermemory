@@ -33,7 +33,10 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className={`${font.variable} antialiased overflow-x-hidden`}>
+			<body
+				className={`${font.variable} antialiased overflow-x-hidden`}
+				suppressHydrationWarning
+			>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"

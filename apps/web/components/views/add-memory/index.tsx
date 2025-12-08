@@ -361,7 +361,7 @@ export function AddMemoryView({
 			return { previousMemories, optimisticId: optimisticMemory.id }
 		},
 		// If the mutation fails, roll back to the previous value
-		onError: (error, variables, context) => {
+		onError: (_error, variables, context) => {
 			if (context?.previousMemories) {
 				queryClient.setQueryData(
 					["documents-with-memories", variables.project],
@@ -551,6 +551,7 @@ export function AddMemoryView({
 						className="w-[100vw] max-w-4xl sm:max-w-4xl backdrop-blur-xl border-white/10 z-[80] h-[52vh] overflow-y-auto p-4"
 						showCloseButton={false}
 					>
+						<DialogTitle className="sr-only">Add Memory</DialogTitle>
 						<Tabs
 							value={activeTab}
 							onValueChange={(value) => setActiveTab(value as typeof activeTab)}
@@ -638,9 +639,13 @@ export function AddMemoryView({
 											>
 												{({ state, handleChange, handleBlur }) => (
 													<>
-								<div className={addContentMutation.isPending ? "opacity-50" : ""}>
-									<TextEditor
-										containerClassName="bg-white/5 border-white/10 rounded-md"
+														<div
+															className={
+																addContentMutation.isPending ? "opacity-50" : ""
+															}
+														>
+															<TextEditor
+																containerClassName="bg-white/5 border-white/10 rounded-md"
 																disabled={addContentMutation.isPending}
 																onBlur={handleBlur}
 																onChange={handleChange}
@@ -843,14 +848,14 @@ export function AddMemoryView({
 							</TabsContent>
 
 							<TabsContent value="file" className="space-y-4">
-						<form
+								<form
 									onSubmit={(e) => {
 										e.preventDefault()
 										e.stopPropagation()
 										fileUploadForm.handleSubmit()
 									}}
-						className="h-full flex flex-col"
-						>
+									className="h-full flex flex-col"
+								>
 									<div className="grid gap-4">
 										<motion.div
 											animate={{ opacity: 1, y: 0 }}
@@ -938,7 +943,7 @@ export function AddMemoryView({
 											</fileUploadForm.Field>
 										</motion.div>
 									</div>
-						<div className="mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4 mt-auto">
+									<div className="flex flex-col sm:flex-row sm:justify-between sm:items-end w-full gap-4 mt-auto">
 										<div className="flex items-end gap-4">
 											{/* Left side - Project Selection */}
 											<motion.div

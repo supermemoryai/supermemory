@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { cn } from "@lib/utils";
-import { Button } from "@ui/components/button";
+import { cn } from "@lib/utils"
+import { Button } from "@ui/components/button"
 import {
 	Dialog,
 	DialogContent,
@@ -9,38 +9,38 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@ui/components/dialog";
-import { ScrollArea } from "@ui/components/scroll-area";
-import { formatDistanceToNow } from "date-fns";
-import { HistoryIcon, Plus, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import { analytics } from "@/lib/analytics";
-import { useChatOpen, usePersistentChat, useProject } from "@/stores";
-import { ChatMessages } from "./chat-messages";
+} from "@ui/components/dialog"
+import { ScrollArea } from "@ui/components/scroll-area"
+import { formatDistanceToNow } from "date-fns"
+import { HistoryIcon, Plus, Trash2, X } from "lucide-react"
+import { useMemo, useState } from "react"
+import { analytics } from "@/lib/analytics"
+import { useChatOpen, usePersistentChat, useProject } from "@/stores"
+import { ChatMessages } from "./chat-messages"
 
 export function ChatRewrite() {
-	const { setIsOpen } = useChatOpen();
-	const { selectedProject } = useProject();
+	const { setIsOpen } = useChatOpen()
+	const { selectedProject } = useProject()
 	const { conversations, currentChatId, setCurrentChatId, getCurrentChat } =
-		usePersistentChat();
+		usePersistentChat()
 
-	const [isDialogOpen, setIsDialogOpen] = useState(false);
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
 
 	const sorted = useMemo(() => {
 		return [...conversations].sort((a, b) =>
 			a.lastUpdated < b.lastUpdated ? 1 : -1,
-		);
-	}, [conversations]);
+		)
+	}, [conversations])
 
 	function handleNewChat() {
-		analytics.newChatStarted();
-		const newId = crypto.randomUUID();
-		setCurrentChatId(newId);
-		setIsDialogOpen(false);
+		analytics.newChatStarted()
+		const newId = crypto.randomUUID()
+		setCurrentChatId(newId)
+		setIsDialogOpen(false)
 	}
 
 	function formatRelativeTime(isoString: string): string {
-		return formatDistanceToNow(new Date(isoString), { addSuffix: true });
+		return formatDistanceToNow(new Date(isoString), { addSuffix: true })
 	}
 
 	return (
@@ -74,18 +74,17 @@ export function ChatRewrite() {
 							<ScrollArea className="max-h-96">
 								<div className="flex flex-col gap-1">
 									{sorted.map((c) => {
-										const isActive = c.id === currentChatId;
+										const isActive = c.id === currentChatId
 										return (
-											<div
+											<button
+												type="button"
 												key={c.id}
-												role="button"
-												tabIndex={0}
 												onClick={() => {
-													setCurrentChatId(c.id);
-													setIsDialogOpen(false);
+													setCurrentChatId(c.id)
+													setIsDialogOpen(false)
 												}}
 												className={cn(
-													"flex items-center justify-between rounded-md px-3 py-2 outline-none",
+													"flex items-center justify-between rounded-md px-3 py-2 outline-none w-full text-left",
 													"transition-colors",
 													isActive ? "bg-primary/10" : "hover:bg-muted",
 												)}
@@ -111,15 +110,15 @@ export function ChatRewrite() {
 													variant="ghost"
 													size="icon"
 													onClick={(e) => {
-														e.stopPropagation();
-														analytics.chatDeleted();
+														e.stopPropagation()
+														analytics.chatDeleted()
 													}}
 													aria-label="Delete conversation"
 												>
 													<Trash2 className="size-4 text-muted-foreground" />
 												</Button>
-											</div>
-										);
+											</button>
+										)
 									})}
 									{sorted.length === 0 && (
 										<div className="text-xs text-muted-foreground px-3 py-2">
@@ -152,5 +151,5 @@ export function ChatRewrite() {
 			</div>
 			<ChatMessages />
 		</div>
-	);
+	)
 }
