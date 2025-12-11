@@ -36,8 +36,8 @@ export default function RootLayout({
 			<body className={`${font.variable} antialiased overflow-x-hidden`}>
 				<ThemeProvider
 					attribute="class"
-					defaultTheme="system"
-					enableSystem
+					defaultTheme="dark"
+					enableSystem={false}
 					disableTransitionOnChange
 				>
 					<AutumnProvider

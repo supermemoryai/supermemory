@@ -63,6 +63,8 @@ export function Header() {
 			localStorage.getItem("username") || localStorage.getItem("userName") || ""
 		setName(storedName)
 	}, [])
+
+	const userName = name ? `${name.split(" ")[0]}'s` : "My"
 	return (
 		<div className="flex p-4 justify-between items-center">
 			<div className="flex items-center justify-center gap-4">
@@ -70,14 +72,14 @@ export function Header() {
 					<Logo className="h-7" />
 					{name && (
 						<div className="flex flex-col items-start justify-center ml-2">
-							<p className="text-[#8B8B8B] text-sm leading-tight">{name}'s</p>
+							<p className="text-[#8B8B8B] text-sm leading-tight">{userName}</p>
 							<p className="text-white font-bold text-xl leading-none -mt-1">
 								supermemory
 							</p>
 						</div>
 					)}
 				</div>
-				<div className="self-stretch w-[1px] bg-[#FFFFFF33]" />
+				<div className="self-stretch w-px bg-[#FFFFFF33]" />
 				<div className="flex items-center gap-2">
 					<p>📁 {projectName}</p>
 					<DropdownMenu>
@@ -121,7 +123,7 @@ export function Header() {
 				</div>
 			</div>
 			<Tabs defaultValue="grid">
-				<TabsList className="rounded-full border border-[#161F2C] !h-11">
+				<TabsList className="rounded-full border border-[#161F2C] h-11!">
 					<TabsTrigger
 						value="grid"
 						className={cn(

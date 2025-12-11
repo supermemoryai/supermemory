@@ -20,7 +20,7 @@ import { SetupHeader } from "./setup/header"
 import { ChatSidebar } from "./setup/chat-sidebar"
 import { Logo } from "@ui/assets/Logo"
 import NovaOrb from "@/components/nova/nova-orb"
-import { AnimatedGradientBackground } from "./setup/page"
+import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
 
 function UserSupermemory({ name }: { name: string }) {
 	return (
@@ -33,7 +33,9 @@ function UserSupermemory({ name }: { name: string }) {
 		>
 			<Logo className="h-14 text-white" />
 			<div className="flex flex-col items-start justify-center ml-4">
-				<p className="text-white text-xs font-medium leading-none">{name}'s</p>
+				<p className="text-white text-xs font-medium leading-none">
+					{name.split(" ")[0]}'s
+				</p>
 				<p className="text-white font-bold text-4xl leading-none -mt-2">
 					supermemory
 				</p>
@@ -57,6 +59,7 @@ export default function OnboardingPage() {
 		description: string
 		otherLinks: string[]
 	} | null>(null)
+	const [showWelcomeContent, setShowWelcomeContent] = useState(false)
 
 	const currentFlow = flow || "welcome"
 	const currentStep = step || "input"
@@ -67,6 +70,16 @@ export default function OnboardingPage() {
 			localStorage.setItem("username", user.name)
 		}
 	}, [user?.name])
+
+	useEffect(() => {
+		if (currentFlow === "welcome" && currentStep === "input") {
+			setShowWelcomeContent(false)
+			const timer = setTimeout(() => {
+				setShowWelcomeContent(true)
+			}, 1250)
+			return () => clearTimeout(timer)
+		}
+	}, [currentFlow, currentStep])
 
 	useEffect(() => {
 		if (currentFlow !== "welcome") return
@@ -179,10 +192,14 @@ export default function OnboardingPage() {
 
 			{isSetupFlow && <AnimatedGradientBackground />}
 
-			{isWelcomeFlow && (
-				<div className="flex flex-col items-center justify-start h-[calc(100vh-86px)] overflow-y-auto relative">
+			{isWelcomeFlow && currentStep === "input" && (
+				<AnimatedGradientBackground animateFromBottom={true} />
+			)}
+
+			{isWelcomeFlow && showWelcomeContent && (
+				<div className="fixed inset-0 flex flex-col items-center justify-center overflow-y-auto">
 					<motion.div
-						className="fixed inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat pointer-events-none"
+						className="absolute inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat pointer-events-none"
 						transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}
 						style={{
 							mixBlendMode: "soft-light",
@@ -191,8 +208,7 @@ export default function OnboardingPage() {
 					/>
 					<motion.div
 						className={cn(
-							"relative z-10 flex flex-col items-center justify-center",
-							minimizeNovaOrb ? "mt-0" : "mt-16",
+							"absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center justify-center",
 						)}
 						animate={{
 							gap: minimizeNovaOrb ? 0 : 16,
@@ -201,12 +217,9 @@ export default function OnboardingPage() {
 							duration: 0.6,
 							ease: "easeOut",
 						}}
-						layout
 					>
 						<motion.div
-							initial={{ opacity: 0, scale: 0.8 }}
 							animate={{
-								opacity: 1,
 								scale:
 									currentStep === "features"
 										? 0.7
@@ -220,7 +233,6 @@ export default function OnboardingPage() {
 								ease: "easeOut",
 								delay: 0.2,
 							}}
-							layout
 							className="relative"
 						>
 							<NovaOrb size={novaSize} />

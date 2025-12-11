@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "motion/react"
+import { motion, AnimatePresence } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
@@ -62,48 +62,71 @@ export function RelatableQuestion() {
 				)}
 			>
 				{relatableOptions.map((option, index) => (
-					<button
+					<div
 						key={option.text}
-						className={`
-						group relative rounded-lg p-2 cursor-pointer transition-all duration-300 hover:border-[#4C608B66] border border-[#0D121A] max-w-[140px] min-h-[159px]
-						${
+						className={cn(
+							"rounded-lg max-w-[140px] min-h-[159px] transition-all duration-300",
 							selectedOptions.includes(index)
-								? "border-[#3374FF] border bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[350%_auto] bg-top bg-no-repeat"
-								: "bg-[#080B0F] hover:bg-no-repeat"
-						} 
+								? "p-px bg-linear-to-b from-[#3374FF] to-[#1A63FF00]"
+								: "p-0 border border-[#0D121A] hover:border-[#4C608B66]",
+						)}
+					>
+						<button
+							className={`
+						group relative w-full h-full rounded-lg p-2 cursor-pointer transition-all duration-300 overflow-hidden
+						bg-[#080B0F] hover:bg-no-repeat
 					`}
-						onClick={() => {
-							setSelectedOptions((prev) =>
-								prev.includes(index)
-									? prev.filter((i) => i !== index)
-									: [...prev, index],
-							)
-						}}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" || e.key === " ") {
-								e.preventDefault()
+							onClick={() => {
 								setSelectedOptions((prev) =>
 									prev.includes(index)
 										? prev.filter((i) => i !== index)
 										: [...prev, index],
 								)
-							}
-						}}
-						type="button"
-					>
-						<div className="flex flex-col items-start justify-between h-full">
-							<span className="text-2xl">{option.emoji}</span>
-							<p
-								className={`text-white text-sm leading-[135%] align-bottom text-left transition-opacity duration-300 ${
-									selectedOptions.includes(index)
-										? "opacity-100"
-										: "opacity-50 group-hover:opacity-100"
-								}`}
-							>
-								{option.text}
-							</p>
-						</div>
-					</button>
+							}}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault()
+									setSelectedOptions((prev) =>
+										prev.includes(index)
+											? prev.filter((i) => i !== index)
+											: [...prev, index],
+									)
+								}
+							}}
+							type="button"
+						>
+							<AnimatePresence>
+								{selectedOptions.includes(index) && (
+									<motion.div
+										className="absolute inset-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[550%_auto] bg-top bg-no-repeat"
+										initial={{ opacity: 0 }}
+										animate={{ opacity: 1 }}
+										exit={{ opacity: 0 }}
+									/>
+								)}
+							</AnimatePresence>
+							<div className="relative flex flex-col items-start justify-between h-full">
+								<span
+									className={`text-2xl ${
+										selectedOptions.includes(index)
+											? "opacity-100"
+											: "opacity-70 group-hover:opacity-100"
+									}`}
+								>
+									{option.emoji}
+								</span>
+								<p
+									className={`text-white text-sm leading-[135%] align-bottom text-left transition-opacity duration-300 ${
+										selectedOptions.includes(index)
+											? "opacity-100"
+											: "opacity-50 group-hover:opacity-100"
+									}`}
+								>
+									{option.text}
+								</p>
+							</div>
+						</button>
+					</div>
 				))}
 			</div>
 			<div className="flex gap-4 my-8">

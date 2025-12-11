@@ -15,7 +15,7 @@ function NovaOrb({ size = 200, className = "" }: NovaOrbProps) {
 			style={{ width: `${size}px`, height: `${size}px` }}
 		>
 			<div
-				className="rounded-full relative overflow-hidden border-[black] border-[1px]"
+				className="rounded-full relative overflow-hidden"
 				style={{
 					width: size,
 					height: size,

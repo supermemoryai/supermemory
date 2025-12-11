@@ -11,6 +11,63 @@ import { FileText, Image, Video } from "lucide-react"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
+function PDFIcon() {
+	return (
+		<svg
+			width="8"
+			height="10"
+			viewBox="0 0 8 10"
+			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<title>PDF Icon</title>
+			<g filter="url(#filter0_i_719_6586)">
+				<path
+					d="M1 10C0.725 10 0.489583 9.90208 0.29375 9.70625C0.0979167 9.51042 0 9.275 0 9V1C0 0.725 0.0979167 0.489583 0.29375 0.29375C0.489583 0.0979167 0.725 0 1 0H5L8 3V9C8 9.275 7.90208 9.51042 7.70625 9.70625C7.51042 9.90208 7.275 10 7 10H1ZM4.5 3.5V1H1V9H7V3.5H4.5Z"
+					fill="#FF7673"
+				/>
+			</g>
+			<defs>
+				<filter
+					id="filter0_i_719_6586"
+					x="0"
+					y="0"
+					width="8.25216"
+					height="10.2522"
+					filterUnits="userSpaceOnUse"
+					color-interpolation-filters="sRGB"
+				>
+					<feFlood flood-opacity="0" result="BackgroundImageFix" />
+					<feBlend
+						mode="normal"
+						in="SourceGraphic"
+						in2="BackgroundImageFix"
+						result="shape"
+					/>
+					<feColorMatrix
+						in="SourceAlpha"
+						type="matrix"
+						values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+						result="hardAlpha"
+					/>
+					<feOffset dx="0.252163" dy="0.252163" />
+					<feGaussianBlur stdDeviation="0.504325" />
+					<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
+					<feColorMatrix
+						type="matrix"
+						values="0 0 0 0 0.0431373 0 0 0 0 0.0588235 0 0 0 0 0.0823529 0 0 0 0.4 0"
+					/>
+					<feBlend
+						mode="normal"
+						in2="shape"
+						result="effect1_innerShadow_719_6586"
+					/>
+				</filter>
+			</defs>
+		</svg>
+	)
+}
+
 function getFileTypeInfo(document: DocumentWithMemories): {
 	icon: React.ReactNode
 	extension: string
@@ -22,9 +79,9 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 	if (mimeType) {
 		if (mimeType === "application/pdf") {
 			return {
-				icon: <PDF className="w-4 h-4 text-[#DC2626]" />,
+				icon: <PDFIcon />,
 				extension: ".pdf",
-				color: "#DC2626",
+				color: "#FF7673",
 			}
 		}
 		if (mimeType.startsWith("image/")) {
@@ -113,7 +170,7 @@ export function FilePreview({ document }: { document: DocumentWithMemories }) {
 					<div className="flex items-center gap-1 mb-2">
 						{icon}
 						<p
-							className={cn(dmSansClassName(), "text-[12px] font-semibold")}
+							className={cn(dmSansClassName(), "text-[10px] font-semibold")}
 							style={{ color: color }}
 						>
 							{extension}

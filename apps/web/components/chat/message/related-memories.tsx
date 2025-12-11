@@ -87,7 +87,7 @@ export function RelatedMemories({
 									)}
 								</div>
 								{result.score && (
-									<div className="flex justify-center p-1">
+									<div className="flex justify-center p-[4px]">
 										<div
 											className={cn(
 												"text-[10px] inline-block bg-clip-text text-transparent font-medium",
