@@ -22,7 +22,7 @@ function AnimatedGradientBackground() {
 	return (
 		<div className="fixed inset-0 z-0 overflow-hidden">
 			<motion.div
-				className="absolute top-[40%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
+				className="absolute top-[20%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{
 					y: 0,
@@ -34,7 +34,7 @@ function AnimatedGradientBackground() {
 				}}
 			/>
 			<motion.div
-				className="absolute top-[40%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
+				className="absolute top-[20%] left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{
 					y: 0,
@@ -47,8 +47,6 @@ function AnimatedGradientBackground() {
 			/>
 			<motion.div
 				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
-				initial={{ y: "100%" }}
-				animate={{ y: 0 }}
 				transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}
 				style={{
 					mixBlendMode: "soft-light",
@@ -62,7 +60,7 @@ function AnimatedGradientBackground() {
 function LoginCard({ children }: { children: React.ReactNode }) {
 	return (
 		<motion.div
-			className="flex max-w-[360px] p-8 flex-col items-start gap-2 rounded-[22px] bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]"
+			className="flex py-8 px-11 flex-col items-start gap-2 rounded-[22px] bg-linear-to-b from-[#06101F] to-[#030912] shadow-[1.5px_1.5px_20px_0_rgba(0,0,0,0.65),1px_1.5px_2px_0_rgba(128,189,255,0.07)_inset,-0.5px_-1.5px_4px_0_rgba(0,35,73,0.40)_inset]"
 			initial={{ opacity: 0, y: 20 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ duration: 0.75, ease: "easeOut" }}
@@ -225,7 +223,7 @@ export function LoginPage() {
 					</div>
 					{submittedEmail ? (
 						<LoginCard>
-							<div className="w-full flex flex-col gap-4 lg:gap-6 min-h-2/3">
+							<div className="w-[360px] flex flex-col gap-4 lg:gap-6 min-h-2/3">
 								<div className="flex flex-col gap-2 text-center lg:text-left">
 									<Title1Bold className="text-foreground">
 										Almost there!
@@ -262,7 +260,10 @@ export function LoginPage() {
 						</LoginCard>
 					) : (
 						<LoginCard>
-							<div className="w-full flex flex-col" style={{ gap: "12px" }}>
+							<div
+								className="w-[360px] flex flex-col"
+								style={{ gap: "12px" }}
+							>
 								{params.get("error") && (
 									<div className="text-red-500">
 										Error: {params.get("error")}. Please try again!

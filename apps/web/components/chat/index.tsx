@@ -252,7 +252,7 @@ export function ChatSidebar() {
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
 					>
-						<NovaOrb size={24} className="!blur-none z-10" />
+						<NovaOrb size={24} className="blur-[0.6px]! z-10" />
 						Chat with Nova
 					</motion.button>
 				</motion.div>
@@ -268,7 +268,7 @@ export function ChatSidebar() {
 					exit={{ x: "100px", opacity: 0 }}
 					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
 				>
-					<div className="flex items-center justify-between pt-4 px-6 pb-3 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)]">
+					<div className="flex items-center justify-between pt-4 px-4 pb-3 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)]">
 						<ChatModelSelector
 							selectedModel={selectedModel}
 							onModelChange={setSelectedModel}
@@ -276,7 +276,7 @@ export function ChatSidebar() {
 						<div className="flex items-center gap-2">
 							<Button
 								variant="headers"
-								className="rounded-full text-base gap-2 !h-10 border-[#73737333] bg-[#0D121A]"
+								className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A]"
 								style={{
 									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
 								}}
@@ -285,7 +285,7 @@ export function ChatSidebar() {
 							</Button>
 							<Button
 								variant="headers"
-								className="rounded-full text-base gap-3 !h-10 border-[#73737333] bg-[#0D121A] cursor-pointer"
+								className="rounded-full text-base gap-3 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
 								style={{
 									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
 								}}
@@ -427,9 +427,9 @@ function ChatEmptyStatePlaceholder() {
 
 	return (
 		<div className="flex flex-col items-center justify-center h-full">
-			<div className="relative">
-				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-				<LogoBgGradient className="" />
+			<div className="relative w-32 h-32">
+				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16" />
+				<LogoBgGradient className="w-full h-full" />
 			</div>
 			<div className="gap-3 flex flex-col items-center justify-center">
 				<p>Ask me anything about your memories...</p>
@@ -443,7 +443,7 @@ function ChatEmptyStatePlaceholder() {
 						<Button
 							key={suggestion}
 							variant="default"
-							className="rounded-full text-base gap-1 !h-10 border-[#2261CA33] bg-[#0D121A] border w-fit"
+							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px]"
 						>
 							<SearchIcon className="size-4 text-[#267BF1]" />
 							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>

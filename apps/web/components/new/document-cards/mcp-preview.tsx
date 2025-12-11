@@ -19,7 +19,7 @@ export function McpPreview({ document }: { document: DocumentWithMemories }) {
 				</p>
                 <MCPIcon className="size-6" />
 			</div>
-			<div>
+			<div className="space-y-[6px]">
 				{document.title && (
 					<p className={cn(dmSansClassName(), "text-[12px] font-semibold")}>
 						{document.title}

@@ -4,13 +4,13 @@ import { Header } from "@/components/new/header"
 import { ChatSidebar } from "@/components/chat"
 import { AnimatePresence } from "motion/react"
 import { MemoriesGrid } from "@/components/new/memories-grid"
-import { AnimatedGradientBackground } from "@/app/onboarding/setup/page"
+import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
 
 export default function NewPage() {
 	return (
-		<div className="min-h-screen bg-black">
+		<div className="h-screen overflow-hidden bg-black">
+			<AnimatedGradientBackground topPosition="15%" />
 			<Header />
-			<AnimatedGradientBackground />
 			<main className="relative">
 				<div className="relative z-10">
 					<div className="flex flex-row h-[calc(100vh-90px)] relative">

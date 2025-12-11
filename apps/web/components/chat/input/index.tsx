@@ -51,7 +51,7 @@ export default function ChatInput({
 			className={cn("bg-[#01173C] relative")}
 			animate={{
 				padding: isExpanded ? "0.5rem" : "0",
-				margin: isExpanded ? "0" : "0.5rem",
+				margin: isExpanded ? "0" : "16px",
 				borderRadius: isExpanded ? "0 0 12px 12px" : "12px",
 			}}
 			transition={{
@@ -71,7 +71,7 @@ export default function ChatInput({
 				}}
 			>
 				{isExpanded && (
-					<div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-[#01173C] via-[#01173C]/50 to-transparent pointer-events-none z-10" />
+					<div className="absolute top-0 left-0 right-0 h-10 bg-linear-to-b from-[#01173C] via-[#01173C]/50 to-transparent pointer-events-none z-10" />
 				)}
 				{chainOfThoughtComponent}
 			</div>
@@ -85,8 +85,8 @@ export default function ChatInput({
 					setIsExpanded(!isExpanded)
 				}}
 			>
-				<div className="flex items-center gap-2">
-					<NovaOrb size={24} className="!blur-none z-10" />
+				<div className="flex items-center gap-3">
+					<NovaOrb size={24} className="blur-[1px]! z-10" />
 					<p className={cn("text-[#525D6E]", dmSansClassName())}>
 						{activeStatus || "Waiting for input..."}
 					</p>
