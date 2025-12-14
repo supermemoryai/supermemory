@@ -67,12 +67,14 @@ export function Header() {
 	const userName = name ? `${name.split(" ")[0]}'s` : "My"
 	return (
 		<div className="flex p-4 justify-between items-center">
-			<div className="flex items-center justify-center gap-4">
+			<div className="flex items-center justify-center gap-4 z-10!">
 				<div className="flex items-center">
 					<Logo className="h-7" />
 					{name && (
 						<div className="flex flex-col items-start justify-center ml-2">
-							<p className="text-[#8B8B8B] text-sm leading-tight">{userName}</p>
+							<p className="text-[#8B8B8B] text-[11px] leading-tight">
+								{userName}
+							</p>
 							<p className="text-white font-bold text-xl leading-none -mt-1">
 								supermemory
 							</p>
@@ -123,11 +125,11 @@ export function Header() {
 				</div>
 			</div>
 			<Tabs defaultValue="grid">
-				<TabsList className="rounded-full border border-[#161F2C] h-11!">
+				<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
 					<TabsTrigger
 						value="grid"
 						className={cn(
-							"rounded-full data-[state=active]:!bg-[#00173C] dark:data-[state=active]:!border-[#2261CA33] px-4 py-4",
+							"rounded-full data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4",
 							dmSansClassName(),
 						)}
 					>
@@ -137,7 +139,7 @@ export function Header() {
 					<TabsTrigger
 						value="graph"
 						className={cn(
-							"rounded-full dark:data-[state=active]:!bg-[#00173C] dark:data-[state=active]:!border-[#2261CA33] px-4 py-4",
+							"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4",
 							dmSansClassName(),
 						)}
 					>
@@ -146,7 +148,7 @@ export function Header() {
 					</TabsTrigger>
 				</TabsList>
 			</Tabs>
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2 z-10!">
 				<Button
 					variant="headers"
 					className="rounded-full text-base gap-2 !h-10"

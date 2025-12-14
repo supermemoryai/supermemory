@@ -90,7 +90,7 @@
 	--shadow-offset-x: 0;
 	--shadow-offset-y: 1px;
 	--letter-spacing: -0.01em;
-	--spacing: 0.24rem;
+	--spacing: 0.25rem;
 	--shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.02);
 	--shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.02);
 	--shadow-sm:
@@ -151,7 +151,7 @@
 	--shadow-offset-x: 0;
 	--shadow-offset-y: 1px;
 	--letter-spacing: -0.01em;
-	--spacing: 0.24rem;
+	--spacing: 0.25rem;
 	--shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.02);
 	--shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.02);
 	--shadow-sm:

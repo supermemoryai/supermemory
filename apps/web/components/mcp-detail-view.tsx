@@ -72,7 +72,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 			<div className="mb-6">
 				<Button
 					variant="link"
-					className="text-white hover:text-gray-300 p-0"
+					className="text-white hover:text-gray-300 p-0 hover:no-underline cursor-pointer"
 					onClick={onBack}
 				>
 					← Back
@@ -91,7 +91,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							dmSansClassName(),
 						)}
 					>
-						<CircleCheckIcon className="size-4 text-green-500 flex-shrink-0 mt-0.5" />
+						<CircleCheckIcon className="size-4 text-green-500 shrink-0 mt-0.5" />
 						<p className="text-[#8B8B8B] text-sm">
 							MCP connects your AI apps to create and use memories directly
 						</p>
@@ -128,7 +128,10 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					<div className="flex items-start space-x-4 z-20">
 						<div
 							className={cn(
-								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 bg-[#161F2B] text-white",
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 text-white",
+								activeStep === 1
+									? "border border-[#15233C] bg-[#08142D]"
+									: "bg-[#161F2B] ",
 							)}
 						>
 							<span
@@ -199,14 +202,14 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												<SelectValue placeholder="Select a client" />
 											)}
 										</SelectTrigger>
-										<SelectContent className="bg-black border-none">
+										<SelectContent className="bg-black border-none pl-3 pr-2">
 											{Object.entries(clients)
 												.slice(0, 7)
 												.map(([key, clientName]) => (
 													<SelectItem
 														key={key}
 														value={key}
-														className="text-white hover:bg-[#080B0F]"
+														className="text-white hover:bg-[#080B0F] p-0"
 													>
 														<div className="flex items-center gap-2">
 															<Image
@@ -244,13 +247,13 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												setSelectedClient(key as keyof typeof clients)
 												setActiveStep(2)
 											}}
-											className={`mcp-client-button-group px-3 py-1 rounded-full border transition-colors cursor-pointer duration-200 ${
+											className={`mcp-client-button-group py-[6px] pl-2 pr-3 rounded-full border transition-colors cursor-pointer duration-200 ${
 												selectedClient === key
 													? "border-blue-500 bg-blue-500/10"
 													: "border-[#242A33] bg-[#080B0F] hover:border-[#3273FC4D] hover:bg-[#08142D]"
 											}`}
 										>
-											<div className="flex items-center space-x-2">
+											<div className="flex items-center space-x-1">
 												<div className="w-5 h-5 flex items-center justify-center">
 													<Image
 														alt={clientName}
@@ -306,8 +309,10 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					<div className="flex items-start space-x-4">
 						<div
 							className={cn(
-								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 text-white bg-[#161F2B]",
-								"",
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 text-white",
+								activeStep === 2
+									? "border border-[#15233C] bg-[#08142D]"
+									: "bg-[#161F2B]",
 							)}
 						>
 							<span
@@ -463,9 +468,15 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 										<div className="space-y-3">
 											<div className="relative">
 												<input
-													className="font-mono text-xs w-full pr-10 p-4 px-2 bg-[#0D121A] rounded-xl text-white pl-3"
+													className={cn(
+														"text-xs w-full pr-24 py-4 bg-[#0D121A] rounded-xl text-white pl-3",
+														dmMonoClassName(),
+													)}
 													style={{
 														border: "1px solid rgba(61, 67, 77, 0.10)",
+														textOverflow: "ellipsis",
+														overflow: "hidden",
+														whiteSpace: "nowrap",
 													}}
 													readOnly
 													value={generateInstallCommand()}
@@ -473,7 +484,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												<button
 													type="button"
 													className={cn(
-														"absolute top-1.5 right-1 cursor-pointer p-1 flex items-center rounded-[10px] px-3 py-2 gap-2",
+														"absolute top-[5px] right-1 cursor-pointer p-1 flex items-center rounded-[10px] px-3 py-2 gap-2",
 														dmSansClassName(),
 													)}
 													style={{
@@ -506,8 +517,10 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 					<div className="flex items-start space-x-4">
 						<div
 							className={cn(
-								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20",
-								"bg-[#161F2B] text-white",
+								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 text-white",
+								activeStep === 3
+									? "border border-[#15233C] bg-[#08142D]"
+									: "bg-[#161F2B] ",
 							)}
 						>
 							<span

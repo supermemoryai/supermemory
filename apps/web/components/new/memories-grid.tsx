@@ -266,24 +266,33 @@ const DocumentCard = memo(
 									<DocumentUrlDisplay url={document.url} />
 								</div>
 							)}
-						<div className="flex items-center justify-between px-3">
-							<p
-								className={cn(
-									dmSansClassName(),
-									"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
-								)}
-								style={{
-									background:
-										"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-									backgroundClip: "text",
-									WebkitBackgroundClip: "text",
-									WebkitTextFillColor: "transparent",
-								}}
-							>
-								<SyncLogoIcon className="w-[12.33px] h-[10px]" />
-								{document.memoryEntries.length}{" "}
-								{document.memoryEntries.length === 1 ? "memory" : "memories"}
-							</p>
+						<div
+							className={cn(
+								"flex items-center px-3",
+								document.memoryEntries.length > 0
+									? "justify-between"
+									: "justify-end",
+							)}
+						>
+							{document.memoryEntries.length > 0 && (
+								<p
+									className={cn(
+										dmSansClassName(),
+										"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
+									)}
+									style={{
+										background:
+											"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+										backgroundClip: "text",
+										WebkitBackgroundClip: "text",
+										WebkitTextFillColor: "transparent",
+									}}
+								>
+									<SyncLogoIcon className="w-[12.33px] h-[10px]" />
+									{document.memoryEntries.length}{" "}
+									{document.memoryEntries.length === 1 ? "memory" : "memories"}
+								</p>
+							)}
 							<p
 								className={cn(
 									dmSansClassName(),

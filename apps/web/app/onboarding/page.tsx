@@ -190,7 +190,7 @@ export default function OnboardingPage() {
 			)}
 			{isSetupFlow && <SetupHeader />}
 
-			{isSetupFlow && <AnimatedGradientBackground />}
+			{isSetupFlow && <AnimatedGradientBackground animateFromBottom={false} />}
 
 			{isWelcomeFlow && currentStep === "input" && (
 				<AnimatedGradientBackground animateFromBottom={true} />

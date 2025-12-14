@@ -5,7 +5,7 @@ import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
 import Image from "next/image"
 
-interface ChromeExtensionDetailViewProps {
+interface XBookmarksDetailViewProps {
 	onBack: () => void
 }
 
@@ -27,9 +27,9 @@ const steps = [
 	},
 ]
 
-export function ChromeExtensionDetailView({
+export function XBookmarksDetailView({
 	onBack,
-}: ChromeExtensionDetailViewProps) {
+}: XBookmarksDetailViewProps) {
 	const handleInstall = () => {
 		window.open(
 			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnangednailhoegogi",
@@ -42,7 +42,7 @@ export function ChromeExtensionDetailView({
 			<div className="mb-6">
 				<Button
 					variant="link"
-					className="text-white hover:text-gray-300 p-0"
+					className="text-white hover:text-gray-300 p-0 hover:no-underline cursor-pointer"
 					onClick={onBack}
 				>
 					← Back
@@ -72,7 +72,7 @@ export function ChromeExtensionDetailView({
 								key={step.number}
 								className="flex flex-col items-center text-center bg-[#080B0F] p-3 rounded-[10px]"
 							>
-								<div className="rounded-2xl p-6 mb-4 w-full aspect-[4/4] flex items-center justify-center relative overflow-hidden">
+								<div className="rounded-2xl p-6 mb-3 w-full aspect-4/4 flex items-center justify-center relative overflow-hidden">
 									<Image
 										src={step.image}
 										alt={`Step ${step.number}`}
@@ -83,7 +83,7 @@ export function ChromeExtensionDetailView({
 								</div>
 								<div className="flex flex-col items-start justify-start">
 									<div className="mb-2">
-										<span className="text-white font-medium">
+										<span className="text-white text-sm font-medium">
 											Step {step.number}
 										</span>
 									</div>
@@ -102,7 +102,7 @@ export function ChromeExtensionDetailView({
 				</div>
 
 				<Button
-					className="rounded-xl px-6 py-3 text-white h-[44px] cursor-pointer mx-auto bg-black"
+					className="rounded-xl px-4 py-2 text-white h-10 cursor-pointer mx-auto bg-black"
 					onClick={handleInstall}
 				>
 					Install Chrome Extension →

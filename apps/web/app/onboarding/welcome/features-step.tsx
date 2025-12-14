@@ -33,7 +33,7 @@ export function FeaturesStep() {
 					</div>
 					<div className="text-left">
 						<p className="text-white font-light">Remember every context</p>
-						<p className="text-[#8A8A8A]">
+						<p className="text-[#8A8A8A] text-[14px]">
 							I keep track of what you've saved and shared with your
 							supermemory.
 						</p>
@@ -50,7 +50,7 @@ export function FeaturesStep() {
 					</div>
 					<div className="text-left">
 						<p className="text-white font-light">Find when you need it</p>
-						<p className="text-[#8A8A8A]">
+						<p className="text-[#8A8A8A] text-[14px]">
 							I surface the right memories inside <br /> your supermemory,
 							superfast.
 						</p>
@@ -67,7 +67,7 @@ export function FeaturesStep() {
 					</div>
 					<div className="text-left">
 						<p className="text-white font-light">Grow with your supermemory</p>
-						<p className="text-[#8A8A8A]">
+						<p className="text-[#8A8A8A] text-[14px]">
 							I learn and personalize over time, so every interaction feels
 							natural.
 						</p>
