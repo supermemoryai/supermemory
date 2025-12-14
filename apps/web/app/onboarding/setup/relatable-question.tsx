@@ -133,7 +133,7 @@ export function RelatableQuestion() {
 				<div key={selectedOptions.length === 0 ? "skip" : "continue"}>
 					<Button
 						className={cn(
-							"font-medium text-white hover:no-underline",
+							"font-medium text-white hover:no-underline cursor-pointer",
 							selectedOptions.length !== 0 ? "rounded-xl" : "",
 						)}
 						variant={selectedOptions.length !== 0 ? "onboarding" : "link"}

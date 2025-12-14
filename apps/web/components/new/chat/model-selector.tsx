@@ -36,7 +36,7 @@ export default function ChatModelSelector({
 			<Button
 				variant="headers"
 				className={cn(
-					"rounded-full text-base gap-1 !h-10 border-[#73737333] bg-[#0D121A]",
+					"rounded-full text-base gap-1 h-10! border-[#73737333] bg-[#0D121A]",
 					dmSansClassName(),
 				)}
 				style={{

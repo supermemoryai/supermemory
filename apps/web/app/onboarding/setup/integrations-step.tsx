@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@ui/components/button"
 import { MCPDetailView } from "@/components/mcp-detail-view"
-import { ChromeExtensionDetailView } from "@/components/chrome-extension-detail-view"
+import { XBookmarksDetailView } from "@/components/x-bookmarks-detail-view"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
@@ -70,8 +70,8 @@ export function IntegrationsStep() {
 	if (selectedCard === "Connect to AI") {
 		return <MCPDetailView onBack={() => setSelectedCard(null)} />
 	}
-	if (selectedCard === "Capture") {
-		return <ChromeExtensionDetailView onBack={() => setSelectedCard(null)} />
+	if (selectedCard === "Import") {
+		return <XBookmarksDetailView onBack={() => setSelectedCard(null)} />
 	}
 	return (
 		<div className="flex flex-col items-center justify-center h-full p-8">
@@ -93,7 +93,9 @@ export function IntegrationsStep() {
 			<div className="grid grid-cols-2 gap-3 max-w-lg w-full mb-12">
 				{integrationCards.map((card) => {
 					const isClickable =
-						card.title === "Connect to AI" || card.title === "Capture"
+						card.title === "Connect to AI" ||
+						card.title === "Capture" ||
+						card.title === "Import"
 
 					if (isClickable) {
 						return (
@@ -104,7 +106,16 @@ export function IntegrationsStep() {
 									"bg-[#080B0F] relative rounded-lg p-3 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] cursor-pointer text-left w-full hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat",
 									"hover:border-b-0 border-b-0",
 								)}
-								onClick={() => setSelectedCard(card.title)}
+								onClick={() => {
+									if (card.title === "Capture") {
+										window.open(
+											"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
+											"_blank",
+										)
+									} else {
+										setSelectedCard(card.title)
+									}
+								}}
 							>
 								<div className="flex-1 mt-10">
 									<h3 className="text-white text-sm font-medium">
@@ -127,7 +138,10 @@ export function IntegrationsStep() {
 					return (
 						<div
 							key={card.title}
-							className="bg-[#080B0F] relative rounded-lg p-3 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat"
+							className={cn(
+								"bg-[#080B0F] relative rounded-lg p-3 hover:border-[#3374FF] hover:border-[0.1px] transition-colors duration-300 border-[0.1px] border-[#0D121A] hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:175%_auto] hover:bg-[center_top_2rem] hover:bg-no-repeat",
+								"hover:border-b-0 border-b-0",
+							)}
 						>
 							<div className="flex-1 mt-10">
 								<h3 className="text-white text-sm font-medium">{card.title}</h3>
@@ -149,14 +163,14 @@ export function IntegrationsStep() {
 			<div className="flex justify-between w-full max-w-4xl">
 				<Button
 					variant="link"
-					className="text-white hover:text-gray-300"
+					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"
 					onClick={() => router.push("/onboarding?flow=setup&step=relatable")}
 				>
 					← Back
 				</Button>
 				<Button
 					variant="link"
-					className="text-white hover:text-gray-300"
+					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"
 					onClick={handleContinue}
 				>
 					Continue →

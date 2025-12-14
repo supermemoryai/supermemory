@@ -5,6 +5,7 @@ interface GreetingStepProps {
 }
 
 export function GreetingStep({ name }: GreetingStepProps) {
+	const userName = name ? `${name.split(" ")[0]}` : ""
 	return (
 		<motion.div
 			className="text-center"
@@ -15,7 +16,7 @@ export function GreetingStep({ name }: GreetingStepProps) {
 			layout
 		>
 			<h2 className="text-white text-[32px] font-medium mb-2">
-				Hi {name}, I'm Nova
+				Hi {userName}, I'm Nova
 			</h2>
 		</motion.div>
 	)

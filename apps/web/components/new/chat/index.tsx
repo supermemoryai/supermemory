@@ -19,10 +19,48 @@ import ChatModelSelector from "./model-selector"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject, usePersistentChat } from "@/stores"
 import type { ModelId } from "@/lib/models"
-import { SuperLoader } from "../superloader"
+import { SuperLoader } from "../../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
 import { ChainOfThought } from "./input/chain-of-thought"
+
+function ChatEmptyStatePlaceholder() {
+	const suggestions = [
+		"Show me all content related to Supermemory.",
+		"Summarize the key ideas from My Gita.",
+		"Which memories connect design and AI?",
+		"What are the main themes across my memories?",
+	]
+
+	return (
+		<div className="flex flex-col items-center justify-center h-full">
+			<div className="relative w-32 h-32">
+				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16" />
+				<LogoBgGradient className="w-full h-full" />
+			</div>
+			<div className="gap-3 flex flex-col items-center justify-center">
+				<p>Ask me anything about your memories...</p>
+				<div
+					className={cn(
+						dmSansClassName(),
+						"flex flex-col gap-2 justify-center items-center",
+					)}
+				>
+					{suggestions.map((suggestion) => (
+						<Button
+							key={suggestion}
+							variant="default"
+							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px]"
+						>
+							<SearchIcon className="size-4 text-[#267BF1]" />
+							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>
+						</Button>
+					))}
+				</div>
+			</div>
+		</div>
+	)
+}
 
 export function ChatSidebar() {
 	const [input, setInput] = useState("")
@@ -30,7 +68,6 @@ export function ChatSidebar() {
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
-	const [chainOfThought, setChainOfThought] = useState<any[] | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
 		Record<string, "like" | "dislike" | null>
 	>({})
@@ -414,43 +451,5 @@ export function ChatSidebar() {
 				</motion.div>
 			)}
 		</AnimatePresence>
-	)
-}
-
-function ChatEmptyStatePlaceholder() {
-	const suggestions = [
-		"Show me all content related to Supermemory.",
-		"Summarize the key ideas from My Gita.",
-		"Which memories connect design and AI?",
-		"What are the main themes across my memories?",
-	]
-
-	return (
-		<div className="flex flex-col items-center justify-center h-full">
-			<div className="relative w-32 h-32">
-				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16" />
-				<LogoBgGradient className="w-full h-full" />
-			</div>
-			<div className="gap-3 flex flex-col items-center justify-center">
-				<p>Ask me anything about your memories...</p>
-				<div
-					className={cn(
-						dmSansClassName(),
-						"flex flex-col gap-2 justify-center items-center",
-					)}
-				>
-					{suggestions.map((suggestion) => (
-						<Button
-							key={suggestion}
-							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px]"
-						>
-							<SearchIcon className="size-4 text-[#267BF1]" />
-							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>
-						</Button>
-					))}
-				</div>
-			</div>
-		</div>
 	)
 }

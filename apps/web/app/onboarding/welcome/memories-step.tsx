@@ -277,7 +277,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 				className="mt-[24px] pb-30"
 			>
 				<Button
-					className="rounded-xl px-6 py-3 border border-onboarding/20 max-w-48 text-white disabled:opacity-50 disabled:cursor-not-allowed h-[40px] cursor-pointer"
+					variant="onboarding"
 					disabled={isSubmitting}
 					style={{
 						background: "linear-gradient(180deg, #0D121A -26.14%, #000 100%)",

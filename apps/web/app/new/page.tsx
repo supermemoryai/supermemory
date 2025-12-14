@@ -1,7 +1,7 @@
 "use client"
 
 import { Header } from "@/components/new/header"
-import { ChatSidebar } from "@/components/chat"
+import { ChatSidebar } from "@/components/new/chat"
 import { AnimatePresence } from "motion/react"
 import { MemoriesGrid } from "@/components/new/memories-grid"
 import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
@@ -9,7 +9,7 @@ import { AnimatedGradientBackground } from "@/components/new/animated-gradient-b
 export default function NewPage() {
 	return (
 		<div className="h-screen overflow-hidden bg-black">
-			<AnimatedGradientBackground topPosition="15%" />
+			<AnimatedGradientBackground topPosition="15%" animateFromBottom={false} />
 			<Header />
 			<main className="relative">
 				<div className="relative z-10">
