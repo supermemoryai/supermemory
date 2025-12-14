@@ -45,6 +45,16 @@ The `withSupermemory` middleware:
 
 All of this happens transparently - you write code as if using a normal model, but get personalized responses.
 
+<Note>
+  **Memory saving is disabled by default.** The middleware only retrieves existing memories. To automatically save new memories from conversations, set `addMemory: "always"`:
+  
+  ```typescript
+  const model = withSupermemory(openai("gpt-5"), "user-123", {
+    addMemory: "always"
+  })
+  ```
+</Note>
+
 ## Memory Search Modes
 
 Configure how the middleware retrieves and uses memory:
