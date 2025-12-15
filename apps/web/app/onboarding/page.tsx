@@ -25,7 +25,7 @@ import { AnimatedGradientBackground } from "@/components/new/animated-gradient-b
 function UserSupermemory({ name }: { name: string }) {
 	return (
 		<motion.div
-			className="absolute inset-0 flex items-center justify-center z-10"
+			className="absolute inset-0 top-[-34px] flex items-center justify-center z-10"
 			initial={{ opacity: 0, y: 0 }}
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: 0 }}
@@ -227,6 +227,7 @@ export default function OnboardingPage() {
 											? 0.4
 											: 1,
 								padding: minimizeNovaOrb ? 0 : 48,
+								paddingTop: 0,
 							}}
 							transition={{
 								duration: 0.8,

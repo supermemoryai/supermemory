@@ -296,7 +296,7 @@ export function ChatSidebar() {
 				<motion.div
 					key="open"
 					className={cn(
-						"w-[450px] h-[calc(100vh-95px)] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 mt-2 border border-[#17181AB2] relative",
+						"w-[450px] h-[calc(100vh-95px)] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 mt-2 border border-[#17181AB2] relative pt-4",
 						dmSansClassName(),
 					)}
 					initial={{ x: "100px", opacity: 0 }}
@@ -304,7 +304,13 @@ export function ChatSidebar() {
 					exit={{ x: "100px", opacity: 0 }}
 					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
 				>
-					<div className="flex items-center justify-between pt-4 px-4 pb-3 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.4)]">
+					<div
+						className="absolute top-0 left-0 right-0 flex items-center justify-between pt-4 px-4"
+						style={{
+							background:
+								"linear-gradient(180deg, #0A0E14 40.49%, rgba(10, 14, 20, 0.00) 100%)",
+						}}
+					>
 						<ChatModelSelector
 							selectedModel={selectedModel}
 							onModelChange={setSelectedModel}

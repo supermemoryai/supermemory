@@ -153,7 +153,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 						<div className="flex-1 mb-4">
 							<div className="flex gap-4 mb-4">
 								<h3
-									className="text-white text-lg font-medium"
+									className="text-white text-lg font-medium text-center"
 									style={
 										activeStep === 1
 											? {
@@ -202,14 +202,14 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 												<SelectValue placeholder="Select a client" />
 											)}
 										</SelectTrigger>
-										<SelectContent className="bg-black border-none pl-3 pr-2">
+										<SelectContent className="bg-black border-none">
 											{Object.entries(clients)
 												.slice(0, 7)
 												.map(([key, clientName]) => (
 													<SelectItem
 														key={key}
 														value={key}
-														className="text-white hover:bg-[#080B0F] p-0"
+														className="text-white hover:bg-[#080B0F]"
 													>
 														<div className="flex items-center gap-2">
 															<Image

@@ -66,7 +66,7 @@ export default function ChatInput({
 				className={cn(
 					"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
 					isExpanded
-						? "max-h-[80vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
+						? "max-h-[60vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
 						: "max-h-0 opacity-0",
 				)}
 				style={{
