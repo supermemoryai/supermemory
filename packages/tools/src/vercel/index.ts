@@ -3,7 +3,6 @@ import { wrapLanguageModel } from "ai"
 import { createSupermemoryMiddleware } from "./middleware"
 
 interface WrapVercelLanguageModelOptions {
-	conversationId?: string;
 	verbose?: boolean;
 	mode?: "profile" | "query" | "full";
 	addMemory?: "always" | "never";
@@ -20,8 +19,8 @@ interface WrapVercelLanguageModelOptions {
  *
  * @param model - The language model to wrap with supermemory capabilities
  * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
+ * @param conversationId - The conversation ID to group messages into a single document for contextual memory generation
  * @param options - Optional configuration options for the middleware
- * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
  * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
@@ -34,8 +33,7 @@ interface WrapVercelLanguageModelOptions {
  * import { withSupermemory } from "@supermemory/tools/ai-sdk"
  * import { openai } from "@ai-sdk/openai"
  *
- * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123", {
- *   conversationId: "conversation-456",
+ * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123", "conversation-456", {
  *   mode: "full",
  *   addMemory: "always"
  * })
@@ -52,6 +50,7 @@ interface WrapVercelLanguageModelOptions {
 const wrapVercelLanguageModel = (
 	model: LanguageModelV2,
 	containerTag: string,
+	conversationId: string | null,
 	options?: WrapVercelLanguageModelOptions,
 ): LanguageModelV2 => {
 	const providedApiKey = options?.apiKey ?? process.env.SUPERMEMORY_API_KEY
@@ -60,7 +59,6 @@ const wrapVercelLanguageModel = (
 		throw new Error("SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`")
 	}
 
-	const conversationId = options?.conversationId
 	const verbose = options?.verbose ?? false
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "never"

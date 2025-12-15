@@ -69,7 +69,7 @@ const addMemoryTool = async (
 export const createSupermemoryMiddleware = (
 	containerTag: string,
 	apiKey: string,
-	conversationId?: string,
+	conversationId: string | null,
 	verbose = false,
 	mode: "profile" | "query" | "full" = "profile",
 	addMemory: "always" | "never" = "never",
@@ -115,7 +115,7 @@ export const createSupermemoryMiddleware = (
 					.map((content) => (content.type === "text" ? content.text : ""))
 					.join("")
 
-				if (addMemory === "always" && userMessage && userMessage.trim()) {
+				if (addMemory === "always" && userMessage && userMessage.trim() && conversationId) {
 					addMemoryTool(
 						client,
 						containerTag,
@@ -160,7 +160,7 @@ export const createSupermemoryMiddleware = (
 							})
 						}
 
-						if (addMemory === "always" && userMessage && userMessage.trim()) {
+						if (addMemory === "always" && userMessage && userMessage.trim() && conversationId) {
 							addMemoryTool(
 								client,
 								containerTag,
