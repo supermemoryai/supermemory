@@ -62,7 +62,7 @@ export function AgentMessage({
 							return (
 								<div
 									key={`${message.id}-${partIndex}`}
-									className="text-sm text-white/90"
+									className="text-sm text-white/90 chat-markdown-content"
 								>
 									<Streamdown>{part.text}</Streamdown>
 								</div>

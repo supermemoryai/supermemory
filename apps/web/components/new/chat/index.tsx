@@ -50,7 +50,7 @@ function ChatEmptyStatePlaceholder() {
 						<Button
 							key={suggestion}
 							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px]"
+							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors"
 						>
 							<SearchIcon className="size-4 text-[#267BF1]" />
 							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>
@@ -78,6 +78,7 @@ export function ChatSidebar() {
 	const [loadingFollowUps, setLoadingFollowUps] = useState<
 		Record<string, boolean>
 	>({})
+	const [isInputExpanded, setIsInputExpanded] = useState(false)
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const { selectedProject } = useProject()
 	const { setCurrentChatId } = usePersistentChat()
@@ -199,8 +200,6 @@ export function ChatSidebar() {
 		}
 	}, [messages, followUpQuestions, loadingFollowUps, status])
 
-	console.log(messages)
-
 	const handleSend = () => {
 		if (!input.trim() || status === "submitted" || status === "streaming")
 			return
@@ -284,7 +283,7 @@ export function ChatSidebar() {
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border-[1px] border-[#17181A] text-white cursor-pointer"
+						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border border-[#17181A] text-white cursor-pointer"
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
@@ -297,7 +296,7 @@ export function ChatSidebar() {
 				<motion.div
 					key="open"
 					className={cn(
-						"w-[450px] h-[calc(100vh-95px)] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 border border-[#17181AB2] relative",
+						"w-[450px] h-[calc(100vh-95px)] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 mt-2 border border-[#17181AB2] relative",
 						dmSansClassName(),
 					)}
 					initial={{ x: "100px", opacity: 0 }}
@@ -354,6 +353,12 @@ export function ChatSidebar() {
 							dmSansClassName(),
 						)}
 					>
+						{isInputExpanded && (
+							<div
+								className="absolute inset-0 z-10! rounded-2xl pointer-events-none"
+								style={{ backgroundColor: "#000000E5" }}
+							/>
+						)}
 						{messages.length === 0 && <ChatEmptyStatePlaceholder />}
 						<div
 							className={cn(
@@ -429,24 +434,12 @@ export function ChatSidebar() {
 									? "Structuring response..."
 									: "Waiting for input..."
 						}
-						chainOfThoughtComponent={(() => {
-							const lastUserMessage = [...messages]
-								.reverse()
-								.find((msg) => msg.role === "user")
-							const lastAgentMessage = [...messages]
-								.reverse()
-								.find((msg) => msg.role === "assistant")
-							const userMessageText =
-								lastUserMessage?.parts.find((part) => part.type === "text")
-									?.text ?? ""
-
-							return userMessageText ? (
-								<ChainOfThought
-									userMessage={userMessageText}
-									lastAgentMessage={lastAgentMessage}
-								/>
+						onExpandedChange={setIsInputExpanded}
+						chainOfThoughtComponent={
+							messages.length > 0 ? (
+								<ChainOfThought messages={messages} />
 							) : null
-						})()}
+						}
 					/>
 				</motion.div>
 			)}

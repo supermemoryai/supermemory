@@ -66,3 +66,19 @@
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 }
+
+/* css to fix for ordered list numbers being cut off in chat agent messages */
+.chat-markdown-content ol {
+	padding-left: 1.5rem;
+	margin-left: 0;
+}
+
+.chat-markdown-content ul {
+	padding-left: 1.5rem;
+	margin-left: 0;
+}
+
+.chat-markdown-content li {
+	margin-left: 0;
+	padding-left: 0.25rem;
+}

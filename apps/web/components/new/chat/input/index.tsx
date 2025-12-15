@@ -17,6 +17,7 @@ interface ChatInputProps {
 	isResponding?: boolean
 	activeStatus?: string
 	chainOfThoughtComponent?: React.ReactNode
+	onExpandedChange?: (expanded: boolean) => void
 }
 
 export default function ChatInput({
@@ -28,6 +29,7 @@ export default function ChatInput({
 	isResponding = false,
 	activeStatus,
 	chainOfThoughtComponent,
+	onExpandedChange,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -48,11 +50,12 @@ export default function ChatInput({
 
 	return (
 		<motion.div
-			className={cn("bg-[#01173C] relative")}
+			className={cn("relative z-20!")}
 			animate={{
-				padding: isExpanded ? "0.5rem" : "0",
+				padding: isExpanded ? "16px" : "0",
 				margin: isExpanded ? "0" : "16px",
 				borderRadius: isExpanded ? "0 0 12px 12px" : "12px",
+				backgroundColor: isExpanded ? "#000B1B" : "#01173C",
 			}}
 			transition={{
 				duration: 0.3,
@@ -61,18 +64,15 @@ export default function ChatInput({
 		>
 			<div
 				className={cn(
-					"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#01173C]",
+					"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
 					isExpanded
-						? "max-h-[80vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-2"
+						? "max-h-[80vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
 						: "max-h-0 opacity-0",
 				)}
 				style={{
 					zIndex: isExpanded ? 50 : 0,
 				}}
 			>
-				{isExpanded && (
-					<div className="absolute top-0 left-0 right-0 h-10 bg-linear-to-b from-[#01173C] via-[#01173C]/50 to-transparent pointer-events-none z-10" />
-				)}
 				{chainOfThoughtComponent}
 			</div>
 			<button
@@ -82,8 +82,11 @@ export default function ChatInput({
 					!chainOfThoughtComponent && "disabled:cursor-not-allowed",
 				)}
 				onClick={() => {
-					setIsExpanded(!isExpanded)
+					const newExpanded = !isExpanded
+					setIsExpanded(newExpanded)
+					onExpandedChange?.(newExpanded)
 				}}
+				disabled={!chainOfThoughtComponent}
 			>
 				<div className="flex items-center gap-3">
 					<NovaOrb size={24} className="blur-[1px]! z-10" />
