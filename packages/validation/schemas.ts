@@ -261,6 +261,7 @@ export const MemoryEntrySchema = z.object({
 	// Status flags
 	isInference: z.boolean().default(false),
 	isForgotten: z.boolean().default(false),
+	isStatic: z.boolean().default(false),
 	forgetAfter: z.coerce.date().nullable().optional(),
 	forgetReason: z.string().nullable().optional(),
 

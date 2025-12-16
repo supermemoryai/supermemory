@@ -126,13 +126,30 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 						style={{ height: activeStep === 3 ? "calc(100% - 4rem)" : "100%" }}
 					/>
 					<div className="flex items-start space-x-4 z-20">
-						<div
+						<button
+							type="button"
 							className={cn(
 								"rounded-full w-8 h-8 flex items-center justify-center text-sm font-medium shrink-0 z-20 text-white",
+								selectedClient && "cursor-pointer hover:bg-[#1a2530]",
+								!selectedClient && "cursor-default",
 								activeStep === 1
 									? "border border-[#15233C] bg-[#08142D]"
 									: "bg-[#161F2B] ",
 							)}
+							onClick={() => {
+								if (selectedClient) {
+									setSelectedClient(null)
+									setActiveStep(1)
+								}
+							}}
+							onKeyDown={(e) => {
+								if (selectedClient && (e.key === "Enter" || e.key === " ")) {
+									e.preventDefault()
+									setSelectedClient(null)
+									setActiveStep(1)
+								}
+							}}
+							disabled={!selectedClient}
 						>
 							<span
 								style={
@@ -149,11 +166,33 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							>
 								1
 							</span>
-						</div>
+						</button>
 						<div className="flex-1 mb-4">
 							<div className="flex gap-4 mb-4">
-								<h3
-									className="text-white text-lg font-medium text-center"
+								<button
+									type="button"
+									className={cn(
+										"text-white text-lg font-medium text-center",
+										selectedClient && "cursor-pointer hover:opacity-80",
+										!selectedClient && "cursor-default",
+									)}
+									onClick={() => {
+										if (selectedClient) {
+											setSelectedClient(null)
+											setActiveStep(1)
+										}
+									}}
+									onKeyDown={(e) => {
+										if (
+											selectedClient &&
+											(e.key === "Enter" || e.key === " ")
+										) {
+											e.preventDefault()
+											setSelectedClient(null)
+											setActiveStep(1)
+										}
+									}}
+									disabled={!selectedClient}
 									style={
 										activeStep === 1
 											? {
@@ -167,7 +206,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 									}
 								>
 									Select your AI client
-								</h3>
+								</button>
 								{selectedClient && (
 									<Select
 										onValueChange={(value) => {

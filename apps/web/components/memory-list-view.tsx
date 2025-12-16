@@ -27,7 +27,7 @@ import { useDeleteDocument } from "@lib/queries"
 import { useProject } from "@/stores"
 
 import { MemoryDetail } from "./memories-utils/memory-detail"
-import { getDocumentIcon } from "@/lib/document-icon"
+import { getDocumentIcon } from "@/components/new/document-modal/document-icon"
 import { formatDate, getSourceUrl } from "./memories-utils"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
