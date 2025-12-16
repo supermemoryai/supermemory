@@ -1,4 +1,4 @@
-import { getDocumentIcon } from "@/lib/document-icon"
+import { getDocumentIcon } from "@/components/new/document-modal/document-icon"
 import {
 	Drawer,
 	DrawerContent,

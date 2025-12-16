@@ -192,9 +192,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 									)}
 								>
 									<div className="absolute left-0.5 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-8 border-t-transparent border-b-transparent border-[#290F0A]" />
-									<p className="text-xs whitespace-nowrap">
-										{errors.linkedin}
-									</p>
+									<p className="text-xs whitespace-nowrap">{errors.linkedin}</p>
 								</div>
 							</div>
 						)}

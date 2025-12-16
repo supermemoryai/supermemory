@@ -4,7 +4,7 @@ import { useAuth } from "@lib/auth-context"
 import { $fetch } from "@repo/lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { useCallback, memo, useMemo } from "react"
+import { useCallback, memo, useMemo, useState, useRef } from "react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/utils/fonts"
@@ -23,6 +23,7 @@ import { YoutubePreview } from "./document-cards/youtube-preview"
 import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { McpPreview } from "./document-cards/mcp-preview"
+import { DocumentModal } from "./document-modal"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -35,6 +36,9 @@ export function MemoriesGrid() {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const isMobile = useIsMobile()
+	const [selectedDocument, setSelectedDocument] =
+		useState<DocumentWithMemories | null>(null)
+	const [isModalOpen, setIsModalOpen] = useState(false)
 
 	const {
 		data,
@@ -111,6 +115,11 @@ export function MemoriesGrid() {
 		},
 	)
 
+	const handleCardClick = useCallback((document: DocumentWithMemories) => {
+		setSelectedDocument(document)
+		setIsModalOpen(true)
+	}, [])
+
 	const renderDocumentCard = useCallback(
 		({
 			index,
@@ -120,8 +129,15 @@ export function MemoriesGrid() {
 			index: number
 			data: DocumentWithMemories
 			width: number
-		}) => <DocumentCard index={index} data={data} width={width} />,
-		[],
+		}) => (
+			<DocumentCard
+				index={index}
+				data={data}
+				width={width}
+				onClick={handleCardClick}
+			/>
+		),
+		[handleCardClick],
 	)
 
 	if (!user) {
@@ -167,8 +183,8 @@ export function MemoriesGrid() {
 						key={`masonry-${documents.length}-${documents.map((d) => d.id).join(",")}`}
 						items={documents}
 						render={renderDocumentCard}
-						columnGutter={16}
-						rowGutter={16}
+						columnGutter={0}
+						rowGutter={0}
 						columnWidth={216}
 						maxColumnCount={isMobile ? 1 : undefined}
 						itemHeightEstimate={200}
@@ -183,6 +199,11 @@ export function MemoriesGrid() {
 					)}
 				</div>
 			)}
+			<DocumentModal
+				document={selectedDocument}
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+			/>
 		</div>
 	)
 }
@@ -223,91 +244,128 @@ const DocumentCard = memo(
 		index: _index,
 		data: document,
 		width,
+		onClick,
 	}: {
 		index: number
 		data: DocumentWithMemories
 		width: number
+		onClick: (document: DocumentWithMemories) => void
 	}) => {
+		const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0 })
+		const cardRef = useRef<HTMLButtonElement>(null)
+
+		const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+			if (!cardRef.current) return
+
+			const rect = cardRef.current.getBoundingClientRect()
+			const centerX = rect.left + rect.width / 2
+			const centerY = rect.top + rect.height / 2
+
+			const mouseX = e.clientX - centerX
+			const mouseY = e.clientY - centerY
+
+			// Calculate rotation angles (max 15 degrees)
+			const rotateY = (mouseX / (rect.width / 2)) * 15
+			const rotateX = -(mouseY / (rect.height / 2)) * 15
+
+			setRotation({ rotateX, rotateY })
+		}
+
+		const handleMouseLeave = () => {
+			setRotation({ rotateX: 0, rotateY: 0 })
+		}
+
 		return (
-			<div
-				className={cn(
-					"rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1",
-					document.type === "image" ||
+			<div className="p-2" style={{ width }}>
+				<button
+					ref={cardRef}
+					type="button"
+					className={cn(
+						"rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1 cursor-pointer w-full",
+						"border-none text-left transition-transform duration-200 ease-out",
+						document.type === "image" ||
+							document.metadata?.mimeType?.toString().startsWith("image/")
+							? "pb-1"
+							: "",
+					)}
+					onClick={() => onClick(document)}
+					onMouseMove={handleMouseMove}
+					onMouseLeave={handleMouseLeave}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+						transform: `perspective(1000px) rotateX(${rotation.rotateX}deg) rotateY(${rotation.rotateY}deg)`,
+						transformStyle: "preserve-3d",
+					}}
+				>
+					<ContentPreview document={document} />
+					{!(
+						document.type === "image" ||
 						document.metadata?.mimeType?.toString().startsWith("image/")
-						? "pb-1"
-						: "",
-				)}
-				style={{
-					width,
-					boxShadow:
-						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-				}}
-			>
-				<ContentPreview document={document} />
-				{!(
-					document.type === "image" ||
-					document.metadata?.mimeType?.toString().startsWith("image/")
-				) && (
-					<div className="pb-[10px] space-y-1">
-						{document.url &&
-							!document.url.includes("x.com") &&
-							!document.url.includes("twitter.com") &&
-							!document.url.includes("files.supermemory.ai") && (
-								<div className="px-3">
+					) && (
+						<div className="pb-[10px] space-y-1">
+							{document.url &&
+								!document.url.includes("x.com") &&
+								!document.url.includes("twitter.com") &&
+								!document.url.includes("files.supermemory.ai") && (
+									<div className="px-3">
+										<p
+											className={cn(
+												dmSansClassName(),
+												"text-[12px] text-[#E5E5E5] line-clamp-1 font-semibold",
+											)}
+										>
+											{document.title}
+										</p>
+
+										<DocumentUrlDisplay url={document.url} />
+									</div>
+								)}
+							<div
+								className={cn(
+									"flex items-center px-3",
+									document.memoryEntries.length > 0
+										? "justify-between"
+										: "justify-end",
+								)}
+							>
+								{document.memoryEntries.length > 0 && (
 									<p
 										className={cn(
 											dmSansClassName(),
-											"text-[12px] text-[#E5E5E5] line-clamp-1 font-semibold",
+											"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
 										)}
+										style={{
+											background:
+												"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+											backgroundClip: "text",
+											WebkitBackgroundClip: "text",
+											WebkitTextFillColor: "transparent",
+										}}
 									>
-										{document.title}
+										<SyncLogoIcon className="w-[12.33px] h-[10px]" />
+										{document.memoryEntries.length}{" "}
+										{document.memoryEntries.length === 1
+											? "memory"
+											: "memories"}
 									</p>
-
-									<DocumentUrlDisplay url={document.url} />
-								</div>
-							)}
-						<div
-							className={cn(
-								"flex items-center px-3",
-								document.memoryEntries.length > 0
-									? "justify-between"
-									: "justify-end",
-							)}
-						>
-							{document.memoryEntries.length > 0 && (
+								)}
 								<p
 									className={cn(
 										dmSansClassName(),
-										"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
+										"text-[10px] text-[#737373] line-clamp-1",
 									)}
-									style={{
-										background:
-											"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-										backgroundClip: "text",
-										WebkitBackgroundClip: "text",
-										WebkitTextFillColor: "transparent",
-									}}
 								>
-									<SyncLogoIcon className="w-[12.33px] h-[10px]" />
-									{document.memoryEntries.length}{" "}
-									{document.memoryEntries.length === 1 ? "memory" : "memories"}
+									{new Date(document.createdAt).toLocaleDateString("en-US", {
+										month: "short",
+										day: "numeric",
+										year: "numeric",
+									})}
 								</p>
-							)}
-							<p
-								className={cn(
-									dmSansClassName(),
-									"text-[10px] text-[#737373] line-clamp-1",
-								)}
-							>
-								{new Date(document.createdAt).toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-									year: "numeric",
-								})}
-							</p>
+							</div>
 						</div>
-					</div>
-				)}
+					)}
+				</button>
 			</div>
 		)
 	},
