@@ -29,19 +29,17 @@ export function useGraphData(
 		const allEdges: GraphEdge[] = [];
 
 		// Filter documents that have memories in selected space
-		const filteredDocuments = data.documents
-			.map((doc) => ({
-				...doc,
-				memoryEntries:
-					selectedSpace === "all"
-						? doc.memoryEntries
-						: doc.memoryEntries.filter(
-								(memory) =>
-									(memory.spaceContainerTag ?? memory.spaceId ?? "default") ===
-									selectedSpace,
-							),
-			}))
-			.filter((doc) => doc.memoryEntries.length > 0);
+		const filteredDocuments = data.documents.map((doc) => ({
+			...doc,
+			memoryEntries:
+				selectedSpace === "all"
+					? doc.memoryEntries
+					: doc.memoryEntries.filter(
+							(memory) =>
+								(memory.spaceContainerTag ?? memory.spaceId ?? "default") ===
+								selectedSpace,
+						),
+		}));
 
 		// Group documents by space for better clustering
 		const documentsBySpace = new Map<string, typeof filteredDocuments>();

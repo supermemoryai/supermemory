@@ -52,7 +52,6 @@ export function useGraphData(
 					memoryEntries: memories,
 				}
 			})
-			.filter((doc) => doc.memoryEntries.length > 0)
 
 		// Group documents by space for better clustering
 		const documentsBySpace = new Map<string, typeof filteredDocuments>()
