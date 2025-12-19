@@ -1,261 +1,358 @@
 ---
-title: "Response Schema"
-description: "Complete response structure for all search endpoints with scoring details"
+title: Response schema
+description: Understanding the search API response structure
 ---
 
+The search API returns different response structures depending on the search mode and result type.
 
-## Document Search Response (POST `/v3/search`)
-
-Response from `client.search.documents()` and `client.search.execute()`:
-
-```json
-{
-  "results": [
-    {
-      "documentId": "doc_abc123",
-      "title": "Machine Learning Fundamentals",
-      "type": "pdf",
-      "score": 0.89,
-      "chunks": [
-        {
-          "content": "Machine learning is a subset of artificial intelligence...",
-          "score": 0.95,
-          "isRelevant": true
-        }
-      ],
-      "metadata": {
-        "category": "education",
-        "author": "Dr. Smith",
-        "difficulty": "beginner"
-      },
-      "createdAt": "2024-01-15T10:30:00Z",
-      "updatedAt": "2024-01-20T14:45:00Z"
-    }
-  ],
-  "timing": 187,
-  "total": 1
-}
-```
-
-### Document Result Fields
-
-<ResponseField name="documentId" type="string">
-  Unique identifier for the document containing the matching chunks.
-</ResponseField>
-
-<ResponseField name="title" type="string | null">
-  Document title if available. May be null for documents without titles.
-</ResponseField>
-
-<ResponseField name="type" type="string | null">
-  Document type (e.g., "pdf", "text", "webpage", "notion_doc"). May be null if not specified.
-</ResponseField>
-
-<ResponseField name="score" type="number" range="0-1">
-  **Overall document relevance score**. Combines semantic similarity, keyword matching, and metadata relevance.
-
-  - **0.9-1.0**: Extremely relevant
-  - **0.7-0.9**: Highly relevant
-  - **0.5-0.7**: Moderately relevant
-  - **0.3-0.5**: Somewhat relevant
-  - **0.0-0.3**: Marginally relevant
-</ResponseField>
-
-<ResponseField name="chunks" type="Array<Chunk>">
-  Array of matching text chunks from the document. Each chunk represents a portion of the document that matched your query.
-
-  <ResponseField name="chunks[].content" type="string">
-    The actual text content of the matching chunk. May include context from surrounding chunks unless `onlyMatchingChunks=true`.
-  </ResponseField>
-
-  <ResponseField name="chunks[].score" type="number" range="0-1">
-    **Chunk-specific similarity score**. How well this specific chunk matches your query.
-  </ResponseField>
-
-  <ResponseField name="chunks[].isRelevant" type="boolean">
-    Whether this chunk passed the `chunkThreshold`. `true` means the chunk is above the threshold, `false` means it's included for context only.
-  </ResponseField>
-</ResponseField>
-
-<ResponseField name="metadata" type="object | null">
-  Document metadata as key-value pairs. Structure depends on what was stored with the document.
-
-  ```json
-  {
-    "category": "tutorial",
-    "language": "python",
-    "difficulty": "intermediate",
-    "tags": "web-development,backend"
-  }
-  ```
-</ResponseField>
-
-<ResponseField name="createdAt" type="string">
-  ISO 8601 timestamp when the document was created.
-</ResponseField>
-
-<ResponseField name="updatedAt" type="string">
-  ISO 8601 timestamp when the document was last updated.
-</ResponseField>
-
-<ResponseField name="content" type="string | null" optional>
-  **Full document content**. Only included when `includeFullDocs=true`. Can be very large.
-
-  <Warning>
-    Full document content can make responses extremely large. Use with appropriate limits and only when necessary.
-  </Warning>
-</ResponseField>
-
-<ResponseField name="summary" type="string | null" optional>
-  **AI-generated document summary**. Only included when `includeSummary=true`. Provides a concise overview of the document.
-</ResponseField>
-
-## Memory Search Response
-
-Response from `client.search.memories()`:
+## Response structure
 
 ```json
 {
-  "results": [
-    {
-      "id": "mem_xyz789",
-      "memory": "Complete memory content about quantum computing applications...",
-      "similarity": 0.87,
-      "metadata": {
-        "category": "research",
-        "topic": "quantum-computing"
-      },
-      "updatedAt": "2024-01-18T09:15:00Z",
-      "version": 3,
-      "context": {
-        "parents": [
-          {
-            "memory": "Earlier discussion about quantum theory basics...",
-            "relation": "extends",
-            "version": 2,
-            "updatedAt": "2024-01-17T16:30:00Z"
-          }
-        ],
-        "children": [
-          {
-            "memory": "Follow-up questions about quantum algorithms...",
-            "relation": "derives",
-            "version": 4,
-            "updatedAt": "2024-01-19T11:20:00Z"
-          }
-        ]
-      },
-      "documents": [
-        {
-          "id": "doc_quantum_paper",
-          "title": "Quantum Computing Applications",
-          "type": "pdf",
-          "createdAt": "2024-01-10T08:00:00Z"
-        }
-      ]
-    }
-  ],
-  "timing": 156,
-  "total": 1
+  "results": [...],
+  "timing": 245,
+  "total": 10
 }
 ```
 
-### Memory Result Fields
+### Top-level fields
+
+<ResponseField name="results" type="array">
+  Array of search results. Can contain memory results, chunk results, or both (in hybrid mode).
+</ResponseField>
+
+<ResponseField name="timing" type="number">
+  Search execution time in milliseconds.
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total number of results returned.
+</ResponseField>
+
+## Result types
+
+In hybrid search mode, results can be either memory results or chunk results. Each type has a different structure.
+
+### Memory result
+
+Memory results contain the `memory` field and represent structured memory entries.
+
+```json
+{
+  "id": "mem_abc123",
+  "memory": "John prefers machine learning over traditional programming",
+  "metadata": {
+    "category": "preferences",
+    "confidence": 0.95
+  },
+  "updatedAt": "2024-01-15T10:30:00Z",
+  "version": 2,
+  "rootMemoryId": "mem_root456",
+  "similarity": 0.92,
+  "context": {
+    "parents": [...],
+    "children": [...]
+  },
+  "documents": [...],
+  "chunks": [...]
+}
+```
 
 <ResponseField name="id" type="string">
   Unique identifier for the memory entry.
 </ResponseField>
 
 <ResponseField name="memory" type="string">
-  **Complete memory content**. Unlike document search which returns chunks, memory search returns the full memory text.
-</ResponseField>
-
-<ResponseField name="similarity" type="number" range="0-1">
-  **Similarity score** between your query and this memory. Higher scores indicate better matches.
-
-  - **0.9-1.0**: Extremely similar
-  - **0.8-0.9**: Very similar
-  - **0.7-0.8**: Similar
-  - **0.6-0.7**: Somewhat similar
-  - **0.5-0.6**: Marginally similar
+  The memory content. **Only present in memory results.**
 </ResponseField>
 
 <ResponseField name="metadata" type="object | null">
-  Memory metadata as key-value pairs. Structure depends on what was stored with the memory.
+  Custom metadata associated with the memory.
 </ResponseField>
 
 <ResponseField name="updatedAt" type="string">
-  ISO 8601 timestamp when the memory was last updated.
+  ISO 8601 timestamp of when the memory was last updated.
 </ResponseField>
 
-<ResponseField name="version" type="number | null" optional>
-  Version number of this memory entry. Used for tracking memory evolution and relationships.
+<ResponseField name="version" type="number">
+  Version number of the memory (increments with updates).
 </ResponseField>
 
-<ResponseField name="context" type="object" optional>
-  **Contextual memory relationships**. Only included when `include.relatedMemories=true`.
-
-  <ResponseField name="context.parents" type="Array<ContextMemory>" optional>
-    Array of parent memories that this memory extends or derives from.
-  </ResponseField>
-
-  <ResponseField name="context.children" type="Array<ContextMemory>" optional>
-    Array of child memories that extend or derive from this memory.
-  </ResponseField>
-
-  ### Context Memory Structure
-
-  <ResponseField name="memory" type="string">
-    Content of the related memory.
-  </ResponseField>
-
-  <ResponseField name="relation" type="string">
-    Relationship type: `"updates"`, `"extends"`, or `"derives"`.
-
-    - **updates**: This memory updates/replaces the related memory
-    - **extends**: This memory builds upon the related memory
-    - **derives**: This memory is derived from the related memory
-  </ResponseField>
-
-  <ResponseField name="version" type="number | null">
-    Relative version distance:
-    - **Negative values** for parents (-1 = direct parent, -2 = grandparent)
-    - **Positive values** for children (+1 = direct child, +2 = grandchild)
-  </ResponseField>
-
-  <ResponseField name="updatedAt" type="string">
-    When the related memory was last updated.
-  </ResponseField>
-
-  <ResponseField name="metadata" type="object | null" optional>
-    Metadata of the related memory.
-  </ResponseField>
+<ResponseField name="rootMemoryId" type="string | null">
+  ID of the root memory if this memory is part of a memory chain.
 </ResponseField>
 
-<ResponseField name="documents" type="Array<Document>" optional>
-  **Associated documents**. Only included when `include.documents=true`.
-
-  <ResponseField name="documents[].id" type="string">
-    Document identifier.
-  </ResponseField>
-
-  <ResponseField name="documents[].title" type="string">
-    Document title.
-  </ResponseField>
-
-  <ResponseField name="documents[].type" type="string">
-    Document type.
-  </ResponseField>
-
-  <ResponseField name="documents[].metadata" type="object">
-    Document metadata.
-  </ResponseField>
-
-  <ResponseField name="documents[].createdAt" type="string">
-    Document creation timestamp.
-  </ResponseField>
-
-  <ResponseField name="documents[].updatedAt" type="string">
-    Document update timestamp.
-  </ResponseField>
+<ResponseField name="similarity" type="number">
+  Similarity score between 0 and 1 (higher is more similar).
 </ResponseField>
+
+<ResponseField name="context" type="object">
+  Related memories (parents and children) if `include.relatedMemories` is true.
+  
+  ```json
+  {
+    "parents": [
+      {
+        "id": "mem_parent123",
+        "memory": "Parent memory content",
+        "relation": "updates"
+      }
+    ],
+    "children": [
+      {
+        "id": "mem_child456",
+        "memory": "Child memory content",
+        "relation": "extends"
+      }
+    ]
+  }
+  ```
+</ResponseField>
+
+<ResponseField name="documents" type="array">
+  Associated documents if `include.documents` is true. See [Document schema](#document-schema).
+</ResponseField>
+
+<ResponseField name="chunks" type="array">
+  Top 5 relevant document chunks if `include.chunks` is true. See [Chunk schema](#chunk-schema).
+</ResponseField>
+
+### Chunk result
+
+Chunk results contain the `chunk` field and represent raw document content. **Only returned in hybrid search mode.**
+
+```json
+{
+  "id": "chunk_xyz789",
+  "chunk": "This is a chunk of content from a document about machine learning preferences...",
+  "metadata": {
+    "source": "document_123.pdf",
+    "page": 5
+  },
+  "updatedAt": "2024-01-15T10:30:00Z",
+  "similarity": 0.88,
+  "version": 1,
+  "context": {
+    "parents": [],
+    "children": []
+  },
+  "documents": [
+    {
+      "id": "doc_123",
+      "title": "Machine Learning Guide",
+      "type": "pdf",
+      "createdAt": "2024-01-10T08:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "chunks": []
+}
+```
+
+<ResponseField name="id" type="string">
+  Unique identifier for the chunk.
+</ResponseField>
+
+<ResponseField name="chunk" type="string">
+  The chunk content. **Only present in chunk results.**
+</ResponseField>
+
+<ResponseField name="metadata" type="object | null">
+  Metadata from the parent document.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of when the document was last updated.
+</ResponseField>
+
+<ResponseField name="similarity" type="number">
+  Similarity score between 0 and 1 (higher is more similar).
+</ResponseField>
+
+<ResponseField name="version" type="number">
+  Always 1 for chunk results.
+</ResponseField>
+
+<ResponseField name="context" type="object">
+  Always empty for chunk results (chunks don't have parent/child relationships).
+</ResponseField>
+
+<ResponseField name="documents" type="array">
+  Array containing the parent document. Always includes exactly one document.
+</ResponseField>
+
+<ResponseField name="chunks" type="array">
+  Always empty for chunk results.
+</ResponseField>
+
+## Nested schemas
+
+### Document schema
+
+```json
+{
+  "id": "doc_123",
+  "title": "Machine Learning Guide",
+  "type": "pdf",
+  "metadata": {
+    "author": "John Doe",
+    "tags": ["ml", "ai"]
+  },
+  "summary": "A comprehensive guide to machine learning...",
+  "createdAt": "2024-01-10T08:00:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+<ResponseField name="id" type="string">
+  Document identifier (custom ID if provided, otherwise internal ID).
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Document title (if `include.documents` is true).
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Document type (e.g., "pdf", "txt", "html").
+</ResponseField>
+
+<ResponseField name="metadata" type="object | null">
+  Document metadata (if `include.documents` is true).
+</ResponseField>
+
+<ResponseField name="summary" type="string | null">
+  Document summary (if `include.summaries` is true).
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of document creation.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last document update.
+</ResponseField>
+
+### Chunk schema
+
+```json
+{
+  "content": "This is a chunk of content from the document...",
+  "score": 0.89,
+  "position": 3,
+  "documentId": "doc_123"
+}
+```
+
+<ResponseField name="content" type="string">
+  The chunk content.
+</ResponseField>
+
+<ResponseField name="score" type="number">
+  Similarity score for this chunk (0-1).
+</ResponseField>
+
+<ResponseField name="position" type="number">
+  Position of the chunk within the document (0-indexed).
+</ResponseField>
+
+<ResponseField name="documentId" type="string">
+  ID of the parent document.
+</ResponseField>
+
+## Distinguishing result types
+
+To determine if a result is a memory or chunk:
+
+```javascript
+if (result.memory) {
+  // This is a memory result
+  console.log("Memory:", result.memory);
+} else if (result.chunk) {
+  // This is a chunk result
+  console.log("Chunk:", result.chunk);
+}
+```
+
+## Example responses
+
+### Memories mode response
+
+```json
+{
+  "results": [
+    {
+      "id": "mem_abc123",
+      "memory": "John prefers machine learning over traditional programming",
+      "metadata": {
+        "category": "preferences"
+      },
+      "updatedAt": "2024-01-15T10:30:00Z",
+      "version": 2,
+      "rootMemoryId": null,
+      "similarity": 0.92
+    }
+  ],
+  "timing": 145,
+  "total": 1
+}
+```
+
+### Hybrid mode response
+
+```json
+{
+  "results": [
+    {
+      "id": "mem_abc123",
+      "memory": "John prefers machine learning over traditional programming",
+      "metadata": {
+        "category": "preferences"
+      },
+      "updatedAt": "2024-01-15T10:30:00Z",
+      "version": 2,
+      "rootMemoryId": null,
+      "similarity": 0.92,
+      "context": {
+        "parents": [],
+        "children": []
+      },
+      "documents": [],
+      "chunks": []
+    },
+    {
+      "id": "chunk_xyz789",
+      "chunk": "Machine learning is a subset of artificial intelligence...",
+      "metadata": {
+        "source": "ml_guide.pdf"
+      },
+      "updatedAt": "2024-01-14T09:00:00Z",
+      "similarity": 0.88,
+      "version": 1,
+      "context": {
+        "parents": [],
+        "children": []
+      },
+      "documents": [
+        {
+          "id": "doc_123",
+          "title": "Machine Learning Guide",
+          "type": "pdf",
+          "createdAt": "2024-01-10T08:00:00Z",
+          "updatedAt": "2024-01-14T09:00:00Z"
+        }
+      ],
+      "chunks": []
+    }
+  ],
+  "timing": 245,
+  "total": 2
+}
+```
+
+## Notes
+
+- In hybrid mode, results are sorted by similarity score regardless of type
+- Chunk results that are already associated with memory results are automatically deduplicated
+- The `context` field is always empty for chunk results
+- The `documents` array for chunk results always contains exactly one document (the parent)
+- Memory results can have multiple associated documents if the memory references multiple sources
