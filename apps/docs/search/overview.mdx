@@ -194,33 +194,65 @@ Companies like Composio [Rube.app](https://rube.app) use memories search for let
   This endpoint works best for conversational AI use cases like chatbots.
 </Info>
 
+**Hybrid Search Mode:**
+
+The `/v4/search` endpoint supports a `searchMode` parameter with two options:
+
+- **`"memories"`** (default): Searches only memory entries. Returns results with a `memory` key containing the memory content.
+- **`"hybrid"`**: Searches memories first, then falls back to document chunks if needed. Returns mixed results where each result object has either a `memory` key (for memory results) or a `chunk` key (for chunk results from documents).
+
+<Note>
+  In hybrid mode, results are automatically merged by similarity score and deduplicated. Check for the presence of `memory` or `chunk` keys to distinguish result types.
+</Note>
+
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    // Memories search
+    // Memories search (default mode)
     const results = await client.search.memories({
       q: "machine learning accuracy",
       limit: 5,
       containerTag: "research",
       threshold: 0.7,
-      rerank: true
+      rerank: true,
+      searchMode: "memories"  // Default: only search memories
+    });
+
+    // Hybrid search (memories + chunks)
+    const hybridResults = await client.search.memories({
+      q: "machine learning accuracy",
+      limit: 5,
+      containerTag: "research",
+      threshold: 0.7,
+      searchMode: "hybrid"  // Search memories + fallback to chunks
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Memories search
+    # Memories search (default mode)
     results = client.search.memories(
         q="machine learning accuracy",
         limit=5,
         container_tag="research",
         threshold=0.7,
-        rerank=True
+        rerank=True,
+        search_mode="memories"  # Default: only search memories
+    )
+
+    # Hybrid search (memories + chunks)
+    hybrid_results = client.search.memories(
+        q="machine learning accuracy",
+        limit=5,
+        container_tag="research",
+        threshold=0.7,
+        search_mode="hybrid"  # Search memories + fallback to chunks
     )
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
+    # Memories search (default mode)
     curl -X POST "https://api.supermemory.ai/v4/search" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
@@ -229,7 +261,20 @@ Companies like Composio [Rube.app](https://rube.app) use memories search for let
         "limit": 5,
         "containerTag": "research",
         "threshold": 0.7,
-        "rerank": true
+        "rerank": true,
+      }'
+
+    # Hybrid search (memories + chunks)
+    curl -X POST "https://api.supermemory.ai/v4/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "machine learning accuracy",
+        "limit": 5,
+        "containerTag": "research",
+        "threshold": 0.7,
+        "rerank": true,
+        "searchMode": "hybrid"
       }'
     ```
   </Tab>
@@ -283,7 +328,7 @@ Companies like Composio [Rube.app](https://rube.app) use memories search for let
 
 ```
 
-The `/v4/search` endpoint searches through and returns memories.
+The `/v4/search` endpoint searches through and returns memories. With `searchMode="hybrid"`, it can also return document chunks when memories aren't found, providing comprehensive search coverage.
 
 ## Direct Document Retrieval
 

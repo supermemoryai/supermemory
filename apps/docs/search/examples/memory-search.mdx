@@ -464,9 +464,232 @@ Combining features for comprehensive results:
   </Tab>
 </Tabs>
 
-## Comon Use Cases
+## Hybrid Search Mode
+
+Hybrid search mode allows you to search both memories and document chunks in a single request. When `searchMode="hybrid"`, results contain objects with either a `memory` key (for memory results) or a `chunk` key (for chunk results).
+
+### Basic Hybrid Search
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const results = await client.search.memories({
+      q: "machine learning best practices",
+      searchMode: "hybrid",  // Search memories + chunks
+      limit: 10
+    });
+
+    // Handle mixed results
+    results.results.forEach(result => {
+      if ('memory' in result) {
+        console.log('Memory:', result.memory);
+      } else if ('chunk' in result) {
+        console.log('Chunk:', result.chunk);
+        console.log('From document:', result.documents?.[0]?.title);
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    results = client.search.memories(
+        q="machine learning best practices",
+        search_mode="hybrid",  # Search memories + chunks
+        limit=10
+    )
+
+    # Handle mixed results
+    for result in results.results:
+        if 'memory' in result:
+            print('Memory:', result['memory'])
+        elif 'chunk' in result:
+            print('Chunk:', result['chunk'])
+            print('From document:', result.get('documents', [{}])[0].get('title'))
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "machine learning best practices",
+        "searchMode": "hybrid",
+        "limit": 10
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### When to Use Hybrid Mode
+
+Use hybrid mode when:
+- You want comprehensive search across both memories and documents
+- Memories might not exist for certain queries but document content is available
+- You need flexibility to get either memory or document chunk results
+- You want a single search endpoint that covers all content types
+
+Use memories-only mode (`searchMode="memories"`) when:
+- You only need user memories and preferences
+- You want faster, more focused results
+- You're building a personalized chatbot that relies on user context
+
+### Handling Mixed Results
+
+When using hybrid mode, you'll receive mixed results. Here's how to process them:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const results = await client.search.memories({
+      q: "quantum computing applications",
+      searchMode: "hybrid",
+      limit: 10
+    });
+
+    // Separate memory and chunk results
+    const memoryResults = results.results.filter(r => 'memory' in r);
+    const chunkResults = results.results.filter(r => 'chunk' in r);
+
+    console.log(`Found ${memoryResults.length} memories and ${chunkResults.length} chunks`);
+
+    // Process memories
+    memoryResults.forEach(mem => {
+      console.log('Memory:', mem.memory);
+      console.log('Similarity:', mem.similarity);
+    });
+
+    // Process chunks
+    chunkResults.forEach(chunk => {
+      console.log('Chunk:', chunk.chunk);
+      console.log('Document:', chunk.documents?.[0]?.title);
+      console.log('Similarity:', chunk.similarity);
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    results = client.search.memories(
+        q="quantum computing applications",
+        search_mode="hybrid",
+        limit=10
+    )
+
+    # Separate memory and chunk results
+    memory_results = [r for r in results.results if 'memory' in r]
+    chunk_results = [r for r in results.results if 'chunk' in r]
+
+    print(f"Found {len(memory_results)} memories and {len(chunk_results)} chunks")
+
+    # Process memories
+    for mem in memory_results:
+        print('Memory:', mem['memory'])
+        print('Similarity:', mem['similarity'])
+
+    # Process chunks
+    for chunk in chunk_results:
+        print('Chunk:', chunk['chunk'])
+        print('Document:', chunk.get('documents', [{}])[0].get('title'))
+        print('Similarity:', chunk['similarity'])
+    ```
+  </Tab>
+</Tabs>
+
+### Hybrid Search with All Features
+
+Combining hybrid mode with other features:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const results = await client.search.memories({
+      q: "research findings on AI",
+      searchMode: "hybrid",
+      containerTag: "research_team",
+      threshold: 0.7,
+      rerank: true,
+      include: {
+        documents: true,
+        relatedMemories: true,
+        summaries: true
+      },
+      limit: 10
+    });
+
+    // Results are automatically sorted by similarity
+    // Memory results have 'memory' field, chunk results have 'chunk' field
+    results.results.forEach(result => {
+      if ('memory' in result) {
+        // Memory result
+        console.log('Memory:', result.memory);
+        console.log('Context:', result.context);
+      } else {
+        // Chunk result
+        console.log('Chunk:', result.chunk);
+        console.log('Document:', result.documents?.[0]);
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    results = client.search.memories(
+        q="research findings on AI",
+        search_mode="hybrid",
+        container_tag="research_team",
+        threshold=0.7,
+        rerank=True,
+        include={
+            "documents": True,
+            "relatedMemories": True,
+            "summaries": True
+        },
+        limit=10
+    )
+
+    # Results are automatically sorted by similarity
+    # Memory results have 'memory' field, chunk results have 'chunk' field
+    for result in results.results:
+        if 'memory' in result:
+            # Memory result
+            print('Memory:', result['memory'])
+            print('Context:', result.get('context'))
+        else:
+            # Chunk result
+            print('Chunk:', result['chunk'])
+            print('Document:', result.get('documents', [{}])[0])
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "research findings on AI",
+        "searchMode": "hybrid",
+        "containerTag": "research_team",
+        "threshold": 0.7,
+        "rerank": true,
+        "include": {
+          "documents": true,
+          "relatedMemories": true,
+          "summaries": true
+        },
+        "limit": 10
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  **Important**: In hybrid mode, results are automatically merged and sorted by similarity score. Memory results and chunk results are deduplicated - if a chunk is already associated with a memory result, it won't appear as a separate chunk result.
+</Note>
+
+## Common Use Cases
 
 - **Chatbots**: Basic search with container tag and low threshold
 - **Q&A Systems**: Add reranking for better relevance
 - **Knowledge Retrieval**: Include documents and summaries
 - **Real-time Search**: Skip rewriting and reranking for maximum speed
+- **Hybrid Search**: Use `searchMode="hybrid"` when you need comprehensive search across both memories and documents

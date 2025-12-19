@@ -114,6 +114,8 @@ Response from `client.search.documents()` and `client.search.execute()`:
 
 Response from `client.search.memories()`:
 
+When `searchMode="memories"` (default), all results are memory entries:
+
 ```json
 {
   "results": [
@@ -160,14 +162,101 @@ Response from `client.search.memories()`:
 }
 ```
 
+When `searchMode="hybrid"`, results can contain both memory entries and document chunks. **Memory results have a `memory` key, chunk results have a `chunk` key:**
+
+```json
+{
+  "results": [
+    {
+      "id": "mem_xyz789",
+      "memory": "Complete memory content about quantum computing applications...",
+      "similarity": 0.87,
+      "metadata": {
+        "category": "research",
+        "topic": "quantum-computing"
+      },
+      "updatedAt": "2024-01-18T09:15:00Z",
+      "version": 3,
+      "context": {
+        "parents": [],
+        "children": []
+      },
+      "documents": [
+        {
+          "id": "doc_quantum_paper",
+          "title": "Quantum Computing Applications",
+          "type": "pdf",
+          "createdAt": "2024-01-10T08:00:00Z",
+          "updatedAt": "2024-01-10T08:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "chunk_abc123",
+      "chunk": "This is a chunk of content from a document about quantum computing...",
+      "similarity": 0.82,
+      "metadata": {
+        "category": "research",
+        "source": "document"
+      },
+      "updatedAt": "2024-01-15T10:30:00Z",
+      "version": 1,
+      "context": {
+        "parents": [],
+        "children": []
+      },
+      "documents": [
+        {
+          "id": "doc_quantum_research",
+          "title": "Quantum Computing Research Paper",
+          "type": "pdf",
+          "metadata": {
+            "author": "Dr. Smith"
+          },
+          "createdAt": "2024-01-15T10:30:00Z",
+          "updatedAt": "2024-01-15T10:30:00Z"
+        }
+      ]
+    }
+  ],
+  "timing": 198,
+  "total": 2
+}
+```
+
+<Note>
+  **Distinguishing Memory vs Chunk Results:**
+  
+  In hybrid mode, check which key exists on the result object:
+  - **Memory results**: Have a `memory` key (no `chunk` key)
+  - **Chunk results**: Have a `chunk` key (no `memory` key)
+  
+  ```typescript
+  // TypeScript example
+  results.results.forEach(result => {
+    if ('memory' in result) {
+      // This is a memory result
+      console.log('Memory:', result.memory);
+    } else if ('chunk' in result) {
+      // This is a chunk result
+      console.log('Chunk:', result.chunk);
+    }
+  });
+  ```
+</Note>
+
 ### Memory Result Fields
 
 <ResponseField name="id" type="string">
-  Unique identifier for the memory entry.
+  Unique identifier for the memory entry or chunk ID. In hybrid mode, can be either a memory ID (e.g., `mem_xyz789`) or a chunk ID (e.g., `chunk_abc123`).
 </ResponseField>
 
-<ResponseField name="memory" type="string">
-  **Complete memory content**. Unlike document search which returns chunks, memory search returns the full memory text.
+<ResponseField name="memory" type="string" optional>
+  **Complete memory content**. Only present for memory results (when `searchMode="memories"` or when a memory result is returned in hybrid mode). This field is not present for chunk results.
+</ResponseField>
+
+<ResponseField name="chunk" type="string" optional>
+  **Chunk content from a document**. Only present for chunk results when `searchMode="hybrid"`. This field is not present for memory results. Contains the actual text content from the document chunk.
 </ResponseField>
 
 <ResponseField name="similarity" type="number" range="0-1">
@@ -189,7 +278,11 @@ Response from `client.search.memories()`:
 </ResponseField>
 
 <ResponseField name="version" type="number | null" optional>
-  Version number of this memory entry. Used for tracking memory evolution and relationships.
+  Version number of this memory entry. Used for tracking memory evolution and relationships. For chunk results, this is typically `1`.
+</ResponseField>
+
+<ResponseField name="rootMemoryId" type="string | null" optional>
+  Root memory ID for memory entries. Only present for memory results. Always `null` for chunk results.
 </ResponseField>
 
 <ResponseField name="context" type="object" optional>
