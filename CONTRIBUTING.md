@@ -291,7 +291,7 @@ For feature requests, please provide:
 - **Discord**: [Join our Discord server](https://supermemory.link/discord)
 - **GitHub Discussions**: For questions and ideas
 - **Issues**: For bug reports and feature requests
-- **Email**: [support@supermemory.com](mailto:support@supermemory.com)
+- **Email**: [support@supermemory.ai](mailto:support@supermemory.ai)
 
 ## 📄 License
 
