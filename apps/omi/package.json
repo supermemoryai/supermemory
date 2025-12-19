@@ -1,0 +1,16 @@
+{
+  "name": "omi",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "hono": "^4.11.1",
+    "supermemory": "^latest"
+  },
+  "devDependencies": {
+    "wrangler": "^4.4.0"
+  }
+}

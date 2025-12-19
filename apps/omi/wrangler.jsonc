@@ -1,0 +1,41 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "omi-supermemory",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-12-02",
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	}
+	// "compatibility_flags": [
+	//   "nodejs_compat"
+	// ],
+	// Environment variables:
+	// Set SUPERMEMORY_API_KEY as a secret using: wrangler secret put SUPERMEMORY_API_KEY
+	// Or use vars for non-sensitive config:
+	// "vars": {
+	//   "SUPERMEMORY_API_KEY": "your-api-key-here"
+	// },
+	// "kv_namespaces": [
+	//   {
+	//     "binding": "MY_KV_NAMESPACE",
+	//     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	//   }
+	// ],
+	// "r2_buckets": [
+	//   {
+	//     "binding": "MY_BUCKET",
+	//     "bucket_name": "my-bucket"
+	//   }
+	// ],
+	// "d1_databases": [
+	//   {
+	//     "binding": "MY_DB",
+	//     "database_name": "my-database",
+	//     "database_id": ""
+	//   }
+	// ],
+	// "ai": {
+	//   "binding": "AI"
+	// },
+}
