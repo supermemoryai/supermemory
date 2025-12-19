@@ -1,0 +1,42 @@
+---
+title: Search memories
+description: Search through your stored memories and documents using semantic search
+---
+
+The v4 search API allows you to search through your stored memories and documents using semantic search.
+
+## Endpoint
+
+```
+POST https://api.supermemory.ai/v4/search
+```
+
+## Quick example
+
+```bash
+curl -X POST https://api.supermemory.ai/v4/search \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "machine learning preferences",
+    "searchMode": "hybrid",
+    "limit": 10
+  }'
+```
+
+## Documentation
+
+<CardGroup cols={2}>
+  <Card title="Parameters" icon="sliders" href="/search/parameters">
+    Learn about all available search parameters including hybrid search mode
+  </Card>
+  <Card title="Response schema" icon="brackets-curly" href="/search/response-schema">
+    Understand the response structure
+  </Card>
+  <Card title="Examples" icon="code" href="/search/examples/memory-search">
+    See practical examples
+  </Card>
+  <Card title="Filtering" icon="filter" href="/search/filtering">
+    Learn about advanced filtering
+  </Card>
+</CardGroup>
