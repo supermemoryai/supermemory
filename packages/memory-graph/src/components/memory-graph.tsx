@@ -248,6 +248,14 @@ export const MemoryGraph = ({
 		[handleNodeDragStart, nodes],
 	)
 
+	// Enhanced node drag move that includes nodes data
+	const handleNodeDragMoveWithNodes = useCallback(
+		(e: React.MouseEvent) => {
+			handleNodeDragMove(e, nodes)
+		},
+		[handleNodeDragMove, nodes],
+	)
+
 	// Navigation callbacks
 	const handleCenter = useCallback(() => {
 		if (nodes.length > 0) {
@@ -455,7 +463,7 @@ export const MemoryGraph = ({
 						onDoubleClick={handleDoubleClick}
 						onNodeClick={handleNodeClick}
 						onNodeDragEnd={handleNodeDragEnd}
-						onNodeDragMove={handleNodeDragMove}
+						onNodeDragMove={handleNodeDragMoveWithNodes}
 						onNodeDragStart={handleNodeDragStartWithNodes}
 						onNodeHover={handleNodeHover}
 						onPanEnd={handlePanEnd}

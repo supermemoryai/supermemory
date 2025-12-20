@@ -19,7 +19,7 @@ import type {
 export function useGraphData(
 	data: DocumentsResponse | null,
 	selectedSpace: string,
-	nodePositions: Map<string, { x: number; y: number }>,
+	nodePositions: Map<string, { x: number; y: number; parentDocId?: string; offsetX?: number; offsetY?: number }>,
 	draggingNodeId: string | null,
 	memoryLimit?: number,
 ) {
@@ -200,12 +200,31 @@ export function useGraphData(
 				const defaultMemY =
 					docNode.y + Math.sin(clusterAngle) * distance + offsetY
 
+				// Calculate final position
+				let finalMemX = defaultMemX
+				let finalMemY = defaultMemY
+
+				if (customMemPos) {
+					// If memory was manually positioned and has stored offset relative to parent
+					if (customMemPos.parentDocId === docNode.id &&
+						customMemPos.offsetX !== undefined &&
+						customMemPos.offsetY !== undefined) {
+						// Apply the stored offset to the current document position
+						finalMemX = docNode.x + customMemPos.offsetX
+						finalMemY = docNode.y + customMemPos.offsetY
+					} else {
+						// Fallback: use absolute position (for backward compatibility or if parent changed)
+						finalMemX = customMemPos.x
+						finalMemY = customMemPos.y
+					}
+				}
+
 				if (!memoryNodeMap.has(memoryId)) {
 					const memoryNode: GraphNode = {
 						id: memoryId,
 						type: "memory",
-						x: customMemPos?.x ?? defaultMemX,
-						y: customMemPos?.y ?? defaultMemY,
+						x: finalMemX,
+						y: finalMemY,
 						data: memory,
 						size: Math.max(
 							32,
