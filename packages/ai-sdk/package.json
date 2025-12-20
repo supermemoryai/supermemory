@@ -12,9 +12,9 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.22",
     "@ai-sdk/provider": "^2.0.0",
-    "ai": "^5.0.26",
+    "ai": "^5.0.113",
     "supermemory": "^3.0.0-alpha.26",
-    "zod": "^4.1.4"
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "@total-typescript/tsconfig": "^1.0.4",
@@ -25,7 +25,7 @@
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index-CITmF79o.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"

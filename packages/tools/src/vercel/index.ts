@@ -8,6 +8,7 @@ interface WrapVercelLanguageModelOptions {
 	mode?: "profile" | "query" | "full";
 	addMemory?: "always" | "never";
 	apiKey?: string;
+	baseUrl?: string;
 }
 
 /**
@@ -26,6 +27,7 @@ interface WrapVercelLanguageModelOptions {
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
  * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
  * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
+ * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts
  *
@@ -64,10 +66,11 @@ const wrapVercelLanguageModel = (
 	const verbose = options?.verbose ?? false
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "never"
+	const baseUrl = options?.baseUrl
 
 	const wrappedModel = wrapLanguageModel({
 		model,
-		middleware: createSupermemoryMiddleware(containerTag, providedApiKey, conversationId, verbose, mode, addMemory),
+		middleware: createSupermemoryMiddleware(containerTag, providedApiKey, conversationId, verbose, mode, addMemory, baseUrl),
 	})
 
 	return wrappedModel

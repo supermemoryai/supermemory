@@ -71,6 +71,7 @@ export function withSupermemory(
 	const verbose = options?.verbose ?? false
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "never"
+	const baseUrl = options?.baseUrl
 
 	const openaiWithSupermemory = createOpenAIMiddleware(
 		openaiClient,
@@ -80,6 +81,7 @@ export function withSupermemory(
 			verbose,
 			mode,
 			addMemory,
+			baseUrl,
 		},
 	)
 
