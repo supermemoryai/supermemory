@@ -1,5 +1,35 @@
 # Memory Graph Changes
 
+## Visual & Layout Improvements (2025-12-21)
+
+### Updated Color Scheme for Better Visual Clarity
+**Changes:**
+- Refined color palette for improved contrast and readability
+- Better visual distinction between document and memory nodes
+- Improved connection line visibility
+
+### Simplified Graph Layout - Physics-Driven Approach
+**Problem:** Complex concentric ring layout conflicted with physics simulation, causing nodes to "teleport" when clicked.
+
+**Solution:** Replaced custom layout with simple grid initial positions, letting physics naturally organize the graph into a stable, circular shape.
+
+**Implementation:**
+- **Document Layout:** Simple grid with small random offsets (replaces concentric rings)
+- **Memory Layout:** Basic circular positioning around parent documents
+- **Hybrid Settling:** 50 quick pre-ticks (~5-10ms) + smooth animation to stability
+- **Benefits:**
+  - No jarring teleportation when interacting with nodes
+  - Faster initial render (non-blocking UI)
+  - Natural, organic layouts driven by node connections
+  - Better perceived performance
+
+**Files Changed:**
+- `use-graph-data.ts:154-167` - Simplified document positioning
+- `use-graph-data.ts:213-219` - Simplified memory clustering
+- `use-force-simulation.ts:101-105` - Hybrid settling strategy
+
+---
+
 ## Bug Fix: Edge Rendering Viewport Culling
 
 **Problem:** Relationship lines (both doc-memory and doc-doc) would vanish when zooming in, particularly when connected nodes moved off-screen horizontally. This was caused by asymmetric viewport culling that only checked X-axis bounds.
