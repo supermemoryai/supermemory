@@ -1,5 +1,45 @@
 # Memory Graph Changes
 
+## Bug Fix: Edge Rendering Viewport Culling
+
+**Problem:** Relationship lines (both doc-memory and doc-doc) would vanish when zooming in, particularly when connected nodes moved off-screen horizontally. This was caused by asymmetric viewport culling that only checked X-axis bounds.
+
+**Root Cause:** Edge viewport culling only checked horizontal (X-axis) bounds, not vertical (Y-axis) bounds. The old logic would cull edges when *either* endpoint went off-screen horizontally (even if one was still visible), but had no vertical bounds checking at all. This caused edges to incorrectly disappear during horizontal panning.
+
+**Solution:** Implemented proper viewport culling that checks both X and Y axis bounds, and only culls edges when BOTH endpoints are off-screen in the same direction.
+
+**Implementation:**
+- Added Y-axis bounds checking to edge viewport culling
+- Changed logic to only cull when both source AND target nodes are off-screen in the same direction
+- Applied consistent 100px margin on all sides (left, right, top, bottom)
+- Fixed in both Canvas 2D and WebGL rendering implementations
+
+**Files Changed:**
+- `packages/memory-graph/src/components/graph-canvas.tsx:208-218` - Fixed Canvas 2D edge culling (screen space)
+
+**Before:**
+```typescript
+// Only checked X-axis
+if (sourceX < -100 || sourceX > width + 100 ||
+    targetX < -100 || targetX > width + 100) {
+    return; // Skip edge
+}
+```
+
+**After:**
+```typescript
+// Checks both X and Y axis, only culls when BOTH nodes off-screen
+const edgeMargin = 100;
+if ((sourceX < -edgeMargin && targetX < -edgeMargin) ||
+    (sourceX > width + edgeMargin && targetX > width + edgeMargin) ||
+    (sourceY < -edgeMargin && targetY < -edgeMargin) ||
+    (sourceY > height + edgeMargin && targetY > height + edgeMargin)) {
+    return; // Skip edge
+}
+```
+
+---
+
 ## Bug Fix: Memory Nodes Now Follow Parent Documents
 
 **Problem:** When a memory node was manually dragged, it would stay at that absolute position. If the parent document was then dragged, the memory wouldn't move with it.

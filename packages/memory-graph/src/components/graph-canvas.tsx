@@ -205,12 +205,14 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const targetX = targetNode.x * zoom + panX
 					const targetY = targetNode.y * zoom + panY
 
-					// Enhanced viewport culling with edge type considerations
+					// Enhanced viewport culling with proper X and Y axis bounds checking
+					// Only cull edges when BOTH endpoints are off-screen in the same direction
+					const edgeMargin = 100
 					if (
-						sourceX < -100 ||
-						sourceX > width + 100 ||
-						targetX < -100 ||
-						targetX > width + 100
+						(sourceX < -edgeMargin && targetX < -edgeMargin) ||
+						(sourceX > width + edgeMargin && targetX > width + edgeMargin) ||
+						(sourceY < -edgeMargin && targetY < -edgeMargin) ||
+						(sourceY > height + edgeMargin && targetY > height + edgeMargin)
 					) {
 						return
 					}
