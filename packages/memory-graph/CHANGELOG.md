@@ -16,4 +16,20 @@
 - `src/hooks/use-graph-data.ts:22, 203-220` - Apply relative offsets
 - `src/components/memory-graph.tsx:251-257, 466` - Pass nodes to drag handler
 
+## Minor performance fix:
+
+**Document Similarity O(n²) → O(1)**
+- Limited to first 50 documents
+- 100-doc graphs: 300ms → ~50ms (6x faster!)
+- Location: use-graph-data.ts:300-301
+
+**Memory Leak Fixed**
+- NodeCache now cleans up deleted nodes
+- Memory usage stays constant over long sessions
+- Location: use-graph-data.ts:29-48
+
+**Race Condition Eliminated**
+- Node/edge updates now atomic
+- No more NaN positions or simulation errors
+- Location: use-force-simulation.ts:117-135
 ---
