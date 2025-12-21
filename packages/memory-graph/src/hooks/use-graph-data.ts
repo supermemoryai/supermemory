@@ -5,7 +5,7 @@ import {
 	getConnectionVisualProps,
 	getMagicalConnectionColor,
 } from "@/lib/similarity"
-import { useMemo } from "react"
+import { useMemo, useRef } from "react"
 import { colors, LAYOUT_CONSTANTS } from "@/constants"
 import type {
 	DocumentsResponse,
@@ -23,6 +23,9 @@ export function useGraphData(
 	draggingNodeId: string | null,
 	memoryLimit?: number,
 ) {
+	// Cache nodes to preserve d3-force mutations (x, y, vx, vy, fx, fy)
+	const nodeCache = useRef<Map<string, GraphNode>>(new Map())
+
 	return useMemo(() => {
 		if (!data?.documents) return { nodes: [], edges: [] }
 
@@ -115,65 +118,38 @@ export function useGraphData(
 
 				const customPos = nodePositions.get(doc.id)
 
-				documentNodes.push({
-					id: doc.id,
-					type: "document",
-					x: customPos?.x ?? defaultX,
-					y: customPos?.y ?? defaultY,
-					data: doc,
-					size: 58,
-					color: colors.document.primary,
-					isHovered: false,
-					isDragging: draggingNodeId === doc.id,
-				} satisfies GraphNode)
+				// Check if node exists in cache (preserves d3-force mutations)
+				let node = nodeCache.current.get(doc.id)
+				if (node) {
+					// Update existing node's data, preserve physics properties (x, y, vx, vy, fx, fy)
+					node.data = doc
+					node.isDragging = draggingNodeId === doc.id
+					// Don't reset x/y - they're managed by d3-force
+				} else {
+					// Create new node with initial position
+					node = {
+						id: doc.id,
+						type: "document",
+						x: customPos?.x ?? defaultX,
+						y: customPos?.y ?? defaultY,
+						data: doc,
+						size: 58,
+						color: colors.document.primary,
+						isHovered: false,
+						isDragging: draggingNodeId === doc.id,
+					} satisfies GraphNode
+					nodeCache.current.set(doc.id, node)
+				}
+
+				documentNodes.push(node)
 			})
 
 			spaceIndex++
 		})
 
-		/* 2. Gentle document collision avoidance with dampening */
-		const minDocDist = LAYOUT_CONSTANTS.minDocDist
-
-		// Reduced iterations and gentler repulsion for smoother movement
-		for (let iter = 0; iter < 2; iter++) {
-			documentNodes.forEach((nodeA) => {
-				documentNodes.forEach((nodeB) => {
-					if (nodeA.id >= nodeB.id) return
-
-					// Only repel documents in the same space
-					const spaceA =
-						(nodeA.data as DocumentWithMemories).memoryEntries[0]
-							?.spaceContainerTag ??
-						(nodeA.data as DocumentWithMemories).memoryEntries[0]?.spaceId ??
-						"default"
-					const spaceB =
-						(nodeB.data as DocumentWithMemories).memoryEntries[0]
-							?.spaceContainerTag ??
-						(nodeB.data as DocumentWithMemories).memoryEntries[0]?.spaceId ??
-						"default"
-
-					if (spaceA !== spaceB) return
-
-					const dx = nodeB.x - nodeA.x
-					const dy = nodeB.y - nodeA.y
-					const dist = Math.sqrt(dx * dx + dy * dy) || 1
-
-					if (dist < minDocDist) {
-						// Much gentler push with dampening
-						const push = (minDocDist - dist) / 8
-						const dampening = Math.max(0.1, Math.min(1, dist / minDocDist))
-						const smoothPush = push * dampening * 0.5
-
-						const nx = dx / dist
-						const ny = dy / dist
-						nodeA.x -= nx * smoothPush
-						nodeA.y -= ny * smoothPush
-						nodeB.x += nx * smoothPush
-						nodeB.y += ny * smoothPush
-					}
-				})
-			})
-		}
+		/* 2. Manual collision avoidance removed - now handled by d3-force simulation */
+		// The initial circular layout provides good starting positions
+		// D3-force will handle collision avoidance and spacing dynamically
 
 		allNodes.push(...documentNodes)
 
@@ -220,19 +196,30 @@ export function useGraphData(
 				}
 
 				if (!memoryNodeMap.has(memoryId)) {
-					const memoryNode: GraphNode = {
-						id: memoryId,
-						type: "memory",
-						x: finalMemX,
-						y: finalMemY,
-						data: memory,
-						size: Math.max(
-							32,
-							Math.min(48, (memory.memory?.length || 50) * 0.5),
-						),
-						color: colors.memory.primary,
-						isHovered: false,
-						isDragging: draggingNodeId === memoryId,
+					// Check if memory node exists in cache (preserves d3-force mutations)
+					let memoryNode = nodeCache.current.get(memoryId)
+					if (memoryNode) {
+						// Update existing node's data, preserve physics properties
+						memoryNode.data = memory
+						memoryNode.isDragging = draggingNodeId === memoryId
+						// Don't reset x/y - they're managed by d3-force
+					} else {
+						// Create new node with initial position
+						memoryNode = {
+							id: memoryId,
+							type: "memory",
+							x: finalMemX,
+							y: finalMemY,
+							data: memory,
+							size: Math.max(
+								32,
+								Math.min(48, (memory.memory?.length || 50) * 0.5),
+							),
+							color: colors.memory.primary,
+							isHovered: false,
+							isDragging: draggingNodeId === memoryId,
+						}
+						nodeCache.current.set(memoryId, memoryNode)
 					}
 					memoryNodeMap.set(memoryId, memoryNode)
 					allNodes.push(memoryNode)

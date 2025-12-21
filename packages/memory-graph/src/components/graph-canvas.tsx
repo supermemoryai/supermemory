@@ -41,6 +41,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		onTouchEnd,
 		draggingNodeId,
 		highlightDocumentIds,
+		isSimulationActive = false,
 	}) => {
 		const canvasRef = useRef<HTMLCanvasElement>(null)
 		const animationRef = useRef<number>(0)
@@ -188,8 +189,15 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			// Draw enhanced edges with sophisticated styling
 			ctx.lineCap = "round"
 			edges.forEach((edge) => {
-				const sourceNode = nodeMap.get(edge.source)
-				const targetNode = nodeMap.get(edge.target)
+				// Handle both string IDs and node references (d3-force mutates these)
+				const sourceNode =
+					typeof edge.source === "string"
+						? nodeMap.get(edge.source)
+						: edge.source
+				const targetNode =
+					typeof edge.target === "string"
+						? nodeMap.get(edge.target)
+						: edge.target
 
 				if (sourceNode && targetNode) {
 					const sourceX = sourceNode.x * zoom + panX
@@ -604,7 +612,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			ctx.globalAlpha = 1
 		}, [nodes, edges, panX, panY, zoom, width, height, highlightDocumentIds])
 
-		// Change-based rendering instead of continuous animation
+		// Hybrid rendering: continuous when simulation active, change-based when idle
 		const lastRenderParams = useRef<string>("")
 
 		// Create a render key that changes when visual state changes
@@ -628,13 +636,28 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			highlightDocumentIds,
 		])
 
-		// Only render when something actually changed
+		// Render based on simulation state
 		useEffect(() => {
+			if (isSimulationActive) {
+				// Continuous rendering during physics simulation
+				const renderLoop = () => {
+					render()
+					animationRef.current = requestAnimationFrame(renderLoop)
+				}
+				renderLoop()
+
+				return () => {
+					if (animationRef.current) {
+						cancelAnimationFrame(animationRef.current)
+					}
+				}
+			}
+			// Change-based rendering when simulation is idle
 			if (renderKey !== lastRenderParams.current) {
 				lastRenderParams.current = renderKey
 				render()
 			}
-		}, [renderKey, render])
+		}, [isSimulationActive, renderKey, render])
 
 		// Cleanup any existing animation frames
 		useEffect(() => {

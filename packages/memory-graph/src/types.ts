@@ -17,14 +17,20 @@ export interface GraphNode {
 	color: string
 	isHovered: boolean
 	isDragging: boolean
+	// D3-force simulation properties
+	vx?: number // velocity x
+	vy?: number // velocity y
+	fx?: number | null // fixed x position (for pinning during drag)
+	fy?: number | null // fixed y position (for pinning during drag)
 }
 
 export type MemoryRelation = "updates" | "extends" | "derives"
 
 export interface GraphEdge {
 	id: string
-	source: string
-	target: string
+	// D3-force mutates source/target from string IDs to node references during simulation
+	source: string | GraphNode
+	target: string | GraphNode
 	similarity: number
 	visualProps: {
 		opacity: number
@@ -74,6 +80,8 @@ export interface GraphCanvasProps {
 	draggingNodeId: string | null
 	// Optional list of document IDs (customId or internal id) to highlight
 	highlightDocumentIds?: string[]
+	// Physics simulation state
+	isSimulationActive?: boolean
 }
 
 export interface MemoryGraphProps {

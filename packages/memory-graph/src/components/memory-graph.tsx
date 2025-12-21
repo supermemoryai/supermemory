@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { GraphCanvas } from "./graph-canvas"
 import { useGraphData } from "@/hooks/use-graph-data"
 import { useGraphInteractions } from "@/hooks/use-graph-interactions"
+import { useForceSimulation } from "@/hooks/use-force-simulation"
 import { injectStyles } from "@/lib/inject-styles"
 import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
@@ -128,6 +129,30 @@ export const MemoryGraph = ({
 		memoryLimit,
 	)
 
+	// State to trigger re-renders when simulation ticks
+	const [, setSimulationTick] = useState(0)
+
+	// Track drag state for physics integration
+	const dragStateRef = useRef<{
+		nodeId: string | null
+		startX: number
+		startY: number
+		nodeStartX: number
+		nodeStartY: number
+	}>({ nodeId: null, startX: 0, startY: 0, nodeStartX: 0, nodeStartY: 0 })
+
+	// Force simulation - only runs during interactions (drag)
+	const forceSimulation = useForceSimulation(
+		nodes,
+		edges,
+		() => {
+			// On each tick, trigger a re-render
+			// D3 directly mutates node.x and node.y
+			setSimulationTick((prev) => prev + 1)
+		},
+		true, // enabled
+	)
+
 	// Auto-fit once per unique highlight set to show the full graph for context
 	const lastFittedHighlightKeyRef = useRef<string>("")
 	useEffect(() => {
@@ -240,20 +265,91 @@ export const MemoryGraph = ({
 		}
 	}, [])
 
-	// Enhanced node drag start that includes nodes data
+	// Physics-enabled node drag start
 	const handleNodeDragStartWithNodes = useCallback(
 		(nodeId: string, e: React.MouseEvent) => {
+			// Find the node being dragged
+			const node = nodes.find((n) => n.id === nodeId)
+			if (node) {
+				// Store drag start state
+				dragStateRef.current = {
+					nodeId,
+					startX: e.clientX,
+					startY: e.clientY,
+					nodeStartX: node.x,
+					nodeStartY: node.y,
+				}
+
+				// Pin the node at its current position (d3-force pattern)
+				node.fx = node.x
+				node.fy = node.y
+
+				// Reheat simulation immediately (like d3 reference code)
+				forceSimulation.reheat()
+			}
+
+			// Set dragging state (still need this for visual feedback)
 			handleNodeDragStart(nodeId, e, nodes)
 		},
-		[handleNodeDragStart, nodes],
+		[handleNodeDragStart, nodes, forceSimulation],
 	)
 
-	// Enhanced node drag move that includes nodes data
+	// Physics-enabled node drag move
 	const handleNodeDragMoveWithNodes = useCallback(
 		(e: React.MouseEvent) => {
-			handleNodeDragMove(e, nodes)
+			if (draggingNodeId && dragStateRef.current.nodeId === draggingNodeId) {
+				// Update the fixed position during drag (this is what d3 uses)
+				const node = nodes.find((n) => n.id === draggingNodeId)
+				if (node) {
+					// Calculate new position based on drag delta
+					const deltaX = (e.clientX - dragStateRef.current.startX) / zoom
+					const deltaY = (e.clientY - dragStateRef.current.startY) / zoom
+
+					// Update subject position (matches d3 reference code pattern)
+					// Only update fx/fy, let simulation handle x/y
+					node.fx = dragStateRef.current.nodeStartX + deltaX
+					node.fy = dragStateRef.current.nodeStartY + deltaY
+				}
+			}
 		},
-		[handleNodeDragMove, nodes],
+		[nodes, draggingNodeId, zoom],
+	)
+
+	// Physics-enabled node drag end
+	const handleNodeDragEndWithPhysics = useCallback(() => {
+		if (draggingNodeId) {
+			// Unpin the node (allow physics to take over) - matches d3 reference code
+			const node = nodes.find((n) => n.id === draggingNodeId)
+			if (node) {
+				node.fx = null
+				node.fy = null
+			}
+
+			// Cool down the simulation (restore target alpha to 0)
+			forceSimulation.coolDown()
+
+			// Reset drag state
+			dragStateRef.current = {
+				nodeId: null,
+				startX: 0,
+				startY: 0,
+				nodeStartX: 0,
+				nodeStartY: 0,
+			}
+		}
+
+		// Call original handler to clear dragging state
+		handleNodeDragEnd()
+	}, [draggingNodeId, nodes, forceSimulation, handleNodeDragEnd])
+
+	// Physics-aware node click - let simulation continue naturally
+	const handleNodeClickWithPhysics = useCallback(
+		(nodeId: string) => {
+			// Just call original handler to update selected node state
+			// Don't stop the simulation - let it cool down naturally
+			handleNodeClick(nodeId)
+		},
+		[handleNodeClick],
 	)
 
 	// Navigation callbacks
@@ -460,9 +556,10 @@ export const MemoryGraph = ({
 						height={containerSize.height}
 						nodes={nodes}
 						highlightDocumentIds={highlightsVisible ? highlightDocumentIds : []}
+				isSimulationActive={forceSimulation.isActive()}
 						onDoubleClick={handleDoubleClick}
-						onNodeClick={handleNodeClick}
-						onNodeDragEnd={handleNodeDragEnd}
+						onNodeClick={handleNodeClickWithPhysics}
+						onNodeDragEnd={handleNodeDragEndWithPhysics}
 						onNodeDragMove={handleNodeDragMoveWithNodes}
 						onNodeDragStart={handleNodeDragStartWithNodes}
 						onNodeHover={handleNodeHover}

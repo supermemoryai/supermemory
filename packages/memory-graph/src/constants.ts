@@ -59,6 +59,32 @@ export const LAYOUT_CONSTANTS = {
 	memoryClusterRadius: 300,
 }
 
+// D3-Force simulation configuration
+export const FORCE_CONFIG = {
+	// Link force (spring between connected nodes)
+	linkStrength: {
+		docMemory: 0.8, // Strong for doc-memory connections
+		version: 1.0, // Strongest for version chains
+		docDocBase: 0.3, // Base for doc-doc similarity
+	},
+	linkDistance: 300, // Desired spring length
+
+	// Charge force (repulsion between nodes)
+	chargeStrength: -1000, // Negative = repulsion, higher magnitude = stronger push
+
+	// Collision force (prevents node overlap)
+	collisionRadius: {
+		document: 80, // Collision radius for document nodes
+		memory: 40, // Collision radius for memory nodes
+	},
+
+	// Simulation behavior
+	alphaDecay: 0.03, // How fast simulation cools down (higher = faster cooldown)
+	alphaMin: 0.001, // Threshold to stop simulation (when alpha drops below this)
+	velocityDecay: 0.6, // Friction/damping (0 = no friction, 1 = instant stop) - increased for less movement
+	alphaTarget: 0.3, // Target alpha when reheating (on drag start)
+}
+
 // Graph view settings
 export const GRAPH_SETTINGS = {
 	console: {
