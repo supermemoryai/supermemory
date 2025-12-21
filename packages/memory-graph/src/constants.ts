@@ -6,24 +6,24 @@ export const colors = {
 		accent: "#252a35", // Card backgrounds
 	},
 	document: {
-		primary: "rgba(255, 255, 255, 0.06)", // Subtle glass white
+		primary: "rgba(255, 255, 255, 0.21)", // Subtle glass white
 		secondary: "rgba(255, 255, 255, 0.12)", // More visible
 		accent: "rgba(255, 255, 255, 0.18)", // Hover state
-		border: "rgba(255, 255, 255, 0.25)", // Sharp borders
+		border: "rgba(255, 255, 255, 0.6)", // Sharp borders
 		glow: "rgba(147, 197, 253, 0.4)", // Blue glow for interaction
 	},
 	memory: {
-		primary: "rgba(147, 197, 253, 0.08)", // Subtle glass blue
+		primary: "rgba(147, 196, 253, 0.21)", // Subtle glass blue
 		secondary: "rgba(147, 197, 253, 0.16)", // More visible
 		accent: "rgba(147, 197, 253, 0.24)", // Hover state
-		border: "rgba(147, 197, 253, 0.35)", // Sharp borders
+		border: "rgba(147, 196, 253, 0.6)", // Sharp borders
 		glow: "rgba(147, 197, 253, 0.5)", // Blue glow for interaction
 	},
 	connection: {
-		weak: "rgba(148, 163, 184, 0)", // Very subtle
-		memory: "rgba(148, 163, 184, 0.3)", // Very subtle
-		medium: "rgba(148, 163, 184, 0.125)", // Medium visibility
-		strong: "rgba(148, 163, 184, 0.4)", // Strong connection
+		weak: "rgba(79, 255, 226, 0.3)", // subtle
+		memory: "rgba(148, 163, 184, 0.35)", // Very subtle
+		medium: "rgba(79, 255, 226, 0.6)", // Medium visibility
+		strong: "rgba(79, 255, 226, 0.9)", // Strong connection
 	},
 	text: {
 		primary: "#ffffff", // Pure white
@@ -67,7 +67,7 @@ export const SIMILARITY_CONFIG = {
 
 // D3-Force simulation configuration
 export const FORCE_CONFIG = {
-	// Link force (spring between connected nodes)
+	// Link force (spring between connected nodes)simil
 	linkStrength: {
 		docMemory: 0.8, // Strong for doc-memory connections
 		version: 1.0, // Strongest for version chains
