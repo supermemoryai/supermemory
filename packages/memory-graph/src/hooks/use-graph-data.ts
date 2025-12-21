@@ -144,7 +144,7 @@ export function useGraphData(
 		})
 
 		// Enhanced Layout with Space Separation
-		const { centerX, centerY, clusterRadius, spaceSpacing, documentSpacing } =
+		const { centerX, centerY, clusterRadius } =
 			LAYOUT_CONSTANTS
 
 		/* 1. Build DOCUMENT nodes with space-aware clustering */
@@ -152,39 +152,17 @@ export function useGraphData(
 		let spaceIndex = 0
 
 		documentsBySpace.forEach((spaceDocs) => {
-			const spaceAngle = (spaceIndex / documentsBySpace.size) * Math.PI * 2
-			const spaceOffsetX = Math.cos(spaceAngle) * spaceSpacing
-			const spaceOffsetY = Math.sin(spaceAngle) * spaceSpacing
-			const spaceCenterX = centerX + spaceOffsetX
-			const spaceCenterY = centerY + spaceOffsetY
-
 			spaceDocs.forEach((doc, docIndex) => {
-				// Create proper circular layout with concentric rings
-				const docsPerRing = 6 // Start with 6 docs in inner ring
-				let currentRing = 0
-				let docsInCurrentRing = docsPerRing
-				let totalDocsInPreviousRings = 0
+				// Simple grid-like layout that physics will naturally organize
+				// Start documents near the center with some random offset
+				const gridSize = Math.ceil(Math.sqrt(spaceDocs.length))
+				const row = Math.floor(docIndex / gridSize)
+				const col = docIndex % gridSize
 
-				// Find which ring this document belongs to
-				while (totalDocsInPreviousRings + docsInCurrentRing <= docIndex) {
-					totalDocsInPreviousRings += docsInCurrentRing
-					currentRing++
-					docsInCurrentRing = docsPerRing + currentRing * 4 // Each ring has more docs
-				}
-
-				// Position within the ring
-				const positionInRing = docIndex - totalDocsInPreviousRings
-				const angleInRing = (positionInRing / docsInCurrentRing) * Math.PI * 2
-
-				// Radius increases significantly with each ring
-				const baseRadius = documentSpacing * 0.8
-				const radius =
-					currentRing === 0
-						? baseRadius
-						: baseRadius + currentRing * documentSpacing * 1.2
-
-				const defaultX = spaceCenterX + Math.cos(angleInRing) * radius
-				const defaultY = spaceCenterY + Math.sin(angleInRing) * radius
+				// Loose grid spacing - physics will organize it better
+				const spacing = 200
+				const defaultX = centerX + (col - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
+				const defaultY = centerY + (row - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
 
 				const customPos = nodePositions.get(doc.id)
 
@@ -232,19 +210,13 @@ export function useGraphData(
 				const memoryId = `${memory.id}`
 				const customMemPos = nodePositions.get(memoryId)
 
-				const clusterAngle = (memIndex / doc.memoryEntries.length) * Math.PI * 2
-				const variation = Math.sin(memIndex * 2.5) * 0.3 + 0.7
-				const distance = clusterRadius * variation
+				// Simple circular positioning around parent doc
+				// Physics will naturally cluster them better
+				const angle = (memIndex / doc.memoryEntries.length) * Math.PI * 2
+				const distance = clusterRadius * 1 // Closer to parent, let physics separate
 
-				const seed =
-					memIndex * 12345 + Number.parseInt(docNode.id.slice(0, 6), 36)
-				const offsetX = Math.sin(seed) * 0.5 * 40
-				const offsetY = Math.cos(seed) * 0.5 * 40
-
-				const defaultMemX =
-					docNode.x + Math.cos(clusterAngle) * distance + offsetX
-				const defaultMemY =
-					docNode.y + Math.sin(clusterAngle) * distance + offsetY
+				const defaultMemX = docNode.x + Math.cos(angle) * distance
+				const defaultMemY = docNode.y + Math.sin(angle) * distance
 
 				// Calculate final position
 				let finalMemX = defaultMemX

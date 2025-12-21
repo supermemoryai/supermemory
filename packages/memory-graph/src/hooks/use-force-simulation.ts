@@ -98,9 +98,11 @@ export function useForceSimulation(
 			// Store reference
 			simulationRef.current = simulation
 
-			// Stop simulation immediately after creation
-			// It will only run when explicitly reheated (on drag)
-			simulation.stop()
+			// Quick pre-settle to avoid initial chaos, then animate the rest
+			// This gives best of both worlds: fast initial render + smooth settling
+			simulation.alpha(1)
+			for (let i = 0; i < 50; ++i) simulation.tick() // Just 50 ticks = ~5-10ms
+			simulation.alphaTarget(0).restart() // Continue animating to full stability
 		}
 
 		// Cleanup on unmount
