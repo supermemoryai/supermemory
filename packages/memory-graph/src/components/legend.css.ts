@@ -220,8 +220,8 @@ export const hexagon = style({
 export const documentNode = style({
 	width: "1rem",
 	height: "0.75rem",
-	background: "rgba(255, 255, 255, 0.08)",
-	border: "1px solid rgba(255, 255, 255, 0.25)",
+	background: "rgba(255, 255, 255, 0.21)",
+	border: "1px solid rgba(255, 255, 255, 0.6)",
 	borderRadius: themeContract.radii.sm,
 	flexShrink: 0,
 })
@@ -231,8 +231,8 @@ export const memoryNode = style([
 	{
 		width: "0.75rem",
 		height: "0.75rem",
-		background: "rgba(147, 197, 253, 0.1)",
-		border: "1px solid rgba(147, 197, 253, 0.35)",
+		background: "rgba(147, 197, 253, 0.21)",
+		border: "1px solid rgba(147, 196, 253, 0.6)",
 		flexShrink: 0,
 	},
 ])
@@ -303,14 +303,14 @@ export const newBadge = style({
 export const connectionLine = style({
 	width: "1rem",
 	height: 0,
-	borderTop: "1px solid rgb(148, 163, 184)",
+	borderTop: "1px solid rgb(148, 163, 184, 0.5)",
 	flexShrink: 0,
 })
 
 export const similarityLine = style({
 	width: "1rem",
 	height: 0,
-	borderTop: "2px dashed rgb(148, 163, 184)",
+	borderTop: "2px dashed rgba(79, 255, 226, 0.4)",
 	flexShrink: 0,
 })
 
