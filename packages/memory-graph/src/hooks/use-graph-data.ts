@@ -5,7 +5,7 @@ import {
 	getConnectionVisualProps,
 	getMagicalConnectionColor,
 } from "@/lib/similarity"
-import { useMemo, useRef } from "react"
+import { useMemo, useRef, useEffect } from "react"
 import { colors, LAYOUT_CONSTANTS } from "@/constants"
 import type {
 	DocumentsResponse,
@@ -25,6 +25,27 @@ export function useGraphData(
 ) {
 	// Cache nodes to preserve d3-force mutations (x, y, vx, vy, fx, fy)
 	const nodeCache = useRef<Map<string, GraphNode>>(new Map())
+
+	// Cleanup nodeCache to prevent memory leak
+	useEffect(() => {
+		if (!data?.documents) return
+
+		// Build set of current node IDs
+		const currentNodeIds = new Set<string>()
+		data.documents.forEach((doc) => {
+			currentNodeIds.add(doc.id)
+			doc.memoryEntries.forEach((mem) => {
+				currentNodeIds.add(`${mem.id}`)
+			})
+		})
+
+		// Remove stale nodes from cache
+		for (const [id] of nodeCache.current.entries()) {
+			if (!currentNodeIds.has(id)) {
+				nodeCache.current.delete(id)
+			}
+		}
+	}, [data, selectedSpace])
 
 	return useMemo(() => {
 		if (!data?.documents) return { nodes: [], edges: [] }
@@ -296,12 +317,16 @@ export function useGraphData(
 		})
 
 		// Document-to-document similarity edges
-		for (let i = 0; i < filteredDocuments.length; i++) {
-			const docI = filteredDocuments[i]
+		// Performance optimization: limit comparisons to prevent O(n²) scaling issues
+		const MAX_DOCS_FOR_SIMILARITY = 50
+		const docsToCompare = filteredDocuments.slice(0, MAX_DOCS_FOR_SIMILARITY)
+
+		for (let i = 0; i < docsToCompare.length; i++) {
+			const docI = docsToCompare[i]
 			if (!docI) continue
 
-			for (let j = i + 1; j < filteredDocuments.length; j++) {
-				const docJ = filteredDocuments[j]
+			for (let j = i + 1; j < docsToCompare.length; j++) {
+				const docJ = docsToCompare[j]
 				if (!docJ) continue
 
 				const sim = calculateSemanticSimilarity(

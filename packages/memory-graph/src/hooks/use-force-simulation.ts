@@ -114,16 +114,17 @@ export function useForceSimulation(
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [enabled])
 
-	// Update simulation nodes when they change
+	// Update simulation nodes and edges together to prevent race conditions
 	useEffect(() => {
-		if (simulationRef.current && nodes.length > 0) {
+		if (!simulationRef.current) return
+
+		// Update nodes
+		if (nodes.length > 0) {
 			simulationRef.current.nodes(nodes)
 		}
-	}, [nodes])
 
-	// Update simulation edges when they change
-	useEffect(() => {
-		if (simulationRef.current && edges.length > 0) {
+		// Update edges
+		if (edges.length > 0) {
 			const linkForce = simulationRef.current.force<
 				d3.ForceLink<GraphNode, GraphEdge>
 			>("link")
@@ -131,7 +132,7 @@ export function useForceSimulation(
 				linkForce.links(edges)
 			}
 		}
-	}, [edges])
+	}, [nodes, edges])
 
 	// Reheat simulation (called on drag start)
 	const reheat = useCallback(() => {
