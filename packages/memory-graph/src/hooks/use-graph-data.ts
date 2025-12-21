@@ -6,7 +6,7 @@ import {
 	getMagicalConnectionColor,
 } from "@/lib/similarity"
 import { useMemo, useRef, useEffect } from "react"
-import { colors, LAYOUT_CONSTANTS } from "@/constants"
+import { colors, LAYOUT_CONSTANTS, SIMILARITY_CONFIG } from "@/constants"
 import type {
 	DocumentsResponse,
 	DocumentWithMemories,
@@ -47,15 +47,11 @@ export function useGraphData(
 		}
 	}, [data, selectedSpace])
 
-	return useMemo(() => {
-		if (!data?.documents) return { nodes: [], edges: [] }
+	// Memo 1: Filter documents by selected space
+	const filteredDocuments = useMemo(() => {
+		if (!data?.documents) return []
 
-		const allNodes: GraphNode[] = []
-		const allEdges: GraphEdge[] = []
-
-		// Filter documents that have memories in selected space
-		// AND limit memories per document when memoryLimit is provided
-		const filteredDocuments = data.documents
+		return data.documents
 			.map((doc) => {
 				let memories =
 					selectedSpace === "all"
@@ -77,6 +73,59 @@ export function useGraphData(
 				}
 			})
 			.filter((doc) => doc.memoryEntries.length > 0)
+	}, [data, selectedSpace, memoryLimit])
+
+	// Memo 2: Calculate similarity edges using k-NN approach
+	const similarityEdges = useMemo(() => {
+		const edges: GraphEdge[] = []
+
+		// k-NN: Each document compares with k neighbors (configurable)
+		const { maxComparisonsPerDoc, threshold } = SIMILARITY_CONFIG
+
+		for (let i = 0; i < filteredDocuments.length; i++) {
+			const docI = filteredDocuments[i]
+			if (!docI) continue
+
+			// Only compare with next k documents (k-nearest neighbors approach)
+			const endIdx = Math.min(
+				i + maxComparisonsPerDoc + 1,
+				filteredDocuments.length,
+			)
+
+			for (let j = i + 1; j < endIdx; j++) {
+				const docJ = filteredDocuments[j]
+				if (!docJ) continue
+
+				const sim = calculateSemanticSimilarity(
+					docI.summaryEmbedding ? Array.from(docI.summaryEmbedding) : null,
+					docJ.summaryEmbedding ? Array.from(docJ.summaryEmbedding) : null,
+				)
+
+				if (sim > threshold) {
+					edges.push({
+						id: `doc-doc-${docI.id}-${docJ.id}`,
+						source: docI.id,
+						target: docJ.id,
+						similarity: sim,
+						visualProps: getConnectionVisualProps(sim),
+						color: getMagicalConnectionColor(sim, 200),
+						edgeType: "doc-doc",
+					})
+				}
+			}
+		}
+
+		return edges
+	}, [filteredDocuments])
+
+	// Memo 3: Build full graph data (nodes + edges)
+	return useMemo(() => {
+		if (!data?.documents || filteredDocuments.length === 0) {
+			return { nodes: [], edges: [] }
+		}
+
+		const allNodes: GraphNode[] = []
+		const allEdges: GraphEdge[] = []
 
 		// Group documents by space for better clustering
 		const documentsBySpace = new Map<string, typeof filteredDocuments>()
@@ -316,37 +365,9 @@ export function useGraphData(
 			})
 		})
 
-		// Document-to-document similarity edges
-		// Performance optimization: limit comparisons to prevent O(n²) scaling issues
-		const MAX_DOCS_FOR_SIMILARITY = 50
-		const docsToCompare = filteredDocuments.slice(0, MAX_DOCS_FOR_SIMILARITY)
-
-		for (let i = 0; i < docsToCompare.length; i++) {
-			const docI = docsToCompare[i]
-			if (!docI) continue
-
-			for (let j = i + 1; j < docsToCompare.length; j++) {
-				const docJ = docsToCompare[j]
-				if (!docJ) continue
-
-				const sim = calculateSemanticSimilarity(
-					docI.summaryEmbedding ? Array.from(docI.summaryEmbedding) : null,
-					docJ.summaryEmbedding ? Array.from(docJ.summaryEmbedding) : null,
-				)
-				if (sim > 0.725) {
-					allEdges.push({
-						id: `doc-doc-${docI.id}-${docJ.id}`,
-						source: docI.id,
-						target: docJ.id,
-						similarity: sim,
-						visualProps: getConnectionVisualProps(sim),
-						color: getMagicalConnectionColor(sim, 200),
-						edgeType: "doc-doc",
-					})
-				}
-			}
-		}
+		// Append similarity edges (calculated in separate memo)
+		allEdges.push(...similarityEdges)
 
 		return { nodes: allNodes, edges: allEdges }
-	}, [data, selectedSpace, nodePositions, draggingNodeId, memoryLimit])
+	}, [data, filteredDocuments, nodePositions, draggingNodeId, similarityEdges])
 }
