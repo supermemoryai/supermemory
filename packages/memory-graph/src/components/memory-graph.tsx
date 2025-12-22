@@ -12,6 +12,7 @@ import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
 import { NavigationControls } from "./navigation-controls"
 import { NodeDetailPanel } from "./node-detail-panel"
+import { NodePopover } from "./node-popover"
 import { SpacesDropdown } from "./spaces-dropdown"
 import * as styles from "./memory-graph.css"
 import { defaultTheme } from "@/styles/theme.css"
@@ -530,16 +531,53 @@ export const MemoryGraph = ({
 				variant={variant}
 			/>
 
-			{/* Node detail panel */}
-			<AnimatePresence>
-				{selectedNodeData && (
-					<NodeDetailPanel
+			{/* Node popover - positioned near clicked node */}
+			{selectedNodeData && (() => {
+				// Calculate screen position of the node
+				const screenX = selectedNodeData.x * zoom + panX
+				const screenY = selectedNodeData.y * zoom + panY
+
+				// Popover dimensions (estimated)
+				const popoverWidth = 300
+				const popoverHeight = 200
+				const offset = 40
+				const padding = 16
+
+				// Smart positioning: flip to other side if would go off-screen
+				let popoverX = screenX + offset
+				let popoverY = screenY - 20
+
+				// Check right edge
+				if (popoverX + popoverWidth > containerSize.width - padding) {
+					// Flip to left side of node
+					popoverX = screenX - popoverWidth - offset
+				}
+
+				// Check left edge
+				if (popoverX < padding) {
+					popoverX = padding
+				}
+
+				// Check bottom edge
+				if (popoverY + popoverHeight > containerSize.height - padding) {
+					// Move up
+					popoverY = containerSize.height - popoverHeight - padding
+				}
+
+				// Check top edge
+				if (popoverY < padding) {
+					popoverY = padding
+				}
+
+				return (
+					<NodePopover
 						node={selectedNodeData}
+						x={popoverX}
+						y={popoverY}
 						onClose={() => setSelectedNode(null)}
-						variant={variant}
 					/>
-				)}
-			</AnimatePresence>
+				)
+			})()}
 
 			{/* Show welcome screen when no memories exist */}
 			{!isLoading &&
