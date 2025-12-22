@@ -7,15 +7,15 @@ export const colors = {
 	},
 	document: {
 		primary: "rgba(255, 255, 255, 0.21)", // Subtle glass white
-		secondary: "rgba(255, 255, 255, 0.12)", // More visible
-		accent: "rgba(255, 255, 255, 0.18)", // Hover state
+		secondary: "rgba(255, 255, 255, 0.31)", // More visible
+		accent: "rgba(255, 255, 255, 0.31)", // Hover state
 		border: "rgba(255, 255, 255, 0.6)", // Sharp borders
 		glow: "rgba(147, 197, 253, 0.4)", // Blue glow for interaction
 	},
 	memory: {
 		primary: "rgba(147, 196, 253, 0.21)", // Subtle glass blue
-		secondary: "rgba(147, 197, 253, 0.16)", // More visible
-		accent: "rgba(147, 197, 253, 0.24)", // Hover state
+		secondary: "rgba(147, 196, 253, 0.31)", // More visible
+		accent: "rgba(147, 197, 253, 0.31)", // Hover state
 		border: "rgba(147, 196, 253, 0.6)", // Sharp borders
 		glow: "rgba(147, 197, 253, 0.5)", // Blue glow for interaction
 	},
@@ -103,6 +103,12 @@ export const GRAPH_SETTINGS = {
 		initialPanX: 400, // Pan towards center to compensate for larger layout
 		initialPanY: 300, // Pan towards center to compensate for larger layout
 	},
+}
+
+// Animation settings
+export const ANIMATION = {
+	// Dim effect duration - shortened for better UX
+	dimDuration: 1500, // milliseconds
 }
 
 // Responsive positioning for different app variants

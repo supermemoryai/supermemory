@@ -416,17 +416,22 @@ export const MemoryGraph = ({
 		// Popover dimensions (estimated)
 		const popoverWidth = 320
 		const popoverHeight = 400
-		const offset = 40
 		const padding = 16
 
+		// Calculate node dimensions to position popover with proper gap
+		const nodeSize = selectedNodeData.size * zoom
+		const nodeWidth = selectedNodeData.type === "document" ? nodeSize * 1.4 : nodeSize
+		const nodeHeight = selectedNodeData.type === "document" ? nodeSize * 0.9 : nodeSize
+		const gap = 20 // Gap between node and popover
+
 		// Smart positioning: flip to other side if would go off-screen
-		let popoverX = screenX + offset
-		let popoverY = screenY - 20
+		let popoverX = screenX + nodeWidth / 2 + gap
+		let popoverY = screenY - popoverHeight / 2
 
 		// Check right edge
 		if (popoverX + popoverWidth > containerSize.width - padding) {
 			// Flip to left side of node
-			popoverX = screenX - popoverWidth - offset
+			popoverX = screenX - nodeWidth / 2 - gap - popoverWidth
 		}
 
 		// Check left edge
@@ -446,7 +451,7 @@ export const MemoryGraph = ({
 		}
 
 		return { x: popoverX, y: popoverY }
-	}, [selectedNodeData, zoom, panX, containerSize.width, containerSize.height])
+	}, [selectedNodeData, zoom, panX, panY, containerSize.width, containerSize.height])
 
 	// Viewport-based loading: load more when most documents are visible (optional)
 	const checkAndLoadMore = useCallback(() => {

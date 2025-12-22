@@ -9,7 +9,7 @@ import {
 	useRef,
 	useState,
 } from "react"
-import { colors } from "@/constants"
+import { colors, ANIMATION } from "@/constants"
 import type {
 	DocumentWithMemories,
 	GraphCanvasProps,
@@ -63,7 +63,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		// Smooth dimming animation
 		useEffect(() => {
 			const targetDim = selectedNodeId ? 1 : 0
-			const duration = 200 // milliseconds
+			const duration = ANIMATION.dimDuration // Match physics settling time
 			const startDim = dimProgress.current
 			const startTime = Date.now()
 

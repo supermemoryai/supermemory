@@ -20,7 +20,7 @@
 **Feature:** When a popover is opened for a doc/memory node, the background dims while the selected node and popover remain in full focus.
 
 **Implementation:**
-- Smooth animated dimming: 200ms ease-out cubic transition
+- Smooth animated dimming: 1500ms ease-out cubic transition
 - Canvas-based dimming: non-selected nodes reduced to 20% opacity
 - Edges not connected to selected node reduced to 10% opacity
 - Selected node remains at full opacity (1.0) for clear focus
@@ -37,28 +37,28 @@
 - Multiple ways to close: click backdrop, click X button, or press Escape key
 
 **Files Changed:**
+- `src/constants.ts:108-114` - Added ANIMATION config with dimDuration
 - `src/components/node-popover.tsx:3,20-29` - Escape key handler and transparent backdrop
-- `src/components/graph-canvas.tsx:53-54,62-91,289,294,301,306,317,435,454,577` - Smooth animation and dimming logic
+- `src/components/graph-canvas.tsx:12,53-54,62-91,289,294,301,306,317,435,454,577` - Smooth animation and dimming logic
 - `src/components/memory-graph.tsx:620` - Pass selectedNodeId to canvas
 - `src/types.ts:86` - Added selectedNodeId prop to GraphCanvasProps
-
----
-
-## Visual & Layout Improvements (2025-12-21)
 
 ### Smart Positioning Node Popover
 **Feature:** Clicking nodes now shows a floating popover with detailed information, positioned near the node with smart viewport edge detection.
 
 **Implementation:**
 - DOM-based popover
-- Auto-positions to avoid viewport edges
+- Auto-positions to avoid viewport edges with proper gap from node
+- Popover positioned next to node (not on top) with 20px gap
+- Calculates node dimensions dynamically based on type (document vs memory)
+- Flips to opposite side when approaching viewport edges
 - Click-outside to close
 - Shows all node metadata: title, summary (2-line truncation), type, memory count, URL, creation date, and ID
 - For memories: includes space, expiration date (if applicable), and forgotten status
 
 **Files Changed:**
 - `src/components/node-popover.tsx` - New popover component
-- `src/components/memory-graph.tsx` - Smart positioning logic
+- `src/components/memory-graph.tsx:421-429,434` - Smart positioning logic with gap calculation
 
 ### Document Type Icons on Cards
 **Feature:** Document cards now display type-specific icons centered on the card for better visual identification.
