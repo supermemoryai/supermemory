@@ -1,4 +1,5 @@
 import type { LanguageModelV2CallOptions } from "@ai-sdk/provider"
+import { deduplicateMemories } from "../shared"
 import type { Logger } from "./logger"
 import { convertProfileToMarkdown, type ProfileStructure } from "./util"
 
@@ -88,12 +89,41 @@ export const addSystemPrompt = async (
 		mode,
 	})
 
+	const deduplicated = deduplicateMemories({
+		static: memoriesResponse.profile.static,
+		dynamic: memoriesResponse.profile.dynamic,
+		searchResults: memoriesResponse.searchResults.results,
+	})
+
+	logger.debug("Memory deduplication completed", {
+		static: {
+			original: memoryCountStatic,
+			deduplicated: deduplicated.static.length,
+		},
+		dynamic: {
+			original: memoryCountDynamic,
+			deduplicated: deduplicated.dynamic.length,
+		},
+		searchResults: {
+			original: memoriesResponse.searchResults.results.length,
+			deduplicated: deduplicated.searchResults.length,
+		},
+	})
+
 	const profileData =
-		mode !== "query" ? convertProfileToMarkdown(memoriesResponse) : ""
+		mode !== "query"
+			? convertProfileToMarkdown({
+					profile: {
+						static: deduplicated.static,
+						dynamic: deduplicated.dynamic,
+					},
+					searchResults: { results: [] },
+				})
+			: ""
 	const searchResultsMemories =
 		mode !== "profile"
-			? `Search results for user's recent message: \n${memoriesResponse.searchResults.results
-					.map((result) => `- ${result.memory}`)
+			? `Search results for user's recent message: \n${deduplicated.searchResults
+					.map((memory) => `- ${memory}`)
 					.join("\n")}`
 			: ""
 

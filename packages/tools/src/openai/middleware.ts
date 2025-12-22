@@ -1,6 +1,7 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
+import { deduplicateMemories } from "../shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
 
@@ -180,26 +181,41 @@ const addSystemPrompt = async (
 		mode,
 	})
 
+	const deduplicated = deduplicateMemories({
+		static: memoriesResponse.profile.static,
+		dynamic: memoriesResponse.profile.dynamic,
+		searchResults: memoriesResponse.searchResults.results,
+	})
+
+	logger.debug("Memory deduplication completed for chat API", {
+		static: {
+			original: memoryCountStatic,
+			deduplicated: deduplicated.static.length,
+		},
+		dynamic: {
+			original: memoryCountDynamic,
+			deduplicated: deduplicated.dynamic.length,
+		},
+		searchResults: {
+			original: memoriesResponse.searchResults.results.length,
+			deduplicated: deduplicated.searchResults.length,
+		},
+	})
+
 	const profileData =
 		mode !== "query"
 			? convertProfileToMarkdown({
 					profile: {
-						static: memoriesResponse.profile.static?.map((item) => item.memory),
-						dynamic: memoriesResponse.profile.dynamic?.map(
-							(item) => item.memory,
-						),
+						static: deduplicated.static,
+						dynamic: deduplicated.dynamic,
 					},
-					searchResults: {
-						results: memoriesResponse.searchResults.results.map((item) => ({
-							memory: item.memory,
-						})) as [{ memory: string }],
-					},
+					searchResults: { results: [] },
 				})
 			: ""
 	const searchResultsMemories =
 		mode !== "profile"
-			? `Search results for user's recent message: \n${memoriesResponse.searchResults.results
-					.map((result) => `- ${result.memory}`)
+			? `Search results for user's recent message: \n${deduplicated.searchResults
+					.map((memory) => `- ${memory}`)
 					.join("\n")}`
 			: ""
 
@@ -448,28 +464,41 @@ export function createOpenAIMiddleware(
 			mode,
 		})
 
+		const deduplicated = deduplicateMemories({
+			static: memoriesResponse.profile.static,
+			dynamic: memoriesResponse.profile.dynamic,
+			searchResults: memoriesResponse.searchResults.results,
+		})
+
+		logger.debug(`Memory deduplication completed for ${context} API`, {
+			static: {
+				original: memoryCountStatic,
+				deduplicated: deduplicated.static.length,
+			},
+			dynamic: {
+				original: memoryCountDynamic,
+				deduplicated: deduplicated.dynamic.length,
+			},
+			searchResults: {
+				original: memoriesResponse.searchResults.results.length,
+				deduplicated: deduplicated.searchResults.length,
+			},
+		})
+
 		const profileData =
 			mode !== "query"
 				? convertProfileToMarkdown({
 						profile: {
-							static: memoriesResponse.profile.static?.map(
-								(item) => item.memory,
-							),
-							dynamic: memoriesResponse.profile.dynamic?.map(
-								(item) => item.memory,
-							),
+							static: deduplicated.static,
+							dynamic: deduplicated.dynamic,
 						},
-						searchResults: {
-							results: memoriesResponse.searchResults.results.map((item) => ({
-								memory: item.memory,
-							})) as [{ memory: string }],
-						},
+						searchResults: { results: [] },
 					})
 				: ""
 		const searchResultsMemories =
 			mode !== "profile"
-				? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${memoriesResponse.searchResults.results
-						.map((result) => `- ${result.memory}`)
+				? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${deduplicated.searchResults
+						.map((memory) => `- ${memory}`)
 						.join("\n")}`
 				: ""
 
