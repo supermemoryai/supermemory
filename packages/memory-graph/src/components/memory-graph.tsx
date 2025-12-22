@@ -405,6 +405,49 @@ export const MemoryGraph = ({
 		return nodes.find((n) => n.id === selectedNode) || null
 	}, [selectedNode, nodes])
 
+	// Calculate popover position (memoized for performance)
+	const popoverPosition = useMemo(() => {
+		if (!selectedNodeData) return null
+
+		// Calculate screen position of the node
+		const screenX = selectedNodeData.x * zoom + panX
+		const screenY = selectedNodeData.y * zoom + panY
+
+		// Popover dimensions (estimated)
+		const popoverWidth = 320
+		const popoverHeight = 400
+		const offset = 40
+		const padding = 16
+
+		// Smart positioning: flip to other side if would go off-screen
+		let popoverX = screenX + offset
+		let popoverY = screenY - 20
+
+		// Check right edge
+		if (popoverX + popoverWidth > containerSize.width - padding) {
+			// Flip to left side of node
+			popoverX = screenX - popoverWidth - offset
+		}
+
+		// Check left edge
+		if (popoverX < padding) {
+			popoverX = padding
+		}
+
+		// Check bottom edge
+		if (popoverY + popoverHeight > containerSize.height - padding) {
+			// Move up
+			popoverY = containerSize.height - popoverHeight - padding
+		}
+
+		// Check top edge
+		if (popoverY < padding) {
+			popoverY = padding
+		}
+
+		return { x: popoverX, y: popoverY }
+	}, [selectedNodeData, zoom, panX, containerSize.width, containerSize.height])
+
 	// Viewport-based loading: load more when most documents are visible (optional)
 	const checkAndLoadMore = useCallback(() => {
 		if (
@@ -532,52 +575,14 @@ export const MemoryGraph = ({
 			/>
 
 			{/* Node popover - positioned near clicked node */}
-			{selectedNodeData && (() => {
-				// Calculate screen position of the node
-				const screenX = selectedNodeData.x * zoom + panX
-				const screenY = selectedNodeData.y * zoom + panY
-
-				// Popover dimensions (estimated)
-				const popoverWidth = 300
-				const popoverHeight = 200
-				const offset = 40
-				const padding = 16
-
-				// Smart positioning: flip to other side if would go off-screen
-				let popoverX = screenX + offset
-				let popoverY = screenY - 20
-
-				// Check right edge
-				if (popoverX + popoverWidth > containerSize.width - padding) {
-					// Flip to left side of node
-					popoverX = screenX - popoverWidth - offset
-				}
-
-				// Check left edge
-				if (popoverX < padding) {
-					popoverX = padding
-				}
-
-				// Check bottom edge
-				if (popoverY + popoverHeight > containerSize.height - padding) {
-					// Move up
-					popoverY = containerSize.height - popoverHeight - padding
-				}
-
-				// Check top edge
-				if (popoverY < padding) {
-					popoverY = padding
-				}
-
-				return (
-					<NodePopover
-						node={selectedNodeData}
-						x={popoverX}
-						y={popoverY}
-						onClose={() => setSelectedNode(null)}
-					/>
-				)
-			})()}
+			{selectedNodeData && popoverPosition && (
+				<NodePopover
+					node={selectedNodeData}
+					x={popoverPosition.x}
+					y={popoverPosition.y}
+					onClose={() => setSelectedNode(null)}
+				/>
+			)}
 
 			{/* Show welcome screen when no memories exist */}
 			{!isLoading &&

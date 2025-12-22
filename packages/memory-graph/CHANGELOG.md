@@ -2,6 +2,20 @@
 
 ## Visual & Layout Improvements (2025-12-21)
 
+### Smart Positioning Node Popover
+**Feature:** Clicking nodes now shows a floating popover with detailed information, positioned near the node with smart viewport edge detection.
+
+**Implementation:**
+- DOM-based popover
+- Auto-positions to avoid viewport edges
+- Click-outside to close
+- Shows all node metadata: title, summary (2-line truncation), type, memory count, URL, creation date, and ID
+- For memories: includes space, expiration date (if applicable), and forgotten status
+
+**Files Changed:**
+- `src/components/node-popover.tsx` - New popover component
+- `src/components/memory-graph.tsx` - Smart positioning logic
+
 ### Document Type Icons on Cards
 **Feature:** Document cards now display type-specific icons centered on the card for better visual identification.
 
