@@ -82,6 +82,8 @@ export interface GraphCanvasProps {
 	highlightDocumentIds?: string[]
 	// Physics simulation state
 	isSimulationActive?: boolean
+	// Selected node ID - dims all other nodes and edges
+	selectedNodeId?: string | null
 }
 
 export interface MemoryGraphProps {

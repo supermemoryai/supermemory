@@ -7,6 +7,7 @@ import {
 	useLayoutEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react"
 import { colors } from "@/constants"
 import type {
@@ -43,17 +44,56 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		draggingNodeId,
 		highlightDocumentIds,
 		isSimulationActive = false,
+		selectedNodeId = null,
 	}) => {
 		const canvasRef = useRef<HTMLCanvasElement>(null)
 		const animationRef = useRef<number>(0)
 		const startTimeRef = useRef<number>(Date.now())
 		const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
 		const currentHoveredNode = useRef<string | null>(null)
+		const dimProgress = useRef<number>(selectedNodeId ? 1 : 0)
+		const dimAnimationRef = useRef<number>(0)
+		const [, forceRender] = useState(0)
 
 		// Initialize start time once
 		useEffect(() => {
 			startTimeRef.current = Date.now()
 		}, [])
+
+		// Smooth dimming animation
+		useEffect(() => {
+			const targetDim = selectedNodeId ? 1 : 0
+			const duration = 200 // milliseconds
+			const startDim = dimProgress.current
+			const startTime = Date.now()
+
+			const animate = () => {
+				const elapsed = Date.now() - startTime
+				const progress = Math.min(elapsed / duration, 1)
+
+				// Ease-out cubic easing for smooth deceleration
+				const eased = 1 - Math.pow(1 - progress, 3)
+				dimProgress.current = startDim + (targetDim - startDim) * eased
+
+				// Force re-render to update canvas during animation
+				forceRender(prev => prev + 1)
+
+				if (progress < 1) {
+					dimAnimationRef.current = requestAnimationFrame(animate)
+				}
+			}
+
+			if (dimAnimationRef.current) {
+				cancelAnimationFrame(dimAnimationRef.current)
+			}
+			animate()
+
+			return () => {
+				if (dimAnimationRef.current) {
+					cancelAnimationFrame(dimAnimationRef.current)
+				}
+			}
+		}, [selectedNodeId])
 
 		// Efficient hit detection
 		const getNodeAtPosition = useCallback(
@@ -246,22 +286,29 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						}
 					}
 
+					// Check if edge should be dimmed (not connected to selected node)
+					const edgeShouldDim = selectedNodeId !== null &&
+						sourceNode.id !== selectedNodeId &&
+						targetNode.id !== selectedNodeId
+					// Smooth edge opacity: interpolate between full and 0.1 (dimmed)
+					const edgeDimOpacity = 1 - (dimProgress.current * 0.9)
+
 					// Enhanced connection styling based on edge type
 					let connectionColor = colors.connection.weak
 					let dashPattern: number[] = []
-					let opacity = edge.visualProps.opacity
+					let opacity = edgeShouldDim ? edgeDimOpacity : edge.visualProps.opacity
 					let lineWidth = Math.max(1, edge.visualProps.thickness * zoom)
 
 					if (edge.edgeType === "doc-memory") {
 						// Doc-memory: Solid thin lines, subtle
 						dashPattern = []
 						connectionColor = colors.connection.memory
-						opacity = 0.9
+						opacity = edgeShouldDim ? edgeDimOpacity : 0.9
 						lineWidth = 1
 					} else if (edge.edgeType === "doc-doc") {
 						// Doc-doc: Thick dashed lines with strong similarity emphasis
 						dashPattern = useSimplifiedRendering ? [] : [10, 5] // Solid lines when zoomed out
-						opacity = Math.max(0, edge.similarity * 0.5)
+						opacity = edgeShouldDim ? edgeDimOpacity : Math.max(0, edge.similarity * 0.5)
 						lineWidth = Math.max(1, edge.similarity * 2) // Thicker for stronger similarity
 
 						if (edge.similarity > 0.85)
@@ -272,7 +319,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						// Version chains: Double line effect with relation-specific colors
 						dashPattern = []
 						connectionColor = edge.color || colors.relations.updates
-						opacity = 0.8
+						opacity = edgeShouldDim ? edgeDimOpacity : 0.8
 						lineWidth = 2
 					}
 
@@ -389,6 +436,10 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 
 				const isHovered = currentHoveredNode.current === node.id
 				const isDragging = node.isDragging
+				const isSelected = selectedNodeId === node.id
+				const shouldDim = selectedNodeId !== null && !isSelected
+				// Smooth opacity: interpolate between 1 (full) and 0.2 (dimmed) based on animation progress
+				const nodeOpacity = shouldDim ? 1 - (dimProgress.current * 0.8) : 1
 				const isHighlightedDocument = (() => {
 					if (node.type !== "document" || highlightSet.size === 0) return false
 					const doc = node.data as DocumentWithMemories
@@ -407,7 +458,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						: isHovered
 							? colors.document.secondary
 							: colors.document.primary
-					ctx.globalAlpha = 1
+					ctx.globalAlpha = nodeOpacity
 
 					// Enhanced border with subtle glow
 					ctx.strokeStyle = isDragging
@@ -530,7 +581,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const radius = nodeSize / 2
 
 					ctx.fillStyle = fillColor
-					ctx.globalAlpha = isLatest ? 1 : 0.4
+					ctx.globalAlpha = shouldDim ? nodeOpacity : (isLatest ? 1 : 0.4)
 					ctx.strokeStyle = borderColor
 					ctx.lineWidth = isDragging ? 3 : isHovered ? 2 : 1.5
 

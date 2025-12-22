@@ -1,5 +1,49 @@
 # Memory Graph Changes
 
+> **Testing Playground:** To test changes, run these 2 commands in separate terminals:
+>
+> **Terminal 1** - Build memory-graph in watch mode:
+> ```bash
+> cd packages/memory-graph && bun run dev
+> ```
+>
+> **Terminal 2** - Run the playground:
+> ```bash
+> cd apps/memory-graph-playground && bun run dev
+> ```
+>
+> Then open http://localhost:3000 in your browser.
+
+## Visual & Layout Improvements (2025-12-22)
+
+### Background Dimming When Popover is Open
+**Feature:** When a popover is opened for a doc/memory node, the background dims while the selected node and popover remain in full focus.
+
+**Implementation:**
+- Smooth animated dimming: 200ms ease-out cubic transition
+- Canvas-based dimming: non-selected nodes reduced to 20% opacity
+- Edges not connected to selected node reduced to 10% opacity
+- Selected node remains at full opacity (1.0) for clear focus
+- Transparent backdrop for click-outside-to-close functionality
+- Escape key handler to close popover
+- Popover positioned at z-index 1000
+
+**User Experience:**
+- Smooth, polished transition when opening/closing popovers
+- Creates clear visual hierarchy when inspecting individual nodes
+- Selected node stays bright and visible
+- Reduces visual noise from surrounding graph elements
+- Makes popover content easier to read
+- Multiple ways to close: click backdrop, click X button, or press Escape key
+
+**Files Changed:**
+- `src/components/node-popover.tsx:3,20-29` - Escape key handler and transparent backdrop
+- `src/components/graph-canvas.tsx:53-54,62-91,289,294,301,306,317,435,454,577` - Smooth animation and dimming logic
+- `src/components/memory-graph.tsx:620` - Pass selectedNodeId to canvas
+- `src/types.ts:86` - Added selectedNodeId prop to GraphCanvasProps
+
+---
+
 ## Visual & Layout Improvements (2025-12-21)
 
 ### Smart Positioning Node Popover

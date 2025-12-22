@@ -1,6 +1,6 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useEffect } from "react"
 import type { GraphNode } from "@/types"
 
 export interface NodePopoverProps {
@@ -16,6 +16,18 @@ export const NodePopover = memo<NodePopoverProps>(function NodePopover({
 	y,
 	onClose,
 }) {
+	// Handle Escape key to close popover
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				onClose()
+			}
+		}
+
+		window.addEventListener("keydown", handleKeyDown)
+		return () => window.removeEventListener("keydown", handleKeyDown)
+	}, [onClose])
+
 	return (
 		<>
 			{/* Invisible backdrop to catch clicks outside */}
@@ -26,6 +38,7 @@ export const NodePopover = memo<NodePopoverProps>(function NodePopover({
 					inset: 0,
 					zIndex: 999,
 					pointerEvents: "auto",
+					backgroundColor: "transparent",
 				}}
 			/>
 
