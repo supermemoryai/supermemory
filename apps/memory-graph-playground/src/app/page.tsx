@@ -29,6 +29,10 @@ export default function Home() {
 	// State for controlled space selection
 	const [selectedSpace, setSelectedSpace] = useState<string>("all")
 
+	// State for slideshow
+	const [isSlideshowActive, setIsSlideshowActive] = useState(false)
+	const [currentSlideshowNode, setCurrentSlideshowNode] = useState<string | null>(null)
+
 	const PAGE_SIZE = 500
 
 	const fetchDocuments = useCallback(
@@ -109,6 +113,18 @@ export default function Home() {
 		setSelectedSpace("all")
 	}
 
+	// Toggle slideshow
+	const handleToggleSlideshow = () => {
+		setIsSlideshowActive((prev) => !prev)
+	}
+
+	// Handle slideshow node change
+	const handleSlideshowNodeChange = useCallback((nodeId: string | null) => {
+		// Track which node is being shown in slideshow
+		setCurrentSlideshowNode(nodeId)
+		console.log("Slideshow showing node:", nodeId)
+	}, [])
+
 	return (
 		<div className="flex flex-col h-screen bg-zinc-950">
 			{/* Header */}
@@ -158,12 +174,50 @@ export default function Home() {
 								</span>
 							</div>
 						</div>
-						<button
-							onClick={handleReset}
-							className="rounded-lg border border-zinc-700 px-3 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
-						>
-							Reset Filters
-						</button>
+						<div className="flex items-center gap-3">
+							<button
+								onClick={handleToggleSlideshow}
+								className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1.5 ${
+									isSlideshowActive
+										? "bg-blue-600 text-white hover:bg-blue-700"
+										: "border border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+								}`}
+							>
+								{isSlideshowActive ? (
+									<>
+										<svg
+											width="12"
+											height="12"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+										>
+											<rect x="6" y="4" width="4" height="16" />
+											<rect x="14" y="4" width="4" height="16" />
+										</svg>
+										Stop Slideshow
+									</>
+								) : (
+									<>
+										<svg
+											width="12"
+											height="12"
+											viewBox="0 0 24 24"
+											fill="currentColor"
+										>
+											<path d="M8 5v14l11-7z" />
+										</svg>
+										Start Slideshow
+									</>
+								)}
+							</button>
+							<div className="h-6 w-px bg-zinc-700" />
+							<button
+								onClick={handleReset}
+								className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
+							>
+								Reset Filters
+							</button>
+						</div>
 					</div>
 				</div>
 			)}
@@ -225,6 +279,9 @@ export default function Home() {
 							// Controlled space selection
 							selectedSpace={selectedSpace}
 							onSpaceChange={handleSpaceChange}
+							// Slideshow control
+							isSlideshowActive={isSlideshowActive}
+							onSlideshowNodeChange={handleSlideshowNodeChange}
 						>
 							<div className="flex h-full items-center justify-center">
 								<p className="text-zinc-400">

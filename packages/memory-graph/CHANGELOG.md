@@ -14,6 +14,19 @@
 >
 > Then open http://localhost:3000 in your browser.
 
+## Slideshow Feature (2025-12-22)
+
+**Feature:** Added slideshow mode to automatically cycle through nodes with smooth animations and physics.
+
+**Implementation:**
+- `isSlideshowActive` and `onSlideshowNodeChange` props for slideshow control
+- Random node selection every 3.5 seconds (avoids consecutive duplicates)
+- Smooth pan-to-node animation with automatic popover display
+- Physics simulation triggers briefly (1s) on each selection for natural movement
+- Background dimming animation on each node selection
+- Popover backdrop scoped to graph container via `containerBounds` prop
+- Single-click stop with automatic popover cleanup
+
 ## Visual & Layout Improvements (2025-12-22)
 
 ### Background Dimming When Popover is Open

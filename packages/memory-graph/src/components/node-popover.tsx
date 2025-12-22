@@ -8,6 +8,7 @@ export interface NodePopoverProps {
 	x: number // Screen X position
 	y: number // Screen Y position
 	onClose: () => void
+	containerBounds?: DOMRect // Optional container bounds to limit backdrop
 }
 
 export const NodePopover = memo<NodePopoverProps>(function NodePopover({
@@ -15,6 +16,7 @@ export const NodePopover = memo<NodePopoverProps>(function NodePopover({
 	x,
 	y,
 	onClose,
+	containerBounds,
 }) {
 	// Handle Escape key to close popover
 	useEffect(() => {
@@ -28,19 +30,30 @@ export const NodePopover = memo<NodePopoverProps>(function NodePopover({
 		return () => window.removeEventListener("keydown", handleKeyDown)
 	}, [onClose])
 
+	// Calculate backdrop bounds - use container bounds if provided, otherwise full viewport
+	const backdropStyle = containerBounds
+		? {
+				position: "fixed" as const,
+				left: `${containerBounds.left}px`,
+				top: `${containerBounds.top}px`,
+				width: `${containerBounds.width}px`,
+				height: `${containerBounds.height}px`,
+				zIndex: 999,
+				pointerEvents: "auto" as const,
+				backgroundColor: "transparent",
+			}
+		: {
+				position: "fixed" as const,
+				inset: 0,
+				zIndex: 999,
+				pointerEvents: "auto" as const,
+				backgroundColor: "transparent",
+			}
+
 	return (
 		<>
 			{/* Invisible backdrop to catch clicks outside */}
-			<div
-				onClick={onClose}
-				style={{
-					position: "fixed",
-					inset: 0,
-					zIndex: 999,
-					pointerEvents: "auto",
-					backgroundColor: "transparent",
-				}}
-			/>
+			<div onClick={onClose} style={backdropStyle} />
 
 			{/* Popover content */}
 			<div

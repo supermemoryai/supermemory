@@ -40,6 +40,9 @@ export const MemoryGraph = ({
 	onSpaceChange: externalOnSpaceChange,
 	memoryLimit,
 	isExperimental,
+	// Slideshow control
+	isSlideshowActive = false,
+	onSlideshowNodeChange,
 }: MemoryGraphProps) => {
 	// Inject styles on first render (client-side only)
 	useEffect(() => {
@@ -531,6 +534,109 @@ export const MemoryGraph = ({
 		}
 	}, [data, hasMore, throttledCheckAndLoadMore, autoLoadOnViewport])
 
+	// Slideshow logic - simulate actual node clicks with physics
+	const slideshowIntervalRef = useRef<NodeJS.Timeout | null>(null)
+	const lastSelectedIndexRef = useRef<number>(-1)
+	const isSlideshowActiveRef = useRef(isSlideshowActive)
+
+	// Update slideshow active ref
+	useEffect(() => {
+		isSlideshowActiveRef.current = isSlideshowActive
+	}, [isSlideshowActive])
+
+	// Use refs to store current values without triggering re-renders
+	const nodesRef = useRef(nodes)
+	const handleNodeClickRef = useRef(handleNodeClick)
+	const centerViewportOnRef = useRef(centerViewportOn)
+	const containerSizeRef = useRef(containerSize)
+	const onSlideshowNodeChangeRef = useRef(onSlideshowNodeChange)
+	const forceSimulationRef = useRef(forceSimulation)
+
+	// Update refs when values change
+	useEffect(() => {
+		nodesRef.current = nodes
+		handleNodeClickRef.current = handleNodeClick
+		centerViewportOnRef.current = centerViewportOn
+		containerSizeRef.current = containerSize
+		onSlideshowNodeChangeRef.current = onSlideshowNodeChange
+		forceSimulationRef.current = forceSimulation
+	}, [nodes, handleNodeClick, centerViewportOn, containerSize, onSlideshowNodeChange, forceSimulation])
+
+	useEffect(() => {
+		// Clear any existing interval when isSlideshowActive changes
+		if (slideshowIntervalRef.current) {
+			clearInterval(slideshowIntervalRef.current)
+			slideshowIntervalRef.current = null
+		}
+
+		if (!isSlideshowActive) {
+			// Close the popover when stopping slideshow
+			setSelectedNode(null)
+			return
+		}
+
+		// Select a random node (avoid selecting the same one twice in a row)
+		const selectRandomNode = () => {
+			// Double-check slideshow is still active
+			if (!isSlideshowActiveRef.current) return
+
+			const currentNodes = nodesRef.current
+			if (currentNodes.length === 0) return
+
+			let randomIndex: number
+			// If we have more than one node, avoid selecting the same one
+			if (currentNodes.length > 1) {
+				do {
+					randomIndex = Math.floor(Math.random() * currentNodes.length)
+				} while (randomIndex === lastSelectedIndexRef.current)
+			} else {
+				randomIndex = 0
+			}
+
+			lastSelectedIndexRef.current = randomIndex
+			const randomNode = currentNodes[randomIndex]
+
+			if (randomNode) {
+				// Smoothly pan to the node first
+				centerViewportOnRef.current(
+					randomNode.x,
+					randomNode.y,
+					containerSizeRef.current.width,
+					containerSizeRef.current.height,
+				)
+
+				// Simulate the actual node click (triggers dimming and popover)
+				handleNodeClickRef.current(randomNode.id)
+
+				// Trigger physics animation briefly
+				forceSimulationRef.current.reheat()
+
+				// Cool down physics after 1 second
+				setTimeout(() => {
+					forceSimulationRef.current.coolDown()
+				}, 1000)
+
+				// Notify parent component
+				onSlideshowNodeChangeRef.current?.(randomNode.id)
+			}
+		}
+
+		// Start immediately
+		selectRandomNode()
+
+		// Set interval for subsequent selections (3.5 seconds)
+		slideshowIntervalRef.current = setInterval(() => {
+			selectRandomNode()
+		}, 3500)
+
+		return () => {
+			if (slideshowIntervalRef.current) {
+				clearInterval(slideshowIntervalRef.current)
+				slideshowIntervalRef.current = null
+			}
+		}
+	}, [isSlideshowActive]) // Only depend on isSlideshowActive
+
 	if (error) {
 		return (
 			<div className={styles.errorContainer}>
@@ -586,6 +692,7 @@ export const MemoryGraph = ({
 					x={popoverPosition.x}
 					y={popoverPosition.y}
 					onClose={() => setSelectedNode(null)}
+					containerBounds={containerRef.current?.getBoundingClientRect()}
 				/>
 			)}
 

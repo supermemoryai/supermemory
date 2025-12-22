@@ -133,6 +133,12 @@ export interface MemoryGraphProps {
 	// Feature flags
 	/** Enable experimental features */
 	isExperimental?: boolean
+
+	// Slideshow control
+	/** Whether slideshow mode is currently active */
+	isSlideshowActive?: boolean
+	/** Callback when slideshow selects a new node (provides node ID) */
+	onSlideshowNodeChange?: (nodeId: string | null) => void
 }
 
 export interface LegendProps {
