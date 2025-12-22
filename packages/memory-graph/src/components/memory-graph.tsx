@@ -43,6 +43,7 @@ export const MemoryGraph = ({
 	// Slideshow control
 	isSlideshowActive = false,
 	onSlideshowNodeChange,
+	onSlideshowStop,
 }: MemoryGraphProps) => {
 	// Inject styles on first render (client-side only)
 	useEffect(() => {
@@ -706,6 +707,7 @@ export const MemoryGraph = ({
 					y={popoverPosition.y}
 					onClose={() => setSelectedNode(null)}
 					containerBounds={containerRef.current?.getBoundingClientRect()}
+					onBackdropClick={isSlideshowActive ? onSlideshowStop : undefined}
 				/>
 			)}
 

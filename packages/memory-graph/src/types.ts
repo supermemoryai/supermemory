@@ -139,6 +139,8 @@ export interface MemoryGraphProps {
 	isSlideshowActive?: boolean
 	/** Callback when slideshow selects a new node (provides node ID) */
 	onSlideshowNodeChange?: (nodeId: string | null) => void
+	/** Callback when user clicks outside during slideshow (to stop it) */
+	onSlideshowStop?: () => void
 }
 
 export interface LegendProps {

@@ -125,6 +125,11 @@ export default function Home() {
 		console.log("Slideshow showing node:", nodeId)
 	}, [])
 
+	// Handle slideshow stop (when user clicks outside)
+	const handleSlideshowStop = useCallback(() => {
+		setIsSlideshowActive(false)
+	}, [])
+
 	return (
 		<div className="flex flex-col h-screen bg-zinc-950">
 			{/* Header */}
@@ -191,10 +196,9 @@ export default function Home() {
 											viewBox="0 0 24 24"
 											fill="currentColor"
 										>
-											<rect x="6" y="4" width="4" height="16" />
-											<rect x="14" y="4" width="4" height="16" />
+											<rect x="6" y="6" width="12" height="12" />
 										</svg>
-										Stop Slideshow
+										Slideshow
 									</>
 								) : (
 									<>
@@ -206,7 +210,7 @@ export default function Home() {
 										>
 											<path d="M8 5v14l11-7z" />
 										</svg>
-										Start Slideshow
+										Slideshow
 									</>
 								)}
 							</button>
@@ -282,6 +286,7 @@ export default function Home() {
 							// Slideshow control
 							isSlideshowActive={isSlideshowActive}
 							onSlideshowNodeChange={handleSlideshowNodeChange}
+							onSlideshowStop={handleSlideshowStop}
 						>
 							<div className="flex h-full items-center justify-center">
 								<p className="text-zinc-400">

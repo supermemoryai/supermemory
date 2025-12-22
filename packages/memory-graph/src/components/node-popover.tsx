@@ -9,6 +9,7 @@ export interface NodePopoverProps {
 	y: number // Screen Y position
 	onClose: () => void
 	containerBounds?: DOMRect // Optional container bounds to limit backdrop
+	onBackdropClick?: () => void // Optional callback when backdrop is clicked
 }
 
 export const NodePopover = memo<NodePopoverProps>(function NodePopover({
@@ -17,6 +18,7 @@ export const NodePopover = memo<NodePopoverProps>(function NodePopover({
 	y,
 	onClose,
 	containerBounds,
+	onBackdropClick,
 }) {
 	// Handle Escape key to close popover
 	useEffect(() => {
@@ -50,10 +52,15 @@ export const NodePopover = memo<NodePopoverProps>(function NodePopover({
 				backgroundColor: "transparent",
 			}
 
+	const handleBackdropClick = () => {
+		onBackdropClick?.()
+		onClose()
+	}
+
 	return (
 		<>
 			{/* Invisible backdrop to catch clicks outside */}
-			<div onClick={onClose} style={backdropStyle} />
+			<div onClick={handleBackdropClick} style={backdropStyle} />
 
 			{/* Popover content */}
 			<div
