@@ -536,6 +536,7 @@ export const MemoryGraph = ({
 
 	// Slideshow logic - simulate actual node clicks with physics
 	const slideshowIntervalRef = useRef<NodeJS.Timeout | null>(null)
+	const physicsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 	const lastSelectedIndexRef = useRef<number>(-1)
 	const isSlideshowActiveRef = useRef(isSlideshowActive)
 
@@ -563,10 +564,14 @@ export const MemoryGraph = ({
 	}, [nodes, handleNodeClick, centerViewportOn, containerSize, onSlideshowNodeChange, forceSimulation])
 
 	useEffect(() => {
-		// Clear any existing interval when isSlideshowActive changes
+		// Clear any existing interval and timeout when isSlideshowActive changes
 		if (slideshowIntervalRef.current) {
 			clearInterval(slideshowIntervalRef.current)
 			slideshowIntervalRef.current = null
+		}
+		if (physicsTimeoutRef.current) {
+			clearTimeout(physicsTimeoutRef.current)
+			physicsTimeoutRef.current = null
 		}
 
 		if (!isSlideshowActive) {
@@ -611,9 +616,13 @@ export const MemoryGraph = ({
 				// Trigger physics animation briefly
 				forceSimulationRef.current.reheat()
 
-				// Cool down physics after 1 second
-				setTimeout(() => {
+				// Cool down physics after 1 second (cleanup old timeout first)
+				if (physicsTimeoutRef.current) {
+					clearTimeout(physicsTimeoutRef.current)
+				}
+				physicsTimeoutRef.current = setTimeout(() => {
 					forceSimulationRef.current.coolDown()
+					physicsTimeoutRef.current = null
 				}, 1000)
 
 				// Notify parent component
@@ -633,6 +642,10 @@ export const MemoryGraph = ({
 			if (slideshowIntervalRef.current) {
 				clearInterval(slideshowIntervalRef.current)
 				slideshowIntervalRef.current = null
+			}
+			if (physicsTimeoutRef.current) {
+				clearTimeout(physicsTimeoutRef.current)
+				physicsTimeoutRef.current = null
 			}
 		}
 	}, [isSlideshowActive]) // Only depend on isSlideshowActive
