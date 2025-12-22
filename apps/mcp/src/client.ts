@@ -26,6 +26,16 @@ export interface ProfileResponse {
 	searchResults?: SearchResult
 }
 
+export interface Project {
+	id: string
+	name: string
+	containerTag: string
+	createdAt: string
+	updatedAt: string
+	isExperimental: boolean
+	documentCount?: number
+}
+
 function limitByTokens(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
@@ -42,21 +52,29 @@ interface SDKResult {
 
 export class SupermemoryClient {
 	private client: Supermemory
-	private containerTag?: string
+	private containerTag: string
+	private apiKey: string
 
 	constructor(apiKey: string, containerTag?: string) {
+		this.apiKey = apiKey
 		this.client = new Supermemory({ apiKey })
 		this.containerTag = containerTag || "sm_default_project"
 	}
 
 	// Create memory using SDK
-	async createMemory(content: string): Promise<{ id: string; status: string }> {
+	async createMemory(
+		content: string,
+	): Promise<{ id: string; status: string; containerTag: string }> {
 		try {
 			const result = await this.client.memories.add({
 				content,
 				containerTag: this.containerTag,
 			})
-			return { id: result.id, status: "queued" }
+			return {
+				id: result.id,
+				status: "queued",
+				containerTag: this.containerTag,
+			}
 		} catch (error) {
 			this.handleError(error)
 			throw error
@@ -66,7 +84,7 @@ export class SupermemoryClient {
 	// Delete/forget memory by searching first
 	async forgetMemory(
 		content: string,
-	): Promise<{ success: boolean; message: string }> {
+	): Promise<{ success: boolean; message: string; containerTag: string }> {
 		try {
 			// First search for the memory
 			const searchResult = await this.search(content, 5)
@@ -75,6 +93,7 @@ export class SupermemoryClient {
 				return {
 					success: false,
 					message: "No matching memory found to forget.",
+					containerTag: this.containerTag,
 				}
 			}
 
@@ -86,6 +105,7 @@ export class SupermemoryClient {
 			return {
 				success: true,
 				message: `Forgot: "${limitByTokens(memoryText, 100)}"`,
+				containerTag: this.containerTag,
 			}
 		} catch (error) {
 			this.handleError(error)
@@ -100,7 +120,7 @@ export class SupermemoryClient {
 				q: query,
 				limit,
 				containerTag: this.containerTag,
-				searchMode: "hybrid"
+				searchMode: "hybrid",
 			})
 
 			console.log(result)
@@ -127,10 +147,6 @@ export class SupermemoryClient {
 
 	// Get user profile using SDK
 	async getProfile(query?: string): Promise<ProfileResponse> {
-		if (!this.containerTag) {
-			return { profile: { static: [], dynamic: [] } }
-		}
-
 		try {
 			const result = await this.client.profile({
 				containerTag: this.containerTag,
@@ -167,7 +183,30 @@ export class SupermemoryClient {
 
 	// Get projects list
 	async getProjects(): Promise<string[]> {
-		return this.containerTag ? [this.containerTag] : []
+		try {
+			const response = await fetch("https://api.supermemory.ai/v3/projects", {
+				method: "GET",
+				headers: {
+					Authorization: `Bearer ${this.apiKey}`,
+					"Content-Type": "application/json",
+				},
+			})
+
+			if (!response.ok) {
+				if (response.status === 401) {
+					throw new Error("Invalid API key. Get one at supermemory.ai")
+				}
+				throw new Error(`Failed to fetch projects: ${response.statusText}`)
+			}
+
+			const data = (await response.json()) as {
+				projects: Project[]
+			}
+			return data.projects?.map((p) => p.containerTag) || []
+		} catch (error) {
+			this.handleError(error)
+			throw error
+		}
 	}
 
 	private handleError(error: unknown): void {
