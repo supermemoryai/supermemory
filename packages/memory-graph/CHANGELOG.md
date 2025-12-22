@@ -2,6 +2,28 @@
 
 ## Visual & Layout Improvements (2025-12-21)
 
+### Document Type Icons on Cards
+**Feature:** Document cards now display type-specific icons centered on the card for better visual identification.
+
+**Supported Document Types:**
+- 📄 TXT - Text documents (default for unsupported types)
+- 📑 PDF - PDF files
+- 📝 MD - Markdown files
+- 📘 DOC/DOCX - Word documents
+- 📄 RTF - Rich Text Format files
+- 📊 CSV - Comma-separated values (grid icon)
+- {} JSON - JSON files (curly braces)
+
+**Implementation:**
+- Icon rendering uses Canvas 2D API for performance
+- Icons scale with card size (40% of card height)
+- Only rendered when zoomed in (skipped in simplified rendering mode)
+- Centered on document cards for better visual balance
+
+**Files Changed:**
+- `src/utils/document-icons.ts` - New utility with canvas-based icon drawing functions
+- `src/components/graph-canvas.tsx:18,471-487` - Icon rendering integration
+
 ### Updated Color Scheme for Better Visual Clarity
 **Changes:**
 - Refined color palette for improved contrast and readability

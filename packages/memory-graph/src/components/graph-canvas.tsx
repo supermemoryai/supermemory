@@ -15,6 +15,7 @@ import type {
 	GraphNode,
 	MemoryEntry,
 } from "@/types"
+import { drawDocumentIcon } from "@/utils/document-icons"
 import { canvasWrapper } from "./canvas-common.css"
 
 export const GraphCanvas = memo<GraphCanvasProps>(
@@ -64,12 +65,30 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const screenY = node.y * zoom + panY
 					const nodeSize = node.size * zoom
 
-					const dx = x - screenX
-					const dy = y - screenY
-					const distance = Math.sqrt(dx * dx + dy * dy)
+					if (node.type === "document") {
+						// Rectangular hit detection for documents (matches visual size)
+						const docWidth = nodeSize * 1.4
+						const docHeight = nodeSize * 0.9
+						const halfW = docWidth / 2
+						const halfH = docHeight / 2
 
-					if (distance <= nodeSize / 2) {
-						return node.id
+						if (
+							x >= screenX - halfW &&
+							x <= screenX + halfW &&
+							y >= screenY - halfH &&
+							y <= screenY + halfH
+						) {
+							return node.id
+						}
+					} else {
+						// Circular hit detection for memory nodes
+						const dx = x - screenX
+						const dy = y - screenY
+						const distance = Math.sqrt(dx * dx + dy * dy)
+
+						if (distance <= nodeSize / 2) {
+							return node.id
+						}
 					}
 				}
 				return null
@@ -433,7 +452,9 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						ctx.strokeStyle = colors.accent.primary
 						ctx.lineWidth = 3
 						ctx.setLineDash([6, 4])
-						const ringPadding = 10
+						// Add equal padding on all sides (15% of average dimension)
+						const avgDimension = (docWidth + docHeight) / 2
+						const ringPadding = avgDimension * 0.1
 						ctx.beginPath()
 						ctx.roundRect(
 							screenX - docWidth / 2 - ringPadding,
@@ -445,6 +466,21 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						ctx.stroke()
 						ctx.setLineDash([])
 						ctx.restore()
+					}
+
+					// Draw document type icon (centered)
+					if (!useSimplifiedRendering) {
+						const doc = node.data as DocumentWithMemories
+						const iconSize = docHeight * 0.4 // Icon size relative to card height
+
+						drawDocumentIcon(
+							ctx,
+							screenX,
+							screenY,
+							iconSize,
+							doc.type || "text",
+							"rgba(255, 255, 255, 0.8)",
+						)
 					}
 				} else {
 					// Enhanced memory styling with status indicators
@@ -581,18 +617,23 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					ctx.globalAlpha = 0.6
 
 					ctx.beginPath()
-					const glowSize = nodeSize * 0.7
 					if (node.type === "document") {
+						// Use actual document dimensions for glow
+						const docWidth = nodeSize * 1.4
+						const docHeight = nodeSize * 0.9
+						// Make glow 10% larger than document
+						const avgDimension = (docWidth + docHeight) / 2
+						const glowPadding = avgDimension * 0.1
 						ctx.roundRect(
-							screenX - glowSize,
-							screenY - glowSize / 1.4,
-							glowSize * 2,
-							glowSize * 1.4,
+							screenX - docWidth / 2 - glowPadding,
+							screenY - docHeight / 2 - glowPadding,
+							docWidth + glowPadding * 2,
+							docHeight + glowPadding * 2,
 							15,
 						)
 					} else {
 						// Hexagonal glow for memory nodes
-						const glowRadius = glowSize
+						const glowRadius = nodeSize * 0.7
 						const sides = 6
 						for (let i = 0; i < sides; i++) {
 							const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
