@@ -40,6 +40,7 @@ export const MemoryGraph = ({
 	onSpaceChange: externalOnSpaceChange,
 	memoryLimit,
 	isExperimental,
+	maxNodes,
 	// Slideshow control
 	isSlideshowActive = false,
 	onSlideshowNodeChange,
@@ -132,6 +133,7 @@ export const MemoryGraph = ({
 		nodePositions,
 		draggingNodeId,
 		memoryLimit,
+		maxNodes,
 	)
 
 	// State to trigger re-renders when simulation ticks

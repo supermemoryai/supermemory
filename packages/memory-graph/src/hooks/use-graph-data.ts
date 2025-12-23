@@ -22,6 +22,7 @@ export function useGraphData(
 	nodePositions: Map<string, { x: number; y: number; parentDocId?: string; offsetX?: number; offsetY?: number }>,
 	draggingNodeId: string | null,
 	memoryLimit?: number,
+	maxNodes?: number,
 ) {
 	// Cache nodes to preserve d3-force mutations (x, y, vx, vy, fx, fy)
 	const nodeCache = useRef<Map<string, GraphNode>>(new Map())
@@ -47,11 +48,19 @@ export function useGraphData(
 		}
 	}, [data, selectedSpace])
 
-	// Memo 1: Filter documents by selected space
+	// Memo 1: Filter documents by selected space and apply node limits
 	const filteredDocuments = useMemo(() => {
 		if (!data?.documents) return []
 
-		return data.documents
+		// Sort documents by most recent first
+		const sortedDocs = [...data.documents].sort((a, b) => {
+			const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+			const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+			return dateB - dateA // Most recent first
+		})
+
+		// Filter by space and prepare documents
+		let processedDocs = sortedDocs
 			.map((doc) => {
 				let memories =
 					selectedSpace === "all"
@@ -62,10 +71,17 @@ export function useGraphData(
 									selectedSpace,
 							)
 
-				// Apply memory limit if provided and a specific space is selected
-				if (selectedSpace !== "all" && memoryLimit && memoryLimit > 0) {
-					memories = memories.slice(0, memoryLimit)
-				}
+				// Sort memories by relevance score (if available) or recency
+				memories = memories.sort((a, b) => {
+					// Prioritize sourceRelevanceScore if available
+					if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
+						return b.sourceRelevanceScore - a.sourceRelevanceScore // Higher score first
+					}
+					// Fall back to most recent
+					const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+					const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+					return dateB - dateA // Most recent first
+				})
 
 				return {
 					...doc,
@@ -73,7 +89,86 @@ export function useGraphData(
 				}
 			})
 			.filter((doc) => doc.memoryEntries.length > 0)
-	}, [data, selectedSpace, memoryLimit])
+
+		// Apply maxNodes limit using Option B (dynamic cap per document)
+		if (maxNodes && maxNodes > 0) {
+			const totalDocs = processedDocs.length
+			if (totalDocs > 0) {
+				// Calculate memories per document to stay within maxNodes budget
+				const memoriesPerDoc = Math.floor(maxNodes / totalDocs)
+
+				// If we need to limit, slice memories for each document
+				if (memoriesPerDoc > 0) {
+					let totalNodes = 0
+					processedDocs = processedDocs.map((doc) => {
+						// Limit memories to calculated amount per doc
+						const limitedMemories = doc.memoryEntries.slice(0, memoriesPerDoc)
+						totalNodes += limitedMemories.length
+						return {
+							...doc,
+							memoryEntries: limitedMemories,
+						}
+					})
+
+					// If we still have budget left, distribute remaining nodes to first docs
+					let remainingBudget = maxNodes - totalNodes
+					if (remainingBudget > 0) {
+						for (let i = 0; i < processedDocs.length && remainingBudget > 0; i++) {
+							const doc = processedDocs[i]
+							if (!doc) continue
+							const originalDoc = sortedDocs.find(d => d.id === doc.id)
+							if (!originalDoc) continue
+
+							const currentMemCount = doc.memoryEntries.length
+							const originalMemCount = originalDoc.memoryEntries.filter(
+								m => selectedSpace === "all" ||
+								(m.spaceContainerTag ?? m.spaceId ?? "default") === selectedSpace
+							).length
+
+							// Can we add more memories to this doc?
+							const canAdd = originalMemCount - currentMemCount
+							if (canAdd > 0) {
+								const toAdd = Math.min(canAdd, remainingBudget)
+								const additionalMems = doc.memoryEntries.slice(0, currentMemCount + toAdd)
+								processedDocs[i] = {
+									...doc,
+									memoryEntries: originalDoc.memoryEntries
+										.filter(m => selectedSpace === "all" ||
+											(m.spaceContainerTag ?? m.spaceId ?? "default") === selectedSpace)
+										.sort((a, b) => {
+											if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
+												return b.sourceRelevanceScore - a.sourceRelevanceScore
+											}
+											const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+											const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+											return dateB - dateA
+										})
+										.slice(0, currentMemCount + toAdd)
+								}
+								remainingBudget -= toAdd
+							}
+						}
+					}
+				} else {
+					// If memoriesPerDoc is 0, we need to limit the number of documents shown
+					// Show at least 1 memory per document, up to maxNodes documents
+					processedDocs = processedDocs.slice(0, maxNodes).map((doc) => ({
+						...doc,
+						memoryEntries: doc.memoryEntries.slice(0, 1),
+					}))
+				}
+			}
+		}
+		// Apply legacy memoryLimit if provided and a specific space is selected
+		else if (selectedSpace !== "all" && memoryLimit && memoryLimit > 0) {
+			processedDocs = processedDocs.map((doc) => ({
+				...doc,
+				memoryEntries: doc.memoryEntries.slice(0, memoryLimit),
+			}))
+		}
+
+		return processedDocs
+	}, [data, selectedSpace, memoryLimit, maxNodes])
 
 	// Memo 2: Calculate similarity edges using k-NN approach
 	const similarityEdges = useMemo(() => {
