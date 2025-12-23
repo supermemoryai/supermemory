@@ -31,7 +31,9 @@ export default function Home() {
 
 	// State for slideshow
 	const [isSlideshowActive, setIsSlideshowActive] = useState(false)
-	const [currentSlideshowNode, setCurrentSlideshowNode] = useState<string | null>(null)
+	const [currentSlideshowNode, setCurrentSlideshowNode] = useState<
+		string | null
+	>(null)
 
 	const PAGE_SIZE = 500
 
@@ -279,7 +281,7 @@ export default function Home() {
 							hasMore={hasMore}
 							loadMoreDocuments={loadMoreDocuments}
 							totalLoaded={documents.length}
-							variant="consumer"
+							variant="console"
 							// Controlled space selection
 							selectedSpace={selectedSpace}
 							onSpaceChange={handleSpaceChange}
