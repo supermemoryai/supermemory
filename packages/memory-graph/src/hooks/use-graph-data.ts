@@ -88,7 +88,6 @@ export function useGraphData(
 					memoryEntries: memories,
 				}
 			})
-			.filter((doc) => doc.memoryEntries.length > 0)
 
 		// Apply maxNodes limit using Option B (dynamic cap per document)
 		if (maxNodes && maxNodes > 0) {

@@ -239,15 +239,13 @@ export const MemoryListView = ({
 			return documents
 		}
 
-		return documents
-			.map((doc) => ({
-				...doc,
-				memoryEntries: doc.memoryEntries.filter(
-					(memory) =>
-						(memory.spaceContainerTag ?? memory.spaceId) === selectedSpace,
-				),
-			}))
-			.filter((doc) => doc.memoryEntries.length > 0)
+		return documents.map((doc) => ({
+			...doc,
+			memoryEntries: doc.memoryEntries.filter(
+				(memory) =>
+					(memory.spaceContainerTag ?? memory.spaceId) === selectedSpace,
+			),
+		}))
 	}, [documents, selectedSpace])
 
 	const handleOpenDetails = useCallback((document: DocumentWithMemories) => {

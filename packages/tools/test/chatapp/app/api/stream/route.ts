@@ -7,6 +7,7 @@ const model = withSupermemory(openai("gpt-4"), "user-123", {
 	addMemory: "always",
 	conversationId: "chat-session",
 	verbose: true,
+	baseUrl: process.env.SUPERMEMORY_BASE_URL,
 })
 
 export async function POST(req: Request) {

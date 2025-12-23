@@ -1,10 +1,18 @@
 import type { LanguageModelV2CallOptions } from "@ai-sdk/provider"
+import { deduplicateMemories } from "../shared"
 import type { Logger } from "./logger"
 import { convertProfileToMarkdown, type ProfileStructure } from "./util"
+
+export const normalizeBaseUrl = (url?: string): string => {
+	const defaultUrl = "https://api.supermemory.ai"
+	if (!url) return defaultUrl
+	return url.endsWith("/") ? url.slice(0, -1) : url
+}
 
 const supermemoryProfileSearch = async (
 	containerTag: string,
 	queryText: string,
+	baseUrl: string,
 ): Promise<ProfileStructure> => {
 	const payload = queryText
 		? JSON.stringify({
@@ -16,7 +24,7 @@ const supermemoryProfileSearch = async (
 			})
 
 	try {
-		const response = await fetch("https://api.supermemory.ai/v4/profile", {
+		const response = await fetch(`${baseUrl}/v4/profile`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -46,6 +54,7 @@ export const addSystemPrompt = async (
 	containerTag: string,
 	logger: Logger,
 	mode: "profile" | "query" | "full",
+	baseUrl = "https://api.supermemory.ai",
 ) => {
 	const systemPromptExists = params.prompt.some(
 		(prompt) => prompt.role === "system",
@@ -65,6 +74,7 @@ export const addSystemPrompt = async (
 	const memoriesResponse = await supermemoryProfileSearch(
 		containerTag,
 		queryText,
+		baseUrl,
 	)
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
@@ -79,12 +89,41 @@ export const addSystemPrompt = async (
 		mode,
 	})
 
+	const deduplicated = deduplicateMemories({
+		static: memoriesResponse.profile.static,
+		dynamic: memoriesResponse.profile.dynamic,
+		searchResults: memoriesResponse.searchResults.results,
+	})
+
+	logger.debug("Memory deduplication completed", {
+		static: {
+			original: memoryCountStatic,
+			deduplicated: deduplicated.static.length,
+		},
+		dynamic: {
+			original: memoryCountDynamic,
+			deduplicated: deduplicated.dynamic.length,
+		},
+		searchResults: {
+			original: memoriesResponse.searchResults.results.length,
+			deduplicated: deduplicated.searchResults.length,
+		},
+	})
+
 	const profileData =
-		mode !== "query" ? convertProfileToMarkdown(memoriesResponse) : ""
+		mode !== "query"
+			? convertProfileToMarkdown({
+					profile: {
+						static: deduplicated.static,
+						dynamic: deduplicated.dynamic,
+					},
+					searchResults: { results: [] },
+				})
+			: ""
 	const searchResultsMemories =
 		mode !== "profile"
-			? `Search results for user's recent message: \n${memoriesResponse.searchResults.results
-					.map((result) => `- ${result.memory}`)
+			? `Search results for user's recent message: \n${deduplicated.searchResults
+					.map((memory) => `- ${memory}`)
 					.join("\n")}`
 			: ""
 

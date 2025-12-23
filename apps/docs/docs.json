@@ -42,7 +42,7 @@
 	"navbar": {
 		"links": [
 			{
-				"href": "mailto:support@supermemory.com",
+				"href": "mailto:support@supermemory.ai",
 				"label": "Support"
 			}
 		],
@@ -174,7 +174,7 @@
 							},
 							{
 								"group": "Migration Guides",
-								"pages": ["migration/from-mem0"]
+								"pages": ["migration/from-mem0", "migration/from-zep"]
 							},
 							{
 								"group": "Deployment",

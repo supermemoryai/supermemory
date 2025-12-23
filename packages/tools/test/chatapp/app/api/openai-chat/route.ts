@@ -19,6 +19,7 @@ export async function POST(req: Request) {
 		mode: "full",
 		addMemory: "always",
 		verbose: true,
+		baseUrl: process.env.SUPERMEMORY_BASE_URL,
 	})
 
 	const completion = await openaiWithSupermemory.chat.completions.create({

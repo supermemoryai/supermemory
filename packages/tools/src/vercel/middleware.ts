@@ -4,13 +4,17 @@ import type {
 	LanguageModelV2StreamPart,
 } from "@ai-sdk/provider"
 import Supermemory from "supermemory"
+import {
+	addConversation,
+	type ConversationMessage,
+} from "../conversations-client"
 import { createLogger, type Logger } from "./logger"
 import {
 	type OutputContentItem,
 	getLastUserMessage,
 	filterOutSupermemories,
 } from "./util"
-import { addSystemPrompt } from "./memory-prompt"
+import { addSystemPrompt, normalizeBaseUrl } from "./memory-prompt"
 
 const getConversationContent = (params: LanguageModelV2CallOptions) => {
 	return params.prompt
@@ -31,6 +35,66 @@ const getConversationContent = (params: LanguageModelV2CallOptions) => {
 		.join("\n\n")
 }
 
+const convertToConversationMessages = (
+	params: LanguageModelV2CallOptions,
+	assistantResponseText: string,
+): ConversationMessage[] => {
+	const messages: ConversationMessage[] = []
+
+	for (const msg of params.prompt) {
+		if (typeof msg.content === "string") {
+			const filteredContent = filterOutSupermemories(msg.content)
+			if (filteredContent) {
+				messages.push({
+					role: msg.role as "user" | "assistant" | "system" | "tool",
+					content: filteredContent,
+				})
+			}
+		} else {
+			const contentParts = msg.content
+				.map((c) => {
+					if (c.type === "text") {
+						const filteredText = filterOutSupermemories(c.text)
+						if (filteredText) {
+							return {
+								type: "text" as const,
+								text: filteredText,
+							}
+						}
+					}
+					if (
+						c.type === "file" &&
+						typeof c.data === "string" &&
+						c.mediaType.startsWith("image/")
+					) {
+						return {
+							type: "image_url" as const,
+							image_url: { url: c.data },
+						}
+					}
+					return null
+				})
+				.filter((part) => part !== null)
+
+			if (contentParts.length > 0) {
+				messages.push({
+					role: msg.role as "user" | "assistant" | "system" | "tool",
+					content: contentParts,
+				})
+			}
+		}
+	}
+
+	if (assistantResponseText) {
+		messages.push({
+			role: "assistant",
+			content: assistantResponseText,
+		})
+	}
+
+	return messages
+}
+
 const addMemoryTool = async (
 	client: Supermemory,
 	containerTag: string,
@@ -38,21 +102,47 @@ const addMemoryTool = async (
 	assistantResponseText: string,
 	params: LanguageModelV2CallOptions,
 	logger: Logger,
+	apiKey: string,
+	baseUrl: string,
 ): Promise<void> => {
-	const userMessage = getLastUserMessage(params)
-	const content = conversationId
-		? `${getConversationContent(params)} \n\n Assistant: ${assistantResponseText}`
-		: `User: ${userMessage} \n\n Assistant: ${assistantResponseText}`
 	const customId = conversationId ? `conversation:${conversationId}` : undefined
 
 	try {
+		if (customId && conversationId) {
+			const conversationMessages = convertToConversationMessages(
+				params,
+				assistantResponseText,
+			)
+
+			const response = await addConversation({
+				conversationId,
+				messages: conversationMessages,
+				containerTags: [containerTag],
+				apiKey,
+				baseUrl,
+			})
+
+			logger.info("Conversation saved successfully via /v4/conversations", {
+				containerTag,
+				conversationId,
+				messageCount: conversationMessages.length,
+				responseId: response.id,
+			})
+			return
+		}
+
+		const userMessage = getLastUserMessage(params)
+		const content = conversationId
+			? `${getConversationContent(params)} \n\n Assistant: ${assistantResponseText}`
+			: `User: ${userMessage} \n\n Assistant: ${assistantResponseText}`
+
 		const response = await client.memories.add({
 			content,
 			containerTags: [containerTag],
 			customId,
 		})
 
-		logger.info("Memory saved successfully", {
+		logger.info("Memory saved successfully via /v3/documents", {
 			containerTag,
 			customId,
 			content,
@@ -73,11 +163,16 @@ export const createSupermemoryMiddleware = (
 	verbose = false,
 	mode: "profile" | "query" | "full" = "profile",
 	addMemory: "always" | "never" = "never",
+	baseUrl?: string,
 ): LanguageModelV2Middleware => {
 	const logger = createLogger(verbose)
+	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
 	const client = new Supermemory({
 		apiKey,
+		...(normalizedBaseUrl !== "https://api.supermemory.ai"
+			? { baseURL: normalizedBaseUrl }
+			: {}),
 	})
 
 	return {
@@ -102,6 +197,7 @@ export const createSupermemoryMiddleware = (
 				containerTag,
 				logger,
 				mode,
+				normalizedBaseUrl,
 			)
 			return transformedParams
 		},
@@ -123,6 +219,8 @@ export const createSupermemoryMiddleware = (
 						assistantResponseText,
 						params,
 						logger,
+						apiKey,
+						normalizedBaseUrl,
 					)
 				}
 
@@ -168,6 +266,8 @@ export const createSupermemoryMiddleware = (
 								generatedText,
 								params,
 								logger,
+								apiKey,
+								normalizedBaseUrl,
 							)
 						}
 					},

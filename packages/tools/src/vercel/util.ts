@@ -2,15 +2,21 @@ import type { LanguageModelV2CallOptions, LanguageModelV2Message } from "@ai-sdk
 
 export interface ProfileStructure {
 	profile: {
+		static?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		dynamic?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	}
+	searchResults: {
+		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	}
+}
+
+export interface ProfileMarkdownData {
+	profile: {
 		static?: string[]
 		dynamic?: string[]
 	}
 	searchResults: {
-		results: [
-			{
-				memory: string
-			},
-		]
+		results: Array<{ memory: string }>
 	}
 }
 
@@ -32,12 +38,11 @@ export type OutputContentItem =
 	  }
 
 /**
- * Convert ProfileStructure to markdown
- * based on profile.static and profile.dynamic properties
- * @param data ProfileStructure
- * @returns Markdown string
+ * Convert profile data to markdown format
+ * @param data Profile data with string arrays for static and dynamic memories
+ * @returns Markdown string with profile sections
  */
-export function convertProfileToMarkdown(data: ProfileStructure): string {
+export function convertProfileToMarkdown(data: ProfileMarkdownData): string {
 	const sections: string[] = []
 
 	if (data.profile.static && data.profile.static.length > 0) {

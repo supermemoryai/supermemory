@@ -101,7 +101,11 @@ const DocumentCard = memo(
 						(document.metadata?.website_og_image as string | undefined) ||
 						document.ogImage
 					}
-					description={document.content && typeof document.content === "string" ? document.content : undefined}
+					description={
+						document.content && typeof document.content === "string"
+							? document.content
+							: undefined
+					}
 					onOpenDetails={() => onOpenDetails(document)}
 					onDelete={() => onDelete(document)}
 				/>
@@ -155,15 +159,13 @@ export const MasonryMemoryList = ({
 			return documents
 		}
 
-		return documents
-			.map((doc) => ({
-				...doc,
-				memoryEntries: doc.memoryEntries.filter(
-					(memory) =>
-						(memory.spaceContainerTag ?? memory.spaceId) === selectedSpace,
-				),
-			}))
-			.filter((doc) => doc.memoryEntries.length > 0)
+		return documents.map((doc) => ({
+			...doc,
+			memoryEntries: doc.memoryEntries.filter(
+				(memory) =>
+					(memory.spaceContainerTag ?? memory.spaceId) === selectedSpace,
+			),
+		}))
 	}, [documents, selectedSpace])
 
 	const handleOpenDetails = useCallback((document: DocumentWithMemories) => {

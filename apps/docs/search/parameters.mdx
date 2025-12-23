@@ -205,6 +205,28 @@ These parameters are specific to `client.search.memories()`:
   ```
 </ParamField>
 
+<ParamField query="searchMode" type="string" default="memories">
+  **Search mode - memories only or hybrid search**
+
+  Controls whether to search only memories or also include document chunks:
+  - **`"memories"`** (default): Searches only memory entries. Returns results with `memory` field.
+  - **`"hybrid"`**: Searches memories first, then falls back to document chunks if needed. Returns mixed results with either `memory` field (for memory results) or `chunk` field (for chunk results).
+
+  <Note>
+    In hybrid mode, results are automatically merged and deduplicated. Results contain objects with either a `memory` key (for memory results) or a `chunk` key (for chunk results from document search).
+  </Note>
+
+  ```typescript
+  searchMode: "memories"  // Only search memories (default)
+  searchMode: "hybrid"    // Search memories + fallback to chunks
+  ```
+
+  **When to use hybrid mode:**
+  - When you want comprehensive search across both memories and documents
+  - When memories might not exist for certain queries but document content is available
+  - When you need the flexibility to get either memory or document chunk results
+</ParamField>
+
 <ParamField query="containerTag" type="string">
   **Filter by single container tag**
 
