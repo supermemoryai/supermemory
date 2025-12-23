@@ -578,6 +578,8 @@ export const MemoryGraph = ({
 		if (!isSlideshowActive) {
 			// Close the popover when stopping slideshow
 			setSelectedNode(null)
+			// Explicitly cool down physics simulation in case timeout hasn't fired yet
+			forceSimulation.coolDown()
 			return
 		}
 
@@ -622,6 +624,7 @@ export const MemoryGraph = ({
 					clearTimeout(physicsTimeoutRef.current)
 				}
 				physicsTimeoutRef.current = setTimeout(() => {
+					// Only cool down if slideshow is still active or if this is cleanup
 					forceSimulationRef.current.coolDown()
 					physicsTimeoutRef.current = null
 				}, 1000)
