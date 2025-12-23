@@ -283,6 +283,8 @@ export default function Home() {
 							// Controlled space selection
 							selectedSpace={selectedSpace}
 							onSpaceChange={handleSpaceChange}
+							// Node limit - prevents performance issues with large graphs
+							maxNodes={500}
 							// Slideshow control
 							isSlideshowActive={isSlideshowActive}
 							onSlideshowNodeChange={handleSlideshowNodeChange}

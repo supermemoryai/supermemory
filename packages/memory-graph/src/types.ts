@@ -129,6 +129,8 @@ export interface MemoryGraphProps {
 	// Memory limit control
 	/** Maximum number of memories to display per document when a space is selected */
 	memoryLimit?: number
+	/** Maximum total number of memory nodes to display across all documents (default: unlimited) */
+	maxNodes?: number
 
 	// Feature flags
 	/** Enable experimental features */
