@@ -62,7 +62,7 @@ export const LAYOUT_CONSTANTS = {
 // Similarity calculation configuration
 export const SIMILARITY_CONFIG = {
 	threshold: 0.725, // Minimum similarity (72.5%) to create edge
-	maxComparisonsPerDoc: 15, // k-NN: each doc compares with 15 neighbors (balanced performance)
+	maxComparisonsPerDoc: 10, // k-NN: each doc compares with 10 neighbors (optimized for performance)
 }
 
 // D3-Force simulation configuration
