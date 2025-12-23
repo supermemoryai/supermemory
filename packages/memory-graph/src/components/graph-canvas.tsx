@@ -961,11 +961,14 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			const MAX_CANVAS_SIZE = 16384
 
 			// Calculate effective DPR that keeps us within safe limits
-			const maxDpr = Math.min(
-				MAX_CANVAS_SIZE / width,
-				MAX_CANVAS_SIZE / height,
-				dpr
-			)
+			// Prevent division by zero by checking for valid dimensions
+			const maxDpr = width > 0 && height > 0
+				? Math.min(
+					MAX_CANVAS_SIZE / width,
+					MAX_CANVAS_SIZE / height,
+					dpr
+				)
+				: dpr
 
 			// upscale backing store with clamped dimensions
 			canvas.style.width = `${width}px`
@@ -981,7 +984,6 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		return (
 			<canvas
 				className={canvasWrapper}
-				height={height}
 				onClick={handleClick}
 				onDoubleClick={onDoubleClick}
 				onMouseDown={handleMouseDown}
@@ -1019,7 +1021,6 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					userSelect: "none",
 					WebkitUserSelect: "none",
 				}}
-				width={width}
 			/>
 		)
 	},
