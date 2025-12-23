@@ -39,8 +39,8 @@ export const MemoryGraph = ({
 	selectedSpace: externalSelectedSpace,
 	onSpaceChange: externalOnSpaceChange,
 	memoryLimit,
-	isExperimental,
 	maxNodes,
+	isExperimental,
 	// Slideshow control
 	isSlideshowActive = false,
 	onSlideshowNodeChange,
