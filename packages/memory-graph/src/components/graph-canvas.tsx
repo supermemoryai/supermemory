@@ -957,14 +957,24 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			const canvas = canvasRef.current
 			if (!canvas) return
 
-			// upscale backing store
+			// Maximum safe canvas size (most browsers support up to 16384px)
+			const MAX_CANVAS_SIZE = 16384
+
+			// Calculate effective DPR that keeps us within safe limits
+			const maxDpr = Math.min(
+				MAX_CANVAS_SIZE / width,
+				MAX_CANVAS_SIZE / height,
+				dpr
+			)
+
+			// upscale backing store with clamped dimensions
 			canvas.style.width = `${width}px`
 			canvas.style.height = `${height}px`
-			canvas.width = width * dpr
-			canvas.height = height * dpr
+			canvas.width = Math.min(width * maxDpr, MAX_CANVAS_SIZE)
+			canvas.height = Math.min(height * maxDpr, MAX_CANVAS_SIZE)
 
 			const ctx = canvas.getContext("2d")
-			ctx?.scale(dpr, dpr)
+			ctx?.scale(maxDpr, maxDpr)
 		}, [width, height, dpr])
 		// -----------------------------------------------------------------------
 
