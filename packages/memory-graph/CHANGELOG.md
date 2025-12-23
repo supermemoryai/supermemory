@@ -80,4 +80,19 @@ NodeCache now cleans up deleted nodes properly
 #### Race Condition Fix
 Atomic node/edge updates eliminate NaN positions
 
+#### Canvas Rendering Optimizations
+Reduced per-frame overhead and improved rendering efficiency
+- Spatial grid for hit detection
+- Batched edge rendering by type (fewer canvas state changes)
+- Canvas quality settings initialized once instead of every frame
+- Optimized render key using fast hash instead of string concatenation
+- Memoized nodeMap to avoid rebuilding every frame
+
+#### Node Limiting & Memory Management
+Smart memory limiting prevents performance issues with large datasets
+- `maxNodes` prop limits total memory nodes (default: 500 in playground)
+- Dynamic per-document cap distributes budget across documents
+- Prioritizes recent memories and high-relevance scores
+- k-NN similarity limit reduced from 15 to 10 connections per document
+
 ---
