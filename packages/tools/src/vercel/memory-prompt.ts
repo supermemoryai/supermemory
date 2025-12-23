@@ -92,7 +92,7 @@ export const addSystemPrompt = async (
 	const deduplicated = deduplicateMemories({
 		static: memoriesResponse.profile.static,
 		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults.results,
+		searchResults: memoriesResponse.searchResults?.results,
 	})
 
 	logger.debug("Memory deduplication completed", {
@@ -106,7 +106,7 @@ export const addSystemPrompt = async (
 		},
 		searchResults: {
 			original: memoriesResponse.searchResults.results.length,
-			deduplicated: deduplicated.searchResults.length,
+			deduplicated: deduplicated.searchResults?.length,
 		},
 	})
 
