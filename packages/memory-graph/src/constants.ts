@@ -6,24 +6,24 @@ export const colors = {
 		accent: "#252a35", // Card backgrounds
 	},
 	document: {
-		primary: "rgba(255, 255, 255, 0.06)", // Subtle glass white
-		secondary: "rgba(255, 255, 255, 0.12)", // More visible
-		accent: "rgba(255, 255, 255, 0.18)", // Hover state
-		border: "rgba(255, 255, 255, 0.25)", // Sharp borders
+		primary: "rgba(255, 255, 255, 0.21)", // Subtle glass white
+		secondary: "rgba(255, 255, 255, 0.31)", // More visible
+		accent: "rgba(255, 255, 255, 0.31)", // Hover state
+		border: "rgba(255, 255, 255, 0.6)", // Sharp borders
 		glow: "rgba(147, 197, 253, 0.4)", // Blue glow for interaction
 	},
 	memory: {
-		primary: "rgba(147, 197, 253, 0.08)", // Subtle glass blue
-		secondary: "rgba(147, 197, 253, 0.16)", // More visible
-		accent: "rgba(147, 197, 253, 0.24)", // Hover state
-		border: "rgba(147, 197, 253, 0.35)", // Sharp borders
+		primary: "rgba(147, 196, 253, 0.21)", // Subtle glass blue
+		secondary: "rgba(147, 196, 253, 0.31)", // More visible
+		accent: "rgba(147, 197, 253, 0.31)", // Hover state
+		border: "rgba(147, 196, 253, 0.6)", // Sharp borders
 		glow: "rgba(147, 197, 253, 0.5)", // Blue glow for interaction
 	},
 	connection: {
-		weak: "rgba(148, 163, 184, 0)", // Very subtle
-		memory: "rgba(148, 163, 184, 0.3)", // Very subtle
-		medium: "rgba(148, 163, 184, 0.125)", // Medium visibility
-		strong: "rgba(148, 163, 184, 0.4)", // Strong connection
+		weak: "rgba(79, 255, 226, 0.3)", // subtle
+		memory: "rgba(148, 163, 184, 0.35)", // Very subtle
+		medium: "rgba(79, 255, 226, 0.6)", // Medium visibility
+		strong: "rgba(79, 255, 226, 0.9)", // Strong connection
 	},
 	text: {
 		primary: "#ffffff", // Pure white
@@ -59,6 +59,38 @@ export const LAYOUT_CONSTANTS = {
 	memoryClusterRadius: 300,
 }
 
+// Similarity calculation configuration
+export const SIMILARITY_CONFIG = {
+	threshold: 0.725, // Minimum similarity (72.5%) to create edge
+	maxComparisonsPerDoc: 15, // k-NN: each doc compares with 15 neighbors (balanced performance)
+}
+
+// D3-Force simulation configuration
+export const FORCE_CONFIG = {
+	// Link force (spring between connected nodes)simil
+	linkStrength: {
+		docMemory: 0.8, // Strong for doc-memory connections
+		version: 1.0, // Strongest for version chains
+		docDocBase: 0.3, // Base for doc-doc similarity
+	},
+	linkDistance: 300, // Desired spring length
+
+	// Charge force (repulsion between nodes)
+	chargeStrength: -1000, // Negative = repulsion, higher magnitude = stronger push
+
+	// Collision force (prevents node overlap)
+	collisionRadius: {
+		document: 80, // Collision radius for document nodes
+		memory: 40, // Collision radius for memory nodes
+	},
+
+	// Simulation behavior
+	alphaDecay: 0.03, // How fast simulation cools down (higher = faster cooldown)
+	alphaMin: 0.001, // Threshold to stop simulation (when alpha drops below this)
+	velocityDecay: 0.6, // Friction/damping (0 = no friction, 1 = instant stop) - increased for less movement
+	alphaTarget: 0.3, // Target alpha when reheating (on drag start)
+}
+
 // Graph view settings
 export const GRAPH_SETTINGS = {
 	console: {
@@ -71,6 +103,12 @@ export const GRAPH_SETTINGS = {
 		initialPanX: 400, // Pan towards center to compensate for larger layout
 		initialPanY: 300, // Pan towards center to compensate for larger layout
 	},
+}
+
+// Animation settings
+export const ANIMATION = {
+	// Dim effect duration - shortened for better UX
+	dimDuration: 1500, // milliseconds
 }
 
 // Responsive positioning for different app variants

@@ -62,9 +62,11 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-slot": "^1.2.4",
+    "@supermemory/memory-graph": "^0.1.7",
     "@vanilla-extract/css": "^1.17.4",
     "@vanilla-extract/recipes": "^0.5.7",
     "@vanilla-extract/sprinkles": "^1.6.5",
+    "d3-force": "^3.0.0",
     "lucide-react": "^0.552.0",
     "motion": "^12.23.24"
   },

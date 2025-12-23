@@ -7,14 +7,16 @@ import {
 	useLayoutEffect,
 	useMemo,
 	useRef,
+	useState,
 } from "react"
-import { colors } from "@/constants"
+import { colors, ANIMATION } from "@/constants"
 import type {
 	DocumentWithMemories,
 	GraphCanvasProps,
 	GraphNode,
 	MemoryEntry,
 } from "@/types"
+import { drawDocumentIcon } from "@/utils/document-icons"
 import { canvasWrapper } from "./canvas-common.css"
 
 export const GraphCanvas = memo<GraphCanvasProps>(
@@ -41,17 +43,57 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 		onTouchEnd,
 		draggingNodeId,
 		highlightDocumentIds,
+		isSimulationActive = false,
+		selectedNodeId = null,
 	}) => {
 		const canvasRef = useRef<HTMLCanvasElement>(null)
 		const animationRef = useRef<number>(0)
 		const startTimeRef = useRef<number>(Date.now())
 		const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
 		const currentHoveredNode = useRef<string | null>(null)
+		const dimProgress = useRef<number>(selectedNodeId ? 1 : 0)
+		const dimAnimationRef = useRef<number>(0)
+		const [, forceRender] = useState(0)
 
 		// Initialize start time once
 		useEffect(() => {
 			startTimeRef.current = Date.now()
 		}, [])
+
+		// Smooth dimming animation
+		useEffect(() => {
+			const targetDim = selectedNodeId ? 1 : 0
+			const duration = ANIMATION.dimDuration // Match physics settling time
+			const startDim = dimProgress.current
+			const startTime = Date.now()
+
+			const animate = () => {
+				const elapsed = Date.now() - startTime
+				const progress = Math.min(elapsed / duration, 1)
+
+				// Ease-out cubic easing for smooth deceleration
+				const eased = 1 - Math.pow(1 - progress, 3)
+				dimProgress.current = startDim + (targetDim - startDim) * eased
+
+				// Force re-render to update canvas during animation
+				forceRender(prev => prev + 1)
+
+				if (progress < 1) {
+					dimAnimationRef.current = requestAnimationFrame(animate)
+				}
+			}
+
+			if (dimAnimationRef.current) {
+				cancelAnimationFrame(dimAnimationRef.current)
+			}
+			animate()
+
+			return () => {
+				if (dimAnimationRef.current) {
+					cancelAnimationFrame(dimAnimationRef.current)
+				}
+			}
+		}, [selectedNodeId])
 
 		// Efficient hit detection
 		const getNodeAtPosition = useCallback(
@@ -63,12 +105,30 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const screenY = node.y * zoom + panY
 					const nodeSize = node.size * zoom
 
-					const dx = x - screenX
-					const dy = y - screenY
-					const distance = Math.sqrt(dx * dx + dy * dy)
+					if (node.type === "document") {
+						// Rectangular hit detection for documents (matches visual size)
+						const docWidth = nodeSize * 1.4
+						const docHeight = nodeSize * 0.9
+						const halfW = docWidth / 2
+						const halfH = docHeight / 2
 
-					if (distance <= nodeSize / 2) {
-						return node.id
+						if (
+							x >= screenX - halfW &&
+							x <= screenX + halfW &&
+							y >= screenY - halfH &&
+							y <= screenY + halfH
+						) {
+							return node.id
+						}
+					} else {
+						// Circular hit detection for memory nodes
+						const dx = x - screenX
+						const dy = y - screenY
+						const distance = Math.sqrt(dx * dx + dy * dy)
+
+						if (distance <= nodeSize / 2) {
+							return node.id
+						}
 					}
 				}
 				return null
@@ -188,8 +248,15 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			// Draw enhanced edges with sophisticated styling
 			ctx.lineCap = "round"
 			edges.forEach((edge) => {
-				const sourceNode = nodeMap.get(edge.source)
-				const targetNode = nodeMap.get(edge.target)
+				// Handle both string IDs and node references (d3-force mutates these)
+				const sourceNode =
+					typeof edge.source === "string"
+						? nodeMap.get(edge.source)
+						: edge.source
+				const targetNode =
+					typeof edge.target === "string"
+						? nodeMap.get(edge.target)
+						: edge.target
 
 				if (sourceNode && targetNode) {
 					const sourceX = sourceNode.x * zoom + panX
@@ -197,12 +264,14 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const targetX = targetNode.x * zoom + panX
 					const targetY = targetNode.y * zoom + panY
 
-					// Enhanced viewport culling with edge type considerations
+					// Enhanced viewport culling with proper X and Y axis bounds checking
+					// Only cull edges when BOTH endpoints are off-screen in the same direction
+					const edgeMargin = 100
 					if (
-						sourceX < -100 ||
-						sourceX > width + 100 ||
-						targetX < -100 ||
-						targetX > width + 100
+						(sourceX < -edgeMargin && targetX < -edgeMargin) ||
+						(sourceX > width + edgeMargin && targetX > width + edgeMargin) ||
+						(sourceY < -edgeMargin && targetY < -edgeMargin) ||
+						(sourceY > height + edgeMargin && targetY > height + edgeMargin)
 					) {
 						return
 					}
@@ -217,22 +286,29 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						}
 					}
 
+					// Check if edge should be dimmed (not connected to selected node)
+					const edgeShouldDim = selectedNodeId !== null &&
+						sourceNode.id !== selectedNodeId &&
+						targetNode.id !== selectedNodeId
+					// Smooth edge opacity: interpolate between full and 0.1 (dimmed)
+					const edgeDimOpacity = 1 - (dimProgress.current * 0.9)
+
 					// Enhanced connection styling based on edge type
 					let connectionColor = colors.connection.weak
 					let dashPattern: number[] = []
-					let opacity = edge.visualProps.opacity
+					let opacity = edgeShouldDim ? edgeDimOpacity : edge.visualProps.opacity
 					let lineWidth = Math.max(1, edge.visualProps.thickness * zoom)
 
 					if (edge.edgeType === "doc-memory") {
 						// Doc-memory: Solid thin lines, subtle
 						dashPattern = []
 						connectionColor = colors.connection.memory
-						opacity = 0.9
+						opacity = edgeShouldDim ? edgeDimOpacity : 0.9
 						lineWidth = 1
 					} else if (edge.edgeType === "doc-doc") {
 						// Doc-doc: Thick dashed lines with strong similarity emphasis
 						dashPattern = useSimplifiedRendering ? [] : [10, 5] // Solid lines when zoomed out
-						opacity = Math.max(0, edge.similarity * 0.5)
+						opacity = edgeShouldDim ? edgeDimOpacity : Math.max(0, edge.similarity * 0.5)
 						lineWidth = Math.max(1, edge.similarity * 2) // Thicker for stronger similarity
 
 						if (edge.similarity > 0.85)
@@ -243,7 +319,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						// Version chains: Double line effect with relation-specific colors
 						dashPattern = []
 						connectionColor = edge.color || colors.relations.updates
-						opacity = 0.8
+						opacity = edgeShouldDim ? edgeDimOpacity : 0.8
 						lineWidth = 2
 					}
 
@@ -360,6 +436,10 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 
 				const isHovered = currentHoveredNode.current === node.id
 				const isDragging = node.isDragging
+				const isSelected = selectedNodeId === node.id
+				const shouldDim = selectedNodeId !== null && !isSelected
+				// Smooth opacity: interpolate between 1 (full) and 0.2 (dimmed) based on animation progress
+				const nodeOpacity = shouldDim ? 1 - (dimProgress.current * 0.8) : 1
 				const isHighlightedDocument = (() => {
 					if (node.type !== "document" || highlightSet.size === 0) return false
 					const doc = node.data as DocumentWithMemories
@@ -378,7 +458,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						: isHovered
 							? colors.document.secondary
 							: colors.document.primary
-					ctx.globalAlpha = 1
+					ctx.globalAlpha = nodeOpacity
 
 					// Enhanced border with subtle glow
 					ctx.strokeStyle = isDragging
@@ -423,7 +503,9 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						ctx.strokeStyle = colors.accent.primary
 						ctx.lineWidth = 3
 						ctx.setLineDash([6, 4])
-						const ringPadding = 10
+						// Add equal padding on all sides (15% of average dimension)
+						const avgDimension = (docWidth + docHeight) / 2
+						const ringPadding = avgDimension * 0.1
 						ctx.beginPath()
 						ctx.roundRect(
 							screenX - docWidth / 2 - ringPadding,
@@ -435,6 +517,21 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						ctx.stroke()
 						ctx.setLineDash([])
 						ctx.restore()
+					}
+
+					// Draw document type icon (centered)
+					if (!useSimplifiedRendering) {
+						const doc = node.data as DocumentWithMemories
+						const iconSize = docHeight * 0.4 // Icon size relative to card height
+
+						drawDocumentIcon(
+							ctx,
+							screenX,
+							screenY,
+							iconSize,
+							doc.type || "text",
+							"rgba(255, 255, 255, 0.8)",
+						)
 					}
 				} else {
 					// Enhanced memory styling with status indicators
@@ -484,7 +581,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const radius = nodeSize / 2
 
 					ctx.fillStyle = fillColor
-					ctx.globalAlpha = isLatest ? 1 : 0.4
+					ctx.globalAlpha = shouldDim ? nodeOpacity : (isLatest ? 1 : 0.4)
 					ctx.strokeStyle = borderColor
 					ctx.lineWidth = isDragging ? 3 : isHovered ? 2 : 1.5
 
@@ -571,18 +668,23 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					ctx.globalAlpha = 0.6
 
 					ctx.beginPath()
-					const glowSize = nodeSize * 0.7
 					if (node.type === "document") {
+						// Use actual document dimensions for glow
+						const docWidth = nodeSize * 1.4
+						const docHeight = nodeSize * 0.9
+						// Make glow 10% larger than document
+						const avgDimension = (docWidth + docHeight) / 2
+						const glowPadding = avgDimension * 0.1
 						ctx.roundRect(
-							screenX - glowSize,
-							screenY - glowSize / 1.4,
-							glowSize * 2,
-							glowSize * 1.4,
+							screenX - docWidth / 2 - glowPadding,
+							screenY - docHeight / 2 - glowPadding,
+							docWidth + glowPadding * 2,
+							docHeight + glowPadding * 2,
 							15,
 						)
 					} else {
 						// Hexagonal glow for memory nodes
-						const glowRadius = glowSize
+						const glowRadius = nodeSize * 0.7
 						const sides = 6
 						for (let i = 0; i < sides; i++) {
 							const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
@@ -604,7 +706,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			ctx.globalAlpha = 1
 		}, [nodes, edges, panX, panY, zoom, width, height, highlightDocumentIds])
 
-		// Change-based rendering instead of continuous animation
+		// Hybrid rendering: continuous when simulation active, change-based when idle
 		const lastRenderParams = useRef<string>("")
 
 		// Create a render key that changes when visual state changes
@@ -628,13 +730,28 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			highlightDocumentIds,
 		])
 
-		// Only render when something actually changed
+		// Render based on simulation state
 		useEffect(() => {
+			if (isSimulationActive) {
+				// Continuous rendering during physics simulation
+				const renderLoop = () => {
+					render()
+					animationRef.current = requestAnimationFrame(renderLoop)
+				}
+				renderLoop()
+
+				return () => {
+					if (animationRef.current) {
+						cancelAnimationFrame(animationRef.current)
+					}
+				}
+			}
+			// Change-based rendering when simulation is idle
 			if (renderKey !== lastRenderParams.current) {
 				lastRenderParams.current = renderKey
 				render()
 			}
-		}, [renderKey, render])
+		}, [isSimulationActive, renderKey, render])
 
 		// Cleanup any existing animation frames
 		useEffect(() => {

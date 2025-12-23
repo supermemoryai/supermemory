@@ -40,6 +40,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-
+.claude
 .venv
 __pycache__
