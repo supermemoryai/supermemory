@@ -11,6 +11,7 @@ import { Summary as DocumentSummary } from "./summary"
 import { dmSansClassName } from "@/utils/fonts"
 import { GraphListMemories, type MemoryEntry } from "./graph-list-memories"
 import { PdfViewer } from "./content/pdf"
+import { YoutubeVideo } from "./content/yt-video"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -77,6 +78,9 @@ export function DocumentModal({
 							<div className="p-4">{_document.content}</div>
 						)}
 						{_document?.type === "pdf" && <PdfViewer url={_document.url} />}
+						{(_document?.url?.includes("youtube.com")) && (
+							<YoutubeVideo url={_document.url} />
+						)}
 					</div>
 					<div
 						id="document-memories-summary"

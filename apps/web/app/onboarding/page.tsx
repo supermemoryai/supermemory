@@ -33,7 +33,7 @@ function UserSupermemory({ name }: { name: string }) {
 		>
 			<Logo className="h-14 text-white" />
 			<div className="flex flex-col items-start justify-center ml-4">
-				<p className="text-white text-xs font-medium leading-none">
+				<p className="text-white text-[25px] font-medium leading-none">
 					{name.split(" ")[0]}'s
 				</p>
 				<p className="text-white font-bold text-4xl leading-none -mt-2">
