@@ -152,6 +152,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							disabled={!selectedClient}
 						>
 							<span
+								className="text-lg"
 								style={
 									activeStep === 1
 										? {
@@ -355,6 +356,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							)}
 						>
 							<span
+								className="text-lg"
 								style={
 									activeStep === 2
 										? {
@@ -540,7 +542,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 														</>
 													) : (
 														<>
-															<CopyIcon className="size-3 text-white" />
+															<CopyIcon className="size-[20px] text-white stroke-[2px]" />
 															<span className="text-white">Copy</span>
 														</>
 													)}
@@ -563,6 +565,7 @@ export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 							)}
 						>
 							<span
+								className="text-lg"
 								style={
 									activeStep === 3
 										? {

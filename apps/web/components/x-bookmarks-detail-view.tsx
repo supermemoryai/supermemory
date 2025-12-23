@@ -66,7 +66,7 @@ export function XBookmarksDetailView({
 						need, right when you need it.
 					</p>
 
-					<div className="grid grid-cols-3 gap-6 mb-6 max-w-5xl w-full">
+					<div className="grid grid-cols-3 gap-4 mb-6 max-w-5xl w-full">
 						{steps.map((step) => (
 							<div
 								key={step.number}
