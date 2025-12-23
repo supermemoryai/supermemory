@@ -4,6 +4,11 @@
 
 To test changes, run these commands in separate terminals:
 
+**Terminal 1** - Install the required dependencies:
+```bash
+bun install
+```
+
 **Terminal 1** - Build memory-graph in watch mode:
 ```bash
 cd packages/memory-graph && bun run dev
