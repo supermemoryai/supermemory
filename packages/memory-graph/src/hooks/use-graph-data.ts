@@ -5,8 +5,8 @@ import {
 	getConnectionVisualProps,
 	getMagicalConnectionColor,
 } from "@/lib/similarity"
-import { useMemo } from "react"
-import { colors, LAYOUT_CONSTANTS } from "@/constants"
+import { useMemo, useRef, useEffect } from "react"
+import { colors, LAYOUT_CONSTANTS, SIMILARITY_CONFIG } from "@/constants"
 import type {
 	DocumentsResponse,
 	DocumentWithMemories,
@@ -19,19 +19,48 @@ import type {
 export function useGraphData(
 	data: DocumentsResponse | null,
 	selectedSpace: string,
-	nodePositions: Map<string, { x: number; y: number }>,
+	nodePositions: Map<string, { x: number; y: number; parentDocId?: string; offsetX?: number; offsetY?: number }>,
 	draggingNodeId: string | null,
 	memoryLimit?: number,
+	maxNodes?: number,
 ) {
-	return useMemo(() => {
-		if (!data?.documents) return { nodes: [], edges: [] }
+	// Cache nodes to preserve d3-force mutations (x, y, vx, vy, fx, fy)
+	const nodeCache = useRef<Map<string, GraphNode>>(new Map())
 
-		const allNodes: GraphNode[] = []
-		const allEdges: GraphEdge[] = []
+	// Cleanup nodeCache to prevent memory leak
+	useEffect(() => {
+		if (!data?.documents) return
 
-		// Filter documents that have memories in selected space
-		// AND limit memories per document when memoryLimit is provided
-		const filteredDocuments = data.documents
+		// Build set of current node IDs
+		const currentNodeIds = new Set<string>()
+		data.documents.forEach((doc) => {
+			currentNodeIds.add(doc.id)
+			doc.memoryEntries.forEach((mem) => {
+				currentNodeIds.add(`${mem.id}`)
+			})
+		})
+
+		// Remove stale nodes from cache
+		for (const [id] of nodeCache.current.entries()) {
+			if (!currentNodeIds.has(id)) {
+				nodeCache.current.delete(id)
+			}
+		}
+	}, [data, selectedSpace])
+
+	// Memo 1: Filter documents by selected space and apply node limits
+	const filteredDocuments = useMemo(() => {
+		if (!data?.documents) return []
+
+		// Sort documents by most recent first
+		const sortedDocs = [...data.documents].sort((a, b) => {
+			const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+			const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+			return dateB - dateA // Most recent first
+		})
+
+		// Filter by space and prepare documents
+		let processedDocs = sortedDocs
 			.map((doc) => {
 				let memories =
 					selectedSpace === "all"
@@ -42,16 +71,155 @@ export function useGraphData(
 									selectedSpace,
 							)
 
-				// Apply memory limit if provided and a specific space is selected
-				if (selectedSpace !== "all" && memoryLimit && memoryLimit > 0) {
-					memories = memories.slice(0, memoryLimit)
-				}
+				// Sort memories by relevance score (if available) or recency
+				memories = memories.sort((a, b) => {
+					// Prioritize sourceRelevanceScore if available
+					if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
+						return b.sourceRelevanceScore - a.sourceRelevanceScore // Higher score first
+					}
+					// Fall back to most recent
+					const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+					const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+					return dateB - dateA // Most recent first
+				})
 
 				return {
 					...doc,
 					memoryEntries: memories,
 				}
 			})
+
+		// Apply maxNodes limit using Option B (dynamic cap per document)
+		if (maxNodes && maxNodes > 0) {
+			const totalDocs = processedDocs.length
+			if (totalDocs > 0) {
+				// Calculate memories per document to stay within maxNodes budget
+				const memoriesPerDoc = Math.floor(maxNodes / totalDocs)
+
+				// If we need to limit, slice memories for each document
+				if (memoriesPerDoc > 0) {
+					let totalNodes = 0
+					processedDocs = processedDocs.map((doc) => {
+						// Limit memories to calculated amount per doc
+						const limitedMemories = doc.memoryEntries.slice(0, memoriesPerDoc)
+						totalNodes += limitedMemories.length
+						return {
+							...doc,
+							memoryEntries: limitedMemories,
+						}
+					})
+
+					// If we still have budget left, distribute remaining nodes to first docs
+					let remainingBudget = maxNodes - totalNodes
+					if (remainingBudget > 0) {
+						for (let i = 0; i < processedDocs.length && remainingBudget > 0; i++) {
+							const doc = processedDocs[i]
+							if (!doc) continue
+							const originalDoc = sortedDocs.find(d => d.id === doc.id)
+							if (!originalDoc) continue
+
+							const currentMemCount = doc.memoryEntries.length
+							const originalMemCount = originalDoc.memoryEntries.filter(
+								m => selectedSpace === "all" ||
+								(m.spaceContainerTag ?? m.spaceId ?? "default") === selectedSpace
+							).length
+
+							// Can we add more memories to this doc?
+							const canAdd = originalMemCount - currentMemCount
+							if (canAdd > 0) {
+								const toAdd = Math.min(canAdd, remainingBudget)
+								const additionalMems = doc.memoryEntries.slice(0, currentMemCount + toAdd)
+								processedDocs[i] = {
+									...doc,
+									memoryEntries: originalDoc.memoryEntries
+										.filter(m => selectedSpace === "all" ||
+											(m.spaceContainerTag ?? m.spaceId ?? "default") === selectedSpace)
+										.sort((a, b) => {
+											if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
+												return b.sourceRelevanceScore - a.sourceRelevanceScore
+											}
+											const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+											const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+											return dateB - dateA
+										})
+										.slice(0, currentMemCount + toAdd)
+								}
+								remainingBudget -= toAdd
+							}
+						}
+					}
+				} else {
+					// If memoriesPerDoc is 0, we need to limit the number of documents shown
+					// Show at least 1 memory per document, up to maxNodes documents
+					processedDocs = processedDocs.slice(0, maxNodes).map((doc) => ({
+						...doc,
+						memoryEntries: doc.memoryEntries.slice(0, 1),
+					}))
+				}
+			}
+		}
+		// Apply legacy memoryLimit if provided and a specific space is selected
+		else if (selectedSpace !== "all" && memoryLimit && memoryLimit > 0) {
+			processedDocs = processedDocs.map((doc) => ({
+				...doc,
+				memoryEntries: doc.memoryEntries.slice(0, memoryLimit),
+			}))
+		}
+
+		return processedDocs
+	}, [data, selectedSpace, memoryLimit, maxNodes])
+
+	// Memo 2: Calculate similarity edges using k-NN approach
+	const similarityEdges = useMemo(() => {
+		const edges: GraphEdge[] = []
+
+		// k-NN: Each document compares with k neighbors (configurable)
+		const { maxComparisonsPerDoc, threshold } = SIMILARITY_CONFIG
+
+		for (let i = 0; i < filteredDocuments.length; i++) {
+			const docI = filteredDocuments[i]
+			if (!docI) continue
+
+			// Only compare with next k documents (k-nearest neighbors approach)
+			const endIdx = Math.min(
+				i + maxComparisonsPerDoc + 1,
+				filteredDocuments.length,
+			)
+
+			for (let j = i + 1; j < endIdx; j++) {
+				const docJ = filteredDocuments[j]
+				if (!docJ) continue
+
+				const sim = calculateSemanticSimilarity(
+					docI.summaryEmbedding ? Array.from(docI.summaryEmbedding) : null,
+					docJ.summaryEmbedding ? Array.from(docJ.summaryEmbedding) : null,
+				)
+
+				if (sim > threshold) {
+					edges.push({
+						id: `doc-doc-${docI.id}-${docJ.id}`,
+						source: docI.id,
+						target: docJ.id,
+						similarity: sim,
+						visualProps: getConnectionVisualProps(sim),
+						color: getMagicalConnectionColor(sim, 200),
+						edgeType: "doc-doc",
+					})
+				}
+			}
+		}
+
+		return edges
+	}, [filteredDocuments])
+
+	// Memo 3: Build full graph data (nodes + edges)
+	return useMemo(() => {
+		if (!data?.documents || filteredDocuments.length === 0) {
+			return { nodes: [], edges: [] }
+		}
+
+		const allNodes: GraphNode[] = []
+		const allEdges: GraphEdge[] = []
 
 		// Group documents by space for better clustering
 		const documentsBySpace = new Map<string, typeof filteredDocuments>()
@@ -70,7 +238,7 @@ export function useGraphData(
 		})
 
 		// Enhanced Layout with Space Separation
-		const { centerX, centerY, clusterRadius, spaceSpacing, documentSpacing } =
+		const { centerX, centerY, clusterRadius } =
 			LAYOUT_CONSTANTS
 
 		/* 1. Build DOCUMENT nodes with space-aware clustering */
@@ -78,104 +246,55 @@ export function useGraphData(
 		let spaceIndex = 0
 
 		documentsBySpace.forEach((spaceDocs) => {
-			const spaceAngle = (spaceIndex / documentsBySpace.size) * Math.PI * 2
-			const spaceOffsetX = Math.cos(spaceAngle) * spaceSpacing
-			const spaceOffsetY = Math.sin(spaceAngle) * spaceSpacing
-			const spaceCenterX = centerX + spaceOffsetX
-			const spaceCenterY = centerY + spaceOffsetY
-
 			spaceDocs.forEach((doc, docIndex) => {
-				// Create proper circular layout with concentric rings
-				const docsPerRing = 6 // Start with 6 docs in inner ring
-				let currentRing = 0
-				let docsInCurrentRing = docsPerRing
-				let totalDocsInPreviousRings = 0
+				// Simple grid-like layout that physics will naturally organize
+				// Start documents near the center with some random offset
+				const gridSize = Math.ceil(Math.sqrt(spaceDocs.length))
+				const row = Math.floor(docIndex / gridSize)
+				const col = docIndex % gridSize
 
-				// Find which ring this document belongs to
-				while (totalDocsInPreviousRings + docsInCurrentRing <= docIndex) {
-					totalDocsInPreviousRings += docsInCurrentRing
-					currentRing++
-					docsInCurrentRing = docsPerRing + currentRing * 4 // Each ring has more docs
-				}
-
-				// Position within the ring
-				const positionInRing = docIndex - totalDocsInPreviousRings
-				const angleInRing = (positionInRing / docsInCurrentRing) * Math.PI * 2
-
-				// Radius increases significantly with each ring
-				const baseRadius = documentSpacing * 0.8
-				const radius =
-					currentRing === 0
-						? baseRadius
-						: baseRadius + currentRing * documentSpacing * 1.2
-
-				const defaultX = spaceCenterX + Math.cos(angleInRing) * radius
-				const defaultY = spaceCenterY + Math.sin(angleInRing) * radius
+				// Loose grid spacing - physics will organize it better
+				const spacing = 200
+				const defaultX = centerX + (col - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
+				const defaultY = centerY + (row - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
 
 				const customPos = nodePositions.get(doc.id)
 
-				documentNodes.push({
-					id: doc.id,
-					type: "document",
-					x: customPos?.x ?? defaultX,
-					y: customPos?.y ?? defaultY,
-					data: doc,
-					size: 58,
-					color: colors.document.primary,
-					isHovered: false,
-					isDragging: draggingNodeId === doc.id,
-				} satisfies GraphNode)
+				// Check if node exists in cache (preserves d3-force mutations)
+				let node = nodeCache.current.get(doc.id)
+				if (node) {
+					// Update existing node's data, preserve physics properties (x, y, vx, vy, fx, fy)
+					node.data = doc
+					node.isDragging = draggingNodeId === doc.id
+					// Don't reset x/y - they're managed by d3-force
+				} else {
+					// Create new node with initial position
+					node = {
+						id: doc.id,
+						type: "document",
+						x: customPos?.x ?? defaultX,
+						y: customPos?.y ?? defaultY,
+						data: doc,
+						size: 58,
+						color: colors.document.primary,
+						isHovered: false,
+						isDragging: draggingNodeId === doc.id,
+					} satisfies GraphNode
+					nodeCache.current.set(doc.id, node)
+				}
+
+				documentNodes.push(node)
 			})
 
 			spaceIndex++
 		})
 
-		/* 2. Gentle document collision avoidance with dampening */
-		const minDocDist = LAYOUT_CONSTANTS.minDocDist
-
-		// Reduced iterations and gentler repulsion for smoother movement
-		for (let iter = 0; iter < 2; iter++) {
-			documentNodes.forEach((nodeA) => {
-				documentNodes.forEach((nodeB) => {
-					if (nodeA.id >= nodeB.id) return
-
-					// Only repel documents in the same space
-					const spaceA =
-						(nodeA.data as DocumentWithMemories).memoryEntries[0]
-							?.spaceContainerTag ??
-						(nodeA.data as DocumentWithMemories).memoryEntries[0]?.spaceId ??
-						"default"
-					const spaceB =
-						(nodeB.data as DocumentWithMemories).memoryEntries[0]
-							?.spaceContainerTag ??
-						(nodeB.data as DocumentWithMemories).memoryEntries[0]?.spaceId ??
-						"default"
-
-					if (spaceA !== spaceB) return
-
-					const dx = nodeB.x - nodeA.x
-					const dy = nodeB.y - nodeA.y
-					const dist = Math.sqrt(dx * dx + dy * dy) || 1
-
-					if (dist < minDocDist) {
-						// Much gentler push with dampening
-						const push = (minDocDist - dist) / 8
-						const dampening = Math.max(0.1, Math.min(1, dist / minDocDist))
-						const smoothPush = push * dampening * 0.5
-
-						const nx = dx / dist
-						const ny = dy / dist
-						nodeA.x -= nx * smoothPush
-						nodeA.y -= ny * smoothPush
-						nodeB.x += nx * smoothPush
-						nodeB.y += ny * smoothPush
-					}
-				})
-			})
-		}
+		/* 2. Manual collision avoidance removed - now handled by d3-force simulation */
+		// The initial circular layout provides good starting positions
+		// D3-force will handle collision avoidance and spacing dynamically
 
 		allNodes.push(...documentNodes)
-
+		
 		/* 3. Add memories around documents WITH doc-memory connections */
 		documentNodes.forEach((docNode) => {
 			const memoryNodeMap = new Map<string, GraphNode>()
@@ -185,34 +304,58 @@ export function useGraphData(
 				const memoryId = `${memory.id}`
 				const customMemPos = nodePositions.get(memoryId)
 
-				const clusterAngle = (memIndex / doc.memoryEntries.length) * Math.PI * 2
-				const variation = Math.sin(memIndex * 2.5) * 0.3 + 0.7
-				const distance = clusterRadius * variation
+				// Simple circular positioning around parent doc
+				// Physics will naturally cluster them better
+				const angle = (memIndex / doc.memoryEntries.length) * Math.PI * 2
+				const distance = clusterRadius * 1 // Closer to parent, let physics separate
 
-				const seed =
-					memIndex * 12345 + Number.parseInt(docNode.id.slice(0, 6), 36)
-				const offsetX = Math.sin(seed) * 0.5 * 40
-				const offsetY = Math.cos(seed) * 0.5 * 40
+				const defaultMemX = docNode.x + Math.cos(angle) * distance
+				const defaultMemY = docNode.y + Math.sin(angle) * distance
 
-				const defaultMemX =
-					docNode.x + Math.cos(clusterAngle) * distance + offsetX
-				const defaultMemY =
-					docNode.y + Math.sin(clusterAngle) * distance + offsetY
+				// Calculate final position
+				let finalMemX = defaultMemX
+				let finalMemY = defaultMemY
+
+				if (customMemPos) {
+					// If memory was manually positioned and has stored offset relative to parent
+					if (customMemPos.parentDocId === docNode.id &&
+						customMemPos.offsetX !== undefined &&
+						customMemPos.offsetY !== undefined) {
+						// Apply the stored offset to the current document position
+						finalMemX = docNode.x + customMemPos.offsetX
+						finalMemY = docNode.y + customMemPos.offsetY
+					} else {
+						// Fallback: use absolute position (for backward compatibility or if parent changed)
+						finalMemX = customMemPos.x
+						finalMemY = customMemPos.y
+					}
+				}
 
 				if (!memoryNodeMap.has(memoryId)) {
-					const memoryNode: GraphNode = {
-						id: memoryId,
-						type: "memory",
-						x: customMemPos?.x ?? defaultMemX,
-						y: customMemPos?.y ?? defaultMemY,
-						data: memory,
-						size: Math.max(
-							32,
-							Math.min(48, (memory.memory?.length || 50) * 0.5),
-						),
-						color: colors.memory.primary,
-						isHovered: false,
-						isDragging: draggingNodeId === memoryId,
+					// Check if memory node exists in cache (preserves d3-force mutations)
+					let memoryNode = nodeCache.current.get(memoryId)
+					if (memoryNode) {
+						// Update existing node's data, preserve physics properties
+						memoryNode.data = memory
+						memoryNode.isDragging = draggingNodeId === memoryId
+						// Don't reset x/y - they're managed by d3-force
+					} else {
+						// Create new node with initial position
+						memoryNode = {
+							id: memoryId,
+							type: "memory",
+							x: finalMemX,
+							y: finalMemY,
+							data: memory,
+							size: Math.max(
+								32,
+								Math.min(48, (memory.memory?.length || 50) * 0.5),
+							),
+							color: colors.memory.primary,
+							isHovered: false,
+							isDragging: draggingNodeId === memoryId,
+						}
+						nodeCache.current.set(memoryId, memoryNode)
 					}
 					memoryNodeMap.set(memoryId, memoryNode)
 					allNodes.push(memoryNode)
@@ -243,7 +386,7 @@ export function useGraphData(
 		data.documents.forEach((doc) => {
 			doc.memoryEntries.forEach((mem: MemoryEntry) => {
 				// Support both new object structure and legacy array/single parent fields
-				let parentRelations: Record<string, MemoryRelation> = {}
+				let parentRelations: Record<string, MemoryRelation> = (mem.memoryRelations ?? {}) as Record<string, MemoryRelation> 
 
 				if (
 					mem.memoryRelations &&
@@ -288,33 +431,9 @@ export function useGraphData(
 			})
 		})
 
-		// Document-to-document similarity edges
-		for (let i = 0; i < filteredDocuments.length; i++) {
-			const docI = filteredDocuments[i]
-			if (!docI) continue
-
-			for (let j = i + 1; j < filteredDocuments.length; j++) {
-				const docJ = filteredDocuments[j]
-				if (!docJ) continue
-
-				const sim = calculateSemanticSimilarity(
-					docI.summaryEmbedding ? Array.from(docI.summaryEmbedding) : null,
-					docJ.summaryEmbedding ? Array.from(docJ.summaryEmbedding) : null,
-				)
-				if (sim > 0.725) {
-					allEdges.push({
-						id: `doc-doc-${docI.id}-${docJ.id}`,
-						source: docI.id,
-						target: docJ.id,
-						similarity: sim,
-						visualProps: getConnectionVisualProps(sim),
-						color: getMagicalConnectionColor(sim, 200),
-						edgeType: "doc-doc",
-					})
-				}
-			}
-		}
+		// Append similarity edges (calculated in separate memo)
+		allEdges.push(...similarityEdges)
 
 		return { nodes: allNodes, edges: allEdges }
-	}, [data, selectedSpace, nodePositions, draggingNodeId, memoryLimit])
+	}, [data, filteredDocuments, nodePositions, draggingNodeId, similarityEdges])
 }

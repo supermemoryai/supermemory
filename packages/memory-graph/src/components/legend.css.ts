@@ -213,48 +213,66 @@ export const legendText = style({
 /**
  * Shape styles
  */
-export const hexagon = style({
-	clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)",
-})
-
 export const documentNode = style({
 	width: "1rem",
 	height: "0.75rem",
-	background: "rgba(255, 255, 255, 0.08)",
-	border: "1px solid rgba(255, 255, 255, 0.25)",
+	background: "rgba(255, 255, 255, 0.21)",
+	border: "1px solid rgba(255, 255, 255, 0.6)",
 	borderRadius: themeContract.radii.sm,
 	flexShrink: 0,
 })
 
-export const memoryNode = style([
-	hexagon,
-	{
-		width: "0.75rem",
-		height: "0.75rem",
-		background: "rgba(147, 197, 253, 0.1)",
-		border: "1px solid rgba(147, 197, 253, 0.35)",
-		flexShrink: 0,
-	},
-])
+// Hexagon shapes using SVG background (matching graph's flat-top hexagon)
+// Points calculated: angle = (i * 2π / 6) - π/2, center (6,6), radius 4.5
+const hexagonPoints = "6,1.5 10.4,3.75 10.4,8.25 6,10.5 1.6,8.25 1.6,3.75"
 
-export const memoryNodeOlder = style([
-	memoryNode,
-	{
-		opacity: 0.4,
-	},
-])
+export const memoryNode = style({
+	width: "1rem",
+	height: "1rem",
+	flexShrink: 0,
+	backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='${hexagonPoints}' fill='rgba(147,197,253,0.21)' stroke='rgba(147,196,253,0.6)' stroke-width='1'/%3E%3C/svg%3E")`,
+	backgroundSize: "contain",
+	backgroundRepeat: "no-repeat",
+})
 
-export const forgottenNode = style([
-	hexagon,
-	{
-		width: "0.75rem",
-		height: "0.75rem",
-		background: "rgba(239, 68, 68, 0.3)",
-		border: "1px solid rgba(239, 68, 68, 0.8)",
-		position: "relative",
-		flexShrink: 0,
-	},
-])
+export const memoryNodeOlder = style({
+	opacity: 0.4,
+	width: "1rem",
+	height: "1rem",
+	flexShrink: 0,
+	backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='${hexagonPoints}' fill='rgba(147,197,253,0.21)' stroke='rgba(147,196,253,0.6)' stroke-width='1'/%3E%3C/svg%3E")`,
+	backgroundSize: "contain",
+	backgroundRepeat: "no-repeat",
+})
+
+export const forgottenNode = style({
+	width: "1rem",
+	height: "1rem",
+	flexShrink: 0,
+	position: "relative",
+	backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='${hexagonPoints}' fill='rgba(239,68,68,0.3)' stroke='rgba(239,68,68,0.8)' stroke-width='1'/%3E%3C/svg%3E")`,
+	backgroundSize: "contain",
+	backgroundRepeat: "no-repeat",
+})
+
+export const expiringNode = style({
+	width: "1rem",
+	height: "1rem",
+	flexShrink: 0,
+	backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='${hexagonPoints}' fill='rgba(147,197,253,0.1)' stroke='rgb(245,158,11)' stroke-width='1.5'/%3E%3C/svg%3E")`,
+	backgroundSize: "contain",
+	backgroundRepeat: "no-repeat",
+})
+
+export const newNode = style({
+	width: "1rem",
+	height: "1rem",
+	flexShrink: 0,
+	position: "relative",
+	backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='${hexagonPoints}' fill='rgba(147,197,253,0.1)' stroke='rgb(16,185,129)' stroke-width='1.5'/%3E%3C/svg%3E")`,
+	backgroundSize: "contain",
+	backgroundRepeat: "no-repeat",
+})
 
 export const forgottenIcon = style({
 	position: "absolute",
@@ -265,30 +283,8 @@ export const forgottenIcon = style({
 	color: "rgb(248, 113, 113)",
 	fontSize: themeContract.typography.fontSize.xs,
 	lineHeight: "1",
+	pointerEvents: "none",
 })
-
-export const expiringNode = style([
-	hexagon,
-	{
-		width: "0.75rem",
-		height: "0.75rem",
-		background: "rgba(147, 197, 253, 0.1)",
-		border: "2px solid rgb(245, 158, 11)",
-		flexShrink: 0,
-	},
-])
-
-export const newNode = style([
-	hexagon,
-	{
-		width: "0.75rem",
-		height: "0.75rem",
-		background: "rgba(147, 197, 253, 0.1)",
-		border: "2px solid rgb(16, 185, 129)",
-		position: "relative",
-		flexShrink: 0,
-	},
-])
 
 export const newBadge = style({
 	position: "absolute",
@@ -303,14 +299,14 @@ export const newBadge = style({
 export const connectionLine = style({
 	width: "1rem",
 	height: 0,
-	borderTop: "1px solid rgb(148, 163, 184)",
+	borderTop: "1px solid rgb(148, 163, 184, 0.5)",
 	flexShrink: 0,
 })
 
 export const similarityLine = style({
 	width: "1rem",
 	height: 0,
-	borderTop: "2px dashed rgb(148, 163, 184)",
+	borderTop: "2px dashed rgba(35, 189, 255, 0.6)",
 	flexShrink: 0,
 })
 
@@ -325,7 +321,7 @@ export const weakSimilarity = style({
 	width: "0.75rem",
 	height: "0.75rem",
 	borderRadius: themeContract.radii.full,
-	background: "rgba(148, 163, 184, 0.2)",
+	background: "rgba(79, 255, 226, 0.3)",
 	flexShrink: 0,
 })
 
@@ -333,7 +329,7 @@ export const strongSimilarity = style({
 	width: "0.75rem",
 	height: "0.75rem",
 	borderRadius: themeContract.radii.full,
-	background: "rgba(148, 163, 184, 0.6)",
+	background: "rgba(79, 255, 226, 0.7)",
 	flexShrink: 0,
 })
 
