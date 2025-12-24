@@ -269,7 +269,43 @@
 				],
 				"tab": "Cookbook"
 			},
-
+			{
+				"icon": "flask-conical",
+				"anchors": [
+					{
+						"anchor": "MemoryBench",
+						"icon": "flask-conical",
+						"pages": [
+							"memorybench/overview",
+							"memorybench/github",
+							{
+								"group": "Getting Started",
+								"pages": [
+									"memorybench/installation",
+									"memorybench/quickstart"
+								]
+							},
+							{
+								"group": "Development",
+								"pages": [
+									"memorybench/architecture",
+									"memorybench/extend-provider",
+									"memorybench/extend-benchmark",
+									"memorybench/contributing"
+								]
+							},
+							{
+								"group": "Reference",
+								"pages": [
+									"memorybench/cli",
+									"memorybench/integrations"
+								]
+							}
+						]
+					}
+				],
+				"tab": "MemoryBench"
+			},
 			{
 				"icon": "list-ordered",
 				"anchors": [
