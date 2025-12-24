@@ -410,14 +410,27 @@ When you update the repository configuration:
   <Tab title="TypeScript">
     ```typescript
     // Delete by connection ID
-    const result = await client.connections.delete(connectionId);
+    const result = await client.connections.deleteByID(connectionId);
+
+    // Or delete by provider (requires container tags)
+    const result = await client.connections.deleteByProvider('github', {
+      containerTags: ['user-123']
+    });
+
     console.log('Deleted connection:', result.id);
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Delete by connection ID
-    result = client.connections.delete(connection_id)
+    result = client.connections.delete_by_id(connection_id)
+
+    # Or delete by provider (requires container tags)
+    result = client.connections.delete_by_provider(
+        provider='github',
+        container_tags=['user-123']
+    )
+    
     print(f'Deleted connection: {result.id}')
     ```
   </Tab>
