@@ -3,23 +3,17 @@ import {
 	addConversation,
 	type ConversationMessage,
 } from "../conversations-client"
-import {
-	createLogger,
-	normalizeBaseUrl,
-	MemoryCache,
-	buildMemoriesText,
-	type Logger,
-	type PromptTemplate,
-	type MemoryMode,
-} from "../shared"
+import { createLogger, type Logger } from "./logger"
 import {
 	type LanguageModelCallOptions,
+	type LanguageModelStreamPart,
+	type OutputContentItem,
 	getLastUserMessage,
 	filterOutSupermemories,
 } from "./util"
-import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
+import { addSystemPrompt, normalizeBaseUrl } from "./memory-prompt"
 
-const getConversationContent = (params: LanguageModelCallOptions) => {
+export const getConversationContent = (params: LanguageModelCallOptions) => {
 	return params.prompt
 		.filter((msg) => msg.role !== "system" && msg.role !== "tool")
 		.map((msg) => {
@@ -38,31 +32,31 @@ const getConversationContent = (params: LanguageModelCallOptions) => {
 		.join("\n\n")
 }
 
-const convertToConversationMessages = (
+export const convertToConversationMessages = (
 	params: LanguageModelCallOptions,
 	assistantResponseText: string,
 ): ConversationMessage[] => {
 	const messages: ConversationMessage[] = []
 
 	for (const msg of params.prompt) {
-		if (msg.role === "system") {
-			continue
-		}
-
 		if (typeof msg.content === "string") {
-			if (msg.content) {
+			const filteredContent = filterOutSupermemories(msg.content)
+			if (filteredContent) {
 				messages.push({
-					role: msg.role as "user" | "assistant" | "tool",
-					content: msg.content,
+					role: msg.role as "user" | "assistant" | "system" | "tool",
+					content: filteredContent,
 				})
 			}
 		} else {
 			const contentParts = msg.content
 				.map((c) => {
-					if (c.type === "text" && c.text) {
-						return {
-							type: "text" as const,
-							text: c.text,
+					if (c.type === "text") {
+						const filteredText = filterOutSupermemories(c.text)
+						if (filteredText) {
+							return {
+								type: "text" as const,
+								text: filteredText,
+							}
 						}
 					}
 					if (
@@ -81,7 +75,7 @@ const convertToConversationMessages = (
 
 			if (contentParts.length > 0) {
 				messages.push({
-					role: msg.role as "user" | "assistant" | "tool",
+					role: msg.role as "user" | "assistant" | "system" | "tool",
 					content: contentParts,
 				})
 			}
@@ -139,7 +133,7 @@ export const saveMemoryAfterResponse = async (
 			? `${getConversationContent(params)} \n\n Assistant: ${assistantResponseText}`
 			: `User: ${userMessage} \n\n Assistant: ${assistantResponseText}`
 
-		const response = await client.add({
+		const response = await client.memories.add({
 			content,
 			containerTags: [containerTag],
 			customId,
@@ -159,52 +153,25 @@ export const saveMemoryAfterResponse = async (
 	}
 }
 
-/**
- * Configuration options for the Supermemory middleware.
- */
-interface SupermemoryMiddlewareOptions {
-	/** Container tag/identifier for memory search (e.g., user ID, project ID) */
+export interface SupermemoryMiddlewareOptions {
 	containerTag: string
-	/** Supermemory API key */
 	apiKey: string
-	/** Optional conversation ID to group messages for contextual memory generation */
 	conversationId?: string
-	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
-	/**
-	 * Memory retrieval mode:
-	 * - "profile": Retrieves user profile memories (static + dynamic) without query filtering
-	 * - "query": Searches memories based on semantic similarity to the user's message
-	 * - "full": Combines both profile and query-based results
-	 */
-	mode?: MemoryMode
-	/**
-	 * Memory persistence mode:
-	 * - "always": Automatically save conversations as memories
-	 * - "never": Only retrieve memories, don't store new ones
-	 */
+	mode?: "profile" | "query" | "full"
 	addMemory?: "always" | "never"
-	/** Custom Supermemory API base URL */
 	baseUrl?: string
-	/** Custom function to format memory data into the system prompt */
-	promptTemplate?: PromptTemplate
 }
 
-interface SupermemoryMiddlewareContext {
+export interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
 	containerTag: string
 	conversationId?: string
-	mode: MemoryMode
+	mode: "profile" | "query" | "full"
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
 	apiKey: string
-	promptTemplate?: PromptTemplate
-	/**
-	 * Per-turn memory cache. Stores the injected memories string for each
-	 * user turn (keyed by turnKey) to avoid redundant API calls during tool-call
-	 */
-	memoryCache: MemoryCache<string>
 }
 
 export const createSupermemoryContext = (
@@ -218,7 +185,6 @@ export const createSupermemoryContext = (
 		mode = "profile",
 		addMemory = "never",
 		baseUrl,
-		promptTemplate,
 	} = options
 
 	const logger = createLogger(verbose)
@@ -240,33 +206,7 @@ export const createSupermemoryContext = (
 		addMemory,
 		normalizedBaseUrl,
 		apiKey,
-		promptTemplate,
-		memoryCache: new MemoryCache<string>(),
 	}
-}
-
-/**
- * Generates a cache key for the current turn based on context and user message.
- * Uses the shared MemoryCache.makeTurnKey implementation.
- */
-const makeTurnKey = (
-	ctx: SupermemoryMiddlewareContext,
-	userMessage: string,
-): string => {
-	return MemoryCache.makeTurnKey(
-		ctx.containerTag,
-		ctx.conversationId,
-		ctx.mode,
-		userMessage,
-	)
-}
-
-/**
- * Checks if this is a new user turn (last message is from user)
- */
-const isNewUserTurn = (params: LanguageModelCallOptions): boolean => {
-	const lastMessage = params.prompt.at(-1)
-	return lastMessage?.role === "user"
 }
 
 export const transformParamsWithMemory = async (
@@ -282,42 +222,20 @@ export const transformParamsWithMemory = async (
 		}
 	}
 
-	const turnKey = makeTurnKey(ctx, userMessage || "")
-	const isNewTurn = isNewUserTurn(params)
-
-	// Check if we can use cached memories
-	const cachedMemories = ctx.memoryCache.get(turnKey)
-	if (!isNewTurn && cachedMemories) {
-		ctx.logger.debug("Using cached memories: ", {
-			turnKey,
-		})
-		return injectMemoriesIntoParams(params, cachedMemories, ctx.logger)
-	}
-
 	ctx.logger.info("Starting memory search", {
 		containerTag: ctx.containerTag,
 		conversationId: ctx.conversationId,
 		mode: ctx.mode,
-		isNewTurn,
-		cacheHit: false,
 	})
 
-	const queryText = extractQueryText(params, ctx.mode)
-
-	const memories = await buildMemoriesText({
-		containerTag: ctx.containerTag,
-		queryText,
-		mode: ctx.mode,
-		baseUrl: ctx.normalizedBaseUrl,
-		apiKey: ctx.apiKey,
-		logger: ctx.logger,
-		promptTemplate: ctx.promptTemplate,
-	})
-
-	ctx.memoryCache.set(turnKey, memories)
-	ctx.logger.debug("Cached memories for turn", { turnKey })
-
-	return injectMemoriesIntoParams(params, memories, ctx.logger)
+	const transformedParams = await addSystemPrompt(
+		params,
+		ctx.containerTag,
+		ctx.logger,
+		ctx.mode,
+		ctx.normalizedBaseUrl,
+	)
+	return transformedParams
 }
 
 export const extractAssistantResponseText = (content: unknown[]): string => {
@@ -325,3 +243,47 @@ export const extractAssistantResponseText = (content: unknown[]): string => {
 		.map((item) => (item.type === "text" ? item.text || "" : ""))
 		.join("")
 }
+
+export const createStreamTransform = (
+	ctx: SupermemoryMiddlewareContext,
+	params: LanguageModelCallOptions,
+): {
+	transform: TransformStream<LanguageModelStreamPart, LanguageModelStreamPart>
+	getGeneratedText: () => string
+} => {
+	let generatedText = ""
+
+	const transform = new TransformStream<
+		LanguageModelStreamPart,
+		LanguageModelStreamPart
+	>({
+		transform(chunk, controller) {
+			if (chunk.type === "text-delta") {
+				generatedText += chunk.delta
+			}
+			controller.enqueue(chunk)
+		},
+		flush: async () => {
+			const userMessage = getLastUserMessage(params)
+			if (ctx.addMemory === "always" && userMessage && userMessage.trim()) {
+				saveMemoryAfterResponse(
+					ctx.client,
+					ctx.containerTag,
+					ctx.conversationId,
+					generatedText,
+					params,
+					ctx.logger,
+					ctx.apiKey,
+					ctx.normalizedBaseUrl,
+				)
+			}
+		},
+	})
+
+	return {
+		transform,
+		getGeneratedText: () => generatedText,
+	}
+}
+
+export { createLogger, type Logger, type OutputContentItem }

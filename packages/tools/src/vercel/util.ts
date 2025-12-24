@@ -9,12 +9,6 @@ import type {
 	LanguageModelV3StreamPart,
 } from "@ai-sdk/provider"
 
-// Re-export shared types for backward compatibility
-export type {
-	ProfileStructure,
-	ProfileMarkdownData,
-} from "../shared"
-
 // Union types for dual SDK version support (V2 = SDK 5, V3 = SDK 6)
 export type LanguageModel = LanguageModelV2 | LanguageModelV3
 export type LanguageModelCallOptions =
@@ -26,6 +20,26 @@ export type LanguageModelMessage =
 export type LanguageModelStreamPart =
 	| LanguageModelV2StreamPart
 	| LanguageModelV3StreamPart
+
+export interface ProfileStructure {
+	profile: {
+		static?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		dynamic?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	}
+	searchResults: {
+		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
+	}
+}
+
+export interface ProfileMarkdownData {
+	profile: {
+		static?: string[]
+		dynamic?: string[]
+	}
+	searchResults: {
+		results: Array<{ memory: string }>
+	}
+}
 
 export type OutputContentItem =
 	| { type: "text"; text: string }
@@ -44,33 +58,37 @@ export type OutputContentItem =
 			title: string
 	  }
 
-// Re-export convertProfileToMarkdown from shared for backward compatibility
-export { convertProfileToMarkdown } from "../shared"
+/**
+ * Convert profile data to markdown format
+ * @param data Profile data with string arrays for static and dynamic memories
+ * @returns Markdown string with profile sections
+ */
+export function convertProfileToMarkdown(data: ProfileMarkdownData): string {
+	const sections: string[] = []
 
-export const getLastUserMessage = (
-	params: LanguageModelCallOptions,
-): string | undefined => {
+	if (data.profile.static && data.profile.static.length > 0) {
+		sections.push("## Static Profile")
+		sections.push(data.profile.static.map((item) => `- ${item}`).join("\n"))
+	}
+
+	if (data.profile.dynamic && data.profile.dynamic.length > 0) {
+		sections.push("## Dynamic Profile")
+		sections.push(data.profile.dynamic.map((item) => `- ${item}`).join("\n"))
+	}
+
+	return sections.join("\n\n")
+}
+
+export const getLastUserMessage = (params: LanguageModelCallOptions) => {
 	const lastUserMessage = params.prompt
 		.slice()
 		.reverse()
 		.find((prompt: LanguageModelMessage) => prompt.role === "user")
-
-	if (!lastUserMessage) {
-		return undefined
-	}
-
-	const content = lastUserMessage.content
-
-	// Handle string content directly
-	if (typeof content === "string") {
-		return content
-	}
-
-	// Handle array content - extract text parts
-	return content
-		.filter((part) => part.type === "text")
-		.map((part) => (part as { type: "text"; text: string }).text)
+	const memories = lastUserMessage?.content
+		.filter((content) => content.type === "text")
+		.map((content) => (content as { type: "text"; text: string }).text)
 		.join(" ")
+	return memories
 }
 
 export const filterOutSupermemories = (content: string) => {

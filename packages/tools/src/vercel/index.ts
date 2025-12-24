@@ -10,46 +10,14 @@ import {
 	extractAssistantResponseText,
 	saveMemoryAfterResponse,
 } from "./middleware"
-import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
 
 interface WrapVercelLanguageModelOptions {
-	/** Optional conversation ID to group messages for contextual memory generation */
 	conversationId?: string
-	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
-	/**
-	 * Memory retrieval mode:
-	 * - "profile": Retrieves user profile memories (static + dynamic) without query filtering
-	 * - "query": Searches memories based on semantic similarity to the user's message
-	 * - "full": Combines both profile and query-based results
-	 */
 	mode?: "profile" | "query" | "full"
-	/**
-	 * Memory persistence mode:
-	 * - "always": Automatically save conversations as memories
-	 * - "never": Only retrieve memories, don't store new ones
-	 */
 	addMemory?: "always" | "never"
-	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY env var) */
 	apiKey?: string
-	/** Custom Supermemory API base URL */
 	baseUrl?: string
-	/**
-	 * Custom function to format memory data into the system prompt.
-	 * If not provided, uses the default "User Supermemories:" format.
-	 *
-	 * @example
-	 * ```typescript
-	 * promptTemplate: (data) => `
-	 * <user_memories>
-	 * Here is some information about your past conversations:
-	 * ${data.userMemories}
-	 * ${data.generalSearchMemories}
-	 * </user_memories>
-	 * `.trim()
-	 * ```
-	 */
-	promptTemplate?: PromptTemplate
 }
 
 /**
@@ -116,121 +84,103 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		mode: options?.mode ?? "profile",
 		addMemory: options?.addMemory ?? "never",
 		baseUrl: options?.baseUrl,
-		promptTemplate: options?.promptTemplate,
 	})
 
-	// Proxy keeps prototype/getter fields (e.g. provider, modelId) that `{ ...model }` drops.
-	return new Proxy(model, {
-		get(target, prop, receiver) {
-			if (prop === "doGenerate") {
-				return async (params: LanguageModelCallOptions) => {
-					try {
-						const transformedParams = await transformParamsWithMemory(
-							params,
-							ctx,
-						)
+	const wrappedModel = {
+		...model,
 
-						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-						const result = await target.doGenerate(transformedParams as any)
+		doGenerate: async (params: LanguageModelCallOptions) => {
+			try {
+				const transformedParams = await transformParamsWithMemory(params, ctx)
 
+				// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+				const result = await model.doGenerate(transformedParams as any)
+
+				const userMessage = getLastUserMessage(params)
+				if (ctx.addMemory === "always" && userMessage && userMessage.trim()) {
+					const assistantResponseText = extractAssistantResponseText(
+						result.content as unknown[],
+					)
+					saveMemoryAfterResponse(
+						ctx.client,
+						ctx.containerTag,
+						ctx.conversationId,
+						assistantResponseText,
+						params,
+						ctx.logger,
+						ctx.apiKey,
+						ctx.normalizedBaseUrl,
+					)
+				}
+
+				return result
+			} catch (error) {
+				ctx.logger.error("Error generating response", {
+					error: error instanceof Error ? error.message : "Unknown error",
+				})
+				throw error
+			}
+		},
+
+		doStream: async (params: LanguageModelCallOptions) => {
+			let generatedText = ""
+
+			try {
+				const transformedParams = await transformParamsWithMemory(params, ctx)
+
+				const { stream, ...rest } = await model.doStream(
+					// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+					transformedParams as any,
+				)
+
+				const transformStream = new TransformStream<
+					LanguageModelStreamPart,
+					LanguageModelStreamPart
+				>({
+					transform(chunk, controller) {
+						if (chunk.type === "text-delta") {
+							generatedText += chunk.delta
+						}
+						controller.enqueue(chunk)
+					},
+					flush: async () => {
 						const userMessage = getLastUserMessage(params)
 						if (
 							ctx.addMemory === "always" &&
 							userMessage &&
 							userMessage.trim()
 						) {
-							const assistantResponseText = extractAssistantResponseText(
-								result.content as unknown[],
-							)
 							saveMemoryAfterResponse(
 								ctx.client,
 								ctx.containerTag,
 								ctx.conversationId,
-								assistantResponseText,
+								generatedText,
 								params,
 								ctx.logger,
 								ctx.apiKey,
 								ctx.normalizedBaseUrl,
 							)
 						}
+					},
+				})
 
-						return result
-					} catch (error) {
-						ctx.logger.error("Error generating response", {
-							error: error instanceof Error ? error.message : "Unknown error",
-						})
-						throw error
-					}
+				return {
+					stream: stream.pipeThrough(transformStream),
+					...rest,
 				}
+			} catch (error) {
+				ctx.logger.error("Error streaming response", {
+					error: error instanceof Error ? error.message : "Unknown error",
+				})
+				throw error
 			}
-
-			if (prop === "doStream") {
-				return async (params: LanguageModelCallOptions) => {
-					let generatedText = ""
-
-					try {
-						const transformedParams = await transformParamsWithMemory(
-							params,
-							ctx,
-						)
-
-						const { stream, ...rest } = await target.doStream(
-							// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-							transformedParams as any,
-						)
-
-						const transformStream = new TransformStream<
-							LanguageModelStreamPart,
-							LanguageModelStreamPart
-						>({
-							transform(chunk, controller) {
-								if (chunk.type === "text-delta") {
-									generatedText += chunk.delta
-								}
-								controller.enqueue(chunk)
-							},
-							flush: async () => {
-								const userMessage = getLastUserMessage(params)
-								if (
-									ctx.addMemory === "always" &&
-									userMessage &&
-									userMessage.trim()
-								) {
-									saveMemoryAfterResponse(
-										ctx.client,
-										ctx.containerTag,
-										ctx.conversationId,
-										generatedText,
-										params,
-										ctx.logger,
-										ctx.apiKey,
-										ctx.normalizedBaseUrl,
-									)
-								}
-							},
-						})
-
-						return {
-							stream: stream.pipeThrough(transformStream),
-							...rest,
-						}
-					} catch (error) {
-						ctx.logger.error("Error streaming response", {
-							error: error instanceof Error ? error.message : "Unknown error",
-						})
-						throw error
-					}
-				}
-			}
-
-			return Reflect.get(target, prop, receiver)
 		},
-	}) as T
+	} as T
+
+	return wrappedModel
 }
 
 export {
 	wrapVercelLanguageModel as withSupermemory,
 	type WrapVercelLanguageModelOptions as WithSupermemoryOptions,
-	type PromptTemplate,
-	type MemoryPromptData,
 }
