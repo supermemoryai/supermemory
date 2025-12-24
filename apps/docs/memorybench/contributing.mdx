@@ -1,0 +1,89 @@
+---
+title: "Contributing"
+description: "Guidelines for contributing to MemoryBench"
+sidebarTitle: "Contributing"
+---
+
+## Getting Started
+
+1. Fork the repository
+2. Clone your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/memorybench
+   cd memorybench
+   bun install
+   ```
+3. Create a branch:
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+
+## Development Workflow
+
+### Running Tests
+
+```bash
+bun test
+```
+
+### Running the CLI
+
+```bash
+bun run src/index.ts <command>
+```
+
+### Running the Web UI
+
+```bash
+cd ui
+bun run dev
+```
+
+## Code Structure
+
+| Directory | Purpose |
+|-----------|---------|
+| `src/cli/` | CLI commands |
+| `src/orchestrator/` | Pipeline execution |
+| `src/benchmarks/` | Benchmark adapters |
+| `src/providers/` | Provider integrations |
+| `src/judges/` | LLM judge implementations |
+| `src/types/` | TypeScript interfaces |
+| `ui/` | Next.js web interface |
+
+## Contribution Types
+
+### Adding a Provider
+
+See [Extending MemoryBench](/memorybench/extend-provider) for the full guide.
+
+1. Create `src/providers/yourprovider/index.ts`
+2. Implement the `Provider` interface
+3. Register in `src/providers/index.ts`
+4. Add config in `src/utils/config.ts`
+5. Submit PR with tests
+
+### Adding a Benchmark
+
+1. Create `src/benchmarks/yourbenchmark/index.ts`
+2. Implement the `Benchmark` interface
+3. Register in `src/benchmarks/index.ts`
+4. Document question types
+5. Submit PR with sample data
+
+### Bug Fixes
+
+1. Create an issue describing the bug
+2. Reference the issue in your PR
+3. Include test cases that reproduce the bug
+
+## Pull Request Guidelines
+
+- Keep PRs focused on a single change
+- Update documentation if needed
+- Ensure all tests pass
+- Follow existing code style
+
+## Questions?
+
+Open an issue on [GitHub](https://github.com/supermemoryai/memorybench/issues).
