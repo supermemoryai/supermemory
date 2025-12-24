@@ -68,9 +68,13 @@ export const addSystemPrompt = async (
 			? params.prompt
 					.slice()
 					.reverse()
-					.find((prompt) => prompt.role === "user")
-					?.content?.filter((content) => content.type === "text")
-					?.map((content) => (content.type === "text" ? content.text : ""))
+					.find((prompt: { role: string }) => prompt.role === "user")
+					?.content?.filter(
+						(content: { type: string }) => content.type === "text",
+					)
+					?.map((content: { type: string; text: string }) =>
+						content.type === "text" ? content.text : "",
+					)
 					?.join(" ") || ""
 			: ""
 
@@ -108,7 +112,7 @@ export const addSystemPrompt = async (
 			deduplicated: deduplicated.dynamic.length,
 		},
 		searchResults: {
-			original: memoriesResponse.searchResults.results.length,
+			original: memoriesResponse.searchResults?.results?.length,
 			deduplicated: deduplicated.searchResults?.length,
 		},
 	})

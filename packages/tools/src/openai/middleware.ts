@@ -184,7 +184,7 @@ const addSystemPrompt = async (
 	const deduplicated = deduplicateMemories({
 		static: memoriesResponse.profile.static,
 		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults.results,
+		searchResults: memoriesResponse.searchResults?.results,
 	})
 
 	logger.debug("Memory deduplication completed for chat API", {
@@ -197,7 +197,7 @@ const addSystemPrompt = async (
 			deduplicated: deduplicated.dynamic.length,
 		},
 		searchResults: {
-			original: memoriesResponse.searchResults.results.length,
+			original: memoriesResponse.searchResults?.results?.length,
 			deduplicated: deduplicated.searchResults.length,
 		},
 	})
@@ -340,7 +340,9 @@ const addMemoryTool = async (
 							: "",
 				...((msg as any).name && { name: (msg as any).name }),
 				...((msg as any).tool_calls && { tool_calls: (msg as any).tool_calls }),
-				...((msg as any).tool_call_id && { tool_call_id: (msg as any).tool_call_id }),
+				...((msg as any).tool_call_id && {
+					tool_call_id: (msg as any).tool_call_id,
+				}),
 			}))
 
 			const response = await addConversation({
@@ -467,7 +469,7 @@ export function createOpenAIMiddleware(
 		const deduplicated = deduplicateMemories({
 			static: memoriesResponse.profile.static,
 			dynamic: memoriesResponse.profile.dynamic,
-			searchResults: memoriesResponse.searchResults.results,
+			searchResults: memoriesResponse.searchResults?.results,
 		})
 
 		logger.debug(`Memory deduplication completed for ${context} API`, {
@@ -480,7 +482,7 @@ export function createOpenAIMiddleware(
 				deduplicated: deduplicated.dynamic.length,
 			},
 			searchResults: {
-				original: memoriesResponse.searchResults.results.length,
+				original: memoriesResponse.searchResults?.results?.length,
 				deduplicated: deduplicated.searchResults.length,
 			},
 		})
