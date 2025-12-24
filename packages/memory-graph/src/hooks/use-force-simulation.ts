@@ -27,7 +27,7 @@ export interface ForceSimulationControls {
 export function useForceSimulation(
 	nodes: GraphNode[],
 	edges: GraphEdge[],
-	onTick: (nodes: GraphNode[]) => void,
+	onTick: () => void,
 	enabled = true,
 ): ForceSimulationControls {
 	const simulationRef = useRef<d3.Simulation<GraphNode, GraphEdge> | null>(null)
@@ -48,7 +48,7 @@ export function useForceSimulation(
 				.on("tick", () => {
 					// Trigger re-render by calling onTick
 					// D3 has already mutated node.x and node.y
-					onTick([...nodes])
+					onTick()
 				})
 
 			// Configure forces

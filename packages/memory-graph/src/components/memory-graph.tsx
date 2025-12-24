@@ -2,7 +2,7 @@
 
 import { GlassMenuEffect } from "@/ui/glass-effect"
 import { AnimatePresence } from "motion/react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
 import { GraphCanvas } from "./graph-canvas"
 import { useGraphData } from "@/hooks/use-graph-data"
 import { useGraphInteractions } from "@/hooks/use-graph-interactions"
@@ -137,7 +137,7 @@ export const MemoryGraph = ({
 	)
 
 	// State to trigger re-renders when simulation ticks
-	const [, setSimulationTick] = useState(0)
+	const [, forceRender] = useReducer((x: number) => x + 1, 0)
 
 	// Track drag state for physics integration
 	const dragStateRef = useRef<{
@@ -155,7 +155,7 @@ export const MemoryGraph = ({
 		() => {
 			// On each tick, trigger a re-render
 			// D3 directly mutates node.x and node.y
-			setSimulationTick((prev) => prev + 1)
+			forceRender()
 		},
 		true, // enabled
 	)
