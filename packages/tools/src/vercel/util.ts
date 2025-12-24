@@ -1,4 +1,25 @@
-import type { LanguageModelV2CallOptions, LanguageModelV2Message } from "@ai-sdk/provider"
+import type {
+	LanguageModelV2,
+	LanguageModelV2CallOptions,
+	LanguageModelV2Message,
+	LanguageModelV2StreamPart,
+	LanguageModelV3,
+	LanguageModelV3CallOptions,
+	LanguageModelV3Message,
+	LanguageModelV3StreamPart,
+} from "@ai-sdk/provider"
+
+// Union types for dual SDK version support (V2 = SDK 5, V3 = SDK 6)
+export type LanguageModel = LanguageModelV2 | LanguageModelV3
+export type LanguageModelCallOptions =
+	| LanguageModelV2CallOptions
+	| LanguageModelV3CallOptions
+export type LanguageModelMessage =
+	| LanguageModelV2Message
+	| LanguageModelV3Message
+export type LanguageModelStreamPart =
+	| LanguageModelV2StreamPart
+	| LanguageModelV3StreamPart
 
 export interface ProfileStructure {
 	profile: {
@@ -58,20 +79,18 @@ export function convertProfileToMarkdown(data: ProfileMarkdownData): string {
 	return sections.join("\n\n")
 }
 
-export const getLastUserMessage = (params: LanguageModelV2CallOptions) => {
+export const getLastUserMessage = (params: LanguageModelCallOptions) => {
 	const lastUserMessage = params.prompt
 		.slice()
 		.reverse()
-		.find((prompt: LanguageModelV2Message) => prompt.role === "user")
+		.find((prompt: LanguageModelMessage) => prompt.role === "user")
 	const memories = lastUserMessage?.content
 		.filter((content) => content.type === "text")
-		.map((content) => content.text)
+		.map((content) => (content as { type: "text"; text: string }).text)
 		.join(" ")
 	return memories
 }
 
-
 export const filterOutSupermemories = (content: string) => {
 	return content.split("User Supermemories: ")[0]
 }
-

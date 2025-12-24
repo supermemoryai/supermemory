@@ -1,0 +1,39 @@
+---
+title: "Integrations"
+description: "Supported benchmarks and providers in MemoryBench"
+sidebarTitle: "Integrations"
+---
+
+## Benchmarks
+
+| Benchmark | Description | Source | Categories |
+|-----------|-------------|--------|------------|
+| LoCoMo | Long context memory testing fact recall across extended conversations | [snap-research/locomo](https://github.com/snap-research/locomo) | `single-hop`, `multi-hop`, `temporal`, `world-knowledge`, `adversarial` |
+| LongMemEval | Long-term memory evaluation across multiple sessions with knowledge updates | [xiaowu0162/longmemeval](https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned) | `single-session-user`, `single-session-assistant`, `multi-session`, `temporal-reasoning`, `knowledge-update` |
+| ConvoMem | Conversational memory focused on personalization and preference learning | [Salesforce/ConvoMem](https://huggingface.co/datasets/Salesforce/ConvoMem) | `user_evidence`, `assistant_facts_evidence`, `preference_evidence`, `changing_evidence`, `abstention_evidence` |
+
+<Note>
+We're actively adding support for more benchmarks. [Contribute your own](/memorybench/extend-benchmark) or [create a feature request](https://github.com/supermemoryai/memorybench/issues).
+</Note>
+
+---
+
+## Providers
+
+<Columns cols={3}>
+  <Card title="Supermemory" icon="brain" href="https://supermemory.ai">
+      Chunk-based semantic search
+  </Card>
+
+  <Card title="Mem0" icon="database" href="https://mem0.ai">
+      LLM-powered memory extraction
+  </Card>
+
+  <Card title="Zep" icon="zap" href="https://getzep.com">
+      Knowledge graph construction
+  </Card>
+</Columns>
+
+<Note>
+We're actively adding support for more providers. [Contribute your own](/memorybench/extend-provider) or [create a feature request](https://github.com/supermemoryai/memorybench/issues).
+</Note>
