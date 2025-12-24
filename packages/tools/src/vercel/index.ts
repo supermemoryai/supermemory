@@ -1,25 +1,37 @@
-import type { LanguageModelV2 } from "@ai-sdk/provider"
-import { wrapLanguageModel } from "ai"
-import { createSupermemoryMiddleware } from "./middleware"
+import {
+	type LanguageModel,
+	type LanguageModelCallOptions,
+	type LanguageModelStreamPart,
+	getLastUserMessage,
+} from "./util"
+import {
+	createSupermemoryContext,
+	transformParamsWithMemory,
+	extractAssistantResponseText,
+	saveMemoryAfterResponse,
+} from "./middleware"
 
 interface WrapVercelLanguageModelOptions {
-	conversationId?: string;
-	verbose?: boolean;
-	mode?: "profile" | "query" | "full";
-	addMemory?: "always" | "never";
-	apiKey?: string;
-	baseUrl?: string;
+	conversationId?: string
+	verbose?: boolean
+	mode?: "profile" | "query" | "full"
+	addMemory?: "always" | "never"
+	apiKey?: string
+	baseUrl?: string
 }
 
 /**
  * Wraps a language model with supermemory middleware to automatically inject relevant memories
  * into the system prompt based on the user's message content.
  *
- * This middleware searches the supermemory API for relevant memories using the container tag
+ * This wrapper searches the supermemory API for relevant memories using the container tag
  * and user message, then either appends memories to an existing system prompt or creates
  * a new system prompt with the memories.
  *
- * @param model - The language model to wrap with supermemory capabilities
+ * Supports both Vercel AI SDK 5 (LanguageModelV2) and SDK 6 (LanguageModelV3) via runtime
+ * detection of `model.specificationVersion`.
+ *
+ * @param model - The language model to wrap with supermemory capabilities (V2 or V3)
  * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
  * @param options - Optional configuration options for the middleware
  * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
@@ -51,29 +63,124 @@ interface WrapVercelLanguageModelOptions {
  * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
  * @throws {Error} When supermemory API request fails
  */
-const wrapVercelLanguageModel = (
-	model: LanguageModelV2,
+const wrapVercelLanguageModel = <T extends LanguageModel>(
+	model: T,
 	containerTag: string,
 	options?: WrapVercelLanguageModelOptions,
-): LanguageModelV2 => {
+): T => {
 	const providedApiKey = options?.apiKey ?? process.env.SUPERMEMORY_API_KEY
 
 	if (!providedApiKey) {
-		throw new Error("SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`")
+		throw new Error(
+			"SUPERMEMORY_API_KEY is not set — provide it via `options.apiKey` or set `process.env.SUPERMEMORY_API_KEY`",
+		)
 	}
 
-	const conversationId = options?.conversationId
-	const verbose = options?.verbose ?? false
-	const mode = options?.mode ?? "profile"
-	const addMemory = options?.addMemory ?? "never"
-	const baseUrl = options?.baseUrl
-
-	const wrappedModel = wrapLanguageModel({
-		model,
-		middleware: createSupermemoryMiddleware(containerTag, providedApiKey, conversationId, verbose, mode, addMemory, baseUrl),
+	const ctx = createSupermemoryContext({
+		containerTag,
+		apiKey: providedApiKey,
+		conversationId: options?.conversationId,
+		verbose: options?.verbose ?? false,
+		mode: options?.mode ?? "profile",
+		addMemory: options?.addMemory ?? "never",
+		baseUrl: options?.baseUrl,
 	})
+
+	const wrappedModel = {
+		...model,
+
+		doGenerate: async (params: LanguageModelCallOptions) => {
+			try {
+				const transformedParams = await transformParamsWithMemory(params, ctx)
+
+				// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+				const result = await model.doGenerate(transformedParams as any)
+
+				const userMessage = getLastUserMessage(params)
+				if (ctx.addMemory === "always" && userMessage && userMessage.trim()) {
+					const assistantResponseText = extractAssistantResponseText(
+						result.content as unknown[],
+					)
+					saveMemoryAfterResponse(
+						ctx.client,
+						ctx.containerTag,
+						ctx.conversationId,
+						assistantResponseText,
+						params,
+						ctx.logger,
+						ctx.apiKey,
+						ctx.normalizedBaseUrl,
+					)
+				}
+
+				return result
+			} catch (error) {
+				ctx.logger.error("Error generating response", {
+					error: error instanceof Error ? error.message : "Unknown error",
+				})
+				throw error
+			}
+		},
+
+		doStream: async (params: LanguageModelCallOptions) => {
+			let generatedText = ""
+
+			try {
+				const transformedParams = await transformParamsWithMemory(params, ctx)
+
+				const { stream, ...rest } = await model.doStream(
+					// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+					transformedParams as any,
+				)
+
+				const transformStream = new TransformStream<
+					LanguageModelStreamPart,
+					LanguageModelStreamPart
+				>({
+					transform(chunk, controller) {
+						if (chunk.type === "text-delta") {
+							generatedText += chunk.delta
+						}
+						controller.enqueue(chunk)
+					},
+					flush: async () => {
+						const userMessage = getLastUserMessage(params)
+						if (
+							ctx.addMemory === "always" &&
+							userMessage &&
+							userMessage.trim()
+						) {
+							saveMemoryAfterResponse(
+								ctx.client,
+								ctx.containerTag,
+								ctx.conversationId,
+								generatedText,
+								params,
+								ctx.logger,
+								ctx.apiKey,
+								ctx.normalizedBaseUrl,
+							)
+						}
+					},
+				})
+
+				return {
+					stream: stream.pipeThrough(transformStream),
+					...rest,
+				}
+			} catch (error) {
+				ctx.logger.error("Error streaming response", {
+					error: error instanceof Error ? error.message : "Unknown error",
+				})
+				throw error
+			}
+		},
+	} as T
 
 	return wrappedModel
 }
 
-export { wrapVercelLanguageModel as withSupermemory, type WrapVercelLanguageModelOptions as WithSupermemoryOptions }
+export {
+	wrapVercelLanguageModel as withSupermemory,
+	type WrapVercelLanguageModelOptions as WithSupermemoryOptions,
+}

@@ -1,7 +1,10 @@
-import type { LanguageModelV2CallOptions } from "@ai-sdk/provider"
 import { deduplicateMemories } from "../shared"
 import type { Logger } from "./logger"
-import { convertProfileToMarkdown, type ProfileStructure } from "./util"
+import {
+	type LanguageModelCallOptions,
+	convertProfileToMarkdown,
+	type ProfileStructure,
+} from "./util"
 
 export const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
@@ -50,12 +53,12 @@ const supermemoryProfileSearch = async (
 }
 
 export const addSystemPrompt = async (
-	params: LanguageModelV2CallOptions,
+	params: LanguageModelCallOptions,
 	containerTag: string,
 	logger: Logger,
 	mode: "profile" | "query" | "full",
 	baseUrl = "https://api.supermemory.ai",
-) => {
+): Promise<LanguageModelCallOptions> => {
 	const systemPromptExists = params.prompt.some(
 		(prompt) => prompt.role === "system",
 	)
@@ -138,21 +141,22 @@ export const addSystemPrompt = async (
 
 	if (systemPromptExists) {
 		logger.debug("Added memories to existing system prompt")
-		return {
-			...params,
-			prompt: params.prompt.map((prompt) =>
-				prompt.role === "system"
-					? { ...prompt, content: `${prompt.content} \n ${memories}` }
-					: prompt,
-			),
-		}
+		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
+		const newPrompt = params.prompt.map((prompt: any) =>
+			prompt.role === "system"
+				? { ...prompt, content: `${prompt.content} \n ${memories}` }
+				: prompt,
+		)
+		return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 	}
 
 	logger.debug(
 		"System prompt does not exist, created system prompt with memories",
 	)
-	return {
-		...params,
-		prompt: [{ role: "system" as const, content: memories }, ...params.prompt],
-	}
+	const newPrompt = [
+		{ role: "system" as const, content: memories },
+		...params.prompt,
+		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
+	] as any
+	return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 }
