@@ -294,7 +294,7 @@ export function useGraphData(
 		// D3-force will handle collision avoidance and spacing dynamically
 
 		allNodes.push(...documentNodes)
-
+		
 		/* 3. Add memories around documents WITH doc-memory connections */
 		documentNodes.forEach((docNode) => {
 			const memoryNodeMap = new Map<string, GraphNode>()
@@ -386,7 +386,7 @@ export function useGraphData(
 		data.documents.forEach((doc) => {
 			doc.memoryEntries.forEach((mem: MemoryEntry) => {
 				// Support both new object structure and legacy array/single parent fields
-				let parentRelations: Record<string, MemoryRelation> = {}
+				let parentRelations: Record<string, MemoryRelation> = (mem.memoryRelations ?? {}) as Record<string, MemoryRelation> 
 
 				if (
 					mem.memoryRelations &&

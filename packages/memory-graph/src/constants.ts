@@ -20,10 +20,10 @@ export const colors = {
 		glow: "rgba(147, 197, 253, 0.5)", // Blue glow for interaction
 	},
 	connection: {
-		weak: "rgba(79, 255, 226, 0.3)", // subtle
+		weak: "rgba(35, 189, 255, 0.3)", // subtle
 		memory: "rgba(148, 163, 184, 0.35)", // Very subtle
-		medium: "rgba(79, 255, 226, 0.6)", // Medium visibility
-		strong: "rgba(79, 255, 226, 0.9)", // Strong connection
+		medium: "rgba(35, 189, 255, 0.6)", // Medium visibility
+		strong: "rgba(35, 189, 255, 0.9)", // Strong connection
 	},
 	text: {
 		primary: "#ffffff", // Pure white

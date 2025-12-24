@@ -306,7 +306,7 @@ export const connectionLine = style({
 export const similarityLine = style({
 	width: "1rem",
 	height: 0,
-	borderTop: "2px dashed rgba(79, 255, 226, 0.5)",
+	borderTop: "2px dashed rgba(35, 189, 255, 0.6)",
 	flexShrink: 0,
 })
 
