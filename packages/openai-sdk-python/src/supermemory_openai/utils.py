@@ -187,6 +187,72 @@ def get_conversation_content(
     return "\n\n".join(conversation_parts)
 
 
+class DeduplicatedMemories:
+    """Deduplicated memory strings organized by source."""
+
+    def __init__(self, static: list[str], dynamic: list[str], search_results: list[str]):
+        self.static = static
+        self.dynamic = dynamic
+        self.search_results = search_results
+
+
+def deduplicate_memories(
+    static: Optional[list[Any]] = None,
+    dynamic: Optional[list[Any]] = None,
+    search_results: Optional[list[Any]] = None,
+) -> DeduplicatedMemories:
+    """
+    Deduplicates memory items across sources. Priority: Static > Dynamic > Search Results.
+    Same memory appearing in multiple sources is kept only in the highest-priority source.
+    """
+    static_items = static or []
+    dynamic_items = dynamic or []
+    search_items = search_results or []
+
+    def extract_memory_text(item: Any) -> Optional[str]:
+        if item is None:
+            return None
+        if isinstance(item, dict):
+            memory = item.get("memory")
+            if isinstance(memory, str):
+                trimmed = memory.strip()
+                return trimmed if trimmed else None
+            return None
+        if isinstance(item, str):
+            trimmed = item.strip()
+            return trimmed if trimmed else None
+        return None
+
+    static_memories: list[str] = []
+    seen_memories: set[str] = set()
+
+    for item in static_items:
+        memory = extract_memory_text(item)
+        if memory is not None:
+            static_memories.append(memory)
+            seen_memories.add(memory)
+
+    dynamic_memories: list[str] = []
+    for item in dynamic_items:
+        memory = extract_memory_text(item)
+        if memory is not None and memory not in seen_memories:
+            dynamic_memories.append(memory)
+            seen_memories.add(memory)
+
+    search_memories: list[str] = []
+    for item in search_items:
+        memory = extract_memory_text(item)
+        if memory is not None and memory not in seen_memories:
+            search_memories.append(memory)
+            seen_memories.add(memory)
+
+    return DeduplicatedMemories(
+        static=static_memories,
+        dynamic=dynamic_memories,
+        search_results=search_memories,
+    )
+
+
 def convert_profile_to_markdown(data: dict[str, Any]) -> str:
     """
     Convert profile data to markdown based on profile.static and profile.dynamic properties.

@@ -28,6 +28,8 @@ from .utils import (
     get_last_user_message,
     get_conversation_content,
     convert_profile_to_markdown,
+    deduplicate_memories,
+    DeduplicatedMemories,
 )
 
 from .exceptions import (
@@ -64,6 +66,8 @@ __all__ = [
     "get_last_user_message",
     "get_conversation_content",
     "convert_profile_to_markdown",
+    "deduplicate_memories",
+    "DeduplicatedMemories",
     # Exceptions
     "SupermemoryError",
     "SupermemoryConfigurationError",
