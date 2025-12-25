@@ -1,0 +1,252 @@
+---
+title: "Advanced Tools Integration"
+description: "Reduce context waste and improve performance with llm-advanced-tools integration"
+sidebarTitle: "Advanced Tools"
+---
+
+<Note>
+  This guide shows how to integrate `llm-advanced-tools` with Supermemory tools to reduce token usage and improve performance.
+</Note>
+
+## Overview
+
+By default, all Supermemory tools are loaded into the LLM context upfront, which can waste tokens when you have many tools or only need specific ones. The `llm-advanced-tools` library provides:
+
+- **Tool Search**: Dynamically discover and load tools on-demand (85%+ token savings)
+- **Defer Loading**: Don't load all tools upfront, only when needed
+- **Tool Examples**: Improve accuracy with usage examples (18%+ improvement)
+
+## Installation
+
+```bash
+npm install llm-advanced-tools @supermemory/tools
+```
+
+## Basic Integration
+
+Convert Supermemory tools to work with `llm-advanced-tools`:
+
+```typescript
+import { Client, ToolRegistry, VercelAIAdapter, ToolDefinition } from 'llm-advanced-tools';
+import { supermemoryTools } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+// 1. Create tool registry with smart search
+const registry = new ToolRegistry({
+  strategy: 'smart',  // BM25 semantic search
+  maxResults: 5
+});
+
+// 2. Convert Supermemory tools to advanced tool definitions
+const supermemoryApiKey = 'YOUR_SUPERMEMORY_KEY';
+const smTools = supermemoryTools(supermemoryApiKey);
+
+// Convert each tool to ToolDefinition format
+const searchMemoriesToolDef: ToolDefinition = {
+  name: 'searchMemories',
+  description: 'Search (recall) memories/details/information about the user or other facts or entities.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      informationToGet: { type: 'string', description: 'Terms to search for' },
+      includeFullDocs: { type: 'boolean', default: true },
+      limit: { type: 'number', default: 10 }
+    },
+    required: ['informationToGet']
+  },
+  inputExamples: [
+    { informationToGet: "user's favorite programming language" },
+    { informationToGet: "dietary preferences and restrictions" }
+  ],
+  deferLoading: true,  // Only load when needed
+  handler: async (input) => {
+    // Execute the actual supermemory tool
+    const tool = smTools.searchMemories;
+    return await tool.execute(input);
+  }
+};
+
+const addMemoryToolDef: ToolDefinition = {
+  name: 'addMemory',
+  description: 'Add (remember) memories/details/information about the user.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      memory: { type: 'string', description: 'The text content to remember' }
+    },
+    required: ['memory']
+  },
+  inputExamples: [
+    { memory: "User prefers dark mode in all applications" },
+    { memory: "User is allergic to peanuts" }
+  ],
+  deferLoading: true,
+  handler: async (input) => {
+    const tool = smTools.addMemory;
+    return await tool.execute(input);
+  }
+};
+
+// 3. Register tools
+registry.register(searchMemoriesToolDef);
+registry.register(addMemoryToolDef);
+
+// 4. Create client with advanced features
+const client = new Client({
+  adapter: new VercelAIAdapter(openai('gpt-4o-mini')),
+  enableToolSearch: true,  // Enable dynamic tool discovery
+  enableProgrammaticCalling: false
+}, registry);
+
+// 5. Use with automatic tool search
+const response = await client.ask(
+  "What do you know about my preferences?",
+  "Use tool search to find relevant memory tools, then search for user preferences."
+);
+
+console.log(response);
+```
+
+## Benefits
+
+### Before (Standard Approach)
+
+```typescript
+// All tools loaded upfront - wastes tokens
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  messages: [{ role: 'user', content: 'What are my preferences?' }],
+  tools: supermemoryTools('API_KEY')  // Both tools loaded: ~2000 tokens
+});
+```
+
+**Token Usage**: ~2000 tokens for tool definitions
+
+### After (Advanced Tools)
+
+```typescript
+// Tools loaded on-demand via search
+const response = await client.ask(
+  "What are my preferences?",
+  "Search for relevant tools first."
+);
+// Only searchMemories tool loaded: ~300 tokens
+```
+
+**Token Usage**: ~300 tokens (85% reduction!)
+
+## Complete Example
+
+Here's a full example combining Supermemory with advanced tool features:
+
+```typescript
+import { Client, ToolRegistry, VercelAIAdapter, ToolDefinition } from 'llm-advanced-tools';
+import { supermemoryTools, searchMemoriesTool, addMemoryTool } from '@supermemory/tools/ai-sdk';
+import { openai } from '@ai-sdk/openai';
+
+async function setupAdvancedSupermemory() {
+  const registry = new ToolRegistry({ strategy: 'smart' });
+  const supermemoryApiKey = process.env.SUPERMEMORY_API_KEY!;
+
+  // Helper to convert AI SDK tool to ToolDefinition
+  function convertTool(
+    name: string,
+    description: string,
+    tool: any,
+    examples?: any[]
+  ): ToolDefinition {
+    return {
+      name,
+      description,
+      inputSchema: tool.inputSchema._def?.shape || {},
+      inputExamples: examples,
+      deferLoading: true,
+      handler: async (input: any) => {
+        return await tool.execute(input);
+      }
+    };
+  }
+
+  // Convert Supermemory tools
+  const smTools = supermemoryTools(supermemoryApiKey);
+  
+  registry.register(
+    convertTool(
+      'searchMemories',
+      'Search through user memories and information',
+      smTools.searchMemories,
+      [
+        { informationToGet: "user preferences" },
+        { informationToGet: "dietary restrictions", limit: 5 }
+      ]
+    )
+  );
+
+  registry.register(
+    convertTool(
+      'addMemory',
+      'Store new information about the user',
+      smTools.addMemory,
+      [
+        { memory: "User prefers TypeScript over JavaScript" },
+        { memory: "User works remotely PST timezone" }
+      ]
+    )
+  );
+
+  // Create client
+  const client = new Client({
+    adapter: new VercelAIAdapter(openai('gpt-4o-mini')),
+    enableToolSearch: true,
+    enableProgrammaticCalling: false
+  }, registry);
+
+  return client;
+}
+
+// Usage
+const client = await setupAdvancedSupermemory();
+
+// The LLM will automatically search for and use only relevant tools
+const response = await client.ask(
+  "Remember that I love hiking and remember my favorite trail is Mount Rainier",
+  "Use tool search to find memory tools, then add the information."
+);
+```
+
+## Performance Comparison
+
+| Scenario | Standard Approach | With Advanced Tools | Savings |
+|----------|------------------|---------------------|---------|
+| 2 Supermemory tools | ~2000 tokens | ~300 tokens | **85%** |
+| 10 tools total | ~8000 tokens | ~1200 tokens | **85%** |
+| 50 tools total | ~40000 tokens | ~6000 tokens | **85%** |
+
+## When to Use
+
+Use advanced tools integration when:
+
+- ✅ You have many tools (10+)
+- ✅ You want to reduce token costs
+- ✅ Tools are only needed occasionally
+- ✅ You want better tool selection accuracy
+
+Stick with standard approach when:
+
+- ❌ You only have 1-2 tools
+- ❌ Tools are always needed
+- ❌ Simplicity is more important than token savings
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Memory Tools" icon="wrench" href="/ai-sdk/memory-tools">
+    Learn about standard memory tools
+  </Card>
+
+  <Card title="Examples" icon="code" href="/cookbook/ai-sdk-integration">
+    See more integration examples
+  </Card>
+</CardGroup>
+
