@@ -53,11 +53,20 @@ interface SDKResult {
 export class SupermemoryClient {
 	private client: Supermemory
 	private containerTag: string
-	private apiKey: string
+	private bearerToken: string
+	private apiUrl: string
 
-	constructor(apiKey: string, containerTag?: string) {
-		this.apiKey = apiKey
-		this.client = new Supermemory({ apiKey })
+	constructor(
+		bearerToken: string,
+		containerTag?: string,
+		apiUrl = "https://api.supermemory.ai",
+	) {
+		this.bearerToken = bearerToken
+		this.apiUrl = apiUrl
+		this.client = new Supermemory({
+			apiKey: bearerToken,
+			baseURL: apiUrl,
+		})
 		this.containerTag = containerTag || "sm_default_project"
 	}
 
@@ -123,8 +132,6 @@ export class SupermemoryClient {
 				searchMode: "hybrid",
 			})
 
-			console.log(result)
-
 			// Normalize and limit response size
 			const results: Memory[] = (result.results as SDKResult[]).map((r) => ({
 				id: r.id,
@@ -184,17 +191,17 @@ export class SupermemoryClient {
 	// Get projects list
 	async getProjects(): Promise<string[]> {
 		try {
-			const response = await fetch("https://api.supermemory.ai/v3/projects", {
+			const response = await fetch(`${this.apiUrl}/v3/projects`, {
 				method: "GET",
 				headers: {
-					Authorization: `Bearer ${this.apiKey}`,
+					Authorization: `Bearer ${this.bearerToken}`,
 					"Content-Type": "application/json",
 				},
 			})
 
 			if (!response.ok) {
 				if (response.status === 401) {
-					throw new Error("Invalid API key. Get one at supermemory.ai")
+					throw new Error("Authentication failed. Please re-authenticate.")
 				}
 				throw new Error(`Failed to fetch projects: ${response.statusText}`)
 			}
@@ -212,14 +219,35 @@ export class SupermemoryClient {
 	private handleError(error: unknown): void {
 		if (error && typeof error === "object" && "status" in error) {
 			const status = (error as { status: number }).status
-			if (status === 402) {
-				throw new Error("Memory limit reached. Upgrade at supermemory.ai")
-			}
-			if (status === 404) {
-				throw new Error("Memory not found. It may have been deleted.")
-			}
-			if (status === 401) {
-				throw new Error("Invalid API key. Get one at supermemory.ai")
+			const message =
+				"message" in error ? (error as { message: string }).message : undefined
+
+			switch (status) {
+				case 400:
+				case 422:
+					throw new Error(
+						message || "Invalid request parameters. Please check your input.",
+					)
+				case 401:
+					throw new Error("Authentication failed. Please re-authenticate.")
+				case 402:
+					throw new Error("Memory limit reached. Upgrade at supermemory.ai")
+				case 403:
+					throw new Error(
+						"Access forbidden. Your account may be restricted or blocked.",
+					)
+				case 404:
+					throw new Error("Memory not found. It may have been deleted.")
+				case 429:
+					throw new Error(
+						"Rate limit exceeded. Please wait a moment and try again.",
+					)
+				default:
+					if (status >= 500) {
+						throw new Error(
+							"Server error. The service may be temporarily unavailable. Please try again later.",
+						)
+					}
 			}
 		}
 	}
