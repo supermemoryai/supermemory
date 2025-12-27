@@ -288,11 +288,16 @@ const client = new Supermemory({
   apiKey: process.env.SUPERMEMORY_API_KEY!
 });
 
-// Delete by connection ID using SDK
-const result = await client.connections.delete(connectionId);
+// Delete by connection ID
+const result = await client.connections.deleteByID(connectionId);
+
+// Or delete by provider (requires container tags)
+const result = await client.connections.deleteByProvider('notion', {
+  containerTags: ['user-123']
+});
 
 console.log('Deleted:', result.id, result.provider);
-// Output: Deleted: conn_abc123 notion
+
 ```
 
 ```python Python
@@ -301,11 +306,17 @@ import os
 
 client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-# Delete by connection ID using SDK
-result = client.connections.delete(connection_id)
+# Delete by connection ID
+result = client.connections.delete_by_id(connection_id)
+
+# Or delete by provider (requires container tags)
+result = client.connections.delete_by_provider(
+    provider='notion',
+    container_tags=['user-123']
+)
 
 print(f"Deleted: {result.id} {result.provider}")
-# Output: Deleted: conn_abc123 notion
+
 ```
 
 ```bash cURL

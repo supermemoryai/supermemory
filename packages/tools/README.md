@@ -1,6 +1,6 @@
 # @supermemory/tools
 
-Memory tools for AI SDK and OpenAI function calling with supermemory.
+Memory tools for AI SDK and OpenAI function calling with supermemory
 
 This package provides supermemory tools for both AI SDK and OpenAI function calling through dedicated submodule exports, each with function-based architectures optimized for their respective use cases.
 

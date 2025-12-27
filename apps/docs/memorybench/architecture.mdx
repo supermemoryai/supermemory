@@ -1,0 +1,99 @@
+---
+title: "Architecture"
+description: "Understanding MemoryBench's design and implementation"
+sidebarTitle: "Architecture"
+---
+
+## System Overview
+
+```mermaid
+flowchart TB
+    B["Benchmarks<br/>(LoCoMo, LongMemEval..)"]
+    P["Providers<br/>(Supermemory, Mem0, Zep)"]
+    J["Judges<br/>(GPT-4o, Claude..)"]
+
+    B --> O[Orchestrator]
+    P --> O
+    J --> O
+
+    O --> Pipeline
+
+    subgraph Pipeline[" "]
+        direction LR
+        I[Ingest] --> IX[Indexing] --> S[Search] --> A[Answer] --> E[Evaluate]
+    end
+
+    style B fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style P fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style J fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style O fill:#0369A1,stroke:#0369A1,color:#fff
+    style I fill:#F1F5F9,stroke:#64748B,color:#334155
+    style IX fill:#F1F5F9,stroke:#64748B,color:#334155
+    style S fill:#F1F5F9,stroke:#64748B,color:#334155
+    style A fill:#F1F5F9,stroke:#64748B,color:#334155
+    style E fill:#F1F5F9,stroke:#64748B,color:#334155
+```
+
+## Core Components
+
+| Component | Role |
+|-----------|------|
+| **Benchmarks** | Load test data and provide questions with ground truth answers |
+| **Providers** | Memory services being evaluated (handle ingestion and search) |
+| **Judges** | LLM-based evaluators that score answers against ground truth |
+
+See [Integrations](/memorybench/integrations) for all supported benchmarks, providers, and models.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    A[Ingest] --> B[Index] --> C[Search] --> D[Answer] --> E[Evaluate] --> F[Report]
+
+    style A fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style B fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style C fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style D fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style E fill:#E0F2FE,stroke:#0369A1,color:#0C4A6E
+    style F fill:#DCFCE7,stroke:#16A34A,color:#166534
+```
+
+| Phase | What Happens |
+|-------|--------------|
+| **Ingest** | Load benchmark sessions → Push to provider |
+| **Index** | Wait for provider indexing |
+| **Search** | Query provider → Retrieve context |
+| **Answer** | Build prompt → Generate answer via LLM |
+| **Evaluate** | Compare to ground truth → Score via judge |
+| **Report** | Aggregate scores → Output accuracy + latency |
+
+Each phase checkpoints independently. Failed runs resume from last successful point.
+
+## Advanced Checkpointing
+
+Runs persist to `data/runs/{runId}/`:
+
+```
+data/runs/my-run/
+├── checkpoint.json    # Run state and progress
+├── results/           # Search results per question
+└── report.json        # Final report
+```
+
+Re-running same ID resumes. Use `--force` to restart.
+
+## File Structure
+
+```
+src/
+├── cli/commands/             # run, compare, test, serve, status...
+├── orchestrator/phases/      # ingest, search, answer, evaluate, report
+├── benchmarks/
+│   └── <name>/index.ts       # e.g. locomo/, longmemeval/, convomem/
+├── providers/
+│   └── <name>/
+│       ├── index.ts          # Provider implementation
+│       └── prompts.ts        # Custom prompts (optional)
+├── judges/                   # openai.ts, anthropic.ts, google.ts
+└── types/                    # provider.ts, benchmark.ts, unified.ts
+```

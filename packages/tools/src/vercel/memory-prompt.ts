@@ -1,6 +1,10 @@
-import type { LanguageModelV2CallOptions } from "@ai-sdk/provider"
+import { deduplicateMemories } from "../shared"
 import type { Logger } from "./logger"
-import { convertProfileToMarkdown, type ProfileStructure } from "./util"
+import {
+	type LanguageModelCallOptions,
+	convertProfileToMarkdown,
+	type ProfileStructure,
+} from "./util"
 
 export const normalizeBaseUrl = (url?: string): string => {
 	const defaultUrl = "https://api.supermemory.ai"
@@ -49,12 +53,12 @@ const supermemoryProfileSearch = async (
 }
 
 export const addSystemPrompt = async (
-	params: LanguageModelV2CallOptions,
+	params: LanguageModelCallOptions,
 	containerTag: string,
 	logger: Logger,
 	mode: "profile" | "query" | "full",
 	baseUrl = "https://api.supermemory.ai",
-) => {
+): Promise<LanguageModelCallOptions> => {
 	const systemPromptExists = params.prompt.some(
 		(prompt) => prompt.role === "system",
 	)
@@ -64,9 +68,13 @@ export const addSystemPrompt = async (
 			? params.prompt
 					.slice()
 					.reverse()
-					.find((prompt) => prompt.role === "user")
-					?.content?.filter((content) => content.type === "text")
-					?.map((content) => (content.type === "text" ? content.text : ""))
+					.find((prompt: { role: string }) => prompt.role === "user")
+					?.content?.filter(
+						(content: { type: string }) => content.type === "text",
+					)
+					?.map((content: { type: string; text: string }) =>
+						content.type === "text" ? content.text : "",
+					)
 					?.join(" ") || ""
 			: ""
 
@@ -88,12 +96,41 @@ export const addSystemPrompt = async (
 		mode,
 	})
 
+	const deduplicated = deduplicateMemories({
+		static: memoriesResponse.profile.static,
+		dynamic: memoriesResponse.profile.dynamic,
+		searchResults: memoriesResponse.searchResults?.results,
+	})
+
+	logger.debug("Memory deduplication completed", {
+		static: {
+			original: memoryCountStatic,
+			deduplicated: deduplicated.static.length,
+		},
+		dynamic: {
+			original: memoryCountDynamic,
+			deduplicated: deduplicated.dynamic.length,
+		},
+		searchResults: {
+			original: memoriesResponse.searchResults?.results?.length,
+			deduplicated: deduplicated.searchResults?.length,
+		},
+	})
+
 	const profileData =
-		mode !== "query" ? convertProfileToMarkdown(memoriesResponse) : ""
+		mode !== "query"
+			? convertProfileToMarkdown({
+					profile: {
+						static: deduplicated.static,
+						dynamic: deduplicated.dynamic,
+					},
+					searchResults: { results: [] },
+				})
+			: ""
 	const searchResultsMemories =
 		mode !== "profile"
-			? `Search results for user's recent message: \n${memoriesResponse.searchResults.results
-					.map((result) => `- ${result.memory}`)
+			? `Search results for user's recent message: \n${deduplicated.searchResults
+					.map((memory) => `- ${memory}`)
 					.join("\n")}`
 			: ""
 
@@ -108,21 +145,22 @@ export const addSystemPrompt = async (
 
 	if (systemPromptExists) {
 		logger.debug("Added memories to existing system prompt")
-		return {
-			...params,
-			prompt: params.prompt.map((prompt) =>
-				prompt.role === "system"
-					? { ...prompt, content: `${prompt.content} \n ${memories}` }
-					: prompt,
-			),
-		}
+		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
+		const newPrompt = params.prompt.map((prompt: any) =>
+			prompt.role === "system"
+				? { ...prompt, content: `${prompt.content} \n ${memories}` }
+				: prompt,
+		)
+		return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 	}
 
 	logger.debug(
 		"System prompt does not exist, created system prompt with memories",
 	)
-	return {
-		...params,
-		prompt: [{ role: "system" as const, content: memories }, ...params.prompt],
-	}
+	const newPrompt = [
+		{ role: "system" as const, content: memories },
+		...params.prompt,
+		// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3 prompt types
+	] as any
+	return { ...params, prompt: newPrompt } as LanguageModelCallOptions
 }

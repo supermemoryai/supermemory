@@ -1,0 +1,61 @@
+---
+title: "Quick Start"
+description: "Run your first benchmark evaluation in 3 steps"
+sidebarTitle: "Quick Start"
+---
+
+## 1. Run Your First Benchmark
+
+```bash
+bun run src/index.ts run -p supermemory -b longmemeval -j gpt-4o -r my-first-run
+```
+
+## 2. View Results
+
+### Option A: Web UI
+
+```bash
+bun run src/index.ts serve
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see results visually.
+
+### Option B: CLI
+
+```bash
+# Check run status
+bun run src/index.ts status -r my-first-run
+
+# View failed questions for debugging
+bun run src/index.ts show-failures -r my-first-run
+```
+
+## 3. Compare Providers
+
+Run the same benchmark across multiple providers:
+
+```bash
+bun run src/index.ts compare -p supermemory,mem0,zep -b locomo -j gpt-4o
+```
+
+Results are saved to `data/runs/{runId}/report.json`.
+
+## Sample Output
+
+```json
+{
+  "accuracy": 0.72,
+  "accuracyByType": {
+    "single-hop": 0.85,
+    "multi-hop": 0.65,
+    "temporal": 0.70,
+    "adversarial": 0.68
+  },
+  "avgLatency": 1250,
+  "totalQuestions": 50
+}
+```
+
+## What's Next
+
+Head to [CLI Reference](/memorybench/cli) to play around with all the commands, or check out [Architecture](/memorybench/architecture) to understand how MemoryBench works under the hood.

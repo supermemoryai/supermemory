@@ -186,6 +186,17 @@
 				"tab": "Developer Platform"
 			},
 			{
+				"icon": "book-open",
+				"anchors": [
+					{
+						"anchor": "API Reference",
+						"icon": "unplug",
+						"openapi": "https://api.supermemory.ai/v3/openapi"
+					}
+				],
+				"tab": "API Reference"
+			},
+			{
 				"icon": "plug",
 				"anchors": [
 					{
@@ -234,15 +245,35 @@
 				"tab": "SDKs"
 			},
 			{
-				"icon": "book-open",
+				"icon": "flask-conical",
 				"anchors": [
 					{
-						"anchor": "API Reference",
-						"icon": "unplug",
-						"openapi": "https://api.supermemory.ai/v3/openapi"
+						"anchor": "MemoryBench",
+						"icon": "flask-conical",
+						"pages": [
+							"memorybench/overview",
+							"memorybench/github",
+							{
+								"group": "Getting Started",
+								"pages": ["memorybench/installation", "memorybench/quickstart"]
+							},
+							{
+								"group": "Development",
+								"pages": [
+									"memorybench/architecture",
+									"memorybench/extend-provider",
+									"memorybench/extend-benchmark",
+									"memorybench/contributing"
+								]
+							},
+							{
+								"group": "Reference",
+								"pages": ["memorybench/cli", "memorybench/integrations"]
+							}
+						]
 					}
 				],
-				"tab": "API Reference"
+				"tab": "MemoryBench"
 			},
 			{
 				"icon": "chef-hat",
@@ -269,7 +300,6 @@
 				],
 				"tab": "Cookbook"
 			},
-
 			{
 				"icon": "list-ordered",
 				"anchors": [

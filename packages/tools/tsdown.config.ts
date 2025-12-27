@@ -17,4 +17,5 @@ export default defineConfig({
 		sourcemap: false,
 	},
 	exports: true,
+	unbundle: true,
 })
