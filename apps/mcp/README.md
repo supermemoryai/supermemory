@@ -125,6 +125,8 @@ Create a `.dev.vars` file:
 
 ```env
 API_URL=http://localhost:8787
+or 
+API_URL=https://api.supermemory.ai
 ```
 
 | Variable | Description | Default |
