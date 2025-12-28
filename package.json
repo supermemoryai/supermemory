@@ -31,7 +31,7 @@
     "@scalar/hono-api-reference": "^0.9.11",
     "@vanilla-extract/recipes": "^0.5.7",
     "ai": "^5.0.59",
-    "alchemy": "^0.55.2",
+    "alchemy": "^0.81.4",
     "atmn": "^0.0.16",
     "better-auth": "^1.3.3",
     "boxen": "^8.0.1",
@@ -61,7 +61,7 @@
     "drizzle-kit": "^0.31.4",
     "turbo": "^2.5.4",
     "typescript": "5.8.3",
-    "wrangler": "4.22.0"
+    "wrangler": "^4.42.2"
   },
   "workerd": {
     "import": "./esm/index.mjs",

@@ -17,14 +17,20 @@ export interface GraphNode {
 	color: string
 	isHovered: boolean
 	isDragging: boolean
+	// D3-force simulation properties
+	vx?: number // velocity x
+	vy?: number // velocity y
+	fx?: number | null // fixed x position (for pinning during drag)
+	fy?: number | null // fixed y position (for pinning during drag)
 }
 
 export type MemoryRelation = "updates" | "extends" | "derives"
 
 export interface GraphEdge {
 	id: string
-	source: string
-	target: string
+	// D3-force mutates source/target from string IDs to node references during simulation
+	source: string | GraphNode
+	target: string | GraphNode
 	similarity: number
 	visualProps: {
 		opacity: number
@@ -74,6 +80,10 @@ export interface GraphCanvasProps {
 	draggingNodeId: string | null
 	// Optional list of document IDs (customId or internal id) to highlight
 	highlightDocumentIds?: string[]
+	// Physics simulation state
+	isSimulationActive?: boolean
+	// Selected node ID - dims all other nodes and edges
+	selectedNodeId?: string | null
 }
 
 export interface MemoryGraphProps {
@@ -119,10 +129,20 @@ export interface MemoryGraphProps {
 	// Memory limit control
 	/** Maximum number of memories to display per document when a space is selected */
 	memoryLimit?: number
+	/** Maximum total number of memory nodes to display across all documents (default: unlimited) */
+	maxNodes?: number
 
 	// Feature flags
 	/** Enable experimental features */
 	isExperimental?: boolean
+
+	// Slideshow control
+	/** Whether slideshow mode is currently active */
+	isSlideshowActive?: boolean
+	/** Callback when slideshow selects a new node (provides node ID) */
+	onSlideshowNodeChange?: (nodeId: string | null) => void
+	/** Callback when user clicks outside during slideshow (to stop it) */
+	onSlideshowStop?: () => void
 }
 
 export interface LegendProps {
