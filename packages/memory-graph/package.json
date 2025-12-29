@@ -1,6 +1,6 @@
 {
   "name": "@supermemory/memory-graph",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Interactive graph visualization component for Supermemory - visualize and explore your memory connections",
   "type": "module",
   "main": "./dist/memory-graph.cjs",
