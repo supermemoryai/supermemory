@@ -4,7 +4,7 @@
   "version": "1.0.8",
   "scripts": {
     "build": "tsdown",
-    "dev": "tsdown --watch",
+    "dev": "tsdown --watch --ignore-watch .turbo",
     "check-types": "tsc --noEmit",
     "test": "vitest",
     "test:watch": "vitest --watch"
