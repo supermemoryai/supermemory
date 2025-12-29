@@ -44,7 +44,7 @@
     "@sentry/nextjs": "^10.22.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/react-form": "^1.12.4",
-    "@tanstack/react-query": "^5.81.2",
+    "@tanstack/react-query": "^5.90.14",
     "@tanstack/react-query-devtools": "^5.84.2",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.12",

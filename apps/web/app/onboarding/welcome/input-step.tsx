@@ -52,7 +52,7 @@ export function InputStep({
 					inputPlaceholder="your name"
 					className="w-full flex-1"
 					inputProps={{
-						value: name,
+						defaultValue: name,
 						onKeyDown: (e) => {
 							if (e.key === "Enter") {
 								handleSubmit()
