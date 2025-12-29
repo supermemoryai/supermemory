@@ -18,6 +18,7 @@ from .utils import (
     get_last_user_message,
     get_conversation_content,
     convert_profile_to_markdown,
+    deduplicate_memories,
 )
 from .exceptions import (
     SupermemoryConfigurationError,
@@ -119,8 +120,11 @@ async def add_system_prompt(
         container_tag, query_text, api_key
     )
 
-    memory_count_static = len(memories_response.profile.get("static", []))
-    memory_count_dynamic = len(memories_response.profile.get("dynamic", []))
+    profile = memories_response.profile or {}
+    search_results_data = memories_response.search_results or {}
+    memory_count_static = len(profile.get("static", []))
+    memory_count_dynamic = len(profile.get("dynamic", []))
+    memory_count_search = len(search_results_data.get("results", []))
 
     logger.info(
         "Memory search completed",
@@ -133,39 +137,39 @@ async def add_system_prompt(
         },
     )
 
+    deduplicated = deduplicate_memories(
+        static=profile.get("static", []),
+        dynamic=profile.get("dynamic", []),
+        search_results=search_results_data.get("results", []),
+    )
+
+    logger.debug(
+        "Memory deduplication completed",
+        {
+            "static": {"original": memory_count_static, "deduplicated": len(deduplicated.static)},
+            "dynamic": {"original": memory_count_dynamic, "deduplicated": len(deduplicated.dynamic)},
+            "search_results": {"original": memory_count_search, "deduplicated": len(deduplicated.search_results)},
+        },
+    )
+
     profile_data = ""
     if mode != "query":
         profile_data = convert_profile_to_markdown(
             {
                 "profile": {
-                    "static": [
-                        item.get("memory", "") if isinstance(item, dict) else str(item)
-                        for item in memories_response.profile.get("static", [])
-                    ],
-                    "dynamic": [
-                        item.get("memory", "") if isinstance(item, dict) else str(item)
-                        for item in memories_response.profile.get("dynamic", [])
-                    ],
+                    "static": deduplicated.static,
+                    "dynamic": deduplicated.dynamic,
                 },
-                "searchResults": {
-                    "results": [
-                        {"memory": item.get("memory", "") if isinstance(item, dict) else str(item)}
-                        for item in memories_response.search_results.get("results", [])
-                    ],
-                },
+                "searchResults": {"results": []},
             }
         )
 
     search_results_memories = ""
-    if mode != "profile":
-        search_results = memories_response.search_results.get("results", [])
-        if search_results:
-            search_results_memories = (
-                f"Search results for user's recent message: \n"
-                + "\n".join(
-                    f"- {result.get('memory', '') if isinstance(result, dict) else str(result)}" for result in search_results
-                )
-            )
+    if mode != "profile" and deduplicated.search_results:
+        search_results_memories = (
+            "Search results for user's recent message: \n"
+            + "\n".join(f"- {memory}" for memory in deduplicated.search_results)
+        )
 
     memories = f"{profile_data}\n{search_results_memories}".strip()
 
