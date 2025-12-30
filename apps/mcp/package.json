@@ -1,0 +1,24 @@
+{
+  "name": "supermemory-mcp",
+  "version": "4.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.2.2",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "agents": "^0.2.32",
+    "hono": "^4.11.1",
+    "posthog-node": "^5.18.0",
+    "supermemory": "^4.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250620.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.4.0"
+  }
+}
