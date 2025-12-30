@@ -56,8 +56,17 @@ function addTwitterImportButton() {
 
 	const button = createTwitterImportButton(async () => {
 		try {
+			const defaultProjectResponse = await browser.runtime.sendMessage({
+				action: MESSAGE_TYPES.GET_DEFAULT_PROJECT,
+			})
+
+			const selectedProject = defaultProjectResponse?.success
+				? defaultProjectResponse.data
+				: null
+
 			await browser.runtime.sendMessage({
 				type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
+				selectedProject: selectedProject,
 			})
 			await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
 				source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,

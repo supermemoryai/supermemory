@@ -296,6 +296,21 @@ export default defineBackground(() => {
 				})()
 				return true
 			}
+
+			if (message.action === MESSAGE_TYPES.GET_DEFAULT_PROJECT) {
+				;(async () => {
+					try {
+						const project = await getDefaultProject()
+						sendResponse({ success: true, data: project })
+					} catch (error) {
+						sendResponse({
+							success: false,
+							error: error instanceof Error ? error.message : "Unknown error",
+						})
+					}
+				})()
+				return true
+			}
 		},
 	)
 })

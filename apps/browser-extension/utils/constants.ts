@@ -69,6 +69,7 @@ export const MESSAGE_TYPES = {
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
 	CAPTURE_PROMPT: "sm-capture-prompt",
 	FETCH_PROJECTS: "sm-fetch-projects",
+	GET_DEFAULT_PROJECT: "sm-get-default-project",
 } as const
 
 export const CONTEXT_MENU_IDS = {
