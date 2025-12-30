@@ -72,6 +72,20 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				.optional(),
 		})
 
+		const contextPromptSchema = z.object({
+			containerTag: z
+				.string()
+				.max(128, "Container tag exceeds maximum length")
+				.describe("Optional container tag to scope the profile")
+				.optional(),
+			includeRecent: z
+				.boolean()
+				.optional()
+				.default(true)
+				.describe("Include recent activity in the profile"),
+		})
+
+		type ContextPromptArgs = z.infer<typeof contextPromptSchema>
 		type MemoryArgs = z.infer<typeof memorySchema>
 		type RecallArgs = z.infer<typeof recallSchema>
 
@@ -194,6 +208,84 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 							}),
 						},
 					],
+				}
+			},
+		)
+
+		this.server.registerPrompt(
+			"context",
+			{
+				description:
+					"User profile and preferences for system context injection. Returns a formatted system message with user's stable preferences and recent activity.",
+				//argsSchema: contextPromptSchema.shape, TODO: commenting out for now as it will add more friction to the user
+			},
+			async (args: ContextPromptArgs) => {
+				try {
+					const { containerTag, includeRecent = true } = args
+					const client = this.getClient(containerTag)
+					const profileResult = await client.getProfile()
+
+					const parts: string[] = []
+
+					parts.push(
+						"**Important:** Whenever the user shares informative facts, preferences, personal details, or any memory-worthy information, use the `memory` tool to save it to Supermemory. This helps maintain context across conversations.",
+					)
+					parts.push("")
+
+					if (
+						profileResult.profile.static.length > 0 ||
+						(includeRecent && profileResult.profile.dynamic.length > 0)
+					) {
+						parts.push("## User Context")
+					}
+
+					if (profileResult.profile.static.length > 0) {
+						parts.push("**Stable Preferences:**")
+						for (const fact of profileResult.profile.static) {
+							parts.push(`- ${fact}`)
+						}
+					}
+
+					if (includeRecent && profileResult.profile.dynamic.length > 0) {
+						parts.push("\n**Recent Activity:**")
+						for (const fact of profileResult.profile.dynamic) {
+							parts.push(`- ${fact}`)
+						}
+					}
+
+					const contextText =
+						parts.length > 2
+							? parts.join("\n")
+							: "**Important:** Whenever the user shares informative facts, preferences, personal details, or any memory-worthy information, use the `memory` tool to save it to Supermemory. This helps maintain context across conversations.\n\nNo user profile available yet. Start saving memories to build context."
+
+					return {
+						messages: [
+							{
+								role: "user",
+								content: {
+									type: "text",
+									text: contextText,
+								},
+							},
+						],
+					}
+				} catch (error) {
+					const message =
+						error instanceof Error
+							? error.message
+							: "An unexpected error occurred"
+					console.error("Context prompt failed:", error)
+					return {
+						messages: [
+							{
+								role: "user",
+								content: {
+									type: "text",
+									text: `Error retrieving user context: ${message}`,
+								},
+							},
+						],
+					}
 				}
 			},
 		)
