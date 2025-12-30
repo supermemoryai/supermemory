@@ -8,6 +8,7 @@ This is a **Turbo monorepo** containing multiple applications and shared package
 
 ### Applications (`apps/`)
 - **`web/`** - Next.js web application
+- **`mcp/`** - Model Context Protocol server
 
 ## Development Commands
 

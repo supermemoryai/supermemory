@@ -70,7 +70,7 @@
     "posthog-js": "^1.257.0",
     "random-word-slugs": "^0.1.7",
     "react": "19.2.2",
-    "react-dom": "19.2.0",
+    "react-dom": "19.2.2",
     "react-dropzone": "^14.3.8",
     "react-markdown": "^10.1.0",
     "react-tweet": "^3.2.2",
