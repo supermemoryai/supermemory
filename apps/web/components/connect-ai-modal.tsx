@@ -264,7 +264,7 @@ export function ConnectAIModal({
 	function generateInstallCommand() {
 		if (!selectedClient) return ""
 
-		let command = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
+		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
 
 		if (selectedProject && selectedProject !== "none") {
 			// Remove the "sm_project_" prefix from the containerTag
@@ -542,13 +542,13 @@ export function ConnectAIModal({
 												<Input
 													className="font-mono text-xs w-full pr-10"
 													readOnly
-													value="https://api.supermemory.ai/mcp"
+													value="https://mcp.supermemory.ai/mcp"
 												/>
 												<Button
 													className="absolute top-[-1px] right-0 cursor-pointer"
 													onClick={() => {
 														navigator.clipboard.writeText(
-															"https://api.supermemory.ai/mcp",
+															"https://mcp.supermemory.ai/mcp",
 														)
 														analytics.mcpInstallCmdCopied()
 														toast.success("Copied to clipboard!")
@@ -577,7 +577,7 @@ export function ConnectAIModal({
 																{`{
   "supermemory-mcp": {
     "command": "npx",
-    "args": ["-y", "mcp-remote", "https://api.supermemory.ai/mcp"],
+    "args": ["-y", "mcp-remote", "https://mcp.supermemory.ai/mcp"],
     "env": {},
     "headers": {
       "Authorization": "Bearer ${manualApiKey || "your-api-key-here"}"
@@ -592,7 +592,7 @@ export function ConnectAIModal({
 																const config = `{
   "supermemory-mcp": {
     "command": "npx",
-    "args": ["-y", "mcp-remote", "https://api.supermemory.ai/mcp"],
+    "args": ["-y", "mcp-remote", "https://mcp.supermemory.ai/mcp"],
     "env": {},
     "headers": {
       "Authorization": "Bearer ${manualApiKey || "your-api-key-here"}"
@@ -736,7 +736,7 @@ export function ConnectAIModal({
 						<div className="p-1 bg-muted rounded-lg border border-border items-center flex px-2">
 							<CopyableCell
 								className="font-mono text-xs text-primary"
-								value="https://api.supermemory.ai/mcp"
+								value="https://mcp.supermemory.ai/mcp"
 							/>
 						</div>
 					</div>

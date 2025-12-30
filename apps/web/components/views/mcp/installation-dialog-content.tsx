@@ -1,25 +1,25 @@
-import { Button } from "@ui/components/button";
+import { Button } from "@ui/components/button"
 import {
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@ui/components/dialog";
-import { Input } from "@ui/components/input";
+} from "@ui/components/dialog"
+import { Input } from "@ui/components/input"
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "@ui/components/select";
-import { Label } from "@ui/components/label";
-import { CopyIcon } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { analytics } from "@/lib/analytics";
-import { $fetch } from "@repo/lib/api";
-import { useQuery } from "@tanstack/react-query";
+} from "@ui/components/select"
+import { Label } from "@ui/components/label"
+import { CopyIcon } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
+import { analytics } from "@/lib/analytics"
+import { $fetch } from "@repo/lib/api"
+import { useQuery } from "@tanstack/react-query"
 
 const clients = {
 	cursor: "Cursor",
@@ -31,47 +31,47 @@ const clients = {
 	enconvo: "Enconvo",
 	"gemini-cli": "Gemini CLI",
 	"claude-code": "Claude Code",
-} as const;
+} as const
 
 interface Project {
-	id: string;
-	name: string;
-	containerTag: string;
-	createdAt: string;
-	updatedAt: string;
-	isExperimental?: boolean;
+	id: string
+	name: string
+	containerTag: string
+	createdAt: string
+	updatedAt: string
+	isExperimental?: boolean
 }
 
 export function InstallationDialogContent() {
-	const [client, setClient] = useState<keyof typeof clients>("cursor");
-	const [selectedProject, setSelectedProject] = useState<string | null>("none");
+	const [client, setClient] = useState<keyof typeof clients>("cursor")
+	const [selectedProject, setSelectedProject] = useState<string | null>("none")
 
 	// Fetch projects
 	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
-			const response = await $fetch("@get/projects");
+			const response = await $fetch("@get/projects")
 
 			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects");
+				throw new Error(response.error?.message || "Failed to load projects")
 			}
 
-			return response.data?.projects || [];
+			return response.data?.projects || []
 		},
 		staleTime: 30 * 1000,
-	});
+	})
 
 	// Generate installation command based on selected project
 	function generateInstallCommand() {
-		let command = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${client} --oauth=yes`;
+		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${client} --oauth=yes`
 
 		if (selectedProject && selectedProject !== "none") {
 			// Remove the "sm_project_" prefix from the containerTag
-			const projectId = selectedProject.replace(/^sm_project_/, '');
-			command += ` --project ${projectId}`;
+			const projectId = selectedProject.replace(/^sm_project_/, "")
+			command += ` --project ${projectId}`
 		}
 
-		return command;
+		return command
 	}
 
 	return (
@@ -79,8 +79,8 @@ export function InstallationDialogContent() {
 			<DialogHeader>
 				<DialogTitle>Install the supermemory MCP Server</DialogTitle>
 				<DialogDescription>
-					Select the app and project you want to install supermemory MCP to, then run the
-					following command:
+					Select the app and project you want to install supermemory MCP to,
+					then run the following command:
 				</DialogDescription>
 			</DialogHeader>
 
@@ -118,7 +118,10 @@ export function InstallationDialogContent() {
 							<SelectItem value="none" className="text-white hover:bg-white/10">
 								Auto-select project
 							</SelectItem>
-							<SelectItem value="sm_project_default" className="text-white hover:bg-white/10">
+							<SelectItem
+								value="sm_project_default"
+								className="text-white hover:bg-white/10"
+							>
 								Default Project
 							</SelectItem>
 							{projects
@@ -149,14 +152,14 @@ export function InstallationDialogContent() {
 
 			<Button
 				onClick={() => {
-					const command = generateInstallCommand();
-					navigator.clipboard.writeText(command);
-					analytics.mcpInstallCmdCopied();
-					toast.success("Copied to clipboard!");
+					const command = generateInstallCommand()
+					navigator.clipboard.writeText(command)
+					analytics.mcpInstallCmdCopied()
+					toast.success("Copied to clipboard!")
 				}}
 			>
 				<CopyIcon className="size-4" /> Copy Installation Command
 			</Button>
 		</DialogContent>
-	);
+	)
 }

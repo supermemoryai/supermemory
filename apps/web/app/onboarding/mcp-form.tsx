@@ -165,14 +165,14 @@ export function MCPForm() {
 						<p className="text-white/80">Copy the installation command</p>
 						<div className="bg-white/10 relative shadow-xs rounded-lg max-w-md text-balance py-4 px-5 align-middle justify-center">
 							<p className="text-white font-mono text-xs w-4/5 text-nowrap overflow-x-hidden text-ellipsis">
-								npx -y install-mcp@latest https://api.supermemory.ai/mcp
+								npx -y install-mcp@latest https://mcp.supermemory.ai/mcp
 								--client {client} --oauth=yes
 							</p>
 							<Button
 								className="absolute right-2 top-[6px]"
 								onClick={() => {
 									navigator.clipboard.writeText(
-										`npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${client} --oauth=yes`,
+										`npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${client} --oauth=yes`,
 									)
 									setIsCopied(true)
 									setTimeout(() => {

@@ -138,7 +138,7 @@ export function MCPView() {
 					<div className="p-3 bg-white/5 rounded border border-white/10">
 						<CopyableCell
 							className="font-mono text-sm text-blue-400"
-							value="https://api.supermemory.ai/mcp"
+							value="https://mcp.supermemory.ai/mcp"
 						/>
 					</div>
 					<p className="text-xs text-white/50 mt-2">
