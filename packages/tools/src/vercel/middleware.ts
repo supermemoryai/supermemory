@@ -234,6 +234,7 @@ export const transformParamsWithMemory = async (
 		ctx.logger,
 		ctx.mode,
 		ctx.normalizedBaseUrl,
+		ctx.apiKey,
 	)
 	return transformedParams
 }
