@@ -45,6 +45,18 @@ export function initializeTwitter() {
 	}
 }
 
+async function getSelectedProjectForImport() {
+	try {
+		const response = await browser.runtime.sendMessage({
+			action: MESSAGE_TYPES.GET_DEFAULT_PROJECT,
+		})
+		return response?.success ? response.data : null
+	} catch (error) {
+		console.warn("Failed to fetch default project, using fallback:", error)
+		return null
+	}
+}
+
 function addTwitterImportButton() {
 	if (window.location.pathname !== "/i/bookmarks") {
 		return
@@ -56,13 +68,7 @@ function addTwitterImportButton() {
 
 	const button = createTwitterImportButton(async () => {
 		try {
-			const defaultProjectResponse = await browser.runtime.sendMessage({
-				action: MESSAGE_TYPES.GET_DEFAULT_PROJECT,
-			})
-
-			const selectedProject = defaultProjectResponse?.success
-				? defaultProjectResponse.data
-				: null
+			const selectedProject = await getSelectedProjectForImport()
 
 			await browser.runtime.sendMessage({
 				type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
