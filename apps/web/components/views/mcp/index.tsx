@@ -167,7 +167,7 @@ export function MCPView() {
 					</Dialog>
 					<motion.a
 						className="inline-block"
-						href="https://cursor.com/install-mcp?name=supermemory&config=JTdCJTIydXJsJTIyJTNBJTIyaHR0cHMlM0ElMkYlMkZhcGkuc3VwZXJtZW1vcnkuYWklMkZtY3AlMjIlN0Q%3D"
+						href="https://cursor.com/en-US/install-mcp?name=supermemory&config=eyJ1cmwiOiJodHRwczovL21jcC5zdXBlcm1lbW9yeS5haS9tY3AiLCJoZWFkZXJzIjp7fX0%3D"
 						whileHover={{ scale: 1.05 }}
 						whileTap={{ scale: 0.95 }}
 					>
