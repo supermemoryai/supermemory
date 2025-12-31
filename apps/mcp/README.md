@@ -12,7 +12,15 @@ A standalone MCP (Model Context Protocol) server for Supermemory that gives AI a
 
 ## Setup
 
-### MCP Client Configuration
+### Quick Install (Recommended)
+
+```bash
+npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+```
+
+Replace `claude` with your MCP client: `claude`, `cursor`, `windsurf`, etc.
+
+### Manual Configuration
 
 Add to your MCP client config (Claude Desktop, Cursor, Windsurf, etc.):
 
@@ -30,7 +38,7 @@ The server uses OAuth authentication by default. Your MCP client will automatica
 
 ### API Key Authentication (Alternative)
 
-If you prefer to use an API key instead of OAuth, you can pass it directly in the `Authorization` header. Get your API key from [console.supermemory.ai](https://console.supermemory.ai):
+If you prefer to use an API key instead of OAuth, you can pass it directly in the `Authorization` header. Get your API key from [app.supermemory.ai](https://app.supermemory.ai):
 
 ```json
 {
