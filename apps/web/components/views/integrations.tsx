@@ -280,12 +280,6 @@ export function IntegrationsView() {
 				throw new Error("This integration is coming soon!")
 			}
 
-			if (provider === "google-drive") {
-				throw new Error(
-					"Google Drive connections are temporarily disabled. This will be resolved soon.",
-				)
-			}
-
 			if (!canAddConnection && !isProUser) {
 				throw new Error(
 					"Free plan doesn't include connections. Upgrade to Pro for unlimited connections.",
@@ -896,13 +890,6 @@ export function IntegrationsView() {
 																</div>
 															)}
 														</div>
-													) : provider === "google-drive" ? (
-														<div className="flex items-center gap-1 mt-1">
-															<div className="w-2 h-2 bg-muted-foreground rounded-full" />
-															<span className="text-xs text-muted-foreground font-medium">
-																Temporarily Disabled
-															</span>
-														</div>
 													) : (
 														<div className="flex items-center gap-1 mt-1">
 															<div className="w-2 h-2 bg-muted-foreground rounded-full" />
@@ -931,15 +918,6 @@ export function IntegrationsView() {
 										<p className="text-xs text-muted-foreground mb-3 leading-relaxed">
 											{config.description}
 										</p>
-
-										{!isConnected &&
-											!isMoreComing &&
-											provider === "google-drive" && (
-												<p className="text-xs text-muted-foreground/80 mb-3 leading-relaxed">
-													Google Drive connections are temporarily disabled.
-													This will be resolved soon.
-												</p>
-											)}
 
 										{isConnected && !isMoreComing && (
 											<div className="space-y-1">
@@ -1045,9 +1023,8 @@ export function IntegrationsView() {
 												</DropdownMenu>
 
 												<Button
-													className="flex-shrink-0 disabled:cursor-not-allowed w-20 justify-center"
+													className="shrink-0 disabled:cursor-not-allowed w-20 justify-center"
 													disabled={
-														provider === "google-drive" ||
 														addConnectionMutation.isPending ||
 														connectingProvider === provider ||
 														!isProUser

@@ -319,10 +319,7 @@ export function ConnectionsTabContent() {
 							>
 								<Button
 									className="justify-start h-auto p-4 bg-foreground/5 hover:bg-foreground/10 border-foreground/10 w-full cursor-pointer"
-									disabled={
-										provider === "google-drive" ||
-										addConnectionMutation.isPending
-									}
+									disabled={addConnectionMutation.isPending}
 									onClick={() => {
 										addConnectionMutation.mutate(provider as ConnectorProvider)
 									}}
@@ -334,11 +331,6 @@ export function ConnectionsTabContent() {
 										<div className="text-sm text-foreground/60 mt-0.5">
 											{config.description}
 										</div>
-										{provider === "google-drive" && (
-											<div className="text-xs text-muted-foreground/80 mt-1">
-												Temporarily disabled. This will be resolved soon.
-											</div>
-										)}
 									</div>
 								</Button>
 							</motion.div>
