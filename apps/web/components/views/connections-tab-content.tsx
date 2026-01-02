@@ -111,12 +111,6 @@ export function ConnectionsTabContent() {
 	// Add connection mutation
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
-			// Check if Google Drive is disabled
-			if (provider === "google-drive") {
-				throw new Error(
-					"Google Drive connections are temporarily disabled. This will be resolved soon.",
-				)
-			}
 
 			// Check if user can add connections
 			if (!canAddConnection && !isProUser) {
