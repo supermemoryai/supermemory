@@ -1,0 +1,110 @@
+---
+title: "Overview"
+description: "Give your AI assistants persistent memory with the Model Context Protocol"
+---
+
+Supermemory MCP Server 4.0 gives AI assistants (Claude, Cursor, Windsurf, etc.) persistent memory across conversations. Built on Cloudflare Workers with Durable Objects for scalable, persistent connections.
+
+## Quick Install
+
+```bash
+npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+```
+
+Replace `claude` with your MCP client: `cursor`, `windsurf`, `vscode`, etc.
+
+## Manual Configuration
+
+Add to your MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
+
+The server uses **OAuth** by default. Your client will discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
+
+### API Key Authentication (Alternative)
+
+If you prefer API keys over OAuth, get one from [app.supermemory.ai](https://app.supermemory.ai) and pass it in the `Authorization` header:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer sm_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+API keys start with `sm_` and skip OAuth when provided.
+
+### Project Scoping
+
+Scope all operations to a specific project with `x-sm-project`:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "x-sm-project": "your-project-id"
+      }
+    }
+  }
+}
+```
+
+## Tools
+
+### `memory`
+
+Save or forget information about the user.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `content` | string | Yes | The memory content to save or forget |
+| `action` | `"save"` \| `"forget"` | No | Default: `"save"` |
+| `containerTag` | string | No | Project tag to scope the memory |
+
+### `recall`
+
+Search memories and get user profile.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `query` | string | Yes | Search query to find relevant memories |
+| `includeProfile` | boolean | No | Include user profile summary. Default: `true` |
+| `containerTag` | string | No | Project tag to scope the search |
+
+### `whoAmI`
+
+Get the current logged-in user's information. Returns `{ userId, email, name, client, sessionId }`.
+
+## Resources
+
+| URI | Description |
+|-----|-------------|
+| `supermemory://profile` | User profile with stable preferences and recent activity |
+| `supermemory://projects` | List of available memory projects |
+
+## Prompts
+
+| Name | Description |
+|------|-------------|
+| `context` | User profile and preferences for system context injection |
+
+<Card title="MCP Server Source Code" icon="github" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
+  View the open-source implementation
+</Card>
+
