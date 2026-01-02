@@ -8,6 +8,7 @@ import { trackEvent } from "../../utils/posthog"
 import {
 	createTwitterImportButton,
 	createProjectSelectionModal,
+	createSaveTweetElement,
 	DOMUtils,
 } from "../../utils/ui-components"
 
@@ -56,18 +57,71 @@ function addTwitterImportButton() {
 
 	const button = createTwitterImportButton(async () => {
 		try {
-			await browser.runtime.sendMessage({
-				type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
-			})
-			await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
-				source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
-			})
+			await handleAllBookmarksImportClick()
 		} catch (error) {
 			console.error("Error starting import:", error)
 		}
 	})
 
 	document.body.appendChild(button)
+}
+
+async function handleAllBookmarksImportClick() {
+	try {
+		const response = await browser.runtime.sendMessage({
+			action: MESSAGE_TYPES.FETCH_PROJECTS,
+		})
+
+		const projects = response.success && response.data ? response.data : []
+
+		if (projects.length === 0) {
+			await browser.runtime.sendMessage({
+				type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
+			})
+			await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
+				source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
+			})
+		} else {
+			await showAllBookmarksProjectModal(projects)
+		}
+	} catch (error) {
+		console.error("Error handling all bookmarks import:", error)
+		await browser.runtime.sendMessage({
+			type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
+		})
+	}
+}
+
+
+async function showAllBookmarksProjectModal(
+	projects: Array<{ id: string; name: string; containerTag: string }>,
+) {
+	await loadSpaceGroteskFonts()
+
+	const modal = createProjectSelectionModal(
+		projects,
+		async (selectedProject) => {
+			modal.remove()
+
+			try {
+				await browser.runtime.sendMessage({
+					type: MESSAGE_TYPES.BATCH_IMPORT_ALL,
+					selectedProject: selectedProject,
+				})
+				await trackEvent(POSTHOG_EVENT_KEY.TWITTER_IMPORT_STARTED, {
+					source: `${POSTHOG_EVENT_KEY.SOURCE}_content_script`,
+					project_selected: true,
+				})
+			} catch (error) {
+				console.error("Error importing all bookmarks:", error)
+			}
+		},
+		() => {
+			modal.remove()
+		},
+	)
+
+	document.body.appendChild(modal)
 }
 
 function addTwitterImportButtonForFolders() {
