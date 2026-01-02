@@ -1,67 +1,102 @@
 ---
-title: 'Setup and usage'
-description: 'How to set up and use supermemory MCP'
+title: 'Setup and Usage'
+description: 'How to set up and use Supermemory MCP Server 4.0'
 ---
 
-### Hosted setup (recommended)
+## Quick Install (Recommended)
 
-1. **Visit** https://mcp.supermemory.ai
-2. **Receive** automatically generated unique URL (e.g., `https://mcp.supermemory.ai/TN-IKxAcDdHWTJkMhtGLF/sse`)
-3. **Select** your MCP client from the dropdown menu
-4. **Copy** the generated installation command
-5. **Run** the command: `npx install-mcp [YOUR_URL] --client [CLIENT_NAME]`
+```bash
+npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
+```
 
-Or follow the client configuration example below.
+Replace `claude` with your MCP client: `cursor`, `windsurf`, `vscode`, etc.
 
-### Self-hosted configuration
+## Manual Configuration
 
-For users requiring complete data control:
+Add this to your MCP client config (Claude Desktop, Cursor, Windsurf, etc.):
 
-1. **Obtain API key** from https://console.supermemory.ai
-2. **Create `.env` file** with `SUPERMEMORY_API_KEY=your_key`
-3. **Clone repository**: `git clone https://github.com/supermemoryai/supermemory-mcp.git`
-4. **Configure MCP client** to connect to local server instance
-
-### Client configuration example
-
-1. For Clients that support `url` configuration:
 ```json
 {
   "mcpServers": {
     "supermemory": {
-      "transport": "sse",
-      "url": "https://mcp.supermemory.ai/[USER_ID]/sse"
+      "url": "https://mcp.supermemory.ai/mcp"
     }
   }
 }
 ```
 
-2. Using `supergateway` with `npx`:
-```json
-{
-    "command": "npx",
-    "args": ["-y", "supergateway", "--sse", "YOUR_URL"]
-}
-```
+The server uses **OAuth authentication** by default. Your MCP client will automatically discover the authorization server via `/.well-known/oauth-protected-resource` and prompt you to authenticate.
 
-3. Using `supergateway` with `docker`:
+## API Key Authentication (Alternative)
 
-The equivalent MCP command would be:
+If you prefer to use an API key instead of OAuth, get one from [app.supermemory.ai](https://app.supermemory.ai) and pass it in the `Authorization` header:
+
 ```json
 {
   "mcpServers": {
-    "supermachineExampleDocker": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "supercorp/supergateway",
-        "--sse",
-        "YOUR_SUPERMEMORY_URL"
-      ]
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer sm_your_api_key_here"
+      }
     }
   }
 }
 ```
 
+API keys start with `sm_` and are automatically detected. When an API key is provided, OAuth authentication is skipped.
+
+## Project Scoping (Optional)
+
+To scope all operations to a specific project, add the `x-sm-project` header:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp",
+      "headers": {
+        "x-sm-project": "your-project-id"
+      }
+    }
+  }
+}
+```
+
+This keeps memories organized by project, useful when working on multiple codebases or contexts.
+
+## Client-Specific Setup
+
+### Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "supermemory": {
+      "url": "https://mcp.supermemory.ai/mcp"
+    }
+  }
+}
+```
+
+Or use the one-click install button at [app.supermemory.ai](https://app.supermemory.ai).
+
+### Windsurf / VS Code
+
+Configuration varies by extension. Generally, add the server URL (`https://mcp.supermemory.ai/mcp`) to your MCP settings.
