@@ -37,6 +37,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 		initPosthog(this.env.POSTHOG_API_KEY)
 
+
 		// Hook MCP McpAgent to capture client info
 		this.server.server.oninitialized = async () => {
 			const clientVersion = this.server.server.getClientVersion()
