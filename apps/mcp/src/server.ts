@@ -1,7 +1,7 @@
 import { McpAgent } from "agents/mcp"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { SupermemoryClient } from "./client"
-import { posthog } from "./posthog"
+import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
 
 type Env = {
@@ -35,7 +35,9 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			this.clientInfo = storedClientInfo
 		}
 
-		// Hook MCP initialization to capture client info
+		initPosthog(this.env.POSTHOG_API_KEY)
+
+		// Hook MCP McpAgent to capture client info
 		this.server.server.oninitialized = async () => {
 			const clientVersion = this.server.server.getClientVersion()
 			if (clientVersion) {
