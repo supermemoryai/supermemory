@@ -12,6 +12,8 @@ import { dmSansClassName } from "@/utils/fonts"
 import { GraphListMemories, type MemoryEntry } from "./graph-list-memories"
 import { PdfViewer } from "./content/pdf"
 import { YoutubeVideo } from "./content/yt-video"
+import { TweetContent } from "./content/tweet"
+import { isTwitterUrl } from "@/utils/url-helpers"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -32,7 +34,7 @@ export function DocumentModal({
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
-					"w-[1158px]! h-[684px]! max-w-none! sm:max-w-none! p-0 border-none bg-[#1B1F24] flex flex-col px-4 pt-3 pb-4 gap-3 rounded-[22px]",
+					"w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! p-0 border-none bg-[#1B1F24] flex flex-col px-4 pt-3 pb-4 gap-3 rounded-[22px]",
 					dmSansClassName(),
 				)}
 				style={{
@@ -45,9 +47,10 @@ export function DocumentModal({
 					<Title
 						title={_document?.title}
 						documentType={_document?.type ?? "text"}
+						url={_document?.url}
 					/>
 					<div className="flex items-center gap-2">
-						{_document?.type === "pdf" && _document.url && (
+						{_document?.url && (
 							<a
 								href={_document.url}
 								target="_blank"
@@ -67,24 +70,39 @@ export function DocumentModal({
 						</DialogPrimitive.Close>
 					</div>
 				</div>
-				<div className="flex-1 grid grid-cols-[2fr_1fr] gap-3 overflow-hidden">
+				<div className="flex-1 grid grid-cols-[2fr_1fr] gap-3 overflow-hidden min-h-0">
 					<div
 						id="document-preview"
 						className={cn(
 							"bg-[#14161A] rounded-[14px] overflow-hidden flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
 						)}
 					>
-						{_document?.type === "text" && (
-							<div className="p-4">{_document.content}</div>
+						{(_document?.type === "tweet" ||
+							(_document?.url && isTwitterUrl(_document.url))) && (
+							<TweetContent
+								url={_document?.url}
+								tweetMetadata={
+									_document?.metadata?.sm_internal_twitter_metadata
+								}
+							/>
 						)}
+						{_document?.type === "text" &&
+							!(_document?.url && isTwitterUrl(_document.url)) && (
+								<div className="p-4 overflow-y-auto flex-1">
+									{_document.content}
+								</div>
+							)}
 						{_document?.type === "pdf" && <PdfViewer url={_document.url} />}
-						{(_document?.url?.includes("youtube.com")) && (
+						{_document?.url?.includes("youtube.com") && (
 							<YoutubeVideo url={_document.url} />
 						)}
 					</div>
 					<div
 						id="document-memories-summary"
-						className={cn("gap-3 flex flex-col", dmSansClassName())}
+						className={cn(
+							"gap-3 flex flex-col overflow-hidden",
+							dmSansClassName(),
+						)}
 					>
 						{_document?.summary && (
 							<DocumentSummary

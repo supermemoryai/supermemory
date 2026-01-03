@@ -18,9 +18,11 @@ function getFileExtension(documentType: DocumentType): string | null {
 export function Title({
 	title,
 	documentType,
+	url,
 }: {
 	title: string | null | undefined
 	documentType: DocumentType
+	url?: string | null
 }) {
 	const extension = getFileExtension(documentType)
 
@@ -31,8 +33,13 @@ export function Title({
 				"text-[16px] font-semibold text-[#FAFAFA] line-clamp-1 leading-[125%] flex items-center gap-3",
 			)}
 		>
-			<div className="pl-1 flex items-center gap-1">
-				{getDocumentIcon(documentType as DocumentType, "w-4 h-4 flex-shrink-0")}
+			<div className="pl-1 flex items-center gap-1 w-5 h-5">
+				{getDocumentIcon(
+					documentType as DocumentType,
+					"w-5 h-5",
+					undefined,
+					url ?? undefined,
+				)}
 				{extension && (
 					<p
 						className={cn(dmSansClassName(), "text-[12px] font-semibold")}

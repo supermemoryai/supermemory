@@ -31,7 +31,7 @@ export function Summary({
 	return (
 		<div
 			id="document-summary"
-			className="bg-[#14161A] py-3 px-4 rounded-[14px] space-y-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+			className="bg-[#14161A] p-3 rounded-[14px] space-y-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
 		>
 			<div className="flex items-center justify-between">
 				<p className="text-[16px] font-semibold text-[#FAFAFA] line-clamp-1 leading-[125%]">
