@@ -13,16 +13,29 @@ import {
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/utils/fonts"
 
-export function TweetPreview({ data }: { data: Tweet }) {
+export function TweetPreview({
+	data,
+	noBgColor,
+}: {
+	data: Tweet
+	noBgColor?: boolean
+}) {
 	const parsedTweet = typeof data === "string" ? JSON.parse(data) : data
 	const tweet = enrichTweet(parsedTweet)
 
 	return (
-		<div className="p-3 rounded-[18px] !bg-[#0B1017] sm-tweet-theme w-full min-w-0">
+		<div
+			className={cn(
+				"p-3 sm-tweet-theme w-full min-w-0",
+				noBgColor
+					? "bg-transparent rounded-none"
+					: "bg-[#0B1017]! rounded-[18px]",
+			)}
+		>
 			<Suspense fallback={<TweetSkeleton />}>
 				<TweetContainer
 					className={cn(
-						"!pb-0 !my-0 !bg-transparent !border-none !w-full !min-w-0",
+						"pb-0! my-0! bg-transparent! border-none! w-full! min-w-0!",
 						dmSansClassName(),
 					)}
 				>
