@@ -1,0 +1,53 @@
+{
+    "name": "@supermemory/cli",
+    "version": "0.1.0",
+    "description": "Command-line interface for Supermemory - manage your AI memory from the terminal",
+    "type": "module",
+    "bin": {
+        "sm": "./dist/index.js"
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsdown",
+        "dev": "tsdown --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check .",
+        "prepublishOnly": "npm run build"
+    },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "supermemory",
+        "cli",
+        "memory",
+        "ai",
+        "llm",
+        "knowledge-graph"
+    ],
+    "author": "Supermemory <support@supermemory.ai>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/supermemoryai/supermemory.git",
+        "directory": "packages/cli"
+    },
+    "dependencies": {
+        "chalk": "^5.3.0",
+        "cli-table3": "^0.6.5",
+        "commander": "^12.1.0",
+        "conf": "^13.0.1",
+        "ora": "^8.1.0",
+        "p-limit": "^6.1.0",
+        "supermemory": "^3.0.0-alpha.26"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "tsdown": "^0.11.9",
+        "typescript": "^5.7.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
