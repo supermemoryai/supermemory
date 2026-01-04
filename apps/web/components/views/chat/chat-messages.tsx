@@ -266,6 +266,7 @@ export function ChatMessages() {
 					metadata: {
 						projectId: selectedProject,
 						model: selectedModel,
+						chatId: currentChatId,
 					},
 				},
 			}),
