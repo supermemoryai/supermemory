@@ -71,7 +71,7 @@
 						"pages": [
 							{
 								"group": "Getting Started",
-								"pages": ["intro", "quickstart", "memory-vs-rag"]
+								"pages": ["intro", "vibe-coding", "quickstart", "memory-vs-rag"]
 							},
 							{
 								"group": "Memory API",
