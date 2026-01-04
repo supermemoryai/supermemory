@@ -10,6 +10,7 @@
     "types": "./dist/index.d.ts",
     "scripts": {
         "build": "tsdown",
+        "postbuild": "node -e \"const fs=require('fs');const f='dist/index.js';fs.writeFileSync(f,'#!/usr/bin/env node\\n'+fs.readFileSync(f))\"",
         "dev": "tsdown --watch",
         "typecheck": "tsc --noEmit",
         "lint": "biome check .",
