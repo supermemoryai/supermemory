@@ -60,7 +60,7 @@ const Tooltip = ({
 				</svg>
 			</button>
 			{isVisible && (
-				<div className="absolute z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg bottom-full right-0 mb-1 max-w-xs break-words">
+				<div className="absolute z-50 px-2 py-1 text-xs text-white bg-gray-800 rounded shadow-lg bottom-full right-0 mb-1 max-w-xs wrap-break-word">
 					{content}
 					<div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800" />
 				</div>
@@ -266,7 +266,7 @@ function App() {
 				<div className="flex items-center justify-between gap-3 p-2.5 border-b border-gray-200 relative">
 					<img
 						alt="supermemory"
-						className="w-8 h-8 flex-shrink-0"
+						className="w-8 h-8 shrink-0"
 						src="./dark-transparent.svg"
 						style={{ width: "80%", height: "45px" }}
 					/>
@@ -302,7 +302,12 @@ function App() {
 	}
 
 	return (
-		<div className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden">
+		<div
+			className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden"
+			style={{
+				background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+			}}
+		>
 			<div className="flex items-center justify-between gap-3 p-2.5 border-b border-gray-200 relative">
 				<img
 					alt="supermemory"
@@ -409,7 +414,7 @@ function App() {
 												</span>
 												<svg
 													aria-label="Select project"
-													className="text-gray-500 flex-shrink-0 transition-transform duration-200 hover:text-gray-700 hover:translate-x-0.5"
+													className="text-gray-500 shrink-0 transition-transform duration-200 hover:text-gray-700 hover:translate-x-0.5"
 													fill="none"
 													height="16"
 													stroke="currentColor"
@@ -455,7 +460,7 @@ function App() {
 										>
 											<svg
 												aria-label="ChatGPT Logo"
-												className="w-4.5 h-4.5 flex-shrink-0 mr-2"
+												className="w-4.5 h-4.5 shrink-0 mr-2"
 												fill="currentColor"
 												role="img"
 												viewBox="0 0 24 24"
@@ -496,7 +501,7 @@ function App() {
 										>
 											<svg
 												aria-label="X Twitter Logo"
-												className="w-4.5 h-4.5 flex-shrink-0 mr-2"
+												className="w-4.5 h-4.5 shrink-0 mr-2"
 												fill="currentColor"
 												viewBox="0 0 24 24"
 												xmlns="http://www.w3.org/2000/svg"
@@ -593,8 +598,8 @@ function App() {
 						)}
 
 						{showProjectSelector && (
-							<div className="absolute inset-0 bg-white rounded-lg z-[1000] shadow-xl flex flex-col">
-								<div className="flex justify-between items-center p-4 border-b border-gray-200 text-base font-semibold text-black flex-shrink-0">
+							<div className="absolute inset-0 bg-white rounded-lg z-1000 shadow-xl flex flex-col">
+								<div className="flex justify-between items-center p-4 border-b border-gray-200 text-base font-semibold text-black shrink-0">
 									<span>Select the Project</span>
 									<button
 										className="bg-transparent border-none text-xl cursor-pointer text-gray-500 p-0 w-6 h-6 flex items-center justify-center hover:text-black"
@@ -620,7 +625,7 @@ function App() {
 												type="button"
 											>
 												<div className="flex flex-col flex-1 gap-0.5">
-													<span className="text-sm font-medium text-black break-words leading-tight">
+													<span className="text-sm font-medium text-black wrap-break-word leading-tight">
 														{project.name}
 													</span>
 													<span className="text-xs text-gray-500">
