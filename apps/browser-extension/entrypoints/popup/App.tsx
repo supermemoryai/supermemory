@@ -311,12 +311,7 @@ function App() {
 			}}
 		>
 			<div className="flex items-center justify-between gap-3 p-2.5 relative">
-				<img
-					alt="supermemory"
-					className="w-8 h-8 shrink-0"
-					src="./dark-transparent.svg"
-					style={{ width: "80%", height: "45px" }}
-				/>
+				<div className="text-white text-lg font-semibold ml-2">supermemory</div>
 				{userSignedIn && (
 					<button
 						className="bg-none border-none text-base cursor-pointer text-gray-500 p-1 rounded transition-colors duration-200"
