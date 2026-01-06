@@ -1,12 +1,24 @@
 "use client"
 
 import { useAuth } from "@lib/auth-context"
+import { authClient } from "@lib/auth"
 import {
 	fetchConnectionsFeature,
 	fetchMemoriesFeature,
 	fetchSubscriptionStatus,
 } from "@lib/queries"
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@repo/ui/components/alert-dialog"
 import { Button } from "@repo/ui/components/button"
+import { Input } from "@repo/ui/components/input"
 import { Skeleton } from "@repo/ui/components/skeleton"
 import { HeadingH3Bold } from "@repo/ui/text/heading/heading-h3-bold"
 import { useCustomer } from "autumn-js/react"
@@ -20,13 +32,19 @@ import {
 } from "lucide-react"
 import { motion } from "motion/react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export function ProfileView() {
 	const { user: session, org } = useAuth()
 	const organizations = org
 	const autumn = useCustomer()
+	const router = useRouter()
 	const [isLoading, setIsLoading] = useState(false)
+	const [isDeleting, setIsDeleting] = useState(false)
+	const [deleteConfirmation, setDeleteConfirmation] = useState("")
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+	const [deleteError, setDeleteError] = useState<string | null>(null)
 
 	const {
 		data: status = {
@@ -72,6 +90,31 @@ export function ProfileView() {
 		await autumn.openBillingPortal({
 			returnUrl: "https://app.supermemory.ai",
 		})
+	}
+
+	const handleDeleteAccount = async () => {
+		if (deleteConfirmation !== "DELETE" || !org?.id) return
+
+		setIsDeleting(true)
+		setDeleteError(null)
+
+		try {
+			await authClient.organization.delete({
+				organizationId: org.id,
+			})
+
+			await authClient.signOut()
+
+			router.push("/login")
+		} catch (error) {
+			console.error("Failed to delete account:", error)
+			setDeleteError(
+				error instanceof Error
+					? error.message
+					: "Failed to delete account. Please try again or contact support.",
+			)
+			setIsDeleting(false)
+		}
 	}
 
 	if (session?.isAnonymous) {
@@ -362,6 +405,80 @@ export function ProfileView() {
 							</p>
 						</div>
 					)}
+				</div>
+			)}
+
+			{/* Delete Account */}
+			{!session?.isAnonymous && org && (
+				<div className="pt-4 mt-2">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-foreground">Delete account</p>
+							<p className="text-xs text-muted-foreground">
+								Permanently delete your data and cancel subscription
+							</p>
+						</div>
+						<AlertDialog
+							open={deleteDialogOpen}
+							onOpenChange={setDeleteDialogOpen}
+						>
+							<AlertDialogTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+								>
+									Delete
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>Delete account?</AlertDialogTitle>
+									<AlertDialogDescription asChild>
+										<div className="space-y-3">
+											<p>
+												This will permanently delete your memories, connections,
+												settings, and cancel any subscriptions.
+											</p>
+											<p className="text-foreground">
+												Type{" "}
+												<code className="bg-muted px-1.5 py-0.5 rounded text-red-500">
+													DELETE
+												</code>{" "}
+												to confirm:
+											</p>
+										</div>
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<Input
+									value={deleteConfirmation}
+									onChange={(e) => setDeleteConfirmation(e.target.value)}
+									placeholder="DELETE"
+									autoComplete="off"
+								/>
+								{deleteError && (
+									<p className="text-sm text-red-500">{deleteError}</p>
+								)}
+								<AlertDialogFooter>
+									<AlertDialogCancel
+										onClick={() => {
+											setDeleteConfirmation("")
+											setDeleteError(null)
+										}}
+									>
+										Cancel
+									</AlertDialogCancel>
+									<Button
+										variant="destructive"
+										onClick={handleDeleteAccount}
+										disabled={deleteConfirmation !== "DELETE" || isDeleting}
+									>
+										{isDeleting ? "Deleting..." : "Delete account"}
+									</Button>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
 				</div>
 			)}
 		</div>
