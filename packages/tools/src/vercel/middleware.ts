@@ -11,7 +11,11 @@ import {
 	getLastUserMessage,
 	filterOutSupermemories,
 } from "./util"
-import { addSystemPrompt, normalizeBaseUrl } from "./memory-prompt"
+import {
+	addSystemPrompt,
+	normalizeBaseUrl,
+	type PromptTemplate,
+} from "./memory-prompt"
 
 export const getConversationContent = (params: LanguageModelCallOptions) => {
 	return params.prompt
@@ -39,24 +43,24 @@ export const convertToConversationMessages = (
 	const messages: ConversationMessage[] = []
 
 	for (const msg of params.prompt) {
+		if (msg.role === "system") {
+			continue
+		}
+
 		if (typeof msg.content === "string") {
-			const filteredContent = filterOutSupermemories(msg.content)
-			if (filteredContent) {
+			if (msg.content) {
 				messages.push({
-					role: msg.role as "user" | "assistant" | "system" | "tool",
-					content: filteredContent,
+					role: msg.role as "user" | "assistant" | "tool",
+					content: msg.content,
 				})
 			}
 		} else {
 			const contentParts = msg.content
 				.map((c) => {
-					if (c.type === "text") {
-						const filteredText = filterOutSupermemories(c.text)
-						if (filteredText) {
-							return {
-								type: "text" as const,
-								text: filteredText,
-							}
+					if (c.type === "text" && c.text) {
+						return {
+							type: "text" as const,
+							text: c.text,
 						}
 					}
 					if (
@@ -75,7 +79,7 @@ export const convertToConversationMessages = (
 
 			if (contentParts.length > 0) {
 				messages.push({
-					role: msg.role as "user" | "assistant" | "system" | "tool",
+					role: msg.role as "user" | "assistant" | "tool",
 					content: contentParts,
 				})
 			}
@@ -153,14 +157,35 @@ export const saveMemoryAfterResponse = async (
 	}
 }
 
+/**
+ * Configuration options for the Supermemory middleware.
+ */
 export interface SupermemoryMiddlewareOptions {
+	/** Container tag/identifier for memory search (e.g., user ID, project ID) */
 	containerTag: string
+	/** Supermemory API key */
 	apiKey: string
+	/** Optional conversation ID to group messages for contextual memory generation */
 	conversationId?: string
+	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
+	/**
+	 * Memory retrieval mode:
+	 * - "profile": Retrieves user profile memories (static + dynamic) without query filtering
+	 * - "query": Searches memories based on semantic similarity to the user's message
+	 * - "full": Combines both profile and query-based results
+	 */
 	mode?: "profile" | "query" | "full"
+	/**
+	 * Memory persistence mode:
+	 * - "always": Automatically save conversations as memories
+	 * - "never": Only retrieve memories, don't store new ones
+	 */
 	addMemory?: "always" | "never"
+	/** Custom Supermemory API base URL */
 	baseUrl?: string
+	/** Custom function to format memory data into the system prompt */
+	promptTemplate?: PromptTemplate
 }
 
 export interface SupermemoryMiddlewareContext {
@@ -172,6 +197,7 @@ export interface SupermemoryMiddlewareContext {
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
 	apiKey: string
+	promptTemplate?: PromptTemplate
 }
 
 export const createSupermemoryContext = (
@@ -185,6 +211,7 @@ export const createSupermemoryContext = (
 		mode = "profile",
 		addMemory = "never",
 		baseUrl,
+		promptTemplate,
 	} = options
 
 	const logger = createLogger(verbose)
@@ -206,6 +233,7 @@ export const createSupermemoryContext = (
 		addMemory,
 		normalizedBaseUrl,
 		apiKey,
+		promptTemplate,
 	}
 }
 
@@ -235,6 +263,7 @@ export const transformParamsWithMemory = async (
 		ctx.mode,
 		ctx.normalizedBaseUrl,
 		ctx.apiKey,
+		ctx.promptTemplate,
 	)
 	return transformedParams
 }

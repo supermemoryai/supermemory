@@ -217,6 +217,41 @@ const modelWithOptions = withSupermemory(openai("gpt-4"), "user-123", {
 })
 ```
 
+#### Custom Prompt Templates
+
+Customize how memories are formatted and injected into the system prompt using the `promptTemplate` option. This is useful for:
+- Using XML-based prompting (e.g., for Claude models)
+- Custom branding (removing "supermemories" references)
+- Controlling how your agent describes where information comes from
+
+```typescript
+import { generateText } from "ai"
+import { withSupermemory, type MemoryPromptData } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const customPrompt = (data: MemoryPromptData) => `
+<user_memories>
+Here is some information about your past conversations with the user:
+${data.userMemories}
+${data.generalSearchMemories}
+</user_memories>
+`.trim()
+
+const modelWithCustomPrompt = withSupermemory(openai("gpt-4"), "user-123", {
+  mode: "full",
+  promptTemplate: customPrompt,
+})
+
+const result = await generateText({
+  model: modelWithCustomPrompt,
+  messages: [{ role: "user", content: "What do you know about me?" }],
+})
+```
+
+The `MemoryPromptData` object provides:
+- `userMemories`: Pre-formatted markdown combining static profile facts (name, preferences, goals) and dynamic context (current projects, recent interests)
+- `generalSearchMemories`: Pre-formatted search results based on semantic similarity to the current query
+
 ### OpenAI SDK Usage
 
 #### OpenAI Middleware with Supermemory

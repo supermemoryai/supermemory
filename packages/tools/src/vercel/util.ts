@@ -21,22 +21,43 @@ export type LanguageModelStreamPart =
 	| LanguageModelV2StreamPart
 	| LanguageModelV3StreamPart
 
+/**
+ * Response structure from the Supermemory profile API.
+ */
 export interface ProfileStructure {
 	profile: {
+		/**
+		 * Core, stable facts about the user that rarely change.
+		 * Examples: name, profession, long-term preferences, goals.
+		 */
 		static?: Array<{ memory: string; metadata?: Record<string, unknown> }>
+		/**
+		 * Recently learned or frequently updated information about the user.
+		 * Examples: current projects, recent interests, ongoing topics.
+		 */
 		dynamic?: Array<{ memory: string; metadata?: Record<string, unknown> }>
 	}
 	searchResults: {
+		/**
+		 * Memories retrieved based on semantic similarity to the current query.
+		 * Most relevant to the immediate conversation context.
+		 */
 		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
 	}
 }
 
+/**
+ * Simplified profile data for markdown conversion.
+ */
 export interface ProfileMarkdownData {
 	profile: {
+		/** Core, stable user facts (name, preferences, goals) */
 		static?: string[]
+		/** Recently learned or updated information (current projects, interests) */
 		dynamic?: string[]
 	}
 	searchResults: {
+		/** Query-relevant memories based on semantic similarity */
 		results: Array<{ memory: string }>
 	}
 }

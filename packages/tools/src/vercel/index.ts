@@ -10,14 +10,46 @@ import {
 	extractAssistantResponseText,
 	saveMemoryAfterResponse,
 } from "./middleware"
+import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
 
 interface WrapVercelLanguageModelOptions {
+	/** Optional conversation ID to group messages for contextual memory generation */
 	conversationId?: string
+	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
+	/**
+	 * Memory retrieval mode:
+	 * - "profile": Retrieves user profile memories (static + dynamic) without query filtering
+	 * - "query": Searches memories based on semantic similarity to the user's message
+	 * - "full": Combines both profile and query-based results
+	 */
 	mode?: "profile" | "query" | "full"
+	/**
+	 * Memory persistence mode:
+	 * - "always": Automatically save conversations as memories
+	 * - "never": Only retrieve memories, don't store new ones
+	 */
 	addMemory?: "always" | "never"
+	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY env var) */
 	apiKey?: string
+	/** Custom Supermemory API base URL */
 	baseUrl?: string
+	/**
+	 * Custom function to format memory data into the system prompt.
+	 * If not provided, uses the default "User Supermemories:" format.
+	 *
+	 * @example
+	 * ```typescript
+	 * promptTemplate: (data) => `
+	 * <user_memories>
+	 * Here is some information about your past conversations:
+	 * ${data.userMemories}
+	 * ${data.generalSearchMemories}
+	 * </user_memories>
+	 * `.trim()
+	 * ```
+	 */
+	promptTemplate?: PromptTemplate
 }
 
 /**
@@ -84,6 +116,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		mode: options?.mode ?? "profile",
 		addMemory: options?.addMemory ?? "never",
 		baseUrl: options?.baseUrl,
+		promptTemplate: options?.promptTemplate,
 	})
 
 	const wrappedModel = {
@@ -183,4 +216,6 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 export {
 	wrapVercelLanguageModel as withSupermemory,
 	type WrapVercelLanguageModelOptions as WithSupermemoryOptions,
+	type PromptTemplate,
+	type MemoryPromptData,
 }
