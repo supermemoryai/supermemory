@@ -47,7 +47,7 @@ conversation = [
 ]
 
 # Get user profile + relevant memories for context
-profile = client.profile(container_tag=USER_ID, threshold=0.7, q=conversation[-1]["content"])
+profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
 
 context = f"""Static profile:
 {"\n".join(profile.profile.static)}
@@ -86,7 +86,6 @@ const conversation = [
 // Get user profile + relevant memories for context
 const profile = await client.profile({
   containerTag: USER_ID,
-  threshold: 0.7,
   q: conversation.at(-1)!.content,
 });
 
@@ -117,5 +116,9 @@ That's it! Supermemory automatically:
 - Extracts memories from conversations
 - Builds and maintains user profiles (static facts + dynamic context)
 - Returns relevant context for personalized LLM responses
+
+<Tip>
+**Optional:** Use the `threshold` parameter to filter search results by relevance score. For example: `client.profile(container_tag=USER_ID, threshold=0.7, q=query)` will only include results with a score above 0.7.
+</Tip>
 
 Learn more about [User Profiles](/user-profiles) and [Search](/search/overview).
