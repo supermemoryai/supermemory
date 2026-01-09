@@ -47,7 +47,7 @@ conversation = [
 ]
 
 # Get user profile + relevant memories for context
-profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
+profile = client.profile(container_tag=USER_ID, threshold=0.7, q=conversation[-1]["content"])
 
 context = f"""Static profile:
 {"\n".join(profile.profile.static)}
@@ -86,6 +86,7 @@ const conversation = [
 // Get user profile + relevant memories for context
 const profile = await client.profile({
   containerTag: USER_ID,
+  threshold: 0.7,
   q: conversation.at(-1)!.content,
 });
 
