@@ -25,6 +25,7 @@ Retrieves a user's profile, optionally combined with search results.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `containerTag` | string | Yes | The container tag (usually user ID) to get profiles for |
+| `threshold` | float | Yes | Threshold for search results. Only results with a score above this threshold will be included. |
 | `q` | string | No | Optional search query to include search results with the profile |
 
 ## Response
@@ -74,7 +75,8 @@ const response = await fetch('https://api.supermemory.ai/v4/profile', {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    containerTag: 'user_123'
+    containerTag: 'user_123',
+    threshold: 0.7
   })
 });
 
@@ -95,7 +97,8 @@ response = requests.post(
         'Content-Type': 'application/json'
     },
     json={
-        'containerTag': 'user_123'
+        'containerTag': 'user_123',
+        'threshold': 0.7
     }
 )
 
@@ -110,7 +113,8 @@ curl -X POST https://api.supermemory.ai/v4/profile \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "containerTag": "user_123"
+    "containerTag": "user_123",
+    "threshold": 0.7
   }'
 ```
 
@@ -131,6 +135,7 @@ const response = await fetch('https://api.supermemory.ai/v4/profile', {
   },
   body: JSON.stringify({
     containerTag: 'user_123',
+    threshold: 0.7,
     q: 'deployment errors yesterday'
   })
 });
@@ -153,6 +158,7 @@ response = requests.post(
     },
     json={
         'containerTag': 'user_123',
+        'threshold': 0.7,
         'q': 'deployment errors yesterday'
     }
 )
@@ -169,7 +175,7 @@ search_results = data.get('searchResults', {}).get('results', [])
 
 | Status | Description |
 |--------|-------------|
-| `400` | Missing or invalid `containerTag` |
+| `400` | Missing or invalid `containerTag` or `threshold` |
 | `401` | Invalid or missing API key |
 | `404` | Container not found |
 | `500` | Internal server error |
