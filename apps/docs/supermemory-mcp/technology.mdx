@@ -3,46 +3,188 @@ title: 'Technical implementation details'
 description: 'Technical implementation details of supermemory MCP'
 ---
 
-The technical architecture prioritizes **simplicity and user experience** while maintaining robust functionality. Built as what the creators describe as "the simplest thing you'll see" - essentially a React Router application making fetch calls to the supermemory API - the entire system was developed and shipped in approximately 5 hours of actual work time.
+Supermemory MCP Server 4.0 is built as a standalone application on Cloudflare Workers with Durable Objects, providing scalable, persistent connections for AI assistants. The architecture prioritizes **simplicity, reliability, and user experience** while maintaining robust functionality.
 
-### Architecture components
+## Architecture Overview
 
-- **Backend API**: Built on top of the supermemory API (https://api.supermemory.ai/v3)
-- **Transport Layer**: Uses Server-Sent Events (SSE) for real-time communication
-- **Dynamic Server Generation**: Creates unique MCP server instances for each user via URL path parameters
-- **Session Management**: Maintains complete user isolation through unique URLs
-- **Infrastructure**: Hosted on Cloudflare using Durable Objects for persistent, long-running connections
+```
+┌─────────────────┐  OAuth/API Key ┌──────────────────┐
+│   MCP Client    │◄──────────────►│  Supermemory API │
+│ (Claude, Cursor)│                │  (api.supermemory.ai)
+└────────┬────────┘                └──────────────────┘
+         │                                   ▲
+         │ MCP Protocol                      │ Auth Validation
+         ▼                                   │
+┌─────────────────────────────────────────────────────┐
+│            Supermemory MCP Server                   │
+│         (mcp.supermemory.ai/mcp)                   │
+│  ┌─────────────────────────────────────────────┐   │
+│  │           Cloudflare Durable Object          │   │
+│  │  • Session state                             │   │
+│  │  • Client info persistence                   │   │
+│  │  • MCP protocol handling                     │   │
+│  └─────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+```
 
-The system leverages **Cloudflare's infrastructure** with CPU-based billing, making it highly efficient since memory connections spend most time waiting between interactions rather than actively processing, resulting in minimal CPU usage despite potentially running for millions of milliseconds.
+## Tech Stack
 
-## The two main components explained
+- **Runtime:** Cloudflare Workers
+- **State Management:** Durable Objects with SQLite
+- **Web Framework:** Hono
+- **MCP SDK:** @modelcontextprotocol/sdk + agents
+- **API Client:** supermemory SDK
+- **Analytics:** PostHog
 
-### addToSupermemory action
+## Architecture Components
 
-This component **stores user information, preferences, and behavioral patterns** with sophisticated triggering mechanisms:
+### Cloudflare Workers
 
-**Trigger methods:**
-- **Explicit commands**: Direct user instructions like "remember this"
-- **Implicit detection**: Automatic identification of significant user traits, preferences, or patterns during conversations
+The MCP server runs on Cloudflare Workers, providing:
+- **Global edge deployment** - Low latency worldwide
+- **Automatic scaling** - Handles traffic spikes seamlessly
+- **CPU-based billing** - Cost-efficient since memory connections spend most time waiting between interactions
+- **Built-in security** - DDoS protection and secure infrastructure
 
-**Data types captured:**
-- Technical preferences and details (e.g., "My primary programming language is Python")
-- Project information and context (e.g., "I'm currently working on a project named 'Apollo'")
-- User behaviors and emotional responses
-- Personal facts, preferences, and decision-making patterns
-- Rich context including technical details and examples
+### Durable Objects
 
-### searchSupermemory action
+Each user session is managed by a Durable Object instance that provides:
+- **Persistent connections** - Long-running WebSocket/SSE connections for MCP protocol
+- **Session state** - Maintains client information and connection state
+- **SQLite storage** - Stores client metadata persistently
+- **Complete isolation** - Each user session runs in its own isolated instance
 
-This component **retrieves relevant information** from stored memories using advanced search capabilities:
+### Authentication Layer
 
-**Activation triggers:**
-- Explicit user requests for historical information
-- Contextual situations where past user choices would be helpful for current decisions
-- Automatic context enhancement based on conversation flow
+The server implements a dual authentication system:
 
-**Search capabilities:**
-- **Semantic matching**: Finds relevant details across related experiences using vector search
-- **Pattern recognition**: Identifies behavioral patterns and preferences
-- **Cross-session retrieval**: Accesses memories from previous conversations and platforms
-- **Intelligent filtering**: Returns most relevant context based on current conversation needs
+**OAuth Flow:**
+1. Client discovers authorization server via `/.well-known/oauth-protected-resource`
+2. User authenticates through Supermemory OAuth provider
+3. Token validated against main API (`/v3/mcp/session-with-key`)
+4. API returns both user info and an API key for subsequent operations
+
+**API Key Flow:**
+1. Client provides API key (starting with `sm_`) in Authorization header
+2. Key validated against main API (`/v3/session`)
+3. Direct authentication without OAuth redirect
+
+### MCP Protocol Implementation
+
+The server implements the Model Context Protocol specification:
+
+**Tools:**
+- `memory` - Save or forget user information
+- `recall` - Search memories with hybrid search mode
+- `whoAmI` - Get current user information
+
+**Resources:**
+- `supermemory://profile` - User profile with static and dynamic facts
+- `supermemory://projects` - List of available projects
+
+**Prompts:**
+- `context` - User profile for system context injection
+
+### API Integration
+
+The MCP server acts as a bridge between MCP clients and the Supermemory API:
+
+**Memory Operations:**
+- Uses the supermemory SDK for all API calls
+- Implements hybrid search mode for better recall accuracy
+- Supports project scoping via `containerTag` parameter
+- Handles content limiting (200k characters max) to prevent token overflow
+
+**Profile Generation:**
+- Fetches auto-generated user profiles from the API
+- Separates static (stable preferences) and dynamic (recent activity) facts
+- Combines profile with search results for comprehensive context
+
+## Key Features
+
+### Hybrid Search
+
+The `recall` tool uses hybrid search mode, combining:
+- **Vector search** - Semantic similarity matching
+- **Keyword search** - Exact term matching
+- **Reranking** - Optimizes result relevance
+
+This provides more accurate memory retrieval compared to vector-only search.
+
+### Project Scoping
+
+Memories can be organized by project using the `x-sm-project` header or `containerTag` parameter:
+- Keeps work contexts separate
+- Useful for multi-project development
+- Prevents context bleeding between projects
+
+### User Profiles
+
+Auto-generated profiles provide:
+- **Static facts** - Stable preferences and characteristics
+- **Dynamic facts** - Recent activity and context
+- **Automatic updates** - Profiles evolve as memories are added
+
+### Analytics
+
+PostHog integration tracks:
+- Memory additions and deletions
+- Search queries and results
+- Client information (name, version)
+- Session and user identifiers
+
+This enables usage monitoring and performance optimization.
+
+## Performance Characteristics
+
+**Efficiency:**
+- CPU-based billing makes it cost-effective
+- Most time spent waiting (idle) rather than processing
+- Minimal CPU usage despite long-running connections
+
+**Scalability:**
+- Durable Objects provide automatic scaling
+- Each session isolated for reliability
+- Global edge deployment reduces latency
+
+**Reliability:**
+- Built on Cloudflare's enterprise infrastructure
+- Automatic failover and recovery
+- Session state persisted in SQLite
+
+## Development
+
+The server is built with modern tooling:
+
+**Build System:**
+- Bun for fast package management
+- Wrangler for Cloudflare Workers deployment
+- TypeScript for type safety
+
+**Local Development:**
+```bash
+bun install
+bun run dev  # Starts at http://localhost:8788
+```
+
+**Deployment:**
+```bash
+bun run deploy  # Deploys to Cloudflare Workers
+```
+
+## Security
+
+**Authentication:**
+- OAuth 2.0 with automatic discovery
+- API key validation through main API
+- No credentials stored in MCP server
+
+**Data Isolation:**
+- Complete user separation via Durable Objects
+- Session-based access control
+- All data operations scoped to authenticated user
+
+**Infrastructure:**
+- Cloudflare's enterprise security
+- DDoS protection
+- Encrypted connections (HTTPS/WSS)
