@@ -100,3 +100,61 @@ Or use the one-click install button at [app.supermemory.ai](https://app.supermem
 ### Windsurf / VS Code
 
 Configuration varies by extension. Generally, add the server URL (`https://mcp.supermemory.ai/mcp`) to your MCP settings.
+
+## Using the MCP Server
+
+Once configured, the MCP server provides three main tools:
+
+### `memory` Tool
+
+Save or forget information about the user:
+
+```json
+{
+  "content": "User prefers dark mode and uses TypeScript",
+  "action": "save",
+  "containerTag": "optional-project-tag"
+}
+```
+
+The AI assistant will automatically use this tool when:
+- You explicitly ask it to remember something
+- It detects important preferences or patterns in conversation
+
+### `recall` Tool
+
+Search memories and get user profile:
+
+```json
+{
+  "query": "What are the user's programming preferences?",
+  "includeProfile": true,
+  "containerTag": "optional-project-tag"
+}
+```
+
+The AI assistant will automatically use this tool when:
+- You ask about past conversations or preferences
+- It needs context from previous interactions
+- It wants to provide personalized responses
+
+### `whoAmI` Tool
+
+Get information about the current logged-in user:
+
+```json
+{}
+```
+
+Returns your userId, email, name, client information, and sessionId.
+
+## Resources
+
+The MCP server also provides resources that can be accessed directly:
+
+- **`supermemory://profile`** - Your user profile with stable preferences and recent activity
+- **`supermemory://projects`** - List of your available memory projects
+
+## Prompts
+
+The server provides a `context` prompt that injects your user profile and preferences into the system context, allowing the AI to be aware of your preferences from the start of each conversation.
