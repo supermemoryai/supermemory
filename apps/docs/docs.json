@@ -138,6 +138,7 @@
 											"connectors/notion",
 											"connectors/google-drive",
 											"connectors/onedrive",
+											"connectors/s3",
 											"connectors/github",
 											"connectors/web-crawler",
 											"connectors/troubleshooting",

@@ -1,0 +1,214 @@
+---
+title: "S3 Connector"
+description: "Connect Amazon S3 or S3-compatible storage to sync files into your Supermemory knowledge base"
+icon: "aws"
+---
+
+Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2) to sync files into your Supermemory knowledge base.
+
+<Note>
+The S3 connector requires a **Scale Plan** or higher. You can also create S3 connections directly from the [Supermemory Console](https://console.supermemory.ai).
+</Note>
+
+## Quick Setup
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY!
+    });
+
+    const connection = await client.connections.create('s3', {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      bucket: 'my-documents-bucket',
+      region: 'us-east-1',
+      containerTags: ['org-123']
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+    import os
+
+    client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
+
+    connection = client.connections.create(
+        's3',
+        access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+        secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        bucket='my-documents-bucket',
+        region='us-east-1',
+        container_tags=['org-123', 's3-sync']
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/connections/s3" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        "bucket": "my-documents-bucket",
+        "region": "us-east-1",
+        "containerTags": ["org-123"]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration Options
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `accessKeyId` | Yes | AWS access key ID or S3-compatible service key |
+| `secretAccessKey` | Yes | AWS secret access key |
+| `bucket` | Yes | S3 bucket name |
+| `region` | Yes | AWS region (e.g., `us-east-1`) |
+| `endpoint` | No | Custom endpoint for S3-compatible services |
+| `prefix` | No | Key prefix filter (e.g., `documents/`) |
+| `containerTagRegex` | No | Regex to extract container tags from file paths |
+| `containerTags` | No | Tags for organizing connections |
+| `documentLimit` | No | Maximum documents to sync (default: 10,000) |
+
+## S3-Compatible Services
+
+Use a custom `endpoint` to connect to S3-compatible storage:
+
+```typescript
+// MinIO
+const connection = await client.connections.create('s3', {
+  accessKeyId: 'minio-key',
+  secretAccessKey: 'minio-secret',
+  bucket: 'my-bucket',
+  region: 'us-east-1',
+  endpoint: 'https://minio.example.com',
+  containerTags: ['minio-sync']
+});
+
+// DigitalOcean Spaces
+endpoint: 'https://nyc3.digitaloceanspaces.com'
+
+// Cloudflare R2
+endpoint: 'https://ACCOUNT_ID.r2.cloudflarestorage.com'
+```
+
+## Prefix Filtering
+
+Sync only files within a specific path:
+
+```typescript
+const connection = await client.connections.create('s3', {
+  // ... credentials
+  bucket: 'company-data',
+  region: 'us-east-1',
+  prefix: 'documents/engineering/',  // Only syncs files under this path
+  containerTags: ['engineering-docs']
+});
+```
+
+## Dynamic Container Tags
+
+Extract container tags from S3 key paths for multi-tenant setups:
+
+```typescript
+const connection = await client.connections.create('s3', {
+  // ... credentials
+  bucket: 'user-files',
+  region: 'us-east-1',
+  containerTagRegex: 'users/(?<userId>[^/]+)/',
+  containerTags: ['user-files']
+});
+
+// File: users/user-123/documents/notes.md → container tag: user-123
+// File: users/user-456/reports/q4.pdf → container tag: user-456
+```
+
+<Warning>
+The regex must contain a named capture group `(?<userId>...)` and be less than 200 characters.
+</Warning>
+
+## Connection Management
+
+### Delete Connection
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await client.connections.deleteByID('conn_s3_abc123');
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.supermemory.ai/v3/connections/conn_s3_abc123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Deleting a connection removes all synced documents from Supermemory.
+</Warning>
+
+### Manual Sync
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await client.connections.import('s3', {
+      containerTags: ['org-123']
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/connections/s3/import" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTags": ["org-123"]}'
+    ```
+  </Tab>
+</Tabs>
+
+## Sync Behavior
+
+| Feature | Behavior |
+|---------|----------|
+| **Initial sync** | Fetches all files matching prefix filter |
+| **Incremental sync** | Only files modified since last sync |
+| **Sync schedule** | Every 4 hours + manual triggers |
+| **Document limit** | 10,000 files per connection (default) |
+
+## IAM Permissions
+
+Minimum required permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
+## Error Codes
+
+| Code | Message | Solution |
+|------|---------|----------|
+| 401 | Authentication failed | Verify access key and secret |
+| 403 | Access denied | Check IAM permissions and bucket policy |
+| 404 | Bucket not found | Verify bucket name and region |
