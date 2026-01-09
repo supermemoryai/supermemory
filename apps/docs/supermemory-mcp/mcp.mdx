@@ -103,7 +103,7 @@ Get the current logged-in user's information. Returns `{ userId, email, name, cl
 ### `context`
 
 Inject user profile and preferences as system context for AI conversations. Returns a formatted message with the user's stable preferences and recent activity.
-
+You can access this in Cursor and Claude Code by just doing /context, which will give the LLMs just enough context to use and query supermemory more.
 **Purpose:** Unlike the `recall` tool (which searches for specific information) or the `profile` resource (which returns raw data), the `context` prompt provides a pre-formatted system message designed for context injection at the start of conversations.
 
 | Parameter | Type | Required | Description |
