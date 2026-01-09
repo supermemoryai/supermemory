@@ -117,4 +117,8 @@ That's it! Supermemory automatically:
 - Builds and maintains user profiles (static facts + dynamic context)
 - Returns relevant context for personalized LLM responses
 
+<Tip>
+**Optional:** Use the `threshold` parameter to filter search results by relevance score. For example: `client.profile(container_tag=USER_ID, threshold=0.7, q=query)` will only include results with a score above 0.7.
+</Tip>
+
 Learn more about [User Profiles](/user-profiles) and [Search](/search/overview).

@@ -180,6 +180,57 @@ Relevant Information:
 
 </CodeGroup>
 
+## Filtering with Threshold
+
+Use the optional `threshold` parameter to filter search results by relevance score:
+
+<CodeGroup>
+
+```typescript TypeScript
+async function getHighQualityContext(userId: string, userQuery: string) {
+  const response = await fetch('https://api.supermemory.ai/v4/profile', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      containerTag: userId,
+      threshold: 0.7,  // Only include high-confidence results
+      q: userQuery
+    })
+  });
+
+  const data = await response.json();
+  
+  // Only highly relevant memories are included
+  return data;
+}
+```
+
+```python Python
+async def get_high_quality_context(user_id: str, user_query: str):
+    response = requests.post(
+        'https://api.supermemory.ai/v4/profile',
+        headers={
+            'Authorization': f'Bearer {os.getenv("SUPERMEMORY_API_KEY")}',
+            'Content-Type': 'application/json'
+        },
+        json={
+            'containerTag': user_id,
+            'threshold': 0.7,  # Only include high-confidence results
+            'q': user_query
+        }
+    )
+
+    data = response.json()
+    
+    # Only highly relevant memories are included
+    return data
+```
+
+</CodeGroup>
+
 ## Separate Profile and Search
 
 For more control, you can call profile and search endpoints separately:

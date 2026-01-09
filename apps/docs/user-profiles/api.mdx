@@ -25,6 +25,7 @@ Retrieves a user's profile, optionally combined with search results.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `containerTag` | string | Yes | The container tag (usually user ID) to get profiles for |
+| `threshold` | float | No | Threshold for filtering search results. Only results with a score above this threshold will be included. |
 | `q` | string | No | Optional search query to include search results with the profile |
 
 ## Response
@@ -165,11 +166,53 @@ search_results = data.get('searchResults', {}).get('results', [])
 
 </CodeGroup>
 
+## Profile with Threshold
+
+Use the optional `threshold` parameter to filter search results by relevance score:
+
+<CodeGroup>
+
+```typescript TypeScript
+const response = await fetch('https://api.supermemory.ai/v4/profile', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    containerTag: 'user_123',
+    threshold: 0.7,  // Only include results with score > 0.7
+    q: 'deployment errors yesterday'
+  })
+});
+
+const data = await response.json();
+```
+
+```python Python
+response = requests.post(
+    'https://api.supermemory.ai/v4/profile',
+    headers={
+        'Authorization': f'Bearer {os.getenv("SUPERMEMORY_API_KEY")}',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'containerTag': 'user_123',
+        'threshold': 0.7,  # Only include results with score > 0.7
+        'q': 'deployment errors yesterday'
+    }
+)
+
+data = response.json()
+```
+
+</CodeGroup>
+
 ## Error Responses
 
 | Status | Description |
 |--------|-------------|
-| `400` | Missing or invalid `containerTag` |
+| `400` | Missing or invalid `containerTag` or `threshold` |
 | `401` | Invalid or missing API key |
 | `404` | Container not found |
 | `500` | Internal server error |
