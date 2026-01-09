@@ -3,7 +3,7 @@ title: 'About Supermemory MCP'
 description: 'Give your AI assistants persistent memory with the Model Context Protocol'
 ---
 
-Supermemory MCP Server 4.0 is a lightweight component that gives AI assistants persistent memory across conversations. It serves as a universal memory layer enabling Large Language Models (LLMs) to maintain context and memories across different applications and sessions, solving the fundamental limitation of AI assistants forgetting everything between conversations.
+Supermemory MCP Server 4.0 is a standalone MCP server that gives AI assistants persistent memory across conversations. Built on Cloudflare Workers with Durable Objects, it serves as a universal memory layer enabling Large Language Models (LLMs) to maintain context and memories across different applications and sessions, solving the fundamental limitation of AI assistants forgetting everything between conversations.
 
 <Card title="Quick Start" icon="rocket" href="/supermemory-mcp/mcp">
   Jump to installation and setup
@@ -26,11 +26,12 @@ When users interact with any connected AI application, the system captures relev
 
 ### Key Features
 
-- **OAuth Authentication** - Secure login through Supermemory accounts
-- **API Key Support** - Alternative authentication for automation and CI/CD
-- **Persistent Memory** - Save and recall information across sessions
-- **User Profiles** - Auto-generated profiles from stored memories
+- **Dual Authentication** - OAuth by default with API key alternative for automation
+- **Persistent Memory** - Save and recall information across sessions using the `memory` tool
+- **User Profiles** - Auto-generated profiles from stored memories with static and dynamic facts
 - **Project Scoping** - Organize memories by project with `x-sm-project` header
+- **Resources** - Access user profiles and project lists via MCP resources
+- **Prompts** - System context injection with user preferences
 
 ## Core Workflow
 
@@ -38,21 +39,54 @@ When users interact with any connected AI application, the system captures relev
 2. The client connects to `https://mcp.supermemory.ai/mcp`
 3. OAuth flow authenticates the user (or API key validates directly)
 4. During conversations, relevant information is stored using the `memory` tool
-5. When context is needed, the `recall` tool retrieves relevant memories
+5. When context is needed, the `recall` tool retrieves relevant memories with hybrid search
 6. The AI assistant accesses this persistent context regardless of which platform is being used
+
+## Tools
+
+### `memory`
+
+Save or forget information about the user. Replaces the old `addToSupermemory` tool.
+
+**Parameters:**
+- `content` (string, required) - The memory content to save or forget
+- `action` (`"save"` | `"forget"`, optional) - Default: `"save"`
+- `containerTag` (string, optional) - Project tag to scope the memory
+
+### `recall`
+
+Search memories and get user profile. Replaces the old `searchSupermemory` tool.
+
+**Parameters:**
+- `query` (string, required) - Search query to find relevant memories
+- `includeProfile` (boolean, optional) - Include user profile summary. Default: `true`
+- `containerTag` (string, optional) - Project tag to scope the search
+
+### `whoAmI`
+
+Get the current logged-in user's information including userId, email, name, client, and sessionId.
+
+## Resources
+
+- `supermemory://profile` - User profile with stable preferences and recent activity
+- `supermemory://projects` - List of available memory projects
+
+## Prompts
+
+- `context` - User profile and preferences for system context injection
 
 ## Security and Privacy
 
 ### Authentication Model
 
-- **OAuth by default** - Secure authentication through Supermemory accounts
-- **API key alternative** - Keys start with `sm_` for programmatic access
-- **Session isolation** - Complete user data separation per account
+- **OAuth by default** - Secure authentication through Supermemory accounts with automatic discovery via `/.well-known/oauth-protected-resource`
+- **API key alternative** - Keys start with `sm_` for programmatic access and automation
+- **Session isolation** - Complete user data separation per account using Durable Objects
 
 ### Privacy Features
 
 - **Data isolation** - User memories completely separated by account
-- **Secure infrastructure** - Built on Cloudflare's enterprise-grade platform
+- **Secure infrastructure** - Built on Cloudflare's enterprise-grade platform with Durable Objects
 - **Open source** - Full transparency into how your data is handled
 
 <Card title="Source Code" icon="github" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
