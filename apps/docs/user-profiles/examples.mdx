@@ -20,7 +20,10 @@ async function handleChatMessage(userId: string, message: string) {
       'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ containerTag: userId })
+    body: JSON.stringify({ 
+      containerTag: userId,
+      threshold: 0.7
+    })
   });
 
   const { profile } = await profileResponse.json();
@@ -60,7 +63,10 @@ async def handle_chat_message(user_id: str, message: str):
             'Authorization': f'Bearer {os.getenv("SUPERMEMORY_API_KEY")}',
             'Content-Type': 'application/json'
         },
-        json={'containerTag': user_id}
+        json={
+            'containerTag': user_id,
+            'threshold': 0.7
+        }
     )
 
     profile = response.json()['profile']
@@ -109,6 +115,7 @@ async function getFullContext(userId: string, userQuery: string) {
     },
     body: JSON.stringify({
       containerTag: userId,
+      threshold: 0.7,
       q: userQuery  // Include the user's query
     })
   });
@@ -151,6 +158,7 @@ async def get_full_context(user_id: str, user_query: str):
         },
         json={
             'containerTag': user_id,
+            'threshold': 0.7,
             'q': user_query  # Include the user's query
         }
     )
@@ -194,7 +202,10 @@ async function advancedContext(userId: string, query: string) {
         'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ containerTag: userId })
+      body: JSON.stringify({ 
+        containerTag: userId,
+        threshold: 0.7
+      })
     }),
     fetch('https://api.supermemory.ai/v3/search', {
       method: 'POST',
@@ -237,7 +248,10 @@ async function withUserProfile(req, res, next) {
         'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ containerTag: req.user.id })
+      body: JSON.stringify({ 
+        containerTag: req.user.id,
+        threshold: 0.7
+      })
     });
 
     req.userProfile = await response.json();
@@ -280,7 +294,10 @@ export async function POST(req: NextRequest) {
       'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ containerTag: userId })
+    body: JSON.stringify({ 
+      containerTag: userId,
+      threshold: 0.7
+    })
   });
 
   const { profile } = await profileRes.json();
