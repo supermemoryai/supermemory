@@ -37,7 +37,11 @@ interface Project {
 	isExperimental?: boolean
 }
 
-export function Header() {
+interface HeaderProps {
+	onAddMemory?: () => void
+}
+
+export function Header({ onAddMemory }: HeaderProps) {
 	const { user } = useAuth()
 	const [name, setName] = useState<string>("")
 	const projectName = useProjectName()
@@ -151,7 +155,8 @@ export function Header() {
 			<div className="flex items-center gap-2 z-10!">
 				<Button
 					variant="headers"
-					className="rounded-full text-base gap-2 !h-10"
+					className="rounded-full text-base gap-2 h-10!"
+					onClick={onAddMemory}
 				>
 					<div className="flex items-center gap-2">
 						<Plus className="size-4" />
@@ -168,7 +173,7 @@ export function Header() {
 				</Button>
 				<Button
 					variant="headers"
-					className="rounded-full text-base gap-2 !h-10"
+					className="rounded-full text-base gap-2 h-10!"
 				>
 					<SearchIcon className="size-4" />
 					<span className="bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm text-[10px] flex items-center justify-center gap-0.5 px-1">

@@ -8,8 +8,7 @@ const buttonVariants = cva(
 	{
 		variants: {
 			variant: {
-				default:
-					" text-primary-foreground shadow-xs hover:bg-primary/90",
+				default: " text-primary-foreground shadow-xs hover:bg-primary/90",
 				newDefault:
 					"bg-gradient-to-b from-[#1C2026] to-[#12161C] text-white shadow-[inset_-2px_-2px_6px_0_rgba(0,0,0,0.15),inset_2px_2px_4px_0_rgba(255,255,255,0.05)] hover:from-[#1C2026]/90 hover:to-[#12161C]/90",
 				destructive:
@@ -24,7 +23,11 @@ const buttonVariants = cva(
 					"hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
 				link: "text-primary underline-offset-4 hover:underline",
 				settingsNav: "cursor-pointer rounded-sm bg-transparent",
-				onboarding: "rounded-xl !px-6 !py-3 bg-black border border-[#161F2C] hover:bg-[#161F2C] !h-[40px] cursor-pointer text-white",
+				onboarding:
+					"rounded-xl !px-6 !py-3 bg-black border border-[#161F2C] hover:bg-[#161F2C] !h-[40px] cursor-pointer text-white",
+				linkPreview:
+					"rounded-xl !px-3 !py-1 bg-black border border-[#161F2C] hover:bg-[#161F2C] cursor-pointer text-white border border-[#161F2C]",
+				insideOut: "shadow-inside-out rounded-full bg-[#0D121A]",
 			},
 			size: {
 				default: "h-9 px-4 py-2 has-[>svg]:px-3",
