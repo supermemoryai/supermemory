@@ -117,6 +117,99 @@ const result = await generateText({
 // Uses both profile (user's expertise) AND search (previous debugging sessions)
 ```
 
+## Custom Prompt Templates
+
+Customize how memories are formatted and injected into the system prompt using the `promptTemplate` option. This is useful for:
+- Using XML-based prompting (e.g., for Claude models)
+- Custom branding (removing "supermemories" references)
+- Controlling how your agent describes where information comes from
+
+```typescript
+import { generateText } from "ai"
+import { withSupermemory, type MemoryPromptData } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const customPrompt = (data: MemoryPromptData) => `
+<user_memories>
+Here is some information about your past conversations with the user:
+${data.userMemories}
+${data.generalSearchMemories}
+</user_memories>
+`.trim()
+
+const model = withSupermemory(openai("gpt-4"), "user-123", {
+  mode: "full",
+  promptTemplate: customPrompt
+})
+
+const result = await generateText({
+  model,
+  messages: [{ role: "user", content: "What do you know about me?" }]
+})
+```
+
+### MemoryPromptData Interface
+
+The `MemoryPromptData` object passed to your template function provides:
+
+- `userMemories`: Pre-formatted markdown combining static profile facts (name, preferences, goals) and dynamic context (current projects, recent interests)
+- `generalSearchMemories`: Pre-formatted search results based on semantic similarity to the current query (empty string if mode is "profile")
+
+### XML-Based Prompting for Claude
+
+Claude models perform better with XML-structured prompts:
+
+```typescript
+const claudePrompt = (data: MemoryPromptData) => `
+<context>
+  <user_profile>
+    ${data.userMemories}
+  </user_profile>
+  <relevant_memories>
+    ${data.generalSearchMemories}
+  </relevant_memories>
+</context>
+
+Use the above context to provide personalized responses.
+`.trim()
+
+const model = withSupermemory(anthropic("claude-3-sonnet"), "user-123", {
+  mode: "full",
+  promptTemplate: claudePrompt
+})
+```
+
+### Custom Branding
+
+Remove "supermemories" references and use your own branding:
+
+```typescript
+const brandedPrompt = (data: MemoryPromptData) => `
+You are an AI assistant with access to the user's personal knowledge base.
+
+User Profile:
+${data.userMemories}
+
+Relevant Context:
+${data.generalSearchMemories}
+
+Use this information to provide personalized and contextually relevant responses.
+`.trim()
+
+const model = withSupermemory(openai("gpt-4"), "user-123", {
+  promptTemplate: brandedPrompt
+})
+```
+
+### Default Template
+
+If no `promptTemplate` is provided, the default format is used:
+
+```typescript
+const defaultPrompt = (data: MemoryPromptData) => 
+  `User Supermemories: \n${data.userMemories}\n${data.generalSearchMemories}`.trim()
+```
+
 ## Verbose Logging
 
 Enable detailed logging to see exactly what's happening:
