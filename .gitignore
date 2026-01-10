@@ -41,4 +41,5 @@ yarn-error.log*
 *.pem
 .claude
 .venv
+.arch
 __pycache__
