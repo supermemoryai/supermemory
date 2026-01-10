@@ -58,8 +58,6 @@ memory = SupermemoryPipecatService(
         search_limit=10,           # Max memories to retrieve
         search_threshold=0.1,      # Similarity threshold
         mode="full",               # "profile", "query", or "full"
-        add_memory="always",       # "always" or "never"
-        add_as_system_message=True,
         system_prompt="Based on previous conversations, I recall:\n\n",
     ),
 )
@@ -154,19 +152,6 @@ async def websocket_endpoint(websocket: WebSocket):
     runner = PipelineRunner()
     task = PipelineTask(pipeline)
     await runner.run(task)
-```
-
-## Conversation History
-
-Access the tracked conversation (without injected memories):
-
-```python
-# Get conversation history
-history = memory.get_conversation_history()
-# [{"role": "user", "content": "Hello"}, {"role": "user", "content": "What's my name?"}]
-
-# Clear history
-memory.clear_conversation_history()
 ```
 
 ## License
