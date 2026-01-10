@@ -65,44 +65,34 @@ InputParams(
 1. **Intercept**: Catches `LLMContextFrame`, `OpenAILLMContextFrame`, `LLMMessagesFrame`
 2. **Extract**: Gets last user message from context
 3. **Track**: Stores message in `_conversation_history` (clean, no injections)
-4. **Retrieve**: Calls Supermemory `/v4/profile` API
+4. **Retrieve**: Calls `client.profile()` via Supermemory SDK
 5. **Inject**: Adds formatted memories to context as system message
 6. **Store**: Sends last user message to Supermemory (background, non-blocking)
 7. **Push**: Forwards enhanced frame downstream
 
-### Supermemory API Integration
+### Supermemory SDK Integration
 
-**Retrieval** - `POST /v4/profile`:
-```json
-{
-  "containerTag": "user-123",
-  "q": "What's the weather?",
-  "limit": 10,
-  "threshold": 0.1
-}
-```
-
-**Response**:
-```json
-{
-  "profile": {
-    "static": ["User lives in SF", "Prefers Celsius"],
-    "dynamic": ["Recently asked about weather"]
-  },
-  "searchResults": {
-    "results": [{"memory": "User likes sunny weather"}]
-  }
-}
-```
-
-**Storage** - via `supermemory.memories.add()`:
+**Retrieval** - via `supermemory.AsyncSupermemory.profile()`:
 ```python
-{
-    "content": "User: What's the weather?",
-    "container_tags": ["user-123"],
-    "custom_id": "session-456",
-    "metadata": {"platform": "pipecat"}
-}
+response = await client.profile(
+    container_tag="user-123",
+    q="What's the weather?",
+    threshold=0.1,
+    extra_body={"limit": 10},
+)
+# response.profile.static: List[str]
+# response.profile.dynamic: List[str]
+# response.search_results.results: List[object]
+```
+
+**Storage** - via `supermemory.AsyncSupermemory.memories.add()`:
+```python
+await client.memories.add(
+    content="User: What's the weather?",
+    container_tags=["user-123"],
+    custom_id="session-456",
+    metadata={"platform": "pipecat"},
+)
 ```
 
 ## Memory Modes
@@ -250,7 +240,7 @@ if __name__ == "__main__":
 | Aspect | Mem0 | Supermemory |
 |--------|------|-------------|
 | Identity | `user_id`, `agent_id`, `run_id` | `user_id` only (= container_tag) |
-| Retrieval | `memory.search()` | `/v4/profile` (static + dynamic + search) |
+| Retrieval | `memory.search()` | `client.profile()` (static + dynamic + search) |
 | Storage | Full conversation | Last user message only |
 | Metadata | `{"platform": "pipecat"}` | `{"platform": "pipecat"}` |
 | Session | N/A | `session_id` → `custom_id` |
