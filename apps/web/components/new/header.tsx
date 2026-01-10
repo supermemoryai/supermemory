@@ -39,9 +39,10 @@ interface Project {
 
 interface HeaderProps {
 	onAddMemory?: () => void
+	onOpenMCP?: () => void
 }
 
-export function Header({ onAddMemory }: HeaderProps) {
+export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 	const { user } = useAuth()
 	const [name, setName] = useState<string>("")
 	const projectName = useProjectName()
@@ -170,6 +171,13 @@ export function Header({ onAddMemory }: HeaderProps) {
 					>
 						C
 					</span>
+				</Button>
+				<Button
+					variant="headers"
+					className="rounded-full text-base gap-2 h-10!"
+					onClick={onOpenMCP}
+				>
+					<div className="flex items-center gap-2">MCP</div>
 				</Button>
 				<Button
 					variant="headers"

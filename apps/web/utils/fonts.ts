@@ -28,7 +28,23 @@ export function dmSansClassName(additionalClasses?: string) {
 	)
 }
 
+/**
+ * Utility function that combines dmSansFont.className with required typography styles
+ * (letter-spacing: -0.01em and line-height: 125%)
+ */
+export function dmSans125ClassName(additionalClasses?: string) {
+	return cn(
+		dmSansFont.className,
+		"tracking-[-0.01em]",
+		"leading-[125%]",
+		additionalClasses,
+	)
+}
 
+/**
+ * Utility function that combines dmMonoFont.className with required typography styles
+ * (letter-spacing: -0.01em and line-height: 135%)
+ */
 export function dmMonoClassName(additionalClasses?: string) {
 	return cn(
 		dmMonoFont.className,

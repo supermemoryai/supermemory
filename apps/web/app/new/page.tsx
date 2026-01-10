@@ -7,11 +7,13 @@ import { AnimatePresence } from "motion/react"
 import { MemoriesGrid } from "@/components/new/memories-grid"
 import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
 import { AddDocumentModal } from "@/components/new/add-document"
+import { MCPModal } from "@/components/new/mcp-modal"
 import { HotkeysProvider } from "react-hotkeys-hook"
 import { useHotkeys } from "react-hotkeys-hook"
 
 export default function NewPage() {
 	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
+	const [isMCPModalOpen, setIsMCPModalOpen] = useState(false)
 	useHotkeys("c", () => setIsAddDocumentOpen(true))
 
 	return (
@@ -21,7 +23,10 @@ export default function NewPage() {
 					topPosition="15%"
 					animateFromBottom={false}
 				/>
-				<Header onAddMemory={() => setIsAddDocumentOpen(true)} />
+				<Header
+					onAddMemory={() => setIsAddDocumentOpen(true)}
+					onOpenMCP={() => setIsMCPModalOpen(true)}
+				/>
 				<main className="relative">
 					<div className="relative z-10">
 						<div className="flex flex-row h-[calc(100vh-90px)] relative">
@@ -38,6 +43,10 @@ export default function NewPage() {
 				<AddDocumentModal
 					isOpen={isAddDocumentOpen}
 					onClose={() => setIsAddDocumentOpen(false)}
+				/>
+				<MCPModal
+					isOpen={isMCPModalOpen}
+					onClose={() => setIsMCPModalOpen(false)}
 				/>
 			</div>
 		</HotkeysProvider>

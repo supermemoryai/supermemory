@@ -134,10 +134,10 @@ export function AddDocument() {
 					<Button variant="insideOut">
 						My Space <ChevronsUpDownIcon className="size-4" color="#737373" />
 					</Button>
-					<div>
+					<div className="flex items-center gap-2">
 						<Button
 							variant="ghost"
-							className="text-[#737373] hover:bg-none! cursor-pointer"
+							className="text-[#737373] cursor-pointer rounded-full"
 						>
 							Cancel
 						</Button>
