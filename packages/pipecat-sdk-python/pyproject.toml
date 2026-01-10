@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Supermemory integration for Pipecat - memory-enhanced conversational AI pipelines"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.8.1"
+requires-python = ">=3.10"
 authors = [
     { name = "Supermemory", email = "support@supermemory.ai" }
 ]
@@ -25,8 +25,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -66,14 +64,14 @@ include = [
 
 [tool.black]
 line-length = 100
-target-version = ["py38"]
+target-version = ["py310"]
 
 [tool.isort]
 profile = "black"
 line_length = 100
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

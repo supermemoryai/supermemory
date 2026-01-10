@@ -4,7 +4,7 @@
 
 This package adds persistent memory to Pipecat voice AI pipelines using Supermemory.
 
-**Tech Stack:** Python 3.10+, Pipecat, Supermemory SDK
+**Tech Stack:** Python >=3.10, Pipecat, Supermemory SDK
 
 ## Commands
 
