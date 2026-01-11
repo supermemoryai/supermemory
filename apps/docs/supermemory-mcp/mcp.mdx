@@ -100,9 +100,27 @@ Get the current logged-in user's information. Returns `{ userId, email, name, cl
 
 ## Prompts
 
-| Name | Description |
-|------|-------------|
-| `context` | User profile and preferences for system context injection |
+### `context`
+
+Inject user profile and preferences as system context for AI conversations. Returns a formatted message with the user's stable preferences and recent activity.
+You can access this in Cursor and Claude Code by just doing /context, which will give the LLMs just enough context to use and query supermemory more.
+**Purpose:** Unlike the `recall` tool (which searches for specific information) or the `profile` resource (which returns raw data), the `context` prompt provides a pre-formatted system message designed for context injection at the start of conversations.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `containerTag` | string | No | Project tag to scope the profile (max 128 chars) |
+| `includeRecent` | boolean | No | Include recent activity in the profile. Default: `true` |
+
+**Output format:**
+- Includes instructions to save new memories using the `memory` tool
+- **Stable Preferences:** Long-term user facts and preferences
+- **Recent Activity:** Recent interactions and context (when `includeRecent` is `true`)
+- Fallback message when no profile exists yet
+
+**When to use:**
+- Use `context` prompt for automatic system context injection at conversation start
+- Use `recall` tool when you need to search for specific information
+- Use `profile` resource when you need raw profile data for custom processing
 
 <Card title="MCP Server Source Code" icon="github" href="https://github.com/supermemoryai/supermemory/tree/main/apps/mcp">
   View the open-source implementation
