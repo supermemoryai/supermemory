@@ -63,6 +63,33 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
 	})
 })
 
+// Proxy endpoint for MCP clients that don't follow the spec correctly
+// Some clients look for oauth-authorization-server on the MCP server domain
+// instead of following the authorization_servers array
+app.get("/.well-known/oauth-authorization-server", async (c) => {
+	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+
+	try {
+		// Fetch the authorization server metadata from the main API
+		const response = await fetch(
+			`${apiUrl}/.well-known/oauth-authorization-server`,
+		)
+
+		if (!response.ok) {
+			return c.json(
+				{ error: "Failed to fetch authorization server metadata" },
+				response.status,
+			)
+		}
+
+		const metadata = await response.json()
+		return c.json(metadata)
+	} catch (error) {
+		console.error("Error fetching OAuth authorization server metadata:", error)
+		return c.json({ error: "Internal server error" }, 500)
+	}
+})
+
 const mcpHandler = SupermemoryMCP.mount("/mcp", {
 	binding: "MCP_SERVER",
 	corsOptions: {
