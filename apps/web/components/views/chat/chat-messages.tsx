@@ -710,7 +710,7 @@ export function ChatMessages() {
 								className="text-muted-foreground"
 							/>
 							<span className="text-xs text-muted-foreground">
-								{modelNames[selectedModel]}
+								{/*{modelNames[selectedModel]}*/}
 							</span>
 						</div>
 						{status === "streaming" || status === "submitted" ? (

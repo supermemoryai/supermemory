@@ -48,17 +48,9 @@ import { toast } from "sonner"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
 import { useProject } from "@/stores"
+import type { Project } from "@repo/lib/types"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
-
-interface Project {
-	id: string
-	name: string
-	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental?: boolean
-}
 
 const CONNECTORS = {
 	"google-drive": {

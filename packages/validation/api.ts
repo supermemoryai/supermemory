@@ -808,6 +808,7 @@ export const ConnectionResponseSchema = z.object({
 	id: z.string(),
 	metadata: z.record(z.any()).optional(),
 	provider: z.string(),
+	containerTags: z.array(z.string()).optional(),
 })
 
 export const RequestTypeSchema = RequestTypeEnum

@@ -32,6 +32,12 @@ export default defineBackground(() => {
 			contexts: ["selection", "page", "link"],
 		})
 
+		browser.contextMenus.create({
+			id: CONTEXT_MENU_IDS.SEARCH_SUPERMEMORY,
+			title: "search supermemory",
+			contexts: ["selection"],
+		})
+
 		if (details.reason === "install") {
 			await trackEvent("extension_installed", {
 				reason: details.reason,
@@ -64,6 +70,22 @@ export default defineBackground(() => {
 					})
 				} catch (error) {
 					console.error("Failed to send message to content script:", error)
+				}
+			}
+		}
+
+		if (info.menuItemId === CONTEXT_MENU_IDS.SEARCH_SUPERMEMORY) {
+			if (tab?.id && info.selectionText) {
+				try {
+					await browser.tabs.sendMessage(tab.id, {
+						action: MESSAGE_TYPES.OPEN_SEARCH_PANEL,
+						data: info.selectionText,
+					})
+				} catch (error) {
+					console.error(
+						"Failed to send search message to content script:",
+						error,
+					)
 				}
 			}
 		}
@@ -291,6 +313,31 @@ export default defineBackground(() => {
 						sendResponse({
 							success: false,
 							error: error instanceof Error ? error.message : "Unknown error",
+						})
+					}
+				})()
+				return true
+			}
+
+			if (message.action === MESSAGE_TYPES.SEARCH_SELECTION) {
+				;(async () => {
+					try {
+						const query = message.data as string
+						const responseData = await searchMemories(query)
+						await trackEvent(POSTHOG_EVENT_KEY.SELECTION_SEARCH_TRIGGERED, {
+							query_length: query.length,
+						})
+						sendResponse({ success: true, data: responseData })
+					} catch (error) {
+						const errorMessage =
+							error instanceof Error ? error.message : "Unknown error"
+						const isAuthError =
+							errorMessage.includes("Authentication") ||
+							errorMessage.includes("token")
+						sendResponse({
+							success: false,
+							error: errorMessage,
+							isAuthError,
 						})
 					}
 				})()

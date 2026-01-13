@@ -146,7 +146,10 @@ export async function searchMemories(query: string): Promise<unknown> {
 	try {
 		const response = await makeAuthenticatedRequest<unknown>("/v4/search", {
 			method: "POST",
-			body: JSON.stringify({ q: query, include: { relatedMemories: true } }),
+			body: JSON.stringify({
+				q: query,
+				include: { relatedMemories: true },
+			}),
 		})
 		return response
 	} catch (error) {

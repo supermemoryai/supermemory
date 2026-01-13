@@ -159,6 +159,10 @@ export const apiSchema = createSchema({
 		output: MigrateMCPResponseSchema,
 	},
 
+	"@get/documents/:id": {
+		output: z.any(),
+	},
+
 	// Delete a memory
 	"@delete/documents/:id": {
 		output: z.any(), // 204 No-Content

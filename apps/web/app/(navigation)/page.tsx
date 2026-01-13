@@ -10,12 +10,14 @@ import { ChromeExtensionButton } from "@/components/chrome-extension-button"
 import { ChatInput } from "@/components/chat-input"
 import { BackgroundPlus } from "@ui/components/grid-plus"
 import { Memories } from "@/components/memories"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 
 export default function Page() {
 	const { user, session } = useAuth()
 	const { shouldShowOnboarding, isLoading: onboardingLoading } =
 		useOnboardingStorage()
 	const router = useRouter()
+	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
 
 	useEffect(() => {
 		const url = new URL(window.location.href)
@@ -33,7 +35,10 @@ export default function Page() {
 
 			if (sessionToken && userData?.email) {
 				const encodedToken = encodeURIComponent(sessionToken)
-				window.postMessage({ token: encodedToken, userData }, window.location.origin)
+				window.postMessage(
+					{ token: encodedToken, userData },
+					window.location.origin,
+				)
 				url.searchParams.delete("extension-auth-success")
 				window.history.replaceState({}, "", url.toString())
 			}
@@ -42,9 +47,13 @@ export default function Page() {
 
 	useEffect(() => {
 		if (user && !onboardingLoading && shouldShowOnboarding()) {
-			router.push("/onboarding")
+			if (flagEnabled) {
+				router.push("/new/onboarding?step=input&flow=welcome")
+			} else {
+				router.push("/onboarding")
+			}
 		}
-	}, [user, shouldShowOnboarding, onboardingLoading, router])
+	}, [user, shouldShowOnboarding, onboardingLoading, router, flagEnabled])
 
 	if (!user || onboardingLoading) {
 		return (

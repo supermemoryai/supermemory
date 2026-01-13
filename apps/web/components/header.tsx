@@ -82,7 +82,6 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	}, [conversations])
 
 	useEffect(() => {
-		console.log("searchParams", searchParams.get("mcp"))
 		const mcpParam = searchParams.get("mcp")
 		if (mcpParam === "manual") {
 			setMcpInitialClient("mcp-url")

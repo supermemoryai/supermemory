@@ -22,6 +22,8 @@ export const ELEMENT_IDS = {
 	CLAUDE_INPUT_BAR_ELEMENT: "sm-claude-input-bar-element",
 	T3_INPUT_BAR_ELEMENT: "sm-t3-input-bar-element",
 	PROJECT_SELECTION_MODAL: "sm-project-selection-modal",
+	SELECTION_SEARCH_FAB: "sm-selection-search-fab",
+	SELECTION_SEARCH_PANEL: "sm-selection-search-panel",
 } as const
 
 /**
@@ -36,6 +38,8 @@ export const UI_CONFIG = {
 	OBSERVER_THROTTLE_DELAY: 300, // milliseconds between observer callback executions
 	ROUTE_CHECK_INTERVAL: 2000, // milliseconds between route change checks
 	API_REQUEST_TIMEOUT: 10000, // milliseconds for API request timeout
+	SELECTION_MIN_LENGTH: 3, // minimum characters to show FAB
+	SELECTION_MAX_LENGTH: 500, // maximum characters to show FAB
 } as const
 
 /**
@@ -69,10 +73,13 @@ export const MESSAGE_TYPES = {
 	GET_RELATED_MEMORIES: "sm-get-related-memories",
 	CAPTURE_PROMPT: "sm-capture-prompt",
 	FETCH_PROJECTS: "sm-fetch-projects",
+	SEARCH_SELECTION: "sm-search-selection",
+	OPEN_SEARCH_PANEL: "sm-open-search-panel",
 } as const
 
 export const CONTEXT_MENU_IDS = {
 	SAVE_TO_SUPERMEMORY: "sm-save-to-supermemory",
+	SEARCH_SUPERMEMORY: "sm-search-supermemory",
 } as const
 
 export const POSTHOG_EVENT_KEY = {
@@ -86,4 +93,6 @@ export const POSTHOG_EVENT_KEY = {
 	CLAUDE_CHAT_MEMORIES_AUTO_SEARCHED: "claude_chat_memories_auto_searched",
 	CHATGPT_CHAT_MEMORIES_SEARCHED: "chatgpt_chat_memories_searched",
 	CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED: "chatgpt_chat_memories_auto_searched",
+	SELECTION_SEARCH_TRIGGERED: "selection_search_triggered",
+	SELECTION_SEARCH_COPIED: "selection_search_copied",
 } as const

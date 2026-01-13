@@ -1,10 +1,90 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@theme {
+	--color-onboarding: #525966;
+}
+
+:root {
+	--color-placeholder-onboarding: #525966;
+}
+
+.scrollbar-thin {
+	scrollbar-width: thin;
+	scrollbar-color: #293952 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+	width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}
+
 .sm-tweet-theme .react-tweet-theme {
 	--tweet-container-margin: 0px;
+	font-size: inherit !important;
+}
+
+.sm-tweet-theme .react-tweet-theme * {
+	min-width: 0 !important;
 }
 
 .sm-tweet-theme .tweet-header-module__A9EVQG__authorFollow {
 	display: none;
+}
+
+.tweet-container-module__CmFQMq__article {
+	padding: 0 !important;
+	font-family: "DM Sans", sans-serif !important;
+	font-size: 10px !important;
+	--tweet-header-font-size: 10px !important;
+	--tweet-header-line-height: 1.25rem !important;
+}
+
+.tweet-body-module__ZNRZja__root > * {
+	font-size: 10px !important;
+	line-height: 0.25rem !important;
+}
+
+[class*="dmSans"],
+.font-dm-sans {
+	letter-spacing: -0.01em;
+	line-height: 135%;
+}
+
+.mcp-client-button-group:hover .mcp-client-gradient-text {
+	background: linear-gradient(
+		94deg,
+		#369bfd 4.8%,
+		#36fdfd 77.04%,
+		#36fdb5 143.99%
+	);
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* css to fix for ordered list numbers being cut off in chat agent messages */
+.chat-markdown-content ol {
+	padding-left: 1.5rem;
+	margin-left: 0;
+}
+
+.chat-markdown-content ul {
+	padding-left: 1.5rem;
+	margin-left: 0;
+}
+
+.chat-markdown-content li {
+	margin-left: 0;
+	padding-left: 0.25rem;
+}
+
+.shadow-inside-out {
+	box-shadow:
+		inset 0 2px 4px rgba(0, 0, 0, 0.3),
+		inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }

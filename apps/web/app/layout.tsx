@@ -5,7 +5,7 @@ import "@ui/globals.css"
 import { AuthProvider } from "@lib/auth-context"
 import { ErrorTrackingProvider } from "@lib/error-tracking"
 import { PostHogProvider } from "@lib/posthog"
-import { QueryProvider } from "@lib/query-client"
+import { QueryProvider } from "../components/query-client"
 import { AutumnProvider } from "autumn-js/react"
 import { Suspense } from "react"
 import { Toaster } from "sonner"
@@ -39,8 +39,8 @@ export default function RootLayout({
 			>
 				<ThemeProvider
 					attribute="class"
-					defaultTheme="system"
-					enableSystem
+					defaultTheme="dark"
+					enableSystem={false}
 					disableTransitionOnChange
 				>
 					<AutumnProvider

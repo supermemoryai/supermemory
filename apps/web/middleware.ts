@@ -12,9 +12,21 @@ export default async function proxy(request: Request) {
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
 	// Always allow access to login and waitlist pages
-	const publicPaths = ["/login"]
+	const publicPaths = ["/login", "/login/new"]
 	if (publicPaths.includes(url.pathname)) {
 		console.debug("[PROXY] Public path, allowing access")
+		return NextResponse.next()
+	}
+
+	if (url.pathname.startsWith("/api/")) {
+		if (!sessionCookie) {
+			console.debug("[MIDDLEWARE] API route without session, returning 401")
+			return new Response(JSON.stringify({ error: "Unauthorized" }), {
+				status: 401,
+				headers: { "Content-Type": "application/json" },
+			})
+		}
+		console.debug("[MIDDLEWARE] API route with session, allowing access")
 		return NextResponse.next()
 	}
 
@@ -54,6 +66,6 @@ export default async function proxy(request: Request) {
 
 export const config = {
 	matcher: [
-		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|ingest|api|login|api/emails).*)",
+		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails).*)",
 	],
 }
