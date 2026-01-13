@@ -27,15 +27,8 @@ import { $fetch } from "@repo/lib/api"
 import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProject } from "@/stores"
-
-interface Project {
-	id: string
-	name: string
-	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental?: boolean
-}
+import { useRouter } from "next/navigation"
+import type { Project } from "@repo/lib/types"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -48,7 +41,7 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 	const projectName = useProjectName()
 	const { selectedProject } = useProject()
 	const { switchProject } = useProjectMutations()
-
+	const router = useRouter()
 	const { data: projects = [] } = useQuery({
 		queryKey: ["projects"],
 		queryFn: async () => {
@@ -204,7 +197,10 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 					</span>
 				</Button>
 				{user && (
-					<Avatar className="border border-border h-8 w-8 md:h-10 md:w-10">
+					<Avatar
+						className="border border-border h-8 w-8 md:h-10 md:w-10"
+						onClick={() => router.push("/new/settings")}
+					>
 						<AvatarImage src={user?.image ?? ""} />
 						<AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
 					</Avatar>

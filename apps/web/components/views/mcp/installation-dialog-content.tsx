@@ -19,6 +19,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
 import { $fetch } from "@repo/lib/api"
+import type { Project } from "@repo/lib/types"
 import { useQuery } from "@tanstack/react-query"
 
 const clients = {
@@ -32,15 +33,6 @@ const clients = {
 	"gemini-cli": "Gemini CLI",
 	"claude-code": "Claude Code",
 } as const
-
-interface Project {
-	id: string
-	name: string
-	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental?: boolean
-}
 
 export function InstallationDialogContent() {
 	const [client, setClient] = useState<keyof typeof clients>("cursor")

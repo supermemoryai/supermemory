@@ -39,16 +39,8 @@ import { useState } from "react"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProjectName } from "@/hooks/use-project-name"
 import { useProject } from "@/stores"
+import type { Project } from "@repo/lib/types"
 import { CreateProjectDialog } from "./create-project-dialog"
-
-interface Project {
-	id: string
-	name: string
-	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental?: boolean
-}
 
 export function ProjectSelector() {
 	const [isOpen, setIsOpen] = useState(false)

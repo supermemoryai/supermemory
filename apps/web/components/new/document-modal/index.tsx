@@ -1,19 +1,32 @@
 "use client"
 
-import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { ArrowUpRightIcon, XIcon } from "lucide-react"
 import type { z } from "zod"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@lib/utils"
+import dynamic from "next/dynamic"
 import { Title } from "./title"
 import { Summary as DocumentSummary } from "./summary"
 import { dmSansClassName } from "@/utils/fonts"
 import { GraphListMemories, type MemoryEntry } from "./graph-list-memories"
-import { PdfViewer } from "./content/pdf"
 import { YoutubeVideo } from "./content/yt-video"
 import { TweetContent } from "./content/tweet"
 import { isTwitterUrl } from "@/utils/url-helpers"
+
+// Dynamically importing to prevent DOMMatrix error
+const PdfViewer = dynamic(
+	() => import("./content/pdf").then((mod) => ({ default: mod.PdfViewer })),
+	{
+		ssr: false,
+		loading: () => (
+			<div className="flex items-center justify-center h-full text-gray-400">
+				Loading PDF viewer...
+			</div>
+		),
+	},
+) as typeof import("./content/pdf").PdfViewer
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -43,6 +56,9 @@ export function DocumentModal({
 				}}
 				showCloseButton={false}
 			>
+				<DialogTitle className="sr-only">
+					{_document?.title} - Document
+				</DialogTitle>
 				<div className="flex justify-between h-fit">
 					<Title
 						title={_document?.title}

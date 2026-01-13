@@ -31,6 +31,7 @@ import { toast } from "sonner"
 import { z } from "zod/v4"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
+import type { Project } from "@repo/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 
 const clients = {
@@ -55,15 +56,6 @@ const mcpMigrationSchema = z.object({
 			"Link must be in format: https://mcp.supermemory.ai/userId/sse",
 		),
 })
-
-interface Project {
-	id: string
-	name: string
-	containerTag: string
-	createdAt: string
-	updatedAt: string
-	isExperimental?: boolean
-}
 
 interface ConnectAIModalProps {
 	children: React.ReactNode

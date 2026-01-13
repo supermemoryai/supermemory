@@ -34,14 +34,14 @@ function VersionStatus({
 								<title>Latest</title>
 								<g opacity="0.6">
 									<path
-										fill-rule="evenodd"
-										clip-rule="evenodd"
+										fillRule="evenodd"
+										clipRule="evenodd"
 										d="M5.00069 0L9.33082 2.5V7.5L5.00069 10L0.670563 7.5V2.5L5.00069 0ZM7.5008 2.5H5.0008H2.50069L2.5008 7.5H7.5008V5V2.5Z"
 										fill="#00FFA9"
 									/>
 									<path
-										fill-rule="evenodd"
-										clip-rule="evenodd"
+										fillRule="evenodd"
+										clipRule="evenodd"
 										d="M5.0008 2.5H2.50069L2.5008 7.5H7.5008V5C6.12009 5 5.0008 3.88071 5.0008 2.5Z"
 										fill="#005236"
 									/>
@@ -52,7 +52,7 @@ function VersionStatus({
 									<path
 										d="M9.08072 2.64453V7.35449L5.00064 9.71094L0.920563 7.35449V2.64453L5.00064 0.288086L9.08072 2.64453ZM2.25064 2.25V7.75H7.75064V2.25H2.25064ZM4.76334 2.75C4.88226 4.0691 5.93157 5.11728 7.25064 5.23633V7.25H2.75064V2.75H4.76334ZM7.25064 2.75V4.73438C6.20794 4.61894 5.3806 3.79274 5.26529 2.75H7.25064Z"
 										stroke="#00FFA9"
-										stroke-width="0.5"
+										strokeWidth="0.5"
 									/>
 								</g>
 							</svg>
@@ -75,24 +75,24 @@ function VersionStatus({
 									cy="5.00073"
 									r="0.833333"
 									stroke="#369BFD"
-									stroke-opacity="0.5"
-									stroke-width="0.833333"
+									strokeOpacity="0.5"
+									strokeWidth="0.833333"
 								/>
 								<circle
 									cx="5.00057"
 									cy="5.00081"
 									r="2.91667"
 									stroke="#369BFD"
-									stroke-opacity="0.5"
-									stroke-width="0.833333"
+									strokeOpacity="0.5"
+									strokeWidth="0.833333"
 								/>
 								<circle
 									cx="5"
 									cy="5"
 									r="4.58333"
 									stroke="#369BFD"
-									stroke-opacity="0.2"
-									stroke-width="0.833333"
+									strokeOpacity="0.2"
+									strokeWidth="0.833333"
 								/>
 							</svg>
 							Static
@@ -110,21 +110,21 @@ function VersionStatus({
 								<title>Expiring</title>
 								<g opacity="0.6">
 									<path
-										fill-rule="evenodd"
-										clip-rule="evenodd"
+										fillRule="evenodd"
+										clipRule="evenodd"
 										d="M2.50066 2.5H7.50077V7.5H2.50077L2.50066 2.5Z"
 										fill="#4D2E00"
 									/>
 									<path
-										fill-rule="evenodd"
-										clip-rule="evenodd"
+										fillRule="evenodd"
+										clipRule="evenodd"
 										d="M5.00066 0L9.33078 2.5V7.5L5.00066 10L0.670532 7.5V2.5L5.00066 0ZM7.50077 2.5H2.50066L2.50077 7.5H7.50077V2.5Z"
 										fill="#FE9900"
 									/>
 									<path
 										d="M9.08069 2.64453V7.35449L5.00061 9.71094L0.920532 7.35449V2.64453L5.00061 0.288086L9.08069 2.64453ZM2.25061 2.25V7.75H7.75061V2.25H2.25061ZM7.25061 2.75V7.25H2.75061V2.75H7.25061Z"
 										stroke="#FE9900"
-										stroke-width="0.5"
+										strokeWidth="0.5"
 									/>
 								</g>
 							</svg>
@@ -146,12 +146,12 @@ function VersionStatus({
 									d="M9.08008 2.64453V7.35449L5 9.71094L0.919922 7.35449V2.64453L5 0.288086L9.08008 2.64453Z"
 									fill="#60272C"
 									stroke="#FF6467"
-									stroke-width="0.5"
+									strokeWidth="0.5"
 								/>
 								<path
 									d="M2.08333 2.08341L7.91677 7.91685M7.91667 2.08341L2.08333 7.91675"
 									stroke="#9C4044"
-									stroke-width="0.5"
+									strokeWidth="0.5"
 								/>
 							</svg>
 							Forgotten
