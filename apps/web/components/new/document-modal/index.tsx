@@ -14,6 +14,7 @@ import { GraphListMemories, type MemoryEntry } from "./graph-list-memories"
 import { YoutubeVideo } from "./content/yt-video"
 import { TweetContent } from "./content/tweet"
 import { isTwitterUrl } from "@/utils/url-helpers"
+import { NotionDoc } from "./content/notion-doc"
 
 // Dynamically importing to prevent DOMMatrix error
 const PdfViewer = dynamic(
@@ -102,13 +103,15 @@ export function DocumentModal({
 								}
 							/>
 						)}
-						{_document?.type === "text" &&
-							!(_document?.url && isTwitterUrl(_document.url)) && (
-								<div className="p-4 overflow-y-auto flex-1">
-									{_document.content}
-								</div>
-							)}
+						{_document?.type === "text" && (
+							<div className="p-4 overflow-y-auto flex-1">
+								{_document.content}
+							</div>
+						)}
 						{_document?.type === "pdf" && <PdfViewer url={_document.url} />}
+						{_document?.type === "notion_doc" && (
+							<NotionDoc content={_document.content ?? ""} />
+						)}
 						{_document?.url?.includes("youtube.com") && (
 							<YoutubeVideo url={_document.url} />
 						)}

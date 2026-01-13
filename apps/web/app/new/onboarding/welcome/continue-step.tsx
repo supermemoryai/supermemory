@@ -8,7 +8,7 @@ export function ContinueStep() {
 	const router = useRouter()
 
 	const handleContinue = () => {
-		router.push("/onboarding?flow=welcome&step=features")
+		router.push("/new/onboarding?flow=welcome&step=features")
 	}
 
 	return (

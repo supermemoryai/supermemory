@@ -4,6 +4,7 @@ import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { ChevronsUpDownIcon, XIcon } from "lucide-react"
 import { Button } from "@ui/components/button"
+import { MCPSteps } from "./mcp-detail-view"
 
 export function MCPModal({
 	isOpen,
@@ -16,7 +17,7 @@ export function MCPModal({
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
-					"w-[80%]! max-w-[900px]! h-[80%]! max-h-[600px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-3 rounded-[22px]",
+					"w-[80%]! max-w-[900px]! h-[80%]! max-h-[375px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-3 rounded-[22px]",
 					dmSansClassName(),
 				)}
 				style={{
@@ -44,8 +45,8 @@ export function MCPModal({
 						</DialogPrimitive.Close>
 					</div>
 				</div>
-				<div className="w-full h-full p-4 rounded-[14px] bg-[#14161A] shadow-inside-out resize-none">
-					MCP steps
+				<div className="w-full px-4 py-4 rounded-[14px] bg-[#14161A] shadow-inside-out overflow-y-auto">
+					<MCPSteps variant="embedded" />
 				</div>
 				<DialogFooter className="justify-between!">
 					<div className="flex items-center gap-2">
@@ -59,7 +60,9 @@ export function MCPModal({
 							Migrate from MCP v1
 						</Button>
 					</div>
-					<Button variant="insideOut" className="px-6 py-[10px]">Done</Button>
+					<Button variant="insideOut" className="px-6 py-[10px]">
+						Done
+					</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

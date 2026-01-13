@@ -12,7 +12,7 @@ export default async function proxy(request: Request) {
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
 	// Always allow access to login and waitlist pages
-	const publicPaths = ["/login"]
+	const publicPaths = ["/login", "/login/new"]
 	if (publicPaths.includes(url.pathname)) {
 		console.debug("[PROXY] Public path, allowing access")
 		return NextResponse.next()

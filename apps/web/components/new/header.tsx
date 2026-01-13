@@ -10,6 +10,8 @@ import {
 	Plus,
 	SearchIcon,
 	FolderIcon,
+	LogOut,
+	Settings,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -24,6 +26,7 @@ import {
 } from "@ui/components/dropdown-menu"
 import { useQuery } from "@tanstack/react-query"
 import { $fetch } from "@repo/lib/api"
+import { authClient } from "@lib/auth"
 import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProject } from "@/stores"
@@ -197,13 +200,24 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 					</span>
 				</Button>
 				{user && (
-					<Avatar
-						className="border border-border h-8 w-8 md:h-10 md:w-10"
-						onClick={() => router.push("/new/settings")}
-					>
-						<AvatarImage src={user?.image ?? ""} />
-						<AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
-					</Avatar>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Avatar className="border border-border h-8 w-8 md:h-10 md:w-10 cursor-pointer">
+								<AvatarImage src={user?.image ?? ""} />
+								<AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+							</Avatar>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => router.push("/new/settings")}>
+								<Settings className="h-4 w-4" />
+								Settings
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => authClient.signOut()}>
+								<LogOut className="h-4 w-4" />
+								Logout
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				)}
 			</div>
 		</div>

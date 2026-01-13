@@ -211,7 +211,9 @@ export function GraphListMemories({
 								/>
 							</g>
 						</svg>
-						<p className="group-hover:text-white group-data-[state=active]:text-white">Graph</p>
+						<p className="group-hover:text-white group-data-[state=active]:text-white">
+							Graph
+						</p>
 					</TabsTrigger>
 					<TabsTrigger
 						value="list"
@@ -233,11 +235,13 @@ export function GraphListMemories({
 								className="fill-[#737373] group-hover:fill-white group-data-[state=active]:fill-white"
 							/>
 						</svg>
-						<p className="group-hover:text-white group-data-[state=active]:text-white">List</p>
+						<p className="group-hover:text-white group-data-[state=active]:text-white">
+							List
+						</p>
 					</TabsTrigger>
 				</TabsList>
 			</Tabs>
-			<div className="grid grid-cols-2 gap-2 pt-3 overflow-y-auto pr-1">
+			<div className="grid grid-cols-2 gap-2 pt-3 overflow-y-auto pr-1 scrollbar-thin">
 				{memoryEntries.map((memory, idx) => {
 					const isClickable =
 						memory.url &&

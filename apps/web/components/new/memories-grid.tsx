@@ -6,7 +6,10 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef } from "react"
 import type { z } from "zod"
-import { Masonry, useInfiniteLoader } from "masonic"
+import {
+	Masonry,
+	useInfiniteLoader,
+} from "masonic"
 import { dmSansClassName } from "@/utils/fonts"
 import { SuperLoader } from "@/components/superloader"
 import { cn } from "@lib/utils"
@@ -32,7 +35,7 @@ const IS_DEV = process.env.NODE_ENV === "development"
 const PAGE_SIZE = IS_DEV ? 100 : 100
 const MAX_TOTAL = 1000
 
-export function MemoriesGrid() {
+export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const isMobile = useIsMobile()
@@ -91,9 +94,6 @@ export function MemoriesGrid() {
 		)
 	}, [data])
 
-	const hasMore = hasNextPage
-	const isLoadingMore = isFetchingNextPage
-
 	const loadMoreDocuments = useCallback(async (): Promise<void> => {
 		if (hasNextPage && !isFetchingNextPage) {
 			await fetchNextPage()
@@ -104,7 +104,7 @@ export function MemoriesGrid() {
 
 	const maybeLoadMore = useInfiniteLoader(
 		async (_startIndex, _stopIndex, _currentItems) => {
-			if (hasMore && !isLoadingMore) {
+			if (hasNextPage && !isFetchingNextPage) {
 				await loadMoreDocuments()
 			}
 		},
@@ -151,7 +151,9 @@ export function MemoriesGrid() {
 	}
 
 	return (
-		<div className="h-full">
+		<div
+			className="h-full"
+		>
 			<Button
 				className={cn(
 					dmSansClassName(),
@@ -180,7 +182,7 @@ export function MemoriesGrid() {
 			) : (
 				<div className="h-full overflow-auto scrollbar-thin">
 					<Masonry
-						key={`masonry-${documents.length}-${documents.map((d) => d.id).join(",")}`}
+						key={`masonry-${documents.length}-${documents.map((d) => d.id).join(",")}-${isChatOpen}`}
 						items={documents}
 						render={renderDocumentCard}
 						columnGutter={0}
@@ -192,7 +194,7 @@ export function MemoriesGrid() {
 						onRender={maybeLoadMore}
 					/>
 
-					{isLoadingMore && (
+					{isFetchingNextPage && (
 						<div className="py-8 flex items-center justify-center">
 							<SuperLoader />
 						</div>

@@ -7,6 +7,7 @@ import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import {
+	ChevronDownIcon,
 	HistoryIcon,
 	PanelRightCloseIcon,
 	SearchIcon,
@@ -24,7 +25,11 @@ import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
 import { ChainOfThought } from "./input/chain-of-thought"
 
-function ChatEmptyStatePlaceholder() {
+function ChatEmptyStatePlaceholder({
+	onSuggestionClick,
+}: {
+	onSuggestionClick: (suggestion: string) => void
+}) {
 	const suggestions = [
 		"Show me all content related to Supermemory.",
 		"Summarize the key ideas from My Gita.",
@@ -33,7 +38,10 @@ function ChatEmptyStatePlaceholder() {
 	]
 
 	return (
-		<div className="flex flex-col items-center justify-center h-full">
+		<div
+			id="chat-empty-state"
+			className="flex flex-col items-center justify-center h-full"
+		>
 			<div className="relative w-32 h-32">
 				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16" />
 				<LogoBgGradient className="w-full h-full" />
@@ -50,7 +58,8 @@ function ChatEmptyStatePlaceholder() {
 						<Button
 							key={suggestion}
 							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors"
+							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
+							onClick={() => onSuggestionClick(suggestion)}
 						>
 							<SearchIcon className="size-4 text-[#267BF1]" />
 							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>
@@ -62,9 +71,14 @@ function ChatEmptyStatePlaceholder() {
 	)
 }
 
-export function ChatSidebar() {
+export function ChatSidebar({
+	isChatOpen,
+	setIsChatOpen,
+}: {
+	isChatOpen: boolean
+	setIsChatOpen: (open: boolean) => void
+}) {
 	const [input, setInput] = useState("")
-	const [isChatOpen, setIsChatOpen] = useState(true)
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
@@ -79,13 +93,15 @@ export function ChatSidebar() {
 		Record<string, boolean>
 	>({})
 	const [isInputExpanded, setIsInputExpanded] = useState(false)
+	const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
+	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
 	const { setCurrentChatId } = usePersistentChat()
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
 		transport: new DefaultChatTransport({
-			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
+			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
 			credentials: "include",
 			body: {
 				metadata: {
@@ -200,11 +216,29 @@ export function ChatSidebar() {
 		}
 	}, [messages, followUpQuestions, loadingFollowUps, status])
 
+	const checkIfScrolledToBottom = useCallback(() => {
+		if (!messagesContainerRef.current) return
+		const container = messagesContainerRef.current
+		const { scrollTop, scrollHeight, clientHeight } = container
+		const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+		const isAtBottom = distanceFromBottom <= 20
+		setIsScrolledToBottom(isAtBottom)
+	}, [])
+
+	const scrollToBottom = useCallback(() => {
+		if (messagesContainerRef.current) {
+			messagesContainerRef.current.scrollTop =
+				messagesContainerRef.current.scrollHeight
+			setIsScrolledToBottom(true)
+		}
+	}, [])
+
 	const handleSend = () => {
 		if (!input.trim() || status === "submitted" || status === "streaming")
 			return
 		sendMessage({ text: input })
 		setInput("")
+		scrollToBottom()
 	}
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -243,7 +277,6 @@ export function ChatSidebar() {
 	}, [])
 
 	const handleNewChat = useCallback(() => {
-		console.log("handleNewChat")
 		const newId = crypto.randomUUID()
 		setCurrentChatId(newId)
 		setMessages([])
@@ -269,6 +302,49 @@ export function ChatSidebar() {
 		window.addEventListener("keydown", handleKeyDown)
 		return () => window.removeEventListener("keydown", handleKeyDown)
 	}, [isChatOpen, handleNewChat])
+
+	// Scroll to bottom when a new user message is added
+	useEffect(() => {
+		const lastMessage = messages[messages.length - 1]
+		if (lastMessage?.role === "user" && messagesContainerRef.current) {
+			messagesContainerRef.current.scrollTop =
+				messagesContainerRef.current.scrollHeight
+			setIsScrolledToBottom(true)
+		}
+		// Always check scroll position when messages change
+		checkIfScrolledToBottom()
+	}, [messages, checkIfScrolledToBottom])
+
+	// Add scroll event listener to track scroll position
+	useEffect(() => {
+		const container = messagesContainerRef.current
+		if (!container) return
+
+		const handleScroll = () => {
+			requestAnimationFrame(() => {
+				checkIfScrolledToBottom()
+			})
+		}
+
+		container.addEventListener("scroll", handleScroll, { passive: true })
+		// Initial check with a small delay to ensure DOM is ready
+		setTimeout(() => {
+			checkIfScrolledToBottom()
+		}, 100)
+
+		// Also observe resize to detect content height changes
+		const resizeObserver = new ResizeObserver(() => {
+			requestAnimationFrame(() => {
+				checkIfScrolledToBottom()
+			})
+		})
+		resizeObserver.observe(container)
+
+		return () => {
+			container.removeEventListener("scroll", handleScroll)
+			resizeObserver.disconnect()
+		}
+	}, [checkIfScrolledToBottom])
 
 	return (
 		<AnimatePresence mode="wait">
@@ -305,7 +381,7 @@ export function ChatSidebar() {
 					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
 				>
 					<div
-						className="absolute top-0 left-0 right-0 flex items-center justify-between pt-4 px-4"
+						className="absolute top-0 left-0 right-0 flex items-center justify-between pt-4 px-4 rounded-t-2xl"
 						style={{
 							background:
 								"linear-gradient(180deg, #0A0E14 40.49%, rgba(10, 14, 20, 0.00) 100%)",
@@ -354,6 +430,7 @@ export function ChatSidebar() {
 						</div>
 					</div>
 					<div
+						ref={messagesContainerRef}
 						className={cn(
 							"flex-1 overflow-y-auto px-4 scrollbar-thin",
 							dmSansClassName(),
@@ -365,11 +442,17 @@ export function ChatSidebar() {
 								style={{ backgroundColor: "#000000E5" }}
 							/>
 						)}
-						{messages.length === 0 && <ChatEmptyStatePlaceholder />}
+						{messages.length === 0 && (
+							<ChatEmptyStatePlaceholder
+								onSuggestionClick={(suggestion) => {
+									sendMessage({ text: suggestion })
+								}}
+							/>
+						)}
 						<div
 							className={cn(
 								messages.length > 0
-									? "flex flex-col space-y-3 min-h-full justify-end"
+									? "flex flex-col space-y-3 min-h-full justify-end pt-14"
 									: "",
 							)}
 						>
@@ -425,6 +508,20 @@ export function ChatSidebar() {
 								)}
 						</div>
 					</div>
+
+					{!isScrolledToBottom && messages.length > 0 && (
+						<div className="absolute bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
+							<button
+								type="button"
+								className="cursor-pointer pointer-events-auto"
+								onClick={scrollToBottom}
+							>
+								<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
+									<ChevronDownIcon className="size-4 text-white" />
+								</div>
+							</button>
+						</div>
+					)}
 
 					<ChatInput
 						value={input}

@@ -35,7 +35,7 @@ export function RelatableQuestion() {
 	const [selectedOptions, setSelectedOptions] = useState<number[]>([])
 
 	const handleContinueOrSkip = () => {
-		router.push("/onboarding?flow=setup&step=integrations")
+		router.push("/new/onboarding?flow=setup&step=integrations")
 	}
 
 	return (

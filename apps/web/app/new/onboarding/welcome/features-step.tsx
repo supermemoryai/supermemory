@@ -8,7 +8,7 @@ export function FeaturesStep() {
 	const router = useRouter()
 
 	const handleContinue = () => {
-		router.push("/onboarding?flow=welcome&step=memories")
+		router.push("/new/onboarding?flow=welcome&step=memories")
 	}
 	return (
 		<motion.div

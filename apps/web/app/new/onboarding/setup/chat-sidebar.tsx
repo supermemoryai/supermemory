@@ -274,12 +274,12 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border-[1px] border-[#17181A] text-white cursor-pointer"
+						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border border-[#17181A] text-white cursor-pointer"
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
 					>
-						<NovaOrb size={24} className="!blur-none z-10" />
+						<NovaOrb size={24} className="blur-none! z-10" />
 						Chat with Nova
 					</motion.button>
 				</motion.div>
@@ -314,7 +314,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 							>
 								{msg.type === "waiting" ? (
 									<div className="flex items-center gap-2 text-white/50">
-										<NovaOrb size={30} className="!blur-none" />
+										<NovaOrb size={30} className="blur-none!" />
 										<span className="text-sm">{msg.message}</span>
 									</div>
 								) : (
@@ -328,7 +328,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 											{i === 0 && (
 												<div className="w-3 h-3 bg-[#293952]/40 rounded-full mb-1" />
 											)}
-											<div className="w-[1px] flex-1 bg-[#293952]/40" />
+											<div className="w-px flex-1 bg-[#293952]/40" />
 										</div>
 										{msg.type === "memory" && (
 											<div className="space-y-2 w-full max-h-60 overflow-y-auto scrollbar-thin">
@@ -376,13 +376,13 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						))}
 						{messages.length === 0 && !isLoading && !formData && (
 							<div className="flex items-center gap-2 text-white/50">
-								<NovaOrb size={28} className="!blur-none" />
+								<NovaOrb size={28} className="blur-none!" />
 								<span className="text-sm">Waiting for your input</span>
 							</div>
 						)}
 						{isLoading && (
 							<div className="flex items-center gap-2 text-foreground/50">
-								<NovaOrb size={28} className="!blur-none" />
+								<NovaOrb size={28} className="blur-none!" />
 								<span className="text-sm">Fetching your memories...</span>
 							</div>
 						)}
