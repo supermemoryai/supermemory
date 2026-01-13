@@ -211,15 +211,13 @@
 							{
 								"group": "Supermemory SDKs",
 								"pages": [
-									"memory-api/sdks/native",
-									"memory-api/sdks/supermemory-npm",
-									"memory-api/sdks/supermemory-pypi"
+									"memory-api/sdks/native"
 								]
 							},
 							{
 								"group": "OpenAI SDK",
 								"icon": "sparkles",
-								"pages": ["memory-api/sdks/openai-plugins", "ai-sdk/npm"]
+								"pages": ["memory-api/sdks/openai-plugins"]
 							},
 							{
 								"group": "AI SDK",
@@ -228,8 +226,7 @@
 									"ai-sdk/overview",
 									"ai-sdk/user-profiles",
 									"ai-sdk/memory-tools",
-									"ai-sdk/infinite-chat",
-									"ai-sdk/npm"
+									"ai-sdk/infinite-chat"
 								]
 							},
 							{
@@ -240,8 +237,14 @@
 									"memory-graph/installation",
 									"memory-graph/quickstart",
 									"memory-graph/api-reference",
-									"memory-graph/examples",
-									"memory-graph/npm"
+									"memory-graph/examples"
+								]
+							},
+							{
+								"group": "Voice & Realtime",
+								"icon": "mic",
+								"pages": [
+									"voice-realtime/pipecat"
 								]
 							}
 						]
