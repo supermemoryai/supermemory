@@ -12,7 +12,7 @@ import {
 } from "lucide-react"
 import { NavMenu } from "./nav-menu"
 import { useOnboarding } from "./onboarding-context"
-import { motion, AnimatePresence, type ResolvedValues } from "framer-motion"
+import { motion, AnimatePresence, type ResolvedValues } from "motion/react"
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react"
 import React from "react"
 import { cn } from "@lib/utils"

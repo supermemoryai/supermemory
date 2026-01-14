@@ -9,7 +9,7 @@ import { AddDocumentModal } from "@/components/new/add-document"
 import { MCPModal } from "@/components/new/mcp-modal"
 import { HotkeysProvider } from "react-hotkeys-hook"
 import { useHotkeys } from "react-hotkeys-hook"
-import { AnimatePresence } from "framer-motion"
+import { AnimatePresence } from "motion/react"
 
 export default function NewPage() {
 	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)

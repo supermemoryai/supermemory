@@ -12,6 +12,9 @@ import {
 	FolderIcon,
 	LogOut,
 	Settings,
+	Home,
+	Code2,
+	ExternalLink,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -31,6 +34,7 @@ import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProject } from "@/stores"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import type { Project } from "@repo/lib/types"
 
 interface HeaderProps {
@@ -69,19 +73,62 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 	return (
 		<div className="flex p-4 justify-between items-center">
 			<div className="flex items-center justify-center gap-4 z-10!">
-				<div className="flex items-center">
-					<Logo className="h-7" />
-					{name && (
-						<div className="flex flex-col items-start justify-center ml-2">
-							<p className="text-[#8B8B8B] text-[11px] leading-tight">
-								{userName}
-							</p>
-							<p className="text-white font-bold text-xl leading-none -mt-1">
-								supermemory
-							</p>
-						</div>
-					)}
-				</div>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							className="flex items-center rounded-lg px-2 py-1.5 -ml-2 cursor-pointer hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors"
+						>
+							<Logo className="h-7" />
+							{name && (
+								<div className="flex flex-col items-start justify-center ml-2">
+									<p className="text-[#8B8B8B] text-[11px] leading-tight">
+										{userName}
+									</p>
+									<p className="text-white font-bold text-xl leading-none -mt-1">
+										supermemory
+									</p>
+								</div>
+							)}
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent
+						align="start"
+						className="w-56 bg-[#0D121A] rounded-xl border-none p-1.5 ml-4 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+					>
+						<DropdownMenuItem
+							asChild
+							className="px-3 py-2 rounded-md hover:bg-[#293952]/40 cursor-pointer"
+						>
+							<Link href="/new">
+								<Home className="h-4 w-4" />
+								Home
+							</Link>
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							asChild
+							className="px-3 py-2 rounded-md hover:bg-[#293952]/40 cursor-pointer"
+						>
+							<a
+								href="https://console.supermemory.ai"
+								target="_blank"
+								rel="noreferrer"
+							>
+								<Code2 className="h-4 w-4" />
+								Developer console
+							</a>
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							asChild
+							className="px-3 py-2 rounded-md hover:bg-[#293952]/40 cursor-pointer"
+						>
+							<a href="https://supermemory.ai" target="_blank" rel="noreferrer">
+								<ExternalLink className="h-4 w-4" />
+								supermemory.ai
+							</a>
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				<div className="self-stretch w-px bg-[#FFFFFF33]" />
 				<div className="flex items-center gap-2">
 					<p>📁 {projectName}</p>
@@ -212,7 +259,10 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 								<Settings className="h-4 w-4" />
 								Settings
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => authClient.signOut()}>
+							<DropdownMenuItem onClick={() => {
+								authClient.signOut()
+								router.push("/login/new")
+							}}>
 								<LogOut className="h-4 w-4" />
 								Logout
 							</DropdownMenuItem>

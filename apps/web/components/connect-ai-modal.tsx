@@ -32,7 +32,7 @@ import { z } from "zod/v4"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
 import type { Project } from "@repo/lib/types"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 
 const clients = {
 	cursor: "Cursor",
