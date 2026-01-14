@@ -10,7 +10,12 @@ interface NoteContentProps {
 	isOpen?: boolean
 }
 
-export function NoteContent({ onSubmit, onContentChange, isSubmitting, isOpen }: NoteContentProps) {
+export function NoteContent({
+	onSubmit,
+	onContentChange,
+	isSubmitting,
+	isOpen,
+}: NoteContentProps) {
 	const [content, setContent] = useState("")
 
 	const canSubmit = content.trim().length > 0 && !isSubmitting
@@ -45,7 +50,7 @@ export function NoteContent({ onSubmit, onContentChange, isSubmitting, isOpen }:
 			onChange={(e) => handleContentChange(e.target.value)}
 			placeholder="Write your note here..."
 			disabled={isSubmitting}
-			className="w-full h-full p-4 mb-4! rounded-[14px] bg-[#14161A] shadow-inside-out resize-none disabled:opacity-50"
+			className="w-full h-full p-4 mb-4! rounded-[14px] bg-[#14161A] shadow-inside-out resize-none disabled:opacity-50 outline-none"
 		/>
 	)
 }

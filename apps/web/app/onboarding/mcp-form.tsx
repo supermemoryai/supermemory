@@ -14,7 +14,7 @@ import { CheckIcon, CircleCheckIcon, CopyIcon, LoaderIcon } from "lucide-react"
 import { TextMorph } from "@/components/text-morph"
 import { NavMenu } from "./nav-menu"
 import { cn } from "@lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 import { useQuery } from "@tanstack/react-query"
 import { $fetch } from "@lib/api"
 

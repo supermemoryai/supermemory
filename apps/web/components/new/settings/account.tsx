@@ -3,8 +3,8 @@
 import { dmSans125ClassName } from "@/utils/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
-import { fetchMemoriesFeature, fetchSubscriptionStatus } from "@lib/queries"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
+import { useMemoriesUsage } from "@/hooks/use-memories-usage"
 import {
 	Dialog,
 	DialogContent,
@@ -82,26 +82,13 @@ export default function Account() {
 	const [deleteConfirmText, setDeleteConfirmText] = useState("")
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
-	// Billing data
 	const {
-		data: status = {
-			consumer_pro: { allowed: false, status: null },
-		},
+		memoriesUsed,
+		memoriesLimit,
+		hasProProduct,
 		isLoading: isCheckingStatus,
-	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
-
-	const proStatus = status.consumer_pro
-	const hasProProduct = proStatus?.status !== null
-
-	const { data: memoriesCheck } = fetchMemoriesFeature(
-		autumn,
-		!autumn.isLoading && !isCheckingStatus,
-	)
-	const memoriesUsed = memoriesCheck?.usage ?? 0
-	const memoriesLimit = memoriesCheck?.included_usage ?? 200
-
-	// Calculate progress percentage
-	const usagePercent = Math.min((memoriesUsed / memoriesLimit) * 100, 100)
+		usagePercent,
+	} = useMemoriesUsage(autumn)
 
 	// Handlers
 	const handleUpgrade = async () => {

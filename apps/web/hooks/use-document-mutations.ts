@@ -72,11 +72,11 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 			queryClient.setQueryData(
 				["documents-with-memories", project],
 				(old: DocumentsQueryData | undefined) => {
-					if (!old) return { documents: [optimisticMemory], totalCount: 1 }
+					const existingDocs = old?.documents ?? []
 					return {
 						...old,
-						documents: [optimisticMemory, ...old.documents],
-						totalCount: old.totalCount + 1,
+						documents: [optimisticMemory, ...existingDocs],
+						totalCount: (old?.totalCount ?? 0) + 1,
 					}
 				},
 			)
@@ -155,11 +155,11 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 			queryClient.setQueryData(
 				["documents-with-memories", project],
 				(old: DocumentsQueryData | undefined) => {
-					if (!old) return { documents: [optimisticMemory], totalCount: 1 }
+					const existingDocs = old?.documents ?? []
 					return {
 						...old,
-						documents: [optimisticMemory, ...old.documents],
-						totalCount: old.totalCount + 1,
+						documents: [optimisticMemory, ...existingDocs],
+						totalCount: (old?.totalCount ?? 0) + 1,
 					}
 				},
 			)
@@ -272,11 +272,11 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 			queryClient.setQueryData(
 				["documents-with-memories", project],
 				(old: DocumentsQueryData | undefined) => {
-					if (!old) return { documents: [optimisticMemory], totalCount: 1 }
+					const existingDocs = old?.documents ?? []
 					return {
 						...old,
-						documents: [optimisticMemory, ...old.documents],
-						totalCount: old.totalCount + 1,
+						documents: [optimisticMemory, ...existingDocs],
+						totalCount: (old?.totalCount ?? 0) + 1,
 					}
 				},
 			)
