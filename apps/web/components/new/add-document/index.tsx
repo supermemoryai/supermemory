@@ -30,7 +30,9 @@ import {
 	DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu"
 import { toast } from "sonner"
-import { useDocumentMutations } from "./useDocumentMutations"
+import { useDocumentMutations } from "../../../hooks/use-document-mutations"
+import { useCustomer } from "autumn-js/react"
+import { useMemoriesUsage } from "@/hooks/use-memories-usage"
 
 type TabType = "note" | "link" | "file" | "connect"
 
@@ -131,6 +133,15 @@ export function AddDocument({
 	const { noteMutation, linkMutation, fileMutation } = useDocumentMutations({
 		onClose,
 	})
+
+	const autumn = useCustomer()
+	const {
+		memoriesUsed,
+		memoriesLimit,
+		hasProProduct,
+		isLoading: isLoadingMemories,
+		usagePercent,
+	} = useMemoriesUsage(autumn)
 
 	useEffect(() => {
 		setLocalSelectedProject(globalSelectedProject)
@@ -242,7 +253,7 @@ export function AddDocument({
 		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
 
 	return (
-		<div className="h-full flex flex-row text-white space-x-6">
+		<div className="h-full flex flex-row text-white space-x-5">
 			<div className="w-1/3 flex flex-col justify-between">
 				<div className="flex flex-col gap-1">
 					{tabs.map((tab) => (
@@ -266,7 +277,7 @@ export function AddDocument({
 							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 					}}
 				>
-					<div className="flex justify-between items-center mb-2">
+					<div className="flex justify-between items-center">
 						<span
 							className={cn(
 								"text-white text-[16px] font-medium",
@@ -276,19 +287,25 @@ export function AddDocument({
 							Memories
 						</span>
 						<span className={cn("text-[#737373] text-sm", dmSansClassName())}>
-							120/200
+							{isLoadingMemories
+								? "…"
+								: hasProProduct
+									? "Unlimited"
+									: `${memoriesUsed}/${memoriesLimit}`}
 						</span>
 					</div>
-					<div className="h-1.5 bg-[#0D121A] rounded-full overflow-hidden">
-						<div
-							className="h-full bg-[#2261CA] rounded-full"
-							style={{ width: "60%" }}
-						/>
-					</div>
+					{!hasProProduct && (
+						<div className="h-1.5 bg-[#0D121A] rounded-full overflow-hidden mt-2">
+							<div
+								className="h-full bg-[#2261CA] rounded-full"
+								style={{ width: `${usagePercent}%` }}
+							/>
+						</div>
+					)}
 				</div>
 			</div>
 
-			<div className="w-2/3 overflow-auto flex flex-col justify-between">
+			<div className="w-2/3 overflow-auto flex flex-col justify-between px-1 scrollbar-thin">
 				{activeTab === "note" && (
 					<NoteContent
 						onSubmit={handleNoteSubmit}

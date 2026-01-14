@@ -40,7 +40,7 @@ export function ActionButtons({
 				className="flex-1 sm:flex-initial"
 			>
 				<Button
-					className="w-full cursor-pointer"
+					className="w-full cursor-pointer text-black dark:text-white"
 					disabled={isSubmitting || isSubmitDisabled}
 					onClick={submitType === "button" ? onSubmit : undefined}
 					type={submitType}

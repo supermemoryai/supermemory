@@ -53,6 +53,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const [isProUser, setIsProUser] = useState(false)
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
+	const [isUpgrading, setIsUpgrading] = useState(false)
 
 	// Check Pro status
 	useEffect(() => {
@@ -64,6 +65,20 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			)
 		}
 	}, [autumn.isLoading, autumn.customer])
+
+	const handleUpgrade = async () => {
+		setIsUpgrading(true)
+		try {
+			await autumn.attach({
+				productId: "consumer_pro",
+				successUrl: window.location.href,
+			})
+		} catch (error) {
+			console.error("Upgrade error:", error)
+			toast.error("Failed to start upgrade process")
+			setIsUpgrading(false)
+		}
+	}
 
 	// Check connections feature limits
 	const { data: connectionsCheck } = fetchConnectionsFeature(
@@ -359,15 +374,25 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					{!isProUser ? (
 						<>
 							<p className="text-[14px] text-[#737373] mb-4 text-center">
-								<a
-									href="/pricing"
-									className="underline text-[#737373] hover:text-white"
-								>
-									Upgrade to Pro
-								</a>{" "}
-								to get
-								<br />
-								Supermemory Connections
+								{isUpgrading || autumn.isLoading ? (
+									<span className="inline-flex items-center gap-2">
+										<Loader className="h-4 w-4 animate-spin" />
+										Upgrading...
+									</span>
+								) : (
+									<>
+										<button
+											type="button"
+											onClick={handleUpgrade}
+											className="underline text-[#737373] hover:text-white transition-colors cursor-pointer"
+										>
+											Upgrade to Pro
+										</button>{" "}
+										to get
+										<br />
+										Supermemory Connections
+									</>
+								)}
 							</p>
 							<div className="space-y-2 text-[14px]">
 								<div className="flex items-center gap-2">
