@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import {
 	FileTextIcon,
 	GlobeIcon,

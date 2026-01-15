@@ -80,7 +80,7 @@ const PDFIcon = ({ className }: { className: string }) => {
 					width="8.25216"
 					height="10.2522"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
 					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend
@@ -158,7 +158,7 @@ const TextDocumentIcon = ({ className }: { className: string }) => {
 					width="18.0253"
 					height="13.8376"
 					filterUnits="userSpaceOnUse"
-					color-interpolation-filters="sRGB"
+					colorInterpolationFilters="sRGB"
 				>
 					<feFlood floodOpacity="0" result="BackgroundImageFix" />
 					<feBlend

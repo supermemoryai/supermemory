@@ -1,4 +1,4 @@
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { motion } from "motion/react"

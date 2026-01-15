@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
 import { useProjectName } from "@/hooks/use-project-name"
 import {
@@ -259,10 +259,12 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 								<Settings className="h-4 w-4" />
 								Settings
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => {
-								authClient.signOut()
-								router.push("/login/new")
-							}}>
+							<DropdownMenuItem
+								onClick={() => {
+									authClient.signOut()
+									router.push("/login/new")
+								}}
+							>
 								<LogOut className="h-4 w-4" />
 								Logout
 							</DropdownMenuItem>

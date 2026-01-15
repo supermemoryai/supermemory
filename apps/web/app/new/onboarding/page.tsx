@@ -6,18 +6,18 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@lib/auth-context"
 import { cn } from "@lib/utils"
 
-import { InputStep } from "./welcome/input-step"
-import { GreetingStep } from "./welcome/greeting-step"
-import { WelcomeStep } from "./welcome/welcome-step"
-import { ContinueStep } from "./welcome/continue-step"
-import { FeaturesStep } from "./welcome/features-step"
-import { MemoriesStep } from "./welcome/memories-step"
-import { RelatableQuestion } from "./setup/relatable-question"
-import { IntegrationsStep } from "./setup/integrations-step"
+import { InputStep } from "../../../components/new/onboarding/welcome/input-step"
+import { GreetingStep } from "../../../components/new/onboarding/welcome/greeting-step"
+import { WelcomeStep } from "../../../components/new/onboarding/welcome/welcome-step"
+import { ContinueStep } from "../../../components/new/onboarding/welcome/continue-step"
+import { FeaturesStep } from "../../../components/new/onboarding/welcome/features-step"
+import { ProfileStep } from "../../../components/new/onboarding/welcome/profile-step"
+import { RelatableQuestion } from "../../../components/new/onboarding/setup/relatable-question"
+import { IntegrationsStep } from "../../../components/new/onboarding/setup/integrations-step"
 
 import { InitialHeader } from "@/components/initial-header"
-import { SetupHeader } from "./setup/header"
-import { ChatSidebar } from "./setup/chat-sidebar"
+import { SetupHeader } from "../../../components/new/onboarding/setup/header"
+import { ChatSidebar } from "../../../components/new/onboarding/setup/chat-sidebar"
 import { Logo } from "@ui/assets/Logo"
 import NovaOrb from "@/components/nova/nova-orb"
 import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
 			case "features":
 				return <FeaturesStep key="features" />
 			case "memories":
-				return <MemoriesStep key="memories" onSubmit={setMemoryFormData} />
+				return <ProfileStep key="profile" onSubmit={setMemoryFormData} />
 			default:
 				return null
 		}

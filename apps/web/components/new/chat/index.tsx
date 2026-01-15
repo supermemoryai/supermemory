@@ -14,7 +14,7 @@ import {
 	SquarePenIcon,
 } from "lucide-react"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
@@ -110,7 +110,6 @@ export function ChatSidebar({
 				},
 			},
 		}),
-		maxSteps: 10,
 		onFinish: async (result) => {
 			if (result.message.role !== "assistant") return
 
@@ -285,14 +284,20 @@ export function ChatSidebar({
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			const activeElement = document.activeElement as HTMLElement | null
+			const isInEditableContext =
+				activeElement?.tagName === "INPUT" ||
+				activeElement?.tagName === "TEXTAREA" ||
+				activeElement?.isContentEditable ||
+				activeElement?.closest('[contenteditable="true"]')
+
 			if (
 				e.key.toLowerCase() === "t" &&
 				!e.metaKey &&
 				!e.ctrlKey &&
 				!e.altKey &&
 				isChatOpen &&
-				document.activeElement?.tagName !== "INPUT" &&
-				document.activeElement?.tagName !== "TEXTAREA"
+				!isInEditableContext
 			) {
 				e.preventDefault()
 				handleNewChat()

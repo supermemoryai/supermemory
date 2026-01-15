@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { useHotkeys } from "react-hotkeys-hook"
 import { Image as ImageIcon, Loader2 } from "lucide-react"
 import { toast } from "sonner"

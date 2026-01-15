@@ -10,7 +10,7 @@ import { Check, Loader, Trash2, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import type { z } from "zod"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 

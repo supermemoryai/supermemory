@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { FileIcon } from "lucide-react"
 import { useHotkeys } from "react-hotkeys-hook"
 
@@ -19,7 +19,12 @@ interface FileContentProps {
 	isOpen?: boolean
 }
 
-export function FileContent({ onSubmit, onDataChange, isSubmitting, isOpen }: FileContentProps) {
+export function FileContent({
+	onSubmit,
+	onDataChange,
+	isSubmitting,
+	isOpen,
+}: FileContentProps) {
 	const [isDragging, setIsDragging] = useState(false)
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 	const [title, setTitle] = useState("")
@@ -33,8 +38,16 @@ export function FileContent({ onSubmit, onDataChange, isSubmitting, isOpen }: Fi
 		}
 	}
 
-	const updateData = (newFile: File | null, newTitle: string, newDescription: string) => {
-		onDataChange?.({ file: newFile, title: newTitle, description: newDescription })
+	const updateData = (
+		newFile: File | null,
+		newTitle: string,
+		newDescription: string,
+	) => {
+		onDataChange?.({
+			file: newFile,
+			title: newTitle,
+			description: newDescription,
+		})
 	}
 
 	const handleFileChange = (file: File | null) => {

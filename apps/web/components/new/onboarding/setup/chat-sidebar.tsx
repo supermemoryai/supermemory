@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import { PanelRightCloseIcon, SendIcon } from "lucide-react"
-import { collectValidUrls } from "@/utils/url-helpers"
+import { collectValidUrls } from "@/lib/url-helpers"
 import { $fetch } from "@lib/api"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
+import { useAuth } from "@lib/auth-context"
 
 interface ChatSidebarProps {
 	formData: {
@@ -20,6 +21,7 @@ interface ChatSidebarProps {
 }
 
 export function ChatSidebar({ formData }: ChatSidebarProps) {
+	const { user } = useAuth()
 	const [message, setMessage] = useState("")
 	const [isChatOpen, setIsChatOpen] = useState(true)
 	const [messages, setMessages] = useState<
@@ -127,9 +129,60 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 	useEffect(() => {
 		if (!formData) return
 
-		const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
+		const formDataMessages: typeof messages = []
 
-		console.log("urls", urls)
+		if (formData.twitter) {
+			formDataMessages.push({
+				message: formData.twitter,
+				url: formData.twitter,
+				title: "X/Twitter",
+				description: formData.twitter,
+				type: "formData" as const,
+			})
+		}
+
+		if (formData.linkedin) {
+			formDataMessages.push({
+				message: formData.linkedin,
+				url: formData.linkedin,
+				title: "LinkedIn",
+				description: formData.linkedin,
+				type: "formData" as const,
+			})
+		}
+
+		if (formData.otherLinks.length > 0) {
+			formData.otherLinks.forEach((link) => {
+				formDataMessages.push({
+					message: link,
+					url: link,
+					title: "Link",
+					description: link,
+					type: "formData" as const,
+				})
+			})
+		}
+
+		if (formData.description?.trim()) {
+			formDataMessages.push({
+				message: formData.description,
+				title: "Likes",
+				description: formData.description,
+				type: "formData" as const,
+			})
+		}
+
+		setMessages(formDataMessages)
+
+		const hasContent =
+			formData.twitter ||
+			formData.linkedin ||
+			formData.otherLinks.length > 0 ||
+			formData.description?.trim()
+
+		if (!hasContent) return
+
+		const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
 
 		const processContent = async () => {
 			setIsLoading(true)
@@ -137,17 +190,73 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 			try {
 				const documentIds: string[] = []
 
-				// Step 1: Fetch content from Exa if URLs exist
+				if (formData.description?.trim()) {
+					try {
+						const descDocResponse = await $fetch("@post/documents", {
+							body: {
+								content: formData.description,
+								containerTags: ["sm_project_default"],
+								metadata: {
+									sm_source: "consumer",
+									description_source: "user_input",
+								},
+							},
+						})
+
+						if (descDocResponse.data?.id) {
+							documentIds.push(descDocResponse.data.id)
+						}
+					} catch (error) {
+						console.warn("Error creating description document:", error)
+					}
+				}
+
+				if (formData.twitter) {
+					try {
+						const researchResponse = await fetch("/api/onboarding/research", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								xUrl: formData.twitter,
+								name: user?.name,
+								email: user?.email,
+							}),
+						})
+
+						if (researchResponse.ok) {
+							const { text } = await researchResponse.json()
+
+							if (text?.trim()) {
+								const xDocResponse = await $fetch("@post/documents", {
+									body: {
+										content: text,
+										containerTags: ["sm_project_default"],
+										metadata: {
+											sm_source: "consumer",
+											onboarding_source: "x_research",
+											x_url: formData.twitter,
+										},
+									},
+								})
+
+								if (xDocResponse.data?.id) {
+									documentIds.push(xDocResponse.data.id)
+								}
+							}
+						}
+					} catch (error) {
+						console.warn("Error fetching X research:", error)
+					}
+				}
+
 				if (urls.length > 0) {
-					const response = await fetch("/api/exa/fetch-content", {
+					const response = await fetch("/api/onboarding/extract-content", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ urls }),
 					})
 					const { results } = await response.json()
-					console.log("results", results)
 
-					// Create documents from Exa results
 					for (const result of results) {
 						try {
 							const docResponse = await $fetch("@post/documents", {
@@ -171,95 +280,17 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 					}
 				}
 
-				// Step 2: Create document from description if it exists
-				if (formData.description?.trim()) {
-					try {
-						const descDocResponse = await $fetch("@post/documents", {
-							body: {
-								content: formData.description,
-								containerTags: ["sm_project_default"],
-								metadata: {
-									sm_source: "consumer",
-									description_source: "user_input",
-								},
-							},
-						})
-
-						if (descDocResponse.data?.id) {
-							documentIds.push(descDocResponse.data.id)
-						}
-					} catch (error) {
-						console.warn("Error creating description document:", error)
-					}
-				}
-
-				// Step 3: Poll for memories or show form data
 				if (documentIds.length > 0) {
 					await pollForMemories(documentIds)
-				} else {
-					// No documents created, show form data or waiting
-					const formDataMessages = []
-
-					if (formData.twitter) {
-						formDataMessages.push({
-							message: `Twitter: ${formData.twitter}`,
-							url: formData.twitter,
-							title: "Twitter Profile",
-							description: `Twitter: ${formData.twitter}`,
-							type: "formData" as const,
-						})
-					}
-
-					if (formData.linkedin) {
-						formDataMessages.push({
-							message: `LinkedIn: ${formData.linkedin}`,
-							url: formData.linkedin,
-							title: "LinkedIn Profile",
-							description: `LinkedIn: ${formData.linkedin}`,
-							type: "formData" as const,
-						})
-					}
-
-					if (formData.otherLinks.length > 0) {
-						formData.otherLinks.forEach((link) => {
-							formDataMessages.push({
-								message: `Link: ${link}`,
-								url: link,
-								title: "Other Link",
-								description: `Link: ${link}`,
-								type: "formData" as const,
-							})
-						})
-					}
-
-					const waitingMessage = {
-						message: "Waiting for your input",
-						url: "",
-						title: "",
-						description: "Waiting for your input",
-						type: "waiting" as const,
-					}
-
-					setMessages([...formDataMessages, waitingMessage])
 				}
 			} catch (error) {
 				console.warn("Error processing content:", error)
-
-				const waitingMessage = {
-					message: "Waiting for your input",
-					url: "",
-					title: "",
-					description: "Waiting for your input",
-					type: "waiting" as const,
-				}
-
-				setMessages([waitingMessage])
 			}
 			setIsLoading(false)
 		}
 
 		processContent()
-	}, [formData, pollForMemories])
+	}, [formData, pollForMemories, user])
 
 	return (
 		<AnimatePresence mode="wait">
@@ -330,6 +361,39 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 											)}
 											<div className="w-px flex-1 bg-[#293952]/40" />
 										</div>
+										{msg.type === "formData" && (
+											<div className="bg-[#293952]/40 rounded-lg p-2 px-3 space-y-1 flex-1">
+												{msg.title && (
+													<h3
+														className="text-sm font-medium"
+														style={{
+															background:
+																"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
+															WebkitBackgroundClip: "text",
+															WebkitTextFillColor: "transparent",
+															backgroundClip: "text",
+														}}
+													>
+														{msg.title}
+													</h3>
+												)}
+												{msg.url && (
+													<a
+														href={msg.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-xs text-blue-400 hover:underline break-all block"
+													>
+														{msg.url}
+													</a>
+												)}
+												{msg.title === "Likes" && msg.description && (
+													<p className="text-xs text-white/70 mt-1">
+														{msg.description}
+													</p>
+												)}
+											</div>
+										)}
 										{msg.type === "memory" && (
 											<div className="space-y-2 w-full max-h-60 overflow-y-auto scrollbar-thin">
 												{msg.memories?.map((memory) => (
@@ -383,7 +447,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						{isLoading && (
 							<div className="flex items-center gap-2 text-foreground/50">
 								<NovaOrb size={28} className="blur-none!" />
-								<span className="text-sm">Fetching your memories...</span>
+								<span className="text-sm">Extracting memories...</span>
 							</div>
 						)}
 					</div>

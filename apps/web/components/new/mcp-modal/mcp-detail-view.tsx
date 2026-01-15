@@ -14,7 +14,7 @@ import Image from "next/image"
 import { toast } from "sonner"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
-import { dmMonoClassName, dmSansClassName } from "@/utils/fonts"
+import { dmMonoClassName, dmSansClassName } from "@/lib/fonts"
 import { SyncLogoIcon } from "@ui/assets/icons"
 
 const clients = {
@@ -78,7 +78,14 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 		>
 			<div
 				className="absolute left-4 top-0 w-px bg-[#1E293B] z-10"
-				style={{ height: activeStep === 3 ? isEmbedded ? "100%" : "calc(100% - 4rem)" : "100%" }}
+				style={{
+					height:
+						activeStep === 3
+							? isEmbedded
+								? "100%"
+								: "calc(100% - 4rem)"
+							: "100%",
+				}}
 			/>
 			<div className="flex items-start space-x-4 z-20">
 				<button

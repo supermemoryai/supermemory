@@ -1,6 +1,6 @@
 "use client"
 
-import { dmSans125ClassName } from "@/utils/fonts"
+import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"

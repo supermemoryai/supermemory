@@ -2,6 +2,19 @@ import { withSentryConfig } from "@sentry/nextjs"
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+	transpilePackages: [
+		"@tiptap/core",
+		"@tiptap/react",
+		"@tiptap/pm",
+		"@tiptap/starter-kit",
+		"@tiptap/extension-placeholder",
+		"@tiptap/extension-link",
+		"@tiptap/extension-image",
+		"@tiptap/extension-task-list",
+		"@tiptap/extension-task-item",
+		"@tiptap/suggestion",
+		"@tiptap/markdown",
+	],
 	experimental: {
 		viewTransition: true,
 		turbopackFileSystemCacheForDev: true,

@@ -1,5 +1,5 @@
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import type { DocumentTypeEnum } from "@repo/validation/schemas"
 import type { z } from "zod"
 import { getDocumentIcon } from "@/components/new/document-modal/document-icon"

@@ -1,6 +1,6 @@
 "use client"
 
-import { dmSans125ClassName } from "@/utils/fonts"
+import { dmSans125ClassName } from "@/lib/fonts"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
 import { authClient } from "@lib/auth"

@@ -3,9 +3,15 @@ import { Button } from "@ui/components/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
+import {
+	parseXHandle,
+	parseLinkedInHandle,
+	toXProfileUrl,
+	toLinkedInProfileUrl,
+} from "@/lib/url-helpers"
 
-interface MemoriesStepProps {
+interface ProfileStepProps {
 	onSubmit: (data: {
 		twitter: string
 		linkedin: string
@@ -19,7 +25,7 @@ type ValidationError = {
 	linkedin: string | null
 }
 
-export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
+export function ProfileStep({ onSubmit }: ProfileStepProps) {
 	const router = useRouter()
 	const [otherLinks, setOtherLinks] = useState([""])
 	const [twitterHandle, setTwitterHandle] = useState("")
@@ -43,63 +49,43 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 		setOtherLinks(updated)
 	}
 
-	const validateTwitterLink = (value: string): string | null => {
-		if (!value.trim()) return null
+	const validateTwitterHandle = (handle: string): string | null => {
+		if (!handle.trim()) return null
 
-		const normalized = value.trim().toLowerCase()
-		const isXDomain =
-			normalized.includes("x.com") || normalized.includes("twitter.com")
-
-		if (!isXDomain) {
-			return "share your X profile link"
+		// Basic validation: handle should be alphanumeric, underscore, or hyphen
+		// X/Twitter handles can contain letters, numbers, and underscores, max 15 chars
+		const handlePattern = /^[a-zA-Z0-9_]{1,15}$/
+		if (!handlePattern.test(handle.trim())) {
+			return "Enter your handle or profile link"
 		}
 
-		// Check if it's a profile link (not a status/tweet link)
-		const profilePattern =
-			/^(https?:\/\/)?(www\.)?(x\.com|twitter\.com)\/[^\/]+$/
-		const statusPattern = /\/status\//i
-
-		if (statusPattern.test(normalized) || !profilePattern.test(normalized)) {
-			return "share your X profile link"
-		}
-
-		// Note: 404 validation would require a backend API endpoint
-		// Format validation is handled above
 		return null
 	}
 
-	const validateLinkedInLink = (value: string): string | null => {
-		if (!value.trim()) return null
+	const validateLinkedInHandle = (handle: string): string | null => {
+		if (!handle.trim()) return null
 
-		const normalized = value.trim().toLowerCase()
-		const isLinkedInDomain = normalized.includes("linkedin.com")
-
-		if (!isLinkedInDomain) {
-			return "share your Linkedin profile link"
+		// Basic validation: LinkedIn handles are typically alphanumeric with hyphens
+		// They can be quite long, so we'll be lenient
+		const handlePattern = /^[a-zA-Z0-9-]+$/
+		if (!handlePattern.test(handle.trim())) {
+			return "Enter your handle or profile link"
 		}
 
-		// Check if it's a profile link (should have /in/ or /pub/)
-		const profilePattern =
-			/^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub)\/[^\/]+/
-
-		if (!profilePattern.test(normalized)) {
-			return "share your Linkedin profile link"
-		}
-
-		// Note: 404 validation would require a backend API endpoint
-		// Format validation is handled above
 		return null
 	}
 
 	const handleTwitterChange = (value: string) => {
-		setTwitterHandle(value)
-		const error = validateTwitterLink(value)
+		const parsedHandle = parseXHandle(value)
+		setTwitterHandle(parsedHandle)
+		const error = validateTwitterHandle(parsedHandle)
 		setErrors((prev) => ({ ...prev, twitter: error }))
 	}
 
 	const handleLinkedInChange = (value: string) => {
-		setLinkedinProfile(value)
-		const error = validateLinkedInLink(value)
+		const parsedHandle = parseLinkedInHandle(value)
+		setLinkedinProfile(parsedHandle)
+		const error = validateLinkedInHandle(parsedHandle)
 		setErrors((prev) => ({ ...prev, linkedin: error }))
 	}
 
@@ -123,24 +109,33 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						X/Twitter
 					</label>
 					<div className="relative flex items-center">
-						<input
-							id="twitter-handle"
-							type="text"
-							placeholder="x.com/yourhandle"
-							value={twitterHandle}
-							onChange={(e) => handleTwitterChange(e.target.value)}
-							onBlur={() => {
-								if (twitterHandle.trim()) {
-									const error = validateTwitterLink(twitterHandle)
-									setErrors((prev) => ({ ...prev, twitter: error }))
-								}
-							}}
-							className={`w-full px-4 py-2 bg-[#070E1B] border rounded-xl text-white placeholder-onboarding focus:outline-none transition-colors h-[40px] ${
+						<div
+							className={`flex items-center border rounded-xl overflow-hidden h-[40px] w-full ${
 								errors.twitter
 									? "border-[#52596633] bg-[#290F0A]"
 									: "border-onboarding/20"
 							}`}
-						/>
+						>
+							<div className="px-3 py-2 bg-[#070E1B] text-white/60 text-sm border-r border-onboarding/20 whitespace-nowrap">
+								x.com/
+							</div>
+							<input
+								id="twitter-handle"
+								type="text"
+								placeholder="handle"
+								value={twitterHandle}
+								onChange={(e) => handleTwitterChange(e.target.value)}
+								onBlur={() => {
+									if (twitterHandle.trim()) {
+										const error = validateTwitterHandle(twitterHandle)
+										setErrors((prev) => ({ ...prev, twitter: error }))
+									}
+								}}
+								className={`flex-1 px-4 py-2 bg-[#070E1B] text-white placeholder-onboarding focus:outline-none transition-colors ${
+									errors.twitter ? "bg-[#290F0A]" : ""
+								}`}
+							/>
+						</div>
 						{errors.twitter && (
 							<div className="absolute left-full ml-3">
 								<div
@@ -165,24 +160,33 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 						LinkedIn
 					</label>
 					<div className="relative flex items-center">
-						<input
-							id="linkedin-profile"
-							type="text"
-							placeholder="linkedin.com/in/yourname"
-							value={linkedinProfile}
-							onChange={(e) => handleLinkedInChange(e.target.value)}
-							onBlur={() => {
-								if (linkedinProfile.trim()) {
-									const error = validateLinkedInLink(linkedinProfile)
-									setErrors((prev) => ({ ...prev, linkedin: error }))
-								}
-							}}
-							className={`w-full px-4 py-2 bg-[#070E1B] border rounded-xl text-white placeholder-onboarding focus:outline-none transition-colors h-[40px] ${
+						<div
+							className={`flex items-center border rounded-xl overflow-hidden h-[40px] w-full ${
 								errors.linkedin
 									? "border-[#52596633] bg-[#290F0A]"
 									: "border-onboarding/20"
 							}`}
-						/>
+						>
+							<div className="px-3 py-2 bg-[#070E1B] text-white/60 text-sm border-r border-onboarding/20 whitespace-nowrap w-[140px]">
+								linkedin.com/in/
+							</div>
+							<input
+								id="linkedin-profile"
+								type="text"
+								placeholder="username"
+								value={linkedinProfile}
+								onChange={(e) => handleLinkedInChange(e.target.value)}
+								onBlur={() => {
+									if (linkedinProfile.trim()) {
+										const error = validateLinkedInHandle(linkedinProfile)
+										setErrors((prev) => ({ ...prev, linkedin: error }))
+									}
+								}}
+								className={`flex-1 px-4 py-2 bg-[#070E1B] text-white placeholder-onboarding focus:outline-none transition-colors ${
+									errors.linkedin ? "bg-[#290F0A]" : ""
+								}`}
+							/>
+						</div>
 						{errors.linkedin && (
 							<div className="absolute left-full ml-3">
 								<div
@@ -282,8 +286,8 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 					}}
 					onClick={() => {
 						const formData = {
-							twitter: twitterHandle,
-							linkedin: linkedinProfile,
+							twitter: toXProfileUrl(twitterHandle),
+							linkedin: toLinkedInProfileUrl(linkedinProfile),
 							description: description,
 							otherLinks: otherLinks.filter((l) => l.trim()),
 						}

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { ChevronDownIcon } from "lucide-react"
 import { models, type ModelId, modelNames } from "@/lib/models"
 

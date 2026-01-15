@@ -6,7 +6,7 @@ import { motion } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { useState, useEffect, useRef } from "react"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import Account from "@/components/new/settings/account"
 import Integrations from "@/components/new/settings/integrations"
 import ConnectionsMCP from "@/components/new/settings/connections-mcp"
@@ -175,7 +175,11 @@ export default function SettingsPage() {
 	return (
 		<div className="h-screen flex flex-col overflow-hidden">
 			<header className="flex justify-between items-center px-6 py-3 shrink-0">
-				<button type="button" onClick={() => router.push("/new")} className="cursor-pointer">
+				<button
+					type="button"
+					onClick={() => router.push("/new")}
+					className="cursor-pointer"
+				>
 					<Logo className="h-7" />
 				</button>
 				<div className="flex items-center gap-2">

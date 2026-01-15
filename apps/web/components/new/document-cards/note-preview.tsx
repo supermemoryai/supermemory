@@ -2,11 +2,53 @@
 
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
+import { useMemo } from "react"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
+
+type TipTapNode = {
+	type: string
+	text?: string
+	content?: TipTapNode[]
+	attrs?: Record<string, unknown>
+}
+
+function extractTextFromTipTapContent(content: string): string {
+	try {
+		const json = JSON.parse(content) as TipTapNode
+		return extractTextFromNode(json)
+	} catch {
+		return content
+	}
+}
+
+function extractTextFromNode(node: TipTapNode): string {
+	if (node.type === "text" && node.text) {
+		return node.text
+	}
+
+	if (!node.content) {
+		return ""
+	}
+
+	const texts: string[] = []
+	for (const child of node.content) {
+		const text = extractTextFromNode(child)
+		if (text) {
+			texts.push(text)
+		}
+	}
+
+	const blockTypes = ["paragraph", "heading", "listItem", "blockquote", "codeBlock"]
+	if (blockTypes.includes(node.type)) {
+		return `${texts.join("")}\n`
+	}
+
+	return texts.join("")
+}
 
 function NoteIcon() {
 	return (
@@ -79,6 +121,11 @@ function NoteIcon() {
 }
 
 export function NotePreview({ document }: { document: DocumentWithMemories }) {
+	const previewText = useMemo(() => {
+		if (!document.content) return ""
+		return extractTextFromTipTapContent(document.content).trim()
+	}, [document.content])
+
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] space-y-2">
 			<div className="flex items-center gap-1">
@@ -98,9 +145,9 @@ export function NotePreview({ document }: { document: DocumentWithMemories }) {
 						{document.title}
 					</p>
 				)}
-				{document.content && (
+				{previewText && (
 					<p className="text-[10px] text-[#737373] line-clamp-4">
-						{document.content}
+						{previewText}
 					</p>
 				)}
 			</div>

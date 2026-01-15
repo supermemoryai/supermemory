@@ -10,10 +10,10 @@ interface DocumentsQueryData {
 }
 
 interface UseDocumentMutationsOptions {
-	onClose: () => void
+	onClose?: () => void
 }
 
-export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
+export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = {}) {
 	const queryClient = useQueryClient()
 
 	const noteMutation = useMutation({
@@ -101,7 +101,7 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 			queryClient.invalidateQueries({
 				queryKey: ["documents-with-memories", variables.project],
 			})
-			onClose()
+			onClose?.()
 		},
 	})
 
@@ -184,7 +184,7 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 			queryClient.invalidateQueries({
 				queryKey: ["documents-with-memories", variables.project],
 			})
-			onClose()
+			onClose?.()
 		},
 	})
 
@@ -301,7 +301,43 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 			queryClient.invalidateQueries({
 				queryKey: ["documents-with-memories", variables.project],
 			})
-			onClose()
+			onClose?.()
+		},
+	})
+
+	const updateMutation = useMutation({
+		mutationFn: async ({
+			documentId,
+			content,
+		}: {
+			documentId: string
+			content: string
+		}) => {
+			const response = await $fetch(`@patch/documents/${documentId}`, {
+				body: {
+					content,
+					metadata: {
+						sm_source: "consumer",
+					},
+				},
+			})
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to save document")
+			}
+
+			return response.data
+		},
+		onSuccess: () => {
+			toast.success("Document saved successfully!")
+			queryClient.invalidateQueries({
+				queryKey: ["documents-with-memories"],
+			})
+		},
+		onError: (error) => {
+			toast.error("Failed to save document", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
 		},
 	})
 
@@ -309,5 +345,6 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions) {
 		noteMutation,
 		linkMutation,
 		fileMutation,
+		updateMutation,
 	}
 }

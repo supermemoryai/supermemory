@@ -2,7 +2,7 @@ import { useAuth } from "@lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import type { UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 
 interface MemoryResult {
 	documentId?: string

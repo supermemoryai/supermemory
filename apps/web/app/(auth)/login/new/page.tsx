@@ -14,7 +14,7 @@ import { InitialHeader } from "@/components/initial-header"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { motion } from "motion/react"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
 
@@ -30,7 +30,11 @@ function AnimatedGradientBackground() {
 				}}
 				transition={{
 					y: { duration: 0.75, ease: "easeOut" },
-					opacity: { duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+					opacity: {
+						duration: 8,
+						repeat: Number.POSITIVE_INFINITY,
+						ease: "easeInOut",
+					},
 				}}
 			/>
 			<motion.div
@@ -42,7 +46,11 @@ function AnimatedGradientBackground() {
 				}}
 				transition={{
 					y: { duration: 0.75, ease: "easeOut" },
-					opacity: { duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+					opacity: {
+						duration: 8,
+						repeat: Number.POSITIVE_INFINITY,
+						ease: "easeInOut",
+					},
 				}}
 			/>
 			<motion.div

@@ -1,4 +1,4 @@
-import { dmSans125ClassName, dmSansClassName } from "@/utils/fonts"
+import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { Dialog, DialogContent, DialogFooter } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"

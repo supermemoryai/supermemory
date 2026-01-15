@@ -6,11 +6,8 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef } from "react"
 import type { z } from "zod"
-import {
-	Masonry,
-	useInfiniteLoader,
-} from "masonic"
-import { dmSansClassName } from "@/utils/fonts"
+import { Masonry, useInfiniteLoader } from "masonic"
+import { dmSansClassName } from "@/lib/fonts"
 import { SuperLoader } from "@/components/superloader"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
@@ -151,9 +148,7 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 	}
 
 	return (
-		<div
-			className="h-full"
-		>
+		<div className="h-full">
 			<Button
 				className={cn(
 					dmSansClassName(),

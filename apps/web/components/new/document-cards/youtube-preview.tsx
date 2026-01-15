@@ -2,7 +2,7 @@
 
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { extractYouTubeVideoId } from "../utils"
 

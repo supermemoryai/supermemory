@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useHotkeys } from "react-hotkeys-hook"
+import { TextEditor } from "../text-editor"
 
 interface NoteContentProps {
 	onSubmit?: (content: string) => void
@@ -31,11 +31,6 @@ export function NoteContent({
 		onContentChange?.(newContent)
 	}
 
-	useHotkeys("mod+enter", handleSubmit, {
-		enabled: isOpen && canSubmit,
-		enableOnFormTags: ["TEXTAREA"],
-	})
-
 	// Reset content when modal closes
 	useEffect(() => {
 		if (!isOpen) {
@@ -45,12 +40,12 @@ export function NoteContent({
 	}, [isOpen, onContentChange])
 
 	return (
-		<textarea
-			value={content}
-			onChange={(e) => handleContentChange(e.target.value)}
-			placeholder="Write your note here..."
-			disabled={isSubmitting}
-			className="w-full h-full p-4 mb-4! rounded-[14px] bg-[#14161A] shadow-inside-out resize-none disabled:opacity-50 outline-none"
-		/>
+		<div className="p-4 overflow-y-auto flex-1 w-full h-full mb-4! bg-[#14161A] shadow-inside-out rounded-[14px]">
+			<TextEditor
+				content={undefined}
+				onContentChange={handleContentChange}
+				onSubmit={handleSubmit}
+			/>
+		</div>
 	)
 }

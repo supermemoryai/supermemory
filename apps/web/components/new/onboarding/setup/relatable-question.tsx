@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 
 const relatableOptions = [
 	{

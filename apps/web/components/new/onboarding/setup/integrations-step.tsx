@@ -3,10 +3,10 @@
 import { useState } from "react"
 import { Button } from "@ui/components/button"
 import { MCPDetailView } from "@/components/new/mcp-modal/mcp-detail-view"
-import { XBookmarksDetailView } from "@/components/x-bookmarks-detail-view"
+import { XBookmarksDetailView } from "@/components/new/onboarding/x-bookmarks-detail-view"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { useOnboardingStorage } from "@hooks/use-onboarding-storage"
 
 const integrationCards = [
@@ -164,7 +164,9 @@ export function IntegrationsStep() {
 				<Button
 					variant="link"
 					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"
-					onClick={() => router.push("/new/onboarding?flow=setup&step=relatable")}
+					onClick={() =>
+						router.push("/new/onboarding?flow=setup&step=relatable")
+					}
 				>
 					← Back
 				</Button>

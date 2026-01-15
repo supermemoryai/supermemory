@@ -27,7 +27,7 @@ const buttonVariants = cva(
 					"rounded-xl !px-6 !py-3 bg-black border border-[#161F2C] hover:bg-[#161F2C] !h-[40px] cursor-pointer text-white",
 				linkPreview:
 					"rounded-xl !px-3 !py-1 bg-black border border-[#161F2C] hover:bg-[#161F2C] cursor-pointer text-white border border-[#161F2C]",
-				insideOut: "shadow-inside-out rounded-full bg-[#0D121A]",
+				insideOut: "shadow-inside-out rounded-full bg-[#0D121A] cursor-pointer",
 			},
 			size: {
 				default: "h-9 px-4 py-2 has-[>svg]:px-3",

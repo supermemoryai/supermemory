@@ -1,6 +1,6 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 import type { UIMessage } from "@ai-sdk/react"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 
 interface MemoryResult {

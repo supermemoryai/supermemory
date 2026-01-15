@@ -2,7 +2,7 @@
 
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import Image from "next/image"
 
 interface XBookmarksDetailViewProps {
@@ -27,9 +27,7 @@ const steps = [
 	},
 ]
 
-export function XBookmarksDetailView({
-	onBack,
-}: XBookmarksDetailViewProps) {
+export function XBookmarksDetailView({ onBack }: XBookmarksDetailViewProps) {
 	const handleInstall = () => {
 		window.open(
 			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnangednailhoegogi",

@@ -88,3 +88,35 @@
 		inset 0 2px 4px rgba(0, 0, 0, 0.3),
 		inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+/* Disable ProseMirror focus styles */
+.ProseMirror:focus,
+.ProseMirror-focused,
+.ProseMirror:focus-visible {
+	outline: none;
+	box-shadow: none;
+	border: none;
+}
+
+/* Override prose paragraph margins for text editor */
+.text-editor-prose.prose :where(p):not(:where([class~="not-prose"],[class~="not-prose"] *)) {
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+/* Style placeholder for text editor */
+.text-editor-prose .ProseMirror p.is-editor-empty:first-child::before {
+	content: attr(data-placeholder);
+	float: left;
+	color: #525966;
+	pointer-events: none;
+	height: 0;
+}
+
+.text-editor-prose .ProseMirror .is-empty::before {
+	content: attr(data-placeholder);
+	float: left;
+	color: #525966;
+	pointer-events: none;
+	height: 0;
+}

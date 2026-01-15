@@ -11,7 +11,7 @@ import {
 	TweetSkeleton,
 } from "react-tweet"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/utils/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 
 export function TweetPreview({
 	data,

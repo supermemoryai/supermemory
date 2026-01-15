@@ -1,6 +1,6 @@
 "use client"
 
-import { dmSans125ClassName } from "@/utils/fonts"
+import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { fetchSubscriptionStatus } from "@lib/queries"
