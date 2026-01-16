@@ -13,7 +13,13 @@ from typing import Any, Dict, List, Literal, Optional
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from pipecat.frames.frames import Frame, LLMContextFrame, LLMMessagesFrame
+from pipecat.frames.frames import (
+    Frame,
+    LLMContextFrame,
+    LLMMessagesFrame,
+    LLMMessagesUpdateFrame,
+    TranscriptionFrame,
+)
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
@@ -289,6 +295,85 @@ class SupermemoryPipecatService(FrameProcessor):
 
         logger.debug(f"Enhanced context with {total_memories} memories")
 
+    async def _handle_transcription(self, frame: TranscriptionFrame) -> None:
+        """Handle transcription frames from speech-to-speech models like Gemini Live.
+
+        This retrieves relevant memories and injects them via LLMMessagesUpdateFrame,
+        and stores user transcriptions for future retrieval.
+
+        Args:
+            frame: The transcription frame containing user speech text.
+        """
+        if not frame.text or not frame.text.strip():
+            return
+
+        user_text = frame.text.strip()
+
+        # Skip if same query (avoid duplicate processing)
+        if self._last_query == user_text:
+            return
+
+        self._last_query = user_text
+        logger.debug(f"Processing transcription for memory: {user_text[:100]}...")
+
+        # Retrieve memories and inject them
+        try:
+            memories_data = await self._retrieve_memories(user_text)
+            await self._inject_memories_for_speech_to_speech(memories_data)
+        except MemoryRetrievalError as e:
+            logger.warning(f"Memory retrieval failed: {e}")
+
+        # Store the user message in memory
+        user_message = {"role": "user", "content": user_text}
+        asyncio.create_task(self._store_messages([user_message]))
+
+    async def _inject_memories_for_speech_to_speech(
+        self, memories_data: Dict[str, Any]
+    ) -> None:
+        """Inject memories for speech-to-speech models via LLMMessagesUpdateFrame.
+
+        Args:
+            memories_data: Raw memory data from Supermemory API.
+        """
+        profile = memories_data["profile"]
+
+        deduplicated = deduplicate_memories(
+            static=profile["static"],
+            dynamic=profile["dynamic"],
+            search_results=memories_data["search_results"],
+        )
+
+        total_memories = (
+            len(deduplicated["static"])
+            + len(deduplicated["dynamic"])
+            + len(deduplicated["search_results"])
+        )
+
+        if total_memories == 0:
+            logger.debug("No memories found to inject for speech-to-speech")
+            return
+
+        include_profile = self.params.mode in ("profile", "full")
+        include_search = self.params.mode in ("query", "full")
+
+        memory_text = format_memories_to_text(
+            deduplicated,
+            system_prompt=self.params.system_prompt,
+            include_static=include_profile,
+            include_dynamic=include_profile,
+            include_search=include_search,
+        )
+
+        if not memory_text:
+            return
+
+        # Emit LLMMessagesUpdateFrame with memory context
+        memory_message = {"role": "user", "content": memory_text}
+        await self.push_frame(
+            LLMMessagesUpdateFrame(messages=[memory_message], run_llm=False)
+        )
+        logger.debug(f"Injected {total_memories} memories for speech-to-speech model")
+
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         """Process incoming frames, intercept context frames for memory integration.
 
@@ -307,6 +392,11 @@ class SupermemoryPipecatService(FrameProcessor):
         elif isinstance(frame, LLMMessagesFrame):
             messages = frame.messages
             context = LLMContext(messages)
+        elif isinstance(frame, TranscriptionFrame):
+            # Handle transcription from speech-to-speech models (e.g., Gemini Live)
+            await self._handle_transcription(frame)
+            await self.push_frame(frame, direction)
+            return
 
         if context:
             try:
