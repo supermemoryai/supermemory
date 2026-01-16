@@ -30,10 +30,10 @@ export function Title({
 		<div
 			className={cn(
 				dmSansClassName(),
-				"text-[16px] font-semibold text-[#FAFAFA] line-clamp-1 leading-[125%] flex items-center gap-3",
+				"text-[16px] font-semibold text-[#FAFAFA] leading-[125%] flex items-center gap-3 min-w-0",
 			)}
 		>
-			<div className="pl-1 flex items-center gap-1 w-5 h-5">
+			<div className="pl-1 flex items-center gap-1 w-5 h-5 shrink-0">
 				{getDocumentIcon(
 					documentType as DocumentType,
 					"w-5 h-5",
@@ -49,7 +49,7 @@ export function Title({
 					</p>
 				)}
 			</div>
-			{title || "Untitled Document"}
+			<span className="truncate">{title || "Untitled Document"}</span>
 		</div>
 	)
 }

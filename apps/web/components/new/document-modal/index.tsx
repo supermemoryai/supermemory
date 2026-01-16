@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { ArrowUpRightIcon, XIcon, Loader2 } from "lucide-react"
+import { ArrowUpRightIcon, XIcon, Loader2, Trash2Icon, CheckIcon } from "lucide-react"
 import type { z } from "zod"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@lib/utils"
@@ -20,6 +20,8 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Button } from "@repo/ui/components/button"
 import { useDocumentMutations } from "@/hooks/use-document-mutations"
+import type { UseMutationResult } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 // Dynamically importing to prevent DOMMatrix error
 const PdfViewer = dynamic(
@@ -43,12 +45,102 @@ interface DocumentModalProps {
 	onClose: () => void
 }
 
+interface DeleteButtonProps {
+	documentId: string | null | undefined
+	customId: string | null | undefined
+	deleteMutation: UseMutationResult<
+		unknown,
+		Error,
+		{ documentId: string },
+		unknown
+	>
+}
+
+function isTemporaryId(id: string | null | undefined): boolean {
+	if (!id) return false
+	return id.startsWith("temp-") || id.startsWith("temp-file-")
+}
+
+function DeleteButton({ documentId, customId, deleteMutation }: DeleteButtonProps) {
+	const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+
+	const handleDelete = useCallback(() => {
+		const id = documentId ?? customId
+		if (!id) return
+
+		// Check both IDs to ensure we catch temporary documents regardless of which ID is used
+		if (isTemporaryId(documentId) || isTemporaryId(customId)) {
+			// this is when user added document immediately and trying to delete
+			toast.error("Cannot delete document", {
+				description: "This document is still being processed. Please wait.",
+			})
+			return
+		}
+
+		deleteMutation.mutate({ documentId: id as string })
+	}, [documentId, customId, deleteMutation])
+
+	return (
+		<AnimatePresence mode="wait">
+			{!deleteConfirmOpen ? (
+				<motion.button
+					key="trash"
+					type="button"
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 1, scale: 1 }}
+					exit={{ opacity: 0, scale: 0.8 }}
+					transition={{ duration: 0.15 }}
+					onClick={() => setDeleteConfirmOpen(true)}
+					tabIndex={-1}
+					className="bg-[#0D121A] w-7 h-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+					disabled={deleteMutation.isPending}
+				>
+					<Trash2Icon className="w-4 h-4 text-red-500" />
+					<span className="sr-only">Delete document</span>
+				</motion.button>
+			) : (
+				<motion.div
+					key="confirm"
+					initial={{ opacity: 0, scale: 0.8 }}
+					animate={{ opacity: 1, scale: 1 }}
+					exit={{ opacity: 0, scale: 0.8 }}
+					transition={{ duration: 0.15 }}
+					className="flex items-center gap-1 px-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+				>
+					<button
+						type="button"
+						onClick={() => setDeleteConfirmOpen(false)}
+						disabled={deleteMutation.isPending}
+						className="w-6 h-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						<XIcon className="w-4 h-4 text-[#737373]" />
+						<span className="sr-only">Cancel delete</span>
+					</button>
+					<button
+						type="button"
+						onClick={handleDelete}
+						disabled={deleteMutation.isPending}
+						className="w-6 h-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{deleteMutation.isPending ? (
+							<Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+						) : (
+							<CheckIcon className="w-4 h-4 text-green-500" />
+						)}
+						<span className="sr-only">Confirm delete</span>
+					</button>
+				</motion.div>
+			)}
+		</AnimatePresence>
+	)
+}
+
 export function DocumentModal({
 	document: _document,
 	isOpen,
 	onClose,
 }: DocumentModalProps) {
-	const { updateMutation } = useDocumentMutations()
+	const { updateMutation, deleteMutation } = useDocumentMutations({ onClose })
 
 	const { initialEditorContent, initialEditorString } = useMemo(() => {
 		const content = _document?.content as string | null | undefined
@@ -76,7 +168,9 @@ export function DocumentModal({
 	}, [initialEditorString])
 
 	useEffect(() => {
-		if (!isOpen) resetEditor()
+		if (!isOpen) {
+			resetEditor()
+		}
 	}, [isOpen, resetEditor])
 
 	const hasUnsavedChanges =
@@ -107,13 +201,20 @@ export function DocumentModal({
 				<DialogTitle className="sr-only">
 					{_document?.title} - Document
 				</DialogTitle>
-				<div className="flex justify-between h-fit">
-					<Title
-						title={_document?.title}
-						documentType={_document?.type ?? "text"}
-						url={_document?.url}
-					/>
-					<div className="flex items-center gap-2">
+				<div className="flex items-center justify-between h-fit gap-4">
+					<div className="flex-1 min-w-0">
+						<Title
+							title={_document?.title}
+							documentType={_document?.type ?? "text"}
+							url={_document?.url}
+						/>
+					</div>
+					<div className="flex items-center gap-2 shrink-0">
+						<DeleteButton
+							documentId={_document?.id}
+							customId={_document?.customId}
+							deleteMutation={deleteMutation}
+						/>
 						{_document?.url && (
 							<a
 								href={_document.url}
@@ -126,8 +227,10 @@ export function DocumentModal({
 							</a>
 						)}
 						<DialogPrimitive.Close
-							className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+							className="bg-[#0D121A] w-7 h-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
 							data-slot="dialog-close"
+							type="button"
+							tabIndex={-1}
 						>
 							<XIcon stroke="#737373" />
 							<span className="sr-only">Close</span>

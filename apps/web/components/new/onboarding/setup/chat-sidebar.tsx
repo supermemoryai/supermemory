@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
-import { PanelRightCloseIcon, SendIcon } from "lucide-react"
+import { PanelRightCloseIcon, SendIcon, CheckIcon, XIcon } from "lucide-react"
 import { collectValidUrls } from "@/lib/url-helpers"
 import { $fetch } from "@lib/api"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useAuth } from "@lib/auth-context"
+import { useProject } from "@/stores"
+import { Streamdown } from "streamdown"
 
 interface ChatSidebarProps {
 	formData: {
@@ -20,11 +24,20 @@ interface ChatSidebarProps {
 	} | null
 }
 
+interface DraftDoc {
+	kind: "likes" | "link" | "x_research"
+	content: string
+	metadata: Record<string, string>
+	title?: string
+	url?: string
+}
+
 export function ChatSidebar({ formData }: ChatSidebarProps) {
 	const { user } = useAuth()
+	const { selectedProject } = useProject()
 	const [message, setMessage] = useState("")
 	const [isChatOpen, setIsChatOpen] = useState(true)
-	const [messages, setMessages] = useState<
+	const [timelineMessages, setTimelineMessages] = useState<
 		{
 			message: string
 			type?: "formData" | "exa" | "memory" | "waiting"
@@ -40,10 +53,82 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		}[]
 	>([])
 	const [isLoading, setIsLoading] = useState(false)
+	const [isFetchingDrafts, setIsFetchingDrafts] = useState(false)
+	const [draftDocs, setDraftDocs] = useState<DraftDoc[]>([])
+	const [xResearchStatus, setXResearchStatus] = useState<
+		"correct" | "incorrect" | null
+	>(null)
+	const [isConfirmed, setIsConfirmed] = useState(false)
 	const displayedMemoriesRef = useRef<Set<string>>(new Set())
+	const contextInjectedRef = useRef(false)
+	const draftsBuiltRef = useRef(false)
+	const isProcessingRef = useRef(false)
+
+	const {
+		messages: chatMessages,
+		sendMessage,
+		status,
+	} = useChat({
+		transport: new DefaultChatTransport({
+			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
+			credentials: "include",
+			body: {
+				metadata: {
+					projectId: selectedProject,
+					model: "gemini-2.5-pro",
+				},
+			},
+		}),
+	})
+
+	const buildOnboardingContext = useCallback(() => {
+		if (!formData) return ""
+
+		const contextParts: string[] = []
+
+		if (formData.description?.trim()) {
+			contextParts.push(`User's interests/likes: ${formData.description}`)
+		}
+
+		if (formData.twitter) {
+			contextParts.push(`X/Twitter profile: ${formData.twitter}`)
+		}
+
+		if (formData.linkedin) {
+			contextParts.push(`LinkedIn profile: ${formData.linkedin}`)
+		}
+
+		if (formData.otherLinks.length > 0) {
+			contextParts.push(`Other links: ${formData.otherLinks.join(", ")}`)
+		}
+
+		const memoryTexts = timelineMessages
+			.filter((msg) => msg.type === "memory" && msg.memories)
+			.flatMap(
+				(msg) => msg.memories?.map((m) => `${m.title}: ${m.description}`) || [],
+			)
+
+		if (memoryTexts.length > 0) {
+			contextParts.push(`Extracted memories:\n${memoryTexts.join("\n")}`)
+		}
+
+		return contextParts.join("\n\n")
+	}, [formData, timelineMessages])
 
 	const handleSend = () => {
-		console.log("Message:", message)
+		if (!message.trim() || status === "submitted" || status === "streaming")
+			return
+
+		let messageToSend = message
+
+		const context = buildOnboardingContext()
+
+		if (context && !contextInjectedRef.current && chatMessages.length === 0) {
+			messageToSend = `${context}\n\nUser question: ${message}`
+			contextInjectedRef.current = true
+		}
+
+		sendMessage({ text: messageToSend })
 		setMessage("")
 	}
 
@@ -97,8 +182,8 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 								},
 							)
 
-							if (newMemories.length > 0 && messages.length < 10) {
-								setMessages((prev) => [
+							if (newMemories.length > 0 && timelineMessages.length < 10) {
+								setTimelineMessages((prev) => [
 									...prev,
 									{
 										message: newMemories
@@ -123,13 +208,151 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 				}
 			}
 		},
-		[messages.length],
+		[timelineMessages.length],
 	)
+
+	const buildDraftDocs = useCallback(async () => {
+		if (!formData || draftsBuiltRef.current) return
+		draftsBuiltRef.current = true
+
+		const hasContent =
+			formData.twitter ||
+			formData.linkedin ||
+			formData.otherLinks.length > 0 ||
+			formData.description?.trim()
+
+		if (!hasContent) return
+
+		setIsFetchingDrafts(true)
+		const drafts: DraftDoc[] = []
+
+		try {
+			if (formData.description?.trim()) {
+				drafts.push({
+					kind: "likes",
+					content: formData.description,
+					metadata: {
+						sm_source: "consumer",
+						description_source: "user_input",
+					},
+					title: "Your Interests",
+				})
+			}
+
+			const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
+
+			const [exaResults, xResearchResult] = await Promise.all([
+				urls.length > 0
+					? fetch("/api/onboarding/extract-content", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ urls }),
+						})
+							.then((r) => r.json())
+							.then((data) => data.results || [])
+							.catch(() => [])
+					: Promise.resolve([]),
+				formData.twitter
+					? fetch("/api/onboarding/research", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								xUrl: formData.twitter,
+								name: user?.name,
+								email: user?.email,
+							}),
+						})
+							.then((r) => (r.ok ? r.json() : null))
+							.then((data) => data?.text?.trim() || null)
+							.catch(() => null)
+					: Promise.resolve(null),
+			])
+
+			for (const result of exaResults) {
+				if (result.text || result.description) {
+					drafts.push({
+						kind: "link",
+						content: result.text || result.description || "",
+						metadata: {
+							sm_source: "consumer",
+							exa_url: result.url,
+							exa_title: result.title,
+						},
+						title: result.title || "Extracted Content",
+						url: result.url,
+					})
+				}
+			}
+
+			if (xResearchResult) {
+				drafts.push({
+					kind: "x_research",
+					content: xResearchResult,
+					metadata: {
+						sm_source: "consumer",
+						onboarding_source: "x_research",
+						x_url: formData.twitter,
+					},
+					title: "X/Twitter Profile Research",
+					url: formData.twitter,
+				})
+			}
+
+			setDraftDocs(drafts)
+		} catch (error) {
+			console.warn("Error building draft docs:", error)
+		} finally {
+			setIsFetchingDrafts(false)
+		}
+	}, [formData, user])
+
+	const handleConfirmDocs = useCallback(async () => {
+		if (isConfirmed || isProcessingRef.current) return
+		isProcessingRef.current = true
+		setIsConfirmed(true)
+		setIsLoading(true)
+
+		try {
+			const documentIds: string[] = []
+
+			for (const draft of draftDocs) {
+				if (draft.kind === "x_research" && xResearchStatus !== "correct") {
+					continue
+				}
+
+				try {
+					const docResponse = await $fetch("@post/documents", {
+						body: {
+							content: draft.content,
+							containerTags: ["sm_project_default"],
+							metadata: draft.metadata,
+						},
+					})
+
+					if (docResponse.data?.id) {
+						documentIds.push(docResponse.data.id)
+					}
+				} catch (error) {
+					console.warn("Error creating document:", error)
+				}
+			}
+
+			if (documentIds.length > 0) {
+				await pollForMemories(documentIds)
+			}
+		} catch (error) {
+			console.warn("Error confirming documents:", error)
+			setIsConfirmed(false)
+		} finally {
+			setIsLoading(false)
+			isProcessingRef.current = false
+		}
+	}, [draftDocs, xResearchStatus, isConfirmed, pollForMemories])
 
 	useEffect(() => {
 		if (!formData) return
 
-		const formDataMessages: typeof messages = []
+		const formDataMessages: typeof timelineMessages = []
 
 		if (formData.twitter) {
 			formDataMessages.push({
@@ -172,125 +395,9 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 			})
 		}
 
-		setMessages(formDataMessages)
-
-		const hasContent =
-			formData.twitter ||
-			formData.linkedin ||
-			formData.otherLinks.length > 0 ||
-			formData.description?.trim()
-
-		if (!hasContent) return
-
-		const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
-
-		const processContent = async () => {
-			setIsLoading(true)
-
-			try {
-				const documentIds: string[] = []
-
-				if (formData.description?.trim()) {
-					try {
-						const descDocResponse = await $fetch("@post/documents", {
-							body: {
-								content: formData.description,
-								containerTags: ["sm_project_default"],
-								metadata: {
-									sm_source: "consumer",
-									description_source: "user_input",
-								},
-							},
-						})
-
-						if (descDocResponse.data?.id) {
-							documentIds.push(descDocResponse.data.id)
-						}
-					} catch (error) {
-						console.warn("Error creating description document:", error)
-					}
-				}
-
-				if (formData.twitter) {
-					try {
-						const researchResponse = await fetch("/api/onboarding/research", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								xUrl: formData.twitter,
-								name: user?.name,
-								email: user?.email,
-							}),
-						})
-
-						if (researchResponse.ok) {
-							const { text } = await researchResponse.json()
-
-							if (text?.trim()) {
-								const xDocResponse = await $fetch("@post/documents", {
-									body: {
-										content: text,
-										containerTags: ["sm_project_default"],
-										metadata: {
-											sm_source: "consumer",
-											onboarding_source: "x_research",
-											x_url: formData.twitter,
-										},
-									},
-								})
-
-								if (xDocResponse.data?.id) {
-									documentIds.push(xDocResponse.data.id)
-								}
-							}
-						}
-					} catch (error) {
-						console.warn("Error fetching X research:", error)
-					}
-				}
-
-				if (urls.length > 0) {
-					const response = await fetch("/api/onboarding/extract-content", {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ urls }),
-					})
-					const { results } = await response.json()
-
-					for (const result of results) {
-						try {
-							const docResponse = await $fetch("@post/documents", {
-								body: {
-									content: result.text || result.description || "",
-									containerTags: ["sm_project_default"],
-									metadata: {
-										sm_source: "consumer",
-										exa_url: result.url,
-										exa_title: result.title,
-									},
-								},
-							})
-
-							if (docResponse.data?.id) {
-								documentIds.push(docResponse.data.id)
-							}
-						} catch (error) {
-							console.warn("Error creating document:", error)
-						}
-					}
-				}
-
-				if (documentIds.length > 0) {
-					await pollForMemories(documentIds)
-				}
-			} catch (error) {
-				console.warn("Error processing content:", error)
-			}
-			setIsLoading(false)
-		}
-
-		processContent()
-	}, [formData, pollForMemories, user])
+		setTimelineMessages(formDataMessages)
+		buildDraftDocs()
+	}, [formData, buildDraftDocs])
 
 	return (
 		<AnimatePresence mode="wait">
@@ -337,8 +444,8 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						<PanelRightCloseIcon className="size-4" />
 						Close chat
 					</motion.button>
-					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end">
-						{messages.map((msg, i) => (
+					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end overflow-y-auto scrollbar-thin">
+						{timelineMessages.map((msg, i) => (
 							<div
 								key={`message-${i}-${msg.message}`}
 								className="flex items-start gap-2"
@@ -438,12 +545,78 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 								)}
 							</div>
 						))}
-						{messages.length === 0 && !isLoading && !formData && (
-							<div className="flex items-center gap-2 text-white/50">
-								<NovaOrb size={28} className="blur-none!" />
-								<span className="text-sm">Waiting for your input</span>
-							</div>
-						)}
+						{chatMessages.map((msg) => {
+							if (msg.role === "user") {
+								const text = msg.parts
+									.filter((part) => part.type === "text")
+									.map((part) => part.text)
+									.join(" ")
+								return (
+									<div
+										key={msg.id}
+										className="flex items-start gap-2 justify-end"
+									>
+										<div className="bg-[#1B1F24] rounded-[12px] p-3 px-[14px] max-w-[80%]">
+											<p className="text-sm text-white">{text}</p>
+										</div>
+									</div>
+								)
+							}
+							if (msg.role === "assistant") {
+								return (
+									<div key={msg.id} className="flex items-start gap-2">
+										<NovaOrb size={30} className="blur-none!" />
+										<div className="flex-1">
+											{msg.parts.map((part, partIndex) => {
+												if (part.type === "text") {
+													return (
+														<div
+															key={`${msg.id}-${partIndex}`}
+															className="text-sm text-white/90 chat-markdown-content"
+														>
+															<Streamdown>{part.text}</Streamdown>
+														</div>
+													)
+												}
+												if (part.type === "tool-searchMemories") {
+													if (
+														part.state === "input-available" ||
+														part.state === "input-streaming"
+													) {
+														return (
+															<div
+																key={`${msg.id}-${partIndex}`}
+																className="text-xs text-white/50 italic"
+															>
+																Searching memories...
+															</div>
+														)
+													}
+												}
+												return null
+											})}
+										</div>
+									</div>
+								)
+							}
+							return null
+						})}
+						{(status === "submitted" || status === "streaming") &&
+							chatMessages[chatMessages.length - 1]?.role === "user" && (
+								<div className="flex items-start gap-2">
+									<NovaOrb size={30} className="blur-none!" />
+									<span className="text-sm text-white/50">Thinking...</span>
+								</div>
+							)}
+						{timelineMessages.length === 0 &&
+							chatMessages.length === 0 &&
+							!isLoading &&
+							!formData && (
+								<div className="flex items-center gap-2 text-white/50">
+									<NovaOrb size={28} className="blur-none!" />
+									<span className="text-sm">Waiting for your input</span>
+								</div>
+							)}
 						{isLoading && (
 							<div className="flex items-center gap-2 text-foreground/50">
 								<NovaOrb size={28} className="blur-none!" />
@@ -452,7 +625,106 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 						)}
 					</div>
 
-					<div className="p-4">
+					{draftDocs.some((d) => d.kind === "x_research") && !isConfirmed && (
+						<div className="px-4 pb-2 space-y-3">
+							<div className="bg-[#293952]/40 rounded-lg p-3 space-y-2">
+								<h3
+									className="text-sm font-medium"
+									style={{
+										background:
+											"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
+										WebkitBackgroundClip: "text",
+										WebkitTextFillColor: "transparent",
+										backgroundClip: "text",
+									}}
+								>
+									Your Profile Summary
+								</h3>
+								<div className="overflow-y-auto scrollbar-thin max-h-32">
+									<p className="text-xs text-white/70">
+										{draftDocs.find((d) => d.kind === "x_research")?.content}
+									</p>
+								</div>
+								<div className="flex items-center gap-2 pt-2">
+									<span className="text-xs text-white/50">
+										Is this accurate?
+									</span>
+									<button
+										type="button"
+										onClick={() => {
+											setXResearchStatus("correct")
+											handleConfirmDocs()
+										}}
+										disabled={isConfirmed || isLoading}
+										className={cn(
+											"flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors cursor-pointer",
+											xResearchStatus === "correct"
+												? "bg-green-500/20 text-green-400 border border-green-500/40"
+												: "bg-[#1B1F24] text-white/50 hover:text-white/70",
+											(isConfirmed || isLoading) && "opacity-50 cursor-not-allowed",
+										)}
+									>
+										<CheckIcon className="size-3" />
+										Correct
+									</button>
+									<button
+										type="button"
+										onClick={() => setXResearchStatus("incorrect")}
+										className={cn(
+											"flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors cursor-pointer",
+											xResearchStatus === "incorrect"
+												? "bg-red-500/20 text-red-400 border border-red-500/40"
+												: "bg-[#1B1F24] text-white/50 hover:text-white/70",
+										)}
+									>
+										<XIcon className="size-3" />
+										Incorrect
+									</button>
+								</div>
+								{xResearchStatus === "incorrect" && (
+									<>
+										<p className="text-xs text-white/40 pt-1">
+											If incorrect, share your info in the input below, or you
+											can add memories later as well.
+										</p>
+										<Button
+											type="button"
+											onClick={handleConfirmDocs}
+											disabled={isConfirmed || isLoading}
+											className="w-full bg-[#267BF1] hover:bg-[#1E6AD9] text-white rounded-lg py-2 text-sm cursor-pointer mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											Continue
+										</Button>
+									</>
+								)}
+							</div>
+						</div>
+					)}
+
+					{!draftDocs.some((d) => d.kind === "x_research") &&
+						draftDocs.length > 0 &&
+						!isConfirmed && (
+							<div className="px-4 pb-2">
+								<Button
+									type="button"
+									onClick={handleConfirmDocs}
+									disabled={isConfirmed || isLoading}
+									className="w-full bg-[#267BF1] hover:bg-[#1E6AD9] text-white rounded-lg py-2 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									Continue
+								</Button>
+							</div>
+						)}
+
+					<div className="p-4 space-y-2">
+						{isFetchingDrafts && (
+							<div className="flex items-center gap-2 text-white/50 px-2">
+								<NovaOrb size={20} className="blur-none!" />
+								<span className="text-sm">
+									Getting all relevant info about you...
+								</span>
+							</div>
+						)}
 						<form
 							className="flex flex-col gap-3 bg-[#0D121A] rounded-xl p-2 relative"
 							onSubmit={(e) => {
@@ -468,11 +740,16 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 								onKeyDown={handleKeyDown}
 								placeholder="Chat with your Supermemory"
 								className="w-full text-white placeholder:text-white/20 rounded-sm outline-none resize-none text-base leading-relaxed bg-transparent px-2 h-10"
+								disabled={status === "submitted" || status === "streaming"}
 							/>
 							<div className="flex justify-end absolute bottom-3 right-2">
 								<Button
 									type="submit"
-									disabled={!message.trim()}
+									disabled={
+										!message.trim() ||
+										status === "submitted" ||
+										status === "streaming"
+									}
 									className="text-white/20 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all"
 									size="icon"
 								>

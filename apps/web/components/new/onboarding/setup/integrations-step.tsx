@@ -165,7 +165,7 @@ export function IntegrationsStep() {
 					variant="link"
 					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"
 					onClick={() =>
-						router.push("/new/onboarding?flow=setup&step=relatable")
+						router.push("/new/onboarding/setup?step=relatable")
 					}
 				>
 					← Back

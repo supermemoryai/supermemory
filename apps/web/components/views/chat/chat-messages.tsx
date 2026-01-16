@@ -20,7 +20,7 @@ import { Streamdown } from "streamdown"
 import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
-import { modelNames, ModelIcon } from "@/lib/models"
+import { ModelIcon } from "@/lib/models"
 import { Spinner } from "../../spinner"
 import { areUIMessageArraysEqual } from "@/stores/chat"
 
@@ -270,7 +270,6 @@ export function ChatMessages() {
 					},
 				},
 			}),
-			maxSteps: 10,
 			onFinish: (result) => {
 				const activeId = activeChatIdRef.current
 				if (!activeId) return

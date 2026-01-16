@@ -292,7 +292,7 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 							otherLinks: otherLinks.filter((l) => l.trim()),
 						}
 						onSubmit(formData)
-						router.push("/new/onboarding?flow=setup&step=relatable")
+						router.push("/new/onboarding/setup?step=relatable")
 					}}
 				>
 					{isSubmitting ? "Fetching..." : "Remember this →"}

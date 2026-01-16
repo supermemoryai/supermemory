@@ -3,11 +3,27 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $fetch } from "@lib/api"
+import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
+import type { z } from "zod"
+
+type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
+
+interface DocumentWithId {
+	id?: string
+	customId?: string | null
+}
 
 interface DocumentsQueryData {
-	documents: unknown[]
+	documents: DocumentWithId[]
 	totalCount: number
 }
+
+type InfiniteQueryData = {
+	pages: DocumentsResponse[]
+	pageParams: number[]
+}
+
+type QueryData = DocumentsQueryData | InfiniteQueryData
 
 interface UseDocumentMutationsOptions {
 	onClose?: () => void
@@ -51,7 +67,7 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 			])
 
 			const optimisticMemory = {
-				id: `temp-${Date.now()}`,
+				id: `temp-${crypto.randomUUID()}`,
 				content: content,
 				url: null,
 				title: content.substring(0, 100),
@@ -134,7 +150,7 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 			])
 
 			const optimisticMemory = {
-				id: `temp-${Date.now()}`,
+				id: `temp-${crypto.randomUUID()}`,
 				content: "",
 				url: url,
 				title: "Processing...",
@@ -251,7 +267,7 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 			])
 
 			const optimisticMemory = {
-				id: `temp-file-${Date.now()}`,
+				id: `temp-file-${crypto.randomUUID()}`,
 				content: "",
 				url: null,
 				title: title || file.name,
@@ -341,10 +357,100 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 		},
 	})
 
+	const deleteMutation = useMutation({
+		mutationFn: async ({ documentId }: { documentId: string }) => {
+			const response = await $fetch("@delete/documents/:id", {
+				params: { id: documentId },
+			})
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to delete document")
+			}
+
+			return response.data
+		},
+		onMutate: async ({ documentId }) => {
+			await queryClient.cancelQueries({
+				queryKey: ["documents-with-memories"],
+			})
+
+			const previousQueries = queryClient.getQueriesData({
+				queryKey: ["documents-with-memories"],
+			})
+
+			queryClient.setQueriesData(
+				{ queryKey: ["documents-with-memories"] },
+				(old: QueryData | undefined) => {
+					if (!old) return old
+
+					if ("pages" in old) {
+						const infiniteData = old as InfiniteQueryData
+						return {
+							...infiniteData,
+							pages: infiniteData.pages.map((page) => {
+								if (!page?.documents) return page
+								return {
+									...page,
+									documents: page.documents.filter(
+										(doc) => doc.id !== documentId && doc.customId !== documentId,
+									),
+									pagination: page.pagination
+										? {
+												...page.pagination,
+												totalItems: Math.max(
+													0,
+													(page.pagination.totalItems ?? 0) - 1,
+												),
+											}
+										: page.pagination,
+								}
+							}),
+						}
+					}
+
+					if ("documents" in old) {
+						const queryData = old as DocumentsQueryData
+						return {
+							...queryData,
+							documents: queryData.documents.filter(
+								(doc: DocumentWithId) => {
+									return doc.id !== documentId && doc.customId !== documentId
+								},
+							),
+							totalCount: Math.max(0, (queryData.totalCount ?? 0) - 1),
+						}
+					}
+
+					return old
+				},
+			)
+
+			return { previousQueries }
+		},
+		onError: (_error, _variables, context) => {
+			if (context?.previousQueries) {
+				context.previousQueries.forEach(([queryKey, data]) => {
+					queryClient.setQueryData(queryKey, data)
+				})
+			}
+			toast.error("Failed to delete document", {
+				description: _error instanceof Error ? _error.message : "Unknown error",
+			})
+		},
+		onSuccess: () => {
+			toast.success("Document deleted successfully!")
+			queryClient.invalidateQueries({
+				queryKey: ["documents-with-memories"],
+			})
+			onClose?.()
+		},
+	})
+
 	return {
 		noteMutation,
 		linkMutation,
 		fileMutation,
 		updateMutation,
+		deleteMutation,
 	}
 }

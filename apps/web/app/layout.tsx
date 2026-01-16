@@ -33,6 +33,14 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" suppressHydrationWarning>
+			<head>
+				{process.env.NODE_ENV === "development" && (
+					<script
+						crossOrigin="anonymous"
+						src="https://unpkg.com/react-scan/dist/auto.global.js"
+					/>
+				)}
+			</head>
 			<body
 				className={`${font.variable} antialiased overflow-x-hidden`}
 				suppressHydrationWarning
