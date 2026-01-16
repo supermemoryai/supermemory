@@ -27,9 +27,7 @@ const steps = [
 	},
 ]
 
-export function XBookmarksDetailView({
-	onBack,
-}: XBookmarksDetailViewProps) {
+export function XBookmarksDetailView({ onBack }: XBookmarksDetailViewProps) {
 	const handleInstall = () => {
 		window.open(
 			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnangednailhoegogi",

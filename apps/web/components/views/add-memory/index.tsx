@@ -420,9 +420,12 @@ export function AddMemoryView({
 			const formData = new FormData()
 			formData.append("file", file)
 			formData.append("containerTags", JSON.stringify([project]))
-			formData.append("metadata", JSON.stringify({
-				sm_source: "consumer",
-			}))
+			formData.append(
+				"metadata",
+				JSON.stringify({
+					sm_source: "consumer",
+				}),
+			)
 
 			const response = await fetch(
 				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,

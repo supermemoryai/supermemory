@@ -2,21 +2,21 @@
 
 import { signIn } from "@lib/auth";
 import { usePostHog } from "@lib/posthog";
+import { cn } from "@lib/utils";
 import { TextSeparator } from "@repo/ui/components/text-separator";
+import { Logo } from "@ui/assets/Logo";
 import { ExternalAuthButton } from "@ui/button/external-auth";
-import { Button } from "@ui/components/button";
 import { Badge } from "@ui/components/badge";
+import { Button } from "@ui/components/button";
 import { LabeledInput } from "@ui/input/labeled-input";
 import { HeadingH3Medium } from "@ui/text/heading/heading-h3-medium";
 import { Label1Regular } from "@ui/text/label/label-1-regular";
 import { Title1Bold } from "@ui/text/title/title-1-bold";
-import { InitialHeader } from "../../../apps/web/components/initial-header";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { InitialHeader } from "../../../apps/web/components/initial-header";
 import { dmSansClassName } from "../../../apps/web/utils/fonts";
-import { cn } from "@lib/utils";
-import { Logo } from "@ui/assets/Logo";
 
 function AnimatedGradientBackground() {
 	return (
@@ -260,10 +260,7 @@ export function LoginPage() {
 						</LoginCard>
 					) : (
 						<LoginCard>
-							<div
-								className="w-[360px] flex flex-col"
-								style={{ gap: "12px" }}
-							>
+							<div className="w-[360px] flex flex-col" style={{ gap: "12px" }}>
 								{params.get("error") && (
 									<div className="text-red-500">
 										Error: {params.get("error")}. Please try again!

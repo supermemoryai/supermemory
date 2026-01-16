@@ -21,7 +21,9 @@ export function LabeledInput({
 }: LabeledInputProps) {
 	return (
 		<div className={cn("flex flex-col gap-2", className)} {...props}>
-			{label && <Label1Regular className="text-foreground">{label}</Label1Regular>}
+			{label && (
+				<Label1Regular className="text-foreground">{label}</Label1Regular>
+			)}
 			<Input
 				className={cn(
 					"w-full leading-[1.375rem] tracking-[-0.4px] rounded-xl p-4 placeholder:text-muted-foreground/50 text-foreground disabled:cursor-not-allowed disabled:opacity-50",
@@ -32,7 +34,8 @@ export function LabeledInput({
 					borderRadius: "12px",
 					border: "1px solid rgba(82, 89, 102, 0.20)",
 					background: "#070E1B",
-					boxShadow: "0 1px 2px 0 rgba(0, 43, 87, 0.10), 0 0 0 1px rgba(43, 49, 67, 0.08) inset, 0 1px 1px 0 rgba(0, 0, 0, 0.08) inset, 0 2px 4px 0 rgba(0, 0, 0, 0.02) inset",
+					boxShadow:
+						"0 1px 2px 0 rgba(0, 43, 87, 0.10), 0 0 0 1px rgba(43, 49, 67, 0.08) inset, 0 1px 1px 0 rgba(0, 0, 0, 0.08) inset, 0 2px 4px 0 rgba(0, 0, 0, 0.02) inset",
 				}}
 				placeholder={inputPlaceholder}
 				type={inputType}

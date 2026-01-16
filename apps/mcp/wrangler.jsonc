@@ -9,12 +9,12 @@
 		"API_URL": "https://api.supermemory.ai"
 	},
 	"routes": [
-     {
-       "pattern": "mcp.supermemory.ai",
-       "zone_name": "supermemory.ai",
-       "custom_domain": true
-     }
- ],
+		{
+			"pattern": "mcp.supermemory.ai",
+			"zone_name": "supermemory.ai",
+			"custom_domain": true
+		}
+	],
 	"durable_objects": {
 		"bindings": [
 			{

@@ -158,6 +158,38 @@ export const apiSchema = createSchema({
 		input: MigrateMCPRequestSchema,
 		output: MigrateMCPResponseSchema,
 	},
+	"@post/documents/graph/viewport": {
+		input: z.object({
+			viewport: z.object({
+				minX: z.number(),
+				maxX: z.number(),
+				minY: z.number(),
+				maxY: z.number(),
+			}),
+			containerTags: z.array(z.string()).optional(),
+			timeFilter: z.object({
+				before: z.string().optional(),
+			}).optional(),
+			limit: z.number().optional(),
+		}),
+		output: z.object({
+			documents: z.array(z.any()),
+			edges: z.array(
+				z.object({
+					source: z.string(),
+					target: z.string(),
+					similarity: z.number(),
+				}),
+			),
+			viewport: z.object({
+				minX: z.number(),
+				maxX: z.number(),
+				minY: z.number(),
+				maxY: z.number(),
+			}),
+			timestamp: z.string(),
+		}),
+	},
 
 	"@get/documents/:id": {
 		output: z.any(),

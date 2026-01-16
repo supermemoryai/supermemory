@@ -15,7 +15,9 @@ export function InitialHeader({
 				<Logo className="h-7" />
 				{showUserSupermemory && (
 					<div className="flex flex-col items-start justify-center ml-2">
-						<p className="text-[#8B8B8B] text-[11px] leading-tight">{userName}</p>
+						<p className="text-[#8B8B8B] text-[11px] leading-tight">
+							{userName}
+						</p>
 						<p className="text-white font-bold text-xl leading-none -mt-1">
 							supermemory
 						</p>

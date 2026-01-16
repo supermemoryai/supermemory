@@ -46,7 +46,7 @@ export default function NavigationLayout({
 			<div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-white/10">
 				<Header onAddMemory={() => setShowAddMemoryView(true)} />
 			</div>
-			<div className="flex-1">{children}</div>
+			<div className="flex-1 overflow-hidden">{children}</div>
 			{showAddMemoryView && (
 				<AddMemoryView
 					initialTab="note"

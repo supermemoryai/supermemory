@@ -20,12 +20,12 @@ const supermemoryProfileSearch = async (
 ): Promise<ProfileStructure> => {
 	const payload = queryText
 		? JSON.stringify({
-			q: queryText,
-			containerTag: containerTag,
-		})
+				q: queryText,
+				containerTag: containerTag,
+			})
 		: JSON.stringify({
-			containerTag: containerTag,
-		})
+				containerTag: containerTag,
+			})
 
 	try {
 		const response = await fetch(`${baseUrl}/v4/profile`, {
@@ -68,16 +68,16 @@ export const addSystemPrompt = async (
 	const queryText =
 		mode !== "profile"
 			? params.prompt
-				.slice()
-				.reverse()
-				.find((prompt: { role: string }) => prompt.role === "user")
-				?.content?.filter(
-					(content: { type: string }) => content.type === "text",
-				)
-				?.map((content: { type: string; text: string }) =>
-					content.type === "text" ? content.text : "",
-				)
-				?.join(" ") || ""
+					.slice()
+					.reverse()
+					.find((prompt: { role: string }) => prompt.role === "user")
+					?.content?.filter(
+						(content: { type: string }) => content.type === "text",
+					)
+					?.map((content: { type: string; text: string }) =>
+						content.type === "text" ? content.text : "",
+					)
+					?.join(" ") || ""
 			: ""
 
 	const memoriesResponse = await supermemoryProfileSearch(
@@ -123,18 +123,18 @@ export const addSystemPrompt = async (
 	const profileData =
 		mode !== "query"
 			? convertProfileToMarkdown({
-				profile: {
-					static: deduplicated.static,
-					dynamic: deduplicated.dynamic,
-				},
-				searchResults: { results: [] },
-			})
+					profile: {
+						static: deduplicated.static,
+						dynamic: deduplicated.dynamic,
+					},
+					searchResults: { results: [] },
+				})
 			: ""
 	const searchResultsMemories =
 		mode !== "profile"
 			? `Search results for user's recent message: \n${deduplicated.searchResults
-				.map((memory) => `- ${memory}`)
-				.join("\n")}`
+					.map((memory) => `- ${memory}`)
+					.join("\n")}`
 			: ""
 
 	const memories =

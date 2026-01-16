@@ -17,7 +17,7 @@ import { createClaudeMemoryTool, type MemoryCommand } from "./claude-memory"
  */
 export async function directFetchExample() {
 	console.log("🚀 Direct Fetch Example - Claude Memory Tool")
-	console.log("=" .repeat(50))
+	console.log("=".repeat(50))
 
 	// Initialize the memory tool
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
@@ -30,7 +30,8 @@ export async function directFetchExample() {
 		{
 			command: "create",
 			path: "/memories/project-notes.md",
-			file_text: "# Project Notes\n\n## Meeting with Client\n- Discussed requirements\n- Set deadline for next week\n- Need to follow up on budget\n\n## Technical Notes\n- Use React for frontend\n- Node.js backend\n- PostgreSQL database",
+			file_text:
+				"# Project Notes\n\n## Meeting with Client\n- Discussed requirements\n- Set deadline for next week\n- Need to follow up on budget\n\n## Technical Notes\n- Use React for frontend\n- Node.js backend\n- PostgreSQL database",
 		},
 		{
 			command: "view",
@@ -56,7 +57,8 @@ export async function directFetchExample() {
 		{
 			command: "create",
 			path: "/memories/todo.txt",
-			file_text: "TODO List:\n1. Set up development environment\n2. Create project structure\n3. Implement authentication\n4. Build user dashboard",
+			file_text:
+				"TODO List:\n1. Set up development environment\n2. Create project structure\n3. Implement authentication\n4. Build user dashboard",
 		},
 		{
 			command: "view",
@@ -67,7 +69,9 @@ export async function directFetchExample() {
 	// Execute each command
 	for (let i = 0; i < commands.length; i++) {
 		const command = commands[i]
-		console.log(`\n📝 Step ${i + 1}: ${command.command.toUpperCase()} ${command.path}`)
+		console.log(
+			`\n📝 Step ${i + 1}: ${command.command.toUpperCase()} ${command.path}`,
+		)
 
 		try {
 			const result = await memoryTool.handleCommand(command)
@@ -98,7 +102,7 @@ export async function directFetchExample() {
  */
 export async function anthropicSdkExample() {
 	console.log("🤖 Anthropic SDK Example - Claude Memory Tool")
-	console.log("=" .repeat(50))
+	console.log("=".repeat(50))
 
 	// Initialize memory tool
 	const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
@@ -110,20 +114,28 @@ export async function anthropicSdkExample() {
 	console.log("🗣️  Simulating Claude conversation with memory tool access...")
 
 	// Scenario: User asks Claude to remember something
-	console.log("\nUser: 'Remember that I prefer React over Vue for frontend development'")
+	console.log(
+		"\nUser: 'Remember that I prefer React over Vue for frontend development'",
+	)
 
 	const rememberResult = await memoryTool.handleCommand({
 		command: "create",
 		path: "/memories/user-preferences.md",
-		file_text: "# User Preferences\n\n## Frontend Development\n- Prefers React over Vue\n- Likes TypeScript for type safety",
+		file_text:
+			"# User Preferences\n\n## Frontend Development\n- Prefers React over Vue\n- Likes TypeScript for type safety",
 	})
 
 	console.log("🤖 Claude: 'I'll remember that preference for you.'")
-	console.log("Memory operation result:", rememberResult.success ? "✅ Stored" : "❌ Failed")
+	console.log(
+		"Memory operation result:",
+		rememberResult.success ? "✅ Stored" : "❌ Failed",
+	)
 
 	// Scenario: User asks about their preferences later
 	console.log("\nUser: 'What frontend framework do I prefer?'")
-	console.log("🤖 Claude: 'Let me check what I remember about your preferences...'")
+	console.log(
+		"🤖 Claude: 'Let me check what I remember about your preferences...'",
+	)
 
 	const recallResult = await memoryTool.handleCommand({
 		command: "view",
@@ -133,20 +145,27 @@ export async function anthropicSdkExample() {
 	if (recallResult.success) {
 		console.log("📚 Claude retrieved from memory:")
 		console.log(recallResult.content)
-		console.log("\n🤖 Claude: 'Based on what I remember, you prefer React over Vue for frontend development!'")
+		console.log(
+			"\n🤖 Claude: 'Based on what I remember, you prefer React over Vue for frontend development!'",
+		)
 	}
 
 	// Scenario: User provides additional context
-	console.log("\nUser: 'Actually, also add that I like using Tailwind CSS for styling'")
+	console.log(
+		"\nUser: 'Actually, also add that I like using Tailwind CSS for styling'",
+	)
 
 	await memoryTool.handleCommand({
 		command: "str_replace",
 		path: "/memories/user-preferences.md",
 		old_str: "- Likes TypeScript for type safety",
-		new_str: "- Likes TypeScript for type safety\n- Prefers Tailwind CSS for styling",
+		new_str:
+			"- Likes TypeScript for type safety\n- Prefers Tailwind CSS for styling",
 	})
 
-	console.log("🤖 Claude: 'I've updated my memory with your Tailwind CSS preference!'")
+	console.log(
+		"🤖 Claude: 'I've updated my memory with your Tailwind CSS preference!'",
+	)
 
 	// Scenario: Show current memory directory
 	console.log("\n🤖 Claude: 'Here's what I currently remember about you:'")
@@ -216,7 +235,7 @@ async function chatWithMemory(userMessage: string) {
 // Example usage:
 // await chatWithMemory("Remember that I'm working on a React project with TypeScript");
 // await chatWithMemory("What programming languages am I using in my current project?");
-`;
+`
 
 // =====================================================
 // Example 4: cURL Commands for Testing
@@ -280,7 +299,7 @@ curl -X PATCH "https://api.supermemory.ai/v3/documents/DOCUMENT_ID" \\
 # 5. Delete a memory file
 curl -X DELETE "https://api.supermemory.ai/v3/documents/DOCUMENT_ID" \\
   -H "Authorization: Bearer YOUR_API_KEY"
-`;
+`
 
 // =====================================================
 // Main runner function
@@ -288,30 +307,29 @@ curl -X DELETE "https://api.supermemory.ai/v3/documents/DOCUMENT_ID" \\
 
 export async function runAllExamples() {
 	if (!process.env.SUPERMEMORY_API_KEY) {
-		console.error("❌ SUPERMEMORY_API_KEY environment variable is required");
-		console.log("Set your API key in .env file or environment variable");
-		return;
+		console.error("❌ SUPERMEMORY_API_KEY environment variable is required")
+		console.log("Set your API key in .env file or environment variable")
+		return
 	}
 
 	try {
-		await directFetchExample();
-		console.log("\\n" + "=".repeat(70) + "\\n");
-		await anthropicSdkExample();
+		await directFetchExample()
+		console.log("\\n" + "=".repeat(70) + "\\n")
+		await anthropicSdkExample()
 
-		console.log("\\n" + "=".repeat(70));
-		console.log("📋 Real Anthropic SDK Integration Template:");
-		console.log(anthropicIntegrationTemplate);
+		console.log("\\n" + "=".repeat(70))
+		console.log("📋 Real Anthropic SDK Integration Template:")
+		console.log(anthropicIntegrationTemplate)
 
-		console.log("\\n" + "=".repeat(70));
-		console.log("🔧 cURL Examples for Direct API Testing:");
-		console.log(curlExamples);
-
+		console.log("\\n" + "=".repeat(70))
+		console.log("🔧 cURL Examples for Direct API Testing:")
+		console.log(curlExamples)
 	} catch (error) {
-		console.error("💥 Error running examples:", error);
+		console.error("💥 Error running examples:", error)
 	}
 }
 
 // Run examples if this file is executed directly
 if (import.meta.main) {
-	runAllExamples();
+	runAllExamples()
 }

@@ -65,13 +65,12 @@ export function useYouTubeChannelName(url: string | undefined | null) {
 	})
 }
 
-
 export function getAbsoluteUrl(url: string): string {
 	try {
 		const urlObj = new URL(url)
 		return urlObj.host.replace(/^www\./, "")
 	} catch {
-		const match = url.match(/^https?:\/\/([^\/]+)/)
+		const match = url.match(/^https?:\/\/([^/]+)/)
 		const host = match?.[1] ?? url.replace(/^https?:\/\//, "")
 		return host.replace(/^www\./, "")
 	}

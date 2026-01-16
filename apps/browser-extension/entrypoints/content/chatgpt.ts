@@ -209,7 +209,6 @@ function addSupermemoryButtonToMemoriesDialog() {
 
 	if (memoriesDialog.querySelector("#supermemory-save-button")) return
 
-
 	const deleteAllContainer = memoriesDialog.querySelector(
 		".flex.items-center.gap-0\\.5",
 	)

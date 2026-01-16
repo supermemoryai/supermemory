@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/performance/noImgElement: Not Next.js environment */
-import { ImageResponse } from "next/og";
+import { ImageResponse } from "next/og"
 
 export async function GET() {
 	return new ImageResponse(
@@ -15,5 +15,5 @@ export async function GET() {
 			width: 1200,
 			height: 630,
 		},
-	);
+	)
 }

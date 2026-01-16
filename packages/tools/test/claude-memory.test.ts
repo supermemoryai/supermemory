@@ -357,7 +357,8 @@ async function runManualTests() {
 			command: {
 				command: "create" as const,
 				path: "/memories/manual-test.md",
-				file_text: "# Manual Test File\n\nThis is a test file for manual testing.\n\n- Item 1\n- Item 2\n- Item 3",
+				file_text:
+					"# Manual Test File\n\nThis is a test file for manual testing.\n\n- Item 1\n- Item 2\n- Item 3",
 			},
 		},
 		{
@@ -440,7 +441,9 @@ async function runManualTests() {
 	}
 
 	console.log("\n✨ Manual tests completed!")
-	console.log("Check your supermemory instance to verify the memory files were created correctly.")
+	console.log(
+		"Check your supermemory instance to verify the memory files were created correctly.",
+	)
 }
 
 // If this file is run directly, execute manual tests

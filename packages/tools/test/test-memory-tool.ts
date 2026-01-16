@@ -9,7 +9,7 @@ import "dotenv/config"
 
 async function testMemoryTool() {
 	console.log("🧪 Testing Claude Memory Tool Operations")
-	console.log("=" .repeat(50))
+	console.log("=".repeat(50))
 
 	if (!process.env.SUPERMEMORY_API_KEY) {
 		console.error("❌ SUPERMEMORY_API_KEY environment variable is required")
@@ -37,7 +37,8 @@ async function testMemoryTool() {
 			command: {
 				command: "create",
 				path: "/memories/project-notes.md",
-				file_text: "# Project Notes\\n\\n## Meeting Notes\\n- Discussed requirements\\n- Set timeline\\n- Assigned tasks\\n\\n## Technical Stack\\n- Frontend: React\\n- Backend: Node.js\\n- Database: PostgreSQL",
+				file_text:
+					"# Project Notes\\n\\n## Meeting Notes\\n- Discussed requirements\\n- Set timeline\\n- Assigned tasks\\n\\n## Technical Stack\\n- Frontend: React\\n- Backend: Node.js\\n- Database: PostgreSQL",
 			},
 			expectSuccess: true,
 		},
@@ -46,7 +47,8 @@ async function testMemoryTool() {
 			command: {
 				command: "create",
 				path: "/memories/todo.txt",
-				file_text: "TODO List:\\n1. Set up development environment\\n2. Create database schema\\n3. Build authentication system\\n4. Implement user dashboard\\n5. Write documentation",
+				file_text:
+					"TODO List:\\n1. Set up development environment\\n2. Create database schema\\n3. Build authentication system\\n4. Implement user dashboard\\n5. Write documentation",
 			},
 			expectSuccess: true,
 		},
@@ -99,7 +101,8 @@ async function testMemoryTool() {
 			command: {
 				command: "create",
 				path: "/memories/personal/preferences.md",
-				file_text: "# My Preferences\\n\\n- Prefers React over Vue\\n- Uses TypeScript for type safety\\n- Likes clean, readable code\\n- Prefers functional programming style",
+				file_text:
+					"# My Preferences\\n\\n- Prefers React over Vue\\n- Uses TypeScript for type safety\\n- Likes clean, readable code\\n- Prefers functional programming style",
 			},
 			expectSuccess: true,
 		},
@@ -150,12 +153,16 @@ async function testMemoryTool() {
 					console.log("📄 Result:")
 					console.log(result.content)
 				} else if (result.content) {
-					console.log(`📄 Result: ${result.content.substring(0, 100)}... (truncated)`)
+					console.log(
+						`📄 Result: ${result.content.substring(0, 100)}... (truncated)`,
+					)
 				}
 				passed++
 			} else {
 				console.log("❌ FAIL")
-				console.log(`Expected success: ${testCase.expectSuccess}, got: ${result.success}`)
+				console.log(
+					`Expected success: ${testCase.expectSuccess}, got: ${result.success}`,
+				)
 				if (result.error) {
 					console.log(`Error: ${result.error}`)
 				}
@@ -168,16 +175,20 @@ async function testMemoryTool() {
 		}
 
 		// Add a small delay to avoid rate limiting
-		await new Promise(resolve => setTimeout(resolve, 500))
+		await new Promise((resolve) => setTimeout(resolve, 500))
 	}
 
-	console.log(`\\n📊 Test Results:`)
+	console.log("\\n📊 Test Results:")
 	console.log(`✅ Passed: ${passed}`)
 	console.log(`❌ Failed: ${failed}`)
-	console.log(`📈 Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`)
+	console.log(
+		`📈 Success Rate: ${((passed / (passed + failed)) * 100).toFixed(1)}%`,
+	)
 
 	if (failed === 0) {
-		console.log("\\n🎉 All tests passed! Claude Memory Tool is working perfectly!")
+		console.log(
+			"\\n🎉 All tests passed! Claude Memory Tool is working perfectly!",
+		)
 	} else {
 		console.log(`\\n⚠️  ${failed} test(s) failed. Check the errors above.`)
 	}

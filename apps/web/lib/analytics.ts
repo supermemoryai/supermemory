@@ -2,9 +2,9 @@ import posthog from "posthog-js"
 
 // Helper function to safely capture events
 const safeCapture = (eventName: string, properties?: Record<string, any>) => {
-    if (posthog.__loaded) {
-        posthog.capture(eventName, properties)
-    }
+	if (posthog.__loaded) {
+		posthog.capture(eventName, properties)
+	}
 }
 
 export const analytics = {

@@ -56,7 +56,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 
 		// Check if it's a profile link (not a status/tweet link)
 		const profilePattern =
-			/^(https?:\/\/)?(www\.)?(x\.com|twitter\.com)\/[^\/]+$/
+			/^(https?:\/\/)?(www\.)?(x\.com|twitter\.com)\/[^/]+$/
 		const statusPattern = /\/status\//i
 
 		if (statusPattern.test(normalized) || !profilePattern.test(normalized)) {
@@ -80,7 +80,7 @@ export function MemoriesStep({ onSubmit }: MemoriesStepProps) {
 
 		// Check if it's a profile link (should have /in/ or /pub/)
 		const profilePattern =
-			/^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub)\/[^\/]+/
+			/^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub)\/[^/]+/
 
 		if (!profilePattern.test(normalized)) {
 			return "share your Linkedin profile link"

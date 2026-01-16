@@ -92,7 +92,6 @@ async function handleAllBookmarksImportClick() {
 	}
 }
 
-
 async function showAllBookmarksProjectModal(
 	projects: Array<{ id: string; name: string; containerTag: string }>,
 ) {

@@ -31,7 +31,9 @@ export default function Home() {
 
 	// State for slideshow
 	const [isSlideshowActive, setIsSlideshowActive] = useState(false)
-	const [currentSlideshowNode, setCurrentSlideshowNode] = useState<string | null>(null)
+	const [currentSlideshowNode, setCurrentSlideshowNode] = useState<
+		string | null
+	>(null)
 
 	const PAGE_SIZE = 500
 

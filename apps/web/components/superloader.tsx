@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, useReducedMotion, Variants } from "motion/react"
+import { motion, useReducedMotion, type Variants } from "motion/react"
 
 type NovaPathLoaderProps = {
 	size?: number // px

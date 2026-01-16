@@ -117,7 +117,10 @@ export function setupStorageListener() {
 			}
 
 			try {
-				await Promise.all([bearerToken.setValue(token), userData.setValue(user)])
+				await Promise.all([
+					bearerToken.setValue(token),
+					userData.setValue(user),
+				])
 			} catch {
 				// Do nothing
 			}

@@ -533,8 +533,14 @@ describe("withSupermemory / wrapVercelLanguageModel", () => {
 			)
 
 			const originalPrompt = [
-				{ role: "user" as const, content: [{ type: "text" as const, text: "First" }] },
-				{ role: "user" as const, content: [{ type: "text" as const, text: "Last" }] }
+				{
+					role: "user" as const,
+					content: [{ type: "text" as const, text: "First" }],
+				},
+				{
+					role: "user" as const,
+					content: [{ type: "text" as const, text: "Last" }],
+				},
 			]
 			const params: LanguageModelV2CallOptions = { prompt: [...originalPrompt] }
 
@@ -544,6 +550,5 @@ describe("withSupermemory / wrapVercelLanguageModel", () => {
 			expect(params.prompt[0]?.content[0]).toBe("First")
 			expect(params.prompt[1]?.content[0]).toBe("Last")
 		})
-
 	})
 })

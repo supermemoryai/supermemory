@@ -33,7 +33,10 @@ export default function Page() {
 
 			if (sessionToken && userData?.email) {
 				const encodedToken = encodeURIComponent(sessionToken)
-				window.postMessage({ token: encodedToken, userData }, window.location.origin)
+				window.postMessage(
+					{ token: encodedToken, userData },
+					window.location.origin,
+				)
 				url.searchParams.delete("extension-auth-success")
 				window.history.replaceState({}, "", url.toString())
 			}
