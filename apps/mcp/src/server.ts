@@ -20,6 +20,7 @@ type Props = {
 
 export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private clientInfo: { name: string; version?: string } | null = null
+	private cachedContainerTags: string[] = []
 
 	server = new McpServer({
 		name: "supermemory",
@@ -37,7 +38,6 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 		initPosthog(this.env.POSTHOG_API_KEY)
 
-
 		// Hook MCP McpAgent to capture client info
 		this.server.server.oninitialized = async () => {
 			const clientVersion = this.server.server.getClientVersion()
@@ -49,6 +49,11 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				await this.ctx.storage.put("clientInfo", this.clientInfo)
 			}
 		}
+
+		await this.refreshContainerTags() // Fetch available projects for schema descriptions
+
+		const containerTagDescription = this.getContainerTagDescription()
+
 		const memorySchema = z.object({
 			content: z
 				.string()
@@ -58,7 +63,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			containerTag: z
 				.string()
 				.max(128, "Container tag exceeds maximum length")
-				.describe("Optional container tag")
+				.describe(containerTagDescription)
 				.optional(),
 		})
 
@@ -71,7 +76,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			containerTag: z
 				.string()
 				.max(128, "Container tag exceeds maximum length")
-				.describe("Optional container tag")
+				.describe(containerTagDescription)
 				.optional(),
 		})
 
@@ -79,7 +84,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			containerTag: z
 				.string()
 				.max(128, "Container tag exceeds maximum length")
-				.describe("Optional container tag to scope the profile")
+				.describe(containerTagDescription)
 				.optional(),
 			includeRecent: z
 				.boolean()
@@ -176,6 +181,63 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			},
 		)
 
+		// Register listProjects tool
+		this.server.registerTool(
+			"listProjects",
+			{
+				description:
+					"List all available projects for organizing memories. Use this to discover valid project names for memory/recall operations.",
+				inputSchema: z.object({
+					refresh: z
+						.boolean()
+						.optional()
+						.default(true)
+						.describe("Refresh the list from the server (default: true)"),
+				}),
+			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
+			async (args: { refresh?: boolean }) => {
+				try {
+					if (args.refresh !== false) {
+						await this.refreshContainerTags()
+					}
+					const projects = this.cachedContainerTags
+
+					if (projects.length === 0) {
+						return {
+							content: [
+								{
+									type: "text" as const,
+									text: "No projects found. Memories will use the default project.",
+								},
+							],
+						}
+					}
+
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `Available projects:\n${projects.map((p) => `- ${p}`).join("\n")}`,
+							},
+						],
+					}
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "An unexpected error occurred"
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `Error listing projects: ${message}`,
+							},
+						],
+						isError: true,
+					}
+				}
+			},
+		)
+
 		// Register whoAmI tool
 		this.server.registerTool(
 			"whoAmI",
@@ -222,6 +284,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					"User profile and preferences for system context injection. Returns a formatted system message with user's stable preferences and recent activity.",
 				//argsSchema: contextPromptSchema.shape, TODO: commenting out for now as it will add more friction to the user
 			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
 			async (args: ContextPromptArgs) => {
 				try {
 					const { containerTag, includeRecent = true } = args
@@ -542,5 +605,22 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 	private getMcpSessionId(): string {
 		return this.ctx.id.name || "unknown"
+	}
+
+	private async refreshContainerTags(): Promise<void> {
+		try {
+			const client = this.getClient()
+			this.cachedContainerTags = await client.getProjects()
+		} catch (error) {
+			console.error("Failed to fetch container tags:", error)
+		}
+	}
+
+	private getContainerTagDescription(): string {
+		const baseDescription = "Optional project to scope memories"
+		if (this.cachedContainerTags.length === 0) {
+			return baseDescription
+		}
+		return `${baseDescription}. Available projects: ${this.cachedContainerTags.join(", ")}`
 	}
 }

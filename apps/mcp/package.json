@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.2.2",
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "agents": "^0.2.32",
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "agents": "^0.3.5",
     "hono": "^4.11.1",
     "posthog-node": "^5.18.0",
     "supermemory": "^4.0.0",

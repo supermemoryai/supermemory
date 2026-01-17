@@ -1,8 +1,9 @@
-import { Hono } from "hono"
 import { cors } from "hono/cors"
+import { Hono } from "hono"
 import { SupermemoryMCP } from "./server"
 import { isApiKey, validateApiKey, validateOAuthToken } from "./auth"
 import { initPosthog } from "./posthog"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 
 type Bindings = {
 	MCP_SERVER: DurableObjectNamespace
@@ -78,7 +79,7 @@ app.get("/.well-known/oauth-authorization-server", async (c) => {
 		if (!response.ok) {
 			return c.json(
 				{ error: "Failed to fetch authorization server metadata" },
-				response.status,
+				{ status: response.status as ContentfulStatusCode },
 			)
 		}
 
