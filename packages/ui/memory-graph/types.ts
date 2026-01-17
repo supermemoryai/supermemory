@@ -1,3 +1,4 @@
+import type React from "react";
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api";
 import type { z } from "zod";
 
