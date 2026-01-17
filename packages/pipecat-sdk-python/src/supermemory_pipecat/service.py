@@ -11,12 +11,11 @@ import os
 from typing import Any, Dict, List, Literal, Optional
 
 from loguru import logger
-from pydantic import BaseModel, Field
-
 from pipecat.frames.frames import Frame, LLMContextFrame, LLMMessagesFrame
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
+from pydantic import BaseModel, Field
 
 from .exceptions import (
     ConfigurationError,
@@ -73,7 +72,9 @@ class SupermemoryPipecatService(FrameProcessor):
 
         search_limit: int = Field(default=10, ge=1)
         search_threshold: float = Field(default=0.1, ge=0.0, le=1.0)
-        system_prompt: str = Field(default="Based on previous conversations, I recall:\n\n")
+        system_prompt: str = Field(
+            default="Based on previous conversations, I recall:\n\n"
+        )
         mode: Literal["profile", "query", "full"] = Field(default="full")
 
     def __init__(
@@ -202,7 +203,9 @@ class SupermemoryPipecatService(FrameProcessor):
             messages: List of message dicts with 'role' and 'content' keys.
         """
         if self._supermemory_client is None:
-            logger.warning("Supermemory client not initialized, skipping memory storage")
+            logger.warning(
+                "Supermemory client not initialized, skipping memory storage"
+            )
             return
 
         if not messages:
@@ -223,7 +226,7 @@ class SupermemoryPipecatService(FrameProcessor):
             if self.session_id:
                 add_params["custom_id"] = f"{self.session_id}"
 
-            await self._supermemory_client.memories.add(**add_params)
+            await self._supermemory_client.add(**add_params)
             logger.debug(f"Successfully stored {len(messages)} messages in Supermemory")
 
         except Exception as e:
@@ -317,16 +320,22 @@ class SupermemoryPipecatService(FrameProcessor):
                 if latest_user_message:
                     # Retrieve memories from Supermemory
                     try:
-                        memories_data = await self._retrieve_memories(latest_user_message)
+                        memories_data = await self._retrieve_memories(
+                            latest_user_message
+                        )
                         self._enhance_context_with_memories(
                             context, latest_user_message, memories_data
                         )
                     except MemoryRetrievalError as e:
-                        logger.warning(f"Memory retrieval failed, continuing without memories: {e}")
+                        logger.warning(
+                            f"Memory retrieval failed, continuing without memories: {e}"
+                        )
 
                 # Store unsent messages (user and assistant only, skip system)
                 storable_messages = [
-                    msg for msg in context_messages if msg["role"] in ("user", "assistant")
+                    msg
+                    for msg in context_messages
+                    if msg["role"] in ("user", "assistant")
                 ]
                 unsent_messages = storable_messages[self._messages_sent_count :]
 

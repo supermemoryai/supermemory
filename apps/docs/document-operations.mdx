@@ -1,0 +1,293 @@
+---
+title: "Document Operations"
+sidebarTitle: "Documents"
+description: "List, get, update, and delete your ingested documents"
+icon: "files"
+---
+
+Manage documents after ingestion using the SDK.
+
+## List Documents
+
+Retrieve paginated documents with filtering.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const documents = await client.documents.list({
+      limit: 10,
+      containerTags: ["user_123"]
+    });
+
+    documents.forEach(d => {
+      console.log(d.id, d.title, d.status);
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    documents = client.documents.list(
+        limit=10,
+        container_tags=["user_123"]
+    )
+
+    for doc in documents.memories:
+        print(doc.id, doc.title, doc.status)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/documents/list" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"limit": 10, "containerTags": ["user_123"]}'
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "memories": [
+    {
+      "id": "doc_abc123",
+      "title": "Meeting notes",
+      "status": "done",
+      "type": "text",
+      "createdAt": "2024-01-15T10:30:00Z",
+      "containerTags": ["user_123"],
+      "metadata": { "source": "slack" }
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalItems": 25
+  }
+}
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | number | 50 | Items per page (max 200) |
+| `page` | number | 1 | Page number |
+| `containerTags` | string[] | — | Filter by tags |
+| `sort` | string | `createdAt` | Sort by `createdAt` or `updatedAt` |
+| `order` | string | `desc` | `desc` (newest) or `asc` (oldest) |
+
+<Accordion title="Pagination Example">
+  ```typescript
+  async function getAllDocuments(containerTag: string) {
+    const all = [];
+    let page = 1;
+
+    while (true) {
+      const { memories, pagination } = await client.documents.list({
+        containerTags: [containerTag],
+        limit: 100,
+        page
+      });
+
+      all.push(...memories);
+      if (page >= pagination.totalPages) break;
+      page++;
+    }
+
+    return all;
+  }
+  ```
+</Accordion>
+
+<Accordion title="Filter by Metadata">
+  ```typescript
+  const documents = await client.documents.list({
+    containerTags: ["user_123"],
+    filters: JSON.stringify({
+      AND: [
+        { key: "status", value: "reviewed" },
+        { key: "priority", value: "high" }
+      ]
+    })
+  });
+  ```
+</Accordion>
+
+---
+
+## Get Document
+
+Get a specific document with its processing status.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const doc = await client.documents.get("doc_abc123");
+
+    console.log(doc.status);  // "queued" | "processing" | "done" | "failed"
+    console.log(doc.content);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    doc = client.documents.get("doc_abc123")
+
+    print(doc.status)
+    print(doc.content)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.supermemory.ai/v3/documents/doc_abc123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+### Processing Status
+
+| Status | Description |
+|--------|-------------|
+| `queued` | Waiting to process |
+| `extracting` | Extracting content (OCR, transcription) |
+| `chunking` | Breaking into searchable pieces |
+| `embedding` | Creating vector representations |
+| `done` | Ready for search |
+| `failed` | Processing failed |
+
+<Accordion title="Poll for Completion">
+  ```typescript
+  async function waitForProcessing(docId: string) {
+    while (true) {
+      const doc = await client.documents.get(docId);
+
+      if (doc.status === "done") return doc;
+      if (doc.status === "failed") throw new Error("Processing failed");
+
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  ```
+</Accordion>
+
+---
+
+## Update Document
+
+Update a document's content or metadata. Triggers reprocessing.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await client.documents.update("doc_abc123", {
+      content: "Updated content here",
+      metadata: { version: 2, reviewed: true }
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    client.documents.update(
+        "doc_abc123",
+        content="Updated content here",
+        metadata={"version": 2, "reviewed": True}
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X PUT "https://api.supermemory.ai/v3/documents/doc_abc123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"content": "Updated content here", "metadata": {"version": 2}}'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Delete Documents
+
+Permanently remove documents.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    // Single delete
+    await client.documents.delete("doc_abc123");
+
+    // Bulk delete by IDs
+    await client.documents.bulkDelete({
+      ids: ["doc_1", "doc_2", "doc_3"]
+    });
+
+    // Bulk delete by container tag (delete all for a user)
+    await client.documents.bulkDelete({
+      containerTags: ["user_123"]
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Single delete
+    client.documents.delete("doc_abc123")
+
+    # Bulk delete by IDs
+    client.documents.bulk_delete(ids=["doc_1", "doc_2", "doc_3"])
+
+    # Bulk delete by container tag
+    client.documents.bulk_delete(container_tags=["user_123"])
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Single delete
+    curl -X DELETE "https://api.supermemory.ai/v3/documents/doc_abc123" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+
+    # Bulk delete by IDs
+    curl -X POST "https://api.supermemory.ai/v3/documents/bulk-delete" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"ids": ["doc_1", "doc_2", "doc_3"]}'
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+Deletes are permanent — no recovery.
+</Warning>
+
+---
+
+## Processing Queue
+
+Check documents currently being processed.
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const response = await fetch("https://api.supermemory.ai/v3/documents/processing", {
+      headers: { "Authorization": `Bearer ${API_KEY}` }
+    });
+
+    const { documents } = await response.json();
+    console.log(`${documents.length} documents processing`);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.supermemory.ai/v3/documents/processing" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Next Steps
+
+- [Memory Operations](/memory-operations) — Advanced v4 memory operations
+- [Search](/search) — Query your memories
+- [Ingesting Content](/add-memories) — Add new content

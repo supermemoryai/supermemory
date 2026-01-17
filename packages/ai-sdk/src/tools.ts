@@ -90,7 +90,7 @@ export function supermemoryTools(
 			try {
 				const metadata: Record<string, string | number | boolean> = {}
 
-				const response = await client.memories.add({
+				const response = await client.add({
 					content: memory,
 					containerTags,
 					...(Object.keys(metadata).length > 0 && { metadata }),

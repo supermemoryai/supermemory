@@ -236,7 +236,7 @@ Handle processing failures gracefully:
 ```typescript
 async function addWithRetry(content: string, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const { id } = await client.memories.add({ content });
+    const { id } = await client.add({ content });
 
     try {
       const result = await waitForProcessing(id);

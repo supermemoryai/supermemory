@@ -1,0 +1,214 @@
+---
+title: "Supported Content Types"
+sidebarTitle: "Content Types"
+description: "All the content formats Supermemory can ingest and process"
+icon: "file-stack"
+---
+
+Supermemory automatically extracts and indexes content from various formats. Just send it—we handle the rest.
+
+## Text Content
+
+Raw text, conversations, notes, or any string content.
+
+```typescript
+await client.add({
+  content: "User prefers dark mode and uses vim keybindings",
+  containerTags: ["user_123"]
+});
+```
+
+**Best for:** Chat messages, user preferences, notes, logs, transcripts.
+
+---
+
+## URLs & Web Pages
+
+Send a URL and Supermemory fetches, extracts, and indexes the content.
+
+```typescript
+await client.add({
+  content: "https://docs.example.com/api-reference",
+  containerTags: ["documentation"]
+});
+```
+
+**Extracts:** Article text, headings, metadata. Strips navigation, ads, boilerplate.
+
+---
+
+## Documents
+
+### PDF
+
+```typescript
+await client.add({
+  content: pdfBase64,
+  contentType: "pdf",
+  title: "Q4 Financial Report"
+});
+```
+
+**Extracts:** Text, tables, headers. OCR for scanned documents.
+
+### Microsoft Office
+
+| Format | Extension | Content Type |
+|--------|-----------|--------------|
+| Word | `.docx` | `docx` |
+| Excel | `.xlsx` | `xlsx` |
+| PowerPoint | `.pptx` | `pptx` |
+
+```typescript
+await client.add({
+  content: docxBase64,
+  contentType: "docx",
+  title: "Product Roadmap"
+});
+```
+
+### Google Workspace
+
+Automatically handled via [Google Drive connector](/connectors/google-drive):
+- Google Docs
+- Google Sheets
+- Google Slides
+
+---
+
+## Code & Markdown
+
+```typescript
+// Markdown
+await client.add({
+  content: markdownContent,
+  contentType: "md",
+  title: "README.md"
+});
+
+// Code files (auto-detected language)
+await client.add({
+  content: codeContent,
+  contentType: "code",
+  metadata: { language: "typescript" }
+});
+```
+
+**Extracts:** Structure, headings, code blocks with syntax awareness.
+
+Code is chunked using [code-chunk](https://github.com/supermemoryai/code-chunk), which understands AST boundaries to keep functions, classes, and logical blocks intact. See [Super RAG](/concepts/super-rag) for how Supermemory optimizes chunking for each content type.
+
+---
+
+## Images
+
+```typescript
+await client.add({
+  content: imageBase64,
+  contentType: "image",
+  title: "Architecture Diagram"
+});
+```
+
+**Extracts:** OCR text, visual descriptions, diagram interpretations.
+
+**Supported:** PNG, JPG, JPEG, WebP, GIF
+
+---
+
+## Audio & Video
+
+```typescript
+// Audio
+await client.add({
+  content: audioBase64,
+  contentType: "audio",
+  title: "Customer Call Recording"
+});
+
+// Video
+await client.add({
+  content: videoBase64,
+  contentType: "video",
+  title: "Product Demo"
+});
+```
+
+**Extracts:** Transcription, speaker detection, topic segmentation.
+
+**Supported:** MP3, WAV, M4A, MP4, WebM
+
+---
+
+## Structured Data
+
+### JSON
+
+```typescript
+await client.add({
+  content: JSON.stringify(userData),
+  contentType: "json",
+  title: "User Profile Data"
+});
+```
+
+### CSV
+
+```typescript
+await client.add({
+  content: csvContent,
+  contentType: "csv",
+  title: "Sales Data Q4"
+});
+```
+
+---
+
+## File Upload
+
+For binary files, encode as base64:
+
+```typescript
+import { readFileSync } from 'fs';
+
+const file = readFileSync('./document.pdf');
+const base64 = file.toString('base64');
+
+await client.add({
+  content: base64,
+  contentType: "pdf",
+  title: "document.pdf"
+});
+```
+
+---
+
+## Auto-Detection
+
+If you don't specify `contentType`, Supermemory auto-detects:
+
+```typescript
+// URL detected automatically
+await client.add({ content: "https://example.com/page" });
+
+// Plain text detected automatically
+await client.add({ content: "User said they prefer email contact" });
+```
+
+<Note>
+For binary content (files), always specify `contentType` for reliable processing.
+</Note>
+
+---
+
+## Content Limits
+
+| Type | Max Size |
+|------|----------|
+| Text | 1MB |
+| Files | 50MB |
+| URLs | Fetched content up to 10MB |
+
+<Tip>
+For large files, consider chunking or using [connectors](/connectors/overview) for automatic sync.
+</Tip>

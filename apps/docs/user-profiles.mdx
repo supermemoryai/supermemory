@@ -1,0 +1,266 @@
+---
+title: "User Profiles"
+sidebarTitle: "User Profiles"
+description: "Fetch and use automatically maintained user context"
+icon: "user"
+---
+
+User profiles are extremely short summaries of context about an entity (Usually a user, but can be anything) which includes both the *static* facts about them, as well as a few recent episodes.
+
+> You can think of these as a dynamic compaction that's done by supermemory in real-time.
+
+This profile should be injected into the agent context for truly personalized experiences. To read more, visit [User profiles - Concept](/concepts/user-profiles)
+
+Get a user's profile — their static facts and dynamic context — with a single API call.
+
+<Tip>
+Profiles are built automatically as you [ingest content](/add-memories). No setup required.
+</Tip>
+
+## Quick Start
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory();
+
+    const { profile } = await client.profile({
+      containerTag: "user_123"
+    });
+
+    console.log(profile.static);   // Long-term facts
+    console.log(profile.dynamic);  // Recent context
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+
+    client = Supermemory()
+
+    result = client.profile(container_tag="user_123")
+
+    print(result.profile.static)   # Long-term facts
+    print(result.profile.dynamic)  # Recent context
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/profile" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"containerTag": "user_123"}'
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "profile": {
+    "static": [
+      "User is a software engineer",
+      "User specializes in Python and React",
+      "User prefers dark mode interfaces"
+    ],
+    "dynamic": [
+      "User is working on Project Alpha",
+      "User recently started learning Rust",
+      "User is debugging authentication issues"
+    ]
+  }
+}
+```
+
+---
+
+## Profile + Search
+
+Get profile and search results in one call by adding the `q` parameter:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    const result = await client.profile({
+      containerTag: "user_123",
+      q: "deployment errors"
+    });
+
+    // Profile data
+    const { static: facts, dynamic: context } = result.profile;
+
+    // Search results (only if q was provided)
+    const memories = result.searchResults?.results || [];
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    result = client.profile(
+        container_tag="user_123",
+        q="deployment errors"
+    )
+
+    # Profile data
+    facts = result.profile.static
+    context = result.profile.dynamic
+
+    # Search results
+    memories = result.search_results.results if result.search_results else []
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `containerTag` | string | Yes | User/project identifier |
+| `q` | string | No | Search query (includes search results in response) |
+| `threshold` | 0-1 | No | Filter search results by relevance score |
+
+---
+
+## Building Prompts
+
+The most common pattern — inject profile into your LLM's system prompt:
+
+```typescript
+async function chat(userId: string, message: string) {
+  const { profile } = await client.profile({ containerTag: userId });
+
+  const systemPrompt = `You are assisting a user.
+
+ABOUT THE USER:
+${profile.static?.join('\n') || 'No profile yet.'}
+
+CURRENT CONTEXT:
+${profile.dynamic?.join('\n') || 'No recent activity.'}
+
+Personalize responses to their expertise and preferences.`;
+
+  return llm.chat({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message }
+    ]
+  });
+}
+```
+
+---
+
+## Full Context Pattern
+
+Get profile + query-specific memories in one call:
+
+```typescript
+async function getContext(userId: string, query: string) {
+  const result = await client.profile({
+    containerTag: userId,
+    q: query,
+    threshold: 0.6
+  });
+
+  return `
+User Background:
+${result.profile.static.join('\n')}
+
+Current Context:
+${result.profile.dynamic.join('\n')}
+
+Relevant Memories:
+${result.searchResults?.results.map(m => m.content).join('\n') || 'None'}
+  `;
+}
+```
+
+---
+
+## Framework Examples
+
+<Accordion title="Express.js Middleware">
+  ```typescript
+  async function withProfile(req, res, next) {
+    if (!req.user?.id) return next();
+
+    try {
+      const { profile } = await client.profile({
+        containerTag: req.user.id
+      });
+      req.userProfile = profile;
+    } catch (e) {
+      req.userProfile = null;
+    }
+    next();
+  }
+
+  app.use(withProfile);
+
+  app.post('/chat', (req, res) => {
+    // req.userProfile available in all routes
+  });
+  ```
+</Accordion>
+
+<Accordion title="Next.js API Route">
+  ```typescript
+  // app/api/chat/route.ts
+  export async function POST(req: NextRequest) {
+    const { userId, message } = await req.json();
+
+    const { profile } = await client.profile({
+      containerTag: userId
+    });
+
+    const response = await generateResponse(message, profile);
+    return NextResponse.json({ response });
+  }
+  ```
+</Accordion>
+
+<Accordion title="AI SDK Integration">
+  ```typescript
+  import { withSupermemory } from "@supermemory/tools/ai-sdk"
+  import { openai } from "@ai-sdk/openai"
+
+  // Profiles automatically injected
+  const model = withSupermemory(openai("gpt-4"), "user-123")
+
+  const result = await generateText({
+    model,
+    messages: [{ role: "user", content: "Help with my project" }]
+  });
+  ```
+
+  See [AI SDK Integration](/integrations/ai-sdk) for details.
+</Accordion>
+
+---
+
+## Response Schema
+
+```typescript
+interface ProfileResponse {
+  profile: {
+    static: string[];   // Long-term facts
+    dynamic: string[];  // Recent context
+  };
+  searchResults?: {     // Only if q parameter provided
+    results: SearchResult[];
+    total: number;
+    timing: number;
+  };
+}
+```
+
+---
+
+## Next Steps
+
+- [User Profiles Concept](/concepts/user-profiles) — Understand static vs dynamic
+- [Ingesting Content](/add-memories) — Build profiles by adding content
+- [AI SDK Integration](/integrations/ai-sdk) — Automatic profile injection

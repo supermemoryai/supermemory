@@ -1,0 +1,140 @@
+---
+title: 'Supermemory SDK'
+sidebarTitle: "Supermemory SDK"
+description: 'Official Python and JavaScript SDKs for Supermemory'
+icon: "/images/supermemory.svg"
+---
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python" href="https://pypi.org/project/supermemory/">
+    pip install supermemory
+  </Card>
+  <Card title="JavaScript SDK" icon="js" href="https://www.npmjs.com/package/supermemory">
+    npm install supermemory
+  </Card>
+</CardGroup>
+
+<Tabs>
+  <Tab title="TypeScript">
+    ## Installation
+
+    ```bash
+    npm install supermemory
+    ```
+
+    ## Quick Start
+
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory({
+      apiKey: process.env.SUPERMEMORY_API_KEY,  // Default, can be omitted
+    });
+
+    // Add a memory
+    await client.add({ content: "Meeting notes from Q1 planning", containerTags: ["user_123"] });
+
+    // Search memories
+    const response = await client.search.documents({
+      q: "planning notes",
+      containerTags: ["user_123"]
+    });
+    console.log(response.results);
+
+    // Get user profile
+    const profile = await client.profile({ containerTag: "user_123" });
+    console.log(profile.profile.static);
+    console.log(profile.profile.dynamic);
+    ```
+
+    ## Common Operations
+
+    ```typescript
+    // Add with metadata
+    await client.add({
+      content: "Technical design doc",
+      containerTags: ["user_123"],
+      metadata: { category: "engineering", priority: "high" }
+    });
+
+    // Search with filters
+    const results = await client.search.documents({
+      q: "design document",
+      containerTags: ["user_123"],
+      filters: {
+        AND: [
+          { key: "category", value: "engineering" }
+        ]
+      }
+    });
+
+    // List documents
+    const docs = await client.documents.list({ containerTags: ["user_123"], limit: 10 });
+
+    // Delete a document
+    await client.documents.delete({ docId: "doc_123" });
+    ```
+  </Tab>
+
+  <Tab title="Python">
+    ## Installation
+
+    ```bash
+    pip install supermemory
+    ```
+
+    ## Quick Start
+
+    ```python
+    import os
+    from supermemory import Supermemory
+
+    client = Supermemory(
+        api_key=os.environ.get("SUPERMEMORY_API_KEY"),  # Default, can be omitted
+    )
+
+    # Add a memory
+    client.add(content="Meeting notes from Q1 planning", container_tags=["user_123"])
+
+    # Search memories
+    response = client.search.documents(
+        q="planning notes",
+        container_tags=["user_123"]
+    )
+    print(response.results)
+
+    # Get user profile
+    profile = client.profile(container_tag="user_123")
+    print(profile.profile.static)
+    print(profile.profile.dynamic)
+    ```
+
+    ## Common Operations
+
+    ```python
+    # Add with metadata
+    client.add(
+        content="Technical design doc",
+        container_tags=["user_123"],
+        metadata={"category": "engineering", "priority": "high"}
+    )
+
+    # Search with filters
+    results = client.search.documents(
+        q="design document",
+        container_tags=["user_123"],
+        filters={
+            "AND": [
+                {"key": "category", "value": "engineering"}
+            ]
+        }
+    )
+
+    # List documents
+    docs = client.documents.list(container_tags=["user_123"], limit=10)
+
+    # Delete a document
+    client.documents.delete(doc_id="doc_123")
+    ```
+  </Tab>
+</Tabs>

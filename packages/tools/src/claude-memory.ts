@@ -329,7 +329,7 @@ export class ClaudeMemoryTool {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
-			const response = await this.client.memories.add({
+			const response = await this.client.add({
 				content: fileText,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -388,7 +388,7 @@ export class ClaudeMemoryTool {
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
-			const updateResponse = await this.client.memories.add({
+			const updateResponse = await this.client.add({
 				content: newContent,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -447,7 +447,7 @@ export class ClaudeMemoryTool {
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
-			await this.client.memories.add({
+			await this.client.add({
 				content: newContent,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -530,7 +530,7 @@ export class ClaudeMemoryTool {
 			const newNormalizedId = this.normalizePathToCustomId(newPath)
 
 			// Create new document with new path
-			await this.client.memories.add({
+			await this.client.add({
 				content: originalContent,
 				customId: newNormalizedId,
 				containerTags: this.containerTags,

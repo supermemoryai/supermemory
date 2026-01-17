@@ -2,7 +2,7 @@
 title: "Vibe Coding Setup"
 description: "Automatic Supermemory integration using AI coding agents"
 icon: "zap"
-sidebarTitle: "Automatic setup"
+sidebarTitle: "Install with AI"
 ---
 
 Get your AI coding agent to integrate Supermemory in minutes. Copy the prompt below, paste it into Claude/GPT/Cursor, and let it do the work.
@@ -180,7 +180,7 @@ const messages = [
 ]
 
 // After LLM responds:
-await client.memories.add({
+await client.add({
   content: `user: ${userMessage}\nassistant: ${response}`,
   containerTag: userId
 })
@@ -211,7 +211,7 @@ const messages = [
 ]
 
 // Store the conversation
-await client.memories.add({
+await client.add({
   content: `user: ${userMessage}\nassistant: ${response}`,
   containerTag: userId
 })
@@ -372,11 +372,11 @@ The skill asks questions interactively and generates code for your specific setu
     Manual integration guide
   </Card>
 
-  <Card title="User Profiles" icon="user" href="/user-profiles/overview">
+  <Card title="User Profiles" icon="user" href="/concepts/user-profiles">
     Deep dive into profiles
   </Card>
 
-  <Card title="Search API" icon="search" href="/search/overview">
+  <Card title="Search API" icon="search" href="/search">
     Search modes and parameters
   </Card>
 

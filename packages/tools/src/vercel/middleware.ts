@@ -137,7 +137,7 @@ export const saveMemoryAfterResponse = async (
 			? `${getConversationContent(params)} \n\n Assistant: ${assistantResponseText}`
 			: `User: ${userMessage} \n\n Assistant: ${assistantResponseText}`
 
-		const response = await client.memories.add({
+		const response = await client.add({
 			content,
 			containerTags: [containerTag],
 			customId,

@@ -1,10 +1,11 @@
 ---
 title: Quickstart
 description: Make your first API call to Supermemory - add and retrieve memories.
+icon: "play"
 ---
 
 <Tip>
-**Using Vercel AI SDK?** Check out the [AI SDK integration](/ai-sdk/overview) for the cleanest implementation with `@supermemory/tools/ai-sdk`.
+**Using Vercel AI SDK?** Check out the [AI SDK integration](/integrations/ai-sdk) for the cleanest implementation with `@supermemory/tools/ai-sdk`.
 </Tip>
 
 ## Memory API
@@ -104,7 +105,7 @@ const messages = [{ role: "system", content: `User context:\n${context}` }, ...c
 // const response = await llm.chat({ messages });
 
 // Store conversation for future context
-await client.memories.add({
+await client.add({
   content: conversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
   containerTag: USER_ID,
 });
@@ -121,4 +122,4 @@ That's it! Supermemory automatically:
 **Optional:** Use the `threshold` parameter to filter search results by relevance score. For example: `client.profile(container_tag=USER_ID, threshold=0.7, q=query)` will only include results with a score above 0.7.
 </Tip>
 
-Learn more about [User Profiles](/user-profiles) and [Search](/search/overview).
+Learn more about [User Profiles](/user-profiles) and [Search](/search).

@@ -1,0 +1,237 @@
+---
+title: "Search"
+sidebarTitle: "Search Memories and Docs"
+description: "Semantic search across your memories and documents"
+icon: "search"
+---
+
+Search through your memories and documents with a single API call.
+
+<Tip>
+**Use `searchMode: "hybrid"`** for best results. It searches both memories and document chunks, returning the most relevant content.
+</Tip>
+
+## Quick Start
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import Supermemory from 'supermemory';
+
+    const client = new Supermemory();
+
+    const results = await client.search({
+      q: "machine learning",
+      containerTag: "user_123",
+      searchMode: "hybrid",
+      limit: 5
+    });
+
+    results.results.forEach(result => {
+      console.log(result.content, result.similarity);
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from supermemory import Supermemory
+
+    client = Supermemory()
+
+    results = client.search(
+        q="machine learning",
+        container_tag="user_123",
+        search_mode="hybrid",
+        limit=5
+    )
+
+    for result in results.results:
+        print(result.content, result.similarity)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/search" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "q": "machine learning",
+        "containerTag": "user_123",
+        "searchMode": "hybrid",
+        "limit": 5
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "mem_xyz",
+      "content": "User is interested in machine learning for product recommendations",
+      "similarity": 0.91,
+      "metadata": { "topic": "interests" }
+    },
+    {
+      "id": "chunk_abc",
+      "content": "Machine learning enables personalized experiences at scale...",
+      "similarity": 0.87,
+      "metadata": { "source": "onboarding_doc" }
+    }
+  ],
+  "timing": 92,
+  "total": 5
+}
+```
+
+---
+
+## Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `q` | string | required | Search query |
+| `containerTag` | string | — | Filter by user/project |
+| `searchMode` | string | `"hybrid"` | `"hybrid"` (recommended) or `"memories"` |
+| `limit` | number | 10 | Max results |
+| `threshold` | 0-1 | 0.5 | Similarity cutoff (higher = fewer, better results) |
+| `rerank` | boolean | false | Re-score for better relevance (+100ms) |
+| `filters` | object | — | Metadata filters (`AND`/`OR` structure) |
+
+### Search Modes
+
+- **`hybrid`** (recommended) — Searches both memories and document chunks, returns the most relevant
+- **`memories`** — Only searches extracted memories
+
+```typescript
+// Hybrid: memories + document chunks (recommended)
+await client.search({
+  q: "quarterly goals",
+  containerTag: "user_123",
+  searchMode: "hybrid"
+});
+
+// Memories only: just extracted facts
+await client.search({
+  q: "user preferences",
+  containerTag: "user_123",
+  searchMode: "memories"
+});
+```
+
+---
+
+## Filtering
+
+Filter by `containerTag` to scope results to a user or project:
+
+```typescript
+const results = await client.search({
+  q: "project updates",
+  containerTag: "user_123",
+  searchMode: "hybrid"
+});
+```
+
+Use `filters` for metadata-based filtering:
+
+```typescript
+const results = await client.search({
+  q: "meeting notes",
+  containerTag: "user_123",
+  filters: {
+    AND: [
+      { key: "type", value: "meeting" },
+      { key: "year", value: "2024" }
+    ]
+  }
+});
+```
+
+<Accordion title="Filter Types">
+  - **String equality:** `{ key: "status", value: "active" }`
+  - **String contains:** `{ filterType: "string_contains", key: "title", value: "react" }`
+  - **Numeric:** `{ filterType: "numeric", key: "priority", value: "5", numericOperator: ">=" }`
+  - **Array contains:** `{ filterType: "array_contains", key: "tags", value: "important" }`
+  - **Negate:** `{ key: "status", value: "draft", negate: true }`
+
+  See [Organizing & Filtering](/concepts/filtering) for full syntax.
+</Accordion>
+
+---
+
+## Query Optimization
+
+### Reranking
+
+Re-scores results for better relevance. Adds ~100ms latency.
+
+```typescript
+const results = await client.search({
+  q: "complex technical question",
+  containerTag: "user_123",
+  rerank: true
+});
+```
+
+### Threshold
+
+Control result quality vs quantity:
+
+```typescript
+// Broad search — more results
+await client.search({ q: "...", threshold: 0.3 });
+
+// Precise search — fewer, better results
+await client.search({ q: "...", threshold: 0.8 });
+```
+
+---
+
+## Chatbot Example
+
+Optimal configuration for conversational AI:
+
+```typescript
+async function getContext(userId: string, message: string) {
+  const results = await client.search({
+    q: message,
+    containerTag: userId,
+    searchMode: "hybrid",
+    threshold: 0.6,
+    limit: 5
+  });
+
+  return results.results
+    .map(r => r.content)
+    .join('\n\n');
+}
+```
+
+<Accordion title="Response Schema">
+  ```typescript
+  interface SearchResult {
+    id: string;
+    content: string;        // Memory or chunk content
+    similarity: number;     // 0-1
+    metadata: object | null;
+    updatedAt: string;
+  }
+
+  interface SearchResponse {
+    results: SearchResult[];
+    timing: number;         // ms
+    total: number;
+  }
+  ```
+</Accordion>
+
+---
+
+## Next Steps
+
+- [Ingesting Content](/add-memories) — Add content to search
+- [User Profiles](/user-profiles) — Get user context with search
+- [Organizing & Filtering](/concepts/filtering) — Container tags and metadata

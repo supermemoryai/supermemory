@@ -2,6 +2,7 @@
 title: "Memory vs RAG: Understanding the Difference"
 description: "Learn why agent memory and RAG are fundamentally different, and when to use each approach"
 sidebarTitle: "Memory vs RAG"
+icon: "scale"
 ---
 
 Most developers confuse RAG (Retrieval-Augmented Generation) with agent memory. They're not the same thing, and using RAG for memory is why your agents keep forgetting important context. Let's understand the fundamental difference.
@@ -193,7 +194,7 @@ Supermemory provides a unified platform that correctly handles both patterns:
 ### 1. Document Storage (RAG)
 ```python
 # Add a document for RAG-style retrieval
-client.memories.add(
+client.add(
     content="iPhone 15 has a 48MP camera and A17 Pro chip",
     # No user association - universal knowledge
 )
@@ -202,7 +203,7 @@ client.memories.add(
 ### 2. Memory Creation
 ```python
 # Add a user-specific memory
-client.memories.add(
+client.add(
     content="User prefers Android over iOS",
     container_tags=["user_123"],  # User-specific
     metadata={
