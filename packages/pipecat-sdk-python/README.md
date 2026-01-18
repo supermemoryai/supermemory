@@ -107,11 +107,9 @@ from fastapi import FastAPI, WebSocket
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineTask
 from pipecat.pipeline.runner import PipelineRunner
-from pipecat.services.openai import (
-    OpenAILLMService,
-    OpenAIUserContextAggregator,
-)
-from pipecat.transports.network.fastapi_websocket import (
+from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
+from pipecat.services.google.gemini_live.llm import GeminiLiveLLMService
+from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketTransport,
     FastAPIWebsocketParams,
 )
@@ -125,10 +123,17 @@ async def websocket_endpoint(websocket: WebSocket):
 
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
-        params=FastAPIWebsocketParams(audio_out_enabled=True),
+        params=FastAPIWebsocketParams(audio_in_enabled=True, audio_out_enabled=True),
     )
 
-    user_context = OpenAIUserContextAggregator()
+    # Gemini Live for speech-to-speech
+    llm = GeminiLiveLLMService(
+        api_key=os.getenv("GEMINI_API_KEY"),
+        model="models/gemini-2.5-flash-native-audio-preview-12-2025",
+    )
+
+    context = OpenAILLMContext([{"role": "system", "content": "You are a helpful assistant."}])
+    context_aggregator = llm.create_context_aggregator(context)
 
     # Supermemory memory service
     memory = SupermemoryPipecatService(
@@ -136,17 +141,13 @@ async def websocket_endpoint(websocket: WebSocket):
         session_id="session-123",
     )
 
-    llm = OpenAILLMService(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4",
-    )
-
     pipeline = Pipeline([
         transport.input(),
-        user_context,
+        context_aggregator.user(),
         memory,
         llm,
         transport.output(),
+        context_aggregator.assistant(),
     ])
 
     runner = PipelineRunner()
