@@ -545,10 +545,10 @@ export function createProjectSelectionModal(
 	importButton.textContent = "Import"
 	importButton.style.cssText = `
 		padding: 10px 16px;
-		border: none;
+		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 12px;
-		background: #d1d5db;
-		color: #9ca3af;
+		background: rgba(255, 255, 255, 0.05);
+		color: rgba(255, 255, 255, 0.3);
 		font-size: 14px;
 		font-weight: 500;
 		cursor: not-allowed;
@@ -577,10 +577,10 @@ export function createProjectSelectionModal(
 			importButton.disabled = true
 			importButton.style.cssText = `
 				padding: 10px 16px;
-				border: none;
-				border-radius: 8px;
-				background: #d1d5db;
-				color: #9ca3af;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.05);
+				color: rgba(255, 255, 255, 0.3);
 				font-size: 14px;
 				font-weight: 500;
 				cursor: not-allowed;

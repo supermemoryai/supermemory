@@ -15,6 +15,8 @@ export const API_ENDPOINTS = {
  */
 export const ELEMENT_IDS = {
 	TWITTER_IMPORT_BUTTON: "sm-twitter-import-button",
+	TWITTER_ONBOARDING_TOAST: "sm-twitter-onboarding-toast",
+	TWITTER_IMPORT_PROGRESS_TOAST: "sm-twitter-import-progress-toast",
 	SUPERMEMORY_TOAST: "sm-toast",
 	SUPERMEMORY_SAVE_BUTTON: "sm-save-button",
 	SAVE_TWEET_ELEMENT: "sm-save-tweet-element",
@@ -27,11 +29,21 @@ export const ELEMENT_IDS = {
 } as const
 
 /**
+ * Storage Keys for local
+ */
+export const STORAGE_KEYS = {
+	TWITTER_BOOKMARKS_ONBOARDING_SEEN: "sm_twitter_bookmarks_onboarding_seen",
+	TWITTER_BOOKMARKS_IMPORT_INTENT_UNTIL: "sm_twitter_bookmarks_import_intent_until",
+} as const
+
+/**
  * UI Configuration
  */
 export const UI_CONFIG = {
 	BUTTON_SHOW_DELAY: 2000, // milliseconds
 	TOAST_DURATION: 3000, // milliseconds
+	ONBOARDING_TOAST_DURATION: 6000, // milliseconds (6 seconds for progress bar)
+	IMPORT_INTENT_TTL: 2 * 60 * 1000, // 2 minutes TTL for import intent
 	RATE_LIMIT_BASE_WAIT: 60000, // 1 minute
 	PAGINATION_DELAY: 1000, // 1 second between requests
 	AUTO_SEARCH_DEBOUNCE_DELAY: 1500, // milliseconds to wait after user stops typing
@@ -75,6 +87,7 @@ export const MESSAGE_TYPES = {
 	FETCH_PROJECTS: "sm-fetch-projects",
 	SEARCH_SELECTION: "sm-search-selection",
 	OPEN_SEARCH_PANEL: "sm-open-search-panel",
+	TWITTER_IMPORT_OPEN_MODAL: "sm-twitter-import-open-modal",
 } as const
 
 export const CONTEXT_MENU_IDS = {

@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import "./App.css"
 import { validateAuthToken } from "../../utils/api"
-import { MESSAGE_TYPES } from "../../utils/constants"
+import { MESSAGE_TYPES, STORAGE_KEYS, UI_CONFIG } from "../../utils/constants"
 import {
 	useDefaultProject,
 	useProjects,
@@ -17,6 +17,7 @@ import {
 	userData as userDataStorage,
 } from "../../utils/storage"
 import type { Project } from "../../utils/types"
+import { RightArrow } from "@/components/icons"
 
 const Tooltip = ({
 	children,
@@ -181,6 +182,11 @@ function App() {
 		}
 	}, [defaultProject, projects, setDefaultProjectMutation])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: close space selector when tab changes
+	useEffect(() => {
+		setShowProjectSelector(false)
+	}, [activeTab])
+
 	const handleSaveCurrentPage = async () => {
 		setSaving(true)
 
@@ -262,25 +268,51 @@ function App() {
 
 	if (loading) {
 		return (
-			<div className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden">
-				<div className="flex items-center justify-between gap-3 p-2.5 border-b border-gray-200 relative">
-					<img
-						alt="supermemory"
-						className="w-8 h-8 shrink-0"
-						src="./dark-transparent.svg"
-						style={{ width: "80%", height: "45px" }}
-					/>
+			<div
+				className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] rounded-lg relative overflow-hidden"
+				style={{
+					background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+					boxShadow:
+						"1.5px 1.5px 20px 0 rgba(0, 0, 0, 0.65), 1px 1.5px 2px 0 rgba(128, 189, 255, 0.07) inset, -0.5px -1.5px 4px 0 rgba(0, 35, 73, 0.40) inset",
+				}}
+			>
+				<div
+					id="popup-header"
+					className="flex items-center justify-between p-2.5 relative"
+				>
+					<div className="flex items-center gap-2">
+						<div
+							className="w-8 h-8 shrink-0 rounded-[3.75px] overflow-hidden relative"
+							style={{ boxShadow: "inset 0px 1px 3.75px 0px #000" }}
+						>
+							<img
+								alt="supermemory"
+								src="./icon-48.png"
+								className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[29px] h-[29px]"
+							/>
+						</div>
+						<div className="flex flex-col">
+							<span className="text-[11px] font-medium text-[#737373] leading-normal">
+								Your
+							</span>
+							<img
+								alt="supermemory"
+								src="./logo-fullmark.svg"
+								className="h-[14.5px] w-auto"
+							/>
+						</div>
+					</div>
 				</div>
 
-				<div className="p-4 text-black min-h-[300px] flex items-center justify-center">
-					<div className="flex items-center gap-3 text-base text-black">
+				<div className="p-4 min-h-[300px] flex items-center justify-center">
+					<div className="flex items-center gap-3 text-sm text-[#737373]">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							width="1em"
 							height="1em"
 							viewBox="0 0 24 24"
 							fill="currentColor"
-							className="text-black"
+							className="text-[#737373]"
 							aria-hidden="true"
 						>
 							<path d="M12,4a8,8,0,0,1,7.89,6.7A1.53,1.53,0,0,0,21.38,12h0a1.5,1.5,0,0,0,1.48-1.75,11,11,0,0,0-21.72,0A1.5,1.5,0,0,0,2.62,12h0a1.53,1.53,0,0,0,1.49-1.3A8,8,0,0,1,12,4Z">
@@ -294,7 +326,7 @@ function App() {
 							</path>
 						</svg>
 
-						<span className="font-semibold">Loading...</span>
+						<span className="font-medium">Loading...</span>
 					</div>
 				</div>
 			</div>
@@ -303,26 +335,56 @@ function App() {
 
 	return (
 		<div
-			className="w-80 p-0 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] bg-white rounded-lg relative overflow-hidden"
+			className="w-80 font-[Space_Grotesk,-apple-system,BlinkMacSystemFont,Segoe_UI,Roboto,sans-serif] rounded-lg relative overflow-hidden p-4"
 			style={{
 				background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 				boxShadow:
 					"1.5px 1.5px 20px 0 rgba(0, 0, 0, 0.65), 1px 1.5px 2px 0 rgba(128, 189, 255, 0.07) inset, -0.5px -1.5px 4px 0 rgba(0, 35, 73, 0.40) inset",
 			}}
 		>
-			<div className="flex items-center justify-between gap-3 p-2.5 relative">
-				<div className="text-white text-lg font-semibold ml-2">supermemory</div>
+			<div
+				id="popup-header"
+				className="flex items-center justify-between p-2.5 relative"
+			>
+				<div className="flex items-center gap-2">
+					<div
+						className="w-8 h-8 shrink-0 rounded-[3.75px] overflow-hidden relative"
+						style={{ boxShadow: "inset 0px 1px 3.75px 0px #000" }}
+					>
+						<img
+							alt="supermemory"
+							src="./icon-48.png"
+							className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[29px] h-[29px]"
+						/>
+					</div>
+					<div className="flex flex-col">
+						<span className="text-[11px] font-medium text-[#737373] leading-normal">
+							{(() => {
+								const name =
+									userData?.name?.split(" ")[0] ||
+									userData?.email?.split("@")[0]
+								if (!name) return "Your"
+								return name.endsWith("s") ? `${name}'` : `${name}'s`
+							})()}
+						</span>
+						<img
+							alt="supermemory"
+							src="./logo-fullmark.svg"
+							className="h-[14.5px] w-auto"
+						/>
+					</div>
+				</div>
 				{userSignedIn && (
 					<button
-						className="bg-none border-none text-base cursor-pointer text-gray-500 p-1 rounded transition-colors duration-200"
+						className="bg-transparent border-none cursor-pointer p-1 rounded transition-colors duration-200"
 						onClick={handleSignOut}
-						title="Logout"
+						aria-label="Logout"
 						type="button"
 					>
 						<svg
-							width="19"
-							height="18"
-							viewBox="0 0 19 18"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
 							fill="none"
 							xmlns="http://www.w3.org/2000/svg"
 						>
@@ -330,15 +392,15 @@ function App() {
 							<path
 								d="M17 9H7.5M15 12L18 9L15 6M10 4V3C10 2.46957 9.78929 1.96086 9.41421 1.58579C9.03914 1.21071 8.53043 1 8 1H3C2.46957 1 1.96086 1.21071 1.58579 1.58579C1.21071 1.96086 1 2.46957 1 3V15C1 15.5304 1.21071 16.0391 1.58579 16.4142C1.96086 16.7893 2.46957 17 3 17H8C8.53043 17 9.03914 16.7893 9.41421 16.4142C9.78929 16.0391 10 15.5304 10 15V14"
 								stroke="#FAFAFA"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
 							/>
 						</svg>
 					</button>
 				)}
 			</div>
-			<div className="p-4 min-h-[250px] pt-1">
+			<div className="min-h-[250px] pt-1">
 				{userSignedIn ? (
 					<div className="text-left">
 						{/* Tab Navigation */}
@@ -408,43 +470,119 @@ function App() {
 									</div>
 								</div>
 
-								{/* Project Selection */}
-								<div className="mb-0">
-									<button
-										className="w-full bg-[#5B7EF50A] border-none p-4 cursor-pointer text-left rounded-xl flex justify-between items-center transition-colors duration-200 hover:bg-[#5B7EF520]"
-										onClick={handleShowProjectSelector}
-										type="button"
-										style={{
-											boxShadow:
-												"2px 2px 2px 0 rgba(0, 0, 0, 0.50) inset, -1px -1px 1px 0 rgba(82, 89, 102, 0.08) inset",
-										}}
-									>
+								{/* Space Selection */}
+								<div className="flex flex-col gap-2">
+									<div className="flex items-center justify-between pl-1">
 										<span className="text-sm font-medium text-[#737373]">
-											Save to project:
+											Save to Space
 										</span>
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-medium text-white overflow-hidden text-ellipsis whitespace-nowrap max-w-[120px]">
+										{showProjectSelector && (
+											<button
+												id="close-space-selector"
+												className="bg-transparent border-none cursor-pointer p-0 text-[#737373] hover:text-white transition-colors"
+												onClick={() => setShowProjectSelector(false)}
+												type="button"
+											>
+												<svg
+													width="16"
+													height="16"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+													strokeLinecap="round"
+													strokeLinejoin="round"
+												>
+													<title>Close</title>
+													<line x1="18" y1="6" x2="6" y2="18" />
+													<line x1="6" y1="6" x2="18" y2="18" />
+												</svg>
+											</button>
+										)}
+									</div>
+
+									{showProjectSelector ? (
+										<div className="flex flex-col gap-1 max-h-[180px] overflow-y-auto">
+											{loadingProjects ? (
+												<div className="h-11 flex items-center justify-center text-sm text-[#737373]">
+													Loading spaces...
+												</div>
+											) : (
+												projects.map((project) => (
+													<button
+														id={`space-option-${project.id}`}
+														className={`w-full h-11 flex items-center justify-between px-4 rounded-lg bg-transparent border-none cursor-pointer text-left transition-colors duration-200 hover:bg-[#5B7EF510] ${
+															defaultProject?.id === project.id
+																? "bg-[#5B7EF50A]"
+																: ""
+														}`}
+														style={
+															defaultProject?.id === project.id
+																? {
+																		boxShadow:
+																			"2px 2px 1px 0 rgba(0, 0, 0, 0.50) inset, -1px -1px 1px 0 rgba(82, 89, 102, 0.08) inset",
+																	}
+																: undefined
+														}
+														key={project.id}
+														onClick={() => handleProjectSelect(project)}
+														type="button"
+													>
+														<span className="text-sm font-normal text-[rgba(255,255,255,0.94)] overflow-hidden text-ellipsis whitespace-nowrap tracking-tight">
+															{project.name}
+														</span>
+														{defaultProject?.id === project.id && (
+															<svg
+																width="16"
+																height="16"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																strokeWidth="2"
+																strokeLinecap="round"
+																strokeLinejoin="round"
+																className="text-white shrink-0"
+															>
+																<title>Selected</title>
+																<polyline points="20 6 9 17 4 12" />
+															</svg>
+														)}
+													</button>
+												))
+											)}
+										</div>
+									) : (
+										<button
+											id="space-selector-trigger"
+											className="w-full h-11 flex items-center justify-between px-4 rounded-lg bg-[#5B7EF50A] border-none cursor-pointer text-left transition-colors duration-200 hover:bg-[#5B7EF520]"
+											onClick={handleShowProjectSelector}
+											type="button"
+											style={{
+												boxShadow:
+													"2px 2px 1px 0 rgba(0, 0, 0, 0.50) inset, -1px -1px 1px 0 rgba(82, 89, 102, 0.08) inset",
+											}}
+										>
+											<span className="text-sm font-normal text-[rgba(255,255,255,0.94)] overflow-hidden text-ellipsis whitespace-nowrap tracking-tight">
 												{defaultProject
 													? defaultProject.name
-													: "Default Project"}
+													: "Select a space"}
 											</span>
 											<svg
-												aria-label="Select project"
-												className="text-white shrink-0 transition-transform duration-200 hover:text-gray-700 transform rotate-90"
-												fill="none"
+												width="16"
 												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
 												stroke="currentColor"
+												strokeWidth="2"
 												strokeLinecap="round"
 												strokeLinejoin="round"
-												strokeWidth="2"
-												viewBox="0 0 24 24"
-												width="16"
+												className="text-white shrink-0"
 											>
-												<title>Select project</title>
-												<path d="M9 18l6-6-6-6" />
+												<title>Expand</title>
+												<polyline points="6 9 12 15 18 9" />
 											</svg>
-										</div>
-									</button>
+										</button>
+									)}
 								</div>
 
 								{/* Save Button at Bottom */}
@@ -496,7 +634,7 @@ function App() {
 								<div className="flex flex-col gap-4">
 									<div className="flex flex-col gap-2">
 										<button
-											className="w-full p-4 bg-[#5B7EF50A] text-white border-none rounded-xl text-sm cursor-pointer flex items-center justify-start transition-colors duration-200 hover:bg-[#5B7EF520]"
+											className="w-full p-4 bg-[#5B7EF50A] text-white border-none rounded-xl text-sm cursor-pointer flex items-start justify-start transition-colors duration-200 hover:bg-[#5B7EF520]"
 											style={{
 												boxShadow:
 													"2px 2px 2px 0 rgba(0, 0, 0, 0.50) inset, -1px -1px 1px 0 rgba(82, 89, 102, 0.08) inset",
@@ -524,34 +662,79 @@ function App() {
 													Import ChatGPT Memories
 												</p>
 												<p className="m-0 text-[14px] text-[#737373] leading-tight">
-													open 'manage', save your memories to supermemory
+													open 'manage' &gt; save your memories to supermemory
 												</p>
 											</div>
+											<RightArrow className="size-4" />
 										</button>
 									</div>
 
 									<div className="flex flex-col gap-2">
 										<button
-											className="w-full p-4 bg-[#5B7EF50A] text-white border-none rounded-xl text-sm cursor-pointer flex items-center justify-center transition-colors duration-200 outline-none appearance-none hover:bg-[#5B7EF520] focus:outline-none"
+											className="w-full p-4 bg-[#5B7EF50A] text-white border-none rounded-xl text-sm cursor-pointer flex items-start justify-start transition-colors duration-200 outline-none appearance-none hover:bg-[#5B7EF520] focus:outline-none"
 											style={{
 												boxShadow:
 													"2px 2px 2px 0 rgba(0, 0, 0, 0.50) inset, -1px -1px 1px 0 rgba(82, 89, 102, 0.08) inset",
 											}}
 											onClick={async () => {
-												const [activeTab] = await chrome.tabs.query({
-													active: true,
-													currentWindow: true,
-												})
-
 												const targetUrl = "https://x.com/i/bookmarks"
 
-												if (activeTab?.url === targetUrl) {
-													return
-												}
+												try {
+													const [activeTab] = await chrome.tabs.query({
+														active: true,
+														currentWindow: true,
+													})
 
-												await chrome.tabs.create({
-													url: targetUrl,
-												})
+													const isOnBookmarksPage =
+														activeTab?.url?.includes("x.com/i/bookmarks") ||
+														activeTab?.url?.includes("twitter.com/i/bookmarks")
+
+													if (isOnBookmarksPage && activeTab?.id) {
+														try {
+															await chrome.tabs.sendMessage(activeTab.id, {
+																action: MESSAGE_TYPES.TWITTER_IMPORT_OPEN_MODAL,
+															})
+														} catch (error) {
+															// Content script may not be loaded yet, fall back to intent-based approach
+															console.error(
+																"Failed to send message to content script:",
+																error,
+															)
+															const intentExpiry =
+																Date.now() + UI_CONFIG.IMPORT_INTENT_TTL
+															await chrome.storage.local.set({
+																[STORAGE_KEYS.TWITTER_BOOKMARKS_IMPORT_INTENT_UNTIL]:
+																	intentExpiry,
+															})
+															await chrome.tabs.create({
+																url: targetUrl,
+															})
+														}
+													} else {
+														const intentExpiry =
+															Date.now() + UI_CONFIG.IMPORT_INTENT_TTL
+														await chrome.storage.local.set({
+															[STORAGE_KEYS.TWITTER_BOOKMARKS_IMPORT_INTENT_UNTIL]:
+																intentExpiry,
+														})
+														await chrome.tabs.create({
+															url: targetUrl,
+														})
+													}
+												} catch (error) {
+													console.error("Error opening Twitter import:", error)
+													// Fallback: try to open the bookmarks page anyway
+													try {
+														await chrome.tabs.create({
+															url: targetUrl,
+														})
+													} catch (fallbackError) {
+														console.error(
+															"Failed to open bookmarks page:",
+															fallbackError,
+														)
+													}
+												}
 											}}
 											type="button"
 										>
@@ -570,9 +753,10 @@ function App() {
 													Import X/Twitter Bookmarks
 												</p>
 												<p className="m-0 text-[14px] text-[#737373] leading-tight">
-													Click on supermemory on top right to import bookmarks
+													Opens import dialog automatically
 												</p>
 											</div>
+											<RightArrow className="size-4" />
 										</button>
 									</div>
 								</div>
@@ -588,7 +772,9 @@ function App() {
 											</div>
 										) : userData?.email ? (
 											<>
-												<span className="font-medium text-base">Email</span>
+												<span className="font-medium text-base text-white">
+													Email
+												</span>
 												<span
 													className="text-sm text-[#525966] p-3 rounded-xl bg-[#5B7EF50A]"
 													style={{
@@ -608,7 +794,7 @@ function App() {
 
 								{/* Chat Integration Section */}
 								<div className="mb-4">
-									<h3 className="text-base font-semibold mb-3">
+									<h3 className="text-base font-semibold mb-3 text-white">
 										Chat Integration
 									</h3>
 									<div className="flex items-center justify-between p-3 rounded-xl bg-[#5B7EF50A] mb-3">
@@ -654,53 +840,6 @@ function App() {
 								</div>
 							</div>
 						)}
-
-						{showProjectSelector && (
-							<div className="absolute inset-0 bg-white rounded-lg z-1000 shadow-xl flex flex-col">
-								<div className="flex justify-between items-center p-4 border-b border-gray-200 text-base font-semibold text-black shrink-0">
-									<span>Select the Project</span>
-									<button
-										className="bg-transparent border-none text-xl cursor-pointer text-gray-500 p-0 w-6 h-6 flex items-center justify-center hover:text-black"
-										onClick={() => setShowProjectSelector(false)}
-										type="button"
-									>
-										×
-									</button>
-								</div>
-								{loadingProjects ? (
-									<div className="py-8 px-4 text-center text-gray-500 text-sm">
-										Loading projects...
-									</div>
-								) : (
-									<div className="flex-1 overflow-y-auto min-h-0">
-										{projects.map((project) => (
-											<button
-												className={`flex justify-between items-center py-3 px-4 cursor-pointer transition-colors duration-200 border-b border-gray-100 bg-transparent border-none w-full text-left last:border-b-0 hover:bg-gray-50 ${
-													defaultProject?.id === project.id ? "bg-blue-50" : ""
-												}`}
-												key={project.id}
-												onClick={() => handleProjectSelect(project)}
-												type="button"
-											>
-												<div className="flex flex-col flex-1 gap-0.5">
-													<span className="text-sm font-medium text-black wrap-break-word leading-tight">
-														{project.name}
-													</span>
-													<span className="text-xs text-gray-500">
-														{project.documentCount} docs
-													</span>
-												</div>
-												{defaultProject?.id === project.id && (
-													<span className="text-blue-600 font-bold text-base">
-														✓
-													</span>
-												)}
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-						)}
 					</div>
 				) : (
 					<div className="text-center py-2">
@@ -718,18 +857,18 @@ function App() {
 							</div>
 						) : (
 							<div className="mb-8">
-								<h2 className="m-0 mb-4 text-sm font-normal text-black leading-tight">
+								<h2 className="m-0 mb-4 text-sm font-normal leading-tight">
 									Login to unlock all chrome extension features
 								</h2>
 
 								<ul className="list-none p-0 m-0 text-left">
-									<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+									<li className="py-1.5 text-sm text-[#737373] relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-[#737373] before:font-bold">
 										Save any page to your supermemory
 									</li>
-									<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+									<li className="py-1.5 text-sm text-[#737373] relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-[#737373] before:font-bold">
 										Import all your Twitter / X Bookmarks
 									</li>
-									<li className="py-1.5 text-sm text-black relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-black before:font-bold">
+									<li className="py-1.5 text-sm text-[#737373] relative pl-5 before:content-['•'] before:absolute before:left-0 before:text-[#737373] before:font-bold">
 										Import your ChatGPT Memories
 									</li>
 								</ul>
@@ -737,7 +876,7 @@ function App() {
 						)}
 
 						<div className="mt-8">
-							<p className="m-0 mb-4 text-sm text-gray-500">
+							<p className="m-0 mb-4 text-sm text-[#737373]">
 								Having trouble logging in?{" "}
 								<button
 									className="bg-transparent border-none text-blue-500 cursor-pointer underline text-sm p-0 hover:text-blue-700"
