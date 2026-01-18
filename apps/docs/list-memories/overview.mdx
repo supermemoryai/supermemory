@@ -18,7 +18,7 @@ Retrieve paginated memories with filtering and sorting options from your Superme
       apiKey: process.env.SUPERMEMORY_API_KEY!
     });
 
-    const memories = await client.memories.list({ limit: 10 });
+    const memories = await client.documents.list({ limit: 10 });
     console.log(memories);
     ```
   </Tab>
@@ -28,7 +28,7 @@ Retrieve paginated memories with filtering and sorting options from your Superme
     import os
 
     client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
-    memories = client.memories.list(limit=10)
+    memories = client.documents.list(limit=10)
     print(f"Found {len(memories.memories)} memories")
     ```
   </Tab>

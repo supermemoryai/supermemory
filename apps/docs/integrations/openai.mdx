@@ -204,30 +204,6 @@ console.log(`Added memory with ID: ${addResult.memory.id}`)
 
 </CodeGroup>
 
-### Fetch Memory
-
-Retrieve specific memory by ID:
-
-<CodeGroup>
-
-```python Python
-# Fetch specific memory
-result = await tools.fetch_memory(
-    memory_id="memory-id-here"
-)
-print(f"Memory content: {result.memory.content}")
-```
-
-```typescript JavaScript
-// Fetch specific memory
-const fetchResult = await tools.fetchMemory({
-  memoryId: "memory-id-here"
-})
-console.log(`Memory content: ${fetchResult.memory.content}`)
-```
-
-</CodeGroup>
-
 ## Individual Tools
 
 Use tools separately for more granular control:
@@ -237,31 +213,27 @@ Use tools separately for more granular control:
 ```python Python Individual Tools
 from supermemory_openai import (
     create_search_memories_tool,
-    create_add_memory_tool,
-    create_fetch_memory_tool
+    create_add_memory_tool
 )
 
 search_tool = create_search_memories_tool("your-api-key")
 add_tool = create_add_memory_tool("your-api-key")
-fetch_tool = create_fetch_memory_tool("your-api-key")
 
 # Use individual tools in OpenAI function calling
-tools_list = [search_tool, add_tool, fetch_tool]
+tools_list = [search_tool, add_tool]
 ```
 
 ```typescript JavaScript Individual Tools
 import {
   createSearchMemoriesTool,
-  createAddMemoryTool,
-  createFetchMemoryTool
+  createAddMemoryTool
 } from "@supermemory/tools/openai"
 
 const searchTool = createSearchMemoriesTool(process.env.SUPERMEMORY_API_KEY!)
 const addTool = createAddMemoryTool(process.env.SUPERMEMORY_API_KEY!)
-const fetchTool = createFetchMemoryTool(process.env.SUPERMEMORY_API_KEY!)
 
 // Use individual tools
-const toolDefinitions = [searchTool, addTool, fetchTool]
+const toolDefinitions = [searchTool.definition, addTool.definition]
 ```
 
 </CodeGroup>
@@ -490,7 +462,6 @@ SupermemoryTools(
 - `get_tool_definitions()` - Get OpenAI function definitions
 - `search_memories(information_to_get, limit, include_full_docs)` - Search user memories
 - `add_memory(memory)` - Add new memory
-- `fetch_memory(memory_id)` - Fetch specific memory by ID
 - `execute_tool_call(tool_call)` - Execute individual tool call
 
 #### `execute_memory_tool_calls`

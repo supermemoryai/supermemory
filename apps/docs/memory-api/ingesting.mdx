@@ -205,7 +205,7 @@ const client = new Supermemory({
 })
 
 // Method 1: Using SDK uploadFile method (RECOMMENDED)
-const result = await client.memories.uploadFile({
+const result = await client.documents.uploadFile({
   file: fs.createReadStream('/path/to/document.pdf'),
   containerTags: 'research_project'  // String, not array!
 })
@@ -234,7 +234,7 @@ from supermemory import Supermemory
 client = Supermemory(api_key="your_api_key")
 
 # Method 1: Using SDK upload_file method (RECOMMENDED)
-result = client.memories.upload_file(
+result = client.documents.upload_file(
     file=open('document.pdf', 'rb'),
     container_tags='research_project'  # String parameter name
 )

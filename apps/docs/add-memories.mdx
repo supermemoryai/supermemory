@@ -116,7 +116,7 @@ To completely replace a document's content (not append), use `memories.update()`
 
 ```typescript
 // Replace the entire document content
-await client.memories.update("doc_id_123", {
+await client.documents.update("doc_id_123", {
   content: "Completely new content replacing everything",
   metadata: { version: 2 }
 });
@@ -153,7 +153,7 @@ Upload PDFs, images, and documents directly.
     ```typescript
     import fs from 'fs';
 
-    await client.memories.uploadFile({
+    await client.documents.uploadFile({
       file: fs.createReadStream('document.pdf'),
       containerTags: 'user_123'
     });
@@ -162,7 +162,7 @@ Upload PDFs, images, and documents directly.
   <Tab title="Python">
     ```python
     with open('document.pdf', 'rb') as file:
-        client.memories.upload_file(
+        client.documents.upload_file(
             file=file,
             container_tags='user_123'
         )
@@ -275,7 +275,7 @@ When you add content, Supermemory:
 
 Track progress with `GET /v3/documents/{id}`:
 ```typescript
-const doc = await client.memories.get("abc123");
+const doc = await client.documents.get("abc123");
 console.log(doc.status); // "queued" | "processing" | "done"
 ```
 
@@ -342,12 +342,12 @@ console.log(doc.status); // "queued" | "processing" | "done"
   <Accordion title="Delete Content">
     **Single delete:**
     ```typescript
-    await client.memories.delete("doc_id_123");
+    await client.documents.delete("doc_id_123");
     ```
 
     **Bulk delete by IDs:**
     ```typescript
-    await client.memories.bulkDelete({
+    await client.documents.deleteBulk({
       ids: ["doc_1", "doc_2", "doc_3"]
     });
     ```
@@ -355,7 +355,7 @@ console.log(doc.status); // "queued" | "processing" | "done"
     **Bulk delete by container tag:**
     ```typescript
     // Delete all content for a user
-    await client.memories.bulkDelete({
+    await client.documents.deleteBulk({
       containerTags: ["user_123"]
     });
     ```

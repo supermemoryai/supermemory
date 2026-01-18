@@ -803,7 +803,7 @@ client = Supermemory(api_key=os.getenv("SUPERMEMORY_API_KEY"))
 user_id = "your_user_id_here"
 container_tag = f"user_{user_id}"
 
-memories = client.memories.list(
+memories = client.documents.list(
     container_tags=[container_tag],
     limit=20,
     sort="updatedAt",
@@ -812,7 +812,7 @@ memories = client.memories.list(
 
 print(f"Found {len(memories.memories)} memories:")
 for i, memory in enumerate(memories.memories):
-    full = client.memories.get(id=memory.id)
+    full = client.documents.get(id=memory.id)
     print(f"\n{i + 1}. {full.content}")
 ```
 

@@ -10,7 +10,7 @@ Monitor memory processing status and track completion rates using the list endpo
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const response = await client.memories.list({ limit: 100 });
+    const response = await client.documents.list({ limit: 100 });
 
     const statusCounts = response.memories.reduce((acc: any, memory) => {
       acc[memory.status] = (acc[memory.status] || 0) + 1;
@@ -22,7 +22,7 @@ Monitor memory processing status and track completion rates using the list endpo
   </Tab>
   <Tab title="Python">
     ```python
-    response = client.memories.list(limit=100)
+    response = client.documents.list(limit=100)
 
     status_counts = {}
     for memory in response.memories:
@@ -48,7 +48,7 @@ Monitor memory processing status and track completion rates using the list endpo
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const response = await client.memories.list({ limit: 100 });
+    const response = await client.documents.list({ limit: 100 });
 
     const processing = response.memories.filter(m =>
       ['queued', 'extracting', 'chunking', 'embedding', 'indexing'].includes(m.status)
@@ -59,7 +59,7 @@ Monitor memory processing status and track completion rates using the list endpo
   </Tab>
   <Tab title="Python">
     ```python
-    response = client.memories.list(limit=100)
+    response = client.documents.list(limit=100)
 
     processing_statuses = ['queued', 'extracting', 'chunking', 'embedding', 'indexing']
     processing = [m for m in response.memories if m.status in processing_statuses]
@@ -83,21 +83,22 @@ Monitor memory processing status and track completion rates using the list endpo
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const failedMemories = await client.memories.list({
-      filters: "status:failed",
-      limit: 50
-    });
+    const response = await client.documents.list({ limit: 100 });
 
-    failedMemories.memories.forEach(memory => {
+    const failedMemories = response.memories.filter(m => m.status === 'failed');
+
+    failedMemories.forEach(memory => {
       console.log(`Failed: ${memory.id} - ${memory.title || 'Untitled'}`);
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    failed_memories = client.memories.list(filters="status:failed", limit=50)
+    response = client.documents.list(limit=100)
 
-    for memory in failed_memories.memories:
+    failed_memories = [m for m in response.memories if m.status == 'failed']
+
+    for memory in failed_memories:
         title = memory.title or 'Untitled'
         print(f"Failed: {memory.id} - {title}")
     ```
@@ -107,8 +108,8 @@ Monitor memory processing status and track completion rates using the list endpo
     curl -X POST "https://api.supermemory.ai/v3/documents/list" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
-      -d '{"filters": "status:failed", "limit": 50}' | \
-      jq '.memories[] | {id, title, status}'
+      -d '{"limit": 100}' | \
+      jq '.memories[] | select(.status == "failed") | {id, title, status}'
     ```
   </Tab>
 </Tabs>

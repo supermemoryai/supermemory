@@ -11,13 +11,13 @@ Handle large memory collections efficiently using pagination to process data in 
   <Tab title="TypeScript">
     ```typescript
     // Get first page
-    const page1 = await client.memories.list({
+    const page1 = await client.documents.list({
       limit: 20,
       page: 1
     });
 
     // Get next page
-    const page2 = await client.memories.list({
+    const page2 = await client.documents.list({
       limit: 20,
       page: 2
     });
@@ -29,10 +29,10 @@ Handle large memory collections efficiently using pagination to process data in 
   <Tab title="Python">
     ```python
     # Get first page
-    page1 = client.memories.list(limit=20, page=1)
+    page1 = client.documents.list(limit=20, page=1)
 
     # Get next page
-    page2 = client.memories.list(limit=20, page=2)
+    page2 = client.documents.list(limit=20, page=2)
 
     print(f"Page 1: {len(page1.memories)} memories")
     print(f"Page 2: {len(page2.memories)} memories")
@@ -64,7 +64,7 @@ Handle large memory collections efficiently using pagination to process data in 
     let hasMore = true;
 
     while (hasMore) {
-      const response = await client.memories.list({
+      const response = await client.documents.list({
         page: currentPage,
         limit: 50
       });
@@ -82,7 +82,7 @@ Handle large memory collections efficiently using pagination to process data in 
     has_more = True
 
     while has_more:
-        response = client.memories.list(page=current_page, limit=50)
+        response = client.documents.list(page=current_page, limit=50)
 
         print(f"Page {current_page}: {len(response.memories)} memories")
 

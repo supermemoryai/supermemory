@@ -200,7 +200,7 @@ results = client.search(
 ```
 
 ```python Supermemory
-results = client.memories.search(
+results = client.documents.search(
     query="user preferences",
     container_tags=["user_alice"]
 )
@@ -219,7 +219,7 @@ memories = client.get_all(
 ```
 
 ```python Supermemory
-memories = client.memories.list(
+memories = client.documents.list(
     container_tags=["user_alice"],
     limit=100
 )
@@ -236,7 +236,7 @@ client.delete(memory_id="mem_123")
 ```
 
 ```python Supermemory
-client.memories.delete("mem_123")
+client.documents.delete("mem_123")
 ```
 
 </CodeGroup>

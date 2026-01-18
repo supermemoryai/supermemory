@@ -156,14 +156,14 @@ Upload files directly for processing.
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.uploadFile({
+await client.documents.uploadFile({
   file: fileStream,
   containerTag: "project"
 });
 ```
 
 ```python Python
-client.memories.upload_file(
+client.documents.upload_file(
   file=open('file.pdf', 'rb'),
   container_tags='project'
 )
@@ -187,13 +187,13 @@ Update existing document content.
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.update("doc_id", {
+await client.documents.update("doc_id", {
   content: "Updated content"
 });
 ```
 
 ```python Python
-client.memories.update("doc_id", {
+client.documents.update("doc_id", {
   "content": "Updated content"
 })
 ```

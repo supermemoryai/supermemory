@@ -41,10 +41,10 @@ const client = new Supermemory({
 });
 
 async function main() {
-  const params: supermemory.MemoryAddParams = {
+  const params: Supermemory.AddParams = {
     content: 'This is a detailed article about machine learning concepts...',
   };
-  const response: supermemory.MemoryAddResponse = await client.add(params);
+  const response: Supermemory.AddResponse = await client.add(params);
 }
 
 main();
@@ -68,17 +68,17 @@ import Supermemory, { toFile } from 'supermemory';
 const client = new Supermemory();
 
 // If you have access to Node `fs` we recommend using `fs.createReadStream()`:
-await client.memories.uploadFile({ file: fs.createReadStream('/path/to/file') });
+await client.documents.uploadFile({ file: fs.createReadStream('/path/to/file') });
 
 // Or if you have the web `File` API you can pass a `File` instance:
-await client.memories.uploadFile({ file: new File(['my bytes'], 'file') });
+await client.documents.uploadFile({ file: new File(['my bytes'], 'file') });
 
 // You can also pass a `fetch` `Response`:
-await client.memories.uploadFile({ file: await fetch('https://somesite/file') });
+await client.documents.uploadFile({ file: await fetch('https://somesite/file') });
 
 // Finally, if none of the above are convenient, you can use our `toFile` helper:
-await client.memories.uploadFile({ file: await toFile(Buffer.from('my bytes'), 'file') });
-await client.memories.uploadFile({ file: await toFile(new Uint8Array([0, 1, 2]), 'file') });
+await client.documents.uploadFile({ file: await toFile(Buffer.from('my bytes'), 'file') });
+await client.documents.uploadFile({ file: await toFile(new Uint8Array([0, 1, 2]), 'file') });
 ```
 
 ## Handling errors
@@ -90,7 +90,7 @@ a subclass of `APIError` will be thrown:
 
 ```ts
 async function main() {
-  const response = await client.memories
+  const response = await client.documents
     .add({ content: 'This is a detailed article about machine learning concepts...' })
     .catch(async (err) => {
       if (err instanceof supermemory.APIError) {
@@ -175,13 +175,13 @@ Unlike `.asResponse()` this method consumes the body, returning once it is parse
 ```ts
 const client = new Supermemory();
 
-const response = await client.memories
+const response = await client.documents
   .add({ content: 'This is a detailed article about machine learning concepts...' })
   .asResponse();
 console.debug(response.headers.get('X-My-Header'));
 console.debug(response.statusText); // access the underlying Response object
 
-const { data: response, response: raw } = await client.memories
+const { data: response, response: raw } = await client.documents
   .add({ content: 'This is a detailed article about machine learning concepts...' })
   .withResponse();
 console.debug(raw.headers.get('X-My-Header'));

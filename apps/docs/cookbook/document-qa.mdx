@@ -91,7 +91,7 @@ A document Q&A system that:
 
       async getDocumentStatus(documentId: string) {
         try {
-          const memory = await client.memories.get(documentId)
+          const memory = await client.documents.get(documentId)
           return {
             id: memory.id,
             status: memory.status,
@@ -106,7 +106,7 @@ A document Q&A system that:
 
       async listDocuments(collection: string) {
         try {
-          const memories = await client.memories.list({
+          const memories = await client.documents.list({
             containerTags: [collection],
             limit: 50,
             sort: 'updatedAt',
@@ -148,15 +148,10 @@ A document Q&A system that:
           return NextResponse.json({ error: 'No file provided' }, { status: 400 })
         }
 
-        // Convert File to Buffer for Supermemory
-        const bytes = await file.arrayBuffer()
-        const buffer = Buffer.from(bytes)
-
-        const result = await client.memories.uploadFile({
-          file: buffer,
-          filename: file.name,
-          containerTags,
-          metadata
+        const result = await client.documents.uploadFile({
+          file: file,
+          containerTags: JSON.stringify(containerTags),
+          metadata: JSON.stringify(metadata)
         })
 
         return NextResponse.json({
@@ -180,6 +175,7 @@ A document Q&A system that:
     ```python document_processor.py
     from supermemory import Supermemory
     import os
+    import json
     from typing import Dict, List, Any, Optional
     import requests
     from datetime import datetime
@@ -195,15 +191,15 @@ A document Q&A system that:
 
             try:
                 with open(file_path, 'rb') as file:
-                    result = self.client.memories.upload_file(
+                    result = self.client.documents.upload_file(
                         file=file,
-                        container_tags=[collection],
-                        metadata={
+                        container_tags=collection,
+                        metadata=json.dumps({
                             'originalName': os.path.basename(file_path),
                             'fileType': os.path.splitext(file_path)[1],
                             'uploadedAt': datetime.now().isoformat(),
                             **metadata
-                        }
+                        })
                     )
                 return result
             except Exception as e:
@@ -234,7 +230,7 @@ A document Q&A system that:
         def get_document_status(self, document_id: str) -> Dict:
             """Check document processing status"""
             try:
-                memory = self.client.memories.get(document_id)
+                memory = self.client.documents.get(document_id)
                 return {
                     'id': memory.id,
                     'status': memory.status,
@@ -248,7 +244,7 @@ A document Q&A system that:
         def list_documents(self, collection: str) -> List[Dict]:
             """List all documents in a collection"""
             try:
-                memories = self.client.memories.list(
+                memories = self.client.documents.list(
                     container_tags=[collection],
                     limit=50,
                     sort='updatedAt',
@@ -307,7 +303,6 @@ A document Q&A system that:
           includeFullDocs: false,
           includeSummary: true,
           onlyMatchingChunks: false,
-          documentThreshold: 0.6,
           chunkThreshold: 0.7
         })
 
@@ -432,7 +427,6 @@ If the question cannot be answered from the provided documents, respond with: "I
                 include_full_docs=False,
                 include_summary=True,
                 only_matching_chunks=False,
-                document_threshold=0.6,
                 chunk_threshold=0.7
             )
 

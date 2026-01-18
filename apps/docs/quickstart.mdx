@@ -50,14 +50,18 @@ conversation = [
 # Get user profile + relevant memories for context
 profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
 
+static = "\n".join(profile.profile.static)
+dynamic = "\n".join(profile.profile.dynamic)
+memories = "\n".join(r.content for r in profile.search_results.results)
+
 context = f"""Static profile:
-{"\n".join(profile.profile.static)}
+{static}
 
 Dynamic profile:
-{"\n".join(profile.profile.dynamic)}
+{dynamic}
 
 Relevant memories:
-{"\n".join(r.content for r in profile.search_results.results)}"""
+{memories}"""
 
 # Build messages with memory-enriched context
 messages = [{"role": "system", "content": f"User context:\n{context}"}, *conversation]

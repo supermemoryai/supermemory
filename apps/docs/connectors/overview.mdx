@@ -139,7 +139,7 @@ connections.forEach(conn => {
 });
 
 // List synced documents (memories) using SDK
-const memories = await client.memories.list({
+const memories = await client.documents.list({
   containerTags: ['user-123', 'workspace-alpha']
 });
 
@@ -165,7 +165,7 @@ for conn in connections:
     print(f'Created: {conn.created_at}')
 
 # List synced documents (memories) using SDK
-memories = client.memories.list(container_tags=['user-123', 'workspace-alpha'])
+memories = client.documents.list(container_tags=['user-123', 'workspace-alpha'])
 
 print(f'Synced {len(memories.memories)} documents')
 # Output: Synced 45 documents

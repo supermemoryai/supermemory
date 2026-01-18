@@ -150,16 +150,6 @@ const result = await streamText({
 // AI will call: addMemory({ memory: "User is allergic to peanuts" })
 ```
 
-**Fetch Memory** - Retrieve specific memory by ID:
-
-```typescript
-const result = await streamText({
-  model: openai("gpt-5"),
-  prompt: "Get the details of memory abc123",
-  tools: supermemoryTools("API_KEY")
-})
-```
-
 ### Using Individual Tools
 
 For more control, import tools separately:
@@ -167,8 +157,7 @@ For more control, import tools separately:
 ```typescript
 import {
   searchMemoriesTool,
-  addMemoryTool,
-  fetchMemoryTool
+  addMemoryTool
 } from "@supermemory/tools/ai-sdk"
 
 const result = await streamText({
@@ -189,8 +178,5 @@ const result = await streamText({
 
 // addMemory result
 { success: true, memory: { id: "mem_123", ... } }
-
-// fetchMemory result
-{ success: true, memory: { id: "mem_123", content: "...", ... } }
 ```
 

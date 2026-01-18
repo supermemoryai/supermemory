@@ -19,7 +19,7 @@ Retrieve paginated documents with filtering.
       containerTags: ["user_123"]
     });
 
-    documents.forEach(d => {
+    documents.memories.forEach(d => {
       console.log(d.id, d.title, d.status);
     });
     ```
@@ -104,12 +104,12 @@ Retrieve paginated documents with filtering.
   ```typescript
   const documents = await client.documents.list({
     containerTags: ["user_123"],
-    filters: JSON.stringify({
+    filters: {
       AND: [
-        { key: "status", value: "reviewed" },
-        { key: "priority", value: "high" }
+        { key: "status", value: "reviewed", negate: false },
+        { key: "priority", value: "high", negate: false }
       ]
-    })
+    }
   });
   ```
 </Accordion>
@@ -197,7 +197,7 @@ Update a document's content or metadata. Triggers reprocessing.
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X PUT "https://api.supermemory.ai/v3/documents/doc_abc123" \
+    curl -X PATCH "https://api.supermemory.ai/v3/documents/doc_abc123" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"content": "Updated content here", "metadata": {"version": 2}}'
@@ -218,12 +218,12 @@ Permanently remove documents.
     await client.documents.delete("doc_abc123");
 
     // Bulk delete by IDs
-    await client.documents.bulkDelete({
+    await client.documents.deleteBulk({
       ids: ["doc_1", "doc_2", "doc_3"]
     });
 
     // Bulk delete by container tag (delete all for a user)
-    await client.documents.bulkDelete({
+    await client.documents.deleteBulk({
       containerTags: ["user_123"]
     });
     ```
@@ -234,10 +234,10 @@ Permanently remove documents.
     client.documents.delete("doc_abc123")
 
     # Bulk delete by IDs
-    client.documents.bulk_delete(ids=["doc_1", "doc_2", "doc_3"])
+    client.documents.delete_bulk(ids=["doc_1", "doc_2", "doc_3"])
 
     # Bulk delete by container tag
-    client.documents.bulk_delete(container_tags=["user_123"])
+    client.documents.delete_bulk(container_tags=["user_123"])
     ```
   </Tab>
   <Tab title="cURL">
@@ -247,7 +247,7 @@ Permanently remove documents.
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
 
     # Bulk delete by IDs
-    curl -X POST "https://api.supermemory.ai/v3/documents/bulk-delete" \
+    curl -X DELETE "https://api.supermemory.ai/v3/documents/bulk" \
       -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"ids": ["doc_1", "doc_2", "doc_3"]}'
@@ -268,12 +268,14 @@ Check documents currently being processed.
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const response = await fetch("https://api.supermemory.ai/v3/documents/processing", {
-      headers: { "Authorization": `Bearer ${API_KEY}` }
-    });
-
-    const { documents } = await response.json();
-    console.log(`${documents.length} documents processing`);
+    const response = await client.documents.listProcessing();
+    console.log(`${response.documents.length} documents processing`);
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = client.documents.list_processing()
+    print(f"{len(response.documents)} documents processing")
     ```
   </Tab>
   <Tab title="cURL">

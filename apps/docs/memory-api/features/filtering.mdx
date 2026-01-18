@@ -168,7 +168,7 @@ curl --location 'https://api.supermemory.ai/v3/documents' \
 ```
 
 ```typescript Typescript
-await client.memories.create({
+await client.documents.create({
   content: "quarterly planning meeting discussion",
   metadata: {
     participants: ["john.doe", "sarah.smith", "mike.wilson"]
@@ -177,7 +177,7 @@ await client.memories.create({
 ```
 
 ```python Python
-client.memories.create(
+client.documents.create(
     content="quarterly planning meeting discussion",
     metadata={
         "participants": ["john.doe", "sarah.smith", "mike.wilson"]

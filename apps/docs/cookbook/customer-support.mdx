@@ -93,7 +93,7 @@ A customer support bot that:
 
       async getCustomerHistory(customerId: string, limit: number = 10) {
         try {
-          const memories = await client.memories.list({
+          const memories = await client.documents.list({
             containerTags: [this.getContainerTag(customerId)],
             limit,
             sort: 'updatedAt',
@@ -170,8 +170,8 @@ A customer support bot that:
         try {
           // Note: In a real implementation, you'd update the memory
           // For now, we'll add a status update
-          const memory = await client.memories.get(issueId)
-          const customerId = memory.containerTag.replace('customer_', '')
+          const memory = await client.documents.get(issueId)
+          const customerId = memory.containerTags?.[0]?.replace('customer_', '') || ''
 
           const updateContent = `ISSUE UPDATE: ${memory.metadata?.subject}\nStatus changed to: ${status}${resolution ? `\nResolution: ${resolution}` : ''}`
 
@@ -253,7 +253,7 @@ A customer support bot that:
         def get_customer_history(self, customer_id: str, limit: int = 10) -> List[Dict]:
             """Get customer interaction history"""
             try:
-                memories = self.client.memories.list(
+                memories = self.client.documents.list(
                     container_tags=[self._get_container_tag(customer_id)],
                     limit=limit,
                     sort='updatedAt',
@@ -330,8 +330,8 @@ Status: {issue['status']}"""
             """Update the status of a support issue"""
             try:
                 # Get original issue
-                memory = self.client.memories.get(issue_id)
-                customer_id = memory.container_tag.replace('customer_', '')
+                memory = self.client.documents.get(issue_id)
+                customer_id = (memory.container_tags[0] if memory.container_tags else '').replace('customer_', '')
 
                 update_content = f"ISSUE UPDATE: {memory.metadata.get('subject', 'Unknown')}\nStatus changed to: {status}"
                 if resolution:
