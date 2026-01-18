@@ -26,7 +26,8 @@ You can obtain an API key from [console.supermemory.ai](https://console.supermem
 Supermemory integration is provided through the `SupermemoryPipecatService` class in Pipecat:
 
 ```python
-from supermemory_pipecat import SupermemoryPipecatService, InputParams
+from supermemory_pipecat import SupermemoryPipecatService
+from supermemory_pipecat.service import InputParams
 
 memory = SupermemoryPipecatService(
     api_key=os.getenv("SUPERMEMORY_API_KEY"),
@@ -94,6 +95,7 @@ InputParams(
     search_limit=10,           # Max memories to retrieve (default: 10)
     search_threshold=0.1,      # Similarity threshold 0.0-1.0 (default: 0.1)
     system_prompt="Based on previous conversations:\n\n",
+    inject_mode="auto",        # "auto" | "system" | "user"
 )
 ```
 
@@ -103,6 +105,31 @@ InputParams(
 | `search_threshold` | float | 0.1 | Minimum similarity threshold for memory retrieval |
 | `mode` | str | "full" | Memory retrieval mode: `"profile"`, `"query"`, or `"full"` |
 | `system_prompt` | str | "Based on previous conversations:\n\n" | Prefix text for memory context |
+| `inject_mode` | str | "auto" | How memories are injected: `"auto"`, `"system"`, or `"user"` |
+
+## Injection Modes
+
+The `inject_mode` parameter controls how memories are added to the LLM context:
+
+| Mode | Behavior |
+|------|----------|
+| `"auto"` | **Auto-detects** based on frame types. If audio frames detected → injects to system prompt (speech-to-speech). If only text frames → injects as user message (STT/TTS). |
+| `"system"` | Always injects memories into the system prompt |
+| `"user"` | Always injects memories as a user message |
+
+## Speech-to-Speech Models (Gemini Live, etc.)
+
+For speech-to-speech models like Gemini Live, the SDK **automatically detects** audio frames and injects memories into the system prompt. No configuration needed:
+
+```python
+from supermemory_pipecat import SupermemoryPipecatService
+
+# Auto-detection works out of the box
+memory = SupermemoryPipecatService(
+    api_key=os.getenv("SUPERMEMORY_API_KEY"),
+    user_id="unique_user_id",
+)
+```
 
 ## Example: Voice Agent with Memory
 
@@ -128,7 +155,8 @@ from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketTransport,
 )
 
-from supermemory_pipecat import SupermemoryPipecatService, InputParams
+from supermemory_pipecat import SupermemoryPipecatService
+from supermemory_pipecat.service import InputParams
 
 app = FastAPI()
 
@@ -199,3 +227,11 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
+
+## Example: Gemini Live with Memory
+
+For a complete example using Gemini Live speech-to-speech with Supermemory, check out the reference implementation:
+
+<Card title="Pipecat Memory Example" icon="github" href="https://github.com/supermemoryai/pipecat-memory">
+  Full working example with Gemini Live, including frontend and backend code.
+</Card>
