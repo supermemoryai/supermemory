@@ -1,0 +1,140 @@
+---
+title: "How Graph Memory Works"
+sidebarTitle: "Graph Memory"
+description: "Automatic memory evolution, knowledge updates, and intelligent forgetting"
+icon: "vector-square"
+---
+
+Supermemory builds a living knowledge graph where memories connect to other memories. Unlike traditional knowledge graphs with entity-relation-entity triples, Supermemory's graph is **facts built on top of other facts**.
+
+## Memory Relationships
+
+When you add content, Supermemory extracts facts and automatically connects them to existing memories through three relationship types:
+
+### Updates: Information Changes
+
+When new information contradicts existing knowledge:
+
+```
+Memory 1: "Alex works at Google as a software engineer"
+Memory 2: "Alex just started at Stripe as a PM"
+         ↓
+Memory 2 UPDATES Memory 1
+```
+
+The system tracks which memory is latest with `isLatest`, so searches return current information while preserving history.
+
+### Extends: Information Enriches
+
+When new information adds detail without replacing:
+
+```
+Memory 1: "Alex works at Stripe as a PM"
+Memory 2: "Alex focuses on payments infrastructure and leads a team of 5"
+         ↓
+Memory 2 EXTENDS Memory 1
+```
+
+Both memories remain valid—searches get richer context.
+
+### Derives: Information Infers
+
+When Supermemory infers new facts from patterns:
+
+```
+Memory 1: "Alex is a PM at Stripe"
+Memory 2: "Alex frequently discusses payment APIs and fraud detection"
+         ↓
+Derived: "Alex likely works on Stripe's core payments product"
+```
+
+These inferences surface insights you didn't explicitly state.
+
+---
+
+## Automatic Memory Extraction
+
+From a single conversation, Supermemory extracts multiple connected memories:
+
+**Input:**
+> "Had a great call with Alex. He's enjoying the new PM role at Stripe, though the
+> payments infrastructure work is intense. He moved to Seattle for the job—got a
+> place in Capitol Hill. Wants to grab dinner next time I'm in town."
+
+**Extracted memories:**
+- Alex works at Stripe as a PM
+- Alex works on payments infrastructure *(extends role memory)*
+- Alex lives in Seattle, Capitol Hill *(new fact)*
+- Alex wants to meet for dinner *(episodic)*
+
+Each fact is connected to related memories automatically.
+
+---
+
+## Automatic Forgetting
+
+Supermemory knows when memories become irrelevant:
+
+**Time-based forgetting**: Temporary facts are automatically forgotten when they expire.
+
+```
+"I have an exam tomorrow"
+         ↓
+    After the exam date passes → automatically forgotten
+
+"Meeting with Alex at 3pm today"
+         ↓
+    After today → automatically forgotten
+```
+
+**Contradiction resolution**: When new facts contradict old ones, the Update relationship ensures searches return current information.
+
+**Noise filtering**: Casual, non-meaningful content doesn't become permanent memories.
+
+---
+
+## Memory Types
+
+Supermemory distinguishes memory types automatically:
+
+| Type | Example | Behavior |
+|------|---------|----------|
+| **Facts** | "Alex is a PM at Stripe" | Persists until updated |
+| **Preferences** | "Alex prefers morning meetings" | Strengthens with repetition |
+| **Episodes** | "Met Alex for coffee Tuesday" | Decays unless significant |
+
+---
+
+## What You Don't Do
+
+All of this is automatic. You don't:
+- Define relationships manually
+- Tag memory types
+- Clean up old memories
+- Resolve contradictions
+
+Just add content and search naturally:
+
+```typescript
+await client.add({
+  content: "Alex mentioned he just started at Stripe"
+});
+
+const results = await client.search({
+  query: "where does Alex work?"
+});
+// → Stripe (latest), previously Google (historical)
+```
+
+---
+
+## Learn More
+
+<CardGroup cols={2}>
+  <Card title="How It Works" icon="cpu" href="/concepts/how-it-works">
+    Deep dive into the architecture
+  </Card>
+  <Card title="User Profiles" icon="user" href="/user-profiles">
+    Automatic summaries from the graph
+  </Card>
+</CardGroup>

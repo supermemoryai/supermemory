@@ -4,7 +4,7 @@ description: "Complete examples showing how to use Supermemory with Vercel AI SD
 sidebarTitle: "Examples"
 ---
 
-This page provides comprehensive examples of using Supermemory with the Vercel AI SDK, covering both Memory Tools and Infinite Chat approaches.
+This page provides comprehensive examples of using Supermemory with the Vercel AI SDK, covering Memory Tools and User Profiles approaches.
 
 ## Personal Assistant with Memory Tools
 
@@ -113,62 +113,6 @@ export async function POST(request: Request) {
   return result.toAIStreamResponse()
 }
 ```
-
-## Infinite Chat for Documentation
-
-Create a documentation assistant with unlimited context:
-
-<CodeGroup>
-
-```typescript Documentation Chat
-import { streamText } from 'ai'
-
-const supermemoryInfiniteChat = createOpenAI({
-  baseUrl: 'https://api.supermemory.ai/v3/https://api.openai.com/v1',
-  apiKey: 'your-provider-api-key',
-  headers: {
-    'x-supermemory-api-key': 'supermemory-api-key',
-    'x-sm-conversation-id': 'conversation-id'
-  }
-})
-
-export async function POST(request: Request) {
-  const { messages } = await request.json()
-
-  const result = await streamText({
-    model: supermemoryInfiniteChat('gpt-5'),
-    messages,
-    system: `You are a documentation assistant. You have access to all previous
-    conversations and can reference earlier discussions. Help users understand
-    the documentation by building on previous context.`
-  })
-
-  return result.toAIStreamResponse()
-}
-```
-
-```typescript Upload Documentation
-// Separate endpoint to upload documentation to memory
-import { addMemory } from '@supermemory/tools'
-
-export async function POST(request: Request) {
-  const { content, title, url } = await request.json()
-
-  const memory = await addMemory({
-    apiKey: process.env.SUPERMEMORY_API_KEY!,
-    content,
-    title,
-    url,
-    headers: {
-      'x-sm-conversation-id': 'documentation'
-    }
-  })
-
-  return Response.json({ success: true, memory })
-}
-```
-
-</CodeGroup>
 
 ## Multi-User Learning Assistant
 
@@ -394,12 +338,6 @@ ANTHROPIC_API_KEY=your_anthropic_key
 - Use project headers to separate different use cases
 - Implement error handling for tool failures
 
-### Infinite Chat
-- Use conversation IDs to maintain separate chat contexts
-- Include user IDs for personalized experiences
-- Test with different providers to find the best fit for your use case
-- Monitor token usage for cost optimization
-
 ### General Tips
 - Start with simple examples and gradually add complexity
 - Use the search functionality to avoid duplicate memories
@@ -413,7 +351,7 @@ ANTHROPIC_API_KEY=your_anthropic_key
     Advanced memory management with full API control
   </Card>
 
-  <Card title="Memory Router" icon="route" href="/memory-router/overview">
-    Drop-in proxy for existing LLM applications
+  <Card title="User Profiles" icon="user" href="/user-profiles">
+    Automatic personalization with user profiles
   </Card>
 </CardGroup>

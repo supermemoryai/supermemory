@@ -74,7 +74,7 @@ const client = new Supermemory({
 const customId = 'user-note-001';
 
 // First call creates memory
-const created = await client.memories.add({
+const created = await client.add({
   content: 'Initial content',
   customId: customId,
   metadata: { version: 1 }
@@ -83,7 +83,7 @@ const created = await client.memories.add({
 console.log('Created memory:', created.id);
 
 // Second call with same customId updates existing
-const updated = await client.memories.add({
+const updated = await client.add({
   content: 'Updated content',
   customId: customId,         // Same customId = upsert
   metadata: { version: 2 }
@@ -99,7 +99,7 @@ client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 custom_id = 'user-note-001'
 
 # First call creates memory
-created = client.memories.add(
+created = client.add(
     content='Initial content',
     custom_id=custom_id,
     metadata={'version': 1}
@@ -108,7 +108,7 @@ created = client.memories.add(
 print(f'Created memory: {created.id}')
 
 # Second call with same customId updates existing
-updated = client.memories.add(
+updated = client.add(
     content='Updated content',
     custom_id=custom_id,     # Same customId = upsert
     metadata={'version': 2}
@@ -151,7 +151,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 The `customId` enables idempotency across all endpoints. The `memoryId` doesn't support idempotency, only the `customId` does.
 </Note>
 
-<Warning> 
+<Warning>
 
 The `customId` can have a maximum length of 100 characters.
 

@@ -101,7 +101,7 @@ from supermemory import Supermemory
 client = Supermemory()
 
 try:
-    client.memories.add(
+    client.add(
         content="This is a detailed article about machine learning concepts...",
     )
 except supermemory.APIConnectionError as e:

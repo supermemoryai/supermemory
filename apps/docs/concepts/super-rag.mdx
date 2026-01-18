@@ -1,0 +1,171 @@
+---
+title: "SuperRAG (Managed RAG as a service)"
+sidebarTitle: "SuperRAG"
+description: "Supermemory provides a managed RAG solution - extraction, indexing, storing, and retrieval."
+icon: "bolt"
+---
+
+Supermemory doesn't just store your content—it transforms it into optimized, searchable knowledge. Every upload goes through an intelligent pipeline that extracts, chunks, and indexes content in the ideal way for its type.
+
+## Automatic Content Intelligence
+
+When you add content, Supermemory:
+
+1. **Detects the content type** — PDF, code, markdown, images, video, etc.
+2. **Extracts content optimally** — Uses type-specific extraction (OCR for images, transcription for audio)
+3. **Chunks intelligently** — Applies the right chunking strategy for the content type
+4. **Generates embeddings** — Creates vector representations for semantic search
+5. **Builds relationships** — Connects new knowledge to existing memories
+
+```typescript
+// Just add content — Supermemory handles the rest
+await client.add({
+  content: pdfBase64,
+  contentType: "pdf",
+  title: "Technical Documentation"
+});
+```
+
+No chunking strategies to configure. No embedding models to choose. It just works.
+
+---
+
+## Smart Chunking by Content Type
+
+Different content types need different chunking strategies. Supermemory applies the optimal approach automatically:
+
+### Documents (PDF, DOCX)
+
+PDFs and documents are chunked by **semantic sections** — headers, paragraphs, and logical boundaries. This preserves context better than arbitrary character splits.
+
+```
+├── Executive Summary (chunk 1)
+├── Introduction (chunk 2)
+├── Section 1: Architecture
+│   ├── Overview (chunk 3)
+│   └── Components (chunk 4)
+└── Conclusion (chunk 5)
+```
+
+### Code
+
+Code is chunked using [code-chunk](https://github.com/supermemoryai/code-chunk), our open-source library that understands AST (Abstract Syntax Tree) boundaries:
+
+- Functions and methods stay intact
+- Classes are chunked by method
+- Import statements grouped separately
+- Comments attached to their code blocks
+
+```typescript
+// A 500-line file becomes meaningful chunks:
+// - Imports + type definitions
+// - Each function as a separate chunk
+// - Class methods individually indexed
+```
+
+This means searching for "authentication middleware" finds the actual function, not a random slice of code.
+
+### Web Pages
+
+URLs are fetched, cleaned of navigation/ads, and chunked by article structure — headings, paragraphs, lists.
+
+### Markdown
+
+Chunked by heading hierarchy, preserving the document structure.
+
+See [Content Types](/concepts/content-types) for the full list of supported formats.
+
+---
+
+## Hybrid Memory + RAG
+
+Supermemory combines the best of both approaches in every search:
+
+<CardGroup cols={2}>
+  <Card title="Traditional RAG" icon="magnifying-glass">
+    - Finds similar document chunks
+    - Great for knowledge retrieval
+    - Stateless — same results for everyone
+  </Card>
+
+  <Card title="Memory System" icon="brain">
+    - Extracts and tracks user facts
+    - Understands temporal context
+    - Personalizes results per user
+  </Card>
+</CardGroup>
+
+With `searchMode: "hybrid"` (the default), you get both:
+
+```typescript
+const results = await client.search({
+  q: "how do I deploy the app?",
+  containerTag: "user_123",
+  searchMode: "hybrid"
+});
+
+// Returns:
+// - Deployment docs from your knowledge base (RAG)
+// - User's previous deployment preferences (Memory)
+// - Their specific environment configs (Memory)
+```
+
+---
+
+## Search Optimization
+
+Two flags give you fine-grained control over result quality:
+
+### Reranking
+
+Re-scores results using a cross-encoder model for better relevance:
+
+```typescript
+const results = await client.search({
+  q: "complex technical question",
+  rerank: true  // +~100ms, significantly better ranking
+});
+```
+
+**When to use:** Complex queries, technical documentation, when precision matters more than speed.
+
+### Query Rewriting
+
+Expands your query to capture more relevant results:
+
+```typescript
+const results = await client.search({
+  q: "how to auth",
+  rewriteQuery: true  // Expands to "authentication login oauth jwt..."
+});
+```
+
+**When to use:** Short queries, user-facing search, when recall matters.
+
+---
+
+## Why It's "Super"
+
+| Traditional RAG | SUPER RAG |
+|-----------------|-----------|
+| Manual chunking config | Automatic per content type |
+| One-size-fits-all splits | AST-aware code chunking |
+| Just document retrieval | Hybrid memory + documents |
+| Static embeddings | Relationship-aware graph |
+| Generic search | Rerank + query rewriting |
+
+You focus on building your product. Supermemory handles the RAG complexity.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Content Types" icon="file-stack" href="/concepts/content-types">
+    All supported formats and how they're processed
+  </Card>
+
+  <Card title="Search" icon="search" href="/search">
+    Search parameters and optimization
+  </Card>
+</CardGroup>

@@ -1,0 +1,98 @@
+---
+title: "Memory Operations"
+sidebarTitle: "Memories"
+description: "Advanced memory operations (v4 API)"
+icon: "database"
+---
+
+<Info>
+These v4 endpoints operate on extracted memories (not raw documents). SDK support coming soon — use fetch or cURL for now.
+
+For document management (list, get, update, delete), see [Document Operations](/document-operations).
+</Info>
+
+## Forget Memory
+
+Soft-delete a memory — excluded from search results but preserved in the system. Use this when you might want to restore later.
+
+<Tabs>
+  <Tab title="fetch">
+    ```typescript
+    await fetch("https://api.supermemory.ai/v4/memories/mem_abc123/forget", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v4/memories/mem_abc123/forget" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+The memory will no longer appear in search results but remains in the database.
+
+---
+
+## Update Memory (Versioned)
+
+Update a memory by creating a new version. The original is preserved with `isLatest=false`.
+
+<Tabs>
+  <Tab title="fetch">
+    ```typescript
+    await fetch("https://api.supermemory.ai/v4/memories", {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        // Identify by ID or content
+        id: "mem_abc123",
+        // content: "Original content to match",
+
+        newContent: "Updated content goes here",
+        metadata: {
+          tags: ["updated"]
+        }
+      })
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X PATCH "https://api.supermemory.ai/v4/memories" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "id": "mem_abc123",
+        "newContent": "Updated content goes here",
+        "metadata": {"tags": ["updated"]}
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | * | Memory ID to update |
+| `content` | string | * | Original content to match (alternative to ID) |
+| `newContent` | string | yes | New content for the memory |
+| `metadata` | object | no | Updated metadata |
+
+\* Either `id` or `content` must be provided.
+
+---
+
+## Next Steps
+
+- [Document Operations](/document-operations) — Manage documents (SDK supported)
+- [Search](/search) — Query your memories
+- [Ingesting Content](/add-memories) — Add new content

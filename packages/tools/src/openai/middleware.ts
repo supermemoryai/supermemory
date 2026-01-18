@@ -363,7 +363,7 @@ const addMemoryTool = async (
 		}
 
 		// Fallback to old behavior for non-conversation memories
-		const response = await client.memories.add({
+		const response = await client.add({
 			content,
 			containerTags: [containerTag],
 			customId,

@@ -21,7 +21,7 @@ from supermemory import Client
 api_client = Client(api_key="YOUR_SUPERMEMORY_KEY")
 
 # Add memory via API
-api_client.memories.add({
+api_client.add({
     "content": "User prefers Python over JavaScript for backend development",
     "user_id": "user123"
 })
@@ -52,7 +52,7 @@ Use the API to add documents and context before conversations:
 
 ```python
 # Step 1: Load user's documents via API
-api_client.memories.add({
+api_client.add({
     "content": "https://company.com/product-docs.pdf",
     "user_id": "support_agent_123",
     "metadata": {"type": "product_documentation"}
@@ -80,11 +80,11 @@ Always use the same `user_id` format across both systems:
 
 ```python
 # ✅ Good - consistent user_id
-api_client.memories.add({"user_id": "user_123"})
+api_client.add({"user_id": "user_123"})
 router_headers = {"x-sm-user-id": "user_123"}
 
 # ❌ Bad - inconsistent user_id
-api_client.memories.add({"user_id": "user-123"})
+api_client.add({"user_id": "user-123"})
 router_headers = {"x-sm-user-id": "user_123"}  # Different format!
 ```
 
@@ -92,7 +92,7 @@ router_headers = {"x-sm-user-id": "user_123"}  # Different format!
 
 ```python
 # API: Add memories with tags
-api_client.memories.add({
+api_client.add({
     "content": "Q3 revenue report",
     "user_id": "analyst_1",
     "containerTag": "financial_reports"

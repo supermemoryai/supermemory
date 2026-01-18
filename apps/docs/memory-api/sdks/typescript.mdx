@@ -44,7 +44,7 @@ async function main() {
   const params: supermemory.MemoryAddParams = {
     content: 'This is a detailed article about machine learning concepts...',
   };
-  const response: supermemory.MemoryAddResponse = await client.memories.add(params);
+  const response: supermemory.MemoryAddResponse = await client.add(params);
 }
 
 main();
@@ -135,7 +135,7 @@ const client = new Supermemory({
 });
 
 // Or, configure per-request:
-await client.memories.add({ content: 'This is a detailed article about machine learning concepts...' }, {
+await client.add({ content: 'This is a detailed article about machine learning concepts...' }, {
   maxRetries: 5,
 });
 ```
@@ -152,7 +152,7 @@ const client = new Supermemory({
 });
 
 // Override per-request:
-await client.memories.add({ content: 'This is a detailed article about machine learning concepts...' }, {
+await client.add({ content: 'This is a detailed article about machine learning concepts...' }, {
   timeout: 5 * 1000,
 });
 ```

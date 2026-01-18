@@ -70,7 +70,7 @@ A customer support bot that:
         metadata?: Record<string, any>
       }) {
         try {
-          const result = await client.memories.add({
+          const result = await client.add({
             content: `${interaction.type.toUpperCase()}: ${interaction.content}`,
             containerTag: this.getContainerTag(customerId),
             metadata: {
@@ -146,7 +146,7 @@ A customer support bot that:
         try {
           const issueContent = `ISSUE: ${issue.subject}\n\nDescription: ${issue.description}\nCategory: ${issue.category}\nPriority: ${issue.priority}\nStatus: ${issue.status}`
 
-          const result = await client.memories.add({
+          const result = await client.add({
             content: issueContent,
             containerTag: this.getContainerTag(customerId),
             metadata: {
@@ -232,7 +232,7 @@ A customer support bot that:
             try:
                 content = f"{interaction['type'].upper()}: {interaction['content']}"
 
-                result = self.client.memories.add(
+                result = self.client.add(
                     content=content,
                     container_tag=self._get_container_tag(customer_id),
                     metadata={
@@ -309,7 +309,7 @@ Category: {issue['category']}
 Priority: {issue['priority']}
 Status: {issue['status']}"""
 
-                result = self.client.memories.add(
+                result = self.client.add(
                     content=issue_content,
                     container_tag=self._get_container_tag(customer_id),
                     metadata={

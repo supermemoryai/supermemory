@@ -71,7 +71,7 @@ A document Q&A system that:
 
       async uploadURL({ url, collection, metadata = {} }: { url: string, collection: string, metadata?: Record<string, any> }) {
         try {
-          const result = await client.memories.add({
+          const result = await client.add({
             content: url,
             containerTag: collection,
             metadata: {
@@ -216,7 +216,7 @@ A document Q&A system that:
                 metadata = {}
 
             try:
-                result = self.client.memories.add(
+                result = self.client.add(
                     content=url,
                     container_tag=collection,
                     metadata={

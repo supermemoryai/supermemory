@@ -53,7 +53,7 @@ client = Supermemory(
 
 ```typescript TypeScript
 // Add text content
-const result = await client.memories.add({
+const result = await client.add({
   content: "Machine learning enables computers to learn from data",
   containerTag: "ai-research",
   metadata: { priority: "high" }
@@ -65,7 +65,7 @@ console.log(result);
 
 ```python Python
 # Add text content
-result = client.memories.add(
+result = client.add(
     content="Machine learning enables computers to learn from data",
     container_tags=["ai-research"],
     metadata={"priority": "high"}
@@ -125,14 +125,14 @@ Add text content, URLs, or any supported format.
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.add({
+await client.add({
   content: "Your content here",
   containerTag: "project"
 });
 ```
 
 ```python Python
-client.memories.add(
+client.add(
   content="Your content here",
   container_tags=["project"]
 )
@@ -245,7 +245,5 @@ curl -X PATCH "https://api.supermemory.ai/v3/documents/doc_id" \
 
 ## Next Steps
 
-- [Track Processing Status](/memory-api/track-progress) - Monitor document processing
-- [Search Memories](/search/overview) - Search your content
-- [List Memories](/list-memories/overview) - Browse stored memories
-- [Update & Delete](/update-delete-memories/overview) - Manage memories
+- [Memory Operations](/memory-operations) - Track status, list, update, and delete memories
+- [Search Memories](/search) - Search your content

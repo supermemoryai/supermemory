@@ -25,7 +25,7 @@
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index-CITmF79o.d.ts",
+  "types": "./dist/index-h2cm3lSK.d.ts",
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"

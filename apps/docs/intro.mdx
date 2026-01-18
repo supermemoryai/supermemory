@@ -1,25 +1,32 @@
 ---
 title: "Overview — What is Supermemory?"
 sidebarTitle: "Overview"
-description = "Add long-term memory to your LLMs with three integration paths: AI SDK, Memory API, or Memory Router."
+icon: "book-open"
 ---
 
-Supermemory gives your LLMs long-term memory. Instead of stateless text generation, they recall the right facts from your files, chats, and tools, so responses stay consistent, contextual, and personal.
+Supermemory is the long-term and short-term memory and context infrastructure for AI agents. It is the [state of the art](https://supermemory.ai/research) across multiple different benchmarks, like LongMemEval and LoCoMo.
 
+With supermemory, developers can provide perfect recall about their users to build AI agents that are more intelligent, more personalized, and more consistent. Additionally, *supermemory* has all the pieces of the context stack built in:
+- [Agent memory](/concepts/graph-memory)
+- [Content extraction](/concepts/content-types)
+- [Connectors and syncing](/concepts/connectors-syncing)
+- Managed RAG platform
+
+All this, coming together, makes supermemory the best abstraction to provide to agents.
 
 ## How does it work? (at a glance)
 
 ![](/images/232.png)
 
 - You send Supermemory text, files, and chats.
-- Supermemory [intelligently indexes them](/how-it-works) and builds a semantic understanding graph on top of an entity (e.g., a user, a document, a project, an organization).
+- Supermemory [intelligently indexes them](/concepts/how-it-works) and builds a semantic understanding graph on top of an entity (e.g., a user, a document, a project, an organization).
 - At query time, we fetch only the most relevant context and pass it to your models.
 
 ## Supermemory is context engineering.
 
 #### Ingestion and Extraction
 
-Supermemory handles all the extraction, for any data type that you have.
+Supermemory handles all the extraction, for [any data type that you have](/concepts/content-types).
 - Text
 - Conversations
 - Files (PDF, Images, Docs)
@@ -34,7 +41,7 @@ We offer three ways to add context to your LLMs:
 ![memory graph](/images/memory-graph.png)
 
 Supermemory learns and builds the memory for the user. These are extracted facts about the user, that:
-- Evolve on top of existing context about the user, **in real time**
+- [Evolve on top of existing context about the user](/concepts/memory-graph), **in real time**
 - Handle **knowledge updates, temporal changes, forgetfulness**
 - Creates a **user profile** as the default context provider for the LLM.
 
@@ -42,7 +49,7 @@ _This can then be provided to the LLM, to give more contextual, personalized res
 
 #### User profiles
 
-Having the latest, evolving context about the user allows us to also create a **User Profile**. This is a combination of static and dynamic facts about the user, that the agent should **always know**
+Having the latest, evolving context about the user allows us to also create a [**User Profile**](/concepts/user-profile). This is a combination of static and dynamic facts about the user, that the agent should **always know**
 Developers can configure supermemory with what static and dynamic contents are, depending on their use case.
 
 - Static: Information that the agent should **always** know.
@@ -68,4 +75,4 @@ All three approaches share the **same context pool** when using the same user ID
 
 ## Next steps
 
-Head to the [**How it works**](/how-it-works) guide to understand the underlying way of how supermemory represents and learns in data.
+Head to the [**How it works**](/concepts/how-it-works) guide to understand the underlying way of how supermemory represents and learns in data.

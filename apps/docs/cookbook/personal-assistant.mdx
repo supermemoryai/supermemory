@@ -9,7 +9,7 @@ Build a personal AI assistant that learns and remembers everything about the use
 
 A personal AI assistant that:
 - **Remembers user preferences** (dietary restrictions, work schedule, communication style)
-- **Maintains context** across multiple chat sessions  
+- **Maintains context** across multiple chat sessions
 - **Provides personalized recommendations** based on user history
 - **Handles multiple conversation topics** while maintaining context
 
@@ -169,7 +169,7 @@ This searches the user's memory store for context relevant to their current mess
 ```python
 async def add_user_memory(content: str, container_tag: str, email: str = None):
     try:
-        supermemory_client.memories.add(
+        supermemory_client.add(
             content=content,
             container_tag=container_tag,
             metadata={"type": "personal_info", "email": normalize_email(email) if email else None}
@@ -196,7 +196,7 @@ Stores new information about the user.
 async def chat_endpoint(data: dict):
     messages = data.get("messages", [])
     email = data.get("email")
-    
+
     if not messages:
         raise HTTPException(status_code=400, detail="No messages provided")
     if not email:
@@ -216,7 +216,7 @@ This endpoint receives the chat request. It expects:
         user_id = stable_user_id_from_email(email)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     container_tag = f"user_{user_id}"
 ```
 
@@ -229,7 +229,7 @@ The container tag (`user_abc123`) isolates this user's memories from everyone el
 ```python
     user_message = messages[-1]["content"]
     memory_context = await search_user_memories(user_message, container_tag)
-    
+
     enhanced_messages = [
         {"role": "system", "content": f"{SYSTEM_PROMPT}\n\n{memory_context}"}
     ] + messages
@@ -308,7 +308,7 @@ After streaming completes, check if the user explicitly asked to remember someth
 
 ```python
         return StreamingResponse(generate(), media_type="text/plain")
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 ```
@@ -360,11 +360,11 @@ st.markdown("*Your AI that learns and remembers*")
 
 with st.sidebar:
     st.header("👤 User Profile")
-    
+
     if not st.session_state.user_name or not st.session_state.email:
         name = st.text_input("What should I call you?")
         email = st.text_input("Email", placeholder="you@example.com")
-        
+
         if st.button("Get Started"):
             if name and email:
                 st.session_state.user_name = name
@@ -388,12 +388,12 @@ if st.session_state.user_name and st.session_state.email:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-    
+
     if prompt := st.chat_input("Message..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
-        
+
         with st.chat_message("assistant"):
             try:
                 response = requests.post(
@@ -405,7 +405,7 @@ if st.session_state.user_name and st.session_state.email:
                     stream=True,
                     timeout=30
                 )
-                
+
                 if response.status_code == 200:
                     full_response = ""
                     for line in response.iter_lines():
@@ -416,7 +416,7 @@ if st.session_state.user_name and st.session_state.email:
                                     full_response += data['content']
                             except:
                                 continue
-                    
+
                     st.markdown(full_response)
                     st.session_state.messages.append({"role": "assistant", "content": full_response})
                 else:
@@ -544,7 +544,7 @@ Without email, we can't maintain personalization across sessions.
     const containerTag = `user_${email.toLowerCase().trim()}`
 ```
 
-Convert email to a container tag for memory isolation. 
+Convert email to a container tag for memory isolation.
 
 **Simpler than Python**: We skip UUID generation here for simplicity. In production, you might want to hash the email for privacy:
 
@@ -646,10 +646,10 @@ Catches any errors (API failures, tool errors, etc.) and returns a clean error r
 | **Streaming** | Manual SSE formatting | `toAIStreamResponse()` handles it |
 | **Error Handling** | Try/catch in each function | AI SDK handles tool errors |
 
-**Python = Manual Control**  
+**Python = Manual Control**
 You explicitly search and add memories. More control, more code.
 
-**TypeScript = AI-Driven**  
+**TypeScript = AI-Driven**
 The AI decides when to use tools. Less code, more "magic."
 
 ### Step 3: Chat UI
@@ -668,12 +668,12 @@ export default function ChatPage() {
   const [userName, setUserName] = useState('')
   const [tempEmail, setTempEmail] = useState('')
   const [tempName, setTempName] = useState('')
-  
+
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: '/api/chat',
     body: { email }
   })
-  
+
   if (!email) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -708,7 +708,7 @@ export default function ChatPage() {
       </div>
     )
   }
-  
+
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto p-4">
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
@@ -716,8 +716,8 @@ export default function ChatPage() {
           <div
             key={message.id}
             className={`p-4 rounded-lg ${
-              message.role === 'user' 
-                ? 'bg-blue-100 ml-auto max-w-[80%]' 
+              message.role === 'user'
+                ? 'bg-blue-100 ml-auto max-w-[80%]'
                 : 'bg-gray-100 mr-auto max-w-[80%]'
             }`}
           >
@@ -725,7 +725,7 @@ export default function ChatPage() {
           </div>
         ))}
       </div>
-      
+
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           value={input}
@@ -733,7 +733,7 @@ export default function ChatPage() {
           placeholder="Tell me about yourself..."
           className="flex-1 p-3 border rounded-lg"
         />
-        <button 
+        <button
           type="submit"
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
