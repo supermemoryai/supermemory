@@ -345,7 +345,7 @@ This is useful when:
 
 ```typescript TypeScript
 // Get a specific document by ID
-const document = await client.memories.get("doc_abc123");
+const document = await client.documents.get("doc_abc123");
 
 console.log(document.content);    // Full document content
 console.log(document.status);     // Processing status
@@ -355,7 +355,7 @@ console.log(document.summary);    // AI-generated summary
 
 ```python Python
 # Get a specific document by ID
-document = client.memories.get("doc_abc123")
+document = client.documents.get("doc_abc123")
 
 print(document.content)    # Full document content
 print(document.status)     # Processing status

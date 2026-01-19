@@ -14,7 +14,7 @@ Extract text from PDFs with OCR support.
 ```typescript TypeScript
 const file = fs.createReadStream('document.pdf');
 
-const response = await client.memories.uploadFile({
+const response = await client.documents.uploadFile({
   file: file,
   containerTags: 'documents'
 });
@@ -25,7 +25,7 @@ console.log(response.id);
 
 ```python Python
 with open('document.pdf', 'rb') as file:
-    response = client.memories.upload_file(
+    response = client.documents.upload_file(
         file=file,
         container_tags='documents'
     )
@@ -54,7 +54,7 @@ Extract text from images.
 ```typescript TypeScript
 const image = fs.createReadStream('screenshot.png');
 
-await client.memories.uploadFile({
+await client.documents.uploadFile({
   file: image,
   containerTags: 'images'
 });
@@ -62,7 +62,7 @@ await client.memories.uploadFile({
 
 ```python Python
 with open('screenshot.png', 'rb') as file:
-    client.memories.upload_file(
+    client.documents.upload_file(
         file=file,
         container_tags='images'
     )
@@ -134,7 +134,7 @@ Batch upload with rate limiting.
 for (const file of files) {
   const stream = fs.createReadStream(file);
 
-  await client.memories.uploadFile({
+  await client.documents.uploadFile({
     file: stream,
     containerTags: 'batch'
   });
@@ -149,7 +149,7 @@ import time
 
 for file_path in files:
     with open(file_path, 'rb') as file:
-        client.memories.upload_file(
+        client.documents.upload_file(
             file=file,
             container_tags='batch'
         )

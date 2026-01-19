@@ -71,9 +71,17 @@ containerTag: orgId  // Org members share memories
 ```
 
 **BOTH (ask which):**
-- Option A: `containerTag: \`\${userId}-\${orgId}\``
-- Option B: `containerTag: orgId, metadata: { userId }`
-- Option C: `containerTag: userId, metadata: { orgId }`
+
+```typescript
+// Option A: Unique per user-org combination
+containerTag: `${userId}-${orgId}`
+
+// Option B: Org-scoped with user metadata
+containerTag: orgId, metadata: { userId }
+
+// Option C: User-scoped with org metadata
+containerTag: userId, metadata: { orgId }
+```
 
 ## STEP 5: INTEGRATION CODE
 

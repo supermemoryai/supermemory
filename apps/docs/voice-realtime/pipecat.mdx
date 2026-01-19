@@ -151,7 +151,7 @@ async def run_bot(websocket_client, user_id: str, session_id: str):
     )
 
     stt = OpenAISTTService(api_key=os.getenv("OPENAI_API_KEY"))
-    llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini")
+    llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-5-mini")
     tts = OpenAITTSService(api_key=os.getenv("OPENAI_API_KEY"), voice="alloy")
 
     # Supermemory memory service

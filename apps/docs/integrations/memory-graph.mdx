@@ -1,0 +1,363 @@
+---
+title: 'Memory Graph'
+sidebarTitle: "Memory Graph"
+description: 'Interactive visualization for documents, memories and connections'
+icon: "network"
+---
+
+Memory Graph is a React component that visualizes your Supermemory documents and memories as an interactive network. Documents appear as rectangular nodes, memories as hexagonal nodes, and connections between them show relationships and similarity.
+
+<Card title="@supermemory/memory-graph on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/memory-graph">
+    Check out the NPM page for more details
+</Card>
+
+## Installation
+
+```bash
+npm install @supermemory/memory-graph
+```
+
+**Requirements:** React 18.0.0 or higher
+
+## Quick Start
+
+```tsx
+'use client'; // For Next.js App Router
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import type { DocumentWithMemories } from '@supermemory/memory-graph';
+import { useEffect, useState } from 'react';
+
+export default function GraphPage() {
+  const [documents, setDocuments] = useState<DocumentWithMemories[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    fetch('/api/graph')
+      .then(res => res.json())
+      .then(data => {
+        setDocuments(data.documents);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  return (
+    <div style={{ height: '100vh' }}>
+      <MemoryGraph
+        documents={documents}
+        isLoading={isLoading}
+        error={error}
+        variant="console"
+      />
+    </div>
+  );
+}
+```
+
+## Backend API Route
+
+Create an API route to fetch documents from Supermemory:
+
+<CodeGroup>
+
+```typescript Next.js App Router
+// app/api/graph/route.ts
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({
+      page: 1,
+      limit: 500,
+      sort: 'createdAt',
+      order: 'desc',
+    }),
+  });
+
+  const data = await response.json();
+  return NextResponse.json(data);
+}
+```
+
+```typescript Next.js Pages Router
+// pages/api/graph.ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' }),
+  });
+
+  const data = await response.json();
+  res.json(data);
+}
+```
+
+```javascript Express
+app.get('/api/graph', async (req, res) => {
+  const response = await fetch('https://api.supermemory.ai/v3/documents/documents', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    },
+    body: JSON.stringify({ page: 1, limit: 500, sort: 'createdAt', order: 'desc' }),
+  });
+
+  const data = await response.json();
+  res.json(data);
+});
+```
+
+</CodeGroup>
+
+<Warning>
+  Never expose your Supermemory API key to the client. Always fetch data through your backend.
+</Warning>
+
+---
+
+## Variants
+
+**Console Variant** - Full-featured dashboard view (0.8x zoom, space selector visible):
+
+```tsx
+<MemoryGraph documents={documents} variant="console" />
+```
+
+**Consumer Variant** - Embedded widget view (0.5x zoom, space selector hidden):
+
+```tsx
+<MemoryGraph documents={documents} variant="consumer" />
+```
+
+---
+
+## Examples
+
+### With Pagination
+
+```tsx
+'use client';
+
+import { MemoryGraph } from '@supermemory/memory-graph';
+import { useCallback, useEffect, useState } from 'react';
+
+export default function PaginatedGraph() {
+  const [documents, setDocuments] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  useEffect(() => { fetchPage(1, false); }, []);
+
+  const fetchPage = async (pageNum, append) => {
+    pageNum === 1 ? setIsLoading(true) : setIsLoadingMore(true);
+
+    const res = await fetch(`/api/graph?page=${pageNum}&limit=100`);
+    const data = await res.json();
+
+    append ? setDocuments(prev => [...prev, ...data.documents]) : setDocuments(data.documents);
+    setHasMore(data.pagination.currentPage < data.pagination.totalPages);
+    setIsLoading(false);
+    setIsLoadingMore(false);
+  };
+
+  const loadMore = useCallback(async () => {
+    if (!isLoadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      await fetchPage(nextPage, true);
+    }
+  }, [page, hasMore, isLoadingMore]);
+
+  return (
+    <MemoryGraph
+      documents={documents}
+      isLoading={isLoading}
+      isLoadingMore={isLoadingMore}
+      hasMore={hasMore}
+      totalLoaded={documents.length}
+      loadMoreDocuments={loadMore}
+    />
+  );
+}
+```
+
+### Highlighting Search Results
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  highlightDocumentIds={searchResults}
+  highlightsVisible={searchResults.length > 0}
+/>
+```
+
+### Controlled Space Selection
+
+```tsx
+<MemoryGraph
+  documents={documents}
+  selectedSpace={selectedSpace}
+  onSpaceChange={setSelectedSpace}
+  showSpacesSelector={false}
+/>
+```
+
+### Custom Empty State
+
+```tsx
+<MemoryGraph documents={documents} isLoading={isLoading}>
+  <div style={{ textAlign: 'center', padding: '2rem' }}>
+    <h2>No memories yet</h2>
+    <p>Add content to see your knowledge graph</p>
+  </div>
+</MemoryGraph>
+```
+
+---
+
+## Props Reference
+
+### Core Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `documents` | `DocumentWithMemories[]` | required | Array of documents to display |
+| `isLoading` | `boolean` | `false` | Shows loading indicator |
+| `error` | `Error \| null` | `null` | Error to display |
+| `variant` | `"console" \| "consumer"` | `"console"` | Visual variant |
+| `children` | `ReactNode` | - | Custom empty state content |
+
+### Pagination Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `isLoadingMore` | `boolean` | `false` | Shows indicator when loading more |
+| `hasMore` | `boolean` | `false` | Whether more documents available |
+| `totalLoaded` | `number` | - | Total documents currently loaded |
+| `loadMoreDocuments` | `() => Promise<void>` | - | Callback to load more |
+| `autoLoadOnViewport` | `boolean` | `true` | Auto-load when 80% visible |
+
+### Display Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `showSpacesSelector` | `boolean` | variant-based | Show space filter dropdown |
+| `highlightDocumentIds` | `string[]` | `[]` | Document IDs to highlight |
+| `highlightsVisible` | `boolean` | `true` | Whether highlights shown |
+| `occludedRightPx` | `number` | `0` | Pixels occluded on right |
+
+### Controlled State Props
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `selectedSpace` | `string` | Currently selected space (use `"all"` for all) |
+| `onSpaceChange` | `(spaceId: string) => void` | Callback when space changes |
+| `memoryLimit` | `number` | Max memories per document when space selected |
+
+---
+
+## Data Types
+
+### DocumentWithMemories
+
+```typescript
+interface DocumentWithMemories {
+  id: string;
+  customId?: string | null;
+  title?: string | null;
+  content?: string | null;
+  summary?: string | null;
+  url?: string | null;
+  source?: string | null;
+  type?: string | null;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  metadata?: Record<string, string | number | boolean> | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  memoryEntries: MemoryEntry[];
+}
+```
+
+### MemoryEntry
+
+```typescript
+interface MemoryEntry {
+  id: string;
+  documentId: string;
+  content: string | null;
+  summary?: string | null;
+  title?: string | null;
+  type?: string | null;
+  metadata?: Record<string, string | number | boolean> | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  spaceContainerTag?: string | null;
+  relation?: 'updates' | 'extends' | 'derives' | null;
+  isLatest?: boolean;
+  spaceId?: string | null;
+}
+```
+
+---
+
+## Exports
+
+### Components
+
+```typescript
+import {
+  MemoryGraph,
+  GraphCanvas,
+  Legend,
+  LoadingIndicator,
+  NodeDetailPanel,
+  SpacesDropdown
+} from '@supermemory/memory-graph';
+```
+
+### Hooks
+
+```typescript
+import { useGraphData, useGraphInteractions } from '@supermemory/memory-graph';
+```
+
+### Constants
+
+```typescript
+import { colors, GRAPH_SETTINGS, LAYOUT_CONSTANTS } from '@supermemory/memory-graph';
+```
+
+---
+
+## Performance
+
+The graph handles hundreds of nodes efficiently through:
+- Canvas-based rendering (not DOM elements)
+- Viewport culling (only draws visible nodes)
+- Level-of-detail optimization (simplifies when zoomed out)
+- Change-based rendering (only redraws when state changes)
+
+For very large datasets (1000+ documents), use pagination to load data in chunks.
+
+## Browser Support
+
+Works in all modern browsers supporting Canvas 2D API, ES2020, and CSS custom properties. Tested on Chrome, Firefox, Safari, and Edge.

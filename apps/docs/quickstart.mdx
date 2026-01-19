@@ -1,10 +1,11 @@
 ---
 title: Quickstart
 description: Make your first API call to Supermemory - add and retrieve memories.
+icon: "play"
 ---
 
 <Tip>
-**Using Vercel AI SDK?** Check out the [AI SDK integration](/ai-sdk/overview) for the cleanest implementation with `@supermemory/tools/ai-sdk`.
+**Using Vercel AI SDK?** Check out the [AI SDK integration](/integrations/ai-sdk) for the cleanest implementation with `@supermemory/tools/ai-sdk`.
 </Tip>
 
 ## Memory API
@@ -49,14 +50,18 @@ conversation = [
 # Get user profile + relevant memories for context
 profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
 
+static = "\n".join(profile.profile.static)
+dynamic = "\n".join(profile.profile.dynamic)
+memories = "\n".join(r.get("memory", "") for r in profile.search_results.results)
+
 context = f"""Static profile:
-{"\n".join(profile.profile.static)}
+{static}
 
 Dynamic profile:
-{"\n".join(profile.profile.dynamic)}
+{dynamic}
 
 Relevant memories:
-{"\n".join(r.content for r in profile.search_results.results)}"""
+{memories}"""
 
 # Build messages with memory-enriched context
 messages = [{"role": "system", "content": f"User context:\n{context}"}, *conversation]
@@ -96,7 +101,7 @@ Dynamic profile:
 ${profile.profile.dynamic.join("\n")}
 
 Relevant memories:
-${profile.searchResults.results.map((r) => r.content).join("\n")}`;
+${profile.searchResults.results.map((r) => r.memory).join("\n")}`;
 
 // Build messages with memory-enriched context
 const messages = [{ role: "system", content: `User context:\n${context}` }, ...conversation];
@@ -104,7 +109,7 @@ const messages = [{ role: "system", content: `User context:\n${context}` }, ...c
 // const response = await llm.chat({ messages });
 
 // Store conversation for future context
-await client.memories.add({
+await client.add({
   content: conversation.map((m) => `${m.role}: ${m.content}`).join("\n"),
   containerTag: USER_ID,
 });
@@ -121,4 +126,4 @@ That's it! Supermemory automatically:
 **Optional:** Use the `threshold` parameter to filter search results by relevance score. For example: `client.profile(container_tag=USER_ID, threshold=0.7, q=query)` will only include results with a score above 0.7.
 </Tip>
 
-Learn more about [User Profiles](/user-profiles) and [Search](/search/overview).
+Learn more about [User Profiles](/user-profiles) and [Search](/search).

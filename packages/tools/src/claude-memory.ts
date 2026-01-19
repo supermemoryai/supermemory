@@ -47,17 +47,23 @@ export class ClaudeMemoryTool {
 	private memoryContainerPrefix: string
 
 	/**
-	 * Normalize file path to be used as customId (replace / with --)
+	 * Normalize file path to be used as customId
+	 * Converts /memories/file.txt -> memories_file_txt
 	 */
 	private normalizePathToCustomId(path: string): string {
-		return path.replace(/\//g, "--")
+		return path
+			.replace(/^\//, "") // Remove leading slash
+			.replace(/\//g, "_") // Replace / with _
+			.replace(/\./g, "_") // Replace . with _
 	}
 
 	/**
-	 * Convert customId back to file path (replace -- with /)
+	 * Convert customId back to file path
+	 * Note: This is lossy since we can't distinguish _ from . or /
+	 * We rely on metadata.file_path for accurate path reconstruction
 	 */
 	private customIdToPath(customId: string): string {
-		return customId.replace(/--/g, "/")
+		return "/" + customId.replace(/_/g, "/")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
@@ -329,7 +335,7 @@ export class ClaudeMemoryTool {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
-			const response = await this.client.memories.add({
+			const response = await this.client.add({
 				content: fileText,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -388,7 +394,7 @@ export class ClaudeMemoryTool {
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
-			const updateResponse = await this.client.memories.add({
+			const updateResponse = await this.client.add({
 				content: newContent,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -447,7 +453,7 @@ export class ClaudeMemoryTool {
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
-			await this.client.memories.add({
+			await this.client.add({
 				content: newContent,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -530,7 +536,7 @@ export class ClaudeMemoryTool {
 			const newNormalizedId = this.normalizePathToCustomId(newPath)
 
 			// Create new document with new path
-			await this.client.memories.add({
+			await this.client.add({
 				content: originalContent,
 				customId: newNormalizedId,
 				containerTags: this.containerTags,

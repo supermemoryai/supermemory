@@ -104,7 +104,7 @@ const client = new Supermemory({
 })
 
 async function addContent() {
-    const result = await client.memories.add({
+    const result = await client.add({
         content: "Machine learning is a subset of artificial intelligence...",
         containerTags: ["ai-research"],
         metadata: {
@@ -127,7 +127,7 @@ import os
 
 client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
-result = client.memories.add(
+result = client.add(
     content="Machine learning is a subset of artificial intelligence...",
     container_tags=["ai-research"],
     metadata={
@@ -205,7 +205,7 @@ const client = new Supermemory({
 })
 
 // Method 1: Using SDK uploadFile method (RECOMMENDED)
-const result = await client.memories.uploadFile({
+const result = await client.documents.uploadFile({
   file: fs.createReadStream('/path/to/document.pdf'),
   containerTags: 'research_project'  // String, not array!
 })
@@ -234,7 +234,7 @@ from supermemory import Supermemory
 client = Supermemory(api_key="your_api_key")
 
 # Method 1: Using SDK upload_file method (RECOMMENDED)
-result = client.memories.upload_file(
+result = client.documents.upload_file(
     file=open('document.pdf', 'rb'),
     container_tags='research_project'  # String parameter name
 )
@@ -699,7 +699,7 @@ Process large volumes efficiently with rate limiting and error recovery.
     async function ingestWithRetry(doc: Document, maxRetries: number) {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          return await client.memories.add({
+          return await client.add({
             content: doc.content,
             customId: doc.id,
             containerTags: ["batch_import_user_123"], // CORRECTED: Array
@@ -787,7 +787,7 @@ Process large volumes efficiently with rate limiting and error recovery.
     async def ingest_with_retry(doc: Dict[str, Any], max_retries: int):
         for attempt in range(1, max_retries + 1):
             try:
-                return await client.memories.add(
+                return await client.add(
                     content=doc['content'],
                     custom_id=doc['id'],
                     container_tags=["batch_import_user_123"],  # CORRECTED: List

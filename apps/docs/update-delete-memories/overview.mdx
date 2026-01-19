@@ -20,7 +20,7 @@ const client = new Supermemory({
 });
 
 // Update by memory ID
-const updated = await client.memories.update('memory_id_123', {
+const updated = await client.documents.update('memory_id_123', {
   content: 'Updated content here',
   metadata: { version: 2, updated: true }
 });
@@ -36,7 +36,7 @@ import os
 client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 
 # Update by memory ID
-updated = client.memories.update(
+updated = client.documents.update(
     'memory_id_123',
     content='Updated content here',
     metadata={'version': 2, 'updated': True}
@@ -74,7 +74,7 @@ const client = new Supermemory({
 const customId = 'user-note-001';
 
 // First call creates memory
-const created = await client.memories.add({
+const created = await client.add({
   content: 'Initial content',
   customId: customId,
   metadata: { version: 1 }
@@ -83,7 +83,7 @@ const created = await client.memories.add({
 console.log('Created memory:', created.id);
 
 // Second call with same customId updates existing
-const updated = await client.memories.add({
+const updated = await client.add({
   content: 'Updated content',
   customId: customId,         // Same customId = upsert
   metadata: { version: 2 }
@@ -99,7 +99,7 @@ client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
 custom_id = 'user-note-001'
 
 # First call creates memory
-created = client.memories.add(
+created = client.add(
     content='Initial content',
     custom_id=custom_id,
     metadata={'version': 1}
@@ -108,7 +108,7 @@ created = client.memories.add(
 print(f'Created memory: {created.id}')
 
 # Second call with same customId updates existing
-updated = client.memories.add(
+updated = client.add(
     content='Updated content',
     custom_id=custom_id,     # Same customId = upsert
     metadata={'version': 2}
@@ -151,7 +151,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents" \
 The `customId` enables idempotency across all endpoints. The `memoryId` doesn't support idempotency, only the `customId` does.
 </Note>
 
-<Warning> 
+<Warning>
 
 The `customId` can have a maximum length of 100 characters.
 
@@ -165,18 +165,18 @@ Delete individual memories by their ID. This is a permanent hard delete with no 
 
 ```typescript Typescript
 // Hard delete - permanently removes memory
-await client.memories.delete('memory_id_123');
+await client.documents.delete('memory_id_123');
 console.log('Memory deleted successfully');
 ```
 
 ```python Python
 # Hard delete - permanently removes memory
-client.memories.delete('memory_id_123')
+client.documents.delete('memory_id_123')
 print('Memory deleted successfully')
 
 # Error handling for single delete
 try:
-    client.memories.delete('memory_id_123')
+    client.documents.delete('memory_id_123')
     print('Delete successful')
 except NotFoundError:
     print('Memory not found or already deleted')
@@ -204,7 +204,7 @@ Delete multiple memories at once by providing an array of memory IDs. Maximum of
 
 ```typescript Typescript
 // Bulk delete by memory IDs
-const result = await client.memories.bulkDelete({
+const result = await client.documents.deleteBulk({
   ids: [
     'memory_id_1',
     'memory_id_2',
@@ -225,7 +225,7 @@ console.log('Bulk delete result:', result);
 
 ```python Python
 # Bulk delete by memory IDs
-result = client.memories.bulk_delete(
+result = client.documents.delete_bulk(
     ids=[
         'memory_id_1',
         'memory_id_2',
@@ -276,7 +276,7 @@ Delete all memories within specific container tags. This is useful for cleaning 
 
 ```typescript Typescript
 // Delete all memories in specific container tags
-const result = await client.memories.bulkDelete({
+const result = await client.documents.deleteBulk({
   containerTags: ['user-123', 'project-old', 'archived-content']
 });
 
@@ -290,7 +290,7 @@ console.log('Bulk delete by tags result:', result);
 
 ```python Python
 # Delete all memories in specific container tags
-result = client.memories.bulk_delete(
+result = client.documents.delete_bulk(
     container_tags=['user-123', 'project-old', 'archived-content']
 )
 
@@ -329,7 +329,7 @@ For applications requiring audit trails or recovery mechanisms, implement soft d
 
 ```typescript Typescript
 // Soft delete pattern using metadata
-await client.memories.update('memory_id', {
+await client.documents.update('memory_id', {
   metadata: {
     deleted: true,
     deletedAt: new Date().toISOString(),
@@ -338,40 +338,40 @@ await client.memories.update('memory_id', {
 });
 
 // Filter out deleted memories in searches
-const activeMemories = await client.memories.list({
-  filters: JSON.stringify({
+const activeMemories = await client.documents.list({
+  filters: {
     AND: [
       { key: "deleted", value: "true", negate: true }
     ]
-  })
+  }
 });
 
-console.log('Active memories:', activeMemories.results.length);
+console.log('Active memories:', activeMemories.memories.length);
 ```
 
 ```python Python
 from datetime import datetime
-import json
 
 # Soft delete pattern using metadata
-client.memories.update('memory_id', {
-    'metadata': {
+client.documents.update(
+    'memory_id',
+    metadata={
         'deleted': True,
         'deletedAt': datetime.now().isoformat(),
         'deletedBy': 'user_123'
     }
-})
+)
 
 # Filter out deleted memories
-active_memories = client.memories.list(
-    filters=json.dumps({
+active_memories = client.documents.list(
+    filters={
         "AND": [
             {"key": "deleted", "value": "true", "negate": True}
         ]
-    })
+    }
 )
 
-print(f'Active memories: {len(active_memories.results)}')
+print(f'Active memories: {len(active_memories.memories)}')
 ```
 
 ```bash cURL
@@ -407,7 +407,7 @@ async function batchDeleteMemories(memoryIds: string[], batchSize = 100) {
     console.log(`Processing batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(memoryIds.length/batchSize)}`);
 
     try {
-      const result = await client.memories.bulkDelete({ ids: batch });
+      const result = await client.documents.deleteBulk({ ids: batch });
       results.push(result);
 
       // Brief delay between batches to avoid rate limiting
@@ -446,7 +446,7 @@ def batch_delete_memories(memory_ids, batch_size=100):
         print(f'Processing batch {batch_num} of {total_batches}')
 
         try:
-            result = client.memories.bulk_delete(ids=batch)
+            result = client.documents.delete_bulk(ids=batch)
             results.append(result)
 
             # Brief delay between batches to avoid rate limiting

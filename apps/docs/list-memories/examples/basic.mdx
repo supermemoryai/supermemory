@@ -16,7 +16,7 @@ Simple memory retrieval examples for getting started with the list memories endp
       apiKey: process.env.SUPERMEMORY_API_KEY!
     });
 
-    const response = await client.memories.list({ limit: 10 });
+    const response = await client.documents.list({ limit: 10 });
     console.log(response);
     ```
   </Tab>
@@ -26,7 +26,7 @@ Simple memory retrieval examples for getting started with the list memories endp
     import os
 
     client = Supermemory(api_key=os.environ.get("SUPERMEMORY_API_KEY"))
-    response = client.memories.list(limit=10)
+    response = client.documents.list(limit=10)
     print(response)
     ```
   </Tab>
@@ -45,7 +45,7 @@ Simple memory retrieval examples for getting started with the list memories endp
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const response = await client.memories.list({
+    const response = await client.documents.list({
       containerTags: ["user_123"],
       limit: 20,
       sort: "updatedAt",
@@ -57,7 +57,7 @@ Simple memory retrieval examples for getting started with the list memories endp
   </Tab>
   <Tab title="Python">
     ```python
-    response = client.memories.list(
+    response = client.documents.list(
         container_tags=["user_123"],
         limit=20,
         sort="updatedAt",

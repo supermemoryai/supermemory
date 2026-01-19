@@ -1,0 +1,141 @@
+---
+title: "User Profiles"
+sidebarTitle: "User Profiles"
+description: "Automatically maintained context about your users"
+icon: "circle-user"
+---
+
+User profiles are **automatically maintained collections of facts about your users** that Supermemory builds from all their interactions. Think of it as a persistent "about me" document that's always up-to-date.
+
+<CardGroup cols={2}>
+  <Card title="Instant Context" icon="bolt">
+    No search needed — comprehensive user info always ready
+  </Card>
+  <Card title="Auto-Updated" icon="rotate">
+    Profiles update as users interact with your system
+  </Card>
+</CardGroup>
+
+## Why Profiles?
+
+Traditional memory systems rely entirely on search:
+
+| Problem | Search Only | With Profiles |
+|---------|------------|---------------|
+| Context retrieval | 3-5 queries | 1 call |
+| Response time | 200-500ms | 50-100ms |
+| Basic user info | Requires specific queries | Always available |
+
+**Search is too narrow**: When you search for "project updates", you miss that the user prefers bullet points, works in PST, and uses specific terminology.
+
+**Profiles provide the foundation**: Instead of searching for basic context, profiles give your LLM a complete picture of who the user is.
+
+---
+
+## Static vs Dynamic
+
+Profiles separate two types of information:
+
+### Static Profile
+
+Long-term, stable facts:
+
+- "Sarah is a senior software engineer at TechCorp"
+- "Sarah specializes in distributed systems"
+- "Sarah prefers technical docs over video tutorials"
+
+### Dynamic Profile
+
+Recent context and temporary states:
+
+- "Sarah is migrating the payment service to microservices"
+- "Sarah is preparing for a conference talk next month"
+- "Sarah is debugging a memory leak in auth service"
+
+---
+
+## How It Works
+
+Profiles are built automatically through ingestion:
+
+1. **Ingest content** — Users [add documents](/add-memories), chat, or any content
+2. **Extract facts** — AI analyzes content for facts about the user
+3. **Update profile** — System adds, updates, or removes facts
+4. **Always current** — Profiles reflect the latest information
+
+<Note>
+You don't manually manage profiles — they build themselves as users interact. Start by [adding content](/add-memories) to see profiles in action.
+</Note>
+
+---
+
+## Profiles + Search
+
+Profiles don't replace search — they complement it:
+
+- **Profile** = broad foundation (who the user is, preferences, background)
+- **Search** = specific details (exact memories matching a query)
+
+### Example
+
+User asks: **"Can you help me debug this?"**
+
+**Without profiles**: LLM has no context about expertise, projects, or preferences.
+
+**With profiles**: LLM knows:
+- Senior engineer (adjust technical level)
+- Working on payment service (likely context)
+- Prefers CLI tools (tool suggestions)
+- Recent memory leak issues (possible connection)
+
+---
+
+## Use Cases
+
+### Personalized AI Assistants
+
+Profiles provide: expertise level, communication preferences, tools used, current projects.
+
+```typescript
+const systemPrompt = `You are assisting ${userName}.
+
+Background: ${profile.static.join('\n')}
+Current focus: ${profile.dynamic.join('\n')}
+
+Adjust responses to their expertise and preferences.`;
+```
+
+### Customer Support
+
+Profiles provide: product usage, previous issues, tech proficiency.
+
+- No more "let me look up your account"
+- Agents immediately understand context
+- AI support references past interactions naturally
+
+### Educational Platforms
+
+Profiles provide: learning style, completed courses, strengths/weaknesses.
+
+### Development Tools
+
+Profiles provide: preferred languages, coding style, current project context.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="User Profiles API" icon="code" href="/user-profiles">
+    Fetch and use profiles via the API
+  </Card>
+  <Card title="Graph Memory" icon="network" href="/concepts/graph-memory">
+    How the underlying knowledge graph works
+  </Card>
+  <Card title="AI SDK Integration" icon="triangle" href="/integrations/ai-sdk">
+    Automatic profile injection with AI SDK
+  </Card>
+  <Card title="Add Memories" icon="plus" href="/add-memories">
+    Build profiles by adding content
+  </Card>
+</CardGroup>

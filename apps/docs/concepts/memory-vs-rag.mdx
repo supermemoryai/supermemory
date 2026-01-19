@@ -2,6 +2,7 @@
 title: "Memory vs RAG: Understanding the Difference"
 description: "Learn why agent memory and RAG are fundamentally different, and when to use each approach"
 sidebarTitle: "Memory vs RAG"
+icon: "scale"
 ---
 
 Most developers confuse RAG (Retrieval-Augmented Generation) with agent memory. They're not the same thing, and using RAG for memory is why your agents keep forgetting important context. Let's understand the fundamental difference.
@@ -193,7 +194,7 @@ Supermemory provides a unified platform that correctly handles both patterns:
 ### 1. Document Storage (RAG)
 ```python
 # Add a document for RAG-style retrieval
-client.memories.add(
+client.add(
     content="iPhone 15 has a 48MP camera and A17 Pro chip",
     # No user association - universal knowledge
 )
@@ -202,7 +203,7 @@ client.memories.add(
 ### 2. Memory Creation
 ```python
 # Add a user-specific memory
-client.memories.add(
+client.add(
     content="User prefers Android over iOS",
     container_tags=["user_123"],  # User-specific
     metadata={
@@ -215,7 +216,7 @@ client.memories.add(
 ### 3. Hybrid Retrieval
 ```python
 # Search combines both approaches
-results = client.memories.search(
+results = client.documents.search(
     query="What phone should I recommend?",
     container_tags=["user_123"],  # Gets user memories
     # Also searches general knowledge
@@ -237,3 +238,22 @@ Stop treating memory like a retrieval problem. Your agents need both:
 - **Memory** for understanding users
 
 Supermemory provides both capabilities in a unified platform, ensuring your agents have the right context at the right time.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Graph Memory" icon="network" href="/concepts/graph-memory">
+    How memory relationships work
+  </Card>
+  <Card title="Super RAG" icon="bolt" href="/concepts/super-rag">
+    Our managed RAG solution
+  </Card>
+  <Card title="Add Memories" icon="plus" href="/add-memories">
+    Start ingesting content
+  </Card>
+  <Card title="Search" icon="search" href="/search">
+    Query your memories and documents
+  </Card>
+</CardGroup>

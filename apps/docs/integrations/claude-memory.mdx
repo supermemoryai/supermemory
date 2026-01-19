@@ -1,0 +1,269 @@
+---
+title: "Claude Memory Tool"
+sidebarTitle: "Claude Memory Tool"
+description: "Use Claude's native memory tool with Supermemory as the backend"
+icon: "/images/anthropic-1.svg"
+---
+
+Claude has a native memory tool that allows it to store and retrieve information across conversations. Supermemory provides a backend implementation that maps Claude's memory commands to persistent storage.
+
+<Info>
+This integration works with Claude's built-in `memory` tool type, introduced in the Anthropic API. It requires the `context-management` beta flag.
+</Info>
+
+## Installation
+
+```bash
+npm install @supermemory/tools @anthropic-ai/sdk
+```
+
+## Quick Start
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk"
+import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
+
+const anthropic = new Anthropic()
+
+const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+  projectId: "my-app",
+})
+
+async function chatWithMemory(userMessage: string) {
+  // Send message to Claude with memory tool
+  const response = await anthropic.beta.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 2048,
+    messages: [{ role: "user", content: userMessage }],
+    tools: [{ type: "memory_20250818", name: "memory" }],
+    betas: ["context-management-2025-06-27"],
+  })
+
+  // Handle any memory tool calls
+  const toolResults = []
+  for (const block of response.content) {
+    if (block.type === "tool_use" && block.name === "memory") {
+      const toolResult = await memoryTool.handleCommandForToolResult(
+        block.input as any,
+        block.id
+      )
+      toolResults.push(toolResult)
+    }
+  }
+
+  // Send tool results back to Claude if needed
+  if (toolResults.length > 0) {
+    const finalResponse = await anthropic.beta.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 2048,
+      messages: [
+        { role: "user", content: userMessage },
+        { role: "assistant", content: response.content },
+        { role: "user", content: toolResults },
+      ],
+      tools: [{ type: "memory_20250818", name: "memory" }],
+      betas: ["context-management-2025-06-27"],
+    })
+
+    return finalResponse
+  }
+
+  return response
+}
+
+// Example usage
+const response = await chatWithMemory(
+  "Remember that I prefer React with TypeScript for my projects"
+)
+console.log(response.content[0])
+```
+
+## Configuration
+
+```typescript
+import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
+
+const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+  // Scope memories to a project or user
+  projectId: "my-app",
+
+  // Or use container tags for more flexibility
+  containerTags: ["user-123", "project-alpha"],
+
+  // Custom memory container prefix (default: "claude_memory")
+  memoryContainerTag: "my_memory_prefix",
+
+  // Custom API endpoint
+  baseUrl: "https://custom.api.com",
+})
+```
+
+## How It Works
+
+Claude's memory tool uses a file-system metaphor. Supermemory maps these operations to document storage:
+
+| Claude Command | Supermemory Action |
+|----------------|-------------------|
+| `view` | Search/retrieve documents |
+| `create` | Add new document |
+| `str_replace` | Update document content |
+| `insert` | Insert content at line |
+| `delete` | Delete document |
+| `rename` | Move document to new path |
+
+### Memory Path Structure
+
+All memory paths must start with `/memories/`:
+
+```
+/memories/preferences.txt       # User preferences
+/memories/projects/react.txt    # Project-specific notes
+/memories/context/current.txt   # Current context
+```
+
+## Commands Reference
+
+### View (Read/List)
+
+```typescript
+// List directory contents
+{ command: "view", path: "/memories/" }
+
+// Read file contents
+{ command: "view", path: "/memories/preferences.txt" }
+
+// Read specific lines
+{ command: "view", path: "/memories/notes.txt", view_range: [1, 10] }
+```
+
+### Create
+
+```typescript
+{
+  command: "create",
+  path: "/memories/preferences.txt",
+  file_text: "User prefers dark mode\nFavorite language: TypeScript"
+}
+```
+
+### String Replace
+
+```typescript
+{
+  command: "str_replace",
+  path: "/memories/preferences.txt",
+  old_str: "dark mode",
+  new_str: "light mode"
+}
+```
+
+### Insert
+
+```typescript
+{
+  command: "insert",
+  path: "/memories/notes.txt",
+  insert_line: 5,
+  insert_text: "New note added here"
+}
+```
+
+### Delete
+
+```typescript
+{ command: "delete", path: "/memories/old-notes.txt" }
+```
+
+### Rename
+
+```typescript
+{
+  command: "rename",
+  path: "/memories/old-name.txt",
+  new_path: "/memories/new-name.txt"
+}
+```
+
+## Complete Example
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk"
+import { createClaudeMemoryTool } from "@supermemory/tools/claude-memory"
+
+const anthropic = new Anthropic()
+const memoryTool = createClaudeMemoryTool(process.env.SUPERMEMORY_API_KEY!, {
+  projectId: "assistant",
+})
+
+async function runConversation() {
+  const messages: Anthropic.MessageParam[] = []
+
+  // Helper to chat with memory
+  async function chat(userMessage: string) {
+    messages.push({ role: "user", content: userMessage })
+
+    let response = await anthropic.beta.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 2048,
+      messages,
+      tools: [{ type: "memory_20250818", name: "memory" }],
+      betas: ["context-management-2025-06-27"],
+    })
+
+    // Handle tool calls
+    while (response.stop_reason === "tool_use") {
+      const toolResults = []
+
+      for (const block of response.content) {
+        if (block.type === "tool_use" && block.name === "memory") {
+          const result = await memoryTool.handleCommandForToolResult(
+            block.input as any,
+            block.id
+          )
+          toolResults.push(result)
+        }
+      }
+
+      messages.push({ role: "assistant", content: response.content })
+      messages.push({ role: "user", content: toolResults })
+
+      response = await anthropic.beta.messages.create({
+        model: "claude-sonnet-4-5",
+        max_tokens: 2048,
+        messages,
+        tools: [{ type: "memory_20250818", name: "memory" }],
+        betas: ["context-management-2025-06-27"],
+      })
+    }
+
+    messages.push({ role: "assistant", content: response.content })
+    return response
+  }
+
+  // Have a conversation with persistent memory
+  await chat("My name is Alex and I'm a backend developer")
+  await chat("I prefer Go for systems programming")
+  await chat("What do you remember about me?")
+}
+
+runConversation()
+```
+
+## Environment Variables
+
+```bash
+SUPERMEMORY_API_KEY=your_supermemory_key
+ANTHROPIC_API_KEY=your_anthropic_key
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AI SDK Integration" icon="triangle" href="/integrations/ai-sdk">
+    Use with Vercel AI SDK for streamlined development
+  </Card>
+
+  <Card title="OpenAI SDK" icon="bolt" href="/integrations/openai">
+    Memory tools for OpenAI function calling
+  </Card>
+</CardGroup>

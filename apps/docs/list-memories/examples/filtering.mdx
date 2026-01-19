@@ -13,12 +13,12 @@ Container tags use exact array matching - memories must have the exact same tags
   <Tab title="TypeScript">
     ```typescript
     // Single tag - matches memories with exactly ["user_123"]
-    const userMemories = await client.memories.list({
+    const userMemories = await client.documents.list({
       containerTags: ["user_123"]
     });
 
     // Multiple tags - matches memories with exactly ["user_123", "project_ai"]
-    const projectMemories = await client.memories.list({
+    const projectMemories = await client.documents.list({
       containerTags: ["user_123", "project_ai"]
     });
     ```
@@ -26,10 +26,10 @@ Container tags use exact array matching - memories must have the exact same tags
   <Tab title="Python">
     ```python
     # Single tag
-    user_memories = client.memories.list(container_tags=["user_123"])
+    user_memories = client.documents.list(container_tags=["user_123"])
 
     # Multiple tags (exact match)
-    project_memories = client.memories.list(
+    project_memories = client.documents.list(
         container_tags=["user_123", "project_ai"]
     )
     ```
@@ -72,7 +72,7 @@ The JSON structure forces explicit grouping to prevent unexpected results.
 <Info>
 **Filter Structure Rules:**
 - Always wrap conditions in `AND` or `OR` arrays (even single conditions)
-- Use `JSON.stringify()` to convert the filter object to a string
+- Pass the filter as an object (TypeScript/Python) or JSON string (cURL)
 - Each condition needs `key`, `value`, and `negate` properties
 - `negate: false` for normal matching, `negate: true` for exclusion
 </Info>
@@ -83,26 +83,24 @@ The JSON structure forces explicit grouping to prevent unexpected results.
   <Tab title="TypeScript">
     ```typescript
     // Filter by single metadata field
-    const programmingMemories = await client.memories.list({
-      filters: JSON.stringify({
+    const programmingMemories = await client.documents.list({
+      filters: {
         AND: [
           { key: "category", value: "programming", negate: false }
         ]
-      })
+      }
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    import json
-
     # Filter by single metadata field
-    programming_memories = client.memories.list(
-        filters=json.dumps({
+    programming_memories = client.documents.list(
+        filters={
             "AND": [
                 {"key": "category", "value": "programming", "negate": False}
             ]
-        })
+        }
     )
     ```
   </Tab>
@@ -124,28 +122,28 @@ The JSON structure forces explicit grouping to prevent unexpected results.
   <Tab title="TypeScript">
     ```typescript
     // All conditions must match
-    const reactTutorials = await client.memories.list({
-      filters: JSON.stringify({
+    const reactTutorials = await client.documents.list({
+      filters: {
         AND: [
           { key: "category", value: "tutorial", negate: false },
           { key: "framework", value: "react", negate: false },
           { key: "difficulty", value: "beginner", negate: false }
         ]
-      })
+      }
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # All conditions must match
-    react_tutorials = client.memories.list(
-        filters=json.dumps({
+    react_tutorials = client.documents.list(
+        filters={
             "AND": [
                 {"key": "category", "value": "tutorial", "negate": False},
                 {"key": "framework", "value": "react", "negate": False},
                 {"key": "difficulty", "value": "beginner", "negate": False}
             ]
-        })
+        }
     )
     ```
   </Tab>
@@ -167,28 +165,28 @@ The JSON structure forces explicit grouping to prevent unexpected results.
   <Tab title="TypeScript">
     ```typescript
     // Any condition can match
-    const frontendMemories = await client.memories.list({
-      filters: JSON.stringify({
+    const frontendMemories = await client.documents.list({
+      filters: {
         OR: [
           { key: "framework", value: "react", negate: false },
           { key: "framework", value: "vue", negate: false },
           { key: "framework", value: "angular", negate: false }
         ]
-      })
+      }
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Any condition can match
-    frontend_memories = client.memories.list(
-        filters=json.dumps({
+    frontend_memories = client.documents.list(
+        filters={
             "OR": [
                 {"key": "framework", "value": "react", "negate": False},
                 {"key": "framework", "value": "vue", "negate": False},
                 {"key": "framework", "value": "angular", "negate": False}
             ]
-        })
+        }
     )
     ```
   </Tab>
@@ -210,8 +208,8 @@ The JSON structure forces explicit grouping to prevent unexpected results.
   <Tab title="TypeScript">
     ```typescript
     // Complex logic: programming AND (react OR advanced difficulty)
-    const advancedContent = await client.memories.list({
-      filters: JSON.stringify({
+    const advancedContent = await client.documents.list({
+      filters: {
         AND: [
           { key: "category", value: "programming", negate: false },
           {
@@ -221,15 +219,15 @@ The JSON structure forces explicit grouping to prevent unexpected results.
             ]
           }
         ]
-      })
+      }
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Complex logic: programming AND (react OR advanced difficulty)
-    advanced_content = client.memories.list(
-        filters=json.dumps({
+    advanced_content = client.documents.list(
+        filters={
             "AND": [
                 {"key": "category", "value": "programming", "negate": False},
                 {
@@ -239,7 +237,7 @@ The JSON structure forces explicit grouping to prevent unexpected results.
                     ]
                 }
             ]
-        })
+        }
     )
     ```
   </Tab>
@@ -265,8 +263,8 @@ Filter memories that contain specific values in array fields like participants, 
   <Tab title="TypeScript">
     ```typescript
     // Find memories where john.doe participated
-    const meetingMemories = await client.memories.list({
-      filters: JSON.stringify({
+    const meetingMemories = await client.documents.list({
+      filters: {
         AND: [
           {
             key: "participants",
@@ -275,15 +273,15 @@ Filter memories that contain specific values in array fields like participants, 
             negate: false
           }
         ]
-      })
+      }
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Find memories where john.doe participated
-    meeting_memories = client.memories.list(
-        filters=json.dumps({
+    meeting_memories = client.documents.list(
+        filters={
             "AND": [
                 {
                     "key": "participants",
@@ -292,7 +290,7 @@ Filter memories that contain specific values in array fields like participants, 
                     "negate": False
                 }
             ]
-        })
+        }
     )
     ```
   </Tab>
@@ -314,8 +312,8 @@ Filter memories that contain specific values in array fields like participants, 
   <Tab title="TypeScript">
     ```typescript
     // Find memories that don't include a specific team member
-    const filteredMemories = await client.memories.list({
-      filters: JSON.stringify({
+    const filteredMemories = await client.documents.list({
+      filters: {
         AND: [
           {
             key: "reviewers",
@@ -330,15 +328,15 @@ Filter memories that contain specific values in array fields like participants, 
             negate: false
           }
         ]
-      })
+      }
     });
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Find memories that don't include a specific team member
-    filtered_memories = client.memories.list(
-        filters=json.dumps({
+    filtered_memories = client.documents.list(
+        filters={
             "AND": [
                 {
                     "key": "reviewers",
@@ -353,7 +351,7 @@ Filter memories that contain specific values in array fields like participants, 
                     "negate": False
                 }
             ]
-        })
+        }
     )
     ```
   </Tab>
@@ -375,8 +373,8 @@ Filter memories that contain specific values in array fields like participants, 
   <Tab title="TypeScript">
     ```typescript
     // Find memories involving any of several team leads
-    const leadershipMemories = await client.memories.list({
-      filters: JSON.stringify({
+    const leadershipMemories = await client.documents.list({
+      filters: {
         OR: [
           {
             key: "attendees",
@@ -394,7 +392,7 @@ Filter memories that contain specific values in array fields like participants, 
             filterType: "array_contains"
           }
         ]
-      }),
+      },
       sort: "updatedAt",
       order: "desc"
     });
@@ -403,8 +401,8 @@ Filter memories that contain specific values in array fields like participants, 
   <Tab title="Python">
     ```python
     # Find memories involving any of several team leads
-    leadership_memories = client.memories.list(
-        filters=json.dumps({
+    leadership_memories = client.documents.list(
+        filters={
             "OR": [
                 {
                     "key": "attendees",
@@ -422,7 +420,7 @@ Filter memories that contain specific values in array fields like participants, 
                     "filterType": "array_contains"
                 }
             ]
-        }),
+        },
         sort="updatedAt",
         order="desc"
     )
@@ -447,14 +445,14 @@ Filter memories that contain specific values in array fields like participants, 
 <Tabs>
   <Tab title="TypeScript">
     ```typescript
-    const filteredMemories = await client.memories.list({
+    const filteredMemories = await client.documents.list({
       containerTags: ["user_123"],
-      filters: JSON.stringify({
+      filters: {
         AND: [
           { key: "category", value: "tutorial", negate: false },
           { key: "framework", value: "react", negate: false }
         ]
-      }),
+      },
       sort: "updatedAt",
       order: "desc",
       limit: 50
@@ -463,14 +461,14 @@ Filter memories that contain specific values in array fields like participants, 
   </Tab>
   <Tab title="Python">
     ```python
-    filtered_memories = client.memories.list(
+    filtered_memories = client.documents.list(
         container_tags=["user_123"],
-        filters=json.dumps({
+        filters={
             "AND": [
                 {"key": "category", "value": "tutorial", "negate": False},
                 {"key": "framework", "value": "react", "negate": False}
             ]
-        }),
+        },
         sort="updatedAt",
         order="desc",
         limit=50
@@ -495,9 +493,9 @@ Filter memories that contain specific values in array fields like participants, 
 
 <Warning>
 **Common Mistakes:**
-- Using bare condition objects: `{"key": "category", "value": "programming"}`
-- Forgetting JSON.stringify: passing objects instead of strings
+- Using bare condition objects: `{"key": "category", "value": "programming"}` without wrapping in `AND` or `OR`
 - Missing negate property: always include `"negate": false` or `"negate": true`
+- For cURL requests: forgetting to properly escape the JSON string
 </Warning>
 
 <Note>

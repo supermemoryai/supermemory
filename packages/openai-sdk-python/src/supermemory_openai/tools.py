@@ -1,14 +1,14 @@
 """Supermemory tools for OpenAI function calling."""
 
 import json
-from typing import Dict, List, Optional, Union, TypedDict
+from typing import Dict, List, Optional, TypedDict, Union
 
+import supermemory
 from openai.types.chat import (
+    ChatCompletionFunctionToolParam,
     ChatCompletionMessageToolCall,
     ChatCompletionToolMessageParam,
-    ChatCompletionFunctionToolParam,
 )
-import supermemory
 from supermemory.types import (
     MemoryAddResponse,
     MemoryGetResponse,
@@ -230,7 +230,7 @@ class SupermemoryTools:
             if metadata:
                 add_params["metadata"] = metadata
 
-            response: MemoryAddResponse = await self.client.memories.add(**add_params)
+            response: MemoryAddResponse = await self.client.add(**add_params)
 
             return MemoryAddResult(
                 success=True,

@@ -105,20 +105,20 @@ Track specific document processing status.
 <CodeGroup>
 
 ```typescript Typescript
-const memory = await client.memories.get("doc_abc123");
+const memory = await client.documents.get("doc_abc123");
 
 console.log(`Status: ${memory.status}`);
 
 // Poll for completion
 while (memory.status !== 'done') {
   await new Promise(r => setTimeout(r, 2000));
-  memory = await client.memories.get("doc_abc123");
+  memory = await client.documents.get("doc_abc123");
   console.log(`Status: ${memory.status}`);
 }
 ```
 
 ```python Python
-memory = client.memories.get("doc_abc123")
+memory = client.documents.get("doc_abc123")
 
 print(f"Status: {memory['status']}")
 
@@ -126,7 +126,7 @@ print(f"Status: {memory['status']}")
 import time
 while memory['status'] != 'done':
     time.sleep(2)
-    memory = client.memories.get("doc_abc123")
+    memory = client.documents.get("doc_abc123")
     print(f"Status: {memory['status']}")
 ```
 
@@ -178,7 +178,7 @@ async function waitForProcessing(documentId: string, maxWaitMs = 300000) {
   const pollInterval = 2000; // 2 seconds
 
   while (Date.now() - startTime < maxWaitMs) {
-    const doc = await client.memories.get(documentId);
+    const doc = await client.documents.get(documentId);
 
     if (doc.status === 'done') {
       return doc;
@@ -205,7 +205,7 @@ async function trackBatch(documentIds: string[]) {
 
   // Initial check
   for (const id of documentIds) {
-    const doc = await client.memories.get(id);
+    const doc = await client.documents.get(id);
     statuses.set(id, doc.status);
   }
 
@@ -215,7 +215,7 @@ async function trackBatch(documentIds: string[]) {
 
     for (const id of documentIds) {
       if (statuses.get(id) !== 'done' && statuses.get(id) !== 'failed') {
-        const doc = await client.memories.get(id);
+        const doc = await client.documents.get(id);
         statuses.set(id, doc.status);
       }
     }
@@ -236,7 +236,7 @@ Handle processing failures gracefully:
 ```typescript
 async function addWithRetry(content: string, maxRetries = 3) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const { id } = await client.memories.add({ content });
+    const { id } = await client.add({ content });
 
     try {
       const result = await waitForProcessing(id);

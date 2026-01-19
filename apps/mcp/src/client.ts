@@ -76,7 +76,7 @@ export class SupermemoryClient {
 		content: string,
 	): Promise<{ id: string; status: string; containerTag: string }> {
 		try {
-			const result = await this.client.memories.add({
+			const result = await this.client.add({
 				content,
 				containerTag: this.containerTag,
 				metadata: {

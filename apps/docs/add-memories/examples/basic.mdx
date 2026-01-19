@@ -12,7 +12,7 @@ The most basic operation - adding plain text content.
 <CodeGroup>
 
 ```typescript TypeScript
-const response = await client.memories.add({
+const response = await client.add({
   content: "Artificial intelligence is transforming how we work and live"
 });
 
@@ -21,7 +21,7 @@ console.log(response);
 ```
 
 ```python Python
-response = client.memories.add(
+response = client.add(
     content="Artificial intelligence is transforming how we work and live"
 )
 
@@ -47,7 +47,7 @@ Group related content using container tags.
 <CodeGroup>
 
 ```typescript TypeScript
-const response = await client.memories.add({
+const response = await client.add({
   content: "Q4 2024 revenue exceeded projections by 15%",
   containerTag: "financial_reports"
 });
@@ -57,7 +57,7 @@ console.log(response.id);
 ```
 
 ```python Python
-response = client.memories.add(
+response = client.add(
     content="Q4 2024 revenue exceeded projections by 15%",
     container_tag="financial_reports"
 )
@@ -87,7 +87,7 @@ Attach metadata for better search and filtering.
 <CodeGroup>
 
 ```typescript TypeScript
-await client.memories.add({
+await client.add({
   content: "New onboarding flow reduces drop-off by 30%",
   containerTag: "product_updates",
   metadata: {
@@ -98,7 +98,7 @@ await client.memories.add({
 ```
 
 ```python Python
-client.memories.add(
+client.add(
     content="New onboarding flow reduces drop-off by 30%",
     container_tag="product_updates",
     metadata={
@@ -136,7 +136,7 @@ const notes = [
 
 const results = await Promise.all(
   notes.map(note =>
-    client.memories.add({
+    client.add({
       content: note,
       containerTag: "meeting_2024_01_15"
     })
@@ -152,7 +152,7 @@ notes = [
 ]
 
 for note in notes:
-    client.memories.add(
+    client.add(
         content=note,
         container_tag="meeting_2024_01_15"
     )
@@ -176,19 +176,19 @@ Process web pages, YouTube videos, and other URLs automatically.
 
 ```typescript TypeScript
 // Web page
-await client.memories.add({
+await client.add({
   content: "https://example.com/article",
   containerTag: "articles"
 });
 
 // YouTube video (auto-transcribed)
-await client.memories.add({
+await client.add({
   content: "https://youtube.com/watch?v=dQw4w9WgXcQ",
   containerTag: "videos"
 });
 
 // Google Docs
-await client.memories.add({
+await client.add({
   content: "https://docs.google.com/document/d/abc123/edit",
   containerTag: "docs"
 });
@@ -196,19 +196,19 @@ await client.memories.add({
 
 ```python Python
 # Web page
-client.memories.add(
+client.add(
     content="https://example.com/article",
     container_tag="articles"
 )
 
 # YouTube video (auto-transcribed)
-client.memories.add(
+client.add(
     content="https://youtube.com/watch?v=dQw4w9WgXcQ",
     container_tag="videos"
 )
 
 # Google Docs
-client.memories.add(
+client.add(
     content="https://docs.google.com/document/d/abc123/edit",
     container_tag="docs"
 )
@@ -246,7 +246,7 @@ const markdown = `
 - **Enterprise security**
 `;
 
-await client.memories.add({
+await client.add({
   content: markdown,
   containerTag: "docs"
 });
@@ -262,7 +262,7 @@ markdown = """
 - **Enterprise security**
 """
 
-client.memories.add(
+client.add(
     content=markdown,
     container_tag="docs"
 )

@@ -1,19 +1,18 @@
 ---
-title: "Migrating from Mem0.ai to Supermemory"
-description: "Complete guide to migrate your data and applications from Mem0.ai to Supermemory"
+title: "Migrating from Mem0 to Supermemory"
+description: "Complete guide to migrate your data and applications from Mem0 to Supermemory"
 sidebarTitle: "From Mem0"
 ---
 
-Migrating from Mem0.ai to Supermemory is straightforward. This guide walks you through exporting your memories from Mem0 and importing them into Supermemory.
+Migrating from Mem0 to Supermemory is straightforward. This guide walks you through exporting your memories from Mem0 and importing them into Supermemory.
 
 ## Why Migrate to Supermemory?
 
-Supermemory offers enhanced capabilities over Mem0.ai:
-- **Memory Router** for zero-code LLM integration
+Supermemory offers enhanced capabilities over Mem0:
 - **Knowledge graph** architecture for better context relationships
 - **Multiple content types** (URLs, PDFs, images, videos)
 - **Generous free tier** (100k tokens) with affordable pricing
-- **Multiple integration options** (API, Router, MCP, SDKs)
+- **Multiple integration options** (API, MCP, SDKs)
 
 ## Quick Migration (All-in-One)
 
@@ -49,7 +48,7 @@ print("Migration complete!")
 ## Step-by-Step Migration
 
 <Steps>
-  <Step title="Export from Mem0.ai">
+  <Step title="Export from Mem0">
     Mem0 provides two ways to export your memories:
 
     ### Option 1: Export via Dashboard (Recommended)
@@ -141,7 +140,7 @@ print("Migration complete!")
 
         # Import to Supermemory
         try:
-            result = client.memories.add(
+            result = client.add(
                 content=content,
                 container_tags=["imported_from_mem0"],
                 metadata={
@@ -161,13 +160,13 @@ print("Migration complete!")
 
 ## API Migration Reference
 
-Here's how common Mem0.ai operations map to Supermemory:
+Here's how common Mem0 operations map to Supermemory:
 
 ### Adding Memories
 
 <CodeGroup>
 
-```python Mem0.ai
+```python mem0
 from mem0 import MemoryClient
 
 client = MemoryClient(api_key="...")
@@ -181,7 +180,7 @@ client.add(
 from supermemory import Supermemory
 
 client = Supermemory(api_key="...")
-client.memories.add(
+client.add(
     content="User prefers dark mode",
     container_tags=["user_alice"]
 )
@@ -193,7 +192,7 @@ client.memories.add(
 
 <CodeGroup>
 
-```python Mem0.ai
+```python Mem0
 results = client.search(
     query="user preferences",
     user_id="alice"
@@ -201,7 +200,7 @@ results = client.search(
 ```
 
 ```python Supermemory
-results = client.memories.search(
+results = client.documents.search(
     query="user preferences",
     container_tags=["user_alice"]
 )
@@ -213,14 +212,14 @@ results = client.memories.search(
 
 <CodeGroup>
 
-```python Mem0.ai
+```python Mem0
 memories = client.get_all(
     user_id="alice"
 )
 ```
 
 ```python Supermemory
-memories = client.memories.list(
+memories = client.documents.list(
     container_tags=["user_alice"],
     limit=100
 )
@@ -232,61 +231,12 @@ memories = client.memories.list(
 
 <CodeGroup>
 
-```python Mem0.ai
+```python Mem0
 client.delete(memory_id="mem_123")
 ```
 
 ```python Supermemory
-client.memories.delete("mem_123")
-```
-
-</CodeGroup>
-
-## Using Memory Router (Easiest Migration)
-
-For the simplest migration path, use Supermemory's Memory Router which requires minimal code changes:
-
-<CodeGroup>
-
-```python Before (Mem0 + OpenAI)
-from openai import OpenAI
-from mem0 import MemoryClient
-
-# Two separate clients needed
-openai = OpenAI(api_key="sk-...")
-memory = MemoryClient(api_key="mem0_key")
-
-# Manual memory management
-context = memory.search("user preferences", user_id="alice")
-messages = [
-    {"role": "system", "content": f"Context: {context}"},
-    {"role": "user", "content": "What are my preferences?"}
-]
-
-response = openai.chat.completions.create(
-    model="gpt-5",
-    messages=messages
-)
-```
-
-```python After (Supermemory Router)
-from openai import OpenAI
-
-# Single client with automatic memory management
-client = OpenAI(
-    api_key="sk-...",
-    base_url="https://api.supermemory.ai/v3/https://api.openai.com/v1",
-    default_headers={
-        "x-supermemory-api-key": "your_supermemory_key",
-        "x-supermemory-user-id": "alice"
-    }
-)
-
-# Memories handled automatically!
-response = client.chat.completions.create(
-    model="gpt-5",
-    messages=[{"role": "user", "content": "What are my preferences?"}]
-)
+client.documents.delete("mem_123")
 ```
 
 </CodeGroup>

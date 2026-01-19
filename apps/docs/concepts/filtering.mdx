@@ -1,0 +1,359 @@
+---
+title: "Organizing & Filtering Memories"
+sidebarTitle: "Multi-Tenancy / Filtering"
+description: "Use container tags and metadata to organize and retrieve memories"
+icon: "users"
+---
+
+Supermemory provides two ways to organize your memories:
+
+<CardGroup cols={2}>
+  <Card title="Container Tags" icon="folder">
+    **Organize memories** into isolated spaces by user, project, or workspace
+  </Card>
+  <Card title="Metadata Filtering" icon="database">
+    **Query memories** by custom properties like category, status, or date
+  </Card>
+</CardGroup>
+
+Both can be used independently or together for precise filtering.
+
+---
+
+## Container Tags
+
+Container tags create isolated memory spaces. Use them to separate memories by user, project, or any logical boundary.
+
+### Adding Memories with Tags
+
+```typescript
+await client.add({
+  content: "Meeting notes from Q1 planning",
+  containerTags: ["user_123"]
+});
+```
+
+### Searching with Tags
+
+```typescript
+const results = await client.search.documents({
+  q: "planning notes",
+  containerTags: ["user_123"]
+});
+```
+
+<Note>
+Container tags use **exact array matching**. A memory tagged `["user_123", "project_a"]` won't match a search for just `["user_123"]`.
+</Note>
+
+### Recommended Patterns
+
+| Pattern | Example | Use Case |
+|---------|---------|----------|
+| User isolation | `user_{userId}` | Per-user memories |
+| Project grouping | `project_{projectId}` | Project-specific content |
+| Hierarchical | `org_{orgId}_team_{teamId}` | Multi-level organization |
+
+<AccordionGroup>
+  <Accordion title="More Container Tag Examples">
+    ```typescript
+    // Multi-tenant SaaS - isolate by organization and user
+    await client.add({
+      content: "Company policy document",
+      containerTags: ["org_acme_user_john"]
+    });
+
+    // Search only within that user's org context
+    const results = await client.search.documents({
+      q: "vacation policy",
+      containerTags: ["org_acme_user_john"]
+    });
+
+    // Project-based isolation
+    await client.add({
+      content: "Sprint 5 retrospective notes",
+      containerTags: ["project_mobile_app"]
+    });
+
+    // Time-based segmentation
+    await client.add({
+      content: "Q1 2024 financial report",
+      containerTags: ["user_cfo_2024_q1"]
+    });
+    ```
+
+    **API field differences:**
+    | Endpoint | Field | Type |
+    |----------|-------|------|
+    | `/v3/search` | `containerTags` | Array |
+    | `/v4/search` | `containerTag` | String |
+    | `/v3/documents/list` | `containerTags` | Array |
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Metadata
+
+Metadata lets you attach custom properties to memories and filter by them later.
+
+### Adding Memories with Metadata
+
+```typescript
+await client.add({
+  content: "Technical design document for auth system",
+  containerTags: ["user_123"],
+  metadata: {
+    category: "engineering",
+    priority: "high",
+    year: 2024
+  }
+});
+```
+
+### Searching with Metadata Filters
+
+Filters must be wrapped in `AND` or `OR` arrays:
+
+```typescript
+const results = await client.search.documents({
+  q: "design document",
+  containerTags: ["user_123"],
+  filters: {
+    AND: [
+      { key: "category", value: "engineering" },
+      { key: "priority", value: "high" }
+    ]
+  }
+});
+```
+
+### Filter Types
+
+| Type | Example | Description |
+|------|---------|-------------|
+| String equality | `{ key: "status", value: "published" }` | Exact match |
+| String contains | `{ filterType: "string_contains", key: "title", value: "react" }` | Substring match |
+| Numeric | `{ filterType: "numeric", key: "priority", value: "5", numericOperator: ">=" }` | Number comparison |
+| Array contains | `{ filterType: "array_contains", key: "tags", value: "important" }` | Check array membership |
+
+### Combining Filters
+
+Use `AND` and `OR` for complex queries:
+
+```typescript
+const results = await client.search.documents({
+  q: "meeting notes",
+  filters: {
+    AND: [
+      { key: "type", value: "meeting" },
+      {
+        OR: [
+          { key: "team", value: "engineering" },
+          { key: "team", value: "product" }
+        ]
+      }
+    ]
+  }
+});
+```
+
+### Excluding Results
+
+Use `negate: true` to exclude matches:
+
+```typescript
+const results = await client.search.documents({
+  q: "documentation",
+  filters: {
+    AND: [
+      { key: "status", value: "draft", negate: true }
+    ]
+  }
+});
+```
+
+<AccordionGroup>
+  <Accordion title="More Metadata Filter Examples">
+    **String contains (substring search):**
+    ```typescript
+    // Find documents with "machine learning" in the description
+    const results = await client.search.documents({
+      q: "AI research",
+      filters: {
+        AND: [
+          {
+            filterType: "string_contains",
+            key: "description",
+            value: "machine learning",
+            ignoreCase: true
+          }
+        ]
+      }
+    });
+    ```
+
+    **Numeric comparisons:**
+    ```typescript
+    // Find high-priority items created after a specific date
+    const results = await client.search.documents({
+      q: "tasks",
+      filters: {
+        AND: [
+          {
+            filterType: "numeric",
+            key: "priority",
+            value: "7",
+            numericOperator: ">="
+          },
+          {
+            filterType: "numeric",
+            key: "created_timestamp",
+            value: "1704067200",  // Unix timestamp
+            numericOperator: ">="
+          }
+        ]
+      }
+    });
+    ```
+
+    **Array contains (check array membership):**
+    ```typescript
+    // Find documents where a specific user is a participant
+    const results = await client.search.documents({
+      q: "meeting notes",
+      filters: {
+        AND: [
+          {
+            filterType: "array_contains",
+            key: "participants",
+            value: "alice@company.com"
+          }
+        ]
+      }
+    });
+    ```
+
+    **Complex nested filters:**
+    ```typescript
+    // (category = "tech" OR category = "science") AND status != "archived"
+    const results = await client.search.documents({
+      q: "research papers",
+      filters: {
+        AND: [
+          {
+            OR: [
+              { key: "category", value: "tech" },
+              { key: "category", value: "science" }
+            ]
+          },
+          { key: "status", value: "archived", negate: true }
+        ]
+      }
+    });
+    ```
+
+    **Numeric operator negation mapping:**
+    When using `negate: true`, operators flip:
+    - `<` becomes `>=`
+    - `<=` becomes `>`
+    - `>` becomes `<=`
+    - `>=` becomes `<`
+    - `=` becomes `!=`
+  </Accordion>
+
+  <Accordion title="Real-World Patterns">
+    **User's work documents from 2024:**
+    ```typescript
+    const results = await client.search.documents({
+      q: "quarterly report",
+      containerTags: ["user_123"],
+      filters: {
+        AND: [
+          { key: "category", value: "work" },
+          { key: "type", value: "report" },
+          { filterType: "numeric", key: "year", value: "2024", numericOperator: "=" }
+        ]
+      }
+    });
+    ```
+
+    **Team meeting notes with specific participants:**
+    ```typescript
+    const results = await client.search.documents({
+      q: "sprint planning",
+      containerTags: ["project_alpha"],
+      filters: {
+        AND: [
+          { key: "type", value: "meeting" },
+          {
+            OR: [
+              { filterType: "array_contains", key: "participants", value: "alice" },
+              { filterType: "array_contains", key: "participants", value: "bob" }
+            ]
+          }
+        ]
+      }
+    });
+    ```
+
+    **Exclude drafts and deprecated content:**
+    ```typescript
+    const results = await client.search.documents({
+      q: "documentation",
+      filters: {
+        AND: [
+          { key: "status", value: "draft", negate: true },
+          { filterType: "string_contains", key: "content", value: "deprecated", negate: true },
+          { filterType: "array_contains", key: "tags", value: "archived", negate: true }
+        ]
+      }
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Quick Reference
+
+### When Adding Memories
+
+```typescript
+await client.add({
+  content: "Your content here",
+  containerTags: ["user_123"],        // Isolation
+  metadata: { key: "value" }          // Custom properties
+});
+```
+
+### When Searching
+
+```typescript
+const results = await client.search.documents({
+  q: "search query",
+  containerTags: ["user_123"],        // Must match exactly
+  filters: {                          // Optional metadata filters
+    AND: [{ key: "status", value: "published" }]
+  }
+});
+```
+
+### Metadata Key Rules
+
+- Allowed characters: `a-z`, `A-Z`, `0-9`, `_`, `-`, `.`
+- Max length: 64 characters
+- No spaces or special characters
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Search" icon="search" href="/search">
+    Apply filters in search queries
+  </Card>
+  <Card title="Add Memories" icon="plus" href="/add-memories">
+    Add content with container tags and metadata
+  </Card>
+</CardGroup>
