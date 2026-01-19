@@ -1,38 +1,21 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import {
-	FileTextIcon,
-	GlobeIcon,
-	ZapIcon,
-	ChevronsUpDownIcon,
-	FolderIcon,
-	Loader2,
-} from "lucide-react"
+import { FileTextIcon, GlobeIcon, ZapIcon, Loader2 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { ConnectContent } from "./connections"
 import { NoteContent } from "./note"
 import { LinkContent, type LinkData } from "./link"
 import { FileContent, type FileData } from "./file"
 import { useProject } from "@/stores"
-import { $fetch } from "@lib/api"
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
-import type { Project } from "@repo/lib/types"
-import { useQuery } from "@tanstack/react-query"
-import { motion } from "motion/react"
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@repo/ui/components/dropdown-menu"
 import { toast } from "sonner"
 import { useDocumentMutations } from "../../../hooks/use-document-mutations"
 import { useCustomer } from "autumn-js/react"
 import { useMemoriesUsage } from "@/hooks/use-memories-usage"
+import { SpaceSelector } from "../space-selector"
 
 type TabType = "note" | "link" | "file" | "connect"
 
@@ -115,7 +98,6 @@ export function AddDocument({
 	const [localSelectedProject, setLocalSelectedProject] = useState<string>(
 		globalSelectedProject,
 	)
-	const [isProjectSelectorOpen, setIsProjectSelectorOpen] = useState(false)
 
 	// Form data state for button click handling
 	const [noteContent, setNoteContent] = useState("")
@@ -146,33 +128,6 @@ export function AddDocument({
 	useEffect(() => {
 		setLocalSelectedProject(globalSelectedProject)
 	}, [globalSelectedProject])
-
-	const { data: projects = [], isLoading: isLoadingProjects } = useQuery({
-		queryKey: ["projects"],
-		queryFn: async () => {
-			const response = await $fetch("@get/projects")
-
-			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects")
-			}
-
-			return response.data?.projects || []
-		},
-		staleTime: 30 * 1000,
-	})
-
-	const projectName = useMemo(() => {
-		if (localSelectedProject === DEFAULT_PROJECT_ID) return "Default Project"
-		const found = projects.find(
-			(p: Project) => p.containerTag === localSelectedProject,
-		)
-		return found?.name ?? localSelectedProject
-	}, [projects, localSelectedProject])
-
-	const handleProjectSelect = (containerTag: string) => {
-		setLocalSelectedProject(containerTag)
-		setIsProjectSelectorOpen(false)
-	}
 
 	useEffect(() => {
 		if (defaultTab) {
@@ -334,65 +289,11 @@ export function AddDocument({
 					<ConnectContent selectedProject={localSelectedProject} />
 				)}
 				<div className="flex justify-between">
-					<DropdownMenu
-						open={isProjectSelectorOpen}
-						onOpenChange={setIsProjectSelectorOpen}
-					>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="insideOut"
-								className="gap-2"
-								disabled={isSubmitting}
-							>
-								<FolderIcon className="size-4" />
-								<span className="max-w-[120px] truncate">
-									{isLoadingProjects ? "..." : projectName}
-								</span>
-								<motion.div
-									animate={{ rotate: isProjectSelectorOpen ? 180 : 0 }}
-									transition={{ duration: 0.2 }}
-								>
-									<ChevronsUpDownIcon className="size-4" color="#737373" />
-								</motion.div>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="start"
-							className="w-56 bg-[#1B1F24] border border-[#2A2E35] rounded-[12px] p-1.5 max-h-64 overflow-y-auto"
-						>
-							<DropdownMenuItem
-								onClick={() => handleProjectSelect(DEFAULT_PROJECT_ID)}
-								className={cn(
-									"flex items-center gap-2 px-3 py-2 rounded-[8px] cursor-pointer",
-									localSelectedProject === DEFAULT_PROJECT_ID
-										? "bg-[#4BA0FA]/20 text-white"
-										: "text-[#737373] hover:bg-[#14161A] hover:text-white",
-								)}
-							>
-								<FolderIcon className="h-4 w-4" />
-								<span className="text-sm font-medium">Default Project</span>
-							</DropdownMenuItem>
-							{projects
-								.filter((p: Project) => p.containerTag !== DEFAULT_PROJECT_ID)
-								.map((project: Project) => (
-									<DropdownMenuItem
-										key={project.id}
-										onClick={() => handleProjectSelect(project.containerTag)}
-										className={cn(
-											"flex items-center gap-2 px-3 py-2 rounded-[8px] cursor-pointer",
-											localSelectedProject === project.containerTag
-												? "bg-[#4BA0FA]/20 text-white"
-												: "text-[#737373] hover:bg-[#14161A] hover:text-white",
-										)}
-									>
-										<FolderIcon className="h-4 w-4" />
-										<span className="text-sm font-medium truncate">
-											{project.name}
-										</span>
-									</DropdownMenuItem>
-								))}
-						</DropdownMenuContent>
-					</DropdownMenu>
+					<SpaceSelector
+						value={localSelectedProject}
+						onValueChange={setLocalSelectedProject}
+						variant="insideOut"
+					/>
 					<div className="flex items-center gap-2">
 						<Button
 							variant="ghost"

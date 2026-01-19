@@ -54,7 +54,7 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 			const response = await $fetch("@post/documents/documents", {
 				body: {
 					page: pageParam as number,
-					limit: (pageParam as number) === 1 ? (IS_DEV ? 500 : 500) : PAGE_SIZE,
+					limit: PAGE_SIZE,
 					sort: "createdAt",
 					order: "desc",
 					containerTags: selectedProject ? [selectedProject] : undefined,
@@ -90,6 +90,8 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 			data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
 		)
 	}, [data])
+
+	const isLoadingMore = isFetchingNextPage
 
 	const loadMoreDocuments = useCallback(async (): Promise<void> => {
 		if (hasNextPage && !isFetchingNextPage) {
@@ -148,7 +150,7 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 	}
 
 	return (
-		<div className="h-full">
+		<div className="relative">
 			<Button
 				className={cn(
 					dmSansClassName(),
@@ -189,7 +191,7 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 						onRender={maybeLoadMore}
 					/>
 
-					{isFetchingNextPage && (
+					{isLoadingMore && (
 						<div className="py-8 flex items-center justify-center">
 							<SuperLoader />
 						</div>

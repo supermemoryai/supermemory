@@ -5,11 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { useAuth } from "@lib/auth-context"
 import { useEffect, useState } from "react"
 import {
-	ChevronsLeftRight,
 	LayoutGridIcon,
 	Plus,
 	SearchIcon,
-	FolderIcon,
 	LogOut,
 	Settings,
 	Home,
@@ -20,22 +18,18 @@ import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
-import { useProjectName } from "@/hooks/use-project-name"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
-import { useQuery } from "@tanstack/react-query"
-import { $fetch } from "@repo/lib/api"
 import { authClient } from "@lib/auth"
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProject } from "@/stores"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import type { Project } from "@repo/lib/types"
+import { SpaceSelector } from "./space-selector"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -45,23 +39,9 @@ interface HeaderProps {
 export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 	const { user } = useAuth()
 	const [name, setName] = useState<string>("")
-	const projectName = useProjectName()
 	const { selectedProject } = useProject()
 	const { switchProject } = useProjectMutations()
 	const router = useRouter()
-	const { data: projects = [] } = useQuery({
-		queryKey: ["projects"],
-		queryFn: async () => {
-			const response = await $fetch("@get/projects")
-
-			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects")
-			}
-
-			return response.data?.projects || []
-		},
-		staleTime: 30 * 1000,
-	})
 
 	useEffect(() => {
 		const storedName =
@@ -130,47 +110,11 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 					</DropdownMenuContent>
 				</DropdownMenu>
 				<div className="self-stretch w-px bg-[#FFFFFF33]" />
-				<div className="flex items-center gap-2">
-					<p>📁 {projectName}</p>
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<button
-								type="button"
-								className="cursor-pointer hover:opacity-70 transition-opacity"
-								aria-label="Change project"
-							>
-								<ChevronsLeftRight className="size-4 rotate-90" />
-							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="start" className="w-56">
-							<DropdownMenuItem
-								onClick={() => switchProject(DEFAULT_PROJECT_ID)}
-								className={cn(
-									"cursor-pointer",
-									selectedProject === DEFAULT_PROJECT_ID && "bg-accent",
-								)}
-							>
-								<FolderIcon className="h-3.5 w-3.5 mr-2" />
-								<span className="text-sm">Default Project</span>
-							</DropdownMenuItem>
-							{projects
-								.filter((p: Project) => p.containerTag !== DEFAULT_PROJECT_ID)
-								.map((project: Project) => (
-									<DropdownMenuItem
-										key={project.id}
-										onClick={() => switchProject(project.containerTag)}
-										className={cn(
-											"cursor-pointer",
-											selectedProject === project.containerTag && "bg-accent",
-										)}
-									>
-										<FolderIcon className="h-3.5 w-3.5 mr-2 opacity-70" />
-										<span className="text-sm truncate">{project.name}</span>
-									</DropdownMenuItem>
-								))}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
+				<SpaceSelector
+					value={selectedProject}
+					onValueChange={switchProject}
+					showChevron
+				/>
 			</div>
 			<Tabs defaultValue="grid">
 				<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">

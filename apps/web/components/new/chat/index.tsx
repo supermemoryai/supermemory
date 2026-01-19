@@ -94,10 +94,27 @@ export function ChatSidebar({
 	>({})
 	const [isInputExpanded, setIsInputExpanded] = useState(false)
 	const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
+	const [heightOffset, setHeightOffset] = useState(95)
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
 	const { setCurrentChatId } = usePersistentChat()
+
+	// Adjust chat height based on scroll position
+	useEffect(() => {
+		const handleWindowScroll = () => {
+			const scrollThreshold = 80
+			const scrollY = window.scrollY
+			const progress = Math.min(scrollY / scrollThreshold, 1)
+			const newOffset = 95 - progress * (95 - 15)
+			setHeightOffset(newOffset)
+		}
+
+		window.addEventListener("scroll", handleWindowScroll, { passive: true })
+		handleWindowScroll()
+
+		return () => window.removeEventListener("scroll", handleWindowScroll)
+	}, [])
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
 		transport: new DefaultChatTransport({
@@ -364,7 +381,7 @@ export function ChatSidebar({
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border border-[#17181A] text-white cursor-pointer"
+						className="flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border border-[#17181A] text-white cursor-pointer whitespace-nowrap"
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
@@ -377,9 +394,12 @@ export function ChatSidebar({
 				<motion.div
 					key="open"
 					className={cn(
-						"w-[450px] h-[calc(100vh-95px)] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 mt-2 border border-[#17181AB2] relative pt-4",
+						"w-[450px] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 mt-2 border border-[#17181AB2] relative pt-4",
 						dmSansClassName(),
 					)}
+					style={{
+						height: `calc(100vh - ${heightOffset}px)`,
+					}}
 					initial={{ x: "100px", opacity: 0 }}
 					animate={{ x: 0, opacity: 1 }}
 					exit={{ x: "100px", opacity: 0 }}

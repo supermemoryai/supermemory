@@ -2,9 +2,12 @@ import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { Dialog, DialogContent, DialogFooter } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { ChevronsUpDownIcon, XIcon } from "lucide-react"
+import { XIcon } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { MCPSteps } from "./mcp-detail-view"
+import { SpaceSelector } from "../space-selector"
+import { useProject } from "@/stores"
+import { useProjectMutations } from "@/hooks/use-project-mutations"
 
 export function MCPModal({
 	isOpen,
@@ -13,6 +16,8 @@ export function MCPModal({
 	isOpen: boolean
 	onClose: () => void
 }) {
+	const { selectedProject } = useProject()
+	const { switchProject } = useProjectMutations()
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
@@ -50,9 +55,11 @@ export function MCPModal({
 				</div>
 				<DialogFooter className="justify-between!">
 					<div className="flex items-center gap-2">
-						<Button variant="insideOut">
-							My Space <ChevronsUpDownIcon className="size-4" color="#737373" />
-						</Button>
+						<SpaceSelector
+							value={selectedProject}
+							onValueChange={switchProject}
+							variant="insideOut"
+						/>
 						<Button
 							variant="ghost"
 							className="text-[#737373] cursor-pointer rounded-full"
@@ -60,7 +67,7 @@ export function MCPModal({
 							Migrate from MCP v1
 						</Button>
 					</div>
-					<Button variant="insideOut" className="px-6 py-[10px]">
+					<Button variant="insideOut" className="px-6 py-[10px]" onClick={onClose}>
 						Done
 					</Button>
 				</DialogFooter>
