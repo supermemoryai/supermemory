@@ -42,9 +42,9 @@ def format_relative_time(iso_timestamp: str) -> str:
         elif days < 7:
             return f"{int(days)}d ago"
         elif dt.year == now.year:
-            return dt.strftime("%-d %b")
+            return f"{dt.day} {dt.strftime('%b')}"
         else:
-            return dt.strftime("%-d %b, %Y")
+            return f"{dt.day} {dt.strftime('%b')}, {dt.year}"
     except Exception:
         return ""
 
