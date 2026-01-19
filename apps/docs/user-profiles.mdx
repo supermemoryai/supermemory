@@ -173,7 +173,7 @@ Current Context:
 ${result.profile.dynamic.join('\n')}
 
 Relevant Memories:
-${result.searchResults?.results.map(m => m.content).join('\n') || 'None'}
+${result.searchResults?.results.map(m => m.memory).join('\n') || 'None'}
   `;
 }
 ```

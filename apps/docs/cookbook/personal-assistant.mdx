@@ -257,7 +257,7 @@ Now the AI can answer: "Try overnight oats with plant-based protein—perfect fo
 ```python
     try:
         response = await openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5",
             messages=enhanced_messages,
             temperature=0.7,
             stream=True
@@ -265,7 +265,7 @@ Now the AI can answer: "Try overnight oats with plant-based protein—perfect fo
 ```
 
 **Key parameters:**
-- `model="gpt-4o"`: Fast, capable model
+- `model="gpt-5"`: Fast, capable model
 - `messages`: Full conversation + memory context
 - `temperature=0.7`: Balanced creativity (0=deterministic, 1=creative)
 - `stream=True`: Enables word-by-word streaming
@@ -558,7 +558,7 @@ const containerTag = `user_${crypto.createHash('sha256').update(email).digest('h
 
 ```typescript
     const result = streamText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-5'),
       messages,
       tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY!, {
         containerTags: [containerTag]
@@ -569,7 +569,7 @@ const containerTag = `user_${crypto.createHash('sha256').update(email).digest('h
 
 This is where the magic happens! Let's break down each parameter:
 
-**`model: openai('gpt-4o')`**
+**`model: openai('gpt-5')`**
 - Specifies which AI model to use
 - The AI SDK handles the API calls
 

@@ -1,0 +1,26 @@
+{
+  "name": "docs-test",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun run run.ts",
+    "test:ts": "bun run run.ts typescript",
+    "test:py": "bun run run.ts python",
+    "test:integrations": "bun run run.ts integrations",
+    "test:quickstart": "bun run run.ts quickstart",
+    "test:sdk": "bun run run.ts sdk",
+    "test:search": "bun run run.ts search"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.15",
+    "@ai-sdk/openai": "latest",
+    "@anthropic-ai/sdk": "latest",
+    "@supermemory/tools": "workspace:*",
+    "ai": "latest",
+    "dotenv": "latest",
+    "openai": "latest",
+    "supermemory": "latest",
+    "zod": "latest"
+  }
+}

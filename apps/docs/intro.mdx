@@ -9,8 +9,8 @@ Supermemory is the long-term and short-term memory and context infrastructure fo
 With supermemory, developers can provide perfect recall about their users to build AI agents that are more intelligent, more personalized, and more consistent. Additionally, *supermemory* has all the pieces of the context stack built in:
 - [Agent memory](/concepts/graph-memory)
 - [Content extraction](/concepts/content-types)
-- [Connectors and syncing](/concepts/connectors-syncing)
-- Managed RAG platform
+- [Connectors and syncing](/connectors/overview)
+- [Managed RAG platform](/concepts/super-rag)
 
 All this, coming together, makes supermemory the best abstraction to provide to agents.
 
@@ -41,7 +41,7 @@ We offer three ways to add context to your LLMs:
 ![memory graph](/images/memory-graph.png)
 
 Supermemory learns and builds the memory for the user. These are extracted facts about the user, that:
-- [Evolve on top of existing context about the user](/concepts/memory-graph), **in real time**
+- [Evolve on top of existing context about the user](/concepts/graph-memory), **in real time**
 - Handle **knowledge updates, temporal changes, forgetfulness**
 - Creates a **user profile** as the default context provider for the LLM.
 
@@ -49,7 +49,7 @@ _This can then be provided to the LLM, to give more contextual, personalized res
 
 #### User profiles
 
-Having the latest, evolving context about the user allows us to also create a [**User Profile**](/concepts/user-profile). This is a combination of static and dynamic facts about the user, that the agent should **always know**
+Having the latest, evolving context about the user allows us to also create a [**User Profile**](/concepts/user-profiles). This is a combination of static and dynamic facts about the user, that the agent should **always know**
 Developers can configure supermemory with what static and dynamic contents are, depending on their use case.
 
 - Static: Information that the agent should **always** know.
@@ -65,7 +65,7 @@ Along with the user context, developers can also choose to do a search on the ra
 - Works well with the memory engine
 
 <Info>
-    You can reference the full API reference for the Memory API in the API Reference tab.
+    See the full [API Reference](/api-reference) for detailed endpoint documentation.
 </Info>
 
 
@@ -75,4 +75,11 @@ All three approaches share the **same context pool** when using the same user ID
 
 ## Next steps
 
-Head to the [**How it works**](/concepts/how-it-works) guide to understand the underlying way of how supermemory represents and learns in data.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Make your first API call in minutes
+  </Card>
+  <Card title="How it Works" icon="cpu" href="/concepts/how-it-works">
+    Understand the knowledge graph architecture
+  </Card>
+</CardGroup>

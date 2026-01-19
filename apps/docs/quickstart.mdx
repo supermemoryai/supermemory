@@ -52,7 +52,7 @@ profile = client.profile(container_tag=USER_ID, q=conversation[-1]["content"])
 
 static = "\n".join(profile.profile.static)
 dynamic = "\n".join(profile.profile.dynamic)
-memories = "\n".join(r.content for r in profile.search_results.results)
+memories = "\n".join(r.get("memory", "") for r in profile.search_results.results)
 
 context = f"""Static profile:
 {static}
@@ -101,7 +101,7 @@ Dynamic profile:
 ${profile.profile.dynamic.join("\n")}
 
 Relevant memories:
-${profile.searchResults.results.map((r) => r.content).join("\n")}`;
+${profile.searchResults.results.map((r) => r.memory).join("\n")}`;
 
 // Build messages with memory-enriched context
 const messages = [{ role: "system", content: `User context:\n${context}` }, ...conversation];

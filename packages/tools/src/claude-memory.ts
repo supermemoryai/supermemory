@@ -47,17 +47,23 @@ export class ClaudeMemoryTool {
 	private memoryContainerPrefix: string
 
 	/**
-	 * Normalize file path to be used as customId (replace / with --)
+	 * Normalize file path to be used as customId
+	 * Converts /memories/file.txt -> memories_file_txt
 	 */
 	private normalizePathToCustomId(path: string): string {
-		return path.replace(/\//g, "--")
+		return path
+			.replace(/^\//, "") // Remove leading slash
+			.replace(/\//g, "_") // Replace / with _
+			.replace(/\./g, "_") // Replace . with _
 	}
 
 	/**
-	 * Convert customId back to file path (replace -- with /)
+	 * Convert customId back to file path
+	 * Note: This is lossy since we can't distinguish _ from . or /
+	 * We rely on metadata.file_path for accurate path reconstruction
 	 */
 	private customIdToPath(customId: string): string {
-		return customId.replace(/--/g, "/")
+		return "/" + customId.replace(/_/g, "/")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {

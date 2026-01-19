@@ -5,7 +5,14 @@ description: "Memory tools for OpenAI function calling with Supermemory integrat
 icon: "/images/openai.svg"
 ---
 
-Add memory capabilities to the official OpenAI SDKs using Supermemory's function calling tools. These plugins provide seamless integration with OpenAI's chat completions and function calling features.
+Add memory capabilities to the official OpenAI SDKs using Supermemory. Two approaches available:
+
+1. **`withSupermemory` wrapper** - Automatic memory injection into system prompts (zero-config)
+2. **Function calling tools** - Explicit tool calls for search/add memory operations
+
+<Tip>
+**New to Supermemory?** Start with `withSupermemory` for the simplest integration. It automatically injects relevant memories into your prompts.
+</Tip>
 
 <CardGroup>
 <Card title="Supermemory tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
@@ -15,6 +22,97 @@ Add memory capabilities to the official OpenAI SDKs using Supermemory's function
     Check out the PyPI page for more details
 </Card>
 </CardGroup>
+
+---
+
+## withSupermemory Wrapper
+
+The simplest way to add memory to your OpenAI client. Wraps your client to automatically inject relevant memories into system prompts.
+
+### Installation
+
+```bash
+npm install @supermemory/tools openai
+```
+
+### Quick Start
+
+```typescript
+import OpenAI from "openai"
+import { withSupermemory } from "@supermemory/tools/openai"
+
+const openai = new OpenAI()
+
+// Wrap client with memory - memories auto-injected into system prompts
+const client = withSupermemory(openai, "user-123", {
+  mode: "full",        // "profile" | "query" | "full"
+  addMemory: "always", // "always" | "never"
+})
+
+// Use normally - memories are automatically included
+const response = await client.chat.completions.create({
+  model: "gpt-5",
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "What's my favorite programming language?" }
+  ]
+})
+```
+
+### Configuration Options
+
+```typescript
+const client = withSupermemory(openai, "user-123", {
+  // Memory search mode
+  mode: "full",  // "profile" (user profile only), "query" (search only), "full" (both)
+
+  // Auto-save conversations as memories
+  addMemory: "always",  // "always" | "never"
+
+  // Group messages into conversations
+  conversationId: "conv-456",
+
+  // Enable debug logging
+  verbose: true,
+
+  // Custom API endpoint
+  baseUrl: "https://custom.api.com"
+})
+```
+
+### Modes Explained
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `profile` | Injects user profile (static + dynamic facts) | General personalization |
+| `query` | Searches memories based on user message | Question answering |
+| `full` | Both profile and query-based search | Best for chatbots |
+
+### Works with Responses API Too
+
+```typescript
+const client = withSupermemory(openai, "user-123", { mode: "full" })
+
+// Memories injected into instructions
+const response = await client.responses.create({
+  model: "gpt-5",
+  instructions: "You are a helpful assistant.",
+  input: "What do you know about me?"
+})
+```
+
+### Environment Variables
+
+```bash
+SUPERMEMORY_API_KEY=your_supermemory_key
+OPENAI_API_KEY=your_openai_key
+```
+
+---
+
+## Function Calling Tools
+
+For explicit control over memory operations, use function calling tools. The model decides when to search or add memories.
 
 ## Installation
 

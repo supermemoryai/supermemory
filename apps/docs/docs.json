@@ -148,9 +148,10 @@
 						"anchor": "Integrations",
 						"pages": [
 							"integrations/supermemory-sdk",
-							"integrations/openai",
 							"integrations/ai-sdk",
+							"integrations/openai",
 							"integrations/memory-graph",
+							"integrations/claude-memory",
 							"integrations/pipecat",
 							"integrations/n8n",
 							"integrations/zapier"

@@ -170,7 +170,7 @@ const { profile, searchResults } = await client.profile({
 const context = `
 Static facts: ${profile.static.join('\n')}
 Recent context: ${profile.dynamic.join('\n')}
-${searchResults ? `Memories: ${searchResults.results.map(r => r.content).join('\n')}` : ''}
+${searchResults ? `Memories: ${searchResults.results.map(r => r.memory).join('\n')}` : ''}
 `
 
 // Send to LLM
@@ -202,7 +202,7 @@ const results = await client.search({
 })
 
 // Build context
-const context = results.results.map(r => r.content).join('\n')
+const context = results.results.map(r => r.memory || r.chunk).join('\n')
 
 // Send to LLM with context
 const messages = [
