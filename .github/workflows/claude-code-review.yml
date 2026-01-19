@@ -2,10 +2,22 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review, reopened]
+    # Optional: Only run on specific file changes
+    # paths:
+    #   - "src/**/*.ts"
+    #   - "src/**/*.tsx"
+    #   - "src/**/*.js"
+    #   - "src/**/*.jsx"
 
 jobs:
   claude-review:
+    # Optional: Filter by PR author
+    # if: |
+    #   github.event.pull_request.user.login == 'external-contributor' ||
+    #   github.event.pull_request.user.login == 'new-developer' ||
+    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,59 +35,10 @@ jobs:
         id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          use_sticky_comment: true
-          prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
+          plugins: 'code-review@claude-code-plugins'
+          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
+          # or https://code.claude.com/docs/en/cli-reference for available options
 
-            You are reviewing a PR for supermemory - a Turbo monorepo with multiple apps and packages.
-
-            ## Repository Structure Context
-
-            **Apps (apps/):**
-            - `web` - Next.js web application (no tests)
-            - `mcp` - Model Context Protocol server on Cloudflare Workers (no tests)
-            - `browser-extension` - WXT-based browser extension (no tests)
-            - `raycast-extension` - Raycast app extension (no tests)
-            - `docs` - Mintlify documentation site
-
-            **Published Packages (packages/) - with tests:**
-            - `tools` - AI SDK memory tools (Vitest)
-            - `ai-sdk` - supermemory AI SDK wrapper (Vitest)
-            - `openai-sdk-python` - Python OpenAI integration (pytest)
-            - `pipecat-sdk-python` - Python Pipecat integration (pytest)
-
-            **Internal Packages (packages/) - no tests:**
-            - `ui` - Shared React/Radix UI components
-            - `lib` - Shared utilities
-            - `hooks` - Custom React hooks
-            - `memory-graph` - D3-based graph visualization
-            - `validation` - Zod schemas
-
-            ## Review Instructions
-
-            1. First, run `gh pr diff` to see what files changed
-
-            2. Based on the changes, review for:
-               - **Code quality**: Follow Biome linting rules (double quotes, tabs, no default exports)
-               - **Type safety**: Ensure proper TypeScript usage
-               - **Security**: Check for injection vulnerabilities, credential exposure, unsafe patterns
-               - **Performance**: Look for unnecessary re-renders (React), N+1 queries, memory leaks
-
-            3. **Test coverage** - ONLY review if changes touch these packages:
-               - `packages/tools/**` or `packages/ai-sdk/**` → Check for Vitest tests
-               - `packages/openai-sdk-python/**` or `packages/pipecat-sdk-python/**` → Check for pytest tests
-               - Skip test coverage review for apps and other packages (they have no test setup)
-
-            4. **Package-specific concerns:**
-               - Published packages (tools, ai-sdk, memory-graph, *-python): Check for breaking API changes
-               - UI package: Check accessibility (a11y) and component API consistency
-               - Web app: Check for proper data fetching patterns (TanStack Query), Zustand state management
-               - MCP server: Check Hono routing and Cloudflare Workers compatibility
-
-            5. Be concise and actionable. Focus on issues that matter, not style nitpicks (Biome handles that).
-
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
-
-          claude_args: '--allowedTools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
