@@ -15,6 +15,7 @@ import { initializeT3 } from "./t3"
 import {
 	handleTwitterNavigation,
 	initializeTwitter,
+	openImportModal,
 	updateTwitterImportUI,
 } from "./twitter"
 
@@ -29,6 +30,8 @@ export default defineContentScript({
 				await saveMemory()
 			} else if (message.action === MESSAGE_TYPES.OPEN_SEARCH_PANEL) {
 				handleOpenSearchPanel(message.data as string)
+			} else if (message.action === MESSAGE_TYPES.TWITTER_IMPORT_OPEN_MODAL) {
+				await openImportModal()
 			} else if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
 				updateTwitterImportUI(message)
 			} else if (message.type === MESSAGE_TYPES.IMPORT_DONE) {
