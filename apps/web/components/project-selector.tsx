@@ -74,6 +74,11 @@ export function ProjectSelector() {
 		staleTime: 30 * 1000,
 	})
 
+	const selectedProjectData = projects.find(
+		(p: Project) => p.containerTag === selectedProject,
+	)
+	const selectedEmoji = selectedProjectData?.emoji
+
 	const handleProjectSelect = (containerTag: string) => {
 		switchProject(containerTag)
 		setIsOpen(false)
@@ -92,7 +97,11 @@ export function ProjectSelector() {
 				className="flex items-center gap-1.5 px-2 py-1.5 rounded-md transition-colors"
 				onClick={() => setIsOpen(!isOpen)}
 			>
-				<FolderIcon className="h-3.5 w-3.5" />
+				{selectedEmoji ? (
+					<span className="text-sm">{selectedEmoji}</span>
+				) : (
+					<FolderIcon className="h-3.5 w-3.5" />
+				)}
 				<span className="text-xs font-medium max-w-32 truncate">
 					{isLoading ? "..." : projectName}
 				</span>
@@ -157,7 +166,11 @@ export function ProjectSelector() {
 													handleProjectSelect(project.containerTag)
 												}
 											>
-												<FolderIcon className="h-3.5 w-3.5 opacity-70" />
+												{project.emoji ? (
+													<span className="text-sm">{project.emoji}</span>
+												) : (
+													<FolderIcon className="h-3.5 w-3.5 opacity-70" />
+												)}
 												<span className="text-xs font-medium truncate max-w-32">
 													{project.name}
 												</span>

@@ -54,6 +54,9 @@ export default function OnboardingLayout({
 
 		if (storedName) {
 			setNameState(storedName)
+		} else if (user?.displayUsername) {
+			setNameState(user.displayUsername)
+			localStorage.setItem("onboarding_name", user.displayUsername)
 		} else if (user?.name) {
 			setNameState(user.name)
 			localStorage.setItem("onboarding_name", user.name)
@@ -66,7 +69,7 @@ export default function OnboardingLayout({
 				// ignore parse errors
 			}
 		}
-	}, [user?.name])
+	}, [user?.displayUsername, user?.name])
 
 	const setName = useCallback((newName: string) => {
 		setNameState(newName)

@@ -1,20 +1,17 @@
 import { motion } from "motion/react"
 import { Logo } from "@ui/assets/Logo"
 import { useAuth } from "@lib/auth-context"
-import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 
 export function SetupHeader() {
 	const { user } = useAuth()
-	const [name, setName] = useState<string>("")
 
-	useEffect(() => {
-		const storedName =
-			localStorage.getItem("username") || localStorage.getItem("userName") || ""
-		setName(storedName)
-	}, [])
-
-	const userName = name ? `${name.split(" ")[0]}'s` : "My"
+	const displayName =
+		user?.displayUsername ||
+		localStorage.getItem("username") ||
+		localStorage.getItem("userName") ||
+		""
+	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 
 	return (
 		<motion.div
@@ -25,7 +22,7 @@ export function SetupHeader() {
 		>
 			<div className="flex items-center z-10!">
 				<Logo className="h-7" />
-				{name && (
+				{displayName && (
 					<div className="flex flex-col items-start justify-center ml-2">
 						<p className="text-[#8B8B8B] text-[11px] leading-tight">
 							{userName}

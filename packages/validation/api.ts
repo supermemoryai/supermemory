@@ -1233,6 +1233,10 @@ export const ProjectSchema = z
 			description: "Number of documents in this project",
 			example: 42,
 		}),
+		emoji: z.string().optional().openapi({
+			description: "Emoji icon for the project",
+			example: "📁",
+		}),
 	})
 	.openapi({
 		description: "Project object for organizing memories",
@@ -1245,6 +1249,11 @@ export const CreateProjectSchema = z
 			example: "My Awesome Project",
 			minLength: 1,
 			maxLength: 100,
+		}),
+		emoji: z.string().max(10).optional().openapi({
+			description: "Emoji icon for the project",
+			example: "📁",
+			maxLength: 10,
 		}),
 	})
 	.openapi({

@@ -9,4 +9,5 @@ export interface Project {
 	createdAt: string
 	updatedAt: string
 	isExperimental?: boolean
+	emoji?: string
 }

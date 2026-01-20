@@ -18,6 +18,7 @@ import {
 	type WelcomeStep as WelcomeStepType,
 } from "./layout"
 import { gapVariants, orbVariants } from "@/lib/variants"
+import { authClient } from "@lib/auth"
 
 function UserSupermemory({ name }: { name: string }) {
 	return (
@@ -76,10 +77,17 @@ export default function WelcomePage() {
 		goToStep,
 	} = useWelcomeContext()
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		localStorage.setItem("username", name)
 		if (name.trim()) {
 			setIsSubmitting(true)
+			
+			try {
+				await authClient.updateUser({ displayUsername: name.trim() })
+			} catch (error) {
+				console.error("Failed to update displayUsername:", error)
+			}
+			
 			goToStep("greeting")
 			setIsSubmitting(false)
 		}

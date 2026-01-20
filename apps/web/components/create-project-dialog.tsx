@@ -34,11 +34,14 @@ export function CreateProjectDialog({
 
 	const handleCreate = () => {
 		if (projectName.trim()) {
-			createProjectMutation.mutate(projectName, {
-				onSuccess: () => {
-					handleClose()
+			createProjectMutation.mutate(
+				{ name: projectName },
+				{
+					onSuccess: () => {
+						handleClose()
+					},
 				},
-			})
+			)
 		}
 	}
 

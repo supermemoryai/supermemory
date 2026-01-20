@@ -3,7 +3,6 @@
 import { Logo } from "@ui/assets/Logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { useAuth } from "@lib/auth-context"
-import { useEffect, useState } from "react"
 import {
 	LayoutGridIcon,
 	Plus,
@@ -38,18 +37,16 @@ interface HeaderProps {
 
 export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 	const { user } = useAuth()
-	const [name, setName] = useState<string>("")
 	const { selectedProject } = useProject()
 	const { switchProject } = useProjectMutations()
 	const router = useRouter()
 
-	useEffect(() => {
-		const storedName =
-			localStorage.getItem("username") || localStorage.getItem("userName") || ""
-		setName(storedName)
-	}, [])
-
-	const userName = name ? `${name.split(" ")[0]}'s` : "My"
+	const displayName =
+		user?.displayUsername ||
+		localStorage.getItem("username") ||
+		localStorage.getItem("userName") ||
+		""
+	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 	return (
 		<div className="flex p-4 justify-between items-center">
 			<div className="flex items-center justify-center gap-4 z-10!">
@@ -60,7 +57,7 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 							className="flex items-center rounded-lg px-2 py-1.5 -ml-2 cursor-pointer hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors"
 						>
 							<Logo className="h-7" />
-							{name && (
+							{userName && (
 								<div className="flex flex-col items-start justify-center ml-2">
 									<p className="text-[#8B8B8B] text-[11px] leading-tight">
 										{userName}
@@ -114,6 +111,7 @@ export function Header({ onAddMemory, onOpenMCP }: HeaderProps) {
 					value={selectedProject}
 					onValueChange={switchProject}
 					showChevron
+					enableDelete
 				/>
 			</div>
 			<Tabs defaultValue="grid">
