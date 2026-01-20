@@ -100,16 +100,30 @@ export function convertProfileToMarkdown(data: ProfileMarkdownData): string {
 	return sections.join("\n\n")
 }
 
-export const getLastUserMessage = (params: LanguageModelCallOptions) => {
+export const getLastUserMessage = (
+	params: LanguageModelCallOptions,
+): string | undefined => {
 	const lastUserMessage = params.prompt
 		.slice()
 		.reverse()
 		.find((prompt: LanguageModelMessage) => prompt.role === "user")
-	const memories = lastUserMessage?.content
-		.filter((content) => content.type === "text")
-		.map((content) => (content as { type: "text"; text: string }).text)
+
+	if (!lastUserMessage) {
+		return undefined
+	}
+
+	const content = lastUserMessage.content
+
+	// Handle string content directly
+	if (typeof content === "string") {
+		return content
+	}
+
+	// Handle array content - extract text parts
+	return content
+		.filter((part) => part.type === "text")
+		.map((part) => (part as { type: "text"; text: string }).text)
 		.join(" ")
-	return memories
 }
 
 export const filterOutSupermemories = (content: string) => {

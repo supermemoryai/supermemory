@@ -6,18 +6,18 @@ import {
 import { createLogger, type Logger } from "./logger"
 import {
 	type LanguageModelCallOptions,
-	type LanguageModelStreamPart,
-	type OutputContentItem,
 	getLastUserMessage,
 	filterOutSupermemories,
 } from "./util"
 import {
-	addSystemPrompt,
+	buildMemoriesText,
+	extractQueryText,
+	injectMemoriesIntoParams,
 	normalizeBaseUrl,
 	type PromptTemplate,
 } from "./memory-prompt"
 
-export const getConversationContent = (params: LanguageModelCallOptions) => {
+const getConversationContent = (params: LanguageModelCallOptions) => {
 	return params.prompt
 		.filter((msg) => msg.role !== "system" && msg.role !== "tool")
 		.map((msg) => {
@@ -36,7 +36,7 @@ export const getConversationContent = (params: LanguageModelCallOptions) => {
 		.join("\n\n")
 }
 
-export const convertToConversationMessages = (
+const convertToConversationMessages = (
 	params: LanguageModelCallOptions,
 	assistantResponseText: string,
 ): ConversationMessage[] => {
@@ -160,7 +160,7 @@ export const saveMemoryAfterResponse = async (
 /**
  * Configuration options for the Supermemory middleware.
  */
-export interface SupermemoryMiddlewareOptions {
+interface SupermemoryMiddlewareOptions {
 	/** Container tag/identifier for memory search (e.g., user ID, project ID) */
 	containerTag: string
 	/** Supermemory API key */
@@ -188,7 +188,12 @@ export interface SupermemoryMiddlewareOptions {
 	promptTemplate?: PromptTemplate
 }
 
-export interface SupermemoryMiddlewareContext {
+/**
+ * Cached memories string for a user turn.
+ */
+type MemoryCache = string
+
+interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
 	containerTag: string
@@ -198,6 +203,11 @@ export interface SupermemoryMiddlewareContext {
 	normalizedBaseUrl: string
 	apiKey: string
 	promptTemplate?: PromptTemplate
+	/**
+	 * Per-turn memory cache map. Stores the injected memories string for each
+	 * user turn (keyed by turnKey) to avoid redundant API calls during tool-call
+	 */
+	memoryCache: Map<string, MemoryCache>
 }
 
 export const createSupermemoryContext = (
@@ -234,7 +244,28 @@ export const createSupermemoryContext = (
 		normalizedBaseUrl,
 		apiKey,
 		promptTemplate,
+		memoryCache: new Map<string, MemoryCache>(),
 	}
+}
+
+/**
+ * Generates a cache key for the current turn based on context and user message.
+ * Normalizes the user message by trimming and collapsing whitespace.
+ */
+const makeTurnKey = (
+	ctx: SupermemoryMiddlewareContext,
+	userMessage: string,
+): string => {
+	const normalizedMessage = userMessage.trim().replace(/\s+/g, " ")
+	return `${ctx.containerTag}:${ctx.conversationId || ""}:${ctx.mode}:${normalizedMessage}`
+}
+
+/**
+ * Checks if this is a new user turn (last message is from user)
+ */
+const isNewUserTurn = (params: LanguageModelCallOptions): boolean => {
+	const lastMessage = params.prompt.at(-1)
+	return lastMessage?.role === "user"
 }
 
 export const transformParamsWithMemory = async (
@@ -250,22 +281,42 @@ export const transformParamsWithMemory = async (
 		}
 	}
 
+	const turnKey = makeTurnKey(ctx, userMessage || "")
+	const isNewTurn = isNewUserTurn(params)
+
+	// Check if we can use cached memories
+	const cachedMemories = ctx.memoryCache.get(turnKey)
+	if (!isNewTurn && cachedMemories) {
+		ctx.logger.debug("Using cached memories: ", {
+			turnKey,
+		})
+		return injectMemoriesIntoParams(params, cachedMemories, ctx.logger)
+	}
+
 	ctx.logger.info("Starting memory search", {
 		containerTag: ctx.containerTag,
 		conversationId: ctx.conversationId,
 		mode: ctx.mode,
+		isNewTurn,
+		cacheHit: false,
 	})
 
-	const transformedParams = await addSystemPrompt(
-		params,
-		ctx.containerTag,
-		ctx.logger,
-		ctx.mode,
-		ctx.normalizedBaseUrl,
-		ctx.apiKey,
-		ctx.promptTemplate,
-	)
-	return transformedParams
+	const queryText = extractQueryText(params, ctx.mode)
+
+	const memories = await buildMemoriesText({
+		containerTag: ctx.containerTag,
+		queryText,
+		mode: ctx.mode,
+		baseUrl: ctx.normalizedBaseUrl,
+		apiKey: ctx.apiKey,
+		logger: ctx.logger,
+		promptTemplate: ctx.promptTemplate,
+	})
+
+	ctx.memoryCache.set(turnKey, memories)
+	ctx.logger.debug("Cached memories for turn", { turnKey })
+
+	return injectMemoriesIntoParams(params, memories, ctx.logger)
 }
 
 export const extractAssistantResponseText = (content: unknown[]): string => {
@@ -273,47 +324,3 @@ export const extractAssistantResponseText = (content: unknown[]): string => {
 		.map((item) => (item.type === "text" ? item.text || "" : ""))
 		.join("")
 }
-
-export const createStreamTransform = (
-	ctx: SupermemoryMiddlewareContext,
-	params: LanguageModelCallOptions,
-): {
-	transform: TransformStream<LanguageModelStreamPart, LanguageModelStreamPart>
-	getGeneratedText: () => string
-} => {
-	let generatedText = ""
-
-	const transform = new TransformStream<
-		LanguageModelStreamPart,
-		LanguageModelStreamPart
-	>({
-		transform(chunk, controller) {
-			if (chunk.type === "text-delta") {
-				generatedText += chunk.delta
-			}
-			controller.enqueue(chunk)
-		},
-		flush: async () => {
-			const userMessage = getLastUserMessage(params)
-			if (ctx.addMemory === "always" && userMessage && userMessage.trim()) {
-				saveMemoryAfterResponse(
-					ctx.client,
-					ctx.containerTag,
-					ctx.conversationId,
-					generatedText,
-					params,
-					ctx.logger,
-					ctx.apiKey,
-					ctx.normalizedBaseUrl,
-				)
-			}
-		},
-	})
-
-	return {
-		transform,
-		getGeneratedText: () => generatedText,
-	}
-}
-
-export { createLogger, type Logger, type OutputContentItem }
