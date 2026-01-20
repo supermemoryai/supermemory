@@ -5,6 +5,7 @@ drizzle.config.ts
 
 # Dependencies
 node_modules
+bun.lock
 .pnp
 .pnp.js
 
@@ -43,3 +44,4 @@ yarn-error.log*
 .venv
 .arch
 __pycache__
+
