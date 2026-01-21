@@ -17,7 +17,7 @@ const navButtonBase = style({
 	backgroundColor: "rgba(0, 0, 0, 0.2)",
 	backdropFilter: "blur(8px)",
 	WebkitBackdropFilter: "blur(8px)",
-	border: `1px solid rgba(255, 255, 255, 0.1)`,
+	border: "1px solid rgba(255, 255, 255, 0.1)",
 	borderRadius: themeContract.radii.lg,
 	padding: themeContract.space[2],
 	color: "rgba(255, 255, 255, 0.7)",

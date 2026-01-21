@@ -64,7 +64,11 @@ export async function POST(req: Request) {
 							},
 							{
 								type: "x",
-								includedXHandles: [lowerUrl.replace("https://x.com/", "").replace("https://twitter.com/", "")],
+								includedXHandles: [
+									lowerUrl
+										.replace("https://x.com/", "")
+										.replace("https://twitter.com/", ""),
+								],
 								postFavoriteCount: 10,
 							},
 						],

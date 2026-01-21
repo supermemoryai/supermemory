@@ -81,13 +81,13 @@ export default function WelcomePage() {
 		localStorage.setItem("username", name)
 		if (name.trim()) {
 			setIsSubmitting(true)
-			
+
 			try {
 				await authClient.updateUser({ displayUsername: name.trim() })
 			} catch (error) {
 				console.error("Failed to update displayUsername:", error)
 			}
-			
+
 			goToStep("greeting")
 			setIsSubmitting(false)
 		}

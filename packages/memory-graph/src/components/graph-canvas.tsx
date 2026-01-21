@@ -84,11 +84,11 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 				const progress = Math.min(elapsed / duration, 1)
 
 				// Ease-out cubic easing for smooth deceleration
-				const eased = 1 - Math.pow(1 - progress, 3)
+				const eased = 1 - (1 - progress) ** 3
 				dimProgress.current = startDim + (targetDim - startDim) * eased
 
 				// Force re-render to update canvas during animation
-				forceRender(prev => prev + 1)
+				forceRender((prev) => prev + 1)
 
 				if (progress < 1) {
 					dimAnimationRef.current = requestAnimationFrame(animate)
@@ -145,8 +145,10 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 				// Only check nodes in the clicked cell (and neighboring cells for edge cases)
 				const cellsToCheck = [
 					cellKey,
-					`${cellX-1},${cellY}`, `${cellX+1},${cellY}`,
-					`${cellX},${cellY-1}`, `${cellX},${cellY+1}`,
+					`${cellX - 1},${cellY}`,
+					`${cellX + 1},${cellY}`,
+					`${cellX},${cellY - 1}`,
+					`${cellX},${cellY + 1}`,
 				]
 
 				// Check from top-most to bottom-most: memory nodes are drawn after documents
@@ -360,7 +362,12 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			})
 
 			// Helper function to draw a single edge path
-			const drawEdgePath = (edge: typeof edges[0], sourceNode: GraphNode, targetNode: GraphNode, edgeShouldDim: boolean) => {
+			const drawEdgePath = (
+				edge: (typeof edges)[0],
+				sourceNode: GraphNode,
+				targetNode: GraphNode,
+				edgeShouldDim: boolean,
+			) => {
 				const sourceX = sourceNode.x * zoom + panX
 				const sourceY = sourceNode.y * zoom + panY
 				const targetX = targetNode.x * zoom + panX
@@ -381,9 +388,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const dy = targetY - sourceY
 					const distance = Math.sqrt(dx * dx + dy * dy)
 					const controlOffset =
-						edge.edgeType === "doc-memory"
-							? 15
-							: Math.min(30, distance * 0.2)
+						edge.edgeType === "doc-memory" ? 15 : Math.min(30, distance * 0.2)
 
 					ctx.beginPath()
 					ctx.moveTo(sourceX, sourceY)
@@ -398,7 +403,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			}
 
 			// Smooth edge opacity: interpolate between full and 0.05 (dimmed)
-			const edgeDimOpacity = 1 - (dimProgress.current * 0.95)
+			const edgeDimOpacity = 1 - dimProgress.current * 0.95
 
 			// BATCH 1: Draw all doc-memory edges together
 			if (docMemoryEdges.length > 0) {
@@ -417,7 +422,8 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 							: edge.target
 
 					if (sourceNode && targetNode) {
-						const edgeShouldDim = selectedNodeId !== null &&
+						const edgeShouldDim =
+							selectedNodeId !== null &&
 							sourceNode.id !== selectedNodeId &&
 							targetNode.id !== selectedNodeId
 						const opacity = edgeShouldDim ? edgeDimOpacity : 0.9
@@ -444,10 +450,13 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 							: edge.target
 
 					if (sourceNode && targetNode) {
-						const edgeShouldDim = selectedNodeId !== null &&
+						const edgeShouldDim =
+							selectedNodeId !== null &&
 							sourceNode.id !== selectedNodeId &&
 							targetNode.id !== selectedNodeId
-						const opacity = edgeShouldDim ? edgeDimOpacity : Math.max(0, edge.similarity * 0.5)
+						const opacity = edgeShouldDim
+							? edgeDimOpacity
+							: Math.max(0, edge.similarity * 0.5)
 						const lineWidth = Math.max(1, edge.similarity * 2)
 
 						// Set color based on similarity strength
@@ -480,7 +489,8 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 							: edge.target
 
 					if (sourceNode && targetNode) {
-						const edgeShouldDim = selectedNodeId !== null &&
+						const edgeShouldDim =
+							selectedNodeId !== null &&
 							sourceNode.id !== selectedNodeId &&
 							targetNode.id !== selectedNodeId
 						const opacity = edgeShouldDim ? edgeDimOpacity : 0.8
@@ -568,7 +578,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 				const isSelected = selectedNodeId === node.id
 				const shouldDim = selectedNodeId !== null && !isSelected
 				// Smooth opacity: interpolate between 1 (full) and 0.1 (dimmed) based on animation progress
-				const nodeOpacity = shouldDim ? 1 - (dimProgress.current * 0.9) : 1
+				const nodeOpacity = shouldDim ? 1 - dimProgress.current * 0.9 : 1
 				const isHighlightedDocument = (() => {
 					if (node.type !== "document" || highlightSet.size === 0) return false
 					const doc = node.data as DocumentWithMemories
@@ -710,7 +720,7 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					const radius = nodeSize / 2
 
 					ctx.fillStyle = fillColor
-					ctx.globalAlpha = shouldDim ? nodeOpacity : (isLatest ? 1 : 0.4)
+					ctx.globalAlpha = shouldDim ? nodeOpacity : isLatest ? 1 : 0.4
 					ctx.strokeStyle = borderColor
 					ctx.lineWidth = isDragging ? 3 : isHovered ? 2 : 1.5
 
@@ -833,7 +843,17 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			})
 
 			ctx.globalAlpha = 1
-		}, [nodes, edges, panX, panY, zoom, width, height, highlightDocumentIds, nodeMap])
+		}, [
+			nodes,
+			edges,
+			panX,
+			panY,
+			zoom,
+			width,
+			height,
+			highlightDocumentIds,
+			nodeMap,
+		])
 
 		// Hybrid rendering: continuous when simulation active, change-based when idle
 		const lastRenderParams = useRef<number>(0)
@@ -857,9 +877,16 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 			}, 0)
 
 			// Combine all factors into a single number
-			return positionHash ^ edges.length ^
-				Math.round(panX) ^ Math.round(panY) ^
-				Math.round(zoom * 100) ^ width ^ height ^ highlightHash
+			return (
+				positionHash ^
+				edges.length ^
+				Math.round(panX) ^
+				Math.round(panY) ^
+				Math.round(zoom * 100) ^
+				width ^
+				height ^
+				highlightHash
+			)
 		}, [
 			nodes,
 			edges.length,
@@ -962,13 +989,10 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 
 			// Calculate effective DPR that keeps us within safe limits
 			// Prevent division by zero by checking for valid dimensions
-			const maxDpr = width > 0 && height > 0
-				? Math.min(
-					MAX_CANVAS_SIZE / width,
-					MAX_CANVAS_SIZE / height,
-					dpr
-				)
-				: dpr
+			const maxDpr =
+				width > 0 && height > 0
+					? Math.min(MAX_CANVAS_SIZE / width, MAX_CANVAS_SIZE / height, dpr)
+					: dpr
 
 			// upscale backing store with clamped dimensions
 			canvas.style.width = `${width}px`

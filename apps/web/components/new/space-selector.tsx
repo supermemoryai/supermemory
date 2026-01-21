@@ -37,6 +37,7 @@ export interface SpaceSelectorProps {
 	contentClassName?: string
 	showNewSpace?: boolean
 	enableDelete?: boolean
+	compact?: boolean
 }
 
 const triggerVariants = {
@@ -53,6 +54,7 @@ export function SpaceSelector({
 	contentClassName,
 	showNewSpace = true,
 	enableDelete = false,
+	compact = false,
 }: SpaceSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false)
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -87,7 +89,9 @@ export function SpaceSelector({
 	const selectedProject = useMemo(() => {
 		if (value === DEFAULT_PROJECT_ID) return { name: "My Space", emoji: "📁" }
 		const found = projects.find((p: Project) => p.containerTag === value)
-		return found ? { name: found.name, emoji: found.emoji } : { name: value, emoji: undefined }
+		return found
+			? { name: found.name, emoji: found.emoji }
+			: { name: value, emoji: undefined }
 	}, [projects, value])
 
 	const selectedProjectName = selectedProject.name
@@ -125,7 +129,9 @@ export function SpaceSelector({
 				projectId: deleteDialog.project.id,
 				action: deleteDialog.action,
 				targetProjectId:
-					deleteDialog.action === "move" ? deleteDialog.targetProjectId : undefined,
+					deleteDialog.action === "move"
+						? deleteDialog.targetProjectId
+						: undefined,
 			},
 			{
 				onSuccess: () => {
@@ -156,14 +162,14 @@ export function SpaceSelector({
 				p.id !== deleteDialog.project?.id &&
 				p.containerTag !== deleteDialog.project?.containerTag,
 		)
-		
+
 		const defaultProject = projects.find(
 			(p: Project) => p.containerTag === DEFAULT_PROJECT_ID,
 		)
-		
+
 		const isDefaultProjectBeingDeleted =
 			deleteDialog.project?.containerTag === DEFAULT_PROJECT_ID
-		
+
 		if (defaultProject && !isDefaultProjectBeingDeleted) {
 			const defaultProjectIncluded = filtered.some(
 				(p: Project) => p.containerTag === DEFAULT_PROJECT_ID,
@@ -172,7 +178,7 @@ export function SpaceSelector({
 				return [defaultProject, ...filtered]
 			}
 		}
-		
+
 		return filtered
 	}, [projects, deleteDialog.project])
 
@@ -189,10 +195,14 @@ export function SpaceSelector({
 							triggerClassName,
 						)}
 					>
-						<span className="text-sm font-bold tracking-[-0.98px]">{selectedProjectEmoji}</span>
-						<span className="text-sm font-medium text-white">
-							{isLoading ? "..." : selectedProjectName}
+						<span className="text-sm font-bold tracking-[-0.98px]">
+							{selectedProjectEmoji}
 						</span>
+						{!compact && (
+							<span className="text-sm font-medium text-white">
+								{isLoading ? "..." : selectedProjectName}
+							</span>
+						)}
 						{showChevron && (
 							<ChevronsLeftRight className="size-4 rotate-90 text-white/70" />
 						)}
@@ -201,7 +211,7 @@ export function SpaceSelector({
 				<DropdownMenuContent
 					align="start"
 					className={cn(
-						"min-w-[200px] p-3 rounded-[11px] border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+						"min-w-[200px] p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
 						dmSansClassName(),
 						contentClassName,
 					)}
@@ -209,16 +219,16 @@ export function SpaceSelector({
 						background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 					}}
 				>
-					<div className="flex flex-col gap-3">
+					<div className="flex flex-col gap-2">
 						<div className="flex flex-col">
 							{/* Default Project - no delete allowed */}
 							<DropdownMenuItem
 								onClick={() => handleSelect(DEFAULT_PROJECT_ID)}
 								className={cn(
-									"flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium",
+									"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
 									value === DEFAULT_PROJECT_ID
-										? "bg-[#161E2B] border border-[rgba(115,115,115,0.1)]"
-										: "opacity-50 hover:opacity-100 hover:bg-[#161E2B]/50",
+										? "bg-[#293952]/40"
+										: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
 								)}
 							>
 								<span className="font-bold tracking-[-0.98px]">📁</span>
@@ -233,13 +243,15 @@ export function SpaceSelector({
 										key={project.id}
 										onClick={() => handleSelect(project.containerTag)}
 										className={cn(
-											"flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium group",
+											"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium group",
 											value === project.containerTag
-												? "bg-[#161E2B] border border-[rgba(115,115,115,0.1)]"
-												: "opacity-50 hover:opacity-100 hover:bg-[#161E2B]/50",
+												? "bg-[#293952]/40"
+												: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
 										)}
 									>
-										<span className="font-bold tracking-[-0.98px]">{project.emoji || "📁"}</span>
+										<span className="font-bold tracking-[-0.98px]">
+											{project.emoji || "📁"}
+										</span>
 										<span className="truncate flex-1">{project.name}</span>
 										{enableDelete && (
 											<button
@@ -309,9 +321,17 @@ export function SpaceSelector({
 					showCloseButton={false}
 				>
 					<div className="flex flex-col gap-4">
-							<div id="delete-dialog-header" className="flex justify-between items-start gap-4">
+						<div
+							id="delete-dialog-header"
+							className="flex justify-between items-start gap-4"
+						>
 							<div className="pl-1 space-y-1 flex-1">
-								<p className={cn("font-semibold text-[#fafafa]", dmSans125ClassName())}>
+								<p
+									className={cn(
+										"font-semibold text-[#fafafa]",
+										dmSans125ClassName(),
+									)}
+								>
 									Delete space
 								</p>
 								<p className="text-[#737373] font-medium text-[16px] leading-[1.35]">
@@ -325,7 +345,8 @@ export function SpaceSelector({
 							<DialogPrimitive.Close
 								className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
 								style={{
-									boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+									boxShadow:
+										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
 								}}
 							>
 								<XIcon stroke="#737373" />
@@ -337,7 +358,9 @@ export function SpaceSelector({
 							<button
 								id="move-option"
 								type="button"
-								onClick={() => setDeleteDialog((prev) => ({ ...prev, action: "move" }))}
+								onClick={() =>
+									setDeleteDialog((prev) => ({ ...prev, action: "move" }))
+								}
 								className={cn(
 									"flex items-center gap-3 p-3 rounded-[12px] cursor-pointer transition-colors w-full text-left",
 									deleteDialog.action === "move"
@@ -415,7 +438,9 @@ export function SpaceSelector({
 													<span className="flex items-center gap-2">
 														<span>{p.emoji || "📁"}</span>
 														<span>
-															{p.containerTag === DEFAULT_PROJECT_ID ? "My Space" : p.name}
+															{p.containerTag === DEFAULT_PROJECT_ID
+																? "My Space"
+																: p.name}
 														</span>
 													</span>
 												</SelectItem>
@@ -428,7 +453,9 @@ export function SpaceSelector({
 							<button
 								id="delete-option"
 								type="button"
-								onClick={() => setDeleteDialog((prev) => ({ ...prev, action: "delete" }))}
+								onClick={() =>
+									setDeleteDialog((prev) => ({ ...prev, action: "delete" }))
+								}
 								className={cn(
 									"flex items-center gap-3 p-3 rounded-[12px] cursor-pointer transition-colors w-full text-left",
 									deleteDialog.action === "delete"
@@ -470,7 +497,10 @@ export function SpaceSelector({
 							)}
 						</div>
 
-						<div id="delete-dialog-footer" className="flex items-center justify-end gap-[22px]">
+						<div
+							id="delete-dialog-footer"
+							className="flex items-center justify-end gap-[22px]"
+						>
 							<button
 								type="button"
 								onClick={handleDeleteCancel}
@@ -487,7 +517,8 @@ export function SpaceSelector({
 								onClick={handleDeleteConfirm}
 								disabled={
 									deleteProjectMutation.isPending ||
-									(deleteDialog.action === "move" && !deleteDialog.targetProjectId)
+									(deleteDialog.action === "move" &&
+										!deleteDialog.targetProjectId)
 								}
 								className={cn(
 									"px-4 py-[10px] rounded-full",
@@ -498,7 +529,9 @@ export function SpaceSelector({
 								{deleteProjectMutation.isPending ? (
 									<>
 										<Loader2 className="size-4 animate-spin mr-2" />
-										{deleteDialog.action === "move" ? "Moving..." : "Deleting..."}
+										{deleteDialog.action === "move"
+											? "Moving..."
+											: "Deleting..."}
 									</>
 								) : deleteDialog.action === "move" ? (
 									"Move & Delete"

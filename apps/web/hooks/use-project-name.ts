@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { useProject } from "@/stores";
+import { useQueryClient } from "@tanstack/react-query"
+import { useMemo } from "react"
+import { useProject } from "@/stores"
 
 /**
  * Returns the display name of the currently selected project.
@@ -10,17 +10,17 @@ import { useProject } from "@/stores";
  * hasn’t been fetched yet.
  */
 export function useProjectName() {
-	const { selectedProject } = useProject();
-	const queryClient = useQueryClient();
+	const { selectedProject } = useProject()
+	const queryClient = useQueryClient()
 
 	// This query is populated by ProjectsView – we just read from the cache.
 	const projects = queryClient.getQueryData(["projects"]) as
 		| Array<{ name: string; containerTag: string }>
-		| undefined;
+		| undefined
 
 	return useMemo(() => {
-		if (selectedProject === "sm_project_default") return "Default Project";
-		const found = projects?.find((p) => p.containerTag === selectedProject);
-		return found?.name ?? selectedProject;
-	}, [projects, selectedProject]);
+		if (selectedProject === "sm_project_default") return "Default Project"
+		const found = projects?.find((p) => p.containerTag === selectedProject)
+		return found?.name ?? selectedProject
+	}, [projects, selectedProject])
 }

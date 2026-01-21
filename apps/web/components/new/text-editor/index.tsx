@@ -82,28 +82,25 @@ export function TextEditor({
 		}
 	}, [editor, initialContent])
 
-	const handleClick = useCallback(
-		(e: React.MouseEvent<HTMLDivElement>) => {
-			const target = e.target as HTMLElement
-			if (target.closest(".ProseMirror")) {
-				return
-			}
-			if (target.closest("button, a")) {
-				return
-			}
+	const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+		const target = e.target as HTMLElement
+		if (target.closest(".ProseMirror")) {
+			return
+		}
+		if (target.closest("button, a")) {
+			return
+		}
 
-			const proseMirror = containerRef.current?.querySelector(
-				".ProseMirror",
-			) as HTMLElement
-			if (proseMirror && editorRef.current) {
-				setTimeout(() => {
-					proseMirror.focus()
-					editorRef.current?.commands.focus("end")
-				}, 0)
-			}
-		},
-		[],
-	)
+		const proseMirror = containerRef.current?.querySelector(
+			".ProseMirror",
+		) as HTMLElement
+		if (proseMirror && editorRef.current) {
+			setTimeout(() => {
+				proseMirror.focus()
+				editorRef.current?.commands.focus("end")
+			}, 0)
+		}
+	}, [])
 
 	useEffect(() => {
 		return () => {
@@ -132,9 +129,7 @@ export function TextEditor({
 					<div className="flex items-center gap-1 rounded-[8px] bg-[#1b1f24] p-2 shadow-[0px_4px_20px_0px_rgba(0,0,0,0.25),inset_1px_1px_1px_0px_rgba(255,255,255,0.1)]">
 						<button
 							type="button"
-							onClick={() =>
-								editor.chain().focus().toggleBold().run()
-							}
+							onClick={() => editor.chain().focus().toggleBold().run()}
 							className={cn(
 								"flex items-center justify-center rounded-[4px] p-1.5 hover:bg-[#2e353d] cursor-pointer text-[#fafafa]",
 								editor.isActive("bold") && "bg-[#2e353d]",
@@ -144,9 +139,7 @@ export function TextEditor({
 						</button>
 						<button
 							type="button"
-							onClick={() =>
-								editor.chain().focus().toggleItalic().run()
-							}
+							onClick={() => editor.chain().focus().toggleItalic().run()}
 							className={cn(
 								"flex items-center justify-center rounded-[4px] p-1.5 hover:bg-[#2e353d] cursor-pointer text-[#fafafa]",
 								editor.isActive("italic") && "bg-[#2e353d]",
@@ -156,9 +149,7 @@ export function TextEditor({
 						</button>
 						<button
 							type="button"
-							onClick={() =>
-								editor.chain().focus().toggleCode().run()
-							}
+							onClick={() => editor.chain().focus().toggleCode().run()}
 							className={cn(
 								"flex items-center justify-center rounded-[4px] p-1.5 hover:bg-[#2e353d] cursor-pointer text-[#fafafa]",
 								editor.isActive("code") && "bg-[#2e353d]",

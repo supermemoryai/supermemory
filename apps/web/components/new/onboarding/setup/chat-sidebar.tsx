@@ -14,6 +14,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { useAuth } from "@lib/auth-context"
 import { useProject } from "@/stores"
 import { Streamdown } from "streamdown"
+import { useIsMobile } from "@hooks/use-mobile"
 
 interface ChatSidebarProps {
 	formData: {
@@ -35,8 +36,9 @@ interface DraftDoc {
 export function ChatSidebar({ formData }: ChatSidebarProps) {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
+	const isMobile = useIsMobile()
 	const [message, setMessage] = useState("")
-	const [isChatOpen, setIsChatOpen] = useState(true)
+	const [isChatOpen, setIsChatOpen] = useState(!isMobile)
 	const [timelineMessages, setTimelineMessages] = useState<
 		{
 			message: string
@@ -405,44 +407,73 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 				<motion.div
 					key="closed"
 					className={cn(
-						"absolute top-0 right-0 flex items-start justify-start m-4",
+						"flex items-start justify-start",
+						isMobile
+							? "fixed bottom-4 right-4 z-50"
+							: "absolute top-0 right-0 m-4",
 						dmSansClassName(),
 					)}
 					layoutId="chat-toggle-button"
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border border-[#17181A] text-white cursor-pointer"
+						className={cn(
+							"flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border border-[#17181A] text-white cursor-pointer shadow-lg",
+							isMobile && "px-4 py-2",
+						)}
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
 					>
 						<NovaOrb size={24} className="blur-none! z-10" />
-						Chat with Nova
+						{!isMobile && "Chat with Nova"}
 					</motion.button>
 				</motion.div>
 			) : (
 				<motion.div
 					key="open"
 					className={cn(
-						"w-[450px] h-[calc(100vh-110px)] bg-[#0A0E14] backdrop-blur-md flex flex-col rounded-2xl m-4",
+						"bg-[#0A0E14] backdrop-blur-md flex flex-col",
+						isMobile
+							? "fixed inset-0 z-50 w-full h-dvh rounded-none m-0"
+							: "w-[450px] h-[calc(100vh-110px)] rounded-2xl m-4",
 						dmSansClassName(),
 					)}
-					initial={{ x: "100px", opacity: 0 }}
-					animate={{ x: 0, opacity: 1 }}
-					exit={{ x: "100px", opacity: 0 }}
+					initial={
+						isMobile ? { y: "100%", opacity: 0 } : { x: "100px", opacity: 0 }
+					}
+					animate={{ x: 0, y: 0, opacity: 1 }}
+					exit={
+						isMobile ? { y: "100%", opacity: 0 } : { x: "100px", opacity: 0 }
+					}
 					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="absolute top-4 right-4 flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer"
-						style={{
-							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
-						}}
+						className={cn(
+							"absolute top-4 right-4 flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer",
+							isMobile && "bg-[#0D121A] border border-[#73737333]",
+						)}
+						style={
+							isMobile
+								? {
+										boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+									}
+								: {
+										background:
+											"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+									}
+						}
 						layoutId="chat-toggle-button"
 					>
-						<PanelRightCloseIcon className="size-4" />
-						Close chat
+						{isMobile ? (
+							<XIcon className="size-4" />
+						) : (
+							<>
+								<PanelRightCloseIcon className="size-4" />
+								Close chat
+							</>
+						)}
 					</motion.button>
 					<div className="flex-1 flex flex-col px-4 space-y-3 pb-4 justify-end overflow-y-auto scrollbar-thin">
 						{timelineMessages.map((msg, i) => (
@@ -661,7 +692,8 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 											xResearchStatus === "correct"
 												? "bg-green-500/20 text-green-400 border border-green-500/40"
 												: "bg-[#1B1F24] text-white/50 hover:text-white/70",
-											(isConfirmed || isLoading) && "opacity-50 cursor-not-allowed",
+											(isConfirmed || isLoading) &&
+												"opacity-50 cursor-not-allowed",
 										)}
 									>
 										<CheckIcon className="size-3" />

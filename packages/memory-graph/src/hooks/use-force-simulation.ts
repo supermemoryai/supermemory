@@ -127,9 +127,8 @@ export function useForceSimulation(
 
 		// Update edges
 		if (edges.length > 0) {
-			const linkForce = simulationRef.current.force<
-				d3.ForceLink<GraphNode, GraphEdge>
-			>("link")
+			const linkForce =
+				simulationRef.current.force<d3.ForceLink<GraphNode, GraphEdge>>("link")
 			if (linkForce) {
 				linkForce.links(edges)
 			}

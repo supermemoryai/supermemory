@@ -54,7 +54,8 @@ export function PdfViewer({ url }: PdfViewerProps) {
 			<div className="flex-1 overflow-auto w-full">
 				<Document
 					file={
-						url || "https://corsproxy.io/?" +
+						url ||
+						"https://corsproxy.io/?" +
 							encodeURIComponent("http://www.pdf995.com/samples/pdf.pdf")
 					}
 					onLoadSuccess={onDocumentLoadSuccess}

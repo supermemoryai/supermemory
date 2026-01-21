@@ -18,7 +18,7 @@ const components = {
 	},
 } as const
 
-export function NotionDoc({ content }: { content: string }) {
+export function WebPageContent({ content }: { content: string }) {
 	return (
 		<div className="p-4 overflow-y-auto flex-1 scrollbar-thin">
 			<Streamdown components={components}>{content}</Streamdown>

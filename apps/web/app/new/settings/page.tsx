@@ -12,6 +12,7 @@ import Integrations from "@/components/new/settings/integrations"
 import ConnectionsMCP from "@/components/new/settings/connections-mcp"
 import Support from "@/components/new/settings/support"
 import { useRouter } from "next/navigation"
+import { useIsMobile } from "@hooks/use-mobile"
 
 const TABS = ["account", "integrations", "connections", "support"] as const
 type SettingsTab = (typeof TABS)[number]
@@ -148,6 +149,7 @@ export default function SettingsPage() {
 	const [activeTab, setActiveTab] = useState<SettingsTab>("account")
 	const hasInitialized = useRef(false)
 	const router = useRouter()
+	const isMobile = useIsMobile()
 
 	useEffect(() => {
 		if (hasInitialized.current) return
@@ -174,7 +176,7 @@ export default function SettingsPage() {
 	}, [])
 	return (
 		<div className="h-screen flex flex-col overflow-hidden">
-			<header className="flex justify-between items-center px-6 py-3 shrink-0">
+			<header className="flex justify-between items-center px-4 md:px-6 py-3 shrink-0">
 				<button
 					type="button"
 					onClick={() => router.push("/new")}
@@ -191,55 +193,77 @@ export default function SettingsPage() {
 					)}
 				</div>
 			</header>
-			<main className="max-w-2xl mx-auto space-x-12 flex justify-center pt-4 flex-1 min-h-0">
-				<div className="min-w-xs">
-					<motion.div
-						animate={{
-							scale: 1,
-							padding: 48,
-							paddingTop: 0,
-						}}
-						transition={{
-							duration: 0.8,
-							ease: "easeOut",
-							delay: 0.2,
-						}}
-						className="relative flex items-center justify-center"
-					>
-						<NovaOrb size={175} className="blur-[3px]!" />
-						<UserSupermemory name={user?.name ?? ""} />
-					</motion.div>
-					<nav className={cn("flex flex-col gap-2", dmSansClassName())}>
-						{NAV_ITEMS.map((item) => (
-							<button
-								key={item.id}
-								type="button"
-								onClick={() => {
-									window.location.hash = item.id
-									setActiveTab(item.id)
+			<main className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
+				<div className="flex flex-col md:flex-row md:justify-center gap-4 md:gap-8 lg:gap-12 px-4 md:px-6 pt-4 pb-6 md:h-full">
+					<div className="w-full md:w-auto md:min-w-[280px] shrink-0">
+						{!isMobile && (
+							<motion.div
+								animate={{
+									scale: 1,
+									padding: 48,
+									paddingTop: 0,
 								}}
-								className={`text-left p-4 rounded-xl transition-colors flex items-start gap-3 ${
-									activeTab === item.id
-										? "bg-[#14161A] text-white shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
-										: "text-white/60 hover:text-white hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
-								}`}
+								transition={{
+									duration: 0.8,
+									ease: "easeOut",
+									delay: 0.2,
+								}}
+								className="relative flex items-center justify-center"
 							>
-								<span className="mt-0.5 shrink-0">{item.icon}</span>
-								<div className="flex flex-col gap-0.5">
-									<span className="font-medium">{item.label}</span>
-									<span className="text-sm text-white/50">
-										{item.description}
+								<NovaOrb size={175} className="blur-[3px]!" />
+								<UserSupermemory name={user?.name ?? ""} />
+							</motion.div>
+						)}
+						<nav
+							className={cn(
+								"flex gap-2",
+								isMobile
+									? "flex-row overflow-x-auto pb-2 scrollbar-thin"
+									: "flex-col",
+								dmSansClassName(),
+							)}
+						>
+							{NAV_ITEMS.map((item) => (
+								<button
+									key={item.id}
+									type="button"
+									onClick={() => {
+										window.location.hash = item.id
+										setActiveTab(item.id)
+									}}
+									className={cn(
+										"rounded-xl transition-colors flex items-start gap-3 shrink-0",
+										isMobile ? "px-3 py-2 text-sm" : "text-left p-4",
+										activeTab === item.id
+											? "bg-[#14161A] text-white shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
+											: "text-white/60 hover:text-white hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+									)}
+								>
+									<span className={cn("shrink-0", !isMobile && "mt-0.5")}>
+										{item.icon}
 									</span>
-								</div>
-							</button>
-						))}
-					</nav>
-				</div>
-				<div className="flex flex-col gap-4 overflow-y-auto min-w-2xl [scrollbar-gutter:stable] pr-[17px]">
-					{activeTab === "account" && <Account />}
-					{activeTab === "integrations" && <Integrations />}
-					{activeTab === "connections" && <ConnectionsMCP />}
-					{activeTab === "support" && <Support />}
+									{isMobile ? (
+										<span className="font-medium whitespace-nowrap">
+											{item.label}
+										</span>
+									) : (
+										<div className="flex flex-col gap-0.5">
+											<span className="font-medium">{item.label}</span>
+											<span className="text-sm text-white/50">
+												{item.description}
+											</span>
+										</div>
+									)}
+								</button>
+							))}
+						</nav>
+					</div>
+					<div className="flex-1 flex flex-col gap-4 md:overflow-y-auto md:max-w-2xl [scrollbar-gutter:stable] md:pr-[17px]">
+						{activeTab === "account" && <Account />}
+						{activeTab === "integrations" && <Integrations />}
+						{activeTab === "connections" && <ConnectionsMCP />}
+						{activeTab === "support" && <Support />}
+					</div>
 				</div>
 			</main>
 		</div>

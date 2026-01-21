@@ -12,6 +12,7 @@ import {
 	PanelRightCloseIcon,
 	SearchIcon,
 	SquarePenIcon,
+	XIcon,
 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
@@ -24,6 +25,8 @@ import { SuperLoader } from "../../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
 import { ChainOfThought } from "./input/chain-of-thought"
+import { useIsMobile } from "@hooks/use-mobile"
+import { analytics } from "@/lib/analytics"
 
 function ChatEmptyStatePlaceholder({
 	onSuggestionClick,
@@ -78,6 +81,7 @@ export function ChatSidebar({
 	isChatOpen: boolean
 	setIsChatOpen: (open: boolean) => void
 }) {
+	const isMobile = useIsMobile()
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
@@ -100,8 +104,10 @@ export function ChatSidebar({
 	const { selectedProject } = useProject()
 	const { setCurrentChatId } = usePersistentChat()
 
-	// Adjust chat height based on scroll position
+	// Adjust chat height based on scroll position (desktop only)
 	useEffect(() => {
+		if (isMobile) return
+
 		const handleWindowScroll = () => {
 			const scrollThreshold = 80
 			const scrollY = window.scrollY
@@ -114,7 +120,7 @@ export function ChatSidebar({
 		handleWindowScroll()
 
 		return () => window.removeEventListener("scroll", handleWindowScroll)
-	}, [])
+	}, [isMobile])
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
 		transport: new DefaultChatTransport({
@@ -293,6 +299,7 @@ export function ChatSidebar({
 	}, [])
 
 	const handleNewChat = useCallback(() => {
+		analytics.newChatCreated()
 		const newId = crypto.randomUUID()
 		setCurrentChatId(newId)
 		setMessages([])
@@ -374,39 +381,59 @@ export function ChatSidebar({
 				<motion.div
 					key="closed"
 					className={cn(
-						"absolute top-0 right-0 flex items-start justify-start m-4",
+						"flex items-start justify-start",
+						isMobile
+							? "fixed bottom-4 right-4 z-50"
+							: "absolute top-0 right-0 m-4",
 						dmSansClassName(),
 					)}
 					layoutId="chat-toggle-button"
 				>
 					<motion.button
 						onClick={toggleChat}
-						className="flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border border-[#17181A] text-white cursor-pointer whitespace-nowrap"
+						className={cn(
+							"flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border border-[#17181A] text-white cursor-pointer whitespace-nowrap shadow-lg",
+							isMobile && "px-4 py-2",
+						)}
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
 					>
 						<NovaOrb size={24} className="blur-[0.6px]! z-10" />
-						Chat with Nova
+						{!isMobile && "Chat with Nova"}
 					</motion.button>
 				</motion.div>
 			) : (
 				<motion.div
 					key="open"
 					className={cn(
-						"w-[450px] bg-[#05070A] backdrop-blur-md flex flex-col rounded-2xl m-4 mt-2 border border-[#17181AB2] relative pt-4",
+						"bg-[#05070A] backdrop-blur-md flex flex-col border border-[#17181AB2] relative pt-4",
+						isMobile
+							? "fixed inset-0 z-50 w-full h-dvh rounded-none m-0"
+							: "w-[450px] rounded-2xl m-4 mt-2",
 						dmSansClassName(),
 					)}
-					style={{
-						height: `calc(100vh - ${heightOffset}px)`,
-					}}
-					initial={{ x: "100px", opacity: 0 }}
-					animate={{ x: 0, opacity: 1 }}
-					exit={{ x: "100px", opacity: 0 }}
+					style={
+						isMobile
+							? undefined
+							: {
+									height: `calc(100vh - ${heightOffset}px)`,
+								}
+					}
+					initial={
+						isMobile ? { y: "100%", opacity: 0 } : { x: "100px", opacity: 0 }
+					}
+					animate={{ x: 0, y: 0, opacity: 1 }}
+					exit={
+						isMobile ? { y: "100%", opacity: 0 } : { x: "100px", opacity: 0 }
+					}
 					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
 				>
 					<div
-						className="absolute top-0 left-0 right-0 flex items-center justify-between pt-4 px-4 rounded-t-2xl"
+						className={cn(
+							"absolute top-0 left-0 right-0 flex items-center justify-between pt-4 px-4",
+							!isMobile && "rounded-t-2xl",
+						)}
 						style={{
 							background:
 								"linear-gradient(180deg, #0A0E14 40.49%, rgba(10, 14, 20, 0.00) 100%)",
@@ -417,15 +444,17 @@ export function ChatSidebar({
 							onModelChange={setSelectedModel}
 						/>
 						<div className="flex items-center gap-2">
-							<Button
-								variant="headers"
-								className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A]"
-								style={{
-									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-								}}
-							>
-								<HistoryIcon className="size-4 text-[#737373]" />
-							</Button>
+							{!isMobile && (
+								<Button
+									variant="headers"
+									className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A]"
+									style={{
+										boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+									}}
+								>
+									<HistoryIcon className="size-4 text-[#737373]" />
+								</Button>
+							)}
 							<Button
 								variant="headers"
 								className="rounded-full text-base gap-3 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
@@ -436,21 +465,38 @@ export function ChatSidebar({
 								title="New chat (T)"
 							>
 								<SquarePenIcon className="size-4 text-[#737373]" />
-								<span
-									className={cn(
-										"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
-										dmSansClassName(),
-									)}
-								>
-									T
-								</span>
+								{!isMobile && (
+									<span
+										className={cn(
+											"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
+											dmSansClassName(),
+										)}
+									>
+										T
+									</span>
+								)}
 							</Button>
 							<motion.button
 								onClick={toggleChat}
-								className="flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer"
+								className={cn(
+									"flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer",
+									isMobile && "bg-[#0D121A] border border-[#73737333]",
+								)}
+								style={
+									isMobile
+										? {
+												boxShadow:
+													"1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+											}
+										: undefined
+								}
 								layoutId="chat-toggle-button"
 							>
-								<PanelRightCloseIcon className="size-4" />
+								{isMobile ? (
+									<XIcon className="size-4" />
+								) : (
+									<PanelRightCloseIcon className="size-4" />
+								)}
 							</motion.button>
 						</div>
 					</div>

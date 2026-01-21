@@ -8,6 +8,7 @@ import { IntegrationsStep } from "@/components/new/onboarding/setup/integrations
 import { SetupHeader } from "@/components/new/onboarding/setup/header"
 import { ChatSidebar } from "@/components/new/onboarding/setup/chat-sidebar"
 import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
+import { useIsMobile } from "@hooks/use-mobile"
 
 import { useSetupContext, type SetupStep } from "./layout"
 
@@ -32,6 +33,7 @@ function StepNotFound({ goToStep }: { goToStep: (step: SetupStep) => void }) {
 
 export default function SetupPage() {
 	const { memoryFormData, currentStep, goToStep } = useSetupContext()
+	const isMobile = useIsMobile()
 
 	const renderStep = () => {
 		switch (currentStep) {
@@ -52,17 +54,21 @@ export default function SetupPage() {
 
 			<main className="relative min-h-screen">
 				<div className="relative z-10">
-					<div className="flex flex-row h-[calc(100vh-90px)] relative">
-						<div className="flex-1 flex flex-col items-center justify-start p-8">
+					<div className="flex flex-col lg:flex-row h-[calc(100vh-90px)] relative">
+						<div className="flex-1 flex flex-col items-center justify-start p-4 md:p-8">
 							<AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
 						</div>
 
-						<AnimatePresence mode="popLayout">
-							<ChatSidebar formData={memoryFormData} />
-						</AnimatePresence>
+						{!isMobile && (
+							<AnimatePresence mode="popLayout">
+								<ChatSidebar formData={memoryFormData} />
+							</AnimatePresence>
+						)}
 					</div>
 				</div>
 			</main>
+
+			{isMobile && <ChatSidebar formData={memoryFormData} />}
 		</div>
 	)
 }

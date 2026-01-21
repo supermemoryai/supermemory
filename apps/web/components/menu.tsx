@@ -66,7 +66,10 @@ function Menu({ id }: { id?: string }) {
 	const autumn = useCustomer()
 	const { setIsOpen } = useChatOpen()
 
-	const { data: memoriesCheck } = fetchMemoriesFeature(autumn, !autumn.isLoading)
+	const { data: memoriesCheck } = fetchMemoriesFeature(
+		autumn,
+		!autumn.isLoading,
+	)
 
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0

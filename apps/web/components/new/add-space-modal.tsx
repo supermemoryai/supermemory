@@ -8,19 +8,57 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon, Loader2 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@ui/components/popover"
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 
 const EMOJI_LIST = [
-	"📁", "📂", "🗂️", "📚", "📖", "📝", "✏️", "📌",
-	"🎯", "🚀", "💡", "⭐", "🔥", "💎", "🎨", "🎵",
-	"🏠", "💼", "🛠️", "⚙️", "🔧", "📊", "📈", "💰",
-	"🌟", "✨", "🌈", "🌸", "🌺", "🍀", "🌿", "🌴",
-	"🐶", "🐱", "🦊", "🦁", "🐼", "🐨", "🦄", "🐝",
-	"❤️", "💜", "💙", "💚", "💛", "🧡", "🖤", "🤍",
+	"📁",
+	"📂",
+	"🗂️",
+	"📚",
+	"📖",
+	"📝",
+	"✏️",
+	"📌",
+	"🎯",
+	"🚀",
+	"💡",
+	"⭐",
+	"🔥",
+	"💎",
+	"🎨",
+	"🎵",
+	"🏠",
+	"💼",
+	"🛠️",
+	"⚙️",
+	"🔧",
+	"📊",
+	"📈",
+	"💰",
+	"🌟",
+	"✨",
+	"🌈",
+	"🌸",
+	"🌺",
+	"🍀",
+	"🌿",
+	"🌴",
+	"🐶",
+	"🐱",
+	"🦊",
+	"🦁",
+	"🐼",
+	"🐨",
+	"🦄",
+	"🐝",
+	"❤️",
+	"💜",
+	"💙",
+	"💚",
+	"💛",
+	"🧡",
+	"🖤",
+	"🤍",
 ]
 
 export function AddSpaceModal({
@@ -56,7 +94,11 @@ export function AddSpaceModal({
 	}
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter" && spaceName.trim() && !createProjectMutation.isPending) {
+		if (
+			e.key === "Enter" &&
+			spaceName.trim() &&
+			!createProjectMutation.isPending
+		) {
 			e.preventDefault()
 			handleCreate()
 		}
@@ -83,11 +125,21 @@ export function AddSpaceModal({
 				<div className="flex flex-col gap-4">
 					<div className="flex justify-between items-start gap-4">
 						<div className="pl-1 space-y-1 flex-1">
-							<p className={cn("font-semibold text-[#fafafa]", dmSans125ClassName())}>
+							<p
+								className={cn(
+									"font-semibold text-[#fafafa]",
+									dmSans125ClassName(),
+								)}
+							>
 								Create new space
 							</p>
-							<p className={cn("text-[#737373] font-medium text-[16px] leading-[1.35]")}>
-								Create spaces to organize your memories and documents and create a context rich environment
+							<p
+								className={cn(
+									"text-[#737373] font-medium text-[16px] leading-[1.35]",
+								)}
+							>
+								Create spaces to organize your memories and documents and create
+								a context rich environment
 							</p>
 						</div>
 						<DialogPrimitive.Close
@@ -133,7 +185,8 @@ export function AddSpaceModal({
 											onClick={() => handleEmojiSelect(e)}
 											className={cn(
 												"size-8 flex items-center justify-center rounded-md text-lg cursor-pointer transition-colors hover:bg-[#1B1F24]",
-												emoji === e && "bg-[#1B1F24] ring-1 ring-[rgba(115,115,115,0.3)]",
+												emoji === e &&
+													"bg-[#1B1F24] ring-1 ring-[rgba(115,115,115,0.3)]",
 											)}
 										>
 											{e}

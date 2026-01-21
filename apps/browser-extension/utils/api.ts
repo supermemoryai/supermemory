@@ -114,7 +114,10 @@ export async function validateAuthToken(): Promise<boolean> {
 /**
  * Get user data from storage
  */
-export async function getUserData(): Promise<{ email?: string; name?: string } | null> {
+export async function getUserData(): Promise<{
+	email?: string
+	name?: string
+} | null> {
 	try {
 		return (await userData.getValue()) || null
 	} catch (error) {

@@ -12,7 +12,7 @@ import {
 	Copy,
 	RotateCcw,
 	X,
-	Square
+	Square,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"

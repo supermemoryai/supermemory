@@ -1,8 +1,8 @@
-import { motion } from "motion/react";
+import { motion } from "motion/react"
 
 interface GlassMenuEffectProps {
-	rounded?: string;
-	className?: string;
+	rounded?: string
+	className?: string
 }
 
 export function GlassMenuEffect({
@@ -33,5 +33,5 @@ export function GlassMenuEffect({
 				}}
 			/>
 		</motion.div>
-	);
+	)
 }

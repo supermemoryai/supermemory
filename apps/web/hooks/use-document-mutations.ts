@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { $fetch } from "@lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
+import { analytics } from "@/lib/analytics"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 
@@ -29,7 +30,9 @@ interface UseDocumentMutationsOptions {
 	onClose?: () => void
 }
 
-export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = {}) {
+export function useDocumentMutations({
+	onClose,
+}: UseDocumentMutationsOptions = {}) {
 	const queryClient = useQueryClient()
 
 	const noteMutation = useMutation({
@@ -111,6 +114,10 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 			})
 		},
 		onSuccess: (_data, variables) => {
+			analytics.documentAdded({
+				type: "note",
+				project_id: variables.project,
+			})
 			toast.success("Note added successfully!", {
 				description: "Your note is being processed",
 			})
@@ -194,6 +201,10 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 			})
 		},
 		onSuccess: (_data, variables) => {
+			analytics.documentAdded({
+				type: "link",
+				project_id: variables.project,
+			})
 			toast.success("Link added successfully!", {
 				description: "Your link is being processed",
 			})
@@ -311,6 +322,10 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 			})
 		},
 		onSuccess: (_data, variables) => {
+			analytics.documentAdded({
+				type: "file",
+				project_id: variables.project,
+			})
 			toast.success("File uploaded successfully!", {
 				description: "Your file is being processed",
 			})
@@ -392,7 +407,8 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 								return {
 									...page,
 									documents: page.documents.filter(
-										(doc) => doc.id !== documentId && doc.customId !== documentId,
+										(doc) =>
+											doc.id !== documentId && doc.customId !== documentId,
 									),
 									pagination: page.pagination
 										? {
@@ -412,11 +428,9 @@ export function useDocumentMutations({ onClose }: UseDocumentMutationsOptions = 
 						const queryData = old as DocumentsQueryData
 						return {
 							...queryData,
-							documents: queryData.documents.filter(
-								(doc: DocumentWithId) => {
-									return doc.id !== documentId && doc.customId !== documentId
-								},
-							),
+							documents: queryData.documents.filter((doc: DocumentWithId) => {
+								return doc.id !== documentId && doc.customId !== documentId
+							}),
 							totalCount: Math.max(0, (queryData.totalCount ?? 0) - 1),
 						}
 					}

@@ -48,7 +48,7 @@ export const getSourceUrl = (document: DocumentWithMemories) => {
 	if (document.type === "google_slide" && document.customId) {
 		return `https://docs.google.com/presentation/d/${document.customId}`
 	}
-	if(document.metadata?.website_url) {
+	if (document.metadata?.website_url) {
 		return document.metadata?.website_url as string
 	}
 	// Fallback to existing URL for all other document types

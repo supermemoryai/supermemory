@@ -2,7 +2,7 @@
  * Centralized storage layer using WXT's built-in storage API
  */
 
-import { storage } from '#imports';
+import { storage } from "#imports"
 import type { Project } from "./types"
 
 /**
@@ -118,4 +118,3 @@ export async function getTokensLogged(): Promise<boolean> {
 export async function setTokensLogged(): Promise<void> {
 	await tokensLogged.setValue(true)
 }
-

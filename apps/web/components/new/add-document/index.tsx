@@ -16,6 +16,7 @@ import { useDocumentMutations } from "../../../hooks/use-document-mutations"
 import { useCustomer } from "autumn-js/react"
 import { useMemoriesUsage } from "@/hooks/use-memories-usage"
 import { SpaceSelector } from "../space-selector"
+import { useIsMobile } from "@hooks/use-mobile"
 
 type TabType = "note" | "link" | "file" | "connect"
 
@@ -30,11 +31,16 @@ export function AddDocumentModal({
 	onClose,
 	defaultTab,
 }: AddDocumentModalProps) {
+	const isMobile = useIsMobile()
+
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
-					"w-[80%]! max-w-[1000px]! h-[80%]! max-h-[800px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-3 rounded-[22px]",
+					"border-none bg-[#1B1F24] flex flex-col p-3 md:p-4 gap-3",
+					isMobile
+						? "w-[calc(100vw-1rem)]! h-[calc(100dvh-1rem)]! max-w-none! max-h-none! rounded-xl"
+						: "w-[80%]! max-w-[1000px]! h-[80%]! max-h-[800px]! rounded-[22px]",
 					dmSansClassName(),
 				)}
 				style={{
@@ -93,6 +99,7 @@ export function AddDocument({
 	onClose: () => void
 	isOpen?: boolean
 }) {
+	const isMobile = useIsMobile()
 	const [activeTab, setActiveTab] = useState<TabType>(defaultTab ?? "note")
 	const { selectedProject: globalSelectedProject } = useProject()
 	const [localSelectedProject, setLocalSelectedProject] = useState<string>(
@@ -208,9 +215,21 @@ export function AddDocument({
 		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
 
 	return (
-		<div className="h-full flex flex-row text-white space-x-5">
-			<div className="w-1/3 flex flex-col justify-between">
-				<div className="flex flex-col gap-1">
+		<div className="h-full flex flex-col md:flex-row text-white md:space-x-5 space-y-3 md:space-y-0">
+			<div
+				className={cn(
+					"flex flex-col justify-between",
+					isMobile ? "w-full" : "w-1/3",
+				)}
+			>
+				<div
+					className={cn(
+						"flex gap-1",
+						isMobile
+							? "flex-row overflow-x-auto pb-2 scrollbar-thin"
+							: "flex-col",
+					)}
+				>
 					{tabs.map((tab) => (
 						<TabButton
 							key={tab.id}
@@ -220,47 +239,55 @@ export function AddDocument({
 							title={tab.title}
 							description={tab.description}
 							isPro={tab.isPro}
+							compact={isMobile}
 						/>
 					))}
 				</div>
 
-				<div
-					data-testid="memories-counter"
-					className="bg-[#1B1F24] rounded-2xl p-4 mr-4"
-					style={{
-						boxShadow:
-							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-					}}
-				>
-					<div className="flex justify-between items-center">
-						<span
-							className={cn(
-								"text-white text-[16px] font-medium",
-								dmSansClassName(),
-							)}
-						>
-							Memories
-						</span>
-						<span className={cn("text-[#737373] text-sm", dmSansClassName())}>
-							{isLoadingMemories
-								? "…"
-								: hasProProduct
-									? "Unlimited"
-									: `${memoriesUsed}/${memoriesLimit}`}
-						</span>
-					</div>
-					{!hasProProduct && (
-						<div className="h-1.5 bg-[#0D121A] rounded-full overflow-hidden mt-2">
-							<div
-								className="h-full bg-[#2261CA] rounded-full"
-								style={{ width: `${usagePercent}%` }}
-							/>
+				{!isMobile && (
+					<div
+						data-testid="memories-counter"
+						className="bg-[#1B1F24] rounded-2xl p-4 mr-4"
+						style={{
+							boxShadow:
+								"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+						}}
+					>
+						<div className="flex justify-between items-center">
+							<span
+								className={cn(
+									"text-white text-[16px] font-medium",
+									dmSansClassName(),
+								)}
+							>
+								Memories
+							</span>
+							<span className={cn("text-[#737373] text-sm", dmSansClassName())}>
+								{isLoadingMemories
+									? "…"
+									: hasProProduct
+										? "Unlimited"
+										: `${memoriesUsed}/${memoriesLimit}`}
+							</span>
 						</div>
-					)}
-				</div>
+						{!hasProProduct && (
+							<div className="h-1.5 bg-[#0D121A] rounded-full overflow-hidden mt-2">
+								<div
+									className="h-full bg-[#2261CA] rounded-full"
+									style={{ width: `${usagePercent}%` }}
+								/>
+							</div>
+						)}
+					</div>
+				)}
 			</div>
 
-			<div className="w-2/3 overflow-auto flex flex-col justify-between px-1 scrollbar-thin">
+			<div
+				className={cn(
+					"overflow-auto flex flex-col justify-between px-1 scrollbar-thin flex-1",
+					isMobile ? "w-full" : "w-2/3",
+				)}
+			>
 				{activeTab === "note" && (
 					<NoteContent
 						onSubmit={handleNoteSubmit}
@@ -288,13 +315,22 @@ export function AddDocument({
 				{activeTab === "connect" && (
 					<ConnectContent selectedProject={localSelectedProject} />
 				)}
-				<div className="flex justify-between">
-					<SpaceSelector
-						value={localSelectedProject}
-						onValueChange={setLocalSelectedProject}
-						variant="insideOut"
-					/>
-					<div className="flex items-center gap-2">
+				<div
+					className={cn(
+						"flex gap-2 pt-3",
+						isMobile ? "flex-col" : "justify-between",
+					)}
+				>
+					{!isMobile && (
+						<SpaceSelector
+							value={localSelectedProject}
+							onValueChange={setLocalSelectedProject}
+							variant="insideOut"
+						/>
+					)}
+					<div
+						className={cn("flex items-center gap-2", isMobile && "justify-end")}
+					>
 						<Button
 							variant="ghost"
 							onClick={onClose}
@@ -317,14 +353,16 @@ export function AddDocument({
 								) : (
 									<>
 										+ Add {activeTab}{" "}
-										<span
-											className={cn(
-												"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm px-1 py-0.5 text-[10px] flex items-center justify-center",
-												dmSansClassName(),
-											)}
-										>
-											⌘+Enter
-										</span>
+										{!isMobile && (
+											<span
+												className={cn(
+													"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm px-1 py-0.5 text-[10px] flex items-center justify-center",
+													dmSansClassName(),
+												)}
+											>
+												⌘+Enter
+											</span>
+										)}
 									</>
 								)}
 							</Button>
@@ -343,6 +381,7 @@ function TabButton({
 	title,
 	description,
 	isPro,
+	compact,
 }: {
 	active: boolean
 	onClick: () => void
@@ -350,7 +389,34 @@ function TabButton({
 	title: string
 	description: string
 	isPro?: boolean
+	compact?: boolean
 }) {
+	if (compact) {
+		return (
+			<button
+				type="button"
+				onClick={onClick}
+				className={cn(
+					"flex items-center gap-2 px-3 py-2 rounded-full text-left transition-colors whitespace-nowrap focus:outline-none focus:ring-0 shrink-0",
+					active ? "bg-[#14161A] shadow-inside-out" : "hover:bg-[#14161A]/50",
+					dmSansClassName(),
+				)}
+			>
+				<Icon className={cn("size-4 shrink-0 text-white")} />
+				<span
+					className={cn("font-medium text-white text-sm", dmSansClassName())}
+				>
+					{title.split(" ")[0]}
+				</span>
+				{isPro && (
+					<span className="bg-[#4BA0FA] text-black text-[8px] font-semibold px-1 py-0.5 rounded">
+						PRO
+					</span>
+				)}
+			</button>
+		)
+	}
+
 	return (
 		<button
 			type="button"

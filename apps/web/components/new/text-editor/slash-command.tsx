@@ -169,9 +169,7 @@ export function createSlashCommand(items: SuggestionItem[]) {
 				onStart: (props) => {
 					selectedIndex = 0
 					currentItems = props.items as SuggestionItem[]
-					currentCommand = props.command as (
-						item: SuggestionItem,
-					) => void
+					currentCommand = props.command as (item: SuggestionItem) => void
 					currentClientRect = props.clientRect ?? null
 
 					const element = document.createElement("div")
@@ -208,9 +206,7 @@ export function createSlashCommand(items: SuggestionItem[]) {
 
 				onUpdate: (props) => {
 					currentItems = props.items as SuggestionItem[]
-					currentCommand = props.command as (
-						item: SuggestionItem,
-					) => void
+					currentCommand = props.command as (item: SuggestionItem) => void
 					currentClientRect = props.clientRect ?? null
 
 					if (selectedIndex >= currentItems.length) {
@@ -238,9 +234,7 @@ export function createSlashCommand(items: SuggestionItem[]) {
 
 					if (event.key === "ArrowUp") {
 						selectedIndex =
-							selectedIndex <= 0
-								? currentItems.length - 1
-								: selectedIndex - 1
+							selectedIndex <= 0 ? currentItems.length - 1 : selectedIndex - 1
 						if (currentCommand) {
 							component?.updateProps({
 								items: currentItems,
@@ -254,9 +248,7 @@ export function createSlashCommand(items: SuggestionItem[]) {
 
 					if (event.key === "ArrowDown") {
 						selectedIndex =
-							selectedIndex >= currentItems.length - 1
-								? 0
-								: selectedIndex + 1
+							selectedIndex >= currentItems.length - 1 ? 0 : selectedIndex + 1
 						if (currentCommand) {
 							component?.updateProps({
 								items: currentItems,

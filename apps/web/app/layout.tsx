@@ -8,7 +8,7 @@ import { PostHogProvider } from "@lib/posthog"
 import { QueryProvider } from "../components/query-client"
 import { AutumnProvider } from "autumn-js/react"
 import { Suspense } from "react"
-import { Toaster } from "sonner"
+import { Toaster } from "@ui/components/sonner"
 import { MobilePanelProvider } from "@/lib/mobile-panel-context"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { ThemeProvider } from "@/lib/theme-provider"
@@ -66,7 +66,7 @@ export default function RootLayout({
 											<ErrorTrackingProvider>
 												<NuqsAdapter>
 													<Suspense>{children}</Suspense>
-													<Toaster richColors />
+													<Toaster />
 												</NuqsAdapter>
 											</ErrorTrackingProvider>
 										</PostHogProvider>

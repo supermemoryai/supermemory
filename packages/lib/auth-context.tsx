@@ -43,10 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				.then((org) => {
 					if (org.metadata?.isConsumer === true) {
 						console.log("Consumer organization:", org)
-					   setOrg(org)
+						setOrg(org)
 					} else {
 						console.log("ALl orgs:", orgs)
-						const consumerOrg = orgs?.find((o) => o.metadata?.isConsumer === true)
+						const consumerOrg = orgs?.find(
+							(o) => o.metadata?.isConsumer === true,
+						)
 						if (consumerOrg) {
 							setActiveOrg(consumerOrg.slug)
 						}

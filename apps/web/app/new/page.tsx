@@ -10,32 +10,45 @@ import { MCPModal } from "@/components/new/mcp-modal"
 import { HotkeysProvider } from "react-hotkeys-hook"
 import { useHotkeys } from "react-hotkeys-hook"
 import { AnimatePresence } from "motion/react"
+import { useIsMobile } from "@hooks/use-mobile"
+import { analytics } from "@/lib/analytics"
 
 export default function NewPage() {
+	const isMobile = useIsMobile()
 	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
 	const [isMCPModalOpen, setIsMCPModalOpen] = useState(false)
-	useHotkeys("c", () => setIsAddDocumentOpen(true))
-	const [isChatOpen, setIsChatOpen] = useState(true)
+	useHotkeys("c", () => {
+		analytics.addDocumentModalOpened()
+		setIsAddDocumentOpen(true)
+	})
+	const [isChatOpen, setIsChatOpen] = useState(!isMobile)
 
 	return (
 		<HotkeysProvider>
-			<div className="bg-black">
+			<div className="bg-black min-h-screen">
 				<AnimatedGradientBackground
 					topPosition="15%"
 					animateFromBottom={false}
 				/>
 				<Header
-					onAddMemory={() => setIsAddDocumentOpen(true)}
-					onOpenMCP={() => setIsMCPModalOpen(true)}
+					onAddMemory={() => {
+						analytics.addDocumentModalOpened()
+						setIsAddDocumentOpen(true)
+					}}
+					onOpenMCP={() => {
+						analytics.mcpModalOpened()
+						setIsMCPModalOpen(true)
+					}}
+					onOpenChat={() => setIsChatOpen(true)}
 				/>
 				<main
 					key={`main-container-${isChatOpen}`}
-					className="z-10 flex flex-row relative"
+					className="z-10 flex flex-col md:flex-row relative"
 				>
-					<div className="flex-1 p-6 pr-0">
+					<div className="flex-1 p-4 md:p-6 md:pr-0">
 						<MemoriesGrid isChatOpen={isChatOpen} />
 					</div>
-					<div className="sticky top-0 h-screen">
+					<div className="hidden md:block md:sticky md:top-0 md:h-screen">
 						<AnimatePresence mode="popLayout">
 							<ChatSidebar
 								isChatOpen={isChatOpen}
@@ -44,6 +57,10 @@ export default function NewPage() {
 						</AnimatePresence>
 					</div>
 				</main>
+
+				{isMobile && (
+					<ChatSidebar isChatOpen={isChatOpen} setIsChatOpen={setIsChatOpen} />
+				)}
 
 				<AddDocumentModal
 					isOpen={isAddDocumentOpen}

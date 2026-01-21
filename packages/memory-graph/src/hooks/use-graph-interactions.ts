@@ -24,7 +24,16 @@ export function useGraphInteractions(
 		nodeY: 0,
 	})
 	const [nodePositions, setNodePositions] = useState<
-		Map<string, { x: number; y: number; parentDocId?: string; offsetX?: number; offsetY?: number }>
+		Map<
+			string,
+			{
+				x: number
+				y: number
+				parentDocId?: string
+				offsetX?: number
+				offsetY?: number
+			}
+		>
 	>(new Map())
 
 	// Touch gesture state
@@ -125,8 +134,11 @@ export function useGraphInteractions(
 				// For memory nodes, find the parent document and store relative offset
 				const memoryData = draggedNode.data as any // MemoryEntry type
 				const parentDoc = nodes?.find(
-					(n) => n.type === "document" &&
-					(n.data as any).memoryEntries?.some((m: any) => m.id === memoryData.id)
+					(n) =>
+						n.type === "document" &&
+						(n.data as any).memoryEntries?.some(
+							(m: any) => m.id === memoryData.id,
+						),
 				)
 
 				if (parentDoc) {
@@ -140,7 +152,7 @@ export function useGraphInteractions(
 							y: newY,
 							parentDocId: parentDoc.id,
 							offsetX,
-							offsetY
+							offsetY,
 						}),
 					)
 					return

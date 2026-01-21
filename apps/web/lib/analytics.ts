@@ -1,10 +1,10 @@
 import posthog from "posthog-js"
 
 // Helper function to safely capture events
-const safeCapture = (eventName: string, properties?: Record<string, any>) => {
-    if (posthog.__loaded) {
-        posthog.capture(eventName, properties)
-    }
+const safeCapture = (eventName: string, properties?: Record<string, unknown>) => {
+	if (posthog.__loaded) {
+		posthog.capture(eventName, properties)
+	}
 }
 
 export const analytics = {
@@ -47,4 +47,16 @@ export const analytics = {
 	mcpInstallCmdCopied: () => safeCapture("mcp_install_cmd_copied"),
 
 	extensionInstallClicked: () => safeCapture("extension_install_clicked"),
+
+	// nova analytics
+	documentAdded: (props: {
+		type: "note" | "link" | "file" | "connect"
+		project_id?: string
+	}) => safeCapture("document_added", props),
+
+	newChatCreated: () => safeCapture("new_chat_created"),
+
+	mcpModalOpened: () => safeCapture("mcp_modal_opened"),
+
+	addDocumentModalOpened: () => safeCapture("add_document_modal_opened"),
 }

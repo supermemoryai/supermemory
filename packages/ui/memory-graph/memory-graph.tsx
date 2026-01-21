@@ -34,7 +34,7 @@ export const MemoryGraph = ({
 }: MemoryGraphProps) => {
 	// Derive showSpacesSelector from variant if not explicitly provided
 	// console variant shows spaces selector, consumer variant hides it
-	const finalShowSpacesSelector = showSpacesSelector ?? (variant === "console");
+	const finalShowSpacesSelector = showSpacesSelector ?? variant === "console";
 
 	const [selectedSpace, setSelectedSpace] = useState<string>("all");
 	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -138,15 +138,10 @@ export const MemoryGraph = ({
 				autoFitToViewport(nodes, containerSize.width, containerSize.height);
 				hasAutoFittedRef.current = true;
 			}, 100);
-			
+
 			return () => clearTimeout(timer);
 		}
-	}, [
-		nodes,
-		containerSize.width,
-		containerSize.height,
-		autoFitToViewport,
-	]);
+	}, [nodes, containerSize.width, containerSize.height, autoFitToViewport]);
 
 	// Reset auto-fit flag when nodes array becomes empty (switching views)
 	useEffect(() => {
@@ -182,7 +177,7 @@ export const MemoryGraph = ({
 			if (containerRef.current) {
 				const newWidth = containerRef.current.clientWidth;
 				const newHeight = containerRef.current.clientHeight;
-				
+
 				// Only update if size actually changed and is valid
 				setContainerSize((prev) => {
 					if (prev.width !== newWidth || prev.height !== newHeight) {
@@ -196,15 +191,15 @@ export const MemoryGraph = ({
 		// Use a slight delay to ensure DOM is fully rendered
 		const timer = setTimeout(updateSize, 0);
 		updateSize(); // Also call immediately
-		
+
 		window.addEventListener("resize", updateSize);
-		
+
 		// Use ResizeObserver for more accurate container size detection
 		const resizeObserver = new ResizeObserver(updateSize);
 		if (containerRef.current) {
 			resizeObserver.observe(containerRef.current);
 		}
-		
+
 		return () => {
 			clearTimeout(timer);
 			window.removeEventListener("resize", updateSize);
@@ -224,32 +219,47 @@ export const MemoryGraph = ({
 	const handleCenter = useCallback(() => {
 		if (nodes.length > 0) {
 			// Calculate center of all nodes
-			let sumX = 0
-			let sumY = 0
-			let count = 0
-			
+			let sumX = 0;
+			let sumY = 0;
+			let count = 0;
+
 			nodes.forEach((node) => {
-				sumX += node.x
-				sumY += node.y
-				count++
-			})
-			
+				sumX += node.x;
+				sumY += node.y;
+				count++;
+			});
+
 			if (count > 0) {
-				const centerX = sumX / count
-				const centerY = sumY / count
-				centerViewportOn(centerX, centerY, containerSize.width, containerSize.height)
+				const centerX = sumX / count;
+				const centerY = sumY / count;
+				centerViewportOn(
+					centerX,
+					centerY,
+					containerSize.width,
+					containerSize.height,
+				);
 			}
 		}
-	}, [nodes, centerViewportOn, containerSize.width, containerSize.height])
+	}, [nodes, centerViewportOn, containerSize.width, containerSize.height]);
 
 	const handleAutoFit = useCallback(() => {
-		if (nodes.length > 0 && containerSize.width > 0 && containerSize.height > 0) {
+		if (
+			nodes.length > 0 &&
+			containerSize.width > 0 &&
+			containerSize.height > 0
+		) {
 			autoFitToViewport(nodes, containerSize.width, containerSize.height, {
 				occludedRightPx,
 				animate: true,
-			})
+			});
 		}
-	}, [nodes, containerSize.width, containerSize.height, occludedRightPx, autoFitToViewport])
+	}, [
+		nodes,
+		containerSize.width,
+		containerSize.height,
+		occludedRightPx,
+		autoFitToViewport,
+	]);
 
 	// Get selected node data
 	const selectedNodeData = useMemo(() => {
@@ -414,7 +424,7 @@ export const MemoryGraph = ({
 					WebkitUserSelect: "none",
 				}}
 			>
-				{(containerSize.width > 0 && containerSize.height > 0) && (
+				{containerSize.width > 0 && containerSize.height > 0 && (
 					<GraphCanvas
 						draggingNodeId={draggingNodeId}
 						edges={edges}
@@ -445,8 +455,12 @@ export const MemoryGraph = ({
 				{containerSize.width > 0 && (
 					<NavigationControls
 						onCenter={handleCenter}
-						onZoomIn={() => zoomIn(containerSize.width / 2, containerSize.height / 2)}
-						onZoomOut={() => zoomOut(containerSize.width / 2, containerSize.height / 2)}
+						onZoomIn={() =>
+							zoomIn(containerSize.width / 2, containerSize.height / 2)
+						}
+						onZoomOut={() =>
+							zoomOut(containerSize.width / 2, containerSize.height / 2)
+						}
 						onAutoFit={handleAutoFit}
 						nodes={nodes}
 						className="absolute bottom-4 left-4"

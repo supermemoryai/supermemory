@@ -32,12 +32,13 @@ async function testResponses() {
 	console.log("\n=== Testing Responses API ===")
 	const response = await openaiWithSupermemory.chat.completions.create({
 		model: "gpt-4o",
-		messages: [
-			{ role: "user", content: "what's my favoritge color?" },
-		],
+		messages: [{ role: "user", content: "what's my favoritge color?" }],
 	})
 
-	console.log("Response:", JSON.stringify(response.choices[0]?.message.content, null, 2))
+	console.log(
+		"Response:",
+		JSON.stringify(response.choices[0]?.message.content, null, 2),
+	)
 }
 
 // Run tests

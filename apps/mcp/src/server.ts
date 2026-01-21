@@ -224,7 +224,9 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					}
 				} catch (error) {
 					const message =
-						error instanceof Error ? error.message : "An unexpected error occurred"
+						error instanceof Error
+							? error.message
+							: "An unexpected error occurred"
 					return {
 						content: [
 							{

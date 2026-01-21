@@ -4,7 +4,7 @@ import { ELEMENT_IDS, MESSAGE_TYPES, UI_CONFIG } from "../../utils/constants"
 let currentQuery = ""
 let fabElement: HTMLElement | null = null
 let panelElement: HTMLElement | null = null
-let selectedResults: Set<number> = new Set()
+const selectedResults: Set<number> = new Set()
 
 /**
  * Get the selection rectangle for positioning the FAB

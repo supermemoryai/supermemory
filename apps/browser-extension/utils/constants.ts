@@ -33,7 +33,8 @@ export const ELEMENT_IDS = {
  */
 export const STORAGE_KEYS = {
 	TWITTER_BOOKMARKS_ONBOARDING_SEEN: "sm_twitter_bookmarks_onboarding_seen",
-	TWITTER_BOOKMARKS_IMPORT_INTENT_UNTIL: "sm_twitter_bookmarks_import_intent_until",
+	TWITTER_BOOKMARKS_IMPORT_INTENT_UNTIL:
+		"sm_twitter_bookmarks_import_intent_until",
 } as const
 
 /**

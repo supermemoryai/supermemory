@@ -111,7 +111,6 @@ export function ConnectionsTabContent() {
 	// Add connection mutation
 	const addConnectionMutation = useMutation({
 		mutationFn: async (provider: ConnectorProvider) => {
-
 			// Check if user can add connections
 			if (!canAddConnection && !isProUser) {
 				throw new Error(

@@ -67,7 +67,11 @@ export function MCPModal({
 							Migrate from MCP v1
 						</Button>
 					</div>
-					<Button variant="insideOut" className="px-6 py-[10px]" onClick={onClose}>
+					<Button
+						variant="insideOut"
+						className="px-6 py-[10px]"
+						onClick={onClose}
+					>
 						Done
 					</Button>
 				</DialogFooter>

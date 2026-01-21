@@ -42,7 +42,13 @@ function extractTextFromNode(node: TipTapNode): string {
 		}
 	}
 
-	const blockTypes = ["paragraph", "heading", "listItem", "blockquote", "codeBlock"]
+	const blockTypes = [
+		"paragraph",
+		"heading",
+		"listItem",
+		"blockquote",
+		"codeBlock",
+	]
 	if (blockTypes.includes(node.type)) {
 		return `${texts.join("")}\n`
 	}

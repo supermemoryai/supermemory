@@ -257,17 +257,20 @@ async function showOnboardingToast() {
 	const icon = document.createElement("img")
 	icon.src = iconUrl
 	icon.alt = "Supermemory"
-	icon.style.cssText = "width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0; margin-top: 2px;"
+	icon.style.cssText =
+		"width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0; margin-top: 2px;"
 
 	const textContainer = document.createElement("div")
-	textContainer.style.cssText = "display: flex; flex-direction: column; gap: 4px; flex: 1;"
+	textContainer.style.cssText =
+		"display: flex; flex-direction: column; gap: 4px; flex: 1;"
 
 	const title = document.createElement("span")
 	title.style.cssText = "font-weight: 600; font-size: 14px; color: #111827;"
 	title.textContent = "Import X/Twitter Bookmarks"
 
 	const description = document.createElement("span")
-	description.style.cssText = "font-size: 13px; color: #6b7280; line-height: 1.4;"
+	description.style.cssText =
+		"font-size: 13px; color: #6b7280; line-height: 1.4;"
 	description.textContent =
 		"You can import all your Twitter bookmarks to Supermemory with one click."
 
@@ -362,10 +365,7 @@ async function showOnboardingToast() {
 		learnMoreButton.style.backgroundColor = "transparent"
 	})
 	learnMoreButton.addEventListener("click", () => {
-		window.open(
-			"https://docs.supermemory.ai/connectors/twitter",
-			"_blank",
-		)
+		window.open("https://docs.supermemory.ai/connectors/twitter", "_blank")
 	})
 
 	buttonsContainer.appendChild(importButton)
@@ -377,7 +377,10 @@ async function showOnboardingToast() {
 	progressBarContainer.setAttribute("aria-valuemin", "0")
 	progressBarContainer.setAttribute("aria-valuemax", "100")
 	progressBarContainer.setAttribute("aria-valuenow", "0")
-	progressBarContainer.setAttribute("aria-label", "Onboarding toast auto-dismiss progress")
+	progressBarContainer.setAttribute(
+		"aria-label",
+		"Onboarding toast auto-dismiss progress",
+	)
 	progressBarContainer.style.cssText = `
 		position: absolute;
 		bottom: 0;
@@ -394,7 +397,7 @@ async function showOnboardingToast() {
 		transform-origin: left;
 		animation: smProgressGrow ${duration}ms linear forwards;
 	`
-	
+
 	// Update progress bar ARIA value as animation progresses
 	const startTime = Date.now()
 	const updateProgress = () => {

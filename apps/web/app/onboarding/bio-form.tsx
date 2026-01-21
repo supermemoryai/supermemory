@@ -81,7 +81,8 @@ export function BioForm() {
 					Tell Supermemory about yourself
 				</h1>
 				<p className="text-lg md:text-xl text-white/80">
-					share with Supermemory what you do, who you are, and what you're interested in
+					share with Supermemory what you do, who you are, and what you're
+					interested in
 				</p>
 			</div>
 			<Textarea

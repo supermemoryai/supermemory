@@ -1,69 +1,69 @@
-import { Button } from "@repo/ui/components/button";
-import { Download, Share, X } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { Button } from "@repo/ui/components/button"
+import { Download, Share, X } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useState } from "react"
 
 export function InstallPrompt() {
-	const [isIOS, setIsIOS] = useState(false);
-	const [showPrompt, setShowPrompt] = useState(false);
-	const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+	const [isIOS, setIsIOS] = useState(false)
+	const [showPrompt, setShowPrompt] = useState(false)
+	const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
 
 	useEffect(() => {
 		const isIOSDevice =
-			/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+			/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
 		const isInStandaloneMode = window.matchMedia(
 			"(display-mode: standalone)",
-		).matches;
+		).matches
 		const hasSeenPrompt =
-			localStorage.getItem("install-prompt-dismissed") === "true";
+			localStorage.getItem("install-prompt-dismissed") === "true"
 
-		setIsIOS(isIOSDevice);
+		setIsIOS(isIOSDevice)
 
-		const isDevelopment = process.env.NODE_ENV === "development";
+		const isDevelopment = process.env.NODE_ENV === "development"
 		setShowPrompt(
 			!hasSeenPrompt &&
 				(isDevelopment ||
 					(!isInStandaloneMode &&
 						(isIOSDevice || "serviceWorker" in navigator))),
-		);
+		)
 
 		const handleBeforeInstallPrompt = (e: Event) => {
-			e.preventDefault();
-			setDeferredPrompt(e);
+			e.preventDefault()
+			setDeferredPrompt(e)
 			if (!hasSeenPrompt) {
-				setShowPrompt(true);
+				setShowPrompt(true)
 			}
-		};
+		}
 
-		window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+		window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
 
 		return () => {
 			window.removeEventListener(
 				"beforeinstallprompt",
 				handleBeforeInstallPrompt,
-			);
-		};
-	}, []);
+			)
+		}
+	}, [])
 
 	const handleInstall = async () => {
 		if (deferredPrompt) {
-			deferredPrompt.prompt();
-			const { outcome } = await deferredPrompt.userChoice;
+			deferredPrompt.prompt()
+			const { outcome } = await deferredPrompt.userChoice
 			if (outcome === "accepted") {
-				localStorage.setItem("install-prompt-dismissed", "true");
-				setShowPrompt(false);
+				localStorage.setItem("install-prompt-dismissed", "true")
+				setShowPrompt(false)
 			}
-			setDeferredPrompt(null);
+			setDeferredPrompt(null)
 		}
-	};
+	}
 
 	const handleDismiss = () => {
-		localStorage.setItem("install-prompt-dismissed", "true");
-		setShowPrompt(false);
-	};
+		localStorage.setItem("install-prompt-dismissed", "true")
+		setShowPrompt(false)
+	}
 
 	if (!showPrompt) {
-		return null;
+		return null
 	}
 
 	return (
@@ -128,5 +128,5 @@ export function InstallPrompt() {
 				</div>
 			</motion.div>
 		</AnimatePresence>
-	);
+	)
 }

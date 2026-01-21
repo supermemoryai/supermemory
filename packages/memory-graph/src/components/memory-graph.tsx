@@ -2,7 +2,14 @@
 
 import { GlassMenuEffect } from "@/ui/glass-effect"
 import { AnimatePresence } from "motion/react"
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react"
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	useState,
+} from "react"
 import { GraphCanvas } from "./graph-canvas"
 import { useGraphData } from "@/hooks/use-graph-data"
 import { useGraphInteractions } from "@/hooks/use-graph-interactions"
@@ -426,8 +433,10 @@ export const MemoryGraph = ({
 
 		// Calculate node dimensions to position popover with proper gap
 		const nodeSize = selectedNodeData.size * zoom
-		const nodeWidth = selectedNodeData.type === "document" ? nodeSize * 1.4 : nodeSize
-		const nodeHeight = selectedNodeData.type === "document" ? nodeSize * 0.9 : nodeSize
+		const nodeWidth =
+			selectedNodeData.type === "document" ? nodeSize * 1.4 : nodeSize
+		const nodeHeight =
+			selectedNodeData.type === "document" ? nodeSize * 0.9 : nodeSize
 		const gap = 20 // Gap between node and popover
 
 		// Smart positioning: flip to other side if would go off-screen
@@ -457,7 +466,14 @@ export const MemoryGraph = ({
 		}
 
 		return { x: popoverX, y: popoverY }
-	}, [selectedNodeData, zoom, panX, panY, containerSize.width, containerSize.height])
+	}, [
+		selectedNodeData,
+		zoom,
+		panX,
+		panY,
+		containerSize.width,
+		containerSize.height,
+	])
 
 	// Viewport-based loading: load more when most documents are visible (optional)
 	const checkAndLoadMore = useCallback(() => {
@@ -564,7 +580,14 @@ export const MemoryGraph = ({
 		containerSizeRef.current = containerSize
 		onSlideshowNodeChangeRef.current = onSlideshowNodeChange
 		forceSimulationRef.current = forceSimulation
-	}, [nodes, handleNodeClick, centerViewportOn, containerSize, onSlideshowNodeChange, forceSimulation])
+	}, [
+		nodes,
+		handleNodeClick,
+		centerViewportOn,
+		containerSize,
+		onSlideshowNodeChange,
+		forceSimulation,
+	])
 
 	useEffect(() => {
 		// Clear any existing interval and timeout when isSlideshowActive changes
@@ -731,7 +754,7 @@ export const MemoryGraph = ({
 						height={containerSize.height}
 						nodes={nodes}
 						highlightDocumentIds={highlightsVisible ? highlightDocumentIds : []}
-				isSimulationActive={forceSimulation.isActive()}
+						isSimulationActive={forceSimulation.isActive()}
 						onDoubleClick={handleDoubleClick}
 						onNodeClick={handleNodeClickWithPhysics}
 						onNodeDragEnd={handleNodeDragEndWithPhysics}

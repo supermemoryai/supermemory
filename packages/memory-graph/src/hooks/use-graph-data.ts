@@ -19,7 +19,16 @@ import type {
 export function useGraphData(
 	data: DocumentsResponse | null,
 	selectedSpace: string,
-	nodePositions: Map<string, { x: number; y: number; parentDocId?: string; offsetX?: number; offsetY?: number }>,
+	nodePositions: Map<
+		string,
+		{
+			x: number
+			y: number
+			parentDocId?: string
+			offsetX?: number
+			offsetY?: number
+		}
+	>,
 	draggingNodeId: string | null,
 	memoryLimit?: number,
 	maxNodes?: number,
@@ -60,34 +69,33 @@ export function useGraphData(
 		})
 
 		// Filter by space and prepare documents
-		let processedDocs = sortedDocs
-			.map((doc) => {
-				let memories =
-					selectedSpace === "all"
-						? doc.memoryEntries
-						: doc.memoryEntries.filter(
-								(memory) =>
-									(memory.spaceContainerTag ?? memory.spaceId ?? "default") ===
-									selectedSpace,
-							)
+		let processedDocs = sortedDocs.map((doc) => {
+			let memories =
+				selectedSpace === "all"
+					? doc.memoryEntries
+					: doc.memoryEntries.filter(
+							(memory) =>
+								(memory.spaceContainerTag ?? memory.spaceId ?? "default") ===
+								selectedSpace,
+						)
 
-				// Sort memories by relevance score (if available) or recency
-				memories = memories.sort((a, b) => {
-					// Prioritize sourceRelevanceScore if available
-					if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
-						return b.sourceRelevanceScore - a.sourceRelevanceScore // Higher score first
-					}
-					// Fall back to most recent
-					const dateA = new Date(a.updatedAt || a.createdAt).getTime()
-					const dateB = new Date(b.updatedAt || b.createdAt).getTime()
-					return dateB - dateA // Most recent first
-				})
-
-				return {
-					...doc,
-					memoryEntries: memories,
+			// Sort memories by relevance score (if available) or recency
+			memories = memories.sort((a, b) => {
+				// Prioritize sourceRelevanceScore if available
+				if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
+					return b.sourceRelevanceScore - a.sourceRelevanceScore // Higher score first
 				}
+				// Fall back to most recent
+				const dateA = new Date(a.updatedAt || a.createdAt).getTime()
+				const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+				return dateB - dateA // Most recent first
 			})
+
+			return {
+				...doc,
+				memoryEntries: memories,
+			}
+		})
 
 		// Apply maxNodes limit using Option B (dynamic cap per document)
 		if (maxNodes && maxNodes > 0) {
@@ -112,37 +120,57 @@ export function useGraphData(
 					// If we still have budget left, distribute remaining nodes to first docs
 					let remainingBudget = maxNodes - totalNodes
 					if (remainingBudget > 0) {
-						for (let i = 0; i < processedDocs.length && remainingBudget > 0; i++) {
+						for (
+							let i = 0;
+							i < processedDocs.length && remainingBudget > 0;
+							i++
+						) {
 							const doc = processedDocs[i]
 							if (!doc) continue
-							const originalDoc = sortedDocs.find(d => d.id === doc.id)
+							const originalDoc = sortedDocs.find((d) => d.id === doc.id)
 							if (!originalDoc) continue
 
 							const currentMemCount = doc.memoryEntries.length
 							const originalMemCount = originalDoc.memoryEntries.filter(
-								m => selectedSpace === "all" ||
-								(m.spaceContainerTag ?? m.spaceId ?? "default") === selectedSpace
+								(m) =>
+									selectedSpace === "all" ||
+									(m.spaceContainerTag ?? m.spaceId ?? "default") ===
+										selectedSpace,
 							).length
 
 							// Can we add more memories to this doc?
 							const canAdd = originalMemCount - currentMemCount
 							if (canAdd > 0) {
 								const toAdd = Math.min(canAdd, remainingBudget)
-								const additionalMems = doc.memoryEntries.slice(0, currentMemCount + toAdd)
+								const additionalMems = doc.memoryEntries.slice(
+									0,
+									currentMemCount + toAdd,
+								)
 								processedDocs[i] = {
 									...doc,
 									memoryEntries: originalDoc.memoryEntries
-										.filter(m => selectedSpace === "all" ||
-											(m.spaceContainerTag ?? m.spaceId ?? "default") === selectedSpace)
+										.filter(
+											(m) =>
+												selectedSpace === "all" ||
+												(m.spaceContainerTag ?? m.spaceId ?? "default") ===
+													selectedSpace,
+										)
 										.sort((a, b) => {
-											if (a.sourceRelevanceScore != null && b.sourceRelevanceScore != null) {
+											if (
+												a.sourceRelevanceScore != null &&
+												b.sourceRelevanceScore != null
+											) {
 												return b.sourceRelevanceScore - a.sourceRelevanceScore
 											}
-											const dateA = new Date(a.updatedAt || a.createdAt).getTime()
-											const dateB = new Date(b.updatedAt || b.createdAt).getTime()
+											const dateA = new Date(
+												a.updatedAt || a.createdAt,
+											).getTime()
+											const dateB = new Date(
+												b.updatedAt || b.createdAt,
+											).getTime()
 											return dateB - dateA
 										})
-										.slice(0, currentMemCount + toAdd)
+										.slice(0, currentMemCount + toAdd),
 								}
 								remainingBudget -= toAdd
 							}
@@ -238,8 +266,7 @@ export function useGraphData(
 		})
 
 		// Enhanced Layout with Space Separation
-		const { centerX, centerY, clusterRadius } =
-			LAYOUT_CONSTANTS
+		const { centerX, centerY, clusterRadius } = LAYOUT_CONSTANTS
 
 		/* 1. Build DOCUMENT nodes with space-aware clustering */
 		const documentNodes: GraphNode[] = []
@@ -255,8 +282,10 @@ export function useGraphData(
 
 				// Loose grid spacing - physics will organize it better
 				const spacing = 200
-				const defaultX = centerX + (col - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
-				const defaultY = centerY + (row - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
+				const defaultX =
+					centerX + (col - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
+				const defaultY =
+					centerY + (row - gridSize / 2) * spacing + (Math.random() - 0.5) * 50
 
 				const customPos = nodePositions.get(doc.id)
 
@@ -294,7 +323,7 @@ export function useGraphData(
 		// D3-force will handle collision avoidance and spacing dynamically
 
 		allNodes.push(...documentNodes)
-		
+
 		/* 3. Add memories around documents WITH doc-memory connections */
 		documentNodes.forEach((docNode) => {
 			const memoryNodeMap = new Map<string, GraphNode>()
@@ -318,9 +347,11 @@ export function useGraphData(
 
 				if (customMemPos) {
 					// If memory was manually positioned and has stored offset relative to parent
-					if (customMemPos.parentDocId === docNode.id &&
+					if (
+						customMemPos.parentDocId === docNode.id &&
 						customMemPos.offsetX !== undefined &&
-						customMemPos.offsetY !== undefined) {
+						customMemPos.offsetY !== undefined
+					) {
 						// Apply the stored offset to the current document position
 						finalMemX = docNode.x + customMemPos.offsetX
 						finalMemY = docNode.y + customMemPos.offsetY
@@ -386,7 +417,8 @@ export function useGraphData(
 		data.documents.forEach((doc) => {
 			doc.memoryEntries.forEach((mem: MemoryEntry) => {
 				// Support both new object structure and legacy array/single parent fields
-				let parentRelations: Record<string, MemoryRelation> = (mem.memoryRelations ?? {}) as Record<string, MemoryRelation> 
+				let parentRelations: Record<string, MemoryRelation> =
+					(mem.memoryRelations ?? {}) as Record<string, MemoryRelation>
 
 				if (
 					mem.memoryRelations &&

@@ -2,7 +2,13 @@
 
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { ArrowUpRightIcon, XIcon, Loader2, Trash2Icon, CheckIcon } from "lucide-react"
+import {
+	ArrowUpRightIcon,
+	XIcon,
+	Loader2,
+	Trash2Icon,
+	CheckIcon,
+} from "lucide-react"
 import type { z } from "zod"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@lib/utils"
@@ -22,6 +28,8 @@ import { Button } from "@repo/ui/components/button"
 import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import type { UseMutationResult } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { WebPageContent } from "./content/web-page"
+import { useIsMobile } from "@hooks/use-mobile"
 
 // Dynamically importing to prevent DOMMatrix error
 const PdfViewer = dynamic(
@@ -61,7 +69,11 @@ function isTemporaryId(id: string | null | undefined): boolean {
 	return id.startsWith("temp-") || id.startsWith("temp-file-")
 }
 
-function DeleteButton({ documentId, customId, deleteMutation }: DeleteButtonProps) {
+function DeleteButton({
+	documentId,
+	customId,
+	deleteMutation,
+}: DeleteButtonProps) {
 	const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
 	const handleDelete = useCallback(() => {
@@ -140,6 +152,7 @@ export function DocumentModal({
 	isOpen,
 	onClose,
 }: DocumentModalProps) {
+	const isMobile = useIsMobile()
 	const { updateMutation, deleteMutation } = useDocumentMutations({ onClose })
 
 	const { initialEditorContent, initialEditorString } = useMemo(() => {
@@ -181,7 +194,9 @@ export function DocumentModal({
 		if (!_document?.id) return
 		updateMutation.mutate(
 			{ documentId: _document.id, content: draftContentString },
-			{ onSuccess: (_data, variables) => setLastSavedContent(variables.content) },
+			{
+				onSuccess: (_data, variables) => setLastSavedContent(variables.content),
+			},
 		)
 	}, [_document?.id, draftContentString, updateMutation])
 
@@ -189,7 +204,10 @@ export function DocumentModal({
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
-					"w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! p-0 border-none bg-[#1B1F24] flex flex-col px-4 pt-3 pb-4 gap-3 rounded-[22px]",
+					"p-0 border-none bg-[#1B1F24] flex flex-col px-3 md:px-4 pt-3 pb-4 gap-3",
+					isMobile
+						? "w-[calc(100vw-1rem)]! h-[calc(100dvh-1rem)]! max-w-none! max-h-none! rounded-xl"
+						: "w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! rounded-[22px]",
 					dmSansClassName(),
 				)}
 				style={{
@@ -201,7 +219,7 @@ export function DocumentModal({
 				<DialogTitle className="sr-only">
 					{_document?.title} - Document
 				</DialogTitle>
-				<div className="flex items-center justify-between h-fit gap-4">
+				<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
 					<div className="flex-1 min-w-0">
 						<Title
 							title={_document?.title}
@@ -209,7 +227,7 @@ export function DocumentModal({
 							url={_document?.url}
 						/>
 					</div>
-					<div className="flex items-center gap-2 shrink-0">
+					<div className="flex items-center gap-1.5 md:gap-2 shrink-0">
 						<DeleteButton
 							documentId={_document?.id}
 							customId={_document?.customId}
@@ -220,9 +238,14 @@ export function DocumentModal({
 								href={_document.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="line-clamp-1 px-3 py-2 flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+								className={cn(
+									"flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
+									isMobile ? "w-7 h-7 justify-center" : "px-3 py-2",
+								)}
 							>
-								Visit source
+								{!isMobile && (
+									<span className="line-clamp-1">Visit source</span>
+								)}
 								<ArrowUpRightIcon className="w-4 h-4 text-[#737373]" />
 							</a>
 						)}
@@ -237,7 +260,7 @@ export function DocumentModal({
 						</DialogPrimitive.Close>
 					</div>
 				</div>
-				<div className="flex-1 grid grid-cols-[2fr_1fr] gap-3 overflow-hidden min-h-0">
+				<div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 overflow-hidden min-h-0">
 					<div
 						id="document-preview"
 						className={cn(
@@ -321,6 +344,9 @@ export function DocumentModal({
 						)}
 						{_document?.url?.includes("youtube.com") && (
 							<YoutubeVideo url={_document.url} />
+						)}
+						{_document?.type === "webpage" && (
+							<WebPageContent content={_document.content ?? ""} />
 						)}
 					</div>
 					<div
