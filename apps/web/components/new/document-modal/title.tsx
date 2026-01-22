@@ -1,12 +1,8 @@
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import type { DocumentTypeEnum } from "@repo/validation/schemas"
-import type { z } from "zod"
-import { getDocumentIcon } from "@/components/new/document-modal/document-icon"
+import { DocumentIcon } from "@/components/new/document-icon"
 
-type DocumentType = z.infer<typeof DocumentTypeEnum>
-
-function getFileExtension(documentType: DocumentType): string | null {
+function getFileExtension(documentType: string): string | null {
 	switch (documentType) {
 		case "pdf":
 			return ".pdf"
@@ -21,7 +17,7 @@ export function Title({
 	url,
 }: {
 	title: string | null | undefined
-	documentType: DocumentType
+	documentType: string
 	url?: string | null
 }) {
 	const extension = getFileExtension(documentType)
@@ -33,13 +29,8 @@ export function Title({
 				"text-[16px] font-semibold text-[#FAFAFA] leading-[125%] flex items-center gap-3 min-w-0",
 			)}
 		>
-			<div className="pl-1 flex items-center gap-1 w-5 h-5 shrink-0">
-				{getDocumentIcon(
-					documentType as DocumentType,
-					"w-5 h-5",
-					undefined,
-					url ?? undefined,
-				)}
+			<div className="pl-1 flex items-center gap-1 shrink-0">
+				<DocumentIcon type={documentType} url={url} className="w-5 h-5" />
 				{extension && (
 					<p
 						className={cn(dmSansClassName(), "text-[12px] font-semibold")}

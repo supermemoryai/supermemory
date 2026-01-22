@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { cn } from "@lib/utils"
 import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
 
@@ -168,6 +169,22 @@ export function GraphListMemories({
 }: {
 	memoryEntries: MemoryEntry[]
 }) {
+	const [expandedMemories, setExpandedMemories] = useState<Set<string>>(
+		new Set(),
+	)
+
+	const toggleMemory = (memoryId: string) => {
+		setExpandedMemories((prev) => {
+			const next = new Set(prev)
+			if (next.has(memoryId)) {
+				next.delete(memoryId)
+			} else {
+				next.add(memoryId)
+			}
+			return next
+		})
+	}
+
 	return (
 		<div
 			id="document-memories"
@@ -241,7 +258,7 @@ export function GraphListMemories({
 					</TabsTrigger>
 				</TabsList>
 			</Tabs>
-			<div className="grid grid-cols-2 gap-2 pt-3 overflow-y-auto pr-1 scrollbar-thin">
+			<div className="grid grid-cols-2 gap-2 pt-3 overflow-y-auto pr-1 scrollbar-thin items-start">
 				{memoryEntries.map((memory, idx) => {
 					const isClickable =
 						memory.url &&
@@ -265,9 +282,18 @@ export function GraphListMemories({
 									</div>
 								)}
 								{memory.memory && (
-									<div className="text-xs text-[#525D6E]/80 line-clamp-2">
+									<button
+										type="button"
+										className={cn(
+											"text-xs text-[#525D6E] cursor-pointer transition-all text-left w-full",
+											expandedMemories.has(memory.id)
+												? ""
+												: "line-clamp-2",
+										)}
+										onClick={() => toggleMemory(memory.id)}
+									>
 										{memory.memory}
-									</div>
+									</button>
 								)}
 								{memory.url && (
 									<div className="text-xs text-[#525D6E] truncate">
@@ -296,7 +322,7 @@ export function GraphListMemories({
 					if (isClickable) {
 						return (
 							<a
-								className="block p-2 bg-[#0C1829]/50 rounded-md border border-[#525D6E]/20 hover:bg-[#0C1829]/70 transition-colors cursor-pointer"
+								className="block p-2 bg-[#0C1829]/50 rounded-md border border-[#525D6E]/20 hover:bg-[#0C1829]/70 transition-colors cursor-pointer self-start"
 								href={memory.url}
 								key={memory.id || idx}
 								rel="noopener noreferrer"
@@ -309,7 +335,7 @@ export function GraphListMemories({
 
 					return (
 						<div
-							className={cn("bg-[#0C1829] rounded-xl")}
+							className={cn("bg-[#0C1829] rounded-xl self-start")}
 							key={memory.id || idx}
 						>
 							{content}

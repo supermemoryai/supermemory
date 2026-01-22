@@ -22,7 +22,7 @@ export function MCPModal({
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
-					"w-[80%]! max-w-[900px]! h-[80%]! max-h-[375px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-3 rounded-[22px]",
+					"w-[90vw]! max-w-[900px]! max-h-[min(75vh,560px)]! border-none bg-[#1B1F24] flex flex-col p-4 gap-3 rounded-[22px]",
 					dmSansClassName(),
 				)}
 				style={{
@@ -37,7 +37,7 @@ export function MCPModal({
 							Connect your AI to Supermemory
 						</p>
 						<p className={cn("text-[#737373] font-medium")}>
-							Let your AI create and use your memories via MCP. Learn more
+							Let your AI create and use your memories via MCP.
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -50,7 +50,7 @@ export function MCPModal({
 						</DialogPrimitive.Close>
 					</div>
 				</div>
-				<div className="w-full px-4 py-4 rounded-[14px] bg-[#14161A] shadow-inside-out overflow-y-auto">
+				<div className="w-full flex-1 min-h-0 px-4 py-4 rounded-[14px] bg-[#14161A] shadow-inside-out overflow-y-auto">
 					<MCPSteps variant="embedded" />
 				</div>
 				<DialogFooter className="justify-between!">

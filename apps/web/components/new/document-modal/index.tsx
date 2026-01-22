@@ -12,37 +12,17 @@ import {
 import type { z } from "zod"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@lib/utils"
-import dynamic from "next/dynamic"
 import { Title } from "./title"
 import { Summary as DocumentSummary } from "./summary"
 import { dmSansClassName } from "@/lib/fonts"
 import { GraphListMemories, type MemoryEntry } from "./graph-list-memories"
-import { YoutubeVideo } from "./content/yt-video"
-import { TweetContent } from "./content/tweet"
-import { isTwitterUrl } from "@/lib/url-helpers"
-import { NotionDoc } from "./content/notion-doc"
-import { TextEditor } from "../text-editor"
+import { DocumentContent } from "./content"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { Button } from "@repo/ui/components/button"
 import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import type { UseMutationResult } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { WebPageContent } from "./content/web-page"
 import { useIsMobile } from "@hooks/use-mobile"
-
-// Dynamically importing to prevent DOMMatrix error
-const PdfViewer = dynamic(
-	() => import("./content/pdf").then((mod) => ({ default: mod.PdfViewer })),
-	{
-		ssr: false,
-		loading: () => (
-			<div className="flex items-center justify-center h-full text-gray-400">
-				Loading PDF viewer...
-			</div>
-		),
-	},
-) as typeof import("./content/pdf").PdfViewer
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -200,6 +180,28 @@ export function DocumentModal({
 		)
 	}, [_document?.id, draftContentString, updateMutation])
 
+	const textEditorProps = useMemo(
+		() => ({
+			documentId: _document?.id ?? "",
+			editorResetNonce,
+			initialEditorContent,
+			hasUnsavedChanges,
+			isSaving: updateMutation.isPending,
+			onContentChange: setDraftContentString,
+			onSave: handleSave,
+			onReset: resetEditor,
+		}),
+		[
+			_document?.id,
+			editorResetNonce,
+			initialEditorContent,
+			hasUnsavedChanges,
+			updateMutation.isPending,
+			handleSave,
+			resetEditor,
+		],
+	)
+
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
@@ -267,87 +269,10 @@ export function DocumentModal({
 							"bg-[#14161A] rounded-[14px] overflow-hidden flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative",
 						)}
 					>
-						{(_document?.type === "tweet" ||
-							(_document?.url && isTwitterUrl(_document.url))) && (
-							<TweetContent
-								url={_document?.url}
-								tweetMetadata={
-									_document?.metadata?.sm_internal_twitter_metadata
-								}
-							/>
-						)}
-						{_document?.type === "text" && (
-							<>
-								<div className="p-4 overflow-y-auto flex-1 scrollbar-thin">
-									<TextEditor
-										key={`${_document.id}-${editorResetNonce}`}
-										content={initialEditorContent}
-										onContentChange={setDraftContentString}
-										onSubmit={handleSave}
-									/>
-								</div>
-								<AnimatePresence>
-									{hasUnsavedChanges && (
-										<motion.div
-											initial={{ opacity: 0, y: 20 }}
-											animate={{ opacity: 1, y: 0 }}
-											exit={{ opacity: 0, y: 20 }}
-											transition={{ duration: 0.2 }}
-											className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-[#1B1F24] rounded-full shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_1px_1px_1px_rgba(255,255,255,0.1)]"
-										>
-											<span className="text-sm text-[#737373]">
-												Unsaved changes
-											</span>
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={resetEditor}
-												disabled={updateMutation.isPending}
-												className="text-[#737373]/80 hover:text-white rounded-full px-3"
-											>
-												Cancel
-											</Button>
-											<Button
-												variant="insideOut"
-												size="sm"
-												onClick={handleSave}
-												disabled={updateMutation.isPending}
-												className="hover:text-white rounded-full px-4"
-											>
-												{updateMutation.isPending ? (
-													<>
-														<Loader2 className="size-4 animate-spin mr-1" />
-														Saving...
-													</>
-												) : (
-													<>
-														Save
-														<span
-															className={cn(
-																"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm px-1 py-0.5 text-[10px] flex items-center justify-center",
-																dmSansClassName(),
-															)}
-														>
-															⌘+Enter
-														</span>
-													</>
-												)}
-											</Button>
-										</motion.div>
-									)}
-								</AnimatePresence>
-							</>
-						)}
-						{_document?.type === "pdf" && <PdfViewer url={_document.url} />}
-						{_document?.type === "notion_doc" && (
-							<NotionDoc content={_document.content ?? ""} />
-						)}
-						{_document?.url?.includes("youtube.com") && (
-							<YoutubeVideo url={_document.url} />
-						)}
-						{_document?.type === "webpage" && (
-							<WebPageContent content={_document.content ?? ""} />
-						)}
+						<DocumentContent
+							document={_document}
+							textEditorProps={textEditorProps}
+						/>
 					</div>
 					<div
 						id="document-memories-summary"

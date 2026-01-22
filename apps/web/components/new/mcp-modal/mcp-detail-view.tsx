@@ -50,7 +50,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 	function generateInstallCommand() {
 		if (!selectedClient) return ""
 
-		let command = `npx -y install-mcp@latest https://api.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
+		let command = `npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client ${selectedClient} --oauth=yes`
 
 		const projectIdForCommand = selectedProject.replace(/^sm_project_/, "")
 		command += ` --project ${projectIdForCommand}`

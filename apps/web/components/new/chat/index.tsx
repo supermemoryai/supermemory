@@ -383,7 +383,7 @@ export function ChatSidebar({
 					className={cn(
 						"flex items-start justify-start",
 						isMobile
-							? "fixed bottom-4 right-4 z-50"
+							? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
 							: "absolute top-0 right-0 m-4",
 						dmSansClassName(),
 					)}
@@ -392,15 +392,21 @@ export function ChatSidebar({
 					<motion.button
 						onClick={toggleChat}
 						className={cn(
-							"flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border border-[#17181A] text-white cursor-pointer whitespace-nowrap shadow-lg",
-							isMobile && "px-4 py-2",
+							"flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border text-white cursor-pointer whitespace-nowrap",
+							isMobile
+								? "gap-2.5 px-5 py-3 text-[15px] border-[#1E2128] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)]"
+								: "border-[#17181A] shadow-lg",
 						)}
 						style={{
-							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+							background: isMobile
+								? "linear-gradient(135deg, #12161C 0%, #0A0D12 100%)"
+								: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
+						whileHover={{ scale: 1.02 }}
+						whileTap={{ scale: 0.98 }}
 					>
-						<NovaOrb size={24} className="blur-[0.6px]! z-10" />
-						{!isMobile && "Chat with Nova"}
+						<NovaOrb size={isMobile ? 26 : 24} className="blur-[0.6px]! z-10" />
+						<span className={cn(isMobile && "font-medium")}>Chat with Nova</span>
 					</motion.button>
 				</motion.div>
 			) : (

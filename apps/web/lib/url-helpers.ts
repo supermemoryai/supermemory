@@ -188,3 +188,49 @@ export function toLinkedInProfileUrl(handle: string): string {
 	if (!handle.trim()) return ""
 	return `https://linkedin.com/in/${handle.trim()}`
 }
+
+/**
+ * Gets the favicon URL for a given URL.
+ */
+export function getFaviconUrl(url: string | null | undefined): string | null {
+	if (!url) return null
+	try {
+		const urlObj = new URL(url)
+		return `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=16`
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Extracts the document ID from a Google Docs/Sheets/Slides URL.
+ * Works with various URL formats:
+ * - https://docs.google.com/document/d/{id}/edit
+ * - https://docs.google.com/spreadsheets/d/{id}/edit#gid=0
+ * - https://docs.google.com/presentation/d/{id}/edit
+ */
+export function extractGoogleDocId(url: string): string | null {
+	try {
+		const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/)
+		return match?.[1] ?? null
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Generates the embed URL for a Google document based on its type.
+ */
+export function getGoogleEmbedUrl(
+	docId: string,
+	type: "google_doc" | "google_sheet" | "google_slide",
+): string {
+	switch (type) {
+		case "google_doc":
+			return `https://docs.google.com/document/d/${docId}/preview`
+		case "google_sheet":
+			return `https://docs.google.com/spreadsheets/d/${docId}/preview`
+		case "google_slide":
+			return `https://docs.google.com/presentation/d/${docId}/embed?start=false&loop=false&delayms=3000`
+	}
+}

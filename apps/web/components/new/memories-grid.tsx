@@ -4,7 +4,7 @@ import { useAuth } from "@lib/auth-context"
 import { $fetch } from "@repo/lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { useCallback, memo, useMemo, useState, useRef } from "react"
+import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
@@ -23,22 +23,32 @@ import { YoutubePreview } from "./document-cards/youtube-preview"
 import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { McpPreview } from "./document-cards/mcp-preview"
-import { DocumentModal } from "./document-modal"
+import { getFaviconUrl } from "@/lib/url-helpers"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
+
+type OgData = {
+	title?: string
+	image?: string
+}
 
 const IS_DEV = process.env.NODE_ENV === "development"
 const PAGE_SIZE = IS_DEV ? 100 : 100
 const MAX_TOTAL = 1000
 
-export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
+interface MemoriesGridProps {
+	isChatOpen: boolean
+	onOpenDocument: (document: DocumentWithMemories) => void
+}
+
+export function MemoriesGrid({
+	isChatOpen,
+	onOpenDocument,
+}: MemoriesGridProps) {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const isMobile = useIsMobile()
-	const [selectedDocument, setSelectedDocument] =
-		useState<DocumentWithMemories | null>(null)
-	const [isModalOpen, setIsModalOpen] = useState(false)
 
 	const {
 		data,
@@ -114,10 +124,12 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 		},
 	)
 
-	const handleCardClick = useCallback((document: DocumentWithMemories) => {
-		setSelectedDocument(document)
-		setIsModalOpen(true)
-	}, [])
+	const handleCardClick = useCallback(
+		(document: DocumentWithMemories) => {
+			onOpenDocument(document)
+		},
+		[onOpenDocument],
+	)
 
 	const renderDocumentCard = useCallback(
 		({
@@ -198,11 +210,6 @@ export function MemoriesGrid({ isChatOpen }: { isChatOpen: boolean }) {
 					)}
 				</div>
 			)}
-			<DocumentModal
-				document={selectedDocument}
-				isOpen={isModalOpen}
-				onClose={() => setIsModalOpen(false)}
-			/>
 		</div>
 	)
 }
@@ -252,6 +259,45 @@ const DocumentCard = memo(
 	}) => {
 		const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0 })
 		const cardRef = useRef<HTMLButtonElement>(null)
+		const [ogData, setOgData] = useState<OgData | null>(null)
+		const [isLoadingOg, setIsLoadingOg] = useState(false)
+
+		const ogImage = (document as DocumentWithMemories & { ogImage?: string })
+			.ogImage
+		const needsOgData =
+			document.url &&
+			!document.url.includes("x.com") &&
+			!document.url.includes("twitter.com") &&
+			!document.url.includes("files.supermemory.ai") &&
+			!document.url.includes("docs.googleapis.com") &&
+			(!document.title || !ogImage)
+
+		const hideURL = document.url?.includes("docs.googleapis.com")
+
+		useEffect(() => {
+			if (needsOgData && !ogData && !isLoadingOg && document.url) {
+				setIsLoadingOg(true)
+				fetch(`/api/og?url=${encodeURIComponent(document.url)}`)
+					.then((res) => {
+						if (!res.ok) return null
+						return res.json()
+					})
+					.then((data) => {
+						if (data) {
+							setOgData({
+								title: data.title,
+								image: data.image,
+							})
+						}
+					})
+					.catch(() => {
+						// Silently fail if OG fetch fails
+					})
+					.finally(() => {
+						setIsLoadingOg(false)
+					})
+			}
+		}, [needsOgData, ogData, isLoadingOg, document.url])
 
 		const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
 			if (!cardRef.current) return
@@ -297,7 +343,7 @@ const DocumentCard = memo(
 						transformStyle: "preserve-3d",
 					}}
 				>
-					<ContentPreview document={document} />
+					<ContentPreview document={document} ogData={ogData} />
 					{!(
 						document.type === "image" ||
 						document.metadata?.mimeType?.toString().startsWith("image/")
@@ -308,16 +354,28 @@ const DocumentCard = memo(
 								!document.url.includes("twitter.com") &&
 								!document.url.includes("files.supermemory.ai") && (
 									<div className="px-3">
-										<p
-											className={cn(
-												dmSansClassName(),
-												"text-[12px] text-[#E5E5E5] line-clamp-1 font-semibold",
+										<div className="flex justify-between items-center gap-2">
+											<p
+												className={cn(
+													dmSansClassName(),
+													"text-[12px] text-[#E5E5E5] line-clamp-1 font-semibold",
+												)}
+											>
+												{document.title || ogData?.title || "Untitled Document"}
+											</p>
+											{getFaviconUrl(document.url) && needsOgData && (
+												<img
+													src={getFaviconUrl(document.url) || ""}
+													alt=""
+													className="w-4 h-4 shrink-0 rounded-lg"
+													onError={(e) => {
+														e.currentTarget.style.display = "none"
+													}}
+												/>
 											)}
-										>
-											{document.title}
-										</p>
+										</div>
 
-										<DocumentUrlDisplay url={document.url} />
+										{!hideURL && <DocumentUrlDisplay url={document.url} />}
 									</div>
 								)}
 							<div
@@ -372,7 +430,13 @@ const DocumentCard = memo(
 
 DocumentCard.displayName = "DocumentCard"
 
-function ContentPreview({ document }: { document: DocumentWithMemories }) {
+function ContentPreview({
+	document,
+	ogData,
+}: {
+	document: DocumentWithMemories
+	ogData?: OgData | null
+}) {
 	if (
 		document.url?.includes("https://docs.googleapis.com/v1/documents") ||
 		document.url?.includes("docs.google.com/document") ||
@@ -412,7 +476,7 @@ function ContentPreview({ document }: { document: DocumentWithMemories }) {
 	}
 
 	if (document.url?.includes("https://")) {
-		return <WebsitePreview document={document} />
+		return <WebsitePreview document={document} ogData={ogData} />
 	}
 
 	// Default to Note

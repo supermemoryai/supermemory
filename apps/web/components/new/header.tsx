@@ -39,9 +39,15 @@ interface HeaderProps {
 	onAddMemory?: () => void
 	onOpenMCP?: () => void
 	onOpenChat?: () => void
+	onOpenSearch?: () => void
 }
 
-export function Header({ onAddMemory, onOpenMCP, onOpenChat }: HeaderProps) {
+export function Header({
+	onAddMemory,
+	onOpenMCP,
+	onOpenChat,
+	onOpenSearch,
+}: HeaderProps) {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const { switchProject } = useProjectMutations()
@@ -247,6 +253,7 @@ export function Header({ onAddMemory, onOpenMCP, onOpenChat }: HeaderProps) {
 						<Button
 							variant="headers"
 							className="rounded-full text-base gap-2 h-10!"
+							onClick={onOpenSearch}
 						>
 							<SearchIcon className="size-4" />
 							<span className="bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm text-[10px] flex items-center justify-center gap-0.5 px-1">
@@ -256,7 +263,7 @@ export function Header({ onAddMemory, onOpenMCP, onOpenChat }: HeaderProps) {
 									fill="none"
 									xmlns="http://www.w3.org/2000/svg"
 								>
-									<title>Search Icon</title>
+									<title>Command Key</title>
 									<path
 										d="M6.66663 0.416626C6.33511 0.416626 6.01716 0.548322 5.78274 0.782743C5.54832 1.01716 5.41663 1.33511 5.41663 1.66663V6.66663C5.41663 6.99815 5.54832 7.31609 5.78274 7.55051C6.01716 7.78493 6.33511 7.91663 6.66663 7.91663C6.99815 7.91663 7.31609 7.78493 7.55051 7.55051C7.78493 7.31609 7.91663 6.99815 7.91663 6.66663C7.91663 6.33511 7.78493 6.01716 7.55051 5.78274C7.31609 5.54832 6.99815 5.41663 6.66663 5.41663H1.66663C1.33511 5.41663 1.01716 5.54832 0.782743 5.78274C0.548322 6.01716 0.416626 6.33511 0.416626 6.66663C0.416626 6.99815 0.548322 7.31609 0.782743 7.55051C1.01716 7.78493 1.33511 7.91663 1.66663 7.91663C1.99815 7.91663 2.31609 7.78493 2.55051 7.55051C2.78493 7.31609 2.91663 6.99815 2.91663 6.66663V1.66663C2.91663 1.33511 2.78493 1.01716 2.55051 0.782743C2.31609 0.548322 1.99815 0.416626 1.66663 0.416626C1.33511 0.416626 1.01716 0.548322 0.782743 0.782743C0.548322 1.01716 0.416626 1.33511 0.416626 1.66663C0.416626 1.99815 0.548322 2.31609 0.782743 2.55051C1.01716 2.78493 1.33511 2.91663 1.66663 2.91663H6.66663C6.99815 2.91663 7.31609 2.78493 7.55051 2.55051C7.78493 2.31609 7.91663 1.99815 7.91663 1.66663C7.91663 1.33511 7.78493 1.01716 7.55051 0.782743C7.31609 0.548322 6.99815 0.416626 6.66663 0.416626Z"
 										stroke="#737373"
