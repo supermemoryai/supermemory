@@ -110,6 +110,7 @@
 										"pages": [
 											"connectors/notion",
 											"connectors/google-drive",
+											"connectors/gmail",
 											"connectors/onedrive",
 											"connectors/s3",
 											"connectors/github",

@@ -1,11 +1,11 @@
 ---
 title: "Connectors Overview"
-description: "Integrate Google Drive, Notion, OneDrive, GitHub and Web Crawler to automatically sync documents into your knowledge base"
+description: "Integrate Google Drive, Gmail, Notion, OneDrive, GitHub and Web Crawler to automatically sync documents into your knowledge base"
 sidebarTitle: "Overview"
 icon: "layers"
 ---
 
-Connect external platforms to automatically sync documents into Supermemory. Supported connectors include Google Drive, Notion, OneDrive, GitHub and Web Crawler with real-time synchronization and intelligent content processing.
+Connect external platforms to automatically sync documents into supermemory. Supported connectors include Google Drive, Gmail, Notion, OneDrive, GitHub and Web Crawler with real-time synchronization and intelligent content processing.
 
 ## Supported Connectors
 
@@ -14,6 +14,12 @@ Connect external platforms to automatically sync documents into Supermemory. Sup
     **Google Docs, Slides, Sheets**
 
     Real-time sync via webhooks. Supports shared drives, nested folders, and collaborative documents.
+  </Card>
+
+  <Card title="Gmail" icon="mail" href="/connectors/gmail">
+    **Email Threads**
+
+    Real-time sync via Pub/Sub webhooks. Syncs threads with full conversation history and metadata.
   </Card>
 
   <Card title="Notion" icon="notion" href="/connectors/notion">
@@ -218,6 +224,7 @@ graph TD
 | Provider | Real-time Sync | Scheduled Sync | Manual Sync |
 |----------|---------------|----------------|-------------|
 | **Google Drive** | ✅ Webhooks (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
+| **Gmail** | ✅ Pub/Sub (7-day expiry) | ✅ Every 4 hours | ✅ On-demand |
 | **Notion** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |
 | **OneDrive** | ✅ Webhooks (30-day expiry) | ✅ Every 4 hours | ✅ On-demand |
 | **GitHub** | ✅ Webhooks | ✅ Every 4 hours | ✅ On-demand |

@@ -1,7 +1,7 @@
 ---
 title: "Connector Troubleshooting"
 sidebarTitle: "Troubleshooting"
-description: "Diagnose and resolve common issues with Google Drive, Notion, and OneDrive connectors"
+description: "Diagnose and resolve common issues with Google Drive, Gmail, Notion, and OneDrive connectors"
 icon: "wrench"
 ---
 
@@ -181,6 +181,49 @@ Business accounts may have additional restrictions:
 - Admin consent might be required
 - Some SharePoint sites may be restricted
 - Compliance policies may block certain files
+
+### Gmail
+
+**Real-time Sync Not Working**
+
+If emails aren't syncing in real-time but scheduled/manual sync works:
+
+1. Real-time sync uses Google Cloud Pub/Sub webhooks
+2. Watch subscriptions expire after 7 days (supermemory auto-renews)
+3. Only INBOX label triggers real-time updates
+4. Trigger a manual sync to verify the connection is healthy:
+
+```typescript
+await client.connections.import('gmail', {
+  containerTags: ['user-123']
+});
+```
+
+**Missing Refresh Token**
+
+If Gmail stops syncing after initial setup:
+
+1. The user may have revoked app access in Google Account settings
+2. Delete and recreate the connection
+3. Ensure user completes full OAuth consent flow
+
+```typescript
+// Re-authenticate to get fresh tokens
+await client.connections.deleteByProvider('gmail', {
+  containerTags: ['user-123']
+});
+
+const newConnection = await client.connections.create('gmail', {
+  redirectUrl: 'https://yourapp.com/callback',
+  containerTags: ['user-123']
+});
+```
+
+**Scale Plan Required Error**
+
+Gmail connector requires Scale Plan or Enterprise Plan. If you see access errors:
+- Verify your organization has the required plan
+- Contact support to upgrade your plan
 
 
 ## Best Practices
