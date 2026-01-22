@@ -85,6 +85,7 @@ export interface NavigationControlsProps {
 	timelineProgress?: { streamed: number; total: number | null }
 	nodes: GraphNode[]
 	className?: string
+	zoom?: number
 }
 
 export interface NodePopoverProps {

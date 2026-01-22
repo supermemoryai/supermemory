@@ -138,28 +138,14 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 						const screenY = node.y * zoom + panY
 						const nodeSize = node.size * zoom
 
-						if (node.type === "document") {
-							const docWidth = nodeSize * 1.4
-							const docHeight = nodeSize * 0.9
-							const halfW = docWidth / 2
-							const halfH = docHeight / 2
+						// All nodes are hexagons now, use circular hit detection
+						const radius = node.type === "document" ? nodeSize * 0.6 : nodeSize / 2
+						const dx = x - screenX
+						const dy = y - screenY
+						const distance = Math.sqrt(dx * dx + dy * dy)
 
-							if (
-								x >= screenX - halfW &&
-								x <= screenX + halfW &&
-								y >= screenY - halfH &&
-								y <= screenY + halfH
-							) {
-								return node.id
-							}
-						} else {
-							const dx = x - screenX
-							const dy = y - screenY
-							const distance = Math.sqrt(dx * dx + dy * dy)
-
-							if (distance <= nodeSize / 2) {
-								return node.id
-							}
+						if (distance <= radius) {
+							return node.id
 						}
 					}
 				}
@@ -227,23 +213,20 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 
 			ctx.clearRect(0, 0, width, height)
 
-			ctx.strokeStyle = "rgba(148, 163, 184, 0.03)"
-			ctx.lineWidth = 1
-			const gridSpacing = 100 * zoom
-			const offsetX = panX % gridSpacing
-			const offsetY = panY % gridSpacing
+			// Draw dotted background pattern
+			const dotSpacing = 30 * Math.max(zoom, 0.5) // Maintain reasonable spacing
+			const offsetX = panX % dotSpacing
+			const offsetY = panY % dotSpacing
+			const dotRadius = 1
 
-			for (let x = offsetX; x < width; x += gridSpacing) {
-				ctx.beginPath()
-				ctx.moveTo(x, 0)
-				ctx.lineTo(x, height)
-				ctx.stroke()
-			}
-			for (let y = offsetY; y < height; y += gridSpacing) {
-				ctx.beginPath()
-				ctx.moveTo(0, y)
-				ctx.lineTo(width, y)
-				ctx.stroke()
+			ctx.fillStyle = "rgba(0, 180, 216, 0.15)"
+
+			for (let x = offsetX; x < width; x += dotSpacing) {
+				for (let y = offsetY; y < height; y += dotSpacing) {
+					ctx.beginPath()
+					ctx.arc(x, y, dotRadius, 0, 2 * Math.PI)
+					ctx.fill()
+				}
 			}
 
 			ctx.lineCap = "round"
@@ -420,115 +403,71 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 					return highlightSet.has(doc.id)
 				})()
 
-				if (node.type === "document") {
-					const docWidth = nodeSize * 1.4
-					const docHeight = nodeSize * 0.9
+				// All nodes are now rendered as hexagons
+				const isDocument = node.type === "document"
+				const isMemory = node.type === "memory"
 
-					ctx.fillStyle = isHovered
-						? colors.document.secondary
-						: colors.document.primary
-					ctx.globalAlpha = nodeOpacity
+				// Get node data for status checks
+				let isNew = false
+				if (isMemory) {
+					const mem = node.data as ViewportMemoryEntry
+					isNew = new Date(mem.createdAt).getTime() > Date.now() - 1000 * 60 * 60 * 24
+				}
 
-					ctx.strokeStyle = isHovered
-						? colors.document.accent
-						: colors.document.border
-					ctx.lineWidth = isHovered ? 2 : 1
+				// Use consistent node colors for all nodes
+				let fillColor = colors.node.primary
+				let borderColor = colors.node.border
 
-					const radius = useSimplifiedRendering ? 6 : 12
+				if (isHovered) {
+					fillColor = colors.node.secondary
+				}
+
+				if (isNew) {
+					borderColor = colors.status.new
+				}
+
+				// Document nodes are slightly larger
+				const radius = isDocument ? nodeSize * 0.6 : nodeSize / 2
+
+				ctx.fillStyle = fillColor
+				ctx.globalAlpha = shouldDim ? nodeOpacity : 1
+				ctx.strokeStyle = borderColor
+				ctx.lineWidth = isHovered ? 2 : 1.5
+
+				if (useSimplifiedRendering) {
+					// Simple circle for low zoom
 					ctx.beginPath()
-					ctx.roundRect(
-						screenX - docWidth / 2,
-						screenY - docHeight / 2,
-						docWidth,
-						docHeight,
-						radius,
-					)
+					ctx.arc(screenX, screenY, radius, 0, 2 * Math.PI)
+					ctx.fill()
+					ctx.stroke()
+				} else {
+					// Hexagon for normal zoom
+					const sides = 6
+					ctx.beginPath()
+					for (let i = 0; i < sides; i++) {
+						const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
+						const x = screenX + radius * Math.cos(angle)
+						const y = screenY + radius * Math.sin(angle)
+						if (i === 0) {
+							ctx.moveTo(x, y)
+						} else {
+							ctx.lineTo(x, y)
+						}
+					}
+					ctx.closePath()
 					ctx.fill()
 					ctx.stroke()
 
-					if (!useSimplifiedRendering && isHovered) {
-						ctx.strokeStyle = "rgba(255, 255, 255, 0.1)"
-						ctx.lineWidth = 1
-						ctx.beginPath()
-						ctx.roundRect(
-							screenX - docWidth / 2 + 1,
-							screenY - docHeight / 2 + 1,
-							docWidth - 2,
-							docHeight - 2,
-							radius - 1,
-						)
-						ctx.stroke()
-					}
-
-					if (isHighlightedDocument) {
-						ctx.save()
-						ctx.globalAlpha = 0.9
-						ctx.strokeStyle = colors.accent.primary
-						ctx.lineWidth = 3
-						ctx.setLineDash([6, 4])
-						const avgDimension = (docWidth + docHeight) / 2
-						const ringPadding = avgDimension * 0.1
-						ctx.beginPath()
-						ctx.roundRect(
-							screenX - docWidth / 2 - ringPadding,
-							screenY - docHeight / 2 - ringPadding,
-							docWidth + ringPadding * 2,
-							docHeight + ringPadding * 2,
-							radius + 6,
-						)
-						ctx.stroke()
-						ctx.setLineDash([])
-						ctx.restore()
-					}
-
-					if (!useSimplifiedRendering) {
-						const doc = node.data as ViewportDocument
-						const iconSize = docHeight * 0.4
-
-						drawDocumentIcon(
-							ctx,
-							screenX,
-							screenY,
-							iconSize,
-							doc.type || "text",
-							"rgba(255, 255, 255, 0.8)",
-						)
-					}
-				} else {
-					const mem = node.data as ViewportMemoryEntry
-					const isNew =
-						new Date(mem.createdAt).getTime() > Date.now() - 1000 * 60 * 60 * 24
-
-					let fillColor = colors.memory.primary
-					let borderColor = colors.memory.border
-
+					// Inner highlight on hover
 					if (isHovered) {
-						fillColor = colors.memory.secondary
-					}
-
-					if (isNew) {
-						borderColor = colors.status.new
-					}
-
-					const radius = nodeSize / 2
-
-					ctx.fillStyle = fillColor
-					ctx.globalAlpha = shouldDim ? nodeOpacity : 1
-					ctx.strokeStyle = borderColor
-					ctx.lineWidth = isHovered ? 2 : 1.5
-
-					if (useSimplifiedRendering) {
-						ctx.beginPath()
-						ctx.arc(screenX, screenY, radius, 0, 2 * Math.PI)
-						ctx.fill()
-						ctx.stroke()
-					} else {
-						const sides = 6
+						ctx.strokeStyle = "rgba(0, 180, 216, 0.3)"
+						ctx.lineWidth = 1
+						const innerRadius = radius - 2
 						ctx.beginPath()
 						for (let i = 0; i < sides; i++) {
 							const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
-							const x = screenX + radius * Math.cos(angle)
-							const y = screenY + radius * Math.sin(angle)
+							const x = screenX + innerRadius * Math.cos(angle)
+							const y = screenY + innerRadius * Math.sin(angle)
 							if (i === 0) {
 								ctx.moveTo(x, y)
 							} else {
@@ -536,80 +475,73 @@ export const GraphCanvas = memo<GraphCanvasProps>(
 							}
 						}
 						ctx.closePath()
-						ctx.fill()
 						ctx.stroke()
-
-						if (isHovered) {
-							ctx.strokeStyle = "rgba(147, 197, 253, 0.3)"
-							ctx.lineWidth = 1
-							const innerRadius = radius - 2
-							ctx.beginPath()
-							for (let i = 0; i < sides; i++) {
-								const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
-								const x = screenX + innerRadius * Math.cos(angle)
-								const y = screenY + innerRadius * Math.sin(angle)
-								if (i === 0) {
-									ctx.moveTo(x, y)
-								} else {
-									ctx.lineTo(x, y)
-								}
-							}
-							ctx.closePath()
-							ctx.stroke()
-						}
-					}
-
-					if (isNew) {
-						ctx.fillStyle = colors.status.new
-						ctx.beginPath()
-						ctx.arc(
-							screenX + nodeSize * 0.25,
-							screenY - nodeSize * 0.25,
-							Math.max(2, nodeSize * 0.15),
-							0,
-							2 * Math.PI,
-						)
-						ctx.fill()
 					}
 				}
 
+				// Highlighted document indicator
+				if (isHighlightedDocument) {
+					ctx.save()
+					ctx.globalAlpha = 0.9
+					ctx.strokeStyle = colors.accent.primary
+					ctx.lineWidth = 3
+					ctx.setLineDash([6, 4])
+					const highlightRadius = radius * 1.2
+					const sides = 6
+					ctx.beginPath()
+					for (let i = 0; i < sides; i++) {
+						const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
+						const x = screenX + highlightRadius * Math.cos(angle)
+						const y = screenY + highlightRadius * Math.sin(angle)
+						if (i === 0) {
+							ctx.moveTo(x, y)
+						} else {
+							ctx.lineTo(x, y)
+						}
+					}
+					ctx.closePath()
+					ctx.stroke()
+					ctx.setLineDash([])
+					ctx.restore()
+				}
+
+				// New item indicator dot
+				if (isNew) {
+					ctx.fillStyle = colors.status.new
+					ctx.beginPath()
+					ctx.arc(
+						screenX + nodeSize * 0.25,
+						screenY - nodeSize * 0.25,
+						Math.max(2, nodeSize * 0.15),
+						0,
+						2 * Math.PI,
+					)
+					ctx.fill()
+				}
+
+				// Unified glow effect for all nodes (hexagon)
 				if (!useSimplifiedRendering && isHovered) {
-					const glowColor =
-						node.type === "document" ? colors.document.glow : colors.memory.glow
+					const glowColor = colors.node.glow
 
 					ctx.strokeStyle = glowColor
 					ctx.lineWidth = 1
 					ctx.setLineDash([3, 3])
 					ctx.globalAlpha = 0.6
 
+					const glowRadius = (node.type === "document" ? nodeSize * 0.6 : nodeSize / 2) * 1.3
+					const sides = 6
 					ctx.beginPath()
-					if (node.type === "document") {
-						const docWidth = nodeSize * 1.4
-						const docHeight = nodeSize * 0.9
-						const avgDimension = (docWidth + docHeight) / 2
-						const glowPadding = avgDimension * 0.1
-						ctx.roundRect(
-							screenX - docWidth / 2 - glowPadding,
-							screenY - docHeight / 2 - glowPadding,
-							docWidth + glowPadding * 2,
-							docHeight + glowPadding * 2,
-							15,
-						)
-					} else {
-						const glowRadius = nodeSize * 0.7
-						const sides = 6
-						for (let i = 0; i < sides; i++) {
-							const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
-							const x = screenX + glowRadius * Math.cos(angle)
-							const y = screenY + glowRadius * Math.sin(angle)
-							if (i === 0) {
-								ctx.moveTo(x, y)
-							} else {
-								ctx.lineTo(x, y)
-							}
+					for (let i = 0; i < sides; i++) {
+						const angle = (i * 2 * Math.PI) / sides - Math.PI / 2
+						const x = screenX + glowRadius * Math.cos(angle)
+						const y = screenY + glowRadius * Math.sin(angle)
+						if (i === 0) {
+							ctx.moveTo(x, y)
+						} else {
+							ctx.lineTo(x, y)
 						}
-						ctx.closePath()
 					}
+					ctx.closePath()
 					ctx.stroke()
 					ctx.setLineDash([])
 				}

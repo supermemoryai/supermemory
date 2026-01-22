@@ -14,10 +14,10 @@ export default function GraphPage() {
 
 	if (!user) {
 		return (
-			<div className="h-screen flex items-center justify-center bg-slate-900">
+			<div className="h-screen flex items-center justify-center bg-[#000B1B]">
 				<div className="flex flex-col items-center gap-4">
-					<LoaderIcon className="w-8 h-8 text-orange-500 animate-spin" />
-					<p className="text-white/60">Loading...</p>
+					<LoaderIcon className="w-8 h-8 text-cyan-500 animate-spin" />
+					<p className="text-[#525D6E]">Loading...</p>
 				</div>
 			</div>
 		)
@@ -29,15 +29,15 @@ export default function GraphPage() {
 			: undefined
 
 	return (
-		<div className="h-full w-full bg-slate-900">
+		<div className="h-full w-full bg-[#000B1B]" style={{ background: "radial-gradient(ellipse at center, #01173C 0%, #000B1B 70%)" }}>
 			<Graph containerTags={containerTags}>
 				<div className="absolute inset-0 flex items-center justify-center">
 					<div className="rounded-xl overflow-hidden p-6 text-center">
-						<p className="text-slate-400 mb-4">No memories found</p>
+						<p className="text-[#525D6E] mb-4">No memories found</p>
 						<button
 							type="button"
 							onClick={() => setShowAddMemory(true)}
-							className="text-sm text-blue-400 hover:text-blue-300 transition-colors underline"
+							className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline"
 						>
 							Add your first memory
 						</button>

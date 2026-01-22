@@ -9,10 +9,10 @@ export const LoadingIndicator = memo<LoadingIndicatorProps>(
 		if (!isLoading && !isLoadingMore) return null
 
 		return (
-			<div className="absolute top-20 right-4 z-10 bg-white/5 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden">
+			<div className="absolute top-20 right-4 z-10 bg-[#0A1628]/80 backdrop-blur-xl border border-[#1E3A5F] rounded-lg overflow-hidden">
 				<div className="p-3">
 					<div className="flex items-center gap-2">
-						<Sparkles className="w-4 h-4 text-orange-400 animate-pulse" />
+						<Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
 						<span className="text-sm text-white/70">
 							{isLoading
 								? "Loading memory graph..."

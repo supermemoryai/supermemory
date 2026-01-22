@@ -436,6 +436,7 @@ export function Graph({ containerTags, children }: GraphProps) {
 					isTimelineActive={isTimelineStreaming}
 					timelineProgress={timelineProgress}
 					nodes={nodes}
+					zoom={zoom}
 				/>
 			)}
 		</div>
