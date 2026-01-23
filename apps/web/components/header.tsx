@@ -47,6 +47,7 @@ import { ScrollArea } from "@ui/components/scroll-area"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@lib/utils"
 import { useEffect, useMemo, useState } from "react"
+import { generateId } from "@lib/generate-id"
 
 export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 	const { user } = useAuth()
@@ -98,7 +99,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 
 	function handleNewChat() {
 		analytics.newChatStarted()
-		const newId = crypto.randomUUID()
+		const newId = generateId()
 		setCurrentChatId(newId)
 		router.push(`/chat/${newId}`)
 		setIsDialogOpen(false)
@@ -129,7 +130,7 @@ export function Header({ onAddMemory }: { onAddMemory?: () => void }) {
 					>
 						{getCurrentChat()?.title && pathname.includes("/chat") ? (
 							<div className="flex items-center gap-2 md:gap-4 min-w-0 max-w-[200px] md:max-w-md">
-								<Logo className="h-6 block text-foreground flex-shrink-0" />
+								<Logo className="h-6 block text-foreground shrink-0" />
 								<span className="truncate text-sm md:text-base">
 									{getCurrentChat()?.title}
 								</span>
