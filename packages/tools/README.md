@@ -414,12 +414,45 @@ interface SupermemoryToolsConfig {
   baseUrl?: string
   containerTags?: string[]
   projectId?: string
+  strict?: boolean
 }
 ```
 
 - **baseUrl**: Custom base URL for the supermemory API
 - **containerTags**: Array of custom container tags (mutually exclusive with projectId)
 - **projectId**: Project ID which gets converted to container tag format (mutually exclusive with containerTags)
+- **strict**: Enable strict schema mode for OpenAI strict validation. When `true`, all schema properties are required (satisfies OpenAI strict mode). When `false` (default), optional fields remain optional for maximum compatibility with all models.
+
+### OpenAI Strict Mode Compatibility
+
+When using OpenAI-compatible providers with strict schema validation (e.g., OpenRouter with Azure OpenAI backend), enable strict mode to ensure all schema properties are included in the `required` array:
+
+```typescript
+import { searchMemoriesTool, addMemoryTool } from "@supermemory/tools/ai-sdk"
+import { createOpenRouter } from "@openrouter/ai-sdk-provider"
+import { streamText } from "ai"
+
+const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY })
+
+const tools = {
+  searchMemories: searchMemoriesTool(apiKey, { 
+    containerTags: [userId],
+    strict: true  // ✅ Required for OpenAI strict mode
+  }),
+  addMemory: addMemoryTool(apiKey, { 
+    containerTags: [userId],
+    strict: true
+  }),
+}
+
+const result = streamText({
+  model: openrouter.chat("openai/gpt-5-nano"),
+  messages: [...],
+  tools,
+})
+```
+
+Without `strict: true`, optional fields like `includeFullDocs` and `limit` won't be in the `required` array, which will cause validation errors with OpenAI strict mode.
 
 ### withSupermemory Middleware Options
 
