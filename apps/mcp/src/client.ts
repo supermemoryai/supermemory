@@ -172,7 +172,7 @@ export class SupermemoryClient {
 				response.searchResults = {
 					results: (result.searchResults.results as SDKResult[]).map((r) => ({
 						id: r.id,
-						memory: limitByChars(r.content || r.context || ""),
+						memory: limitByChars(r.content || r.memory || r.context || ""),
 						similarity: r.similarity,
 						title: r.title,
 						content: r.content,
