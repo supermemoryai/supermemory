@@ -25,22 +25,22 @@ Example:
     ```
 """
 
-from .service import SupermemoryPipecatService
 from .exceptions import (
-    SupermemoryPipecatError,
+    APIError,
     ConfigurationError,
     MemoryRetrievalError,
     MemoryStorageError,
-    APIError,
     NetworkError,
+    SupermemoryPipecatError,
 )
+from .service import SupermemoryPipecatService
 from .utils import (
-    get_last_user_message,
     deduplicate_memories,
     format_memories_to_text,
+    get_last_user_message,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     # Main service
