@@ -3,6 +3,8 @@
 import { GraphDialog } from "@/components/graph-dialog"
 import { Header } from "@/components/header"
 import { AddMemoryView } from "@/components/views/add-memory"
+import { usePathname, useRouter } from "next/navigation"
+import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useEffect, useState } from "react"
 
 export default function NavigationLayout({
@@ -11,6 +13,16 @@ export default function NavigationLayout({
 	children: React.ReactNode
 }) {
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
+	const pathname = usePathname()
+	const router = useRouter()
+	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
+
+	useEffect(() => {
+		if (flagEnabled && !pathname.includes("/new")) {
+			router.replace("/new")
+		}
+	}, [flagEnabled, router, pathname])
+
 	useEffect(() => {
 		const handleKeydown = (event: KeyboardEvent) => {
 			const target = event.target as HTMLElement

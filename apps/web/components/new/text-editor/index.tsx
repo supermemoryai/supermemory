@@ -54,6 +54,7 @@ export function TextEditor({
 			handleKeyDown: (_view, event) => {
 				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
 					event.preventDefault()
+					debouncedUpdates.flush()
 					onSubmitRef.current?.()
 					return true
 				}
@@ -104,9 +105,11 @@ export function TextEditor({
 
 	useEffect(() => {
 		return () => {
+			// Flush any pending debounced updates before destroying editor
+			debouncedUpdates.flush()
 			editor?.destroy()
 		}
-	}, [editor])
+	}, [editor, debouncedUpdates])
 
 	return (
 		<>

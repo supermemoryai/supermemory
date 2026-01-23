@@ -53,13 +53,7 @@ function getFaviconUrl(url: string): string {
 	}
 }
 
-function FaviconIcon({
-	url,
-	className,
-}: {
-	url: string
-	className?: string
-}) {
+function FaviconIcon({ url, className }: { url: string; className?: string }) {
 	const [hasError, setHasError] = useState(false)
 	const faviconUrl = getFaviconUrl(url)
 

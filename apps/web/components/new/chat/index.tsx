@@ -28,18 +28,20 @@ import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
 import { analytics } from "@/lib/analytics"
 
+const DEFAULT_SUGGESTIONS = [
+	"Show me all content related to Supermemory.",
+	"Summarize the key ideas from My Gita.",
+	"Which memories connect design and AI?",
+	"What are the main themes across my memories?",
+]
+
 function ChatEmptyStatePlaceholder({
 	onSuggestionClick,
+	suggestions = DEFAULT_SUGGESTIONS,
 }: {
 	onSuggestionClick: (suggestion: string) => void
+	suggestions?: string[]
 }) {
-	const suggestions = [
-		"Show me all content related to Supermemory.",
-		"Summarize the key ideas from My Gita.",
-		"Which memories connect design and AI?",
-		"What are the main themes across my memories?",
-	]
-
 	return (
 		<div
 			id="chat-empty-state"
@@ -61,11 +63,13 @@ function ChatEmptyStatePlaceholder({
 						<Button
 							key={suggestion}
 							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
+							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit max-w-[400px] py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
 							onClick={() => onSuggestionClick(suggestion)}
 						>
-							<SearchIcon className="size-4 text-[#267BF1]" />
-							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>
+							<SearchIcon className="size-4 text-[#267BF1] shrink-0" />
+							<span className="text-[#267BF1] text-[12px] truncate">
+								{suggestion}
+							</span>
 						</Button>
 					))}
 				</div>
@@ -77,9 +81,15 @@ function ChatEmptyStatePlaceholder({
 export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen,
+	queuedMessage,
+	onConsumeQueuedMessage,
+	emptyStateSuggestions,
 }: {
 	isChatOpen: boolean
 	setIsChatOpen: (open: boolean) => void
+	queuedMessage?: string | null
+	onConsumeQueuedMessage?: () => void
+	emptyStateSuggestions?: string[]
 }) {
 	const isMobile = useIsMobile()
 	const [input, setInput] = useState("")
@@ -332,6 +342,19 @@ export function ChatSidebar({
 		return () => window.removeEventListener("keydown", handleKeyDown)
 	}, [isChatOpen, handleNewChat])
 
+	// Send queued message when chat opens
+	useEffect(() => {
+		if (
+			isChatOpen &&
+			queuedMessage &&
+			status !== "submitted" &&
+			status !== "streaming"
+		) {
+			sendMessage({ text: queuedMessage })
+			onConsumeQueuedMessage?.()
+		}
+	}, [isChatOpen, queuedMessage, status, sendMessage, onConsumeQueuedMessage])
+
 	// Scroll to bottom when a new user message is added
 	useEffect(() => {
 		const lastMessage = messages[messages.length - 1]
@@ -384,7 +407,7 @@ export function ChatSidebar({
 						"flex items-start justify-start",
 						isMobile
 							? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
-							: "absolute top-0 right-0 m-4",
+							: "absolute top-[-10px] right-0 m-4",
 						dmSansClassName(),
 					)}
 					layoutId="chat-toggle-button"
@@ -406,7 +429,9 @@ export function ChatSidebar({
 						whileTap={{ scale: 0.98 }}
 					>
 						<NovaOrb size={isMobile ? 26 : 24} className="blur-[0.6px]! z-10" />
-						<span className={cn(isMobile && "font-medium")}>Chat with Nova</span>
+						<span className={cn(isMobile && "font-medium")}>
+							Chat with Nova
+						</span>
 					</motion.button>
 				</motion.div>
 			) : (
@@ -524,6 +549,7 @@ export function ChatSidebar({
 								onSuggestionClick={(suggestion) => {
 									sendMessage({ text: suggestion })
 								}}
+								suggestions={emptyStateSuggestions}
 							/>
 						)}
 						<div

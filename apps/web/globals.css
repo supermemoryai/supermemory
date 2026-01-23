@@ -46,7 +46,17 @@
 
 .tweet-body-module__ZNRZja__root > * {
 	font-size: 10px !important;
-	line-height: 0.25rem !important;
+	line-height: 1.35 !important;
+	letter-spacing: -0.1px !important;
+	white-space: pre-wrap !important;
+}
+
+.sm-tweet-theme .tweet-body-module__ZNRZja__root {
+	font-family: "DM Sans", sans-serif !important;
+	font-weight: 500 !important;
+	color: #fafafa !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
 }
 
 [class*="dmSans"],

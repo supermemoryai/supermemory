@@ -76,7 +76,7 @@ export function AgentMessage({
 								return (
 									<div
 										key={`${message.id}-${partIndex}`}
-										className="text-xs text-white/50 italic"
+										className="text-xs text-white italic"
 									>
 										Searching memories...
 									</div>

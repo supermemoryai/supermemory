@@ -286,9 +286,7 @@ export function GraphListMemories({
 										type="button"
 										className={cn(
 											"text-xs text-[#525D6E] cursor-pointer transition-all text-left w-full",
-											expandedMemories.has(memory.id)
-												? ""
-												: "line-clamp-2",
+											expandedMemories.has(memory.id) ? "" : "line-clamp-2",
 										)}
 										onClick={() => toggleMemory(memory.id)}
 									>
