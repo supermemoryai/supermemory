@@ -50,13 +50,6 @@ const DEFAULT_SUGGESTIONS = [
 	"What are the main themes across my memories?",
 ]
 
-const DEFAULT_SUGGESTIONS = [
-	"Show me all content related to Supermemory.",
-	"Summarize the key ideas from My Gita.",
-	"Which memories connect design and AI?",
-	"What are the main themes across my memories?",
-]
-
 function ChatEmptyStatePlaceholder({
 	onSuggestionClick,
 	suggestions = DEFAULT_SUGGESTIONS,
