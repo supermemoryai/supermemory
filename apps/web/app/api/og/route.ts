@@ -1,5 +1,3 @@
-export const runtime = "edge"
-
 interface OGResponse {
 	title: string
 	description: string
