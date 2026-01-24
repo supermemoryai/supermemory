@@ -56,10 +56,7 @@ function getContentType(document: DocumentWithMemories | null): ContentType {
 		document.metadata?.mimeType?.toString().startsWith("image/")
 
 	if (isImage && document.url) return "image"
-	if (
-		document.type === "tweet" ||
-		(document.url && isTwitterUrl(document.url))
-	)
+	if (document.type === "tweet" || (document.url && isTwitterUrl(document.url)))
 		return "tweet"
 	if (document.type === "text") return "text"
 	if (document.type === "pdf") return "pdf"
@@ -83,9 +80,7 @@ export function DocumentContent({
 
 	switch (contentType) {
 		case "image":
-			return (
-				<ImagePreview url={document.url ?? ""} title={document.title} />
-			)
+			return <ImagePreview url={document.url ?? ""} title={document.title} />
 
 		case "tweet":
 			return (

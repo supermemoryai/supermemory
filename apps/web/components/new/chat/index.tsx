@@ -406,7 +406,9 @@ export function ChatSidebar({
 						whileTap={{ scale: 0.98 }}
 					>
 						<NovaOrb size={isMobile ? 26 : 24} className="blur-[0.6px]! z-10" />
-						<span className={cn(isMobile && "font-medium")}>Chat with Nova</span>
+						<span className={cn(isMobile && "font-medium")}>
+							Chat with Nova
+						</span>
 					</motion.button>
 				</motion.div>
 			) : (

@@ -22,7 +22,11 @@ export function GoogleDocsPreview({
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] gap-3">
 			<div className="flex items-center gap-2 mb-2">
-				<DocumentIcon type={document.type} url={document.url} className="w-4 h-4" />
+				<DocumentIcon
+					type={document.type}
+					url={document.url}
+					className="w-4 h-4"
+				/>
 				<p className={cn(dmSansClassName(), "text-[12px] font-semibold")}>
 					{label}
 				</p>

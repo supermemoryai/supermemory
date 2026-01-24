@@ -2,10 +2,7 @@
 
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
-import {
-	extractGoogleDocId,
-	getGoogleEmbedUrl,
-} from "@/lib/url-helpers"
+import { extractGoogleDocId, getGoogleEmbedUrl } from "@/lib/url-helpers"
 
 interface GoogleDocViewerProps {
 	url: string | null | undefined

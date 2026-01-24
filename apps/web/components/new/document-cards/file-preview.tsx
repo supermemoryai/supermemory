@@ -86,7 +86,11 @@ export function FilePreview({ document }: { document: DocumentWithMemories }) {
 			) : (
 				<div className="p-3">
 					<div className="flex items-center gap-1 mb-2">
-						<DocumentIcon type={document.type} url={document.url} className="w-4 h-4" />
+						<DocumentIcon
+							type={document.type}
+							url={document.url}
+							className="w-4 h-4"
+						/>
 						<p
 							className={cn(dmSansClassName(), "text-[10px] font-semibold")}
 							style={{ color: color }}
