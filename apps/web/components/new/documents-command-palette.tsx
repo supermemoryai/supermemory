@@ -19,6 +19,7 @@ interface DocumentsCommandPaletteProps {
 	onOpenChange: (open: boolean) => void
 	projectId: string
 	onOpenDocument: (document: DocumentWithMemories) => void
+	initialSearch?: string
 }
 
 export function DocumentsCommandPalette({
@@ -26,6 +27,7 @@ export function DocumentsCommandPalette({
 	onOpenChange,
 	projectId,
 	onOpenDocument,
+	initialSearch = "",
 }: DocumentsCommandPaletteProps) {
 	const isMobile = useIsMobile()
 	const queryClient = useQueryClient()
@@ -47,10 +49,10 @@ export function DocumentsCommandPalette({
 				setDocuments(queryData.pages.flatMap((page) => page.documents ?? []))
 			}
 			setTimeout(() => inputRef.current?.focus(), 0)
-			setSearch("")
+			setSearch(initialSearch)
 			setSelectedIndex(0)
 		}
-	}, [open, queryClient, projectId])
+	}, [open, queryClient, projectId, initialSearch])
 
 	const filteredDocuments = useMemo(() => {
 		if (!search.trim()) return documents

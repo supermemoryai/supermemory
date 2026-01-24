@@ -7,19 +7,33 @@ import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@ui/components/dialog"
+import { ScrollArea } from "@ui/components/scroll-area"
+import {
+	Check,
 	ChevronDownIcon,
 	HistoryIcon,
 	PanelRightCloseIcon,
+	Plus,
 	SearchIcon,
 	SquarePenIcon,
+	Trash2,
 	XIcon,
 } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject, usePersistentChat } from "@/stores"
+import { areUIMessageArraysEqual } from "@/stores/chat"
 import type { ModelId } from "@/lib/models"
 import { SuperLoader } from "../../superloader"
 import { UserMessage } from "./message/user-message"
@@ -27,19 +41,22 @@ import { AgentMessage } from "./message/agent-message"
 import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
 import { analytics } from "@/lib/analytics"
+import { generateId } from "@lib/generate-id"
+
+const DEFAULT_SUGGESTIONS = [
+	"Show me all content related to Supermemory.",
+	"Summarize the key ideas from My Gita.",
+	"Which memories connect design and AI?",
+	"What are the main themes across my memories?",
+]
 
 function ChatEmptyStatePlaceholder({
 	onSuggestionClick,
+	suggestions = DEFAULT_SUGGESTIONS,
 }: {
 	onSuggestionClick: (suggestion: string) => void
+	suggestions?: string[]
 }) {
-	const suggestions = [
-		"Show me all content related to Supermemory.",
-		"Summarize the key ideas from My Gita.",
-		"Which memories connect design and AI?",
-		"What are the main themes across my memories?",
-	]
-
 	return (
 		<div
 			id="chat-empty-state"
@@ -61,11 +78,13 @@ function ChatEmptyStatePlaceholder({
 						<Button
 							key={suggestion}
 							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
+							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit max-w-[400px] py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
 							onClick={() => onSuggestionClick(suggestion)}
 						>
-							<SearchIcon className="size-4 text-[#267BF1]" />
-							<span className="text-[#267BF1] text-[12px]">{suggestion}</span>
+							<SearchIcon className="size-4 text-[#267BF1] shrink-0" />
+							<span className="text-[#267BF1] text-[12px] truncate">
+								{suggestion}
+							</span>
 						</Button>
 					))}
 				</div>
@@ -77,9 +96,15 @@ function ChatEmptyStatePlaceholder({
 export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen,
+	queuedMessage,
+	onConsumeQueuedMessage,
+	emptyStateSuggestions,
 }: {
 	isChatOpen: boolean
 	setIsChatOpen: (open: boolean) => void
+	queuedMessage?: string | null
+	onConsumeQueuedMessage?: () => void
+	emptyStateSuggestions?: string[]
 }) {
 	const isMobile = useIsMobile()
 	const [input, setInput] = useState("")
@@ -99,10 +124,34 @@ export function ChatSidebar({
 	const [isInputExpanded, setIsInputExpanded] = useState(false)
 	const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
 	const [heightOffset, setHeightOffset] = useState(95)
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+	const [threads, setThreads] = useState<
+		Array<{ id: string; title: string; createdAt: string; updatedAt: string }>
+	>([])
+	const [isLoadingThreads, setIsLoadingThreads] = useState(false)
+	const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+		null,
+	)
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
-	const { setCurrentChatId } = usePersistentChat()
+	const {
+		currentChatId,
+		setCurrentChatId,
+		setConversation,
+		getCurrentConversation,
+	} = usePersistentChat()
+	const lastSavedMessagesRef = useRef<typeof messages | null>(null)
+	const lastSavedActiveIdRef = useRef<string | null>(null)
+	const lastLoadedChatIdRef = useRef<string | null>(null)
+	const lastLoadedMessagesRef = useRef<typeof messages | null>(null)
+
+	// Initialize chat ID if none exists
+	useEffect(() => {
+		if (!currentChatId) {
+			setCurrentChatId(generateId())
+		}
+	}, [currentChatId, setCurrentChatId])
 
 	// Adjust chat height based on scroll position (desktop only)
 	useEffect(() => {
@@ -123,6 +172,7 @@ export function ChatSidebar({
 	}, [isMobile])
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
+		id: currentChatId ?? undefined,
 		transport: new DefaultChatTransport({
 			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
 			credentials: "include",
@@ -130,6 +180,7 @@ export function ChatSidebar({
 				metadata: {
 					projectId: selectedProject,
 					model: selectedModel,
+					chatId: currentChatId,
 				},
 			},
 		}),
@@ -143,6 +194,59 @@ export function ChatSidebar({
 			}
 		},
 	})
+
+	// Restore messages from store when currentChatId changes
+	useEffect(() => {
+		if (currentChatId !== lastLoadedChatIdRef.current) {
+			lastLoadedMessagesRef.current = null
+			lastSavedMessagesRef.current = null
+		}
+
+		if (currentChatId === lastLoadedChatIdRef.current) {
+			return
+		}
+
+		const msgs = getCurrentConversation()
+
+		if (msgs && msgs.length > 0) {
+			const currentMessages = lastLoadedMessagesRef.current
+			if (!currentMessages || !areUIMessageArraysEqual(currentMessages, msgs)) {
+				lastLoadedMessagesRef.current = msgs
+				setMessages(msgs)
+			}
+		} else if (!currentChatId) {
+			if (
+				lastLoadedMessagesRef.current &&
+				lastLoadedMessagesRef.current.length > 0
+			) {
+				lastLoadedMessagesRef.current = []
+				setMessages([])
+			}
+		}
+
+		lastLoadedChatIdRef.current = currentChatId
+	}, [currentChatId, getCurrentConversation, setMessages])
+
+	// Persist messages to store whenever they change
+	useEffect(() => {
+		const activeId = currentChatId
+		if (!activeId || messages.length === 0) {
+			return
+		}
+
+		if (activeId !== lastSavedActiveIdRef.current) {
+			lastSavedMessagesRef.current = null
+			lastSavedActiveIdRef.current = activeId
+		}
+
+		const lastSaved = lastSavedMessagesRef.current
+		if (lastSaved && areUIMessageArraysEqual(lastSaved, messages)) {
+			return
+		}
+
+		lastSavedMessagesRef.current = messages
+		setConversation(activeId, messages)
+	}, [messages, currentChatId, setConversation])
 
 	// Generate follow-up questions after assistant messages are complete
 	useEffect(() => {
@@ -300,11 +404,91 @@ export function ChatSidebar({
 
 	const handleNewChat = useCallback(() => {
 		analytics.newChatCreated()
-		const newId = crypto.randomUUID()
+		const newId = generateId()
 		setCurrentChatId(newId)
 		setMessages([])
 		setInput("")
 	}, [setCurrentChatId, setMessages])
+
+	const fetchThreads = useCallback(async () => {
+		setIsLoadingThreads(true)
+		try {
+			const response = await fetch(
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${selectedProject}`,
+				{ credentials: "include" },
+			)
+			if (response.ok) {
+				const data = await response.json()
+				setThreads(data.threads || [])
+			}
+		} catch (error) {
+			console.error("Failed to fetch threads:", error)
+		} finally {
+			setIsLoadingThreads(false)
+		}
+	}, [selectedProject])
+
+	const loadThread = useCallback(
+		async (threadId: string) => {
+			try {
+				const response = await fetch(
+					`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${threadId}`,
+					{ credentials: "include" },
+				)
+				if (response.ok) {
+					const data = await response.json()
+					setCurrentChatId(threadId)
+					// Convert API messages to UIMessage format
+					const uiMessages = data.messages.map(
+						(m: {
+							id: string
+							role: string
+							parts: unknown
+							createdAt: string
+						}) => ({
+							id: m.id,
+							role: m.role,
+							parts: m.parts || [],
+							createdAt: new Date(m.createdAt),
+						}),
+					)
+					setMessages(uiMessages)
+					setConversation(threadId, uiMessages) // persist messages to store
+					setIsHistoryOpen(false)
+					setConfirmingDeleteId(null)
+				}
+			} catch (error) {
+				console.error("Failed to load thread:", error)
+			}
+		},
+		[setCurrentChatId, setMessages, setConversation],
+	)
+
+	const deleteThread = useCallback(
+		async (threadId: string) => {
+			try {
+				const response = await fetch(
+					`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${threadId}`,
+					{ method: "DELETE", credentials: "include" },
+				)
+				if (response.ok) {
+					setThreads((prev) => prev.filter((t) => t.id !== threadId))
+					if (currentChatId === threadId) {
+						handleNewChat()
+					}
+				}
+			} catch (error) {
+				console.error("Failed to delete thread:", error)
+			} finally {
+				setConfirmingDeleteId(null)
+			}
+		},
+		[currentChatId, handleNewChat],
+	)
+
+	const formatRelativeTime = (isoString: string): string => {
+		return formatDistanceToNow(new Date(isoString), { addSuffix: true })
+	}
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -331,6 +515,19 @@ export function ChatSidebar({
 		window.addEventListener("keydown", handleKeyDown)
 		return () => window.removeEventListener("keydown", handleKeyDown)
 	}, [isChatOpen, handleNewChat])
+
+	// Send queued message when chat opens
+	useEffect(() => {
+		if (
+			isChatOpen &&
+			queuedMessage &&
+			status !== "submitted" &&
+			status !== "streaming"
+		) {
+			sendMessage({ text: queuedMessage })
+			onConsumeQueuedMessage?.()
+		}
+	}, [isChatOpen, queuedMessage, status, sendMessage, onConsumeQueuedMessage])
 
 	// Scroll to bottom when a new user message is added
 	useEffect(() => {
@@ -384,7 +581,7 @@ export function ChatSidebar({
 						"flex items-start justify-start",
 						isMobile
 							? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
-							: "absolute top-0 right-0 m-4",
+							: "absolute top-[-10px] right-0 m-4",
 						dmSansClassName(),
 					)}
 					layoutId="chat-toggle-button"
@@ -453,15 +650,127 @@ export function ChatSidebar({
 						/>
 						<div className="flex items-center gap-2">
 							{!isMobile && (
-								<Button
-									variant="headers"
-									className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A]"
-									style={{
-										boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+								<Dialog
+									open={isHistoryOpen}
+									onOpenChange={(open) => {
+										setIsHistoryOpen(open)
+										if (open) {
+											fetchThreads()
+											analytics.chatHistoryViewed?.()
+										} else {
+											setConfirmingDeleteId(null)
+										}
 									}}
 								>
-									<HistoryIcon className="size-4 text-[#737373]" />
-								</Button>
+									<DialogTrigger asChild>
+										<Button
+											variant="headers"
+											className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
+											style={{
+												boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+											}}
+										>
+											<HistoryIcon className="size-4 text-[#737373]" />
+										</Button>
+									</DialogTrigger>
+									<DialogContent className="sm:max-w-lg bg-[#0A0E14] border-[#17181AB2] text-white">
+										<DialogHeader className="pb-4 border-b border-[#17181AB2]">
+											<DialogTitle>Chat History</DialogTitle>
+											<DialogDescription className="text-[#737373]">
+												Project: {selectedProject}
+											</DialogDescription>
+										</DialogHeader>
+										<ScrollArea className="max-h-96">
+											{isLoadingThreads ? (
+												<div className="flex items-center justify-center py-8">
+													<SuperLoader label="Loading..." />
+												</div>
+											) : threads.length === 0 ? (
+												<div className="text-sm text-[#737373] text-center py-8">
+													No conversations yet
+												</div>
+											) : (
+												<div className="flex flex-col gap-1">
+													{threads.map((thread) => {
+														const isActive = thread.id === currentChatId
+														return (
+															<button
+																key={thread.id}
+																type="button"
+																onClick={() => loadThread(thread.id)}
+																className={cn(
+																	"flex items-center justify-between rounded-md px-3 py-2 w-full text-left transition-colors",
+																	isActive
+																		? "bg-[#267BF1]/10"
+																		: "hover:bg-[#17181A]",
+																)}
+															>
+																<div className="min-w-0 flex-1">
+																	<div className="text-sm font-medium truncate">
+																		{thread.title || "Untitled Chat"}
+																	</div>
+																	<div className="text-xs text-[#737373]">
+																		{formatRelativeTime(thread.updatedAt)}
+																	</div>
+																</div>
+																{confirmingDeleteId === thread.id ? (
+																	<div className="flex items-center gap-1 ml-2">
+																		<Button
+																			type="button"
+																			size="icon"
+																			onClick={(e) => {
+																				e.stopPropagation()
+																				deleteThread(thread.id)
+																			}}
+																			className="bg-red-500 text-white hover:bg-red-600 h-7 w-7"
+																		>
+																			<Check className="size-3" />
+																		</Button>
+																		<Button
+																			type="button"
+																			variant="ghost"
+																			size="icon"
+																			onClick={(e) => {
+																				e.stopPropagation()
+																				setConfirmingDeleteId(null)
+																			}}
+																			className="h-7 w-7"
+																		>
+																			<XIcon className="size-3 text-[#737373]" />
+																		</Button>
+																	</div>
+																) : (
+																	<Button
+																		type="button"
+																		variant="ghost"
+																		size="icon"
+																		onClick={(e) => {
+																			e.stopPropagation()
+																			setConfirmingDeleteId(thread.id)
+																		}}
+																		className="h-7 w-7 ml-2"
+																	>
+																		<Trash2 className="size-3 text-[#737373]" />
+																	</Button>
+																)}
+															</button>
+														)
+													})}
+												</div>
+											)}
+										</ScrollArea>
+										<Button
+											variant="outline"
+											className="w-full border-dashed border-[#73737333] bg-transparent hover:bg-[#17181A]"
+											onClick={() => {
+												handleNewChat()
+												setIsHistoryOpen(false)
+											}}
+										>
+											<Plus className="size-4 mr-1" /> New Conversation
+										</Button>
+									</DialogContent>
+								</Dialog>
 							)}
 							<Button
 								variant="headers"
@@ -526,6 +835,7 @@ export function ChatSidebar({
 								onSuggestionClick={(suggestion) => {
 									sendMessage({ text: suggestion })
 								}}
+								suggestions={emptyStateSuggestions}
 							/>
 						)}
 						<div

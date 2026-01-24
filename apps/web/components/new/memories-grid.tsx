@@ -3,14 +3,13 @@
 import { useAuth } from "@lib/auth-context"
 import { $fetch } from "@repo/lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
 import { SuperLoader } from "@/components/superloader"
 import { cn } from "@lib/utils"
-import { Button } from "@ui/components/button"
 import { useProject } from "@/stores"
 import { useIsMobile } from "@hooks/use-mobile"
 import type { Tweet } from "react-tweet/api"
@@ -24,6 +23,31 @@ import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { McpPreview } from "./document-cards/mcp-preview"
 import { getFaviconUrl } from "@/lib/url-helpers"
+import { QuickNoteCard } from "./quick-note-card"
+import { HighlightsCard, type HighlightItem } from "./highlights-card"
+import { Button } from "@ui/components/button"
+
+// Document category type
+type DocumentCategory =
+	| "webpage"
+	| "tweet"
+	| "google_drive"
+	| "notion"
+	| "onedrive"
+	| "files"
+	| "notes"
+	| "mcp"
+
+type DocumentFacet = {
+	category: DocumentCategory
+	count: number
+	label: string
+}
+
+type FacetsResponse = {
+	facets: DocumentFacet[]
+	total: number
+}
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -37,18 +61,65 @@ const IS_DEV = process.env.NODE_ENV === "development"
 const PAGE_SIZE = IS_DEV ? 100 : 100
 const MAX_TOTAL = 1000
 
+// Discriminated union for masonry items
+type MasonryItem =
+	| { type: "quick-note"; id: string }
+	| { type: "highlights-card"; id: string }
+	| { type: "highlights-card-spacer"; id: string }
+	| { type: "document"; id: string; data: DocumentWithMemories }
+
+interface QuickNoteProps {
+	onSave: (content: string) => void
+	onMaximize: (content: string) => void
+	isSaving: boolean
+}
+
+interface HighlightsProps {
+	items: HighlightItem[]
+	onChat: (seed: string) => void
+	onShowRelated: (query: string) => void
+	isLoading: boolean
+}
+
 interface MemoriesGridProps {
 	isChatOpen: boolean
 	onOpenDocument: (document: DocumentWithMemories) => void
+	quickNoteProps?: QuickNoteProps
+	highlightsProps?: HighlightsProps
 }
 
 export function MemoriesGrid({
 	isChatOpen,
 	onOpenDocument,
+	quickNoteProps,
+	highlightsProps,
 }: MemoriesGridProps) {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const isMobile = useIsMobile()
+	const [selectedCategories, setSelectedCategories] = useState<
+		DocumentCategory[]
+	>([])
+
+	const { data: facetsData } = useQuery({
+		queryKey: ["document-facets", selectedProject],
+		queryFn: async (): Promise<FacetsResponse> => {
+			const response = await $fetch("@post/documents/documents/facets", {
+				body: {
+					containerTags: selectedProject ? [selectedProject] : undefined,
+				},
+				disableValidation: true,
+			})
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to fetch facets")
+			}
+
+			return response.data as FacetsResponse
+		},
+		staleTime: 5 * 60 * 1000,
+		enabled: !!user,
+	})
 
 	const {
 		data,
@@ -58,7 +129,7 @@ export function MemoriesGrid({
 		hasNextPage,
 		fetchNextPage,
 	} = useInfiniteQuery<DocumentsResponse, Error>({
-		queryKey: ["documents-with-memories", selectedProject],
+		queryKey: ["documents-with-memories", selectedProject, selectedCategories],
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
 			const response = await $fetch("@post/documents/documents", {
@@ -68,6 +139,8 @@ export function MemoriesGrid({
 					sort: "createdAt",
 					order: "desc",
 					containerTags: selectedProject ? [selectedProject] : undefined,
+					categories:
+						selectedCategories.length > 0 ? selectedCategories : undefined,
 				},
 				disableValidation: true,
 			})
@@ -95,11 +168,57 @@ export function MemoriesGrid({
 		enabled: !!user,
 	})
 
+	const handleCategoryToggle = useCallback((category: DocumentCategory) => {
+		setSelectedCategories((prev) => {
+			if (prev.includes(category)) {
+				return prev.filter((c) => c !== category)
+			}
+			return [...prev, category]
+		})
+	}, [])
+
+	const handleSelectAll = useCallback(() => {
+		setSelectedCategories([])
+	}, [])
+
 	const documents = useMemo(() => {
 		return (
 			data?.pages.flatMap((p: DocumentsResponse) => p.documents ?? []) ?? []
 		)
 	}, [data])
+
+	const hasQuickNote = !!quickNoteProps
+	const hasHighlights = !!highlightsProps
+
+	const masonryItems: MasonryItem[] = useMemo(() => {
+		const items: MasonryItem[] = []
+
+		if (!isMobile) {
+			if (hasQuickNote) {
+				items.push({ type: "quick-note", id: "quick-note" })
+			}
+			if (hasHighlights) {
+				items.push({ type: "highlights-card", id: "highlights-card" })
+				// Add spacer to occupy the second column space for the 2-column highlights card
+				items.push({
+					type: "highlights-card-spacer",
+					id: "highlights-card-spacer",
+				})
+			}
+		}
+
+		for (const doc of documents) {
+			items.push({ type: "document", id: doc.id, data: doc })
+		}
+
+		return items
+	}, [documents, isMobile, hasQuickNote, hasHighlights])
+
+	// Stable key for Masonry based on document IDs, not item values
+	const masonryKey = useMemo(() => {
+		const docIds = documents.map((d) => d.id).join(",")
+		return `masonry-${documents.length}-${docIds}-${isChatOpen}-${hasQuickNote}-${hasHighlights}`
+	}, [documents, isChatOpen, hasQuickNote, hasHighlights])
 
 	const isLoadingMore = isFetchingNextPage
 
@@ -131,24 +250,61 @@ export function MemoriesGrid({
 		[onOpenDocument],
 	)
 
-	const renderDocumentCard = useCallback(
+	const renderMasonryItem = useCallback(
 		({
 			index,
 			data,
 			width,
 		}: {
 			index: number
-			data: DocumentWithMemories
+			data: MasonryItem
 			width: number
-		}) => (
-			<DocumentCard
-				index={index}
-				data={data}
-				width={width}
-				onClick={handleCardClick}
-			/>
-		),
-		[handleCardClick],
+		}) => {
+			if (data.type === "quick-note" && quickNoteProps) {
+				return (
+					<div className="p-2" style={{ width }}>
+						<QuickNoteCard {...quickNoteProps} />
+					</div>
+				)
+			}
+
+			if (data.type === "highlights-card" && highlightsProps) {
+				const doubleWidth = width * 2
+				const cardWidth = doubleWidth - 16
+				return (
+					<div className="p-2" style={{ width: doubleWidth }}>
+						<HighlightsCard {...highlightsProps} width={cardWidth} />
+					</div>
+				)
+			}
+
+			if (data.type === "highlights-card-spacer") {
+				return (
+					<div
+						style={{
+							width,
+							height: 220, // Approximate height of HighlightsCard
+							visibility: "hidden",
+							pointerEvents: "none",
+						}}
+					/>
+				)
+			}
+
+			if (data.type === "document") {
+				return (
+					<DocumentCard
+						index={index}
+						data={data.data}
+						width={width}
+						onClick={handleCardClick}
+					/>
+				)
+			}
+
+			return null
+		},
+		[handleCardClick, quickNoteProps, highlightsProps],
 	)
 
 	if (!user) {
@@ -163,15 +319,37 @@ export function MemoriesGrid({
 
 	return (
 		<div className="relative">
-			<Button
-				className={cn(
-					dmSansClassName(),
-					"rounded-full border border-[#161F2C] bg-[#0D121A] px-4 py-2 data-[state=active]:bg-[#00173C] data-[state=active]:border-[#2261CA33] mb-4",
-				)}
-				data-state="active"
-			>
-				All
-			</Button>
+			<div id="filter-pills" className="flex flex-wrap gap-1.5 mb-3">
+				<Button
+					className={cn(
+						dmSansClassName(),
+						"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+						selectedCategories.length === 0 &&
+							"bg-[#00173C] border-[#2261CA33]",
+					)}
+					onClick={handleSelectAll}
+				>
+					All
+					{facetsData?.total !== undefined && (
+						<span className="ml-1 text-[#737373]">({facetsData.total})</span>
+					)}
+				</Button>
+				{facetsData?.facets.map((facet: DocumentFacet) => (
+					<Button
+						key={facet.category}
+						className={cn(
+							dmSansClassName(),
+							"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+							selectedCategories.includes(facet.category) &&
+								"bg-[#00173C] border-[#2261CA33]",
+						)}
+						onClick={() => handleCategoryToggle(facet.category)}
+					>
+						{facet.label}
+						<span className="ml-1 text-[#737373]">({facet.count})</span>
+					</Button>
+				))}
+			</div>
 			{error ? (
 				<div className="h-full flex items-center justify-center p-4">
 					<div className="text-center text-muted-foreground">
@@ -191,9 +369,9 @@ export function MemoriesGrid({
 			) : (
 				<div className="h-full overflow-auto scrollbar-thin">
 					<Masonry
-						key={`masonry-${documents.length}-${documents.map((d) => d.id).join(",")}-${isChatOpen}`}
-						items={documents}
-						render={renderDocumentCard}
+						key={masonryKey}
+						items={masonryItems}
+						render={renderMasonryItem}
 						columnGutter={0}
 						rowGutter={0}
 						columnWidth={216}

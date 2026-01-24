@@ -20,6 +20,7 @@ export const searchMemoriesTool = (
 	})
 
 	const containerTags = getContainerTags(config)
+	const strict = config?.strict ?? false
 
 	return tool({
 		description: TOOL_DESCRIPTIONS.searchMemories,
@@ -27,16 +28,26 @@ export const searchMemoriesTool = (
 			informationToGet: z
 				.string()
 				.describe(PARAMETER_DESCRIPTIONS.informationToGet),
-			includeFullDocs: z
-				.boolean()
-				.optional()
-				.default(DEFAULT_VALUES.includeFullDocs)
-				.describe(PARAMETER_DESCRIPTIONS.includeFullDocs),
-			limit: z
-				.number()
-				.optional()
-				.default(DEFAULT_VALUES.limit)
-				.describe(PARAMETER_DESCRIPTIONS.limit),
+			includeFullDocs: strict
+				? z
+						.boolean()
+						.default(DEFAULT_VALUES.includeFullDocs)
+						.describe(PARAMETER_DESCRIPTIONS.includeFullDocs)
+				: z
+						.boolean()
+						.optional()
+						.default(DEFAULT_VALUES.includeFullDocs)
+						.describe(PARAMETER_DESCRIPTIONS.includeFullDocs),
+			limit: strict
+				? z
+						.number()
+						.default(DEFAULT_VALUES.limit)
+						.describe(PARAMETER_DESCRIPTIONS.limit)
+				: z
+						.number()
+						.optional()
+						.default(DEFAULT_VALUES.limit)
+						.describe(PARAMETER_DESCRIPTIONS.limit),
 		}),
 		execute: async ({
 			informationToGet,

@@ -37,6 +37,70 @@ function isPrivateHost(hostname: string): boolean {
 	return privateIpPatterns.some((pattern) => pattern.test(hostname))
 }
 
+// File extensions that are not HTML and can't be scraped for OG data
+const NON_HTML_EXTENSIONS = [
+	".pdf",
+	".doc",
+	".docx",
+	".xls",
+	".xlsx",
+	".ppt",
+	".pptx",
+	".zip",
+	".rar",
+	".7z",
+	".tar",
+	".gz",
+	".mp3",
+	".mp4",
+	".avi",
+	".mov",
+	".wmv",
+	".flv",
+	".webm",
+	".wav",
+	".ogg",
+	".jpg",
+	".jpeg",
+	".png",
+	".gif",
+	".webp",
+	".svg",
+	".ico",
+	".bmp",
+	".tiff",
+	".exe",
+	".dmg",
+	".iso",
+	".bin",
+]
+
+function isNonHtmlUrl(url: string): boolean {
+	try {
+		const urlObj = new URL(url)
+		const pathname = urlObj.pathname.toLowerCase()
+		return NON_HTML_EXTENSIONS.some((ext) => pathname.endsWith(ext))
+	} catch {
+		return false
+	}
+}
+
+function extractImageUrl(image: unknown): string | undefined {
+	if (!image) return undefined
+
+	if (typeof image === "string") {
+		return image
+	}
+
+	if (Array.isArray(image) && image.length > 0) {
+		const first = image[0]
+		if (first && typeof first === "object" && "url" in first) {
+			return String(first.url)
+		}
+	}
+	return ""
+}
+
 function extractMetaTag(html: string, patterns: RegExp[]): string {
 	for (const pattern of patterns) {
 		const match = html.match(pattern)
@@ -98,6 +162,19 @@ export async function GET(request: Request) {
 			return Response.json(
 				{ error: "Private/localhost URLs are not allowed" },
 				{ status: 400 },
+			)
+		}
+
+		// Skip OG scraping for non-HTML files (PDFs, images, etc.)
+		if (isNonHtmlUrl(trimmedUrl)) {
+			return Response.json(
+				{ title: "", description: "" },
+				{
+					headers: {
+						"Cache-Control":
+							"public, s-maxage=3600, stale-while-revalidate=86400",
+					},
+				},
 			)
 		}
 

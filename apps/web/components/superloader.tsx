@@ -44,17 +44,16 @@ export function SuperLoader({
 	const animateVariant = prefersReducedMotion ? "static" : "visible"
 
 	return (
-		<div
-			role="status"
+		<output
 			aria-label={label}
-			className={`inline-flex flex-col items-center gap-2 ${className}`}
+			className={`inline-flex flex-row items-center gap-2 ${className}`}
 			style={{ width: size + 10 }}
 		>
 			<motion.svg
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 21 21"
-				width={size}
-				height={size}
+				width={size * 0.5}
+				height={size * 0.5}
 				className={`shrink-0 ${colorClassName}`}
 			>
 				<title>Loading...</title>
@@ -93,6 +92,6 @@ export function SuperLoader({
 			>
 				{label}
 			</span>
-		</div>
+		</output>
 	)
 }

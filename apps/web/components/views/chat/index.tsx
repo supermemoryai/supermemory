@@ -17,6 +17,7 @@ import { useMemo, useState } from "react"
 import { analytics } from "@/lib/analytics"
 import { useChatOpen, usePersistentChat, useProject } from "@/stores"
 import { ChatMessages } from "./chat-messages"
+import { generateId } from "@lib/generate-id"
 
 export function ChatRewrite() {
 	const { setIsOpen } = useChatOpen()
@@ -34,7 +35,7 @@ export function ChatRewrite() {
 
 	function handleNewChat() {
 		analytics.newChatStarted()
-		const newId = crypto.randomUUID()
+		const newId = generateId()
 		setCurrentChatId(newId)
 		setIsDialogOpen(false)
 	}
