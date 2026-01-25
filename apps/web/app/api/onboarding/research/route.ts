@@ -7,11 +7,22 @@ interface ResearchRequest {
 	email?: string
 }
 
-// prompt to get user context from X/Twitter profile
-function finalPrompt(xUrl: string, userContext: string) {
+function extractHandle(url: string): string {
+	const cleaned = url
+		.toLowerCase()
+		.replace("https://x.com/", "")
+		.replace("https://twitter.com/", "")
+		.replace("http://x.com/", "")
+		.replace("http://twitter.com/", "")
+		.replace("@", "")
+
+	return (cleaned.split("/")[0] ?? cleaned).split("?")[0] ?? cleaned
+}
+
+function finalPrompt(handle: string, userContext: string) {
 	return `You are researching a user based on their X/Twitter profile to help personalize their experience.
 
-X/Twitter Profile URL: ${xUrl}${userContext}
+X Handle: @${handle}${userContext}
 
 Please analyze this X/Twitter profile and provide a comprehensive but concise summary of the user. Include:
 - Professional background and current role (if available)
@@ -29,18 +40,12 @@ export async function POST(req: Request) {
 
 		if (!xUrl?.trim()) {
 			return Response.json(
-				{ error: "X/Twitter URL is required" },
+				{ error: "X/Twitter URL or handle is required" },
 				{ status: 400 },
 			)
 		}
 
-		const lowerUrl = xUrl.toLowerCase()
-		if (!lowerUrl.includes("x.com") && !lowerUrl.includes("twitter.com")) {
-			return Response.json(
-				{ error: "URL must be an X/Twitter profile link" },
-				{ status: 400 },
-			)
-		}
+		const handle = extractHandle(xUrl)
 
 		const contextParts: string[] = []
 		if (name) contextParts.push(`Name: ${name}`)
@@ -51,29 +56,13 @@ export async function POST(req: Request) {
 				: ""
 
 		const { text } = await generateText({
-			model: xai("grok-4-1-fast-reasoning"),
-			prompt: finalPrompt(xUrl, userContext),
-			providerOptions: {
-				xai: {
-					searchParameters: {
-						mode: "on",
-						sources: [
-							{
-								type: "web",
-								safeSearch: true,
-							},
-							{
-								type: "x",
-								includedXHandles: [
-									lowerUrl
-										.replace("https://x.com/", "")
-										.replace("https://twitter.com/", ""),
-								],
-								postFavoriteCount: 10,
-							},
-						],
-					},
-				},
+			model: xai.responses("grok-4-fast"),
+			prompt: finalPrompt(handle, userContext),
+			tools: {
+				web_search: xai.tools.webSearch(),
+				x_search: xai.tools.xSearch({
+					allowedXHandles: [handle],
+				}),
 			},
 		})
 

@@ -15,6 +15,7 @@ import {
 	HelpCircle,
 	MenuIcon,
 	MessageCircleIcon,
+	RotateCcw,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -34,6 +35,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { SpaceSelector } from "./space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
+import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -53,6 +55,12 @@ export function Header({
 	const { switchProject } = useProjectMutations()
 	const router = useRouter()
 	const isMobile = useIsMobile()
+	const { resetOrgOnboarded } = useOrgOnboarding()
+
+	const handleTryOnboarding = () => {
+		resetOrgOnboarded()
+		router.push("/new/onboarding?step=input&flow=welcome")
+	}
 
 	const displayName =
 		user?.displayUsername ||
@@ -315,6 +323,13 @@ export function Header({
 							>
 								<Settings className="h-4 w-4 text-[#737373]" />
 								Settings
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={handleTryOnboarding}
+								className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+							>
+								<RotateCcw className="h-4 w-4 text-[#737373]" />
+								Restart Onboarding
 							</DropdownMenuItem>
 							<DropdownMenuSeparator className="bg-[#2E3033]" />
 							<DropdownMenuItem

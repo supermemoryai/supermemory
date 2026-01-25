@@ -6,7 +6,13 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
-import { PanelRightCloseIcon, SendIcon, CheckIcon, XIcon } from "lucide-react"
+import {
+	PanelRightCloseIcon,
+	SendIcon,
+	CheckIcon,
+	XIcon,
+	Loader2,
+} from "lucide-react"
 import { collectValidUrls } from "@/lib/url-helpers"
 import { $fetch } from "@lib/api"
 import { cn } from "@lib/utils"
@@ -61,10 +67,14 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		"correct" | "incorrect" | null
 	>(null)
 	const [isConfirmed, setIsConfirmed] = useState(false)
+	const [processingByUrl, setProcessingByUrl] = useState<Record<string, boolean>>(
+		{},
+	)
 	const displayedMemoriesRef = useRef<Set<string>>(new Set())
 	const contextInjectedRef = useRef(false)
 	const draftsBuiltRef = useRef(false)
 	const isProcessingRef = useRef(false)
+	const draftRequestIdRef = useRef(0)
 
 	const {
 		messages: chatMessages,
@@ -225,8 +235,26 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 
 		if (!hasContent) return
 
+		const requestId = ++draftRequestIdRef.current
+
 		setIsFetchingDrafts(true)
 		const drafts: DraftDoc[] = []
+
+		const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
+		const allProcessingUrls: string[] = [...urls]
+		if (formData.twitter) {
+			allProcessingUrls.push(formData.twitter)
+		}
+
+		if (allProcessingUrls.length > 0) {
+			setProcessingByUrl((prev) => {
+				const next = { ...prev }
+				for (const url of allProcessingUrls) {
+					next[url] = true
+				}
+				return next
+			})
+		}
 
 		try {
 			if (formData.description?.trim()) {
@@ -241,37 +269,66 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 				})
 			}
 
-			const urls = collectValidUrls(formData.linkedin, formData.otherLinks)
+			// Fetch each URL separately for per-link loading state
+			const linkPromises = urls.map(async (url) => {
+				try {
+					const response = await fetch("/api/onboarding/extract-content", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ urls: [url] }),
+					})
+					const data = await response.json()
+					return data.results?.[0] || null
+				} catch {
+					return null
+				} finally {
+					// Clear this URL's processing state
+					if (draftRequestIdRef.current === requestId) {
+						setProcessingByUrl((prev) => ({ ...prev, [url]: false }))
+					}
+				}
+			})
+
+			// Fetch X/Twitter research
+			const xResearchPromise = formData.twitter
+				? (async () => {
+						try {
+							const response = await fetch("/api/onboarding/research", {
+								method: "POST",
+								headers: { "Content-Type": "application/json" },
+								body: JSON.stringify({
+									xUrl: formData.twitter,
+									name: user?.name,
+									email: user?.email,
+								}),
+							})
+							if (!response.ok) return null
+							const data = await response.json()
+							return data?.text?.trim() || null
+						} catch {
+							return null
+						} finally {
+							// Clear twitter URL's processing state
+							if (draftRequestIdRef.current === requestId) {
+								setProcessingByUrl((prev) => ({
+									...prev,
+									[formData.twitter]: false,
+								}))
+							}
+						}
+					})()
+				: Promise.resolve(null)
 
 			const [exaResults, xResearchResult] = await Promise.all([
-				urls.length > 0
-					? fetch("/api/onboarding/extract-content", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({ urls }),
-						})
-							.then((r) => r.json())
-							.then((data) => data.results || [])
-							.catch(() => [])
-					: Promise.resolve([]),
-				formData.twitter
-					? fetch("/api/onboarding/research", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								xUrl: formData.twitter,
-								name: user?.name,
-								email: user?.email,
-							}),
-						})
-							.then((r) => (r.ok ? r.json() : null))
-							.then((data) => data?.text?.trim() || null)
-							.catch(() => null)
-					: Promise.resolve(null),
+				Promise.all(linkPromises),
+				xResearchPromise,
 			])
 
+			// Guard against stale request completing after a newer one
+			if (draftRequestIdRef.current !== requestId) return
+
 			for (const result of exaResults) {
-				if (result.text || result.description) {
+				if (result && (result.text || result.description)) {
 					drafts.push({
 						kind: "link",
 						content: result.text || result.description || "",
@@ -304,7 +361,9 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		} catch (error) {
 			console.warn("Error building draft docs:", error)
 		} finally {
-			setIsFetchingDrafts(false)
+			if (draftRequestIdRef.current === requestId) {
+				setIsFetchingDrafts(false)
+			}
 		}
 	}, [formData, user])
 
@@ -502,18 +561,23 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 										{msg.type === "formData" && (
 											<div className="bg-[#293952]/40 rounded-lg p-2 px-3 space-y-1 flex-1">
 												{msg.title && (
-													<h3
-														className="text-sm font-medium"
-														style={{
-															background:
-																"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
-															WebkitBackgroundClip: "text",
-															WebkitTextFillColor: "transparent",
-															backgroundClip: "text",
-														}}
-													>
-														{msg.title}
-													</h3>
+													<div className="flex items-center gap-2">
+														<h3
+															className="text-sm font-medium"
+															style={{
+																background:
+																	"linear-gradient(90deg, #369BFD 0%, #36FDFD 30%, #36FDB5 100%)",
+																WebkitBackgroundClip: "text",
+																WebkitTextFillColor: "transparent",
+																backgroundClip: "text",
+															}}
+														>
+															{msg.title}
+														</h3>
+														{msg.url && processingByUrl[msg.url] && (
+															<Loader2 className="h-3 w-3 animate-spin text-blue-400" />
+														)}
+													</div>
 												)}
 												{msg.url && (
 													<a
