@@ -35,9 +35,7 @@ export const useQuickNoteDraftStore = create<QuickNoteDraftState>()(
 )
 
 export function useQuickNoteDraft(projectId: string) {
-	const draft = useQuickNoteDraftStore(
-		(s) => s.draftByProject[projectId] ?? "",
-	)
+	const draft = useQuickNoteDraftStore((s) => s.draftByProject[projectId] ?? "")
 	const setDraft = useQuickNoteDraftStore((s) => s.setDraft)
 	const resetDraft = useQuickNoteDraftStore((s) => s.resetDraft)
 

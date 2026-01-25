@@ -16,7 +16,10 @@ import { useHotkeys } from "react-hotkeys-hook"
 import { AnimatePresence } from "motion/react"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useProject } from "@/stores"
-import { useQuickNoteDraftReset } from "@/stores/quick-note-draft"
+import {
+	useQuickNoteDraftReset,
+	useQuickNoteDraft,
+} from "@/stores/quick-note-draft"
 import { analytics } from "@/lib/analytics"
 import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import { useQuery } from "@tanstack/react-query"
@@ -42,6 +45,7 @@ export default function NewPage() {
 	const [searchPrefill, setSearchPrefill] = useState("")
 
 	const resetDraft = useQuickNoteDraftReset(selectedProject)
+	const { draft: quickNoteDraft } = useQuickNoteDraft(selectedProject || "")
 
 	const { noteMutation } = useDocumentMutations({
 		onClose: () => {
@@ -92,11 +96,15 @@ export default function NewPage() {
 	})
 	useHotkeys("mod+k", (e) => {
 		e.preventDefault()
+		analytics.searchOpened({ source: "hotkey" })
 		setIsSearchOpen(true)
 	})
 	const [isChatOpen, setIsChatOpen] = useState(!isMobile)
 
 	const handleOpenDocument = useCallback((document: DocumentWithMemories) => {
+		if (document.id) {
+			analytics.documentModalOpened({ document_id: document.id })
+		}
 		setSelectedDocument(document)
 		setIsDocumentModalOpen(true)
 	}, [])
@@ -104,28 +112,50 @@ export default function NewPage() {
 	const handleQuickNoteSave = useCallback(
 		(content: string) => {
 			if (content.trim()) {
-				noteMutation.mutate({ content, project: selectedProject })
+				const hadPreviousContent = quickNoteDraft.trim().length > 0
+				noteMutation.mutate(
+					{ content, project: selectedProject },
+					{
+						onSuccess: () => {
+							if (hadPreviousContent) {
+								analytics.quickNoteEdited()
+							} else {
+								analytics.quickNoteCreated()
+							}
+						},
+					},
+				)
 			}
 		},
-		[selectedProject, noteMutation],
+		[selectedProject, noteMutation, quickNoteDraft],
 	)
 
 	const handleFullScreenSave = useCallback(
 		(content: string) => {
 			if (content.trim()) {
-				noteMutation.mutate({ content, project: selectedProject })
+				const hadInitialContent = fullscreenInitialContent.trim().length > 0
+				noteMutation.mutate(
+					{ content, project: selectedProject },
+					{
+						onSuccess: () => {
+							if (hadInitialContent) {
+								analytics.quickNoteEdited()
+							} else {
+								analytics.quickNoteCreated()
+							}
+						},
+					},
+				)
 			}
 		},
-		[selectedProject, noteMutation],
+		[selectedProject, noteMutation, fullscreenInitialContent],
 	)
 
-	const handleMaximize = useCallback(
-		(content: string) => {
-			setFullscreenInitialContent(content)
-			setIsFullScreenNoteOpen(true)
-		},
-		[],
-	)
+	const handleMaximize = useCallback((content: string) => {
+		analytics.fullscreenNoteModalOpened()
+		setFullscreenInitialContent(content)
+		setIsFullScreenNoteOpen(true)
+	}, [])
 
 	const handleHighlightsChat = useCallback((seed: string) => {
 		setQueuedChatSeed(seed)
@@ -133,6 +163,7 @@ export default function NewPage() {
 	}, [])
 
 	const handleHighlightsShowRelated = useCallback((query: string) => {
+		analytics.searchOpened({ source: "highlight_related" })
 		setSearchPrefill(query)
 		setIsSearchOpen(true)
 	}, [])
@@ -154,7 +185,10 @@ export default function NewPage() {
 						setIsMCPModalOpen(true)
 					}}
 					onOpenChat={() => setIsChatOpen(true)}
-					onOpenSearch={() => setIsSearchOpen(true)}
+					onOpenSearch={() => {
+						analytics.searchOpened({ source: "header" })
+						setIsSearchOpen(true)
+					}}
 				/>
 				<main
 					key={`main-container-${isChatOpen}`}

@@ -13,6 +13,7 @@ import ConnectionsMCP from "@/components/new/settings/connections-mcp"
 import Support from "@/components/new/settings/support"
 import { useRouter } from "next/navigation"
 import { useIsMobile } from "@hooks/use-mobile"
+import { analytics } from "@/lib/analytics"
 
 const TABS = ["account", "integrations", "connections", "support"] as const
 type SettingsTab = (typeof TABS)[number]
@@ -158,6 +159,7 @@ export default function SettingsPage() {
 		const hash = window.location.hash
 		const tab = parseHashToTab(hash)
 		setActiveTab(tab)
+		analytics.settingsTabChanged({ tab })
 
 		// If no hash or invalid hash, push #account
 		if (!hash || !TABS.includes(hash.replace("#", "") as SettingsTab)) {
@@ -169,6 +171,7 @@ export default function SettingsPage() {
 		const handleHashChange = () => {
 			const tab = parseHashToTab(window.location.hash)
 			setActiveTab(tab)
+			analytics.settingsTabChanged({ tab })
 		}
 
 		window.addEventListener("hashchange", handleHashChange)
@@ -230,6 +233,7 @@ export default function SettingsPage() {
 									onClick={() => {
 										window.location.hash = item.id
 										setActiveTab(item.id)
+										analytics.settingsTabChanged({ tab: item.id })
 									}}
 									className={cn(
 										"rounded-xl transition-colors flex items-start gap-3 shrink-0",

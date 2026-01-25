@@ -283,6 +283,7 @@ export default function Integrations() {
 			"_blank",
 			"noopener,noreferrer",
 		)
+		analytics.onboardingChromeExtensionClicked({ source: "settings" })
 		analytics.extensionInstallClicked()
 	}
 
@@ -310,6 +311,7 @@ export default function Integrations() {
 
 	const handleRaycastInstall = () => {
 		window.open(RAYCAST_EXTENSION_URL, "_blank")
+		analytics.onboardingChromeExtensionClicked({ source: "settings" })
 		analytics.extensionInstallClicked()
 	}
 

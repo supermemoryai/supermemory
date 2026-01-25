@@ -1,8 +1,16 @@
 "use client"
 
-import { createContext, useContext, useCallback, type ReactNode } from "react"
+import {
+	createContext,
+	useContext,
+	useCallback,
+	useEffect,
+	useRef,
+	type ReactNode,
+} from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useOnboardingContext, type MemoryFormData } from "../layout"
+import { analytics } from "@/lib/analytics"
 
 export const SETUP_STEPS = ["relatable", "integrations"] as const
 export type SetupStep = (typeof SETUP_STEPS)[number]
@@ -34,9 +42,11 @@ export default function SetupLayout({ children }: { children: ReactNode }) {
 	const currentStep: SetupStep = SETUP_STEPS.includes(stepParam as SetupStep)
 		? (stepParam as SetupStep)
 		: "relatable"
+	const hasTrackedInitialStep = useRef(false)
 
 	const goToStep = useCallback(
 		(step: SetupStep) => {
+			analytics.onboardingStepViewed({ step, trigger: "user" })
 			router.push(`/new/onboarding/setup?step=${step}`)
 		},
 		[router],
@@ -53,6 +63,13 @@ export default function SetupLayout({ children }: { children: ReactNode }) {
 		resetOnboarding()
 		router.push("/new")
 	}, [router, resetOnboarding])
+
+	useEffect(() => {
+		if (!hasTrackedInitialStep.current) {
+			analytics.onboardingStepViewed({ step: currentStep, trigger: "user" })
+			hasTrackedInitialStep.current = true
+		}
+	}, [currentStep])
 
 	const contextValue: SetupContextValue = {
 		memoryFormData,

@@ -60,12 +60,12 @@ function CustomTweetHeader({
 				</div>
 				<div className="flex flex-col items-start">
 					<div className="flex gap-0.5 items-center">
-					<p
-						className={cn(
-							"font-semibold leading-tight overflow-hidden text-[#fafafa] text-[12px] truncate tracking-[-0.12px]",
-							dmSansClassName(),
-						)}
-					>
+						<p
+							className={cn(
+								"font-semibold leading-tight overflow-hidden text-[#fafafa] text-[12px] truncate tracking-[-0.12px]",
+								dmSansClassName(),
+							)}
+						>
 							{user.name}
 						</p>
 						{isVerified && <VerifiedBadge />}

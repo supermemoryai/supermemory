@@ -9,6 +9,7 @@ import { XIcon, Loader2 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
+import { analytics } from "@/lib/analytics"
 
 const EMOJI_LIST = [
 	"📁",
@@ -87,6 +88,7 @@ export function AddSpaceModal({
 			{ name: trimmedName, emoji: emoji || undefined },
 			{
 				onSuccess: () => {
+					analytics.spaceCreated()
 					handleClose()
 				},
 			},

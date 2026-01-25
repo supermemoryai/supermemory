@@ -6,6 +6,7 @@ import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
+import { analytics } from "@/lib/analytics"
 
 const relatableOptions = [
 	{
@@ -35,6 +36,10 @@ export function RelatableQuestion() {
 	const [selectedOptions, setSelectedOptions] = useState<number[]>([])
 
 	const handleContinueOrSkip = () => {
+		const selectedTexts = selectedOptions.map(
+			(idx) => relatableOptions[idx]?.text || "",
+		)
+		analytics.onboardingRelatableSelected({ options: selectedTexts })
 		router.push("/new/onboarding/setup?step=integrations")
 	}
 

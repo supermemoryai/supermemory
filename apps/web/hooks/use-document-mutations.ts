@@ -359,7 +359,8 @@ export function useDocumentMutations({
 
 			return response.data
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			analytics.documentEdited({ document_id: variables.documentId })
 			toast.success("Document saved successfully!")
 			queryClient.invalidateQueries({
 				queryKey: ["documents-with-memories"],
@@ -451,7 +452,8 @@ export function useDocumentMutations({
 				description: _error instanceof Error ? _error.message : "Unknown error",
 			})
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
+			analytics.documentDeleted({ document_id: variables.documentId })
 			toast.success("Document deleted successfully!")
 			queryClient.invalidateQueries({
 				queryKey: ["documents-with-memories"],

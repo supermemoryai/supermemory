@@ -6,6 +6,7 @@ import { Button } from "@ui/components/button"
 import { dmSansClassName } from "@/lib/fonts"
 import { ChevronDownIcon } from "lucide-react"
 import { models, type ModelId, modelNames } from "@/lib/models"
+import { analytics } from "@/lib/analytics"
 
 interface ChatModelSelectorProps {
 	selectedModel?: ModelId
@@ -28,6 +29,7 @@ export default function ChatModelSelector({
 		} else {
 			setInternalModel(modelId)
 		}
+		analytics.modelChanged({ model: modelId })
 		setIsOpen(false)
 	}
 

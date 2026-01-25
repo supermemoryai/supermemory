@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOnboardingStorage } from "@hooks/use-onboarding-storage"
+import { analytics } from "@/lib/analytics"
 
 const integrationCards = [
 	{
@@ -63,6 +64,7 @@ export function IntegrationsStep() {
 	const { markOnboardingCompleted } = useOnboardingStorage()
 
 	const handleContinue = () => {
+		analytics.onboardingCompleted()
 		markOnboardingCompleted()
 		router.push("/new")
 	}
@@ -108,11 +110,22 @@ export function IntegrationsStep() {
 								)}
 								onClick={() => {
 									if (card.title === "Capture") {
+										analytics.onboardingChromeExtensionClicked({
+											source: "onboarding",
+										})
 										window.open(
 											"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
 											"_blank",
 										)
 									} else {
+										analytics.onboardingIntegrationClicked({
+											integration: card.title,
+										})
+										if (card.title === "Connect to AI") {
+											analytics.onboardingMcpDetailOpened()
+										} else if (card.title === "Import") {
+											analytics.onboardingXBookmarksDetailOpened()
+										}
 										setSelectedCard(card.title)
 									}
 								}}

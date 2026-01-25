@@ -11,6 +11,7 @@ import {
 } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useOnboardingContext, type MemoryFormData } from "../layout"
+import { analytics } from "@/lib/analytics"
 
 export const WELCOME_STEPS = [
 	"input",
@@ -61,6 +62,7 @@ export default function WelcomeLayout({ children }: { children: ReactNode }) {
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [showWelcomeContent, setShowWelcomeContent] = useState(false)
 	const isMountedRef = useRef(true)
+	const hasTrackedInitialStep = useRef(false)
 
 	useEffect(() => {
 		isMountedRef.current = true
@@ -89,6 +91,7 @@ export default function WelcomeLayout({ children }: { children: ReactNode }) {
 			timers.push(
 				setTimeout(() => {
 					if (isMountedRef.current) {
+						analytics.onboardingStepViewed({ step: "welcome", trigger: "auto" })
 						router.replace("/new/onboarding/welcome?step=welcome")
 					}
 				}, 2000),
@@ -97,6 +100,10 @@ export default function WelcomeLayout({ children }: { children: ReactNode }) {
 			timers.push(
 				setTimeout(() => {
 					if (isMountedRef.current) {
+						analytics.onboardingStepViewed({
+							step: "username",
+							trigger: "auto",
+						})
 						router.replace("/new/onboarding/welcome?step=username")
 					}
 				}, 2000),
@@ -108,8 +115,19 @@ export default function WelcomeLayout({ children }: { children: ReactNode }) {
 		}
 	}, [currentStep, router])
 
+	useEffect(() => {
+		if (!hasTrackedInitialStep.current) {
+			analytics.onboardingStepViewed({
+				step: currentStep,
+				trigger: "user",
+			})
+			hasTrackedInitialStep.current = true
+		}
+	}, [currentStep])
+
 	const goToStep = useCallback(
 		(step: WelcomeStep) => {
+			analytics.onboardingStepViewed({ step, trigger: "user" })
 			router.push(`/new/onboarding/welcome?step=${step}`)
 		},
 		[router],

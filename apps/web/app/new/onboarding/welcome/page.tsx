@@ -19,6 +19,7 @@ import {
 } from "./layout"
 import { gapVariants, orbVariants } from "@/lib/variants"
 import { authClient } from "@lib/auth"
+import { analytics } from "@/lib/analytics"
 
 function UserSupermemory({ name }: { name: string }) {
 	return (
@@ -88,6 +89,7 @@ export default function WelcomePage() {
 				console.error("Failed to update displayUsername:", error)
 			}
 
+			analytics.onboardingNameSubmitted({ name_length: name.trim().length })
 			goToStep("greeting")
 			setIsSubmitting(false)
 		}

@@ -10,6 +10,7 @@ import {
 	toXProfileUrl,
 	toLinkedInProfileUrl,
 } from "@/lib/url-helpers"
+import { analytics } from "@/lib/analytics"
 
 interface ProfileStepProps {
 	onSubmit: (data: {
@@ -291,6 +292,12 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 							description: description,
 							otherLinks: otherLinks.filter((l) => l.trim()),
 						}
+						analytics.onboardingProfileSubmitted({
+							has_twitter: !!twitterHandle.trim(),
+							has_linkedin: !!linkedinProfile.trim(),
+							other_links_count: otherLinks.filter((l) => l.trim()).length,
+							description_length: description.trim().length,
+						})
 						onSubmit(formData)
 						router.push("/new/onboarding/setup?step=relatable")
 					}}

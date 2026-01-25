@@ -362,6 +362,7 @@ export function ChatSidebar({
 	const handleSend = () => {
 		if (!input.trim() || status === "submitted" || status === "streaming")
 			return
+		analytics.chatMessageSent({ source: "typed" })
 		sendMessage({ text: input })
 		setInput("")
 		scrollToBottom()
@@ -379,27 +380,50 @@ export function ChatSidebar({
 	}
 
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
+		analytics.chatMessageCopied({ message_id: messageId })
 		navigator.clipboard.writeText(text)
 		setCopiedMessageId(messageId)
 		setTimeout(() => setCopiedMessageId(null), 2000)
 	}, [])
 
-	const handleLikeMessage = useCallback((messageId: string) => {
-		setMessageFeedback((prev) => ({
-			...prev,
-			[messageId]: prev[messageId] === "like" ? null : "like",
-		}))
-	}, [])
+	const handleLikeMessage = useCallback(
+		(messageId: string) => {
+			const wasLiked = messageFeedback[messageId] === "like"
+			setMessageFeedback((prev) => ({
+				...prev,
+				[messageId]: prev[messageId] === "like" ? null : "like",
+			}))
+			if (!wasLiked) {
+				analytics.chatMessageLiked({ message_id: messageId })
+			}
+		},
+		[messageFeedback],
+	)
 
-	const handleDislikeMessage = useCallback((messageId: string) => {
-		setMessageFeedback((prev) => ({
-			...prev,
-			[messageId]: prev[messageId] === "dislike" ? null : "dislike",
-		}))
-	}, [])
+	const handleDislikeMessage = useCallback(
+		(messageId: string) => {
+			const wasDisliked = messageFeedback[messageId] === "dislike"
+			setMessageFeedback((prev) => ({
+				...prev,
+				[messageId]: prev[messageId] === "dislike" ? null : "dislike",
+			}))
+			if (!wasDisliked) {
+				analytics.chatMessageDisliked({ message_id: messageId })
+			}
+		},
+		[messageFeedback],
+	)
 
 	const handleToggleMemories = useCallback((messageId: string) => {
-		setExpandedMemories((prev) => (prev === messageId ? null : messageId))
+		setExpandedMemories((prev) => {
+			const isExpanding = prev !== messageId
+			if (isExpanding) {
+				analytics.chatMemoryExpanded({ message_id: messageId })
+			} else {
+				analytics.chatMemoryCollapsed({ message_id: messageId })
+			}
+			return prev === messageId ? null : messageId
+		})
 	}, [])
 
 	const handleNewChat = useCallback(() => {
@@ -454,6 +478,7 @@ export function ChatSidebar({
 					)
 					setMessages(uiMessages)
 					setConversation(threadId, uiMessages) // persist messages to store
+					analytics.chatThreadLoaded({ thread_id: threadId })
 					setIsHistoryOpen(false)
 					setConfirmingDeleteId(null)
 				}
@@ -472,6 +497,7 @@ export function ChatSidebar({
 					{ method: "DELETE", credentials: "include" },
 				)
 				if (response.ok) {
+					analytics.chatThreadDeleted({ thread_id: threadId })
 					setThreads((prev) => prev.filter((t) => t.id !== threadId))
 					if (currentChatId === threadId) {
 						handleNewChat()
@@ -524,6 +550,7 @@ export function ChatSidebar({
 			status !== "submitted" &&
 			status !== "streaming"
 		) {
+			analytics.chatMessageSent({ source: "highlight" })
 			sendMessage({ text: queuedMessage })
 			onConsumeQueuedMessage?.()
 		}
@@ -667,7 +694,8 @@ export function ChatSidebar({
 											variant="headers"
 											className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
 											style={{
-												boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+												boxShadow:
+													"1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
 											}}
 										>
 											<HistoryIcon className="size-4 text-[#737373]" />
@@ -833,6 +861,8 @@ export function ChatSidebar({
 						{messages.length === 0 && (
 							<ChatEmptyStatePlaceholder
 								onSuggestionClick={(suggestion) => {
+									analytics.chatSuggestedQuestionClicked()
+									analytics.chatMessageSent({ source: "suggested" })
 									sendMessage({ text: suggestion })
 								}}
 								suggestions={emptyStateSuggestions}
@@ -883,6 +913,10 @@ export function ChatSidebar({
 											onDislike={handleDislikeMessage}
 											onToggleMemories={handleToggleMemories}
 											onQuestionClick={(question) => {
+												analytics.chatFollowUpClicked({
+													thread_id: currentChatId || undefined,
+												})
+												analytics.chatMessageSent({ source: "follow_up" })
 												setInput(question)
 											}}
 										/>
