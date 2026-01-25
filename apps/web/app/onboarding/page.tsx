@@ -4,6 +4,7 @@ import { OnboardingProvider } from "./onboarding-context"
 import { OnboardingProgressBar } from "./progress-bar"
 import { redirect } from "next/navigation"
 import { OnboardingBackground } from "./onboarding-background"
+import { OnboardingWrapper } from "@/components/onboarding/onboarding-wrapper"
 import type { Metadata } from "next"
 export const metadata: Metadata = {
 	title: "Welcome to Supermemory",
@@ -16,11 +17,13 @@ export default function OnboardingPage() {
 	if (!session) redirect("/login")
 
 	return (
-		<OnboardingProvider>
-			<OnboardingProgressBar />
-			<OnboardingBackground>
-				<OnboardingForm />
-			</OnboardingBackground>
-		</OnboardingProvider>
+		<OnboardingWrapper>
+			<OnboardingProvider>
+				<OnboardingProgressBar />
+				<OnboardingBackground>
+					<OnboardingForm />
+				</OnboardingBackground>
+			</OnboardingProvider>
+		</OnboardingWrapper>
 	)
 }
