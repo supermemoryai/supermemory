@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Header } from "@/components/new/header"
 import { ChatSidebar } from "@/components/new/chat"
 import { MemoriesGrid } from "@/components/new/memories-grid"
@@ -100,6 +100,10 @@ export default function NewPage() {
 		setIsSearchOpen(true)
 	})
 	const [isChatOpen, setIsChatOpen] = useState(!isMobile)
+
+	useEffect(() => {
+		setIsChatOpen(!isMobile)
+	}, [isMobile])
 
 	const handleOpenDocument = useCallback((document: DocumentWithMemories) => {
 		if (document.id) {
