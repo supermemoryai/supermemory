@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useRouter } from "next/navigation"
+import { MobileBanner } from "@/components/new/mobile-banner"
 
 export default function NewLayout({ children }: { children: React.ReactNode }) {
 	const router = useRouter()
@@ -18,5 +19,10 @@ export default function NewLayout({ children }: { children: React.ReactNode }) {
 		return null
 	}
 
-	return <>{children}</>
+	return (
+		<>
+			<MobileBanner />
+			{children}
+		</>
+	)
 }

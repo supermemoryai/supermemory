@@ -15,6 +15,7 @@ import {
 	HelpCircle,
 	MenuIcon,
 	MessageCircleIcon,
+	RotateCcw,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -34,6 +35,9 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { SpaceSelector } from "./space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
+import { useOrgOnboarding } from "@hooks/use-org-onboarding"
+import { useState } from "react"
+import { FeedbackModal } from "./feedback-modal"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -53,6 +57,17 @@ export function Header({
 	const { switchProject } = useProjectMutations()
 	const router = useRouter()
 	const isMobile = useIsMobile()
+	const { resetOrgOnboarded } = useOrgOnboarding()
+	const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+
+	const handleTryOnboarding = () => {
+		resetOrgOnboarded()
+		router.push("/new/onboarding?step=input&flow=welcome")
+	}
+
+	const handleFeedback = () => {
+		setIsFeedbackOpen(true)
+	}
 
 	const displayName =
 		user?.displayUsername ||
@@ -214,6 +229,13 @@ export function Header({
 								</DropdownMenuItem>
 								<DropdownMenuSeparator className="bg-[#2E3033]" />
 								<DropdownMenuItem
+									onClick={handleFeedback}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<MessageCircleIcon className="h-4 w-4 text-[#737373]" />
+									Feedback
+								</DropdownMenuItem>
+								<DropdownMenuItem
 									onClick={() => router.push("/new/settings")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
@@ -275,6 +297,16 @@ export function Header({
 								<span className={cn(dmSansClassName())}>K</span>
 							</span>
 						</Button>
+						<Button
+							variant="headers"
+							className="rounded-full text-base gap-2 h-10!"
+							onClick={handleFeedback}
+						>
+							<div className="flex items-center gap-2">
+								<MessageCircleIcon className="size-4" />
+								Feedback
+							</div>
+						</Button>
 					</>
 				)}
 				{user && (
@@ -315,6 +347,13 @@ export function Header({
 							>
 								<Settings className="h-4 w-4 text-[#737373]" />
 								Settings
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={handleTryOnboarding}
+								className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+							>
+								<RotateCcw className="h-4 w-4 text-[#737373]" />
+								Restart Onboarding
 							</DropdownMenuItem>
 							<DropdownMenuSeparator className="bg-[#2E3033]" />
 							<DropdownMenuItem
@@ -361,6 +400,7 @@ export function Header({
 					</DropdownMenu>
 				)}
 			</div>
+			<FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
 		</div>
 	)
 }

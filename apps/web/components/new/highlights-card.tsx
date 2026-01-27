@@ -12,6 +12,7 @@ import {
 	Link2,
 } from "lucide-react"
 import { Logo } from "@ui/assets/Logo"
+import { analytics } from "@/lib/analytics"
 
 export type HighlightFormat = "paragraph" | "bullets" | "quote" | "one_liner"
 
@@ -83,12 +84,20 @@ export function HighlightsCard({
 
 	const handleChat = useCallback(() => {
 		if (!currentItem) return
+		analytics.highlightClicked({
+			highlight_id: currentItem.id,
+			action: "chat",
+		})
 		const seed = `Tell me more about "${currentItem.title}"`
 		onChat(seed)
 	}, [currentItem, onChat])
 
 	const handleShowRelated = useCallback(() => {
 		if (!currentItem) return
+		analytics.highlightClicked({
+			highlight_id: currentItem.id,
+			action: "related",
+		})
 		onShowRelated(currentItem.query || currentItem.title)
 	}, [currentItem, onShowRelated])
 

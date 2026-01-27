@@ -1,10 +1,11 @@
 "use client"
 
 import { useOnboardingStorage } from "@hooks/use-onboarding-storage"
+import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { useAuth } from "@lib/auth-context"
 import { ChevronsDown, LoaderIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { InstallPrompt } from "@/components/install-prompt"
 import { ChromeExtensionButton } from "@/components/chrome-extension-button"
 import { ChatInput } from "@/components/chat-input"
@@ -14,10 +15,36 @@ import { useFeatureFlagEnabled } from "posthog-js/react"
 
 export default function Page() {
 	const { user, session } = useAuth()
-	const { shouldShowOnboarding, isLoading: onboardingLoading } =
-		useOnboardingStorage()
 	const router = useRouter()
 	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
+
+	// TODO: remove this flow after the feature flag is removed
+	// Old app: localStorage-backed onboarding
+	const {
+		shouldShowOnboarding: shouldShowOldOnboarding,
+		isLoading: oldOnboardingLoading,
+	} = useOnboardingStorage()
+
+	// New app: DB-backed onboarding (org.metadata.isOnboarded)
+	const {
+		shouldShowOnboarding: shouldShowNewOnboarding,
+		isLoading: newOnboardingLoading,
+	} = useOrgOnboarding()
+
+	// Select the appropriate onboarding state based on feature flag
+	const isOnboardingLoading = useMemo(() => {
+		if (flagEnabled) {
+			return newOnboardingLoading
+		}
+		return oldOnboardingLoading
+	}, [flagEnabled, newOnboardingLoading, oldOnboardingLoading])
+
+	const shouldShowOnboarding = useMemo(() => {
+		if (flagEnabled) {
+			return shouldShowNewOnboarding()
+		}
+		return shouldShowOldOnboarding()
+	}, [flagEnabled, shouldShowNewOnboarding, shouldShowOldOnboarding])
 
 	useEffect(() => {
 		const url = new URL(window.location.href)
@@ -46,16 +73,16 @@ export default function Page() {
 	}, [user, session])
 
 	useEffect(() => {
-		if (user && !onboardingLoading && shouldShowOnboarding()) {
+		if (user && !isOnboardingLoading && shouldShowOnboarding) {
 			if (flagEnabled) {
 				router.push("/new/onboarding?step=input&flow=welcome")
 			} else {
 				router.push("/onboarding")
 			}
 		}
-	}, [user, shouldShowOnboarding, onboardingLoading, router, flagEnabled])
+	}, [user, shouldShowOnboarding, isOnboardingLoading, router, flagEnabled])
 
-	if (!user || onboardingLoading) {
+	if (!user || isOnboardingLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
 				<div className="flex flex-col items-center gap-4">
@@ -66,7 +93,7 @@ export default function Page() {
 		)
 	}
 
-	if (shouldShowOnboarding()) {
+	if (shouldShowOnboarding) {
 		return null
 	}
 

@@ -27,6 +27,7 @@ import {
 	SelectValue,
 } from "@repo/ui/components/select"
 import { Button } from "@repo/ui/components/button"
+import { analytics } from "@/lib/analytics"
 
 export interface SpaceSelectorProps {
 	value: string
@@ -98,6 +99,9 @@ export function SpaceSelector({
 	const selectedProjectEmoji = selectedProject.emoji || "📁"
 
 	const handleSelect = (containerTag: string) => {
+		if (containerTag !== value) {
+			analytics.spaceSwitched({ space_id: containerTag })
+		}
 		onValueChange(containerTag)
 		setIsOpen(false)
 	}

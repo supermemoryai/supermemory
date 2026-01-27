@@ -7,7 +7,8 @@ import { XBookmarksDetailView } from "@/components/new/onboarding/x-bookmarks-de
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { useOnboardingStorage } from "@hooks/use-onboarding-storage"
+import { useOrgOnboarding } from "@hooks/use-org-onboarding"
+import { analytics } from "@/lib/analytics"
 
 const integrationCards = [
 	{
@@ -60,10 +61,11 @@ const integrationCards = [
 export function IntegrationsStep() {
 	const router = useRouter()
 	const [selectedCard, setSelectedCard] = useState<string | null>(null)
-	const { markOnboardingCompleted } = useOnboardingStorage()
+	const { markOrgOnboarded } = useOrgOnboarding()
 
 	const handleContinue = () => {
-		markOnboardingCompleted()
+		markOrgOnboarded()
+		analytics.onboardingCompleted()
 		router.push("/new")
 	}
 
@@ -108,11 +110,22 @@ export function IntegrationsStep() {
 								)}
 								onClick={() => {
 									if (card.title === "Capture") {
+										analytics.onboardingChromeExtensionClicked({
+											source: "onboarding",
+										})
 										window.open(
 											"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
 											"_blank",
 										)
 									} else {
+										analytics.onboardingIntegrationClicked({
+											integration: card.title,
+										})
+										if (card.title === "Connect to AI") {
+											analytics.onboardingMcpDetailOpened()
+										} else if (card.title === "Import") {
+											analytics.onboardingXBookmarksDetailOpened()
+										}
 										setSelectedCard(card.title)
 									}
 								}}

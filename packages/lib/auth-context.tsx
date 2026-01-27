@@ -3,6 +3,7 @@
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useState,
@@ -17,6 +18,9 @@ interface AuthContextType {
 	user: SessionData["user"] | null
 	org: Organization | null
 	setActiveOrg: (orgSlug: string) => Promise<void>
+	updateOrgMetadata: (
+		partial: Record<string, unknown>,
+	) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,6 +38,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		})
 		setOrg(activeOrg)
 	}
+
+	const updateOrgMetadata = useCallback(
+		(partial: Record<string, unknown>) => {
+			setOrg((prev) => {
+				if (!prev) return prev
+				return {
+					...prev,
+					metadata: {
+						...prev.metadata,
+						...partial,
+					},
+				}
+			})
+		},
+		[],
+	)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ignoring the setActiveOrg dependency
 	useEffect(() => {
@@ -99,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				session: session?.session ?? null,
 				user: session?.user ?? null,
 				setActiveOrg,
+				updateOrgMetadata,
 			}}
 		>
 			{children}
