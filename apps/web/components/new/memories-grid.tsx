@@ -25,6 +25,7 @@ import { McpPreview } from "./document-cards/mcp-preview"
 import { getFaviconUrl } from "@/lib/url-helpers"
 import { QuickNoteCard } from "./quick-note-card"
 import { HighlightsCard, type HighlightItem } from "./highlights-card"
+import { GraphCard } from "./memory-graph"
 import { Button } from "@ui/components/button"
 
 // Document category type
@@ -65,7 +66,7 @@ const MAX_TOTAL = 1000
 type MasonryItem =
 	| { type: "quick-note"; id: string }
 	| { type: "highlights-card"; id: string }
-	| { type: "highlights-card-spacer"; id: string }
+	| { type: "graph-card"; id: string }
 	| { type: "document"; id: string; data: DocumentWithMemories }
 
 interface QuickNoteProps {
@@ -199,10 +200,10 @@ export function MemoriesGrid({
 			}
 			if (hasHighlights) {
 				items.push({ type: "highlights-card", id: "highlights-card" })
-				// Add spacer to occupy the second column space for the 2-column highlights card
+				// Add graph card to occupy the second column space (below quick note)
 				items.push({
-					type: "highlights-card-spacer",
-					id: "highlights-card-spacer",
+					type: "graph-card",
+					id: "graph-card",
 				})
 			}
 		}
@@ -278,16 +279,15 @@ export function MemoriesGrid({
 				)
 			}
 
-			if (data.type === "highlights-card-spacer") {
+			if (data.type === "graph-card") {
 				return (
-					<div
-						style={{
-							width,
-							height: 220, // Approximate height of HighlightsCard
-							visibility: "hidden",
-							pointerEvents: "none",
-						}}
-					/>
+					<div className="p-2" style={{ width }}>
+						<GraphCard
+							containerTags={selectedProject ? [selectedProject] : undefined}
+							width={width - 16}
+							height={220}
+						/>
+					</div>
 				)
 			}
 
@@ -304,7 +304,14 @@ export function MemoriesGrid({
 
 			return null
 		},
-		[handleCardClick, quickNoteProps, highlightsProps],
+		[
+			handleCardClick,
+			quickNoteProps,
+			highlightsProps,
+			documents,
+			isPending,
+			error,
+		],
 	)
 
 	if (!user) {

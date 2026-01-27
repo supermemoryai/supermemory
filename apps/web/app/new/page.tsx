@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { Header } from "@/components/new/header"
 import { ChatSidebar } from "@/components/new/chat"
 import { MemoriesGrid } from "@/components/new/memories-grid"
+import { GraphLayoutView } from "@/components/new/graph-layout-view"
 import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
 import { AddDocumentModal } from "@/components/new/add-document"
 import { MCPModal } from "@/components/new/mcp-modal"
@@ -25,6 +26,7 @@ import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import { useQuery } from "@tanstack/react-query"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
+import { useViewMode } from "@/lib/view-mode-context"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -32,6 +34,7 @@ type DocumentWithMemories = DocumentsResponse["documents"][0]
 export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { selectedProject } = useProject()
+	const { viewMode } = useViewMode()
 	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
 	const [isMCPModalOpen, setIsMCPModalOpen] = useState(false)
 	const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -195,26 +198,32 @@ export default function NewPage() {
 					}}
 				/>
 				<main
-					key={`main-container-${isChatOpen}`}
+					key={`main-container-${isChatOpen}-${viewMode}`}
 					className="z-10 flex flex-col md:flex-row relative"
 				>
-					<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
-						<MemoriesGrid
-							isChatOpen={isChatOpen}
-							onOpenDocument={handleOpenDocument}
-							quickNoteProps={{
-								onSave: handleQuickNoteSave,
-								onMaximize: handleMaximize,
-								isSaving: noteMutation.isPending,
-							}}
-							highlightsProps={{
-								items: highlightsData?.highlights || [],
-								onChat: handleHighlightsChat,
-								onShowRelated: handleHighlightsShowRelated,
-								isLoading: isLoadingHighlights,
-							}}
-						/>
-					</div>
+					{viewMode === "graph" && !isMobile ? (
+						<div className="flex-1">
+							<GraphLayoutView isChatOpen={isChatOpen} />
+						</div>
+					) : (
+						<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
+							<MemoriesGrid
+								isChatOpen={isChatOpen}
+								onOpenDocument={handleOpenDocument}
+								quickNoteProps={{
+									onSave: handleQuickNoteSave,
+									onMaximize: handleMaximize,
+									isSaving: noteMutation.isPending,
+								}}
+								highlightsProps={{
+									items: highlightsData?.highlights || [],
+									onChat: handleHighlightsChat,
+									onShowRelated: handleHighlightsShowRelated,
+									isLoading: isLoadingHighlights,
+								}}
+							/>
+						</div>
+					)}
 					<div className="hidden md:block md:sticky md:top-0 md:h-screen">
 						<AnimatePresence mode="popLayout">
 							<ChatSidebar

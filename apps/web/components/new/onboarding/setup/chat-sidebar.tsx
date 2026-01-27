@@ -67,9 +67,9 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		"correct" | "incorrect" | null
 	>(null)
 	const [isConfirmed, setIsConfirmed] = useState(false)
-	const [processingByUrl, setProcessingByUrl] = useState<Record<string, boolean>>(
-		{},
-	)
+	const [processingByUrl, setProcessingByUrl] = useState<
+		Record<string, boolean>
+	>({})
 	const displayedMemoriesRef = useRef<Set<string>>(new Set())
 	const contextInjectedRef = useRef(false)
 	const draftsBuiltRef = useRef(false)
