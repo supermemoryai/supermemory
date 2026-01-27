@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import type { UIMessage } from "@ai-sdk/react"
 import { motion, AnimatePresence } from "motion/react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -32,8 +33,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
-import { useProject, usePersistentChat } from "@/stores"
-import { areUIMessageArraysEqual } from "@/stores/chat"
+import { useProject } from "@/stores"
 import type { ModelId } from "@/lib/models"
 import { SuperLoader } from "../../superloader"
 import { UserMessage } from "./message/user-message"
@@ -135,23 +135,11 @@ export function ChatSidebar({
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
-	const {
-		currentChatId,
-		setCurrentChatId,
-		setConversation,
-		getCurrentConversation,
-	} = usePersistentChat()
-	const lastSavedMessagesRef = useRef<typeof messages | null>(null)
-	const lastSavedActiveIdRef = useRef<string | null>(null)
-	const lastLoadedChatIdRef = useRef<string | null>(null)
-	const lastLoadedMessagesRef = useRef<typeof messages | null>(null)
-
-	// Initialize chat ID if none exists
-	useEffect(() => {
-		if (!currentChatId) {
-			setCurrentChatId(generateId())
-		}
-	}, [currentChatId, setCurrentChatId])
+	const [currentChatId, setCurrentChatId] = useState<string>(() => generateId())
+	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
+		id: string
+		messages: UIMessage[]
+	} | null>(null)
 
 	// Adjust chat height based on scroll position (desktop only)
 	useEffect(() => {
@@ -195,58 +183,12 @@ export function ChatSidebar({
 		},
 	})
 
-	// Restore messages from store when currentChatId changes
 	useEffect(() => {
-		if (currentChatId !== lastLoadedChatIdRef.current) {
-			lastLoadedMessagesRef.current = null
-			lastSavedMessagesRef.current = null
+		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
+			setMessages(pendingThreadLoad.messages)
+			setPendingThreadLoad(null)
 		}
-
-		if (currentChatId === lastLoadedChatIdRef.current) {
-			return
-		}
-
-		const msgs = getCurrentConversation()
-
-		if (msgs && msgs.length > 0) {
-			const currentMessages = lastLoadedMessagesRef.current
-			if (!currentMessages || !areUIMessageArraysEqual(currentMessages, msgs)) {
-				lastLoadedMessagesRef.current = msgs
-				setMessages(msgs)
-			}
-		} else if (!currentChatId) {
-			if (
-				lastLoadedMessagesRef.current &&
-				lastLoadedMessagesRef.current.length > 0
-			) {
-				lastLoadedMessagesRef.current = []
-				setMessages([])
-			}
-		}
-
-		lastLoadedChatIdRef.current = currentChatId
-	}, [currentChatId, getCurrentConversation, setMessages])
-
-	// Persist messages to store whenever they change
-	useEffect(() => {
-		const activeId = currentChatId
-		if (!activeId || messages.length === 0) {
-			return
-		}
-
-		if (activeId !== lastSavedActiveIdRef.current) {
-			lastSavedMessagesRef.current = null
-			lastSavedActiveIdRef.current = activeId
-		}
-
-		const lastSaved = lastSavedMessagesRef.current
-		if (lastSaved && areUIMessageArraysEqual(lastSaved, messages)) {
-			return
-		}
-
-		lastSavedMessagesRef.current = messages
-		setConversation(activeId, messages)
-	}, [messages, currentChatId, setConversation])
+	}, [currentChatId, pendingThreadLoad, setMessages])
 
 	// Generate follow-up questions after assistant messages are complete
 	useEffect(() => {
@@ -432,7 +374,7 @@ export function ChatSidebar({
 		setCurrentChatId(newId)
 		setMessages([])
 		setInput("")
-	}, [setCurrentChatId, setMessages])
+	}, [setMessages])
 
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
@@ -452,42 +394,37 @@ export function ChatSidebar({
 		}
 	}, [selectedProject])
 
-	const loadThread = useCallback(
-		async (threadId: string) => {
-			try {
-				const response = await fetch(
-					`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${threadId}`,
-					{ credentials: "include" },
+	const loadThread = useCallback(async (threadId: string) => {
+		try {
+			const response = await fetch(
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${threadId}`,
+				{ credentials: "include" },
+			)
+			if (response.ok) {
+				const data = await response.json()
+				const uiMessages = data.messages.map(
+					(m: {
+						id: string
+						role: string
+						parts: unknown
+						createdAt: string
+					}) => ({
+						id: m.id,
+						role: m.role,
+						parts: m.parts || [],
+						createdAt: new Date(m.createdAt),
+					}),
 				)
-				if (response.ok) {
-					const data = await response.json()
-					setCurrentChatId(threadId)
-					// Convert API messages to UIMessage format
-					const uiMessages = data.messages.map(
-						(m: {
-							id: string
-							role: string
-							parts: unknown
-							createdAt: string
-						}) => ({
-							id: m.id,
-							role: m.role,
-							parts: m.parts || [],
-							createdAt: new Date(m.createdAt),
-						}),
-					)
-					setMessages(uiMessages)
-					setConversation(threadId, uiMessages) // persist messages to store
-					analytics.chatThreadLoaded({ thread_id: threadId })
-					setIsHistoryOpen(false)
-					setConfirmingDeleteId(null)
-				}
-			} catch (error) {
-				console.error("Failed to load thread:", error)
+				setCurrentChatId(threadId)
+				setPendingThreadLoad({ id: threadId, messages: uiMessages })
+				analytics.chatThreadLoaded({ thread_id: threadId })
+				setIsHistoryOpen(false)
+				setConfirmingDeleteId(null)
 			}
-		},
-		[setCurrentChatId, setMessages, setConversation],
-	)
+		} catch (error) {
+			console.error("Failed to load thread:", error)
+		}
+	}, [])
 
 	const deleteThread = useCallback(
 		async (threadId: string) => {
