@@ -131,17 +131,11 @@ const NavigationButtons = memo(function NavigationButtons({
 		onZoomOut()
 	}
 
-	const buttonClass = cn(
-		"flex flex-row items-center gap-2 px-3 py-2 rounded-lg",
-		"text-xs text-white/70 font-medium",
-		"transition-all duration-200",
-		"hover:bg-white/10 hover:text-white",
-	)
-
 	return (
 		<div className="flex flex-col gap-1">
 			{/* Fit button */}
-			<div
+			<button
+				type="button"
 				className="flex flex-row items-center justify-between px-3 py-2 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
 				onClick={onAutoFit}
 				style={{
@@ -152,10 +146,11 @@ const NavigationButtons = memo(function NavigationButtons({
 			>
 				<span className="text-xs text-white/70 font-medium">Fit</span>
 				<KeyboardShortcut keys="Z" />
-			</div>
+			</button>
 
 			{/* Center button */}
-			<div
+			<button
+				type="button"
 				className="flex flex-row items-center justify-between px-3 py-2 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
 				onClick={onCenter}
 				style={{
@@ -166,7 +161,7 @@ const NavigationButtons = memo(function NavigationButtons({
 			>
 				<span className="text-xs text-white/70 font-medium">Center</span>
 				<KeyboardShortcut keys="C" />
-			</div>
+			</button>
 
 			{/* Zoom controls */}
 			<div

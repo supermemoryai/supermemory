@@ -93,6 +93,7 @@ const HexagonIcon = memo(function HexagonIcon({
 			viewBox="0 0 12 12"
 			style={{ opacity }}
 			className="shrink-0"
+			aria-hidden="true"
 		>
 			<polygon
 				points="6,1.5 10.4,3.75 10.4,8.25 6,10.5 1.6,8.25 1.6,3.75"
@@ -129,7 +130,13 @@ const DocumentIcon = memo(function DocumentIcon() {
 // Connection icon (graph)
 const ConnectionIcon = memo(function ConnectionIcon() {
 	return (
-		<svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0">
+		<svg
+			width="12"
+			height="12"
+			viewBox="0 0 12 12"
+			className="shrink-0"
+			aria-hidden="true"
+		>
 			<circle cx="3" cy="3" r="1.5" fill="#90A2B9" />
 			<circle cx="9" cy="3" r="1.5" fill="#90A2B9" />
 			<circle cx="6" cy="9" r="1.5" fill="#90A2B9" />
@@ -250,11 +257,11 @@ const ToggleRow = memo(function ToggleRow({
 })
 
 export const Legend = memo(function Legend({
-	variant = "console",
+	variant: _variant = "console",
 	id,
 	nodes = [],
 	edges = [],
-	isLoading = false,
+	isLoading: _isLoading = false,
 }: ExtendedLegendProps) {
 	const isMobile = useIsMobile()
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -288,7 +295,7 @@ export const Legend = memo(function Legend({
 			}
 			setIsInitialized(true)
 		}
-	}, [isInitialized, isMobile])
+	}, [isInitialized])
 
 	// Save to cookie when state changes
 	const handleToggleExpanded = (expanded: boolean) => {
@@ -423,6 +430,7 @@ export const Legend = memo(function Legend({
 															height="12"
 															viewBox="0 0 12 12"
 															className="shrink-0"
+															aria-hidden="true"
 														>
 															<polygon
 																points="6,0 11.2,6 6,12 0.8,6"
@@ -445,6 +453,7 @@ export const Legend = memo(function Legend({
 															height="12"
 															viewBox="0 0 12 12"
 															className="shrink-0"
+															aria-hidden="true"
 														>
 															<polygon
 																points="6,0 11.2,6 6,12 0.8,6"
