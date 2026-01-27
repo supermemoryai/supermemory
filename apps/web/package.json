@@ -77,14 +77,14 @@
     "lucide-react": "^0.525.0",
     "masonic": "^4.1.0",
     "motion": "^12.26.2",
-    "next": "16.0.9",
+    "next": "^16.0.11",
     "next-themes": "^0.4.6",
     "nuqs": "^2.5.2",
     "pdfjs-dist": "5.4.296",
     "posthog-js": "^1.257.0",
     "random-word-slugs": "^0.1.7",
-    "react": "19.2.2",
-    "react-dom": "19.2.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "react-dropzone": "^14.3.8",
     "react-hotkeys-hook": "^5.2.1",
     "react-markdown": "^10.1.0",
@@ -108,14 +108,14 @@
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/is-hotkey": "^0.1.10",
     "@types/node": "^24.0.4",
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2",
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.8.3",
     "wrangler": "^4.26.0"
   },
   "overrides": {
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2"
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3"
   }
 }
