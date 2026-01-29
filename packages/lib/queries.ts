@@ -23,7 +23,7 @@ export const fetchSubscriptionStatus = (
 			await Promise.all(
 				allPlans.map(async (plan) => {
 					try {
-						const res = autumn.check({
+						const res = await autumn.check({
 							productId: plan,
 						})
 						const allowed = res.data?.allowed ?? false
