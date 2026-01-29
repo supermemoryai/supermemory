@@ -1,0 +1,113 @@
+---
+title: "Claude Code"
+sidebarTitle: "Claude Code"
+description: "Claude Code Supermemory Plugin — persistent memory across coding sessions"
+icon: "/images/claude-code-icon.svg"
+---
+
+<div className="w-1/2">
+  <img
+    src="/images/claude-code-supermemory.png"
+    alt="Claude Code + Supermemory"
+    className="rounded-lg shadow-lg"
+  />
+</div>
+
+[Claude-Supermemory](https://github.com/supermemoryai/claude-supermemory) is a Claude Code plugin that gives your AI persistent memory across sessions. Your agent remembers what you worked on — across sessions, across projects.
+
+## Get Your API Key
+
+Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page, then add it to your shell profile so it persists across sessions:
+
+<Tabs>
+  <Tab title="macOS / Linux (zsh)">
+    ```bash
+    echo 'export SUPERMEMORY_CC_API_KEY="sm_..."' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  </Tab>
+  <Tab title="macOS / Linux (bash)">
+    ```bash
+    echo 'export SUPERMEMORY_CC_API_KEY="sm_..."' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+  </Tab>
+  <Tab title="Windows (PowerShell)">
+    ```powershell
+    [System.Environment]::SetEnvironmentVariable("SUPERMEMORY_CC_API_KEY", "sm_...", "User")
+    ```
+    Restart your terminal after running this.
+  </Tab>
+</Tabs>
+
+## Install the Plugin
+
+```bash
+# Add the plugin marketplace
+/plugin marketplace add supermemoryai/claude-supermemory
+
+# Install the plugin
+/plugin install claude-supermemory
+```
+
+## How It Works
+
+Once installed, the plugin runs automatically:
+
+- **Context Injection** — On session start, relevant memories are fetched and injected into Claude's context. This includes user preferences, project knowledge, and past interactions.
+- **Auto-Capture** — Tool usage is captured and stored during the session for future context.
+
+### What Gets Captured
+
+| Tool  | Captured As                                         |
+| ----- | --------------------------------------------------- |
+| Edit  | `Edited src/auth.ts: "old code..." → "new code..."` |
+| Write | `Created src/new-file.ts (500 chars)`               |
+| Bash  | `Ran: npm test (SUCCESS/FAILED)`                    |
+| Task  | `Spawned agent: explore codebase`                   |
+
+## Commands
+
+### /claude-supermemory:logout
+
+Log out from Supermemory and clear saved credentials.
+
+```
+/claude-supermemory:logout
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+SUPERMEMORY_CC_API_KEY=sm_...         # Required
+SUPERMEMORY_SKIP_TOOLS=Read,Glob,Grep # Tools to not capture (optional)
+SUPERMEMORY_DEBUG=true                # Enable debug logging (optional)
+```
+
+### Settings File
+
+Create `~/.supermemory-claude/settings.json`:
+
+```json
+{
+  "skipTools": ["Read", "Glob", "Grep", "TodoWrite"],
+  "captureTools": ["Edit", "Write", "Bash", "Task"],
+  "maxContextMemories": 10,
+  "maxProjectMemories": 20,
+  "debug": false
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/supermemoryai/claude-supermemory">
+    Source code, issues, and detailed README.
+  </Card>
+
+  <Card title="ClawdBot Plugin" icon="shrimp" href="/integrations/clawdbot">
+    Multi-platform memory for Telegram, WhatsApp, Discord, and more.
+  </Card>
+</CardGroup>

@@ -183,7 +183,8 @@
 							{
 								"group": "Plugins",
 								"pages": [
-									"integrations/clawdbot"
+									"integrations/clawdbot",
+									"integrations/claude-code"
 								]
 							}
 						]
