@@ -1,9 +1,12 @@
 "use client"
 
-import { useChat, useCompletion, type UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
-import { DefaultChatTransport } from "ai"
+import {
+	useClaudeAgent,
+	generateChatTitle,
+} from "@/hooks/use-claude-agent"
+import type { AgentMessage, AgentMessagePart } from "@/lib/agent/types"
 import {
 	ArrowUp,
 	Check,
@@ -20,9 +23,8 @@ import { Streamdown } from "streamdown"
 import { TextShimmer } from "@/components/text-shimmer"
 import { usePersistentChat, useProject } from "@/stores"
 import { useGraphHighlights } from "@/stores/highlights"
-import { ModelIcon } from "@/lib/models"
+import { ModelIcon, type ModelId } from "@/lib/models"
 import { Spinner } from "../../spinner"
-import { areUIMessageArraysEqual } from "@/stores/chat"
 
 interface MemoryResult {
 	documentId?: string
@@ -57,6 +59,18 @@ interface ChatMessage {
 	id: string
 	role: "user" | "assistant"
 	parts: MessagePart[]
+}
+
+function areMessagesEqual(a: AgentMessage[], b: AgentMessage[]): boolean {
+	if (a === b) return true
+	if (a.length !== b.length) return false
+	for (let i = 0; i < a.length; i++) {
+		const msgA = a[i]
+		const msgB = b[i]
+		if (!msgA || !msgB) return false
+		if (msgA.id !== msgB.id) return false
+	}
+	return true
 }
 
 function ExpandableMemories({ foundCount, results }: ExpandableMemoriesProps) {
@@ -243,50 +257,58 @@ export function ChatMessages() {
 	const storageKey = `chat-model-${currentChatId}`
 
 	const [input, setInput] = useState("")
-	const [selectedModel, setSelectedModel] = useState<
-		"gpt-5" | "claude-sonnet-4.5" | "gemini-2.5-pro"
-	>("gemini-2.5-pro")
+	const [selectedModel, setSelectedModel] = useState<ModelId>("claude-sonnet-4.5")
 	const activeChatIdRef = useRef<string | null>(null)
 	const shouldGenerateTitleRef = useRef<boolean>(false)
 	const hasRunInitialMessageRef = useRef<boolean>(false)
-	const lastSavedMessagesRef = useRef<UIMessage[] | null>(null)
+	const lastSavedMessagesRef = useRef<AgentMessage[] | null>(null)
 	const lastSavedActiveIdRef = useRef<string | null>(null)
 	const lastLoadedChatIdRef = useRef<string | null>(null)
-	const lastLoadedMessagesRef = useRef<UIMessage[] | null>(null)
+	const lastLoadedMessagesRef = useRef<AgentMessage[] | null>(null)
 
 	const { setDocumentIds } = useGraphHighlights()
 
-	const { messages, sendMessage, status, stop, setMessages, id, regenerate } =
-		useChat({
-			id: currentChatId ?? undefined,
-			transport: new DefaultChatTransport({
-				api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`,
-				credentials: "include",
-				body: {
-					metadata: {
-						projectId: selectedProject,
-						model: selectedModel,
-						chatId: currentChatId,
-					},
-				},
-			}),
-			onFinish: (result) => {
-				const activeId = activeChatIdRef.current
-				if (!activeId) return
-				if (result.message.role !== "assistant") return
+	const { messages, sendMessage, status, stop, setMessages } = useClaudeAgent({
+		id: currentChatId ?? undefined,
+		metadata: {
+			projectId: selectedProject,
+			chatId: currentChatId ?? undefined,
+		},
+		onFinish: async (result) => {
+			const activeId = activeChatIdRef.current
+			if (!activeId) return
+			if (result.message.role !== "assistant") return
 
-				if (shouldGenerateTitleRef.current) {
-					const textPart = result.message.parts.find(
-						(p: { type?: string; text?: string }) => p?.type === "text",
-					) as { text?: string } | undefined
-					const text = textPart?.text?.trim()
-					if (text) {
-						shouldGenerateTitleRef.current = false
-						complete(text)
-					}
+			if (shouldGenerateTitleRef.current) {
+				const textPart = result.message.parts.find(
+					(p): p is { type: "text"; text: string } => p?.type === "text"
+				)
+				const text = textPart?.text?.trim()
+				if (text) {
+					shouldGenerateTitleRef.current = false
+					const allMessages = [...messages, result.message]
+					const recentMessages = allMessages.slice(-4).map((msg) => ({
+						role: msg.role,
+						content: msg.parts
+							.filter((p): p is { type: "text"; text: string } => p.type === "text")
+							.map((p) => p.text)
+							.join(" "),
+					}))
+					const title = await generateChatTitle(recentMessages)
+					setConversationTitle(activeId, title)
 				}
-			},
-		})
+			}
+		},
+	})
+
+	const id = currentChatId
+
+	const regenerate = useCallback(
+		(_options: { messageId: string }) => {
+			toast.info("Regenerate is not yet supported with Claude Agent SDK")
+		},
+		[]
+	)
 
 	useEffect(() => {
 		lastLoadedMessagesRef.current = messages
@@ -350,9 +372,10 @@ export function ChatMessages() {
 
 		if (msgs && msgs.length > 0) {
 			const currentMessages = lastLoadedMessagesRef.current
-			if (!currentMessages || !areUIMessageArraysEqual(currentMessages, msgs)) {
-				lastLoadedMessagesRef.current = msgs
-				setMessages(msgs)
+			const agentMsgs = msgs as unknown as AgentMessage[]
+			if (!currentMessages || !areMessagesEqual(currentMessages, agentMsgs)) {
+				lastLoadedMessagesRef.current = agentMsgs
+				setMessages(agentMsgs)
 			}
 		} else if (!currentChatId) {
 			if (
@@ -380,23 +403,14 @@ export function ChatMessages() {
 		}
 
 		const lastSaved = lastSavedMessagesRef.current
-		if (lastSaved && areUIMessageArraysEqual(lastSaved, messages)) {
+		if (lastSaved && areMessagesEqual(lastSaved, messages)) {
 			return
 		}
 
 		lastSavedMessagesRef.current = messages
-		setConversation(activeId, messages)
+		// Cast to unknown first to satisfy persistent chat store which uses UIMessage type
+		setConversation(activeId, messages as unknown as import("@ai-sdk/react").UIMessage[])
 	}, [messages, currentChatId, id, setConversation])
-
-	const { complete } = useCompletion({
-		api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/title`,
-		credentials: "include",
-		onFinish: (_, completion) => {
-			const activeId = activeChatIdRef.current
-			if (!completion || !activeId) return
-			setConversationTitle(activeId, completion.trim())
-		},
-	})
 
 	// Update graph highlights from the most recent tool-searchMemories output
 	useEffect(() => {
@@ -550,10 +564,8 @@ export function ChatMessages() {
 																"count" in output
 																	? Number(output.count) || 0
 																	: 0
-															// @ts-expect-error
 															const results = Array.isArray(output?.results)
-																? // @ts-expect-error
-																	output.results
+																? output.results
 																: []
 
 															return (

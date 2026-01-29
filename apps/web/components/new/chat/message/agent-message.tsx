@@ -1,13 +1,13 @@
 "use client"
 
-import type { UIMessage } from "@ai-sdk/react"
 import { Streamdown } from "streamdown"
 import { RelatedMemories } from "./related-memories"
 import { MessageActions } from "./message-actions"
 import { FollowUpQuestions } from "./follow-up-questions"
+import type { AgentMessage as AgentMessageType } from "@/lib/agent/types"
 
 interface AgentMessageProps {
-	message: UIMessage
+	message: AgentMessageType
 	index: number
 	messagesLength: number
 	hoveredMessageId: string | null
@@ -43,7 +43,7 @@ export function AgentMessage({
 		index === messagesLength - 1 && message.role === "assistant"
 	const isHovered = hoveredMessageId === message.id
 	const messageText = message.parts
-		.filter((part) => part.type === "text")
+		.filter((part): part is { type: "text"; text: string } => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
 

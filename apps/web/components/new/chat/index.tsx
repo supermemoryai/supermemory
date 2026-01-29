@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import type { UIMessage } from "@ai-sdk/react"
 import { motion, AnimatePresence } from "motion/react"
-import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
+import {
+	useClaudeAgent,
+	generateFollowUpQuestions,
+} from "@/hooks/use-claude-agent"
+import type { AgentMessage as AgentMessageType } from "@/lib/agent/types"
 import { Button } from "@ui/components/button"
 import {
 	Dialog,
@@ -32,9 +34,9 @@ import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
+import type { ModelId } from "@/lib/models"
 import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject } from "@/stores"
-import type { ModelId } from "@/lib/models"
 import { SuperLoader } from "../../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
@@ -108,7 +110,7 @@ export function ChatSidebar({
 }) {
 	const isMobile = useIsMobile()
 	const [input, setInput] = useState("")
-	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
+	const [selectedModel, setSelectedModel] = useState<ModelId>("claude-sonnet-4.5")
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -138,7 +140,7 @@ export function ChatSidebar({
 	const [currentChatId, setCurrentChatId] = useState<string>(() => generateId())
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
-		messages: UIMessage[]
+		messages: AgentMessageType[]
 	} | null>(null)
 
 	// Adjust chat height based on scroll position (desktop only)
@@ -159,24 +161,15 @@ export function ChatSidebar({
 		return () => window.removeEventListener("scroll", handleWindowScroll)
 	}, [isMobile])
 
-	const { messages, sendMessage, status, setMessages, stop } = useChat({
+	const { messages, sendMessage, status, setMessages, stop } = useClaudeAgent({
 		id: currentChatId ?? undefined,
-		transport: new DefaultChatTransport({
-			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
-			credentials: "include",
-			body: {
-				metadata: {
-					projectId: selectedProject,
-					model: selectedModel,
-					chatId: currentChatId,
-				},
-			},
-		}),
+		metadata: {
+			projectId: selectedProject,
+			chatId: currentChatId,
+		},
 		onFinish: async (result) => {
 			if (result.message.role !== "assistant") return
 
-			// Mark this message as needing follow-up generation
-			// We'll generate it after the message is fully in the messages array
 			if (result.message.id) {
 				pendingFollowUpGenerations.current.add(result.message.id)
 			}
@@ -229,38 +222,20 @@ export function ChatSidebar({
 				}))
 
 				try {
-					// Get recent messages for context
 					const recentMessages = messages.slice(-5).map((msg) => ({
 						role: msg.role,
 						content: msg.parts
-							.filter((p) => p.type === "text")
+							.filter((p): p is { type: "text"; text: string } => p.type === "text")
 							.map((p) => p.text)
 							.join(" "),
 					}))
 
-					const response = await fetch(
-						`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/follow-ups`,
-						{
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							credentials: "include",
-							body: JSON.stringify({
-								messages: recentMessages,
-								assistantResponse: assistantText,
-							}),
-						},
-					)
-
-					if (response.ok) {
-						const data = await response.json()
-						if (data.questions && Array.isArray(data.questions)) {
-							setFollowUpQuestions((prev) => ({
-								...prev,
-								[message.id]: data.questions,
-							}))
-						}
+					const questions = await generateFollowUpQuestions(recentMessages)
+					if (questions.length > 0) {
+						setFollowUpQuestions((prev) => ({
+							...prev,
+							[message.id]: questions,
+						}))
 					}
 				} catch (error) {
 					console.error("Failed to generate follow-up questions:", error)
@@ -402,21 +377,29 @@ export function ChatSidebar({
 			)
 			if (response.ok) {
 				const data = await response.json()
-				const uiMessages = data.messages.map(
+				const agentMessages: AgentMessageType[] = data.messages.map(
 					(m: {
 						id: string
 						role: string
-						parts: unknown
+						parts: Array<{ type: string; text?: string }>
 						createdAt: string
-					}) => ({
-						id: m.id,
-						role: m.role,
-						parts: m.parts || [],
-						createdAt: new Date(m.createdAt),
-					}),
+					}) => {
+						const textParts = (m.parts || []).filter(
+							(p): p is { type: "text"; text: string } =>
+								p.type === "text" && typeof p.text === "string"
+						)
+						const content = textParts.map((p) => p.text).join(" ")
+						return {
+							id: m.id,
+							role: m.role as "user" | "assistant",
+							content,
+							parts: m.parts || [],
+							createdAt: new Date(m.createdAt),
+						}
+					}
 				)
 				setCurrentChatId(threadId)
-				setPendingThreadLoad({ id: threadId, messages: uiMessages })
+				setPendingThreadLoad({ id: threadId, messages: agentMessages })
 				analytics.chatThreadLoaded({ thread_id: threadId })
 				setIsHistoryOpen(false)
 				setConfirmingDeleteId(null)

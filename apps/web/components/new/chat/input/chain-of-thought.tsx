@@ -1,16 +1,8 @@
 import { useAuth } from "@lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import type { UIMessage } from "@ai-sdk/react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-
-interface MemoryResult {
-	documentId?: string
-	title?: string
-	content?: string
-	url?: string
-	score?: number
-}
+import type { AgentMessage, MemoryResult } from "@/lib/agent/types"
 
 interface ReasoningStep {
 	type: string
@@ -18,13 +10,13 @@ interface ReasoningStep {
 	message: string
 }
 
-export function ChainOfThought({ messages }: { messages: UIMessage[] }) {
+export function ChainOfThought({ messages }: { messages: AgentMessage[] }) {
 	const { user } = useAuth()
 
 	// Group messages into user-assistant pairs
 	const messagePairs: Array<{
-		userMessage: UIMessage
-		agentMessage?: UIMessage
+		userMessage: AgentMessage
+		agentMessage?: AgentMessage
 	}> = []
 
 	for (let i = 0; i < messages.length; i++) {
@@ -46,9 +38,10 @@ export function ChainOfThought({ messages }: { messages: UIMessage[] }) {
 			<div className="absolute left-[11px] top-0 bottom-0 w-px bg-[#151F31] self-stretch mb-0 -z-10" />
 
 			{messagePairs.map((pair, pairIdx) => {
-				const userMessageText =
-					pair.userMessage.parts.find((part) => part.type === "text")?.text ??
-					""
+				const textPart = pair.userMessage.parts.find(
+					(part): part is { type: "text"; text: string } => part.type === "text"
+				)
+				const userMessageText = textPart?.text ?? ""
 
 				const reasoningSteps: ReasoningStep[] = []
 				if (pair.agentMessage) {

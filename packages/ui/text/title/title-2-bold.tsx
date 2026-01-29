@@ -1,14 +1,26 @@
 import { cn } from "@lib/utils";
-import { Root } from "@radix-ui/react-slot";
+import { Slot } from "@radix-ui/react-slot";
+
+const SlotComp = Slot as React.ComponentType<React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }>;
 
 export function Title2Bold({
 	className,
 	asChild,
 	...props
-}: React.ComponentProps<"h2"> & { asChild?: boolean }) {
-	const Comp = asChild ? Root : "h2";
+}: Omit<React.ComponentProps<"h2">, "ref"> & { asChild?: boolean }) {
+	if (asChild) {
+		return (
+			<SlotComp
+				className={cn(
+					"text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-[48px] tracking-[-0.4px]",
+					className,
+				)}
+				{...props}
+			/>
+		);
+	}
 	return (
-		<Comp
+		<h2
 			className={cn(
 				"text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold leading-[48px] tracking-[-0.4px]",
 				className,

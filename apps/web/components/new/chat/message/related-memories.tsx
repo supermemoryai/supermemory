@@ -1,18 +1,10 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
-import type { UIMessage } from "@ai-sdk/react"
 import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
-
-interface MemoryResult {
-	documentId?: string
-	title?: string
-	content?: string
-	url?: string
-	score?: number
-}
+import type { AgentMessage, MemoryResult } from "@/lib/agent/types"
 
 interface RelatedMemoriesProps {
-	message: UIMessage
+	message: AgentMessage
 	expandedMemories: string | null
 	onToggle: (messageId: string) => void
 }

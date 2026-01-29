@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { useClaudeAgent } from "@/hooks/use-claude-agent"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import {
@@ -80,17 +79,10 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 		messages: chatMessages,
 		sendMessage,
 		status,
-	} = useChat({
-		transport: new DefaultChatTransport({
-			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
-			credentials: "include",
-			body: {
-				metadata: {
-					projectId: selectedProject,
-					model: "gemini-2.5-pro",
-				},
-			},
-		}),
+	} = useClaudeAgent({
+		metadata: {
+			projectId: selectedProject,
+		},
 	})
 
 	const buildOnboardingContext = useCallback(() => {

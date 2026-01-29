@@ -1,14 +1,19 @@
 import { cn } from "@lib/utils";
-import { Root } from "@radix-ui/react-slot";
+import { Slot } from "@radix-ui/react-slot";
+import type * as React from "react";
+
+const SlotComp = Slot as React.ComponentType<React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }>;
 
 export function HeadingH4Medium({
 	className,
 	asChild,
 	...props
-}: React.ComponentProps<"h4"> & { asChild?: boolean }) {
-	const Comp = asChild ? Root : "h4";
+}: Omit<React.ComponentProps<"h4">, "ref"> & { asChild?: boolean }) {
+	if (asChild) {
+		return <SlotComp className={cn("text-[0.5rem] sm:text-[0.625rem] md:text-xs lg:text-sm font-medium leading-[24px] tracking-[-0.4px]", className)} {...props} />;
+	}
 	return (
-		<Comp
+		<h4
 			className={cn(
 				"text-[0.5rem] sm:text-[0.625rem] md:text-xs lg:text-sm font-medium leading-[24px] tracking-[-0.4px]",
 				className,

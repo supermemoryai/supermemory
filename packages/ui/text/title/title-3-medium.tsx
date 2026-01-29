@@ -1,14 +1,26 @@
 import { cn } from "@lib/utils";
-import { Root } from "@radix-ui/react-slot";
+import { Slot } from "@radix-ui/react-slot";
+
+const SlotComp = Slot as React.ComponentType<React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }>;
 
 export function Title3Medium({
 	className,
 	asChild,
 	...props
-}: React.ComponentProps<"h3"> & { asChild?: boolean }) {
-	const Comp = asChild ? Root : "h3";
+}: Omit<React.ComponentProps<"h3">, "ref"> & { asChild?: boolean }) {
+	if (asChild) {
+		return (
+			<SlotComp
+				className={cn(
+					"text-base sm:text-lg md:text-xl lg:text-2xl font-medium leading-[40px] tracking-[-0.4px]",
+					className,
+				)}
+				{...props}
+			/>
+		);
+	}
 	return (
-		<Comp
+		<h3
 			className={cn(
 				"text-base sm:text-lg md:text-xl lg:text-2xl font-medium leading-[40px] tracking-[-0.4px]",
 				className,

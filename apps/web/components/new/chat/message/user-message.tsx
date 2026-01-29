@@ -1,10 +1,10 @@
 "use client"
 
 import { Copy, Check } from "lucide-react"
-import type { UIMessage } from "@ai-sdk/react"
+import type { AgentMessage } from "@/lib/agent/types"
 
 interface UserMessageProps {
-	message: UIMessage
+	message: AgentMessage
 	copiedMessageId: string | null
 	onCopy: (messageId: string, text: string) => void
 }
@@ -15,7 +15,7 @@ export function UserMessage({
 	onCopy,
 }: UserMessageProps) {
 	const text = message.parts
-		.filter((part) => part.type === "text")
+		.filter((part): part is { type: "text"; text: string } => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
 
