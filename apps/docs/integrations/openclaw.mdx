@@ -1,11 +1,15 @@
 ---
-title: "ClawdBot"
-sidebarTitle: "ClawdBot"
-description: "ClawdBot Supermemory Plugin — works across Telegram, WhatsApp, Discord, Slack, and more"
-icon: "shrimp"
+title: "OpenClaw"
+sidebarTitle: "OpenClaw"
+description: "OpenClaw Supermemory Plugin — works across Telegram, WhatsApp, Discord, Slack, and more"
+icon: "/images/openclaw-logo.jpg"
 ---
 
-[ClawdBot](https://github.com/supermemoryai/clawdbot-supermemory) is a multi-platform AI messaging gateway that connects to WhatsApp, Telegram, Discord, Slack, iMessage, and other messaging channels. The Supermemory plugin gives ClawdBot memory across every channel.
+<Warning>
+This integration requires the **Supermemory Pro plan**. [Upgrade here](https://console.supermemory.ai/billing).
+</Warning>
+
+[OpenClaw](https://github.com/supermemoryai/openclaw-supermemory) is a multi-platform AI messaging gateway that connects to WhatsApp, Telegram, Discord, Slack, iMessage, and other messaging channels. The Supermemory plugin gives OpenClaw memory across every channel.
 
 ## Get Your API Key
 
@@ -14,19 +18,19 @@ Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/
 <Tabs>
   <Tab title="macOS / Linux (zsh)">
     ```bash
-    echo 'export SUPERMEMORY_CLAWDBOT_API_KEY="sm_..."' >> ~/.zshrc
+    echo 'export SUPERMEMORY_OPENCLAW_API_KEY="sm_..."' >> ~/.zshrc
     source ~/.zshrc
     ```
   </Tab>
   <Tab title="macOS / Linux (bash)">
     ```bash
-    echo 'export SUPERMEMORY_CLAWDBOT_API_KEY="sm_..."' >> ~/.bashrc
+    echo 'export SUPERMEMORY_OPENCLAW_API_KEY="sm_..."' >> ~/.bashrc
     source ~/.bashrc
     ```
   </Tab>
   <Tab title="Windows (PowerShell)">
     ```powershell
-    [System.Environment]::SetEnvironmentVariable("SUPERMEMORY_CLAWDBOT_API_KEY", "sm_...", "User")
+    [System.Environment]::SetEnvironmentVariable("SUPERMEMORY_OPENCLAW_API_KEY", "sm_...", "User")
     ```
     Restart your terminal after running this.
   </Tab>
@@ -35,10 +39,10 @@ Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/
 ## Install the Plugin
 
 ```bash
-clawdbot plugins install @supermemory/clawdbot-supermemory
+openclaw plugins install @supermemory/openclaw-supermemory
 ```
 
-Restart ClawdBot after installing.
+Restart OpenClaw after installing.
 
 ## How It Works
 
@@ -72,22 +76,22 @@ Users can interact with memory directly in chat:
 ### CLI Commands
 
 ```bash
-clawdbot supermemory search <query>    # Search memories from the terminal
-clawdbot supermemory profile           # View user profile
-clawdbot supermemory wipe              # Delete all memories (requires confirmation)
+openclaw supermemory search <query>    # Search memories from the terminal
+openclaw supermemory profile           # View user profile
+openclaw supermemory wipe              # Delete all memories (requires confirmation)
 ```
 
 ## Manual Configuration
 
 Optional — only needed if you prefer to set the API key directly in the config file instead of the environment variable.
 
-Add the plugin to your `clawdbot.json`:
+Add the plugin to your `openclaw.json`:
 
 ```json5
 {
   "plugins": {
     "entries": {
-      "clawdbot-supermemory": {
+      "openclaw-supermemory": {
         "enabled": true,
         "config": {
           "apiKey": "sm_..."
@@ -112,7 +116,7 @@ Add the plugin to your `clawdbot.json`:
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="GitHub Repository" icon="github" href="https://github.com/supermemoryai/clawdbot-supermemory">
+  <Card title="GitHub Repository" icon="github" href="https://github.com/supermemoryai/openclaw-supermemory">
     Source code, issues, and detailed README.
   </Card>
 

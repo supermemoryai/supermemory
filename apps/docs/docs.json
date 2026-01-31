@@ -170,7 +170,7 @@
 				"icon": "plug",
 				"anchors": [
 					{
-						"anchor": "Integrations",
+						"anchor": "API Integrations",
 						"pages": [
 							"integrations/supermemory-sdk",
 							"integrations/ai-sdk",
@@ -179,18 +179,25 @@
 							"integrations/claude-memory",
 							"integrations/pipecat",
 							"integrations/n8n",
-							"integrations/zapier",
-							{
-								"group": "Plugins",
-								"pages": [
-									"integrations/clawdbot",
-									"integrations/claude-code"
-								]
-							}
+							"integrations/zapier"
 						]
 					}
 				],
-				"tab": "Integrations"
+				"tab": "API Integrations"
+			},
+			{
+				"icon": "puzzle",
+				"anchors": [
+					{
+						"anchor": "Plugins",
+						"pages": [
+							"integrations/openclaw",
+							"integrations/claude-code",
+							"integrations/opencode"
+						]
+					}
+				],
+				"tab": "Plugins"
 			},
 			{
 				"icon": "book-open",
@@ -280,6 +287,11 @@
 		]
 	},
 	"redirects": [
+		{
+			"destination": "/integrations/openclaw",
+			"permanent": true,
+			"source": "/integrations/clawdbot"
+		},
 		{
 			"destination": "/intro",
 			"permanent": false,
