@@ -3,11 +3,7 @@
 	"api": {
 		"examples": {
 			"defaults": "required",
-			"languages": [
-				"javascript",
-				"python",
-				"curl"
-			]
+			"languages": ["javascript", "python", "curl"]
 		},
 		"openapi": "https://api.supermemory.ai/v3/openapi"
 	},
@@ -17,12 +13,7 @@
 		"primary": "#1E3A8A"
 	},
 	"contextual": {
-		"options": [
-			"copy",
-			"view",
-			"chatgpt",
-			"claude"
-		]
+		"options": ["copy", "view", "chatgpt", "claude"]
 	},
 	"favicon": "/favicon.png",
 	"fonts": {
@@ -79,11 +70,7 @@
 							{
 								"group": "Getting Started",
 								"icon": "rocket",
-								"pages": [
-									"intro",
-									"quickstart",
-									"vibe-coding"
-								]
+								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
 								"group": "Concepts",
@@ -109,10 +96,7 @@
 									{
 										"group": "Manage Content",
 										"icon": "folder-cog",
-										"pages": [
-											"document-operations",
-											"memory-operations"
-										]
+										"pages": ["document-operations", "memory-operations"]
 									},
 									"overview/use-cases"
 								]
@@ -146,10 +130,7 @@
 									{
 										"group": "From another provider",
 										"icon": "truck",
-										"pages": [
-											"migration/from-mem0",
-											"migration/from-zep"
-										]
+										"pages": ["migration/from-mem0", "migration/from-zep"]
 									}
 								]
 							}
@@ -158,10 +139,7 @@
 					{
 						"anchor": "Supermemory MCP",
 						"icon": "terminal",
-						"pages": [
-							"supermemory-mcp/mcp",
-							"supermemory-mcp/setup"
-						]
+						"pages": ["supermemory-mcp/mcp", "supermemory-mcp/setup"]
 					}
 				],
 				"tab": "Developer Platform"
@@ -175,6 +153,7 @@
 							"integrations/supermemory-sdk",
 							"integrations/ai-sdk",
 							"integrations/openai",
+							"integrations/langchain",
 							"integrations/memory-graph",
 							"integrations/claude-memory",
 							"integrations/pipecat",
@@ -221,10 +200,7 @@
 							"memorybench/github",
 							{
 								"group": "Getting Started",
-								"pages": [
-									"memorybench/installation",
-									"memorybench/quickstart"
-								]
+								"pages": ["memorybench/installation", "memorybench/quickstart"]
 							},
 							{
 								"group": "Development",
@@ -237,10 +213,7 @@
 							},
 							{
 								"group": "Reference",
-								"pages": [
-									"memorybench/cli",
-									"memorybench/integrations"
-								]
+								"pages": ["memorybench/cli", "memorybench/integrations"]
 							}
 						]
 					}
@@ -276,10 +249,7 @@
 				"anchors": [
 					{
 						"anchor": "Changelog",
-						"pages": [
-							"changelog/overview",
-							"changelog/developer-platform"
-						]
+						"pages": ["changelog/overview", "changelog/developer-platform"]
 					}
 				],
 				"tab": "Changelog"

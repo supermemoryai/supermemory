@@ -1,0 +1,388 @@
+---
+title: "LangChain"
+sidebarTitle: "LangChain"
+description: "Build AI agents with persistent memory using LangChain and Supermemory"
+icon: "link"
+---
+
+Build AI applications with LangChain that remember context across conversations. Supermemory handles memory storage, retrieval, and user profiling while LangChain manages your conversation flow.
+
+## Overview
+
+This guide shows how to integrate Supermemory with LangChain to create AI agents that:
+- Maintain user context through automatic profiling
+- Store and retrieve relevant memories semantically
+- Personalize responses based on conversation history
+
+## Setup
+
+Install the required packages:
+
+```bash
+pip install langchain langchain-openai supermemory python-dotenv
+```
+
+Configure your environment:
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+<Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
+
+## Basic Integration
+
+Initialize both clients and set up a simple chat function with memory:
+
+```python
+import os
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Initialize clients
+llm = ChatOpenAI(model="gpt-4o")
+memory = Supermemory()
+
+def chat(user_id: str, message: str) -> str:
+    # 1. Get user profile for context
+    profile_result = memory.profile(container_tag=user_id, q=message)
+
+    # 2. Build context from profile
+    static_facts = profile_result.profile.static or []
+    dynamic_context = profile_result.profile.dynamic or []
+    search_results = profile_result.search_results.results if profile_result.search_results else []
+
+    context = f"""
+User Background:
+{chr(10).join(static_facts) if static_facts else 'No profile yet.'}
+
+Recent Context:
+{chr(10).join(dynamic_context) if dynamic_context else 'No recent activity.'}
+
+Relevant Memories:
+{chr(10).join([r.memory or r.chunk for r in search_results]) if search_results else 'None found.'}
+"""
+
+    # 3. Generate response
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessage(content=f"You are a helpful assistant. Use this context to personalize your response:\n{context}"),
+        HumanMessage(content=message)
+    ])
+
+    chain = prompt | llm
+    response = chain.invoke({})
+
+    # 4. Store the interaction as memory
+    memory.add(
+        content=f"User: {message}\nAssistant: {response.content}",
+        container_tag=user_id
+    )
+
+    return response.content
+```
+
+---
+
+## Core Concepts
+
+### User Profiles
+
+Supermemory automatically maintains user profiles with two types of information:
+
+- **Static facts**: Long-term information about the user (preferences, expertise, background)
+- **Dynamic context**: Recent activity and current focus areas
+
+```python
+# Fetch profile with optional search
+result = memory.profile(
+    container_tag="user_123",
+    q="optional search query"  # Also returns relevant memories
+)
+
+print(result.profile.static)   # ["User is a Python developer", "Prefers dark mode"]
+print(result.profile.dynamic)  # ["Currently working on API integration", "Debugging auth issues"]
+```
+
+### Memory Storage
+
+Content you add is automatically processed into searchable memories:
+
+```python
+# Store a conversation
+memory.add(
+    content="User asked about async Python patterns. Explained asyncio basics.",
+    container_tag="user_123",
+    metadata={"topic": "python", "type": "conversation"}
+)
+
+# Store a document
+memory.add(
+    content="https://docs.python.org/3/library/asyncio.html",
+    container_tag="user_123"
+)
+```
+
+### Memory Search
+
+Search returns both extracted memories and document chunks:
+
+```python
+results = memory.search.memories(
+    q="async programming",
+    container_tag="user_123",
+    search_mode="hybrid",  # Searches memories + document chunks
+    limit=5
+)
+
+for r in results.results:
+    print(r.memory or r.chunk, r.similarity)
+```
+
+---
+
+## Complete Example: Code Review Assistant
+
+Here's a full example of a code review assistant that learns from past reviews and adapts to the user's coding style:
+
+```python
+import os
+from typing import Optional
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class CodeReviewAssistant:
+    def __init__(self):
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
+        self.memory = Supermemory()
+
+    def get_context(self, user_id: str, code: str) -> str:
+        """Retrieve user profile and relevant past reviews."""
+        # Get profile with search for similar code patterns
+        result = self.memory.profile(
+            container_tag=user_id,
+            q=code[:500],  # Use code snippet for semantic search
+            threshold=0.6
+        )
+
+        static = result.profile.static or []
+        dynamic = result.profile.dynamic or []
+        memories = result.search_results.results if result.search_results else []
+
+        return f"""
+## Developer Profile
+{chr(10).join(f"- {fact}" for fact in static) if static else "New developer, no profile yet."}
+
+## Current Focus
+{chr(10).join(f"- {ctx}" for ctx in dynamic) if dynamic else "No recent context."}
+
+## Relevant Past Reviews
+{chr(10).join(f"- {m.memory}" for m in memories[:3]) if memories else "No similar reviews found."}
+"""
+
+    def review(self, user_id: str, code: str, language: Optional[str] = None) -> str:
+        """Review code with personalized feedback."""
+        context = self.get_context(user_id, code)
+
+        prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content=f"""You are a code review assistant. Provide constructive feedback
+tailored to the developer's experience level and preferences.
+
+{context}
+
+Guidelines:
+- Reference past feedback when relevant patterns appear
+- Adapt explanation depth to the developer's expertise
+- Focus on issues that matter most to this developer"""),
+            HumanMessage(content=f"Review this {language or 'code'}:\n\n```\n{code}\n```")
+        ])
+
+        chain = prompt | self.llm
+        response = chain.invoke({})
+
+        # Store the review for future context
+        self.memory.add(
+            content=f"Code review feedback: {response.content[:500]}",
+            container_tag=user_id,
+            metadata={"type": "code_review", "language": language}
+        )
+
+        return response.content
+
+    def learn_preference(self, user_id: str, preference: str):
+        """Store a coding preference or style guideline."""
+        self.memory.add(
+            content=f"Developer preference: {preference}",
+            container_tag=user_id,
+            metadata={"type": "preference"}
+        )
+
+
+# Usage
+if __name__ == "__main__":
+    assistant = CodeReviewAssistant()
+    user_id = "dev_alice"
+
+    # Teach the assistant about preferences
+    assistant.learn_preference(user_id, "Prefers functional programming patterns")
+    assistant.learn_preference(user_id, "Values descriptive variable names over comments")
+
+    # Review some code
+    code = """
+def calc(x, y):
+    r = []
+    for i in x:
+        if i in y:
+            r.append(i)
+    return r
+    """
+
+    review = assistant.review(user_id, code, language="python")
+    print(review)
+```
+
+---
+
+## Advanced Patterns
+
+### Conversation History with Memory
+
+Maintain multi-turn conversations while building long-term memory:
+
+```python
+from langchain_core.messages import BaseMessage
+
+class ConversationalAgent:
+    def __init__(self, user_id: str):
+        self.user_id = user_id
+        self.llm = ChatOpenAI(model="gpt-4o")
+        self.memory = Supermemory()
+        self.messages: list[BaseMessage] = []
+
+    def _build_system_prompt(self, query: str) -> str:
+        """Build system prompt with user context."""
+        result = self.memory.profile(
+            container_tag=self.user_id,
+            q=query,
+            threshold=0.5
+        )
+
+        profile = result.profile
+        memories = result.search_results.results if result.search_results else []
+
+        return f"""You are a helpful assistant with memory of past conversations.
+
+About this user:
+{chr(10).join(profile.static) if profile.static else 'No profile yet.'}
+
+Current context:
+{chr(10).join(profile.dynamic) if profile.dynamic else 'No recent context.'}
+
+Relevant memories:
+{chr(10).join(m.memory or m.chunk for m in memories[:5]) if memories else 'None.'}
+
+Use this context to provide personalized, contextual responses."""
+
+    def chat(self, message: str) -> str:
+        """Process a message and return response."""
+        # Add user message to conversation
+        self.messages.append(HumanMessage(content=message))
+
+        # Build prompt with memory context
+        system = SystemMessage(content=self._build_system_prompt(message))
+
+        # Generate response
+        response = self.llm.invoke([system] + self.messages)
+        self.messages.append(response)
+
+        # Store interaction for long-term memory
+        self.memory.add(
+            content=f"User: {message}\nAssistant: {response.content}",
+            container_tag=self.user_id
+        )
+
+        return response.content
+
+    def clear_session(self):
+        """Clear conversation but keep long-term memory."""
+        self.messages = []
+```
+
+### Metadata Filtering
+
+Use metadata to organize and filter memories:
+
+```python
+# Store with metadata
+memory.add(
+    content="Discussed React hooks and state management",
+    container_tag="user_123",
+    metadata={
+        "topic": "react",
+        "type": "discussion",
+        "project": "frontend-redesign"
+    }
+)
+
+# Search with filters
+results = memory.search.memories(
+    q="state management",
+    container_tag="user_123",
+    filters={
+        "AND": [
+            {"key": "topic", "value": "react"},
+            {"key": "project", "value": "frontend-redesign"}
+        ]
+    }
+)
+```
+
+### Batch Memory Operations
+
+Efficiently store multiple memories:
+
+```python
+# Store meeting notes as separate memories
+notes = [
+    "Decided to use PostgreSQL for the new service",
+    "Timeline: MVP ready by end of Q2",
+    "Alice will lead the database migration"
+]
+
+for note in notes:
+    memory.add(
+        content=note,
+        container_tag="team_standup",
+        metadata={"date": "2024-01-15", "type": "decision"}
+    )
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="User Profiles" icon="user" href="/user-profiles">
+    Deep dive into automatic user profiling
+  </Card>
+  <Card title="Search API" icon="search" href="/search">
+    Advanced search patterns and filtering
+  </Card>
+  <Card title="OpenAI SDK" icon="robot" href="/integrations/openai">
+    Native OpenAI integration with memory tools
+  </Card>
+  <Card title="Vercel AI SDK" icon="triangle" href="/integrations/ai-sdk">
+    Memory middleware for Next.js apps
+  </Card>
+</CardGroup>
