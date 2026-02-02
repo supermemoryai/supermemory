@@ -154,6 +154,7 @@
 							"integrations/ai-sdk",
 							"integrations/openai",
 							"integrations/langchain",
+							"integrations/crewai",
 							"integrations/memory-graph",
 							"integrations/claude-memory",
 							"integrations/pipecat",
