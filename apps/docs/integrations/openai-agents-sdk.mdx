@@ -1,0 +1,433 @@
+---
+title: "OpenAI Agents SDK"
+sidebarTitle: "OpenAI Agents SDK"
+description: "Add persistent memory to OpenAI agents with Supermemory"
+icon: "/images/openai.svg"
+---
+
+OpenAI's Agents SDK gives you a straightforward way to build agents with tools, handoffs, and guardrails. But agents don't remember users between sessions. Supermemory adds that missing piece: your agents can store what they learn and recall it later.
+
+## What you can do
+
+- Pull user profiles and relevant memories before an agent runs
+- Store agent outputs and decisions for future sessions
+- Give agents tools to search and add memories on their own
+
+## Setup
+
+Install the packages:
+
+```bash
+pip install openai-agents supermemory python-dotenv
+```
+
+Set up your environment:
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+<Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
+
+## Basic integration
+
+The simplest approach: fetch user context and pass it in the agent's instructions.
+
+```python
+import os
+from agents import Agent, Runner
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+memory = Supermemory()
+
+def get_user_context(user_id: str, query: str) -> str:
+    """Fetch profile and relevant memories for a user."""
+    result = memory.profile(container_tag=user_id, q=query)
+
+    static = result.profile.static or []
+    dynamic = result.profile.dynamic or []
+    memories = result.search_results.results if result.search_results else []
+
+    return f"""
+User background:
+{chr(10).join(static) if static else 'No profile yet.'}
+
+Current focus:
+{chr(10).join(dynamic) if dynamic else 'No recent activity.'}
+
+Related memories:
+{chr(10).join([m.memory or m.chunk for m in memories[:5]]) if memories else 'None.'}
+"""
+
+def create_agent(user_id: str, task: str) -> Agent:
+    """Create an agent with user context in its instructions."""
+    context = get_user_context(user_id, task)
+
+    return Agent(
+        name="assistant",
+        instructions=f"""You are a helpful assistant.
+
+Here's what you know about this user:
+{context}
+
+Use this to personalize your responses.""",
+        model="gpt-4o"
+    )
+
+async def run_with_memory(user_id: str, message: str) -> str:
+    """Run an agent and store the interaction."""
+    agent = create_agent(user_id, message)
+    result = await Runner.run(agent, message)
+
+    # Save for next time
+    memory.add(
+        content=f"User asked: {message}\nResponse: {result.final_output}",
+        container_tag=user_id
+    )
+
+    return result.final_output
+```
+
+---
+
+## Core concepts
+
+### User profiles
+
+Supermemory keeps two buckets of user info:
+
+- **Static facts**: Stuff that doesn't change much (preferences, job, expertise)
+- **Dynamic context**: What they're working on right now
+
+```python
+result = memory.profile(
+    container_tag="user_123",
+    q="travel planning"  # Also searches for relevant memories
+)
+
+print(result.profile.static)   # ["Prefers window seats", "Vegetarian"]
+print(result.profile.dynamic)  # ["Planning trip to Japan", "Traveling in March"]
+```
+
+### Storing memories
+
+Save agent interactions so future sessions have context:
+
+```python
+def store_interaction(user_id: str, task: str, result: str):
+    memory.add(
+        content=f"Task: {task}\nOutcome: {result}",
+        container_tag=user_id,
+        metadata={"type": "agent_run"}
+    )
+```
+
+### Searching memories
+
+Look up past interactions before running an agent:
+
+```python
+results = memory.search.memories(
+    q="previous travel recommendations",
+    container_tag="user_123",
+    search_mode="hybrid",
+    limit=5
+)
+
+for r in results.results:
+    print(r.memory or r.chunk)
+```
+
+---
+
+## Adding memory tools to agents
+
+You can give agents direct access to memory operations. They'll decide when to search or store information.
+
+```python
+from agents import Agent, Runner, function_tool
+from supermemory import Supermemory
+
+memory = Supermemory()
+
+@function_tool
+def search_memories(query: str, user_id: str) -> str:
+    """Search the user's memories for relevant information.
+
+    Args:
+        query: What to search for
+        user_id: The user's identifier
+    """
+    results = memory.search.memories(
+        q=query,
+        container_tag=user_id,
+        limit=5
+    )
+
+    if not results.results:
+        return "No relevant memories found."
+
+    return "\n".join([
+        r.memory or r.chunk
+        for r in results.results
+    ])
+
+@function_tool
+def save_memory(content: str, user_id: str) -> str:
+    """Store something important about the user for later.
+
+    Args:
+        content: The information to remember
+        user_id: The user's identifier
+    """
+    memory.add(
+        content=content,
+        container_tag=user_id
+    )
+    return f"Saved: {content}"
+
+agent = Agent(
+    name="assistant",
+    instructions="""You are a helpful assistant with memory.
+
+When users share preferences or important information, save it.
+When they ask questions, search your memories first.""",
+    tools=[search_memories, save_memory],
+    model="gpt-4o"
+)
+```
+
+---
+
+## Example: support agent with memory
+
+A support agent that knows who it's talking to. Past tickets, account info, communication preferences - all available without the customer repeating themselves.
+
+```python
+import os
+from agents import Agent, Runner, function_tool
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class SupportAgent:
+    def __init__(self):
+        self.memory = Supermemory()
+
+    def get_customer_context(self, customer_id: str, issue: str) -> dict:
+        """Pull customer profile and past support interactions."""
+        result = self.memory.profile(
+            container_tag=customer_id,
+            q=issue,
+            threshold=0.5
+        )
+
+        return {
+            "profile": result.profile.static or [],
+            "recent": result.profile.dynamic or [],
+            "history": [m.memory for m in (result.search_results.results or [])[:3]]
+        }
+
+    def build_instructions(self, context: dict) -> str:
+        """Turn customer context into agent instructions."""
+        parts = ["You are a customer support agent."]
+
+        if context["profile"]:
+            parts.append(f"Customer info: {', '.join(context['profile'])}")
+
+        if context["recent"]:
+            parts.append(f"Recent activity: {', '.join(context['recent'])}")
+
+        if context["history"]:
+            parts.append(f"Past issues: {'; '.join(context['history'])}")
+
+        parts.append("Be helpful and reference past interactions when relevant.")
+
+        return "\n\n".join(parts)
+
+    @function_tool
+    def escalate_to_human(self, reason: str) -> str:
+        """Escalate the issue to a human agent.
+
+        Args:
+            reason: Why escalation is needed
+        """
+        return f"Escalated: {reason}. A human agent will follow up."
+
+    @function_tool
+    def check_order_status(self, order_id: str) -> str:
+        """Check the status of an order.
+
+        Args:
+            order_id: The order identifier
+        """
+        # In reality, this would call your order system
+        return f"Order {order_id}: Shipped, arriving Thursday"
+
+    def create_agent(self, context: dict) -> Agent:
+        return Agent(
+            name="support",
+            instructions=self.build_instructions(context),
+            tools=[self.escalate_to_human, self.check_order_status],
+            model="gpt-4o"
+        )
+
+    async def handle(self, customer_id: str, message: str) -> str:
+        """Handle a support request."""
+        context = self.get_customer_context(customer_id, message)
+        agent = self.create_agent(context)
+
+        result = await Runner.run(agent, message)
+
+        # Store the interaction
+        self.memory.add(
+            content=f"Support request: {message}\nResolution: {result.final_output}",
+            container_tag=customer_id,
+            metadata={"type": "support", "resolved": True}
+        )
+
+        return result.final_output
+
+
+async def main():
+    support = SupportAgent()
+
+    # Add some customer context
+    support.memory.add(
+        content="Premium customer since 2021. Prefers email communication.",
+        container_tag="customer_456"
+    )
+
+    response = await support.handle(
+        "customer_456",
+        "My order hasn't arrived yet. Order ID is ORD-789."
+    )
+    print(response)
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())
+```
+
+---
+
+## Multi-agent handoffs with shared memory
+
+Agents handing off to each other usually lose context. Not if they're sharing a memory store.
+
+```python
+from agents import Agent, Runner
+
+class AgentTeam:
+    def __init__(self, user_id: str):
+        self.user_id = user_id
+        self.memory = Supermemory()
+
+    def get_shared_context(self, topic: str) -> str:
+        """Get context that all agents can use."""
+        result = self.memory.profile(
+            container_tag=self.user_id,
+            q=topic
+        )
+
+        memories = result.search_results.results if result.search_results else []
+        return "\n".join([m.memory or m.chunk for m in memories[:5]])
+
+    def create_researcher(self) -> Agent:
+        context = self.get_shared_context("research preferences")
+        return Agent(
+            name="researcher",
+            instructions=f"""You research topics and gather information.
+
+User context: {context}""",
+            model="gpt-4o"
+        )
+
+    def create_writer(self) -> Agent:
+        context = self.get_shared_context("writing style preferences")
+        return Agent(
+            name="writer",
+            instructions=f"""You write clear, helpful content.
+
+User context: {context}""",
+            model="gpt-4o"
+        )
+
+    async def research_and_write(self, topic: str) -> str:
+        """Research a topic, then write about it."""
+        # Research phase
+        researcher = self.create_researcher()
+        research = await Runner.run(researcher, f"Research: {topic}")
+
+        # Store research for the writer
+        self.memory.add(
+            content=f"Research on {topic}: {research.final_output[:500]}",
+            container_tag=self.user_id,
+            metadata={"type": "research", "topic": topic}
+        )
+
+        # Writing phase
+        writer = self.create_writer()
+        article = await Runner.run(
+            writer,
+            f"Write about {topic} using this research:\n{research.final_output}"
+        )
+
+        return article.final_output
+```
+
+---
+
+## Metadata for filtering
+
+Tags let you narrow down searches later:
+
+```python
+# Store with metadata
+memory.add(
+    content="User prefers detailed technical explanations",
+    container_tag="user_123",
+    metadata={
+        "type": "preference",
+        "category": "communication_style",
+        "source": "support_chat"
+    }
+)
+
+# Search with filters
+results = memory.search.memories(
+    q="communication preferences",
+    container_tag="user_123",
+    filters={
+        "AND": [
+            {"key": "type", "value": "preference"},
+            {"key": "category", "value": "communication_style"}
+        ]
+    }
+)
+```
+
+---
+
+## Related docs
+
+<CardGroup cols={2}>
+  <Card title="User profiles" icon="user" href="/user-profiles">
+    How automatic profiling works
+  </Card>
+  <Card title="Search" icon="search" href="/search">
+    Filtering and search modes
+  </Card>
+  <Card title="OpenAI SDK" icon="message-bot" href="/integrations/openai">
+    Function calling with the regular OpenAI SDK
+  </Card>
+  <Card title="LangChain" icon="link" href="/integrations/langchain">
+    Memory for LangChain apps
+  </Card>
+</CardGroup>
