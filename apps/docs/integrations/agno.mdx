@@ -1,0 +1,383 @@
+---
+title: "Agno"
+sidebarTitle: "Agno"
+description: "Add persistent memory to Agno agents with Supermemory"
+icon: "brain"
+---
+
+Agno agents are stateless by default. Each conversation starts fresh. Supermemory changes that - your agents can remember users, recall past conversations, and build on previous interactions.
+
+## What you can do
+
+- Give agents access to user profiles and conversation history
+- Store agent interactions for future sessions
+- Let agents search memories to answer questions with context
+
+## Setup
+
+Install the packages:
+
+```bash
+pip install agno supermemory python-dotenv
+```
+
+Set up your environment:
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+<Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
+
+## Basic integration
+
+Fetch user context before running an agent, then store the interaction after.
+
+```python
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+memory = Supermemory()
+
+def get_user_context(user_id: str, query: str) -> str:
+    """Pull user profile and relevant memories."""
+    result = memory.profile(container_tag=user_id, q=query)
+
+    static = result.profile.static or []
+    dynamic = result.profile.dynamic or []
+    memories = result.search_results.results if result.search_results else []
+
+    return f"""
+User background:
+{chr(10).join(static) if static else 'No profile yet.'}
+
+Recent activity:
+{chr(10).join(dynamic) if dynamic else 'Nothing recent.'}
+
+Related memories:
+{chr(10).join([m.memory or m.chunk for m in memories[:5]]) if memories else 'None.'}
+"""
+
+def create_agent(user_id: str, task: str) -> Agent:
+    """Create an agent with user context."""
+    context = get_user_context(user_id, task)
+
+    return Agent(
+        name="assistant",
+        model=OpenAIChat(id="gpt-4o"),
+        description=f"""You are a helpful assistant.
+
+Here's what you know about this user:
+{context}
+
+Use this to personalize your responses.""",
+        markdown=True
+    )
+
+def chat(user_id: str, message: str) -> str:
+    """Run the agent and store the interaction."""
+    agent = create_agent(user_id, message)
+    response = agent.run(message)
+
+    # Save for next time
+    memory.add(
+        content=f"User: {message}\nAssistant: {response.content}",
+        container_tag=user_id
+    )
+
+    return response.content
+```
+
+---
+
+## Core concepts
+
+### User profiles
+
+Supermemory keeps two buckets of user info:
+
+- **Static facts**: Things that stay consistent (name, preferences, expertise)
+- **Dynamic context**: What they're focused on lately
+
+```python
+result = memory.profile(
+    container_tag="user_123",
+    q="cooking help"  # Also returns relevant memories
+)
+
+print(result.profile.static)   # ["Vegetarian", "Allergic to nuts"]
+print(result.profile.dynamic)  # ["Learning Italian cuisine", "Meal prepping"]
+```
+
+### Storing memories
+
+Save interactions so future sessions have context:
+
+```python
+def store_chat(user_id: str, user_msg: str, agent_response: str):
+    memory.add(
+        content=f"User asked: {user_msg}\nAgent said: {agent_response}",
+        container_tag=user_id,
+        metadata={"type": "conversation"}
+    )
+```
+
+### Searching memories
+
+Look up past interactions:
+
+```python
+results = memory.search.memories(
+    q="pasta recipes we discussed",
+    container_tag="user_123",
+    search_mode="hybrid",
+    limit=5
+)
+
+for r in results.results:
+    print(r.memory or r.chunk)
+```
+
+---
+
+## Example: personal assistant with memory
+
+An assistant that actually knows who it's talking to. Preferences stick around. Past conversations inform new ones.
+
+```python
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class PersonalAssistant:
+    def __init__(self):
+        self.memory = Supermemory()
+
+    def get_context(self, user_id: str, query: str) -> dict:
+        """Fetch user profile and relevant history."""
+        result = self.memory.profile(
+            container_tag=user_id,
+            q=query,
+            threshold=0.5
+        )
+
+        return {
+            "profile": result.profile.static or [],
+            "recent": result.profile.dynamic or [],
+            "history": [m.memory for m in (result.search_results.results or [])[:3]]
+        }
+
+    def build_description(self, context: dict) -> str:
+        """Turn context into agent description."""
+        parts = ["You are a helpful personal assistant."]
+
+        if context["profile"]:
+            parts.append(f"About this user: {', '.join(context['profile'])}")
+
+        if context["recent"]:
+            parts.append(f"They're currently: {', '.join(context['recent'])}")
+
+        if context["history"]:
+            parts.append(f"Past conversations: {'; '.join(context['history'])}")
+
+        parts.append("Reference what you know about them when relevant.")
+
+        return "\n\n".join(parts)
+
+    def create_agent(self, context: dict) -> Agent:
+        return Agent(
+            name="assistant",
+            model=OpenAIChat(id="gpt-4o"),
+            description=self.build_description(context),
+            markdown=True
+        )
+
+    def chat(self, user_id: str, message: str) -> str:
+        """Handle a message and remember the interaction."""
+        context = self.get_context(user_id, message)
+        agent = self.create_agent(context)
+
+        response = agent.run(message)
+
+        # Store for future sessions
+        self.memory.add(
+            content=f"User: {message}\nAssistant: {response.content}",
+            container_tag=user_id,
+            metadata={"type": "chat"}
+        )
+
+        return response.content
+
+    def teach(self, user_id: str, fact: str):
+        """Store a preference or fact about the user."""
+        self.memory.add(
+            content=fact,
+            container_tag=user_id,
+            metadata={"type": "preference"}
+        )
+
+
+if __name__ == "__main__":
+    assistant = PersonalAssistant()
+
+    # Teach it some preferences
+    assistant.teach("user_1", "Prefers concise answers")
+    assistant.teach("user_1", "Works in software engineering")
+
+    # Chat
+    response = assistant.chat("user_1", "What's a good way to learn Rust?")
+    print(response)
+```
+
+---
+
+## Using Agno tools with memory
+
+Give your agent tools that can search and store memories directly.
+
+```python
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
+from agno.tools import tool
+from supermemory import Supermemory
+
+memory = Supermemory()
+
+@tool
+def search_memory(query: str, user_id: str) -> str:
+    """Search for information in the user's memory.
+
+    Args:
+        query: What to look for
+        user_id: The user's ID
+    """
+    results = memory.search.memories(
+        q=query,
+        container_tag=user_id,
+        limit=5
+    )
+
+    if not results.results:
+        return "Nothing relevant found in memory."
+
+    return "\n".join([r.memory or r.chunk for r in results.results])
+
+@tool
+def remember(content: str, user_id: str) -> str:
+    """Store something important about the user.
+
+    Args:
+        content: What to remember
+        user_id: The user's ID
+    """
+    memory.add(content=content, container_tag=user_id)
+    return f"Remembered: {content}"
+
+agent = Agent(
+    name="memory_agent",
+    model=OpenAIChat(id="gpt-4o"),
+    tools=[search_memory, remember],
+    description="""You are an assistant with memory.
+
+When users share preferences or important info, use the remember tool.
+When they ask about past conversations, search your memory first.""",
+    markdown=True
+)
+```
+
+---
+
+## Image context with memory
+
+Agno handles images too. When users share photos, you can store what the agent saw for later.
+
+```python
+from agno.agent import Agent
+from agno.models.openai import OpenAIChat
+from agno.media import Image
+from pathlib import Path
+from supermemory import Supermemory
+
+memory = Supermemory()
+
+def analyze_and_remember(user_id: str, image_path: str, question: str) -> str:
+    """Analyze an image, answer a question, and store the context."""
+
+    agent = Agent(
+        name="vision_agent",
+        model=OpenAIChat(id="gpt-4o"),
+        description="You analyze images and answer questions about them.",
+        markdown=True
+    )
+
+    # Get the agent's analysis
+    response = agent.run(question, images=[Image(filepath=Path(image_path))])
+
+    # Store the interaction with image context
+    memory.add(
+        content=f"User shared an image and asked: {question}\nAnalysis: {response.content}",
+        container_tag=user_id,
+        metadata={"type": "image_analysis", "image": image_path}
+    )
+
+    return response.content
+```
+
+---
+
+## Metadata for filtering
+
+Tags let you narrow down searches:
+
+```python
+# Store with metadata
+memory.add(
+    content="User prefers dark mode interfaces",
+    container_tag="user_123",
+    metadata={
+        "type": "preference",
+        "category": "ui",
+        "source": "onboarding"
+    }
+)
+
+# Search with filters
+results = memory.search.memories(
+    q="interface preferences",
+    container_tag="user_123",
+    filters={
+        "AND": [
+            {"key": "type", "value": "preference"},
+            {"key": "category", "value": "ui"}
+        ]
+    }
+)
+```
+
+---
+
+## Related docs
+
+<CardGroup cols={2}>
+  <Card title="User profiles" icon="user" href="/user-profiles">
+    How automatic profiling works
+  </Card>
+  <Card title="Search" icon="search" href="/search">
+    Filtering and search modes
+  </Card>
+  <Card title="LangChain" icon="link" href="/integrations/langchain">
+    Memory for LangChain apps
+  </Card>
+  <Card title="CrewAI" icon="users" href="/integrations/crewai">
+    Multi-agent systems with memory
+  </Card>
+</CardGroup>

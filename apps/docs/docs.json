@@ -155,6 +155,7 @@
 							"integrations/openai",
 							"integrations/mastra",
 							"integrations/langchain",
+							"integrations/agno",
 							"integrations/memory-graph",
 							"integrations/claude-memory",
 							"integrations/pipecat",
