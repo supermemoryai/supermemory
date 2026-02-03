@@ -1,5 +1,5 @@
 import Supermemory from "supermemory"
-import { getContainerTags } from "./shared"
+import { getContainerTags } from "./tools-shared"
 import type { SupermemoryToolsConfig } from "./types"
 
 // Claude Memory Tool Types
@@ -55,15 +55,6 @@ export class ClaudeMemoryTool {
 			.replace(/^\//, "") // Remove leading slash
 			.replace(/\//g, "_") // Replace / with _
 			.replace(/\./g, "_") // Replace . with _
-	}
-
-	/**
-	 * Convert customId back to file path
-	 * Note: This is lossy since we can't distinguish _ from . or /
-	 * We rely on metadata.file_path for accurate path reconstruction
-	 */
-	private customIdToPath(customId: string): string {
-		return "/" + customId.replace(/_/g, "/")
 	}
 
 	constructor(apiKey: string, config?: ClaudeMemoryConfig) {
@@ -182,7 +173,7 @@ export class ClaudeMemoryTool {
 		// If path ends with / or is exactly /memories, it's a directory listing request
 		if (path.endsWith("/") || path === "/memories") {
 			// Normalize path to end with /
-			const dirPath = path.endsWith("/") ? path : path + "/"
+			const dirPath = path.endsWith("/") ? path : `${path}/`
 			return await this.listDirectory(dirPath)
 		}
 
@@ -227,7 +218,7 @@ export class ClaudeMemoryTool {
 				const slashIndex = relativePath.indexOf("/")
 				if (slashIndex > 0) {
 					// It's a subdirectory
-					dirs.add(relativePath.substring(0, slashIndex) + "/")
+					dirs.add(`${relativePath.substring(0, slashIndex)}/`)
 				} else if (relativePath !== "") {
 					// It's a file in this directory
 					files.push(relativePath)
@@ -335,7 +326,7 @@ export class ClaudeMemoryTool {
 		try {
 			const normalizedId = this.normalizePathToCustomId(filePath)
 
-			const response = await this.client.add({
+			const _response = await this.client.add({
 				content: fileText,
 				customId: normalizedId,
 				containerTags: this.containerTags,
@@ -394,7 +385,7 @@ export class ClaudeMemoryTool {
 
 			// Update the document
 			const normalizedId = this.normalizePathToCustomId(filePath)
-			const updateResponse = await this.client.add({
+			const _updateResponse = await this.client.add({
 				content: newContent,
 				customId: normalizedId,
 				containerTags: this.containerTags,

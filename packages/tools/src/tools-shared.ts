@@ -55,12 +55,13 @@ export interface MemoryItem {
 }
 
 /**
- * Profile data structure containing memory items from different sources
+ * Profile data structure containing memory items from different sources.
+ * API may return either MemoryItem objects or plain strings.
  */
 export interface ProfileWithMemories {
-	static?: Array<MemoryItem>
-	dynamic?: Array<MemoryItem>
-	searchResults?: Array<MemoryItem>
+	static?: Array<MemoryItem | string>
+	dynamic?: Array<MemoryItem | string>
+	searchResults?: Array<MemoryItem | string>
 }
 
 /**
@@ -101,8 +102,14 @@ export function deduplicateMemories(
 	const dynamicItems = data.dynamic ?? []
 	const searchItems = data.searchResults ?? []
 
-	const getMemoryString = (item: MemoryItem): string | null => {
-		if (!item || typeof item.memory !== "string") return null
+	const getMemoryString = (item: MemoryItem | string): string | null => {
+		if (!item) return null
+		// Handle both string format (from API) and object format
+		if (typeof item === "string") {
+			const trimmed = item.trim()
+			return trimmed.length > 0 ? trimmed : null
+		}
+		if (typeof item.memory !== "string") return null
 		const trimmed = item.memory.trim()
 		return trimmed.length > 0 ? trimmed : null
 	}
@@ -110,7 +117,7 @@ export function deduplicateMemories(
 	const staticMemories: string[] = []
 	const seenMemories = new Set<string>()
 
-	for (const item of staticItems) {
+	for (const item of staticItems as Array<MemoryItem | string>) {
 		const memory = getMemoryString(item)
 		if (memory !== null) {
 			staticMemories.push(memory)
@@ -120,7 +127,7 @@ export function deduplicateMemories(
 
 	const dynamicMemories: string[] = []
 
-	for (const item of dynamicItems) {
+	for (const item of dynamicItems as Array<MemoryItem | string>) {
 		const memory = getMemoryString(item)
 		if (memory !== null && !seenMemories.has(memory)) {
 			dynamicMemories.push(memory)
@@ -130,7 +137,7 @@ export function deduplicateMemories(
 
 	const searchMemories: string[] = []
 
-	for (const item of searchItems) {
+	for (const item of searchItems as Array<MemoryItem | string>) {
 		const memory = getMemoryString(item)
 		if (memory !== null && !seenMemories.has(memory)) {
 			searchMemories.push(memory)

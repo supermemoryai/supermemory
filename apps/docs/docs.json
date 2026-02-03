@@ -153,6 +153,7 @@
 							"integrations/supermemory-sdk",
 							"integrations/ai-sdk",
 							"integrations/openai",
+							"integrations/mastra",
 							"integrations/langchain",
 							"integrations/memory-graph",
 							"integrations/claude-memory",

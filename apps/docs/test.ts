@@ -15,7 +15,7 @@ const conversation = [
 // Get user profile + relevant memories for context
 const profile = await client.profile({
 	containerTag: USER_ID,
-	q: conversation.at(-1)!.content,
+	q: conversation.at(-1)?.content,
 })
 
 const context = `Static profile:
@@ -25,10 +25,10 @@ Dynamic profile:
 ${profile.profile.dynamic.join("\n")}
 
 Relevant memories:
-${profile.searchResults?.results.map((r) => r["content"]).join("\n")}`
+${profile.searchResults?.results.map((r) => r.content).join("\n")}`
 
 // Build messages with memory-enriched context
-const messages = [
+const _messages = [
 	{ role: "system", content: `User context:\n${context}` },
 	...conversation,
 ]

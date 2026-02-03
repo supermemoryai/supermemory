@@ -165,16 +165,16 @@ describe("@supermemory/tools", () => {
 					(d) => d.function.name === "searchMemories",
 				)
 				expect(searchTool).toBeDefined()
-				expect(searchTool!.type).toBe("function")
-				expect(searchTool!.function.parameters?.required).toContain(
+				expect(searchTool?.type).toBe("function")
+				expect(searchTool?.function.parameters?.required).toContain(
 					"informationToGet",
 				)
 
 				// Check addMemory
 				const addTool = definitions.find((d) => d.function.name === "addMemory")
 				expect(addTool).toBeDefined()
-				expect(addTool!.type).toBe("function")
-				expect(addTool!.function.parameters?.required).toContain("memory")
+				expect(addTool?.type).toBe("function")
+				expect(addTool?.function.parameters?.required).toContain("memory")
 			})
 		})
 

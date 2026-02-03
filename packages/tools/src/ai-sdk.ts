@@ -6,7 +6,7 @@ import {
 	PARAMETER_DESCRIPTIONS,
 	TOOL_DESCRIPTIONS,
 	getContainerTags,
-} from "./shared"
+} from "./tools-shared"
 import type { SupermemoryToolsConfig } from "./types"
 
 // Export individual tool creators
