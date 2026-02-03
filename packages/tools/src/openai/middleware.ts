@@ -1,7 +1,7 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
-import { deduplicateMemories } from "../shared"
+import { deduplicateMemories } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
 

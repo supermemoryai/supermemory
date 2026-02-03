@@ -18,9 +18,7 @@ interface AuthContextType {
 	user: SessionData["user"] | null
 	org: Organization | null
 	setActiveOrg: (orgSlug: string) => Promise<void>
-	updateOrgMetadata: (
-		partial: Record<string, unknown>,
-	) => void
+	updateOrgMetadata: (partial: Record<string, unknown>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,21 +37,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setOrg(activeOrg)
 	}
 
-	const updateOrgMetadata = useCallback(
-		(partial: Record<string, unknown>) => {
-			setOrg((prev) => {
-				if (!prev) return prev
-				return {
-					...prev,
-					metadata: {
-						...prev.metadata,
-						...partial,
-					},
-				}
-			})
-		},
-		[],
-	)
+	const updateOrgMetadata = useCallback((partial: Record<string, unknown>) => {
+		setOrg((prev) => {
+			if (!prev) return prev
+			return {
+				...prev,
+				metadata: {
+					...prev.metadata,
+					...partial,
+				},
+			}
+		})
+	}, [])
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ignoring the setActiveOrg dependency
 	useEffect(() => {

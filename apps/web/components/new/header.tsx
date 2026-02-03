@@ -400,7 +400,10 @@ export function Header({
 					</DropdownMenu>
 				)}
 			</div>
-			<FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
+			<FeedbackModal
+				isOpen={isFeedbackOpen}
+				onClose={() => setIsFeedbackOpen(false)}
+			/>
 		</div>
 	)
 }

@@ -3,19 +3,21 @@ import {
 	addConversation,
 	type ConversationMessage,
 } from "../conversations-client"
-import { createLogger, type Logger } from "./logger"
+import {
+	createLogger,
+	normalizeBaseUrl,
+	MemoryCache,
+	buildMemoriesText,
+	type Logger,
+	type PromptTemplate,
+	type MemoryMode,
+} from "../shared"
 import {
 	type LanguageModelCallOptions,
 	getLastUserMessage,
 	filterOutSupermemories,
 } from "./util"
-import {
-	buildMemoriesText,
-	extractQueryText,
-	injectMemoriesIntoParams,
-	normalizeBaseUrl,
-	type PromptTemplate,
-} from "./memory-prompt"
+import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
 
 const getConversationContent = (params: LanguageModelCallOptions) => {
 	return params.prompt
@@ -175,7 +177,7 @@ interface SupermemoryMiddlewareOptions {
 	 * - "query": Searches memories based on semantic similarity to the user's message
 	 * - "full": Combines both profile and query-based results
 	 */
-	mode?: "profile" | "query" | "full"
+	mode?: MemoryMode
 	/**
 	 * Memory persistence mode:
 	 * - "always": Automatically save conversations as memories
@@ -188,26 +190,21 @@ interface SupermemoryMiddlewareOptions {
 	promptTemplate?: PromptTemplate
 }
 
-/**
- * Cached memories string for a user turn.
- */
-type MemoryCache = string
-
 interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
 	containerTag: string
 	conversationId?: string
-	mode: "profile" | "query" | "full"
+	mode: MemoryMode
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
 	apiKey: string
 	promptTemplate?: PromptTemplate
 	/**
-	 * Per-turn memory cache map. Stores the injected memories string for each
+	 * Per-turn memory cache. Stores the injected memories string for each
 	 * user turn (keyed by turnKey) to avoid redundant API calls during tool-call
 	 */
-	memoryCache: Map<string, MemoryCache>
+	memoryCache: MemoryCache<string>
 }
 
 export const createSupermemoryContext = (
@@ -244,20 +241,24 @@ export const createSupermemoryContext = (
 		normalizedBaseUrl,
 		apiKey,
 		promptTemplate,
-		memoryCache: new Map<string, MemoryCache>(),
+		memoryCache: new MemoryCache<string>(),
 	}
 }
 
 /**
  * Generates a cache key for the current turn based on context and user message.
- * Normalizes the user message by trimming and collapsing whitespace.
+ * Uses the shared MemoryCache.makeTurnKey implementation.
  */
 const makeTurnKey = (
 	ctx: SupermemoryMiddlewareContext,
 	userMessage: string,
 ): string => {
-	const normalizedMessage = userMessage.trim().replace(/\s+/g, " ")
-	return `${ctx.containerTag}:${ctx.conversationId || ""}:${ctx.mode}:${normalizedMessage}`
+	return MemoryCache.makeTurnKey(
+		ctx.containerTag,
+		ctx.conversationId,
+		ctx.mode,
+		userMessage,
+	)
 }
 
 /**

@@ -314,14 +314,14 @@ export async function runAllExamples() {
 
 	try {
 		await directFetchExample()
-		console.log("\\n" + "=".repeat(70) + "\\n")
+		console.log(`\\n${"=".repeat(70)}\\n`)
 		await anthropicSdkExample()
 
-		console.log("\\n" + "=".repeat(70))
+		console.log(`\\n${"=".repeat(70)}`)
 		console.log("📋 Real Anthropic SDK Integration Template:")
 		console.log(anthropicIntegrationTemplate)
 
-		console.log("\\n" + "=".repeat(70))
+		console.log(`\\n${"=".repeat(70)}`)
 		console.log("🔧 cURL Examples for Direct API Testing:")
 		console.log(curlExamples)
 	} catch (error) {

@@ -326,7 +326,7 @@ export async function runRealExamples() {
 	// Test with the actual tool call first
 	await testWithRealToolCall()
 
-	console.log("\\n" + "=".repeat(70) + "\\n")
+	console.log(`\\n${"=".repeat(70)}\\n`)
 
 	// Show web integration example
 	console.log("🌐 Web Framework Integration Example:")
@@ -334,7 +334,7 @@ export async function runRealExamples() {
 
 	// Only run full API example if both keys are present
 	if (process.env.ANTHROPIC_API_KEY && process.env.SUPERMEMORY_API_KEY) {
-		console.log("\\n" + "=".repeat(70) + "\\n")
+		console.log(`\\n${"=".repeat(70)}\\n`)
 		await realClaudeMemoryExample()
 	} else {
 		console.log(

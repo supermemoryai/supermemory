@@ -1,8 +1,8 @@
 # @supermemory/tools
 
-Memory tools for AI SDK and OpenAI function calling with supermemory
+Memory tools for AI SDK, OpenAI, and Mastra with supermemory
 
-This package provides supermemory tools for both AI SDK and OpenAI function calling through dedicated submodule exports, each with function-based architectures optimized for their respective use cases.
+This package provides supermemory tools for AI SDK, OpenAI, and Mastra through dedicated submodule exports, each with function-based architectures optimized for their respective use cases.
 
 ## Installation
 
@@ -12,9 +12,10 @@ npm install @supermemory/tools
 
 ## Usage
 
-The package provides two submodule imports:
+The package provides three submodule imports:
 - `@supermemory/tools/ai-sdk` - For use with the AI SDK framework (includes `withSupermemory` middleware)
 - `@supermemory/tools/openai` - For use with OpenAI SDK (includes `withSupermemory` middleware and function calling tools)
+- `@supermemory/tools/mastra` - For use with Mastra AI agents (includes `withSupermemory` wrapper and processors)
 
 ### AI SDK Usage
 
@@ -403,6 +404,194 @@ const searchResult = await tools.searchMemories({
 const addResult = await tools.addMemory({
   memory: "User prefers dark roast coffee",
 })
+```
+
+### Mastra Usage
+
+Add persistent memory to [Mastra](https://mastra.ai) AI agents. The integration provides processors that:
+- **Input Processor**: Fetches relevant memories and injects them into the system prompt before LLM calls
+- **Output Processor**: Optionally saves conversations to Supermemory after responses
+
+#### Quick Start with `withSupermemory` Wrapper
+
+The simplest way to add memory to a Mastra agent - wrap your config before creating the Agent:
+
+```typescript
+import { Agent } from "@mastra/core/agent"
+import { withSupermemory } from "@supermemory/tools/mastra"
+import { openai } from "@ai-sdk/openai"
+
+// Create agent with memory-enhanced config
+const agent = new Agent(withSupermemory(
+  {
+    id: "my-assistant",
+    name: "My Assistant",
+    model: openai("gpt-4o"),
+    instructions: "You are a helpful assistant.",
+  },
+  "user-123",  // containerTag - scopes memories to this user
+  {
+    mode: "full",
+    addMemory: "always",
+    threadId: "conv-456",
+  }
+))
+
+const response = await agent.generate("What do you know about me?")
+console.log(response.text)
+```
+
+#### Direct Processor Usage
+
+For fine-grained control, use processors directly:
+
+```typescript
+import { Agent } from "@mastra/core/agent"
+import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
+import { openai } from "@ai-sdk/openai"
+
+const { input, output } = createSupermemoryProcessors("user-123", {
+  mode: "full",
+  addMemory: "always",
+  threadId: "conv-456",
+  verbose: true, // Enable logging
+})
+
+const agent = new Agent({
+  id: "my-assistant",
+  name: "My Assistant",
+  model: openai("gpt-4o"),
+  instructions: "You are a helpful assistant with memory.",
+  inputProcessors: [input],
+  outputProcessors: [output],
+})
+
+const response = await agent.generate("What's my favorite programming language?")
+```
+
+#### Complete Example
+
+Here's a full example showing a multi-turn conversation with memory:
+
+```typescript
+import { Agent } from "@mastra/core/agent"
+import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
+import { openai } from "@ai-sdk/openai"
+
+async function main() {
+  const userId = "user-alex-123"
+  const threadId = `thread-${Date.now()}`
+
+  const { input, output } = createSupermemoryProcessors(userId, {
+    mode: "profile",      // Fetch user profile memories
+    addMemory: "always",  // Save all conversations
+    threadId,
+    verbose: true,
+  })
+
+  const agent = new Agent({
+    id: "memory-assistant",
+    name: "Memory Assistant",
+    instructions: `You are a helpful assistant with memory.
+Use the memories provided to personalize your responses.`,
+    model: openai("gpt-4o-mini"),
+    inputProcessors: [input],
+    outputProcessors: [output],
+  })
+
+  // First conversation - introduce yourself
+  console.log("User: Hi! I'm Alex, a TypeScript developer.")
+  const r1 = await agent.generate("Hi! I'm Alex, a TypeScript developer.")
+  console.log("Assistant:", r1.text)
+
+  // Second conversation - the agent should remember
+  console.log("\nUser: What do you know about me?")
+  const r2 = await agent.generate("What do you know about me?")
+  console.log("Assistant:", r2.text)
+}
+
+main()
+```
+
+#### Memory Search Modes
+
+- **`profile`** (default): Fetches user profile memories (static facts + dynamic context)
+- **`query`**: Searches memories based on the user's message
+- **`full`**: Combines both profile and query results
+
+```typescript
+// Profile mode - good for general personalization
+const { input } = createSupermemoryProcessors("user-123", { mode: "profile" })
+
+// Query mode - good for specific lookups
+const { input } = createSupermemoryProcessors("user-123", { mode: "query" })
+
+// Full mode - comprehensive context
+const { input } = createSupermemoryProcessors("user-123", { mode: "full" })
+```
+
+#### Custom Prompt Templates
+
+Customize how memories are formatted in the system prompt:
+
+```typescript
+import { createSupermemoryProcessors, type MemoryPromptData } from "@supermemory/tools/mastra"
+
+const customTemplate = (data: MemoryPromptData) => `
+<user_context>
+${data.userMemories}
+${data.generalSearchMemories}
+</user_context>
+`.trim()
+
+const { input, output } = createSupermemoryProcessors("user-123", {
+  mode: "full",
+  promptTemplate: customTemplate,
+})
+```
+
+#### Using RequestContext for Dynamic Thread IDs
+
+Instead of hardcoding `threadId`, use Mastra's RequestContext for dynamic values:
+
+```typescript
+import { Agent } from "@mastra/core/agent"
+import { RequestContext, MASTRA_THREAD_ID_KEY } from "@mastra/core/request-context"
+import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
+
+const { input, output } = createSupermemoryProcessors("user-123", {
+  mode: "profile",
+  addMemory: "always",
+  // threadId not set here - will be read from RequestContext
+})
+
+const agent = new Agent({
+  id: "my-assistant",
+  name: "My Assistant",
+  model: openai("gpt-4o"),
+  inputProcessors: [input],
+  outputProcessors: [output],
+})
+
+// Set threadId dynamically per request
+const ctx = new RequestContext()
+ctx.set(MASTRA_THREAD_ID_KEY, "dynamic-thread-123")
+
+const response = await agent.generate("Hello!", { requestContext: ctx })
+```
+
+#### Mastra Configuration Options
+
+```typescript
+interface SupermemoryMastraOptions {
+  apiKey?: string              // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
+  baseUrl?: string             // Custom API endpoint
+  mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
+  addMemory?: "always" | "never"       // Auto-save conversations (default: "never")
+  threadId?: string            // Conversation ID for grouping messages
+  verbose?: boolean            // Enable debug logging (default: false)
+  promptTemplate?: (data: MemoryPromptData) => string  // Custom memory formatting
+}
 ```
 
 ## Configuration

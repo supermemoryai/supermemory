@@ -36,11 +36,14 @@ export function NewOnboardingModal() {
 	}
 
 	return (
-		<Dialog open={open} onOpenChange={(isOpen) => {
-			if (!isOpen) {
-				setOpen(false)
-			}
-		}}>
+		<Dialog
+			open={open}
+			onOpenChange={(isOpen) => {
+				if (!isOpen) {
+					setOpen(false)
+				}
+			}}
+		>
 			<DialogContent onInteractOutside={(e) => e.preventDefault()}>
 				<DialogHeader>
 					<DialogTitle>Experience the new onboarding</DialogTitle>

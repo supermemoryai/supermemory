@@ -97,7 +97,7 @@ async function chatWithMemoryTool() {
 				if (memoryResult.content) {
 					console.log(
 						"📄 Content preview:",
-						memoryResult.content.substring(0, 100) + "...",
+						`${memoryResult.content.substring(0, 100)}...`,
 					)
 				}
 			}
@@ -256,7 +256,7 @@ async function testMemoryOperations() {
 				} else if (result.content) {
 					console.log(
 						"📄 Result:",
-						result.content.substring(0, 150) + "... (truncated)",
+						`${result.content.substring(0, 150)}... (truncated)`,
 					)
 				}
 			} else {
@@ -275,7 +275,7 @@ async function testMemoryOperations() {
 // Run the examples
 async function main() {
 	await testMemoryOperations()
-	console.log("\n" + "=".repeat(70) + "\n")
+	console.log(`\n${"=".repeat(70)}\n`)
 	await chatWithMemoryTool()
 }
 
