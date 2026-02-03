@@ -1,0 +1,426 @@
+---
+title: "LangGraph"
+sidebarTitle: "LangGraph"
+description: "Add persistent memory to LangGraph agents with Supermemory"
+icon: "/images/langgraph.svg"
+---
+
+Build stateful agents with LangGraph that remember context across sessions. Supermemory handles memory storage and retrieval while LangGraph manages your graph-based conversation flow.
+
+## Overview
+
+This guide shows how to integrate Supermemory with LangGraph to create agents that:
+
+- Maintain user context through automatic profiling
+- Store and retrieve relevant memories at each node
+- Use conditional logic to decide what's worth remembering
+- Combine short-term (session) and long-term (cross-session) memory
+
+## Setup
+
+Install the required packages:
+
+```bash
+pip install langgraph langchain-openai supermemory python-dotenv
+```
+
+Configure your environment:
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+<Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
+
+## Basic integration
+
+A minimal agent that fetches user context before responding and stores the conversation after:
+
+```python
+from typing import Annotated, TypedDict
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+llm = ChatOpenAI(model="gpt-4o")
+memory = Supermemory()
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+    user_id: str
+
+def agent(state: State):
+    user_id = state["user_id"]
+    messages = state["messages"]
+    user_query = messages[-1].content
+
+    # Fetch user profile with relevant memories
+    profile_result = memory.profile(container_tag=user_id, q=user_query)
+
+    # Build context from profile
+    static_facts = profile_result.profile.static or []
+    dynamic_context = profile_result.profile.dynamic or []
+    search_results = profile_result.search_results.results if profile_result.search_results else []
+
+    context = f"""
+User Background:
+{chr(10).join(static_facts) if static_facts else 'No profile yet.'}
+
+Recent Context:
+{chr(10).join(dynamic_context) if dynamic_context else 'No recent activity.'}
+
+Relevant Memories:
+{chr(10).join([r.memory or r.chunk for r in search_results]) if search_results else 'None found.'}
+"""
+
+    system = SystemMessage(content=f"You are a helpful assistant.\n\n{context}")
+    response = llm.invoke([system] + messages)
+
+    # Store the interaction
+    memory.add(
+        content=f"User: {user_query}\nAssistant: {response.content}",
+        container_tag=user_id
+    )
+
+    return {"messages": [response]}
+
+# Build the graph
+graph = StateGraph(State)
+graph.add_node("agent", agent)
+graph.add_edge(START, "agent")
+graph.add_edge("agent", END)
+app = graph.compile()
+
+# Run it
+result = app.invoke({
+    "messages": [HumanMessage(content="Hi! I'm working on a Python project.")],
+    "user_id": "user_123"
+})
+print(result["messages"][-1].content)
+```
+
+---
+
+## Core concepts
+
+### User profiles
+
+Supermemory automatically builds user profiles from stored memories:
+
+- **Static facts**: Long-term information (preferences, expertise, background)
+- **Dynamic context**: Recent activity and current focus
+
+```python
+result = memory.profile(
+    container_tag="user_123",
+    q="optional search query"  # Also returns relevant memories
+)
+
+print(result.profile.static)   # ["User is a Python developer", "Prefers functional style"]
+print(result.profile.dynamic)  # ["Working on async patterns", "Debugging rate limiting"]
+```
+
+### Memory storage
+
+Content you add gets processed into searchable memories:
+
+```python
+# Store a conversation
+memory.add(
+    content="User asked about graph traversal. Explained BFS vs DFS.",
+    container_tag="user_123",
+    metadata={"topic": "algorithms", "type": "conversation"}
+)
+
+# Store a document
+memory.add(
+    content="https://langchain-ai.github.io/langgraph/",
+    container_tag="user_123"
+)
+```
+
+### Memory search
+
+Search returns both extracted memories and document chunks:
+
+```python
+results = memory.search.memories(
+    q="graph algorithms",
+    container_tag="user_123",
+    search_mode="hybrid",
+    limit=5
+)
+
+for r in results.results:
+    print(r.memory or r.chunk, r.similarity)
+```
+
+---
+
+## Complete example: support agent
+
+A support agent that learns from past tickets and adapts to each user's technical level:
+
+```python
+from typing import Annotated, TypedDict, Optional
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from supermemory import Supermemory
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class SupportAgent:
+    def __init__(self):
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.3)
+        self.memory = Supermemory()
+        self.app = self._build_graph()
+
+    def _build_graph(self):
+        class State(TypedDict):
+            messages: Annotated[list, add_messages]
+            user_id: str
+            context: str
+            category: Optional[str]
+
+        def retrieve_context(state: State):
+            """Fetch user profile and relevant past tickets."""
+            user_id = state["user_id"]
+            query = state["messages"][-1].content
+
+            result = self.memory.profile(
+                container_tag=user_id,
+                q=query,
+                threshold=0.5
+            )
+
+            static = result.profile.static or []
+            dynamic = result.profile.dynamic or []
+            memories = result.search_results.results if result.search_results else []
+
+            context = f"""
+## User Profile
+{chr(10).join(f"- {fact}" for fact in static) if static else "New user, no history."}
+
+## Current Context
+{chr(10).join(f"- {ctx}" for ctx in dynamic) if dynamic else "No recent activity."}
+
+## Related Past Tickets
+{chr(10).join(f"- {m.memory}" for m in memories[:3]) if memories else "No similar issues found."}
+"""
+            return {"context": context}
+
+        def categorize(state: State):
+            """Determine ticket category for routing."""
+            query = state["messages"][-1].content.lower()
+
+            if any(word in query for word in ["billing", "payment", "charge", "invoice"]):
+                return {"category": "billing"}
+            elif any(word in query for word in ["bug", "error", "broken", "crash"]):
+                return {"category": "technical"}
+            else:
+                return {"category": "general"}
+
+        def respond(state: State):
+            """Generate a response using context."""
+            category = state.get("category", "general")
+            context = state.get("context", "")
+
+            system_prompt = f"""You are a support agent. Category: {category}
+
+{context}
+
+Guidelines:
+- Match explanation depth to the user's technical level
+- Reference past interactions when relevant
+- Be direct and helpful"""
+
+            system = SystemMessage(content=system_prompt)
+            response = self.llm.invoke([system] + state["messages"])
+
+            return {"messages": [response]}
+
+        def store_interaction(state: State):
+            """Save the ticket for future context."""
+            user_msg = state["messages"][-2].content
+            ai_msg = state["messages"][-1].content
+            category = state.get("category", "general")
+
+            self.memory.add(
+                content=f"Support ticket ({category}): {user_msg}\nResolution: {ai_msg[:300]}",
+                container_tag=state["user_id"],
+                metadata={"type": "support_ticket", "category": category}
+            )
+
+            return {}
+
+        # Build the graph
+        graph = StateGraph(State)
+        graph.add_node("retrieve", retrieve_context)
+        graph.add_node("categorize", categorize)
+        graph.add_node("respond", respond)
+        graph.add_node("store", store_interaction)
+
+        graph.add_edge(START, "retrieve")
+        graph.add_edge("retrieve", "categorize")
+        graph.add_edge("categorize", "respond")
+        graph.add_edge("respond", "store")
+        graph.add_edge("store", END)
+
+        checkpointer = MemorySaver()
+        return graph.compile(checkpointer=checkpointer)
+
+    def handle(self, user_id: str, message: str, thread_id: str) -> str:
+        """Process a support request."""
+        config = {"configurable": {"thread_id": thread_id}}
+
+        result = self.app.invoke(
+            {"messages": [HumanMessage(content=message)], "user_id": user_id},
+            config=config
+        )
+
+        return result["messages"][-1].content
+
+
+# Usage
+if __name__ == "__main__":
+    agent = SupportAgent()
+
+    # First interaction
+    response = agent.handle(
+        user_id="customer_alice",
+        message="The API is returning 429 errors when I make requests",
+        thread_id="ticket_001"
+    )
+    print(response)
+
+    # Follow-up (agent remembers context)
+    response = agent.handle(
+        user_id="customer_alice",
+        message="I'm only making 10 requests per minute though",
+        thread_id="ticket_001"
+    )
+    print(response)
+```
+
+---
+
+## Advanced patterns
+
+### Conditional memory storage
+
+Not everything is worth remembering. Use conditional edges to filter:
+
+```python
+def should_store(state: State) -> str:
+    """Skip storing trivial messages."""
+    last_msg = state["messages"][-1].content.lower()
+
+    skip_phrases = ["thanks", "ok", "got it", "bye"]
+    if len(last_msg) < 20 or any(p in last_msg for p in skip_phrases):
+        return "skip"
+    return "store"
+
+graph.add_conditional_edges("respond", should_store, {
+    "store": "store",
+    "skip": END
+})
+```
+
+### Parallel memory operations
+
+Fetch memories and categorize at the same time:
+
+```python
+from langgraph.graph import StateGraph, START, END
+
+graph = StateGraph(State)
+graph.add_node("retrieve", retrieve_context)
+graph.add_node("categorize", categorize)
+graph.add_node("respond", respond)
+
+# Both run in parallel after START
+graph.add_edge(START, "retrieve")
+graph.add_edge(START, "categorize")
+
+# Both must complete before respond
+graph.add_edge("retrieve", "respond")
+graph.add_edge("categorize", "respond")
+graph.add_edge("respond", END)
+```
+
+### Metadata filtering
+
+Organize memories by project, topic, or any custom field:
+
+```python
+# Store with metadata
+memory.add(
+    content="User prefers detailed error messages with stack traces",
+    container_tag="user_123",
+    metadata={
+        "type": "preference",
+        "project": "api-v2",
+        "priority": "high"
+    }
+)
+
+# Search with filters
+results = memory.search.memories(
+    q="error handling preferences",
+    container_tag="user_123",
+    filters={
+        "AND": [
+            {"key": "type", "value": "preference"},
+            {"key": "project", "value": "api-v2"}
+        ]
+    }
+)
+```
+
+### Combining session and long-term memory
+
+LangGraph's checkpointer handles within-session state. Supermemory handles cross-session memory. Use both:
+
+```python
+from langgraph.checkpoint.memory import MemorySaver
+
+# Session memory (cleared when thread ends)
+checkpointer = MemorySaver()
+app = graph.compile(checkpointer=checkpointer)
+
+# Long-term memory (persists across sessions)
+# Handled by Supermemory in your nodes
+```
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="User profiles" icon="user" href="/user-profiles">
+    Deep dive into automatic user profiling
+  </Card>
+
+  <Card title="Search API" icon="search" href="/search">
+    Advanced search patterns and filtering
+  </Card>
+
+  <Card title="OpenAI SDK" icon="message-bot" href="/integrations/openai">
+    Native OpenAI integration with memory tools
+  </Card>
+
+  <Card title="AI SDK" icon="triangle" href="/integrations/ai-sdk">
+    Memory middleware for Next.js apps
+  </Card>
+</CardGroup>
