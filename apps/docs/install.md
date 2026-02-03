@@ -28,8 +28,8 @@ You can always reference the documentation by using the **SearchSupermemoryDocs 
    - No → Just use search
 
 5. How should I retrieve context?
-   - OPTION A: One call with search included → profile({ containerTag, q: userMessage })
-   - OPTION B: Separate calls → profile() for facts, search() for memories
+   - OPTION A: One call with search included → `profile({ containerTag, q: userMessage })`
+   - OPTION B: Separate calls → `profile()` for facts, `search()` for memories
 
 ## STEP 2: INSTALL
 

@@ -199,6 +199,7 @@ Upload PDFs, images, and documents directly.
 | `customId` | string | **Recommended.** Your ID for the content (conversation ID, doc ID). Enables updates and deduplication |
 | `containerTag` | string | Group by user/project. Required for user profiles |
 | `metadata` | object | Key-value pairs for filtering (strings, numbers, booleans) |
+| `entityContext` | string | Context for memory extraction on this container tag. Max 1500 chars. See [Customization](/concepts/customization#entity-context) |
 
 <AccordionGroup>
   <Accordion title="Parameter Details & Examples">
@@ -257,6 +258,19 @@ Upload PDFs, images, and documents directly.
     ```
     - No nested objects or arrays
     - Values: string, number, or boolean only
+
+    **Entity Context:**
+    ```typescript
+    // Guide memory extraction for this container tag
+    {
+      containerTag: "session_abc123",
+      entityContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
+        Focus on John's design preferences and brand requirements.`
+    }
+    ```
+    - Max 1500 characters
+    - Persists on the container tag
+    - Combines with org-level filter prompts
   </Accordion>
 </AccordionGroup>
 

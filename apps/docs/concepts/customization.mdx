@@ -72,6 +72,36 @@ await client.settings.update({
 
 ---
 
+## Entity Context
+
+Guide memory extraction for a specific container tag. Filter prompts are org-wide; entity context is per container.
+
+```typescript
+await client.add({
+  content: "User asked about logo variations for dark backgrounds...",
+  containerTag: "session_abc123",
+  entityContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
+    Focus on John's design preferences and brand requirements.`
+});
+```
+
+<Accordion title="Update entity context only">
+  Update entity context for a container tag without uploading content.
+
+  ```typescript
+  await client.containerTags.update("session_abc123", {
+    entityContext: `Design exploration conversation between john@acme.com and Brand.ai assistant.
+      Focus on John's design preferences and brand requirements.`
+  });
+  ```
+</Accordion>
+
+<Note>
+Entity context persists on the container tag and combines with org-level filter prompts.
+</Note>
+
+---
+
 ## Chunk Size
 
 Control how documents are split into searchable pieces. Smaller chunks = more precise retrieval but less context per result.

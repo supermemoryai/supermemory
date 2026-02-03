@@ -69,12 +69,10 @@
 						"pages": [
 							{
 								"group": "Getting Started",
-								"icon": "rocket",
 								"pages": ["intro", "quickstart", "vibe-coding"]
 							},
 							{
 								"group": "Concepts",
-								"icon": "lightbulb",
 								"pages": [
 									"concepts/how-it-works",
 									"concepts/graph-memory",
@@ -88,7 +86,6 @@
 							},
 							{
 								"group": "Using supermemory",
-								"icon": "brain",
 								"pages": [
 									"add-memories",
 									"search",
@@ -103,7 +100,6 @@
 							},
 							{
 								"group": "Connectors and sync",
-								"icon": "plug",
 								"pages": [
 									"connectors/overview",
 									{
@@ -125,7 +121,6 @@
 							},
 							{
 								"group": "Migration Guides",
-								"icon": "arrow-right-left",
 								"pages": [
 									{
 										"group": "From another provider",
