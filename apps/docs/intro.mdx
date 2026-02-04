@@ -6,8 +6,7 @@ icon: "book-open"
 
 Supermemory is the long-term and short-term memory and context infrastructure for AI agents. It is the [state of the art](https://supermemory.ai/research) across multiple different benchmarks, like LongMemEval and LoCoMo.
 
-With supermemory, developers can provide perfect recall about their users to build AI agents that are more intelligent, more personalized, and more consistent. Additionally, _supermemory_ has all the pieces of the context stack built in:
-
+With supermemory, developers can provide perfect recall about their users to build AI agents that are more intelligent, more personalized, and more consistent. Additionally, *supermemory* has all the pieces of the context stack built in:
 - [Agent memory](/concepts/graph-memory)
 - [Content extraction](/concepts/content-types)
 - [Connectors and syncing](/connectors/overview)
@@ -28,7 +27,6 @@ All this, coming together, makes supermemory the best abstraction to provide to 
 #### Ingestion and Extraction
 
 Supermemory handles all the extraction, for [any data type that you have](/concepts/content-types).
-
 - Text
 - Conversations
 - Files (PDF, Images, Docs)
@@ -43,7 +41,6 @@ We offer three ways to add context to your LLMs:
 ![memory graph](/images/memory-graph.png)
 
 Supermemory learns and builds the memory for the user. These are extracted facts about the user, that:
-
 - [Evolve on top of existing context about the user](/concepts/graph-memory), **in real time**
 - Handle **knowledge updates, temporal changes, forgetfulness**
 - Creates a **user profile** as the default context provider for the LLM.
@@ -63,16 +60,17 @@ This leads to a much better retrieval system, and extremely personalized respons
 #### RAG - Advanced semantic search
 
 Along with the user context, developers can also choose to do a search on the raw context. We provide full RAG-as-a-service, along with
-
 - Full advanced metadata filtering
 - Contextual chunking
 - Works well with the memory engine
 
-<Info>See the full API Reference tab for detailed endpoint documentation.</Info>
+<Info>
+    See the full API Reference tab for detailed endpoint documentation.
+</Info>
+
 
 <Note>
-  All three approaches share the **same context pool** when using the same user
-  ID (`containerTag`). You can mix and match based on your needs.
+All three approaches share the **same context pool** when using the same user ID (`containerTag`). You can mix and match based on your needs.
 </Note>
 
 ## Next steps
