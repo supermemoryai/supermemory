@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			organizationSlug: slug,
 		})
 		setOrg(activeOrg)
+		localStorage.setItem("supermemory-consumer-last-org-slug", slug)
 	}
 
 	const updateOrgMetadata = useCallback((partial: Record<string, unknown>) => {
@@ -52,28 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ignoring the setActiveOrg dependency
 	useEffect(() => {
-		if (session?.session.activeOrganizationId) {
-			authClient.organization
-				.getFullOrganization()
-				.then((org) => {
-					if (org.metadata?.isConsumer === true) {
-						console.log("Consumer organization:", org)
-						setOrg(org)
-					} else {
-						console.log("ALl orgs:", orgs)
-						const consumerOrg = orgs?.find(
-							(o) => o.metadata?.isConsumer === true,
-						)
-						if (consumerOrg) {
-							setActiveOrg(consumerOrg.slug)
-						}
-					}
-				})
-				.catch((error) => {
-					// Silently handle organization fetch failures to prevent unhandled rejections
-					console.error("Failed to fetch organization:", error)
-				})
+		if (!session?.session.activeOrganizationId || !orgs) return
+
+		const savedSlug = localStorage.getItem("supermemory-consumer-last-org-slug")
+
+		if (savedSlug && orgs.find((o) => o.slug === savedSlug)) {
+			setActiveOrg(savedSlug)
+			return
 		}
+
+		if (savedSlug) localStorage.removeItem("supermemory-consumer-last-org-slug")
+		authClient.organization.getFullOrganization().then(setOrg)
 	}, [session?.session.activeOrganizationId, orgs])
 
 	// When a session exists and there is a pending login method recorded,
