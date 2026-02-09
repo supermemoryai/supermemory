@@ -22,9 +22,11 @@ import { YoutubePreview } from "./document-cards/youtube-preview"
 import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { McpPreview } from "./document-cards/mcp-preview"
+import { NotionPreview } from "./document-cards/notion-preview"
 import { getFaviconUrl } from "@/lib/url-helpers"
 import { QuickNoteCard } from "./quick-note-card"
 import { HighlightsCard, type HighlightItem } from "./highlights-card"
+import { GraphCard } from "./memory-graph"
 import { Button } from "@ui/components/button"
 
 // Document category type
@@ -62,11 +64,7 @@ const PAGE_SIZE = IS_DEV ? 100 : 100
 const MAX_TOTAL = 1000
 
 // Discriminated union for masonry items
-type MasonryItem =
-	| { type: "quick-note"; id: string }
-	| { type: "highlights-card"; id: string }
-	| { type: "highlights-card-spacer"; id: string }
-	| { type: "document"; id: string; data: DocumentWithMemories }
+type MasonryItem = { type: "document"; id: string; data: DocumentWithMemories }
 
 interface QuickNoteProps {
 	onSave: (content: string) => void
@@ -193,32 +191,18 @@ export function MemoriesGrid({
 	const masonryItems: MasonryItem[] = useMemo(() => {
 		const items: MasonryItem[] = []
 
-		if (!isMobile) {
-			if (hasQuickNote) {
-				items.push({ type: "quick-note", id: "quick-note" })
-			}
-			if (hasHighlights) {
-				items.push({ type: "highlights-card", id: "highlights-card" })
-				// Add spacer to occupy the second column space for the 2-column highlights card
-				items.push({
-					type: "highlights-card-spacer",
-					id: "highlights-card-spacer",
-				})
-			}
-		}
-
 		for (const doc of documents) {
 			items.push({ type: "document", id: doc.id, data: doc })
 		}
 
 		return items
-	}, [documents, isMobile, hasQuickNote, hasHighlights])
+	}, [documents])
 
 	// Stable key for Masonry based on document IDs, not item values
 	const masonryKey = useMemo(() => {
 		const docIds = documents.map((d) => d.id).join(",")
-		return `masonry-${documents.length}-${docIds}-${isChatOpen}-${hasQuickNote}-${hasHighlights}`
-	}, [documents, isChatOpen, hasQuickNote, hasHighlights])
+		return `masonry-${documents.length}-${docIds}-${isChatOpen}`
+	}, [documents, isChatOpen])
 
 	const isLoadingMore = isFetchingNextPage
 
@@ -260,37 +244,6 @@ export function MemoriesGrid({
 			data: MasonryItem
 			width: number
 		}) => {
-			if (data.type === "quick-note" && quickNoteProps) {
-				return (
-					<div className="p-2" style={{ width }}>
-						<QuickNoteCard {...quickNoteProps} />
-					</div>
-				)
-			}
-
-			if (data.type === "highlights-card" && highlightsProps) {
-				const doubleWidth = width * 2
-				const cardWidth = doubleWidth - 16
-				return (
-					<div className="p-2" style={{ width: doubleWidth }}>
-						<HighlightsCard {...highlightsProps} width={cardWidth} />
-					</div>
-				)
-			}
-
-			if (data.type === "highlights-card-spacer") {
-				return (
-					<div
-						style={{
-							width,
-							height: 220, // Approximate height of HighlightsCard
-							visibility: "hidden",
-							pointerEvents: "none",
-						}}
-					/>
-				)
-			}
-
 			if (data.type === "document") {
 				return (
 					<DocumentCard
@@ -304,7 +257,7 @@ export function MemoriesGrid({
 
 			return null
 		},
-		[handleCardClick, quickNoteProps, highlightsProps],
+		[handleCardClick],
 	)
 
 	if (!user) {
@@ -368,6 +321,29 @@ export function MemoriesGrid({
 				</div>
 			) : (
 				<div className="h-full overflow-auto scrollbar-thin">
+					{!isMobile && (hasQuickNote || hasHighlights) && (
+						<div className="flex gap-2 mb-2 px-2">
+							{hasQuickNote && quickNoteProps && (
+								<div className="w-[216px] shrink-0">
+									<QuickNoteCard {...quickNoteProps} />
+								</div>
+							)}
+							{hasHighlights && highlightsProps && (
+								<div className="flex-1 min-w-0">
+									<HighlightsCard {...highlightsProps} />
+								</div>
+							)}
+							<div className="w-[216px] shrink-0">
+								<GraphCard
+									containerTags={
+										selectedProject ? [selectedProject] : undefined
+									}
+									width={200}
+									height={220}
+								/>
+							</div>
+						</div>
+					)}
 					<Masonry
 						key={masonryKey}
 						items={masonryItems}
@@ -524,6 +500,7 @@ const DocumentCard = memo(
 					<ContentPreview document={document} ogData={ogData} />
 					{!(
 						document.type === "image" ||
+						document.type === "notion_doc" ||
 						document.metadata?.mimeType?.toString().startsWith("image/")
 					) && (
 						<div className="pb-[10px] space-y-1">
@@ -568,7 +545,7 @@ const DocumentCard = memo(
 									<p
 										className={cn(
 											dmSansClassName(),
-											"text-[10px] text-[#369BFD] line-clamp-1 font-semibold flex items-center gap-1",
+											"text-[10px] text-[#369BFD] font-semibold flex items-center gap-1",
 										)}
 										style={{
 											background:
@@ -579,10 +556,7 @@ const DocumentCard = memo(
 										}}
 									>
 										<SyncLogoIcon className="w-[12.33px] h-[10px]" />
-										{document.memoryEntries.length}{" "}
-										{document.memoryEntries.length === 1
-											? "memory"
-											: "memories"}
+										{document.memoryEntries.length}
 									</p>
 								)}
 								<p
@@ -642,6 +616,10 @@ function ContentPreview({
 
 	if (isYouTubeUrl(document.url)) {
 		return <YoutubePreview document={document} />
+	}
+
+	if (document.type === "notion_doc") {
+		return <NotionPreview document={document} />
 	}
 
 	if (

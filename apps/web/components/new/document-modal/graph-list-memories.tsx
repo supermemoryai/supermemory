@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { cn } from "@lib/utils"
-import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@ui/components/tabs"
+import { MemoryGraph } from "../memory-graph"
 
 export interface MemoryEntry {
 	id: string
@@ -166,8 +167,10 @@ function VersionStatus({
 
 export function GraphListMemories({
 	memoryEntries,
+	documentId,
 }: {
 	memoryEntries: MemoryEntry[]
+	documentId?: string
 }) {
 	const [expandedMemories, setExpandedMemories] = useState<Set<string>>(
 		new Set(),
@@ -195,7 +198,7 @@ export function GraphListMemories({
 				backgroundSize: "369px 371px",
 			}}
 		>
-			<Tabs defaultValue="list">
+			<Tabs defaultValue="list" className="flex flex-col flex-1 min-h-0">
 				<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
 					<TabsTrigger
 						value="graph"
@@ -257,90 +260,104 @@ export function GraphListMemories({
 						</p>
 					</TabsTrigger>
 				</TabsList>
-			</Tabs>
-			<div className="grid grid-cols-2 gap-2 pt-3 overflow-y-auto pr-1 scrollbar-thin items-start">
-				{memoryEntries.map((memory, idx) => {
-					const isClickable =
-						memory.url &&
-						(memory.url.startsWith("http://") ||
-							memory.url.startsWith("https://"))
+				<TabsContent value="graph" className="flex-1 min-h-0 mt-3">
+					<div className="w-full h-full rounded-lg overflow-hidden">
+						<MemoryGraph
+							documentIds={documentId ? [documentId] : undefined}
+							variant="consumer"
+							maxNodes={50}
+						/>
+					</div>
+				</TabsContent>
+				<TabsContent
+					value="list"
+					className="flex-1 min-h-0 overflow-hidden mt-0"
+				>
+					<div className="grid grid-cols-2 gap-2 pt-3 overflow-y-auto pr-1 scrollbar-thin items-start h-full">
+						{memoryEntries.map((memory, idx) => {
+							const isClickable =
+								memory.url &&
+								(memory.url.startsWith("http://") ||
+									memory.url.startsWith("https://"))
 
-					const status = memory.isForgotten
-						? "forgotten"
-						: memory.forgetAfter
-							? "expiring"
-							: memory.isStatic
-								? "static"
-								: "latest"
+							const status = memory.isForgotten
+								? "forgotten"
+								: memory.forgetAfter
+									? "expiring"
+									: memory.isStatic
+										? "static"
+										: "latest"
 
-					const content = (
-						<div className="">
-							<div className="bg-[#060D17] p-2 px-[10px] rounded-[10px] m-[2px]">
-								{memory.title && (
-									<div className="text-xs text-[#525D6E] line-clamp-2">
-										{memory.title}
-									</div>
-								)}
-								{memory.memory && (
-									<button
-										type="button"
-										className={cn(
-											"text-xs text-[#525D6E] cursor-pointer transition-all text-left w-full",
-											expandedMemories.has(memory.id) ? "" : "line-clamp-2",
+							const content = (
+								<div className="">
+									<div className="bg-[#060D17] p-2 px-[10px] rounded-[10px] m-[2px]">
+										{memory.title && (
+											<div className="text-xs text-[#525D6E] line-clamp-2">
+												{memory.title}
+											</div>
 										)}
-										onClick={() => toggleMemory(memory.id)}
-									>
-										{memory.memory}
-									</button>
-								)}
-								{memory.url && (
-									<div className="text-xs text-[#525D6E] truncate">
-										{memory.url}
+										{memory.memory && (
+											<button
+												type="button"
+												className={cn(
+													"text-xs text-[#525D6E] cursor-pointer transition-all text-left w-full",
+													expandedMemories.has(memory.id) ? "" : "line-clamp-2",
+												)}
+												onClick={() => toggleMemory(memory.id)}
+											>
+												{memory.memory}
+											</button>
+										)}
+										{memory.url && (
+											<div className="text-xs text-[#525D6E] truncate">
+												{memory.url}
+											</div>
+										)}
 									</div>
-								)}
-							</div>
-							<div className="px-[10px] py-1 flex items-center justify-between">
-								<div
-									className="text-[10px] inline-block bg-clip-text text-transparent font-medium"
-									style={{
-										background:
-											"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
-										backgroundClip: "text",
-										WebkitBackgroundClip: "text",
-										WebkitTextFillColor: "transparent",
-									}}
-								>
-									v{memory.version}
+									<div className="px-[10px] py-1 flex items-center justify-between">
+										<div
+											className="text-[10px] inline-block bg-clip-text text-transparent font-medium"
+											style={{
+												background:
+													"linear-gradient(94deg, #369BFD 4.8%, #36FDFD 77.04%, #36FDB5 143.99%)",
+												backgroundClip: "text",
+												WebkitBackgroundClip: "text",
+												WebkitTextFillColor: "transparent",
+											}}
+										>
+											v{memory.version}
+										</div>
+										<VersionStatus status={status} />
+									</div>
 								</div>
-								<VersionStatus status={status} />
-							</div>
-						</div>
-					)
+							)
 
-					if (isClickable) {
-						return (
-							<a
-								className="block p-2 bg-[#0C1829]/50 rounded-md border border-[#525D6E]/20 hover:bg-[#0C1829]/70 transition-colors cursor-pointer self-start"
-								href={memory.url}
-								key={memory.id || idx}
-								rel="noopener noreferrer"
-								target="_blank"
-							>
-								{content}
-							</a>
-						)
-					}
+							if (isClickable) {
+								return (
+									<a
+										className="block p-2 bg-[#0C1829]/50 rounded-md border border-[#525D6E]/20 hover:bg-[#0C1829]/70 transition-colors cursor-pointer self-start"
+										href={memory.url}
+										key={memory.id || idx}
+										rel="noopener noreferrer"
+										target="_blank"
+									>
+										{content}
+									</a>
+								)
+							}
 
-					return (
-						<div
-							className={cn("bg-[#0C1829] rounded-xl self-start")}
-							key={memory.id || idx}
-						>
-							{content}
-						</div>
-					)
-				})}
-			</div>
+							return (
+								<div
+									className={cn("bg-[#0C1829] rounded-xl self-start")}
+									key={memory.id || idx}
+								>
+									{content}
+								</div>
+							)
+						})}
+					</div>
+				</TabsContent>
+			</Tabs>
 		</div>
 	)
 }

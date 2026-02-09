@@ -55,7 +55,6 @@ export function TextMorph({
 	}
 
 	return (
-		// @ts-expect-error - style is optional
 		<Component className={cn(className)} aria-label={children} style={style}>
 			<AnimatePresence mode="popLayout" initial={false}>
 				{characters.map((character) => (

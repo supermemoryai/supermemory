@@ -38,6 +38,7 @@ import { useIsMobile } from "@hooks/use-mobile"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { useState } from "react"
 import { FeedbackModal } from "./feedback-modal"
+import { useViewMode } from "@/lib/view-mode-context"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -59,6 +60,7 @@ export function Header({
 	const isMobile = useIsMobile()
 	const { resetOrgOnboarded } = useOrgOnboarding()
 	const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+	const { viewMode, setViewMode } = useViewMode()
 
 	const handleTryOnboarding = () => {
 		resetOrgOnboarded()
@@ -151,7 +153,10 @@ export function Header({
 				)}
 			</div>
 			{!isMobile && (
-				<Tabs defaultValue="grid">
+				<Tabs
+					value={viewMode === "list" ? "grid" : "graph"}
+					onValueChange={(v) => setViewMode(v === "grid" ? "list" : "graph")}
+				>
 					<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
 						<TabsTrigger
 							value="grid"

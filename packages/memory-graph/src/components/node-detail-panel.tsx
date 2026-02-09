@@ -68,7 +68,6 @@ const getDocumentIcon = (type: string) => {
 			return <PDF {...iconProps} />
 		default:
 			{
-				/*@ts-expect-error */
 			}
 			return <FileText {...iconProps} />
 	}
@@ -109,7 +108,6 @@ export const NodeDetailPanel = memo(function NodeDetailPanel({
 						{isDocument ? (
 							getDocumentIcon((data as DocumentWithMemories).type ?? "")
 						) : (
-							// @ts-expect-error
 							<Brain className={styles.headerIconMemory} />
 						)}
 						<HeadingH3Bold>{isDocument ? "Document" : "Memory"}</HeadingH3Bold>

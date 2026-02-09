@@ -42,6 +42,7 @@ import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
 import { analytics } from "@/lib/analytics"
 import { generateId } from "@lib/generate-id"
+import { useViewMode } from "@/lib/view-mode-context"
 
 const DEFAULT_SUGGESTIONS = [
 	"Show me all content related to Supermemory.",
@@ -135,15 +136,17 @@ export function ChatSidebar({
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
+	const { viewMode } = useViewMode()
 	const [currentChatId, setCurrentChatId] = useState<string>(() => generateId())
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
 		messages: UIMessage[]
 	} | null>(null)
 
-	// Adjust chat height based on scroll position (desktop only)
+	// Adjust chat height based on scroll position (desktop only, grid mode only)
 	useEffect(() => {
 		if (isMobile) return
+		if (viewMode === "graph") return
 
 		const handleWindowScroll = () => {
 			const scrollThreshold = 80
@@ -157,7 +160,7 @@ export function ChatSidebar({
 		handleWindowScroll()
 
 		return () => window.removeEventListener("scroll", handleWindowScroll)
-	}, [isMobile])
+	}, [isMobile, viewMode])
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
 		id: currentChatId ?? undefined,

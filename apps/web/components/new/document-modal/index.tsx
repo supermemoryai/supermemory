@@ -291,6 +291,7 @@ export function DocumentModal({
 						{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
 							<GraphListMemories
 								memoryEntries={_document.memoryEntries as MemoryEntry[]}
+								documentId={_document.id}
 							/>
 						)}
 					</div>

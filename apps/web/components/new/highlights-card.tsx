@@ -30,7 +30,6 @@ interface HighlightsCardProps {
 	onChat: (seed: string) => void
 	onShowRelated: (query: string) => void
 	isLoading?: boolean
-	width?: number
 }
 
 function renderContent(content: string, format: HighlightFormat) {
@@ -68,7 +67,6 @@ export function HighlightsCard({
 	onChat,
 	onShowRelated,
 	isLoading = false,
-	width = 216,
 }: HighlightsCardProps) {
 	const [activeIndex, setActiveIndex] = useState(0)
 
@@ -108,7 +106,6 @@ export function HighlightsCard({
 					"bg-[#0B1017] border border-[rgba(255,255,255,0.05)] rounded-[18px] p-3 flex flex-col gap-3 min-h-[180px] items-center justify-center",
 					dmSansClassName(),
 				)}
-				style={{ width }}
 			>
 				<Loader2 className="size-5 animate-spin text-[#4BA0FA]" />
 				<span className="text-[10px] text-[#737373]">
@@ -125,7 +122,6 @@ export function HighlightsCard({
 					"bg-[#0B1017] border border-[rgba(255,255,255,0.05)] rounded-[18px] p-3 flex flex-col gap-3 min-h-[180px]",
 					dmSansClassName(),
 				)}
-				style={{ width }}
 			>
 				<div className="flex items-start justify-between">
 					<div className="flex items-center gap-1">
@@ -155,7 +151,6 @@ export function HighlightsCard({
 				"bg-[#0B1017] border border-[rgba(255,255,255,0.05)] rounded-[18px] p-3 flex flex-col gap-3",
 				dmSansClassName(),
 			)}
-			style={{ width }}
 		>
 			<div id="highlights-header" className="flex items-start justify-between">
 				<div className="flex items-center gap-1">
