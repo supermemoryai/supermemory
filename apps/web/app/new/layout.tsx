@@ -7,7 +7,7 @@ import { MobileBanner } from "@/components/new/mobile-banner"
 
 export default function NewLayout({ children }: { children: React.ReactNode }) {
 	const router = useRouter()
-	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
+	const flagEnabled = true
 
 	useEffect(() => {
 		if (!flagEnabled) {

@@ -48,12 +48,12 @@ export function ProfileView() {
 
 	const {
 		data: status = {
-			consumer_pro: { allowed: false, status: null },
+			api_pro: { allowed: false, status: null },
 		},
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const proStatus = status.consumer_pro
+	const proStatus = status.api_pro
 	const isPro = proStatus?.allowed ?? false
 	const proProductStatus = proStatus?.status
 	const isPastDue = proProductStatus === "past_due"
@@ -76,7 +76,7 @@ export function ProfileView() {
 		setIsLoading(true)
 		try {
 			await autumn.attach({
-				productId: "consumer_pro",
+				productId: "api_pro",
 				successUrl: "https://app.supermemory.ai/",
 			})
 			window.location.reload()

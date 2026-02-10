@@ -4,7 +4,8 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import { useMemoriesUsage } from "@/hooks/use-memories-usage"
+import { useTokenUsage } from "@/hooks/use-token-usage"
+import { formatUsageNumber, tokensToCredits } from "@/lib/billing-utils"
 import {
 	Dialog,
 	DialogContent,
@@ -107,19 +108,31 @@ export default function Account() {
 	}
 
 	const {
-		memoriesUsed,
-		memoriesLimit,
-		hasProProduct,
+		tokensUsed,
+		tokensLimit,
+		tokensPercent,
+		searchesUsed,
+		searchesLimit,
+		searchesPercent,
+		currentPlan,
+		hasPaidPlan,
 		isLoading: isCheckingStatus,
-		usagePercent,
-	} = useMemoriesUsage(autumn)
+		daysRemaining,
+	} = useTokenUsage(autumn)
+
+	const planDisplayNames: Record<string, string> = {
+		free: "Free",
+		pro: "Pro",
+		scale: "Scale",
+		enterprise: "Enterprise",
+	}
 
 	// Handlers
 	const handleUpgrade = async () => {
 		setIsUpgrading(true)
 		try {
 			await autumn.attach({
-				productId: "consumer_pro",
+				productId: "api_pro",
 				successUrl: "https://app.supermemory.ai/new/settings#account",
 			})
 			window.location.reload()
@@ -222,8 +235,6 @@ export default function Account() {
 											{allOrgs.map((organization) => {
 												const isCurrent = organization.id === org?.id
 												const isSwitching = switchingOrgId === organization.id
-												const isConsumer =
-													organization.metadata?.isConsumer === true
 												return (
 													<button
 														key={organization.id}
@@ -256,11 +267,6 @@ export default function Account() {
 																<LoaderIcon className="size-4 text-[#4BA0FA] shrink-0 animate-spin" />
 															)}
 														</div>
-														{!isConsumer && (
-															<span className="text-[11px] font-medium tracking-[0.3px] px-1.5 py-0.5 rounded-[4px] shrink-0 bg-[#737373]/15 text-[#737373]">
-																API
-															</span>
-														)}
 													</button>
 												)
 											})}
@@ -295,7 +301,7 @@ export default function Account() {
 				<SectionTitle>Billing &amp; Subscription</SectionTitle>
 				<SettingsCard>
 					<div className="flex flex-col gap-6">
-						{hasProProduct ? (
+						{hasPaidPlan ? (
 							<>
 								<div className="flex flex-col gap-1.5">
 									<div className="flex items-center gap-4">
@@ -305,7 +311,7 @@ export default function Account() {
 												"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
 											)}
 										>
-											Pro plan
+											{planDisplayNames[currentPlan]} plan
 										</p>
 										<span className="bg-[#4BA0FA] text-[#00171A] text-[12px] font-bold tracking-[0.36px] px-1 py-[3px] rounded-[3px] h-[18px] flex items-center justify-center">
 											ACTIVE
@@ -321,7 +327,8 @@ export default function Account() {
 									</p>
 								</div>
 
-								<div id="progress-bar" className="flex flex-col gap-3">
+								{/* Credits Usage Progress */}
+								<div className="flex flex-col gap-3">
 									<div className="flex items-center justify-between">
 										<p
 											className={cn(
@@ -329,35 +336,79 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											Unlimited Memories
+											Credits Used
 										</p>
-										<div className="flex items-center">
-											<span
-												className={cn(
-													dmSans125ClassName(),
-													"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
-												)}
-											>
-												{memoriesUsed}/
-											</span>
-											<span className="text-[#4BA0FA] text-[20px] leading-none ml-0.5">
-												∞
-											</span>
-										</div>
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
+											)}
+										>
+											{tokensToCredits(tokensUsed)} /{" "}
+											{tokensToCredits(tokensLimit)}
+										</span>
 									</div>
-									<div
-										id="progress-bar-fill"
-										className="h-3 w-full rounded-[40px] bg-[#2E353D] blur-[1px] p-px overflow-hidden"
-									>
+									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 										<div
-											className="h-full w-full rounded-[40px]"
+											className="h-full rounded-[40px]"
 											style={{
+												width: `${tokensPercent}%`,
 												background:
-													"linear-gradient(to right, #4BA0FA 80.517%, #002757 100%)",
+													tokensPercent > 80
+														? "#ef4444"
+														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
 											}}
 										/>
 									</div>
 								</div>
+
+								{/* Search Queries Progress */}
+								<div className="flex flex-col gap-3">
+									<div className="flex items-center justify-between">
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+											)}
+										>
+											Search Queries
+										</p>
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
+											)}
+										>
+											{formatUsageNumber(searchesUsed)} /{" "}
+											{formatUsageNumber(searchesLimit)}
+										</span>
+									</div>
+									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
+										<div
+											className="h-full rounded-[40px]"
+											style={{
+												width: `${searchesPercent}%`,
+												background:
+													searchesPercent > 80
+														? "#ef4444"
+														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
+											}}
+										/>
+									</div>
+								</div>
+
+								{/* Days remaining indicator */}
+								{daysRemaining !== null && (
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-sm text-[#737373]",
+										)}
+									>
+										Resets in {daysRemaining} day
+										{daysRemaining !== 1 ? "s" : ""}
+									</p>
+								)}
 
 								<button
 									type="button"
@@ -389,14 +440,17 @@ export default function Account() {
 											Free plan
 										</p>
 										<div className="flex flex-col gap-2">
-											<PlanFeatureRow icon="x" text="Limited 200 memories" />
+											<PlanFeatureRow
+												icon="check"
+												text="10 credits / 1M tokens"
+											/>
+											<PlanFeatureRow icon="check" text="10K search queries" />
 											<PlanFeatureRow icon="x" text="No connections" />
-											<PlanFeatureRow icon="check" text="Basic search" />
 											<PlanFeatureRow icon="check" text="Basic support" />
 										</div>
 									</div>
 
-									{/* Pro plan card - highlighted */}
+									{/* Current plan card - highlighted */}
 									<div
 										className={cn(
 											"flex flex-col gap-4 p-4 rounded-[10px]",
@@ -405,7 +459,6 @@ export default function Account() {
 											"relative overflow-hidden",
 										)}
 									>
-										{/* Header with ACTIVE badge */}
 										<div className="flex items-center justify-between">
 											<p
 												className={cn(
@@ -413,7 +466,7 @@ export default function Account() {
 													"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 												)}
 											>
-												Pro plan
+												{planDisplayNames[currentPlan]} plan
 											</p>
 											<span className="bg-[#4BA0FA] text-[#00171A] text-[12px] font-bold tracking-[0.36px] px-1 py-[3px] rounded-[3px] h-[18px] flex items-center justify-center">
 												ACTIVE
@@ -422,7 +475,12 @@ export default function Account() {
 										<div className="flex flex-col gap-2">
 											<PlanFeatureRow
 												icon="check"
-												text="Unlimited memories"
+												text="30 credits / 3M tokens"
+												variant="highlight"
+											/>
+											<PlanFeatureRow
+												icon="check"
+												text="100K search queries"
 												variant="highlight"
 											/>
 											<PlanFeatureRow
@@ -432,16 +490,10 @@ export default function Account() {
 											/>
 											<PlanFeatureRow
 												icon="check"
-												text="Advanced search"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
 												text="Priority support"
 												variant="highlight"
 											/>
 										</div>
-										{/* Inset highlight */}
 										<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
 									</div>
 								</div>
@@ -467,6 +519,7 @@ export default function Account() {
 									</p>
 								</div>
 
+								{/* Credits Usage Progress */}
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center justify-between">
 										<p
@@ -475,7 +528,7 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											Memories
+											Credits Used
 										</p>
 										<p
 											className={cn(
@@ -483,17 +536,66 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
 											)}
 										>
-											{memoriesUsed}/{memoriesLimit}
+											{tokensToCredits(tokensUsed)} /{" "}
+											{tokensToCredits(tokensLimit)}
 										</p>
 									</div>
-									{/* Progress bar */}
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px">
+									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 										<div
-											className="h-full rounded-[40px] bg-[#0054AD] transition-all"
-											style={{ width: `${usagePercent}%` }}
+											className="h-full rounded-[40px] transition-all"
+											style={{
+												width: `${tokensPercent}%`,
+												background: tokensPercent > 80 ? "#ef4444" : "#0054AD",
+											}}
 										/>
 									</div>
 								</div>
+
+								{/* Search Queries Progress */}
+								<div className="flex flex-col gap-3">
+									<div className="flex items-center justify-between">
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+											)}
+										>
+											Search Queries
+										</p>
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
+											)}
+										>
+											{formatUsageNumber(searchesUsed)} /{" "}
+											{formatUsageNumber(searchesLimit)}
+										</p>
+									</div>
+									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
+										<div
+											className="h-full rounded-[40px] transition-all"
+											style={{
+												width: `${searchesPercent}%`,
+												background:
+													searchesPercent > 80 ? "#ef4444" : "#0054AD",
+											}}
+										/>
+									</div>
+								</div>
+
+								{/* Days remaining indicator */}
+								{daysRemaining !== null && (
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-sm text-[#737373]",
+										)}
+									>
+										Resets in {daysRemaining} day
+										{daysRemaining !== 1 ? "s" : ""}
+									</p>
+								)}
 
 								<button
 									type="button"
@@ -520,7 +622,7 @@ export default function Account() {
 											Upgrading...
 										</>
 									) : (
-										"Upgrade to Pro - $9/month"
+										"Upgrade to Pro - $19/month"
 									)}
 									{/* Inset blue stroke */}
 									<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
@@ -538,9 +640,12 @@ export default function Account() {
 											Free plan
 										</p>
 										<div className="flex flex-col gap-2">
-											<PlanFeatureRow icon="x" text="Limited 200 memories" />
+											<PlanFeatureRow
+												icon="check"
+												text="10 credits / 1M tokens"
+											/>
+											<PlanFeatureRow icon="check" text="10K search queries" />
 											<PlanFeatureRow icon="x" text="No connections" />
-											<PlanFeatureRow icon="check" text="Basic search" />
 											<PlanFeatureRow icon="check" text="Basic support" />
 										</div>
 									</div>
@@ -571,17 +676,17 @@ export default function Account() {
 										<div className="flex flex-col gap-2">
 											<PlanFeatureRow
 												icon="check"
-												text="Unlimited memories"
+												text="30 credits / 3M tokens"
+												variant="highlight"
+											/>
+											<PlanFeatureRow
+												icon="check"
+												text="100K search queries"
 												variant="highlight"
 											/>
 											<PlanFeatureRow
 												icon="check"
 												text="10 connections"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="Advanced search"
 												variant="highlight"
 											/>
 											<PlanFeatureRow

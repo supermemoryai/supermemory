@@ -16,7 +16,7 @@ import { useFeatureFlagEnabled } from "posthog-js/react"
 export default function Page() {
 	const { user, session } = useAuth()
 	const router = useRouter()
-	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
+	const flagEnabled = true
 
 	// TODO: remove this flow after the feature flag is removed
 	// Old app: localStorage-backed onboarding

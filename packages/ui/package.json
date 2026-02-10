@@ -3,6 +3,9 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
+	"exports": {
+		"./*": "./*"
+	},
 	"dependencies": {
 		"@pixi/react": "^8.0.3",
 		"@radix-ui/react-accordion": "^1.2.11",

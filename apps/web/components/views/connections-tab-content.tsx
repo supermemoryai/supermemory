@@ -48,7 +48,7 @@ export function ConnectionsTabContent() {
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
-				productId: "consumer_pro",
+				productId: "api_pro",
 				successUrl: "https://app.supermemory.ai/",
 			})
 			window.location.reload()
@@ -61,9 +61,8 @@ export function ConnectionsTabContent() {
 	useEffect(() => {
 		if (!autumn.isLoading) {
 			setIsProUser(
-				autumn.customer?.products.some(
-					(product) => product.id === "consumer_pro",
-				) ?? false,
+				autumn.customer?.products.some((product) => product.id === "api_pro") ??
+					false,
 			)
 		}
 	}, [autumn.isLoading, autumn.customer])

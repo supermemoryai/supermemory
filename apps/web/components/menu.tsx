@@ -1,10 +1,7 @@
 "use client"
 
 import { useIsMobile } from "@hooks/use-mobile"
-import {
-	fetchConsumerProProduct,
-	fetchMemoriesFeature,
-} from "@repo/lib/queries"
+import { fetchApiProProduct, fetchMemoriesFeature } from "@repo/lib/queries"
 import { Button } from "@repo/ui/components/button"
 import { ConnectAIModal } from "./connect-ai-modal"
 import { HeadingH2Bold } from "@repo/ui/text/heading/heading-h2-bold"
@@ -74,7 +71,7 @@ function Menu({ id }: { id?: string }) {
 	const memoriesUsed = memoriesCheck?.usage ?? 0
 	const memoriesLimit = memoriesCheck?.included_usage ?? 0
 
-	const { data: proCheck } = fetchConsumerProProduct(autumn)
+	const { data: proCheck } = fetchApiProProduct(autumn)
 
 	useEffect(() => {
 		if (memoriesCheck) {

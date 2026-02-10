@@ -15,7 +15,7 @@ export default function NavigationLayout({
 	const [showAddMemoryView, setShowAddMemoryView] = useState(false)
 	const pathname = usePathname()
 	const router = useRouter()
-	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
+	const flagEnabled = true
 
 	useEffect(() => {
 		if (flagEnabled && !pathname.includes("/new")) {

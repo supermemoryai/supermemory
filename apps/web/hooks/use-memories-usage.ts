@@ -4,12 +4,12 @@ import type { useCustomer } from "autumn-js/react"
 export function useMemoriesUsage(autumn: ReturnType<typeof useCustomer>) {
 	const {
 		data: status = {
-			consumer_pro: { allowed: false, status: null },
+			api_pro: { allowed: false, status: null },
 		},
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const proStatus = status.consumer_pro
+	const proStatus = status.api_pro
 	const hasProProduct = proStatus?.status !== null
 
 	const { data: memoriesCheck, isLoading: isLoadingMemories } =

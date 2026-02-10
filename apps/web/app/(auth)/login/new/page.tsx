@@ -2,7 +2,7 @@
 
 import { signIn } from "@lib/auth"
 import { usePostHog } from "@lib/posthog"
-import { TextSeparator } from "@repo/ui/components/text-separator"
+import { TextSeparator } from "@ui/components/text-separator"
 import { ExternalAuthButton } from "@ui/button/external-auth"
 import { Button } from "@ui/components/button"
 import { Badge } from "@ui/components/badge"

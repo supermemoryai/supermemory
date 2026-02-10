@@ -24,12 +24,12 @@ export function BillingView() {
 
 	const {
 		data: status = {
-			consumer_pro: { allowed: false, status: null },
+			api_pro: { allowed: false, status: null },
 		},
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const proStatus = status.consumer_pro
+	const proStatus = status.api_pro
 	const proProductStatus = proStatus?.status
 	const isPastDue = proProductStatus === "past_due"
 	const hasProProduct = proProductStatus !== null
@@ -55,7 +55,7 @@ export function BillingView() {
 		setIsLoading(true)
 		try {
 			await autumn.attach({
-				productId: "consumer_pro",
+				productId: "api_pro",
 				successUrl: "https://app.supermemory.ai/",
 			})
 			analytics.upgradeCompleted()

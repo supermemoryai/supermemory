@@ -16,7 +16,7 @@ import { useIsMobile } from "@hooks/use-mobile"
 
 export function NewOnboardingModal() {
 	const router = useRouter()
-	const flagEnabled = useFeatureFlagEnabled("nova-alpha-access")
+	const flagEnabled = true
 	const isMobile = useIsMobile()
 	const [open, setOpen] = useState(false)
 

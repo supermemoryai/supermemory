@@ -59,9 +59,8 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	useEffect(() => {
 		if (!autumn.isLoading) {
 			setIsProUser(
-				autumn.customer?.products.some(
-					(product) => product.id === "consumer_pro",
-				) ?? false,
+				autumn.customer?.products.some((product) => product.id === "api_pro") ??
+					false,
 			)
 		}
 	}, [autumn.isLoading, autumn.customer])
@@ -70,7 +69,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		setIsUpgrading(true)
 		try {
 			await autumn.attach({
-				productId: "consumer_pro",
+				productId: "api_pro",
 				successUrl: window.location.href,
 			})
 		} catch (error) {

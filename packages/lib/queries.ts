@@ -14,7 +14,7 @@ export const fetchSubscriptionStatus = (
 ) =>
 	useQuery({
 		queryFn: async () => {
-			const allPlans = ["consumer_pro"]
+			const allPlans = ["api_pro", "api_scale", "api_enterprise"]
 			const statusMap: Record<
 				string,
 				{ allowed: boolean; status: string | null }
@@ -84,15 +84,13 @@ export const fetchConnectionsFeature = (
 	})
 
 // Product checks
-export const fetchConsumerProProduct = (
-	autumn: ReturnType<typeof useCustomer>,
-) =>
+export const fetchApiProProduct = (autumn: ReturnType<typeof useCustomer>) =>
 	useQuery({
 		queryFn: async () => {
-			const res = autumn.check({ productId: "consumer_pro" })
+			const res = autumn.check({ productId: "api_pro" })
 			return res.data
 		},
-		queryKey: ["autumn-product", "consumer_pro"],
+		queryKey: ["autumn-product", "api_pro"],
 		staleTime: 30 * 1000, // 30 seconds
 		gcTime: 5 * 60 * 1000, // 5 minutes
 	})

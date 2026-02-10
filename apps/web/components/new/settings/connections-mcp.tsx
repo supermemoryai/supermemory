@@ -342,12 +342,12 @@ export default function ConnectionsMCP() {
 	// Billing data
 	const {
 		data: status = {
-			consumer_pro: { allowed: false, status: null },
+			api_pro: { allowed: false, status: null },
 		},
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const hasProProduct = status.consumer_pro?.status !== null
+	const hasProProduct = status.api_pro?.status !== null
 
 	// Get connections data directly from autumn customer
 	const connectionsFeature = autumn.customer?.features?.connections
@@ -415,7 +415,7 @@ export default function ConnectionsMCP() {
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
-				productId: "consumer_pro",
+				productId: "api_pro",
 				successUrl: "https://app.supermemory.ai/new/settings#connections",
 			})
 			window.location.reload()
