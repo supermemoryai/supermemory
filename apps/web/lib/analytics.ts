@@ -29,7 +29,7 @@ export const analytics = {
 	chatHistoryViewed: () => safeCapture("chat_history_viewed"),
 	chatDeleted: () => safeCapture("chat_deleted"),
 
-	viewModeChanged: (mode: "graph" | "list") =>
+	viewModeChanged: (mode: "graph" | "list" | "integrations") =>
 		safeCapture("view_mode_changed", { mode }),
 
 	documentCardClicked: () => safeCapture("document_card_clicked"),
@@ -84,7 +84,7 @@ export const analytics = {
 		safeCapture("onboarding_integration_clicked", props),
 
 	onboardingChromeExtensionClicked: (props: {
-		source: "onboarding" | "settings"
+		source: "onboarding" | "settings" | "integrations"
 	}) => safeCapture("onboarding_chrome_extension_clicked", props),
 
 	onboardingMcpDetailOpened: () => safeCapture("onboarding_mcp_detail_opened"),

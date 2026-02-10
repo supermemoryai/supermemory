@@ -2,13 +2,12 @@ import { motion } from "motion/react"
 import { Button } from "@ui/components/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/lib/fonts"
 import {
 	parseXHandle,
 	parseLinkedInHandle,
 	toXProfileUrl,
 	toLinkedInProfileUrl,
+	normalizeUrl,
 } from "@/lib/url-helpers"
 import { analytics } from "@/lib/analytics"
 
@@ -77,16 +76,28 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 	}
 
 	const handleTwitterChange = (value: string) => {
-		const parsedHandle = parseXHandle(value)
-		setTwitterHandle(parsedHandle)
-		const error = validateTwitterHandle(parsedHandle)
+		setTwitterHandle(value)
+		setErrors((prev) => ({ ...prev, twitter: null }))
+	}
+
+	const handleTwitterBlur = () => {
+		if (!twitterHandle.trim()) return
+		const parsed = parseXHandle(twitterHandle)
+		setTwitterHandle(parsed)
+		const error = validateTwitterHandle(parsed)
 		setErrors((prev) => ({ ...prev, twitter: error }))
 	}
 
 	const handleLinkedInChange = (value: string) => {
-		const parsedHandle = parseLinkedInHandle(value)
-		setLinkedinProfile(parsedHandle)
-		const error = validateLinkedInHandle(parsedHandle)
+		setLinkedinProfile(value)
+		setErrors((prev) => ({ ...prev, linkedin: null }))
+	}
+
+	const handleLinkedInBlur = () => {
+		if (!linkedinProfile.trim()) return
+		const parsed = parseLinkedInHandle(linkedinProfile)
+		setLinkedinProfile(parsed)
+		const error = validateLinkedInHandle(parsed)
 		setErrors((prev) => ({ ...prev, linkedin: error }))
 	}
 
@@ -109,48 +120,19 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 					>
 						X/Twitter
 					</label>
-					<div className="relative flex items-center">
-						<div
-							className={`flex items-center border rounded-xl overflow-hidden h-[40px] w-full ${
-								errors.twitter
-									? "border-[#52596633] bg-[#290F0A]"
-									: "border-onboarding/20"
-							}`}
-						>
-							<div className="px-3 py-2 bg-[#070E1B] text-white/60 text-sm border-r border-onboarding/20 whitespace-nowrap">
-								x.com/
-							</div>
-							<input
-								id="twitter-handle"
-								type="text"
-								placeholder="handle"
-								value={twitterHandle}
-								onChange={(e) => handleTwitterChange(e.target.value)}
-								onBlur={() => {
-									if (twitterHandle.trim()) {
-										const error = validateTwitterHandle(twitterHandle)
-										setErrors((prev) => ({ ...prev, twitter: error }))
-									}
-								}}
-								className={`flex-1 px-4 py-2 bg-[#070E1B] text-white placeholder-onboarding focus:outline-none transition-colors ${
-									errors.twitter ? "bg-[#290F0A]" : ""
-								}`}
-							/>
-						</div>
-						{errors.twitter && (
-							<div className="absolute left-full ml-3">
-								<div
-									className={cn(
-										"relative shrink-0 px-3 py-2 bg-[#290F0A] text-[#C73B1B] rounded-xl",
-										dmSansClassName(),
-									)}
-								>
-									<div className="absolute left-0.5 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-8 border-t-transparent border-b-transparent border-[#290F0A]" />
-									<p className="text-xs whitespace-nowrap">{errors.twitter}</p>
-								</div>
-							</div>
-						)}
-					</div>
+					<input
+						id="twitter-handle"
+						type="text"
+						placeholder="x.com/handle or @handle"
+						value={twitterHandle}
+						onChange={(e) => handleTwitterChange(e.target.value)}
+						onBlur={handleTwitterBlur}
+						className={`w-full px-4 py-2 bg-[#070E1B] border rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px] ${
+							errors.twitter
+								? "border-[#52596633] bg-[#290F0A]"
+								: "border-onboarding/20"
+						}`}
+					/>
 				</div>
 
 				<div className="text-left gap-[6px] flex flex-col" id="linkedin-field">
@@ -160,48 +142,19 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 					>
 						LinkedIn
 					</label>
-					<div className="relative flex items-center">
-						<div
-							className={`flex items-center border rounded-xl overflow-hidden h-[40px] w-full ${
-								errors.linkedin
-									? "border-[#52596633] bg-[#290F0A]"
-									: "border-onboarding/20"
-							}`}
-						>
-							<div className="px-3 py-2 bg-[#070E1B] text-white/60 text-sm border-r border-onboarding/20 whitespace-nowrap w-[140px]">
-								linkedin.com/in/
-							</div>
-							<input
-								id="linkedin-profile"
-								type="text"
-								placeholder="username"
-								value={linkedinProfile}
-								onChange={(e) => handleLinkedInChange(e.target.value)}
-								onBlur={() => {
-									if (linkedinProfile.trim()) {
-										const error = validateLinkedInHandle(linkedinProfile)
-										setErrors((prev) => ({ ...prev, linkedin: error }))
-									}
-								}}
-								className={`flex-1 px-4 py-2 bg-[#070E1B] text-white placeholder-onboarding focus:outline-none transition-colors ${
-									errors.linkedin ? "bg-[#290F0A]" : ""
-								}`}
-							/>
-						</div>
-						{errors.linkedin && (
-							<div className="absolute left-full ml-3">
-								<div
-									className={cn(
-										"relative shrink-0 px-3 py-2 bg-[#290F0A] text-[#C73B1B] rounded-xl",
-										dmSansClassName(),
-									)}
-								>
-									<div className="absolute left-0.5 top-1/2 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-8 border-t-transparent border-b-transparent border-[#290F0A]" />
-									<p className="text-xs whitespace-nowrap">{errors.linkedin}</p>
-								</div>
-							</div>
-						)}
-					</div>
+					<input
+						id="linkedin-profile"
+						type="text"
+						placeholder="linkedin.com/in/username or username"
+						value={linkedinProfile}
+						onChange={(e) => handleLinkedInChange(e.target.value)}
+						onBlur={handleLinkedInBlur}
+						className={`w-full px-4 py-2 bg-[#070E1B] border rounded-xl text-white placeholder-onboarding focus:outline-none focus:border-[#4A4A4A] transition-colors h-[40px] ${
+							errors.linkedin
+								? "border-[#52596633] bg-[#290F0A]"
+								: "border-onboarding/20"
+						}`}
+					/>
 				</div>
 
 				<div
@@ -287,10 +240,12 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 					}}
 					onClick={() => {
 						const formData = {
-							twitter: toXProfileUrl(twitterHandle),
-							linkedin: toLinkedInProfileUrl(linkedinProfile),
+							twitter: toXProfileUrl(parseXHandle(twitterHandle)),
+							linkedin: toLinkedInProfileUrl(parseLinkedInHandle(linkedinProfile)),
 							description: description,
-							otherLinks: otherLinks.filter((l) => l.trim()),
+							otherLinks: otherLinks
+								.filter((l) => l.trim())
+								.map((l) => normalizeUrl(l.trim())),
 						}
 						analytics.onboardingProfileSubmitted({
 							has_twitter: !!twitterHandle.trim(),

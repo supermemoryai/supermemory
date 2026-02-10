@@ -11,6 +11,7 @@ import {
 	Settings,
 	Home,
 	Code2,
+	Cable,
 	ExternalLink,
 	HelpCircle,
 	MenuIcon,
@@ -43,14 +44,12 @@ import { feedbackParam } from "@/lib/search-params"
 
 interface HeaderProps {
 	onAddMemory?: () => void
-	onOpenMCP?: () => void
 	onOpenChat?: () => void
 	onOpenSearch?: () => void
 }
 
 export function Header({
 	onAddMemory,
-	onOpenMCP,
 	onOpenChat,
 	onOpenSearch,
 }: HeaderProps) {
@@ -155,8 +154,8 @@ export function Header({
 			</div>
 			{!isMobile && (
 				<Tabs
-					value={viewMode === "list" ? "grid" : "graph"}
-					onValueChange={(v) => setViewMode(v === "grid" ? "list" : "graph")}
+					value={viewMode === "list" ? "grid" : viewMode}
+					onValueChange={(v) => setViewMode(v === "grid" ? "list" : v as "graph" | "integrations")}
 				>
 					<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
 						<TabsTrigger
@@ -178,6 +177,16 @@ export function Header({
 						>
 							<LayoutGridIcon className="size-4" />
 							Graph
+						</TabsTrigger>
+						<TabsTrigger
+							value="integrations"
+							className={cn(
+								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4",
+								dmSansClassName(),
+							)}
+						>
+							<Cable className="size-4" />
+							Integrations
 						</TabsTrigger>
 					</TabsList>
 				</Tabs>
@@ -220,11 +229,11 @@ export function Header({
 									Add memory
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={onOpenMCP}
+									onClick={() => setViewMode("integrations")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<Code2 className="h-4 w-4 text-[#737373]" />
-									MCP
+									<Cable className="h-4 w-4 text-[#737373]" />
+									Integrations
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={onOpenChat}
@@ -270,13 +279,6 @@ export function Header({
 							>
 								C
 							</span>
-						</Button>
-						<Button
-							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
-							onClick={onOpenMCP}
-						>
-							<div className="flex items-center gap-2">MCP</div>
 						</Button>
 						<Button
 							variant="headers"

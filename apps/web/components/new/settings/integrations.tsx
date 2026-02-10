@@ -24,6 +24,11 @@ import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 import { toast } from "sonner"
+import {
+	ChromeIcon,
+	AppleShortcutsIcon,
+	RaycastIcon,
+} from "@/components/new/integration-icons"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -106,73 +111,6 @@ function FeatureItem({ text }: { text: string }) {
 	)
 }
 
-function ChromeIcon({ className }: { className?: string }) {
-	return (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			preserveAspectRatio="xMidYMid"
-			viewBox="0 0 190.5 190.5"
-			className={className}
-		>
-			<title>Google Chrome Icon</title>
-			<path
-				fill="#fff"
-				d="M95.252 142.873c26.304 0 47.627-21.324 47.627-47.628s-21.323-47.628-47.627-47.628-47.627 21.324-47.627 47.628 21.323 47.628 47.627 47.628z"
-			/>
-			<path
-				fill="#229342"
-				d="m54.005 119.07-41.24-71.43a95.227 95.227 0 0 0-.003 95.25 95.234 95.234 0 0 0 82.496 47.61l41.24-71.43v-.011a47.613 47.613 0 0 1-17.428 17.443 47.62 47.62 0 0 1-47.632.007 47.62 47.62 0 0 1-17.433-17.437z"
-			/>
-			<path
-				fill="#fbc116"
-				d="m136.495 119.067-41.239 71.43a95.229 95.229 0 0 0 82.489-47.622A95.24 95.24 0 0 0 190.5 95.248a95.237 95.237 0 0 0-12.772-47.623H95.249l-.01.007a47.62 47.62 0 0 1 23.819 6.372 47.618 47.618 0 0 1 17.439 17.431 47.62 47.62 0 0 1-.001 47.633z"
-			/>
-			<path
-				fill="#1a73e8"
-				d="M95.252 132.961c20.824 0 37.705-16.881 37.705-37.706S116.076 57.55 95.252 57.55 57.547 74.431 57.547 95.255s16.881 37.706 37.705 37.706z"
-			/>
-			<path
-				fill="#e33b2e"
-				d="M95.252 47.628h82.479A95.237 95.237 0 0 0 142.87 12.76 95.23 95.23 0 0 0 95.245 0a95.222 95.222 0 0 0-47.623 12.767 95.23 95.23 0 0 0-34.856 34.872l41.24 71.43.011.006a47.62 47.62 0 0 1-.015-47.633 47.61 47.61 0 0 1 41.252-23.815z"
-			/>
-		</svg>
-	)
-}
-
-function AppleShortcutsIcon() {
-	return (
-		<div className="relative size-10 shrink-0 rounded-lg overflow-hidden">
-			<Image
-				src="/images/ios-shortcuts.png"
-				alt="Apple Shortcuts"
-				width={40}
-				height={40}
-				className="object-cover"
-			/>
-		</div>
-	)
-}
-
-function RaycastIcon({ className }: { className?: string }) {
-	return (
-		<svg
-			width="24"
-			height="24"
-			viewBox="0 0 28 28"
-			fill="none"
-			xmlns="http://www.w3.org/2000/svg"
-			className={className}
-		>
-			<title>Raycast Icon</title>
-			<path
-				fillRule="evenodd"
-				clipRule="evenodd"
-				d="M7 18.079V21L0 14L1.46 12.54L7 18.081V18.079ZM9.921 21H7L14 28L15.46 26.54L9.921 21ZM26.535 15.462L27.996 14L13.996 0L12.538 1.466L18.077 7.004H14.73L10.864 3.146L9.404 4.606L11.809 7.01H10.129V17.876H20.994V16.196L23.399 18.6L24.859 17.14L20.994 13.274V9.927L26.535 15.462ZM7.73 6.276L6.265 7.738L7.833 9.304L9.294 7.844L7.73 6.276ZM20.162 18.708L18.702 20.17L20.268 21.738L21.73 20.276L20.162 18.708ZM4.596 9.41L3.134 10.872L7 14.738V11.815L4.596 9.41ZM16.192 21.006H13.268L17.134 24.872L18.596 23.41L16.192 21.006Z"
-				fill="#FF6363"
-			/>
-		</svg>
-	)
-}
 
 export default function Integrations() {
 	const { org } = useAuth()

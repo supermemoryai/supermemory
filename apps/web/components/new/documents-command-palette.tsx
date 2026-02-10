@@ -38,7 +38,7 @@ interface DocumentsCommandPaletteProps {
 	projectId: string
 	onOpenDocument: (document: DocumentWithMemories) => void
 	onAddMemory?: () => void
-	onOpenMCP?: () => void
+	onOpenIntegrations?: () => void
 	initialSearch?: string
 }
 
@@ -48,7 +48,7 @@ export function DocumentsCommandPalette({
 	projectId,
 	onOpenDocument,
 	onAddMemory,
-	onOpenMCP,
+	onOpenIntegrations,
 	initialSearch = "",
 }: DocumentsCommandPaletteProps) {
 	const isMobile = useIsMobile()
@@ -95,13 +95,13 @@ export function DocumentsCommandPalette({
 				action: () => { close(); onAddMemory() },
 			}]
 			: []),
-		...(onOpenMCP
+		...(onOpenIntegrations
 			? [{
 				kind: "action" as const,
-				id: "mcp",
-				label: "Open MCP",
+				id: "integrations",
+				label: "Open Integrations",
 				icon: <Code2 className="size-4 text-[#737373]" />,
-				action: () => { close(); onOpenMCP() },
+				action: () => { close(); onOpenIntegrations() },
 			}]
 			: []),
 	]

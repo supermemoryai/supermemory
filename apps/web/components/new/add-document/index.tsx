@@ -15,7 +15,8 @@ import { useProject } from "@/stores"
 import { toast } from "sonner"
 import { useDocumentMutations } from "../../../hooks/use-document-mutations"
 import { useCustomer } from "autumn-js/react"
-import { useMemoriesUsage } from "@/hooks/use-memories-usage"
+import { useTokenUsage } from "@/hooks/use-token-usage"
+import { tokensToCredits, formatUsageNumber } from "@/lib/billing-utils"
 import { SpaceSelector } from "../space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
 import { addDocumentParam } from "@/lib/search-params"
@@ -131,12 +132,16 @@ export function AddDocument({
 
 	const autumn = useCustomer()
 	const {
-		memoriesUsed,
-		memoriesLimit,
-		hasProProduct,
-		isLoading: isLoadingMemories,
-		usagePercent,
-	} = useMemoriesUsage(autumn)
+		tokensUsed,
+		tokensLimit,
+		tokensPercent,
+		searchesUsed,
+		searchesLimit,
+		searchesPercent,
+		hasPaidPlan,
+		isLoading: isLoadingUsage,
+	} = useTokenUsage(autumn)
+	const [isUpgrading, setIsUpgrading] = useState(false)
 
 	useEffect(() => {
 		setLocalSelectedProject(globalSelectedProject)
@@ -246,37 +251,96 @@ export function AddDocument({
 
 				{!isMobile && (
 					<div
-						data-testid="memories-counter"
-						className="bg-[#1B1F24] rounded-2xl p-4 mr-4"
-						style={{
-							boxShadow:
-								"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-						}}
+						data-testid="usage-counter"
+						className="flex flex-col gap-3 mr-4"
 					>
-						<div className="flex justify-between items-center">
-							<span
-								className={cn(
-									"text-white text-[16px] font-medium",
-									dmSansClassName(),
-								)}
-							>
-								Memories
-							</span>
-							<span className={cn("text-[#737373] text-sm", dmSansClassName())}>
-								{isLoadingMemories
-									? "…"
-									: hasProProduct
-										? "Unlimited"
-										: `${memoriesUsed}/${memoriesLimit}`}
-							</span>
-						</div>
-						{!hasProProduct && (
-							<div className="h-1.5 bg-[#0D121A] rounded-full overflow-hidden mt-2">
+						<div className="flex flex-col gap-2">
+							<div className="flex justify-between items-center">
+								<span className={cn("text-[#FAFAFA] text-sm font-medium", dmSansClassName())}>
+									Credits
+								</span>
+								<span className={cn("text-sm font-medium", hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]", dmSansClassName())}>
+									{isLoadingUsage ? "…" : `${tokensToCredits(tokensUsed)} / ${tokensToCredits(tokensLimit)}`}
+								</span>
+							</div>
+							<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 								<div
-									className="h-full bg-[#2261CA] rounded-full"
-									style={{ width: `${usagePercent}%` }}
+									className="h-full rounded-[40px]"
+									style={{
+										width: `${tokensPercent}%`,
+										background: tokensPercent > 80
+											? "#ef4444"
+											: hasPaidPlan
+												? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
+												: "#0054AD",
+									}}
 								/>
 							</div>
+						</div>
+
+						<div className="flex flex-col gap-2">
+							<div className="flex justify-between items-center">
+								<span className={cn("text-[#FAFAFA] text-sm font-medium", dmSansClassName())}>
+									Search Queries
+								</span>
+								<span className={cn("text-sm font-medium", hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]", dmSansClassName())}>
+									{isLoadingUsage ? "…" : `${formatUsageNumber(searchesUsed)} / ${formatUsageNumber(searchesLimit)}`}
+								</span>
+							</div>
+							<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
+								<div
+									className="h-full rounded-[40px]"
+									style={{
+										width: `${searchesPercent}%`,
+										background: searchesPercent > 80
+											? "#ef4444"
+											: hasPaidPlan
+												? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
+												: "#0054AD",
+									}}
+								/>
+							</div>
+						</div>
+
+						{!hasPaidPlan && (
+							<button
+								type="button"
+								onClick={async () => {
+									setIsUpgrading(true)
+									try {
+										await autumn.attach({
+											productId: "api_pro",
+											successUrl: "https://app.supermemory.ai/settings#account",
+										})
+										window.location.reload()
+									} catch (error) {
+										console.error(error)
+										setIsUpgrading(false)
+									}
+								}}
+								disabled={isUpgrading}
+								className={cn(
+									"relative w-full h-9 rounded-[10px] flex items-center justify-center",
+									"text-[#FAFAFA] font-medium text-[13px]",
+									"disabled:opacity-60 disabled:cursor-not-allowed",
+									"cursor-pointer transition-opacity hover:opacity-90",
+									dmSansClassName(),
+								)}
+								style={{
+									background: "linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
+									boxShadow: "1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
+								}}
+							>
+								{isUpgrading ? (
+									<>
+										<Loader2 className="size-3 animate-spin mr-1.5" />
+										Upgrading...
+									</>
+								) : (
+									"Upgrade to Pro"
+								)}
+								<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
+							</button>
 						)}
 					</div>
 				)}

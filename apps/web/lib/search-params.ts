@@ -23,6 +23,8 @@ export const shareParam = parseAsBoolean.withDefault(false)
 export const feedbackParam = parseAsBoolean.withDefault(false)
 
 // View & filter states
-export const viewParam = parseAsStringLiteral(["graph", "list"] as const).withDefault("graph")
+const viewLiterals = ["graph", "list", "integrations"] as const
+export type ViewParamValue = (typeof viewLiterals)[number]
+export const viewParam = parseAsStringLiteral(viewLiterals).withDefault("graph")
 export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault([])
 export const projectParam = parseAsString.withDefault("sm_project_default")

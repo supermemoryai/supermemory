@@ -6,9 +6,9 @@ import { Header } from "@/components/new/header"
 import { ChatSidebar } from "@/components/new/chat"
 import { MemoriesGrid } from "@/components/new/memories-grid"
 import { GraphLayoutView } from "@/components/new/graph-layout-view"
+import { IntegrationsView } from "@/components/new/integrations-view"
 import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
 import { AddDocumentModal } from "@/components/new/add-document"
-import { MCPModal } from "@/components/new/mcp-modal"
 import { DocumentModal } from "@/components/new/document-modal"
 import { DocumentsCommandPalette } from "@/components/new/documents-command-palette"
 import { FullscreenNoteModal } from "@/components/new/fullscreen-note-modal"
@@ -31,7 +31,6 @@ import { useViewMode } from "@/lib/view-mode-context"
 import { cn } from "@lib/utils"
 import {
 	addDocumentParam,
-	mcpParam,
 	searchParam,
 	qParam,
 	docParam,
@@ -45,12 +44,11 @@ type DocumentWithMemories = DocumentsResponse["documents"][0]
 export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { selectedProject } = useProject()
-	const { viewMode } = useViewMode()
+	const { viewMode, setViewMode } = useViewMode()
 	const queryClient = useQueryClient()
 
 	// URL-driven modal states
 	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
-	const [isMCPOpen, setIsMCPOpen] = useQueryState("mcp", mcpParam)
 	const [isSearchOpen, setIsSearchOpen] = useQueryState("search", searchParam)
 	const [searchPrefill, setSearchPrefill] = useQueryState("q", qParam)
 	const [docId, setDocId] = useQueryState("doc", docParam)
@@ -284,10 +282,6 @@ export default function NewPage() {
 						analytics.addDocumentModalOpened()
 						setAddDoc("note")
 					}}
-					onOpenMCP={() => {
-						analytics.mcpModalOpened()
-						setIsMCPOpen(true)
-					}}
 					onOpenChat={() => setIsChatOpen(true)}
 					onOpenSearch={() => {
 						analytics.searchOpened({ source: "header" })
@@ -302,7 +296,11 @@ export default function NewPage() {
 					)}
 				>
 					<div className={cn("relative z-10 flex flex-col md:flex-row h-full")}>
-						{viewMode === "graph" && !isMobile ? (
+						{viewMode === "integrations" ? (
+							<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
+								<IntegrationsView />
+							</div>
+						) : viewMode === "graph" && !isMobile ? (
 							<div className="flex-1">
 								<GraphLayoutView isChatOpen={chatOpen} />
 							</div>
@@ -354,10 +352,6 @@ export default function NewPage() {
 					onClose={() => setAddDoc(null)}
 					defaultTab={addDoc ?? undefined}
 				/>
-				<MCPModal
-					isOpen={isMCPOpen}
-					onClose={() => setIsMCPOpen(false)}
-				/>
 				<DocumentsCommandPalette
 					open={isSearchOpen}
 					onOpenChange={(open) => {
@@ -370,10 +364,7 @@ export default function NewPage() {
 						analytics.addDocumentModalOpened()
 						setAddDoc("note")
 					}}
-					onOpenMCP={() => {
-						analytics.mcpModalOpened()
-						setIsMCPOpen(true)
-					}}
+					onOpenIntegrations={() => setViewMode("integrations")}
 					initialSearch={searchPrefill}
 				/>
 				<DocumentModal
