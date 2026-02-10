@@ -11,8 +11,18 @@ import {
 	DialogTrigger,
 	DialogClose,
 } from "@ui/components/dialog"
+import { authClient } from "@lib/auth"
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { useCustomer } from "autumn-js/react"
-import { Check, X, Trash2, LoaderIcon, Settings } from "lucide-react"
+import {
+	Check,
+	X,
+	Trash2,
+	LoaderIcon,
+	Settings,
+	ChevronDown,
+	Building2,
+} from "lucide-react"
 import { useState } from "react"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -76,11 +86,25 @@ function PlanFeatureRow({
 }
 
 export default function Account() {
-	const { user, org } = useAuth()
+	const { user, org, setActiveOrg } = useAuth()
 	const autumn = useCustomer()
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [deleteConfirmText, setDeleteConfirmText] = useState("")
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
+	const { data: allOrgs } = authClient.useListOrganizations()
+
+	const handleOrgSwitch = async (orgSlug: string, orgId: string) => {
+		if (orgId === org?.id) return
+		setSwitchingOrgId(orgId)
+		try {
+			await setActiveOrg(orgSlug)
+			window.location.reload()
+		} catch (error) {
+			console.error("Failed to switch organization:", error)
+			setSwitchingOrgId(null)
+		}
+	}
 
 	const {
 		memoriesUsed,
@@ -163,7 +187,6 @@ export default function Account() {
 							</div>
 						</div>
 
-						{/* Organization + Member since */}
 						<div className="flex gap-4">
 							<div className="flex-1 flex flex-col gap-2">
 								<p
@@ -174,14 +197,76 @@ export default function Account() {
 								>
 									Organization
 								</p>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+								<Popover>
+									<PopoverTrigger
+										className={cn(
+											"flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-90",
+											dmSans125ClassName(),
+										)}
+									>
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+											)}
+										>
+											{org?.name ?? "Personal"}
+										</span>
+										<ChevronDown className="size-4 text-[#737373]" />
+									</PopoverTrigger>
+									{allOrgs && allOrgs.length > 1 && (
+										<PopoverContent
+											align="start"
+											className="w-72 bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+										>
+											{allOrgs.map((organization) => {
+												const isCurrent = organization.id === org?.id
+												const isSwitching = switchingOrgId === organization.id
+												const isConsumer =
+													organization.metadata?.isConsumer === true
+												return (
+													<button
+														key={organization.id}
+														type="button"
+														disabled={isCurrent || isSwitching}
+														onClick={() =>
+															handleOrgSwitch(
+																organization.slug,
+																organization.id,
+															)
+														}
+														className={cn(
+															"w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-left transition-colors",
+															isCurrent
+																? "bg-white/5"
+																: "hover:bg-white/5 cursor-pointer",
+															"disabled:opacity-60 disabled:cursor-default",
+															dmSans125ClassName(),
+														)}
+													>
+														<Building2 className="size-4 text-[#737373] shrink-0" />
+														<div className="flex-1 min-w-0 flex items-center gap-2">
+															<p className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] truncate">
+																{organization.name}
+															</p>
+															{isCurrent && (
+																<Check className="size-4 text-[#4BA0FA] shrink-0" />
+															)}
+															{isSwitching && (
+																<LoaderIcon className="size-4 text-[#4BA0FA] shrink-0 animate-spin" />
+															)}
+														</div>
+														{!isConsumer && (
+															<span className="text-[11px] font-medium tracking-[0.3px] px-1.5 py-0.5 rounded-[4px] shrink-0 bg-[#737373]/15 text-[#737373]">
+																API
+															</span>
+														)}
+													</button>
+												)
+											})}
+										</PopoverContent>
 									)}
-								>
-									{org?.name ?? "Personal"}
-								</p>
+								</Popover>
 							</div>
 							<div className="flex-1 flex flex-col gap-2">
 								<p
