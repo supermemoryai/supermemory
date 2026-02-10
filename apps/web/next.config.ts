@@ -33,6 +33,20 @@ const nextConfig: NextConfig = {
 		]
 	},
 	skipTrailingSlashRedirect: true,
+	async redirects() {
+		return [
+			{
+				source: "/new",
+				destination: "/",
+				permanent: true,
+			},
+			{
+				source: "/new/:path*",
+				destination: "/:path*",
+				permanent: true,
+			},
+		]
+	},
 }
 
 export default withSentryConfig(nextConfig, {
