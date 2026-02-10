@@ -5,6 +5,7 @@
 		"paths": {
 			"@/*": ["./*"],
 			"@ui/*": ["../../packages/ui/*"],
+			"@repo/ui/*": ["../../packages/ui/*"],
 			"@lib/*": ["../../packages/lib/*"],
 			"@hooks/*": ["../../packages/hooks/*"]
 		},
