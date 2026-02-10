@@ -8,8 +8,8 @@ export function SetupHeader() {
 
 	const displayName =
 		user?.displayUsername ||
-		localStorage.getItem("username") ||
-		localStorage.getItem("userName") ||
+		(typeof window !== "undefined" && localStorage.getItem("username")) ||
+		(typeof window !== "undefined" && localStorage.getItem("userName")) ||
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 
