@@ -157,6 +157,12 @@ export const MemoryUpdateSchema = z.object({
 			"Optional custom ID of the memory. This could be an ID from your database that will uniquely identify this memory.",
 		example: "mem_abc123",
 	}),
+	entityContext: z.string().max(1500).optional().openapi({
+		description:
+			"Context for memory extraction on this container tag. Helps guide how memories are extracted and understood.",
+		example:
+			"This user is John, saving items in a personal knowledge management system.",
+	}),
 	metadata: MetadataSchema.optional().openapi({
 		description:
 			"Optional metadata for the memory. This is used to store additional information about the memory. You can use this to store any additional information you need about the memory. Metadata can be filtered through. Keys must be strings and are case sensitive. Values can be strings, numbers, or booleans. You cannot nest objects.",

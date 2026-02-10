@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { useChat } from "@ai-sdk/react"
-import { DefaultChatTransport } from "ai"
+import { useAgent } from "agents/react"
+import { useAgentChat } from "@cloudflare/ai-chat/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import {
@@ -76,21 +76,28 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 	const isProcessingRef = useRef(false)
 	const draftRequestIdRef = useRef(0)
 
+	const backendUrl = new URL(process.env.NEXT_PUBLIC_BACKEND_URL!)
+	const agent = useAgent({
+		agent: "chat-agent",
+		name: user?.id ?? "anonymous",
+		host: backendUrl.host,
+	})
+
+	useEffect(() => {
+		agent.setState({
+			model: "gemini-2.5-pro" as const,
+			projectId: selectedProject,
+		})
+	}, [agent, selectedProject])
+
 	const {
 		messages: chatMessages,
 		sendMessage,
 		status,
-	} = useChat({
-		transport: new DefaultChatTransport({
-			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
-			credentials: "include",
-			body: {
-				metadata: {
-					projectId: selectedProject,
-					model: "gemini-2.5-pro",
-				},
-			},
-		}),
+	} = useAgentChat({
+		agent,
+		getInitialMessages: null,
+		credentials: "include",
 	})
 
 	const buildOnboardingContext = useCallback(() => {

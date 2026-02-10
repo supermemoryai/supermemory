@@ -133,7 +133,7 @@ export default function Account() {
 		try {
 			await autumn.attach({
 				productId: "api_pro",
-				successUrl: "https://app.supermemory.ai/new/settings#account",
+				successUrl: "https://app.supermemory.ai/settings#account",
 			})
 			window.location.reload()
 		} catch (error) {

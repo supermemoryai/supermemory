@@ -9,11 +9,8 @@ import { QueryProvider } from "../components/query-client"
 import { AutumnProvider } from "autumn-js/react"
 import { Suspense } from "react"
 import { Toaster } from "@ui/components/sonner"
-import { MobilePanelProvider } from "@/lib/mobile-panel-context"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { ThemeProvider } from "@/lib/theme-provider"
-
-import { ViewModeProvider } from "@/lib/view-mode-context"
 
 const font = Space_Grotesk({
 	subsets: ["latin"],
@@ -60,18 +57,14 @@ export default function RootLayout({
 					>
 						<QueryProvider>
 							<AuthProvider>
-								<ViewModeProvider>
-									<MobilePanelProvider>
-										<PostHogProvider>
-											<ErrorTrackingProvider>
-												<NuqsAdapter>
-													<Suspense>{children}</Suspense>
-													<Toaster />
-												</NuqsAdapter>
-											</ErrorTrackingProvider>
-										</PostHogProvider>
-									</MobilePanelProvider>
-								</ViewModeProvider>
+								<PostHogProvider>
+									<ErrorTrackingProvider>
+										<NuqsAdapter>
+											<Suspense>{children}</Suspense>
+											<Toaster />
+										</NuqsAdapter>
+									</ErrorTrackingProvider>
+								</PostHogProvider>
 							</AuthProvider>
 						</QueryProvider>
 					</AutumnProvider>

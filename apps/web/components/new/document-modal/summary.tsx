@@ -47,10 +47,10 @@ export function Summary({
 			<div
 				className={cn(
 					"flex items-center",
-					memoryEntries.length > 0 ? "justify-between" : "justify-end",
+					memoryEntries?.length > 0 ? "justify-between" : "justify-end",
 				)}
 			>
-				{memoryEntries.length > 0 && (
+				{memoryEntries?.length > 0 && (
 					<p
 						className={cn(
 							"text-[#369BFD] line-clamp-1 flex items-center gap-1.5",

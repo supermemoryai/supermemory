@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { $fetch } from "@lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
+import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -34,6 +35,7 @@ export function useDocumentMutations({
 	onClose,
 }: UseDocumentMutationsOptions = {}) {
 	const queryClient = useQueryClient()
+	const { user } = useAuth()
 
 	const noteMutation = useMutation({
 		mutationFn: async ({
@@ -47,6 +49,7 @@ export function useDocumentMutations({
 				body: {
 					content: content,
 					containerTags: [project],
+					entityContext: `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`,
 					metadata: {
 						sm_source: "consumer",
 					},
@@ -134,6 +137,7 @@ export function useDocumentMutations({
 				body: {
 					content: url,
 					containerTags: [project],
+					entityContext: `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`,
 					metadata: {
 						sm_source: "consumer",
 					},
@@ -230,6 +234,10 @@ export function useDocumentMutations({
 			const formData = new FormData()
 			formData.append("file", file)
 			formData.append("containerTags", JSON.stringify([project]))
+			formData.append(
+				"entityContext",
+				`This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`,
+			)
 			formData.append(
 				"metadata",
 				JSON.stringify({

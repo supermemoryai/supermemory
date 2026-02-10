@@ -66,7 +66,7 @@ export function IntegrationsStep() {
 	const handleContinue = () => {
 		markOrgOnboarded()
 		analytics.onboardingCompleted()
-		router.push("/new")
+		router.push("/")
 	}
 
 	if (selectedCard === "Connect to AI") {
@@ -177,7 +177,7 @@ export function IntegrationsStep() {
 				<Button
 					variant="link"
 					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"
-					onClick={() => router.push("/new/onboarding/setup?step=relatable")}
+					onClick={() => router.push("/onboarding/setup?step=relatable")}
 				>
 					← Back
 				</Button>

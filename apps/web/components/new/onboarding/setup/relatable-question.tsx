@@ -40,7 +40,7 @@ export function RelatableQuestion() {
 			(idx) => relatableOptions[idx]?.text || "",
 		)
 		analytics.onboardingRelatableSelected({ options: selectedTexts })
-		router.push("/new/onboarding/setup?step=integrations")
+		router.push("/onboarding/setup?step=integrations")
 	}
 
 	return (

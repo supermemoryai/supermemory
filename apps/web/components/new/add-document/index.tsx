@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useQueryState } from "nuqs"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
@@ -17,6 +18,7 @@ import { useCustomer } from "autumn-js/react"
 import { useMemoriesUsage } from "@/hooks/use-memories-usage"
 import { SpaceSelector } from "../space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
+import { addDocumentParam } from "@/lib/search-params"
 
 type TabType = "note" | "link" | "file" | "connect"
 
@@ -91,7 +93,6 @@ const tabs = [
 ]
 
 export function AddDocument({
-	defaultTab,
 	onClose,
 	isOpen,
 }: {
@@ -100,7 +101,12 @@ export function AddDocument({
 	isOpen?: boolean
 }) {
 	const isMobile = useIsMobile()
-	const [activeTab, setActiveTab] = useState<TabType>(defaultTab ?? "note")
+	const [addParam, setAddParam] = useQueryState("add", addDocumentParam)
+	const activeTab: TabType = addParam ?? "note"
+	const setActiveTab = useCallback(
+		(tab: TabType) => { setAddParam(tab) },
+		[setAddParam],
+	)
 	const { selectedProject: globalSelectedProject } = useProject()
 	const [localSelectedProject, setLocalSelectedProject] = useState<string>(
 		globalSelectedProject,
@@ -135,12 +141,6 @@ export function AddDocument({
 	useEffect(() => {
 		setLocalSelectedProject(globalSelectedProject)
 	}, [globalSelectedProject])
-
-	useEffect(() => {
-		if (defaultTab) {
-			setActiveTab(defaultTab)
-		}
-	}, [defaultTab])
 
 	// Submit handlers
 	const handleNoteSubmit = useCallback(

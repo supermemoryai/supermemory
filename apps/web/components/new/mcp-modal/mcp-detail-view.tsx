@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useQueryState, parseAsString, parseAsStringLiteral, parseAsInteger } from "nuqs"
 import { Button } from "@ui/components/button"
 import {
 	Select,
@@ -35,13 +36,20 @@ interface MCPStepsProps {
 }
 
 export function MCPSteps({ variant = "full" }: MCPStepsProps) {
-	const [selectedClient, setSelectedClient] = useState<
-		keyof typeof clients | null
-	>(null)
+	const [selectedClient, setSelectedClient] = useQueryState(
+		"mcpClient",
+		parseAsString,
+	)
 	const [selectedProject] = useState<string>("sm_project_default")
-	const [mcpUrlTab, setMcpUrlTab] = useState<"oneClick" | "manual">("oneClick")
+	const [mcpUrlTab, setMcpUrlTab] = useQueryState(
+		"mcpTab",
+		parseAsStringLiteral(["oneClick", "manual"] as const).withDefault("oneClick"),
+	)
 	const [isCopied, setIsCopied] = useState(false)
-	const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1)
+	const [activeStep, setActiveStep] = useQueryState(
+		"mcpStep",
+		parseAsInteger.withDefault(1),
+	)
 
 	useEffect(() => {
 		analytics.mcpViewOpened()
@@ -170,7 +178,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 						{selectedClient && (
 							<Select
 								onValueChange={(value) => {
-									setSelectedClient(value as keyof typeof clients)
+									setSelectedClient(value)
 									setActiveStep(2)
 								}}
 								value={selectedClient || undefined}
@@ -185,7 +193,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									{selectedClient ? (
 										<div className="flex items-center gap-2">
 											<Image
-												alt={clients[selectedClient]}
+												alt={clients[selectedClient as keyof typeof clients]}
 												height={20}
 												width={20}
 												unoptimized
@@ -195,7 +203,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														: `/mcp-supported-tools/${selectedClient === "claude-code" ? "claude" : selectedClient}.png`
 												}
 											/>
-											<span>{clients[selectedClient]}</span>
+											<span>{clients[selectedClient as keyof typeof clients]}</span>
 										</div>
 									) : (
 										<SelectValue placeholder="Select a client" />
@@ -243,7 +251,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 									key={key}
 									type="button"
 									onClick={() => {
-										setSelectedClient(key as keyof typeof clients)
+										setSelectedClient(key)
 										setActiveStep(2)
 									}}
 									className={`mcp-client-button-group py-[6px] pl-2 pr-3 rounded-full border transition-colors cursor-pointer duration-200 ${

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
 import { motion, AnimatePresence } from "motion/react"
 import { useChat } from "@ai-sdk/react"
@@ -40,9 +41,11 @@ import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
 import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
+import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 import { generateId } from "@lib/generate-id"
 import { useViewMode } from "@/lib/view-mode-context"
+import { threadParam } from "@/lib/search-params"
 
 const DEFAULT_SUGGESTIONS = [
 	"Show me all content related to Supermemory.",
@@ -137,7 +140,14 @@ export function ChatSidebar({
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
 	const { viewMode } = useViewMode()
-	const [currentChatId, setCurrentChatId] = useState<string>(() => generateId())
+	const { user } = useAuth()
+	const [threadId, setThreadId] = useQueryState("thread", threadParam)
+	const fallbackChatId = useMemo(() => generateId(), [])
+	const currentChatId = threadId ?? fallbackChatId
+	const setCurrentChatId = useCallback(
+		(id: string) => setThreadId(id),
+		[setThreadId],
+	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
 		messages: UIMessage[]
@@ -167,13 +177,6 @@ export function ChatSidebar({
 		transport: new DefaultChatTransport({
 			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
 			credentials: "include",
-			body: {
-				metadata: {
-					projectId: selectedProject,
-					model: selectedModel,
-					chatId: currentChatId,
-				},
-			},
 		}),
 		onFinish: async (result) => {
 			if (result.message.role !== "assistant") return
@@ -373,11 +376,9 @@ export function ChatSidebar({
 
 	const handleNewChat = useCallback(() => {
 		analytics.newChatCreated()
-		const newId = generateId()
-		setCurrentChatId(newId)
-		setMessages([])
+		setThreadId(null)
 		setInput("")
-	}, [setMessages])
+	}, [setThreadId])
 
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
@@ -397,37 +398,40 @@ export function ChatSidebar({
 		}
 	}, [selectedProject])
 
-	const loadThread = useCallback(async (threadId: string) => {
-		try {
-			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${threadId}`,
-				{ credentials: "include" },
-			)
-			if (response.ok) {
-				const data = await response.json()
-				const uiMessages = data.messages.map(
-					(m: {
-						id: string
-						role: string
-						parts: unknown
-						createdAt: string
-					}) => ({
-						id: m.id,
-						role: m.role,
-						parts: m.parts || [],
-						createdAt: new Date(m.createdAt),
-					}),
+	const loadThread = useCallback(
+		async (id: string) => {
+			try {
+				const response = await fetch(
+					`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads/${id}`,
+					{ credentials: "include" },
 				)
-				setCurrentChatId(threadId)
-				setPendingThreadLoad({ id: threadId, messages: uiMessages })
-				analytics.chatThreadLoaded({ thread_id: threadId })
-				setIsHistoryOpen(false)
-				setConfirmingDeleteId(null)
+				if (response.ok) {
+					const data = await response.json()
+					const uiMessages = data.messages.map(
+						(m: {
+							id: string
+							role: string
+							parts: unknown
+							createdAt: string
+						}) => ({
+							id: m.id,
+							role: m.role,
+							parts: m.parts || [],
+							createdAt: new Date(m.createdAt),
+						}),
+					)
+					setThreadId(id)
+					setPendingThreadLoad({ id, messages: uiMessages })
+					analytics.chatThreadLoaded({ thread_id: id })
+					setIsHistoryOpen(false)
+					setConfirmingDeleteId(null)
+				}
+			} catch (error) {
+				console.error("Failed to load thread:", error)
 			}
-		} catch (error) {
-			console.error("Failed to load thread:", error)
-		}
-	}, [])
+		},
+		[setThreadId],
+	)
 
 	const deleteThread = useCallback(
 		async (threadId: string) => {

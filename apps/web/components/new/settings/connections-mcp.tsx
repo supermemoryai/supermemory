@@ -416,7 +416,7 @@ export default function ConnectionsMCP() {
 		try {
 			await autumn.attach({
 				productId: "api_pro",
-				successUrl: "https://app.supermemory.ai/new/settings#connections",
+				successUrl: "https://app.supermemory.ai/settings#connections",
 			})
 			window.location.reload()
 		} catch (error) {

@@ -1,6 +1,7 @@
 "use client"
 
-import { memo, useState, useCallback, useRef } from "react"
+import { memo, useCallback, useRef } from "react"
+import { useQueryState } from "nuqs"
 import Image from "next/image"
 import { MemoryGraph } from "./memory-graph/memory-graph"
 import { useProject } from "@/stores"
@@ -9,6 +10,7 @@ import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { ShareModal } from "./share-modal"
+import { shareParam } from "@/lib/search-params"
 
 interface GraphLayoutViewProps {
 	isChatOpen: boolean
@@ -17,18 +19,18 @@ interface GraphLayoutViewProps {
 export const GraphLayoutView = memo<GraphLayoutViewProps>(({ isChatOpen }) => {
 	const { selectedProject } = useProject()
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
-	const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+	const [isShareModalOpen, setIsShareModalOpen] = useQueryState("share", shareParam)
 	const canvasRef = useRef<HTMLCanvasElement>(null)
 
 	const containerTags = selectedProject ? [selectedProject] : undefined
 
 	const handleShare = useCallback(() => {
 		setIsShareModalOpen(true)
-	}, [])
+	}, [setIsShareModalOpen])
 
 	const handleCloseShareModal = useCallback(() => {
 		setIsShareModalOpen(false)
-	}, [])
+	}, [setIsShareModalOpen])
 
 	return (
 		<div className="relative w-full h-[calc(100vh-86px)]">

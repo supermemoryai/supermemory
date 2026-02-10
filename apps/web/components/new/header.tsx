@@ -36,9 +36,10 @@ import Link from "next/link"
 import { SpaceSelector } from "./space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
-import { useState } from "react"
 import { FeedbackModal } from "./feedback-modal"
 import { useViewMode } from "@/lib/view-mode-context"
+import { useQueryState } from "nuqs"
+import { feedbackParam } from "@/lib/search-params"
 
 interface HeaderProps {
 	onAddMemory?: () => void
@@ -59,12 +60,12 @@ export function Header({
 	const router = useRouter()
 	const isMobile = useIsMobile()
 	const { resetOrgOnboarded } = useOrgOnboarding()
-	const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
+	const [isFeedbackOpen, setIsFeedbackOpen] = useQueryState("feedback", feedbackParam)
 	const { viewMode, setViewMode } = useViewMode()
 
 	const handleTryOnboarding = () => {
 		resetOrgOnboarded()
-		router.push("/new/onboarding?step=input&flow=welcome")
+		router.push("/onboarding?step=input&flow=welcome")
 	}
 
 	const handleFeedback = () => {
@@ -113,7 +114,7 @@ export function Header({
 							asChild
 							className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 						>
-							<Link href="/new">
+							<Link href="/">
 								<Home className="h-4 w-4 text-[#737373]" />
 								Home
 							</Link>
@@ -241,7 +242,7 @@ export function Header({
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={() => router.push("/new/settings")}
+									onClick={() => router.push("/settings")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
 									<Settings className="h-4 w-4 text-[#737373]" />
@@ -347,7 +348,7 @@ export function Header({
 							</div>
 							<DropdownMenuSeparator className="bg-[#2E3033]" />
 							<DropdownMenuItem
-								onClick={() => router.push("/new/settings")}
+								onClick={() => router.push("/settings")}
 								className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 							>
 								<Settings className="h-4 w-4 text-[#737373]" />

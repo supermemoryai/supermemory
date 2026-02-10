@@ -1,5 +1,5 @@
-import { LoginPage } from "@repo/ui/pages/login"
+import { redirect } from "next/navigation"
 
 export default function Page() {
-	return <LoginPage />
+	redirect("/login/new")
 }

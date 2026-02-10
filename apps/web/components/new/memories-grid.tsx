@@ -5,6 +5,7 @@ import { $fetch } from "@repo/lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"
+import { useQueryState } from "nuqs"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
@@ -28,6 +29,7 @@ import { QuickNoteCard } from "./quick-note-card"
 import { HighlightsCard, type HighlightItem } from "./highlights-card"
 import { GraphCard } from "./memory-graph"
 import { Button } from "@ui/components/button"
+import { categoriesParam } from "@/lib/search-params"
 
 // Document category type
 type DocumentCategory =
@@ -95,9 +97,10 @@ export function MemoriesGrid({
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const isMobile = useIsMobile()
-	const [selectedCategories, setSelectedCategories] = useState<
-		DocumentCategory[]
-	>([])
+	const [selectedCategories, setSelectedCategories] = useQueryState(
+		"categories",
+		categoriesParam,
+	)
 
 	const { data: facetsData } = useQuery({
 		queryKey: ["document-facets", selectedProject],
@@ -166,18 +169,23 @@ export function MemoriesGrid({
 		enabled: !!user,
 	})
 
-	const handleCategoryToggle = useCallback((category: DocumentCategory) => {
-		setSelectedCategories((prev) => {
-			if (prev.includes(category)) {
-				return prev.filter((c) => c !== category)
-			}
-			return [...prev, category]
-		})
-	}, [])
+	const handleCategoryToggle = useCallback(
+		(category: DocumentCategory) => {
+			setSelectedCategories((prev) => {
+				const current = prev ?? []
+				if (current.includes(category)) {
+					const next = current.filter((c) => c !== category)
+					return next.length === 0 ? null : next
+				}
+				return [...current, category]
+			})
+		},
+		[setSelectedCategories],
+	)
 
 	const handleSelectAll = useCallback(() => {
-		setSelectedCategories([])
-	}, [])
+		setSelectedCategories(null)
+	}, [setSelectedCategories])
 
 	const documents = useMemo(() => {
 		return (
@@ -420,10 +428,12 @@ const DocumentCard = memo(
 			.ogImage
 		const needsOgData =
 			document.url &&
+			document.type !== "notion_doc" &&
 			!document.url.includes("x.com") &&
 			!document.url.includes("twitter.com") &&
 			!document.url.includes("files.supermemory.ai") &&
 			!document.url.includes("docs.googleapis.com") &&
+			!document.url.includes("notion.so") &&
 			(!document.title || !ogImage)
 
 		const hideURL = document.url?.includes("docs.googleapis.com")
@@ -433,19 +443,17 @@ const DocumentCard = memo(
 				setIsLoadingOg(true)
 				fetch(`/api/og?url=${encodeURIComponent(document.url)}`)
 					.then((res) => {
-						if (!res.ok) return null
+						if (!res.ok) throw new Error("Failed")
 						return res.json()
 					})
 					.then((data) => {
-						if (data) {
-							setOgData({
-								title: data.title,
-								image: data.image,
-							})
-						}
+						setOgData({
+							title: data?.title,
+							image: data?.image,
+						})
 					})
 					.catch(() => {
-						// Silently fail if OG fetch fails
+						setOgData({})
 					})
 					.finally(() => {
 						setIsLoadingOg(false)
