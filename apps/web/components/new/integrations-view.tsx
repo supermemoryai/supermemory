@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { cn } from "@lib/utils"
-import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
+import { dmSansClassName } from "@/lib/fonts"
 import { Button } from "@ui/components/button"
 import { MCPDetailView } from "@/components/new/mcp-modal/mcp-detail-view"
 import { XBookmarksDetailView } from "@/components/new/onboarding/x-bookmarks-detail-view"
@@ -17,7 +17,7 @@ import {
 	RaycastIcon,
 } from "@/components/new/integration-icons"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
-import { Cable, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Sun } from "lucide-react"
 import Image from "next/image"
 
 type CardId =
@@ -45,9 +45,27 @@ const cards: IntegrationCardDef[] = [
 		pro: true,
 		icon: (
 			<div className="flex items-center -space-x-1.5">
-				<Image src="/images/plugins/claude-code.svg" alt="Claude Code" width={24} height={24} className="size-6 rounded" />
-				<Image src="/images/plugins/opencode.svg" alt="OpenCode" width={24} height={24} className="size-6 rounded" />
-				<Image src="/images/plugins/clawdbot.svg" alt="ClawdBot" width={24} height={24} className="size-6 rounded" />
+				<Image
+					src="/images/plugins/claude-code.svg"
+					alt="Claude Code"
+					width={24}
+					height={24}
+					className="size-6 rounded"
+				/>
+				<Image
+					src="/images/plugins/opencode.svg"
+					alt="OpenCode"
+					width={24}
+					height={24}
+					className="size-6 rounded"
+				/>
+				<Image
+					src="/images/plugins/clawdbot.svg"
+					alt="ClawdBot"
+					width={24}
+					height={24}
+					className="size-6 rounded"
+				/>
 			</div>
 		),
 	},
@@ -69,11 +87,7 @@ const cards: IntegrationCardDef[] = [
 		title: "Connect to AI",
 		description: "Set up MCP to use your memory in Cursor, Claude, and more",
 		icon: (
-			<img
-				src="/onboarding/mcp.png"
-				alt="MCP"
-				className="size-20 h-auto"
-			/>
+			<img src="/onboarding/mcp.png" alt="MCP" className="size-20 h-auto" />
 		),
 	},
 	{
@@ -98,9 +112,7 @@ const cards: IntegrationCardDef[] = [
 		id: "import",
 		title: "Import Bookmarks",
 		description: "Bring in X/Twitter bookmarks and turn them into memories",
-		icon: (
-			<img src="/onboarding/x.png" alt="X" className="size-10" />
-		),
+		icon: <img src="/onboarding/x.png" alt="X" className="size-10" />,
 	},
 ]
 
@@ -131,46 +143,43 @@ function DetailWrapper({
 export function IntegrationsView() {
 	const [selectedCard, setSelectedCard] = useState<CardId | null>(null)
 
-	if (selectedCard === "mcp") {
-		return <MCPDetailView onBack={() => setSelectedCard(null)} />
-	}
-	if (selectedCard === "import") {
-		return <XBookmarksDetailView onBack={() => setSelectedCard(null)} />
-	}
-	if (selectedCard === "chrome") {
-		return (
-			<DetailWrapper onBack={() => setSelectedCard(null)}>
-				<ChromeDetail />
-			</DetailWrapper>
-		)
-	}
-	if (selectedCard === "shortcuts") {
-		return (
-			<DetailWrapper onBack={() => setSelectedCard(null)}>
-				<ShortcutsDetail />
-			</DetailWrapper>
-		)
-	}
-	if (selectedCard === "raycast") {
-		return (
-			<DetailWrapper onBack={() => setSelectedCard(null)}>
-				<RaycastDetail />
-			</DetailWrapper>
-		)
-	}
-	if (selectedCard === "connections") {
-		return (
-			<DetailWrapper onBack={() => setSelectedCard(null)}>
-				<ConnectionsDetail />
-			</DetailWrapper>
-		)
-	}
-	if (selectedCard === "plugins") {
-		return (
-			<DetailWrapper onBack={() => setSelectedCard(null)}>
-				<PluginsDetail />
-			</DetailWrapper>
-		)
+	const handleBack = () => setSelectedCard(null)
+
+	switch (selectedCard) {
+		case "mcp":
+			return <MCPDetailView onBack={handleBack} />
+		case "import":
+			return <XBookmarksDetailView onBack={handleBack} />
+		case "chrome":
+			return (
+				<DetailWrapper onBack={handleBack}>
+					<ChromeDetail />
+				</DetailWrapper>
+			)
+		case "shortcuts":
+			return (
+				<DetailWrapper onBack={handleBack}>
+					<ShortcutsDetail />
+				</DetailWrapper>
+			)
+		case "raycast":
+			return (
+				<DetailWrapper onBack={handleBack}>
+					<RaycastDetail />
+				</DetailWrapper>
+			)
+		case "connections":
+			return (
+				<DetailWrapper onBack={handleBack}>
+					<ConnectionsDetail />
+				</DetailWrapper>
+			)
+		case "plugins":
+			return (
+				<DetailWrapper onBack={handleBack}>
+					<PluginsDetail />
+				</DetailWrapper>
+			)
 	}
 
 	return (
@@ -178,15 +187,10 @@ export function IntegrationsView() {
 			<div className="max-w-3xl mx-auto">
 				<div className="mb-6 space-y-1">
 					<div className="flex items-center gap-2">
-						<Cable className="size-5 text-[#4BA0FA]" />
+						<Sun className="size-5 text-white" />
 						<h2 className="text-white text-xl font-medium">Integrations</h2>
 					</div>
-					<p
-						className={cn(
-							"text-[#8B8B8B] text-sm",
-							dmSansClassName(),
-						)}
-					>
+					<p className={cn("text-[#8B8B8B] text-sm", dmSansClassName())}>
 						Connect supermemory to your tools and workflows
 					</p>
 				</div>
@@ -215,9 +219,7 @@ export function IntegrationsView() {
 								{card.icon}
 							</div>
 							<div className="flex-1">
-								<h3 className="text-white text-sm font-medium">
-									{card.title}
-								</h3>
+								<h3 className="text-white text-sm font-medium">{card.title}</h3>
 								<p
 									className={cn(
 										"text-[#8B8B8B] text-xs leading-relaxed mt-0.5",

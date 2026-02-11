@@ -1,4 +1,7 @@
 import Image from "next/image"
+import { Rotate3d } from "lucide-react"
+
+export { Rotate3d as GraphIcon }
 
 export function ChromeIcon({ className }: { className?: string }) {
 	return (

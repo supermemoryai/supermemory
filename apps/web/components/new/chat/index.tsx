@@ -138,15 +138,35 @@ export function ChatSidebar({
 	)
 	const pendingFollowUpGenerations = useRef<Set<string>>(new Set())
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { viewMode } = useViewMode()
 	const { user } = useAuth()
 	const [threadId, setThreadId] = useQueryState("thread", threadParam)
-	const fallbackChatId = useMemo(() => generateId(), [])
+	const [fallbackChatId, setFallbackChatId] = useState(() => generateId())
 	const currentChatId = threadId ?? fallbackChatId
+	const chatIdRef = useRef(currentChatId)
+	chatIdRef.current = currentChatId
 	const setCurrentChatId = useCallback(
 		(id: string) => setThreadId(id),
 		[setThreadId],
+	)
+	const chatTransport = useMemo(
+		() =>
+			new DefaultChatTransport({
+				api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
+				credentials: "include",
+				prepareSendMessagesRequest: ({ messages }) => ({
+					body: {
+						messages,
+						metadata: {
+							chatId: chatIdRef.current,
+							projectId: selectedProject,
+						},
+					},
+				}),
+			}),
+		[currentChatId, selectedProject],
 	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
@@ -174,10 +194,7 @@ export function ChatSidebar({
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
 		id: currentChatId ?? undefined,
-		transport: new DefaultChatTransport({
-			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
-			credentials: "include",
-		}),
+		transport: chatTransport,
 		onFinish: async (result) => {
 			if (result.message.role !== "assistant") return
 
@@ -376,9 +393,13 @@ export function ChatSidebar({
 
 	const handleNewChat = useCallback(() => {
 		analytics.newChatCreated()
+		const newChatId = generateId()
+		chatIdRef.current = newChatId
+		setMessages([])
 		setThreadId(null)
+		setFallbackChatId(newChatId)
 		setInput("")
-	}, [setThreadId])
+	}, [setThreadId, setMessages])
 
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
@@ -492,13 +513,22 @@ export function ChatSidebar({
 			isChatOpen &&
 			queuedMessage &&
 			status !== "submitted" &&
-			status !== "streaming"
+			status !== "streaming" &&
+			sentQueuedMessageRef.current !== queuedMessage
 		) {
+			sentQueuedMessageRef.current = queuedMessage
 			analytics.chatMessageSent({ source: "highlight" })
 			sendMessage({ text: queuedMessage })
 			onConsumeQueuedMessage?.()
 		}
 	}, [isChatOpen, queuedMessage, status, sendMessage, onConsumeQueuedMessage])
+
+	// Reset the sent message ref when queued message is consumed
+	useEffect(() => {
+		if (!queuedMessage) {
+			sentQueuedMessageRef.current = null
+		}
+	}, [queuedMessage])
 
 	// Scroll to bottom when a new user message is added
 	useEffect(() => {
@@ -867,12 +897,11 @@ export function ChatSidebar({
 									)}
 								</div>
 							))}
-							{(status === "submitted" || status === "streaming") &&
-								messages[messages.length - 1]?.role === "user" && (
-									<div className="flex gap-2">
-										<SuperLoader label="Thinking..." />
-									</div>
-								)}
+							{(status === "submitted" || status === "streaming") && (
+								<div className="flex gap-2">
+									<SuperLoader label="Thinking..." />
+								</div>
+							)}
 						</div>
 					</div>
 

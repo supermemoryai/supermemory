@@ -25,6 +25,8 @@ export const feedbackParam = parseAsBoolean.withDefault(false)
 // View & filter states
 const viewLiterals = ["graph", "list", "integrations"] as const
 export type ViewParamValue = (typeof viewLiterals)[number]
-export const viewParam = parseAsStringLiteral(viewLiterals).withDefault("graph")
-export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault([])
+export const viewParam = parseAsStringLiteral(viewLiterals).withDefault("list")
+export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault(
+	[],
+)
 export const projectParam = parseAsString.withDefault("sm_project_default")
