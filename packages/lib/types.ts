@@ -1,7 +1,3 @@
-/**
- * Common TypeScript types shared across the application
- */
-
 export interface Project {
 	id: string
 	name: string
@@ -10,4 +6,9 @@ export interface Project {
 	updatedAt: string
 	isExperimental?: boolean
 	emoji?: string
+}
+
+export interface ContainerTagListType extends Project {
+	isExperimental: boolean
+	isNova: boolean
 }

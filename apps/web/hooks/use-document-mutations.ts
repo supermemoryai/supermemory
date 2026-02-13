@@ -1,6 +1,10 @@
 "use client"
 
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import {
+	useMutation,
+	useQueryClient,
+	type QueryClient,
+} from "@tanstack/react-query"
 import { toast } from "sonner"
 import { $fetch } from "@lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
@@ -31,11 +35,135 @@ interface UseDocumentMutationsOptions {
 	onClose?: () => void
 }
 
+interface OptimisticMemory {
+	id: string
+	content: string
+	url: string | null
+	title: string
+	description: string
+	containerTags: string[]
+	createdAt: string
+	updatedAt: string
+	status: string
+	type: string
+	metadata: Record<string, unknown>
+	memoryEntries: unknown[]
+	isOptimistic?: boolean
+}
+
+function addOptimisticMemoryToQueryData(
+	old: unknown,
+	memory: OptimisticMemory,
+): unknown {
+	if (!old || typeof old !== "object") return old
+
+	const data = old as Record<string, unknown>
+
+	if ("pages" in data && Array.isArray(data.pages)) {
+		return {
+			...data,
+			pages: data.pages.map((page: unknown, index: number) => {
+				if (index !== 0) return page
+				const p = page as Record<string, unknown>
+				if (!p?.documents || !Array.isArray(p.documents)) return page
+				return {
+					...p,
+					documents: [memory, ...p.documents],
+					pagination: p.pagination
+						? {
+								...(p.pagination as Record<string, unknown>),
+								totalItems:
+									((p.pagination as Record<string, number>).totalItems ?? 0) +
+									1,
+							}
+						: p.pagination,
+				}
+			}),
+		}
+	}
+
+	if ("documents" in data && Array.isArray(data.documents)) {
+		return {
+			...data,
+			documents: [memory, ...data.documents],
+			totalCount: ((data.totalCount as number) ?? 0) + 1,
+		}
+	}
+
+	return old
+}
+
+function removeDocumentFromQueryData(
+	old: unknown,
+	documentId: string,
+): unknown {
+	if (!old || typeof old !== "object") return old
+
+	const data = old as Record<string, unknown>
+
+	if ("pages" in data && Array.isArray(data.pages)) {
+		return {
+			...data,
+			pages: data.pages.map((page: unknown) => {
+				const p = page as Record<string, unknown>
+				if (!p?.documents || !Array.isArray(p.documents)) return page
+				return {
+					...p,
+					documents: (p.documents as DocumentWithId[]).filter(
+						(doc) => doc.id !== documentId && doc.customId !== documentId,
+					),
+					pagination: p.pagination
+						? {
+								...(p.pagination as Record<string, unknown>),
+								totalItems: Math.max(
+									0,
+									((p.pagination as Record<string, number>).totalItems ?? 0) -
+										1,
+								),
+							}
+						: p.pagination,
+				}
+			}),
+		}
+	}
+
+	if ("documents" in data && Array.isArray(data.documents)) {
+		return {
+			...data,
+			documents: (data.documents as DocumentWithId[]).filter(
+				(doc) => doc.id !== documentId && doc.customId !== documentId,
+			),
+			totalCount: Math.max(0, ((data.totalCount as number) ?? 0) - 1),
+		}
+	}
+
+	return old
+}
+
+async function cancelAndSnapshotQueries(
+	queryClient: QueryClient,
+): Promise<[unknown, unknown][]> {
+	await queryClient.cancelQueries({ queryKey: ["documents-with-memories"] })
+	return queryClient.getQueriesData({ queryKey: ["documents-with-memories"] })
+}
+
+function restoreQueriesFromSnapshot(
+	queryClient: QueryClient,
+	previousQueries: [unknown, unknown][] | undefined,
+): void {
+	if (!previousQueries) return
+	for (const [queryKey, data] of previousQueries) {
+		queryClient.setQueryData(queryKey as unknown[], data)
+	}
+}
+
 export function useDocumentMutations({
 	onClose,
 }: UseDocumentMutationsOptions = {}) {
 	const queryClient = useQueryClient()
 	const { user } = useAuth()
+
+	const entityContext = `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`
 
 	const noteMutation = useMutation({
 		mutationFn: async ({
@@ -47,12 +175,10 @@ export function useDocumentMutations({
 		}) => {
 			const response = await $fetch("@post/documents", {
 				body: {
-					content: content,
+					content,
 					containerTags: [project],
-					entityContext: `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`,
-					metadata: {
-						sm_source: "consumer",
-					},
+					entityContext,
+					metadata: { sm_source: "consumer" },
 				},
 			})
 
@@ -63,24 +189,18 @@ export function useDocumentMutations({
 			return response.data
 		},
 		onMutate: async ({ content, project }) => {
-			await queryClient.cancelQueries({
-				queryKey: ["documents-with-memories", project],
-			})
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const now = new Date().toISOString()
 
-			const previousMemories = queryClient.getQueryData([
-				"documents-with-memories",
-				project,
-			])
-
-			const optimisticMemory = {
+			const optimisticMemory: OptimisticMemory = {
 				id: `temp-${crypto.randomUUID()}`,
-				content: content,
+				content,
 				url: null,
 				title: content.substring(0, 100),
 				description: "Processing content...",
 				containerTags: [project],
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+				createdAt: now,
+				updatedAt: now,
 				status: "queued",
 				type: "note",
 				metadata: {
@@ -91,42 +211,25 @@ export function useDocumentMutations({
 				isOptimistic: true,
 			}
 
-			queryClient.setQueryData(
-				["documents-with-memories", project],
-				(old: DocumentsQueryData | undefined) => {
-					const existingDocs = old?.documents ?? []
-					return {
-						...old,
-						documents: [optimisticMemory, ...existingDocs],
-						totalCount: (old?.totalCount ?? 0) + 1,
-					}
-				},
+			queryClient.setQueriesData(
+				{ queryKey: ["documents-with-memories"] },
+				(old) => addOptimisticMemoryToQueryData(old, optimisticMemory),
 			)
 
-			return { previousMemories }
+			return { previousQueries }
 		},
-		onError: (_error, variables, context) => {
-			if (context?.previousMemories) {
-				queryClient.setQueryData(
-					["documents-with-memories", variables.project],
-					context.previousMemories,
-				)
-			}
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
 			toast.error("Failed to add note", {
-				description: _error instanceof Error ? _error.message : "Unknown error",
+				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
 		onSuccess: (_data, variables) => {
-			analytics.documentAdded({
-				type: "note",
-				project_id: variables.project,
-			})
+			analytics.documentAdded({ type: "note", project_id: variables.project })
 			toast.success("Note added successfully!", {
 				description: "Your note is being processed",
 			})
-			queryClient.invalidateQueries({
-				queryKey: ["documents-with-memories", variables.project],
-			})
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			onClose?.()
 		},
 	})
@@ -137,10 +240,8 @@ export function useDocumentMutations({
 				body: {
 					content: url,
 					containerTags: [project],
-					entityContext: `This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`,
-					metadata: {
-						sm_source: "consumer",
-					},
+					entityContext,
+					metadata: { sm_source: "consumer" },
 				},
 			})
 
@@ -151,24 +252,18 @@ export function useDocumentMutations({
 			return response.data
 		},
 		onMutate: async ({ url, project }) => {
-			await queryClient.cancelQueries({
-				queryKey: ["documents-with-memories", project],
-			})
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const now = new Date().toISOString()
 
-			const previousMemories = queryClient.getQueryData([
-				"documents-with-memories",
-				project,
-			])
-
-			const optimisticMemory = {
+			const optimisticMemory: OptimisticMemory = {
 				id: `temp-${crypto.randomUUID()}`,
 				content: "",
-				url: url,
+				url,
 				title: "Processing...",
 				description: "Extracting content...",
 				containerTags: [project],
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+				createdAt: now,
+				updatedAt: now,
 				status: "queued",
 				type: "link",
 				metadata: {
@@ -179,42 +274,25 @@ export function useDocumentMutations({
 				isOptimistic: true,
 			}
 
-			queryClient.setQueryData(
-				["documents-with-memories", project],
-				(old: DocumentsQueryData | undefined) => {
-					const existingDocs = old?.documents ?? []
-					return {
-						...old,
-						documents: [optimisticMemory, ...existingDocs],
-						totalCount: (old?.totalCount ?? 0) + 1,
-					}
-				},
+			queryClient.setQueriesData(
+				{ queryKey: ["documents-with-memories"] },
+				(old) => addOptimisticMemoryToQueryData(old, optimisticMemory),
 			)
 
-			return { previousMemories }
+			return { previousQueries }
 		},
-		onError: (_error, variables, context) => {
-			if (context?.previousMemories) {
-				queryClient.setQueryData(
-					["documents-with-memories", variables.project],
-					context.previousMemories,
-				)
-			}
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
 			toast.error("Failed to add link", {
-				description: _error instanceof Error ? _error.message : "Unknown error",
+				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
 		onSuccess: (_data, variables) => {
-			analytics.documentAdded({
-				type: "link",
-				project_id: variables.project,
-			})
+			analytics.documentAdded({ type: "link", project_id: variables.project })
 			toast.success("Link added successfully!", {
 				description: "Your link is being processed",
 			})
-			queryClient.invalidateQueries({
-				queryKey: ["documents-with-memories", variables.project],
-			})
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			onClose?.()
 		},
 	})
@@ -234,16 +312,8 @@ export function useDocumentMutations({
 			const formData = new FormData()
 			formData.append("file", file)
 			formData.append("containerTags", JSON.stringify([project]))
-			formData.append(
-				"entityContext",
-				`This is ${user?.name ?? "a user"}, saving items in a personal knowledge management system. This may be websites, links, notes, journals, PDFs, etc. Understand the user from it into a graph.`,
-			)
-			formData.append(
-				"metadata",
-				JSON.stringify({
-					sm_source: "consumer",
-				}),
-			)
+			formData.append("entityContext", entityContext)
+			formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
 
 			const response = await fetch(
 				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,
@@ -276,24 +346,18 @@ export function useDocumentMutations({
 			return data
 		},
 		onMutate: async ({ file, title, description, project }) => {
-			await queryClient.cancelQueries({
-				queryKey: ["documents-with-memories", project],
-			})
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const now = new Date().toISOString()
 
-			const previousMemories = queryClient.getQueryData([
-				"documents-with-memories",
-				project,
-			])
-
-			const optimisticMemory = {
+			const optimisticMemory: OptimisticMemory = {
 				id: `temp-file-${crypto.randomUUID()}`,
 				content: "",
 				url: null,
 				title: title || file.name,
 				description: description || `Uploading ${file.name}...`,
 				containerTags: [project],
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
+				createdAt: now,
+				updatedAt: now,
 				status: "processing",
 				type: "file",
 				metadata: {
@@ -304,42 +368,25 @@ export function useDocumentMutations({
 				memoryEntries: [],
 			}
 
-			queryClient.setQueryData(
-				["documents-with-memories", project],
-				(old: DocumentsQueryData | undefined) => {
-					const existingDocs = old?.documents ?? []
-					return {
-						...old,
-						documents: [optimisticMemory, ...existingDocs],
-						totalCount: (old?.totalCount ?? 0) + 1,
-					}
-				},
+			queryClient.setQueriesData(
+				{ queryKey: ["documents-with-memories"] },
+				(old) => addOptimisticMemoryToQueryData(old, optimisticMemory),
 			)
 
-			return { previousMemories }
+			return { previousQueries }
 		},
-		onError: (_error, variables, context) => {
-			if (context?.previousMemories) {
-				queryClient.setQueryData(
-					["documents-with-memories", variables.project],
-					context.previousMemories,
-				)
-			}
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
 			toast.error("Failed to upload file", {
-				description: _error instanceof Error ? _error.message : "Unknown error",
+				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
 		onSuccess: (_data, variables) => {
-			analytics.documentAdded({
-				type: "file",
-				project_id: variables.project,
-			})
+			analytics.documentAdded({ type: "file", project_id: variables.project })
 			toast.success("File uploaded successfully!", {
 				description: "Your file is being processed",
 			})
-			queryClient.invalidateQueries({
-				queryKey: ["documents-with-memories", variables.project],
-			})
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			onClose?.()
 		},
 	})
@@ -355,9 +402,7 @@ export function useDocumentMutations({
 			const response = await $fetch(`@patch/documents/${documentId}`, {
 				body: {
 					content,
-					metadata: {
-						sm_source: "consumer",
-					},
+					metadata: { sm_source: "consumer" },
 				},
 			})
 
@@ -370,9 +415,7 @@ export function useDocumentMutations({
 		onSuccess: (_data, variables) => {
 			analytics.documentEdited({ document_id: variables.documentId })
 			toast.success("Document saved successfully!")
-			queryClient.invalidateQueries({
-				queryKey: ["documents-with-memories"],
-			})
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 		},
 		onError: (error) => {
 			toast.error("Failed to save document", {
@@ -394,78 +437,25 @@ export function useDocumentMutations({
 			return response.data
 		},
 		onMutate: async ({ documentId }) => {
-			await queryClient.cancelQueries({
-				queryKey: ["documents-with-memories"],
-			})
-
-			const previousQueries = queryClient.getQueriesData({
-				queryKey: ["documents-with-memories"],
-			})
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
 
 			queryClient.setQueriesData(
 				{ queryKey: ["documents-with-memories"] },
-				(old: QueryData | undefined) => {
-					if (!old) return old
-
-					if ("pages" in old) {
-						const infiniteData = old as InfiniteQueryData
-						return {
-							...infiniteData,
-							pages: infiniteData.pages.map((page) => {
-								if (!page?.documents) return page
-								return {
-									...page,
-									documents: page.documents.filter(
-										(doc) =>
-											doc.id !== documentId && doc.customId !== documentId,
-									),
-									pagination: page.pagination
-										? {
-												...page.pagination,
-												totalItems: Math.max(
-													0,
-													(page.pagination.totalItems ?? 0) - 1,
-												),
-											}
-										: page.pagination,
-								}
-							}),
-						}
-					}
-
-					if ("documents" in old) {
-						const queryData = old as DocumentsQueryData
-						return {
-							...queryData,
-							documents: queryData.documents.filter((doc: DocumentWithId) => {
-								return doc.id !== documentId && doc.customId !== documentId
-							}),
-							totalCount: Math.max(0, (queryData.totalCount ?? 0) - 1),
-						}
-					}
-
-					return old
-				},
+				(old) => removeDocumentFromQueryData(old, documentId),
 			)
 
 			return { previousQueries }
 		},
-		onError: (_error, _variables, context) => {
-			if (context?.previousQueries) {
-				context.previousQueries.forEach(([queryKey, data]) => {
-					queryClient.setQueryData(queryKey, data)
-				})
-			}
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
 			toast.error("Failed to delete document", {
-				description: _error instanceof Error ? _error.message : "Unknown error",
+				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
 		onSuccess: (_data, variables) => {
 			analytics.documentDeleted({ document_id: variables.documentId })
 			toast.success("Document deleted successfully!")
-			queryClient.invalidateQueries({
-				queryKey: ["documents-with-memories"],
-			})
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
 			onClose?.()
 		},
 	})

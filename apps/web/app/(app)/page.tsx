@@ -63,7 +63,7 @@ function ViewErrorFallback() {
 export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { user, session } = useAuth()
-	const { selectedProject } = useProject()
+	const { selectedProject, isNovaSpaces, novaContainerTags } = useProject()
 	const { viewMode, setViewMode } = useViewMode()
 	const queryClient = useQueryClient()
 
@@ -88,7 +88,10 @@ export default function NewPage() {
 	const [isSearchOpen, setIsSearchOpen] = useQueryState("search", searchParam)
 	const [searchPrefill, setSearchPrefill] = useQueryState("q", qParam)
 	const [docId, setDocId] = useQueryState("doc", docParam)
-	const [isFullscreen, setIsFullscreen] = useQueryState("fullscreen", fullscreenParam)
+	const [isFullscreen, setIsFullscreen] = useQueryState(
+		"fullscreen",
+		fullscreenParam,
+	)
 	const [isChatOpen, setIsChatOpen] = useQueryState("chat", chatParam)
 
 	// Ephemeral local state (not worth URL-encoding)
@@ -399,6 +402,7 @@ export default function NewPage() {
 						if (!open) setSearchPrefill("")
 					}}
 					projectId={selectedProject}
+					novaContainerTags={isNovaSpaces ? novaContainerTags : undefined}
 					onOpenDocument={handleOpenDocument}
 					onAddMemory={() => {
 						analytics.addDocumentModalOpened()

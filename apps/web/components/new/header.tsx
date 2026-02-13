@@ -31,7 +31,6 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
 import { authClient } from "@lib/auth"
-import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useProject } from "@/stores"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -51,8 +50,7 @@ interface HeaderProps {
 
 export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 	const { user } = useAuth()
-	const { selectedProject } = useProject()
-	const { switchProject } = useProjectMutations()
+	const { selectedProjects, setSelectedProjects } = useProject()
 	const router = useRouter()
 	const isMobile = useIsMobile()
 	const { resetOrgOnboarded } = useOrgOnboarding()
@@ -144,8 +142,8 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 				<div className="self-stretch w-px bg-[#FFFFFF33] hidden md:block" />
 				{!isMobile && (
 					<SpaceSelector
-						value={selectedProject}
-						onValueChange={switchProject}
+						selectedProjects={selectedProjects}
+						onValueChange={setSelectedProjects}
 						showChevron
 						enableDelete
 					/>
@@ -196,8 +194,8 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 				{isMobile ? (
 					<>
 						<SpaceSelector
-							value={selectedProject}
-							onValueChange={switchProject}
+							selectedProjects={selectedProjects}
+							onValueChange={setSelectedProjects}
 							showChevron
 							enableDelete
 							compact

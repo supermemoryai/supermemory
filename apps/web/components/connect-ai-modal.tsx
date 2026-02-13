@@ -155,7 +155,7 @@ export function ConnectAIModal({
 			if (response.error) {
 				throw new Error(response.error?.message || "Failed to load projects")
 			}
-			return response.data?.projects || []
+			return (response.data?.projects || []) as Project[]
 		},
 		staleTime: 30 * 1000,
 	})
@@ -803,7 +803,9 @@ export function ConnectAIModal({
 														className="bg-input border-border text-foreground"
 														id="mcpUrl"
 														onBlur={handleBlur}
-														onChange={(e) => handleChange(e.target.value)}
+														onChange={(
+															e: React.ChangeEvent<HTMLInputElement>,
+														) => handleChange(e.target.value)}
 														placeholder="https://mcp.supermemory.ai/your-user-id/sse"
 														value={state.value}
 													/>

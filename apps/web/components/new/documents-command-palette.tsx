@@ -12,14 +12,7 @@ import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useIsMobile } from "@hooks/use-mobile"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
-import {
-	SearchIcon,
-	Settings,
-	Home,
-	Plus,
-	Code2,
-	Loader2,
-} from "lucide-react"
+import { SearchIcon, Settings, Home, Plus, Code2, Loader2 } from "lucide-react"
 import { DocumentIcon } from "@/components/new/document-icon"
 import { $fetch } from "@lib/api"
 
@@ -28,7 +21,13 @@ type DocumentWithMemories = DocumentsResponse["documents"][0]
 type SearchResult = z.infer<typeof SearchResponseSchema>["results"][number]
 
 type PaletteItem =
-	| { kind: "action"; id: string; label: string; icon: React.ReactNode; action: () => void }
+	| {
+			kind: "action"
+			id: string
+			label: string
+			icon: React.ReactNode
+			action: () => void
+	  }
 	| { kind: "document"; doc: DocumentWithMemories }
 	| { kind: "search-result"; result: SearchResult }
 
@@ -36,6 +35,7 @@ interface DocumentsCommandPaletteProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	projectId: string
+	novaContainerTags?: string[]
 	onOpenDocument: (document: DocumentWithMemories) => void
 	onAddMemory?: () => void
 	onOpenIntegrations?: () => void
@@ -46,6 +46,7 @@ export function DocumentsCommandPalette({
 	open,
 	onOpenChange,
 	projectId,
+	novaContainerTags,
 	onOpenDocument,
 	onAddMemory,
 	onOpenIntegrations,
@@ -64,12 +65,15 @@ export function DocumentsCommandPalette({
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const abortRef = useRef<AbortController | null>(null)
 
-	const close = useCallback((then?: () => void) => {
-		onOpenChange(false)
-		setSearch("")
-		setSearchResults([])
-		if (then) setTimeout(then, 0)
-	}, [onOpenChange])
+	const close = useCallback(
+		(then?: () => void) => {
+			onOpenChange(false)
+			setSearch("")
+			setSearchResults([])
+			if (then) setTimeout(then, 0)
+		},
+		[onOpenChange],
+	)
 
 	const actions: PaletteItem[] = [
 		{
@@ -87,22 +91,32 @@ export function DocumentsCommandPalette({
 			action: () => close(() => router.push("/settings")),
 		},
 		...(onAddMemory
-			? [{
-				kind: "action" as const,
-				id: "add-memory",
-				label: "Add Memory",
-				icon: <Plus className="size-4 text-[#737373]" />,
-				action: () => { close(); onAddMemory() },
-			}]
+			? [
+					{
+						kind: "action" as const,
+						id: "add-memory",
+						label: "Add Memory",
+						icon: <Plus className="size-4 text-[#737373]" />,
+						action: () => {
+							close()
+							onAddMemory()
+						},
+					},
+				]
 			: []),
 		...(onOpenIntegrations
-			? [{
-				kind: "action" as const,
-				id: "integrations",
-				label: "Open Integrations",
-				icon: <Code2 className="size-4 text-[#737373]" />,
-				action: () => { close(); onOpenIntegrations() },
-			}]
+			? [
+					{
+						kind: "action" as const,
+						id: "integrations",
+						label: "Open Integrations",
+						icon: <Code2 className="size-4 text-[#737373]" />,
+						action: () => {
+							close()
+							onOpenIntegrations()
+						},
+					},
+				]
 			: []),
 	]
 
@@ -145,7 +159,8 @@ export function DocumentsCommandPalette({
 					body: {
 						q: search.trim(),
 						limit: 10,
-						containerTags: projectId ? [projectId] : undefined,
+						containerTags:
+							novaContainerTags ?? (projectId ? [projectId] : undefined),
 						includeSummary: true,
 					},
 					signal: controller.signal,
@@ -163,7 +178,7 @@ export function DocumentsCommandPalette({
 		return () => {
 			if (debounceRef.current) clearTimeout(debounceRef.current)
 		}
-	}, [search, projectId])
+	}, [search, projectId, novaContainerTags])
 
 	// Build the item list
 	const hasQuery = search.trim().length > 0
@@ -175,10 +190,12 @@ export function DocumentsCommandPalette({
 		}
 		const q = search.toLowerCase()
 		for (const a of actions) {
-			if (a.kind === "action" && a.label.toLowerCase().includes(q)) items.push(a)
+			if (a.kind === "action" && a.label.toLowerCase().includes(q))
+				items.push(a)
 		}
 	} else {
-		for (const doc of cachedDocs.slice(0, 10)) items.push({ kind: "document", doc })
+		for (const doc of cachedDocs.slice(0, 10))
+			items.push({ kind: "document", doc })
 		for (const a of actions) items.push(a)
 	}
 
@@ -211,7 +228,8 @@ export function DocumentsCommandPalette({
 					createdAt: item.result.createdAt as unknown as string,
 					updatedAt: item.result.updatedAt as unknown as string,
 					url: (item.result.metadata?.url as string) ?? null,
-					content: item.result.content ?? item.result.chunks?.[0]?.content ?? null,
+					content:
+						item.result.content ?? item.result.chunks?.[0]?.content ?? null,
 					summary: item.result.summary ?? null,
 				} as unknown as DocumentWithMemories)
 				close()
@@ -264,20 +282,15 @@ export function DocumentsCommandPalette({
 			)
 		}
 
-		const title =
-			item.kind === "document" ? item.doc.title : item.result.title
-		const type =
-			item.kind === "document" ? item.doc.type : item.result.type
+		const title = item.kind === "document" ? item.doc.title : item.result.title
+		const type = item.kind === "document" ? item.doc.type : item.result.type
 		const url =
 			item.kind === "document"
 				? item.doc.url
-				: (item.result.metadata?.url as string) ?? null
+				: ((item.result.metadata?.url as string) ?? null)
 		const date =
-			item.kind === "document"
-				? item.doc.createdAt
-				: item.result.createdAt
-		const key =
-			item.kind === "document" ? item.doc.id : item.result.documentId
+			item.kind === "document" ? item.doc.createdAt : item.result.createdAt
+		const key = item.kind === "document" ? item.doc.id : item.result.documentId
 		const snippet =
 			item.kind === "search-result"
 				? item.result.chunks?.find((c) => c.isRelevant)?.content
@@ -391,11 +404,14 @@ export function DocumentsCommandPalette({
 						.filter(({ item }) => item.kind === "action")
 						.map(({ item, globalIndex }) => renderItem(item, globalIndex))}
 
-					{hasQuery && !isSearching && searchResults.length === 0 && items.every((i) => i.kind === "action") && (
-						<div className="flex items-center justify-center py-12">
-							<p className="text-[#737373] text-sm">No results found</p>
-						</div>
-					)}
+					{hasQuery &&
+						!isSearching &&
+						searchResults.length === 0 &&
+						items.every((i) => i.kind === "action") && (
+							<div className="flex items-center justify-center py-12">
+								<p className="text-[#737373] text-sm">No results found</p>
+							</div>
+						)}
 				</div>
 
 				<div className="flex items-center justify-between px-4 py-2.5 text-[11px] text-[#737373]">

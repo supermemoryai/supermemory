@@ -29,4 +29,4 @@ export const viewParam = parseAsStringLiteral(viewLiterals).withDefault("list")
 export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault(
 	[],
 )
-export const projectParam = parseAsString.withDefault("sm_project_default")
+export const projectParam = parseAsArrayOf(parseAsString, ",").withDefault([])

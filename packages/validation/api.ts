@@ -1123,6 +1123,20 @@ export const DocumentsWithMemoriesQuerySchema = z
 		description: "Query parameters for listing documents with memory entries",
 	})
 
+export const DocumentFacetsQuerySchema = z
+	.object({
+		containerTags: z
+			.array(z.string())
+			.optional()
+			.openapi({
+				description: "Optional container tags to filter facets by",
+				example: ["sm_project_default"],
+			}),
+	})
+	.openapi({
+		description: "Query parameters for getting document facets",
+	})
+
 export const MigrateMCPRequestSchema = z
 	.object({
 		userId: z.string().openapi({
@@ -1269,7 +1283,7 @@ export const CreateProjectSchema = z
 export const ListProjectsResponseSchema = z
 	.object({
 		projects: z.array(ProjectSchema).openapi({
-			description: "List of projects",
+			description: "List of user-created projects with sm_project_* prefix",
 		}),
 	})
 	.openapi({
@@ -1399,4 +1413,52 @@ export const BulkDeleteMemoriesResponseSchema = z
 	})
 	.openapi({
 		description: "Response for bulk memory deletion",
+	})
+
+export const ContainerTagListTypeSchema = z
+	.object({
+		id: z.string().openapi({
+			description: "Unique identifier of the container tag/space",
+			example: "space_abc123",
+		}),
+		name: z.string().openapi({
+			description: "Display name of the container tag",
+			example: "My Project",
+		}),
+		containerTag: z.string().openapi({
+			description: "The container tag identifier",
+			example: "sm_project_my_project",
+		}),
+		createdAt: z.string().openapi({
+			description: "Creation timestamp",
+			example: new Date().toISOString(),
+			format: "date-time",
+		}),
+		updatedAt: z.string().openapi({
+			description: "Last update timestamp",
+			example: new Date().toISOString(),
+			format: "date-time",
+		}),
+		isExperimental: z.boolean().openapi({
+			description: "Whether the space is experimental",
+			example: false,
+		}),
+		emoji: z.string().optional().openapi({
+			description: "Emoji icon for the container tag",
+			example: "📁",
+		}),
+		isNova: z.boolean().openapi({
+			description: "True if containerTag starts with 'sm_project_'",
+			example: true,
+		}),
+	})
+	.openapi({
+		description:
+			"Container tag with isNova flag indicating Nova vs developer project",
+	})
+
+export const ListContainerTagsResponseSchema = z
+	.array(ContainerTagListTypeSchema)
+	.openapi({
+		description: "Flat array of all container tags with isNova flag",
 	})

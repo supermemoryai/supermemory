@@ -105,7 +105,9 @@ export function AddDocument({
 	const [addParam, setAddParam] = useQueryState("add", addDocumentParam)
 	const activeTab: TabType = addParam ?? "note"
 	const setActiveTab = useCallback(
-		(tab: TabType) => { setAddParam(tab) },
+		(tab: TabType) => {
+			setAddParam(tab)
+		},
 		[setAddParam],
 	)
 	const { selectedProject: globalSelectedProject } = useProject()
@@ -199,20 +201,23 @@ export function AddDocument({
 		setFileData(data)
 	}, [])
 
-	// Button click handler
 	const handleButtonClick = () => {
-		if (activeTab === "note") {
-			handleNoteSubmit(noteContent)
-		} else if (activeTab === "link") {
-			handleLinkSubmit(linkData)
-		} else if (activeTab === "file") {
-			if (fileData.file) {
-				handleFileSubmit(
-					fileData as { file: File; title: string; description: string },
-				)
-			} else {
-				toast.error("Please select a file")
-			}
+		switch (activeTab) {
+			case "note":
+				handleNoteSubmit(noteContent)
+				break
+			case "link":
+				handleLinkSubmit(linkData)
+				break
+			case "file":
+				if (fileData.file) {
+					handleFileSubmit(
+						fileData as { file: File; title: string; description: string },
+					)
+				} else {
+					toast.error("Please select a file")
+				}
+				break
 		}
 	}
 
@@ -250,17 +255,27 @@ export function AddDocument({
 				</div>
 
 				{!isMobile && (
-					<div
-						data-testid="usage-counter"
-						className="flex flex-col gap-3 mr-4"
-					>
+					<div data-testid="usage-counter" className="flex flex-col gap-3 mr-4">
 						<div className="flex flex-col gap-2">
 							<div className="flex justify-between items-center">
-								<span className={cn("text-[#FAFAFA] text-sm font-medium", dmSansClassName())}>
+								<span
+									className={cn(
+										"text-[#FAFAFA] text-sm font-medium",
+										dmSansClassName(),
+									)}
+								>
 									Credits
 								</span>
-								<span className={cn("text-sm font-medium", hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]", dmSansClassName())}>
-									{isLoadingUsage ? "…" : `${tokensToCredits(tokensUsed)} / ${tokensToCredits(tokensLimit)}`}
+								<span
+									className={cn(
+										"text-sm font-medium",
+										hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]",
+										dmSansClassName(),
+									)}
+								>
+									{isLoadingUsage
+										? "…"
+										: `${tokensToCredits(tokensUsed)} / ${tokensToCredits(tokensLimit)}`}
 								</span>
 							</div>
 							<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
@@ -268,11 +283,12 @@ export function AddDocument({
 									className="h-full rounded-[40px]"
 									style={{
 										width: `${tokensPercent}%`,
-										background: tokensPercent > 80
-											? "#ef4444"
-											: hasPaidPlan
-												? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
-												: "#0054AD",
+										background:
+											tokensPercent > 80
+												? "#ef4444"
+												: hasPaidPlan
+													? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
+													: "#0054AD",
 									}}
 								/>
 							</div>
@@ -280,11 +296,24 @@ export function AddDocument({
 
 						<div className="flex flex-col gap-2">
 							<div className="flex justify-between items-center">
-								<span className={cn("text-[#FAFAFA] text-sm font-medium", dmSansClassName())}>
+								<span
+									className={cn(
+										"text-[#FAFAFA] text-sm font-medium",
+										dmSansClassName(),
+									)}
+								>
 									Search Queries
 								</span>
-								<span className={cn("text-sm font-medium", hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]", dmSansClassName())}>
-									{isLoadingUsage ? "…" : `${formatUsageNumber(searchesUsed)} / ${formatUsageNumber(searchesLimit)}`}
+								<span
+									className={cn(
+										"text-sm font-medium",
+										hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]",
+										dmSansClassName(),
+									)}
+								>
+									{isLoadingUsage
+										? "…"
+										: `${formatUsageNumber(searchesUsed)} / ${formatUsageNumber(searchesLimit)}`}
 								</span>
 							</div>
 							<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
@@ -292,11 +321,12 @@ export function AddDocument({
 									className="h-full rounded-[40px]"
 									style={{
 										width: `${searchesPercent}%`,
-										background: searchesPercent > 80
-											? "#ef4444"
-											: hasPaidPlan
-												? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
-												: "#0054AD",
+										background:
+											searchesPercent > 80
+												? "#ef4444"
+												: hasPaidPlan
+													? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
+													: "#0054AD",
 									}}
 								/>
 							</div>
@@ -327,8 +357,10 @@ export function AddDocument({
 									dmSansClassName(),
 								)}
 								style={{
-									background: "linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
-									boxShadow: "1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
+									background:
+										"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
+									boxShadow:
+										"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
 								}}
 							>
 								{isUpgrading ? (
@@ -387,8 +419,10 @@ export function AddDocument({
 				>
 					{!isMobile && (
 						<SpaceSelector
-							value={localSelectedProject}
-							onValueChange={setLocalSelectedProject}
+							selectedProjects={[localSelectedProject]}
+							onValueChange={(projects) =>
+								setLocalSelectedProject(projects[0] ?? localSelectedProject)
+							}
 							variant="insideOut"
 						/>
 					)}

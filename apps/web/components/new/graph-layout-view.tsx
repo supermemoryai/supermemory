@@ -17,12 +17,13 @@ interface GraphLayoutViewProps {
 }
 
 export const GraphLayoutView = memo<GraphLayoutViewProps>(({ isChatOpen }) => {
-	const { selectedProject } = useProject()
+	const { effectiveContainerTags } = useProject()
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
-	const [isShareModalOpen, setIsShareModalOpen] = useQueryState("share", shareParam)
+	const [isShareModalOpen, setIsShareModalOpen] = useQueryState(
+		"share",
+		shareParam,
+	)
 	const canvasRef = useRef<HTMLCanvasElement>(null)
-
-	const containerTags = selectedProject ? [selectedProject] : undefined
 
 	const handleShare = useCallback(() => {
 		setIsShareModalOpen(true)
@@ -37,7 +38,7 @@ export const GraphLayoutView = memo<GraphLayoutViewProps>(({ isChatOpen }) => {
 			{/* Full-width graph */}
 			<div className="absolute inset-0">
 				<MemoryGraph
-					containerTags={containerTags}
+					containerTags={effectiveContainerTags}
 					variant="consumer"
 					highlightDocumentIds={allHighlightDocumentIds}
 					highlightsVisible={isChatOpen}

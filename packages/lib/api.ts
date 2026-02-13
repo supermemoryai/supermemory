@@ -10,6 +10,7 @@ import {
 	DeleteProjectSchema,
 	DocumentsWithMemoriesQuerySchema,
 	DocumentsWithMemoriesResponseSchema,
+	ListContainerTagsResponseSchema,
 	ListMemoriesResponseSchema,
 	ListProjectsResponseSchema,
 	MemoryAddSchema,
@@ -178,6 +179,9 @@ export const apiSchema = createSchema({
 	// Project operations
 	"@get/projects": {
 		output: ListProjectsResponseSchema,
+	},
+	"@get/container-tags/list": {
+		output: ListContainerTagsResponseSchema,
 	},
 	"@post/projects": {
 		input: CreateProjectSchema,

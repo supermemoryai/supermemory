@@ -56,8 +56,10 @@ export function MCPModal({
 				<DialogFooter className="justify-between!">
 					<div className="flex items-center gap-2">
 						<SpaceSelector
-							value={selectedProject}
-							onValueChange={switchProject}
+							selectedProjects={[selectedProject]}
+							onValueChange={(projects) =>
+								switchProject(projects[0] ?? selectedProject)
+							}
 							variant="insideOut"
 						/>
 						<Button

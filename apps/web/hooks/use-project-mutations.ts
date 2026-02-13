@@ -4,10 +4,12 @@ import { $fetch } from "@lib/api"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useProject } from "@/stores"
+import type { Project } from "@repo/lib/types"
 
 export function useProjectMutations() {
 	const queryClient = useQueryClient()
-	const { selectedProject, setSelectedProject } = useProject()
+	const { selectedProjects, setSelectedProjects, setSelectedProject } =
+		useProject()
 
 	const createProjectMutation = useMutation({
 		mutationFn: async (input: string | { name: string; emoji?: string }) => {
@@ -28,9 +30,8 @@ export function useProjectMutations() {
 			toast.success("Project created successfully!")
 			queryClient.invalidateQueries({ queryKey: ["projects"] })
 
-			// Automatically switch to the newly created project
 			if (data?.containerTag) {
-				setSelectedProject(data.containerTag)
+				setSelectedProjects([data.containerTag])
 			}
 		},
 		onError: (error) => {
@@ -63,13 +64,20 @@ export function useProjectMutations() {
 		onSuccess: (_, variables) => {
 			toast.success("Project deleted successfully")
 			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			queryClient.invalidateQueries({ queryKey: ["container-tags"] })
 
-			// If we deleted the selected project, switch to default
-			const deletedProject = queryClient
-				.getQueryData<any[]>(["projects"])
-				?.find((p) => p.id === variables.projectId)
-			if (deletedProject?.containerTag === selectedProject) {
-				setSelectedProject("sm_project_default")
+			const allProjects =
+				queryClient.getQueryData<Project[]>(["projects"]) || []
+			const deletedProject = allProjects.find(
+				(p) => p.id === variables.projectId,
+			)
+			if (
+				deletedProject?.containerTag &&
+				selectedProjects.includes(deletedProject.containerTag)
+			) {
+				setSelectedProjects(
+					selectedProjects.filter((tag) => tag !== deletedProject.containerTag),
+				)
 			}
 		},
 		onError: (error) => {

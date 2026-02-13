@@ -3,22 +3,36 @@
 import { useState, useMemo } from "react"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
-import { $fetch } from "@repo/lib/api"
 import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
-import { useQuery } from "@tanstack/react-query"
-import { ChevronsLeftRight, Plus, Trash2, XIcon, Loader2 } from "lucide-react"
-import type { Project } from "@repo/lib/types"
+import {
+	ChevronsLeftRight,
+	Plus,
+	Trash2,
+	XIcon,
+	Loader2,
+	Globe,
+	Layers,
+} from "lucide-react"
+import type { ContainerTagListType } from "@repo/lib/types"
 import { AddSpaceModal } from "./add-space-modal"
+import { SelectSpacesModal } from "./select-spaces-modal"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
+import { useContainerTags } from "@/hooks/use-container-tags"
 import { motion } from "motion/react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
-import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+import {
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	DialogDescription,
+} from "@repo/ui/components/dialog"
 import {
 	Select,
 	SelectContent,
@@ -30,8 +44,8 @@ import { Button } from "@repo/ui/components/button"
 import { analytics } from "@/lib/analytics"
 
 export interface SpaceSelectorProps {
-	value: string
-	onValueChange: (containerTag: string) => void
+	selectedProjects: string[]
+	onValueChange: (containerTags: string[]) => void
 	variant?: "default" | "insideOut"
 	showChevron?: boolean
 	triggerClassName?: string
@@ -47,7 +61,7 @@ const triggerVariants = {
 }
 
 export function SpaceSelector({
-	value,
+	selectedProjects,
 	onValueChange,
 	variant = "default",
 	showChevron = false,
@@ -59,6 +73,7 @@ export function SpaceSelector({
 }: SpaceSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false)
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
+	const [showSelectSpacesModal, setShowSelectSpacesModal] = useState(false)
 	const [deleteDialog, setDeleteDialog] = useState<{
 		open: boolean
 		project: { id: string; name: string; containerTag: string } | null
@@ -73,37 +88,63 @@ export function SpaceSelector({
 
 	const { deleteProjectMutation } = useProjectMutations()
 
-	const { data: projects = [], isLoading } = useQuery({
-		queryKey: ["projects"],
-		queryFn: async () => {
-			const response = await $fetch("@get/projects")
+	const { allProjects, novaProjects, isLoading } = useContainerTags()
 
-			if (response.error) {
-				throw new Error(response.error?.message || "Failed to load projects")
-			}
+	const isNovaSpaces = selectedProjects.length === 0
 
-			return response.data?.projects || []
-		},
-		staleTime: 30 * 1000,
-	})
-
-	const selectedProject = useMemo(() => {
-		if (value === DEFAULT_PROJECT_ID) return { name: "My Space", emoji: "📁" }
-		const found = projects.find((p: Project) => p.containerTag === value)
-		return found
-			? { name: found.name, emoji: found.emoji }
-			: { name: value, emoji: undefined }
-	}, [projects, value])
-
-	const selectedProjectName = selectedProject.name
-	const selectedProjectEmoji = selectedProject.emoji || "📁"
-
-	const handleSelect = (containerTag: string) => {
-		if (containerTag !== value) {
-			analytics.spaceSwitched({ space_id: containerTag })
+	const displayInfo = useMemo(() => {
+		if (isNovaSpaces) {
+			return { name: "Nova Spaces", emoji: null, isMultiple: false }
 		}
-		onValueChange(containerTag)
+
+		if (selectedProjects.length === 1) {
+			const containerTag = selectedProjects[0]
+			if (containerTag === DEFAULT_PROJECT_ID) {
+				return { name: "My Space", emoji: "📁", isMultiple: false }
+			}
+			const found = allProjects.find(
+				(p: ContainerTagListType) => p.containerTag === containerTag,
+			)
+			return {
+				name: found?.name || containerTag,
+				emoji: found?.emoji || "📁",
+				isMultiple: false,
+			}
+		}
+
+		return {
+			name: `${selectedProjects.length} spaces`,
+			emoji: null,
+			isMultiple: true,
+		}
+	}, [allProjects, selectedProjects, isNovaSpaces])
+
+	const handleSelectNovaSpaces = () => {
+		analytics.spaceSwitched({ space_id: "nova_spaces" })
+		onValueChange([]) // Empty array = "Nova Spaces" (all nova)
 		setIsOpen(false)
+	}
+
+	const handleSelectSingleSpace = (containerTag: string) => {
+		analytics.spaceSwitched({ space_id: containerTag })
+		onValueChange([containerTag])
+		setIsOpen(false)
+	}
+
+	const handleOpenSelectSpaces = () => {
+		setIsOpen(false)
+		setShowSelectSpacesModal(true)
+	}
+
+	const handleSelectSpacesApply = (selected: string[]) => {
+		if (selected.length > 0) {
+			analytics.spaceSwitched({
+				space_id:
+					selected.length === 1 ? (selected[0] ?? "unknown") : "multiple",
+			})
+		}
+		onValueChange(selected)
+		setShowSelectSpacesModal(false)
 	}
 
 	const handleNewSpace = () => {
@@ -161,14 +202,14 @@ export function SpaceSelector({
 	}
 
 	const availableTargetProjects = useMemo(() => {
-		const filtered = projects.filter(
-			(p: Project) =>
+		const filtered = novaProjects.filter(
+			(p: ContainerTagListType) =>
 				p.id !== deleteDialog.project?.id &&
 				p.containerTag !== deleteDialog.project?.containerTag,
 		)
 
-		const defaultProject = projects.find(
-			(p: Project) => p.containerTag === DEFAULT_PROJECT_ID,
+		const defaultProject = novaProjects.find(
+			(p: ContainerTagListType) => p.containerTag === DEFAULT_PROJECT_ID,
 		)
 
 		const isDefaultProjectBeingDeleted =
@@ -176,7 +217,7 @@ export function SpaceSelector({
 
 		if (defaultProject && !isDefaultProjectBeingDeleted) {
 			const defaultProjectIncluded = filtered.some(
-				(p: Project) => p.containerTag === DEFAULT_PROJECT_ID,
+				(p: ContainerTagListType) => p.containerTag === DEFAULT_PROJECT_ID,
 			)
 			if (!defaultProjectIncluded) {
 				return [defaultProject, ...filtered]
@@ -184,7 +225,7 @@ export function SpaceSelector({
 		}
 
 		return filtered
-	}, [projects, deleteDialog.project])
+	}, [novaProjects, deleteDialog.project])
 
 	return (
 		<>
@@ -193,18 +234,24 @@ export function SpaceSelector({
 					<button
 						type="button"
 						className={cn(
-							"flex items-center gap-2 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+							"flex items-center gap-2 cursor-pointer transition-colors focus:outline-none focus-visible:outline-none",
 							triggerVariants[variant],
 							dmSansClassName(),
 							triggerClassName,
 						)}
 					>
-						<span className="text-sm font-bold tracking-[-0.98px]">
-							{selectedProjectEmoji}
-						</span>
+						{isNovaSpaces ? (
+							<Globe className="size-4 text-white" />
+						) : displayInfo.isMultiple ? (
+							<Layers className="size-4 text-white" />
+						) : (
+							<span className="text-sm font-bold tracking-[-0.98px]">
+								{displayInfo.emoji}
+							</span>
+						)}
 						{!compact && (
 							<span className="text-sm font-medium text-white">
-								{isLoading ? "..." : selectedProjectName}
+								{isLoading ? "..." : displayInfo.name}
 							</span>
 						)}
 						{showChevron && (
@@ -225,12 +272,33 @@ export function SpaceSelector({
 				>
 					<div className="flex flex-col gap-2">
 						<div className="flex flex-col">
-							{/* Default Project - no delete allowed */}
 							<DropdownMenuItem
-								onClick={() => handleSelect(DEFAULT_PROJECT_ID)}
+								onClick={handleSelectNovaSpaces}
 								className={cn(
 									"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
-									value === DEFAULT_PROJECT_ID
+									isNovaSpaces
+										? "bg-[#293952]/40"
+										: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
+								)}
+							>
+								<Globe className="size-4" />
+								<span className="flex-1">Nova Spaces</span>
+							</DropdownMenuItem>
+
+							<DropdownMenuSeparator className="bg-[#2E3033] my-1" />
+
+							<div className="px-3 py-1">
+								<span className="text-[10px] uppercase tracking-wider text-[#737373] font-medium">
+									My Spaces
+								</span>
+							</div>
+
+							<DropdownMenuItem
+								onClick={() => handleSelectSingleSpace(DEFAULT_PROJECT_ID)}
+								className={cn(
+									"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
+									selectedProjects.length === 1 &&
+										selectedProjects[0] === DEFAULT_PROJECT_ID
 										? "bg-[#293952]/40"
 										: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
 								)}
@@ -239,16 +307,21 @@ export function SpaceSelector({
 								<span className="flex-1">My Space</span>
 							</DropdownMenuItem>
 
-							{/* User Projects */}
-							{projects
-								.filter((p: Project) => p.containerTag !== DEFAULT_PROJECT_ID)
-								.map((project: Project) => (
+							{novaProjects
+								.filter(
+									(p: ContainerTagListType) =>
+										p.containerTag !== DEFAULT_PROJECT_ID,
+								)
+								.map((project: ContainerTagListType) => (
 									<DropdownMenuItem
 										key={project.id}
-										onClick={() => handleSelect(project.containerTag)}
+										onClick={() =>
+											handleSelectSingleSpace(project.containerTag)
+										}
 										className={cn(
 											"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium group",
-											value === project.containerTag
+											selectedProjects.length === 1 &&
+												selectedProjects[0] === project.containerTag
 												? "bg-[#293952]/40"
 												: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
 										)}
@@ -256,7 +329,9 @@ export function SpaceSelector({
 										<span className="font-bold tracking-[-0.98px]">
 											{project.emoji || "📁"}
 										</span>
-										<span className="truncate flex-1">{project.name}</span>
+										<span className="truncate flex-1">
+											{project.name ?? project.containerTag}
+										</span>
 										{enableDelete && (
 											<button
 												type="button"
@@ -275,6 +350,20 @@ export function SpaceSelector({
 									</DropdownMenuItem>
 								))}
 						</div>
+
+						<DropdownMenuSeparator className="bg-[#2E3033]" />
+
+						<button
+							type="button"
+							onClick={handleOpenSelectSpaces}
+							className="flex items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors"
+							style={{
+								background: "linear-gradient(180deg, #0D121A 0%, #000000 100%)",
+							}}
+						>
+							<Layers className="size-4" />
+							<span>Select Spaces</span>
+						</button>
 
 						{showNewSpace && (
 							<button
@@ -299,10 +388,17 @@ export function SpaceSelector({
 				onClose={() => setShowCreateDialog(false)}
 			/>
 
-			{/* Delete Confirmation Dialog - matching /new design system */}
+			<SelectSpacesModal
+				isOpen={showSelectSpacesModal}
+				onClose={() => setShowSelectSpacesModal(false)}
+				selectedProjects={selectedProjects}
+				onApply={handleSelectSpacesApply}
+				projects={allProjects}
+			/>
+
 			<Dialog
 				open={deleteDialog.open}
-				onOpenChange={(open) => {
+				onOpenChange={(open: boolean) => {
 					if (!open) {
 						setDeleteDialog({
 							open: false,
@@ -330,21 +426,21 @@ export function SpaceSelector({
 							className="flex justify-between items-start gap-4"
 						>
 							<div className="pl-1 space-y-1 flex-1">
-								<p
+								<DialogTitle
 									className={cn(
 										"font-semibold text-[#fafafa]",
 										dmSans125ClassName(),
 									)}
 								>
 									Delete space
-								</p>
-								<p className="text-[#737373] font-medium text-[16px] leading-[1.35]">
+								</DialogTitle>
+								<DialogDescription className="text-[#737373] font-medium text-[16px] leading-[1.35]">
 									What would you like to do with the documents and memories in{" "}
 									<span className="text-[#fafafa] font-medium">
 										"{deleteDialog.project?.name}"
 									</span>
 									?
-								</p>
+								</DialogDescription>
 							</div>
 							<DialogPrimitive.Close
 								className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
@@ -404,7 +500,7 @@ export function SpaceSelector({
 								>
 									<Select
 										value={deleteDialog.targetProjectId}
-										onValueChange={(val) =>
+										onValueChange={(val: string) =>
 											setDeleteDialog((prev) => ({
 												...prev,
 												targetProjectId: val,
@@ -433,22 +529,24 @@ export function SpaceSelector({
 													"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08)",
 											}}
 										>
-											{availableTargetProjects.map((p: Project) => (
-												<SelectItem
-													key={p.id}
-													value={p.id}
-													className="text-[#fafafa] hover:bg-[#1B1F24] cursor-pointer rounded-md"
-												>
-													<span className="flex items-center gap-2">
-														<span>{p.emoji || "📁"}</span>
-														<span>
-															{p.containerTag === DEFAULT_PROJECT_ID
-																? "My Space"
-																: p.name}
+											{availableTargetProjects.map(
+												(p: ContainerTagListType) => (
+													<SelectItem
+														key={p.id}
+														value={p.id}
+														className="text-[#fafafa] hover:bg-[#1B1F24] cursor-pointer rounded-md"
+													>
+														<span className="flex items-center gap-2">
+															<span>{p.emoji || "📁"}</span>
+															<span>
+																{p.containerTag === DEFAULT_PROJECT_ID
+																	? "My Space"
+																	: p.name}
+															</span>
 														</span>
-													</span>
-												</SelectItem>
-											))}
+													</SelectItem>
+												),
+											)}
 										</SelectContent>
 									</Select>
 								</motion.div>
