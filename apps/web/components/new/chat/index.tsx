@@ -177,6 +177,13 @@ export function ChatSidebar({
 		transport: new DefaultChatTransport({
 			api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
 			credentials: "include",
+			body: {
+				metadata: {
+					chatId: currentChatId,
+					projectId: selectedProject,
+					model: selectedModel,
+				},
+			},
 		}),
 		onFinish: async (result) => {
 			if (result.message.role !== "assistant") return
