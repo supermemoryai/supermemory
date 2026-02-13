@@ -12,7 +12,7 @@ export default defineConfig({
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
 		version: "6.1.0",
-		permissions: ["contextMenus", "storage", "activeTab", "webRequest", "tabs"],
+		permissions: ["storage", "activeTab", "webRequest", "tabs"],
 		host_permissions: [
 			"*://x.com/*",
 			"*://twitter.com/*",
