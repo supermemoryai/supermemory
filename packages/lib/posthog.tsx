@@ -38,7 +38,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+			const posthogKey = "phc_uO09ylgCPmQl3wHukVvvwhphtoIaGmCMUTTwDo3PRlt"
 			const backendUrl =
 				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
