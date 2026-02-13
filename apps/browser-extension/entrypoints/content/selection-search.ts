@@ -1,4 +1,5 @@
 import { ELEMENT_IDS, MESSAGE_TYPES, UI_CONFIG } from "../../utils/constants"
+import { DOMUtils } from "../../utils/ui-components"
 
 // State
 let currentQuery = ""
@@ -51,8 +52,47 @@ function createFAB(): HTMLElement {
 	const iconUrl = browser.runtime.getURL("/icon-16.png")
 
 	fab.innerHTML = `
-		<img src="${iconUrl}" width="16" height="16" alt="Search" style="border-radius: 2px;" />
-		<span>Search</span>
+		<button data-action="search" style="
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 10px;
+			background: transparent;
+			border: none;
+			color: #ffffff;
+			font: inherit;
+			cursor: pointer;
+		">
+			<img src="${iconUrl}" width="16" height="16" alt="Search" style="border-radius: 2px;" />
+			<span>Search</span>
+		</button>
+		<div style="width: 1px; height: 16px; background: rgba(255, 255, 255, 0.15);"></div>
+		<button data-action="save" style="
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 10px;
+			background: transparent;
+			border: none;
+			color: #ffffff;
+			font: inherit;
+			cursor: pointer;
+		">
+			<span style="
+				width: 18px;
+				height: 18px;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				border: 1px solid rgba(255, 255, 255, 0.35);
+				border-radius: 999px;
+			">
+				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+					<path d="M5 1.5V8.5M1.5 5H8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+				</svg>
+			</span>
+			<span>Save</span>
+		</button>
 	`
 
 	fab.style.cssText = `
@@ -60,8 +100,8 @@ function createFAB(): HTMLElement {
 		z-index: 2147483646;
 		display: flex;
 		align-items: center;
-		gap: 6px;
-		padding: 8px 12px;
+		gap: 0;
+		padding: 4px 6px;
 		background: #05070A;
 		color: #ffffff;
 		border: 1px solid rgba(255, 255, 255, 0.1);
@@ -69,7 +109,6 @@ function createFAB(): HTMLElement {
 		font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 		font-size: 13px;
 		font-weight: 500;
-		cursor: pointer;
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 		transition: all 0.15s ease;
 		user-select: none;
@@ -85,10 +124,18 @@ function createFAB(): HTMLElement {
 		fab.style.borderColor = "rgba(255, 255, 255, 0.1)"
 	})
 
-	fab.addEventListener("click", (e) => {
+	const searchButton = fab.querySelector('button[data-action="search"]')
+	searchButton?.addEventListener("click", (e) => {
 		e.preventDefault()
 		e.stopPropagation()
 		triggerSearch()
+	})
+
+	const saveButton = fab.querySelector('button[data-action="save"]')
+	saveButton?.addEventListener("click", (e) => {
+		e.preventDefault()
+		e.stopPropagation()
+		void triggerSaveSelection()
 	})
 
 	return fab
@@ -103,8 +150,11 @@ function showFAB(rect: DOMRect, text: string) {
 	currentQuery = text
 	fabElement = createFAB()
 
+	fabElement.style.visibility = "hidden"
+	document.body.appendChild(fabElement)
+
 	// Position FAB above the selection, centered
-	const fabWidth = 90 // approximate width
+	const fabWidth = fabElement.offsetWidth || 160
 	let left = rect.left + rect.width / 2 - fabWidth / 2
 	let top = rect.top - 40
 
@@ -120,8 +170,7 @@ function showFAB(rect: DOMRect, text: string) {
 
 	fabElement.style.left = `${left}px`
 	fabElement.style.top = `${top}px`
-
-	document.body.appendChild(fabElement)
+	fabElement.style.visibility = "visible"
 }
 
 /**
@@ -164,6 +213,62 @@ async function triggerSearch() {
 			null,
 			error instanceof Error ? error.message : "Search failed",
 		)
+	}
+}
+
+/**
+ * Trigger save for the current selection
+ * :) it saves
+ */
+async function triggerSaveSelection() {
+	if (!currentQuery) return
+
+	hideFAB()
+	DOMUtils.showToast("loading")
+
+	const data = buildSelectionMemoryData(currentQuery)
+
+	try {
+		const response = await browser.runtime.sendMessage({
+			action: MESSAGE_TYPES.SAVE_MEMORY,
+			data,
+			actionSource: "selection_fab",
+		})
+
+		if (response?.success) {
+			DOMUtils.showToast("success")
+		} else {
+			DOMUtils.showToast("error")
+		}
+	} catch (error) {
+		console.error("Save failed:", error)
+		DOMUtils.showToast("error")
+	}
+}
+
+function buildSelectionMemoryData(text: string) {
+	const url = window.location.href
+
+	const ogImage =
+		document
+			.querySelector('meta[property="og:image"]')
+			?.getAttribute("content") ||
+		document.querySelector('meta[name="og:image"]')?.getAttribute("content") ||
+		undefined
+
+	const title =
+		document
+			.querySelector('meta[property="og:title"]')
+			?.getAttribute("content") ||
+		document.querySelector('meta[name="og:title"]')?.getAttribute("content") ||
+		document.title ||
+		undefined
+
+	return {
+		highlightedText: text,
+		url,
+		ogImage,
+		title,
 	}
 }
 
