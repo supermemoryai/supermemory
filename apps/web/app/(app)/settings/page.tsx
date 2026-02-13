@@ -11,6 +11,7 @@ import Account from "@/components/new/settings/account"
 import Integrations from "@/components/new/settings/integrations"
 import ConnectionsMCP from "@/components/new/settings/connections-mcp"
 import Support from "@/components/new/settings/support"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { useRouter } from "next/navigation"
 import { useIsMobile } from "@hooks/use-mobile"
 import { analytics } from "@/lib/analytics"
@@ -248,10 +249,26 @@ export default function SettingsPage() {
 						</nav>
 					</div>
 					<div className="flex-1 flex flex-col gap-4 md:overflow-y-auto md:max-w-2xl [scrollbar-gutter:stable] md:pr-[17px]">
-						{activeTab === "account" && <Account />}
-						{activeTab === "integrations" && <Integrations />}
-						{activeTab === "connections" && <ConnectionsMCP />}
-						{activeTab === "support" && <Support />}
+						<ErrorBoundary
+							key={activeTab}
+							fallback={
+								<p className="text-muted-foreground p-4">
+									Something went wrong loading this section.{" "}
+									<button
+										type="button"
+										className="underline cursor-pointer"
+										onClick={() => window.location.reload()}
+									>
+										Reload
+									</button>
+								</p>
+							}
+						>
+							{activeTab === "account" && <Account />}
+							{activeTab === "integrations" && <Integrations />}
+							{activeTab === "connections" && <ConnectionsMCP />}
+							{activeTab === "support" && <Support />}
+						</ErrorBoundary>
 					</div>
 				</div>
 			</main>

@@ -29,6 +29,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { useViewMode } from "@/lib/view-mode-context"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { cn } from "@lib/utils"
 import {
 	addDocumentParam,
@@ -41,6 +42,23 @@ import {
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
+
+function ViewErrorFallback() {
+	return (
+		<div className="flex-1 flex items-center justify-center p-8">
+			<p className="text-muted-foreground">
+				Something went wrong.{" "}
+				<button
+					type="button"
+					className="underline cursor-pointer"
+					onClick={() => window.location.reload()}
+				>
+					Reload
+				</button>
+			</p>
+		</div>
+	)
+}
 
 export default function NewPage() {
 	const isMobile = useIsMobile()
@@ -314,6 +332,7 @@ export default function NewPage() {
 					)}
 				>
 					<div className={cn("relative z-10 flex flex-col md:flex-row h-full")}>
+						<ErrorBoundary fallback={<ViewErrorFallback />}>
 						{viewMode === "integrations" ? (
 							<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
 								<IntegrationsView />
@@ -341,15 +360,18 @@ export default function NewPage() {
 								/>
 							</div>
 						)}
+						</ErrorBoundary>
 						<div className="hidden md:block md:sticky md:top-0 md:h-screen">
 							<AnimatePresence mode="popLayout">
-								<ChatSidebar
-									isChatOpen={chatOpen}
-									setIsChatOpen={(open) => setIsChatOpen(open)}
-									queuedMessage={queuedChatSeed}
-									onConsumeQueuedMessage={() => setQueuedChatSeed(null)}
-									emptyStateSuggestions={highlightsData?.questions}
-								/>
+								<ErrorBoundary>
+									<ChatSidebar
+										isChatOpen={chatOpen}
+										setIsChatOpen={(open) => setIsChatOpen(open)}
+										queuedMessage={queuedChatSeed}
+										onConsumeQueuedMessage={() => setQueuedChatSeed(null)}
+										emptyStateSuggestions={highlightsData?.questions}
+									/>
+								</ErrorBoundary>
 							</AnimatePresence>
 						</div>
 					</div>

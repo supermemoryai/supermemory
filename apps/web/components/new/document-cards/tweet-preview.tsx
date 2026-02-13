@@ -46,6 +46,7 @@ function CustomTweetHeader({
 	tweet: ReturnType<typeof enrichTweet>
 }) {
 	const user = tweet.user
+	if (!user) return null
 	const isVerified = user.verified || user.is_blue_verified
 
 	return (

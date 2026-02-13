@@ -10,6 +10,7 @@ import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
 import { SuperLoader } from "@/components/superloader"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { cn } from "@lib/utils"
 import { useProject } from "@/stores"
 import { useIsMobile } from "@hooks/use-mobile"
@@ -254,12 +255,14 @@ export function MemoriesGrid({
 		}) => {
 			if (data.type === "document") {
 				return (
-					<DocumentCard
-						index={index}
-						data={data.data}
-						width={width}
-						onClick={handleCardClick}
-					/>
+					<ErrorBoundary>
+						<DocumentCard
+							index={index}
+							data={data.data}
+							width={width}
+							onClick={handleCardClick}
+						/>
+					</ErrorBoundary>
 				)
 			}
 
