@@ -14,6 +14,7 @@ import Support from "@/components/new/settings/support"
 import { useRouter } from "next/navigation"
 import { useIsMobile } from "@hooks/use-mobile"
 import { analytics } from "@/lib/analytics"
+import { Sun } from "lucide-react"
 
 const TABS = ["account", "integrations", "connections", "support"] as const
 type SettingsTab = (typeof TABS)[number]
@@ -52,23 +53,7 @@ const NAV_ITEMS: NavItem[] = [
 		id: "integrations",
 		label: "Integrations",
 		description: "Save, sync and search memories across tools",
-		icon: (
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="20"
-				height="20"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				aria-hidden="true"
-			>
-				<circle cx="12" cy="12" r="3" />
-				<path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-			</svg>
-		),
+		icon: <Sun className="size-5" />,
 	},
 	{
 		id: "connections",

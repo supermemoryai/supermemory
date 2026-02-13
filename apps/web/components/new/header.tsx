@@ -11,7 +11,7 @@ import {
 	Settings,
 	Home,
 	Code2,
-	Cable,
+	Sun,
 	ExternalLink,
 	HelpCircle,
 	MenuIcon,
@@ -22,6 +22,7 @@ import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
+import { GraphIcon } from "@/components/new/integration-icons"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -48,18 +49,18 @@ interface HeaderProps {
 	onOpenSearch?: () => void
 }
 
-export function Header({
-	onAddMemory,
-	onOpenChat,
-	onOpenSearch,
-}: HeaderProps) {
+export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 	const { user } = useAuth()
 	const { selectedProject } = useProject()
 	const { switchProject } = useProjectMutations()
 	const router = useRouter()
 	const isMobile = useIsMobile()
 	const { resetOrgOnboarded } = useOrgOnboarding()
-	const [isFeedbackOpen, setIsFeedbackOpen] = useQueryState("feedback", feedbackParam)
+	const [feedbackOpen, setFeedbackOpen] = useQueryState(
+		"feedback",
+		feedbackParam,
+	)
+	const isFeedbackOpen = feedbackOpen ?? false
 	const { viewMode, setViewMode } = useViewMode()
 
 	const handleTryOnboarding = () => {
@@ -67,9 +68,7 @@ export function Header({
 		router.push("/onboarding?step=input&flow=welcome")
 	}
 
-	const handleFeedback = () => {
-		setIsFeedbackOpen(true)
-	}
+	const handleFeedback = () => setFeedbackOpen(true)
 
 	const displayName =
 		user?.displayUsername ||
@@ -155,13 +154,15 @@ export function Header({
 			{!isMobile && (
 				<Tabs
 					value={viewMode === "list" ? "grid" : viewMode}
-					onValueChange={(v) => setViewMode(v === "grid" ? "list" : v as "graph" | "integrations")}
+					onValueChange={(v) =>
+						setViewMode(v === "grid" ? "list" : (v as "graph" | "integrations"))
+					}
 				>
 					<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
 						<TabsTrigger
 							value="grid"
 							className={cn(
-								"rounded-full data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4",
+								"rounded-full data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
 								dmSansClassName(),
 							)}
 						>
@@ -171,21 +172,21 @@ export function Header({
 						<TabsTrigger
 							value="graph"
 							className={cn(
-								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4",
+								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
 								dmSansClassName(),
 							)}
 						>
-							<LayoutGridIcon className="size-4" />
+							<GraphIcon className="size-4" />
 							Graph
 						</TabsTrigger>
 						<TabsTrigger
 							value="integrations"
 							className={cn(
-								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4",
+								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
 								dmSansClassName(),
 							)}
 						>
-							<Cable className="size-4" />
+							<Sun className="size-4" />
 							Integrations
 						</TabsTrigger>
 					</TabsList>
@@ -232,7 +233,7 @@ export function Header({
 									onClick={() => setViewMode("integrations")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<Cable className="h-4 w-4 text-[#737373]" />
+									<Sun className="h-4 w-4 text-[#737373]" />
 									Integrations
 								</DropdownMenuItem>
 								<DropdownMenuItem
@@ -410,7 +411,7 @@ export function Header({
 			</div>
 			<FeedbackModal
 				isOpen={isFeedbackOpen}
-				onClose={() => setIsFeedbackOpen(false)}
+				onClose={() => setFeedbackOpen(false)}
 			/>
 		</div>
 	)
