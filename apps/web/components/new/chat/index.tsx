@@ -660,31 +660,30 @@ export function ChatSidebar({
 							onModelChange={setSelectedModel}
 						/>
 						<div className="flex items-center gap-2">
-							{!isMobile && (
-								<Dialog
-									open={isHistoryOpen}
-									onOpenChange={(open) => {
-										setIsHistoryOpen(open)
-										if (open) {
-											fetchThreads()
-											analytics.chatHistoryViewed?.()
-										} else {
-											setConfirmingDeleteId(null)
-										}
-									}}
-								>
-									<DialogTrigger asChild>
-										<Button
-											variant="headers"
-											className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
-											style={{
-												boxShadow:
-													"1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-											}}
-										>
-											<HistoryIcon className="size-4 text-[#737373]" />
-										</Button>
-									</DialogTrigger>
+							<Dialog
+								open={isHistoryOpen}
+								onOpenChange={(open) => {
+									setIsHistoryOpen(open)
+									if (open) {
+										fetchThreads()
+										analytics.chatHistoryViewed?.()
+									} else {
+										setConfirmingDeleteId(null)
+									}
+								}}
+							>
+								<DialogTrigger asChild>
+									<Button
+										variant="headers"
+										className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
+										style={{
+											boxShadow:
+												"1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+										}}
+									>
+										<HistoryIcon className="size-4 text-[#737373]" />
+									</Button>
+								</DialogTrigger>
 									<DialogContent className="sm:max-w-lg bg-[#0A0E14] border-[#17181AB2] text-white">
 										<DialogHeader className="pb-4 border-b border-[#17181AB2]">
 											<DialogTitle>Chat History</DialogTitle>
@@ -783,7 +782,6 @@ export function ChatSidebar({
 										</Button>
 									</DialogContent>
 								</Dialog>
-							)}
 							<Button
 								variant="headers"
 								className="rounded-full text-base gap-3 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
