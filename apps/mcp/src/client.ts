@@ -111,7 +111,7 @@ export class SupermemoryClient {
 
 			// Delete the most similar match
 			const memoryToDelete = searchResult.results[0]
-			await this.client.memories.delete(memoryToDelete.id)
+			await this.client.documents.delete(memoryToDelete.id)
 
 			const memoryText = memoryToDelete.memory || memoryToDelete.content || ""
 			return {
