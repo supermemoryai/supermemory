@@ -6,7 +6,6 @@ import {
 } from "../utils/api"
 import {
 	CONTAINER_TAGS,
-	CONTEXT_MENU_IDS,
 	MESSAGE_TYPES,
 	POSTHOG_EVENT_KEY,
 } from "../utils/constants"
@@ -26,18 +25,6 @@ export default defineBackground(() => {
 	let twitterImporter: TwitterImporter | null = null
 
 	browser.runtime.onInstalled.addListener(async (details) => {
-		browser.contextMenus.create({
-			id: CONTEXT_MENU_IDS.SAVE_TO_SUPERMEMORY,
-			title: "sync to supermemory",
-			contexts: ["selection", "page", "link"],
-		})
-
-		browser.contextMenus.create({
-			id: CONTEXT_MENU_IDS.SEARCH_SUPERMEMORY,
-			title: "search supermemory",
-			contexts: ["selection"],
-		})
-
 		if (details.reason === "install") {
 			await trackEvent("extension_installed", {
 				reason: details.reason,
@@ -58,38 +45,6 @@ export default defineBackground(() => {
 		{ urls: ["*://x.com/*", "*://twitter.com/*"] },
 		["requestHeaders", "extraHeaders"],
 	)
-
-	// Handle context menu clicks.
-	browser.contextMenus.onClicked.addListener(async (info, tab) => {
-		if (info.menuItemId === CONTEXT_MENU_IDS.SAVE_TO_SUPERMEMORY) {
-			if (tab?.id) {
-				try {
-					await browser.tabs.sendMessage(tab.id, {
-						action: MESSAGE_TYPES.SAVE_MEMORY,
-						actionSource: "context_menu",
-					})
-				} catch (error) {
-					console.error("Failed to send message to content script:", error)
-				}
-			}
-		}
-
-		if (info.menuItemId === CONTEXT_MENU_IDS.SEARCH_SUPERMEMORY) {
-			if (tab?.id && info.selectionText) {
-				try {
-					await browser.tabs.sendMessage(tab.id, {
-						action: MESSAGE_TYPES.OPEN_SEARCH_PANEL,
-						data: info.selectionText,
-					})
-				} catch (error) {
-					console.error(
-						"Failed to send search message to content script:",
-						error,
-					)
-				}
-			}
-		}
-	})
 
 	// Send message to current active tab.
 	const sendMessageToCurrentTab = async (message: string) => {
@@ -319,30 +274,6 @@ export default defineBackground(() => {
 				return true
 			}
 
-			if (message.action === MESSAGE_TYPES.SEARCH_SELECTION) {
-				;(async () => {
-					try {
-						const query = message.data as string
-						const responseData = await searchMemories(query)
-						await trackEvent(POSTHOG_EVENT_KEY.SELECTION_SEARCH_TRIGGERED, {
-							query_length: query.length,
-						})
-						sendResponse({ success: true, data: responseData })
-					} catch (error) {
-						const errorMessage =
-							error instanceof Error ? error.message : "Unknown error"
-						const isAuthError =
-							errorMessage.includes("Authentication") ||
-							errorMessage.includes("token")
-						sendResponse({
-							success: false,
-							error: errorMessage,
-							isAuthError,
-						})
-					}
-				})()
-				return true
-			}
 		},
 	)
 })
