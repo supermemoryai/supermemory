@@ -313,7 +313,7 @@ export default function NewPage() {
 				{isGraphMode && (
 					<div
 						id="graph-dotted-grid"
-						className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,#69A7F0_0.1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+						className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
 					/>
 				)}
 				<Header
