@@ -3,10 +3,6 @@ import { DOMUtils } from "../../utils/ui-components"
 import { initializeChatGPT } from "./chatgpt"
 import { initializeClaude } from "./claude"
 import {
-	handleOpenSearchPanel,
-	initializeSelectionSearch,
-} from "./selection-search"
-import {
 	saveMemory,
 	setupGlobalKeyboardShortcut,
 	setupStorageListener,
@@ -28,8 +24,6 @@ export default defineContentScript({
 				DOMUtils.showToast(message.state)
 			} else if (message.action === MESSAGE_TYPES.SAVE_MEMORY) {
 				await saveMemory()
-			} else if (message.action === MESSAGE_TYPES.OPEN_SEARCH_PANEL) {
-				handleOpenSearchPanel(message.data as string)
 			} else if (message.action === MESSAGE_TYPES.TWITTER_IMPORT_OPEN_MODAL) {
 				await openImportModal()
 			} else if (message.type === MESSAGE_TYPES.IMPORT_UPDATE) {
@@ -73,9 +67,6 @@ export default defineContentScript({
 		initializeClaude()
 		initializeT3()
 		initializeTwitter()
-
-		// Initialize universal selection search
-		initializeSelectionSearch()
 
 		// Start observing for dynamic changes
 		if (document.readyState === "loading") {
