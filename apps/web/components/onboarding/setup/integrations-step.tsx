@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { Button } from "@ui/components/button"
-import { MCPDetailView } from "@/components/new/mcp-modal/mcp-detail-view"
-import { XBookmarksDetailView } from "@/components/new/onboarding/x-bookmarks-detail-view"
+import { MCPDetailView } from "@/components/mcp-modal/mcp-detail-view"
+import { XBookmarksDetailView } from "@/components/onboarding/x-bookmarks-detail-view"
 import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"

@@ -3,6 +3,47 @@ import { Rotate3d } from "lucide-react"
 
 export { Rotate3d as GraphIcon }
 
+export function IntegrationsIcon({ className }: { className?: string }) {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 22 22"
+			fill="none"
+			className={className}
+		>
+			<title>Integrations</title>
+			<path
+				d="M15.6654 18.0026C16.954 18.0026 17.9987 16.9579 17.9987 15.6693C17.9987 14.3806 16.954 13.3359 15.6654 13.3359C14.3767 13.3359 13.332 14.3806 13.332 15.6693C13.332 16.9579 14.3767 18.0026 15.6654 18.0026Z"
+				stroke="currentColor"
+				strokeWidth="1.55556"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M6.33333 8.66667C7.622 8.66667 8.66667 7.622 8.66667 6.33333C8.66667 5.04467 7.622 4 6.33333 4C5.04467 4 4 5.04467 4 6.33333C4 7.622 5.04467 8.66667 6.33333 8.66667Z"
+				stroke="currentColor"
+				strokeWidth="1.55556"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M11.7773 6.33594H14.1107C14.5232 6.33594 14.9189 6.49983 15.2106 6.79155C15.5023 7.08327 15.6662 7.47893 15.6662 7.89149V13.3359"
+				stroke="currentColor"
+				strokeWidth="1.55556"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M6.33203 8.66406V17.9974"
+				stroke="currentColor"
+				strokeWidth="1.55556"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	)
+}
+
 export function ChromeIcon({ className }: { className?: string }) {
 	return (
 		<svg

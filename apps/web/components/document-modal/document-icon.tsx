@@ -7,4 +7,4 @@ export {
 	getDocumentIcon,
 	getDocumentTypeLabel,
 	type DocumentIconProps,
-} from "@/components/new/document-icon"
+} from "@/components/document-icon"

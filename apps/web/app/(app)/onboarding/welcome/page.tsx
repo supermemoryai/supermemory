@@ -3,15 +3,15 @@
 import { motion, AnimatePresence } from "motion/react"
 import { cn } from "@lib/utils"
 
-import { InputStep } from "@/components/new/onboarding/welcome/input-step"
-import { GreetingStep } from "@/components/new/onboarding/welcome/greeting-step"
-import { WelcomeStep } from "@/components/new/onboarding/welcome/welcome-step"
-import { OnboardingContentStep } from "@/components/new/onboarding/welcome/continue-step"
+import { InputStep } from "@/components/onboarding/welcome/input-step"
+import { GreetingStep } from "@/components/onboarding/welcome/greeting-step"
+import { WelcomeStep } from "@/components/onboarding/welcome/welcome-step"
+import { OnboardingContentStep } from "@/components/onboarding/welcome/continue-step"
 
 import { InitialHeader } from "@/components/initial-header"
 import { Logo } from "@ui/assets/Logo"
 import NovaOrb from "@/components/nova/nova-orb"
-import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
+import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 
 import {
 	useWelcomeContext,

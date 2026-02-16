@@ -2,7 +2,7 @@
 
 import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { ChromeIcon } from "@/components/new/integration-icons"
+import { ChromeIcon } from "@/components/integration-icons"
 import { Check, Download } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
@@ -61,10 +61,7 @@ export function ChromeDetail() {
 							Chrome Extension
 						</p>
 						<p
-							className={cn(
-								dmSans125ClassName(),
-								"text-[14px] text-[#737373]",
-							)}
+							className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
 						>
 							Save any webpage directly from your browser
 						</p>
@@ -88,10 +85,7 @@ export function ChromeDetail() {
 						<div key={text} className="flex items-center gap-2">
 							<Check className="size-4 shrink-0 text-[#4BA0FA]" />
 							<span
-								className={cn(
-									dmSans125ClassName(),
-									"text-[14px] text-white",
-								)}
+								className={cn(dmSans125ClassName(), "text-[14px] text-white")}
 							>
 								{text}
 							</span>

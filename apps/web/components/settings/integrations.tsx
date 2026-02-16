@@ -28,7 +28,7 @@ import {
 	ChromeIcon,
 	AppleShortcutsIcon,
 	RaycastIcon,
-} from "@/components/new/integration-icons"
+} from "@/components/integration-icons"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -110,7 +110,6 @@ function FeatureItem({ text }: { text: string }) {
 		</div>
 	)
 }
-
 
 export default function Integrations() {
 	const { org } = useAuth()

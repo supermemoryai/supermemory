@@ -2,17 +2,17 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useQueryState } from "nuqs"
-import { Header } from "@/components/new/header"
-import { ChatSidebar } from "@/components/new/chat"
-import { MemoriesGrid } from "@/components/new/memories-grid"
-import { GraphLayoutView } from "@/components/new/graph-layout-view"
-import { IntegrationsView } from "@/components/new/integrations-view"
-import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
-import { AddDocumentModal } from "@/components/new/add-document"
-import { DocumentModal } from "@/components/new/document-modal"
-import { DocumentsCommandPalette } from "@/components/new/documents-command-palette"
-import { FullscreenNoteModal } from "@/components/new/fullscreen-note-modal"
-import type { HighlightItem } from "@/components/new/highlights-card"
+import { Header } from "@/components/header"
+import { ChatSidebar } from "@/components/chat"
+import { MemoriesGrid } from "@/components/memories-grid"
+import { GraphLayoutView } from "@/components/graph-layout-view"
+import { IntegrationsView } from "@/components/integrations-view"
+import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
+import { AddDocumentModal } from "@/components/add-document"
+import { DocumentModal } from "@/components/document-modal"
+import { DocumentsCommandPalette } from "@/components/documents-command-palette"
+import { FullscreenNoteModal } from "@/components/fullscreen-note-modal"
+import type { HighlightItem } from "@/components/highlights-card"
 import { HotkeysProvider } from "react-hotkeys-hook"
 import { useHotkeys } from "react-hotkeys-hook"
 import { AnimatePresence } from "motion/react"
@@ -313,7 +313,7 @@ export default function NewPage() {
 				{isGraphMode && (
 					<div
 						id="graph-dotted-grid"
-						className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,#69A7F0_0.1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+						className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
 					/>
 				)}
 				<Header
@@ -336,33 +336,33 @@ export default function NewPage() {
 				>
 					<div className={cn("relative z-10 flex flex-col md:flex-row h-full")}>
 						<ErrorBoundary fallback={<ViewErrorFallback />}>
-						{viewMode === "integrations" ? (
-							<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
-								<IntegrationsView />
-							</div>
-						) : viewMode === "graph" && !isMobile ? (
-							<div className="flex-1">
-								<GraphLayoutView isChatOpen={chatOpen} />
-							</div>
-						) : (
-							<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
-								<MemoriesGrid
-									isChatOpen={chatOpen}
-									onOpenDocument={handleOpenDocument}
-									quickNoteProps={{
-										onSave: handleQuickNoteSave,
-										onMaximize: handleMaximize,
-										isSaving: noteMutation.isPending,
-									}}
-									highlightsProps={{
-										items: highlightsData?.highlights || [],
-										onChat: handleHighlightsChat,
-										onShowRelated: handleHighlightsShowRelated,
-										isLoading: isLoadingHighlights,
-									}}
-								/>
-							</div>
-						)}
+							{viewMode === "integrations" ? (
+								<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
+									<IntegrationsView />
+								</div>
+							) : viewMode === "graph" && !isMobile ? (
+								<div className="flex-1">
+									<GraphLayoutView isChatOpen={chatOpen} />
+								</div>
+							) : (
+								<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
+									<MemoriesGrid
+										isChatOpen={chatOpen}
+										onOpenDocument={handleOpenDocument}
+										quickNoteProps={{
+											onSave: handleQuickNoteSave,
+											onMaximize: handleMaximize,
+											isSaving: noteMutation.isPending,
+										}}
+										highlightsProps={{
+											items: highlightsData?.highlights || [],
+											onChat: handleHighlightsChat,
+											onShowRelated: handleHighlightsShowRelated,
+											isLoading: isLoadingHighlights,
+										}}
+									/>
+								</div>
+							)}
 						</ErrorBoundary>
 						<div className="hidden md:block md:sticky md:top-0 md:h-screen">
 							<AnimatePresence mode="popLayout">

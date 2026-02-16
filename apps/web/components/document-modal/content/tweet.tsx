@@ -1,7 +1,7 @@
 "use client"
 
 import type { Tweet } from "react-tweet/api"
-import { TweetPreview } from "@/components/new/document-cards/tweet-preview"
+import { TweetPreview } from "@/components/document-cards/tweet-preview"
 import { ExternalLinkIcon } from "lucide-react"
 
 interface TweetContentProps {
