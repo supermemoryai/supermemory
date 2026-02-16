@@ -1,6 +1,6 @@
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { DocumentIcon } from "@/components/new/document-icon"
+import { DocumentIcon } from "@/components/document-icon"
 
 function getFileExtension(documentType: string): string | null {
 	switch (documentType) {

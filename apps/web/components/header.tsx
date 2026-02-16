@@ -22,7 +22,7 @@ import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
-import { GraphIcon } from "@/components/new/integration-icons"
+import { GraphIcon } from "@/components/integration-icons"
 import {
 	DropdownMenu,
 	DropdownMenuContent,

@@ -2,12 +2,12 @@
 
 import { motion, AnimatePresence } from "motion/react"
 
-import { RelatableQuestion } from "@/components/new/onboarding/setup/relatable-question"
-import { IntegrationsStep } from "@/components/new/onboarding/setup/integrations-step"
+import { RelatableQuestion } from "@/components/onboarding/setup/relatable-question"
+import { IntegrationsStep } from "@/components/onboarding/setup/integrations-step"
 
-import { SetupHeader } from "@/components/new/onboarding/setup/header"
-import { ChatSidebar } from "@/components/new/onboarding/setup/chat-sidebar"
-import { AnimatedGradientBackground } from "@/components/new/animated-gradient-background"
+import { SetupHeader } from "@/components/onboarding/setup/header"
+import { ChatSidebar } from "@/components/onboarding/setup/chat-sidebar"
+import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 import { useIsMobile } from "@hooks/use-mobile"
 
 import { useSetupContext, type SetupStep } from "./layout"

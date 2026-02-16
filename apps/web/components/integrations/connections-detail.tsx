@@ -13,14 +13,18 @@ import { toast } from "sonner"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
-import { AddDocumentModal } from "@/components/new/add-document"
+import { AddDocumentModal } from "@/components/add-document"
 import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
 import type { Project } from "@repo/lib/types"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
 const CONNECTORS = {
-	"google-drive": { title: "Google Drive", icon: GoogleDrive, documentLabel: "documents" },
+	"google-drive": {
+		title: "Google Drive",
+		icon: GoogleDrive,
+		documentLabel: "documents",
+	},
 	notion: { title: "Notion", icon: Notion, documentLabel: "pages" },
 	onedrive: { title: "OneDrive", icon: OneDrive, documentLabel: "documents" },
 } as const
@@ -44,7 +48,8 @@ function ConnectionRow({
 	if (!config) return null
 
 	const Icon = config.icon
-	const isConnected = !connection.expiresAt || new Date(connection.expiresAt) > new Date()
+	const isConnected =
+		!connection.expiresAt || new Date(connection.expiresAt) > new Date()
 
 	const formatRelativeTime = (date: string | null | undefined) => {
 		if (!date) return "Never"
@@ -61,29 +66,63 @@ function ConnectionRow({
 
 	const getProjectName = (tag: string): string => {
 		if (tag === DEFAULT_PROJECT_ID) return "Default Project"
-		return projects.find((p) => p.containerTag === tag)?.name ?? tag.replace(/^sm_project_/, "")
+		return (
+			projects.find((p) => p.containerTag === tag)?.name ??
+			tag.replace(/^sm_project_/, "")
+		)
 	}
 
 	const documentCount = (connection.metadata?.documentCount as number) ?? 0
-	const containerTags = (connection as Connection & { containerTags?: string[] }).containerTags
-	const projectName = containerTags?.[0] ? getProjectName(containerTags[0]) : null
+	const containerTags = (
+		connection as Connection & { containerTags?: string[] }
+	).containerTags
+	const projectName = containerTags?.[0]
+		? getProjectName(containerTags[0])
+		: null
 
 	return (
-		<div className={cn("bg-[#14161A] border border-[rgba(82,89,102,0.2)] rounded-[12px] px-4 py-3", "shadow-[0px_1px_2px_0px_rgba(0,43,87,0.1)]")}>
+		<div
+			className={cn(
+				"bg-[#14161A] border border-[rgba(82,89,102,0.2)] rounded-[12px] px-4 py-3",
+				"shadow-[0px_1px_2px_0px_rgba(0,43,87,0.1)]",
+			)}
+		>
 			<div className="flex flex-col gap-3">
 				<div className="flex items-center gap-4">
 					<Icon className="size-6 shrink-0" />
 					<div className="flex-1 flex flex-col gap-1">
 						<div className="flex items-center gap-3">
-							<span className={cn(dmSans125ClassName(), "font-medium text-[16px] text-[#FAFAFA]")}>{config.title}</span>
+							<span
+								className={cn(
+									dmSans125ClassName(),
+									"font-medium text-[16px] text-[#FAFAFA]",
+								)}
+							>
+								{config.title}
+							</span>
 							<div className="flex items-center gap-2">
-								<div className={cn("size-[7px] rounded-full", isConnected ? "bg-[#00AC3F]" : "bg-[#737373]")} />
-								<span className={cn(dmSans125ClassName(), "text-[14px]", isConnected ? "text-[#00AC3F]" : "text-[#737373]")}>
+								<div
+									className={cn(
+										"size-[7px] rounded-full",
+										isConnected ? "bg-[#00AC3F]" : "bg-[#737373]",
+									)}
+								/>
+								<span
+									className={cn(
+										dmSans125ClassName(),
+										"text-[14px]",
+										isConnected ? "text-[#00AC3F]" : "text-[#737373]",
+									)}
+								>
 									{isConnected ? "Connected" : "Disconnected"}
 								</span>
 							</div>
 						</div>
-						<span className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}>{connection.email || "Unknown"}</span>
+						<span
+							className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
+						>
+							{connection.email || "Unknown"}
+						</span>
 					</div>
 					<button
 						type="button"
@@ -97,13 +136,28 @@ function ConnectionRow({
 				<div className="flex items-center gap-2 flex-wrap">
 					{projectName && (
 						<>
-							<span className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}>Project: {projectName}</span>
+							<span
+								className={cn(
+									dmSans125ClassName(),
+									"text-[14px] text-[#737373]",
+								)}
+							>
+								Project: {projectName}
+							</span>
 							<div className="size-[3px] rounded-full bg-[#737373]" />
 						</>
 					)}
-					<span className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}>Added: {formatRelativeTime(connection.createdAt)}</span>
+					<span
+						className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
+					>
+						Added: {formatRelativeTime(connection.createdAt)}
+					</span>
 					<div className="size-[3px] rounded-full bg-[#737373]" />
-					<span className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}>{documentCount} {config.documentLabel} connected</span>
+					<span
+						className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
+					>
+						{documentCount} {config.documentLabel} connected
+					</span>
 				</div>
 			</div>
 		</div>
@@ -115,10 +169,13 @@ export function ConnectionsDetail() {
 	const autumn = useCustomer()
 	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
 
-	const projects = (queryClient.getQueryData<Project[]>(["projects"]) || []) as Project[]
+	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
+		[]) as Project[]
 
-	const { data: status = { api_pro: { allowed: false, status: null } }, isLoading: isCheckingStatus } =
-		fetchSubscriptionStatus(autumn, !autumn.isLoading)
+	const {
+		data: status = { api_pro: { allowed: false, status: null } },
+		isLoading: isCheckingStatus,
+	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
 	const hasProProduct = status.api_pro?.status !== null
 
@@ -127,11 +184,18 @@ export function ConnectionsDetail() {
 	const connectionsLimit = connectionsFeature?.included_usage ?? 10
 	const canAddConnection = connectionsUsed < connectionsLimit
 
-	const { data: connections = [], isLoading: isLoadingConnections, error: connectionsError } = useQuery({
+	const {
+		data: connections = [],
+		isLoading: isLoadingConnections,
+		error: connectionsError,
+	} = useQuery({
 		queryKey: ["connections"],
 		queryFn: async () => {
-			const response = await $fetch("@post/connections/list", { body: { containerTags: [] } })
-			if (response.error) throw new Error(response.error?.message || "Failed to load connections")
+			const response = await $fetch("@post/connections/list", {
+				body: { containerTags: [] },
+			})
+			if (response.error)
+				throw new Error(response.error?.message || "Failed to load connections")
 			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
@@ -142,7 +206,10 @@ export function ConnectionsDetail() {
 	useEffect(() => {
 		if (connectionsError) {
 			toast.error("Failed to load connections", {
-				description: connectionsError instanceof Error ? connectionsError.message : "Unknown error",
+				description:
+					connectionsError instanceof Error
+						? connectionsError.message
+						: "Unknown error",
 			})
 		}
 	}, [connectionsError])
@@ -153,7 +220,9 @@ export function ConnectionsDetail() {
 		},
 		onSuccess: () => {
 			analytics.connectionDeleted()
-			toast.success("Connection removal has started. Documents will be permanently deleted in the next few minutes.")
+			toast.success(
+				"Connection removal has started. Documents will be permanently deleted in the next few minutes.",
+			)
 			queryClient.invalidateQueries({ queryKey: ["connections"] })
 		},
 		onError: (error) => {
@@ -165,7 +234,10 @@ export function ConnectionsDetail() {
 
 	const handleUpgrade = async () => {
 		try {
-			await autumn.attach({ productId: "api_pro", successUrl: "https://app.supermemory.ai/?view=integrations" })
+			await autumn.attach({
+				productId: "api_pro",
+				successUrl: "https://app.supermemory.ai/?view=integrations",
+			})
 			window.location.reload()
 		} catch (error) {
 			console.error(error)
@@ -176,21 +248,44 @@ export function ConnectionsDetail() {
 
 	return (
 		<>
-			<div className={cn("bg-[#14161A] rounded-[14px] p-6 relative overflow-hidden", "shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]")}>
+			<div
+				className={cn(
+					"bg-[#14161A] rounded-[14px] p-6 relative overflow-hidden",
+					"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				)}
+			>
 				{!hasProProduct && !isLoading && (
 					<>
 						<div className="absolute inset-0 bg-[#14161A]/80 backdrop-blur-sm z-5" />
 						<div className="absolute inset-0 flex items-center justify-center z-10">
 							<div className="flex flex-col items-center gap-4">
 								<Zap className="size-6 text-[#737373]" />
-								<p className={cn(dmSans125ClassName(), "text-[14px] text-[#737373] text-center max-w-[220px]")}>
-									Connect Google Drive, Notion, and OneDrive to import your knowledge
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[14px] text-[#737373] text-center max-w-[220px]",
+									)}
+								>
+									Connect Google Drive, Notion, and OneDrive to import your
+									knowledge
 								</p>
 								<div className="flex flex-col gap-2">
-									{["Unlimited memories", "10 connections", "Advanced search", "Priority support"].map((text) => (
+									{[
+										"Unlimited memories",
+										"10 connections",
+										"Advanced search",
+										"Priority support",
+									].map((text) => (
 										<div key={text} className="flex items-center gap-2">
 											<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-											<span className={cn(dmSans125ClassName(), "text-[14px] text-white")}>{text}</span>
+											<span
+												className={cn(
+													dmSans125ClassName(),
+													"text-[14px] text-white",
+												)}
+											>
+												{text}
+											</span>
 										</div>
 									))}
 								</div>
@@ -211,12 +306,27 @@ export function ConnectionsDetail() {
 					</>
 				)}
 
-				<div className={cn("flex flex-col gap-4", !hasProProduct && !isLoading && "opacity-30 pointer-events-none")}>
+				<div
+					className={cn(
+						"flex flex-col gap-4",
+						!hasProProduct && !isLoading && "opacity-30 pointer-events-none",
+					)}
+				>
 					<div className="flex items-center justify-between">
-						<span className={cn(dmSans125ClassName(), "font-semibold text-[16px] text-[#FAFAFA]")}>
+						<span
+							className={cn(
+								dmSans125ClassName(),
+								"font-semibold text-[16px] text-[#FAFAFA]",
+							)}
+						>
 							Connected to Supermemory
 						</span>
-						<span className={cn(dmSans125ClassName(), "font-semibold text-[16px] text-[#737373]")}>
+						<span
+							className={cn(
+								dmSans125ClassName(),
+								"font-semibold text-[16px] text-[#737373]",
+							)}
+						>
 							{connections.length}/{connectionsLimit} connections used
 						</span>
 					</div>
@@ -231,7 +341,9 @@ export function ConnectionsDetail() {
 								<ConnectionRow
 									key={connection.id}
 									connection={connection}
-									onDelete={() => deleteConnectionMutation.mutate(connection.id)}
+									onDelete={() =>
+										deleteConnectionMutation.mutate(connection.id)
+									}
 									isDeleting={deleteConnectionMutation.isPending}
 									disabled={!hasProProduct}
 									projects={projects}
@@ -240,8 +352,22 @@ export function ConnectionsDetail() {
 						) : (
 							<div className="flex flex-col items-center justify-center py-8 text-center">
 								<Zap className="size-6 text-[#737373] mb-2" />
-								<p className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}>No connections yet</p>
-								<p className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}>Connect a service below to import your knowledge</p>
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[14px] text-[#737373]",
+									)}
+								>
+									No connections yet
+								</p>
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[12px] text-[#737373]",
+									)}
+								>
+									Connect a service below to import your knowledge
+								</p>
 							</div>
 						)}
 					</div>
@@ -260,12 +386,18 @@ export function ConnectionsDetail() {
 						)}
 					>
 						<Plus className="size-[10px] text-[#FAFAFA]" />
-						<span className="text-[14px] text-[#FAFAFA] font-medium">Connect knowledge bases</span>
+						<span className="text-[14px] text-[#FAFAFA] font-medium">
+							Connect knowledge bases
+						</span>
 					</button>
 				</div>
 			</div>
 
-			<AddDocumentModal isOpen={isAddDocumentOpen} onClose={() => setIsAddDocumentOpen(false)} defaultTab="connect" />
+			<AddDocumentModal
+				isOpen={isAddDocumentOpen}
+				onClose={() => setIsAddDocumentOpen(false)}
+				defaultTab="connect"
+			/>
 		</>
 	)
 }

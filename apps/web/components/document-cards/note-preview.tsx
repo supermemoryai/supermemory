@@ -4,7 +4,7 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
-import { DocumentIcon } from "@/components/new/document-icon"
+import { DocumentIcon } from "@/components/document-icon"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]

@@ -13,7 +13,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { useIsMobile } from "@hooks/use-mobile"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { SearchIcon, Settings, Home, Plus, Code2, Loader2 } from "lucide-react"
-import { DocumentIcon } from "@/components/new/document-icon"
+import { DocumentIcon } from "@/components/document-icon"
 import { $fetch } from "@lib/api"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>

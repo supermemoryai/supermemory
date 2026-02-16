@@ -2,7 +2,7 @@
 
 import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
-import { AppleShortcutsIcon } from "@/components/new/integration-icons"
+import { AppleShortcutsIcon } from "@/components/integration-icons"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import { generateId } from "@lib/generate-id"
@@ -120,10 +120,20 @@ export function ShortcutsDetail() {
 					<div className="flex items-center gap-4">
 						<AppleShortcutsIcon />
 						<div className="flex flex-col gap-1">
-							<p className={cn(dmSans125ClassName(), "font-semibold text-[16px] text-[#FAFAFA]")}>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"font-semibold text-[16px] text-[#FAFAFA]",
+								)}
+							>
 								Apple Shortcuts
 							</p>
-							<p className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[14px] text-[#737373]",
+								)}
+							>
 								Add memories directly from iPhone, iPad or Mac
 							</p>
 						</div>
@@ -134,13 +144,15 @@ export function ShortcutsDetail() {
 							onClick={() => handleShortcutClick("add")}
 							disabled={createApiKeyMutation.isPending}
 						>
-							{createApiKeyMutation.isPending && selectedShortcutType === "add" ? (
+							{createApiKeyMutation.isPending &&
+							selectedShortcutType === "add" ? (
 								<Loader className="size-4 text-[#FAFAFA] animate-spin" />
 							) : (
 								<Plus className="size-4 text-[#FAFAFA]" />
 							)}
 							<span className="text-[14px] text-[#FAFAFA] font-medium">
-								{createApiKeyMutation.isPending && selectedShortcutType === "add"
+								{createApiKeyMutation.isPending &&
+								selectedShortcutType === "add"
 									? "Creating..."
 									: "Add memory shortcut"}
 							</span>
@@ -149,13 +161,15 @@ export function ShortcutsDetail() {
 							onClick={() => handleShortcutClick("search")}
 							disabled={createApiKeyMutation.isPending}
 						>
-							{createApiKeyMutation.isPending && selectedShortcutType === "search" ? (
+							{createApiKeyMutation.isPending &&
+							selectedShortcutType === "search" ? (
 								<Loader className="size-4 text-[#FAFAFA] animate-spin" />
 							) : (
 								<Search className="size-4 text-[#FAFAFA]" />
 							)}
 							<span className="text-[14px] text-[#FAFAFA] font-medium">
-								{createApiKeyMutation.isPending && selectedShortcutType === "search"
+								{createApiKeyMutation.isPending &&
+								selectedShortcutType === "search"
 									? "Creating..."
 									: "Search memory shortcut"}
 							</span>
@@ -164,20 +178,38 @@ export function ShortcutsDetail() {
 				</div>
 			</div>
 
-			<Dialog open={showApiKeyModal} onOpenChange={(open) => {
-				setShowApiKeyModal(open)
-				if (!open) { setSelectedShortcutType(null); setApiKey(""); setCopied(false) }
-			}}>
+			<Dialog
+				open={showApiKeyModal}
+				onOpenChange={(open) => {
+					setShowApiKeyModal(open)
+					if (!open) {
+						setSelectedShortcutType(null)
+						setApiKey("")
+						setCopied(false)
+					}
+				}}
+			>
 				<DialogPortal>
 					<DialogContent className="bg-[#14161A] border border-white/10 text-[#FAFAFA] md:max-w-md z-100">
 						<DialogHeader>
-							<DialogTitle className={cn(dmSans125ClassName(), "text-[#FAFAFA] text-lg font-semibold")}>
+							<DialogTitle
+								className={cn(
+									dmSans125ClassName(),
+									"text-[#FAFAFA] text-lg font-semibold",
+								)}
+							>
 								Setup Apple Shortcut
 							</DialogTitle>
 						</DialogHeader>
 						<div className="space-y-4">
 							<div className="space-y-2">
-								<label htmlFor={apiKeyId} className={cn(dmSans125ClassName(), "text-sm font-medium text-[#737373]")}>
+								<label
+									htmlFor={apiKeyId}
+									className={cn(
+										dmSans125ClassName(),
+										"text-sm font-medium text-[#737373]",
+									)}
+								>
 									Your API Key
 								</label>
 								<div className="flex items-center gap-2">
@@ -186,26 +218,51 @@ export function ShortcutsDetail() {
 										type="text"
 										value={apiKey}
 										readOnly
-										className={cn("flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono", dmSans125ClassName())}
+										className={cn(
+											"flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono",
+											dmSans125ClassName(),
+										)}
 									/>
 									<button
 										type="button"
 										onClick={() => handleCopyApiKey(apiKey)}
 										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
 									>
-										{copied ? <Check className="h-4 w-4 text-[#4BA0FA]" /> : <Copy className="h-4 w-4" />}
+										{copied ? (
+											<Check className="h-4 w-4 text-[#4BA0FA]" />
+										) : (
+											<Copy className="h-4 w-4" />
+										)}
 									</button>
 								</div>
 							</div>
 							<div className="space-y-3">
-								<h4 className={cn(dmSans125ClassName(), "text-sm font-medium text-[#737373]")}>Follow these steps:</h4>
+								<h4
+									className={cn(
+										dmSans125ClassName(),
+										"text-sm font-medium text-[#737373]",
+									)}
+								>
+									Follow these steps:
+								</h4>
 								<div className="space-y-2">
-									{["Click \"Add to Shortcuts\" below to open the shortcut", "Paste your API key when prompted", "Start using your shortcut!"].map((text, i) => (
+									{[
+										'Click "Add to Shortcuts" below to open the shortcut',
+										"Paste your API key when prompted",
+										"Start using your shortcut!",
+									].map((text, i) => (
 										<div key={text} className="flex items-start gap-3">
 											<div className="shrink-0 w-6 h-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
 												{i + 1}
 											</div>
-											<p className={cn(dmSans125ClassName(), "text-sm text-[#737373]")}>{text}</p>
+											<p
+												className={cn(
+													dmSans125ClassName(),
+													"text-sm text-[#737373]",
+												)}
+											>
+												{text}
+											</p>
 										</div>
 									))}
 								</div>
@@ -222,7 +279,12 @@ export function ShortcutsDetail() {
 									dmSans125ClassName(),
 								)}
 							>
-								<Image src="/images/ios-shortcuts.png" alt="iOS Shortcuts" width={16} height={16} />
+								<Image
+									src="/images/ios-shortcuts.png"
+									alt="iOS Shortcuts"
+									width={16}
+									height={16}
+								/>
 								Add to Shortcuts
 							</button>
 						</div>
