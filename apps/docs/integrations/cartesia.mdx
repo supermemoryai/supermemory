@@ -1,0 +1,346 @@
+---
+title: "Cartesia"
+sidebarTitle: "Cartesia (Voice)"
+description: "Integrate Supermemory with Cartesia for conversational memory in voice AI agents"
+icon: "/images/cartesia.svg"
+---
+
+Supermemory integrates with [Cartesia](https://cartesia.ai/agents), providing long-term memory capabilities for voice AI agents. Your Cartesia applications will remember past conversations and provide personalized responses based on user history.
+
+## Installation
+
+To use Supermemory with Cartesia, install the required dependencies:
+
+```bash
+pip install supermemory-cartesia
+```
+
+Set up your API key as an environment variable:
+
+```bash
+export SUPERMEMORY_API_KEY=your_supermemory_api_key
+```
+
+You can obtain an API key from [console.supermemory.ai](https://console.supermemory.ai).
+
+## Configuration
+
+Supermemory integration is provided through the `SupermemoryCartesiaAgent` wrapper class:
+
+```python
+from supermemory_cartesia import SupermemoryCartesiaAgent
+from line.llm_agent import LlmAgent, LlmConfig
+
+# Create base LLM agent
+base_agent = LlmAgent(
+    model="anthropic/claude-haiku-4-5-20251001",
+    api_key=os.getenv("ANTHROPIC_API_KEY"),
+    config=LlmConfig(
+        system_prompt="""You are a helpful voice assistant with memory.""",
+        introduction="Hello! Great to talk with you again!",
+    ),
+)
+
+# Wrap with Supermemory
+memory_agent = SupermemoryCartesiaAgent(
+    agent=base_agent,
+    api_key=os.getenv("SUPERMEMORY_API_KEY"),
+    container_tag="user-123",
+    session_id="session-456",
+    config=SupermemoryCartesiaAgent.MemoryConfig(
+        mode="full",            # "profile" | "query" | "full"
+        search_limit=10,        # Max memories to retrieve
+        search_threshold=0.3,   # Relevance threshold (0.0-1.0)
+    ),
+)
+```
+
+## Agent Wrapper Pattern
+
+The `SupermemoryCartesiaAgent` wraps your existing `LlmAgent` to add memory capabilities:
+
+```python
+from line.voice_agent_app import VoiceAgentApp
+
+async def get_agent(env, call_request):
+    # Extract container_tag from call metadata (typically user ID)
+    container_tag = call_request.metadata.get("user_id", "default-user")
+
+    # Create base agent
+    base_agent = LlmAgent(...)
+
+    # Wrap with memory
+    memory_agent = SupermemoryCartesiaAgent(
+        agent=base_agent,
+        container_tag=container_tag,
+        session_id=call_request.call_id,
+    )
+
+    return memory_agent
+
+# Create voice agent app
+app = VoiceAgentApp(get_agent=get_agent)
+```
+
+## How It Works
+
+When integrated with Cartesia Line, Supermemory provides two key functionalities:
+
+### 1. Memory Retrieval
+
+When a `UserTurnEnded` event is detected, Supermemory retrieves relevant memories:
+
+- **Static Profile**: Persistent facts about the user
+- **Dynamic Profile**: Recent context and preferences
+- **Search Results**: Semantically relevant past memories
+
+### 2. Context Enhancement
+
+Retrieved memories are formatted and injected into the agent's system prompt before processing, giving the model awareness of past conversations.
+
+### 3. Background Storage
+
+Conversations are automatically stored in Supermemory (non-blocking) for future retrieval.
+
+## Memory Modes
+
+| Mode        | Static Profile | Dynamic Profile | Search Results | Use Case                       |
+| ----------- | -------------- | --------------- | -------------- | ------------------------------ |
+| `"profile"` | Yes            | Yes             | No             | Personalization without search |
+| `"query"`   | No             | No              | Yes            | Finding relevant past context  |
+| `"full"`    | Yes            | Yes             | Yes            | Complete memory (default)      |
+
+## Configuration Options
+
+You can customize how memories are retrieved and used:
+
+### MemoryConfig
+
+```python
+SupermemoryCartesiaAgent.MemoryConfig(
+    mode="full",               # Memory mode (default: "full")
+    search_limit=10,           # Max memories to retrieve (default: 10)
+    search_threshold=0.1,      # Similarity threshold 0.0-1.0 (default: 0.1)
+    system_prompt="Based on previous conversations:\n\n",
+)
+```
+
+| Parameter          | Type  | Default                                | Description                                                |
+| ------------------ | ----- | -------------------------------------- | ---------------------------------------------------------- |
+| `search_limit`     | int   | 10                                     | Maximum number of memories to retrieve per query           |
+| `search_threshold` | float | 0.1                                    | Minimum similarity threshold for memory retrieval          |
+| `mode`             | str   | "full"                                 | Memory retrieval mode: `"profile"`, `"query"`, or `"full"` |
+| `system_prompt`    | str   | "Based on previous conversations:\n\n" | Prefix text for memory context                             |
+
+### Agent Parameters
+
+```python
+SupermemoryCartesiaAgent(
+    agent=base_agent,           # Required: Cartesia Line LlmAgent
+    container_tag="user-123",   # Required: Primary container tag (e.g., user ID)
+    session_id="session-456",   # Optional: Session/conversation ID
+    container_tags=["org-acme", "prod"],  # Optional: Additional tags
+    custom_id="conversation-789",  # Optional: Groups all messages in same document
+    api_key=os.getenv("SUPERMEMORY_API_KEY"),  # Optional: defaults to env var
+    config=MemoryConfig(...),   # Optional: memory configuration
+    base_url=None,              # Optional: custom API endpoint
+)
+```
+
+| Parameter       | Type         | Required | Description                                                        |
+| --------------- | ------------ | -------- | ------------------------------------------------------------------ |
+| `agent`         | LlmAgent     | **Yes**  | The Cartesia Line agent to wrap                                    |
+| `container_tag` | str          | **Yes**  | Primary container tag for memory scoping (e.g., user ID)           |
+| `session_id`    | str          | No       | Session/conversation ID for grouping memories                      |
+| `container_tags`| List[str]    | No       | Additional container tags for organization (e.g., ["org", "prod"]) |
+| `custom_id`     | str          | No       | Custom ID to store all messages in the same document (e.g., conversation ID) |
+| `api_key`       | str          | No       | Supermemory API key (or set `SUPERMEMORY_API_KEY` env var)         |
+| `config`        | MemoryConfig | No       | Advanced configuration                                             |
+| `base_url`      | str          | No       | Custom API endpoint                                                |
+
+## Container Tags
+
+Container tags allow you to organize memories across multiple dimensions:
+
+```python
+memory_agent = SupermemoryCartesiaAgent(
+    agent=base_agent,
+    container_tag="user-alice",           # Primary: user ID
+    container_tags=["org-acme", "prod"],  # Additional: organization, environment
+)
+```
+
+Memories are stored with all tags:
+```json
+{
+  "content": "User: What's the weather?\nAssistant: It's sunny today!",
+  "container_tags": ["user-alice", "org-acme", "prod"],
+  "metadata": { "platform": "cartesia" }
+}
+```
+
+## Automatic Document Grouping
+
+The SDK **automatically groups all messages from the same session** into a single Supermemory document using `session_id`:
+
+```python
+memory_agent = SupermemoryCartesiaAgent(
+    agent=base_agent,
+    container_tag="user-alice",
+    session_id=call_request.call_id,  # Automatically groups all messages together
+)
+```
+
+**How it works:**
+- When you provide `session_id`, it's automatically used as the `custom_id` internally
+- All messages from that session are appended to the same document
+- This ensures conversation continuity without any extra configuration
+
+**Advanced:** If you need custom grouping (e.g., grouping multiple sessions together), you can explicitly set `custom_id` to override this behavior.
+
+## Example: Basic Voice Agent with Memory
+
+Here's a complete example of a Cartesia Line voice agent with Supermemory integration:
+
+```python
+import os
+from line.llm_agent import LlmAgent, LlmConfig
+from line.voice_agent_app import VoiceAgentApp
+from supermemory_cartesia import SupermemoryCartesiaAgent
+
+async def get_agent(env, call_request):
+    # Extract container_tag from call metadata (typically user ID)
+    container_tag = call_request.metadata.get("user_id", "default-user")
+
+    # Create base LLM agent
+    base_agent = LlmAgent(
+        model="anthropic/claude-haiku-4-5-20251001",
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        config=LlmConfig(
+            system_prompt="""You are a helpful voice assistant with memory.""",
+            introduction="Hello! Great to talk with you again!",
+        ),
+    )
+
+    # Wrap with Supermemory
+    memory_agent = SupermemoryCartesiaAgent(
+        agent=base_agent,
+        api_key=os.getenv("SUPERMEMORY_API_KEY"),
+        container_tag=container_tag,
+        session_id=call_request.call_id,  # Automatically groups all messages
+    )
+
+    return memory_agent
+
+# Create voice agent app
+app = VoiceAgentApp(get_agent=get_agent)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
+```
+
+## Example: Advanced Agent with Tools
+
+Here's an example with custom tools and multi-tag support:
+
+```python
+import os
+from line.llm_agent import LlmAgent, LlmConfig
+from line.tools import LoopbackTool
+from line.voice_agent_app import VoiceAgentApp
+from supermemory_cartesia import SupermemoryCartesiaAgent
+
+# Define custom tool
+async def get_weather(location: str) -> str:
+    return f"The weather in {location} is sunny, 72°F"
+
+weather_tool = LoopbackTool(
+    name="get_weather",
+    description="Get current weather for a location",
+    function=get_weather
+)
+
+async def get_agent(env, call_request):
+    container_tag = call_request.metadata.get("user_id", "default-user")
+    org_id = call_request.metadata.get("org_id")
+
+    # Create LLM agent with tools
+    base_agent = LlmAgent(
+        model="gemini/gemini-2.5-flash-preview-09-2025",
+        tools=[weather_tool],
+        config=LlmConfig(
+            system_prompt="You are a personal assistant with memory and tools.",
+            introduction="Hi! How can I help you today?"
+        )
+    )
+
+    # Wrap with Supermemory
+    memory_agent = SupermemoryCartesiaAgent(
+        agent=base_agent,
+        api_key=os.getenv("SUPERMEMORY_API_KEY"),
+        container_tag=container_tag,
+        session_id=call_request.call_id,  # Automatically groups all messages
+        container_tags=[org_id] if org_id else None,
+        config=SupermemoryCartesiaAgent.MemoryConfig(
+            mode="full",
+            search_limit=15,
+            search_threshold=0.15,
+        )
+    )
+
+    return memory_agent
+
+app = VoiceAgentApp(get_agent=get_agent)
+```
+
+## Deployment
+
+To deploy to Cartesia Line, create a `main.py` file in your project root:
+
+```python
+import os
+import sys
+
+# Add src to path for local imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+
+from line.llm_agent import LlmAgent, LlmConfig
+from line.voice_agent_app import VoiceAgentApp
+from supermemory_cartesia import SupermemoryCartesiaAgent
+
+async def get_agent(env, call_request):
+    """Create a memory-enabled voice agent."""
+    container_tag = call_request.metadata.get("user_id", "default-user")
+
+    base_agent = LlmAgent(
+        model="anthropic/claude-haiku-4-5-20251001",
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+        config=LlmConfig(
+            system_prompt="""You are a helpful voice assistant with memory.
+            You remember past conversations and can reference them naturally.
+            Keep responses brief and conversational.""",
+            introduction="Hello! Great to talk with you again!",
+        ),
+    )
+
+    memory_agent = SupermemoryCartesiaAgent(
+        agent=base_agent,
+        api_key=os.getenv("SUPERMEMORY_API_KEY"),
+        container_tag=container_tag,
+        session_id=call_request.call_id,  # Automatically groups all messages
+    )
+
+    return memory_agent
+
+app = VoiceAgentApp(get_agent=get_agent)
+```
+
+Then deploy with:
+
+```bash
+cartesia deploy
+```
+
+Make sure to set these environment variables in your Cartesia deployment:
+- `SUPERMEMORY_API_KEY` - Your Supermemory API key
+- `ANTHROPIC_API_KEY` - Your Anthropic API key (or the key for your chosen LLM provider)
