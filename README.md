@@ -46,6 +46,34 @@
 - **[Browser Extension](#browser-extension)**: Save memories directly from your browser with integrations for ChatGPT, Claude, and Twitter/X.
 - **[Raycast Extension](#raycast-extension)**: Add and search memories directly from Raycast with keyboard shortcuts.
 
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **[Bun](https://bun.sh/)** >= 1.2.17 (required - npm/pnpm not supported)
+- **Git**
+
+## Quick Start
+
+### One-Command Setup
+
+```bash
+git clone https://github.com/supermemoryai/supermemory.git
+cd supermemory
+./setup.sh  # Installs dependencies, sets up environment
+```
+
+### Manual Setup
+
+```bash
+git clone https://github.com/supermemoryai/supermemory.git
+cd supermemory
+bun install
+cp .env.example .env.local
+# Edit .env.local with your API keys
+bun run dev
+```
+
 ## How do I use this?
 
 Go to [app.supermemory.ai](https://app.supermemory.ai) and sign in with your account
@@ -73,6 +101,19 @@ Go to [app.supermemory.ai](https://app.supermemory.ai) and sign in with your acc
 5. <a id="browser-extension"></a>**Browser Extension**: Install the [Chrome/Edge extension](https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc) to save memories directly from any webpage, integrate with ChatGPT and Claude conversations, and import from Twitter/X. Right-click on any content or use the extension popup to save memories instantly.
 
 6. <a id="raycast-extension"></a>**Raycast Extension**: Install the [Raycast extension](https://www.raycast.com/supermemory/supermemory) to add and search memories directly from Raycast. Use the "Add Memory" command to quickly save content, or "Search Memories" to find and retrieve your saved information with keyboard shortcuts.
+
+## Troubleshooting
+
+### Common Errors
+
+**`npm error Unsupported URL Type "workspace:"`**  
+→ SuperMemory uses Bun workspaces. Install Bun: https://bun.sh/
+
+**`This project is configured to use bun`**  
+→ Install Bun first: `curl -fsSL https://bun.sh/install | bash`
+
+**Build fails after `bun install`**  
+→ Ensure you're using Bun >= 1.2.17: `bun --version`
 
 ## Support
 
