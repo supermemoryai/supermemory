@@ -100,9 +100,6 @@ const mcpHandler = SupermemoryMCP.mount("/mcp", {
 	},
 })
 
-// MCP request handler — registered on both bare and wildcard paths
-// to comply with MCP Streamable HTTP transport spec, which requires
-// a single endpoint that accepts POST, GET, and DELETE.
 const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 	const authHeader = c.req.header("Authorization")
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
