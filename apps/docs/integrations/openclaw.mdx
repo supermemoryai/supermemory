@@ -138,6 +138,139 @@ openclaw supermemory wipe               # Delete all memories (requires confirma
   </Accordion>
 </AccordionGroup>
 
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="How do I install OpenClaw with Supermemory?">
+    1. Install the plugin:
+
+    ```bash
+    openclaw plugins install @supermemory/openclaw-supermemory
+    ```
+
+    2. Run the setup wizard:
+
+    ```bash
+    openclaw supermemory setup
+    ```
+
+    3. When prompted, paste your API key from [console.supermemory.ai](https://console.supermemory.ai). The key starts with `sm_`.
+
+    4. Restart OpenClaw to activate the plugin:
+
+    ```bash
+    openclaw gateway --force
+    ```
+
+    5. Verify the connection:
+
+    ```bash
+    openclaw supermemory status
+    ```
+
+    That's it — Supermemory is now connected and will automatically recall and capture memories across all your channels.
+  </Accordion>
+
+  <Accordion title="I have Twitter bookmarks in a separate container. How do I use them with Supermemory?">
+    Use the advanced setup to enable custom container tags and add a read-only Twitter bookmarks container.
+
+    ```bash
+    openclaw supermemory setup-advanced
+    ```
+
+    When prompted, enter:
+
+    - **API key**: paste your `sm_` key
+    - **Container tag**: keep the default (or set your preferred root tag)
+    - **Auto recall**: `true` (recommended)
+    - **Auto capture**: `true`
+    - **Enable custom container tags**: `true`
+    - **Custom container tags**: `twitter-bookmarks:Twitter bookmarks saved from Twitter`
+
+    <Tip>
+    Custom container tags use the format `tag:description`, separated by a colon. For example: `twitter-bookmarks:Twitter bookmarks saved from Twitter`.
+    </Tip>
+
+    When asked for **custom container instructions**, enter something like:
+
+    ```
+    Whenever the user asks about Twitter bookmarks, search the twitter-bookmarks container.
+    Never save anything to the twitter-bookmarks container — it is read-only and populated directly from Twitter.
+    ```
+
+    This ensures the AI references your Twitter bookmarks when relevant but never writes to that container.
+  </Accordion>
+
+  <Accordion title="How do I separate work (Slack + Gmail) and personal (Telegram + WhatsApp) memories?">
+    Use custom container tags to route memories by channel. Run the advanced setup:
+
+    ```bash
+    openclaw supermemory setup-advanced
+    ```
+
+    When prompted, enter:
+
+    - **API key**: paste your `sm_` key
+    - **Container tag**: keep the default
+    - **Auto recall**: `true`
+    - **Auto capture**: `true`
+    - **Enable custom container tags**: `true`
+    - **Custom container tags**:
+      - `work:Work-related memories from Slack and Gmail`
+      - `personal:Personal memories from Telegram and WhatsApp`
+
+    When asked for **custom container instructions**, enter:
+
+    ```
+    When the active channel is slack or gmail, always use the work container for storing and recalling memories. Never mix personal memories into work context.
+
+    When the active channel is telegram or whatsapp, always use the personal container. Do not recall or store work memories in personal conversations.
+    ```
+
+    This keeps your work and personal memories completely separated — Slack and Gmail conversations only see `work` memories, while Telegram and WhatsApp only see `personal` memories.
+  </Accordion>
+
+  <Accordion title="I'm not technical. How can I set up advanced mode?">
+    Ask the OpenClaw agent directly in any chat. No terminal needed.
+
+    ```
+    What are all the available configurations for the Supermemory plugin advanced mode?
+    ```
+
+    The agent will list every option. Then tell it what you want:
+
+    ```
+    Set up my Supermemory plugin with these settings:
+    - Auto recall: true
+    - Auto capture: true
+    - Enable custom container tags: true
+    - Custom containers:
+      - work: Work-related memories from Slack and Gmail
+      - personal: Personal memories from Telegram and WhatsApp
+    - Custom instructions: When on Slack or Gmail, use the work container.
+      When on Telegram or WhatsApp, use the personal container.
+    ```
+
+    Each custom container needs a **tag** and a **description** — e.g. `work: Work-related memories from Slack and Gmail`. The description helps the AI understand what belongs in that container.
+
+    <Tip>
+    You can change settings anytime by just telling the agent. For example: "Add a new container called `twitter-bookmarks` with description `Twitter bookmarks saved from Twitter` and make it read-only".
+    </Tip>
+  </Accordion>
+
+  <Accordion title="All my session memories go into one container. How can I separate them by channel?">
+    By default, all session memories across every channel are stored under a single root-level container tag.
+
+    To store specific memories separately, use **custom container tags** — see the FAQ above on separating work and personal memories.
+
+    Automatic per-channel separation is not supported yet. If you need this, let us know — with enough requests, we'll implement it right away.
+
+    <Card title="Request this feature" icon="mail" href="mailto:support@supermemory.com?subject=Feature%20Request%3A%20Per-Channel%20Container%20Tags&body=Hey%2C%0A%0AMy%20name%20is%20%5Byour%20name%5D.%20I%20just%20saw%20that%20you%20offer%20custom%20plugins.%0A%0AThis%20is%20my%20use%20case%3A%20%5Bdescribe%20your%20use%20case%5D%0A%0AI%20would%20love%20to%20have%20separate%20container%20tags%20for%20each%20channel%20so%20my%20session%20memories%20are%20automatically%20isolated.%0A%0AThanks!">
+      Email us with your use case.
+    </Card>
+  </Accordion>
+</AccordionGroup>
+
 ## Next Steps
 
 <CardGroup cols={2}>
