@@ -16,6 +16,7 @@ interface SelectSpacesModalProps {
 	selectedProjects: string[]
 	onApply: (selected: string[]) => void
 	projects: ContainerTagListType[]
+	singleSelect?: boolean
 }
 
 export function SelectSpacesModal({
@@ -24,6 +25,7 @@ export function SelectSpacesModal({
 	selectedProjects,
 	onApply,
 	projects,
+	singleSelect = false,
 }: SelectSpacesModalProps) {
 	const [searchQuery, setSearchQuery] = useState("")
 	const [localSelection, setLocalSelection] =
@@ -44,6 +46,10 @@ export function SelectSpacesModal({
 	}
 
 	const handleToggle = (containerTag: string) => {
+		if (singleSelect) {
+			setLocalSelection([containerTag])
+			return
+		}
 		setLocalSelection((prev) => {
 			if (prev.includes(containerTag)) {
 				return prev.filter((tag) => tag !== containerTag)
@@ -117,10 +123,12 @@ export function SelectSpacesModal({
 									dmSans125ClassName(),
 								)}
 							>
-								Select Spaces
+								Select Space{!singleSelect && "s"}
 							</p>
 							<p className="text-[#737373] font-medium text-[16px] leading-[1.35]">
-								Choose one or more spaces to filter your memories
+								{singleSelect
+									? "Choose a space for your memory"
+									: "Choose one or more spaces to filter your memories"}
 							</p>
 						</div>
 						<DialogPrimitive.Close
@@ -173,16 +181,29 @@ export function SelectSpacesModal({
 												: "bg-transparent border border-transparent hover:bg-[#14161A]/50",
 										)}
 									>
-										<div
-											className={cn(
-												"w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-												isSelected
-													? "bg-blue-500 border-blue-500"
-													: "border-[#737373]",
-											)}
-										>
-											{isSelected && <Check className="size-3 text-white" />}
-										</div>
+										{singleSelect ? (
+											<div
+												className={cn(
+													"w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+													isSelected ? "border-blue-500" : "border-[#737373]",
+												)}
+											>
+												{isSelected && (
+													<div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+												)}
+											</div>
+										) : (
+											<div
+												className={cn(
+													"w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
+													isSelected
+														? "bg-blue-500 border-blue-500"
+														: "border-[#737373]",
+												)}
+											>
+												{isSelected && <Check className="size-3 text-white" />}
+											</div>
+										)}
 										<span className="text-lg">{project.emoji || "📁"}</span>
 										<span className="text-[#fafafa] text-sm font-medium truncate flex-1">
 											{project.name ?? project.containerTag}
@@ -195,9 +216,13 @@ export function SelectSpacesModal({
 
 					<div className="flex items-center justify-between">
 						<p className="text-[#737373] text-sm">
-							{localSelection.length === 0
-								? "No spaces selected (showing all)"
-								: `${localSelection.length} space${localSelection.length > 1 ? "s" : ""} selected`}
+							{singleSelect
+								? localSelection.length === 0
+									? "No space selected"
+									: "1 space selected"
+								: localSelection.length === 0
+									? "No spaces selected (showing all)"
+									: `${localSelection.length} space${localSelection.length > 1 ? "s" : ""} selected`}
 						</p>
 						<div className="flex items-center gap-[22px]">
 							<button

@@ -65,9 +65,11 @@ const EMOJI_LIST = [
 export function AddSpaceModal({
 	isOpen,
 	onClose,
+	onCreated,
 }: {
 	isOpen: boolean
 	onClose: () => void
+	onCreated?: (containerTag: string) => void
 }) {
 	const [spaceName, setSpaceName] = useState("")
 	const [emoji, setEmoji] = useState("📁")
@@ -87,8 +89,11 @@ export function AddSpaceModal({
 		createProjectMutation.mutate(
 			{ name: trimmedName, emoji: emoji || undefined },
 			{
-				onSuccess: () => {
+				onSuccess: (data) => {
 					analytics.spaceCreated()
+					if (data?.containerTag) {
+						onCreated?.(data.containerTag)
+					}
 					handleClose()
 				},
 			},

@@ -380,40 +380,42 @@ export function AddDocument({
 
 			<div
 				className={cn(
-					"overflow-auto flex flex-col justify-between px-1 scrollbar-thin flex-1",
+					"flex flex-col flex-1 min-h-0 px-1",
 					isMobile ? "w-full" : "w-2/3",
 				)}
 			>
-				{activeTab === "note" && (
-					<NoteContent
-						onSubmit={handleNoteSubmit}
-						onContentChange={handleNoteContentChange}
-						isSubmitting={noteMutation.isPending}
-						isOpen={isOpen}
-					/>
-				)}
-				{activeTab === "link" && (
-					<LinkContent
-						onSubmit={handleLinkSubmit}
-						onDataChange={handleLinkDataChange}
-						isSubmitting={linkMutation.isPending}
-						isOpen={isOpen}
-					/>
-				)}
-				{activeTab === "file" && (
-					<FileContent
-						onSubmit={handleFileSubmit}
-						onDataChange={handleFileDataChange}
-						isSubmitting={fileMutation.isPending}
-						isOpen={isOpen}
-					/>
-				)}
-				{activeTab === "connect" && (
-					<ConnectContent selectedProject={localSelectedProject} />
-				)}
+				<div className="overflow-auto flex-1 min-h-0 scrollbar-thin">
+					{activeTab === "note" && (
+						<NoteContent
+							onSubmit={handleNoteSubmit}
+							onContentChange={handleNoteContentChange}
+							isSubmitting={noteMutation.isPending}
+							isOpen={isOpen}
+						/>
+					)}
+					{activeTab === "link" && (
+						<LinkContent
+							onSubmit={handleLinkSubmit}
+							onDataChange={handleLinkDataChange}
+							isSubmitting={linkMutation.isPending}
+							isOpen={isOpen}
+						/>
+					)}
+					{activeTab === "file" && (
+						<FileContent
+							onSubmit={handleFileSubmit}
+							onDataChange={handleFileDataChange}
+							isSubmitting={fileMutation.isPending}
+							isOpen={isOpen}
+						/>
+					)}
+					{activeTab === "connect" && (
+						<ConnectContent selectedProject={localSelectedProject} />
+					)}
+				</div>
 				<div
 					className={cn(
-						"flex gap-2 pt-3",
+						"flex gap-2 pt-3 shrink-0",
 						isMobile ? "flex-col" : "justify-between",
 					)}
 				>
@@ -424,6 +426,7 @@ export function AddDocument({
 								setLocalSelectedProject(projects[0] ?? localSelectedProject)
 							}
 							variant="insideOut"
+							singleSelect
 						/>
 					)}
 					<div

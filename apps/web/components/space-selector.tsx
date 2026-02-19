@@ -53,6 +53,7 @@ export interface SpaceSelectorProps {
 	showNewSpace?: boolean
 	enableDelete?: boolean
 	compact?: boolean
+	singleSelect?: boolean
 }
 
 const triggerVariants = {
@@ -70,6 +71,7 @@ export function SpaceSelector({
 	showNewSpace = true,
 	enableDelete = false,
 	compact = false,
+	singleSelect = false,
 }: SpaceSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false)
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -272,20 +274,24 @@ export function SpaceSelector({
 				>
 					<div className="flex flex-col gap-2">
 						<div className="flex flex-col">
-							<DropdownMenuItem
-								onClick={handleSelectNovaSpaces}
-								className={cn(
-									"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
-									isNovaSpaces
-										? "bg-[#293952]/40"
-										: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
-								)}
-							>
-								<Globe className="size-4" />
-								<span className="flex-1">Nova Spaces</span>
-							</DropdownMenuItem>
+							{!singleSelect && (
+								<>
+									<DropdownMenuItem
+										onClick={handleSelectNovaSpaces}
+										className={cn(
+											"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
+											isNovaSpaces
+												? "bg-[#293952]/40"
+												: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
+										)}
+									>
+										<Globe className="size-4" />
+										<span className="flex-1">Nova Spaces</span>
+									</DropdownMenuItem>
 
-							<DropdownMenuSeparator className="bg-[#2E3033] my-1" />
+									<DropdownMenuSeparator className="bg-[#2E3033] my-1" />
+								</>
+							)}
 
 							<div className="px-3 py-1">
 								<span className="text-[10px] uppercase tracking-wider text-[#737373] font-medium">
@@ -362,7 +368,7 @@ export function SpaceSelector({
 							}}
 						>
 							<Layers className="size-4" />
-							<span>Select Spaces</span>
+							<span>Select Space{!singleSelect && "s"}</span>
 						</button>
 
 						{showNewSpace && (
@@ -386,6 +392,7 @@ export function SpaceSelector({
 			<AddSpaceModal
 				isOpen={showCreateDialog}
 				onClose={() => setShowCreateDialog(false)}
+				onCreated={(containerTag) => onValueChange([containerTag])}
 			/>
 
 			<SelectSpacesModal
@@ -394,6 +401,7 @@ export function SpaceSelector({
 				selectedProjects={selectedProjects}
 				onApply={handleSelectSpacesApply}
 				projects={allProjects}
+				singleSelect={singleSelect}
 			/>
 
 			<Dialog
