@@ -4,7 +4,7 @@ import { $fetch } from "@lib/api"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useProject } from "@/stores"
-import type { Project } from "@repo/lib/types"
+import type { ContainerTagListType } from "@repo/lib/types"
 
 export function useProjectMutations() {
 	const queryClient = useQueryClient()
@@ -29,6 +29,7 @@ export function useProjectMutations() {
 		onSuccess: (data) => {
 			toast.success("Project created successfully!")
 			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			queryClient.invalidateQueries({ queryKey: ["container-tags"] })
 
 			if (data?.containerTag) {
 				setSelectedProjects([data.containerTag])
@@ -63,14 +64,12 @@ export function useProjectMutations() {
 		},
 		onSuccess: (_, variables) => {
 			toast.success("Project deleted successfully")
-			queryClient.invalidateQueries({ queryKey: ["projects"] })
-			queryClient.invalidateQueries({ queryKey: ["container-tags"] })
 
-			const allProjects =
-				queryClient.getQueryData<Project[]>(["projects"]) || []
-			const deletedProject = allProjects.find(
-				(p) => p.id === variables.projectId,
-			)
+			const allTags =
+				queryClient.getQueryData<ContainerTagListType[]>(["container-tags"]) ||
+				[]
+			const deletedProject = allTags.find((p) => p.id === variables.projectId)
+
 			if (
 				deletedProject?.containerTag &&
 				selectedProjects.includes(deletedProject.containerTag)
@@ -79,6 +78,9 @@ export function useProjectMutations() {
 					selectedProjects.filter((tag) => tag !== deletedProject.containerTag),
 				)
 			}
+
+			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			queryClient.invalidateQueries({ queryKey: ["container-tags"] })
 		},
 		onError: (error) => {
 			toast.error("Failed to delete project", {

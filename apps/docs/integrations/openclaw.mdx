@@ -11,32 +11,9 @@ This integration requires the **Supermemory Pro plan**. [Upgrade here](https://c
 
 [OpenClaw](https://github.com/supermemoryai/openclaw-supermemory) is a multi-platform AI messaging gateway that connects to WhatsApp, Telegram, Discord, Slack, iMessage, and other messaging channels. The Supermemory plugin gives OpenClaw memory across every channel.
 
-## Get Your API Key
-
-Create a Supermemory API key from the [API Keys](https://console.supermemory.ai/keys) page, then add it to your shell profile so it persists across sessions:
-
-<Tabs>
-  <Tab title="macOS / Linux (zsh)">
-    ```bash
-    echo 'export SUPERMEMORY_OPENCLAW_API_KEY="sm_..."' >> ~/.zshrc
-    source ~/.zshrc
-    ```
-  </Tab>
-  <Tab title="macOS / Linux (bash)">
-    ```bash
-    echo 'export SUPERMEMORY_OPENCLAW_API_KEY="sm_..."' >> ~/.bashrc
-    source ~/.bashrc
-    ```
-  </Tab>
-  <Tab title="Windows (PowerShell)">
-    ```powershell
-    [System.Environment]::SetEnvironmentVariable("SUPERMEMORY_OPENCLAW_API_KEY", "sm_...", "User")
-    ```
-    Restart your terminal after running this.
-  </Tab>
-</Tabs>
-
 ## Install the Plugin
+
+Get started by installing the plugin with a single command.
 
 ```bash
 openclaw plugins install @supermemory/openclaw-supermemory
@@ -44,18 +21,43 @@ openclaw plugins install @supermemory/openclaw-supermemory
 
 Restart OpenClaw after installing.
 
+## Setup
+
+Run the setup command and enter your API key when prompted.
+
+```bash
+openclaw supermemory setup
+```
+
+Enter your API key from [console.supermemory.ai](https://console.supermemory.ai). That's it.
+
+<AccordionGroup>
+  <Accordion title="Advanced Setup">
+    Configure all options interactively with the advanced setup command:
+
+    ```bash
+    openclaw supermemory setup-advanced
+    ```
+
+    This lets you configure: container tag, auto-recall, auto-capture, capture mode, custom container tags, and more.
+
+    See [Configuration Options](#configuration-options) for all available settings.
+  </Accordion>
+</AccordionGroup>
+
 ## How It Works
 
-Once installed, the plugin runs automatically with zero interaction:
+Once installed, the plugin runs automatically with zero interaction.
 
 - **Auto-Recall** — Before every AI turn, Supermemory is queried for relevant memories and the user's profile. These are injected as context so the AI sees preferences, facts, and semantically similar past conversations.
 - **Auto-Capture** — After every AI turn, the conversation exchange is sent to Supermemory for extraction and long-term storage. Supermemory handles deduplication and profile building.
+- **Custom Container Tags** — When enabled via advanced setup, define custom memory containers (e.g., `work`, `personal`, `bookmarks`). The AI automatically picks the right container based on your instructions.
 
 ## Features
 
 ### AI Tools
 
-The AI can use these tools autonomously during conversations:
+The AI can use these tools autonomously during conversations.
 
 | Tool | Description |
 |------|-------------|
@@ -66,7 +68,7 @@ The AI can use these tools autonomously during conversations:
 
 ### Slash Commands
 
-Users can interact with memory directly in chat:
+Users can interact with memory directly in chat.
 
 | Command | Description |
 |---------|-------------|
@@ -75,43 +77,199 @@ Users can interact with memory directly in chat:
 
 ### CLI Commands
 
+Manage your memory from the terminal.
+
 ```bash
-openclaw supermemory search <query>    # Search memories from the terminal
-openclaw supermemory profile           # View user profile
-openclaw supermemory wipe              # Delete all memories (requires confirmation)
+openclaw supermemory setup              # Configure API key
+openclaw supermemory setup-advanced     # Configure all options
+openclaw supermemory status             # View current configuration
+openclaw supermemory search <query>     # Search memories
+openclaw supermemory profile            # View user profile
+openclaw supermemory wipe               # Delete all memories (requires confirmation)
 ```
 
-## Manual Configuration
+<AccordionGroup>
+  <Accordion title="Manual Configuration">
+    ### Configuration Options
 
-Optional — only needed if you prefer to set the API key directly in the config file instead of the environment variable.
+    | Key | Type | Default | Description |
+    |-----|------|---------|-------------|
+    | `apiKey` | `string` | — | Supermemory API key. |
+    | `containerTag` | `string` | `openclaw_{hostname}` | Root memory namespace. |
+    | `autoRecall` | `boolean` | `true` | Inject relevant memories before every AI turn. |
+    | `autoCapture` | `boolean` | `true` | Store conversation content after every turn. |
+    | `maxRecallResults` | `number` | `10` | Max memories injected into context per turn. |
+    | `profileFrequency` | `number` | `50` | Inject full user profile every N turns. |
+    | `captureMode` | `string` | `"all"` | `"all"` filters noise. `"everything"` captures all messages. |
+    | `debug` | `boolean` | `false` | Verbose debug logs. |
+    | `enableCustomContainerTags` | `boolean` | `false` | Enable custom container routing. |
+    | `customContainers` | `array` | `[]` | Custom containers with `tag` and `description`. |
+    | `customContainerInstructions` | `string` | `""` | Instructions for AI on container routing. |
 
-Add the plugin to your `openclaw.json`:
+    ### Full Example
 
-```json5
-{
-  "plugins": {
-    "entries": {
-      "openclaw-supermemory": {
-        "enabled": true,
-        "config": {
-          "apiKey": "sm_..."
+    ```json
+    {
+      "plugins": {
+        "entries": {
+          "openclaw-supermemory": {
+            "enabled": true,
+            "config": {
+              "apiKey": "${SUPERMEMORY_OPENCLAW_API_KEY}",
+              "containerTag": "my_memory",
+              "autoRecall": true,
+              "autoCapture": true,
+              "maxRecallResults": 10,
+              "profileFrequency": 50,
+              "captureMode": "all",
+              "debug": false,
+              "enableCustomContainerTags": true,
+              "customContainers": [
+                { "tag": "work", "description": "Work-related memories" },
+                { "tag": "personal", "description": "Personal notes" }
+              ],
+              "customContainerInstructions": "Store work tasks in 'work', personal stuff in 'personal'"
+            }
+          }
         }
       }
     }
-  }
-}
-```
+    ```
+  </Accordion>
+</AccordionGroup>
 
-### Advanced Options
+## FAQ
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `autoRecall` | `boolean` | `true` | Inject relevant memories before every AI turn. |
-| `autoCapture` | `boolean` | `true` | Store conversation content after every turn. |
-| `maxRecallResults` | `number` | `10` | Max memories injected into context per turn. |
-| `profileFrequency` | `number` | `50` | Inject full user profile every N turns. |
-| `captureMode` | `string` | `"all"` | `"all"` filters noise. `"everything"` captures all messages. |
-| `debug` | `boolean` | `false` | Verbose debug logs. |
+<AccordionGroup>
+  <Accordion title="How do I install OpenClaw with Supermemory?">
+    1. Install the plugin:
+
+    ```bash
+    openclaw plugins install @supermemory/openclaw-supermemory
+    ```
+
+    2. Run the setup wizard:
+
+    ```bash
+    openclaw supermemory setup
+    ```
+
+    3. When prompted, paste your API key from [console.supermemory.ai](https://console.supermemory.ai). The key starts with `sm_`.
+
+    4. Restart OpenClaw to activate the plugin:
+
+    ```bash
+    openclaw gateway --force
+    ```
+
+    5. Verify the connection:
+
+    ```bash
+    openclaw supermemory status
+    ```
+
+    That's it — Supermemory is now connected and will automatically recall and capture memories across all your channels.
+  </Accordion>
+
+  <Accordion title="I have Twitter bookmarks in a separate container. How do I use them with Supermemory?">
+    Use the advanced setup to enable custom container tags and add a read-only Twitter bookmarks container.
+
+    ```bash
+    openclaw supermemory setup-advanced
+    ```
+
+    When prompted, enter:
+
+    - **API key**: paste your `sm_` key
+    - **Container tag**: keep the default (or set your preferred root tag)
+    - **Auto recall**: `true` (recommended)
+    - **Auto capture**: `true`
+    - **Enable custom container tags**: `true`
+    - **Custom container tags**: `twitter-bookmarks:Twitter bookmarks saved from Twitter`
+
+    <Tip>
+    Custom container tags use the format `tag:description`, separated by a colon. For example: `twitter-bookmarks:Twitter bookmarks saved from Twitter`.
+    </Tip>
+
+    When asked for **custom container instructions**, enter something like:
+
+    ```
+    Whenever the user asks about Twitter bookmarks, search the twitter-bookmarks container.
+    Never save anything to the twitter-bookmarks container — it is read-only and populated directly from Twitter.
+    ```
+
+    This ensures the AI references your Twitter bookmarks when relevant but never writes to that container.
+  </Accordion>
+
+  <Accordion title="How do I separate work (Slack + Gmail) and personal (Telegram + WhatsApp) memories?">
+    Use custom container tags to route memories by channel. Run the advanced setup:
+
+    ```bash
+    openclaw supermemory setup-advanced
+    ```
+
+    When prompted, enter:
+
+    - **API key**: paste your `sm_` key
+    - **Container tag**: keep the default
+    - **Auto recall**: `true`
+    - **Auto capture**: `true`
+    - **Enable custom container tags**: `true`
+    - **Custom container tags**:
+      - `work:Work-related memories from Slack and Gmail`
+      - `personal:Personal memories from Telegram and WhatsApp`
+
+    When asked for **custom container instructions**, enter:
+
+    ```
+    When the active channel is slack or gmail, always use the work container for storing and recalling memories. Never mix personal memories into work context.
+
+    When the active channel is telegram or whatsapp, always use the personal container. Do not recall or store work memories in personal conversations.
+    ```
+
+    This keeps your work and personal memories completely separated — Slack and Gmail conversations only see `work` memories, while Telegram and WhatsApp only see `personal` memories.
+  </Accordion>
+
+  <Accordion title="I'm not technical. How can I set up advanced mode?">
+    Ask the OpenClaw agent directly in any chat. No terminal needed.
+
+    ```
+    What are all the available configurations for the Supermemory plugin advanced mode?
+    ```
+
+    The agent will list every option. Then tell it what you want:
+
+    ```
+    Set up my Supermemory plugin with these settings:
+    - Auto recall: true
+    - Auto capture: true
+    - Enable custom container tags: true
+    - Custom containers:
+      - work: Work-related memories from Slack and Gmail
+      - personal: Personal memories from Telegram and WhatsApp
+    - Custom instructions: When on Slack or Gmail, use the work container.
+      When on Telegram or WhatsApp, use the personal container.
+    ```
+
+    Each custom container needs a **tag** and a **description** — e.g. `work: Work-related memories from Slack and Gmail`. The description helps the AI understand what belongs in that container.
+
+    <Tip>
+    You can change settings anytime by just telling the agent. For example: "Add a new container called `twitter-bookmarks` with description `Twitter bookmarks saved from Twitter` and make it read-only".
+    </Tip>
+  </Accordion>
+
+  <Accordion title="All my session memories go into one container. How can I separate them by channel?">
+    By default, all session memories across every channel are stored under a single root-level container tag.
+
+    To store specific memories separately, use **custom container tags** — see the FAQ above on separating work and personal memories.
+
+    Automatic per-channel separation is not supported yet. If you need this, let us know — with enough requests, we'll implement it right away.
+
+    <Card title="Request this feature" icon="mail" href="mailto:support@supermemory.com?subject=Feature%20Request%3A%20Per-Channel%20Container%20Tags&body=Hey%2C%0A%0AMy%20name%20is%20%5Byour%20name%5D.%20I%20just%20saw%20that%20you%20offer%20custom%20plugins.%0A%0AThis%20is%20my%20use%20case%3A%20%5Bdescribe%20your%20use%20case%5D%0A%0AI%20would%20love%20to%20have%20separate%20container%20tags%20for%20each%20channel%20so%20my%20session%20memories%20are%20automatically%20isolated.%0A%0AThanks!">
+      Email us with your use case.
+    </Card>
+  </Accordion>
+</AccordionGroup>
 
 ## Next Steps
 
