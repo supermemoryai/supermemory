@@ -50,47 +50,52 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			}
 		}
 
-		await this.refreshContainerTags() // Fetch available projects for schema descriptions
+		await this.refreshContainerTags()
 
-		const containerTagDescription = this.getContainerTagDescription()
+		const hasRootContainerTag = !!this.props?.containerTag
+
+		const containerTagField = {
+			containerTag: z
+				.string()
+				.max(128, "Container tag exceeds maximum length")
+				.describe(this.getContainerTagDescription())
+				.optional(),
+		}
 
 		const memorySchema = z.object({
 			content: z
 				.string()
-				.max(200000, "Content exceeds maximum length of 200,000 characters")
+				.max(
+					200000,
+					"Content exceeds maximum length of 200,000 characters",
+				)
 				.describe("The memory content to save or forget"),
-			action: z.enum(["save", "forget"]).optional().default("save"),
-			containerTag: z
-				.string()
-				.max(128, "Container tag exceeds maximum length")
-				.describe(containerTagDescription)
-				.optional(),
+			action: z
+				.enum(["save", "forget"])
+				.optional()
+				.default("save"),
+			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
 		const recallSchema = z.object({
 			query: z
 				.string()
-				.max(1000, "Query exceeds maximum length of 1,000 characters")
+				.max(
+					1000,
+					"Query exceeds maximum length of 1,000 characters",
+				)
 				.describe("The search query to find relevant memories"),
 			includeProfile: z.boolean().optional().default(true),
-			containerTag: z
-				.string()
-				.max(128, "Container tag exceeds maximum length")
-				.describe(containerTagDescription)
-				.optional(),
+			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
 		const contextPromptSchema = z.object({
-			containerTag: z
-				.string()
-				.max(128, "Container tag exceeds maximum length")
-				.describe(containerTagDescription)
-				.optional(),
 			includeRecent: z
 				.boolean()
 				.optional()
 				.default(true)
 				.describe("Include recent activity in the profile"),
+			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
 		type ContextPromptArgs = z.infer<typeof contextPromptSchema>
@@ -289,7 +294,8 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			// @ts-expect-error - zod type inference issue with MCP SDK
 			async (args: ContextPromptArgs) => {
 				try {
-					const { containerTag, includeRecent = true } = args
+					const { includeRecent = true } = args
+					const containerTag = (args as { containerTag?: string }).containerTag
 					const client = this.getClient(containerTag)
 					const profileResult = await client.getProfile()
 
