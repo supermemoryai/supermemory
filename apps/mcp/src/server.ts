@@ -384,9 +384,10 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		containerTag?: string
 	}) {
 		const { content, action = "save", containerTag } = args
+		const effectiveContainerTag = containerTag || this.props?.containerTag
 
 		try {
-			const client = this.getClient(containerTag)
+			const client = this.getClient(effectiveContainerTag)
 			const clientInfo = await this.getClientInfo()
 
 			if (action === "forget") {
