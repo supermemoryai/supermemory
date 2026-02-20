@@ -20,6 +20,7 @@ Add this to your MCP client config (Claude Desktop, Cursor, Windsurf, etc.):
 {
   "mcpServers": {
     "supermemory": {
+      "type": "sse",
       "url": "https://mcp.supermemory.ai/mcp"
     }
   }
@@ -36,6 +37,7 @@ If you prefer to use an API key instead of OAuth, get one from [app.supermemory.
 {
   "mcpServers": {
     "supermemory": {
+      "type": "sse",
       "url": "https://mcp.supermemory.ai/mcp",
       "headers": {
         "Authorization": "Bearer sm_your_api_key_here"
@@ -55,6 +57,7 @@ To scope all operations to a specific project, add the `x-sm-project` header:
 {
   "mcpServers": {
     "supermemory": {
+      "type": "sse",
       "url": "https://mcp.supermemory.ai/mcp",
       "headers": {
         "x-sm-project": "your-project-id"
@@ -76,6 +79,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 {
   "mcpServers": {
     "supermemory": {
+      "type": "sse",
       "url": "https://mcp.supermemory.ai/mcp"
     }
   }
