@@ -1,7 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useQueryState, parseAsString, parseAsStringLiteral, parseAsInteger } from "nuqs"
+import {
+	useQueryState,
+	parseAsString,
+	parseAsStringLiteral,
+	parseAsInteger,
+} from "nuqs"
 import { Button } from "@ui/components/button"
 import {
 	Select,
@@ -43,7 +48,9 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 	const [selectedProject] = useState<string>("sm_project_default")
 	const [mcpUrlTab, setMcpUrlTab] = useQueryState(
 		"mcpTab",
-		parseAsStringLiteral(["oneClick", "manual"] as const).withDefault("oneClick"),
+		parseAsStringLiteral(["oneClick", "manual"] as const).withDefault(
+			"oneClick",
+		),
 	)
 	const [isCopied, setIsCopied] = useState(false)
 	const [activeStep, setActiveStep] = useQueryState(
@@ -203,7 +210,9 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 														: `/mcp-supported-tools/${selectedClient === "claude-code" ? "claude" : selectedClient}.png`
 												}
 											/>
-											<span>{clients[selectedClient as keyof typeof clients]}</span>
+											<span>
+												{clients[selectedClient as keyof typeof clients]}
+											</span>
 										</div>
 									) : (
 										<SelectValue placeholder="Select a client" />

@@ -29,14 +29,25 @@ const TOOL_META: Record<string, { label: string; icon: typeof SearchIcon }> = {
 	cancelSchedule: { label: "Cancel Schedule", icon: XCircleIcon },
 }
 
-function ToolCallDisplay({ part }: { part: { type: string; state: string; input?: unknown; output?: unknown; toolCallId?: string } }) {
+function ToolCallDisplay({
+	part,
+}: {
+	part: {
+		type: string
+		state: string
+		input?: unknown
+		output?: unknown
+		toolCallId?: string
+	}
+}) {
 	const [expanded, setExpanded] = useState(false)
 	const toolName = part.type.replace("tool-", "")
 	const meta = TOOL_META[toolName]
 	const Icon = meta?.icon ?? WrenchIcon
 	const label = meta?.label ?? toolName
 
-	const isLoading = part.state === "input-streaming" || part.state === "input-available"
+	const isLoading =
+		part.state === "input-streaming" || part.state === "input-available"
 	const isDone = part.state === "output-available"
 	const isError = part.state === "error"
 
@@ -53,9 +64,27 @@ function ToolCallDisplay({ part }: { part: { type: string; state: string; input?
 				{isLoading ? (
 					<Loader2 className="size-3 animate-spin text-blue-400 shrink-0" />
 				) : (
-					<Icon className={cn("size-3 shrink-0", isDone ? "text-emerald-400" : isError ? "text-red-400" : "text-white/50")} />
+					<Icon
+						className={cn(
+							"size-3 shrink-0",
+							isDone
+								? "text-emerald-400"
+								: isError
+									? "text-red-400"
+									: "text-white/50",
+						)}
+					/>
 				)}
-				<span className={cn("font-medium", isDone ? "text-emerald-400" : isError ? "text-red-400" : "text-blue-400")}>
+				<span
+					className={cn(
+						"font-medium",
+						isDone
+							? "text-emerald-400"
+							: isError
+								? "text-red-400"
+								: "text-blue-400",
+					)}
+				>
 					{label}
 				</span>
 				{isLoading && <span className="text-white/40 ml-auto">running...</span>}
@@ -74,7 +103,9 @@ function ToolCallDisplay({ part }: { part: { type: string; state: string; input?
 						<div>
 							<div className="text-white/40 mb-1">Input</div>
 							<pre className="text-white/70 bg-[#080B10] rounded p-2 overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-all">
-								{typeof part.input === "string" ? part.input : JSON.stringify(part.input, null, 2)}
+								{typeof part.input === "string"
+									? part.input
+									: JSON.stringify(part.input, null, 2)}
 							</pre>
 						</div>
 					)}
@@ -82,7 +113,9 @@ function ToolCallDisplay({ part }: { part: { type: string; state: string; input?
 						<div>
 							<div className="text-white/40 mb-1">Output</div>
 							<pre className="text-white/70 bg-[#080B10] rounded p-2 overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-all">
-								{typeof part.output === "string" ? part.output : JSON.stringify(part.output, null, 2)}
+								{typeof part.output === "string"
+									? part.output
+									: JSON.stringify(part.output, null, 2)}
 							</pre>
 						</div>
 					)}

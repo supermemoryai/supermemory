@@ -38,23 +38,18 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			const posthogKey = "phc_uO09ylgCPmQl3wHukVvvwhphtoIaGmCMUTTwDo3PRlt"
 			const backendUrl =
 				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
-			if (posthogKey) {
-				posthog.init(posthogKey, {
-					api_host: `${backendUrl}/orange`,
-					ui_host: "https://us.i.posthog.com",
-					person_profiles: "identified_only",
-					capture_pageview: false,
-					capture_pageleave: true,
-				})
-			} else {
-				console.warn(
-					"PostHog API key is not set. PostHog will not be initialized.",
-				)
-			}
+			posthog.init("phc_ShqecfUPQgf16lWu6ZMUzduQvcWzCywrkCz5KHwmWsv", {
+				api_host: `${backendUrl}/orange`,
+				ui_host: "https://us.i.posthog.com",
+				person_profiles: "identified_only",
+				capture_pageview: false,
+				capture_pageleave: true,
+				cookie_domain: ".supermemory.ai",
+			})
+			posthog.register({ app: "app" })
 		}
 	}, [])
 

@@ -65,25 +65,16 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		const memorySchema = z.object({
 			content: z
 				.string()
-				.max(
-					200000,
-					"Content exceeds maximum length of 200,000 characters",
-				)
+				.max(200000, "Content exceeds maximum length of 200,000 characters")
 				.describe("The memory content to save or forget"),
-			action: z
-				.enum(["save", "forget"])
-				.optional()
-				.default("save"),
+			action: z.enum(["save", "forget"]).optional().default("save"),
 			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
 		const recallSchema = z.object({
 			query: z
 				.string()
-				.max(
-					1000,
-					"Query exceeds maximum length of 1,000 characters",
-				)
+				.max(1000, "Query exceeds maximum length of 1,000 characters")
 				.describe("The search query to find relevant memories"),
 			includeProfile: z.boolean().optional().default(true),
 			...(hasRootContainerTag ? {} : containerTagField),

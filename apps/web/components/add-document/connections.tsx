@@ -59,8 +59,9 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	useEffect(() => {
 		if (!autumn.isLoading) {
 			setIsProUser(
-				autumn.customer?.products?.some((product) => product.id === "api_pro") ??
-					false,
+				autumn.customer?.products?.some(
+					(product) => product.id === "api_pro",
+				) ?? false,
 			)
 		}
 	}, [autumn.isLoading, autumn.customer])

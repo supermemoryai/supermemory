@@ -241,7 +241,9 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 					onClick={() => {
 						const formData = {
 							twitter: toXProfileUrl(parseXHandle(twitterHandle)),
-							linkedin: toLinkedInProfileUrl(parseLinkedInHandle(linkedinProfile)),
+							linkedin: toLinkedInProfileUrl(
+								parseLinkedInHandle(linkedinProfile),
+							),
 							description: description,
 							otherLinks: otherLinks
 								.filter((l) => l.trim())

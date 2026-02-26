@@ -273,7 +273,6 @@ export default defineBackground(() => {
 				})()
 				return true
 			}
-
 		},
 	)
 })
