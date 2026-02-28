@@ -39,7 +39,12 @@ It automatically learns from conversations, extracts facts, builds user profiles
 | 👤 **User Profiles** | Auto-maintained user context — stable facts + recent activity. One call, ~50ms. |
 | 🔍 **Hybrid Search** | RAG + Memory in a single query. Knowledge base docs and personalized context together. |
 | 🔌 **Connectors** | Google Drive · Gmail · Notion · OneDrive · GitHub — auto-sync with real-time webhooks. |
-| 📄 **Files** | PDFs, images (OCR), videos (transcription), code (AST-aware chunking). Upload and it works. |
+| 📄 **Multi-modal Extractors** | PDFs, images (OCR), videos (transcription), code (AST-aware chunking). Upload and it works. |
+
+All of this is in our single memory structure and ontology. 
+
+<img width="1414" height="937" alt="image" src="https://github.com/user-attachments/assets/8863b6d9-c043-4c75-b200-4f1759e7edaf" />
+
 
 ---
 
