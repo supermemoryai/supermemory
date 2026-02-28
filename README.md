@@ -7,14 +7,14 @@
 </p>
 
 <p align="center">
-  <strong>State-of-the-art memory for AI.</strong>
+  <strong>State-of-the-art memory and context engine for AI.</strong>
 </p>
 
 <p align="center">
   <a href="https://supermemory.ai/docs">Docs</a> ·
   <a href="https://supermemory.ai/docs/quickstart">Quickstart</a> ·
   <a href="https://console.supermemory.ai">Dashboard</a> ·
-  <a href="https://discord.gg/supermemory">Discord</a>
+  <a href="https://supermemory.link/discord">Discord</a>
 </p>
 
 <p align="center">
@@ -25,7 +25,9 @@
 
 ---
 
-Supermemory is the memory and context layer for AI. **#1 on [LongMemEval](https://github.com/xiaowu0162/LongMemEval), [LoCoMo](https://github.com/snap-research/locomo), and [ConvoMem](https://github.com/Salesforce/ConvoMem)** — the three major benchmarks for AI memory.
+Supermemory is the memory and context layer for AI. **#1 on [LongMemEval](https://github.com/xiaowu0162/LongMemEval), [LoCoMo](https://github.com/snap-research/locomo), and [ConvoMem](https://github.com/Salesforce/ConvoMem)** — the three major benchmarks for AI memory. 
+
+We are a research lab building the engine, plugins and tools around it.
 
 Your AI forgets everything between conversations. Supermemory fixes that.
 
@@ -49,11 +51,11 @@ It automatically learns from conversations, extracts facts, builds user profiles
 
 <h3>🧑‍💻 I use AI tools</h3>
 
-Give Claude, Cursor, or any MCP-compatible AI assistant **persistent memory across every conversation**.
+Build your own personal supermemory by using our app. Builds **persistent memory graph across every conversation**.
 
 Your AI remembers your preferences, projects, past discussions — and gets smarter over time.
 
-**[→ Jump to MCP setup](#give-your-ai-memory-mcp)**
+**[→ Jump to User setup](#give-your-ai-memory)**
 
 </td>
 <td width="50%" valign="top">
@@ -72,17 +74,43 @@ No vector DB config. No embedding pipelines. No chunking strategies.
 
 ---
 
-## Give your AI memory (MCP)
+## Give your AI memory
 
-The Supermemory MCP server gives any compatible AI assistant persistent memory. One install, and your AI remembers you.
+The Supermemory App, browser extension, plugins and MCP server gives any compatible AI assistant persistent memory. One install, and your AI remembers you.
 
-### Quick install
+### The app
+
+You can use supermemory without any code, by using our consumer-facing app for free.
+
+Start at https://app.supermemory.ai
+
+<img width="1705" height="1030" alt="image" src="https://github.com/user-attachments/assets/5b43af30-b998-4585-8de6-f3e9a26d894a" />
+
+It also comes with an agent embedded inside, which we call Nova.
+
+### Supermemory Plugins
+
+Supermemory comes built with Plugins for Claude Code, OpenCode and OpenClaw.
+
+<img width="844" height="484" alt="image" src="https://github.com/user-attachments/assets/ecb879a2-8652-495d-9228-f305a97ba603" />
+
+These plugins are implementations of the supermemory API, and they are open source! 
+
+You can find them here: 
+
+- Openclaw plugin: https://github.com/supermemoryai/openclaw-supermemory
+- Claude code plugin: https://github.com/supermemoryai/claude-supermemory
+- OpenCode plugin: https://github.com/supermemoryai/opencode-supermemory
+
+### MCP - Quick install
 
 ```bash
 npx -y install-mcp@latest https://mcp.supermemory.ai/mcp --client claude --oauth=yes
 ```
 
 Replace `claude` with your client: `cursor`, `windsurf`, `vscode`, etc.
+
+Read more about our MCP here - https://supermemory.ai/docs/supermemory-mcp/mcp
 
 ### What your AI gets
 
@@ -279,6 +307,16 @@ We also built **[MemoryBench](https://supermemory.ai/docs/memorybench/overview)*
 bun run src/index.ts run -p supermemory -b longmemeval -j gpt-4o -r my-run
 ```
 
+### Benchmarking your own memory solution
+
+We provide an Agent skill for companies to benchmark their own context and memory solutions against supermemory.
+
+```
+npx skills add supermemoryai/memorybench
+```
+
+Simply run this and do `/benchmark-context` - Supermemory will automatically do the work for you!
+
 ---
 
 ## How memory works under the hood
@@ -290,13 +328,13 @@ Your app / AI tool
         │
         ├── Memory Engine     Extracts facts, tracks updates, resolves contradictions,
         │                     auto-forgets expired info
-        ├── User Profiles     Static facts + dynamic context, always fresh
+        ├── User Profiles     Static facts + dynamic context built from engine, always fresh
         ├── Hybrid Search     RAG + Memory in one query
         ├── Connectors        Real-time sync from Google Drive, Gmail, Notion, GitHub...
         └── File Processing   PDFs, images, videos, code → searchable chunks
 ```
 
-**Memory is not RAG.** RAG retrieves document chunks — stateless, same results for everyone. Memory extracts and tracks *facts about users* over time. It understands that "I just moved to SF" supersedes "I live in NYC." Supermemory runs both together by default, so you get knowledge base retrieval *and* personalized context in every query.
+**Memory is not RAG.** RAG retrieves document chunks — stateless, same results for everyone. Memory extracts and tracks *facts about users* over time. It understands that "I just moved to SF" supersedes "I live in NYC." Supermemory runs both together by default, so you get knowledge base retrieval *and* personalized context in every query. Read more about this here - https://supermemory.ai/docs/concepts/memory-vs-rag
 
 **Automatic forgetting.** Supermemory knows when memories become irrelevant. Temporary facts ("I have an exam tomorrow") expire after the date passes. Contradictions are resolved automatically. Noise never becomes permanent memory.
 
@@ -308,8 +346,8 @@ Your app / AI tool
 - 🚀 [Quickstart](https://supermemory.ai/docs/quickstart)
 - 🧪 [MemoryBench](https://supermemory.ai/docs/memorybench/overview)
 - 🔌 [Integrations](https://supermemory.ai/docs/integrations)
-- 💬 [Discord](https://discord.gg/supermemory)
-- 𝕏 [Twitter](https://twitter.com/supermaborai)
+- 💬 [Discord](https://supermemory.link/discord)
+- 𝕏 [Twitter](https://twitter.com/supermemory)
 
 ---
 
