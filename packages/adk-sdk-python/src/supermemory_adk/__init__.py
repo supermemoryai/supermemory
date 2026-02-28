@@ -3,21 +3,18 @@
 This package provides seamless integration between Supermemory and Google's Agent
 Development Kit (ADK), enabling persistent memory and context enhancement for AI agents.
 
-Example (Tools Mode):
+Example:
     ```python
     from google.adk.agents import Agent
-    from supermemory_adk import create_supermemory_tools
+    from supermemory_adk import supermemory_tools
 
-    # Create Supermemory tools
-    tools = create_supermemory_tools(
-        api_key="your-api-key",
-        container_tags=["user-123"]
-    )
-
-    # Add tools to agent
+    # Create agent with Supermemory tools
     root_agent = Agent(
         model='gemini-2.5-flash',
-        tools=[tools.search_memories, tools.add_memory],
+        tools=supermemory_tools(
+            api_key="your-api-key",
+            container_tags=["user-123"]
+        ),
         instruction="Use memory tools when needed"
     )
     ```
@@ -52,6 +49,7 @@ from .exceptions import (
     SupermemoryTimeoutError,
     SupermemoryToolError,
 )
+from .tools import supermemory_tools
 from .utils import (
     DeduplicatedMemories,
     Logger,
@@ -82,5 +80,5 @@ __all__ = [
     "format_memories_to_markdown",
     "format_memories_to_text",
     # Tools
-    # Wrapper
+    "supermemory_tools",
 ]
