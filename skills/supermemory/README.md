@@ -1,3 +1,8 @@
+---
+name: setup-supermemory
+description: "Automatically set up supermemory (Perfect agent memory) in your own agent or application, end-to-end. Asks user questions, chooses the right context solution for the agent and does the implementation for you."
+---
+
 # Supermemory Claude Skill
 
 A comprehensive Claude skill that teaches AI agents about Supermemory - the state-of-the-art memory and context infrastructure for building personalized, context-aware AI applications.
