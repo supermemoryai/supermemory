@@ -47,8 +47,8 @@ export const fetchSubscriptionStatus = (
 			return statusMap
 		},
 		queryKey: ["subscription-status"],
-		refetchInterval: 5000, // Refetch every 5 seconds
-		staleTime: 4000, // Consider data stale after 4 seconds
+		refetchInterval: 60 * 1000, // Refetch every 1 minute
+		staleTime: 55 * 1000, // Consider data stale after 55 seconds
 		enabled: isEnabled,
 	})
 
@@ -132,18 +132,41 @@ export const useDeleteDocument = (selectedProject: string) => {
 				["documents-with-memories", selectedProject],
 				(old: unknown) => {
 					if (!old || typeof old !== "object") return old
-					const typedOld = old as {
-						pages?: Array<{ documents?: DocumentWithMemories[] }>
+
+					// Handle Infinite Query structure (TanStack Query v5 uses 'pages')
+					if (
+						"pages" in old &&
+						Array.isArray((old as Record<string, unknown>).pages)
+					) {
+						const typedOld = old as {
+							pages: Array<{ documents?: DocumentWithMemories[] }>
+						}
+						return {
+							...typedOld,
+							pages: typedOld.pages.map((page) => ({
+								...page,
+								documents: page.documents?.filter(
+									(doc: DocumentWithMemories) => doc.id !== documentId,
+								),
+							})),
+						}
 					}
-					return {
-						...typedOld,
-						pages: typedOld.pages?.map((page) => ({
-							...page,
-							documents: page.documents?.filter(
+
+					// Handle Standard Query structure
+					if (
+						"documents" in old &&
+						Array.isArray((old as Record<string, unknown>).documents)
+					) {
+						const typedOld = old as { documents: DocumentWithMemories[] }
+						return {
+							...typedOld,
+							documents: typedOld.documents.filter(
 								(doc: DocumentWithMemories) => doc.id !== documentId,
 							),
-						})),
+						}
 					}
+
+					return old
 				},
 			)
 
