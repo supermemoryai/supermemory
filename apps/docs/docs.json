@@ -159,6 +159,7 @@
 							"integrations/claude-memory",
 							"integrations/pipecat",
 							"integrations/n8n",
+							"integrations/viasocket",
 							"integrations/zapier"
 						]
 					}
