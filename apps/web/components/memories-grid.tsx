@@ -62,8 +62,7 @@ type OgData = {
 	image?: string
 }
 
-const IS_DEV = process.env.NODE_ENV === "development"
-const PAGE_SIZE = IS_DEV ? 100 : 100
+const PAGE_SIZE = 100
 const MAX_TOTAL = 1000
 
 // Discriminated union for masonry items
