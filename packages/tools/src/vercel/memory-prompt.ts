@@ -9,6 +9,10 @@ export {
 } from "../shared"
 
 import type { Logger } from "../shared"
+import {
+	findLastUserMessage,
+	extractTextFromMessageContent,
+} from "../shared/memory-client"
 import type { LanguageModelCallOptions } from "./util"
 
 /**
@@ -28,23 +32,9 @@ export const extractQueryText = (
 		return ""
 	}
 
-	const userMessage = params.prompt
-		.slice()
-		.reverse()
-		.find((prompt: { role: string }) => prompt.role === "user")
-
-	const content = userMessage?.content
-	if (!content) return ""
-
-	if (typeof content === "string") {
-		return content
-	}
-
-	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-	return (content as any[])
-		.filter((part) => part.type === "text")
-		.map((part) => part.text || "")
-		.join(" ")
+	const userMessage = findLastUserMessage(params.prompt)
+	if (!userMessage) return ""
+	return extractTextFromMessageContent(userMessage.content) ?? ""
 }
 
 /**
