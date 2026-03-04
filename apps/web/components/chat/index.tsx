@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
 import { motion, AnimatePresence } from "motion/react"
@@ -150,23 +150,6 @@ export function ChatSidebar({
 	const setCurrentChatId = useCallback(
 		(id: string) => setThreadId(id),
 		[setThreadId],
-	)
-	const chatTransport = useMemo(
-		() =>
-			new DefaultChatTransport({
-				api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
-				credentials: "include",
-				prepareSendMessagesRequest: ({ messages }) => ({
-					body: {
-						messages,
-						metadata: {
-							chatId: chatIdRef.current,
-							projectId: selectedProject,
-						},
-					},
-				}),
-			}),
-		[currentChatId, selectedProject],
 	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
