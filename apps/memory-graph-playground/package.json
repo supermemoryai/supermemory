@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@supermemory/memory-graph": "workspace:*",
+    "@supermemory/memory-graph": "latest",
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0"

@@ -16,7 +16,7 @@
     "@ai-sdk/anthropic": "^3.0.15",
     "@ai-sdk/openai": "latest",
     "@anthropic-ai/sdk": "latest",
-    "@supermemory/tools": "workspace:*",
+    "@supermemory/tools": "latest",
     "ai": "latest",
     "dotenv": "latest",
     "openai": "latest",
