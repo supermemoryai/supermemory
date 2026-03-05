@@ -73,12 +73,13 @@ export default withSentryConfig(nextConfig, {
 	tunnelRoute: "/monitoring",
 
 	// Automatically tree-shake Sentry logger statements to reduce bundle size
-	webpack: {
-		treeshake: {
-			removeDebugLogging: true,
-		},
-		automaticVercelMonitors: true,
-	},
+	disableLogger: true,
+
+	// Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+	// See the following for more information:
+	// https://docs.sentry.io/product/crons/
+	// https://vercel.com/docs/cron-jobs
+	automaticVercelMonitors: true,
 })
 
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare"
