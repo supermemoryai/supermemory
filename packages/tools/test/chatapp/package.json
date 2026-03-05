@@ -16,7 +16,7 @@
     "@ai-sdk/openai": "^1.0.0",
     "openai": "^4.104.0",
     "supermemory": "^1.0.0",
-    "@supermemory/tools": "latest"
+    "@supermemory/tools": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5",
