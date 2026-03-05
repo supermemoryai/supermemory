@@ -184,7 +184,7 @@ export function MCPSteps({ variant = "full" }: MCPStepsProps) {
 						</button>
 						{selectedClient && (
 							<Select
-								onValueChange={(value) => {
+								onValueChange={(value: string) => {
 									setSelectedClient(value)
 									setActiveStep(2)
 								}}

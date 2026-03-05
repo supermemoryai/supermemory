@@ -2,7 +2,7 @@ import { cn } from "@lib/utils";
 import { Button } from "@ui/components/button";
 
 export interface ExternalAuthButtonProps
-	extends React.ComponentProps<typeof Button> {
+	extends React.ComponentProps<"button"> {
 	authProvider: string;
 	authIcon: React.ReactNode;
 }

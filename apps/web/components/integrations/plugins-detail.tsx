@@ -609,7 +609,7 @@ export function PluginsDetail() {
 			{/* API Key modal */}
 			<Dialog
 				open={newKey.open}
-				onOpenChange={(open) =>
+				onOpenChange={(open: boolean) =>
 					setNewKey({ open, key: open ? newKey.key : "" })
 				}
 			>

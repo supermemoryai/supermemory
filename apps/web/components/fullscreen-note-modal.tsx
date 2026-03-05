@@ -85,7 +85,7 @@ export function FullscreenNoteModal({
 	}, [isOpen, onClose])
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
 			<DialogContent
 				className={cn(
 					"border-none bg-[#0D121A] flex flex-col p-0 gap-0",

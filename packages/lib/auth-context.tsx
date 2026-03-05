@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}
 
 	const updateOrgMetadata = useCallback((partial: Record<string, unknown>) => {
-		setOrg((prev) => {
+		setOrg((prev: Organization | null) => {
 			if (!prev) return prev
 			return {
 				...prev,

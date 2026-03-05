@@ -152,7 +152,7 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 			{!isMobile && (
 				<Tabs
 					value={viewMode === "list" ? "grid" : viewMode}
-					onValueChange={(v) =>
+					onValueChange={(v: string) =>
 						setViewMode(v === "grid" ? "list" : (v as "graph" | "integrations"))
 					}
 				>

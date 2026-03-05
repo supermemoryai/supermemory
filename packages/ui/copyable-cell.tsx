@@ -5,7 +5,7 @@ import { Label1Regular } from "@ui/text/label/label-1-regular";
 import { AnimatePresence, motion } from "motion/react";
 import * as React from "react";
 
-interface CopyableCellProps extends React.HTMLAttributes<HTMLDivElement> {
+interface CopyableCellProps extends React.ComponentProps<"div"> {
 	value: string;
 	displayValue?: React.ReactNode;
 }
