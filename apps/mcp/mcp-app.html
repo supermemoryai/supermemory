@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Memory Graph</title>
+</head>
+<body>
+  <div id="graph"></div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Loading memory graph...</span>
+  </div>
+
+  <div id="stats"></div>
+
+  <div id="popup">
+    <span id="popup-type"></span>
+    <div id="popup-title"></div>
+    <div id="popup-content"></div>
+    <div id="popup-meta"></div>
+  </div>
+
+  <div id="controls">
+    <button id="fit-btn" title="Fit to view">&#x229E;</button>
+    <button id="zoom-in" title="Zoom in">+</button>
+    <button id="zoom-out" title="Zoom out">&minus;</button>
+  </div>
+
+  <div id="legend">
+    <div class="legend-row">
+      <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,1.5 10.4,3.75 10.4,8.25 6,10.5 1.6,8.25 1.6,3.75" fill="#0D2034" stroke="#3B73B8" stroke-width="1.2"/></svg>
+      <span>Memory</span>
+    </div>
+    <div class="legend-row">
+      <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,1.5 10.4,3.75 10.4,8.25 6,10.5 1.6,8.25 1.6,3.75" fill="#0D2034" stroke="#10B981" stroke-width="1.2"/></svg>
+      <span>Recent (&lt;1d)</span>
+    </div>
+    <div class="legend-row">
+      <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,1.5 10.4,3.75 10.4,8.25 6,10.5 1.6,8.25 1.6,3.75" fill="#0D2034" stroke="#F59E0B" stroke-width="1.2"/></svg>
+      <span>Expiring</span>
+    </div>
+    <div class="legend-row">
+      <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,1.5 10.4,3.75 10.4,8.25 6,10.5 1.6,8.25 1.6,3.75" fill="#0D2034" stroke="#EF4444" stroke-width="1.2"/></svg>
+      <span>Forgotten</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-doc"></div>
+      <span>Document</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-line" style="border-color: #4A5568;"></div>
+      <span>Doc &rarr; Memory</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-line" style="border-color: #8B5CF6; border-width: 2px;"></div>
+      <span>Version</span>
+    </div>
+    <div class="legend-row">
+      <div class="legend-line dashed" style="border-color: #00D4B8;"></div>
+      <span>Similarity</span>
+    </div>
+  </div>
+
+  <script type="module" src="/src/ui/mcp-app.ts"></script>
+</body>
+</html>

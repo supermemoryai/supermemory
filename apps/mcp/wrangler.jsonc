@@ -1,9 +1,14 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "supermemory-mcp",
+	"build": {
+		"command": "bun run build:ui"
+	},
 	"main": "src/index.ts",
 	"compatibility_date": "2025-01-01",
 	"compatibility_flags": ["nodejs_compat"],
+
+	"rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": false }],
 
 	"vars": {
 		"API_URL": "https://api.supermemory.ai"

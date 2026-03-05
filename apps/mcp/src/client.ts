@@ -37,6 +37,54 @@ export interface Project {
 	documentCount?: number
 }
 
+// Graph API types
+export interface GraphApiMemory {
+	id: string
+	memory: string
+	isStatic: boolean
+	isLatest: boolean
+	isForgotten: boolean
+	forgetAfter: string | null
+	version: number
+	parentMemoryId: string | null
+	createdAt: string
+	updatedAt: string
+}
+
+export interface GraphApiDocument {
+	id: string
+	title: string | null
+	summary: string | null
+	documentType: string
+	createdAt: string
+	updatedAt: string
+	x: number
+	y: number
+	memories: GraphApiMemory[]
+}
+
+export interface GraphApiEdge {
+	source: string
+	target: string
+	similarity: number
+}
+
+export interface GraphViewportResponse {
+	documents: GraphApiDocument[]
+	edges: GraphApiEdge[]
+	viewport: { minX: number; maxX: number; minY: number; maxY: number }
+	totalCount: number
+}
+
+export interface GraphBoundsResponse {
+	bounds: {
+		minX: number
+		maxX: number
+		minY: number
+		maxY: number
+	} | null
+}
+
 function limitByChars(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
@@ -210,6 +258,58 @@ export class SupermemoryClient {
 				projects: Project[]
 			}
 			return data.projects?.map((p) => p.containerTag) || []
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	// Fetch graph bounds for coordinate range
+	async getGraphBounds(containerTags?: string[]): Promise<GraphBoundsResponse> {
+		try {
+			const params = new URLSearchParams()
+			if (containerTags?.length) {
+				params.set("containerTags", JSON.stringify(containerTags))
+			}
+			const url = `${this.apiUrl}/v3/graph/bounds${params.toString() ? `?${params}` : ""}`
+			const response = await fetch(url, {
+				method: "GET",
+				headers: {
+					Authorization: `Bearer ${this.bearerToken}`,
+					"Content-Type": "application/json",
+				},
+			})
+			if (!response.ok) {
+				throw Object.assign(new Error("Failed to fetch graph bounds"), {
+					status: response.status,
+				})
+			}
+			return (await response.json()) as GraphBoundsResponse
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
+	// Fetch graph data for a viewport region
+	async getGraphViewport(
+		viewport: { minX: number; maxX: number; minY: number; maxY: number },
+		containerTags?: string[],
+		limit = 200,
+	): Promise<GraphViewportResponse> {
+		try {
+			const response = await fetch(`${this.apiUrl}/v3/graph/viewport`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${this.bearerToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ viewport, containerTags, limit }),
+			})
+			if (!response.ok) {
+				throw Object.assign(new Error("Failed to fetch graph viewport"), {
+					status: response.status,
+				})
+			}
+			return (await response.json()) as GraphViewportResponse
 		} catch (error) {
 			this.handleError(error)
 		}
