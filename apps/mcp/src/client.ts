@@ -3,13 +3,21 @@ import Supermemory from "supermemory"
 const MAX_CHARS = 200000 // ~50k tokens (character-based limit)
 const DEFAULT_PROJECT_ID = "sm_project_default"
 
-export interface Memory {
-	id: string
-	memory: string
-	similarity: number
-	title?: string
-	content?: string
-}
+export type Memory =
+	| {
+			id: string
+			memory: string
+			similarity: number
+			title?: string
+			content?: string
+	  }
+	| {
+			id: string
+			chunk: string
+			similarity: number
+			title?: string
+			content?: string
+	  }
 
 export interface SearchResult {
 	results: Memory[]
@@ -85,6 +93,10 @@ export interface GraphBoundsResponse {
 	} | null
 }
 
+export function getMemoryText(m: Memory): string {
+	return "memory" in m ? m.memory : m.chunk
+}
+
 function limitByChars(text: string, maxChars = MAX_CHARS): string {
 	return text.length > maxChars ? `${text.slice(0, maxChars)}...` : text
 }
@@ -93,6 +105,7 @@ function limitByChars(text: string, maxChars = MAX_CHARS): string {
 interface SDKResult {
 	id: string
 	memory?: string
+	chunk?: string
 	content?: string
 	similarity: number
 	title?: string
@@ -157,11 +170,23 @@ export class SupermemoryClient {
 				}
 			}
 
-			// Delete the most similar match
-			const memoryToDelete = searchResult.results[0]
-			await this.client.documents.delete(memoryToDelete.id)
+			// Only actual memories (not chunks) can be forgotten
+			const memoryToDelete = searchResult.results.find((r) => "memory" in r)
+			if (!memoryToDelete) {
+				return {
+					success: false,
+					message:
+						"No matching memory found to forget (only document chunks matched).",
+					containerTag: this.containerTag,
+				}
+			}
+			await this.client.memories.forget({
+				id: memoryToDelete.id,
+				containerTag: this.containerTag,
+			})
 
-			const memoryText = memoryToDelete.memory || memoryToDelete.content || ""
+			const memoryText =
+				getMemoryText(memoryToDelete) || memoryToDelete.content || ""
 			return {
 				success: true,
 				message: `Forgot: "${limitByChars(memoryText, 100)}"`,
@@ -182,14 +207,22 @@ export class SupermemoryClient {
 				searchMode: "hybrid",
 			})
 
-			// Normalize and limit response size
-			const results: Memory[] = (result.results as SDKResult[]).map((r) => ({
-				id: r.id,
-				memory: limitByChars(r.content || r.memory || r.context || ""),
-				similarity: r.similarity,
-				title: r.title,
-				content: r.content,
-			}))
+			// Normalize and limit response size — preserve memory vs chunk distinction
+			const results: Memory[] = (result.results as SDKResult[]).map((r) => {
+				const text = limitByChars(
+					r.content || r.memory || r.chunk || r.context || "",
+				)
+				const base = {
+					id: r.id,
+					similarity: r.similarity,
+					title: r.title,
+					content: r.content,
+				}
+				if (r.chunk && !r.memory) {
+					return { ...base, chunk: text }
+				}
+				return { ...base, memory: text }
+			})
 
 			return {
 				results,
@@ -218,13 +251,21 @@ export class SupermemoryClient {
 
 			if (result.searchResults) {
 				response.searchResults = {
-					results: (result.searchResults.results as SDKResult[]).map((r) => ({
-						id: r.id,
-						memory: limitByChars(r.content || r.memory || r.context || ""),
-						similarity: r.similarity,
-						title: r.title,
-						content: r.content,
-					})),
+					results: (result.searchResults.results as SDKResult[]).map((r) => {
+						const text = limitByChars(
+							r.content || r.memory || r.chunk || r.context || "",
+						)
+						const base = {
+							id: r.id,
+							similarity: r.similarity,
+							title: r.title,
+							content: r.content,
+						}
+						if (r.chunk && !r.memory) {
+							return { ...base, chunk: text }
+						}
+						return { ...base, memory: text }
+					}),
 					total: result.searchResults.total,
 					timing: result.searchResults.timing,
 				}

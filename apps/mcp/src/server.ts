@@ -5,10 +5,9 @@ import {
 	registerAppResource,
 	RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server"
-import { SupermemoryClient } from "./client"
+import { SupermemoryClient, getMemoryText } from "./client"
 import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
-// @ts-expect-error - wrangler handles HTML imports as text modules via rules config
 import mcpAppHtml from "../dist/mcp-app.html"
 
 type Env = {
@@ -670,7 +669,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 							`\n### Memory ${i + 1} (${Math.round(memory.similarity * 100)}% match)`,
 						)
 						if (memory.title) parts.push(`**${memory.title}**`)
-						parts.push(memory.memory)
+						parts.push(getMemoryText(memory))
 					}
 				}
 
@@ -736,7 +735,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					`\n### Memory ${i + 1} (${Math.round(memory.similarity * 100)}% match)`,
 				)
 				if (memory.title) parts.push(`**${memory.title}**`)
-				parts.push(memory.memory)
+				parts.push(getMemoryText(memory))
 			}
 
 			return { content: [{ type: "text" as const, text: parts.join("\n") }] }
