@@ -3,12 +3,22 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
+	"exports": {
+		"./*": "./*"
+	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^1.2.12",
 		"@ai-sdk/google": "^1.2.22",
 		"@ai-sdk/groq": "^1.2.9",
+		"@better-fetch/fetch": "^1.1.18",
 		"@tanstack/react-query": "^5.90.14",
 		"@tanstack/react-query-devtools": "^5.84.2",
-		"ai-gateway-provider": "^0.0.11"
+		"ai-gateway-provider": "^0.0.11",
+		"better-auth": "^1.3.3",
+		"clsx": "^2.1.1",
+		"posthog-js": "^1.336.0",
+		"sonner": "^2.0.5",
+		"tailwind-merge": "^3.3.1",
+		"zod": "^3.25.76"
 	}
 }
