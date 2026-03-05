@@ -6,8 +6,7 @@
     "dev": "turbo run dev",
     "format-lint": "bunx biome check --write",
     "check-types": "turbo run check-types",
-    "sentry:sourcemaps": "_SENTRY_RELEASE=$(sentry-cli releases propose-version) && sentry-cli releases new $_SENTRY_RELEASE --org=supermemory --project=consumer-app && sentry-cli sourcemaps upload --org=supermemory --project=consumer-app --release=$_SENTRY_RELEASE --strip-prefix 'dist/..' dist",
-    "postbuild": "bun run sentry:sourcemaps"
+    "sentry:sourcemaps": "_SENTRY_RELEASE=$(sentry-cli releases propose-version) && sentry-cli releases new $_SENTRY_RELEASE --org=supermemory --project=consumer-app && sentry-cli sourcemaps upload --org=supermemory --project=consumer-app --release=$_SENTRY_RELEASE --strip-prefix 'dist/..' dist"
   },
   "engines": {
     "node": ">=20"
@@ -33,8 +32,8 @@
     "@vanilla-extract/recipes": "^0.5.7",
     "ai": "^5.0.59",
     "alchemy": "^0.81.4",
-    "autumn-js": "0.0.116",
     "atmn": "^0.0.16",
+    "autumn-js": "0.0.116",
     "better-auth": "~1.4.17",
     "boxen": "^8.0.1",
     "cloudflare": "^4.5.0",
