@@ -415,7 +415,7 @@ export default function LoginPage() {
 												"aria-invalid": error ? "true" : "false",
 												disabled: isLoading,
 												id: "email",
-												onChange: (e) => {
+												onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
 													setEmail(e.target.value)
 													error && setError(null)
 												},

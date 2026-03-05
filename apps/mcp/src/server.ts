@@ -1,8 +1,15 @@
 import { McpAgent } from "agents/mcp"
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import {
+	registerAppTool,
+	registerAppResource,
+	RESOURCE_MIME_TYPE,
+} from "@modelcontextprotocol/ext-apps/server"
 import { SupermemoryClient } from "./client"
 import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
+// @ts-expect-error - wrangler handles HTML imports as text modules via rules config
+import mcpAppHtml from "../dist/mcp-app.html"
 
 type Env = {
 	MCP_SERVER: DurableObjectNamespace
@@ -273,6 +280,170 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					],
 				}
 			},
+		)
+
+		// Register memory-graph tool with MCP App UI
+		const memoryGraphResourceUri = "ui://memory-graph/mcp-app.html"
+
+		const memoryGraphSchema = z.object({
+			...(hasRootContainerTag ? {} : containerTagField),
+		})
+
+		type MemoryGraphArgs = z.infer<typeof memoryGraphSchema>
+
+		registerAppTool(
+			this.server,
+			"memory-graph",
+			{
+				title: "Memory Graph",
+				description:
+					"Visualize the user's memory graph as an interactive force-directed graph showing documents, memories, and their relationships.",
+				inputSchema: memoryGraphSchema,
+				_meta: { ui: { resourceUri: memoryGraphResourceUri } },
+			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
+			async (args: MemoryGraphArgs) => {
+				try {
+					const effectiveContainerTag =
+						(args as { containerTag?: string }).containerTag ||
+						this.props?.containerTag
+					const client = this.getClient(effectiveContainerTag)
+					const containerTags = effectiveContainerTag
+						? [effectiveContainerTag]
+						: undefined
+
+					const [bounds, viewport] = await Promise.all([
+						client.getGraphBounds(containerTags),
+						client.getGraphViewport(
+							{ minX: 0, maxX: 1000, minY: 0, maxY: 1000 },
+							containerTags,
+							200,
+						),
+					])
+
+					const memoryCount = viewport.documents.reduce(
+						(sum, d) => sum + d.memories.length,
+						0,
+					)
+					const textParts = [
+						`Memory Graph: ${viewport.documents.length} documents, ${memoryCount} memories, ${viewport.edges.length} connections`,
+					]
+					if (effectiveContainerTag) {
+						textParts.push(`Project: ${effectiveContainerTag}`)
+					}
+
+					return {
+						content: [{ type: "text" as const, text: textParts.join(". ") }],
+						structuredContent: {
+							containerTag: effectiveContainerTag,
+							bounds: bounds.bounds,
+							documents: viewport.documents,
+							edges: viewport.edges,
+							totalCount: viewport.totalCount,
+						},
+					}
+				} catch (error) {
+					const message =
+						error instanceof Error
+							? error.message
+							: "An unexpected error occurred"
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `Error loading memory graph: ${message}`,
+							},
+						],
+						isError: true,
+					}
+				}
+			},
+		)
+
+		// App-only tool for the UI to fetch additional graph data
+		registerAppTool(
+			this.server,
+			"fetch-graph-data",
+			{
+				description: "Fetch graph data for a viewport region",
+				inputSchema: z.object({
+					containerTag: z.string().optional(),
+					viewport: z.object({
+						minX: z.number(),
+						maxX: z.number(),
+						minY: z.number(),
+						maxY: z.number(),
+					}),
+					limit: z.number().optional().default(200),
+				}),
+				_meta: {
+					ui: {
+						resourceUri: memoryGraphResourceUri,
+						visibility: ["app"],
+					},
+				},
+			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
+			async (args: {
+				containerTag?: string
+				viewport: {
+					minX: number
+					maxX: number
+					minY: number
+					maxY: number
+				}
+				limit?: number
+			}) => {
+				try {
+					const effectiveContainerTag =
+						args.containerTag || this.props?.containerTag
+					const client = this.getClient(effectiveContainerTag)
+					const containerTags = effectiveContainerTag
+						? [effectiveContainerTag]
+						: undefined
+					const data = await client.getGraphViewport(
+						args.viewport,
+						containerTags,
+						args.limit,
+					)
+
+					return {
+						content: [{ type: "text" as const, text: JSON.stringify(data) }],
+						structuredContent: data,
+					}
+				} catch (error) {
+					const message =
+						error instanceof Error
+							? error.message
+							: "An unexpected error occurred"
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `Error fetching graph data: ${message}`,
+							},
+						],
+						isError: true,
+					}
+				}
+			},
+		)
+
+		// Register HTML resource for the memory graph UI
+		registerAppResource(
+			this.server,
+			"Memory Graph UI",
+			memoryGraphResourceUri,
+			{ mimeType: RESOURCE_MIME_TYPE },
+			async () => ({
+				contents: [
+					{
+						uri: memoryGraphResourceUri,
+						mimeType: RESOURCE_MIME_TYPE,
+						text: mcpAppHtml as string,
+					},
+				],
+			}),
 		)
 
 		this.server.registerPrompt(
