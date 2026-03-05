@@ -100,4 +100,20 @@ This works for Google Drive, Notion, and OneDrive. See the full setup in [Custom
   ```
 
   Use the returned key exactly like a normal API key — it just won't work outside its container scope.
+
+  ### Disable a scoped key
+
+  To revoke a scoped key, send a `DELETE` request with the `id` returned at creation time. This disables the key immediately — any subsequent requests using it will get a `401`. Memories and container tags are **not** affected.
+
+  ```bash
+  curl https://api.supermemory.ai/v3/auth/scoped-key/KEY_ID \
+    --request DELETE \
+    --header 'Authorization: Bearer YOUR_API_KEY'
+  ```
+
+  **Response:**
+
+  ```json
+  { "success": true }
+  ```
 </Accordion>
