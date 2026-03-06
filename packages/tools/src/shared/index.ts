@@ -3,6 +3,7 @@ export type {
 	MemoryPromptData,
 	PromptTemplate,
 	MemoryMode,
+	SearchMode,
 	AddMemoryMode,
 	Logger,
 	ProfileStructure,
@@ -34,9 +35,12 @@ export {
 // Memory client
 export {
 	supermemoryProfileSearch,
+	supermemoryHybridSearch,
 	buildMemoriesText,
 	extractQueryText,
 	getLastUserMessageText,
 	type BuildMemoriesTextOptions,
 	type GenericMessage,
+	type SearchResultItem,
+	type SearchResponse,
 } from "./memory-client"

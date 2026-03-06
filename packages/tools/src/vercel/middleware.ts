@@ -11,6 +11,7 @@ import {
 	type Logger,
 	type PromptTemplate,
 	type MemoryMode,
+	type SearchMode,
 } from "../shared"
 import {
 	type LanguageModelCallOptions,
@@ -179,6 +180,15 @@ interface SupermemoryMiddlewareOptions {
 	 */
 	mode?: MemoryMode
 	/**
+	 * Search mode for memory retrieval:
+	 * - "memories": Search only memory entries (default)
+	 * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+	 * - "documents": Search only document chunks
+	 */
+	searchMode?: SearchMode
+	/** Maximum number of search results to return (default: 10) */
+	searchLimit?: number
+	/**
 	 * Memory persistence mode:
 	 * - "always": Automatically save conversations as memories
 	 * - "never": Only retrieve memories, don't store new ones
@@ -196,6 +206,8 @@ interface SupermemoryMiddlewareContext {
 	containerTag: string
 	conversationId?: string
 	mode: MemoryMode
+	searchMode: SearchMode
+	searchLimit: number
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
 	apiKey: string
@@ -216,6 +228,8 @@ export const createSupermemoryContext = (
 		conversationId,
 		verbose = false,
 		mode = "profile",
+		searchMode = "memories",
+		searchLimit = 10,
 		addMemory = "never",
 		baseUrl,
 		promptTemplate,
@@ -237,6 +251,8 @@ export const createSupermemoryContext = (
 		containerTag,
 		conversationId,
 		mode,
+		searchMode,
+		searchLimit,
 		addMemory,
 		normalizedBaseUrl,
 		apiKey,
@@ -298,6 +314,7 @@ export const transformParamsWithMemory = async (
 		containerTag: ctx.containerTag,
 		conversationId: ctx.conversationId,
 		mode: ctx.mode,
+		searchMode: ctx.searchMode,
 		isNewTurn,
 		cacheHit: false,
 	})
@@ -312,6 +329,8 @@ export const transformParamsWithMemory = async (
 		apiKey: ctx.apiKey,
 		logger: ctx.logger,
 		promptTemplate: ctx.promptTemplate,
+		searchMode: ctx.searchMode,
+		searchLimit: ctx.searchLimit,
 	})
 
 	ctx.memoryCache.set(turnKey, memories)

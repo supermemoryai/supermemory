@@ -117,6 +117,32 @@ const result = await generateText({
 // Uses both profile (user's expertise) AND search (previous debugging sessions)
 ```
 
+### Hybrid Search Mode 
+
+Use `searchMode: "hybrid"` to search both memories AND document chunks. 
+
+```typescript
+const model = withSupermemory(openai("gpt-4"), "user-123", { 
+  mode: "full",
+  searchMode: "hybrid",  // Search memories + document chunks
+  searchLimit: 15        // Max results (default: 10)
+})
+
+const result = await generateText({
+  model,
+  messages: [{ 
+    role: "user", 
+    content: "What's in my documents about quarterly goals?" 
+  }]
+})
+// Searches both extracted memories AND raw document content
+```
+
+**Search Mode Options:**
+- `"memories"` (default) - Search only memory entries
+- `"hybrid"` - Search memories + document chunks
+- `"documents"` - Search only document chunks
+
 ## Custom Prompt Templates
 
 Customize how memories are formatted and injected into the system prompt using the `promptTemplate` option. This is useful for:

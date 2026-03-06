@@ -232,38 +232,6 @@ export const documentListTool = (
 	})
 }
 
-export const documentDeleteTool = (
-	apiKey: string,
-	config?: SupermemoryToolsConfig,
-) => {
-	const client = new Supermemory({
-		apiKey,
-		...(config?.baseUrl ? { baseURL: config.baseUrl } : {}),
-	})
-
-	return tool({
-		description: TOOL_DESCRIPTIONS.documentDelete,
-		inputSchema: z.object({
-			documentId: z.string().describe(PARAMETER_DESCRIPTIONS.documentId),
-		}),
-		execute: async ({ documentId }) => {
-			try {
-				await client.documents.delete({ docId: documentId })
-
-				return {
-					success: true,
-					message: `Document ${documentId} deleted successfully`,
-				}
-			} catch (error) {
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				}
-			}
-		},
-	})
-}
-
 export const documentAddTool = (
 	apiKey: string,
 	config?: SupermemoryToolsConfig,
@@ -383,7 +351,6 @@ export function supermemoryTools(
 		addMemory: addMemoryTool(apiKey, config),
 		getProfile: getProfileTool(apiKey, config),
 		documentList: documentListTool(apiKey, config),
-		documentDelete: documentDeleteTool(apiKey, config),
 		documentAdd: documentAddTool(apiKey, config),
 		memoryForget: memoryForgetTool(apiKey, config),
 	}

@@ -25,6 +25,15 @@ interface WrapVercelLanguageModelOptions {
 	 */
 	mode?: "profile" | "query" | "full"
 	/**
+	 * Search mode for memory retrieval:
+	 * - "memories": Search only memory entries (default)
+	 * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+	 * - "documents": Search only document chunks
+	 */
+	searchMode?: "memories" | "hybrid" | "documents"
+	/** Maximum number of search results to return when using hybrid/documents mode (default: 10) */
+	searchLimit?: number
+	/**
 	 * Memory persistence mode:
 	 * - "always": Automatically save conversations as memories
 	 * - "never": Only retrieve memories, don't store new ones
@@ -69,7 +78,9 @@ interface WrapVercelLanguageModelOptions {
  * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
- * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
+ * @param options.searchMode - Optional search mode: "memories" (default), "hybrid" (memories + chunks), or "documents" (chunks only)
+ * @param options.searchLimit - Optional maximum number of search results when using hybrid/documents mode (default: 10)
+ * @param options.addMemory - Optional mode for memory persistence: "always", "never" (default: "never")
  * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  *
@@ -80,15 +91,22 @@ interface WrapVercelLanguageModelOptions {
  * import { withSupermemory } from "@supermemory/tools/ai-sdk"
  * import { openai } from "@ai-sdk/openai"
  *
+ * // Basic usage with profile memories
  * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123", {
- *   conversationId: "conversation-456",
  *   mode: "full",
  *   addMemory: "always"
  * })
  *
+ * // RAG usage with hybrid search (memories + document chunks)
+ * const ragModel = withSupermemory(openai("gpt-4"), "user-123", {
+ *   mode: "full",
+ *   searchMode: "hybrid",  // Search both memories and document chunks
+ *   searchLimit: 15,
+ * })
+ *
  * const result = await generateText({
- *   model: modelWithMemory,
- *   messages: [{ role: "user", content: "What's my favorite programming language?" }]
+ *   model: ragModel,
+ *   messages: [{ role: "user", content: "What's in my documents about quarterly goals?" }]
  * })
  * ```
  *
@@ -114,6 +132,8 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		conversationId: options?.conversationId,
 		verbose: options?.verbose ?? false,
 		mode: options?.mode ?? "profile",
+		searchMode: options?.searchMode ?? "memories",
+		searchLimit: options?.searchLimit ?? 10,
 		addMemory: options?.addMemory ?? "never",
 		baseUrl: options?.baseUrl,
 		promptTemplate: options?.promptTemplate,

@@ -12,8 +12,6 @@ export const TOOL_DESCRIPTIONS = {
 		"Get user profile containing static memories (permanent facts) and dynamic memories (recent context). Optionally include search results by providing a query.",
 	documentList:
 		"List stored documents with optional filtering by container tag, status, and pagination. Useful for browsing or managing saved content.",
-	documentDelete:
-		"Delete a document and its associated memories by document ID or customId. Deletes are permanent. Use when user wants to remove saved content.",
 	documentAdd:
 		"Add a new document (URL, text, or content) to memory. The content is queued for processing, and memories will be extracted automatically.",
 	memoryForget:
@@ -32,7 +30,6 @@ export const PARAMETER_DESCRIPTIONS = {
 	query: "Optional search query to include relevant search results",
 	offset: "Number of items to skip for pagination (default: 0)",
 	status: "Filter documents by processing status (e.g., 'completed', 'processing', 'failed')",
-	documentId: "The unique identifier of the document to operate on",
 	content: "The content to add - can be text, URL, or other supported formats",
 	title: "Optional title for the document",
 	description: "Optional description for the document",

@@ -5,11 +5,35 @@ import type {
 	MemoryPromptData,
 	ProfileStructure,
 	PromptTemplate,
+	SearchMode,
 } from "./types"
 import {
 	convertProfileToMarkdown,
 	defaultPromptTemplate,
 } from "./prompt-builder"
+
+/**
+ * Search result item from the Supermemory search API.
+ * Contains either a memory field (for memory results) or a chunk field (for document chunks).
+ */
+export interface SearchResultItem {
+	id: string
+	similarity: number
+	memory?: string
+	chunk?: string
+	title?: string
+	content?: string
+	metadata?: Record<string, unknown>
+}
+
+/**
+ * Response structure from the Supermemory search API.
+ */
+export interface SearchResponse {
+	results: SearchResultItem[]
+	total: number
+	timing: number
+}
 
 /**
  * Fetches profile and search results from the Supermemory API.
@@ -62,6 +86,59 @@ export const supermemoryProfileSearch = async (
 }
 
 /**
+ * Performs a hybrid search using the Supermemory search API.
+ * Hybrid search returns both memories AND document chunks.
+ *
+ * @param containerTag - The container tag/user ID for scoping memories
+ * @param queryText - The search query text
+ * @param searchMode - The search mode: "memories", "hybrid", or "documents"
+ * @param baseUrl - The API base URL
+ * @param apiKey - The API key for authentication
+ * @param limit - Maximum number of results to return (default: 10)
+ * @returns The search response with results containing either memory or chunk fields
+ */
+export const supermemoryHybridSearch = async (
+	containerTag: string,
+	queryText: string,
+	searchMode: SearchMode,
+	baseUrl: string,
+	apiKey: string,
+	limit = 10,
+): Promise<SearchResponse> => {
+	const payload = JSON.stringify({
+		q: queryText,
+		containerTag: containerTag,
+		searchMode: searchMode,
+		limit: limit,
+	})
+
+	try {
+		const response = await fetch(`${baseUrl}/v4/search`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: payload,
+		})
+
+		if (!response.ok) {
+			const errorText = await response.text().catch(() => "Unknown error")
+			throw new Error(
+				`Supermemory search failed: ${response.status} ${response.statusText}. ${errorText}`,
+			)
+		}
+
+		return await response.json()
+	} catch (error) {
+		if (error instanceof Error) {
+			throw error
+		}
+		throw new Error(`Supermemory API request failed: ${error}`)
+	}
+}
+
+/**
  * Options for building memories text.
  */
 export interface BuildMemoriesTextOptions {
@@ -72,11 +149,45 @@ export interface BuildMemoriesTextOptions {
 	apiKey: string
 	logger: Logger
 	promptTemplate?: PromptTemplate
+	/**
+	 * Search mode for memory retrieval:
+	 * - "memories": Search only memory entries (default)
+	 * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+	 * - "documents": Search only document chunks
+	 */
+	searchMode?: SearchMode
+	/** Maximum number of search results to return (default: 10) */
+	searchLimit?: number
+}
+
+/**
+ * Formats search results (memories and/or chunks) into a readable string.
+ */
+const formatSearchResults = (
+	results: SearchResultItem[],
+	includeChunks: boolean,
+): string => {
+	if (results.length === 0) return ""
+
+	const formattedResults = results.map((result) => {
+		if (result.memory) {
+			return `- ${result.memory}`
+		}
+		if (result.chunk && includeChunks) {
+			return `- [Document] ${result.chunk}`
+		}
+		return null
+	}).filter(Boolean)
+
+	return formattedResults.join("\n")
 }
 
 /**
  * Fetches memories from the API, deduplicates them, and formats them into
  * the final string to be injected into the system prompt.
+ *
+ * When searchMode is "hybrid" or "documents", uses the search API to retrieve
+ * both memories and document chunks. Otherwise, uses the profile API.
  *
  * @param options - Configuration for building memories text
  * @returns The final formatted memories string ready for injection
@@ -92,64 +203,125 @@ export const buildMemoriesText = async (
 		apiKey,
 		logger,
 		promptTemplate = defaultPromptTemplate,
+		searchMode = "memories",
+		searchLimit = 10,
 	} = options
 
-	const memoriesResponse = await supermemoryProfileSearch(
-		containerTag,
-		queryText,
-		baseUrl,
-		apiKey,
-	)
+	const useHybridSearch = searchMode === "hybrid" || searchMode === "documents"
 
-	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
-	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
+	let userMemories = ""
+	let generalSearchMemories = ""
 
-	logger.info("Memory search completed", {
-		containerTag,
-		memoryCountStatic,
-		memoryCountDynamic,
-		queryText:
-			queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
-		mode,
-	})
+	if (useHybridSearch && queryText) {
+		logger.info("Using hybrid search mode", {
+			containerTag,
+			searchMode,
+			queryText: queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+		})
 
-	const deduplicated = deduplicateMemories({
-		static: memoriesResponse.profile.static,
-		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults?.results,
-	})
+		const searchResponse = await supermemoryHybridSearch(
+			containerTag,
+			queryText,
+			searchMode,
+			baseUrl,
+			apiKey,
+			searchLimit,
+		)
 
-	logger.debug("Memory deduplication completed", {
-		static: {
-			original: memoryCountStatic,
-			deduplicated: deduplicated.static.length,
-		},
-		dynamic: {
-			original: memoryCountDynamic,
-			deduplicated: deduplicated.dynamic.length,
-		},
-		searchResults: {
-			original: memoriesResponse.searchResults?.results?.length,
-			deduplicated: deduplicated.searchResults?.length,
-		},
-	})
+		logger.info("Hybrid search completed", {
+			containerTag,
+			resultCount: searchResponse.results.length,
+			timing: searchResponse.timing,
+			searchMode,
+		})
 
-	const userMemories =
-		mode !== "query"
-			? convertProfileToMarkdown({
-					profile: {
-						static: deduplicated.static,
-						dynamic: deduplicated.dynamic,
-					},
-					searchResults: { results: [] },
-				})
-			: ""
-	const generalSearchMemories =
-		mode !== "profile"
-			? `Search results for user's recent message: \n${deduplicated.searchResults
-					.map((memory) => `- ${memory}`)
-					.join("\n")}`
-			: ""
+		const includeChunks = searchMode === "hybrid" || searchMode === "documents"
+		generalSearchMemories = formatSearchResults(searchResponse.results, includeChunks)
+
+		if (generalSearchMemories) {
+			generalSearchMemories = `Search results for user's recent message:\n${generalSearchMemories}`
+		}
+
+		if (mode !== "query") {
+			const profileResponse = await supermemoryProfileSearch(
+				containerTag,
+				"",
+				baseUrl,
+				apiKey,
+			)
+
+			const deduplicated = deduplicateMemories({
+				static: profileResponse.profile.static,
+				dynamic: profileResponse.profile.dynamic,
+				searchResults: [],
+			})
+
+			userMemories = convertProfileToMarkdown({
+				profile: {
+					static: deduplicated.static,
+					dynamic: deduplicated.dynamic,
+				},
+				searchResults: { results: [] },
+			})
+		}
+	} else {
+		const memoriesResponse = await supermemoryProfileSearch(
+			containerTag,
+			queryText,
+			baseUrl,
+			apiKey,
+		)
+
+		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
+		const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
+
+		logger.info("Memory search completed", {
+			containerTag,
+			memoryCountStatic,
+			memoryCountDynamic,
+			queryText:
+				queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+			mode,
+		})
+
+		const deduplicated = deduplicateMemories({
+			static: memoriesResponse.profile.static,
+			dynamic: memoriesResponse.profile.dynamic,
+			searchResults: memoriesResponse.searchResults?.results,
+		})
+
+		logger.debug("Memory deduplication completed", {
+			static: {
+				original: memoryCountStatic,
+				deduplicated: deduplicated.static.length,
+			},
+			dynamic: {
+				original: memoryCountDynamic,
+				deduplicated: deduplicated.dynamic.length,
+			},
+			searchResults: {
+				original: memoriesResponse.searchResults?.results?.length,
+				deduplicated: deduplicated.searchResults?.length,
+			},
+		})
+
+		userMemories =
+			mode !== "query"
+				? convertProfileToMarkdown({
+						profile: {
+							static: deduplicated.static,
+							dynamic: deduplicated.dynamic,
+						},
+						searchResults: { results: [] },
+					})
+				: ""
+		generalSearchMemories =
+			mode !== "profile"
+				? `Search results for user's recent message: \n${deduplicated.searchResults
+						.map((memory) => `- ${memory}`)
+						.join("\n")}`
+				: ""
+	}
 
 	const promptData: MemoryPromptData = {
 		userMemories,

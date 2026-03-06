@@ -41,6 +41,14 @@ export type PromptTemplate = (data: MemoryPromptData) => string
 export type MemoryMode = "profile" | "query" | "full"
 
 /**
+ * Search mode for memory retrieval:
+ * - "memories": Search only memory entries (default)
+ * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+ * - "documents": Search only document chunks
+ */
+export type SearchMode = "memories" | "hybrid" | "documents"
+
+/**
  * Memory persistence mode:
  * - "always": Automatically save conversations as memories
  * - "never": Only retrieve memories, don't store new ones
@@ -110,6 +118,15 @@ export interface SupermemoryBaseOptions {
 	threadId?: string
 	/** Memory retrieval mode */
 	mode?: MemoryMode
+	/**
+	 * Search mode for memory retrieval:
+	 * - "memories": Search only memory entries (default)
+	 * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+	 * - "documents": Search only document chunks
+	 */
+	searchMode?: SearchMode
+	/** Maximum number of search results to return when using hybrid/documents mode (default: 10) */
+	searchLimit?: number
 	/** Memory persistence mode */
 	addMemory?: AddMemoryMode
 	/** Enable detailed logging of memory search and injection */

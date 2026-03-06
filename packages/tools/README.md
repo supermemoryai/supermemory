@@ -184,6 +184,29 @@ const result = await generateText({
 })
 ```
 
+**Hybrid Search Mode (RAG)** - Search both memories AND document chunks:
+```typescript
+import { generateText } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { openai } from "@ai-sdk/openai"
+
+const modelWithHybrid = withSupermemory(openai("gpt-4"), "user-123", { 
+  mode: "full",
+  searchMode: "hybrid",  // Search memories + document chunks
+  searchLimit: 15        // Max results (default: 10)
+})
+
+const result = await generateText({
+  model: modelWithHybrid,
+  messages: [{ role: "user", content: "What's in my documents about quarterly goals?" }],
+})
+```
+
+Search mode options:
+- `"memories"` (default) - Search only memory entries
+- `"hybrid"` - Search memories + document chunks (recommended for RAG)
+- `"documents"` - Search only document chunks
+
 #### Automatic Memory Capture
 
 The middleware can automatically save user messages as memories:
@@ -652,6 +675,8 @@ interface WithSupermemoryOptions {
   conversationId?: string
   verbose?: boolean
   mode?: "profile" | "query" | "full"
+  searchMode?: "memories" | "hybrid" | "documents"
+  searchLimit?: number
   addMemory?: "always" | "never"
   /** Optional Supermemory API key. Use this in browser environments. */
   apiKey?: string
@@ -661,6 +686,8 @@ interface WithSupermemoryOptions {
 - **conversationId**: Optional conversation ID to group messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
+- **searchMode**: Search mode - "memories" (default), "hybrid", or "documents". Use "hybrid" for RAG applications
+- **searchLimit**: Maximum number of search results when using hybrid/documents mode (default: 10)
 - **addMemory**: Automatic memory storage mode - "always" or "never" (default: "never")
 
 ## Available Tools
