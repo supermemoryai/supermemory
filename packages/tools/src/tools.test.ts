@@ -34,6 +34,11 @@ describe("@supermemory/tools", () => {
 				expect(tools).toBeDefined()
 				expect(tools.searchMemories).toBeDefined()
 				expect(tools.addMemory).toBeDefined()
+				expect(tools.getProfile).toBeDefined()
+				expect(tools.documentList).toBeDefined()
+				expect(tools.documentDelete).toBeDefined()
+				expect(tools.documentAdd).toBeDefined()
+				expect(tools.memoryForget).toBeDefined()
 			})
 
 			it("should create tools with custom baseUrl", () => {
@@ -45,6 +50,11 @@ describe("@supermemory/tools", () => {
 				expect(tools).toBeDefined()
 				expect(tools.searchMemories).toBeDefined()
 				expect(tools.addMemory).toBeDefined()
+				expect(tools.getProfile).toBeDefined()
+				expect(tools.documentList).toBeDefined()
+				expect(tools.documentDelete).toBeDefined()
+				expect(tools.documentAdd).toBeDefined()
+				expect(tools.memoryForget).toBeDefined()
 			})
 
 			it("should create individual tools", () => {
@@ -54,9 +64,29 @@ describe("@supermemory/tools", () => {
 				const addTool = aiSdk.addMemoryTool(testApiKey, {
 					projectId: "test-project-123",
 				})
+				const profileTool = aiSdk.getProfileTool(testApiKey, {
+					projectId: "test-project-123",
+				})
+				const listTool = aiSdk.documentListTool(testApiKey, {
+					projectId: "test-project-123",
+				})
+				const deleteTool = aiSdk.documentDeleteTool(testApiKey, {
+					projectId: "test-project-123",
+				})
+				const addDocTool = aiSdk.documentAddTool(testApiKey, {
+					projectId: "test-project-123",
+				})
+				const forgetTool = aiSdk.memoryForgetTool(testApiKey, {
+					projectId: "test-project-123",
+				})
 
 				expect(searchTool).toBeDefined()
 				expect(addTool).toBeDefined()
+				expect(profileTool).toBeDefined()
+				expect(listTool).toBeDefined()
+				expect(deleteTool).toBeDefined()
+				expect(addDocTool).toBeDefined()
+				expect(forgetTool).toBeDefined()
 			})
 		})
 
@@ -122,6 +152,128 @@ describe("@supermemory/tools", () => {
 
 				expect(result).toBeDefined()
 				expect(result.text).toBeDefined()
+			})
+
+			it("should work with new profile tool", async () => {
+				const openai = createOpenAI({
+					apiKey: testOpenAIKey,
+				})
+
+				const tools = aiSdk.supermemoryTools(testApiKey, {
+					projectId: "test-profile-tool",
+					baseUrl: testBaseUrl,
+				})
+
+				const result = await generateText({
+					model: openai(testModelName),
+					messages: [
+						{
+							role: "system",
+							content:
+								"You are a helpful assistant. When asked about user profile or preferences, use the getProfile tool.",
+						},
+						{
+							role: "user",
+							content: "What do you know about me?",
+						},
+					],
+					tools: {
+						getProfile: tools.getProfile,
+					},
+				})
+
+				expect(result).toBeDefined()
+				expect(result.text).toBeDefined()
+			})
+
+			it("should work with new document tools", async () => {
+				const openai = createOpenAI({
+					apiKey: testOpenAIKey,
+				})
+
+				const tools = aiSdk.supermemoryTools(testApiKey, {
+					projectId: "test-document-tools",
+					baseUrl: testBaseUrl,
+				})
+
+				const result = await generateText({
+					model: openai(testModelName),
+					messages: [
+						{
+							role: "system",
+							content:
+								"You are a helpful assistant. When asked to list documents, use the documentList tool.",
+						},
+						{
+							role: "user",
+							content: "Show me my saved documents",
+						},
+					],
+					tools: {
+						documentList: tools.documentList,
+					},
+				})
+
+				expect(result).toBeDefined()
+				expect(result.text).toBeDefined()
+			})
+		})
+
+		describe("new tool operations", () => {
+			it("should get profile with getProfileTool", async () => {
+				const profileTool = aiSdk.getProfileTool(testApiKey, {
+					projectId: "test-profile",
+					baseUrl: testBaseUrl,
+				})
+
+				// Verify tool is a valid CoreTool from AI SDK
+				expect(profileTool).toBeDefined()
+				expect(profileTool.description).toBeDefined()
+				expect(typeof profileTool.description).toBe("string")
+			})
+
+			it("should list documents with documentListTool", async () => {
+				const listTool = aiSdk.documentListTool(testApiKey, {
+					projectId: "test-list",
+					baseUrl: testBaseUrl,
+				})
+
+				expect(listTool).toBeDefined()
+				expect(listTool.description).toBeDefined()
+				expect(typeof listTool.description).toBe("string")
+			})
+
+			it("should create documentDeleteTool", async () => {
+				const deleteTool = aiSdk.documentDeleteTool(testApiKey, {
+					projectId: "test-delete",
+					baseUrl: testBaseUrl,
+				})
+
+				expect(deleteTool).toBeDefined()
+				expect(deleteTool.description).toBeDefined()
+				expect(typeof deleteTool.description).toBe("string")
+			})
+
+			it("should create documentAddTool", async () => {
+				const addDocTool = aiSdk.documentAddTool(testApiKey, {
+					projectId: "test-add-doc",
+					baseUrl: testBaseUrl,
+				})
+
+				expect(addDocTool).toBeDefined()
+				expect(addDocTool.description).toBeDefined()
+				expect(typeof addDocTool.description).toBe("string")
+			})
+
+			it("should create memoryForgetTool", async () => {
+				const forgetTool = aiSdk.memoryForgetTool(testApiKey, {
+					projectId: "test-forget",
+					baseUrl: testBaseUrl,
+				})
+
+				expect(forgetTool).toBeDefined()
+				expect(forgetTool.description).toBeDefined()
+				expect(typeof forgetTool.description).toBe("string")
 			})
 		})
 	})

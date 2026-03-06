@@ -89,15 +89,33 @@ export function withSupermemory(
 }
 
 export type { OpenAIMiddlewareOptions }
-export type { MemorySearchResult, MemoryAddResult } from "./tools"
+export type {
+	MemorySearchResult,
+	MemoryAddResult,
+	ProfileResult,
+	DocumentListResult,
+	DocumentDeleteResult,
+	DocumentAddResult,
+	MemoryForgetResult,
+} from "./tools"
 export {
 	createSearchMemoriesFunction,
 	createAddMemoryFunction,
+	createGetProfileFunction,
+	createDocumentListFunction,
+	createDocumentDeleteFunction,
+	createDocumentAddFunction,
+	createMemoryForgetFunction,
 	supermemoryTools,
 	getToolDefinitions,
 	createToolCallExecutor,
 	createToolCallsExecutor,
 	createSearchMemoriesTool,
 	createAddMemoryTool,
+	createGetProfileTool,
+	createDocumentListTool,
+	createDocumentDeleteTool,
+	createDocumentAddTool,
+	createMemoryForgetTool,
 	memoryToolSchemas,
 } from "./tools"
