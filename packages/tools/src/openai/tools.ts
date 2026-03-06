@@ -37,9 +37,7 @@ export interface ProfileResult {
 export interface DocumentListResult {
 	success: boolean
 	documents?: Awaited<ReturnType<Supermemory["documents"]["list"]>>["documents"]
-	pagination?: Awaited<
-		ReturnType<Supermemory["documents"]["list"]>
-	>["pagination"]
+	pagination?: Awaited<ReturnType<Supermemory["documents"]["list"]>>["pagination"]
 	error?: string
 }
 
