@@ -1,13 +1,13 @@
 "use client";
 
 import { useIsMobile } from "@hooks/use-mobile";
-import { cn } from "@repo/lib/utils";
+import { cn } from "@lib/utils";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
-} from "@repo/ui/components/collapsible";
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+} from "@ui/components/collapsible";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { Brain, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import { colors } from "./constants";

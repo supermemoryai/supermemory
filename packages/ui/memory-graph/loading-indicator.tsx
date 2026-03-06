@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@repo/lib/utils";
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { cn } from "@lib/utils";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { Sparkles } from "lucide-react";
 import { memo } from "react";
 import type { LoadingIndicatorProps } from "./types";

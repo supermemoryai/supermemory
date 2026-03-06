@@ -1,9 +1,9 @@
 "use client";
 
-import { cn } from "@repo/lib/utils";
-import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { cn } from "@lib/utils";
+import { Badge } from "@ui/components/badge";
+import { Button } from "@ui/components/button";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { Brain, Calendar, ExternalLink, FileText, Hash, X } from "lucide-react";
 import { motion } from "motion/react";
 import { memo } from "react";

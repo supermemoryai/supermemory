@@ -1,7 +1,7 @@
 "use client"
 
 import { useAuth } from "@lib/auth-context"
-import { $fetch } from "@repo/lib/api"
+import { $fetch } from "@lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"

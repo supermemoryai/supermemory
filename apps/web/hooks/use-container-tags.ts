@@ -2,8 +2,8 @@
 
 import { useQuery } from "@tanstack/react-query"
 import { useMemo } from "react"
-import { $fetch } from "@repo/lib/api"
-import type { ContainerTagListType } from "@repo/lib/types"
+import { $fetch } from "@lib/api"
+import type { ContainerTagListType } from "@lib/types"
 
 export function useContainerTags() {
 	const { data: allProjects = [], isLoading } = useQuery({

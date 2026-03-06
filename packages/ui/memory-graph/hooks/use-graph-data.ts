@@ -4,7 +4,7 @@ import {
 	calculateSemanticSimilarity,
 	getConnectionVisualProps,
 	getMagicalConnectionColor,
-} from "@repo/lib/similarity";
+} from "@lib/similarity";
 import { useMemo } from "react";
 import { colors, LAYOUT_CONSTANTS } from "../constants";
 import type {

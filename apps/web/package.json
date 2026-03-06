@@ -104,7 +104,9 @@
     "tw-animate-css": "^1.3.4",
     "use-debounce": "^10.1.0",
     "vaul": "^1.1.2",
-    "zustand": "^5.0.7"
+    "zustand": "^5.0.7",
+    "@repo/lib": "workspace:*",
+    "@repo/validation": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.2",

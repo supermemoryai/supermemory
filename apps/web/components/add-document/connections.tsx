@@ -1,7 +1,7 @@
 "use client"
 
 import { $fetch } from "@lib/api"
-import { fetchConnectionsFeature } from "@repo/lib/queries"
+import { fetchConnectionsFeature } from "@lib/queries"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"

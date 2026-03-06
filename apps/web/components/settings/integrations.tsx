@@ -10,7 +10,7 @@ import {
 	ADD_MEMORY_SHORTCUT_URL,
 	RAYCAST_EXTENSION_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
-} from "@repo/lib/constants"
+} from "@lib/constants"
 import {
 	Dialog,
 	DialogContent,

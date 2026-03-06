@@ -7,8 +7,8 @@ import { cn } from "@lib/utils"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon, Search, Check } from "lucide-react"
 import { Button } from "@ui/components/button"
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
-import type { ContainerTagListType } from "@repo/lib/types"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
+import type { ContainerTagListType } from "@lib/types"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean

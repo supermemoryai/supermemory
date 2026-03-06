@@ -4,7 +4,7 @@ import { $fetch } from "@lib/api"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useProject } from "@/stores"
-import type { ContainerTagListType } from "@repo/lib/types"
+import type { ContainerTagListType } from "@lib/types"
 
 export function useProjectMutations() {
 	const queryClient = useQueryClient()

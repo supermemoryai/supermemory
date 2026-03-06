@@ -14,7 +14,7 @@
 		"@tanstack/react-query": "^5.90.14",
 		"@tanstack/react-query-devtools": "^5.84.2",
 		"ai-gateway-provider": "^0.0.11",
-		"better-auth": "^1.3.3",
+		"better-auth": "1.3.3",
 		"clsx": "^2.1.1",
 		"posthog-js": "^1.336.0",
 		"sonner": "^2.0.5",

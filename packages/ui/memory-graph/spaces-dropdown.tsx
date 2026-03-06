@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@repo/lib/utils";
-import { Badge } from "@repo/ui/components/badge";
+import { cn } from "@lib/utils";
+import { Badge } from "@ui/components/badge";
 import { ChevronDown, Eye } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import type { SpacesDropdownProps } from "./types";

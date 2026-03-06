@@ -64,6 +64,10 @@
     "typescript": "5.8.3",
     "wrangler": "^4.42.2"
   },
+  "overrides": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3"
+  },
   "workerd": {
     "import": "./esm/index.mjs",
     "require": "./dist/index.js"
