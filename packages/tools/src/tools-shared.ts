@@ -8,6 +8,16 @@ export const TOOL_DESCRIPTIONS = {
 		"Search (recall) memories/details/information about the user or other facts or entities. Run when explicitly asked or when context about user's past choices would be helpful.",
 	addMemory:
 		"Add (remember) memories/details/information about the user or other facts or entities. Run when explicitly asked or when the user mentions any information generalizable beyond the context of the current conversation.",
+	getProfile:
+		"Get user profile containing static memories (permanent facts) and dynamic memories (recent context). Optionally include search results by providing a query.",
+	documentList:
+		"List stored documents with optional filtering by container tag, status, and pagination. Useful for browsing or managing saved content.",
+	documentDelete:
+		"Delete a specific document and its associated memories by document ID. Use when user wants to remove saved content.",
+	documentAdd:
+		"Add a new document (URL, text, or content) to memory. The content will be processed and memories will be extracted automatically.",
+	memoryForget:
+		"Forget (soft delete) a specific memory by ID or content match. The memory is marked as forgotten but not permanently deleted. Use when user wants to remove specific information from their profile.",
 } as const
 
 // Parameter descriptions
@@ -18,6 +28,17 @@ export const PARAMETER_DESCRIPTIONS = {
 	limit: "Maximum number of results to return",
 	memory:
 		"The text content of the memory to add. This should be a single sentence or a short paragraph.",
+	containerTag: "Tag to filter/scope the operation (e.g., user ID, project ID)",
+	query: "Optional search query to include relevant search results",
+	offset: "Number of items to skip for pagination (default: 0)",
+	status: "Filter documents by processing status (e.g., 'completed', 'processing', 'failed')",
+	documentId: "The unique identifier of the document to operate on",
+	content: "The content to add - can be text, URL, or other supported formats",
+	title: "Optional title for the document",
+	description: "Optional description for the document",
+	memoryId: "The unique identifier of the memory entry",
+	memoryContent: "Exact content match of the memory entry to operate on (alternative to ID)",
+	reason: "Optional reason for forgetting this memory",
 } as const
 
 // Default values
