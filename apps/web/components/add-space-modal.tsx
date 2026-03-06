@@ -117,7 +117,7 @@ export function AddSpaceModal({
 	}
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && handleClose()}>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
 				className={cn(
 					"w-[90%]! max-w-[500px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-4 rounded-[22px]",

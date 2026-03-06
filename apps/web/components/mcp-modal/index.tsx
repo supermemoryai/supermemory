@@ -19,7 +19,7 @@ export function MCPModal({
 	const { selectedProject } = useProject()
 	const { switchProject } = useProjectMutations()
 	return (
-		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
 					"w-[90vw]! max-w-[900px]! max-h-[min(75vh,560px)]! border-none bg-[#1B1F24] flex flex-col p-4 gap-3 rounded-[22px]",

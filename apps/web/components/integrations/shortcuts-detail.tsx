@@ -180,7 +180,7 @@ export function ShortcutsDetail() {
 
 			<Dialog
 				open={showApiKeyModal}
-				onOpenChange={(open: boolean) => {
+				onOpenChange={(open) => {
 					setShowApiKeyModal(open)
 					if (!open) {
 						setSelectedShortcutType(null)

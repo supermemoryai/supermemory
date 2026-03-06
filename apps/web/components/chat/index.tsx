@@ -663,7 +663,7 @@ export function ChatSidebar({
 							{!isMobile && (
 								<Dialog
 									open={isHistoryOpen}
-									onOpenChange={(open: boolean) => {
+									onOpenChange={(open) => {
 										setIsHistoryOpen(open)
 										if (open) {
 											fetchThreads()
@@ -730,7 +730,7 @@ export function ChatSidebar({
 																		<Button
 																			type="button"
 																			size="icon"
-																			onClick={(e: React.MouseEvent) => {
+																			onClick={(e) => {
 																				e.stopPropagation()
 																				deleteThread(thread.id)
 																			}}
@@ -742,7 +742,7 @@ export function ChatSidebar({
 																			type="button"
 																			variant="ghost"
 																			size="icon"
-																			onClick={(e: React.MouseEvent) => {
+																			onClick={(e) => {
 																				e.stopPropagation()
 																				setConfirmingDeleteId(null)
 																			}}
@@ -756,7 +756,7 @@ export function ChatSidebar({
 																		type="button"
 																		variant="ghost"
 																		size="icon"
-																		onClick={(e: React.MouseEvent) => {
+																		onClick={(e) => {
 																			e.stopPropagation()
 																			setConfirmingDeleteId(thread.id)
 																		}}

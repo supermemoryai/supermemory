@@ -83,7 +83,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 	}
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && handleClose()}>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
 				className={cn(
 					"w-[90%]! max-w-[500px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-4 rounded-[22px]",
@@ -131,7 +131,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 					<div className="flex flex-col gap-3">
 						<Textarea
 							value={feedback}
-							onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFeedback(e.target.value)}
+							onChange={(e) => setFeedback(e.target.value)}
 							onKeyDown={handleKeyDown}
 							placeholder="Share your thoughts..."
 							className={cn(

@@ -29,7 +29,7 @@ export const fetchSubscriptionStatus = (
 						const allowed = res.data?.allowed ?? false
 
 						const product = autumn.customer?.products?.find(
-							(p: { id: string; status?: string | null }) => p.id === plan,
+							(p) => p.id === plan,
 						)
 						const productStatus = product?.status ?? null
 

@@ -148,7 +148,7 @@ export function RaycastDetail() {
 
 			<Dialog
 				open={showModal}
-				onOpenChange={(open: boolean) => {
+				onOpenChange={(open) => {
 					setShowModal(open)
 					if (!open) {
 						setApiKey("")

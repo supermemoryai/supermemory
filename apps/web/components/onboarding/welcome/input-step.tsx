@@ -1,4 +1,3 @@
-import type React from "react"
 import { motion } from "motion/react"
 import { LabeledInput } from "@ui/input/labeled-input"
 import { Button } from "@ui/components/button"
@@ -54,7 +53,7 @@ export function InputStep({
 					className="w-full flex-1"
 					inputProps={{
 						defaultValue: name,
-						onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+						onKeyDown: (e) => {
 							if (e.key === "Enter") {
 								handleSubmit()
 							}

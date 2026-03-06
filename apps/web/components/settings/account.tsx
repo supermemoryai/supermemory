@@ -720,7 +720,7 @@ export default function Account() {
 						</p>
 						<Dialog
 							open={isDeleteDialogOpen}
-							onOpenChange={(open: boolean) => {
+							onOpenChange={(open) => {
 								setIsDeleteDialogOpen(open)
 								if (!open) setDeleteConfirmText("")
 							}}

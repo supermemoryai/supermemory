@@ -6,6 +6,8 @@
 			"@/*": ["./*"],
 			"@ui/*": ["../../packages/ui/*"],
 			"@repo/ui/*": ["../../packages/ui/*"],
+			"@repo/lib/*": ["../../packages/lib/*"],
+			"@repo/validation/*": ["../../packages/validation/*"],
 			"@lib/*": ["../../packages/lib/*"],
 			"@hooks/*": ["../../packages/hooks/*"]
 		},

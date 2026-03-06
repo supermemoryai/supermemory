@@ -203,7 +203,7 @@ export function DocumentModal({
 	)
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent
 				className={cn(
 					"p-0 border-none bg-[#1B1F24] flex flex-col px-3 md:px-4 pt-3 pb-4 gap-3",
