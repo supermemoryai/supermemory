@@ -13,9 +13,9 @@ export const TOOL_DESCRIPTIONS = {
 	documentList:
 		"List stored documents with optional filtering by container tag, status, and pagination. Useful for browsing or managing saved content.",
 	documentDelete:
-		"Delete a specific document and its associated memories by document ID. Use when user wants to remove saved content.",
+		"Delete a document and its associated memories by document ID or customId. Deletes are permanent. Use when user wants to remove saved content.",
 	documentAdd:
-		"Add a new document (URL, text, or content) to memory. The content will be processed and memories will be extracted automatically.",
+		"Add a new document (URL, text, or content) to memory. The content is queued for processing, and memories will be extracted automatically.",
 	memoryForget:
 		"Forget (soft delete) a specific memory by ID or content match. The memory is marked as forgotten but not permanently deleted. Use when user wants to remove specific information from their profile.",
 } as const
