@@ -6,7 +6,7 @@ import { RaycastIcon } from "@/components/integration-icons"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import { generateId } from "@lib/generate-id"
-import { RAYCAST_EXTENSION_URL } from "@repo/lib/constants"
+import { RAYCAST_EXTENSION_URL } from "@lib/constants"
 import {
 	Dialog,
 	DialogContent,
@@ -148,7 +148,7 @@ export function RaycastDetail() {
 
 			<Dialog
 				open={showModal}
-				onOpenChange={(open) => {
+				onOpenChange={(open: boolean) => {
 					setShowModal(open)
 					if (!open) {
 						setApiKey("")

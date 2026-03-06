@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@repo/lib/utils";
-import { Button } from "@repo/ui/components/button";
-import { GlassMenuEffect } from "@repo/ui/other/glass-effect";
+import { cn } from "@lib/utils";
+import { Button } from "@ui/components/button";
+import { GlassMenuEffect } from "@ui/other/glass-effect";
 import { Move, ZoomIn, ZoomOut } from "lucide-react";
 import { memo } from "react";
 import type { ControlsProps } from "./types";

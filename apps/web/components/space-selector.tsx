@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import {
 	ChevronsLeftRight,
 	Plus,
@@ -13,7 +13,7 @@ import {
 	Globe,
 	Layers,
 } from "lucide-react"
-import type { ContainerTagListType } from "@repo/lib/types"
+import type { ContainerTagListType } from "@lib/types"
 import { AddSpaceModal } from "./add-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
 import { useProjectMutations } from "@/hooks/use-project-mutations"

@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useMemo, useState, useRef, useEffect } from "react"
-import { $fetch } from "@repo/lib/api"
+import { $fetch } from "@lib/api"
 import type {
 	GraphViewportResponse,
 	GraphBoundsResponse,

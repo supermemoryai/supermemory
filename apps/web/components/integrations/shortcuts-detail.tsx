@@ -9,7 +9,7 @@ import { generateId } from "@lib/generate-id"
 import {
 	ADD_MEMORY_SHORTCUT_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
-} from "@repo/lib/constants"
+} from "@lib/constants"
 import {
 	Dialog,
 	DialogContent,
@@ -180,7 +180,7 @@ export function ShortcutsDetail() {
 
 			<Dialog
 				open={showApiKeyModal}
-				onOpenChange={(open) => {
+				onOpenChange={(open: boolean) => {
 					setShowApiKeyModal(open)
 					if (!open) {
 						setSelectedShortcutType(null)

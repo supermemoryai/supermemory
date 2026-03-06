@@ -3,7 +3,7 @@
 import { useQueryState } from "nuqs"
 import { projectParam } from "@/lib/search-params"
 import { useCallback, useMemo } from "react"
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import { useContainerTags } from "@/hooks/use-container-tags"
 
 export function useProject() {

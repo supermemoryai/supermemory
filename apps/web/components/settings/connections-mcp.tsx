@@ -15,8 +15,8 @@ import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { AddDocumentModal } from "@/components/add-document"
-import { DEFAULT_PROJECT_ID } from "@repo/lib/constants"
-import type { Project } from "@repo/lib/types"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
+import type { Project } from "@lib/types"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 

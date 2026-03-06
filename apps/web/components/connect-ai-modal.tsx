@@ -31,7 +31,7 @@ import { toast } from "sonner"
 import { z } from "zod/v4"
 import { analytics } from "@/lib/analytics"
 import { cn } from "@lib/utils"
-import type { Project } from "@repo/lib/types"
+import type { Project } from "@lib/types"
 import { motion, AnimatePresence } from "motion/react"
 
 const clients = {

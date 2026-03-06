@@ -37,7 +37,7 @@ export function AddDocumentModal({
 	const isMobile = useIsMobile()
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
 			<DialogContent
 				className={cn(
 					"border-none bg-[#1B1F24] flex flex-col p-3 md:p-4 gap-3",
