@@ -248,7 +248,7 @@ export const documentDeleteTool = (
 		}),
 		execute: async ({ documentId }) => {
 			try {
-				await client.documents.delete({ docId: documentId })
+				await client.documents.delete(documentId)
 
 				return {
 					success: true,
