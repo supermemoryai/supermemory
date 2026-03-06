@@ -211,7 +211,7 @@ export const documentListTool = (
 				const tag = containerTag || containerTags[0]
 
 				const response = await client.documents.list({
-					containerTags: [tag],
+					containerTag: tag,
 					limit: limit || DEFAULT_VALUES.limit,
 					...(offset !== undefined && { offset }),
 					...(status && { status }),
