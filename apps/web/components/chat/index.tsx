@@ -154,7 +154,7 @@ export function ChatSidebar({
 	const chatTransport = useMemo(
 		() =>
 			new DefaultChatTransport({
-				api: `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/v2`,
+				api: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/chat/v2`,
 				credentials: "include",
 				prepareSendMessagesRequest: ({ messages }) => ({
 					body: {
@@ -162,11 +162,12 @@ export function ChatSidebar({
 						metadata: {
 							chatId: chatIdRef.current,
 							projectId: selectedProject,
+							model: selectedModel,
 						},
 					},
 				}),
 			}),
-		[currentChatId, selectedProject],
+		[selectedProject, selectedModel],
 	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
@@ -194,17 +195,7 @@ export function ChatSidebar({
 
 	const { messages, sendMessage, status, setMessages, stop } = useChat({
 		id: currentChatId ?? undefined,
-		transport: new DefaultChatTransport({
-			api: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/chat/v2`,
-			credentials: "include",
-			body: {
-				metadata: {
-					chatId: currentChatId,
-					projectId: selectedProject,
-					model: selectedModel,
-				},
-			},
-		}),
+		transport: chatTransport,
 		onFinish: async (result) => {
 			if (result.message.role !== "assistant") return
 
