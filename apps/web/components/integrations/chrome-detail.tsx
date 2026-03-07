@@ -1,5 +1,6 @@
 "use client"
 
+import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { ChromeIcon } from "@/components/integration-icons"
@@ -33,11 +34,7 @@ function PillButton({
 
 export function ChromeDetail() {
 	const handleInstall = () => {
-		window.open(
-			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
-			"_blank",
-			"noopener,noreferrer",
-		)
+		window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer")
 		analytics.onboardingChromeExtensionClicked({ source: "integrations" })
 	}
 

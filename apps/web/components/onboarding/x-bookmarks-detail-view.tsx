@@ -4,6 +4,7 @@ import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import Image from "next/image"
+import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
 
 interface XBookmarksDetailViewProps {
 	onBack: () => void
@@ -29,10 +30,7 @@ const steps = [
 
 export function XBookmarksDetailView({ onBack }: XBookmarksDetailViewProps) {
 	const handleInstall = () => {
-		window.open(
-			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnangednailhoegogi",
-			"_blank",
-		)
+		window.open(CHROME_EXTENSION_URL, "_blank")
 	}
 
 	return (

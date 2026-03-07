@@ -1,5 +1,6 @@
 "use client"
 
+import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
 import { useState } from "react"
 import { Button } from "@ui/components/button"
 import { MCPDetailView } from "@/components/mcp-modal/mcp-detail-view"
@@ -113,10 +114,7 @@ export function IntegrationsStep() {
 										analytics.onboardingChromeExtensionClicked({
 											source: "onboarding",
 										})
-										window.open(
-											"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
-											"_blank",
-										)
+										window.open(CHROME_EXTENSION_URL, "_blank")
 									} else {
 										analytics.onboardingIntegrationClicked({
 											integration: card.title,

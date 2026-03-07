@@ -8,6 +8,7 @@ import { useAuth } from "@lib/auth-context"
 import { generateId } from "@lib/generate-id"
 import {
 	ADD_MEMORY_SHORTCUT_URL,
+	CHROME_EXTENSION_URL,
 	RAYCAST_EXTENSION_URL,
 	SEARCH_MEMORY_SHORTCUT_URL,
 } from "@lib/constants"
@@ -215,11 +216,7 @@ export default function Integrations() {
 	}, [searchParams, hasTriggeredRaycast, createRaycastApiKeyMutation, org])
 
 	const handleChromeInstall = () => {
-		window.open(
-			"https://chromewebstore.google.com/detail/supermemory/afpgkkipfdpeaflnpoaffkcankadgjfc",
-			"_blank",
-			"noopener,noreferrer",
-		)
+		window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer")
 		analytics.onboardingChromeExtensionClicked({ source: "settings" })
 		analytics.extensionInstallClicked()
 	}
