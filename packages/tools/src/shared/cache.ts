@@ -1,3 +1,4 @@
+import { LRUCache } from "lru-cache"
 import type { MemoryMode } from "./types"
 
 /**
@@ -5,7 +6,7 @@ import type { MemoryMode } from "./types"
  * Used to cache memory retrieval results during tool-call loops within the same turn.
  */
 export class MemoryCache<T = string> {
-	private cache: Map<string, T> = new Map()
+	private cache: LRUCache<string, T> = new LRUCache({ max: 100 })
 
 	/**
 	 * Generates a cache key for the current turn based on context parameters.
