@@ -446,7 +446,7 @@ export const MemoryGraph = ({
 			/>
 
 			{!isLoading &&
-				nodes.filter((n) => n.type === "document").length === 0 &&
+				!nodes.some((n) => n.type === "document") &&
 				children}
 
 			<div
