@@ -186,7 +186,12 @@ export const joinTextParts = (
 
 export const findLastUserMessage = <T extends { role: string }>(
 	messages: T[],
-): T | undefined => messages.findLast((msg) => msg.role === "user")
+): T | undefined => {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		if (messages[i].role === "user") return messages[i]
+	}
+	return undefined
+}
 
 export const extractTextFromMessageContent = (
 	content: unknown,
