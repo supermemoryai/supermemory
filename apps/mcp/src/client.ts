@@ -154,18 +154,39 @@ export class SupermemoryClient {
 		}
 	}
 
-	// Delete/forget memory by searching first
+	// Delete/forget memory - try exact match first, then semantic search
 	async forgetMemory(
 		content: string,
 	): Promise<{ success: boolean; message: string; containerTag: string }> {
 		try {
-			// First search for the memory
-			const searchResult = await this.search(content, 5)
+			// Try exact content matching first
+			try {
+				const result = await this.client.memories.forget({
+					content: content,
+					containerTag: this.containerTag,
+				})
+
+				return {
+					success: true,
+					message: `Successfully forgot memory (exact match) with ID: ${result.id}`,
+					containerTag: this.containerTag,
+				}
+			} catch (error: any) {
+				// If not 404, it's a real error - re-throw it
+				if (error?.status !== 404) {
+					throw error
+				}
+				// Otherwise continue to semantic search fallback
+			}
+
+			// Fallback to semantic search if exact match fails
+			const SIMILARITY_THRESHOLD = 0.85 // High threshold - only very similar memories
+			const searchResult = await this.search(content, 5, SIMILARITY_THRESHOLD)
 
 			if (searchResult.results.length === 0) {
 				return {
 					success: false,
-					message: "No matching memory found to forget.",
+					message: `No matching memory found to forget. Tried exact match and semantic search with similarity threshold ${SIMILARITY_THRESHOLD}.`,
 					containerTag: this.containerTag,
 				}
 			}
@@ -176,10 +197,12 @@ export class SupermemoryClient {
 				return {
 					success: false,
 					message:
-						"No matching memory found to forget (only document chunks matched).",
+						"No matching memory found to forget (only document chunks matched in semantic search).",
 					containerTag: this.containerTag,
 				}
 			}
+
+			// Delete using the ID from semantic search
 			await this.client.memories.forget({
 				id: memoryToDelete.id,
 				containerTag: this.containerTag,
@@ -189,7 +212,7 @@ export class SupermemoryClient {
 				getMemoryText(memoryToDelete) || memoryToDelete.content || ""
 			return {
 				success: true,
-				message: `Forgot: "${limitByChars(memoryText, 100)}"`,
+				message: `Forgot similar memory (semantic match, similarity: ${memoryToDelete.similarity.toFixed(2)}): "${limitByChars(memoryText, 100)}"`,
 				containerTag: this.containerTag,
 			}
 		} catch (error) {
@@ -198,13 +221,14 @@ export class SupermemoryClient {
 	}
 
 	// Search memories using SDK
-	async search(query: string, limit = 10): Promise<SearchResult> {
+	async search(query: string, limit = 10, threshold?: number): Promise<SearchResult> {
 		try {
 			const result = await this.client.search.memories({
 				q: query,
 				limit,
 				containerTag: this.containerTag,
 				searchMode: "hybrid",
+				threshold, // Optional threshold parameter
 			})
 
 			// Normalize and limit response size — preserve memory vs chunk distinction
