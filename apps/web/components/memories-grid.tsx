@@ -31,6 +31,7 @@ import { HighlightsCard, type HighlightItem } from "./highlights-card"
 import { GraphCard } from "./memory-graph"
 import { Button } from "@ui/components/button"
 import { categoriesParam } from "@/lib/search-params"
+import { NovaEmptyState } from "@/components/nova/nova-empty-state"
 
 // Document category type
 type DocumentCategory =
@@ -81,11 +82,21 @@ interface HighlightsProps {
 	isLoading: boolean
 }
 
+interface NovaEmptyStateProps {
+	onAddMemory: (tab: "note" | "link") => void
+	onOpenIntegrations: (
+		integration?: "import" | "chrome" | "connections",
+	) => void
+	isAllSpaces: boolean
+	spaceName?: string
+}
+
 interface MemoriesGridProps {
 	isChatOpen: boolean
 	onOpenDocument: (document: DocumentWithMemories) => void
 	quickNoteProps?: QuickNoteProps
 	highlightsProps?: HighlightsProps
+	emptyStateProps?: NovaEmptyStateProps
 }
 
 export function MemoriesGrid({
@@ -93,9 +104,10 @@ export function MemoriesGrid({
 	onOpenDocument,
 	quickNoteProps,
 	highlightsProps,
+	emptyStateProps,
 }: MemoriesGridProps) {
 	const { user } = useAuth()
-	const { selectedProjects, effectiveContainerTags } = useProject()
+	const { effectiveContainerTags } = useProject()
 	const isMobile = useIsMobile()
 	const [selectedCategories, setSelectedCategories] = useQueryState(
 		"categories",
@@ -284,39 +296,44 @@ export function MemoriesGrid({
 		)
 	}
 
+	const isEmpty = documents.length === 0 && !isPending
+	const showNovaEmptyState = isEmpty && emptyStateProps
+
 	return (
 		<div className="relative">
-			<div id="filter-pills" className="flex flex-wrap gap-1.5 mb-3">
-				<Button
-					className={cn(
-						dmSansClassName(),
-						"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-						selectedCategories.length === 0 &&
-							"bg-[#00173C] border-[#2261CA33]",
-					)}
-					onClick={handleSelectAll}
-				>
-					All
-					{facetsData?.total !== undefined && (
-						<span className="ml-1 text-[#737373]">({facetsData.total})</span>
-					)}
-				</Button>
-				{facetsData?.facets.map((facet: DocumentFacet) => (
+			{!isEmpty && (
+				<div id="filter-pills" className="flex flex-wrap gap-1.5 mb-3">
 					<Button
-						key={facet.category}
 						className={cn(
 							dmSansClassName(),
 							"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-							selectedCategories.includes(facet.category) &&
+							selectedCategories.length === 0 &&
 								"bg-[#00173C] border-[#2261CA33]",
 						)}
-						onClick={() => handleCategoryToggle(facet.category)}
+						onClick={handleSelectAll}
 					>
-						{facet.label}
-						<span className="ml-1 text-[#737373]">({facet.count})</span>
+						All
+						{facetsData?.total !== undefined && (
+							<span className="ml-1 text-[#737373]">({facetsData.total})</span>
+						)}
 					</Button>
-				))}
-			</div>
+					{facetsData?.facets.map((facet: DocumentFacet) => (
+						<Button
+							key={facet.category}
+							className={cn(
+								dmSansClassName(),
+								"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+								selectedCategories.includes(facet.category) &&
+									"bg-[#00173C] border-[#2261CA33]",
+							)}
+							onClick={() => handleCategoryToggle(facet.category)}
+						>
+							{facet.label}
+							<span className="ml-1 text-[#737373]">({facet.count})</span>
+						</Button>
+					))}
+				</div>
+			)}
 			{error ? (
 				<div className="h-full flex items-center justify-center p-4">
 					<div className="text-center text-muted-foreground">
@@ -327,7 +344,14 @@ export function MemoriesGrid({
 				<div className="h-full flex items-center justify-center p-4">
 					<SuperLoader />
 				</div>
-			) : documents.length === 0 && !isPending ? (
+			) : showNovaEmptyState ? (
+				<NovaEmptyState
+					onAddMemory={emptyStateProps.onAddMemory}
+					onOpenIntegrations={emptyStateProps.onOpenIntegrations}
+					isAllSpaces={emptyStateProps.isAllSpaces}
+					spaceName={emptyStateProps.spaceName}
+				/>
+			) : isEmpty ? (
 				<div className="h-full flex items-center justify-center p-4">
 					<div className="text-center text-muted-foreground">
 						No memories found

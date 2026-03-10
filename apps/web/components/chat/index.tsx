@@ -675,104 +675,104 @@ export function ChatSidebar({
 										<HistoryIcon className="size-4 text-[#737373]" />
 									</Button>
 								</DialogTrigger>
-									<DialogContent className="sm:max-w-lg bg-[#0A0E14] border-[#17181AB2] text-white">
-										<DialogHeader className="pb-4 border-b border-[#17181AB2]">
-											<DialogTitle>Chat History</DialogTitle>
-											<DialogDescription className="text-[#737373]">
-												Project: {selectedProject}
-											</DialogDescription>
-										</DialogHeader>
-										<ScrollArea className="max-h-96">
-											{isLoadingThreads ? (
-												<div className="flex items-center justify-center py-8">
-													<SuperLoader label="Loading..." />
-												</div>
-											) : threads.length === 0 ? (
-												<div className="text-sm text-[#737373] text-center py-8">
-													No conversations yet
-												</div>
-											) : (
-												<div className="flex flex-col gap-1">
-													{threads.map((thread) => {
-														const isActive = thread.id === currentChatId
-														return (
-															<button
-																key={thread.id}
-																type="button"
-																onClick={() => loadThread(thread.id)}
-																className={cn(
-																	"flex items-center justify-between rounded-md px-3 py-2 w-full text-left transition-colors",
-																	isActive
-																		? "bg-[#267BF1]/10"
-																		: "hover:bg-[#17181A]",
-																)}
-															>
-																<div className="min-w-0 flex-1">
-																	<div className="text-sm font-medium truncate">
-																		{thread.title || "Untitled Chat"}
-																	</div>
-																	<div className="text-xs text-[#737373]">
-																		{formatRelativeTime(thread.updatedAt)}
-																	</div>
+								<DialogContent className="sm:max-w-lg bg-[#0A0E14] border-[#17181AB2] text-white">
+									<DialogHeader className="pb-4 border-b border-[#17181AB2]">
+										<DialogTitle>Chat History</DialogTitle>
+										<DialogDescription className="text-[#737373]">
+											Project: {selectedProject}
+										</DialogDescription>
+									</DialogHeader>
+									<ScrollArea className="max-h-96">
+										{isLoadingThreads ? (
+											<div className="flex items-center justify-center py-8">
+												<SuperLoader label="Loading..." />
+											</div>
+										) : threads.length === 0 ? (
+											<div className="text-sm text-[#737373] text-center py-8">
+												No conversations yet
+											</div>
+										) : (
+											<div className="flex flex-col gap-1">
+												{threads.map((thread) => {
+													const isActive = thread.id === currentChatId
+													return (
+														<button
+															key={thread.id}
+															type="button"
+															onClick={() => loadThread(thread.id)}
+															className={cn(
+																"flex items-center justify-between rounded-md px-3 py-2 w-full text-left transition-colors",
+																isActive
+																	? "bg-[#267BF1]/10"
+																	: "hover:bg-[#17181A]",
+															)}
+														>
+															<div className="min-w-0 flex-1">
+																<div className="text-sm font-medium truncate">
+																	{thread.title || "Untitled Chat"}
 																</div>
-																{confirmingDeleteId === thread.id ? (
-																	<div className="flex items-center gap-1 ml-2">
-																		<Button
-																			type="button"
-																			size="icon"
-																			onClick={(e) => {
-																				e.stopPropagation()
-																				deleteThread(thread.id)
-																			}}
-																			className="bg-red-500 text-white hover:bg-red-600 h-7 w-7"
-																		>
-																			<Check className="size-3" />
-																		</Button>
-																		<Button
-																			type="button"
-																			variant="ghost"
-																			size="icon"
-																			onClick={(e) => {
-																				e.stopPropagation()
-																				setConfirmingDeleteId(null)
-																			}}
-																			className="h-7 w-7"
-																		>
-																			<XIcon className="size-3 text-[#737373]" />
-																		</Button>
-																	</div>
-																) : (
+																<div className="text-xs text-[#737373]">
+																	{formatRelativeTime(thread.updatedAt)}
+																</div>
+															</div>
+															{confirmingDeleteId === thread.id ? (
+																<div className="flex items-center gap-1 ml-2">
+																	<Button
+																		type="button"
+																		size="icon"
+																		onClick={(e) => {
+																			e.stopPropagation()
+																			deleteThread(thread.id)
+																		}}
+																		className="bg-red-500 text-white hover:bg-red-600 h-7 w-7"
+																	>
+																		<Check className="size-3" />
+																	</Button>
 																	<Button
 																		type="button"
 																		variant="ghost"
 																		size="icon"
 																		onClick={(e) => {
 																			e.stopPropagation()
-																			setConfirmingDeleteId(thread.id)
+																			setConfirmingDeleteId(null)
 																		}}
-																		className="h-7 w-7 ml-2"
+																		className="h-7 w-7"
 																	>
-																		<Trash2 className="size-3 text-[#737373]" />
+																		<XIcon className="size-3 text-[#737373]" />
 																	</Button>
-																)}
-															</button>
-														)
-													})}
-												</div>
-											)}
-										</ScrollArea>
-										<Button
-											variant="outline"
-											className="w-full border-dashed border-[#73737333] bg-transparent hover:bg-[#17181A]"
-											onClick={() => {
-												handleNewChat()
-												setIsHistoryOpen(false)
-											}}
-										>
-											<Plus className="size-4 mr-1" /> New Conversation
-										</Button>
-									</DialogContent>
-								</Dialog>
+																</div>
+															) : (
+																<Button
+																	type="button"
+																	variant="ghost"
+																	size="icon"
+																	onClick={(e) => {
+																		e.stopPropagation()
+																		setConfirmingDeleteId(thread.id)
+																	}}
+																	className="h-7 w-7 ml-2"
+																>
+																	<Trash2 className="size-3 text-[#737373]" />
+																</Button>
+															)}
+														</button>
+													)
+												})}
+											</div>
+										)}
+									</ScrollArea>
+									<Button
+										variant="outline"
+										className="w-full border-dashed border-[#73737333] bg-transparent hover:bg-[#17181A]"
+										onClick={() => {
+											handleNewChat()
+											setIsHistoryOpen(false)
+										}}
+									>
+										<Plus className="size-4 mr-1" /> New Conversation
+									</Button>
+								</DialogContent>
+							</Dialog>
 							<Button
 								variant="headers"
 								className="rounded-full text-base gap-3 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"

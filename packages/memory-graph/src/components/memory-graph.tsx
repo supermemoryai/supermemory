@@ -740,10 +740,9 @@ export const MemoryGraph = ({
 			)}
 
 			{/* Show welcome screen when no memories exist */}
-			{!isLoading &&
-				(!data || !nodes.some((n) => n.type === "document")) && (
-					<>{children}</>
-				)}
+			{!isLoading && (!data || !nodes.some((n) => n.type === "document")) && (
+				<>{children}</>
+			)}
 
 			{/* Graph container */}
 			<div className={styles.graphContainer} ref={containerRef}>

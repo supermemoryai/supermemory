@@ -185,7 +185,9 @@ export default function MigrateMCPPage() {
 											className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 pl-4 pr-4 py-3 rounded-xl"
 											disabled={migrateMutation.isPending}
 											id="mcpUrl"
-											onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMcpUrl(e.target.value)}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+												setMcpUrl(e.target.value)
+											}
 											placeholder="https://mcp.supermemory.ai/userId/sse"
 											type="url"
 											value={mcpUrl}
@@ -205,7 +207,9 @@ export default function MigrateMCPPage() {
 											className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 transition-all duration-200 pl-4 pr-4 py-3 rounded-xl"
 											disabled={migrateMutation.isPending}
 											id="projectId"
-											onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProjectId(e.target.value)}
+											onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+												setProjectId(e.target.value)
+											}
 											placeholder="Project ID (default: 'default')"
 											type="text"
 											value={projectId}

@@ -19,6 +19,8 @@ import { AnimatePresence } from "motion/react"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useAuth } from "@lib/auth-context"
 import { useProject } from "@/stores"
+import { useContainerTags } from "@/hooks/use-container-tags"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import {
 	useQuickNoteDraftReset,
 	useQuickNoteDraft,
@@ -38,6 +40,7 @@ import {
 	docParam,
 	fullscreenParam,
 	chatParam,
+	integrationParam,
 } from "@/lib/search-params"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
@@ -63,7 +66,21 @@ function ViewErrorFallback() {
 export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { user, session } = useAuth()
-	const { selectedProject, isNovaSpaces, novaContainerTags } = useProject()
+	const { selectedProject, isNovaSpaces, novaContainerTags, selectedProjects } =
+		useProject()
+	const selectedProjectTag = selectedProjects[0]
+	const isNovaContext =
+		isNovaSpaces ||
+		(selectedProjectTag !== undefined &&
+			novaContainerTags.includes(selectedProjectTag))
+	const { allProjects } = useContainerTags()
+	const emptyStateSpaceName =
+		!isNovaSpaces && selectedProjectTag
+			? selectedProjectTag === DEFAULT_PROJECT_ID
+				? "My Space"
+				: (allProjects.find((p) => p.containerTag === selectedProjectTag)
+						?.name ?? selectedProjectTag)
+			: undefined
 	const { viewMode, setViewMode } = useViewMode()
 	const queryClient = useQueryClient()
 
@@ -93,6 +110,7 @@ export default function NewPage() {
 		fullscreenParam,
 	)
 	const [isChatOpen, setIsChatOpen] = useQueryState("chat", chatParam)
+	const [, setIntegration] = useQueryState("integration", integrationParam)
 
 	// Ephemeral local state (not worth URL-encoding)
 	const [fullscreenInitialContent, setFullscreenInitialContent] = useState("")
@@ -295,6 +313,26 @@ export default function NewPage() {
 		[setSearchPrefill, setIsSearchOpen],
 	)
 
+	const handleOpenIntegrations = useCallback(
+		(integration?: "import" | "chrome" | "connections") => {
+			setViewMode("integrations")
+			if (integration) {
+				setIntegration(integration)
+			} else {
+				setIntegration(null)
+			}
+		},
+		[setViewMode, setIntegration],
+	)
+
+	const handleAddMemory = useCallback(
+		(tab: "note" | "link") => {
+			analytics.addDocumentModalOpened()
+			setAddDoc(tab)
+		},
+		[setAddDoc],
+	)
+
 	const chatOpen = isChatOpen !== null ? isChatOpen : !isMobile
 	const isGraphMode = viewMode === "graph" && !isMobile
 
@@ -360,6 +398,16 @@ export default function NewPage() {
 											onShowRelated: handleHighlightsShowRelated,
 											isLoading: isLoadingHighlights,
 										}}
+										emptyStateProps={
+											isNovaContext
+												? {
+														onAddMemory: handleAddMemory,
+														onOpenIntegrations: handleOpenIntegrations,
+														isAllSpaces: isNovaSpaces,
+														spaceName: emptyStateSpaceName,
+													}
+												: undefined
+										}
 									/>
 								</div>
 							)}
