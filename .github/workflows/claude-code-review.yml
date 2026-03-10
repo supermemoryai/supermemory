@@ -6,7 +6,10 @@ on:
 
 jobs:
   claude-review:
-    if: github.event.pull_request.draft == false
+    if: |
+      github.event.pull_request.draft == false &&
+      github.actor != 'graphite-app[bot]' &&
+      github.actor != 'dependabot[bot]'
 
     runs-on: ubuntu-latest
     permissions:
