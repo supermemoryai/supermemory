@@ -117,6 +117,9 @@ export const apiSchema = createSchema({
 			provider: z.string(),
 		}),
 		params: z.object({ connectionId: z.string() }),
+		query: z.object({
+			deleteDocuments: z.boolean().optional(),
+		}),
 	},
 
 	// Settings operations

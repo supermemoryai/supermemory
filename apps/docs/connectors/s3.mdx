@@ -153,7 +153,7 @@ The regex must contain a named capture group `(?<userId>...)` and be less than 2
 </Tabs>
 
 <Warning>
-Deleting a connection removes all synced documents from Supermemory.
+By default, deleting a connection removes all synced documents from Supermemory. To keep documents, pass `deleteDocuments=false` as a query parameter: `DELETE /v3/connections/:id?deleteDocuments=false`
 </Warning>
 
 ### Manual Sync

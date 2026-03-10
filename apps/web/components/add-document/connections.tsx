@@ -13,6 +13,7 @@ import type { z } from "zod"
 import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
+import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -54,6 +55,10 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [isUpgrading, setIsUpgrading] = useState(false)
+	const [removeDialog, setRemoveDialog] = useState<{
+		open: boolean
+		connection: Connection | null
+	}>({ open: false, connection: null })
 
 	// Check Pro status
 	useEffect(() => {
@@ -159,15 +164,26 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		},
 	})
 
-	// Disconnect mutation
 	const deleteConnectionMutation = useMutation({
-		mutationFn: async (connectionId: string) => {
-			await $fetch(`@delete/connections/${connectionId}`)
+		mutationFn: async ({
+			connectionId,
+			deleteDocuments,
+		}: {
+			connectionId: string
+			deleteDocuments: boolean
+		}) => {
+			await $fetch(`@delete/connections/${connectionId}`, {
+				query: { deleteDocuments },
+			})
+			return { deleteDocuments }
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
 			toast.success(
-				"Connection removal has started. supermemory will permanently delete all documents related to the connection in the next few minutes.",
+				variables.deleteDocuments
+					? "Connection removal has started. supermemory will permanently delete all documents related to the connection in the next few minutes."
+					: "Connection removed. Your memories have been kept.",
 			)
+			setRemoveDialog({ open: false, connection: null })
 			queryClient.invalidateQueries({ queryKey: ["connections"] })
 		},
 		onError: (error) => {
@@ -182,8 +198,8 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		addConnectionMutation.mutate(provider)
 	}
 
-	const handleDisconnect = (connectionId: string) => {
-		deleteConnectionMutation.mutate(connectionId)
+	const handleDisconnect = (connection: Connection) => {
+		setRemoveDialog({ open: true, connection })
 	}
 
 	const hasConnections = connections.length > 0
@@ -278,7 +294,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 										<Button
 											variant="ghost"
 											size="sm"
-											onClick={() => handleDisconnect(connection.id)}
+											onClick={() => handleDisconnect(connection)}
 											disabled={deleteConnectionMutation.isPending}
 											className="text-[#737373] hover:text-white hover:bg-[#1B1F24] h-8 w-8 p-0"
 										>
@@ -351,7 +367,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									<Button
 										variant="ghost"
 										size="sm"
-										onClick={() => handleDisconnect(connection.id)}
+										onClick={() => handleDisconnect(connection)}
 										disabled={deleteConnectionMutation.isPending}
 										className="text-[#737373] hover:text-white hover:bg-[#1B1F24] h-8 w-8 p-0 shrink-0"
 									>
@@ -428,6 +444,25 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					)}
 				</div>
 			)}
+			<RemoveConnectionDialog
+				open={removeDialog.open}
+				onOpenChange={(open) => {
+					if (!open) setRemoveDialog({ open: false, connection: null })
+				}}
+				provider={removeDialog.connection?.provider}
+				documentCount={
+					(removeDialog.connection?.metadata?.documentCount as number) ?? 0
+				}
+				onConfirm={(deleteDocuments) => {
+					if (removeDialog.connection) {
+						deleteConnectionMutation.mutate({
+							connectionId: removeDialog.connection.id,
+							deleteDocuments,
+						})
+					}
+				}}
+				isDeleting={deleteConnectionMutation.isPending}
+			/>
 		</div>
 	)
 }
