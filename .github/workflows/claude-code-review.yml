@@ -3,42 +3,117 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    if: github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
       id-token: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
-        id: claude-review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
 
+          # Enable progress tracking
+          track_progress: true
+          use_sticky_comment: true
+          include_fix_links: true
+          bot_name: Supermemory code review
+
+          # Enable inline comments for specific issues
+          claude_args: |
+            --model claude-opus-4-5-20251101
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(*),WebSearch,WebFetch,Task,mcp__supermemory__*,mcp__github__*"
+            --mcp-config '{
+              "mcpServers": {
+                "supermemory": {
+                  "type": "http",
+                  "url": "https://mcp.supermemory.ai/mcp",
+                  "headers": {
+                    "Authorization": "Bearer ${{ secrets.SUPERMEMORY_API_KEY }}"
+                  }
+                }
+              }
+            }'
+
+          prompt: |
+            You are a senior engineer reviewing a pull request. Your job is to catch real bugs, security issues, and logic errors that a human reviewer might miss. You are NOT a linter — do not comment on style, naming, formatting, or minor nitpicks.
+
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            PR TITLE: ${{ github.event.pull_request.title }}
+
+            **REVIEW PHILOSOPHY:**
+
+            Think like a Staff Engineer doing a final review before a deploy to production. Ask yourself:
+            - "Could this cause a production incident?"
+            - "Is there a subtle bug hiding here that tests won't catch?"
+            - "Does this introduce a security vulnerability?"
+            - "Will this break existing functionality or other parts of the system?"
+
+            If the answer to all of these is "no" for a given line, DO NOT comment on it. Silence is a perfectly good review. A PR with 0 inline comments and a clean summary is ideal when the code is solid.
+
+            **WHAT TO COMMENT ON (only these):**
+            - Bugs: race conditions, off-by-one errors, null/undefined access, logic errors, wrong operator, missing await, incorrect error handling
+            - Security: SQL injection, XSS, auth bypass, secrets exposure, insecure defaults, CORS misconfiguration
+            - Data loss: missing transactions, incorrect cascade deletes, silent data corruption
+            - Breaking changes: API contract changes, removed fields that clients depend on, changed behavior without migration
+            - Dependency issues: known CVEs, incompatible version combinations, deprecated APIs that will break
+
+            **WHAT TO NEVER COMMENT ON:**
+            - Code style, formatting, naming conventions (that's what linters are for)
+            - "Consider using X instead of Y" unless Y is actually broken
+            - Missing types/docs/tests (unless the missing test hides a specific bug you found)
+            - Suggestions that are purely preferential
+            - Praise or affirmation — no "LGTM" or "nice!" comments
+
+            **WORKFLOW:**
+
+            1. Use `mcp__github__get_pull_request_diff` to get the full diff
+            2. Read the diff carefully. For each changed file, understand the INTENT of the change, not just the syntax
+            3. For non-trivial changes, use Read/Grep to look at surrounding code that ISN'T in the diff — bugs often hide at the boundary between changed and unchanged code
+            4. Search Supermemory for any relevant past patterns, known issues, or architectural decisions related to the changed code
+            5. Check for existing review comments with `mcp__github__get_pull_request_review_comments` to avoid duplicates
+            6. Create a pending review with `mcp__github__create_pending_pull_request_review` (event: "COMMENT")
+            7. Add inline comments ONLY for issues that meet the bar above. For each comment:
+               - Explain the actual bug/risk concisely
+               - Show what could go wrong (e.g., "If X happens, this will Y")
+               - Provide a concrete fix using a code suggestion block when possible
+            8. Submit the review with `mcp__github__submit_pending_pull_request_review`
+
+            **REVIEW SUMMARY FORMAT:**
+
+            Keep the summary short and direct. Format:
+
+            **Overview:** One sentence on what this PR does.
+
+            **Issues found:** List only real issues, or "None — this looks good to ship." if clean.
+
+            **Score: X/10**
+
+            Scoring guide:
+            - 10/10: No bugs, no security issues, clean logic. This is the COMMON case for competent engineers — don't be stingy.
+            - 8-9/10: Minor issues that won't cause incidents but should be addressed
+            - 6-7/10: Real bugs or security concerns that need fixing before merge
+            - Below 6: Critical issues, data loss risk, or security vulnerabilities
+
+            Most PRs from experienced engineers should score 8-10. Reserve low scores for genuinely problematic code.
+
+            **CRITICAL RESTRICTIONS:**
+            - DO NOT use `gh pr comment` or `gh api` CLI commands — use MCP tools only
+            - DO NOT leave more than 5 inline comments. If you find more than 5 issues, pick the 5 most critical ones.
+            - DO NOT comment on things that are correct but could be "slightly better"
+            - If the PR is a simple config change, dependency bump, or typo fix, just submit a clean summary with no inline comments
