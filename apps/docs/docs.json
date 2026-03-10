@@ -151,6 +151,7 @@
 							"integrations/openai",
 							"integrations/langgraph",
 							"integrations/openai-agents-sdk",
+							"integrations/agent-framework",
 							"integrations/mastra",
 							"integrations/langchain",
 							"integrations/crewai",

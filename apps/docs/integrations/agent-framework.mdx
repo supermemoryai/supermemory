@@ -1,0 +1,333 @@
+---
+title: "Microsoft Agent Framework"
+sidebarTitle: "MS Agent Framework"
+description: "Add persistent memory to Microsoft Agent Framework agents with Supermemory"
+icon: "microsoft"
+---
+
+Microsoft's [Agent Framework](https://github.com/microsoft/agent-framework) is a Python framework for building AI agents with tools, handoffs, and context providers. Supermemory integrates natively as a context provider, tool set, or middleware — so your agents remember users across sessions.
+
+## What you can do
+
+- Automatically inject user memories before every agent run (context provider)
+- Give agents tools to search and store memories on their own
+- Intercept chat requests to add memory context via middleware
+- Combine all three for maximum flexibility
+
+## Setup
+
+Install the package:
+
+```bash
+pip install --pre supermemory-agent-framework
+```
+
+Or with uv:
+
+```bash
+uv add --prerelease=allow supermemory-agent-framework
+```
+
+<Warning>The `--pre` / `--prerelease=allow` flag is required because `agent-framework-core` depends on pre-release versions of Azure packages.</Warning>
+
+Set up your environment:
+
+```bash
+# .env
+SUPERMEMORY_API_KEY=your-supermemory-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+<Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
+
+---
+
+## Connection
+
+All integration points share a single `AgentSupermemory` connection. This ensures the same API client, container tag, and conversation ID are used across middleware, tools, and context providers.
+
+```python
+from supermemory_agent_framework import AgentSupermemory
+
+conn = AgentSupermemory(
+    api_key="your-supermemory-api-key",  # or set SUPERMEMORY_API_KEY env var
+    container_tag="user-123",            # memory scope (e.g., user ID)
+    conversation_id="session-abc",       # optional, auto-generated if omitted
+    entity_context="The user is a Python developer.",  # optional
+)
+```
+
+### Connection options
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `api_key` | `str` | env var | Supermemory API key. Falls back to `SUPERMEMORY_API_KEY` |
+| `container_tag` | `str` | `"msft_agent_chat"` | Memory scope (e.g., user ID) |
+| `conversation_id` | `str` | auto-generated | Groups messages into a conversation |
+| `entity_context` | `str` | `None` | Custom context about the user, prepended to memories |
+
+Pass this connection to any integration:
+
+```python
+middleware = SupermemoryChatMiddleware(conn, options=...)
+tools = SupermemoryTools(conn)
+provider = SupermemoryContextProvider(conn, mode="full")
+```
+
+---
+
+## Context provider (recommended)
+
+The most idiomatic integration. Follows the same pattern as Agent Framework's built-in Mem0 provider — memories are automatically fetched before the LLM runs and conversations can be stored afterward.
+
+```python
+import asyncio
+from agent_framework import AgentSession
+from agent_framework.openai import OpenAIResponsesClient
+from supermemory_agent_framework import AgentSupermemory, SupermemoryContextProvider
+
+async def main():
+    conn = AgentSupermemory(container_tag="user-123")
+
+    provider = SupermemoryContextProvider(conn, mode="full")
+
+    agent = OpenAIResponsesClient().as_agent(
+        name="MemoryAgent",
+        instructions="You are a helpful assistant with memory.",
+        context_providers=[provider],
+    )
+
+    session = AgentSession()
+    response = await agent.run(
+        "What's my favorite programming language?",
+        session=session,
+    )
+    print(response.text)
+
+asyncio.run(main())
+```
+
+### How it works
+
+1. **`before_run()`** — Searches Supermemory for the user's profile and relevant memories, then injects them into the session context as additional instructions
+2. **`after_run()`** — If `store_conversations=True`, saves the conversation to Supermemory so future sessions have more context
+
+### Configuration options
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `connection` | `AgentSupermemory` | required | Shared connection |
+| `mode` | `str` | `"full"` | `"profile"`, `"query"`, or `"full"` |
+| `store_conversations` | `bool` | `False` | Save conversations after each run |
+| `context_prompt` | `str` | built-in | Custom prompt describing the memories |
+| `verbose` | `bool` | `False` | Enable detailed logging |
+
+---
+
+## Memory tools
+
+Give agents explicit control over memory operations. The agent decides when to search or store information.
+
+```python
+import asyncio
+from agent_framework.openai import OpenAIResponsesClient
+from supermemory_agent_framework import AgentSupermemory, SupermemoryTools
+
+async def main():
+    conn = AgentSupermemory(container_tag="user-123")
+    tools = SupermemoryTools(conn)
+
+    agent = OpenAIResponsesClient().as_agent(
+        name="MemoryAgent",
+        instructions="""You are a helpful assistant with memory.
+When users share preferences, save them. When they ask questions, search memories first.""",
+    )
+
+    response = await agent.run(
+        "Remember that I prefer Python over JavaScript",
+        tools=tools.get_tools(),
+    )
+    print(response.text)
+
+asyncio.run(main())
+```
+
+### Available tools
+
+The agent gets three tools:
+
+- **`search_memories`** — Search for relevant memories by query
+- **`add_memory`** — Store new information for later recall
+- **`get_profile`** — Fetch the user's full profile (static + dynamic facts)
+
+---
+
+## Chat middleware
+
+Intercept chat requests to automatically inject memory context. Useful when you want memory injection without the session-based context provider pattern.
+
+```python
+import asyncio
+from agent_framework.openai import OpenAIResponsesClient
+from supermemory_agent_framework import (
+    AgentSupermemory,
+    SupermemoryChatMiddleware,
+    SupermemoryMiddlewareOptions,
+)
+
+async def main():
+    conn = AgentSupermemory(container_tag="user-123")
+
+    middleware = SupermemoryChatMiddleware(
+        conn,
+        options=SupermemoryMiddlewareOptions(
+            mode="full",
+            add_memory="always",
+        ),
+    )
+
+    agent = OpenAIResponsesClient().as_agent(
+        name="MemoryAgent",
+        instructions="You are a helpful assistant.",
+        middleware=[middleware],
+    )
+
+    response = await agent.run("What's my favorite programming language?")
+    print(response.text)
+
+asyncio.run(main())
+```
+
+---
+
+## Memory modes
+
+```python
+SupermemoryContextProvider(conn, mode="full")  # or "profile" / "query"
+```
+
+| Mode | What it fetches | Best for |
+|---|---|---|
+| `"profile"` | User profile (static + dynamic facts) only | Personalization without query overhead |
+| `"query"` | Memories relevant to the current message only | Targeted recall, no profile data |
+| `"full"` (default) | Profile + query search combined | Maximum context |
+
+---
+
+## Example: support agent with memory
+
+A support agent that remembers customers across sessions:
+
+```python
+import asyncio
+from agent_framework import AgentSession
+from agent_framework.openai import OpenAIResponsesClient
+from supermemory_agent_framework import (
+    AgentSupermemory,
+    SupermemoryChatMiddleware,
+    SupermemoryMiddlewareOptions,
+    SupermemoryContextProvider,
+    SupermemoryTools,
+)
+
+async def main():
+    conn = AgentSupermemory(
+        container_tag="customer-456",
+        conversation_id="support-session-789",
+        entity_context="Enterprise customer on the Pro plan.",
+    )
+
+    provider = SupermemoryContextProvider(
+        conn,
+        mode="full",
+        store_conversations=True,
+    )
+
+    middleware = SupermemoryChatMiddleware(
+        conn,
+        options=SupermemoryMiddlewareOptions(
+            mode="full",
+            add_memory="always",
+        ),
+    )
+
+    tools = SupermemoryTools(conn)
+
+    agent = OpenAIResponsesClient().as_agent(
+        name="SupportAgent",
+        instructions="""You are a customer support agent.
+
+Use the user context provided to personalize your responses.
+Reference past interactions when relevant.
+Save important new information about the customer.""",
+        context_providers=[provider],
+        middleware=[middleware],
+    )
+
+    session = AgentSession()
+
+    # First interaction
+    response = await agent.run(
+        "My order hasn't arrived yet. Order ID is ORD-789.",
+        session=session,
+        tools=tools.get_tools(),
+    )
+    print(response.text)
+
+    # Follow-up — agent automatically has context from first message
+    response = await agent.run(
+        "Actually, can you also check my previous order?",
+        session=session,
+        tools=tools.get_tools(),
+    )
+    print(response.text)
+
+asyncio.run(main())
+```
+
+---
+
+## Error handling
+
+The package provides specific exception types:
+
+```python
+from supermemory_agent_framework import (
+    AgentSupermemory,
+    SupermemoryConfigurationError,
+    SupermemoryAPIError,
+    SupermemoryNetworkError,
+)
+
+try:
+    conn = AgentSupermemory()  # no API key set
+except SupermemoryConfigurationError as e:
+    print(f"Missing API key: {e}")
+```
+
+| Exception | When |
+|---|---|
+| `SupermemoryConfigurationError` | Missing API key or invalid config |
+| `SupermemoryAPIError` | API returned an error response |
+| `SupermemoryNetworkError` | Connection failure |
+| `SupermemoryTimeoutError` | Request timed out |
+| `SupermemoryMemoryOperationError` | Memory add/search failed |
+
+---
+
+## Related docs
+
+<CardGroup cols={2}>
+  <Card title="User profiles" icon="user" href="/user-profiles">
+    How automatic profiling works
+  </Card>
+  <Card title="Search" icon="search" href="/search">
+    Filtering and search modes
+  </Card>
+  <Card title="OpenAI Agents SDK" icon="message-bot" href="/integrations/openai-agents-sdk">
+    Memory for OpenAI Agents SDK
+  </Card>
+  <Card title="LangChain" icon="link" href="/integrations/langchain">
+    Memory for LangChain apps
+  </Card>
+</CardGroup>
