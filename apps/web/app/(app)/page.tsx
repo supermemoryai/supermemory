@@ -137,12 +137,65 @@ export default function NewPage() {
 	const resetDraft = useQuickNoteDraftReset(selectedProject)
 	const { draft: quickNoteDraft } = useQuickNoteDraft(selectedProject || "")
 
-	const { noteMutation } = useDocumentMutations({
+	const { noteMutation, bulkDeleteMutation } = useDocumentMutations({
 		onClose: () => {
 			resetDraft()
 			setIsFullscreen(false)
 		},
 	})
+
+	const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(
+		new Set(),
+	)
+	const [isSelectionMode, setIsSelectionMode] = useState(false)
+
+	const handleToggleSelection = useCallback((documentId: string) => {
+		setSelectedDocumentIds((prev) => {
+			const next = new Set(prev)
+			if (next.has(documentId)) {
+				next.delete(documentId)
+			} else {
+				next.add(documentId)
+			}
+			return next
+		})
+	}, [])
+
+	const handleClearSelection = useCallback(() => {
+		setSelectedDocumentIds(new Set())
+		setIsSelectionMode(false)
+	}, [])
+
+	const handleEnterSelectionMode = useCallback(() => {
+		setIsSelectionMode(true)
+	}, [])
+
+	const handleSelectAllVisible = useCallback((visibleIds: string[]) => {
+		setSelectedDocumentIds((prev) => {
+			const next = new Set(prev)
+			for (const id of visibleIds) {
+				next.add(id)
+			}
+			return next
+		})
+	}, [])
+
+	const handleBulkDelete = useCallback(() => {
+		const ids = Array.from(selectedDocumentIds)
+		if (ids.length === 0) return
+		bulkDeleteMutation.mutate(
+			{ documentIds: ids },
+			{
+				onSuccess: () => {
+					setSelectedDocumentIds(new Set())
+					setIsSelectionMode(false)
+					if (selectedDocument && ids.includes(selectedDocument.id ?? "")) {
+						setDocId(null)
+					}
+				},
+			},
+		)
+	}, [selectedDocumentIds, bulkDeleteMutation, selectedDocument, setDocId])
 
 	type SpaceHighlightsResponse = {
 		highlights: HighlightItem[]
@@ -349,6 +402,14 @@ export default function NewPage() {
 									<MemoriesGrid
 										isChatOpen={chatOpen}
 										onOpenDocument={handleOpenDocument}
+										isSelectionMode={isSelectionMode}
+										selectedDocumentIds={selectedDocumentIds}
+										onEnterSelectionMode={handleEnterSelectionMode}
+										onToggleSelection={handleToggleSelection}
+										onClearSelection={handleClearSelection}
+										onSelectAllVisible={handleSelectAllVisible}
+										onBulkDelete={handleBulkDelete}
+										isBulkDeleting={bulkDeleteMutation.isPending}
 										quickNoteProps={{
 											onSave: handleQuickNoteSave,
 											onMaximize: handleMaximize,

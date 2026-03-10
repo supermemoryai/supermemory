@@ -4,6 +4,8 @@ import {
 	AnalyticsChatResponseSchema,
 	AnalyticsMemoryResponseSchema,
 	AnalyticsUsageResponseSchema,
+	BulkDeleteMemoriesResponseSchema,
+	BulkDeleteMemoriesSchema,
 	ConnectionResponseSchema,
 	CreateProjectSchema,
 	DeleteProjectResponseSchema,
@@ -168,6 +170,12 @@ export const apiSchema = createSchema({
 	"@delete/documents/:id": {
 		output: z.any(), // 204 No-Content
 		params: z.object({ id: z.string() }),
+	},
+
+	// Bulk delete memories
+	"@delete/documents/bulk": {
+		body: BulkDeleteMemoriesSchema,
+		output: BulkDeleteMemoriesResponseSchema,
 	},
 
 	// Search operations

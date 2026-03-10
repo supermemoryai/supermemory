@@ -445,9 +445,7 @@ export const MemoryGraph = ({
 				variant={variant}
 			/>
 
-			{!isLoading &&
-				!nodes.some((n) => n.type === "document") &&
-				children}
+			{!isLoading && !nodes.some((n) => n.type === "document") && children}
 
 			<div
 				className="w-full h-full relative overflow-hidden touch-none select-none"

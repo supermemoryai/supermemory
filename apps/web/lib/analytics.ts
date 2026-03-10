@@ -161,6 +161,9 @@ export const analytics = {
 	documentDeleted: (props: { document_id: string }) =>
 		safeCapture("document_deleted", props),
 
+	documentsBulkDeleted: (props: { count: number }) =>
+		safeCapture("documents_bulk_deleted", props),
+
 	documentEdited: (props: { document_id: string }) =>
 		safeCapture("document_edited", props),
 }

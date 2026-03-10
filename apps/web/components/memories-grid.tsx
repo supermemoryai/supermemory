@@ -31,6 +31,17 @@ import { HighlightsCard, type HighlightItem } from "./highlights-card"
 import { GraphCard } from "./memory-graph"
 import { Button } from "@ui/components/button"
 import { categoriesParam } from "@/lib/search-params"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@ui/components/alert-dialog"
+import { CheckIcon, Trash2Icon, XIcon } from "lucide-react"
 
 // Document category type
 type DocumentCategory =
@@ -84,6 +95,14 @@ interface HighlightsProps {
 interface MemoriesGridProps {
 	isChatOpen: boolean
 	onOpenDocument: (document: DocumentWithMemories) => void
+	isSelectionMode?: boolean
+	selectedDocumentIds?: Set<string>
+	onEnterSelectionMode?: () => void
+	onToggleSelection?: (documentId: string) => void
+	onClearSelection?: () => void
+	onSelectAllVisible?: (visibleIds: string[]) => void
+	onBulkDelete?: () => void
+	isBulkDeleting?: boolean
 	quickNoteProps?: QuickNoteProps
 	highlightsProps?: HighlightsProps
 }
@@ -91,11 +110,20 @@ interface MemoriesGridProps {
 export function MemoriesGrid({
 	isChatOpen,
 	onOpenDocument,
+	isSelectionMode = false,
+	selectedDocumentIds = new Set(),
+	onEnterSelectionMode,
+	onToggleSelection,
+	onClearSelection,
+	onSelectAllVisible,
+	onBulkDelete,
+	isBulkDeleting = false,
 	quickNoteProps,
 	highlightsProps,
 }: MemoriesGridProps) {
+	const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 	const { user } = useAuth()
-	const { selectedProjects, effectiveContainerTags } = useProject()
+	const { effectiveContainerTags } = useProject()
 	const isMobile = useIsMobile()
 	const [selectedCategories, setSelectedCategories] = useQueryState(
 		"categories",
@@ -241,10 +269,30 @@ export function MemoriesGrid({
 
 	const handleCardClick = useCallback(
 		(document: DocumentWithMemories) => {
-			onOpenDocument(document)
+			if (isSelectionMode && onToggleSelection && document.id) {
+				onToggleSelection(document.id)
+			} else {
+				onOpenDocument(document)
+			}
 		},
-		[onOpenDocument],
+		[isSelectionMode, onToggleSelection, onOpenDocument],
 	)
+
+	const handleSelectAllVisible = useCallback(() => {
+		if (onSelectAllVisible) {
+			onSelectAllVisible(documents.map((d) => d.id).filter(Boolean) as string[])
+		}
+	}, [documents, onSelectAllVisible])
+
+	const handleBulkDeleteClick = useCallback(() => {
+		if (selectedDocumentIds.size === 0) return
+		setShowBulkDeleteConfirm(true)
+	}, [selectedDocumentIds.size])
+
+	const handleBulkDeleteConfirm = useCallback(() => {
+		setShowBulkDeleteConfirm(false)
+		onBulkDelete?.()
+	}, [onBulkDelete])
 
 	const renderMasonryItem = useCallback(
 		({
@@ -257,13 +305,21 @@ export function MemoriesGrid({
 			width: number
 		}) => {
 			if (data.type === "document") {
+				const doc = data.data
 				return (
 					<ErrorBoundary>
 						<DocumentCard
 							index={index}
-							data={data.data}
+							data={doc}
 							width={width}
 							onClick={handleCardClick}
+							isSelectionMode={isSelectionMode}
+							isSelected={doc.id ? selectedDocumentIds.has(doc.id) : false}
+							onToggleSelection={
+								doc.id && onToggleSelection
+									? () => onToggleSelection(doc.id as string)
+									: undefined
+							}
 						/>
 					</ErrorBoundary>
 				)
@@ -271,7 +327,7 @@ export function MemoriesGrid({
 
 			return null
 		},
-		[handleCardClick],
+		[handleCardClick, isSelectionMode, selectedDocumentIds, onToggleSelection],
 	)
 
 	if (!user) {
@@ -286,37 +342,140 @@ export function MemoriesGrid({
 
 	return (
 		<div className="relative">
-			<div id="filter-pills" className="flex flex-wrap gap-1.5 mb-3">
-				<Button
-					className={cn(
-						dmSansClassName(),
-						"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-						selectedCategories.length === 0 &&
-							"bg-[#00173C] border-[#2261CA33]",
-					)}
-					onClick={handleSelectAll}
-				>
-					All
-					{facetsData?.total !== undefined && (
-						<span className="ml-1 text-[#737373]">({facetsData.total})</span>
-					)}
-				</Button>
-				{facetsData?.facets.map((facet: DocumentFacet) => (
+			<div
+				id="filter-pills"
+				className="flex items-center justify-between gap-4 mb-3"
+			>
+				<div className="flex flex-wrap items-center gap-1.5">
 					<Button
-						key={facet.category}
 						className={cn(
 							dmSansClassName(),
 							"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-							selectedCategories.includes(facet.category) &&
+							selectedCategories.length === 0 &&
 								"bg-[#00173C] border-[#2261CA33]",
 						)}
-						onClick={() => handleCategoryToggle(facet.category)}
+						onClick={handleSelectAll}
 					>
-						{facet.label}
-						<span className="ml-1 text-[#737373]">({facet.count})</span>
+						All
+						{facetsData?.total !== undefined && (
+							<span className="ml-1 text-[#737373]">({facetsData.total})</span>
+						)}
 					</Button>
-				))}
+					{facetsData?.facets.map((facet: DocumentFacet) => (
+						<Button
+							key={facet.category}
+							className={cn(
+								dmSansClassName(),
+								"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+								selectedCategories.includes(facet.category) &&
+									"bg-[#00173C] border-[#2261CA33]",
+							)}
+							onClick={() => handleCategoryToggle(facet.category)}
+						>
+							{facet.label}
+							<span className="ml-1 text-[#737373]">({facet.count})</span>
+						</Button>
+					))}
+				</div>
+
+				<div className="flex items-center gap-2 shrink-0">
+					{isSelectionMode && (
+						<>
+							<button
+								type="button"
+								aria-label="Exit selection mode"
+								className="w-8 h-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] transition-colors cursor-pointer"
+								onClick={onClearSelection}
+							>
+								<XIcon className="w-4 h-4 text-[#737373]" />
+							</button>
+							{selectedDocumentIds.size > 0 ? (
+								<>
+									<button
+										type="button"
+										className={cn(
+											dmSansClassName(),
+											"text-xs text-[#737373] hover:text-white transition-colors cursor-pointer",
+										)}
+										onClick={handleSelectAllVisible}
+									>
+										Select all
+									</button>
+									<button
+										type="button"
+										className={cn(
+											dmSansClassName(),
+											"flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50",
+										)}
+										onClick={handleBulkDeleteClick}
+										disabled={isBulkDeleting}
+									>
+										<Trash2Icon className="w-3 h-3" />
+										Delete ({selectedDocumentIds.size})
+									</button>
+								</>
+							) : (
+								<p className={cn(dmSansClassName(), "text-xs text-[#737373]")}>
+									Select one or more documents
+								</p>
+							)}
+						</>
+					)}
+					{!isSelectionMode && onEnterSelectionMode && (
+						<button
+							type="button"
+							aria-label="Enter selection mode"
+							className="w-8 h-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] transition-colors cursor-pointer"
+							onClick={onEnterSelectionMode}
+						>
+							<div className="w-3 h-3 rounded-[2.25px] border border-[#737373]" />
+						</button>
+					)}
+				</div>
 			</div>
+
+			<AlertDialog
+				open={showBulkDeleteConfirm}
+				onOpenChange={setShowBulkDeleteConfirm}
+			>
+				<AlertDialogContent
+					className={cn(
+						"border-none bg-[#1B1F24] p-4 gap-4 rounded-[22px] max-w-[400px]",
+						dmSansClassName(),
+					)}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+					}}
+				>
+					<AlertDialogHeader>
+						<AlertDialogTitle className="text-[#FAFAFA] font-medium">
+							Delete selected memories?
+						</AlertDialogTitle>
+						<AlertDialogDescription className="text-[#737373]">
+							This will permanently delete {selectedDocumentIds.size}{" "}
+							{selectedDocumentIds.size === 1 ? "memory" : "memories"}. This
+							action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="flex-row gap-2 sm:justify-end">
+						<AlertDialogCancel
+							className="border-none bg-transparent text-[#737373] hover:bg-[#14161A]/50 hover:text-white rounded-full cursor-pointer"
+							onClick={() => setShowBulkDeleteConfirm(false)}
+						>
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction
+							className="bg-red-600 hover:bg-red-700 text-white border-none rounded-[10px] cursor-pointer"
+							onClick={handleBulkDeleteConfirm}
+							disabled={isBulkDeleting}
+						>
+							{isBulkDeleting ? "Deleting…" : "Delete"}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
 			{error ? (
 				<div className="h-full flex items-center justify-center p-4">
 					<div className="text-center text-muted-foreground">
@@ -411,18 +570,31 @@ function DocumentUrlDisplay({ url }: { url: string }) {
 	)
 }
 
+function isTemporaryId(id: string | null | undefined): boolean {
+	if (!id) return false
+	return id.startsWith("temp-") || id.startsWith("temp-file-")
+}
+
 const DocumentCard = memo(
 	({
 		index: _index,
 		data: document,
 		width,
 		onClick,
+		isSelectionMode = false,
+		isSelected = false,
+		onToggleSelection,
 	}: {
 		index: number
 		data: DocumentWithMemories
 		width: number
 		onClick: (document: DocumentWithMemories) => void
+		isSelectionMode?: boolean
+		isSelected?: boolean
+		onToggleSelection?: () => void
 	}) => {
+		const canSelect =
+			!isTemporaryId(document.id) && !isTemporaryId(document.customId)
 		const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0 })
 		const cardRef = useRef<HTMLButtonElement>(null)
 		const [ogData, setOgData] = useState<OgData | null>(null)
@@ -465,8 +637,12 @@ const DocumentCard = memo(
 			}
 		}, [needsOgData, ogData, isLoadingOg, document.url])
 
+		useEffect(() => {
+			if (isSelectionMode) setRotation({ rotateX: 0, rotateY: 0 })
+		}, [isSelectionMode])
+
 		const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-			if (!cardRef.current) return
+			if (isSelectionMode || !cardRef.current) return
 
 			const rect = cardRef.current.getBoundingClientRect()
 			const centerX = rect.left + rect.width / 2
@@ -487,12 +663,32 @@ const DocumentCard = memo(
 		}
 
 		return (
-			<div className="p-2" style={{ width }}>
+			<div className="p-2 relative" style={{ width }}>
+				{isSelectionMode && canSelect && (
+					<button
+						type="button"
+						aria-label={isSelected ? "Deselect" : "Select"}
+						className="absolute top-5 right-5 z-10 flex items-center justify-center cursor-pointer"
+						onClick={(e) => {
+							e.stopPropagation()
+							onToggleSelection?.()
+						}}
+					>
+						{isSelected ? (
+							<div className="w-3 h-3 rounded-[2.25px] border border-[#369BFD] bg-[#369BFD] flex items-center justify-center">
+								<CheckIcon className="w-2 h-2 text-white" strokeWidth={3} />
+							</div>
+						) : (
+							<div className="w-3 h-3 rounded-[2.25px] border border-[#737373]" />
+						)}
+					</button>
+				)}
 				<button
+					id={document.id ? `document-card-${document.id}` : undefined}
 					ref={cardRef}
 					type="button"
 					className={cn(
-						"rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1 cursor-pointer w-full",
+						"rounded-[22px] bg-[#1B1F24] px-1 space-y-2 pt-1 cursor-pointer w-full relative overflow-hidden",
 						"border-none text-left transition-transform duration-200 ease-out",
 						document.type === "image" ||
 							document.metadata?.mimeType?.toString().startsWith("image/")
@@ -505,10 +701,15 @@ const DocumentCard = memo(
 					style={{
 						boxShadow:
 							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-						transform: `perspective(1000px) rotateX(${rotation.rotateX}deg) rotateY(${rotation.rotateY}deg)`,
-						transformStyle: "preserve-3d",
+						transform: isSelectionMode
+							? "none"
+							: `perspective(1000px) rotateX(${rotation.rotateX}deg) rotateY(${rotation.rotateY}deg)`,
+						transformStyle: isSelectionMode ? undefined : "preserve-3d",
 					}}
 				>
+					{isSelectionMode && isSelected && (
+						<div className="absolute inset-0 bg-[rgba(75,160,250,0.25)] rounded-[22px] z-1 pointer-events-none" />
+					)}
 					<ContentPreview document={document} ogData={ogData} />
 					{!(
 						document.type === "image" ||

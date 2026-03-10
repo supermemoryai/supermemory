@@ -29,8 +29,6 @@ type InfiniteQueryData = {
 	pageParams: number[]
 }
 
-type QueryData = DocumentsQueryData | InfiniteQueryData
-
 interface UseDocumentMutationsOptions {
 	onClose?: () => void
 }
@@ -134,6 +132,62 @@ function removeDocumentFromQueryData(
 				(doc) => doc.id !== documentId && doc.customId !== documentId,
 			),
 			totalCount: Math.max(0, ((data.totalCount as number) ?? 0) - 1),
+		}
+	}
+
+	return old
+}
+
+function removeDocumentsFromQueryData(
+	old: unknown,
+	documentIds: Set<string>,
+): unknown {
+	if (!old || typeof old !== "object" || documentIds.size === 0) return old
+
+	const data = old as Record<string, unknown>
+
+	if ("pages" in data && Array.isArray(data.pages)) {
+		return {
+			...data,
+			pages: data.pages.map((page: unknown) => {
+				const p = page as Record<string, unknown>
+				if (!p?.documents || !Array.isArray(p.documents)) return page
+				const filtered = (p.documents as DocumentWithId[]).filter(
+					(doc) =>
+						!documentIds.has(doc.id ?? "") &&
+						!documentIds.has(doc.customId ?? ""),
+				)
+				const removed =
+					(p.documents as DocumentWithId[]).length - filtered.length
+				return {
+					...p,
+					documents: filtered,
+					pagination: p.pagination
+						? {
+								...(p.pagination as Record<string, unknown>),
+								totalItems: Math.max(
+									0,
+									((p.pagination as Record<string, number>).totalItems ?? 0) -
+										removed,
+								),
+							}
+						: p.pagination,
+				}
+			}),
+		}
+	}
+
+	if ("documents" in data && Array.isArray(data.documents)) {
+		const filtered = (data.documents as DocumentWithId[]).filter(
+			(doc) =>
+				!documentIds.has(doc.id ?? "") && !documentIds.has(doc.customId ?? ""),
+		)
+		const removed =
+			(data.documents as DocumentWithId[]).length - filtered.length
+		return {
+			...data,
+			documents: filtered,
+			totalCount: Math.max(0, ((data.totalCount as number) ?? 0) - removed),
 		}
 	}
 
@@ -460,11 +514,50 @@ export function useDocumentMutations({
 		},
 	})
 
+	const bulkDeleteMutation = useMutation({
+		mutationFn: async ({ documentIds }: { documentIds: string[] }) => {
+			const response = await $fetch("@delete/documents/bulk", {
+				body: { ids: documentIds },
+			})
+
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to delete documents")
+			}
+
+			return response.data
+		},
+		onMutate: async ({ documentIds }) => {
+			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const idSet = new Set(documentIds)
+
+			queryClient.setQueriesData(
+				{ queryKey: ["documents-with-memories"] },
+				(old) => removeDocumentsFromQueryData(old, idSet),
+			)
+
+			return { previousQueries }
+		},
+		onError: (error, _variables, context) => {
+			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
+			toast.error("Failed to delete documents", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+		onSuccess: (_data, variables) => {
+			analytics.documentsBulkDeleted({ count: variables.documentIds.length })
+			toast.success(
+				`${variables.documentIds.length} document${variables.documentIds.length === 1 ? "" : "s"} deleted`,
+			)
+			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
+		},
+	})
+
 	return {
 		noteMutation,
 		linkMutation,
 		fileMutation,
 		updateMutation,
 		deleteMutation,
+		bulkDeleteMutation,
 	}
 }
