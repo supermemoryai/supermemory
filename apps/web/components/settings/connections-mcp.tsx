@@ -15,6 +15,7 @@ import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { AddDocumentModal } from "@/components/add-document"
+import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
 
@@ -335,6 +336,10 @@ export default function ConnectionsMCP() {
 	const autumn = useCustomer()
 	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
 	const [mcpModalOpen, setMcpModalOpen] = useState(false)
+	const [removeDialog, setRemoveDialog] = useState<{
+		open: boolean
+		connection: Connection | null
+	}>({ open: false, connection: null })
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
@@ -392,16 +397,27 @@ export default function ConnectionsMCP() {
 		}
 	}, [connectionsError])
 
-	// Delete connection mutation
 	const deleteConnectionMutation = useMutation({
-		mutationFn: async (connectionId: string) => {
-			await $fetch(`@delete/connections/${connectionId}`)
+		mutationFn: async ({
+			connectionId,
+			deleteDocuments,
+		}: {
+			connectionId: string
+			deleteDocuments: boolean
+		}) => {
+			await $fetch(`@delete/connections/${connectionId}`, {
+				query: { deleteDocuments },
+			})
+			return { deleteDocuments }
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
 			analytics.connectionDeleted()
 			toast.success(
-				"Connection removal has started. Supermemory will permanently delete the documents in the next few minutes.",
+				variables.deleteDocuments
+					? "Connection removal has started. Supermemory will permanently delete the documents in the next few minutes."
+					: "Connection removed. Your memories have been kept.",
 			)
+			setRemoveDialog({ open: false, connection: null })
 			queryClient.invalidateQueries({ queryKey: ["connections"] })
 		},
 		onError: (error) => {
@@ -478,9 +494,7 @@ export default function ConnectionsMCP() {
 									<ConnectionRow
 										key={connection.id}
 										connection={connection}
-										onDelete={() =>
-											deleteConnectionMutation.mutate(connection.id)
-										}
+										onDelete={() => setRemoveDialog({ open: true, connection })}
 										isDeleting={deleteConnectionMutation.isPending}
 										disabled={!hasProProduct}
 										projects={projects}
@@ -562,6 +576,26 @@ export default function ConnectionsMCP() {
 				isOpen={isAddDocumentOpen}
 				onClose={() => setIsAddDocumentOpen(false)}
 				defaultTab="connect"
+			/>
+
+			<RemoveConnectionDialog
+				open={removeDialog.open}
+				onOpenChange={(open) => {
+					if (!open) setRemoveDialog({ open: false, connection: null })
+				}}
+				provider={removeDialog.connection?.provider}
+				documentCount={
+					(removeDialog.connection?.metadata?.documentCount as number) ?? 0
+				}
+				onConfirm={(deleteDocuments) => {
+					if (removeDialog.connection) {
+						deleteConnectionMutation.mutate({
+							connectionId: removeDialog.connection.id,
+							deleteDocuments,
+						})
+					}
+				}}
+				isDeleting={deleteConnectionMutation.isPending}
 			/>
 		</div>
 	)
