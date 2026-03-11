@@ -358,99 +358,97 @@ export function MemoriesGrid({
 	return (
 		<div className="relative">
 			{!isEmpty && (
-				<div id="filter-pills" className="flex flex-wrap gap-1.5 mb-3">
-			<div
-				id="filter-pills"
-				className="flex items-center justify-between gap-4 mb-3"
-			>
-				<div className="flex flex-wrap items-center gap-1.5">
-					<Button
-						className={cn(
-							dmSansClassName(),
-							"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-							selectedCategories.length === 0 &&
-								"bg-[#00173C] border-[#2261CA33]",
-						)}
-						onClick={handleSelectAll}
-					>
-						All
-						{facetsData?.total !== undefined && (
-							<span className="ml-1 text-[#737373]">({facetsData.total})</span>
-						)}
-					</Button>
-					{facetsData?.facets.map((facet: DocumentFacet) => (
+				<div
+					id="filter-pills"
+					className="flex items-center justify-between gap-4 mb-3"
+				>
+					<div className="flex flex-wrap items-center gap-1.5">
 						<Button
-							key={facet.category}
 							className={cn(
 								dmSansClassName(),
 								"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-								selectedCategories.includes(facet.category) &&
+								selectedCategories.length === 0 &&
 									"bg-[#00173C] border-[#2261CA33]",
 							)}
-							onClick={() => handleCategoryToggle(facet.category)}
+							onClick={handleSelectAll}
 						>
-							{facet.label}
-							<span className="ml-1 text-[#737373]">({facet.count})</span>
+							All
+							{facetsData?.total !== undefined && (
+								<span className="ml-1 text-[#737373]">({facetsData.total})</span>
+							)}
 						</Button>
-					))}
-				</div>
-			)}
-
-				<div className="flex items-center gap-2 shrink-0">
-					{isSelectionMode && (
-						<>
+						{facetsData?.facets.map((facet: DocumentFacet) => (
+							<Button
+								key={facet.category}
+								className={cn(
+									dmSansClassName(),
+									"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+									selectedCategories.includes(facet.category) &&
+										"bg-[#00173C] border-[#2261CA33]",
+								)}
+								onClick={() => handleCategoryToggle(facet.category)}
+							>
+								{facet.label}
+								<span className="ml-1 text-[#737373]">({facet.count})</span>
+							</Button>
+						))}
+					</div>
+					<div className="flex items-center gap-2 shrink-0">
+						{isSelectionMode && (
+							<>
+								<button
+									type="button"
+									aria-label="Exit selection mode"
+									className="w-8 h-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] transition-colors cursor-pointer"
+									onClick={onClearSelection}
+								>
+									<XIcon className="w-4 h-4 text-[#737373]" />
+								</button>
+								{selectedDocumentIds.size > 0 ? (
+									<>
+										<button
+											type="button"
+											className={cn(
+												dmSansClassName(),
+												"text-xs text-[#737373] hover:text-white transition-colors cursor-pointer",
+											)}
+											onClick={handleSelectAllVisible}
+										>
+											Select all
+										</button>
+										<button
+											type="button"
+											className={cn(
+												dmSansClassName(),
+												"flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50",
+											)}
+											onClick={handleBulkDeleteClick}
+											disabled={isBulkDeleting}
+										>
+											<Trash2Icon className="w-3 h-3" />
+											Delete ({selectedDocumentIds.size})
+										</button>
+									</>
+								) : (
+									<p className={cn(dmSansClassName(), "text-xs text-[#737373]")}>
+										Select one or more documents
+									</p>
+								)}
+							</>
+						)}
+						{!isSelectionMode && onEnterSelectionMode && (
 							<button
 								type="button"
-								aria-label="Exit selection mode"
+								aria-label="Enter selection mode"
 								className="w-8 h-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] transition-colors cursor-pointer"
-								onClick={onClearSelection}
+								onClick={onEnterSelectionMode}
 							>
-								<XIcon className="w-4 h-4 text-[#737373]" />
+								<div className="w-3 h-3 rounded-[2.25px] border border-[#737373]" />
 							</button>
-							{selectedDocumentIds.size > 0 ? (
-								<>
-									<button
-										type="button"
-										className={cn(
-											dmSansClassName(),
-											"text-xs text-[#737373] hover:text-white transition-colors cursor-pointer",
-										)}
-										onClick={handleSelectAllVisible}
-									>
-										Select all
-									</button>
-									<button
-										type="button"
-										className={cn(
-											dmSansClassName(),
-											"flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50",
-										)}
-										onClick={handleBulkDeleteClick}
-										disabled={isBulkDeleting}
-									>
-										<Trash2Icon className="w-3 h-3" />
-										Delete ({selectedDocumentIds.size})
-									</button>
-								</>
-							) : (
-								<p className={cn(dmSansClassName(), "text-xs text-[#737373]")}>
-									Select one or more documents
-								</p>
-							)}
-						</>
-					)}
-					{!isSelectionMode && onEnterSelectionMode && (
-						<button
-							type="button"
-							aria-label="Enter selection mode"
-							className="w-8 h-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] transition-colors cursor-pointer"
-							onClick={onEnterSelectionMode}
-						>
-							<div className="w-3 h-3 rounded-[2.25px] border border-[#737373]" />
-						</button>
-					)}
+						)}
+					</div>
 				</div>
-			</div>
+			)}
 
 			<AlertDialog
 				open={showBulkDeleteConfirm}
