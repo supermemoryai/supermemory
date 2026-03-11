@@ -409,9 +409,9 @@ export const MemoryGraph = ({
 			</AnimatePresence>
 
 			{/* Show welcome screen when no memories exist */}
-			{!isLoading && (!data || !nodes.some((n) => n.type === "document")) && (
-				<>{children}</>
-			)}
+			{!isLoading &&
+				(!data || !nodes.some((n) => n.type === "document")) &&
+				children}
 
 			{/* Graph container */}
 			<div

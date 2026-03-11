@@ -374,7 +374,9 @@ export function MemoriesGrid({
 						>
 							All
 							{facetsData?.total !== undefined && (
-								<span className="ml-1 text-[#737373]">({facetsData.total})</span>
+								<span className="ml-1 text-[#737373]">
+									({facetsData.total})
+								</span>
 							)}
 						</Button>
 						{facetsData?.facets.map((facet: DocumentFacet) => (
@@ -430,7 +432,9 @@ export function MemoriesGrid({
 										</button>
 									</>
 								) : (
-									<p className={cn(dmSansClassName(), "text-xs text-[#737373]")}>
+									<p
+										className={cn(dmSansClassName(), "text-xs text-[#737373]")}
+									>
 										Select one or more documents
 									</p>
 								)}
