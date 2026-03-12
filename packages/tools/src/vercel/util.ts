@@ -47,30 +47,17 @@ export type OutputContentItem =
 // Re-export convertProfileToMarkdown from shared for backward compatibility
 export { convertProfileToMarkdown } from "../shared"
 
+import {
+	findLastUserMessage,
+	extractTextFromMessageContent,
+} from "../shared/memory-client"
+
 export const getLastUserMessage = (
 	params: LanguageModelCallOptions,
 ): string | undefined => {
-	const lastUserMessage = params.prompt
-		.slice()
-		.reverse()
-		.find((prompt: LanguageModelMessage) => prompt.role === "user")
-
-	if (!lastUserMessage) {
-		return undefined
-	}
-
-	const content = lastUserMessage.content
-
-	// Handle string content directly
-	if (typeof content === "string") {
-		return content
-	}
-
-	// Handle array content - extract text parts
-	return content
-		.filter((part) => part.type === "text")
-		.map((part) => (part as { type: "text"; text: string }).text)
-		.join(" ")
+	const userMessage = findLastUserMessage(params.prompt)
+	if (!userMessage) return undefined
+	return extractTextFromMessageContent(userMessage.content)
 }
 
 export const filterOutSupermemories = (content: string) => {
