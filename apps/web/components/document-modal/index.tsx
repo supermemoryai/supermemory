@@ -27,6 +27,30 @@ import { useIsMobile } from "@hooks/use-mobile"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
+function getDocumentSourceUrl(document: DocumentWithMemories): string {
+	const url = document.url ?? ""
+	const googleDocTypes: Record<string, string> = {
+		google_doc: "https://docs.google.com/document/d/",
+		google_sheet: "https://docs.google.com/spreadsheets/d/",
+		google_slide: "https://docs.google.com/presentation/d/",
+	}
+
+	const prefix = document.type ? googleDocTypes[document.type] : null
+	if (!prefix) return url
+
+	if (document.customId) {
+		return `${prefix}${document.customId}/edit`
+	}
+
+	// Extract ID from API URL like docs.googleapis.com/v1/documents/{id}
+	const apiMatch = url.match(/docs\.googleapis\.com\/v1\/documents\/([a-zA-Z0-9_-]+)/)
+	if (apiMatch?.[1]) {
+		return `${prefix}${apiMatch[1]}/edit`
+	}
+
+	return url
+}
+
 interface DocumentModalProps {
 	document: DocumentWithMemories | null
 	isOpen: boolean
@@ -237,7 +261,7 @@ export function DocumentModal({
 						/>
 						{_document?.url && (
 							<a
-								href={_document.url}
+								href={getDocumentSourceUrl(_document)}
 								target="_blank"
 								rel="noopener noreferrer"
 								className={cn(
