@@ -410,9 +410,8 @@ export const MemoryGraph = ({
 
 			{/* Show welcome screen when no memories exist */}
 			{!isLoading &&
-				(!data || !nodes.some((n) => n.type === "document")) && (
-					<>{children}</>
-				)}
+				(!data || !nodes.some((n) => n.type === "document")) &&
+				children}
 
 			{/* Graph container */}
 			<div

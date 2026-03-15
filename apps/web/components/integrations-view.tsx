@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useQueryState } from "nuqs"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Button } from "@ui/components/button"
@@ -18,6 +19,10 @@ import {
 } from "@/components/integration-icons"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { ArrowLeft, Sun } from "lucide-react"
+import {
+	integrationParam,
+	type IntegrationParamValue,
+} from "@/lib/search-params"
 import Image from "next/image"
 
 type CardId =
@@ -140,10 +145,29 @@ function DetailWrapper({
 	)
 }
 
+const INTEGRATION_TO_CARD: Record<IntegrationParamValue, CardId> = {
+	import: "import",
+	chrome: "chrome",
+	connections: "connections",
+}
+
 export function IntegrationsView() {
+	const [integration, setIntegration] = useQueryState(
+		"integration",
+		integrationParam,
+	)
 	const [selectedCard, setSelectedCard] = useState<CardId | null>(null)
 
-	const handleBack = () => setSelectedCard(null)
+	useEffect(() => {
+		if (integration && INTEGRATION_TO_CARD[integration]) {
+			setSelectedCard(INTEGRATION_TO_CARD[integration])
+		}
+	}, [integration])
+
+	const handleBack = () => {
+		setSelectedCard(null)
+		setIntegration(null)
+	}
 
 	switch (selectedCard) {
 		case "mcp":

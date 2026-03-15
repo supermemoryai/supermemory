@@ -221,7 +221,11 @@ export class SupermemoryClient {
 	}
 
 	// Search memories using SDK
-	async search(query: string, limit = 10, threshold?: number): Promise<SearchResult> {
+	async search(
+		query: string,
+		limit = 10,
+		threshold?: number,
+	): Promise<SearchResult> {
 		try {
 			const result = await this.client.search.memories({
 				q: query,
