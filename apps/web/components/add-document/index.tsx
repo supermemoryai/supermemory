@@ -26,14 +26,9 @@ type TabType = "note" | "link" | "file" | "connect"
 interface AddDocumentModalProps {
 	isOpen: boolean
 	onClose: () => void
-	defaultTab?: TabType
 }
 
-export function AddDocumentModal({
-	isOpen,
-	onClose,
-	defaultTab,
-}: AddDocumentModalProps) {
+export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 	const isMobile = useIsMobile()
 
 	return (
@@ -54,11 +49,7 @@ export function AddDocumentModal({
 			>
 				<DialogTitle className="sr-only">Add Document</DialogTitle>
 				<div className="flex-1 overflow-hidden">
-					<AddDocument
-						defaultTab={defaultTab}
-						onClose={onClose}
-						isOpen={isOpen}
-					/>
+					<AddDocument onClose={onClose} isOpen={isOpen} />
 				</div>
 			</DialogContent>
 		</Dialog>
@@ -97,7 +88,6 @@ export function AddDocument({
 	onClose,
 	isOpen,
 }: {
-	defaultTab?: TabType
 	onClose: () => void
 	isOpen?: boolean
 }) {

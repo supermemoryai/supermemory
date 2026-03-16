@@ -92,14 +92,8 @@ export function SelectSpacesModal({
 			)
 		}
 
-		return result.sort((a, b) => {
-			const aSelected = localSelection.includes(a.containerTag)
-			const bSelected = localSelection.includes(b.containerTag)
-			if (aSelected && !bSelected) return -1
-			if (!aSelected && bSelected) return 1
-			return 0
-		})
-	}, [projects, searchQuery, localSelection])
+		return result
+	}, [projects, searchQuery])
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>

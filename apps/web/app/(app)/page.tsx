@@ -502,7 +502,6 @@ export default function NewPage() {
 				<AddDocumentModal
 					isOpen={addDoc !== null}
 					onClose={() => setAddDoc(null)}
-					defaultTab={addDoc ?? undefined}
 				/>
 				<DocumentsCommandPalette
 					open={isSearchOpen}

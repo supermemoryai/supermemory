@@ -10,11 +10,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Plus, Trash2, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { useQueryState } from "nuqs"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
 import { ConnectAIModal } from "@/components/connect-ai-modal"
 import { AddDocumentModal } from "@/components/add-document"
+import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
 
@@ -333,7 +335,7 @@ function FeatureItem({ text }: { text: string }) {
 export default function ConnectionsMCP() {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
+	const [addDoc, setAddDoc] = useQueryState("add", addDocumentParam)
 	const [mcpModalOpen, setMcpModalOpen] = useState(false)
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
@@ -510,7 +512,7 @@ export default function ConnectionsMCP() {
 						</div>
 
 						<PillButton
-							onClick={() => setIsAddDocumentOpen(true)}
+							onClick={() => setAddDoc("connect")}
 							disabled={!hasProProduct || !canAddConnection}
 						>
 							<Plus className="size-[10px] text-[#FAFAFA]" />
@@ -559,9 +561,8 @@ export default function ConnectionsMCP() {
 
 			{/* Add Document Modal */}
 			<AddDocumentModal
-				isOpen={isAddDocumentOpen}
-				onClose={() => setIsAddDocumentOpen(false)}
-				defaultTab="connect"
+				isOpen={addDoc !== null}
+				onClose={() => setAddDoc(null)}
 			/>
 		</div>
 	)

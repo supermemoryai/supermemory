@@ -8,12 +8,13 @@ import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Plus, Trash2, Zap } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { toast } from "sonner"
+import { useQueryState } from "nuqs"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
-import { AddDocumentModal } from "@/components/add-document"
+import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
 
@@ -167,7 +168,7 @@ function ConnectionRow({
 export function ConnectionsDetail() {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
+	const [, setAddDoc] = useQueryState("add", addDocumentParam)
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
@@ -247,157 +248,147 @@ export function ConnectionsDetail() {
 	const isLoading = autumn.isLoading || isCheckingStatus
 
 	return (
-		<>
+		<div
+			className={cn(
+				"bg-[#14161A] rounded-[14px] p-6 relative overflow-hidden",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+			)}
+		>
+			{!hasProProduct && !isLoading && (
+				<>
+					<div className="absolute inset-0 bg-[#14161A]/80 backdrop-blur-sm z-5" />
+					<div className="absolute inset-0 flex items-center justify-center z-10">
+						<div className="flex flex-col items-center gap-4">
+							<Zap className="size-6 text-[#737373]" />
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[14px] text-[#737373] text-center max-w-[220px]",
+								)}
+							>
+								Connect Google Drive, Notion, and OneDrive to import your
+								knowledge
+							</p>
+							<div className="flex flex-col gap-2">
+								{[
+									"Unlimited memories",
+									"10 connections",
+									"Advanced search",
+									"Priority support",
+								].map((text) => (
+									<div key={text} className="flex items-center gap-2">
+										<Check className="size-4 shrink-0 text-[#4BA0FA]" />
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"text-[14px] text-white",
+											)}
+										>
+											{text}
+										</span>
+									</div>
+								))}
+							</div>
+							<button
+								type="button"
+								onClick={handleUpgrade}
+								className={cn(
+									"flex items-center justify-center gap-2",
+									"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white",
+									"rounded-full h-10 px-6 font-medium text-sm transition-colors cursor-pointer",
+									dmSans125ClassName(),
+								)}
+							>
+								Upgrade to Pro
+							</button>
+						</div>
+					</div>
+				</>
+			)}
+
 			<div
 				className={cn(
-					"bg-[#14161A] rounded-[14px] p-6 relative overflow-hidden",
-					"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+					"flex flex-col gap-4",
+					!hasProProduct && !isLoading && "opacity-30 pointer-events-none",
 				)}
 			>
-				{!hasProProduct && !isLoading && (
-					<>
-						<div className="absolute inset-0 bg-[#14161A]/80 backdrop-blur-sm z-5" />
-						<div className="absolute inset-0 flex items-center justify-center z-10">
-							<div className="flex flex-col items-center gap-4">
-								<Zap className="size-6 text-[#737373]" />
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[14px] text-[#737373] text-center max-w-[220px]",
-									)}
-								>
-									Connect Google Drive, Notion, and OneDrive to import your
-									knowledge
-								</p>
-								<div className="flex flex-col gap-2">
-									{[
-										"Unlimited memories",
-										"10 connections",
-										"Advanced search",
-										"Priority support",
-									].map((text) => (
-										<div key={text} className="flex items-center gap-2">
-											<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-											<span
-												className={cn(
-													dmSans125ClassName(),
-													"text-[14px] text-white",
-												)}
-											>
-												{text}
-											</span>
-										</div>
-									))}
-								</div>
-								<button
-									type="button"
-									onClick={handleUpgrade}
-									className={cn(
-										"flex items-center justify-center gap-2",
-										"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white",
-										"rounded-full h-10 px-6 font-medium text-sm transition-colors cursor-pointer",
-										dmSans125ClassName(),
-									)}
-								>
-									Upgrade to Pro
-								</button>
-							</div>
-						</div>
-					</>
-				)}
-
-				<div
-					className={cn(
-						"flex flex-col gap-4",
-						!hasProProduct && !isLoading && "opacity-30 pointer-events-none",
-					)}
-				>
-					<div className="flex items-center justify-between">
-						<span
-							className={cn(
-								dmSans125ClassName(),
-								"font-semibold text-[16px] text-[#FAFAFA]",
-							)}
-						>
-							Connected to Supermemory
-						</span>
-						<span
-							className={cn(
-								dmSans125ClassName(),
-								"font-semibold text-[16px] text-[#737373]",
-							)}
-						>
-							{connections.length}/{connectionsLimit} connections used
-						</span>
-					</div>
-
-					<div className="flex flex-col gap-4">
-						{isLoadingConnections ? (
-							<div className="flex items-center justify-center py-8">
-								<div className="size-6 border-2 border-[#737373] border-t-transparent rounded-full animate-spin" />
-							</div>
-						) : connections.length > 0 ? (
-							connections.map((connection) => (
-								<ConnectionRow
-									key={connection.id}
-									connection={connection}
-									onDelete={() =>
-										deleteConnectionMutation.mutate(connection.id)
-									}
-									isDeleting={deleteConnectionMutation.isPending}
-									disabled={!hasProProduct}
-									projects={projects}
-								/>
-							))
-						) : (
-							<div className="flex flex-col items-center justify-center py-8 text-center">
-								<Zap className="size-6 text-[#737373] mb-2" />
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[14px] text-[#737373]",
-									)}
-								>
-									No connections yet
-								</p>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[12px] text-[#737373]",
-									)}
-								>
-									Connect a service below to import your knowledge
-								</p>
-							</div>
-						)}
-					</div>
-
-					<button
-						type="button"
-						onClick={() => setIsAddDocumentOpen(true)}
-						disabled={!hasProProduct || !canAddConnection}
+				<div className="flex items-center justify-between">
+					<span
 						className={cn(
-							"relative flex items-center justify-center gap-2",
-							"bg-[#0D121A] rounded-full h-11 px-4 w-full",
-							"cursor-pointer transition-opacity hover:opacity-80",
-							"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
-							"disabled:opacity-50 disabled:cursor-not-allowed",
 							dmSans125ClassName(),
+							"font-semibold text-[16px] text-[#FAFAFA]",
 						)}
 					>
-						<Plus className="size-[10px] text-[#FAFAFA]" />
-						<span className="text-[14px] text-[#FAFAFA] font-medium">
-							Connect knowledge bases
-						</span>
-					</button>
+						Connected to Supermemory
+					</span>
+					<span
+						className={cn(
+							dmSans125ClassName(),
+							"font-semibold text-[16px] text-[#737373]",
+						)}
+					>
+						{connections.length}/{connectionsLimit} connections used
+					</span>
 				</div>
-			</div>
 
-			<AddDocumentModal
-				isOpen={isAddDocumentOpen}
-				onClose={() => setIsAddDocumentOpen(false)}
-				defaultTab="connect"
-			/>
-		</>
+				<div className="flex flex-col gap-4">
+					{isLoadingConnections ? (
+						<div className="flex items-center justify-center py-8">
+							<div className="size-6 border-2 border-[#737373] border-t-transparent rounded-full animate-spin" />
+						</div>
+					) : connections.length > 0 ? (
+						connections.map((connection) => (
+							<ConnectionRow
+								key={connection.id}
+								connection={connection}
+								onDelete={() => deleteConnectionMutation.mutate(connection.id)}
+								isDeleting={deleteConnectionMutation.isPending}
+								disabled={!hasProProduct}
+								projects={projects}
+							/>
+						))
+					) : (
+						<div className="flex flex-col items-center justify-center py-8 text-center">
+							<Zap className="size-6 text-[#737373] mb-2" />
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[14px] text-[#737373]",
+								)}
+							>
+								No connections yet
+							</p>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[12px] text-[#737373]",
+								)}
+							>
+								Connect a service below to import your knowledge
+							</p>
+						</div>
+					)}
+				</div>
+
+				<button
+					type="button"
+					onClick={() => setAddDoc("connect")}
+					disabled={!hasProProduct || !canAddConnection}
+					className={cn(
+						"relative flex items-center justify-center gap-2",
+						"bg-[#0D121A] rounded-full h-11 px-4 w-full",
+						"cursor-pointer transition-opacity hover:opacity-80",
+						"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+						"disabled:opacity-50 disabled:cursor-not-allowed",
+						dmSans125ClassName(),
+					)}
+				>
+					<Plus className="size-[10px] text-[#FAFAFA]" />
+					<span className="text-[14px] text-[#FAFAFA] font-medium">
+						Connect knowledge bases
+					</span>
+				</button>
+			</div>
+		</div>
 	)
 }
