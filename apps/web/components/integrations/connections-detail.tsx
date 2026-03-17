@@ -8,12 +8,14 @@ import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Check, Plus, Trash2, Zap } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { useQueryState } from "nuqs"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { analytics } from "@/lib/analytics"
+import { AddDocumentModal } from "@/components/add-document"
+import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
@@ -168,6 +170,11 @@ function ConnectionRow({
 export function ConnectionsDetail() {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
+	const [isAddDocumentOpen, setIsAddDocumentOpen] = useState(false)
+	const [removeDialog, setRemoveDialog] = useState<{
+		open: boolean
+		connection: Connection | null
+	}>({ open: false, connection: null })
 	const [, setAddDoc] = useQueryState("add", addDocumentParam)
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
@@ -216,14 +223,26 @@ export function ConnectionsDetail() {
 	}, [connectionsError])
 
 	const deleteConnectionMutation = useMutation({
-		mutationFn: async (connectionId: string) => {
-			await $fetch(`@delete/connections/${connectionId}`)
+		mutationFn: async ({
+			connectionId,
+			deleteDocuments,
+		}: {
+			connectionId: string
+			deleteDocuments: boolean
+		}) => {
+			await $fetch(`@delete/connections/${connectionId}`, {
+				query: { deleteDocuments },
+			})
+			return { deleteDocuments }
 		},
-		onSuccess: () => {
+		onSuccess: (_data, variables) => {
 			analytics.connectionDeleted()
 			toast.success(
-				"Connection removal has started. Documents will be permanently deleted in the next few minutes.",
+				variables.deleteDocuments
+					? "Connection removal has started. Documents will be permanently deleted in the next few minutes."
+					: "Connection removed. Your memories have been kept.",
 			)
+			setRemoveDialog({ open: false, connection: null })
 			queryClient.invalidateQueries({ queryKey: ["connections"] })
 		},
 		onError: (error) => {
@@ -331,44 +350,61 @@ export function ConnectionsDetail() {
 					</span>
 				</div>
 
-				<div className="flex flex-col gap-4">
-					{isLoadingConnections ? (
-						<div className="flex items-center justify-center py-8">
-							<div className="size-6 border-2 border-[#737373] border-t-transparent rounded-full animate-spin" />
-						</div>
-					) : connections.length > 0 ? (
-						connections.map((connection) => (
-							<ConnectionRow
-								key={connection.id}
-								connection={connection}
-								onDelete={() => deleteConnectionMutation.mutate(connection.id)}
-								isDeleting={deleteConnectionMutation.isPending}
-								disabled={!hasProProduct}
-								projects={projects}
-							/>
-						))
-					) : (
-						<div className="flex flex-col items-center justify-center py-8 text-center">
-							<Zap className="size-6 text-[#737373] mb-2" />
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[14px] text-[#737373]",
-								)}
-							>
-								No connections yet
-							</p>
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[12px] text-[#737373]",
-								)}
-							>
-								Connect a service below to import your knowledge
-							</p>
-						</div>
-					)}
-				</div>
+				{isLoadingConnections ? (
+					<div className="flex items-center justify-center py-8">
+						<div className="size-6 border-2 border-[#737373] border-t-transparent rounded-full animate-spin" />
+					</div>
+				) : connections.length > 0 ? (
+					connections.map((connection) => (
+						<ConnectionRow
+							key={connection.id}
+							connection={connection}
+							onDelete={() => setRemoveDialog({ open: true, connection })}
+							isDeleting={deleteConnectionMutation.isPending}
+							disabled={!hasProProduct}
+							projects={projects}
+						/>
+					))
+				) : (
+					<div className="flex flex-col items-center justify-center py-8 text-center">
+						<Zap className="size-6 text-[#737373] mb-2" />
+						<p
+							className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
+						>
+							No connections yet
+						</p>
+						<p
+							className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
+						>
+							Connect a service below to import your knowledge
+						</p>
+					</div>
+				)}
+
+				<AddDocumentModal
+					isOpen={isAddDocumentOpen}
+					onClose={() => setIsAddDocumentOpen(false)}
+				/>
+
+				<RemoveConnectionDialog
+					open={removeDialog.open}
+					onOpenChange={(open) => {
+						if (!open) setRemoveDialog({ open: false, connection: null })
+					}}
+					provider={removeDialog.connection?.provider}
+					documentCount={
+						(removeDialog.connection?.metadata?.documentCount as number) ?? 0
+					}
+					onConfirm={(deleteDocuments) => {
+						if (removeDialog.connection) {
+							deleteConnectionMutation.mutate({
+								connectionId: removeDialog.connection.id,
+								deleteDocuments,
+							})
+						}
+					}}
+					isDeleting={deleteConnectionMutation.isPending}
+				/>
 
 				<button
 					type="button"
