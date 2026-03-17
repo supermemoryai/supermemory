@@ -612,9 +612,8 @@ curl -X PATCH "https://api.supermemory.ai/v3/documents/abc123" \
 ```
 
 **Update Behavior**
-- Old memories are deleted
-- New memories created from updated content
-- Same document ID maintained
+- **Content changes:** Old memories are deleted, new memories created from updated content. Same document ID maintained.
+- **Metadata-only changes:** Document metadata is updated in place. No reindexing—works with both internal `id` and `customId`.
 
 ### Rate Limits & Quotas
 

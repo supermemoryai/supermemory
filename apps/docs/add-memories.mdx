@@ -122,7 +122,7 @@ await client.documents.update("doc_id_123", {
 });
 ```
 
-This triggers full reprocessing of the document.
+This triggers full reprocessing of the document. If you only update metadata (no content change), the document is updated in place with no reindexing.
 
 ### Formatting conversations
 

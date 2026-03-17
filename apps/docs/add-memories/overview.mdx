@@ -182,7 +182,7 @@ curl -X POST "https://api.supermemory.ai/v3/documents/file" \
 
 `PATCH /v3/documents/{id}`
 
-Update existing document content.
+Update existing document content or metadata. Content changes trigger reindexing; metadata-only updates do not.
 
 <CodeGroup>
 

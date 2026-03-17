@@ -43,7 +43,9 @@ function getDocumentSourceUrl(document: DocumentWithMemories): string {
 	}
 
 	// Extract ID from API URL like docs.googleapis.com/v1/documents/{id}
-	const apiMatch = url.match(/docs\.googleapis\.com\/v1\/documents\/([a-zA-Z0-9_-]+)/)
+	const apiMatch = url.match(
+		/docs\.googleapis\.com\/v1\/documents\/([a-zA-Z0-9_-]+)/,
+	)
 	if (apiMatch?.[1]) {
 		return `${prefix}${apiMatch[1]}/edit`
 	}

@@ -366,9 +366,7 @@ requests.patch(
 </CodeGroup>
 
 <Note>
-  The file upload endpoint returns immediately with a memory ID and processing
-  status. The file will be processed asynchronously, and you can check its
-  status using the GET endpoint.
+  Metadata-only PATCH updates the document in place—no reindexing. Use this when adding or changing metadata (e.g. `accepted`, `title`, `description`) without modifying the document content.
 </Note>
 
 ## Next Steps

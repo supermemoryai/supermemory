@@ -8,7 +8,10 @@ Choose from direct updates, idempotent upserts, single deletions, and powerful b
 
 ## Direct Updates
 
-Update existing memories by their ID when you know the specific memory you want to modify. Changes trigger reprocessing through the full pipeline.
+Update existing memories by their ID when you know the specific memory you want to modify.
+
+- **Content changes** — Trigger full reprocessing (reindexing) through the pipeline. Response status is `"queued"`.
+- **Metadata-only changes** — Update the document row only; no reindexing. Response status stays `"done"`. Use this when updating fields like `accepted`, `version`, or other filter metadata without changing the document content.
 
 <CodeGroup>
 
@@ -25,7 +28,7 @@ const updated = await client.documents.update('memory_id_123', {
   metadata: { version: 2, updated: true }
 });
 
-console.log(updated.status); // "queued" for reprocessing
+console.log(updated.status); // "queued" when content changed; "done" when metadata-only
 console.log(updated.id); // "memory_id_123"
 ```
 
@@ -42,7 +45,7 @@ updated = client.documents.update(
     metadata={'version': 2, 'updated': True}
 )
 
-print(f"Status: {updated.status}")  # "queued" for reprocessing
+print(f"Status: {updated.status}")  # "queued" when content changed; "done" when metadata-only
 print(f"ID: {updated.id}")  # "memory_id_123"
 ```
 
@@ -57,6 +60,10 @@ curl -X PATCH "https://api.supermemory.ai/v3/documents/memory_id_123" \
 ```
 
 </CodeGroup>
+
+<Note>
+**Metadata-only updates:** If you omit `content` or send the same content and only change `metadata` (e.g. `accepted: false` → `accepted: true`), the document is updated in place with no reindexing. Works with both internal `id` and `customId`—no special setup required.
+</Note>
 
 ## Upserts Using customId
 
@@ -503,7 +510,7 @@ echo "Total deleted: $TOTAL_DELETED memories"
 ### Update Operations
 
 1. **Use customId for idempotent updates** - Prevents duplicate memories and enables safe retries
-2. **Monitor processing status** - Updates trigger full reprocessing pipeline
+2. **Monitor processing status** - Content changes trigger full reprocessing; metadata-only updates do not reindex
 3. **Handle metadata carefully** - Updates replace specified metadata keys
 4. **Implement proper error handling** - Memory may be deleted between operations
 

@@ -175,7 +175,7 @@ Get a specific document with its processing status.
 
 ## Update Document
 
-Update a document's content or metadata. Triggers reprocessing.
+Update a document's content or metadata. **Content changes** trigger full reprocessing; **metadata-only changes** (e.g. updating `accepted`, `version`) do not reindex.
 
 <Tabs>
   <Tab title="TypeScript">
