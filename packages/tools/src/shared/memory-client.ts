@@ -176,6 +176,50 @@ export interface GenericMessage {
 	content: string | Array<{ type: string; text?: string }>
 }
 
+export const joinTextParts = (
+	parts: Array<{ type: string; text?: string }>,
+): string =>
+	parts
+		.filter((p) => p.type === "text")
+		.map((p) => p.text ?? "")
+		.join(" ")
+
+export const findLastUserMessage = <T extends { role: string }>(
+	messages: T[],
+): T | undefined => {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		if (messages[i].role === "user") return messages[i]
+	}
+	return undefined
+}
+
+export const extractTextFromMessageContent = (
+	content: unknown,
+): string | undefined => {
+	if (typeof content === "string") {
+		return content
+	}
+
+	if (Array.isArray(content)) {
+		return joinTextParts(content as Array<{ type: string; text?: string }>)
+	}
+
+	const objContent = content as {
+		content?: string
+		parts?: Array<{ type: string; text?: string }>
+	} | null
+	if (typeof objContent === "object" && objContent !== null) {
+		if (typeof objContent.content === "string") {
+			return objContent.content
+		}
+		if (Array.isArray(objContent.parts)) {
+			return joinTextParts(objContent.parts)
+		}
+	}
+
+	return undefined
+}
+
 /**
  * Extracts the query text from messages based on mode.
  * For "profile" mode, returns empty string (no query needed).
@@ -195,42 +239,9 @@ export const extractQueryText = (
 		return ""
 	}
 
-	const userMessage = messages
-		.slice()
-		.reverse()
-		.find((msg) => msg.role === "user")
-
-	const content = userMessage?.content
-	if (!content) return ""
-
-	if (typeof content === "string") {
-		return content
-	}
-
-	if (Array.isArray(content)) {
-		return content
-			.filter((part) => part.type === "text")
-			.map((part) => part.text || "")
-			.join(" ")
-	}
-
-	const objContent = content as unknown as {
-		content?: string
-		parts?: Array<{ type: string; text?: string }>
-	}
-	if (typeof objContent === "object" && objContent !== null) {
-		if ("content" in objContent && typeof objContent.content === "string") {
-			return objContent.content
-		}
-		if ("parts" in objContent && Array.isArray(objContent.parts)) {
-			return objContent.parts
-				.filter((part) => part.type === "text")
-				.map((part) => part.text || "")
-				.join(" ")
-		}
-	}
-
-	return ""
+	const userMessage = findLastUserMessage(messages)
+	if (!userMessage) return ""
+	return extractTextFromMessageContent(userMessage.content) ?? ""
 }
 
 /**
@@ -242,43 +253,7 @@ export const extractQueryText = (
 export const getLastUserMessageText = (
 	messages: GenericMessage[],
 ): string | undefined => {
-	const lastUserMessage = messages
-		.slice()
-		.reverse()
-		.find((msg) => msg.role === "user")
-
-	if (!lastUserMessage) {
-		return undefined
-	}
-
-	const content = lastUserMessage.content
-
-	if (typeof content === "string") {
-		return content
-	}
-
-	if (Array.isArray(content)) {
-		return content
-			.filter((part) => part.type === "text")
-			.map((part) => part.text || "")
-			.join(" ")
-	}
-
-	const objContent = content as unknown as {
-		content?: string
-		parts?: Array<{ type: string; text?: string }>
-	}
-	if (typeof objContent === "object" && objContent !== null) {
-		if ("content" in objContent && typeof objContent.content === "string") {
-			return objContent.content
-		}
-		if ("parts" in objContent && Array.isArray(objContent.parts)) {
-			return objContent.parts
-				.filter((part) => part.type === "text")
-				.map((part) => part.text || "")
-				.join(" ")
-		}
-	}
-
-	return undefined
+	const userMessage = findLastUserMessage(messages)
+	if (!userMessage) return undefined
+	return extractTextFromMessageContent(userMessage.content)
 }

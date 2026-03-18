@@ -1,6 +1,10 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
+import {
+	findLastUserMessage,
+	extractTextFromMessageContent,
+} from "../shared/memory-client"
 import { deduplicateMemories } from "../tools-shared"
 import { createLogger, type Logger } from "../vercel/logger"
 import { convertProfileToMarkdown } from "../vercel/util"
@@ -54,14 +58,9 @@ interface SupermemoryProfileSearch {
 const getLastUserMessage = (
 	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
 ) => {
-	const lastUserMessage = messages
-		.slice()
-		.reverse()
-		.find((msg) => msg.role === "user")
-
-	return typeof lastUserMessage?.content === "string"
-		? lastUserMessage.content
-		: ""
+	const userMessage = findLastUserMessage(messages)
+	if (!userMessage) return ""
+	return extractTextFromMessageContent(userMessage.content) ?? ""
 }
 
 /**
