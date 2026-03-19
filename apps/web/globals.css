@@ -4,6 +4,8 @@
 
 @theme {
 	--color-onboarding: #525966;
+	--animate-file-upload-grow: file-upload-grow 6s cubic-bezier(0.22, 1, 0.36, 1)
+		forwards;
 }
 
 :root {
@@ -130,4 +132,13 @@
 	color: #525966;
 	pointer-events: none;
 	height: 0;
+}
+
+@keyframes file-upload-grow {
+	0% {
+		width: 0%;
+	}
+	100% {
+		width: 92%;
+	}
 }

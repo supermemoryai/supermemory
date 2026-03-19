@@ -211,6 +211,15 @@ function restoreQueriesFromSnapshot(
 	}
 }
 
+const FILE_UPLOAD_CONCURRENCY = 3
+
+export type FileUploadEntry = { id: string; file: File }
+
+export type FileUploadBatchResult = {
+	failures: { id: string; message: string }[]
+	successCount: number
+}
+
 export function useDocumentMutations({
 	onClose,
 }: UseDocumentMutationsOptions = {}) {
@@ -353,71 +362,119 @@ export function useDocumentMutations({
 
 	const fileMutation = useMutation({
 		mutationFn: async ({
-			file,
+			fileEntries,
 			title,
 			description,
 			project,
 		}: {
-			file: File
+			fileEntries: FileUploadEntry[]
 			title?: string
 			description?: string
 			project: string
-		}) => {
-			const formData = new FormData()
-			formData.append("file", file)
-			formData.append("containerTags", JSON.stringify([project]))
-			formData.append("entityContext", entityContext)
-			formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
+		}): Promise<FileUploadBatchResult> => {
+			const applyMeta = fileEntries.length === 1
+			const failures: { id: string; message: string }[] = []
 
-			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,
-				{
-					method: "POST",
-					body: formData,
-					credentials: "include",
-				},
-			)
+			const uploadOne = async (entry: FileUploadEntry) => {
+				const formData = new FormData()
+				formData.append("file", entry.file)
+				formData.append("containerTags", JSON.stringify([project]))
+				formData.append("entityContext", entityContext)
+				formData.append("metadata", JSON.stringify({ sm_source: "consumer" }))
 
-			if (!response.ok) {
-				const error = await response.json()
-				throw new Error(error.error || "Failed to upload file")
-			}
-
-			const data = await response.json()
-
-			if (title || description) {
-				await $fetch(`@patch/documents/${data.id}`, {
-					body: {
-						metadata: {
-							...(title && { title }),
-							...(description && { description }),
-							sm_source: "consumer",
-						},
+				const response = await fetch(
+					`${process.env.NEXT_PUBLIC_BACKEND_URL}/v3/documents/file`,
+					{
+						method: "POST",
+						body: formData,
+						credentials: "include",
 					},
-				})
+				)
+
+				if (!response.ok) {
+					let message = "Failed to upload file"
+					try {
+						const error = (await response.json()) as { error?: string }
+						if (error.error) message = error.error
+					} catch {
+						// ignore JSON parse errors
+					}
+					throw new Error(message)
+				}
+
+				const data = (await response.json()) as { id: string }
+
+				if (applyMeta && (title || description)) {
+					await $fetch(`@patch/documents/${data.id}`, {
+						body: {
+							metadata: {
+								...(title && { title }),
+								...(description && { description }),
+								sm_source: "consumer",
+							},
+						},
+					})
+				}
 			}
 
-			return data
+			for (let i = 0; i < fileEntries.length; i += FILE_UPLOAD_CONCURRENCY) {
+				const slice = fileEntries.slice(i, i + FILE_UPLOAD_CONCURRENCY)
+				await Promise.all(
+					slice.map(async (entry) => {
+						try {
+							await uploadOne(entry)
+						} catch (e) {
+							failures.push({
+								id: entry.id,
+								message: e instanceof Error ? e.message : "Upload failed",
+							})
+						}
+					}),
+				)
+			}
+
+			const successCount = fileEntries.length - failures.length
+			if (successCount === 0) {
+				const firstFailure = failures[0]
+				throw new Error(
+					failures.length === 1 && firstFailure
+						? firstFailure.message
+						: `All ${failures.length} uploads failed`,
+				)
+			}
+
+			return { failures, successCount }
 		},
-		onMutate: async ({ file, title, description, project }) => {
+		onMutate: async ({ fileEntries, title, description, project }) => {
+			if (fileEntries.length !== 1) {
+				return {
+					previousQueries: undefined as [unknown, unknown][] | undefined,
+				}
+			}
 			const previousQueries = await cancelAndSnapshotQueries(queryClient)
+			const entry = fileEntries[0]
+			if (!entry) {
+				return {
+					previousQueries: undefined as [unknown, unknown][] | undefined,
+				}
+			}
 			const now = new Date().toISOString()
 
 			const optimisticMemory: OptimisticMemory = {
 				id: `temp-file-${crypto.randomUUID()}`,
 				content: "",
 				url: null,
-				title: title || file.name,
-				description: description || `Uploading ${file.name}...`,
+				title: title || entry.file.name,
+				description: description || `Uploading ${entry.file.name}...`,
 				containerTags: [project],
 				createdAt: now,
 				updatedAt: now,
 				status: "processing",
 				type: "file",
 				metadata: {
-					fileName: file.name,
-					fileSize: file.size,
-					mimeType: file.type,
+					fileName: entry.file.name,
+					fileSize: entry.file.size,
+					mimeType: entry.file.type,
 				},
 				memoryEntries: [],
 			}
@@ -429,19 +486,34 @@ export function useDocumentMutations({
 
 			return { previousQueries }
 		},
-		onError: (error, _variables, context) => {
-			restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
+		onError: (error, variables, context) => {
+			if (variables.fileEntries.length === 1) {
+				restoreQueriesFromSnapshot(queryClient, context?.previousQueries)
+			}
 			toast.error("Failed to upload file", {
 				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
-		onSuccess: (_data, variables) => {
-			analytics.documentAdded({ type: "file", project_id: variables.project })
-			toast.success("File uploaded successfully!", {
-				description: "Your file is being processed",
-			})
+		onSuccess: (data, variables) => {
+			for (let i = 0; i < data.successCount; i++) {
+				analytics.documentAdded({ type: "file", project_id: variables.project })
+			}
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
-			onClose?.()
+			if (data.failures.length === 0) {
+				toast.success(
+					data.successCount === 1
+						? "File uploaded successfully!"
+						: `${data.successCount} files uploaded successfully!`,
+					{
+						description: "Your files are being processed",
+					},
+				)
+				onClose?.()
+				return
+			}
+			toast.warning("Some uploads failed", {
+				description: `${data.successCount} uploaded, ${data.failures.length} failed — fix or retry below`,
+			})
 		},
 	})
 

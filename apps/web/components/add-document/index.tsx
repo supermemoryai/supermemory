@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useQueryState } from "nuqs"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
@@ -72,8 +72,8 @@ const tabs = [
 	{
 		id: "file" as const,
 		icon: FileTextIcon,
-		title: "Upload a file",
-		description: "Turn any image, PDF or document into contextual memories",
+		title: "Upload files",
+		description: "Turn images, PDFs, documents, and markdown into memories",
 	},
 	{
 		id: "connect" as const,
@@ -113,10 +113,12 @@ export function AddDocument({
 		description: "",
 	})
 	const [fileData, setFileData] = useState<FileData>({
-		file: null,
+		items: [],
 		title: "",
 		description: "",
 	})
+	const fileDataRef = useRef(fileData)
+	fileDataRef.current = fileData
 
 	const { noteMutation, linkMutation, fileMutation } = useDocumentMutations({
 		onClose,
@@ -138,6 +140,12 @@ export function AddDocument({
 	useEffect(() => {
 		setLocalSelectedProject(globalSelectedProject)
 	}, [globalSelectedProject])
+
+	useEffect(() => {
+		if (!isOpen) {
+			setFileData({ items: [], title: "", description: "" })
+		}
+	}, [isOpen])
 
 	// Submit handlers
 	const handleNoteSubmit = useCallback(
@@ -163,17 +171,55 @@ export function AddDocument({
 	)
 
 	const handleFileSubmit = useCallback(
-		(data: { file: File; title: string; description: string }) => {
-			if (!data.file) {
-				toast.error("Please select a file")
+		async (data: FileData) => {
+			const pending = data.items.filter((i) => i.status === "pending")
+			if (pending.length === 0) {
+				toast.error("Please add at least one file")
 				return
 			}
-			fileMutation.mutate({
-				file: data.file,
-				title: data.title || undefined,
-				description: data.description || undefined,
-				project: localSelectedProject,
-			})
+			const applyMeta = pending.length === 1
+			setFileData((prev) => ({
+				...prev,
+				items: prev.items.map((i) =>
+					i.status === "pending" ? { ...i, status: "uploading" as const } : i,
+				),
+			}))
+			try {
+				const result = await fileMutation.mutateAsync({
+					fileEntries: pending.map((i) => ({ id: i.id, file: i.file })),
+					title: applyMeta ? data.title || undefined : undefined,
+					description: applyMeta ? data.description || undefined : undefined,
+					project: localSelectedProject,
+				})
+				setFileData((prev) => ({
+					...prev,
+					items: prev.items.map((i) => {
+						if (i.status !== "uploading") return i
+						const fail = result.failures.find((f) => f.id === i.id)
+						if (fail) {
+							return {
+								...i,
+								status: "error" as const,
+								errorMessage: fail.message,
+							}
+						}
+						return { ...i, status: "success" as const }
+					}),
+				}))
+			} catch {
+				setFileData((prev) => ({
+					...prev,
+					items: prev.items.map((i) =>
+						i.status === "uploading"
+							? {
+									...i,
+									status: "error" as const,
+									errorMessage: "Upload failed",
+								}
+							: i,
+					),
+				}))
+			}
 		},
 		[fileMutation, localSelectedProject],
 	)
@@ -200,19 +246,17 @@ export function AddDocument({
 				handleLinkSubmit(linkData)
 				break
 			case "file":
-				if (fileData.file) {
-					handleFileSubmit(
-						fileData as { file: File; title: string; description: string },
-					)
-				} else {
-					toast.error("Please select a file")
-				}
+				void handleFileSubmit(fileData)
 				break
 		}
 	}
 
 	const isSubmitting =
 		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
+
+	const fileTabHasPending = fileData.items.some((i) => i.status === "pending")
+	const fileTabSubmitDisabled =
+		activeTab === "file" && (!fileTabHasPending || isSubmitting)
 
 	return (
 		<div className="h-full flex flex-col md:flex-row text-white md:space-x-5 space-y-3 md:space-y-0">
@@ -393,8 +437,11 @@ export function AddDocument({
 					)}
 					{activeTab === "file" && (
 						<FileContent
-							onSubmit={handleFileSubmit}
+							data={fileData}
 							onDataChange={handleFileDataChange}
+							onRequestSubmit={() => {
+								void handleFileSubmit(fileDataRef.current)
+							}}
 							isSubmitting={fileMutation.isPending}
 							isOpen={isOpen}
 						/>
@@ -434,7 +481,9 @@ export function AddDocument({
 							<Button
 								variant="insideOut"
 								onClick={handleButtonClick}
-								disabled={isSubmitting}
+								disabled={
+									activeTab === "file" ? fileTabSubmitDisabled : isSubmitting
+								}
 							>
 								{isSubmitting ? (
 									<>
