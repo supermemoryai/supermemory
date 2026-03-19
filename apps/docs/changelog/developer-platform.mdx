@@ -6,9 +6,135 @@ description: "API updates, new endpoints, and SDK releases"
 
 API updates, new endpoints, SDK releases, and developer-focused features.
 
+## March 18, 2026
+
+- **Supermemory CLI:** New command-line tool for managing memories, documents, profiles, tags, connectors, and API keys directly from the terminal.
+- **PPTX Support:** PowerPoint files (`.pptx`) are now a supported content type for ingestion.
+- **Multiple containerTags on Scoped API Keys:** Scoped API keys can now be assigned to multiple container tags, allowing a single key to access several spaces.
+- **Documents Page in Console:** New dedicated documents browser in the console for viewing, filtering, and managing all ingested content.
+- **`@supermemory/tools` v1.4.1:** Now exposes raw `searchResults` in `MemoryPromptData`, giving full control over how retrieved memories are formatted in prompts.
+
+## March 12, 2026
+
+- **Audio Extraction:** Ingest audio files with automatic transcription powered by Gemini 2.5 Flash. Audio content is transcribed, chunked, and indexed like any other document.
+- **Delete Connection Without Documents:** Disconnect an external source (Google Drive, Notion, etc.) without deleting the documents it synced.
+- **Org-Level Overage Toggle:** Control overage billing per-organization with a new toggle in the billing settings.
+- **Retry Failed Documents:** Documents that previously failed ingestion can now be retried by re-submitting with the same `customId`.
+- **Copyable Team Invite Link:** Team management page now includes a shareable invite link.
+
+## March 9, 2026
+
+- **Delete Scoped API Keys:** New `DELETE` endpoint to disable scoped API keys programmatically.
+- **`supermemory-agent-framework` Python Package:** Official Python package for using Supermemory with Microsoft's Agent Framework — memory tools and middleware out of the box.
+- **OpenAI SDK Backfill:** Improved compatibility across `supermemory-openai-sdk` (Python) and `@supermemory/tools` (TypeScript) OpenAI integrations.
+- **Bulk Delete in Nova:** Bulk document deletion now available in the Nova app interface.
+
+## March 5, 2026
+
+- **`extends` Relation Type:** Memory graph now supports `extends` as a relation type, enabling richer knowledge graph connections between documents.
+- **Interactive Memory Graph in MCP:** The MCP server now includes an interactive graph visualization app for exploring memory connections from any MCP-compatible client.
+- **Plugin Auth Connect Page:** New OAuth-style connect page for plugin integrations (Claude Code, OpenCode, ClawdBot).
+- **ViaSocket Integration:** New integration guide for connecting Supermemory with ViaSocket automation workflows.
+
+## March 2, 2026
+
+- **Configurable Vector Stores:** Bring your own vector store — Supermemory now supports pluggable vector backends beyond the default.
+- **List Memories Endpoint:** New `GET /v3/documents` endpoint with pagination, filtering by container tag, status, and metadata.
+
+## February 26, 2026
+
+- **Self-Hostable Supermemory:** Run the full Supermemory stack on your own infrastructure with Docker.
+- **Console v2:** Complete redesign of the developer console with new navigation, improved billing, and a unified project view.
+- **No More 120 Memory Limit:** The previous cap of 120 memories per container tag has been removed. Store unlimited memories.
+
+## February 22, 2026
+
+- **Supermemory Skill for Claude Code:** Install with `npx skills add supermemoryai/skills` — teaches Claude to proactively recommend and implement Supermemory when building AI apps that need persistent memory, user profiles, or semantic search. Includes ready-to-use TypeScript and Python examples.
+- **Metadata Filtering for Profiles:** User profile search now supports metadata-based filtering for more targeted profile queries.
+- **List Documents with Multiple Container Tags:** New `operator` parameter to query documents spanning multiple container tags.
+- **Deprecate `include: chunks`:** The `include: chunks` parameter in `/v4/search` is deprecated in favor of the `hybrid` search mode.
+
+## February 9, 2026
+
+- **Unified Organizations:** Consumer and developer organizations merged into a single org type. All orgs can now access both Nova and the developer API.
+- **Credits-Based Usage Display:** Billing now shows token usage in a credits-based format.
+- **Nova Spaces with Multi-Select:** Spaces in Nova now support multi-select, replacing "All Spaces" with scoped "Nova Spaces."
+
+## February 6, 2026
+
+- **Scoped API Keys for Container Tags:** Create API keys scoped to specific container tags for fine-grained access control per space.
+- **DELETE Endpoint for Container Tags:** New endpoint to delete container tags and their associated document relationships.
+- **Container Tag-Level Context Prompts:** Set custom context prompts per container tag to control how memories are extracted and summarized within each space.
+
+## February 3, 2026
+
+- **New Integration Docs:** Added guides for LangGraph, OpenAI Agents SDK, CrewAI, Agno, Mastra, and LangChain — covering all major AI agent frameworks.
+- **Claude Code Integration:** Official integration page for using Supermemory as persistent memory in Claude Code.
+- **Entity Context Documentation:** New docs on how entity extraction and context enrichment work in the memory pipeline.
+- **Authentication Docs:** Comprehensive authentication page with code examples for API key auth, OAuth, and scoped keys.
+
+## January 25, 2026
+
+- **Plugin Authentication System:** New auth system for external tool integrations, enabling secure plugin-to-API connections.
+- **Enterprise Plan Support:** Enterprise tier now available in the console with dedicated billing and support options.
+- **Plugin Catalog:** Dedicated plugin page with auth flows for Claude Code, OpenCode, and ClawdBot integrations.
+- **`@supermemory/tools` — Strict Mode:** Strict mode support for OpenAI function calling, ensuring schema-validated tool calls.
+
+## January 14, 2026
+
+- **Hybrid PDF Pipeline:** PDF extraction now uses Mistral OCR 3 with Gemini fallback for significantly improved accuracy on scanned documents and complex layouts.
+- **Halfvec Embeddings:** Embedding storage optimized with half-precision vectors, reducing storage costs while maintaining search quality.
+- **Spaces Creation with Emoji:** Create and customize spaces with emoji identifiers in Nova.
+
+## January 8, 2026
+
+- **Gmail Connector:** New connector to sync Gmail threads into Supermemory. Threads are stored in R2 for reliable processing of large mailboxes.
+- **Container Tag Filters:** Filter documents by container tag in list and search endpoints.
+- **Pagination Improvements:** Improved pagination and document view across the console.
+- **`supermemory-pipecat` Python Package:** New SDK for integrating Supermemory with Pipecat voice AI pipelines, including Gemini Live speech-to-speech support.
+- **`@supermemory/tools` — Prompt Templates:** Customize how memory context is formatted in AI SDK integrations with the new `promptTemplate` option.
+
 ## December 30, 2025
 
-- **MCP Context Prompt:** New `context` prompt in the Supermemory MCP server for automatic user profile injection into AI conversations. Returns formatted system messages with stable preferences and recent activity, designed for context injection at conversation start. Supports optional `containerTag` for project scoping and `includeRecent` parameter to control recent activity inclusion.
+- **MCP 4.0:** Major MCP server update with session configuration, project-aware tools on every init, and backward-compatible 3.0 support. Includes the new `context` prompt for automatic user profile injection.
+- **S3 Connector:** New connector to sync documents from Amazon S3 buckets, with console UI for bucket configuration.
+- **Memory Graph Revamp:** Complete rewrite of `@supermemory/memory-graph` with improved visualization and performance.
+
+## December 24, 2025
+
+- **`@supermemory/tools` — Vercel AI SDK v5/v6:** Now supports both Vercel AI SDK v5 and v6, with automatic version detection.
+- **Conversation Support in SDKs:** `supermemory` (TypeScript) and `supermemory-openai-sdk` (Python) now support the conversations API for multi-turn chat with memory.
+- **MemoryBench:** New open-source benchmark suite for evaluating memory systems, with documentation and CLI.
+
+## December 17, 2025
+
+- **Hybrid Search Mode:** New `hybrid` search mode in `/v4/search` combining semantic and keyword search for better recall on technical queries.
+
+## December 9, 2025
+
+- **Firecrawl Integration:** Web crawling powered by Firecrawl for more reliable extraction of website content, with fallback support.
+- **Custom GitHub Credentials:** Bring your own GitHub OAuth app credentials for the GitHub connector, enabling private repo access.
+- **API Key Expiration Emails:** API keys now trigger email notifications before expiration.
+- **Connector Sync Logs:** Connection syncs now produce detailed logs visible in the console.
+
+## December 2, 2025
+
+- **Organization Deletion:** Organizations can now be fully deleted from the console, including all associated data.
+- **Billing Page Redesign:** New billing layout with invoicing support and improved usage visibility.
+- **Console Onboarding Improvements:** Streamlined onboarding flow for new users.
+
+## December 5, 2025
+
+- **`@supermemory/tools` — Browser API Key Support:** `apiKey` can now be passed via options instead of relying on `process.env`, enabling browser-based usage of the tools package.
+
+## November 17, 2025
+
+- **Web Crawler Connector:** New connector to crawl and index entire websites with configurable depth and URL patterns.
+- **`@supermemory/memory-graph` Package:** New package for building interactive graph visualizations of memory connections, with a standalone playground.
+- **OpenAI Responses API Support:** `@supermemory/tools` OpenAI integration now supports the Responses API.
+- **`supermemory-openai-sdk` — Python Middleware:** New `withSupermemory` middleware for the Python OpenAI SDK, enabling transparent memory injection into OpenAI API calls.
+- **Browser Extension Webpage Capture:** Chrome extension can now capture full webpage content with markdown conversion, not just bookmarks.
+- **Bulk Memory Optimization:** Memory creation now uses bulk inserts for significantly faster batch ingestion.
 
 ## October 27, 2025
 

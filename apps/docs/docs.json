@@ -252,7 +252,7 @@
 				"anchors": [
 					{
 						"anchor": "Changelog",
-						"pages": ["changelog/overview", "changelog/developer-platform"]
+						"pages": ["changelog/overview"]
 					}
 				],
 				"tab": "Changelog"
@@ -260,6 +260,11 @@
 		]
 	},
 	"redirects": [
+		{
+			"destination": "/changelog/overview",
+			"permanent": true,
+			"source": "/changelog/developer-platform"
+		},
 		{
 			"destination": "/integrations/openclaw",
 			"permanent": true,
