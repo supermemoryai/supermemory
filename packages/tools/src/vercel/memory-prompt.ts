@@ -8,7 +8,7 @@ export {
 	type BuildMemoriesTextOptions,
 } from "../shared"
 
-import type { Logger } from "../shared"
+import type { Logger, MemoryPromptData } from "../shared"
 import type { LanguageModelCallOptions } from "./util"
 
 /**
@@ -100,10 +100,7 @@ export const addSystemPrompt = async (
 	mode: "profile" | "query" | "full",
 	baseUrl: string,
 	apiKey: string,
-	promptTemplate?: (data: {
-		userMemories: string
-		generalSearchMemories: string
-	}) => string,
+	promptTemplate?: (data: MemoryPromptData) => string,
 ): Promise<LanguageModelCallOptions> => {
 	const { buildMemoriesText } = await import("../shared")
 

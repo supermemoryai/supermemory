@@ -162,7 +162,7 @@ await agent.generate("My favorite framework is Next.js")
 
 ## Custom Prompt Templates
 
-Customize how memories are formatted and injected:
+Customize how memories are formatted and injected. The template receives `userMemories`, `generalSearchMemories`, and `searchResults` (raw array for filtering by metadata):
 
 ```typescript
 import { Agent } from "@mastra/core/agent"

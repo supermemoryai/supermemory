@@ -154,6 +154,7 @@ The `MemoryPromptData` object passed to your template function provides:
 
 - `userMemories`: Pre-formatted markdown combining static profile facts (name, preferences, goals) and dynamic context (current projects, recent interests)
 - `generalSearchMemories`: Pre-formatted search results based on semantic similarity to the current query (empty string if mode is "profile")
+- `searchResults`: Raw search results array (`Array<{ memory: string; metadata?: Record<string, unknown> }>`) for traversing, filtering, or selectively including results based on metadata
 
 ### XML-Based Prompting for Claude
 
@@ -176,6 +177,31 @@ Use the above context to provide personalized responses.
 const model = withSupermemory(anthropic("claude-3-sonnet"), "user-123", {
   mode: "full",
   promptTemplate: claudePrompt
+})
+```
+
+### Filtering Search Results
+
+Use `searchResults` to traverse the raw data and pick what's important:
+
+```typescript
+const selectivePrompt = (data: MemoryPromptData) => {
+  const relevant = data.searchResults.filter(
+    (r) => (r.metadata?.score as number) > 0.7
+  )
+  return `
+<user_memories>
+${data.userMemories}
+</user_memories>
+<relevant_context>
+${relevant.map((r) => `- ${r.memory}`).join("\n")}
+</relevant_context>
+`.trim()
+}
+
+const model = withSupermemory(openai("gpt-4"), "user-123", {
+  mode: "full",
+  promptTemplate: selectivePrompt
 })
 ```
 

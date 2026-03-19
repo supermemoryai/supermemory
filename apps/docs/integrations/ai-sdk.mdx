@@ -75,7 +75,7 @@ const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "full" })
 
 ### Custom Prompt Templates
 
-Customize how memories are formatted:
+Customize how memories are formatted. The template receives `userMemories`, `generalSearchMemories`, and `searchResults` (raw array for filtering by metadata):
 
 ```typescript
 import { withSupermemory, type MemoryPromptData } from "@supermemory/tools/ai-sdk"

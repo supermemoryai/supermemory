@@ -13,6 +13,12 @@ export interface MemoryPromptData {
 	 * Empty string if mode is "profile" only.
 	 */
 	generalSearchMemories: string
+	/**
+	 * Raw search results from the API for the current query.
+	 * Use this to traverse, filter, or selectively include results based on metadata.
+	 * Empty array if mode is "profile" or when no search was performed.
+	 */
+	searchResults: Array<{ memory: string; metadata?: Record<string, unknown> }>
 }
 
 /**
@@ -28,6 +34,7 @@ export interface MemoryPromptData {
  * ${data.generalSearchMemories}
  * </user_memories>
  * `.trim()
+ * // data.searchResults provides raw results for custom filtering/formatting
  * ```
  */
 export type PromptTemplate = (data: MemoryPromptData) => string

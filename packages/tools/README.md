@@ -253,6 +253,7 @@ const result = await generateText({
 The `MemoryPromptData` object provides:
 - `userMemories`: Pre-formatted markdown combining static profile facts (name, preferences, goals) and dynamic context (current projects, recent interests)
 - `generalSearchMemories`: Pre-formatted search results based on semantic similarity to the current query
+- `searchResults`: Raw search results array for traversing, filtering, or selectively including results based on metadata
 
 ### OpenAI SDK Usage
 

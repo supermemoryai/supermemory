@@ -154,6 +154,7 @@ export const buildMemoriesText = async (
 	const promptData: MemoryPromptData = {
 		userMemories,
 		generalSearchMemories,
+		searchResults: memoriesResponse.searchResults?.results ?? [],
 	}
 
 	const memories = promptTemplate(promptData)
