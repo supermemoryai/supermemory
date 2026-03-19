@@ -160,6 +160,19 @@ export function ConnectAIModal({
 		staleTime: 30 * 1000,
 	})
 
+
+	const { data: connectionStatus, isLoading: isCheckingConnection } = useQuery({
+		queryKey: ["mcp-connection"],
+		queryFn: async () => {
+			const response = await $fetch("@get/mcp/has-login")
+			if (response.error) {
+				throw new Error(response.error?.message || "Failed to check connection")
+			}
+			return response.data
+		},
+		refetchInterval: 5000,
+	})
+
 	const mcpMigrationForm = useForm({
 		defaultValues: { url: "" },
 		onSubmit: async ({ value, formApi }) => {
@@ -733,15 +746,37 @@ export function ConnectAIModal({
 						</div>
 					</div>
 
-					{/* TODO: Show when connection successful or not */}
-					{/*<div>
+
+					<div className="bg-muted/50 rounded-lg p-4 border border-border">
+						<div className="flex items-center justify-between mb-3">
+							<h3 className="text-sm font-medium">Connection Status</h3>
+							<div className="flex items-center gap-2 text-xs">
+								{isCheckingConnection ? (
+									<>
+										<Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+										<span className="text-muted-foreground">Checking...</span>
+									</>
+								) : connectionStatus?.previousLogin ? (
+									<>
+										<div className="w-2 h-2 rounded-full bg-green-500" />
+										<span className="text-green-600 font-medium">Connected</span>
+									</>
+								) : (
+									<>
+										<div className="w-2 h-2 rounded-full bg-yellow-500" />
+										<span className="text-yellow-600 font-medium">Waiting for connection...</span>
+									</>
+								)}
+							</div>
+						</div>
+
 						<h3 className="text-sm font-medium mb-3">What You Can Do</h3>
 						<ul className="space-y-2 text-sm text-muted-foreground">
 							<li>• Ask your AI to save important information as memories</li>
 							<li>• Search through your saved memories during conversations</li>
 							<li>• Get contextual information from your knowledge base</li>
 						</ul>
-					</div>*/}
+					</div>
 
 					<div className="flex justify-between items-center pt-4">
 						<div className="flex items-center gap-4">
