@@ -160,7 +160,6 @@ export function ConnectAIModal({
 		staleTime: 30 * 1000,
 	})
 
-
 	const { data: connectionStatus, isLoading: isCheckingConnection } = useQuery({
 		queryKey: ["mcp-connection"],
 		queryFn: async () => {
@@ -746,7 +745,6 @@ export function ConnectAIModal({
 						</div>
 					</div>
 
-
 					<div className="bg-muted/50 rounded-lg p-4 border border-border">
 						<div className="flex items-center justify-between mb-3">
 							<h3 className="text-sm font-medium">Connection Status</h3>
@@ -759,12 +757,16 @@ export function ConnectAIModal({
 								) : connectionStatus?.previousLogin ? (
 									<>
 										<div className="w-2 h-2 rounded-full bg-green-500" />
-										<span className="text-green-600 font-medium">Connected</span>
+										<span className="text-green-600 font-medium">
+											Connected
+										</span>
 									</>
 								) : (
 									<>
 										<div className="w-2 h-2 rounded-full bg-yellow-500" />
-										<span className="text-yellow-600 font-medium">Waiting for connection...</span>
+										<span className="text-yellow-600 font-medium">
+											Waiting for connection...
+										</span>
 									</>
 								)}
 							</div>
