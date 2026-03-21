@@ -18,10 +18,7 @@ import {
 	type Logger,
 	type MemoryMode,
 } from "../shared"
-import type {
-	SupermemoryVoltAgent,
-	VoltAgentMessage,
-} from "./types"
+import type { SupermemoryVoltAgent, VoltAgentMessage } from "./types"
 
 /**
  * Context for Supermemory middleware operations.
@@ -212,7 +209,11 @@ export const enhanceMessagesWithMemories = async (
 	const cachedMemories = ctx.memoryCache.get(turnKey)
 	if (!isNewTurn && cachedMemories) {
 		ctx.logger.debug("Using cached memories", { turnKey })
-		return injectMemoriesIntoMessages(messagesToEnhance, cachedMemories, ctx.logger)
+		return injectMemoriesIntoMessages(
+			messagesToEnhance,
+			cachedMemories,
+			ctx.logger,
+		)
 	}
 
 	ctx.logger.info("Starting memory search", {
@@ -277,8 +278,13 @@ export const enhanceMessagesWithMemories = async (
 
 		// Hybrid search returns both memory entries (`memory` field) and
 		// document chunks (`chunk` field). Handle both.
+		type SearchResult = {
+			memory?: string
+			chunk?: string
+			metadata?: Record<string, unknown>
+		}
 		const formattedMemories = response.results
-			.map((result: any) => {
+			.map((result: SearchResult) => {
 				const text = result.memory || result.chunk
 				return text ? `- ${text}` : null
 			})
@@ -289,7 +295,10 @@ export const enhanceMessagesWithMemories = async (
 			? ctx.promptTemplate({
 					userMemories: "",
 					generalSearchMemories: formattedMemories,
-					searchResults: response.results as any,
+					searchResults: response.results as Array<{
+						memory: string
+						metadata?: Record<string, unknown>
+					}>,
 				})
 			: `The following are relevant memories and context about this user retrieved from previous interactions. Use these to personalize your response:\n\n${formattedMemories}`
 	} else {
@@ -328,12 +337,20 @@ const injectMemoriesIntoMessages = (
 	if (systemMessageIndex !== -1) {
 		logger.debug("Added memories to existing system message")
 		const newMessages = [...messages]
-		const systemMessage = newMessages[systemMessageIndex]!
+		const systemMessage = newMessages[systemMessageIndex]
+		if (!systemMessage) {
+			return messages
+		}
 
 		// Extract existing text from parts (UIMessage format) or content fallback
-		const parts = (systemMessage as any).parts as Array<{ type: string; text?: string }> | undefined
+		const parts = (
+			systemMessage as { parts?: Array<{ type: string; text?: string }> }
+		).parts
 		const existingContent = parts
-			? parts.filter((p) => p.type === "text").map((p) => p.text || "").join("\n")
+			? parts
+					.filter((p) => p.type === "text")
+					.map((p) => p.text || "")
+					.join("\n")
 			: typeof systemMessage.content === "string"
 				? systemMessage.content
 				: ""
@@ -345,7 +362,7 @@ const injectMemoriesIntoMessages = (
 			content: newContent,
 			// Update parts array to match - this is what the LLM actually reads
 			parts: [{ type: "text", text: newContent }],
-		} as any
+		} as VoltAgentMessage
 		return newMessages
 	}
 
@@ -356,7 +373,7 @@ const injectMemoriesIntoMessages = (
 			role: "system" as const,
 			content: memories,
 			parts: [{ type: "text", text: memories }],
-		} as any,
+		} as VoltAgentMessage,
 		...messages,
 	]
 }

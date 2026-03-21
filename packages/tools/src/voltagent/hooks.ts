@@ -10,7 +10,7 @@ import type {
 	HookPrepareMessagesArgs,
 	HookEndArgs,
 	VoltAgentMessage,
-	SupermemoryVoltAgentOptions,
+	SupermemoryVoltAgent,
 } from "./types"
 import {
 	createSupermemoryContext,
@@ -49,7 +49,7 @@ import {
  */
 export function createSupermemoryHooks(
 	containerTag: string,
-	options: SupermemoryVoltAgentOptions = {},
+	options: SupermemoryVoltAgent = {},
 ): VoltAgentHooks {
 	const ctx = createSupermemoryContext(containerTag, options)
 
@@ -60,7 +60,10 @@ export function createSupermemoryHooks(
 			try {
 				// VoltAgent passes user messages in args.context.input.messages
 				// and the prepared messages (system + conversation) in args.messages
-				const inputMessages = (args.context as any)?.input?.messages || []
+				const contextInput = args.context?.input as
+					| { messages?: VoltAgentMessage[] }
+					| undefined
+				const inputMessages = contextInput?.messages || []
 
 				ctx.logger.debug("onPrepareMessages called", {
 					messageCount: args.messages.length,
@@ -99,13 +102,19 @@ export function createSupermemoryHooks(
 				let messages: VoltAgentMessage[] = []
 
 				if (args.context?.input && args.output) {
-					const inputData = args.context.input as any
+					const inputData = args.context.input as
+						| { messages?: VoltAgentMessage[] }
+						| undefined
 					const inputMessages = inputData?.messages || []
 
-					const outputData = args.output as any
-					const outputText = typeof outputData === "string"
-						? outputData
-						: outputData?.text || outputData?.content
+					const outputData = args.output as
+						| string
+						| { text?: string; content?: string }
+						| undefined
+					const outputText =
+						typeof outputData === "string"
+							? outputData
+							: outputData?.text || outputData?.content
 
 					if (inputMessages.length > 0 && outputText) {
 						messages = [
@@ -158,7 +167,8 @@ export function mergeHooks(
 
 		mergedHooks.onPrepareMessages = async (args) => {
 			const resultAfterExisting = await existingOnPrepareMessages(args)
-			const messagesAfterExisting = resultAfterExisting?.messages || args.messages
+			const messagesAfterExisting =
+				resultAfterExisting?.messages || args.messages
 
 			return await supermemoryOnPrepareMessages({
 				...args,

@@ -9,10 +9,7 @@
 
 import { validateApiKey } from "../shared"
 import { createSupermemoryHooks, mergeHooks } from "./hooks"
-import type {
-	VoltAgentConfig,
-	SupermemoryVoltAgentOptions,
-} from "./types"
+import type { VoltAgentConfig, SupermemoryVoltAgent } from "./types"
 
 /**
  * Enhances a VoltAgent agent configuration with Supermemory memory capabilities.
@@ -139,7 +136,7 @@ import type {
  */
 export function withSupermemory<T extends VoltAgentConfig>(
 	config: T,
-	options: SupermemoryVoltAgentOptions & { containerTag: string },
+	options: SupermemoryVoltAgent & { containerTag: string },
 ): T {
 	const { containerTag, ...supermemoryOptions } = options
 
@@ -164,7 +161,7 @@ export function withSupermemory<T extends VoltAgentConfig>(
 
 // Export types for consumers
 export type {
-	SupermemoryVoltAgentOptions,
+	SupermemoryVoltAgent,
 	VoltAgentConfig,
 	VoltAgentMessage,
 	VoltAgentHooks,

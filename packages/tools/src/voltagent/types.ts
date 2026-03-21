@@ -17,7 +17,8 @@ import type {
  * Configuration options for the Supermemory VoltAgent integration.
  * Extends base options with VoltAgent-specific settings.
  */
-export interface SupermemoryVoltAgentOptions extends Omit<SupermemoryBaseOptions, 'verbose'> {
+export interface SupermemoryVoltAgent
+	extends Omit<SupermemoryBaseOptions, "verbose"> {
 	/**
 	 * When using memory storage, set this to enable automatic conversation saving.
 	 * The threadId is used to group messages into a single conversation.
@@ -91,9 +92,7 @@ export interface SupermemoryVoltAgentOptions extends Omit<SupermemoryBaseOptions
 /**
  * Advanced search filters using AND/OR logic
  */
-export type SearchFilters =
-	| { OR: Array<unknown> }
-	| { AND: Array<unknown> }
+export type SearchFilters = { OR: Array<unknown> } | { AND: Array<unknown> }
 
 /**
  * Options for including additional data in search results
@@ -133,7 +132,9 @@ export interface IncludeOptions {
  */
 export interface VoltAgentMessage {
 	role: "system" | "user" | "assistant" | "tool"
-	content: string | Array<{ type: string; text?: string; [key: string]: unknown }>
+	content:
+		| string
+		| Array<{ type: string; text?: string; [key: string]: unknown }>
 	[key: string]: unknown
 }
 
@@ -158,7 +159,9 @@ export interface VoltAgentHooks {
 	onStart?: (args: HookStartArgs) => void | Promise<void>
 	onPrepareMessages?: (
 		args: HookPrepareMessagesArgs,
-	) => { messages?: VoltAgentMessage[] } | Promise<{ messages?: VoltAgentMessage[] }>
+	) =>
+		| { messages?: VoltAgentMessage[] }
+		| Promise<{ messages?: VoltAgentMessage[] }>
 	onEnd?: (args: HookEndArgs) => void | Promise<void>
 	[key: string]: unknown
 }
@@ -210,9 +213,4 @@ export interface HookEndArgs {
 }
 
 // Re-export shared types for convenience
-export type {
-	PromptTemplate,
-	MemoryMode,
-	AddMemoryMode,
-	MemoryPromptData,
-}
+export type { PromptTemplate, MemoryMode, AddMemoryMode, MemoryPromptData }
