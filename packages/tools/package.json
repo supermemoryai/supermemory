@@ -22,6 +22,7 @@
   "devDependencies": {
     "@ai-sdk/provider": "^3.0.0",
     "@anthropic-ai/sdk": "^0.65.0",
+    "@voltagent/core": "^2.6.12",
     "@mastra/core": "^1.0.0",
     "@total-typescript/tsconfig": "^1.0.4",
     "@types/bun": "^1.2.21",
@@ -31,7 +32,13 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "@ai-sdk/provider": "^2.0.0 || ^3.0.0"
+    "@ai-sdk/provider": "^2.0.0 || ^3.0.0",
+    "@voltagent/core": "^2.6.12"
+  },
+  "peerDependenciesMeta": {
+    "@voltagent/core": {
+      "optional": true
+    }
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -45,6 +52,7 @@
     "./claude-memory": "./dist/claude-memory.js",
     "./mastra": "./dist/mastra.js",
     "./openai": "./dist/openai/index.js",
+    "./voltagent": "./dist/voltagent/index.js",
     "./package.json": "./package.json"
   },
   "repository": {

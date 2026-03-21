@@ -1,0 +1,153 @@
+---
+title: "VoltAgent"
+sidebarTitle: "VoltAgent"
+description: "Integrate Supermemory with VoltAgent for long-term memory in AI agents"
+icon: "bolt"
+---
+
+Supermemory integrates with [VoltAgent](https://github.com/VoltAgent/voltagent), providing long-term memory capabilities for AI agents. Your VoltAgent applications will remember past conversations and provide personalized responses based on user history.
+
+<Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
+    Check out the NPM page for more details
+</Card>
+
+## Installation
+
+```bash
+npm install @supermemory/tools @voltagent/core
+```
+
+Set up your API key as an environment variable:
+
+```bash
+export SUPERMEMORY_API_KEY=your_supermemory_api_key
+```
+
+You can obtain an API key from [console.supermemory.ai](https://console.supermemory.ai).
+
+## Quick Start
+
+Supermemory provides a `withSupermemory` wrapper that enhances any VoltAgent agent config with automatic memory retrieval and storage:
+
+```typescript
+import { withSupermemory } from "@supermemory/tools/voltagent"
+import { Agent } from "@voltagent/core"
+import { openai } from "@ai-sdk/openai"
+
+// Step 1: Define your agent config
+const baseConfig = {
+  name: "my-agent",
+  instructions: "You are a helpful assistant.",
+  model: openai("gpt-4o"),
+}
+
+// Step 2: Wrap with Supermemory
+const configWithMemory = withSupermemory(baseConfig, {
+  containerTag: "user-123",
+})
+
+// Step 3: Create the agent
+const agent = new Agent(configWithMemory)
+
+// Memories are automatically injected and saved
+const result = await agent.generateText({
+  messages: [{ role: "user", content: "What's my name?" }],
+})
+```
+
+<Note>
+  **Memory saving is enabled by default** in the VoltAgent integration. To disable it:
+
+  ```typescript
+  const configWithMemory = withSupermemory(baseConfig, {
+    containerTag: "user-123",
+    addMemory: "never",
+  })
+  ```
+</Note>
+
+## How It Works
+
+When integrated with VoltAgent, Supermemory hooks into two lifecycle events:
+
+### 1. Memory Retrieval (onPrepareMessages)
+
+Before each LLM call, Supermemory automatically:
+- Extracts the user's latest message
+- Searches for relevant memories scoped to the `containerTag`
+- Injects retrieved memories into the system prompt
+
+### 2. Conversation Saving (onEnd)
+
+After each agent response, the conversation is saved to Supermemory for future retrieval. This requires either a `threadId` or `customId` to be set.
+
+## Memory Modes
+
+| Mode        | Description                                 | Use Case                       |
+| ----------- | ------------------------------------------- | ------------------------------ |
+| `"profile"` | Retrieves the user's complete profile       | Personalization without search |
+| `"query"`   | Searches memories based on the user's message | Finding relevant past context |
+| `"full"`    | Combines profile AND query-based search     | Complete memory (recommended)  |
+
+```typescript
+const configWithMemory = withSupermemory(baseConfig, {
+  containerTag: "user-123",
+  mode: "full",
+})
+```
+
+## Configuration Options
+
+```typescript
+const configWithMemory = withSupermemory(baseConfig, {
+  // Required
+  containerTag: "user-123",        // User/project ID for scoping memories
+
+  // Memory behavior
+  mode: "full",                    // "profile" | "query" | "full"
+  addMemory: "always",             // "always" | "never"
+  threadId: "conv-456",            // Groups messages into a conversation
+  customId: "my-custom-id",        // Alternative to threadId
+
+  // Search tuning
+  searchMode: "hybrid",            // "memories" | "documents" | "hybrid"
+  threshold: 0.1,                  // 0.0-1.0 (higher = more accurate)
+  limit: 10,                       // Max results to return
+  rerank: true,                    // Rerank for best relevance
+  rewriteQuery: false,             // AI-rewrite query (+400ms latency)
+
+  // Context
+  entityContext: "This is John, a software engineer",  // Guides memory extraction (max 1500 chars)
+  metadata: { source: "voltagent" },                   // Attached to saved conversations
+
+  // API
+  apiKey: "sk-...",                // Falls back to SUPERMEMORY_API_KEY env var
+  baseUrl: "https://api.supermemory.ai",
+})
+```
+
+| Parameter       | Type     | Default      | Description                                              |
+| --------------- | -------- | ------------ | -------------------------------------------------------- |
+| `containerTag`  | string   | **required** | User/project ID for scoping memories                     |
+| `mode`          | string   | `"profile"`  | Memory retrieval mode                                    |
+| `addMemory`     | string   | `"always"`   | Whether to save conversations after each response        |
+| `threadId`      | string   | —            | Conversation ID to group messages                        |
+| `searchMode`    | string   | —            | `"memories"`, `"documents"`, or `"hybrid"`               |
+| `threshold`     | number   | `0.1`        | Similarity threshold (0 = more results, 1 = more accurate) |
+| `limit`         | number   | `10`         | Maximum number of memory results                         |
+| `rerank`        | boolean  | `false`      | Rerank results for relevance                             |
+| `rewriteQuery`  | boolean  | `false`      | AI-rewrite query for better results (+400ms)             |
+| `entityContext`  | string   | —            | Context for memory extraction (max 1500 chars)           |
+| `metadata`      | object   | —            | Custom metadata attached to saved conversations          |
+| `promptTemplate` | function | —           | Custom function to format memory data into prompt        |
+
+## Search Modes
+
+The `searchMode` option controls what type of results are searched:
+
+| Mode          | Description                                            |
+| ------------- | ------------------------------------------------------ |
+| `"memories"`  | Search only memory entries (atomic facts about the user) |
+| `"documents"` | Search only document chunks                            |
+| `"hybrid"`    | Search both memories AND document chunks (recommended) |
+

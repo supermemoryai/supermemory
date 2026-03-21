@@ -153,6 +153,7 @@
 							"integrations/openai-agents-sdk",
 							"integrations/agent-framework",
 							"integrations/mastra",
+							"integrations/voltagent",
 							"integrations/langchain",
 							"integrations/crewai",
 							"integrations/agno",
