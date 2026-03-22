@@ -1,7 +1,12 @@
 "use client"
 
 import { $fetch } from "@lib/api"
-import { fetchConnectionsFeature } from "@lib/queries"
+import {
+	DEFAULT_SUBSCRIPTION_STATUS,
+	fetchConnectionsFeature,
+	fetchSubscriptionStatus,
+	isAllowedFrom,
+} from "@lib/queries"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
@@ -51,7 +56,9 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const [isProUser, setIsProUser] = useState(false)
+	const { data: subscriptionStatus = DEFAULT_SUBSCRIPTION_STATUS } =
+		fetchSubscriptionStatus(autumn, !autumn.isLoading)
+	const isProUser = isAllowedFrom(subscriptionStatus, "api_pro")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [isUpgrading, setIsUpgrading] = useState(false)
@@ -59,17 +66,6 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		open: boolean
 		connection: Connection | null
 	}>({ open: false, connection: null })
-
-	// Check Pro status
-	useEffect(() => {
-		if (!autumn.isLoading) {
-			setIsProUser(
-				autumn.customer?.products?.some(
-					(product) => product.id === "api_pro",
-				) ?? false,
-			)
-		}
-	}, [autumn.isLoading, autumn.customer])
 
 	const handleUpgrade = async () => {
 		setIsUpgrading(true)

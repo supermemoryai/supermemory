@@ -4,7 +4,11 @@ import { cn } from "@lib/utils"
 import { dmSans125ClassName } from "@/lib/fonts"
 import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
-import { fetchSubscriptionStatus } from "@lib/queries"
+import {
+	DEFAULT_SUBSCRIPTION_STATUS,
+	fetchSubscriptionStatus,
+	isAllowedFrom,
+} from "@lib/queries"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -17,7 +21,6 @@ import {
 	ExternalLink,
 	Key,
 	Loader,
-	Plug,
 	Trash2,
 	Zap,
 } from "lucide-react"
@@ -31,7 +34,6 @@ import {
 	DialogTitle,
 	DialogPortal,
 } from "@ui/components/dialog"
-import { analytics } from "@/lib/analytics"
 
 interface PluginInfo {
 	id: string
@@ -108,11 +110,11 @@ export function PluginsDetail() {
 	const [keyCopied, setKeyCopied] = useState(false)
 
 	const {
-		data: status = { api_pro: { allowed: false, status: null } },
+		data: status = DEFAULT_SUBSCRIPTION_STATUS,
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const hasProProduct = status.api_pro?.status !== null
+	const hasProProduct = isAllowedFrom(status, "api_pro")
 
 	const { data: pluginsData } = useQuery({
 		queryFn: async () => {
@@ -181,6 +183,9 @@ export function PluginsDetail() {
 				credentials: "include",
 			})
 			if (!res.ok) {
+				if (res.status === 403) {
+					throw new Error("A Pro plan is required to connect plugins.")
+				}
 				const errorData = (await res.json().catch(() => ({}))) as {
 					message?: string
 				}

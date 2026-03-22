@@ -1,16 +1,18 @@
-import { fetchMemoriesFeature, fetchSubscriptionStatus } from "@lib/queries"
+import {
+	DEFAULT_SUBSCRIPTION_STATUS,
+	fetchMemoriesFeature,
+	fetchSubscriptionStatus,
+	isAllowedFrom,
+} from "@lib/queries"
 import type { useCustomer } from "autumn-js/react"
 
 export function useMemoriesUsage(autumn: ReturnType<typeof useCustomer>) {
 	const {
-		data: status = {
-			api_pro: { allowed: false, status: null },
-		},
+		data: status = DEFAULT_SUBSCRIPTION_STATUS,
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const proStatus = status.api_pro
-	const hasProProduct = proStatus?.status !== null
+	const hasProProduct = isAllowedFrom(status, "api_pro")
 
 	const { data: memoriesCheck, isLoading: isLoadingMemories } =
 		fetchMemoriesFeature(autumn, !isCheckingStatus && !autumn.isLoading)

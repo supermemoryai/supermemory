@@ -8,20 +8,41 @@ import { $fetch } from "./api"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
+export const PLAN_TIERS = ["api_pro", "api_scale", "api_enterprise"] as const
+export type PlanTier = (typeof PLAN_TIERS)[number]
+
+export type SubscriptionStatusMap = Record<
+	string,
+	{ allowed: boolean; status: string | null }
+>
+
+export const DEFAULT_SUBSCRIPTION_STATUS: SubscriptionStatusMap = {
+	api_pro: { allowed: false, status: null },
+	api_scale: { allowed: false, status: null },
+	api_enterprise: { allowed: false, status: null },
+}
+
+export function isAllowedFrom(
+	status: SubscriptionStatusMap,
+	minimumTier: PlanTier,
+): boolean {
+	const minIndex = PLAN_TIERS.indexOf(minimumTier)
+	return PLAN_TIERS.slice(minIndex).some((tier) => {
+		const s = status[tier]
+		return s?.status === "active"
+	})
+}
+
 export const fetchSubscriptionStatus = (
 	autumn: ReturnType<typeof useCustomer>,
 	isEnabled: boolean,
 ) =>
 	useQuery({
 		queryFn: async () => {
-			const allPlans = ["api_pro", "api_scale", "api_enterprise"]
-			const statusMap: Record<
-				string,
-				{ allowed: boolean; status: string | null }
-			> = {}
+			const statusMap: SubscriptionStatusMap = {}
 
 			await Promise.all(
-				allPlans.map(async (plan) => {
+				PLAN_TIERS.map(async (plan) => {
 					try {
 						const res = autumn.check({
 							productId: plan,
@@ -81,29 +102,6 @@ export const fetchConnectionsFeature = (
 		staleTime: 30 * 1000, // 30 seconds
 		gcTime: 5 * 60 * 1000, // 5 minutes
 		enabled: isEnabled,
-	})
-
-// Product checks
-export const fetchApiProProduct = (autumn: ReturnType<typeof useCustomer>) =>
-	useQuery({
-		queryFn: async () => {
-			const res = autumn.check({ productId: "api_pro" })
-			return res.data
-		},
-		queryKey: ["autumn-product", "api_pro"],
-		staleTime: 30 * 1000, // 30 seconds
-		gcTime: 5 * 60 * 1000, // 5 minutes
-	})
-
-export const fetchProProduct = (autumn: ReturnType<typeof useCustomer>) =>
-	useQuery({
-		queryFn: async () => {
-			const res = autumn.check({ productId: "pro" })
-			return res.data
-		},
-		queryKey: ["autumn-product", "pro"],
-		staleTime: 30 * 1000, // 30 seconds
-		gcTime: 5 * 60 * 1000, // 5 minutes
 	})
 
 export const useDeleteDocument = (selectedProject: string) => {

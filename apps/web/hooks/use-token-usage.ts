@@ -1,4 +1,8 @@
-import { fetchSubscriptionStatus } from "@lib/queries"
+import {
+	DEFAULT_SUBSCRIPTION_STATUS,
+	fetchSubscriptionStatus,
+	isAllowedFrom,
+} from "@lib/queries"
 import type { useCustomer } from "autumn-js/react"
 import { calculateUsagePercent, getDaysRemaining } from "@/lib/billing-utils"
 
@@ -6,20 +10,16 @@ export type PlanType = "free" | "pro" | "scale" | "enterprise"
 
 export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
 	const {
-		data: status = {
-			api_pro: { allowed: false, status: null },
-			api_scale: { allowed: false, status: null },
-			api_enterprise: { allowed: false, status: null },
-		},
+		data: status = DEFAULT_SUBSCRIPTION_STATUS,
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
 	let currentPlan: PlanType = "free"
-	if (status.api_enterprise?.status !== null) {
+	if (isAllowedFrom(status, "api_enterprise")) {
 		currentPlan = "enterprise"
-	} else if (status.api_scale?.status !== null) {
+	} else if (isAllowedFrom(status, "api_scale")) {
 		currentPlan = "scale"
-	} else if (status.api_pro?.status !== null) {
+	} else if (isAllowedFrom(status, "api_pro")) {
 		currentPlan = "pro"
 	}
 

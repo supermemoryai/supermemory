@@ -3,7 +3,11 @@
 import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
-import { fetchSubscriptionStatus } from "@lib/queries"
+import {
+	DEFAULT_SUBSCRIPTION_STATUS,
+	fetchSubscriptionStatus,
+	isAllowedFrom,
+} from "@lib/queries"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -348,13 +352,11 @@ export default function ConnectionsMCP() {
 
 	// Billing data
 	const {
-		data: status = {
-			api_pro: { allowed: false, status: null },
-		},
+		data: status = DEFAULT_SUBSCRIPTION_STATUS,
 		isLoading: isCheckingStatus,
 	} = fetchSubscriptionStatus(autumn, !autumn.isLoading)
 
-	const hasProProduct = status.api_pro?.status !== null
+	const hasProProduct = isAllowedFrom(status, "api_pro")
 
 	// Get connections data directly from autumn customer
 	const connectionsFeature = autumn.customer?.features?.connections
