@@ -17,6 +17,26 @@ export const SearchFiltersSchema = z
 	})
 	.or(z.record(z.unknown()))
 
+const SearchFiltersParamSchema = z
+	.union([
+		SearchFiltersSchema,
+		z
+			.string()
+			.transform((value, ctx) => {
+				try {
+					return JSON.parse(value) as unknown
+				} catch {
+					ctx.addIssue({
+						code: "custom",
+						message: "filters must be a valid JSON string",
+					})
+					return z.NEVER
+				}
+			})
+			.pipe(SearchFiltersSchema),
+	])
+	.optional()
+
 const exampleMetadata: Record<string, string | number | boolean> = {
 	category: "technology",
 	isPublic: true,
@@ -247,19 +267,25 @@ export const ListMemoriesQuerySchema = z
 					"Optional tags this memory should be containerized by. This can be an ID for your user, a project ID, or any other identifier you wish to use to group memories.",
 				example: ["user_123", "project_123"],
 			}),
-		// TODO: Improve filter schema
-		filters: z
-			.string()
-			.optional()
-			.openapi({
-				description: "Optional filters to apply to the search",
-				example: JSON.stringify({
+		filters: SearchFiltersParamSchema.openapi({
+			description:
+				"Optional metadata filters to apply. Accepts either an object (recommended) or a JSON-encoded string.",
+			examples: [
+				{
 					AND: [
+						{ key: "group", negate: false, value: "jira_users" },
 						{
-							key: "group",
+							filterType: "numeric",
+							key: "timestamp",
 							negate: false,
-							value: "jira_users",
+							numericOperator: ">",
+							value: "1742745777",
 						},
+					],
+				},
+				JSON.stringify({
+					AND: [
+						{ key: "group", negate: false, value: "jira_users" },
 						{
 							filterType: "numeric",
 							key: "timestamp",
@@ -269,7 +295,8 @@ export const ListMemoriesQuerySchema = z
 						},
 					],
 				}),
-			}),
+			],
+		}),
 		limit: z
 			.string()
 			.regex(/^\d+$/)
