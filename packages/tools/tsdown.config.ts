@@ -7,6 +7,7 @@ export default defineConfig({
 		"src/claude-memory.ts",
 		"src/openai/index.ts",
 		"src/mastra.ts",
+		"src/novita/index.ts",
 	],
 	format: "esm",
 	sourcemap: false,
