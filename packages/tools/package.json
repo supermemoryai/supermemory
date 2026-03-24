@@ -45,6 +45,7 @@
     "./claude-memory": "./dist/claude-memory.js",
     "./mastra": "./dist/mastra.js",
     "./openai": "./dist/openai/index.js",
+    "./minimax": "./dist/minimax/index.js",
     "./package.json": "./package.json"
   },
   "repository": {

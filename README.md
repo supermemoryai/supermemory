@@ -233,12 +233,21 @@ Drop-in wrappers for every major AI framework:
 import { withSupermemory } from "@supermemory/tools/ai-sdk";
 const model = withSupermemory(openai("gpt-4o"), "user_123");
 
+// MiniMax (OpenAI-compatible)
+import OpenAI from "openai";
+import { withSupermemory } from "@supermemory/tools/minimax";
+const minimax = new OpenAI({
+  apiKey: process.env.MINIMAX_API_KEY,
+  baseURL: "https://api.minimax.io/v1",
+});
+const client = withSupermemory(minimax, "user_123", { mode: "full" });
+
 // Mastra
 import { withSupermemory } from "@supermemory/tools/mastra";
 const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }));
 ```
 
-**Vercel AI SDK** · **LangChain** · **LangGraph** · **OpenAI Agents SDK** · **Mastra** · **Agno** · **Claude Memory Tool** · **n8n**
+**Vercel AI SDK** · **LangChain** · **LangGraph** · **OpenAI Agents SDK** · **MiniMax** · **Mastra** · **Agno** · **Claude Memory Tool** · **n8n**
 
 ### Search modes
 
