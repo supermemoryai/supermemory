@@ -384,6 +384,33 @@ export class SupermemoryClient {
 		}
 	}
 
+	// Export all memories via the graph viewport endpoint.
+	// Returns documents with their extracted memories for backup/migration.
+	async exportMemories(containerTags?: string[]): Promise<{
+		documents: GraphApiDocument[]
+		totalCount: number
+	}> {
+		try {
+			// Get bounds first to know the full coordinate range
+			const bounds = await this.getGraphBounds(containerTags)
+			const { minX, maxX, minY, maxY } = bounds.bounds
+
+			// Fetch all documents within the full bounds, high limit
+			const viewport = await this.getGraphViewport(
+				{ minX, maxX, minY, maxY },
+				containerTags,
+				10000,
+			)
+
+			return {
+				documents: viewport.documents,
+				totalCount: viewport.totalCount,
+			}
+		} catch (error) {
+			this.handleError(error)
+		}
+	}
+
 	private handleError(error: unknown): never {
 		// Handle network/fetch errors
 		if (error instanceof TypeError) {

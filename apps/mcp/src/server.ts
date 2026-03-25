@@ -242,6 +242,74 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			},
 		)
 
+		// Register export-memories tool
+		const exportSchema = z.object({
+			...(hasRootContainerTag ? {} : containerTagField),
+			format: z
+				.enum(["json", "jsonl"])
+				.optional()
+				.default("json")
+				.describe("Output format: json (single array) or jsonl (one document per line)"),
+		})
+
+		type ExportArgs = z.infer<typeof exportSchema>
+
+		this.server.registerTool(
+			"export-memories",
+			{
+				description:
+					"Export all memories as structured data for backup or migration. Returns documents with their extracted memories.",
+				inputSchema: exportSchema,
+			},
+			// @ts-expect-error - zod type inference issue with MCP SDK
+			async (args: ExportArgs) => {
+				try {
+					const effectiveContainerTag =
+						(args as { containerTag?: string }).containerTag ||
+						this.props?.containerTag
+					const client = this.getClient(effectiveContainerTag)
+					const containerTags = effectiveContainerTag
+						? [effectiveContainerTag]
+						: undefined
+
+					const result = await client.exportMemories(containerTags)
+
+					const isJsonl = args.format === "jsonl"
+					const output = isJsonl
+						? result.documents.map((d) => JSON.stringify(d)).join("\n")
+						: JSON.stringify(result.documents, null, 2)
+
+					const memoryCount = result.documents.reduce(
+						(sum, d) => sum + d.memories.length,
+						0,
+					)
+
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `Exported ${result.documents.length} documents with ${memoryCount} memories (${result.totalCount} total).${effectiveContainerTag ? ` Project: ${effectiveContainerTag}` : ""}\n\n${output}`,
+							},
+						],
+					}
+				} catch (error) {
+					const message =
+						error instanceof Error
+							? error.message
+							: "An unexpected error occurred"
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: `Error exporting memories: ${message}`,
+							},
+						],
+						isError: true,
+					}
+				}
+			},
+		)
+
 		// Register whoAmI tool
 		this.server.registerTool(
 			"whoAmI",
