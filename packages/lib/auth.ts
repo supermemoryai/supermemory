@@ -9,8 +9,18 @@ import {
 } from "better-auth/client/plugins"
 import { createAuthClient } from "better-auth/react"
 
+function normalizeBackendBaseURL(rawBaseURL: string): string {
+	// Accept either "https://api.supermemory.ai" or "https://api.supermemory.ai/v3".
+	// Auth endpoints are mounted at the root base (not under /v3).
+	const trimmed = rawBaseURL.replace(/\/+$/, "")
+	return trimmed.endsWith("/v3") ? trimmed.slice(0, -3) : trimmed
+}
+
+const backendBaseURL =
+	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
 export const authClient = createAuthClient({
-	baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai",
+	baseURL: normalizeBackendBaseURL(backendBaseURL),
 	fetchOptions: {
 		credentials: "include",
 		throw: true,

@@ -227,8 +227,18 @@ export const apiSchema = createSchema({
 	},
 })
 
+function normalizeBackendV3BaseURL(rawBaseURL: string): string {
+	// Allow passing either "https://api.supermemory.ai" or "https://api.supermemory.ai/v3"
+	// (and tolerate trailing slashes) without accidentally producing "/v3/v3".
+	const trimmed = rawBaseURL.replace(/\/+$/, "")
+	return trimmed.endsWith("/v3") ? trimmed : `${trimmed}/v3`
+}
+
+const backendBaseURL =
+	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
 export const $fetch = createFetch({
-	baseURL: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/v3`,
+	baseURL: normalizeBackendV3BaseURL(backendBaseURL),
 	credentials: "include",
 	retry: {
 		attempts: 3,
