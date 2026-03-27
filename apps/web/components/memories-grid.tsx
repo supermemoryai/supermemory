@@ -156,7 +156,21 @@ export function MemoriesGrid({
 				throw new Error(response.error?.message || "Failed to fetch facets")
 			}
 
-			return response.data as FacetsResponse
+			// Validate response data to prevent JSON parse errors
+			const data = response.data as unknown
+			if (
+				data &&
+				typeof data === "object" &&
+				"facets" in data &&
+				Array.isArray(data.facets) &&
+				"total" in data &&
+				typeof data.total === "number"
+			) {
+				return data as FacetsResponse
+			}
+
+			// Return default values if response is invalid
+			return { facets: [], total: 0 }
 		},
 		staleTime: 5 * 60 * 1000,
 		enabled: !!user,
