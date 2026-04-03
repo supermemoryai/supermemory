@@ -23,15 +23,29 @@ export async function captureTwitterTokens(
 		return false
 	}
 
-	const authHeader = details.requestHeaders?.find(
-		(header) => header.name.toLowerCase() === "authorization",
-	)
-	const cookieHeader = details.requestHeaders?.find(
-		(header) => header.name.toLowerCase() === "cookie",
-	)
-	const csrfHeader = details.requestHeaders?.find(
-		(header) => header.name.toLowerCase() === "x-csrf-token",
-	)
+	let authHeader: chrome.webRequest.HttpHeader | undefined
+	let cookieHeader: chrome.webRequest.HttpHeader | undefined
+	let csrfHeader: chrome.webRequest.HttpHeader | undefined
+
+	if(details.requestHeaders){
+		for (const header of details.requestHeaders) {
+			if (!header.name) continue;
+			const name = header.name.toLowerCase();
+			switch (name) {
+				case "authorization":
+					authHeader = header;
+					break;
+				case "cookie":
+					cookieHeader = header;
+					break;
+				case "x-csrf-token":
+					csrfHeader = header;
+					break;
+			}
+
+			if (authHeader && cookieHeader && csrfHeader) break;
+		}
+	}
 
 	if (authHeader?.value && cookieHeader?.value && csrfHeader?.value) {
 		const tokensAlreadyLogged = await getTokensLogged()
