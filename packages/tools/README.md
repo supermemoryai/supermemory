@@ -262,11 +262,15 @@ The `MemoryPromptData` object provides:
 The `withSupermemory` function creates an OpenAI client with SuperMemory middleware automatically injected:
 
 ```typescript
+import OpenAI from "openai"
 import { withSupermemory } from "@supermemory/tools/openai"
 
+const openai = new OpenAI()
+
 // Create OpenAI client with supermemory middleware
-const openaiWithSupermemory = withSupermemory("user-123", {
-  conversationId: "conversation-456",
+const openaiWithSupermemory = withSupermemory(openai, {
+  containerTag: "user-123",
+  customId: "conversation-456",
   mode: "full",
   addMemory: "always",
   verbose: true,
@@ -285,36 +289,31 @@ console.log(completion.choices[0]?.message?.content)
 
 #### OpenAI Middleware Options
 
-The middleware supports the same configuration options as the AI SDK version:
+The middleware accepts a single options object with the following properties:
 
 ```typescript
-const openaiWithSupermemory = withSupermemory("user-123", {
-  conversationId: "conversation-456", // Group messages for contextual memory
-  mode: "full",                       // "profile" | "query" | "full"
-  addMemory: "always",                // "always" | "never"
-  verbose: true,                      // Enable detailed logging
-})
+interface SupermemoryOpenAIOptions {
+  containerTag: string           // Required - User/container identifier for scoping memories
+  customId: string           // Required - Groups messages into conversations
+  apiKey?: string                // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
+  baseUrl?: string               // Custom API endpoint
+  mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
+  addMemory?: "always" | "never"       // Auto-save conversations (default: "never")
+  verbose?: boolean              // Enable debug logging (default: false)
+}
 ```
 
-#### Advanced Usage with Custom OpenAI Options
-
-You can also pass custom OpenAI client options:
+#### Advanced Usage
 
 ```typescript
 import { withSupermemory } from "@supermemory/tools/openai"
 
-const openaiWithSupermemory = withSupermemory(
-  "user-123", 
-  {
-    mode: "profile",
-    addMemory: "always",
-  },
-  {
-    baseURL: "https://api.openai.com/v1",
-    organization: "org-123",
-  },
-  "custom-api-key" // Optional: custom API key
-)
+const openaiWithSupermemory = withSupermemory(openai, {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  mode: "profile",
+  addMemory: "always",
+})
 
 const completion = await openaiWithSupermemory.chat.completions.create({
   model: "gpt-4o-mini",
@@ -329,16 +328,20 @@ Here's a complete example for a Next.js API route:
 ```typescript
 // app/api/chat/route.ts
 import { withSupermemory } from "@supermemory/tools/openai"
+import OpenAI from "openai"
 import type { OpenAI as OpenAIType } from "openai"
 
 export async function POST(req: Request) {
-  const { messages, conversationId } = (await req.json()) as {
+  const { messages, customId } = (await req.json()) as {
     messages: OpenAIType.Chat.Completions.ChatCompletionMessageParam[]
-    conversationId: string
+    customId: string
   }
 
-  const openaiWithSupermemory = withSupermemory("user-123", {
-    conversationId,
+  const openai = new OpenAI()
+
+  const openaiWithSupermemory = withSupermemory(openai, {
+    containerTag: "user-123",
+    customId,
     mode: "full",
     addMemory: "always",
     verbose: true,

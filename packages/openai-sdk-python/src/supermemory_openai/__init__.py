@@ -18,7 +18,7 @@ from .tools import (
 
 from .middleware import (
     with_supermemory,
-    OpenAIMiddlewareOptions,
+    SupermemoryOpenAIOptions,
     SupermemoryOpenAIWrapper,
 )
 
@@ -58,7 +58,7 @@ __all__ = [
     "create_add_memory_tool",
     # Middleware
     "with_supermemory",
-    "OpenAIMiddlewareOptions",
+    "SupermemoryOpenAIOptions",
     "SupermemoryOpenAIWrapper",
     # Utils
     "Logger",

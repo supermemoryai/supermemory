@@ -44,7 +44,9 @@ import { withSupermemory } from "@supermemory/tools/openai"
 const openai = new OpenAI()
 
 // Wrap client with memory - memories auto-injected into system prompts
-const client = withSupermemory(openai, "user-123", {
+const client = withSupermemory(openai, {
+  containerTag: "user-123",
+  customId: "conversation-456",
   mode: "full",        // "profile" | "query" | "full"
   addMemory: "always", // "always" | "never"
 })
@@ -62,21 +64,17 @@ const response = await client.chat.completions.create({
 ### Configuration Options
 
 ```typescript
-const client = withSupermemory(openai, "user-123", {
-  // Memory search mode
-  mode: "full",  // "profile" (user profile only), "query" (search only), "full" (both)
+const client = withSupermemory(openai, {
+  // Required options
+  containerTag: "user-123",       // Scopes memories to this user
+  customId: "conversation-456", // Groups messages into conversations
 
-  // Auto-save conversations as memories
-  addMemory: "always",  // "always" | "never"
-
-  // Group messages into conversations
-  conversationId: "conv-456",
-
-  // Enable debug logging
-  verbose: true,
-
-  // Custom API endpoint
-  baseUrl: "https://custom.api.com"
+  // Optional options
+  mode: "full",         // "profile" (user profile only), "query" (search only), "full" (both)
+  addMemory: "always",  // "always" | "never" - auto-save conversations as memories
+  verbose: true,        // Enable debug logging
+  apiKey: "sm_...",     // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
+  baseUrl: "https://custom.api.com" // Custom API endpoint
 })
 ```
 
@@ -91,7 +89,11 @@ const client = withSupermemory(openai, "user-123", {
 ### Works with Responses API Too
 
 ```typescript
-const client = withSupermemory(openai, "user-123", { mode: "full" })
+const client = withSupermemory(openai, {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  mode: "full",
+})
 
 // Memories injected into instructions
 const response = await client.responses.create({

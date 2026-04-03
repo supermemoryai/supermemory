@@ -5,17 +5,18 @@ import { withSupermemory } from "../../../../../src/openai"
 export const runtime = "nodejs"
 
 export async function POST(req: Request) {
-	const { messages, conversationId } = (await req.json()) as {
+	const { messages, customId } = (await req.json()) as {
 		messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[]
-		conversationId: string
+		customId: string
 	}
 
 	const openai = new OpenAI({
 		apiKey: process.env.OPENAI_API_KEY,
 	})
 
-	const openaiWithSupermemory = withSupermemory(openai, "user-123", {
-		conversationId,
+	const openaiWithSupermemory = withSupermemory(openai, {
+		containerTag: "user-123",
+		customId,
 		mode: "full",
 		addMemory: "always",
 		verbose: true,

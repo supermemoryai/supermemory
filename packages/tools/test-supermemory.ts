@@ -10,7 +10,9 @@ const openai = new OpenAI({
 })
 
 // Wrap OpenAI client with supermemory
-const openaiWithSupermemory = withSupermemory(openai, "test_user_123", {
+const openaiWithSupermemory = withSupermemory(openai, {
+	containerTag: "test_user_123",
+	customId: "test-conversation",
 	verbose: true, // Enable logging to see what's happening
 	mode: "full", // Search both profile and query memories
 	addMemory: "always", // Auto-save conversations as memories

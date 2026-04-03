@@ -1,7 +1,7 @@
 import type OpenAI from "openai"
 import {
 	createOpenAIMiddleware,
-	type OpenAIMiddlewareOptions,
+	type SupermemoryOpenAIOptions,
 } from "./middleware"
 
 /**
@@ -15,12 +15,14 @@ import {
  * the instructions parameter (appends to existing or creates new instructions).
  *
  * @param openaiClient - The OpenAI client to wrap with SuperMemory middleware
- * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param options - Optional configuration options for the middleware
- * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
- * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
- * @param options.mode - Optional mode for memory search: "profile" (default), "query", or "full"
- * @param options.addMemory - Optional mode for memory addition: "always", "never" (default)
+ * @param options - Configuration options for the middleware
+ * @param options.containerTag - The container tag/identifier for memory search (e.g., user ID)
+ * @param options.customId - Custom ID to group messages into a single document (e.g., conversation ID)
+ * @param options.mode - Memory search mode: "profile" (default), "query", or "full"
+ * @param options.addMemory - Memory persistence mode: "always" (default) or "never"
+ * @param options.verbose - Enable detailed logging (default: false)
+ * @param options.apiKey - Supermemory API key (falls back to SUPERMEMORY_API_KEY env var)
+ * @param options.baseUrl - Custom Supermemory API base URL
  *
  * @returns An OpenAI client with SuperMemory middleware injected for both Chat Completions and Responses APIs
  *
@@ -29,14 +31,12 @@ import {
  * import { withSupermemory } from "@supermemory/tools/openai"
  * import OpenAI from "openai"
  *
- * // Create OpenAI client with supermemory middleware
- * const openai = new OpenAI({
- *   apiKey: process.env.OPENAI_API_KEY,
- * })
- * const openaiWithSupermemory = withSupermemory(openai, "user-123", {
- *   conversationId: "conversation-456",
+ * const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+ *
+ * const openaiWithSupermemory = withSupermemory(openai, {
+ *   containerTag: "user-123",
+ *   customId: "conv-456",
  *   mode: "full",
- *   addMemory: "always"
  * })
  *
  * // Use with Chat Completions API - memories injected into system prompt
@@ -55,40 +55,50 @@ import {
  * })
  * ```
  *
- * @throws {Error} When SUPERMEMORY_API_KEY environment variable is not set
+ * @throws {Error} When neither apiKey option nor SUPERMEMORY_API_KEY environment variable is set
+ * @throws {Error} When containerTag is not provided or is empty
+ * @throws {Error} When customId is not provided or is empty
  * @throws {Error} When supermemory API request fails
  */
 export function withSupermemory(
 	openaiClient: OpenAI,
-	containerTag: string,
-	options?: OpenAIMiddlewareOptions,
+	options: SupermemoryOpenAIOptions,
 ) {
-	if (!process.env.SUPERMEMORY_API_KEY) {
-		throw new Error("SUPERMEMORY_API_KEY is not set")
+	const apiKey = options.apiKey ?? process.env.SUPERMEMORY_API_KEY
+	if (!apiKey) {
+		throw new Error(
+			"[supermemory] API key is required. Provide it via options.apiKey or set SUPERMEMORY_API_KEY environment variable.",
+		)
 	}
 
-	const conversationId = options?.conversationId
-	const verbose = options?.verbose ?? false
-	const mode = options?.mode ?? "profile"
-	const addMemory = options?.addMemory ?? "never"
-	const baseUrl = options?.baseUrl
+	if (
+		!options.containerTag ||
+		typeof options.containerTag !== "string" ||
+		!options.containerTag.trim()
+	) {
+		throw new Error(
+			"[supermemory] containerTag is required and must be a non-empty string. " +
+				"This identifies the user or container for memory scoping. " +
+				"Example: { containerTag: 'user-123', ... }",
+		)
+	}
 
-	const openaiWithSupermemory = createOpenAIMiddleware(
-		openaiClient,
-		containerTag,
-		{
-			conversationId,
-			verbose,
-			mode,
-			addMemory,
-			baseUrl,
-		},
-	)
+	if (
+		!options.customId ||
+		typeof options.customId !== "string" ||
+		!options.customId.trim()
+	) {
+		throw new Error(
+			"[supermemory] customId is required and must be a non-empty string. " +
+				"This ensures messages are grouped into the same document for a conversation. " +
+				"Example: { containerTag: 'user-123', customId: 'conv-456', ... }",
+		)
+	}
 
-	return openaiWithSupermemory
+	return createOpenAIMiddleware(openaiClient, { ...options, apiKey })
 }
 
-export type { OpenAIMiddlewareOptions }
+export type { SupermemoryOpenAIOptions }
 export type {
 	MemorySearchResult,
 	MemoryAddResult,

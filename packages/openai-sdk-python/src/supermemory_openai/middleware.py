@@ -29,13 +29,29 @@ from .utils import (
 
 
 @dataclass
-class OpenAIMiddlewareOptions:
+class SupermemoryOpenAIOptions:
     """Configuration options for OpenAI middleware."""
 
-    conversation_id: Optional[str] = None
+    container_tag: str
+    """Container tag/identifier for memory search (e.g., user ID)."""
+
+    custom_id: str
+    """Custom ID to group messages into a single document (e.g., conversation ID)."""
+
+    api_key: Optional[str] = None
+    """Supermemory API key (falls back to SUPERMEMORY_API_KEY env var)."""
+
+    base_url: Optional[str] = None
+    """Custom Supermemory API base URL (defaults to https://api.supermemory.ai)."""
+
     verbose: bool = False
+    """Enable detailed logging of memory search and injection."""
+
     mode: Literal["profile", "query", "full"] = "profile"
+    """Memory retrieval mode: 'profile', 'query', or 'full'."""
+
     add_memory: Literal["always", "never"] = "never"
+    """Memory persistence mode: 'always' or 'never' (default)."""
 
 
 class SupermemoryProfileSearch:
@@ -46,12 +62,22 @@ class SupermemoryProfileSearch:
         self.search_results: dict[str, Any] = data.get("searchResults", {})
 
 
+def _normalize_base_url(url: Optional[str]) -> str:
+    """Normalize the base URL, removing trailing slashes."""
+    default_url = "https://api.supermemory.ai"
+    if not url:
+        return default_url
+    return url.rstrip("/")
+
+
 async def supermemory_profile_search(
     container_tag: str,
     query_text: str,
     api_key: str,
+    base_url: Optional[str] = None,
 ) -> SupermemoryProfileSearch:
     """Search for memories using the SuperMemory profile API."""
+    normalized_base_url = _normalize_base_url(base_url)
     payload = {
         "containerTag": container_tag,
     }
@@ -63,7 +89,7 @@ async def supermemory_profile_search(
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "https://api.supermemory.ai/v4/profile",
+                f"{normalized_base_url}/v4/profile",
                 headers={
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {api_key}",
@@ -86,7 +112,7 @@ async def supermemory_profile_search(
         import requests
 
         response = requests.post(
-            "https://api.supermemory.ai/v4/profile",
+            f"{normalized_base_url}/v4/profile",
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
@@ -110,6 +136,7 @@ async def add_system_prompt(
     logger: Logger,
     mode: Literal["profile", "query", "full"],
     api_key: str,
+    base_url: Optional[str] = None,
 ) -> list[ChatCompletionMessageParam]:
     """Add memory-enhanced system prompts to chat completion messages."""
     system_prompt_exists = any(msg.get("role") == "system" for msg in messages)
@@ -117,7 +144,7 @@ async def add_system_prompt(
     query_text = get_last_user_message(messages) if mode != "profile" else ""
 
     memories_response = await supermemory_profile_search(
-        container_tag, query_text, api_key
+        container_tag, query_text, api_key, base_url
     )
 
     profile = memories_response.profile or {}
@@ -208,15 +235,124 @@ async def add_system_prompt(
     return [system_message] + messages
 
 
+async def add_conversation(
+    conversation_id: str,
+    messages: list[dict[str, Any]],
+    container_tags: list[str],
+    api_key: str,
+    base_url: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Adds a conversation to Supermemory using the /v4/conversations endpoint.
+    
+    This endpoint supports structured messages with roles (user, assistant, system, tool).
+    """
+    normalized_base_url = _normalize_base_url(base_url)
+    url = f"{normalized_base_url}/v4/conversations"
+    
+    payload = {
+        "conversationId": conversation_id,
+        "messages": messages,
+        "containerTags": container_tags,
+    }
+    
+    try:
+        import aiohttp
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                },
+                json=payload,
+            ) as response:
+                if not response.ok:
+                    error_text = await response.text()
+                    raise SupermemoryAPIError(
+                        f"Failed to add conversation: {response.status}",
+                        status_code=response.status,
+                        response_text=error_text,
+                    )
+                return await response.json()
+    except ImportError:
+        import requests
+        
+        response = requests.post(
+            url,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            json=payload,
+        )
+        
+        if not response.ok:
+            raise SupermemoryAPIError(
+                f"Failed to add conversation: {response.status_code}",
+                status_code=response.status_code,
+                response_text=response.text,
+            )
+        return response.json()
+
+
 async def add_memory_tool(
     client: supermemory.Supermemory,
     container_tag: str,
     content: str,
     custom_id: Optional[str],
     logger: Logger,
+    messages: Optional[list[dict[str, Any]]] = None,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
 ) -> None:
-    """Add a new memory to the SuperMemory system."""
+    """
+    Add a new memory to the SuperMemory system.
+    
+    If custom_id starts with "conversation:" and messages are provided, uses the
+    /v4/conversations endpoint with structured messages instead of the memories endpoint.
+    """
     try:
+        # Use conversations endpoint if we have structured messages
+        if custom_id and custom_id.startswith("conversation:") and messages and api_key:
+            conversation_id = custom_id.replace("conversation:", "")
+            
+            # Convert messages to conversation format
+            conversation_messages = []
+            for msg in messages:
+                conv_msg: dict[str, Any] = {
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", ""),
+                }
+                if "name" in msg:
+                    conv_msg["name"] = msg["name"]
+                if "tool_calls" in msg:
+                    conv_msg["tool_calls"] = msg["tool_calls"]
+                if "tool_call_id" in msg:
+                    conv_msg["tool_call_id"] = msg["tool_call_id"]
+                conversation_messages.append(conv_msg)
+            
+            response = await add_conversation(
+                conversation_id=conversation_id,
+                messages=conversation_messages,
+                container_tags=[container_tag],
+                api_key=api_key,
+                base_url=base_url,
+            )
+            
+            logger.info(
+                "Conversation saved successfully via /v4/conversations",
+                {
+                    "container_tag": container_tag,
+                    "conversation_id": conversation_id,
+                    "message_count": len(messages),
+                    "response_id": response.get("id"),
+                },
+            )
+            return
+        
+        # Fallback to basic memory storage
         add_params = {
             "content": content,
             "container_tags": [container_tag],
@@ -262,13 +398,14 @@ class SupermemoryOpenAIWrapper:
     def __init__(
         self,
         openai_client: Union[OpenAI, AsyncOpenAI],
-        container_tag: str,
-        options: Optional[OpenAIMiddlewareOptions] = None,
+        options: SupermemoryOpenAIOptions,
     ):
         self._client: Union[OpenAI, AsyncOpenAI] = openai_client
-        self._container_tag: str = container_tag
-        self._options: OpenAIMiddlewareOptions = options or OpenAIMiddlewareOptions()
-        self._logger: Logger = create_logger(self._options.verbose)
+        self._container_tag: str = options.container_tag
+        self._custom_id: str = options.custom_id
+        self._base_url: Optional[str] = options.base_url
+        self._options: SupermemoryOpenAIOptions = options
+        self._logger: Logger = create_logger(options.verbose)
 
         # Track background tasks to ensure they complete
         self._background_tasks: set[asyncio.Task] = set()
@@ -280,9 +417,14 @@ class SupermemoryOpenAIWrapper:
             )
 
         api_key = self._get_api_key()
+        normalized_base_url = _normalize_base_url(self._base_url)
         try:
+            # Pass base_url to Supermemory client for memory write operations
+            client_kwargs = {"api_key": api_key}
+            if normalized_base_url != "https://api.supermemory.ai":
+                client_kwargs["base_url"] = normalized_base_url
             self._supermemory_client: supermemory.Supermemory = supermemory.Supermemory(
-                api_key=api_key
+                **client_kwargs
             )
         except Exception as e:
             raise SupermemoryConfigurationError(
@@ -293,13 +435,13 @@ class SupermemoryOpenAIWrapper:
         self._wrap_chat_completions()
 
     def _get_api_key(self) -> str:
-        """Get Supermemory API key from environment."""
+        """Get Supermemory API key from options or environment."""
         import os
 
-        api_key = os.getenv("SUPERMEMORY_API_KEY")
+        api_key = self._options.api_key or os.getenv("SUPERMEMORY_API_KEY")
         if not api_key:
             raise SupermemoryConfigurationError(
-                "SUPERMEMORY_API_KEY environment variable is required but not set"
+                "Supermemory API key is required. Provide it via options.api_key or set SUPERMEMORY_API_KEY environment variable."
             )
         return api_key
 
@@ -336,12 +478,12 @@ class SupermemoryOpenAIWrapper:
             if user_message and user_message.strip():
                 content = (
                     get_conversation_content(messages)
-                    if self._options.conversation_id
+                    if self._custom_id
                     else user_message
                 )
-                custom_id = (
-                    f"conversation:{self._options.conversation_id}"
-                    if self._options.conversation_id
+                memory_custom_id = (
+                    f"conversation:{self._custom_id}"
+                    if self._custom_id
                     else None
                 )
 
@@ -351,8 +493,11 @@ class SupermemoryOpenAIWrapper:
                         self._supermemory_client,
                         self._container_tag,
                         content,
-                        custom_id,
+                        memory_custom_id,
                         self._logger,
+                        messages,
+                        self._get_api_key(),
+                        self._base_url,
                     )
                 )
 
@@ -399,7 +544,7 @@ class SupermemoryOpenAIWrapper:
             "Starting memory search",
             {
                 "container_tag": self._container_tag,
-                "conversation_id": self._options.conversation_id,
+                "custom_id": self._custom_id,
                 "mode": self._options.mode,
             },
         )
@@ -410,6 +555,7 @@ class SupermemoryOpenAIWrapper:
             self._logger,
             self._options.mode,
             self._get_api_key(),
+            self._base_url,
         )
 
         kwargs["messages"] = enhanced_messages
@@ -430,12 +576,12 @@ class SupermemoryOpenAIWrapper:
             if user_message and user_message.strip():
                 content = (
                     get_conversation_content(messages)
-                    if self._options.conversation_id
+                    if self._custom_id
                     else user_message
                 )
-                custom_id = (
-                    f"conversation:{self._options.conversation_id}"
-                    if self._options.conversation_id
+                memory_custom_id = (
+                    f"conversation:{self._custom_id}"
+                    if self._custom_id
                     else None
                 )
 
@@ -446,8 +592,11 @@ class SupermemoryOpenAIWrapper:
                             self._supermemory_client,
                             self._container_tag,
                             content,
-                            custom_id,
+                            memory_custom_id,
                             self._logger,
+                            messages,
+                            self._get_api_key(),
+                            self._base_url,
                         )
                     )
                 except RuntimeError as e:
@@ -483,7 +632,7 @@ class SupermemoryOpenAIWrapper:
             "Starting memory search",
             {
                 "container_tag": self._container_tag,
-                "conversation_id": self._options.conversation_id,
+                "custom_id": self._custom_id,
                 "mode": self._options.mode,
             },
         )
@@ -497,6 +646,7 @@ class SupermemoryOpenAIWrapper:
                     self._logger,
                     self._options.mode,
                     self._get_api_key(),
+                    self._base_url,
                 )
             )
         except RuntimeError as e:
@@ -513,6 +663,7 @@ class SupermemoryOpenAIWrapper:
                             self._logger,
                             self._options.mode,
                             self._get_api_key(),
+                            self._base_url,
                         ),
                     )
                     enhanced_messages = future.result()
@@ -617,43 +768,34 @@ class SupermemoryOpenAIWrapper:
 
 def with_supermemory(
     openai_client: Union[OpenAI, AsyncOpenAI],
-    container_tag: str,
-    options: Optional[OpenAIMiddlewareOptions] = None,
+    options: SupermemoryOpenAIOptions,
 ) -> Union[OpenAI, AsyncOpenAI]:
     """
     Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
     into the system prompt based on the user's message content.
 
-    This middleware searches the supermemory API for relevant memories using the container tag
-    and user message, then either appends memories to an existing system prompt or creates
-    a new system prompt with the memories.
-
     Args:
         openai_client: The OpenAI client to wrap with SuperMemory middleware
-        container_tag: The container tag/identifier for memory search (e.g., user ID, project ID)
-        options: Optional configuration options for the middleware
+        options: Configuration options for the middleware
 
     Returns:
         An OpenAI client with SuperMemory middleware injected
 
     Example:
         ```python
-        from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
+        from supermemory_openai import with_supermemory, SupermemoryOpenAIOptions
         from openai import OpenAI
 
-        # Create OpenAI client with supermemory middleware
         openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         openai_with_supermemory = with_supermemory(
             openai,
-            "user-123",
-            OpenAIMiddlewareOptions(
-                conversation_id="conversation-456",
+            SupermemoryOpenAIOptions(
+                container_tag="user-123",
+                custom_id="conversation-456",
                 mode="full",
-                add_memory="always"
             )
         )
 
-        # Use normally - memories will be automatically injected
         response = await openai_with_supermemory.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -663,9 +805,25 @@ def with_supermemory(
         ```
 
     Raises:
-        ValueError: When SUPERMEMORY_API_KEY environment variable is not set
+        ValueError: When container_tag is not provided or is empty
+        ValueError: When custom_id is not provided or is empty
+        SupermemoryConfigurationError: When API key is not set
         Exception: When supermemory API request fails
     """
-    wrapper = SupermemoryOpenAIWrapper(openai_client, container_tag, options)
+    if not options.container_tag or not options.container_tag.strip():
+        raise ValueError(
+            "[supermemory] container_tag is required and must be a non-empty string. "
+            "This identifies the user or container for memory scoping. "
+            "Example: SupermemoryOpenAIOptions(container_tag='user-123', ...)"
+        )
+
+    if not options.custom_id or not options.custom_id.strip():
+        raise ValueError(
+            "[supermemory] custom_id is required and must be a non-empty string. "
+            "This ensures messages are grouped into the same document for a conversation. "
+            "Example: SupermemoryOpenAIOptions(container_tag='user-123', custom_id='conv-456', ...)"
+        )
+
+    wrapper = SupermemoryOpenAIWrapper(openai_client, options)
     # Return the wrapper, which delegates all attributes to the original client
     return cast(Union[OpenAI, AsyncOpenAI], wrapper)

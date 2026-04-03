@@ -32,20 +32,7 @@ const createMockLanguageModel = (): LanguageModelV2 => ({
 	doStream: vi.fn(),
 })
 
-// Mock profile API response
-const createMockProfileResponse = (
-	staticMemories: string[] = [],
-	dynamicMemories: string[] = [],
-	searchResults: string[] = [],
-) => ({
-	profile: {
-		static: staticMemories.map((memory) => ({ memory })),
-		dynamic: dynamicMemories.map((memory) => ({ memory })),
-	},
-	searchResults: {
-		results: searchResults.map((memory) => ({ memory })),
-	},
-})
+import { createMockProfileResponse } from "../utils/supermemory-mocks"
 
 describe("Unit: withSupermemory", () => {
 	let originalEnv: string | undefined
