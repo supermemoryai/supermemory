@@ -1,5 +1,6 @@
 """Supermemory middleware for OpenAI clients."""
 
+from aiohttp import request
 import asyncio
 import os
 from dataclasses import dataclass
@@ -85,7 +86,8 @@ async def supermemory_profile_search(
         # Fallback to requests if aiohttp not available
         import requests
 
-        response = requests.post(
+        response = await asyncio.to_thread(
+            request.post,
             "https://api.supermemory.ai/v4/profile",
             headers={
                 "Content-Type": "application/json",
@@ -194,9 +196,11 @@ async def add_system_prompt(
     if system_prompt_exists:
         logger.debug("Added memories to existing system prompt")
         return [
-            {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
-            if msg.get("role") == "system"
-            else msg
+            (
+                {**msg, "content": f"{msg.get('content', '')} \n {memories}"}
+                if msg.get("role") == "system"
+                else msg
+            )
             for msg in messages
         ]
 
