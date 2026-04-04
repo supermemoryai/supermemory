@@ -29,6 +29,7 @@ const TEST_CONFIG = {
 	apiKey: "test-api-key",
 	baseUrl: "https://api.supermemory.ai",
 	containerTag: "test-mastra-user",
+	conversationId: "test-conv-123",
 }
 
 interface MockAgentConfig {
@@ -104,6 +105,29 @@ const createMockConversationResponse = () => ({
 	status: "created",
 })
 
+const createInputArgs = (
+	overrides: Partial<ProcessInputArgs> = {},
+): ProcessInputArgs =>
+	({
+		messages: [],
+		systemMessages: [],
+		messageList: createMockMessageList(),
+		abort: vi.fn() as never,
+		retryCount: 0,
+		...overrides,
+	}) as ProcessInputArgs
+
+const createOutputArgs = (
+	overrides: Partial<ProcessOutputResultArgs> = {},
+): ProcessOutputResultArgs =>
+	({
+		messages: [],
+		messageList: createMockMessageList(),
+		abort: vi.fn() as never,
+		retryCount: 0,
+		...overrides,
+	}) as ProcessOutputResultArgs
+
 describe("SupermemoryInputProcessor", () => {
 	let originalEnv: string | undefined
 	let originalFetch: typeof globalThis.fetch
@@ -129,7 +153,10 @@ describe("SupermemoryInputProcessor", () => {
 
 	describe("constructor", () => {
 		it("should create processor with default options", () => {
-			const processor = new SupermemoryInputProcessor(TEST_CONFIG.containerTag)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 			expect(processor.id).toBe("supermemory-input")
 			expect(processor.name).toBe("Supermemory Memory Injection")
 		})
@@ -138,20 +165,40 @@ describe("SupermemoryInputProcessor", () => {
 			delete process.env.SUPERMEMORY_API_KEY
 
 			expect(() => {
-				new SupermemoryInputProcessor(TEST_CONFIG.containerTag)
+				new SupermemoryInputProcessor({
+					containerTag: TEST_CONFIG.containerTag,
+					conversationId: TEST_CONFIG.conversationId,
+				})
 			}).toThrow("SUPERMEMORY_API_KEY is not set")
 		})
 
 		it("should accept API key via options", () => {
 			delete process.env.SUPERMEMORY_API_KEY
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: "custom-key",
-				},
-			)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: "custom-key",
+			})
 			expect(processor.id).toBe("supermemory-input")
+		})
+
+		it("should throw error if conversationId is empty", () => {
+			expect(() => {
+				new SupermemoryInputProcessor({
+					containerTag: TEST_CONFIG.containerTag,
+					conversationId: "",
+				})
+			}).toThrow("[supermemory] conversationId is required")
+		})
+
+		it("should throw error if conversationId is whitespace", () => {
+			expect(() => {
+				new SupermemoryInputProcessor({
+					containerTag: TEST_CONFIG.containerTag,
+					conversationId: "   ",
+				})
+			}).toThrow("[supermemory] conversationId is required")
 		})
 	})
 
@@ -168,24 +215,18 @@ describe("SupermemoryInputProcessor", () => {
 					),
 			})
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "profile",
-				},
-			)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
 
 			const messageList = createMockMessageList()
-			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
-
-			const args: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
+			const args = createInputArgs({
+				messages: [createMessage("user", "Hello")],
 				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			})
 
 			await processor.processInput(args)
 
@@ -203,36 +244,19 @@ describe("SupermemoryInputProcessor", () => {
 					Promise.resolve(createMockProfileResponse(["Cached memory"])),
 			})
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "profile",
-				},
-			)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
 
 			const messages: MastraDBMessage[] = [createMessage("user", "Hello")]
 
-			const args1: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args1)
+			await processor.processInput(createInputArgs({ messages }))
 			expect(fetchMock).toHaveBeenCalledTimes(1)
 
-			const args2: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args2)
+			await processor.processInput(createInputArgs({ messages }))
 			expect(fetchMock).toHaveBeenCalledTimes(1)
 		})
 
@@ -249,56 +273,40 @@ describe("SupermemoryInputProcessor", () => {
 				})
 			})
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "query",
-				},
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "query",
+			})
+
+			await processor.processInput(
+				createInputArgs({
+					messages: [createMessage("user", "First message")],
+				}),
 			)
-
-			const args1: ProcessInputArgs = {
-				messages: [createMessage("user", "First message")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args1)
 			expect(fetchMock).toHaveBeenCalledTimes(1)
 
-			const args2: ProcessInputArgs = {
-				messages: [createMessage("user", "Different message")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args2)
+			await processor.processInput(
+				createInputArgs({
+					messages: [createMessage("user", "Different message")],
+				}),
+			)
 			expect(fetchMock).toHaveBeenCalledTimes(2)
 		})
 
 		it("should return messageList in query mode when no user message", async () => {
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "query",
-				},
-			)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "query",
+			})
 
 			const messageList = createMockMessageList()
-			const args: ProcessInputArgs = {
-				messages: [],
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			const result = await processor.processInput(args)
+			const result = await processor.processInput(
+				createInputArgs({ messages: [], messageList }),
+			)
 
 			expect(result).toBe(messageList)
 			expect(fetchMock).not.toHaveBeenCalled()
@@ -313,84 +321,47 @@ describe("SupermemoryInputProcessor", () => {
 				text: () => Promise.resolve("Server error"),
 			})
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "profile",
-				},
-			)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
+			})
 
 			const messageList = createMockMessageList()
-			const args: ProcessInputArgs = {
-				messages: [createMessage("user", "Hello")],
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			const result = await processor.processInput(args)
+			const result = await processor.processInput(
+				createInputArgs({
+					messages: [createMessage("user", "Hello")],
+					messageList,
+				}),
+			)
 
 			expect(result).toBe(messageList)
 			expect(messageList.addSystem).not.toHaveBeenCalled()
 		})
 
-		it("should use threadId from options", async () => {
+		it("should use conversationId from requestContext fallback", async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () => Promise.resolve(createMockProfileResponse(["Memory"])),
 			})
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					threadId: "thread-123",
-					mode: "profile",
-				},
-			)
-
-			const args: ProcessInputArgs = {
-				messages: [createMessage("user", "Hello")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args)
-
-			expect(fetchMock).toHaveBeenCalled()
-		})
-
-		it("should use threadId from requestContext when not in options", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () => Promise.resolve(createMockProfileResponse(["Memory"])),
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "profile",
 			})
-
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "profile",
-				},
-			)
 
 			const requestContext = new RequestContext()
 			requestContext.set(MASTRA_THREAD_ID_KEY, "ctx-thread-456")
 
-			const args: ProcessInputArgs = {
-				messages: [createMessage("user", "Hello")],
-				systemMessages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-				requestContext,
-			}
-
-			await processor.processInput(args)
+			await processor.processInput(
+				createInputArgs({
+					messages: [createMessage("user", "Hello")],
+					requestContext,
+				}),
+			)
 
 			expect(fetchMock).toHaveBeenCalled()
 		})
@@ -401,13 +372,12 @@ describe("SupermemoryInputProcessor", () => {
 				json: () => Promise.resolve(createMockProfileResponse(["Memory"])),
 			})
 
-			const processor = new SupermemoryInputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					mode: "query",
-				},
-			)
+			const processor = new SupermemoryInputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				mode: "query",
+			})
 
 			const messages: MastraDBMessage[] = [
 				{
@@ -424,16 +394,7 @@ describe("SupermemoryInputProcessor", () => {
 				},
 			]
 
-			const messageList = createMockMessageList()
-			const args: ProcessInputArgs = {
-				messages,
-				systemMessages: [],
-				messageList,
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processInput(args)
+			await processor.processInput(createInputArgs({ messages }))
 
 			expect(fetchMock).toHaveBeenCalled()
 		})
@@ -465,7 +426,10 @@ describe("SupermemoryOutputProcessor", () => {
 
 	describe("constructor", () => {
 		it("should create processor with default options", () => {
-			const processor = new SupermemoryOutputProcessor(TEST_CONFIG.containerTag)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 			expect(processor.id).toBe("supermemory-output")
 			expect(processor.name).toBe("Supermemory Conversation Save")
 		})
@@ -478,26 +442,19 @@ describe("SupermemoryOutputProcessor", () => {
 				json: () => Promise.resolve(createMockConversationResponse()),
 			})
 
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-					threadId: "conv-456",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: "conv-456",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "always",
+			})
 
-			const messages: MastraDBMessage[] = [
-				createMessage("user", "Hello"),
-				createMessage("assistant", "Hi there!"),
-			]
-
-			const args: ProcessOutputResultArgs = {
-				messages,
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			const args = createOutputArgs({
+				messages: [
+					createMessage("user", "Hello"),
+					createMessage("assistant", "Hi there!"),
+				],
+			})
 
 			await processor.processOutputResult(args)
 
@@ -522,81 +479,48 @@ describe("SupermemoryOutputProcessor", () => {
 		})
 
 		it("should not save conversation when addMemory is never", async () => {
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "never",
-					threadId: "conv-456",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: "conv-456",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "never",
+			})
 
-			const args: ProcessOutputResultArgs = {
+			const args = createOutputArgs({
 				messages: [
 					createMessage("user", "Hello"),
 					createMessage("assistant", "Hi!"),
 				],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			})
 
 			await processor.processOutputResult(args)
 
 			expect(fetchMock).not.toHaveBeenCalled()
 		})
 
-		it("should not save when no threadId provided", async () => {
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-				},
-			)
-
-			const args: ProcessOutputResultArgs = {
-				messages: [
-					createMessage("user", "Hello"),
-					createMessage("assistant", "Hi!"),
-				],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
-
-			await processor.processOutputResult(args)
-
-			expect(fetchMock).not.toHaveBeenCalled()
-		})
-
-		it("should use threadId from requestContext", async () => {
+		it("should use conversationId from requestContext", async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () => Promise.resolve(createMockConversationResponse()),
 			})
 
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "always",
+			})
 
 			const requestContext = new RequestContext()
 			requestContext.set(MASTRA_THREAD_ID_KEY, "ctx-thread-789")
 
-			const args: ProcessOutputResultArgs = {
+			const args = createOutputArgs({
 				messages: [
 					createMessage("user", "Hello"),
 					createMessage("assistant", "Hi!"),
 				],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
 				requestContext,
-			}
+			})
 
 			await processor.processOutputResult(args)
 
@@ -604,6 +528,7 @@ describe("SupermemoryOutputProcessor", () => {
 			const callBody = JSON.parse(
 				(fetchMock.mock.calls[0]?.[1] as { body: string }).body,
 			)
+			// Should use the RequestContext override, not the default conversationId
 			expect(callBody.conversationId).toBe("ctx-thread-789")
 		})
 
@@ -613,27 +538,20 @@ describe("SupermemoryOutputProcessor", () => {
 				json: () => Promise.resolve(createMockConversationResponse()),
 			})
 
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-					threadId: "conv-456",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: "conv-456",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "always",
+			})
 
-			const messages: MastraDBMessage[] = [
-				createMessage("system", "You are a helpful assistant"),
-				createMessage("user", "Hello"),
-				createMessage("assistant", "Hi there!"),
-			]
-
-			const args: ProcessOutputResultArgs = {
-				messages,
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			const args = createOutputArgs({
+				messages: [
+					createMessage("system", "You are a helpful assistant"),
+					createMessage("user", "Hello"),
+					createMessage("assistant", "Hi there!"),
+				],
+			})
 
 			await processor.processOutputResult(args)
 
@@ -652,14 +570,12 @@ describe("SupermemoryOutputProcessor", () => {
 				json: () => Promise.resolve(createMockConversationResponse()),
 			})
 
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-					threadId: "conv-456",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: "conv-456",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "always",
+			})
 
 			const messages: MastraDBMessage[] = [
 				{
@@ -685,12 +601,7 @@ describe("SupermemoryOutputProcessor", () => {
 				},
 			]
 
-			const args: ProcessOutputResultArgs = {
-				messages,
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			const args = createOutputArgs({ messages })
 
 			await processor.processOutputResult(args)
 
@@ -708,45 +619,33 @@ describe("SupermemoryOutputProcessor", () => {
 				text: () => Promise.resolve("Server error"),
 			})
 
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-					threadId: "conv-456",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: "conv-456",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "always",
+			})
 
-			const args: ProcessOutputResultArgs = {
+			const args = createOutputArgs({
 				messages: [
 					createMessage("user", "Hello"),
 					createMessage("assistant", "Hi!"),
 				],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			})
 
 			// Should not throw
 			await expect(processor.processOutputResult(args)).resolves.toBeDefined()
 		})
 
 		it("should not save when no messages to save", async () => {
-			const processor = new SupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: TEST_CONFIG.apiKey,
-					addMemory: "always",
-					threadId: "conv-456",
-				},
-			)
+			const processor = new SupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: "conv-456",
+				apiKey: TEST_CONFIG.apiKey,
+				addMemory: "always",
+			})
 
-			const args: ProcessOutputResultArgs = {
-				messages: [],
-				messageList: createMockMessageList(),
-				abort: vi.fn() as never,
-				retryCount: 0,
-			}
+			const args = createOutputArgs({ messages: [] })
 
 			await processor.processOutputResult(args)
 
@@ -773,13 +672,18 @@ describe("Factory functions", () => {
 
 	describe("createSupermemoryProcessor", () => {
 		it("should create input processor", () => {
-			const processor = createSupermemoryProcessor(TEST_CONFIG.containerTag)
+			const processor = createSupermemoryProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 			expect(processor).toBeInstanceOf(SupermemoryInputProcessor)
 			expect(processor.id).toBe("supermemory-input")
 		})
 
 		it("should pass options to processor", () => {
-			const processor = createSupermemoryProcessor(TEST_CONFIG.containerTag, {
+			const processor = createSupermemoryProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
 				apiKey: "custom-key",
 				mode: "full",
 			})
@@ -789,45 +693,43 @@ describe("Factory functions", () => {
 
 	describe("createSupermemoryOutputProcessor", () => {
 		it("should create output processor", () => {
-			const processor = createSupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-			)
+			const processor = createSupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 			expect(processor).toBeInstanceOf(SupermemoryOutputProcessor)
 			expect(processor.id).toBe("supermemory-output")
 		})
 
 		it("should pass options to processor", () => {
-			const processor = createSupermemoryOutputProcessor(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: "custom-key",
-					addMemory: "always",
-					threadId: "conv-123",
-				},
-			)
+			const processor = createSupermemoryOutputProcessor({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: "custom-key",
+				addMemory: "always",
+			})
 			expect(processor).toBeInstanceOf(SupermemoryOutputProcessor)
 		})
 	})
 
 	describe("createSupermemoryProcessors", () => {
 		it("should create both input and output processors", () => {
-			const { input, output } = createSupermemoryProcessors(
-				TEST_CONFIG.containerTag,
-			)
+			const { input, output } = createSupermemoryProcessors({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 			expect(input).toBeInstanceOf(SupermemoryInputProcessor)
 			expect(output).toBeInstanceOf(SupermemoryOutputProcessor)
 		})
 
 		it("should share options between processors", () => {
-			const { input, output } = createSupermemoryProcessors(
-				TEST_CONFIG.containerTag,
-				{
-					apiKey: "custom-key",
-					mode: "full",
-					addMemory: "always",
-					threadId: "conv-123",
-				},
-			)
+			const { input, output } = createSupermemoryProcessors({
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+				apiKey: "custom-key",
+				mode: "full",
+				addMemory: "always",
+			})
 			expect(input.id).toBe("supermemory-input")
 			expect(output.id).toBe("supermemory-output")
 		})
@@ -857,7 +759,10 @@ describe("withSupermemory", () => {
 			const config: MockAgentConfig = { id: "test-agent", name: "Test Agent" }
 
 			expect(() => {
-				withSupermemory(config, TEST_CONFIG.containerTag)
+				withSupermemory(config, {
+					containerTag: TEST_CONFIG.containerTag,
+					conversationId: TEST_CONFIG.conversationId,
+				})
 			}).toThrow("SUPERMEMORY_API_KEY is not set")
 		})
 
@@ -865,7 +770,9 @@ describe("withSupermemory", () => {
 			delete process.env.SUPERMEMORY_API_KEY
 
 			const config: MockAgentConfig = { id: "test-agent", name: "Test Agent" }
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag, {
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
 				apiKey: "custom-key",
 			})
 
@@ -877,7 +784,10 @@ describe("withSupermemory", () => {
 	describe("processor injection", () => {
 		it("should inject input and output processors", () => {
 			const config: MockAgentConfig = { id: "test-agent", name: "Test Agent" }
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag)
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 
 			expect(enhanced.inputProcessors).toHaveLength(1)
 			expect(enhanced.outputProcessors).toHaveLength(1)
@@ -892,7 +802,10 @@ describe("withSupermemory", () => {
 				model: "gpt-4",
 				customProp: "value",
 			}
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag)
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 
 			expect(enhanced.id).toBe("test-agent")
 			expect(enhanced.name).toBe("Test Agent")
@@ -911,7 +824,10 @@ describe("withSupermemory", () => {
 				inputProcessors: [existingInputProcessor],
 			}
 
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag)
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 
 			expect(enhanced.inputProcessors).toHaveLength(2)
 			expect(enhanced.inputProcessors?.[0]?.id).toBe("supermemory-input")
@@ -929,7 +845,10 @@ describe("withSupermemory", () => {
 				outputProcessors: [existingOutputProcessor],
 			}
 
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag)
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 
 			expect(enhanced.outputProcessors).toHaveLength(2)
 			expect(enhanced.outputProcessors?.[0]?.id).toBe("existing-output")
@@ -946,7 +865,10 @@ describe("withSupermemory", () => {
 				outputProcessors: [existingOutput],
 			}
 
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag)
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
+			})
 
 			expect(enhanced.inputProcessors).toHaveLength(2)
 			expect(enhanced.outputProcessors).toHaveLength(2)
@@ -960,15 +882,40 @@ describe("withSupermemory", () => {
 	describe("options passthrough", () => {
 		it("should pass options to processors", () => {
 			const config: MockAgentConfig = { id: "test-agent", name: "Test Agent" }
-			const enhanced = withSupermemory(config, TEST_CONFIG.containerTag, {
+			const enhanced = withSupermemory(config, {
+				containerTag: TEST_CONFIG.containerTag,
+				conversationId: TEST_CONFIG.conversationId,
 				mode: "full",
 				addMemory: "always",
-				threadId: "conv-123",
 				verbose: true,
 			})
 
 			expect(enhanced.inputProcessors).toHaveLength(1)
 			expect(enhanced.outputProcessors).toHaveLength(1)
+		})
+	})
+
+	describe("conversationId validation", () => {
+		it("should throw error if conversationId is empty", () => {
+			const config: MockAgentConfig = { id: "test-agent", name: "Test Agent" }
+
+			expect(() => {
+				withSupermemory(config, {
+					containerTag: TEST_CONFIG.containerTag,
+					conversationId: "",
+				})
+			}).toThrow("[supermemory] conversationId is required")
+		})
+
+		it("should throw error if conversationId is whitespace", () => {
+			const config: MockAgentConfig = { id: "test-agent", name: "Test Agent" }
+
+			expect(() => {
+				withSupermemory(config, {
+					containerTag: TEST_CONFIG.containerTag,
+					conversationId: "   ",
+				})
+			}).toThrow("[supermemory] conversationId is required")
 		})
 	})
 })

@@ -38,10 +38,14 @@ export type { RequestContext } from "@mastra/core/request-context"
  */
 export interface SupermemoryMastraOptions extends SupermemoryBaseOptions {
 	/**
-	 * When using the output processor, set this to enable automatic conversation saving.
-	 * The threadId is used to group messages into a single conversation.
+	 * Container tag for scoping memories (e.g., user ID)
 	 */
-	threadId?: string
+	containerTag: string
+
+	/**
+	 * Conversation ID for grouping messages into the same document
+	 */
+	conversationId: string
 }
 
 export type { PromptTemplate, MemoryMode, AddMemoryMode, MemoryPromptData }

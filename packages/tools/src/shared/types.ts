@@ -113,8 +113,8 @@ export interface SupermemoryBaseOptions {
 	apiKey?: string
 	/** Custom Supermemory API base URL */
 	baseUrl?: string
-	/** Optional conversation/thread ID to group messages for contextual memory generation */
-	threadId?: string
+	/** Conversation ID to group messages into the same document for a conversation */
+	conversationId?: string
 	/** Memory retrieval mode */
 	mode?: MemoryMode
 	/** Memory persistence mode */

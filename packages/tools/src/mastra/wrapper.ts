@@ -37,8 +37,7 @@ interface AgentConfig {
  * - Output processor: Optionally saves conversations after responses
  *
  * @param config - The Mastra agent configuration to enhance
- * @param containerTag - The container tag/user ID for scoping memories
- * @param options - Configuration options for memory behavior
+ * @param options - Configuration options including containerTag, conversationId, and memory behavior
  * @returns Enhanced agent config with Supermemory processors injected
  *
  * @example
@@ -54,11 +53,11 @@ interface AgentConfig {
  *     model: openai("gpt-4o"),
  *     instructions: "You are a helpful assistant.",
  *   },
- *   "user-123",
  *   {
+ *     containerTag: "user-123",
+ *     conversationId: "conv-456",
  *     mode: "full",
  *     addMemory: "always",
- *     threadId: "conv-456",
  *   }
  * )
  *
@@ -69,13 +68,12 @@ interface AgentConfig {
  */
 export function withSupermemory<T extends AgentConfig>(
 	config: T,
-	containerTag: string,
-	options: SupermemoryMastraOptions = {},
+	options: SupermemoryMastraOptions,
 ): T {
 	validateApiKey(options.apiKey)
 
-	const inputProcessor = new SupermemoryInputProcessor(containerTag, options)
-	const outputProcessor = new SupermemoryOutputProcessor(containerTag, options)
+	const inputProcessor = new SupermemoryInputProcessor(options)
+	const outputProcessor = new SupermemoryOutputProcessor(options)
 
 	const existingInputProcessors = config.inputProcessors ?? []
 	const existingOutputProcessors = config.outputProcessors ?? []

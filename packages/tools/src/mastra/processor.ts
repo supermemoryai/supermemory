@@ -43,11 +43,11 @@ import type {
  */
 interface ProcessorContext {
 	containerTag: string
+	conversationId: string
 	apiKey: string
 	baseUrl: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
-	threadId?: string
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	memoryCache: MemoryCache<string>
@@ -57,20 +57,41 @@ interface ProcessorContext {
  * Creates the shared processor context from options.
  */
 function createProcessorContext(
-	containerTag: string,
-	options: SupermemoryMastraOptions = {},
+	options: SupermemoryMastraOptions,
 ): ProcessorContext {
+	const { containerTag, conversationId } = options
+
+	if (
+		!containerTag ||
+		typeof containerTag !== "string" ||
+		!containerTag.trim()
+	) {
+		throw new Error(
+			"[supermemory] containerTag is required and must be a non-empty string. " +
+				"Pass it in the options object: new SupermemoryInputProcessor({ containerTag: 'user-123', conversationId: 'conv-456' })",
+		)
+	}
+
+	if (typeof conversationId !== "string" || !conversationId.trim()) {
+		throw new Error(
+			"[supermemory] conversationId is required and must be a non-empty string. " +
+				"Pass a unique identifier (e.g., session ID, chat ID) in the options object. " +
+				"This ensures messages are grouped into the same document for a conversation. " +
+				"Example: new SupermemoryInputProcessor({ containerTag: 'user-123', conversationId: 'conversation-456' })",
+		)
+	}
+
 	const apiKey = validateApiKey(options.apiKey)
 	const baseUrl = normalizeBaseUrl(options.baseUrl)
 	const logger = createLogger(options.verbose ?? false)
 
 	return {
 		containerTag,
+		conversationId,
 		apiKey,
 		baseUrl,
 		mode: options.mode ?? "profile",
 		addMemory: options.addMemory ?? "never",
-		threadId: options.threadId,
 		logger,
 		promptTemplate: options.promptTemplate,
 		memoryCache: new MemoryCache<string>(),
@@ -78,19 +99,25 @@ function createProcessorContext(
 }
 
 /**
- * Gets the effective threadId from options or RequestContext.
+ * Gets the effective conversationId from context or RequestContext.
+ *
+ * Priority order:
+ * 1. RequestContext 
+ * 2. Default conversationId from processor options
  */
-function getEffectiveThreadId(
+function getEffectiveConversationId(
 	ctx: ProcessorContext,
 	requestContext?: RequestContext,
-): string | undefined {
-	if (ctx.threadId) {
-		return ctx.threadId
-	}
+): string {
+	// Check RequestContext FIRST to allow dynamic per-request override
 	if (requestContext) {
-		return requestContext.get(MASTRA_THREAD_ID_KEY) as string | undefined
+		const fromCtx = requestContext.get(MASTRA_THREAD_ID_KEY) as
+			| string
+			| undefined
+		if (fromCtx) return fromCtx
 	}
-	return undefined
+	// Fall back to required default conversationId
+	return ctx.conversationId
 }
 
 /**
@@ -111,7 +138,9 @@ function getEffectiveThreadId(
  *   name: "My Agent",
  *   model: openai("gpt-4o"),
  *   inputProcessors: [
- *     new SupermemoryInputProcessor("user-123", {
+ *     new SupermemoryInputProcessor({
+ *       containerTag: "user-123",
+ *       conversationId: "conv-456",
  *       mode: "full",
  *       verbose: true,
  *     }),
@@ -125,8 +154,8 @@ export class SupermemoryInputProcessor implements Processor {
 
 	private ctx: ProcessorContext
 
-	constructor(containerTag: string, options: SupermemoryMastraOptions = {}) {
-		this.ctx = createProcessorContext(containerTag, options)
+	constructor(options: SupermemoryMastraOptions) {
+		this.ctx = createProcessorContext(options)
 	}
 
 	async processInput(args: ProcessInputArgs): Promise<ProcessInputResult> {
@@ -146,10 +175,13 @@ export class SupermemoryInputProcessor implements Processor {
 				return messageList
 			}
 
-			const effectiveThreadId = getEffectiveThreadId(this.ctx, requestContext)
+			const effectiveConversationId = getEffectiveConversationId(
+				this.ctx,
+				requestContext,
+			)
 			const turnKey = MemoryCache.makeTurnKey(
 				this.ctx.containerTag,
-				effectiveThreadId,
+				effectiveConversationId,
 				this.ctx.mode,
 				queryText || "",
 			)
@@ -163,7 +195,7 @@ export class SupermemoryInputProcessor implements Processor {
 
 			this.ctx.logger.info("Starting memory search", {
 				containerTag: this.ctx.containerTag,
-				threadId: effectiveThreadId,
+				conversationId: effectiveConversationId,
 				mode: this.ctx.mode,
 			})
 
@@ -213,9 +245,10 @@ export class SupermemoryInputProcessor implements Processor {
  *   name: "My Agent",
  *   model: openai("gpt-4o"),
  *   outputProcessors: [
- *     new SupermemoryOutputProcessor("user-123", {
+ *     new SupermemoryOutputProcessor({
+ *       containerTag: "user-123",
+ *       conversationId: "conv-456",
  *       addMemory: "always",
- *       threadId: "conv-456",
  *     }),
  *   ],
  * })
@@ -227,26 +260,23 @@ export class SupermemoryOutputProcessor implements Processor {
 
 	private ctx: ProcessorContext
 
-	constructor(containerTag: string, options: SupermemoryMastraOptions = {}) {
-		this.ctx = createProcessorContext(containerTag, options)
+	constructor(options: SupermemoryMastraOptions) {
+		this.ctx = createProcessorContext(options)
 	}
 
 	async processOutputResult(
 		args: ProcessOutputResultArgs,
 	): Promise<MastraDBMessage[]> {
-		const { messages, messageList, requestContext } = args
+		const { messages, requestContext } = args
 
 		if (this.ctx.addMemory !== "always") {
 			return messages
 		}
 
-		const effectiveThreadId = getEffectiveThreadId(this.ctx, requestContext)
-		if (!effectiveThreadId) {
-			this.ctx.logger.warn(
-				"No threadId provided for conversation save. Provide via options.threadId or RequestContext.",
-			)
-			return messages
-		}
+		const effectiveConversationId = getEffectiveConversationId(
+			this.ctx,
+			requestContext,
+		)
 
 		try {
 			const conversationMessages = this.convertToConversationMessages(messages)
@@ -257,7 +287,7 @@ export class SupermemoryOutputProcessor implements Processor {
 			}
 
 			const response = await addConversation({
-				conversationId: effectiveThreadId,
+				conversationId: effectiveConversationId,
 				messages: conversationMessages,
 				containerTags: [this.ctx.containerTag],
 				apiKey: this.ctx.apiKey,
@@ -266,7 +296,7 @@ export class SupermemoryOutputProcessor implements Processor {
 
 			this.ctx.logger.info("Conversation saved successfully", {
 				containerTag: this.ctx.containerTag,
-				conversationId: effectiveThreadId,
+				conversationId: effectiveConversationId,
 				messageCount: conversationMessages.length,
 				responseId: response.id,
 			})
@@ -323,8 +353,7 @@ export class SupermemoryOutputProcessor implements Processor {
 /**
  * Creates a Supermemory input processor for memory injection.
  *
- * @param containerTag - The container tag/user ID for scoping memories
- * @param options - Configuration options
+ * @param options - Configuration options including containerTag and conversationId
  * @returns Configured SupermemoryInputProcessor instance
  *
  * @example
@@ -333,7 +362,9 @@ export class SupermemoryOutputProcessor implements Processor {
  * import { createSupermemoryProcessor } from "@supermemory/tools/mastra"
  * import { openai } from "@ai-sdk/openai"
  *
- * const processor = createSupermemoryProcessor("user-123", {
+ * const processor = createSupermemoryProcessor({
+ *   containerTag: "user-123",
+ *   conversationId: "conv-456",
  *   mode: "full",
  *   verbose: true,
  * })
@@ -347,17 +378,15 @@ export class SupermemoryOutputProcessor implements Processor {
  * ```
  */
 export function createSupermemoryProcessor(
-	containerTag: string,
-	options: SupermemoryMastraOptions = {},
+	options: SupermemoryMastraOptions,
 ): SupermemoryInputProcessor {
-	return new SupermemoryInputProcessor(containerTag, options)
+	return new SupermemoryInputProcessor(options)
 }
 
 /**
  * Creates a Supermemory output processor for saving conversations.
  *
- * @param containerTag - The container tag/user ID for scoping memories
- * @param options - Configuration options
+ * @param options - Configuration options including containerTag and conversationId
  * @returns Configured SupermemoryOutputProcessor instance
  *
  * @example
@@ -366,9 +395,10 @@ export function createSupermemoryProcessor(
  * import { createSupermemoryOutputProcessor } from "@supermemory/tools/mastra"
  * import { openai } from "@ai-sdk/openai"
  *
- * const processor = createSupermemoryOutputProcessor("user-123", {
+ * const processor = createSupermemoryOutputProcessor({
+ *   containerTag: "user-123",
+ *   conversationId: "conv-456",
  *   addMemory: "always",
- *   threadId: "conv-456",
  * })
  *
  * const agent = new Agent({
@@ -380,10 +410,9 @@ export function createSupermemoryProcessor(
  * ```
  */
 export function createSupermemoryOutputProcessor(
-	containerTag: string,
-	options: SupermemoryMastraOptions = {},
+	options: SupermemoryMastraOptions,
 ): SupermemoryOutputProcessor {
-	return new SupermemoryOutputProcessor(containerTag, options)
+	return new SupermemoryOutputProcessor(options)
 }
 
 /**
@@ -392,8 +421,7 @@ export function createSupermemoryOutputProcessor(
  * Use this when you want both memory injection and conversation saving
  * with consistent settings across both processors.
  *
- * @param containerTag - The container tag/user ID for scoping memories
- * @param options - Configuration options shared by both processors
+ * @param options - Configuration options shared by both processors including containerTag and conversationId
  * @returns Object containing both input and output processors
  *
  * @example
@@ -402,10 +430,11 @@ export function createSupermemoryOutputProcessor(
  * import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
  * import { openai } from "@ai-sdk/openai"
  *
- * const { input, output } = createSupermemoryProcessors("user-123", {
+ * const { input, output } = createSupermemoryProcessors({
+ *   containerTag: "user-123",
+ *   conversationId: "conv-456",
  *   mode: "full",
  *   addMemory: "always",
- *   threadId: "conv-456",
  * })
  *
  * const agent = new Agent({
@@ -418,14 +447,13 @@ export function createSupermemoryOutputProcessor(
  * ```
  */
 export function createSupermemoryProcessors(
-	containerTag: string,
-	options: SupermemoryMastraOptions = {},
+	options: SupermemoryMastraOptions,
 ): {
 	input: SupermemoryInputProcessor
 	output: SupermemoryOutputProcessor
 } {
 	return {
-		input: new SupermemoryInputProcessor(containerTag, options),
-		output: new SupermemoryOutputProcessor(containerTag, options),
+		input: new SupermemoryInputProcessor(options),
+		output: new SupermemoryOutputProcessor(options),
 	}
 }
