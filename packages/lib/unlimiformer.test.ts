@@ -39,6 +39,27 @@ describe("topKAttentionKeys", () => {
 		const top = topKAttentionKeys(q, keys, 10)
 		expect(top).toHaveLength(2)
 	})
+
+	test("skips keys whose dimension does not match the query (no throw)", () => {
+		const q = unit(1, 0, 0)
+		const keys = [unit(1, 0, 0), [1, 0], unit(0, 1, 0)]
+		const top = topKAttentionKeys(q, keys, 5)
+		expect(top.map((t) => t.index)).toEqual([0, 2])
+	})
+
+	test("returns empty when no key matches query dimension", () => {
+		const q = unit(1, 0, 0)
+		expect(
+			topKAttentionKeys(
+				q,
+				[
+					[1, 0],
+					[0, 1],
+				],
+				3,
+			),
+		).toEqual([])
+	})
 })
 
 describe("attentionScores", () => {
@@ -47,6 +68,14 @@ describe("attentionScores", () => {
 		const keys = [unit(1, 0, 0), unit(0, 1, 0)]
 		const scores = attentionScores(q, keys)
 		expect(scores).toHaveLength(2)
+	})
+
+	test("uses NaN when key dimension mismatches query", () => {
+		const q = unit(1, 0, 0)
+		const scores = attentionScores(q, [unit(1, 0, 0), [1, 0]])
+		expect(scores).toHaveLength(2)
+		expect(Number.isFinite(scores[0] ?? Number.NaN)).toBe(true)
+		expect(scores[1]).toBeNaN()
 	})
 })
 
@@ -72,5 +101,16 @@ describe("rankItemsByAttentionTopK", () => {
 		const ranked = rankItemsByAttentionTopK(q, items, (x) => x.e, 2)
 		expect(ranked[0]?.item.id).toBe("c")
 		expect(ranked[0]?.originalIndex).toBe(2)
+	})
+
+	test("skips items whose embedding length does not match the query", () => {
+		const items = [
+			{ id: "wide", e: [0.1, 0.2, 0.3, 0.4] },
+			{ id: "ok", e: unit(0, 1, 0) },
+		]
+		const q = unit(0, 1, 0)
+		const ranked = rankItemsByAttentionTopK(q, items, (x) => x.e, 2)
+		expect(ranked).toHaveLength(1)
+		expect(ranked[0]?.item.id).toBe("ok")
 	})
 })

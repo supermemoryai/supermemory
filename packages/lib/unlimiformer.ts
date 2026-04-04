@@ -17,12 +17,21 @@ export type AttentionTopK = {
 /**
  * Dot-product attention score between one query vector and one key vector.
  * For normalized embeddings this matches cosine similarity.
+ *
+ * Returns `NaN` when `query` and `key` have different lengths (e.g. mixed embedding
+ * models) so callers can avoid throwing from `cosineSimilarity`.
  */
-export const attentionScore = (query: number[], key: number[]): number =>
-	cosineSimilarity(query, key)
+export const attentionScore = (query: number[], key: number[]): number => {
+	if (query.length !== key.length) {
+		return Number.NaN
+	}
+	return cosineSimilarity(query, key)
+}
 
 /**
- * Attention scores for `query` against every row in `keys` (same dimension as query).
+ * Attention scores for `query` against every row in `keys`, aligned by index.
+ * Entries are `NaN` when a key length does not match the query (same embedding model
+ * is required for a meaningful score).
  */
 export const attentionScores = (query: number[], keys: number[][]): number[] =>
 	keys.map((key) => attentionScore(query, key))
@@ -40,12 +49,19 @@ export const topKAttentionKeys = (
 		return []
 	}
 
-	const effectiveK = Math.min(k, keys.length)
-	const scored: AttentionTopK[] = keys.map((key, index) => ({
-		index,
-		score: attentionScore(query, key),
-	}))
+	const scored: AttentionTopK[] = keys.flatMap((key, index) => {
+		const score = attentionScore(query, key)
+		if (!Number.isFinite(score)) {
+			return []
+		}
+		return [{ index, score }]
+	})
 
+	if (scored.length === 0) {
+		return []
+	}
+
+	const effectiveK = Math.min(k, scored.length)
 	scored.sort((a, b) => b.score - a.score)
 	return scored.slice(0, effectiveK)
 }
@@ -68,7 +84,8 @@ export type RankedItem<T> = {
 
 /**
  * Rank arbitrary items that carry embeddings, returning the top-k by attention score.
- * Items with missing or empty embeddings are skipped.
+ * Items with missing or empty embeddings, or embeddings whose length does not match
+ * `queryEmbedding`, are skipped.
  */
 export const rankItemsByAttentionTopK = <T>(
 	queryEmbedding: number[],
@@ -87,7 +104,11 @@ export const rankItemsByAttentionTopK = <T>(
 		const item = items[i]
 		if (item === undefined) continue
 		const embedding = getEmbedding(item)
-		if (embedding && embedding.length > 0) {
+		if (
+			embedding &&
+			embedding.length > 0 &&
+			embedding.length === queryEmbedding.length
+		) {
 			packed.push({ item, originalIndex: i, embedding })
 		}
 	}
