@@ -43,7 +43,7 @@ import type {
  */
 interface ProcessorContext {
 	containerTag: string
-	conversationId: string
+	customId: string
 	apiKey: string
 	baseUrl: string
 	mode: MemoryMode
@@ -59,7 +59,7 @@ interface ProcessorContext {
 function createProcessorContext(
 	options: SupermemoryMastraOptions,
 ): ProcessorContext {
-	const { containerTag, conversationId } = options
+	const { containerTag, customId } = options
 
 	if (
 		!containerTag ||
@@ -68,16 +68,16 @@ function createProcessorContext(
 	) {
 		throw new Error(
 			"[supermemory] containerTag is required and must be a non-empty string. " +
-				"Pass it in the options object: new SupermemoryInputProcessor({ containerTag: 'user-123', conversationId: 'conv-456' })",
+				"Pass it in the options object: new SupermemoryInputProcessor({ containerTag: 'user-123', customId: 'conv-456' })",
 		)
 	}
 
-	if (typeof conversationId !== "string" || !conversationId.trim()) {
+	if (typeof customId !== "string" || !customId.trim()) {
 		throw new Error(
-			"[supermemory] conversationId is required and must be a non-empty string. " +
+			"[supermemory] customId is required and must be a non-empty string. " +
 				"Pass a unique identifier (e.g., session ID, chat ID) in the options object. " +
 				"This ensures messages are grouped into the same document for a conversation. " +
-				"Example: new SupermemoryInputProcessor({ containerTag: 'user-123', conversationId: 'conversation-456' })",
+				"Example: new SupermemoryInputProcessor({ containerTag: 'user-123', customId: 'conversation-456' })",
 		)
 	}
 
@@ -87,7 +87,7 @@ function createProcessorContext(
 
 	return {
 		containerTag,
-		conversationId,
+		customId,
 		apiKey,
 		baseUrl,
 		mode: options.mode ?? "profile",
@@ -99,13 +99,13 @@ function createProcessorContext(
 }
 
 /**
- * Gets the effective conversationId from context or RequestContext.
+ * Gets the effective customId from context or RequestContext.
  *
  * Priority order:
- * 1. RequestContext 
- * 2. Default conversationId from processor options
+ * 1. RequestContext
+ * 2. Default customId from processor options
  */
-function getEffectiveConversationId(
+function getEffectiveCustomId(
 	ctx: ProcessorContext,
 	requestContext?: RequestContext,
 ): string {
@@ -116,8 +116,8 @@ function getEffectiveConversationId(
 			| undefined
 		if (fromCtx) return fromCtx
 	}
-	// Fall back to required default conversationId
-	return ctx.conversationId
+	// Fall back to required default customId
+	return ctx.customId
 }
 
 /**
@@ -140,7 +140,7 @@ function getEffectiveConversationId(
  *   inputProcessors: [
  *     new SupermemoryInputProcessor({
  *       containerTag: "user-123",
- *       conversationId: "conv-456",
+ *       customId: "conv-456",
  *       mode: "full",
  *       verbose: true,
  *     }),
@@ -175,13 +175,10 @@ export class SupermemoryInputProcessor implements Processor {
 				return messageList
 			}
 
-			const effectiveConversationId = getEffectiveConversationId(
-				this.ctx,
-				requestContext,
-			)
+			const effectiveCustomId = getEffectiveCustomId(this.ctx, requestContext)
 			const turnKey = MemoryCache.makeTurnKey(
 				this.ctx.containerTag,
-				effectiveConversationId,
+				effectiveCustomId,
 				this.ctx.mode,
 				queryText || "",
 			)
@@ -195,7 +192,7 @@ export class SupermemoryInputProcessor implements Processor {
 
 			this.ctx.logger.info("Starting memory search", {
 				containerTag: this.ctx.containerTag,
-				conversationId: effectiveConversationId,
+				customId: effectiveCustomId,
 				mode: this.ctx.mode,
 			})
 
@@ -247,7 +244,7 @@ export class SupermemoryInputProcessor implements Processor {
  *   outputProcessors: [
  *     new SupermemoryOutputProcessor({
  *       containerTag: "user-123",
- *       conversationId: "conv-456",
+ *       customId: "conv-456",
  *       addMemory: "always",
  *     }),
  *   ],
@@ -273,10 +270,7 @@ export class SupermemoryOutputProcessor implements Processor {
 			return messages
 		}
 
-		const effectiveConversationId = getEffectiveConversationId(
-			this.ctx,
-			requestContext,
-		)
+		const effectiveCustomId = getEffectiveCustomId(this.ctx, requestContext)
 
 		try {
 			const conversationMessages = this.convertToConversationMessages(messages)
@@ -287,7 +281,7 @@ export class SupermemoryOutputProcessor implements Processor {
 			}
 
 			const response = await addConversation({
-				conversationId: effectiveConversationId,
+				conversationId: effectiveCustomId,
 				messages: conversationMessages,
 				containerTags: [this.ctx.containerTag],
 				apiKey: this.ctx.apiKey,
@@ -296,7 +290,7 @@ export class SupermemoryOutputProcessor implements Processor {
 
 			this.ctx.logger.info("Conversation saved successfully", {
 				containerTag: this.ctx.containerTag,
-				conversationId: effectiveConversationId,
+				customId: effectiveCustomId,
 				messageCount: conversationMessages.length,
 				responseId: response.id,
 			})
@@ -353,7 +347,7 @@ export class SupermemoryOutputProcessor implements Processor {
 /**
  * Creates a Supermemory input processor for memory injection.
  *
- * @param options - Configuration options including containerTag and conversationId
+ * @param options - Configuration options including containerTag and customId
  * @returns Configured SupermemoryInputProcessor instance
  *
  * @example
@@ -364,7 +358,7 @@ export class SupermemoryOutputProcessor implements Processor {
  *
  * const processor = createSupermemoryProcessor({
  *   containerTag: "user-123",
- *   conversationId: "conv-456",
+ *   customId: "conv-456",
  *   mode: "full",
  *   verbose: true,
  * })
@@ -386,7 +380,7 @@ export function createSupermemoryProcessor(
 /**
  * Creates a Supermemory output processor for saving conversations.
  *
- * @param options - Configuration options including containerTag and conversationId
+ * @param options - Configuration options including containerTag and customId
  * @returns Configured SupermemoryOutputProcessor instance
  *
  * @example
@@ -397,7 +391,7 @@ export function createSupermemoryProcessor(
  *
  * const processor = createSupermemoryOutputProcessor({
  *   containerTag: "user-123",
- *   conversationId: "conv-456",
+ *   customId: "conv-456",
  *   addMemory: "always",
  * })
  *
@@ -421,7 +415,7 @@ export function createSupermemoryOutputProcessor(
  * Use this when you want both memory injection and conversation saving
  * with consistent settings across both processors.
  *
- * @param options - Configuration options shared by both processors including containerTag and conversationId
+ * @param options - Configuration options shared by both processors including containerTag and customId
  * @returns Object containing both input and output processors
  *
  * @example
@@ -432,7 +426,7 @@ export function createSupermemoryOutputProcessor(
  *
  * const { input, output } = createSupermemoryProcessors({
  *   containerTag: "user-123",
- *   conversationId: "conv-456",
+ *   customId: "conv-456",
  *   mode: "full",
  *   addMemory: "always",
  * })

@@ -37,7 +37,7 @@ interface AgentConfig {
  * - Output processor: Optionally saves conversations after responses
  *
  * @param config - The Mastra agent configuration to enhance
- * @param options - Configuration options including containerTag, conversationId, and memory behavior
+ * @param options - Configuration options including containerTag, customId, and memory behavior
  * @returns Enhanced agent config with Supermemory processors injected
  *
  * @example
@@ -55,7 +55,7 @@ interface AgentConfig {
  *   },
  *   {
  *     containerTag: "user-123",
- *     conversationId: "conv-456",
+ *     customId: "conv-456",
  *     mode: "full",
  *     addMemory: "always",
  *   }

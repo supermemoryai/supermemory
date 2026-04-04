@@ -430,17 +430,17 @@ createSupermemoryProcessors("user-123", "conv-456", { mode: "full" })
 // New API - clearer with explicit key-value pairs
 withSupermemory(config, {
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "full"
 })
 new SupermemoryInputProcessor({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "full"
 })
 createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "full"
 })
 ```
@@ -464,7 +464,7 @@ const agent = new Agent(withSupermemory(
   },
   {
     containerTag: "user-123",   // scopes memories to this user
-    conversationId: "conv-456",   // groups messages into the same document
+    customId: "conv-456",   // groups messages into the same document
     mode: "full",
     addMemory: "always",
   }
@@ -485,7 +485,7 @@ import { openai } from "@ai-sdk/openai"
 
 const { input, output } = createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "full",
   addMemory: "always",
   verbose: true, // Enable logging
@@ -514,11 +514,11 @@ import { openai } from "@ai-sdk/openai"
 
 async function main() {
   const userId = "user-alex-123"
-  const conversationId = `conv-${Date.now()}`
+  const customId = `conv-${Date.now()}`
 
   const { input, output } = createSupermemoryProcessors({
     containerTag: userId,
-    conversationId: conversationId,
+    customId: customId,
     mode: "profile",      // Fetch user profile memories
     addMemory: "always",  // Save all conversations
     verbose: true,
@@ -558,21 +558,21 @@ main()
 // Profile mode - good for general personalization
 const { input } = createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "profile"
 })
 
 // Query mode - good for specific lookups
 const { input } = createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "query"
 })
 
 // Full mode - comprehensive context
 const { input } = createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "full"
 })
 ```
@@ -593,15 +593,15 @@ ${data.generalSearchMemories}
 
 const { input, output } = createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "conv-456",
+  customId: "conv-456",
   mode: "full",
   promptTemplate: customTemplate,
 })
 ```
 
-#### Using RequestContext for Dynamic Conversation IDs
+#### Using RequestContext for Dynamic Custom IDs
 
-Mastra's RequestContext can override the `conversationId` dynamically per request:
+Mastra's RequestContext can override the `customId` dynamically per request:
 
 ```typescript
 import { Agent } from "@mastra/core/agent"
@@ -610,7 +610,7 @@ import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 
 const { input, output } = createSupermemoryProcessors({
   containerTag: "user-123",
-  conversationId: "default-conv-id",
+  customId: "default-conv-id",
   mode: "profile",
   addMemory: "always",
 })
@@ -623,7 +623,7 @@ const agent = new Agent({
   outputProcessors: [output],
 })
 
-// Override conversationId dynamically per request
+// Override customId dynamically per request
 const ctx = new RequestContext()
 ctx.set(MASTRA_THREAD_ID_KEY, "dynamic-thread-123")
 

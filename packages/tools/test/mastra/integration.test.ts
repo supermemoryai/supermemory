@@ -37,7 +37,7 @@ const INTEGRATION_CONFIG = {
 	apiKey: process.env.SUPERMEMORY_API_KEY || "",
 	baseUrl: process.env.SUPERMEMORY_BASE_URL || "https://api.supermemory.ai",
 	containerTag: "integration-test-mastra",
-	conversationId: `integration-test-${Date.now()}`,
+	customId: `integration-test-${Date.now()}`,
 }
 
 const shouldRunIntegration = !!process.env.SUPERMEMORY_API_KEY
@@ -126,7 +126,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should fetch real memories and inject into messageList", async () => {
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -152,7 +152,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "query",
@@ -191,7 +191,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "full",
@@ -225,7 +225,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -260,7 +260,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -284,11 +284,11 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should save conversation when addMemory is always", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const conversationId = `test-mastra-${Date.now()}`
+				const customId = `test-mastra-${Date.now()}`
 
 				const processor = new SupermemoryOutputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: conversationId,
+					customId: customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					addMemory: "always",
@@ -318,7 +318,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const processor = new SupermemoryOutputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: "test-thread",
+					customId: "test-thread",
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					addMemory: "never",
@@ -343,12 +343,12 @@ describe.skipIf(!shouldRunIntegration)(
 				fetchSpy.mockRestore()
 			})
 
-			it("should use conversationId from RequestContext when available", async () => {
+			it("should use customId from RequestContext when available", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				const processor = new SupermemoryOutputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					addMemory: "always",
@@ -361,7 +361,7 @@ describe.skipIf(!shouldRunIntegration)(
 				await processor.processOutputResult(
 					createOutputArgs({
 						messages: [
-							createMessage("user", "Test with RequestContext conversationId"),
+							createMessage("user", "Test with RequestContext customId"),
 							createMessage("assistant", "Got it!"),
 						],
 						requestContext,
@@ -383,7 +383,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should create working input and output processors", async () => {
 				const { input, output } = createSupermemoryProcessors({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: `processors-test-${Date.now()}`,
+					customId: `processors-test-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -420,7 +420,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const enhanced = withSupermemory(config, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: `wrapper-test-${Date.now()}`,
+					customId: `wrapper-test-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -470,7 +470,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const enhanced = withSupermemory(config, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -491,7 +491,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("verbose mode should not break functionality", async () => {
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -514,7 +514,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -543,7 +543,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should handle invalid API key gracefully", async () => {
 				const processor = new SupermemoryInputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: INTEGRATION_CONFIG.conversationId,
+					customId: INTEGRATION_CONFIG.customId,
 					apiKey: "invalid-api-key-12345",
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					mode: "profile",
@@ -563,7 +563,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("output processor should handle save errors gracefully", async () => {
 				const processor = new SupermemoryOutputProcessor({
 					containerTag: INTEGRATION_CONFIG.containerTag,
-					conversationId: "error-test",
+					customId: "error-test",
 					apiKey: "invalid-api-key-12345",
 					baseUrl: INTEGRATION_CONFIG.baseUrl,
 					addMemory: "always",

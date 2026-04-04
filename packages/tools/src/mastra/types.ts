@@ -43,9 +43,9 @@ export interface SupermemoryMastraOptions extends SupermemoryBaseOptions {
 	containerTag: string
 
 	/**
-	 * Conversation ID for grouping messages into the same document
+	 * Custom ID for grouping messages into the same document (e.g., conversation ID)
 	 */
-	conversationId: string
+	customId: string
 }
 
 export type { PromptTemplate, MemoryMode, AddMemoryMode, MemoryPromptData }

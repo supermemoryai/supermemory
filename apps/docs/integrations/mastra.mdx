@@ -34,9 +34,9 @@ const agent = new Agent(withSupermemory(
     model: openai("gpt-4o"),
     instructions: "You are a helpful assistant.",
   },
-  "user-123",       // containerTag - scopes memories to this user
-  "conv-456",       // conversationId - groups messages into the same document
   {
+    containerTag: "user-123",  // scopes memories to this user
+    customId: "conv-456",      // groups messages into the same document
     mode: "full",
     addMemory: "always",
   }
@@ -51,9 +51,11 @@ const response = await agent.generate("What do you know about me?")
   ```typescript
   const agent = new Agent(withSupermemory(
     { id: "my-assistant", model: openai("gpt-4o"), ... },
-    "user-123",
-    "conv-456",
-    { addMemory: "always" }
+    {
+      containerTag: "user-123",
+      customId: "conv-456",
+      addMemory: "always",
+    }
   ))
   ```
 </Note>
@@ -108,19 +110,19 @@ sequenceDiagram
 **Profile Mode (Default)** - Retrieves the user's complete profile without query-based filtering:
 
 ```typescript
-const agent = new Agent(withSupermemory(config, "user-123", "conv-456", { mode: "profile" }))
+const agent = new Agent(withSupermemory(config, { containerTag: "user-123", customId: "conv-456", mode: "profile" }))
 ```
 
 **Query Mode** - Searches memories based on the user's message:
 
 ```typescript
-const agent = new Agent(withSupermemory(config, "user-123", "conv-456", { mode: "query" }))
+const agent = new Agent(withSupermemory(config, { containerTag: "user-123", customId: "conv-456", mode: "query" }))
 ```
 
 **Full Mode** - Combines profile AND query-based search for maximum context:
 
 ```typescript
-const agent = new Agent(withSupermemory(config, "user-123", "conv-456", { mode: "full" }))
+const agent = new Agent(withSupermemory(config, { containerTag: "user-123", customId: "conv-456", mode: "full" }))
 
 ### Mode Comparison
 
@@ -134,14 +136,16 @@ const agent = new Agent(withSupermemory(config, "user-123", "conv-456", { mode: 
 
 ## Saving Conversations
 
-Enable automatic conversation saving with `addMemory: "always"`. The `conversationId` parameter groups messages into the same document:
+Enable automatic conversation saving with `addMemory: "always"`. The `customId` parameter groups messages into the same document:
 
 ```typescript
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  "conv-456",
-  { addMemory: "always" }
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+    addMemory: "always",
+  }
 ))
 
 // All messages in this conversation are saved
@@ -173,9 +177,9 @@ const claudePrompt = (data: MemoryPromptData) => `
 
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  "conv-456",
   {
+    containerTag: "user-123",
+    customId: "conv-456",
     mode: "full",
     promptTemplate: claudePrompt,
   }
@@ -202,7 +206,9 @@ const agent = new Agent({
   name: "My Assistant",
   model: openai("gpt-4o"),
   inputProcessors: [
-    createSupermemoryProcessor("user-123", "conv-456", {
+    createSupermemoryProcessor({
+      containerTag: "user-123",
+      customId: "conv-456",
       mode: "full",
       verbose: true,
     }),
@@ -224,7 +230,9 @@ const agent = new Agent({
   name: "My Assistant",
   model: openai("gpt-4o"),
   outputProcessors: [
-    createSupermemoryOutputProcessor("user-123", "conv-456", {
+    createSupermemoryOutputProcessor({
+      containerTag: "user-123",
+      customId: "conv-456",
       addMemory: "always",
     }),
   ],
@@ -240,7 +248,9 @@ import { Agent } from "@mastra/core/agent"
 import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 import { openai } from "@ai-sdk/openai"
 
-const { input, output } = createSupermemoryProcessors("user-123", "conv-456", {
+const { input, output } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
   mode: "full",
   addMemory: "always",
   verbose: true,
@@ -259,7 +269,7 @@ const agent = new Agent({
 
 ## Using RequestContext
 
-Mastra's `RequestContext` can provide a dynamic conversation ID override:
+Mastra's `RequestContext` can provide a dynamic custom ID override:
 
 ```typescript
 import { Agent } from "@mastra/core/agent"
@@ -269,15 +279,15 @@ import { openai } from "@ai-sdk/openai"
 
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  "default-conv-id",
   {
+    containerTag: "user-123",
+    customId: "default-conv-id",
     mode: "full",
     addMemory: "always",
   }
 ))
 
-// Override conversationId dynamically via RequestContext
+// Override customId dynamically via RequestContext
 const ctx = new RequestContext()
 ctx.set(MASTRA_THREAD_ID_KEY, "dynamic-thread-id")
 
@@ -293,9 +303,11 @@ Enable detailed logging for debugging:
 ```typescript
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  "conv-456",
-  { verbose: true }
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+    verbose: true,
+  }
 ))
 
 // Console output:
@@ -321,8 +333,10 @@ const agent = new Agent(withSupermemory(
     inputProcessors: [myLoggingProcessor],
     outputProcessors: [myAnalyticsProcessor],
   },
-  "user-123",
-  "conv-456"
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+  }
 ))
 ```
 
@@ -337,17 +351,13 @@ Enhances a Mastra agent config with memory capabilities.
 ```typescript
 function withSupermemory<T extends AgentConfig>(
   config: T,
-  containerTag: string,
-  conversationId: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): T
 ```
 
 **Parameters:**
 - `config` - The Mastra agent configuration object
-- `containerTag` - User/container ID for scoping memories
-- `conversationId` - Conversation ID to group messages into the same document
-- `options` - Configuration options
+- `options` - Configuration options including `containerTag` and `customId`
 
 **Returns:** Enhanced config with Supermemory processors injected
 
@@ -357,9 +367,7 @@ Creates an input processor for memory injection.
 
 ```typescript
 function createSupermemoryProcessor(
-  containerTag: string,
-  conversationId: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): SupermemoryInputProcessor
 ```
 
@@ -369,9 +377,7 @@ Creates an output processor for conversation saving.
 
 ```typescript
 function createSupermemoryOutputProcessor(
-  containerTag: string,
-  conversationId: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): SupermemoryOutputProcessor
 ```
 
@@ -381,9 +387,7 @@ Creates both processors with shared configuration.
 
 ```typescript
 function createSupermemoryProcessors(
-  containerTag: string,
-  conversationId: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): {
   input: SupermemoryInputProcessor
   output: SupermemoryOutputProcessor
@@ -394,6 +398,8 @@ function createSupermemoryProcessors(
 
 ```typescript
 interface SupermemoryMastraOptions {
+  containerTag: string           // User/container ID for scoping memories
+  customId: string               // Custom ID to group messages into the same document
   apiKey?: string
   baseUrl?: string
   mode?: "profile" | "query" | "full"
@@ -419,15 +425,17 @@ Processors gracefully handle errors without breaking the agent:
 
 - **API errors** - Logged and skipped; agent continues without memories
 - **Missing API key** - Throws immediately with helpful error message
-- **Empty conversationId** - Throws immediately with helpful `[supermemory]`-prefixed error message
+- **Empty customId** - Throws immediately with helpful `[supermemory]`-prefixed error message
 
 ```typescript
 // Missing API key throws immediately
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  "conv-456",
-  { apiKey: undefined } // Will check SUPERMEMORY_API_KEY env
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+    apiKey: undefined, // Will check SUPERMEMORY_API_KEY env
+  }
 ))
 // Error: SUPERMEMORY_API_KEY is not set
 ```
