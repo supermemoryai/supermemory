@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+	attentionScore,
 	attentionScores,
 	rankItemsByAttentionTopK,
 	topKAttentionKeys,
@@ -60,6 +61,28 @@ describe("topKAttentionKeys", () => {
 			),
 		).toEqual([])
 	})
+
+	test("skips keys with NaN components without throwing", () => {
+		const q = unit(1, 0, 0)
+		const keys = [unit(1, 0, 0), [1, Number.NaN, 0], unit(0, 1, 0)]
+		const top = topKAttentionKeys(q, keys, 5)
+		expect(top.map((t) => t.index)).toEqual([0, 2])
+	})
+})
+
+describe("attentionScore", () => {
+	test("returns NaN instead of throwing when a vector contains NaN", () => {
+		const k = unit(1, 0, 0)
+		expect(attentionScore([1, Number.NaN, 0], k)).toBeNaN()
+		expect(attentionScore(k, [1, Number.NaN, 0])).toBeNaN()
+	})
+
+	test("returns NaN for non-number or non-finite components", () => {
+		const k = unit(1, 0, 0)
+		const stringSlot = [1, "x", 0] as unknown as number[]
+		expect(attentionScore(stringSlot, k)).toBeNaN()
+		expect(attentionScore([Number.POSITIVE_INFINITY, 0, 0], k)).toBeNaN()
+	})
 })
 
 describe("attentionScores", () => {
@@ -106,6 +129,24 @@ describe("rankItemsByAttentionTopK", () => {
 	test("skips items whose embedding length does not match the query", () => {
 		const items = [
 			{ id: "wide", e: [0.1, 0.2, 0.3, 0.4] },
+			{ id: "ok", e: unit(0, 1, 0) },
+		]
+		const q = unit(0, 1, 0)
+		const ranked = rankItemsByAttentionTopK(q, items, (x) => x.e, 2)
+		expect(ranked).toHaveLength(1)
+		expect(ranked[0]?.item.id).toBe("ok")
+	})
+
+	test("returns empty when query embedding is non-finite", () => {
+		const items = [{ id: "a", e: unit(1, 0, 0) }]
+		expect(
+			rankItemsByAttentionTopK([Number.NaN, 0, 0], items, (x) => x.e, 2),
+		).toEqual([])
+	})
+
+	test("skips items with non-finite embeddings", () => {
+		const items = [
+			{ id: "bad", e: [1, Number.NaN, 0] },
 			{ id: "ok", e: unit(0, 1, 0) },
 		]
 		const q = unit(0, 1, 0)

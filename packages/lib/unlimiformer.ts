@@ -9,6 +9,10 @@
 
 import { cosineSimilarity } from "./similarity"
 
+/** True when every entry is a finite number (empty arrays allowed). */
+const isFiniteEmbeddingVector = (v: number[]): boolean =>
+	v.every((x) => typeof x === "number" && Number.isFinite(x))
+
 export type AttentionTopK = {
 	index: number
 	score: number
@@ -19,10 +23,14 @@ export type AttentionTopK = {
  * For normalized embeddings this matches cosine similarity.
  *
  * Returns `NaN` when `query` and `key` have different lengths (e.g. mixed embedding
- * models) so callers can avoid throwing from `cosineSimilarity`.
+ * models), or when either vector contains non-finite values (`NaN`, `±Infinity`), so
+ * callers avoid throwing from `cosineSimilarity`.
  */
 export const attentionScore = (query: number[], key: number[]): number => {
 	if (query.length !== key.length) {
+		return Number.NaN
+	}
+	if (!isFiniteEmbeddingVector(query) || !isFiniteEmbeddingVector(key)) {
 		return Number.NaN
 	}
 	return cosineSimilarity(query, key)
@@ -30,8 +38,8 @@ export const attentionScore = (query: number[], key: number[]): number => {
 
 /**
  * Attention scores for `query` against every row in `keys`, aligned by index.
- * Entries are `NaN` when a key length does not match the query (same embedding model
- * is required for a meaningful score).
+ * Entries are `NaN` when a key length does not match the query, or when either vector
+ * has non-finite components.
  */
 export const attentionScores = (query: number[], keys: number[][]): number[] =>
 	keys.map((key) => attentionScore(query, key))
@@ -97,6 +105,10 @@ export const rankItemsByAttentionTopK = <T>(
 		return []
 	}
 
+	if (!isFiniteEmbeddingVector(queryEmbedding)) {
+		return []
+	}
+
 	const packed: Array<{ item: T; originalIndex: number; embedding: number[] }> =
 		[]
 
@@ -107,7 +119,8 @@ export const rankItemsByAttentionTopK = <T>(
 		if (
 			embedding &&
 			embedding.length > 0 &&
-			embedding.length === queryEmbedding.length
+			embedding.length === queryEmbedding.length &&
+			isFiniteEmbeddingVector(embedding)
 		) {
 			packed.push({ item, originalIndex: i, embedding })
 		}
