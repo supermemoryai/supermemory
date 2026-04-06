@@ -75,10 +75,17 @@ type OgData = {
 
 const ogCache = new Map<string, OgData>()
 const ogInflight = new Map<string, Promise<OgData | null>>()
+const ogFailures = new Map<string, number>()
+const OG_FAILURE_TTL = 30_000
 
 function fetchOgData(url: string): Promise<OgData | null> {
 	const cached = ogCache.get(url)
 	if (cached) return Promise.resolve(cached)
+
+	const failedAt = ogFailures.get(url)
+	if (failedAt && Date.now() - failedAt < OG_FAILURE_TTL) {
+		return Promise.resolve(null)
+	}
 
 	const inflight = ogInflight.get(url)
 	if (inflight) return inflight
@@ -92,10 +99,12 @@ function fetchOgData(url: string): Promise<OgData | null> {
 			const result: OgData = { title: data?.title, image: data?.image }
 			ogCache.set(url, result)
 			ogInflight.delete(url)
+			ogFailures.delete(url)
 			return result
 		})
 		.catch(() => {
 			ogInflight.delete(url)
+			ogFailures.set(url, Date.now())
 			return null
 		})
 
