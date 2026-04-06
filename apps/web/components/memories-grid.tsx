@@ -736,7 +736,9 @@ const DocumentCard = memo(
 			if (needsOgData && !ogData && !isLoadingOg && document.url) {
 				setIsLoadingOg(true)
 				fetchOgData(document.url)
-					.then((data) => { if (data) setOgData(data) })
+					.then((data) => {
+						setOgData(data || {})
+					})
 					.finally(() => setIsLoadingOg(false))
 			}
 		}, [needsOgData, ogData, isLoadingOg, document.url])
