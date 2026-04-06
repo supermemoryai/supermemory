@@ -716,7 +716,6 @@ const DocumentCard = memo(
 		const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0 })
 		const cardRef = useRef<HTMLButtonElement>(null)
 		const [ogData, setOgData] = useState<OgData | null>(null)
-		const [isLoadingOg, setIsLoadingOg] = useState(false)
 
 		const ogImage = (document as DocumentWithMemories & { ogImage?: string })
 			.ogImage
@@ -733,15 +732,31 @@ const DocumentCard = memo(
 		const hideURL = document.url?.includes("docs.googleapis.com")
 
 		useEffect(() => {
-			if (needsOgData && !ogData && !isLoadingOg && document.url) {
-				setIsLoadingOg(true)
-				fetchOgData(document.url)
-					.then((data) => {
-						setOgData(data || {})
-					})
-					.finally(() => setIsLoadingOg(false))
+			if (!needsOgData || ogData || !document.url) return
+
+			let timeoutId: ReturnType<typeof setTimeout>
+			let mounted = true
+
+			const attemptFetch = () => {
+				if (!mounted || !document.url) return
+				fetchOgData(document.url).then((data) => {
+					if (!mounted) return
+					if (data) {
+						setOgData(data)
+					} else {
+						// Retry when the global TTL expires
+						timeoutId = setTimeout(attemptFetch, 30_000)
+					}
+				})
 			}
-		}, [needsOgData, ogData, isLoadingOg, document.url])
+
+			attemptFetch()
+
+			return () => {
+				mounted = false
+				clearTimeout(timeoutId)
+			}
+		}, [needsOgData, ogData, document.url])
 
 		useEffect(() => {
 			if (isSelectionMode) setRotation({ rotateX: 0, rotateY: 0 })
