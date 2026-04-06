@@ -74,9 +74,9 @@ type OgData = {
 }
 
 const ogCache = new Map<string, OgData>()
-const ogInflight = new Map<string, Promise<OgData>>()
+const ogInflight = new Map<string, Promise<OgData | null>>()
 
-function fetchOgData(url: string): Promise<OgData> {
+function fetchOgData(url: string): Promise<OgData | null> {
 	const cached = ogCache.get(url)
 	if (cached) return Promise.resolve(cached)
 
@@ -95,10 +95,8 @@ function fetchOgData(url: string): Promise<OgData> {
 			return result
 		})
 		.catch(() => {
-			const empty: OgData = {}
-			ogCache.set(url, empty)
 			ogInflight.delete(url)
-			return empty
+			return null
 		})
 
 	ogInflight.set(url, promise)
@@ -729,7 +727,7 @@ const DocumentCard = memo(
 			if (needsOgData && !ogData && !isLoadingOg && document.url) {
 				setIsLoadingOg(true)
 				fetchOgData(document.url)
-					.then(setOgData)
+					.then((data) => { if (data) setOgData(data) })
 					.finally(() => setIsLoadingOg(false))
 			}
 		}, [needsOgData, ogData, isLoadingOg, document.url])
