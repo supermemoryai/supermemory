@@ -97,6 +97,9 @@ function fetchOgData(url: string): Promise<OgData | null> {
 		})
 		.then((data) => {
 			const result: OgData = { title: data?.title, image: data?.image }
+			if (!result.title && !result.image) {
+				throw new Error("Empty metadata")
+			}
 			ogCache.set(url, result)
 			ogInflight.delete(url)
 			ogFailures.delete(url)
