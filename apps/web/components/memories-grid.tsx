@@ -73,6 +73,40 @@ type OgData = {
 	image?: string
 }
 
+// Module-level cache and in-flight request deduplication for OG data.
+// Prevents N duplicate fetches when N cards share the same URL.
+const ogCache = new Map<string, OgData>()
+const ogInflight = new Map<string, Promise<OgData>>()
+
+function fetchOgData(url: string): Promise<OgData> {
+	const cached = ogCache.get(url)
+	if (cached) return Promise.resolve(cached)
+
+	const inflight = ogInflight.get(url)
+	if (inflight) return inflight
+
+	const promise = fetch(`/api/og?url=${encodeURIComponent(url)}`)
+		.then((res) => {
+			if (!res.ok) throw new Error("Failed")
+			return res.json()
+		})
+		.then((data) => {
+			const result: OgData = { title: data?.title, image: data?.image }
+			ogCache.set(url, result)
+			ogInflight.delete(url)
+			return result
+		})
+		.catch(() => {
+			const empty: OgData = {}
+			ogCache.set(url, empty)
+			ogInflight.delete(url)
+			return empty
+		})
+
+	ogInflight.set(url, promise)
+	return promise
+}
+
 const PAGE_SIZE = 100
 const MAX_TOTAL = 1000
 
@@ -696,23 +730,9 @@ const DocumentCard = memo(
 		useEffect(() => {
 			if (needsOgData && !ogData && !isLoadingOg && document.url) {
 				setIsLoadingOg(true)
-				fetch(`/api/og?url=${encodeURIComponent(document.url)}`)
-					.then((res) => {
-						if (!res.ok) throw new Error("Failed")
-						return res.json()
-					})
-					.then((data) => {
-						setOgData({
-							title: data?.title,
-							image: data?.image,
-						})
-					})
-					.catch(() => {
-						setOgData({})
-					})
-					.finally(() => {
-						setIsLoadingOg(false)
-					})
+				fetchOgData(document.url)
+					.then(setOgData)
+					.finally(() => setIsLoadingOg(false))
 			}
 		}, [needsOgData, ogData, isLoadingOg, document.url])
 
