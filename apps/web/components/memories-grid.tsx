@@ -73,8 +73,6 @@ type OgData = {
 	image?: string
 }
 
-// Module-level cache and in-flight request deduplication for OG data.
-// Prevents N duplicate fetches when N cards share the same URL.
 const ogCache = new Map<string, OgData>()
 const ogInflight = new Map<string, Promise<OgData>>()
 
