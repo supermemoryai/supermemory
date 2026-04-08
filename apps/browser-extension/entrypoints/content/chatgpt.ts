@@ -159,7 +159,7 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 		if (response?.success && response?.data) {
 			const promptElement = document.getElementById("prompt-textarea")
 			if (promptElement) {
-				promptElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${response.data}</div>`
+				promptElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
 				console.log(
 					"Prompt element dataset:",
 					promptElement.dataset.supermemories,
@@ -471,7 +471,7 @@ function updateChatGPTIconFeedback(
 
 				const promptElement = document.getElementById("prompt-textarea")
 				if (promptElement) {
-					promptElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${updatedMemories}</div>`
+					promptElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${updatedMemories}`
 				}
 
 				content
@@ -647,7 +647,7 @@ function setupChatGPTPromptCapture() {
 			promptTextarea &&
 			!promptContent.includes("Supermemories of user")
 		) {
-			promptTextarea.innerHTML = `${promptTextarea.innerHTML} ${storedMemories}`
+			promptTextarea.appendChild(document.createTextNode(storedMemories))
 			promptContent = promptTextarea.textContent || ""
 		}
 
