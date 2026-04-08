@@ -191,6 +191,10 @@ export function MemoriesGrid({
 		"categories",
 		categoriesParam,
 	)
+	const selectedCategoriesSet = useMemo(
+		() => new Set(selectedCategories),
+		[selectedCategories],
+	)
 
 	const { data: facetsData } = useQuery({
 		queryKey: ["document-facets", effectiveContainerTags],
@@ -439,7 +443,7 @@ export function MemoriesGrid({
 								className={cn(
 									dmSansClassName(),
 									"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
-									selectedCategories.includes(facet.category) &&
+									selectedCategoriesSet.has(facet.category) &&
 										"bg-[#00173C] border-[#2261CA33]",
 								)}
 								onClick={() => handleCategoryToggle(facet.category)}
