@@ -27,9 +27,9 @@ export function areUIMessageArraysEqual(
 			return false
 		}
 
-		// Compare the entire message using JSON serialization as a fallback
-		// This handles all properties including parts, toolInvocations, etc.
-		if (JSON.stringify(msgA) !== JSON.stringify(msgB)) {
+		if (msgA.content !== msgB.content) return false
+
+		if (JSON.stringify(msgA.parts) !== JSON.stringify(msgB.parts)) {
 			return false
 		}
 	}
