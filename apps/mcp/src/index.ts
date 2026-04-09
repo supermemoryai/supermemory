@@ -58,8 +58,10 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
 	return c.json({
 		resource: resourceUrl,
 		authorization_servers: [apiUrl],
+		jwks_uri: `${apiUrl}/api/auth/mcp/jwks`,
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
+		resource_signing_alg_values_supported: ["RS256"],
 		resource_documentation: "https://docs.supermemory.ai/mcp",
 	})
 })
