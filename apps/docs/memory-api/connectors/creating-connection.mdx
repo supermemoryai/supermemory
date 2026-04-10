@@ -71,6 +71,7 @@ curl --request POST \
 - `metadata`: Optional. Any metadata you want to associate with the connection.
     - This metadata is added to every document synced from this connection.
     - For `web-crawler`, must include `startUrl` in metadata: `{"startUrl": "https://example.com"}`
+    - For `google-drive`, optional `metadata.syncMode: "selected"`. Choosing which files to sync is not done through a picker API—use the **Console** or implement **your own** Google Picker (then `configure`). See [Google Drive — Selected files](/connectors/google-drive-selected-files).
 - `documentLimit`: Optional. Caps how many provider items are fetched **per sync run** (allowed range **1–10,000** when set). Exact behavior is provider-specific.
     - **Notion:** Pages come from the Notion Search API, **newest edited first**; once the limit is reached, remaining shareable pages are skipped until a later sync or a higher limit. See [Notion connector — Document limit](/connectors/notion#document-limit).
     - Default when omitted depends on how the connection is created (often **10,000** for hosted flows).

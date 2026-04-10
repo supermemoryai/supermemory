@@ -109,6 +109,7 @@
 										"pages": [
 											"connectors/notion",
 											"connectors/google-drive",
+											"connectors/google-drive-selected-files",
 											"connectors/gmail",
 											"connectors/onedrive",
 											"connectors/s3",

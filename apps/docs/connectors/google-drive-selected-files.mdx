@@ -1,0 +1,218 @@
+---
+title: "Google Drive — Selected files"
+description: "Sync only specific Google Drive files—pick in the Console or build your own picker; the API stores choices via configure"
+sidebarTitle: "Google Drive (selected)"
+icon: "google-drive"
+---
+
+**Selected files** mode limits indexing to files you explicitly choose. Google’s consent screen uses a narrower scope (built around `drive.file` plus email) instead of full-account Drive read access. Only those files are read during sync.
+
+Compared to **full drive** (default on this connector), selected mode does **not** use the same account-wide Drive change notifications. Treat each import as a snapshot of the file at sync time—use **Sync** in the [Console](https://console.supermemory.ai) or call the import API when you want the latest version from Drive.
+
+## Supermemory Console
+
+1. Open [Console](https://console.supermemory.ai) → **Connectors** → **Google Drive** → **Connect**.
+2. Under **Sync mode**, choose **Selected files** (not **Full drive**).
+3. Click **Authorize** and complete Google sign-in. The consent text reflects limited access, not “see all your Drive.”
+4. After OAuth, the **file picker** opens. Select Google Docs, Sheets, Slides, and/or PDFs, then confirm.
+5. To change the list later, use **Select files** (or equivalent) on the connection row.
+6. To pull edits from Drive after the first import, click **Sync** on that connection.
+
+<Note>
+Import is **one-time per sync run** for the files you selected: run **Sync** again when you need updated content from Drive.
+</Note>
+
+## Choosing files: Console vs your product
+
+There is **no supermemory API** that opens a file-picker or returns chosen files for you. Picking which Drive files to sync is either:
+
+1. **In the [Supermemory Console](https://console.supermemory.ai)** — after OAuth, users use the built-in Google Drive picker (recommended if your customers connect from Console).
+2. **In your own app** — you must **build the UX yourself** (typically [Google Picker](https://developers.google.com/drive/picker/guides/overview) in the browser, or another flow that yields each file’s Drive `id` and `mimeType`). Your backend then calls **`POST /v3/connections/{connectionId}/configure`** with that list.
+
+The API only **stores** the list (`configure`) and **reads** it back (`GET …/resources` / `GET …/connections/{id}`). It does not replace a picker for third-party end users.
+
+## API reference (create, configure, import)
+
+Use these calls when you automate OAuth, sync, or verification. **`configure` still requires file ids you obtained from the Console or from your own picker integration** — not from a “pick files” API on supermemory.
+
+### 1. Create the connection
+
+`POST /v3/connections/google-drive` with `metadata.syncMode` set to `"selected"`. Save `id` from the response and send the user to `authLink`.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redirectUrl": "https://yourapp.com/connectors/callback",
+    "documentLimit": 5000,
+    "metadata": { "syncMode": "selected" }
+  }'
+```
+
+```typescript Typescript
+const { id, authLink } = await client.connections.create("google-drive", {
+  redirectUrl: "https://yourapp.com/connectors/callback",
+  documentLimit: 5000,
+  metadata: { syncMode: "selected" },
+});
+// Save `id` as connectionId; redirect the user to authLink
+window.location.href = authLink;
+```
+
+</CodeGroup>
+
+Example create response (fields you need):
+
+```json
+{
+  "id": "conn_abc123",
+  "authLink": "https://accounts.google.com/o/oauth2/v2/auth?...",
+  "expiresIn": "1 hour",
+  "redirectsTo": "https://yourapp.com/connectors/callback"
+}
+```
+
+### 2. Finish OAuth in the browser
+
+After Google redirects back to your app, the connection is stored. **No full-drive sync runs yet** until you call **configure** with at least one file — and you only get those files from the **Console picker** or **your own** Google Picker / Drive integration (see [Choosing files](#choosing-files-console-vs-your-product) above).
+
+### 3. (Optional) `GET` resources
+
+Returns **files already saved** on the connection (`resources`, `total_count`). Useful for displaying the current list or debugging. It does **not** perform picking; for a custom app, you still build the picker and then `configure`.
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/connections/$CONNECTION_ID/resources" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+```typescript Typescript
+const res = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connectionId}/resources`,
+  { headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` } },
+);
+const data = await res.json();
+// data.resources, data.total_count — already configured files (may be empty)
+```
+
+</CodeGroup>
+
+### 4. Save files with `configure`
+
+Send the Drive file `id`, `mimeType`, and display `name` (or `title`) per file. Omit `url` unless you already have it; the API can derive it from `id` + `mimeType`.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/connections/$CONNECTION_ID/configure" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resources": [
+      {
+        "id": "YOUR_DRIVE_FILE_ID",
+        "name": "Strategy doc",
+        "mimeType": "application/vnd.google-apps.document"
+      }
+    ]
+  }'
+```
+
+```typescript Typescript
+await fetch(
+  `https://api.supermemory.ai/v3/connections/${connectionId}/configure`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      resources: [
+        {
+          id: "YOUR_DRIVE_FILE_ID",
+          name: "Strategy doc",
+          mimeType: "application/vnd.google-apps.document",
+        },
+      ],
+    }),
+  },
+);
+```
+
+</CodeGroup>
+
+### 5. Run import
+
+Starts processing for Drive connections (optionally narrow by `containerTags` in the body).
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://api.supermemory.ai/v3/connections/google-drive/import" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+```typescript Typescript
+await client.connections.import("google-drive");
+```
+
+</CodeGroup>
+
+### 6. Confirm with `GET` connection
+
+Use the same `connectionId` as above. Check `metadata.syncMode` and `metadata.selectedFiles`.
+
+<CodeGroup>
+
+```bash cURL
+curl "https://api.supermemory.ai/v3/connections/$CONNECTION_ID" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY"
+```
+
+```typescript Typescript
+const res = await fetch(
+  `https://api.supermemory.ai/v3/connections/${connectionId}`,
+  { headers: { Authorization: `Bearer ${process.env.SUPERMEMORY_API_KEY}` } },
+);
+const connection = await res.json();
+// connection.metadata.syncMode === "selected"
+// connection.metadata.selectedFiles — array of configured files
+```
+
+</CodeGroup>
+
+Example (trimmed) `GET` response:
+
+```json
+{
+  "id": "conn_abc123",
+  "email": "you@example.com",
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "expiresAt": "2025-01-15T11:30:00.000Z",
+  "documentLimit": 5000,
+  "metadata": {
+    "syncMode": "selected",
+    "selectedFiles": [
+      {
+        "id": "YOUR_DRIVE_FILE_ID",
+        "title": "Strategy doc",
+        "mimeType": "application/vnd.google-apps.document",
+        "url": "https://docs.googleapis.com/v1/documents/YOUR_DRIVE_FILE_ID"
+      }
+    ]
+  }
+}
+```
+
+## Supported types
+
+Typical picks include Google Docs, Sheets, Slides, and PDFs (`application/pdf`). Other Drive file types may work depending on export and extraction support.
+
+See also the main [Google Drive connector](/connectors/google-drive) page for OAuth app settings, limits, and connection management.
