@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { memo, useState } from "react"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { dmSansClassName } from "@/lib/fonts"
@@ -43,7 +43,7 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 	}
 }
 
-export function FilePreview({ document }: { document: DocumentWithMemories }) {
+export const FilePreview = memo(function FilePreview({ document }: { document: DocumentWithMemories }) {
 	const [imageError, setImageError] = useState(false)
 	const { extension, color } = getFileTypeInfo(document)
 
@@ -107,4 +107,4 @@ export function FilePreview({ document }: { document: DocumentWithMemories }) {
 			)}
 		</div>
 	)
-}
+})

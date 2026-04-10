@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { dmSansClassName } from "@/lib/fonts"
@@ -9,7 +10,7 @@ import { extractYouTubeVideoId } from "../utils"
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
-export function YoutubePreview({
+export const YoutubePreview = memo(function YoutubePreview({
 	document,
 }: {
 	document: DocumentWithMemories
@@ -49,4 +50,4 @@ export function YoutubePreview({
 			</div>
 		</div>
 	)
-}
+})
