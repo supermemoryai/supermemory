@@ -104,7 +104,7 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 		hasNextPage,
 		fetchNextPage,
 	} = useInfiniteQuery<ApiDocumentsResponse, Error>({
-		queryKey: ["graph-documents", containerTags?.join(",")],
+		queryKey: ["documents-with-memories", containerTags, []],
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
 			const response = await $fetch("@post/documents/documents", {
@@ -131,7 +131,7 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 			}
 			return undefined
 		},
-		staleTime: 30 * 1000,
+		staleTime: 5 * 60 * 1000,
 		enabled,
 	})
 
