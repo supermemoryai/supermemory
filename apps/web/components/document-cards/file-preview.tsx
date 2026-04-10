@@ -43,7 +43,11 @@ function getFileTypeInfo(document: DocumentWithMemories): {
 	}
 }
 
-export const FilePreview = memo(function FilePreview({ document }: { document: DocumentWithMemories }) {
+export const FilePreview = memo(function FilePreview({
+	document,
+}: {
+	document: DocumentWithMemories
+}) {
 	const [imageError, setImageError] = useState(false)
 	const { extension, color } = getFileTypeInfo(document)
 
