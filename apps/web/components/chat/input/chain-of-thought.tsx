@@ -23,18 +23,24 @@ export function ChainOfThought({ messages }: { messages: UIMessage[] }) {
 		agentMessage?: UIMessage
 	}> = []
 
+	let lastUserPair: {
+		userMessage: UIMessage
+		agentMessage?: UIMessage
+	} | null = null
+
 	for (let i = 0; i < messages.length; i++) {
 		const message = messages[i]
 		if (!message) continue
+
 		if (message.role === "user") {
-			// Find the next assistant message after this user message
-			const agentMessage = messages
-				.slice(i + 1)
-				.find((msg) => msg.role === "assistant")
-			messagePairs.push({
-				userMessage: message,
-				agentMessage,
-			})
+			lastUserPair = { userMessage: message }
+			messagePairs.push(lastUserPair)
+		} else if (
+			message.role === "assistant" &&
+			lastUserPair &&
+			!lastUserPair.agentMessage
+		) {
+			lastUserPair.agentMessage = message
 		}
 	}
 
