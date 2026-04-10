@@ -61,9 +61,7 @@ app.get("/.well-known/oauth-protected-resource", (c) => {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 	const host = c.req.header("x-forwarded-host") || c.req.header("host")
 	const proto = c.req.header("x-forwarded-proto") || "https"
-	const resourceUrl = host
-		? `${proto}://${host}`
-		: "https://mcp.supermemory.ai"
+	const resourceUrl = host ? `${proto}://${host}` : "https://mcp.supermemory.ai"
 
 	return c.json({
 		resource: resourceUrl,
@@ -106,7 +104,8 @@ const mcpHandler = SupermemoryMCP.serve("/mcp", {
 	corsOptions: {
 		origin: "*",
 		methods: "GET, POST, DELETE, OPTIONS",
-		headers: "Content-Type, Authorization, x-sm-project, Accept, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+		headers:
+			"Content-Type, Authorization, x-sm-project, Accept, Mcp-Session-Id, MCP-Protocol-Version, Last-Event-ID",
 	},
 })
 
