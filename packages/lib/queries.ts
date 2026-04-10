@@ -37,8 +37,11 @@ export function getSubscriptionStatus(
 ): SubscriptionStatusMap {
 	const statusMap: SubscriptionStatusMap = { ...DEFAULT_SUBSCRIPTION_STATUS }
 	if (!products) return statusMap
+
+	const productMap = new Map(products.map((p) => [p.id, p]))
+
 	for (const tier of PLAN_TIERS) {
-		const product = products.find((p) => p.id === tier)
+		const product = productMap.get(tier)
 		statusMap[tier] = {
 			allowed: product?.status === "active",
 			status: product?.status ?? null,
