@@ -270,19 +270,23 @@ export function useGraphData(
 			});
 		});
 
+		// Precompute embeddings to avoid Array.from in the O(n^2) inner loop
+		const docEmbeddings = filteredDocuments.map((doc) =>
+			doc?.summaryEmbedding ? Array.from(doc.summaryEmbedding) : null,
+		);
+
 		// Document-to-document similarity edges
 		for (let i = 0; i < filteredDocuments.length; i++) {
 			const docI = filteredDocuments[i];
 			if (!docI) continue;
+			const embI = docEmbeddings[i];
 
 			for (let j = i + 1; j < filteredDocuments.length; j++) {
 				const docJ = filteredDocuments[j];
 				if (!docJ) continue;
+				const embJ = docEmbeddings[j];
 
-				const sim = calculateSemanticSimilarity(
-					docI.summaryEmbedding ? Array.from(docI.summaryEmbedding) : null,
-					docJ.summaryEmbedding ? Array.from(docJ.summaryEmbedding) : null,
-				);
+				const sim = calculateSemanticSimilarity(embI, embJ);
 				if (sim > 0.725) {
 					allEdges.push({
 						id: `doc-doc-${docI.id}-${docJ.id}`,
