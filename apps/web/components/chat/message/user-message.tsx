@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Copy, Check } from "lucide-react"
 import type { UIMessage } from "@ai-sdk/react"
 
@@ -9,7 +10,7 @@ interface UserMessageProps {
 	onCopy: (messageId: string, text: string) => void
 }
 
-export function UserMessage({
+export const UserMessage = memo(function UserMessage({
 	message,
 	copiedMessageId,
 	onCopy,
@@ -38,4 +39,4 @@ export function UserMessage({
 			</button>
 		</div>
 	)
-}
+})
