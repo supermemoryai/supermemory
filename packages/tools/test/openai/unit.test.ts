@@ -243,6 +243,7 @@ describe("Unit: OpenAI withSupermemory", () => {
 				containerTag: "user-123",
 				customId: "conv-456",
 				mode: "query",
+				addMemory: "never",
 			})
 
 			await wrapped.chat.completions.create({
@@ -435,6 +436,7 @@ describe("Unit: OpenAI withSupermemory", () => {
 			const wrapped = withSupermemory(mockClient, {
 				containerTag: "user-123",
 				customId: "conv-456",
+				addMemory: "never",
 			})
 
 			await wrapped.chat.completions.create({
@@ -448,7 +450,7 @@ describe("Unit: OpenAI withSupermemory", () => {
 			expect(fetchBody.containerTag).toBe("user-123")
 		})
 
-		it("should default to never for addMemory", async () => {
+		it("should default to always for addMemory", async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: () => Promise.resolve(createMockProfileResponse()),
@@ -465,8 +467,8 @@ describe("Unit: OpenAI withSupermemory", () => {
 				messages: [{ role: "user", content: "Hello" }],
 			})
 
-			// Only 1 fetch (profile search), no memory add (default is "never")
-			expect(fetchMock).toHaveBeenCalledTimes(1)
+			// 2 fetches: profile search + memory add (default is "always")
+			expect(fetchMock).toHaveBeenCalledTimes(2)
 		})
 	})
 })

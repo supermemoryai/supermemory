@@ -298,7 +298,7 @@ interface SupermemoryOpenAIOptions {
   apiKey?: string                // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string               // Custom API endpoint
   mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
-  addMemory?: "always" | "never"       // Auto-save conversations (default: "never")
+  addMemory?: "always" | "never"       // Auto-save conversations (default: "always")
   verbose?: boolean              // Enable debug logging (default: false)
 }
 ```
@@ -591,7 +591,7 @@ interface SupermemoryMastraOptions {
   apiKey?: string              // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string             // Custom API endpoint
   mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
-  addMemory?: "always" | "never"       // Auto-save conversations (default: "never")
+  addMemory?: "always" | "never"       // Auto-save conversations (default: "always")
   threadId?: string            // Conversation ID for grouping messages
   verbose?: boolean            // Enable debug logging (default: false)
   promptTemplate?: (data: MemoryPromptData) => string  // Custom memory formatting
@@ -665,7 +665,7 @@ interface WithSupermemoryOptions {
 - **conversationId**: Optional conversation ID to group messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
-- **addMemory**: Automatic memory storage mode - "always" or "never" (default: "never")
+- **addMemory**: Automatic memory storage mode - "always" (default) or "never"
 
 ## Available Tools
 

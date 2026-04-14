@@ -34,8 +34,8 @@ export interface SupermemoryOpenAIOptions {
 	mode?: "profile" | "query" | "full"
 	/**
 	 * Memory persistence mode:
-	 * - "always": Automatically save conversations as memories
-	 * - "never": Only retrieve memories, don't store new ones (default)
+	 * - "always": Automatically save conversations as memories (default)
+	 * - "never": Only retrieve memories, don't store new ones
 	 */
 	addMemory?: "always" | "never"
 }
@@ -445,7 +445,7 @@ export function createOpenAIMiddleware(
 		baseUrl,
 		verbose = false,
 		mode = "profile",
-		addMemory = "never",
+		addMemory = "always",
 	} = options
 
 	const logger = createLogger(verbose)

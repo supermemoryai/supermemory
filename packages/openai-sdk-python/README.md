@@ -347,7 +347,7 @@ class SupermemoryOpenAIOptions:
     api_key: Optional[str] = None           # Supermemory API key (or use env var)
     verbose: bool = False                   # Enable detailed logging
     mode: Literal["profile", "query", "full"] = "profile"  # Memory injection mode
-    add_memory: Literal["always", "never"] = "never"       # Auto-save behavior
+    add_memory: Literal["always", "never"] = "always"      # Auto-save behavior
 ```
 
 ### SupermemoryTools

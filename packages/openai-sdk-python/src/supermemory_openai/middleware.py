@@ -50,8 +50,8 @@ class SupermemoryOpenAIOptions:
     mode: Literal["profile", "query", "full"] = "profile"
     """Memory retrieval mode: 'profile', 'query', or 'full'."""
 
-    add_memory: Literal["always", "never"] = "never"
-    """Memory persistence mode: 'always' or 'never' (default)."""
+    add_memory: Literal["always", "never"] = "always"
+    """Memory persistence mode: 'always' (default) or 'never'."""
 
 
 class SupermemoryProfileSearch:
