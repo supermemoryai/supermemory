@@ -46,7 +46,7 @@ const response = await agent.generate("What do you know about me?")
 ```
 
 <Note>
-  **Memory saving is disabled by default.** The wrapper only retrieves existing memories. To automatically save conversations:
+  **Memory saving is enabled by default.** The wrapper automatically saves conversations. To disable saving (read-only mode):
 
   ```typescript
   const agent = new Agent(withSupermemory(
@@ -54,7 +54,7 @@ const response = await agent.generate("What do you know about me?")
     {
       containerTag: "user-123",
       customId: "conv-456",
-      addMemory: "always",
+      addMemory: "never",  // Read-only mode
     }
   ))
   ```
@@ -99,7 +99,7 @@ sequenceDiagram
 | `apiKey` | `string` | `SUPERMEMORY_API_KEY` env | Your Supermemory API key |
 | `baseUrl` | `string` | `https://api.supermemory.ai` | Custom API endpoint |
 | `mode` | `"profile" \| "query" \| "full"` | `"profile"` | Memory search mode |
-| `addMemory` | `"always" \| "never"` | `"never"` | Auto-save conversations |
+| `addMemory` | `"always" \| "never"` | `"always"` | Auto-save conversations |
 | `verbose` | `boolean` | `false` | Enable debug logging |
 | `promptTemplate` | `function` | - | Custom memory formatting |
 

@@ -91,7 +91,7 @@ function createProcessorContext(
 		apiKey,
 		baseUrl,
 		mode: options.mode ?? "profile",
-		addMemory: options.addMemory ?? "never",
+		addMemory: options.addMemory ?? "always",
 		logger,
 		promptTemplate: options.promptTemplate,
 		memoryCache: new MemoryCache<string>(),

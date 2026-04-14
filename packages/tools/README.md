@@ -602,10 +602,12 @@ const response = await agent.generate("Hello!", { requestContext: ctx })
 
 ```typescript
 interface SupermemoryMastraOptions {
+  containerTag: string         // Required: User/container ID for scoping memories
+  customId: string             // Required: Conversation ID to group messages
   apiKey?: string              // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string             // Custom API endpoint
   mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
-  addMemory?: "always" | "never"       // Auto-save conversations (default: "never")
+  addMemory?: "always" | "never"       // Auto-save conversations (default: "always")
   verbose?: boolean            // Enable debug logging (default: false)
   promptTemplate?: (data: MemoryPromptData) => string  // Custom memory formatting
 }
