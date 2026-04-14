@@ -409,41 +409,9 @@ const addResult = await tools.addMemory({
 
 ### Mastra Usage
 
-> **⚠️ Breaking Change in v2.0.0**: The Mastra integration API has been updated to use object-based parameters instead of positional parameters for better clarity. See the migration guide below.
-
 Add persistent memory to [Mastra](https://mastra.ai) AI agents. The integration provides processors that:
 - **Input Processor**: Fetches relevant memories and injects them into the system prompt before LLM calls
 - **Output Processor**: Optionally saves conversations to Supermemory after responses
-
-#### Migration from v1.x to v2.0.0
-
-**v1.x (old API with positional parameters):**
-```typescript
-// Old API - DEPRECATED
-withSupermemory(config, "user-123", "conv-456", { mode: "full" })
-new SupermemoryInputProcessor("user-123", "conv-456", { mode: "full" })
-createSupermemoryProcessors("user-123", "conv-456", { mode: "full" })
-```
-
-**v2.0.0 (new API with object parameters):**
-```typescript
-// New API - clearer with explicit key-value pairs
-withSupermemory(config, {
-  containerTag: "user-123",
-  customId: "conv-456",
-  mode: "full"
-})
-new SupermemoryInputProcessor({
-  containerTag: "user-123",
-  customId: "conv-456",
-  mode: "full"
-})
-createSupermemoryProcessors({
-  containerTag: "user-123",
-  customId: "conv-456",
-  mode: "full"
-})
-```
 
 #### Quick Start with `withSupermemory` Wrapper
 
