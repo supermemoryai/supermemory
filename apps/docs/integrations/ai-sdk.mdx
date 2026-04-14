@@ -32,10 +32,14 @@ Automatically inject user profiles into every LLM call for instant personalizati
 
 ```typescript
 import { generateText } from "ai"
-import { withSupermemory } from "@supermemory/tools/ai-sdk"
+import { withSupermemory } from "@supermemory/tools/vercel"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithMemory = withSupermemory(openai("gpt-5"), "user-123")
+const modelWithMemory = withSupermemory({
+  model: openai("gpt-4"),
+  containerTag: "user-123",
+  customId: "conv-456"
+})
 
 const result = await generateText({
   model: modelWithMemory,
@@ -44,11 +48,14 @@ const result = await generateText({
 ```
 
 <Note>
-  **Memory saving is disabled by default.** The middleware only retrieves existing memories. To automatically save new memories:
+  **Memory saving is enabled by default.** The middleware automatically saves conversations to memory. To disable memory saving:
 
   ```typescript
-  const modelWithMemory = withSupermemory(openai("gpt-5"), "user-123", {
-    addMemory: "always"
+  const modelWithMemory = withSupermemory({
+    model: openai("gpt-4"),
+    containerTag: "user-123",
+    customId: "conv-456",
+    addMemory: "never"
   })
   ```
 </Note>
@@ -58,19 +65,34 @@ const result = await generateText({
 **Profile Mode (Default)** - Retrieves the user's complete profile:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "profile" })
+const model = withSupermemory({
+  model: openai("gpt-4"),
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "profile"
+})
 ```
 
 **Query Mode** - Searches memories based on the user's message:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "query" })
+const model = withSupermemory({
+  model: openai("gpt-4"),
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "query"
+})
 ```
 
 **Full Mode** - Combines profile AND query-based search:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "full" })
+const model = withSupermemory({
+  model: openai("gpt-4"),
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full"
+})
 ```
 
 ### Custom Prompt Templates
@@ -78,7 +100,7 @@ const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "full" })
 Customize how memories are formatted. The template receives `userMemories`, `generalSearchMemories`, and `searchResults` (raw array for filtering by metadata):
 
 ```typescript
-import { withSupermemory, type MemoryPromptData } from "@supermemory/tools/ai-sdk"
+import { withSupermemory, type MemoryPromptData } from "@supermemory/tools/vercel"
 
 const claudePrompt = (data: MemoryPromptData) => `
 <context>
@@ -91,7 +113,10 @@ const claudePrompt = (data: MemoryPromptData) => `
 </context>
 `.trim()
 
-const model = withSupermemory(anthropic("claude-3-sonnet"), "user-123", {
+const model = withSupermemory({
+  model: anthropic("claude-3-sonnet"),
+  containerTag: "user-123",
+  customId: "conv-456",
   mode: "full",
   promptTemplate: claudePrompt
 })
@@ -100,7 +125,10 @@ const model = withSupermemory(anthropic("claude-3-sonnet"), "user-123", {
 ### Verbose Logging
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", {
+const model = withSupermemory({
+  model: openai("gpt-4"),
+  containerTag: "user-123",
+  customId: "conv-456",
   verbose: true
 })
 // Console output shows memory retrieval details
