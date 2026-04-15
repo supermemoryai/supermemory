@@ -119,18 +119,8 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		promptTemplate: options?.promptTemplate,
 	})
 
-	// Use Object.create to preserve prototype getters (e.g. `provider` in V3 models)
-	// instead of object spread which only copies own enumerable properties.
-	const wrappedModel = Object.create(
-		Object.getPrototypeOf(model) ?? Object.prototype,
-	) as T
-
-	// Copy all own property descriptors (preserves getters/setters on the instance)
-	const descriptors = Object.getOwnPropertyDescriptors(model)
-	Object.defineProperties(wrappedModel, descriptors)
-
-	// Override doGenerate and doStream with memory-aware implementations
-	wrappedModel.doGenerate = async (params: LanguageModelCallOptions) => {
+	// Memory-aware doGenerate override
+	const wrappedDoGenerate = async (params: LanguageModelCallOptions) => {
 		try {
 			const transformedParams = await transformParamsWithMemory(params, ctx)
 
@@ -163,7 +153,8 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		}
 	}
 
-	wrappedModel.doStream = async (params: LanguageModelCallOptions) => {
+	// Memory-aware doStream override
+	const wrappedDoStream = async (params: LanguageModelCallOptions) => {
 		let generatedText = ""
 
 		try {
@@ -212,6 +203,28 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 			throw error
 		}
 	}
+
+	// Use a Proxy to delegate all property access to the original model while
+	// overriding doGenerate and doStream. This preserves prototype getters,
+	// ES private fields (#field), and instance brand checks — unlike
+	// Object.create + Object.defineProperties which creates a new object that
+	// prototype getters would execute against (breaking private field access).
+	const overrides: Record<string, unknown> = {
+		doGenerate: wrappedDoGenerate,
+		doStream: wrappedDoStream,
+	}
+
+	const wrappedModel = new Proxy(model, {
+		get(target, prop, _receiver) {
+			if (typeof prop === "string" && prop in overrides) {
+				return overrides[prop]
+			}
+			// Delegate to the original model so that `this` inside prototype
+			// getters remains the real model instance (preserving private fields).
+			const value = Reflect.get(target, prop, target)
+			return value
+		},
+	})
 
 	return wrappedModel
 }

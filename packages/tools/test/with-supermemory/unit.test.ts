@@ -58,6 +58,34 @@ class MockLanguageModelV3 implements LanguageModelV3 {
 const createMockV3LanguageModel = (): LanguageModelV3 =>
 	new MockLanguageModelV3("test-v3-model", { provider: "test-v3-provider" })
 
+// Mock V3 language model using true ES private fields (#config).
+// Real AI SDK 6 model classes may use private fields internally;
+// the wrapping approach must handle this without throwing TypeError.
+class MockLanguageModelV3WithPrivateFields implements LanguageModelV3 {
+	readonly specificationVersion = "v3" as const
+	readonly modelId: string
+	supportedUrls: Record<string, RegExp[]>
+	#config: { provider: string }
+
+	constructor(modelId: string, config: { provider: string }) {
+		this.modelId = modelId
+		this.#config = config
+		this.supportedUrls = { "image/*": [/^https?:\/\/.*$/] }
+	}
+
+	get provider(): string {
+		return this.#config.provider
+	}
+
+	doGenerate = vi.fn()
+	doStream = vi.fn()
+}
+
+const createMockV3WithPrivateFields = (): LanguageModelV3 =>
+	new MockLanguageModelV3WithPrivateFields("test-v3-private", {
+		provider: "test-v3-private-provider",
+	})
+
 // Mock profile API response
 const createMockProfileResponse = (
 	staticMemories: string[] = [],
@@ -109,8 +137,9 @@ describe("Unit: withSupermemory", () => {
 			const mockModel = createMockLanguageModel()
 			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
 
+			// Intentionally minimal — just verifies wrapping succeeds with a valid key.
+			// Property preservation is tested in the dedicated V2/V3 compatibility suites.
 			expect(wrappedModel).toBeDefined()
-			expect(wrappedModel.specificationVersion).toBe("v2")
 		})
 	})
 
@@ -136,19 +165,6 @@ describe("Unit: withSupermemory", () => {
 			})
 		})
 
-		it("should preserve all V3 metadata after wrapping", () => {
-			process.env.SUPERMEMORY_API_KEY = "test-key"
-
-			const mockModel = createMockV3LanguageModel()
-			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
-
-			// These are the four properties that AI SDK checks at runtime
-			expect(wrappedModel.specificationVersion).toBe("v3")
-			expect(wrappedModel.provider).toBe("test-v3-provider")
-			expect(wrappedModel.modelId).toBe("test-v3-model")
-			expect(wrappedModel.supportedUrls).toBeDefined()
-		})
-
 		it("should still override doGenerate and doStream on V3 models", () => {
 			process.env.SUPERMEMORY_API_KEY = "test-key"
 
@@ -164,6 +180,25 @@ describe("Unit: withSupermemory", () => {
 			// But they should still be functions
 			expect(typeof wrappedModel.doGenerate).toBe("function")
 			expect(typeof wrappedModel.doStream).toBe("function")
+		})
+
+		it("should handle V3 models with ES private fields (#config)", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			const mockModel = createMockV3WithPrivateFields()
+			// Verify the original model works (private field access succeeds)
+			expect(mockModel.provider).toBe("test-v3-private-provider")
+
+			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
+
+			// The wrapped model must not throw TypeError when accessing
+			// prototype getters that use ES private fields internally
+			expect(wrappedModel.specificationVersion).toBe("v3")
+			expect(wrappedModel.provider).toBe("test-v3-private-provider")
+			expect(wrappedModel.modelId).toBe("test-v3-private")
+			expect(wrappedModel.supportedUrls).toEqual({
+				"image/*": [/^https?:\/\/.*$/],
+			})
 		})
 	})
 
