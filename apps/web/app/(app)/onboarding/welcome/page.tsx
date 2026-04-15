@@ -207,7 +207,7 @@ export default function WelcomePage() {
 	const showUserSupermemory = currentStep === "username"
 
 	return (
-		<div className="h-screen overflow-hidden bg-black">
+		<div className="relative h-screen overflow-hidden bg-black">
 			<InitialHeader
 				showUserSupermemory={
 					currentStep === "features" || currentStep === "memories"

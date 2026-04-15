@@ -47,7 +47,7 @@ export default function SetupPage() {
 	}
 
 	return (
-		<div className="h-screen overflow-hidden bg-black">
+		<div className="relative h-screen overflow-hidden bg-black">
 			<SetupHeader />
 
 			<AnimatedGradientBackground animateFromBottom={false} />

@@ -3,7 +3,6 @@
 import { Logo } from "@ui/assets/Logo"
 import { useAuth } from "@lib/auth-context"
 import {
-	LayoutGridIcon,
 	Plus,
 	SearchIcon,
 	Settings,
@@ -17,7 +16,6 @@ import {
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
 import { GraphIcon, IntegrationsIcon } from "@/components/integration-icons"
 import {
 	DropdownMenu,
@@ -34,17 +32,16 @@ import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { FeedbackModal } from "./feedback-modal"
-import { useViewMode, type ViewMode } from "@/lib/view-mode-context"
+import { useViewMode } from "@/lib/view-mode-context"
 import { useQueryState } from "nuqs"
 import { feedbackParam } from "@/lib/search-params"
 
 interface HeaderProps {
 	onAddMemory?: () => void
-	onOpenChat?: () => void
 	onOpenSearch?: () => void
 }
 
-export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
+export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 	const { user, isRestoring } = useAuth()
 	const { selectedProjects, setSelectedProjects } = useProject()
 	const router = useRouter()
@@ -65,7 +62,7 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 	return (
-		<div className="flex p-3 md:p-4 justify-between items-center gap-2">
+		<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-3 md:p-4">
 			<div className="flex items-center justify-center gap-2 md:gap-4 z-10! min-w-0">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -140,45 +137,62 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 				)}
 			</div>
 			{!isMobile && (
-				<Tabs
-					value={viewMode === "list" ? "grid" : viewMode}
-					onValueChange={(v) =>
-						setViewMode(v === "grid" ? "list" : (v as ViewMode))
-					}
-				>
-					<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
-						<TabsTrigger
-							value="grid"
-							className={cn(
-								"rounded-full data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
-								dmSansClassName(),
-							)}
-						>
-							<LayoutGridIcon className="size-4" />
-							Grid
-						</TabsTrigger>
-						<TabsTrigger
-							value="graph"
-							className={cn(
-								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
-								dmSansClassName(),
-							)}
-						>
-							<GraphIcon className="size-4" />
-							Graph
-						</TabsTrigger>
-						<TabsTrigger
-							value="integrations"
-							className={cn(
-								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
-								dmSansClassName(),
-							)}
-						>
-							<IntegrationsIcon className="size-4" />
-							Integrations
-						</TabsTrigger>
-					</TabsList>
-				</Tabs>
+				<div className="flex items-center gap-2 z-10!">
+					<button
+						type="button"
+						onClick={() => void setViewMode("list")}
+						aria-label="Home"
+						aria-current={viewMode === "list" ? "page" : undefined}
+						className={cn(
+							"flex size-11 shrink-0 items-center justify-center rounded-full border cursor-pointer transition-colors",
+							viewMode === "list"
+								? "border-[#2261CA33] bg-[#00173C] text-white"
+								: "border-[#161F2C] bg-muted text-muted-foreground hover:bg-white/5",
+							dmSansClassName(),
+						)}
+					>
+						<Home className="size-4" />
+					</button>
+					<div
+						role="tablist"
+						aria-orientation="horizontal"
+						className="bg-muted text-muted-foreground inline-flex h-11 w-fit items-center justify-center gap-0.5 rounded-full border border-[#161F2C] p-1 z-10!"
+					>
+						{(
+							[
+								{ mode: "graph" as const, label: "Graph", icon: GraphIcon },
+								{
+									mode: "integrations" as const,
+									label: "Integrations",
+									icon: IntegrationsIcon,
+								},
+								{
+									mode: "chat" as const,
+									label: "Chat",
+									icon: MessageCircleIcon,
+								},
+							] as const
+						).map(({ mode, label, icon: Icon }) => (
+							<button
+								key={mode}
+								type="button"
+								role="tab"
+								aria-selected={viewMode === mode}
+								onClick={() => void setViewMode(mode)}
+								className={cn(
+									"inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-full border border-transparent px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer",
+									viewMode === mode
+										? "border-[#2261CA33] bg-[#00173C] text-white shadow-md"
+										: "text-foreground hover:bg-white/5",
+									dmSansClassName(),
+								)}
+							>
+								<Icon className="size-4" />
+								{label}
+							</button>
+						))}
+					</div>
+				</div>
 			)}
 			<div className="flex items-center gap-2 z-10!">
 				{isMobile ? (
@@ -225,7 +239,7 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 									Integrations
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={onOpenChat}
+									onClick={() => void setViewMode("chat")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
 									<MessageCircleIcon className="h-4 w-4 text-[#737373]" />

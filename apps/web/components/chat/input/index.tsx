@@ -4,7 +4,7 @@ import { ChevronUpIcon } from "lucide-react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { useRef, useState } from "react"
+import { type ReactNode, useRef, useState } from "react"
 import { motion } from "motion/react"
 import { SendButton, StopButton } from "./actions"
 
@@ -18,6 +18,8 @@ interface ChatInputProps {
 	activeStatus?: string
 	chainOfThoughtComponent?: React.ReactNode
 	onExpandedChange?: (expanded: boolean) => void
+	/** Model + space controls on one row with send; textarea full-width above */
+	stackedToolbar?: ReactNode
 }
 
 export default function ChatInput({
@@ -30,6 +32,7 @@ export default function ChatInput({
 	activeStatus,
 	chainOfThoughtComponent,
 	onExpandedChange,
+	stackedToolbar,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -103,31 +106,59 @@ export default function ChatInput({
 					/>
 				)}
 			</button>
-			<div
-				className={cn(
-					"flex items-end gap-2 bg-[#070E1B] rounded-xl p-2 border-[#52596633] border focus-within:outline-[#525D6EB2] focus-within:outline-1 transition-all duration-200",
-					isMultiline && "flex-col",
-				)}
-			>
-				<textarea
-					ref={textareaRef}
-					value={value}
-					onChange={handleChange}
-					onKeyDown={onKeyDown}
-					placeholder="Ask your supermemory..."
-					className="bg-transparent w-full p-2 placeholder:text-[#525D6E] focus:outline-none resize-none overflow-y-auto transition-all duration-200"
-					style={{ minHeight: "36px" }}
-					rows={1}
-					disabled={isResponding}
-				/>
-				<div className="transition-all duration-200">
-					{isResponding ? (
-						<StopButton onClick={onStop} />
-					) : (
-						<SendButton onClick={onSend} disabled={!value.trim()} />
-					)}
+			{stackedToolbar ? (
+				<div className="flex flex-col gap-2 rounded-xl border border-[#52596633] bg-[#070E1B] p-2 transition-all duration-200 focus-within:outline-1 focus-within:outline-[#525D6EB2]">
+					<textarea
+						ref={textareaRef}
+						value={value}
+						onChange={handleChange}
+						onKeyDown={onKeyDown}
+						placeholder="Ask your supermemory..."
+						className="w-full resize-none overflow-y-auto bg-transparent p-2 transition-all duration-200 placeholder:text-[#525D6E] focus:outline-none"
+						style={{ minHeight: "36px" }}
+						rows={1}
+						disabled={isResponding}
+					/>
+					<div className="flex items-center gap-2">
+						<div className="flex min-w-0 flex-1 items-center gap-2">
+							{stackedToolbar}
+						</div>
+						<div className="shrink-0">
+							{isResponding ? (
+								<StopButton onClick={onStop} />
+							) : (
+								<SendButton onClick={onSend} disabled={!value.trim()} />
+							)}
+						</div>
+					</div>
 				</div>
-			</div>
+			) : (
+				<div
+					className={cn(
+						"flex items-end gap-2 rounded-xl border border-[#52596633] bg-[#070E1B] p-2 transition-all duration-200 focus-within:outline-1 focus-within:outline-[#525D6EB2]",
+						isMultiline && "flex-col",
+					)}
+				>
+					<textarea
+						ref={textareaRef}
+						value={value}
+						onChange={handleChange}
+						onKeyDown={onKeyDown}
+						placeholder="Ask your supermemory..."
+						className="w-full resize-none overflow-y-auto bg-transparent p-2 transition-all duration-200 placeholder:text-[#525D6E] focus:outline-none"
+						style={{ minHeight: "36px" }}
+						rows={1}
+						disabled={isResponding}
+					/>
+					<div className="transition-all duration-200">
+						{isResponding ? (
+							<StopButton onClick={onStop} />
+						) : (
+							<SendButton onClick={onSend} disabled={!value.trim()} />
+						)}
+					</div>
+				</div>
+			)}
 		</motion.div>
 	)
 }

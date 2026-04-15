@@ -12,11 +12,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { ShareModal } from "./share-modal"
 import { shareParam } from "@/lib/search-params"
 
-interface GraphLayoutViewProps {
-	isChatOpen: boolean
-}
-
-export const GraphLayoutView = memo<GraphLayoutViewProps>(({ isChatOpen }) => {
+export const GraphLayoutView = memo(function GraphLayoutView() {
 	const { effectiveContainerTags } = useProject()
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
 	const [isShareModalOpen, setIsShareModalOpen] = useQueryState(
@@ -34,14 +30,14 @@ export const GraphLayoutView = memo<GraphLayoutViewProps>(({ isChatOpen }) => {
 	}, [setIsShareModalOpen])
 
 	return (
-		<div className="relative w-full h-[calc(100vh-86px)]">
+		<div className="relative h-full min-h-0 w-full">
 			{/* Full-width graph */}
 			<div className="absolute inset-0">
 				<MemoryGraph
 					containerTags={effectiveContainerTags}
 					variant="consumer"
 					highlightDocumentIds={allHighlightDocumentIds}
-					highlightsVisible={isChatOpen}
+					highlightsVisible
 					maxNodes={undefined}
 					canvasRef={canvasRef}
 				/>

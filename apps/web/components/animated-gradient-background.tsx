@@ -8,7 +8,7 @@ export function AnimatedGradientBackground({
 	animateFromBottom?: boolean
 }) {
 	return (
-		<div className="fixed inset-0 z-0 overflow-hidden">
+		<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
 			<motion.div
 				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				style={{ top: animateFromBottom ? undefined : topPosition }}
@@ -56,7 +56,7 @@ export function AnimatedGradientBackground({
 				}}
 			/>
 			<motion.div
-				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
+				className="absolute inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-bottom bg-no-repeat"
 				transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}
 				style={{
 					mixBlendMode: "soft-light",

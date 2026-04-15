@@ -3,11 +3,12 @@
 import { useState, useCallback, useEffect } from "react"
 import { useQueryState } from "nuqs"
 import { Header } from "@/components/header"
-import { ChatSidebar } from "@/components/chat"
+import { ChatSidebar, HomeChatComposer } from "@/components/chat"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
 import { IntegrationsView } from "@/components/integrations-view"
-import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
+// AnimatedGradientBackground — commented for now (see helpers + usage below).
+// import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 import { AddDocumentModal } from "@/components/add-document"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
@@ -15,7 +16,6 @@ import { FullscreenNoteModal } from "@/components/fullscreen-note-modal"
 import type { HighlightItem } from "@/components/highlights-card"
 import { HotkeysProvider } from "react-hotkeys-hook"
 import { useHotkeys } from "react-hotkeys-hook"
-import { AnimatePresence } from "motion/react"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useAuth } from "@lib/auth-context"
 import { useProject } from "@/stores"
@@ -26,6 +26,7 @@ import {
 	useQuickNoteDraft,
 } from "@/stores/quick-note-draft"
 import { analytics } from "@/lib/analytics"
+import type { ModelId } from "@/lib/models"
 import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
@@ -39,7 +40,6 @@ import {
 	qParam,
 	docParam,
 	fullscreenParam,
-	chatParam,
 	integrationParam,
 	pluginsPanelParam,
 	type IntegrationParamValue,
@@ -47,6 +47,30 @@ import {
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
+
+/*
+ * Animated gradient — commented for now (restore with import + JSX in NewPage).
+function subscribeViewportWidth(cb: () => void) {
+	window.addEventListener("resize", cb)
+	return () => window.removeEventListener("resize", cb)
+}
+
+function getViewportWidth() {
+	return window.innerWidth
+}
+
+const GRADIENT_TOP_WIDTH_MAX = 1440
+
+function gradientTopPositionForWidth(width: number) {
+	const minW = 320
+	const pctWide = 15
+	const pctNarrow = 70
+	const w = Math.min(GRADIENT_TOP_WIDTH_MAX, Math.max(minW, width))
+	const t = (w - minW) / (GRADIENT_TOP_WIDTH_MAX - minW)
+	const eased = t * t
+	return `${Math.round(pctNarrow + eased * (pctWide - pctNarrow))}%`
+}
+*/
 
 function ViewErrorFallback() {
 	return (
@@ -122,7 +146,6 @@ export default function NewPage() {
 		"fullscreen",
 		fullscreenParam,
 	)
-	const [isChatOpen, setIsChatOpen] = useQueryState("chat", chatParam)
 	const [integrationFromUrl, setIntegration] = useQueryState(
 		"integration",
 		integrationParam,
@@ -138,6 +161,10 @@ export default function NewPage() {
 	// Ephemeral local state (not worth URL-encoding)
 	const [fullscreenInitialContent, setFullscreenInitialContent] = useState("")
 	const [queuedChatSeed, setQueuedChatSeed] = useState<string | null>(null)
+	const [queuedChatModel, setQueuedChatModel] = useState<ModelId | null>(null)
+	const [queuedMessageSource, setQueuedMessageSource] = useState<
+		"highlight" | "home"
+	>("highlight")
 	const [selectedDocument, setSelectedDocument] =
 		useState<DocumentWithMemories | null>(null)
 
@@ -375,10 +402,28 @@ export default function NewPage() {
 	const handleHighlightsChat = useCallback(
 		(seed: string) => {
 			setQueuedChatSeed(seed)
-			setIsChatOpen(true)
+			setQueuedChatModel(null)
+			setQueuedMessageSource("highlight")
+			void setViewMode("chat")
 		},
-		[setIsChatOpen],
+		[setViewMode],
 	)
+
+	const handleHomeChatStart = useCallback(
+		(message: string, model: ModelId) => {
+			setQueuedChatSeed(message)
+			setQueuedChatModel(model)
+			setQueuedMessageSource("home")
+			void setViewMode("chat")
+		},
+		[setViewMode],
+	)
+
+	const consumeQueuedChat = useCallback(() => {
+		setQueuedChatSeed(null)
+		setQueuedChatModel(null)
+		setQueuedMessageSource("highlight")
+	}, [])
 
 	const handleHighlightsShowRelated = useCallback(
 		(query: string) => {
@@ -409,25 +454,30 @@ export default function NewPage() {
 		[setAddDoc],
 	)
 
-	const chatOpen = isChatOpen !== null ? isChatOpen : !isMobile
+	const isChatView = viewMode === "chat"
 	const isGraphMode = viewMode === "graph" && !isMobile
+
+	// Animated gradient — commented for now (use with useSyncExternalStore + helpers above).
+	// const viewportWidth = useSyncExternalStore(
+	// 	subscribeViewportWidth,
+	// 	getViewportWidth,
+	// 	() => GRADIENT_TOP_WIDTH_MAX,
+	// )
+	// const gradientTopPosition = gradientTopPositionForWidth(viewportWidth)
 
 	return (
 		<HotkeysProvider>
 			<div
 				className={cn(
-					"bg-black min-h-screen",
-					isGraphMode && "h-screen overflow-hidden",
+					"relative flex min-h-dvh flex-col bg-black",
+					isGraphMode && "h-dvh overflow-hidden",
 				)}
 			>
-				<AnimatedGradientBackground
-					topPosition="15%"
-					animateFromBottom={false}
-				/>
+				{/* AnimatedGradientBackground: off for now (import + helpers commented above). */}
 				{isGraphMode && (
 					<div
 						id="graph-dotted-grid"
-						className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+						className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
 					/>
 				)}
 				<Header
@@ -435,33 +485,56 @@ export default function NewPage() {
 						analytics.addDocumentModalOpened()
 						setAddDoc("note")
 					}}
-					onOpenChat={() => setIsChatOpen(true)}
 					onOpenSearch={() => {
 						analytics.searchOpened({ source: "header" })
 						setIsSearchOpen(true)
 					}}
 				/>
 				<main
-					key={`main-container-${chatOpen}-${viewMode}`}
+					key={`main-container-${viewMode}`}
 					className={cn(
-						"z-10 relative",
-						isGraphMode && "h-[calc(100vh-86px)] overflow-hidden",
+						"relative z-10 flex min-h-0 flex-1 flex-col",
+						(isGraphMode || isChatView) && "overflow-hidden",
 					)}
 				>
-					<div className={cn("relative z-10 flex flex-col md:flex-row h-full")}>
+					<div
+						className={cn(
+							"relative z-10 flex min-h-0 flex-1 flex-col md:flex-row",
+						)}
+					>
 						<ErrorBoundary fallback={<ViewErrorFallback />}>
-							{viewMode === "integrations" ? (
-								<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
+							{isChatView ? (
+								<div className="flex min-h-0 w-full min-w-0 flex-1 flex-col md:self-stretch">
+									<ChatSidebar
+										layout="page"
+										isChatOpen
+										setIsChatOpen={(open) => {
+											if (!open) void setViewMode("list")
+										}}
+										queuedMessage={queuedChatSeed}
+										onConsumeQueuedMessage={consumeQueuedChat}
+										queuedMessageSource={queuedMessageSource}
+										initialSelectedModel={queuedChatModel}
+										emptyStateSuggestions={highlightsData?.questions}
+									/>
+								</div>
+							) : viewMode === "integrations" ? (
+								<div className="min-h-0 min-w-0 flex-1 p-4 pt-2! md:p-6 md:pr-0">
 									<IntegrationsView />
 								</div>
 							) : viewMode === "graph" && !isMobile ? (
-								<div className="flex-1">
-									<GraphLayoutView isChatOpen={chatOpen} />
+								<div className="min-h-0 min-w-0 flex-1">
+									<GraphLayoutView />
 								</div>
 							) : (
-								<div className="flex-1 p-4 md:p-6 md:pr-0 pt-2!">
+								<div
+									className={cn(
+										"min-h-0 min-w-0 flex-1 p-4 pt-2! md:p-6 md:pr-0",
+										viewMode === "list" && "pb-32 md:pb-36",
+									)}
+								>
 									<MemoriesGrid
-										isChatOpen={chatOpen}
+										isChatOpen={false}
 										onOpenDocument={handleOpenDocument}
 										isSelectionMode={isSelectionMode}
 										selectedDocumentIds={selectedDocumentIds}
@@ -499,30 +572,20 @@ export default function NewPage() {
 								</div>
 							)}
 						</ErrorBoundary>
-						<div className="hidden md:block md:sticky md:top-0 md:h-screen">
-							<AnimatePresence mode="popLayout">
-								<ErrorBoundary>
-									<ChatSidebar
-										isChatOpen={chatOpen}
-										setIsChatOpen={(open) => setIsChatOpen(open)}
-										queuedMessage={queuedChatSeed}
-										onConsumeQueuedMessage={() => setQueuedChatSeed(null)}
-										emptyStateSuggestions={highlightsData?.questions}
-									/>
-								</ErrorBoundary>
-							</AnimatePresence>
-						</div>
 					</div>
 				</main>
 
-				{isMobile && (
-					<ChatSidebar
-						isChatOpen={chatOpen}
-						setIsChatOpen={(open) => setIsChatOpen(open)}
-						queuedMessage={queuedChatSeed}
-						onConsumeQueuedMessage={() => setQueuedChatSeed(null)}
-						emptyStateSuggestions={highlightsData?.questions}
-					/>
+				{viewMode === "list" && (
+					<div
+						className={cn(
+							"pointer-events-none fixed inset-x-0 z-30",
+							isMobile ? "bottom-[4.5rem]" : "bottom-0",
+						)}
+					>
+						<div className="pointer-events-auto">
+							<HomeChatComposer onStartChat={handleHomeChatStart} />
+						</div>
+					</div>
 				)}
 
 				<AddDocumentModal

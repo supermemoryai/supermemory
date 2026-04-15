@@ -29,7 +29,7 @@ export const analytics = {
 	chatHistoryViewed: () => safeCapture("chat_history_viewed"),
 	chatDeleted: () => safeCapture("chat_deleted"),
 
-	viewModeChanged: (mode: "graph" | "list" | "integrations") =>
+	viewModeChanged: (mode: "graph" | "list" | "integrations" | "chat") =>
 		safeCapture("view_mode_changed", { mode }),
 
 	documentCardClicked: () => safeCapture("document_card_clicked"),
@@ -110,8 +110,9 @@ export const analytics = {
 	}) => safeCapture("highlight_clicked", props),
 
 	// chat analytics
-	chatMessageSent: (props: { source: "typed" | "suggested" | "highlight" }) =>
-		safeCapture("chat_message_sent", props),
+	chatMessageSent: (props: {
+		source: "typed" | "suggested" | "highlight" | "home"
+	}) => safeCapture("chat_message_sent", props),
 
 	chatSuggestedQuestionClicked: () =>
 		safeCapture("chat_suggested_question_clicked"),

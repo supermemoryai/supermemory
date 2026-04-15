@@ -11,11 +11,14 @@ import { analytics } from "@/lib/analytics"
 interface ChatModelSelectorProps {
 	selectedModel?: ModelId
 	onModelChange?: (model: ModelId) => void
+	/** Compact pill matching inline send control (black + #161F2C border, rounded-full) */
+	minimal?: boolean
 }
 
 export default function ChatModelSelector({
 	selectedModel: selectedModelProp,
 	onModelChange,
+	minimal = false,
 }: ChatModelSelectorProps = {}) {
 	const [internalModel, setInternalModel] = useState<ModelId>("gemini-2.5-pro")
 	const [isOpen, setIsOpen] = useState(false)
@@ -33,25 +36,44 @@ export default function ChatModelSelector({
 		setIsOpen(false)
 	}
 
+	const trigger = minimal ? (
+		<button
+			type="button"
+			className={cn(
+				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 text-sm transition-colors hover:bg-[#161F2C]",
+				dmSansClassName(),
+			)}
+			onClick={() => setIsOpen(!isOpen)}
+		>
+			<p className="min-w-0 truncate text-left text-[#FAFAFA]">
+				{currentModelData.name}{" "}
+				<span className="text-[#525D6E]">{currentModelData.version}</span>
+			</p>
+			<ChevronDownIcon className="size-3.5 shrink-0 text-[#525D6E]" />
+		</button>
+	) : (
+		<Button
+			variant="headers"
+			className={cn(
+				"h-10! max-w-[min(100%,220px)] shrink gap-1 rounded-full border-[#73737333] bg-[#0D121A] text-base",
+				dmSansClassName(),
+			)}
+			style={{
+				boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+			}}
+			onClick={() => setIsOpen(!isOpen)}
+		>
+			<p className="truncate text-sm">
+				{currentModelData.name}{" "}
+				<span className="text-[#737373]">{currentModelData.version}</span>
+			</p>
+			<ChevronDownIcon className="size-4 text-[#737373]" />
+		</Button>
+	)
+
 	return (
-		<div className="relative flex items-center gap-2">
-			<Button
-				variant="headers"
-				className={cn(
-					"rounded-full text-base gap-1 h-10! border-[#73737333] bg-[#0D121A]",
-					dmSansClassName(),
-				)}
-				style={{
-					boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-				}}
-				onClick={() => setIsOpen(!isOpen)}
-			>
-				<p className="text-sm">
-					{currentModelData.name}{" "}
-					<span className="text-[#737373]">{currentModelData.version}</span>
-				</p>
-				<ChevronDownIcon className="size-4 text-[#737373]" />
-			</Button>
+		<div className="relative flex min-w-0 shrink items-center gap-2">
+			{trigger}
 
 			{isOpen && (
 				<>

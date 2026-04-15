@@ -23,7 +23,7 @@ export const shareParam = parseAsBoolean.withDefault(false)
 export const feedbackParam = parseAsBoolean.withDefault(false)
 
 // View & filter states
-const viewLiterals = ["graph", "list", "integrations"] as const
+const viewLiterals = ["graph", "list", "integrations", "chat"] as const
 const integrationLiterals = ["import", "chrome", "connections"] as const
 export type IntegrationParamValue = (typeof integrationLiterals)[number]
 export const integrationParam = parseAsStringLiteral(integrationLiterals)
