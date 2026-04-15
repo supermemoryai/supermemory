@@ -216,7 +216,12 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 
 	const wrappedModel = new Proxy(model, {
 		get(target, prop, _receiver) {
-			if (typeof prop === "string" && prop in overrides) {
+			// Use hasOwnProperty to avoid matching inherited Object.prototype props
+			// (e.g. 'constructor', 'toString') which would shadow them on the proxy.
+			if (
+				typeof prop === "string" &&
+				Object.prototype.hasOwnProperty.call(overrides, prop)
+			) {
 				return overrides[prop]
 			}
 			// Delegate to the original model so that `this` inside prototype

@@ -216,6 +216,24 @@ describe("Unit: withSupermemory", () => {
 		})
 	})
 
+	describe("Proxy override correctness", () => {
+		it("should not shadow Object.prototype inherited props (e.g. constructor) with undefined overrides", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			// 'constructor', 'toString', 'hasOwnProperty' etc are in Object.prototype.
+			// Using `prop in overrides` (instead of hasOwnProperty) would match these
+			// inherited props and return undefined from the overrides map, shadowing
+			// the real implementations on the model/target.
+			const mockModel = createMockV3LanguageModel()
+			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
+
+			// constructor should point to the model's class, not Object
+			expect((wrappedModel as object).constructor).toBe(MockLanguageModelV3)
+			// toString should be callable and not undefined
+			expect(typeof (wrappedModel as object).toString).toBe("function")
+		})
+	})
+
 	describe("Memory caching", () => {
 		let fetchMock: ReturnType<typeof vi.fn>
 
