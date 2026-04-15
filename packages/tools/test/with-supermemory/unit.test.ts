@@ -12,6 +12,7 @@ import type {
 	LanguageModelV2,
 	LanguageModelV2CallOptions,
 	LanguageModelV2Message,
+	LanguageModelV3,
 } from "@ai-sdk/provider"
 import "dotenv/config"
 
@@ -22,7 +23,7 @@ const TEST_CONFIG = {
 	containerTag: "test-vercel-wrapper",
 }
 
-// Mock language model for testing
+// Mock language model for testing (V2 - plain object)
 const createMockLanguageModel = (): LanguageModelV2 => ({
 	specificationVersion: "v2",
 	provider: "test-provider",
@@ -31,6 +32,31 @@ const createMockLanguageModel = (): LanguageModelV2 => ({
 	doGenerate: vi.fn(),
 	doStream: vi.fn(),
 })
+
+// Mock V3 language model using a class (simulates real AI SDK 6 models
+// where `provider` is a prototype getter, not an own property)
+class MockLanguageModelV3 implements LanguageModelV3 {
+	readonly specificationVersion = "v3" as const
+	readonly modelId: string
+	supportedUrls: Record<string, RegExp[]>
+	private config: { provider: string }
+
+	constructor(modelId: string, config: { provider: string }) {
+		this.modelId = modelId
+		this.config = config
+		this.supportedUrls = { "image/*": [/^https?:\/\/.*$/] }
+	}
+
+	get provider(): string {
+		return this.config.provider
+	}
+
+	doGenerate = vi.fn()
+	doStream = vi.fn()
+}
+
+const createMockV3LanguageModel = (): LanguageModelV3 =>
+	new MockLanguageModelV3("test-v3-model", { provider: "test-v3-provider" })
 
 // Mock profile API response
 const createMockProfileResponse = (
@@ -85,6 +111,73 @@ describe("Unit: withSupermemory", () => {
 
 			expect(wrappedModel).toBeDefined()
 			expect(wrappedModel.specificationVersion).toBe("v2")
+		})
+	})
+
+	describe("AI SDK 6 (V3) compatibility", () => {
+		it("should preserve prototype getter properties on V3 models", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			const mockModel = createMockV3LanguageModel()
+			// Verify the mock has `provider` as a prototype getter, not an own property
+			expect(
+				Object.getOwnPropertyDescriptor(mockModel, "provider"),
+			).toBeUndefined()
+			expect(mockModel.provider).toBe("test-v3-provider")
+
+			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
+
+			expect(wrappedModel).toBeDefined()
+			expect(wrappedModel.specificationVersion).toBe("v3")
+			expect(wrappedModel.provider).toBe("test-v3-provider")
+			expect(wrappedModel.modelId).toBe("test-v3-model")
+			expect(wrappedModel.supportedUrls).toEqual({
+				"image/*": [/^https?:\/\/.*$/],
+			})
+		})
+
+		it("should preserve all V3 metadata after wrapping", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			const mockModel = createMockV3LanguageModel()
+			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
+
+			// These are the four properties that AI SDK checks at runtime
+			expect(wrappedModel.specificationVersion).toBe("v3")
+			expect(wrappedModel.provider).toBe("test-v3-provider")
+			expect(wrappedModel.modelId).toBe("test-v3-model")
+			expect(wrappedModel.supportedUrls).toBeDefined()
+		})
+
+		it("should still override doGenerate and doStream on V3 models", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			const mockModel = createMockV3LanguageModel()
+			const originalDoGenerate = mockModel.doGenerate
+			const originalDoStream = mockModel.doStream
+
+			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
+
+			// doGenerate and doStream should be overridden (not the same reference)
+			expect(wrappedModel.doGenerate).not.toBe(originalDoGenerate)
+			expect(wrappedModel.doStream).not.toBe(originalDoStream)
+			// But they should still be functions
+			expect(typeof wrappedModel.doGenerate).toBe("function")
+			expect(typeof wrappedModel.doStream).toBe("function")
+		})
+	})
+
+	describe("V2 backwards compatibility", () => {
+		it("should preserve all properties on V2 plain-object models", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			const mockModel = createMockLanguageModel()
+			const wrappedModel = withSupermemory(mockModel, TEST_CONFIG.containerTag)
+
+			expect(wrappedModel.specificationVersion).toBe("v2")
+			expect(wrappedModel.provider).toBe("test-provider")
+			expect(wrappedModel.modelId).toBe("test-model")
+			expect(wrappedModel.supportedUrls).toEqual({})
 		})
 	})
 
