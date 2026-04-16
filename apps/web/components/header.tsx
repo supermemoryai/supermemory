@@ -12,6 +12,9 @@ import {
 	ExternalLink,
 	MenuIcon,
 	MessageCircleIcon,
+	MoreHorizontal,
+	LifeBuoy,
+	LayoutGrid,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -24,6 +27,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useProject } from "@/stores"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -126,7 +130,6 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
-				<div className="self-stretch w-px bg-[#FFFFFF33] hidden md:block" />
 				{!isMobile && (
 					<SpaceSelector
 						selectedProjects={selectedProjects}
@@ -140,12 +143,12 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 				<div className="flex items-center gap-2 z-10!">
 					<button
 						type="button"
-						onClick={() => void setViewMode("list")}
+						onClick={() => void setViewMode("dashboard")}
 						aria-label="Home"
-						aria-current={viewMode === "list" ? "page" : undefined}
+						aria-current={viewMode === "dashboard" ? "page" : undefined}
 						className={cn(
 							"flex size-11 shrink-0 items-center justify-center rounded-full border cursor-pointer transition-colors",
-							viewMode === "list"
+							viewMode === "dashboard"
 								? "border-[#2261CA33] bg-[#00173C] text-white"
 								: "border-[#161F2C] bg-muted text-muted-foreground hover:bg-white/5",
 							dmSansClassName(),
@@ -160,6 +163,11 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					>
 						{(
 							[
+								{
+									mode: "list" as const,
+									label: "Memories",
+									icon: LayoutGrid,
+								},
 								{ mode: "graph" as const, label: "Graph", icon: GraphIcon },
 								{
 									mode: "integrations" as const,
@@ -232,6 +240,34 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									Add memory
 								</DropdownMenuItem>
 								<DropdownMenuItem
+									onClick={() => void setViewMode("dashboard")}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<Home className="h-4 w-4 text-[#737373]" />
+									Dashboard
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => void setViewMode("list")}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<LayoutGrid className="h-4 w-4 text-[#737373]" />
+									Memories
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => void setViewMode("graph")}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<GraphIcon className="h-4 w-4 text-[#737373]" />
+									Graph
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => onOpenSearch?.()}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<SearchIcon className="h-4 w-4 text-[#737373]" />
+									<span className="sr-only">Search</span>
+								</DropdownMenuItem>
+								<DropdownMenuItem
 									onClick={() => setViewMode("integrations")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
@@ -250,7 +286,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									onClick={handleFeedback}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<MessageCircleIcon className="h-4 w-4 text-[#737373]" />
+									<LifeBuoy className="h-4 w-4 text-[#737373]" />
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
@@ -265,56 +301,116 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					</>
 				) : (
 					<>
-						<Button
-							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
-							onClick={onAddMemory}
-						>
-							<div className="flex items-center gap-2">
-								<Plus className="size-4" />
-								Add memory
-							</div>
-							<span
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="headers"
+									className={cn(
+										"rounded-full text-base h-10! shrink-0",
+										"max-lg:w-10 max-lg:min-w-10 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+										"lg:gap-2 lg:px-4 lg:w-auto lg:min-w-0",
+										dmSansClassName(),
+									)}
+									onClick={onAddMemory}
+									aria-label="Add memory"
+								>
+									<Plus className="size-4 shrink-0" />
+									<span className="max-lg:sr-only">Add memory</span>
+									<span
+										className={cn(
+											"max-lg:hidden bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
+											dmSansClassName(),
+										)}
+									>
+										C
+									</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Add memory (C)
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="headers"
+									className={cn(
+										"rounded-full text-base h-10! shrink-0",
+										"max-lg:w-10 max-lg:min-w-10 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+										"lg:gap-2 lg:px-4 lg:w-auto lg:min-w-0",
+										dmSansClassName(),
+									)}
+									onClick={onOpenSearch}
+									aria-label="Search"
+								>
+									<SearchIcon className="size-4 shrink-0" />
+									<span className="max-lg:hidden bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm text-[10px] flex items-center justify-center gap-0.5 px-1">
+										<svg
+											className="size-[7.5px]"
+											viewBox="0 0 9 9"
+											fill="none"
+											xmlns="http://www.w3.org/2000/svg"
+										>
+											<title>Command Key</title>
+											<path
+												d="M6.66663 0.416626C6.33511 0.416626 6.01716 0.548322 5.78274 0.782743C5.54832 1.01716 5.41663 1.33511 5.41663 1.66663V6.66663C5.41663 6.99815 5.54832 7.31609 5.78274 7.55051C6.01716 7.78493 6.33511 7.91663 6.66663 7.91663C6.99815 7.91663 7.31609 7.78493 7.55051 7.55051C7.78493 7.31609 7.91663 6.99815 7.91663 6.66663C7.91663 6.33511 7.78493 6.01716 7.55051 5.78274C7.31609 5.54832 6.99815 5.41663 6.66663 5.41663H1.66663C1.33511 5.41663 1.01716 5.54832 0.782743 5.78274C0.548322 6.01716 0.416626 6.33511 0.416626 6.66663C0.416626 6.99815 0.548322 7.31609 0.782743 7.55051C1.01716 7.78493 1.33511 7.91663 1.66663 7.91663C1.99815 7.91663 2.31609 7.78493 2.55051 7.55051C2.78493 7.31609 2.91663 6.99815 2.91663 6.66663V1.66663C2.91663 1.33511 2.78493 1.01716 2.55051 0.782743C2.31609 0.548322 1.99815 0.416626 1.66663 0.416626C1.33511 0.416626 1.01716 0.548322 0.782743 0.782743C0.548322 1.01716 0.416626 1.33511 0.416626 1.66663C0.416626 1.99815 0.548322 2.31609 0.782743 2.55051C1.01716 2.78493 1.33511 2.91663 1.66663 2.91663H6.66663C6.99815 2.91663 7.31609 2.78493 7.55051 2.55051C7.78493 2.31609 7.91663 1.99815 7.91663 1.66663C7.91663 1.33511 7.78493 1.01716 7.55051 0.782743C7.31609 0.548322 6.99815 0.416626 6.66663 0.416626Z"
+												stroke="#737373"
+												strokeWidth="0.833333"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+											/>
+										</svg>
+										<span className={cn(dmSansClassName())}>K</span>
+									</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Search (⌘K)
+							</TooltipContent>
+						</Tooltip>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="headers"
+									className={cn(
+										"rounded-full h-10! w-10 min-w-10 justify-center px-0 lg:hidden",
+										dmSansClassName(),
+									)}
+									aria-label="More actions"
+								>
+									<MoreHorizontal className="size-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
 								className={cn(
-									"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
+									"min-w-[200px] p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
 									dmSansClassName(),
 								)}
+								style={{
+									background:
+										"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+								}}
 							>
-								C
-							</span>
-						</Button>
-						<Button
-							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
-							onClick={onOpenSearch}
-						>
-							<SearchIcon className="size-4" />
-							<span className="bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm text-[10px] flex items-center justify-center gap-0.5 px-1">
-								<svg
-									className="size-[7.5px]"
-									viewBox="0 0 9 9"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
+								<DropdownMenuItem
+									onClick={handleFeedback}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<title>Command Key</title>
-									<path
-										d="M6.66663 0.416626C6.33511 0.416626 6.01716 0.548322 5.78274 0.782743C5.54832 1.01716 5.41663 1.33511 5.41663 1.66663V6.66663C5.41663 6.99815 5.54832 7.31609 5.78274 7.55051C6.01716 7.78493 6.33511 7.91663 6.66663 7.91663C6.99815 7.91663 7.31609 7.78493 7.55051 7.55051C7.78493 7.31609 7.91663 6.99815 7.91663 6.66663C7.91663 6.33511 7.78493 6.01716 7.55051 5.78274C7.31609 5.54832 6.99815 5.41663 6.66663 5.41663H1.66663C1.33511 5.41663 1.01716 5.54832 0.782743 5.78274C0.548322 6.01716 0.416626 6.33511 0.416626 6.66663C0.416626 6.99815 0.548322 7.31609 0.782743 7.55051C1.01716 7.78493 1.33511 7.91663 1.66663 7.91663C1.99815 7.91663 2.31609 7.78493 2.55051 7.55051C2.78493 7.31609 2.91663 6.99815 2.91663 6.66663V1.66663C2.91663 1.33511 2.78493 1.01716 2.55051 0.782743C2.31609 0.548322 1.99815 0.416626 1.66663 0.416626C1.33511 0.416626 1.01716 0.548322 0.782743 0.782743C0.548322 1.01716 0.416626 1.33511 0.416626 1.66663C0.416626 1.99815 0.548322 2.31609 0.782743 2.55051C1.01716 2.78493 1.33511 2.91663 1.66663 2.91663H6.66663C6.99815 2.91663 7.31609 2.78493 7.55051 2.55051C7.78493 2.31609 7.91663 1.99815 7.91663 1.66663C7.91663 1.33511 7.78493 1.01716 7.55051 0.782743C7.31609 0.548322 6.99815 0.416626 6.66663 0.416626Z"
-										stroke="#737373"
-										strokeWidth="0.833333"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-								</svg>
-								<span className={cn(dmSansClassName())}>K</span>
-							</span>
-						</Button>
+									<LifeBuoy className="h-4 w-4 text-[#737373]" />
+									Feedback
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 						<Button
 							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
+							className={cn(
+								"hidden lg:flex rounded-full text-base gap-2 h-10!",
+								dmSansClassName(),
+							)}
 							onClick={handleFeedback}
 						>
 							<div className="flex items-center gap-2">
-								<MessageCircleIcon className="size-4" />
+								<LifeBuoy className="size-4" />
 								Feedback
 							</div>
 						</Button>

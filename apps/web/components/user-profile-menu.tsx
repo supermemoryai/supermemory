@@ -1,5 +1,6 @@
 "use client"
 
+import { useCustomer } from "autumn-js/react"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { useAuth } from "@lib/auth-context"
 import {
@@ -15,6 +16,7 @@ import { LogOut, Settings, RotateCcw, HelpCircle } from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
+import { useTokenUsage } from "@/hooks/use-token-usage"
 
 export function UserProfileMenu({
 	className,
@@ -26,6 +28,11 @@ export function UserProfileMenu({
 	const { user } = useAuth()
 	const router = useRouter()
 	const { resetOrgOnboarded } = useOrgOnboarding()
+	const autumn = useCustomer()
+	const { currentPlan, isLoading: planLoading } = useTokenUsage(autumn)
+
+	const planBadgeLabel =
+		currentPlan === "pro" ? "PRO" : currentPlan === "scale" ? "SCALE" : null
 
 	const handleTryOnboarding = () => {
 		resetOrgOnboarded()
@@ -50,22 +57,38 @@ export function UserProfileMenu({
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
+					aria-label={
+						planBadgeLabel
+							? `Account menu, ${planBadgeLabel} plan`
+							: "Account menu"
+					}
 					className={cn(
-						"rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-transform hover:scale-105",
+						"relative inline-flex shrink-0 rounded-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
 						className,
 					)}
 				>
 					<Avatar
 						className={cn(
-							"border border-[#2E3033] h-8 w-8 md:h-10 md:w-10",
+							"size-9 border border-[#161F2C]",
 							avatarClassName,
 						)}
 					>
 						<AvatarImage src={user.image ?? ""} />
-						<AvatarFallback className="bg-[#0D121A] text-white">
+						<AvatarFallback className="bg-[#0D121A] text-xs font-medium text-white">
 							{user.name?.charAt(0)}
 						</AvatarFallback>
 					</Avatar>
+					{!planLoading && planBadgeLabel ? (
+						<span
+							id="user-plan-badge"
+							className={cn(
+								"pointer-events-none absolute -bottom-0.5 left-1/2 z-10 -translate-x-1/2 rounded border px-1 py-px text-center text-[8px] font-bold uppercase leading-tight tracking-wide",
+								"border-[#2261CA33] bg-[#00173C] text-[#6BB0FF]",
+							)}
+						>
+							{planBadgeLabel}
+						</span>
+					) : null}
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent

@@ -5,7 +5,7 @@ import { cn } from "@lib/utils"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import {
-	ChevronsLeftRight,
+	ChevronDown,
 	Plus,
 	Trash2,
 	XIcon,
@@ -57,8 +57,13 @@ export interface SpaceSelectorProps {
 }
 
 const triggerVariants = {
-	default: "px-3 py-2 rounded-md hover:bg-white/5",
-	insideOut: "px-3 py-2 rounded-full bg-[#0D121A] shadow-inside-out",
+	default:
+		"h-10 min-h-10 shrink-0 rounded-full border border-[#161F2C] bg-muted px-3 gap-2 " +
+		"hover:bg-white/5 " +
+		"data-[state=open]:border-[#2261CA33] data-[state=open]:bg-[#00173C]/35 " +
+		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2261CA33]/35",
+	insideOut:
+		"h-10 min-h-10 gap-2 px-3 rounded-full bg-[#0D121A] shadow-inside-out hover:bg-[#121820]",
 }
 
 export function SpaceSelector({
@@ -235,29 +240,71 @@ export function SpaceSelector({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
+						aria-label={
+							isLoading
+								? "Loading spaces"
+								: `Space: ${displayInfo.name}. Open menu to switch.`
+						}
 						className={cn(
-							"flex items-center gap-2 cursor-pointer transition-colors focus:outline-none focus-visible:outline-none",
+							"flex min-w-0 max-w-full items-center cursor-pointer transition-colors",
 							triggerVariants[variant],
+							variant === "default" &&
+								compact &&
+								"h-9 min-h-9 gap-1.5 px-2.5",
 							dmSansClassName(),
 							triggerClassName,
 						)}
 					>
 						{isNovaSpaces ? (
-							<Globe className="size-4 text-white" />
+							<Globe
+								className={cn(
+									"shrink-0",
+									variant === "insideOut" ? "text-white" : "text-[#737373]",
+									compact ? "size-3.5" : "size-4",
+								)}
+								aria-hidden
+							/>
 						) : displayInfo.isMultiple ? (
-							<Layers className="size-4 text-white" />
+							<Layers
+								className={cn(
+									"shrink-0",
+									variant === "insideOut" ? "text-white" : "text-[#737373]",
+									compact ? "size-3.5" : "size-4",
+								)}
+								aria-hidden
+							/>
 						) : (
-							<span className="text-sm font-bold tracking-[-0.98px]">
+							<span
+								className="shrink-0 text-sm font-bold tracking-[-0.98px]"
+								aria-hidden
+							>
 								{displayInfo.emoji}
 							</span>
 						)}
 						{!compact && (
-							<span className="text-sm font-medium text-white">
-								{isLoading ? "..." : displayInfo.name}
+							<span
+								className={cn(
+									"min-w-0 truncate text-sm font-medium text-white",
+									"max-w-[10rem] md:max-w-[15rem]",
+								)}
+							>
+								{isLoading ? "…" : displayInfo.name}
+							</span>
+						)}
+						{compact && (
+							<span className="sr-only">
+								{isLoading ? "Loading" : displayInfo.name}
 							</span>
 						)}
 						{showChevron && (
-							<ChevronsLeftRight className="size-4 rotate-90 text-white/70" />
+							<ChevronDown
+								className={cn(
+									"shrink-0 opacity-90",
+									variant === "insideOut" ? "text-white/80" : "text-[#737373]",
+									compact ? "size-3.5" : "size-4",
+								)}
+								aria-hidden
+							/>
 						)}
 					</button>
 				</DropdownMenuTrigger>

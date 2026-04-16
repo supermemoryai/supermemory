@@ -29,8 +29,9 @@ export const analytics = {
 	chatHistoryViewed: () => safeCapture("chat_history_viewed"),
 	chatDeleted: () => safeCapture("chat_deleted"),
 
-	viewModeChanged: (mode: "graph" | "list" | "integrations" | "chat") =>
-		safeCapture("view_mode_changed", { mode }),
+	viewModeChanged: (
+		mode: "dashboard" | "graph" | "list" | "integrations" | "chat",
+	) => safeCapture("view_mode_changed", { mode }),
 
 	documentCardClicked: () => safeCapture("document_card_clicked"),
 

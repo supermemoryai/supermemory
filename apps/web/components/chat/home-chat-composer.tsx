@@ -54,7 +54,7 @@ export function HomeChatComposer({
 					onStop={() => {}}
 					onKeyDown={handleKeyDown}
 					isResponding={false}
-					activeStatus="Waiting for input..."
+					showStatusStrip={false}
 					stackedToolbar={
 						<>
 							<ChatModelSelector

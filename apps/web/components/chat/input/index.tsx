@@ -20,6 +20,8 @@ interface ChatInputProps {
 	onExpandedChange?: (expanded: boolean) => void
 	/** Model + space controls on one row with send; textarea full-width above */
 	stackedToolbar?: ReactNode
+	/** Nova status row + chain-of-thought toggle (off for e.g. home composer) */
+	showStatusStrip?: boolean
 }
 
 export default function ChatInput({
@@ -33,6 +35,7 @@ export default function ChatInput({
 	chainOfThoughtComponent,
 	onExpandedChange,
 	stackedToolbar,
+	showStatusStrip = true,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -55,57 +58,69 @@ export default function ChatInput({
 		<motion.div
 			className={cn("relative z-20!")}
 			animate={{
-				padding: isExpanded ? "16px" : "0",
-				margin: isExpanded ? "0" : "16px",
-				borderRadius: isExpanded ? "0 0 12px 12px" : "12px",
-				backgroundColor: isExpanded ? "#000B1B" : "#01173C",
+				padding: showStatusStrip ? (isExpanded ? "16px" : "0") : "0",
+				margin: showStatusStrip ? (isExpanded ? "0" : "16px") : "0",
+				borderRadius: showStatusStrip
+					? isExpanded
+						? "0 0 12px 12px"
+						: "12px"
+					: "0",
+				backgroundColor: showStatusStrip
+					? isExpanded
+						? "#000B1B"
+						: "#01173C"
+					: "transparent",
 			}}
 			transition={{
 				duration: 0.3,
 				ease: "easeOut",
 			}}
 		>
-			<div
-				className={cn(
-					"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
-					isExpanded
-						? "max-h-[60vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
-						: "max-h-0 opacity-0",
-				)}
-				style={{
-					zIndex: isExpanded ? 50 : 0,
-				}}
-			>
-				{chainOfThoughtComponent}
-			</div>
-			<button
-				type="button"
-				className={cn(
-					"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left",
-					!chainOfThoughtComponent && "disabled:cursor-not-allowed",
-				)}
-				onClick={() => {
-					const newExpanded = !isExpanded
-					setIsExpanded(newExpanded)
-					onExpandedChange?.(newExpanded)
-				}}
-				disabled={!chainOfThoughtComponent}
-			>
-				<div className="flex items-center gap-3">
-					<NovaOrb size={24} className="blur-[1px]! z-10" />
-					<p className={cn("text-[#525D6E]", dmSansClassName())}>
-						{activeStatus || "Waiting for input..."}
-					</p>
-				</div>
-				{chainOfThoughtComponent && (
-					<ChevronUpIcon
+			{showStatusStrip ? (
+				<>
+					<div
 						className={cn(
-							"size-4 text-[#525D6E] transition-transform duration-300",
-							isExpanded && "rotate-180",
+							"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
+							isExpanded
+								? "max-h-[60vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
+								: "max-h-0 opacity-0",
 						)}
-					/>
-				)}
-			</button>
+						style={{
+							zIndex: isExpanded ? 50 : 0,
+						}}
+					>
+						{chainOfThoughtComponent}
+					</div>
+					<button
+						type="button"
+						className={cn(
+							"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left",
+							!chainOfThoughtComponent && "disabled:cursor-not-allowed",
+						)}
+						onClick={() => {
+							const newExpanded = !isExpanded
+							setIsExpanded(newExpanded)
+							onExpandedChange?.(newExpanded)
+						}}
+						disabled={!chainOfThoughtComponent}
+					>
+						<div className="flex items-center gap-3">
+							<NovaOrb size={24} className="blur-[1px]! z-10" />
+							<p className={cn("text-[#525D6E]", dmSansClassName())}>
+								{activeStatus || "Waiting for input..."}
+							</p>
+						</div>
+						{chainOfThoughtComponent && (
+							<ChevronUpIcon
+								className={cn(
+									"size-4 text-[#525D6E] transition-transform duration-300",
+									isExpanded && "rotate-180",
+								)}
+							/>
+						)}
+					</button>
+				</>
+			) : null}
 			{stackedToolbar ? (
 				<div className="flex flex-col gap-2 rounded-xl border border-[#52596633] bg-[#070E1B] p-2 transition-all duration-200 focus-within:outline-1 focus-within:outline-[#525D6EB2]">
 					<textarea

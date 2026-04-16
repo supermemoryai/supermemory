@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { useQueryState } from "nuqs"
 import { Header } from "@/components/header"
 import { ChatSidebar, HomeChatComposer } from "@/components/chat"
+import { DashboardView } from "@/components/dashboard-view"
 import { MemoriesGrid } from "@/components/memories-grid"
 import { GraphLayoutView } from "@/components/graph-layout-view"
 import { IntegrationsView } from "@/components/integrations-view"
@@ -44,6 +45,7 @@ import {
 	pluginsPanelParam,
 	type IntegrationParamValue,
 } from "@/lib/search-params"
+import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -105,6 +107,14 @@ export default function NewPage() {
 		(selectedProjectTag !== undefined &&
 			novaContainerTags.includes(selectedProjectTag))
 	const { allProjects } = useContainerTags()
+	const dashboardSpaceLabel = useMemo(
+		() =>
+			getChatSpaceDisplayLabel({
+				selectedProject,
+				allProjects,
+			}),
+		[selectedProject, allProjects],
+	)
 	const emptyStateSpaceName =
 		!isNovaSpaces && selectedProjectTag
 			? selectedProjectTag === DEFAULT_PROJECT_ID
@@ -150,7 +160,10 @@ export default function NewPage() {
 		"integration",
 		integrationParam,
 	)
-	const [pluginsPanelFromUrl] = useQueryState("plugins", pluginsPanelParam)
+	const [pluginsPanelFromUrl, setPluginsPanel] = useQueryState(
+		"plugins",
+		pluginsPanelParam,
+	)
 
 	useEffect(() => {
 		if (integrationFromUrl || pluginsPanelFromUrl === true) {
@@ -446,6 +459,11 @@ export default function NewPage() {
 		[setViewMode, setIntegration],
 	)
 
+	const handleOpenPlugins = useCallback(() => {
+		void setViewMode("integrations")
+		void setPluginsPanel(true)
+	}, [setViewMode, setPluginsPanel])
+
 	const handleAddMemory = useCallback(
 		(tab: "note" | "link") => {
 			analytics.addDocumentModalOpened()
@@ -456,6 +474,8 @@ export default function NewPage() {
 
 	const isChatView = viewMode === "chat"
 	const isGraphMode = viewMode === "graph" && !isMobile
+	const isDashboardShell =
+		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 
 	// Animated gradient — commented for now (use with useSyncExternalStore + helpers above).
 	// const viewportWidth = useSyncExternalStore(
@@ -509,7 +529,7 @@ export default function NewPage() {
 										layout="page"
 										isChatOpen
 										setIsChatOpen={(open) => {
-											if (!open) void setViewMode("list")
+											if (!open) void setViewMode("dashboard")
 										}}
 										queuedMessage={queuedChatSeed}
 										onConsumeQueuedMessage={consumeQueuedChat}
@@ -526,11 +546,11 @@ export default function NewPage() {
 								<div className="min-h-0 min-w-0 flex-1">
 									<GraphLayoutView />
 								</div>
-							) : (
+							) : viewMode === "list" ? (
 								<div
 									className={cn(
 										"min-h-0 min-w-0 flex-1 p-4 pt-2! md:p-6 md:pr-0",
-										viewMode === "list" && "pb-32 md:pb-36",
+										"pb-10 md:pb-12",
 									)}
 								>
 									<MemoriesGrid
@@ -570,12 +590,43 @@ export default function NewPage() {
 										}
 									/>
 								</div>
+							) : (
+								<DashboardView
+									spaceLabel={dashboardSpaceLabel}
+									headerNotice={
+										viewMode === "graph" && isMobile ? (
+											<div
+												id="graph-mobile-notice"
+												className="rounded-lg border border-[#2261CA33] bg-[#041127] px-3 py-2.5 text-sm text-[#8B8B8B]"
+											>
+												<span className="font-medium text-white">
+													Graph view is available on desktop.
+												</span>{" "}
+												Use a larger screen for the full graph, or keep working
+												from this home view.
+											</div>
+										) : undefined
+									}
+									highlights={highlightsData?.highlights ?? []}
+									isLoadingHighlights={isLoadingHighlights}
+									onAddMemory={handleAddMemory}
+									onOpenSearch={() => {
+										analytics.searchOpened({ source: "header" })
+										setIsSearchOpen(true)
+									}}
+									onOpenIntegrations={handleOpenIntegrations}
+									onOpenPlugins={handleOpenPlugins}
+									onNavigateToMemories={() => void setViewMode("list")}
+									onOpenDocument={handleOpenDocument}
+									onHighlightsChat={handleHighlightsChat}
+									onHighlightsShowRelated={handleHighlightsShowRelated}
+								/>
 							)}
 						</ErrorBoundary>
 					</div>
 				</main>
 
-				{viewMode === "list" && (
+				{isDashboardShell && (
 					<div
 						className={cn(
 							"pointer-events-none fixed inset-x-0 z-30",
