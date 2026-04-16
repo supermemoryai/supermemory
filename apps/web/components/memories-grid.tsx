@@ -120,6 +120,7 @@ function fetchOgData(url: string): Promise<OgData | null> {
 
 const PAGE_SIZE = 100
 const MAX_TOTAL = 1000
+const EMPTY_SET = new Set<string>()
 
 const MEMORIES_LOADING_LABELS = [
 	"Getting your supermemories…",
@@ -214,7 +215,7 @@ export function MemoriesGrid({
 	isChatOpen,
 	onOpenDocument,
 	isSelectionMode = false,
-	selectedDocumentIds = new Set(),
+	selectedDocumentIds = EMPTY_SET,
 	onEnterSelectionMode,
 	onToggleSelection,
 	onClearSelection,
