@@ -114,12 +114,18 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
 	const containerTag = c.req.header("x-sm-project")
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
+	const mcpURL =
+		c.env.API_URL === "http://localhost:8787"
+			? "http://localhost:8788"
+			: "https://mcp.supermemory.ai"
 
-	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
-	const reqProto = c.req.header("x-forwarded-proto") || "https"
-	const resourceMetadataUrl = reqHost
-		? `${reqProto}://${reqHost}/.well-known/oauth-protected-resource`
-		: "/.well-known/oauth-protected-resource"
+	// TODO: commented out because this might be issue with auth
+	//const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
+	//const reqProto = c.req.header("x-forwarded-proto") || "https"
+	//const resourceMetadataUrl = reqHost
+	//	? `${reqProto}://${reqHost}/.well-known/oauth-protected-resource`
+	//	: "/.well-known/oauth-protected-resource"
+	const resourceMetadataUrl = `${mcpURL}/.well-known/oauth-protected-resource`
 
 	if (!token) {
 		return new Response("Unauthorized", {
