@@ -3,6 +3,14 @@ title: "Changelog"
 description: "New updates and improvements to Supermemory"
 ---
 
+<Update label="April 13, 2026" tags={["Integrations", "API"]}>
+
+### Google Drive: scoped sync by default
+
+New Google Drive connections default to **folder and file** scope: after OAuth, users complete a hosted picker; only selected items sync. Set `metadata.syncScope` to `"full"` on connection creation to sync the entire Drive without the picker. Scoped connections without a saved selection are skipped by import jobs until setup is finished.
+
+</Update>
+
 <Update label="March 18, 2026" tags={["API", "SDK", "Console", "CLI"]}>
 
 ### Supermemory CLI

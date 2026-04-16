@@ -6,6 +6,18 @@ icon: "google-drive"
 
 Connect Google Drive to sync documents into your Supermemory knowledge base with OAuth authentication and custom app support.
 
+## Sync scope
+
+**Default for new connections:** after OAuth, the user completes a **folder and file** picker (Google Docs, Sheets, Slides, and PDFs). Only items they select are synced and updated until they change the selection (for example from the Supermemory console).
+
+**Whole Drive:** set `metadata.syncScope` to `"full"` when creating the connection so the entire Drive syncs without the picker.
+
+**Explicit scoped mode:** set `metadata.syncScope` to `"selected"` for the picker flow, or rely on the default for new connects.
+
+<Note>
+If you use scoped sync and the user has not finished the picker yet, **scheduled or manual import may skip that connection** until a selection is saved on the connection.
+</Note>
+
 ## Quick Setup
 
 ### 1. Create Google Drive Connection
@@ -25,7 +37,8 @@ Connect Google Drive to sync documents into your Supermemory knowledge base with
       documentLimit: 3000,
       metadata: {
         source: 'google-drive',
-        department: 'engineering'
+        department: 'engineering',
+        syncScope: 'selected'
       }
     });
 
@@ -48,7 +61,8 @@ Connect Google Drive to sync documents into your Supermemory knowledge base with
         document_limit=3000,
         metadata={
             'source': 'google-drive',
-            'department': 'engineering'
+            'department': 'engineering',
+            'syncScope': 'selected',
         }
     )
 
@@ -68,16 +82,21 @@ Connect Google Drive to sync documents into your Supermemory knowledge base with
         "documentLimit": 3000,
         "metadata": {
           "source": "google-drive",
-          "department": "engineering"
+          "department": "engineering",
+          "syncScope": "selected"
         }
       }'
     ```
   </Tab>
 </Tabs>
 
+<Note>
+For **whole Drive** sync, include `"syncScope": "full"` in `metadata` on the same `POST /v3/connections/google-drive` request instead of `"selected"`.
+</Note>
+
 ### 2. Handle OAuth Callback
 
-After user grants permissions, Google redirects to your callback URL. The connection is automatically established.
+After the user grants permissions, Google redirects through Supermemory to finish the connection. With **scoped** sync (`syncScope` omitted or `"selected"`), the user is sent to Supermemory’s **hosted file and folder picker**; they must complete that step before imports run. With **`syncScope: "full"`**, Supermemory redirects to your `redirectUrl` (or returns connection details) **without** the picker. You can open the picker again later for an existing connection (Supermemory console, or `POST /v3/connections/{connectionId}/google-drive/hosted-picker` with an authenticated admin session).
 
 ### 3. Check Connection Status
 
