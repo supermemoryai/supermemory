@@ -113,7 +113,7 @@ const mcpHandler = SupermemoryMCP.serve("/mcp", {
 const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 	const authHeader = c.req.header("Authorization")
 	const token = authHeader?.replace(/^Bearer\s+/i, "")
-	const containerTag = c.req.header("x-sm-project")
+	const headerContainerTag = c.req.header("x-sm-project")
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 
 	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
@@ -173,6 +173,14 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 			},
 		)
 	}
+
+	// Default to the authenticated user's id when no explicit project header is
+	// provided. Without this fallback all MCP sessions share the hard-coded
+	// `sm_project_default` container inside SupermemoryClient, which is not the
+	// container the user's direct /v3 and /v4 API calls query — causing writes
+	// via MCP to be invisible to reads via the REST API and MCP `recall` when
+	// the client doesn't forward x-sm-project. See issue #792.
+	const containerTag = headerContainerTag || authUser.userId
 
 	// Create execution context with authenticated user props
 	const ctx = {
