@@ -23,6 +23,7 @@ jobs:
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
+                node-version: '24'
                 registry-url: 'https://registry.npmjs.org'
 
             - name: Setup Bun
@@ -38,7 +39,4 @@ jobs:
               run: bun run build
 
             - name: Publish
-              run: pnpm publish --access public --verbose
-              env:
-                NPM_CONFIG_PROVENANCE: true
-                NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              run: npm publish --access public --provenance
