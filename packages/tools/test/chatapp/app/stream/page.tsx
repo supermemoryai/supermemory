@@ -1,14 +1,13 @@
 "use client"
 
-import { DefaultChatTransport } from "ai"
 import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 import { useState } from "react"
 
 export default function Page() {
 	const [input, setInput] = useState("")
 
 	const { messages, sendMessage, status } = useChat({
-		// @ts-expect-error - Type mismatch between ai and @ai-sdk/react versions
 		transport: new DefaultChatTransport({
 			api: "/api/stream",
 		}),

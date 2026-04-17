@@ -1,4 +1,5 @@
 import { motion } from "motion/react"
+import { cn } from "@lib/utils"
 import { LabeledInput } from "@ui/input/labeled-input"
 import { Button } from "@ui/components/button"
 
@@ -17,7 +18,10 @@ export function InputStep({
 }: InputStepProps) {
 	return (
 		<motion.div
-			className="text-center min-w-[250px] flex flex-col"
+			className={cn(
+				"text-center min-w-[250px] flex flex-col",
+				isSubmitting && "pointer-events-none",
+			)}
 			style={{ gap: "24px" }}
 			initial={{
 				opacity: 0,
@@ -53,20 +57,27 @@ export function InputStep({
 					className="w-full flex-1"
 					inputProps={{
 						defaultValue: name,
+						disabled: isSubmitting,
 						onKeyDown: (e) => {
-							if (e.key === "Enter") {
-								handleSubmit()
-							}
+							if (e.key !== "Enter") return
+							e.preventDefault()
+							if (isSubmitting) return
+							handleSubmit()
 						},
 						className: "!text-white placeholder:!text-[#525966] !h-[40px] pl-4",
 					}}
-					onChange={(e) => setName((e.target as HTMLInputElement).value)}
+					onChange={(e) => {
+						if (isSubmitting) return
+						setName((e.target as HTMLInputElement).value)
+					}}
 					style={{
 						background:
 							"linear-gradient(0deg, rgba(91, 126, 245, 0.04) 0%, rgba(91, 126, 245, 0.04) 100%)",
 					}}
 				/>
 				<Button
+					type="button"
+					disabled={isSubmitting}
 					className={`rounded-[8px] w-8 h-8 p-2 absolute right-1 border-[0.5px] border-[#161F2C] hover:cursor-pointer hover:scale-[0.95] active:scale-[0.95] transition-transform ${
 						isSubmitting ? "scale-[0.90]" : ""
 					}`}

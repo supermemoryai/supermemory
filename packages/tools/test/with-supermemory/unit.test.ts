@@ -86,6 +86,25 @@ describe("Unit: withSupermemory", () => {
 			expect(wrappedModel).toBeDefined()
 			expect(wrappedModel.specificationVersion).toBe("v2")
 		})
+
+		it("should preserve provider, modelId, and spec when they live on the prototype", () => {
+			process.env.SUPERMEMORY_API_KEY = "test-key"
+
+			const proto: LanguageModelV2 = {
+				specificationVersion: "v2",
+				provider: "gateway",
+				modelId: "google/gemini-2.5-flash",
+				supportedUrls: {},
+				doGenerate: vi.fn(),
+				doStream: vi.fn(),
+			}
+			const inner = Object.create(proto) as LanguageModelV2
+			const wrappedModel = withSupermemory(inner, TEST_CONFIG.containerTag)
+
+			expect(wrappedModel.specificationVersion).toBe("v2")
+			expect(wrappedModel.provider).toBe("gateway")
+			expect(wrappedModel.modelId).toBe("google/gemini-2.5-flash")
+		})
 	})
 
 	describe("Memory caching", () => {

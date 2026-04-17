@@ -119,98 +119,113 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		promptTemplate: options?.promptTemplate,
 	})
 
-	const wrappedModel = {
-		...model,
+	// Proxy keeps prototype/getter fields (e.g. provider, modelId) that `{ ...model }` drops.
+	return new Proxy(model, {
+		get(target, prop, receiver) {
+			if (prop === "doGenerate") {
+				return async (params: LanguageModelCallOptions) => {
+					try {
+						const transformedParams = await transformParamsWithMemory(
+							params,
+							ctx,
+						)
 
-		doGenerate: async (params: LanguageModelCallOptions) => {
-			try {
-				const transformedParams = await transformParamsWithMemory(params, ctx)
+						// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+						const result = await target.doGenerate(transformedParams as any)
 
-				// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-				const result = await model.doGenerate(transformedParams as any)
-
-				const userMessage = getLastUserMessage(params)
-				if (ctx.addMemory === "always" && userMessage && userMessage.trim()) {
-					const assistantResponseText = extractAssistantResponseText(
-						result.content as unknown[],
-					)
-					saveMemoryAfterResponse(
-						ctx.client,
-						ctx.containerTag,
-						ctx.conversationId,
-						assistantResponseText,
-						params,
-						ctx.logger,
-						ctx.apiKey,
-						ctx.normalizedBaseUrl,
-					)
-				}
-
-				return result
-			} catch (error) {
-				ctx.logger.error("Error generating response", {
-					error: error instanceof Error ? error.message : "Unknown error",
-				})
-				throw error
-			}
-		},
-
-		doStream: async (params: LanguageModelCallOptions) => {
-			let generatedText = ""
-
-			try {
-				const transformedParams = await transformParamsWithMemory(params, ctx)
-
-				const { stream, ...rest } = await model.doStream(
-					// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-					transformedParams as any,
-				)
-
-				const transformStream = new TransformStream<
-					LanguageModelStreamPart,
-					LanguageModelStreamPart
-				>({
-					transform(chunk, controller) {
-						if (chunk.type === "text-delta") {
-							generatedText += chunk.delta
-						}
-						controller.enqueue(chunk)
-					},
-					flush: async () => {
 						const userMessage = getLastUserMessage(params)
 						if (
 							ctx.addMemory === "always" &&
 							userMessage &&
 							userMessage.trim()
 						) {
+							const assistantResponseText = extractAssistantResponseText(
+								result.content as unknown[],
+							)
 							saveMemoryAfterResponse(
 								ctx.client,
 								ctx.containerTag,
 								ctx.conversationId,
-								generatedText,
+								assistantResponseText,
 								params,
 								ctx.logger,
 								ctx.apiKey,
 								ctx.normalizedBaseUrl,
 							)
 						}
-					},
-				})
 
-				return {
-					stream: stream.pipeThrough(transformStream),
-					...rest,
+						return result
+					} catch (error) {
+						ctx.logger.error("Error generating response", {
+							error: error instanceof Error ? error.message : "Unknown error",
+						})
+						throw error
+					}
 				}
-			} catch (error) {
-				ctx.logger.error("Error streaming response", {
-					error: error instanceof Error ? error.message : "Unknown error",
-				})
-				throw error
 			}
-		},
-	} as T
 
-	return wrappedModel
+			if (prop === "doStream") {
+				return async (params: LanguageModelCallOptions) => {
+					let generatedText = ""
+
+					try {
+						const transformedParams = await transformParamsWithMemory(
+							params,
+							ctx,
+						)
+
+						const { stream, ...rest } = await target.doStream(
+							// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+							transformedParams as any,
+						)
+
+						const transformStream = new TransformStream<
+							LanguageModelStreamPart,
+							LanguageModelStreamPart
+						>({
+							transform(chunk, controller) {
+								if (chunk.type === "text-delta") {
+									generatedText += chunk.delta
+								}
+								controller.enqueue(chunk)
+							},
+							flush: async () => {
+								const userMessage = getLastUserMessage(params)
+								if (
+									ctx.addMemory === "always" &&
+									userMessage &&
+									userMessage.trim()
+								) {
+									saveMemoryAfterResponse(
+										ctx.client,
+										ctx.containerTag,
+										ctx.conversationId,
+										generatedText,
+										params,
+										ctx.logger,
+										ctx.apiKey,
+										ctx.normalizedBaseUrl,
+									)
+								}
+							},
+						})
+
+						return {
+							stream: stream.pipeThrough(transformStream),
+							...rest,
+						}
+					} catch (error) {
+						ctx.logger.error("Error streaming response", {
+							error: error instanceof Error ? error.message : "Unknown error",
+						})
+						throw error
+					}
+				}
+			}
+
+			return Reflect.get(target, prop, receiver)
+		},
+	}) as T
 }
 
 export {

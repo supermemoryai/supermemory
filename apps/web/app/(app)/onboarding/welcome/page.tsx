@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { cn } from "@lib/utils"
 
@@ -102,66 +103,70 @@ export default function WelcomePage() {
 	} = useWelcomeContext()
 
 	const { refetchOrganizations, setActiveOrg } = useAuth()
+	const submitLockRef = useRef(false)
 
 	const handleSubmit = async () => {
-		localStorage.setItem("username", name)
-		if (name.trim()) {
-			setIsSubmitting(true)
+		const trimmed = name.trim()
+		if (!trimmed) return
+		if (submitLockRef.current) return
+		submitLockRef.current = true
+		localStorage.setItem("username", trimmed)
+		setIsSubmitting(true)
 
-			try {
-				await authClient.updateUser({
-					displayUsername: name.trim(),
-					username: generateUsername(name.trim()),
+		try {
+			await authClient.updateUser({
+				displayUsername: trimmed,
+				username: generateUsername(trimmed),
+			})
+
+			const refetchResult = await refetchOrganizations()
+			const refetchData = (
+				refetchResult as { data?: unknown[] | null | undefined }
+			)?.data
+			const existingOrgs = Array.isArray(refetchData) ? refetchData : []
+
+			if (existingOrgs.length > 0) {
+				analytics.onboardingNameSubmitted({
+					name_length: trimmed.length,
 				})
+				goToStep("greeting")
+				return
+			}
 
-				const refetchResult = await refetchOrganizations()
-				const refetchData = (
-					refetchResult as { data?: unknown[] | null | undefined }
-				)?.data
-				const existingOrgs = Array.isArray(refetchData) ? refetchData : []
-
-				if (existingOrgs.length > 0) {
-					analytics.onboardingNameSubmitted({
-						name_length: name.trim().length,
-					})
-					goToStep("greeting")
-					return
-				}
-
-				const uniqueSlug = generateOrgSlug(name.trim())
-				const completedAt = new Date().toISOString()
-				const newOrg = await authClient.organization.create({
-					name: name.trim(),
-					slug: uniqueSlug,
-					metadata: {
-						signupSource: "consumer",
-						webOnboarding: {
-							completedAt: null,
-							steps: {
-								welcomeInput: {
-									startedAt: completedAt,
-									completedAt,
-									data: {},
-								},
+			const uniqueSlug = generateOrgSlug(trimmed)
+			const completedAt = new Date().toISOString()
+			const newOrg = await authClient.organization.create({
+				name: trimmed,
+				slug: uniqueSlug,
+				metadata: {
+					signupSource: "consumer",
+					webOnboarding: {
+						completedAt: null,
+						steps: {
+							welcomeInput: {
+								startedAt: completedAt,
+								completedAt,
+								data: {},
 							},
 						},
 					},
-				})
+				},
+			})
 
-				await setActiveOrg(newOrg.slug)
+			await setActiveOrg(newOrg.slug)
 
-				analytics.onboardingNameSubmitted({ name_length: name.trim().length })
-				goToStep("greeting")
-			} catch (error) {
-				console.error("Onboarding submit failed:", error)
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Could not set up your workspace. Please try again.",
-				)
-			} finally {
-				setIsSubmitting(false)
-			}
+			analytics.onboardingNameSubmitted({ name_length: trimmed.length })
+			goToStep("greeting")
+		} catch (error) {
+			console.error("Onboarding submit failed:", error)
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Could not set up your workspace. Please try again.",
+			)
+		} finally {
+			submitLockRef.current = false
+			setIsSubmitting(false)
 		}
 	}
 
@@ -212,6 +217,7 @@ export default function WelcomePage() {
 				showUserSupermemory={
 					currentStep === "features" || currentStep === "memories"
 				}
+				showSkipOnboarding={currentStep !== "input"}
 				name={name}
 			/>
 

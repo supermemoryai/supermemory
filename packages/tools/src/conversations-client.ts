@@ -34,6 +34,7 @@ export interface AddConversationParams {
 	messages: ConversationMessage[]
 	containerTags?: string[]
 	metadata?: Record<string, string | number | boolean>
+	entityContext?: string
 	apiKey: string
 	baseUrl?: string
 }
@@ -86,6 +87,7 @@ export async function addConversation(
 			messages: params.messages,
 			containerTags: params.containerTags,
 			metadata: params.metadata,
+			entityContext: params.entityContext,
 		}),
 	})
 

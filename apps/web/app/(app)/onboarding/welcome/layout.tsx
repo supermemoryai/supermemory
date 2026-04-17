@@ -11,6 +11,7 @@ import {
 } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useOnboardingContext, type MemoryFormData } from "../layout"
+import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 
 export const WELCOME_STEPS = [
@@ -51,13 +52,17 @@ export default function WelcomeLayout({ children }: { children: ReactNode }) {
 	const searchParams = useSearchParams()
 	const { name, setName, memoryFormData, setMemoryFormData } =
 		useOnboardingContext()
+	const { organizations } = useAuth()
+	const hasOrgs = Array.isArray(organizations) && organizations.length > 0
 
 	const stepParam = searchParams.get("step")
-	const currentStep: WelcomeStep = WELCOME_STEPS.includes(
+	const resolvedStep: WelcomeStep = WELCOME_STEPS.includes(
 		stepParam as WelcomeStep,
 	)
 		? (stepParam as WelcomeStep)
 		: "input"
+	const currentStep: WelcomeStep =
+		resolvedStep === "input" && hasOrgs ? "greeting" : resolvedStep
 
 	const [isSubmitting, setIsSubmitting] = useState(false)
 	const [showWelcomeContent, setShowWelcomeContent] = useState(false)

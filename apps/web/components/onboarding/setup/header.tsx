@@ -8,11 +8,20 @@ import { useRouter } from "next/navigation"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
+import { useOrgOnboarding } from "@hooks/use-org-onboarding"
+import { analytics } from "@/lib/analytics"
 
 export function SetupHeader() {
 	const { user } = useAuth()
 	const router = useRouter()
 	const localStorageUsername = useLocalStorageUsername()
+	const { markOrgOnboarded, isLoading: isOrgLoading } = useOrgOnboarding()
+
+	const handleSkip = () => {
+		markOrgOnboarded()
+		analytics.onboardingCompleted()
+		router.push("/")
+	}
 
 	const displayName =
 		user?.displayUsername || localStorageUsername || user?.name || ""
@@ -59,9 +68,21 @@ export function SetupHeader() {
 				</span>
 				<span className="text-white/50 font-medium shrink-0">Setup</span>
 			</nav>
-			{user && (
-				<UserProfileMenu className="z-10" avatarClassName="border-border" />
-			)}
+			<div className="flex items-center gap-3 z-10">
+				{!isOrgLoading && (
+					<button
+						type="button"
+						onClick={handleSkip}
+						className={cn(
+							"text-sm text-white/40 hover:text-white/70 transition-colors cursor-pointer",
+							dmSansClassName(),
+						)}
+					>
+						Skip Onboarding
+					</button>
+				)}
+				{user && <UserProfileMenu avatarClassName="border-border" />}
+			</div>
 		</motion.div>
 	)
 }

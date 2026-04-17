@@ -1,6 +1,5 @@
 import { OpenAI } from "openai"
-//import { withSupermemory } from "@supermemory/tools/openai"
-import { withSupermemory } from "../../../../../src/openai"
+import { withSupermemory } from "@supermemory/tools/openai"
 
 export const runtime = "nodejs"
 

@@ -1,14 +1,30 @@
+"use client"
+
 import { Logo } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
+import { useRouter } from "next/navigation"
+import { useOrgOnboarding } from "@hooks/use-org-onboarding"
+import { analytics } from "@/lib/analytics"
 
 export function InitialHeader({
 	showUserSupermemory,
+	showSkipOnboarding,
 	name,
 }: {
 	showUserSupermemory?: boolean
+	showSkipOnboarding?: boolean
 	name?: string
 }) {
+	const router = useRouter()
+	const { markOrgOnboarded, isLoading } = useOrgOnboarding()
 	const userName = name ? `${name.split(" ")[0]}'s` : "My"
+
+	const handleSkip = () => {
+		markOrgOnboarded()
+		analytics.onboardingCompleted()
+		router.push("/")
+	}
+
 	return (
 		<div className="flex p-6 justify-between items-center">
 			<div className="flex items-center z-10!">
@@ -24,13 +40,24 @@ export function InitialHeader({
 					</div>
 				)}
 			</div>
-			<Button
-				variant="newDefault"
-				className="rounded-2xl text-base gap-1 h-11! z-10!"
-				size={"lg"}
-			>
-				Memory API <span className="text-xs mt-[4px]">↗</span>
-			</Button>
+			<div className="flex items-center gap-3 z-10!">
+				{showSkipOnboarding && !isLoading && (
+					<button
+						type="button"
+						onClick={handleSkip}
+						className="text-sm text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+					>
+						Skip Onboarding
+					</button>
+				)}
+				<Button
+					variant="newDefault"
+					className="rounded-2xl text-base gap-1 h-11!"
+					size="lg"
+				>
+					Memory API <span className="text-xs mt-[4px]">↗</span>
+				</Button>
+			</div>
 		</div>
 	)
 }

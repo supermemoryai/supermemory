@@ -9,23 +9,28 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/react": "3.0.160",
+    "@posthog/ai": "^7.3.0",
+    "@supermemory/tools": "1.4.1",
+    "ai": "6.0.158",
+    "next": "16.0.0",
+    "openai": "^4.104.0",
+    "posthog-node": "^5.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "next": "16.0.0",
-    "ai": "^4.0.0",
-    "@ai-sdk/openai": "^1.0.0",
-    "openai": "^4.104.0",
-    "supermemory": "^1.0.0",
-    "@supermemory/tools": "workspace:*"
+    "zod": "^4.1.8"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
-    "eslint-config-next": "16.0.0"
+    "eslint-config-next": "16.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "overrides": {
+    "ai": "6.0.158"
   }
 }

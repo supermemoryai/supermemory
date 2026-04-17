@@ -1,27 +1,17 @@
-import { streamText, type ModelMessage } from "ai"
-import { openai } from "@ai-sdk/openai"
-import { withSupermemory } from "../../../../../src/vercel"
+import { gateway, streamText, type ModelMessage } from "ai"
+import { withSupermemory } from "@supermemory/tools/ai-sdk"
 
-const model = withSupermemory(openai("gpt-4"), "user-123", {
+const model = withSupermemory(gateway("google/gemini-2.5-flash"), "user-1", {
+	apiKey: process.env.SUPERMEMORY_API_KEY ?? "",
 	mode: "full",
 	addMemory: "always",
-	conversationId: "chat-session",
-	verbose: true,
+	baseUrl: process.env.SUPERMEMORY_BASE_URL,
 })
 
 export async function POST(req: Request) {
 	const { messages }: { messages: ModelMessage[] } = await req.json()
 
-	// Commented out generateText implementation
-	// const { response } = await generateText({
-	// 	model,
-	// 	system: "You are a helpful assistant.",
-	// 	messages,
-	// })
-	// return Response.json({ messages: response.messages })
-
-	// New streaming implementation
-	const result = await streamText({
+	const result = streamText({
 		model,
 		system: "You are a helpful assistant.",
 		messages,
