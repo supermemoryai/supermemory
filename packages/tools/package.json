@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "1.3.62",
+  "version": "2.0.0",
   "description": "Memory tools for AI SDK and OpenAI function calling with supermemory",
   "scripts": {
     "build": "tsdown",
@@ -40,8 +40,10 @@
   "exports": {
     ".": "./dist/index.js",
     "./ai-sdk": "./dist/ai-sdk.js",
+    "./vercel": "./dist/vercel/index.js",
     "./claude-memory": "./dist/claude-memory.js",
     "./openai": "./dist/openai/index.js",
+    "./mastra": "./dist/mastra/index.js",
     "./package.json": "./package.json"
   },
   "repository": {
