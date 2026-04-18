@@ -5,8 +5,12 @@ import type { MemoryMode } from "./types"
  * Generic memory cache for storing per-turn memories to avoid redundant API calls.
  * Used to cache memory retrieval results during tool-call loops within the same turn.
  */
-export class MemoryCache<T = string> {
-	private cache: LRUCache<string, T> = new LRUCache({ max: 100 })
+export class MemoryCache<T extends {} = string> {
+	private cache: LRUCache<string, T>
+
+	constructor() {
+		this.cache = new LRUCache<string, T>({ max: 100 })
+	}
 
 	/**
 	 * Generates a cache key for the current turn based on context parameters.

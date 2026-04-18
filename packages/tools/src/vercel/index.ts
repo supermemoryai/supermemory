@@ -12,9 +12,10 @@ import {
 } from "./middleware"
 import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
 
-interface WrapVercelLanguageModelOptions<T extends LanguageModel> {
-	/** The language model to wrap with supermemory capabilities */
-	model: T
+/**
+ * Configuration options for Supermemory integration
+ */
+interface WithSupermemoryConfig {
 	/** The container tag/identifier for memory search (e.g., user ID, project ID) */
 	containerTag: string
 	/** Custom ID to group messages into a single document. Required. */
@@ -76,17 +77,17 @@ interface WrapVercelLanguageModelOptions<T extends LanguageModel> {
  * Supports both Vercel AI SDK 5 (LanguageModelV2) and SDK 6 (LanguageModelV3) via runtime
  * detection of `model.specificationVersion`.
  *
- * @param options - Configuration object containing model and Supermemory options
- * @param options.model - The language model to wrap with supermemory capabilities (V2 or V3)
- * @param options.containerTag - Required. The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param options.customId - Required. Custom ID to group messages into a single document
- * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
- * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
- * @param options.searchMode - Optional search mode: "memories" (default), "hybrid" (memories + chunks), or "documents" (chunks only)
- * @param options.searchLimit - Optional maximum number of search results when using hybrid/documents mode (default: 10)
- * @param options.addMemory - Optional mode for memory persistence: "always" (default - saves conversations), "never" (read-only mode)
- * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
- * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
+ * @param model - The language model to wrap with supermemory capabilities (V2 or V3)
+ * @param config - Configuration object for Supermemory integration
+ * @param config.containerTag - Required. The container tag/identifier for memory search (e.g., user ID, project ID)
+ * @param config.customId - Required. Custom ID to group messages into a single document
+ * @param config.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
+ * @param config.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
+ * @param config.searchMode - Optional search mode: "memories" (default), "hybrid" (memories + chunks), or "documents" (chunks only)
+ * @param config.searchLimit - Optional maximum number of search results when using hybrid/documents mode (default: 10)
+ * @param config.addMemory - Optional mode for memory persistence: "always" (default - saves conversations), "never" (read-only mode)
+ * @param config.apiKey - Optional Supermemory API key to use instead of the environment variable
+ * @param config.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  *
  * @returns A wrapped language model that automatically includes relevant memories in prompts
  *
@@ -97,23 +98,27 @@ interface WrapVercelLanguageModelOptions<T extends LanguageModel> {
  * import { generateText } from "ai"
  *
  * // Basic usage with profile memories
- * const modelWithMemory = withSupermemory({
- *   model: openai("gpt-4"),
- *   containerTag: "user-123",
- *   customId: "conv-456",
- *   mode: "full",
- *   addMemory: "always"
- * })
+ * const modelWithMemory = withSupermemory(
+ *   openai("gpt-4"),
+ *   {
+ *     containerTag: "user-123",
+ *     customId: "conv-456",
+ *     mode: "full",
+ *     addMemory: "always"
+ *   }
+ * )
  *
  * // RAG usage with hybrid search (memories + document chunks)
- * const ragModel = withSupermemory({
- *   model: openai("gpt-4"),
- *   containerTag: "user-123",
- *   customId: "conv-789",
- *   mode: "full",
- *   searchMode: "hybrid",  // Search both memories and document chunks
- *   searchLimit: 15,
- * })
+ * const ragModel = withSupermemory(
+ *   openai("gpt-4"),
+ *   {
+ *     containerTag: "user-123",
+ *     customId: "conv-789",
+ *     mode: "full",
+ *     searchMode: "hybrid",  // Search both memories and document chunks
+ *     searchLimit: 15,
+ *   }
+ * )
  *
  * const result = await generateText({
  *   model: ragModel,
@@ -121,13 +126,14 @@ interface WrapVercelLanguageModelOptions<T extends LanguageModel> {
  * })
  * ```
  *
- * @throws {Error} When neither `options.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
+ * @throws {Error} When neither `config.apiKey` nor `process.env.SUPERMEMORY_API_KEY` are set
  * @throws {Error} When supermemory API request fails
  */
 const wrapVercelLanguageModel = <T extends LanguageModel>(
-	options: WrapVercelLanguageModelOptions<T>,
+	model: T,
+	config: WithSupermemoryConfig,
 ): T => {
-	const { model, containerTag, customId, ...restOptions } = options
+	const { containerTag, customId, ...restOptions } = config
 	const providedApiKey = restOptions.apiKey ?? process.env.SUPERMEMORY_API_KEY
 
 	if (!providedApiKey) {
@@ -149,109 +155,113 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		promptTemplate: restOptions.promptTemplate,
 	})
 
-	const wrappedModel = {
-		...model,
+	// Use Object.create to preserve prototype chain, then copy own properties
+	const wrappedModel = Object.create(
+		Object.getPrototypeOf(model),
+		Object.getOwnPropertyDescriptors(model),
+	) as T
 
-		doGenerate: async (params: LanguageModelCallOptions) => {
-			try {
-				const transformedParams = await transformParamsWithMemory(params, ctx)
+	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+	wrappedModel.doGenerate = async (params: LanguageModelCallOptions): Promise<any> => {
+		try {
+			const transformedParams = await transformParamsWithMemory(params, ctx)
 
-				// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-				const result = await model.doGenerate(transformedParams as any)
+			// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+			const result = await model.doGenerate(transformedParams as any)
 
-				const userMessage = getLastUserMessage(params)
-				if (
-					ctx.addMemory === "always" &&
-					ctx.customId &&
-					userMessage &&
-					userMessage.trim()
-				) {
-					const assistantResponseText = extractAssistantResponseText(
-						result.content as unknown[],
-					)
-					saveMemoryAfterResponse(
-						ctx.client,
-						ctx.containerTag,
-						ctx.customId,
-						assistantResponseText,
-						params,
-						ctx.logger,
-						ctx.apiKey,
-						ctx.normalizedBaseUrl,
-					)
-				}
-
-				return result
-			} catch (error) {
-				ctx.logger.error("Error generating response", {
-					error: error instanceof Error ? error.message : "Unknown error",
-				})
-				throw error
-			}
-		},
-
-		doStream: async (params: LanguageModelCallOptions) => {
-			let generatedText = ""
-
-			try {
-				const transformedParams = await transformParamsWithMemory(params, ctx)
-
-				const { stream, ...rest } = await model.doStream(
-					// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-					transformedParams as any,
+			const userMessage = getLastUserMessage(params)
+			if (
+				ctx.addMemory === "always" &&
+				ctx.customId &&
+				userMessage &&
+				userMessage.trim()
+			) {
+				const assistantResponseText = extractAssistantResponseText(
+					result.content as unknown[],
 				)
-
-				const transformStream = new TransformStream<
-					LanguageModelStreamPart,
-					LanguageModelStreamPart
-				>({
-					transform(chunk, controller) {
-						if (chunk.type === "text-delta") {
-							generatedText += chunk.delta
-						}
-						controller.enqueue(chunk)
-					},
-					flush: async () => {
-						const userMessage = getLastUserMessage(params)
-						if (
-							ctx.addMemory === "always" &&
-							ctx.customId &&
-							userMessage &&
-							userMessage.trim()
-						) {
-							saveMemoryAfterResponse(
-								ctx.client,
-								ctx.containerTag,
-								ctx.customId,
-								generatedText,
-								params,
-								ctx.logger,
-								ctx.apiKey,
-								ctx.normalizedBaseUrl,
-							)
-						}
-					},
-				})
-
-				return {
-					stream: stream.pipeThrough(transformStream),
-					...rest,
-				}
-			} catch (error) {
-				ctx.logger.error("Error streaming response", {
-					error: error instanceof Error ? error.message : "Unknown error",
-				})
-				throw error
+				saveMemoryAfterResponse(
+					ctx.client,
+					ctx.containerTag,
+					ctx.customId,
+					assistantResponseText,
+					params,
+					ctx.logger,
+					ctx.apiKey,
+					ctx.normalizedBaseUrl,
+				)
 			}
-		},
-	} as T
+
+			return result
+		} catch (error) {
+			ctx.logger.error("Error generating response", {
+				error: error instanceof Error ? error.message : "Unknown error",
+			})
+			throw error
+		}
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+	wrappedModel.doStream = async (params: LanguageModelCallOptions): Promise<any> => {
+		let generatedText = ""
+
+		try {
+			const transformedParams = await transformParamsWithMemory(params, ctx)
+
+			const { stream, ...rest } = await model.doStream(
+				// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+				transformedParams as any,
+			)
+
+			const transformStream = new TransformStream<
+				LanguageModelStreamPart,
+				LanguageModelStreamPart
+			>({
+				transform(chunk, controller) {
+					if (chunk.type === "text-delta") {
+						generatedText += chunk.delta
+					}
+					controller.enqueue(chunk)
+				},
+				flush: async () => {
+					const userMessage = getLastUserMessage(params)
+					if (
+						ctx.addMemory === "always" &&
+						ctx.customId &&
+						userMessage &&
+						userMessage.trim()
+					) {
+						saveMemoryAfterResponse(
+							ctx.client,
+							ctx.containerTag,
+							ctx.customId,
+							generatedText,
+							params,
+							ctx.logger,
+							ctx.apiKey,
+							ctx.normalizedBaseUrl,
+						)
+					}
+				},
+			})
+
+			return {
+				stream: stream.pipeThrough(transformStream),
+				...rest,
+			}
+		} catch (error) {
+			ctx.logger.error("Error streaming response", {
+				error: error instanceof Error ? error.message : "Unknown error",
+			})
+			throw error
+		}
+	}
 
 	return wrappedModel
 }
 
 export {
 	wrapVercelLanguageModel as withSupermemory,
-	type WrapVercelLanguageModelOptions as WithSupermemoryOptions,
+	type WithSupermemoryConfig,
 	type PromptTemplate,
 	type MemoryPromptData,
 }

@@ -73,8 +73,7 @@ describe("Unit: withSupermemory", () => {
 			const mockModel = createMockLanguageModel()
 
 			expect(() => {
-				withSupermemory({
-					model: mockModel,
+				withSupermemory(mockModel, {
 					containerTag: TEST_CONFIG.containerTag,
 					customId: "test-conv-123",
 				})
@@ -85,8 +84,7 @@ describe("Unit: withSupermemory", () => {
 			process.env.SUPERMEMORY_API_KEY = "test-key"
 
 			const mockModel = createMockLanguageModel()
-			const wrappedModel = withSupermemory({
-				model: mockModel,
+			const wrappedModel = withSupermemory(mockModel, {
 				containerTag: TEST_CONFIG.containerTag,
 				customId: "test-conv-456",
 			})
@@ -107,7 +105,10 @@ describe("Unit: withSupermemory", () => {
 				doStream: vi.fn(),
 			}
 			const inner = Object.create(proto) as LanguageModelV2
-			const wrappedModel = withSupermemory(inner, TEST_CONFIG.containerTag)
+			const wrappedModel = withSupermemory(inner, {
+				containerTag: TEST_CONFIG.containerTag,
+				customId: "test-proto",
+			})
 
 			expect(wrappedModel.specificationVersion).toBe("v2")
 			expect(wrappedModel.provider).toBe("gateway")
@@ -149,7 +150,7 @@ describe("Unit: withSupermemory", () => {
 			await transformParamsWithMemory(params, ctx)
 
 			expect(ctx.memoryCache).toBeDefined()
-			const turnKey = `${TEST_CONFIG.containerTag}::profile:Hello`
+			const turnKey = `${TEST_CONFIG.containerTag}:test-cache-123:profile:Hello`
 			const cachedMemories = ctx.memoryCache.get(turnKey)
 			expect(cachedMemories).toBeDefined()
 			expect(cachedMemories).toContain("Cached memory")

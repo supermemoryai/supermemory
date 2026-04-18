@@ -35,8 +35,7 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/vercel"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithMemory = withSupermemory({
-  model: openai("gpt-4"),
+const modelWithMemory = withSupermemory(openai("gpt-4"), {
   containerTag: "user-123",
   customId: "conv-456"
 })
@@ -51,8 +50,7 @@ const result = await generateText({
   **Memory saving is enabled by default.** The middleware automatically saves conversations to memory. To disable memory saving:
 
   ```typescript
-  const modelWithMemory = withSupermemory({
-    model: openai("gpt-4"),
+  const modelWithMemory = withSupermemory(openai("gpt-4"), {
     containerTag: "user-123",
     customId: "conv-456",
     addMemory: "never"
@@ -65,8 +63,7 @@ const result = await generateText({
 **Profile Mode (Default)** - Retrieves the user's complete profile:
 
 ```typescript
-const model = withSupermemory({
-  model: openai("gpt-4"),
+const model = withSupermemory(openai("gpt-4"), {
   containerTag: "user-123",
   customId: "conv-456",
   mode: "profile"
@@ -76,8 +73,7 @@ const model = withSupermemory({
 **Query Mode** - Searches memories based on the user's message:
 
 ```typescript
-const model = withSupermemory({
-  model: openai("gpt-4"),
+const model = withSupermemory(openai("gpt-4"), {
   containerTag: "user-123",
   customId: "conv-456",
   mode: "query"
@@ -87,8 +83,7 @@ const model = withSupermemory({
 **Full Mode** - Combines profile AND query-based search:
 
 ```typescript
-const model = withSupermemory({
-  model: openai("gpt-4"),
+const model = withSupermemory(openai("gpt-4"), {
   containerTag: "user-123",
   customId: "conv-456",
   mode: "full"
@@ -113,8 +108,7 @@ const claudePrompt = (data: MemoryPromptData) => `
 </context>
 `.trim()
 
-const model = withSupermemory({
-  model: anthropic("claude-3-sonnet"),
+const model = withSupermemory(anthropic("claude-3-sonnet"), {
   containerTag: "user-123",
   customId: "conv-456",
   mode: "full",
@@ -125,8 +119,7 @@ const model = withSupermemory({
 ### Verbose Logging
 
 ```typescript
-const model = withSupermemory({
-  model: openai("gpt-4"),
+const model = withSupermemory(openai("gpt-4"), {
   containerTag: "user-123",
   customId: "conv-456",
   verbose: true

@@ -3,6 +3,7 @@ export type {
 	MemoryPromptData,
 	PromptTemplate,
 	MemoryMode,
+	SearchMode,
 	AddMemoryMode,
 	Logger,
 	ProfileStructure,

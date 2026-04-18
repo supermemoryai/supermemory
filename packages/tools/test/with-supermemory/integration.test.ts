@@ -82,8 +82,8 @@ const createIntegrationMockModel = () => {
 		reset: () => {
 			capturedGenerateParams = null
 			capturedStreamParams = null
-			vi.mocked(model.doGenerate).mockClear()
-			vi.mocked(model.doStream).mockClear()
+			;(model.doGenerate as any).mockClear()
+			;(model.doStream as any).mockClear()
 		},
 	}
 }
@@ -96,8 +96,7 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model, getCapturedGenerateParams } =
 					createIntegrationMockModel()
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -126,8 +125,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const customId = `test-generate-${Date.now()}`
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -169,8 +167,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const customId = `test-conversation-${Date.now()}`
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -198,8 +195,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should fetch memories and stream response", async () => {
 				const { model, getCapturedStreamParams } = createIntegrationMockModel()
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-stream-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -236,8 +232,7 @@ describe.skipIf(!shouldRunIntegration)(
 
 				const customId = `test-stream-${Date.now()}`
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -278,8 +273,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should handle text-delta chunks correctly", async () => {
 				const { model } = createIntegrationMockModel()
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-chunks-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -318,8 +312,7 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-profile-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -358,8 +351,7 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-query-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -398,8 +390,7 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-full-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -444,8 +435,7 @@ describe.skipIf(!shouldRunIntegration)(
 					generalSearchMemories: string
 				}) => `<custom-memories>${data.userMemories}</custom-memories>`
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-template-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -472,8 +462,7 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model, getCapturedGenerateParams } =
 					createIntegrationMockModel()
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-verbose-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -500,8 +489,7 @@ describe.skipIf(!shouldRunIntegration)(
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				// Use the configured base URL (or default)
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-baseurl-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -537,12 +525,11 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 
 				// Override doGenerate to throw an error
-				vi.mocked(model.doGenerate).mockRejectedValueOnce(
+				;(model.doGenerate as any).mockRejectedValueOnce(
 					new Error("Model error"),
 				)
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-error-${Date.now()}`,
 					apiKey: INTEGRATION_CONFIG.apiKey,
@@ -564,8 +551,7 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should handle invalid API key gracefully", async () => {
 				const { model } = createIntegrationMockModel()
 
-				const wrapped = withSupermemory({
-					model,
+				const wrapped = withSupermemory(model, {
 					containerTag: INTEGRATION_CONFIG.containerTag,
 					customId: `test-invalid-key-${Date.now()}`,
 					apiKey: "invalid-api-key-12345",
