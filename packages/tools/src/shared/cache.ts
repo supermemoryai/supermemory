@@ -13,19 +13,19 @@ export class MemoryCache<T = string> {
 	 * Normalizes the message by trimming and collapsing whitespace.
 	 *
 	 * @param containerTag - The container tag/user ID
-	 * @param conversationId - Optional conversation ID
+	 * @param customId - Custom ID for grouping messages (e.g., conversation ID)
 	 * @param mode - The memory retrieval mode
 	 * @param message - The user message content
 	 * @returns A unique cache key for this turn
 	 */
 	static makeTurnKey(
 		containerTag: string,
-		conversationId: string | undefined,
+		customId: string | undefined,
 		mode: MemoryMode,
 		message: string,
 	): string {
 		const normalizedMessage = message.trim().replace(/\s+/g, " ")
-		return `${containerTag}:${conversationId || ""}:${mode}:${normalizedMessage}`
+		return `${containerTag}:${customId || ""}:${mode}:${normalizedMessage}`
 	}
 
 	/**

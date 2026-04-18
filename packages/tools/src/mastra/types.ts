@@ -44,7 +44,8 @@ export interface SupermemoryMastraOptions extends SupermemoryBaseOptions {
 	containerTag: string
 
 	/**
-	 * Custom ID for grouping messages into the same document (e.g., conversation ID)
+	 * Custom ID for grouping messages into the same document (e.g., conversation ID).
+	 * Required for Mastra processors.
 	 */
 	customId: string
 }
