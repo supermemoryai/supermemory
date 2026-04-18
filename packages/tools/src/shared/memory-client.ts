@@ -1,4 +1,4 @@
-import { deduplicateMemories } from "../tools-shared"
+import Supermemory from "supermemory"
 import type {
 	Logger,
 	MemoryMode,
@@ -7,10 +7,8 @@ import type {
 	ProfileStructure,
 	PromptTemplate,
 } from "./types"
-import {
-	convertProfileToMarkdown,
-	defaultPromptTemplate,
-} from "./prompt-builder"
+import { defaultPromptTemplate } from "./prompt-builder"
+import { normalizeBaseUrl } from "./context"
 
 /**
  * Fetches profile and search results from the Supermemory API.
@@ -85,8 +83,95 @@ export interface BuildMemoriesTextOptions {
 }
 
 /**
+ * Searches for document chunks using the Supermemory search API.
+ *
+ * @param client - The Supermemory client instance
+ * @param containerTag - The container tag for scoping
+ * @param queryText - The search query
+ * @param limit - Maximum number of results
+ * @returns Array of chunk content strings
+ */
+const searchDocumentChunks = async (
+	client: Supermemory,
+	containerTag: string,
+	queryText: string,
+	limit: number,
+): Promise<string[]> => {
+	if (!queryText) return []
+
+	const response = await client.search.documents({
+		q: queryText,
+		containerTags: [containerTag],
+		limit,
+	})
+
+	const chunks: string[] = []
+	for (const result of response.results) {
+		for (const chunk of result.chunks) {
+			if (chunk.isRelevant) {
+				chunks.push(chunk.content)
+			}
+		}
+	}
+	return chunks
+}
+
+/**
+ * Searches for memories with optional document chunks using the Supermemory search API.
+ *
+ * @param client - The Supermemory client instance
+ * @param containerTag - The container tag for scoping
+ * @param queryText - The search query
+ * @param limit - Maximum number of results
+ * @param includeChunks - Whether to include document chunks (hybrid mode)
+ * @returns Object with memories array and optional chunks array
+ */
+const searchMemoriesWithChunks = async (
+	client: Supermemory,
+	containerTag: string,
+	queryText: string,
+	limit: number,
+	includeChunks: boolean,
+): Promise<{ memories: string[]; chunks: string[] }> => {
+	if (!queryText) return { memories: [], chunks: [] }
+
+	const response = await client.search.memories({
+		q: queryText,
+		containerTag,
+		limit,
+		include: {
+			chunks: includeChunks,
+		},
+	})
+
+	const memories: string[] = []
+	const chunks: string[] = []
+
+	for (const result of response.results) {
+		memories.push(result.memory)
+		if (includeChunks && result.chunks) {
+			for (const chunk of result.chunks) {
+				chunks.push(chunk.content)
+			}
+		}
+	}
+
+	return { memories, chunks }
+}
+
+/**
  * Fetches memories from the API, deduplicates them, and formats them into
  * the final string to be injected into the system prompt.
+ *
+ * Memory modes (controls profile API /v4/profile):
+ * - "profile": Fetches user profile without query-based filtering
+ * - "query": Fetches user profile with query-based semantic search
+ * - "full": Same as "query" - fetches profile with query search
+ *
+ * Search modes (controls search endpoints - independent of mode):
+ * - "memories": Uses search.memories endpoint only (memory entries)
+ * - "hybrid": Uses both search.memories AND search.documents (memories + chunks)
+ * - "documents": Uses search.documents endpoint only (document chunks)
  *
  * @param options - Configuration for building memories text
  * @returns The final formatted memories string ready for injection
@@ -102,80 +187,172 @@ export const buildMemoriesText = async (
 		apiKey,
 		logger,
 		promptTemplate = defaultPromptTemplate,
+		searchMode = "memories",
+		searchLimit = 10,
 	} = options
 
-	const memoriesResponse = await supermemoryProfileSearch(
-		containerTag,
-		queryText,
-		baseUrl,
-		apiKey,
+	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
+
+	// Determine if we need the Supermemory client (for search operations)
+	const needsSearchClient = queryText && searchMode !== undefined
+
+	let client: Supermemory | null = null
+	if (needsSearchClient) {
+		client = new Supermemory({
+			apiKey,
+			...(normalizedBaseUrl !== "https://api.supermemory.ai"
+				? { baseURL: normalizedBaseUrl }
+				: {}),
+		})
+	}
+
+	// 1. Fetch profile based on mode (MemoryMode)
+	let profileData: ProfileStructure | null = null
+	const profileQueryText = mode === "profile" ? "" : queryText
+
+	try {
+		profileData = await supermemoryProfileSearch(
+			containerTag,
+			profileQueryText,
+			normalizedBaseUrl,
+			apiKey,
+		)
+		logger.info("Profile search completed", {
+			containerTag,
+			mode,
+			hasStatic: (profileData.profile?.static?.length ?? 0) > 0,
+			hasDynamic: (profileData.profile?.dynamic?.length ?? 0) > 0,
+			hasSearchResults: (profileData.searchResults?.results?.length ?? 0) > 0,
+		})
+	} catch (error) {
+		logger.error("Profile search failed", {
+			error: error instanceof Error ? error.message : "Unknown error",
+		})
+		throw error
+	}
+
+	// 2. Execute search based on searchMode (SearchMode) - independent of profile
+	let searchMemories: string[] = []
+	let documentChunks: string[] = []
+
+	if (queryText && client) {
+		if (searchMode === "memories") {
+			// Memories only - use search.memories
+			const result = await searchMemoriesWithChunks(
+				client,
+				containerTag,
+				queryText,
+				searchLimit,
+				false, // no chunks
+			)
+			searchMemories = result.memories
+			logger.info("Memory search completed", {
+				containerTag,
+				searchMode,
+				memoryCount: searchMemories.length,
+				queryText:
+					queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+			})
+		} else if (searchMode === "documents") {
+			// Documents only - use search.documents
+			documentChunks = await searchDocumentChunks(
+				client,
+				containerTag,
+				queryText,
+				searchLimit,
+			)
+			logger.info("Document search completed", {
+				containerTag,
+				searchMode,
+				chunkCount: documentChunks.length,
+				queryText:
+					queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+			})
+		} else if (searchMode === "hybrid") {
+			// Hybrid - use both search.memories AND search.documents
+			const [memoriesResult, chunksResult] = await Promise.all([
+				searchMemoriesWithChunks(
+					client,
+					containerTag,
+					queryText,
+					searchLimit,
+					false,
+				),
+				searchDocumentChunks(client, containerTag, queryText, searchLimit),
+			])
+			searchMemories = memoriesResult.memories
+			documentChunks = chunksResult
+			logger.info("Hybrid search completed", {
+				containerTag,
+				searchMode,
+				memoryCount: searchMemories.length,
+				chunkCount: documentChunks.length,
+				queryText:
+					queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
+			})
+		}
+	} else if (!queryText) {
+		logger.debug("No query text provided, skipping search", {
+			containerTag,
+			searchMode,
+		})
+	}
+
+	// 3. Build the combined result from profile AND search
+	// Extract profile memories
+	const staticMemories =
+		profileData?.profile?.static?.map((m) => m.memory).filter(Boolean) ?? []
+	const dynamicMemories =
+		profileData?.profile?.dynamic?.map((m) => m.memory).filter(Boolean) ?? []
+	const profileSearchResults =
+		profileData?.searchResults?.results?.map((m) => m.memory).filter(Boolean) ??
+		[]
+
+	// Combine all profile-based memories
+	const allProfileMemories = [
+		...staticMemories,
+		...dynamicMemories,
+		...profileSearchResults,
+	]
+
+	// Deduplicate memories (profile + search)
+	const allMemories = Array.from(
+		new Set([...allProfileMemories, ...searchMemories]),
 	)
 
-	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
-	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
+	// Build user memories section (from profile)
+	let userMemories = ""
+	if (allProfileMemories.length > 0) {
+		userMemories = allProfileMemories.map((memory) => `- ${memory}`).join("\n")
+	}
 
-	logger.info("Memory search completed", {
-		containerTag,
-		memoryCountStatic,
-		memoryCountDynamic,
-		queryText:
-			queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
-		mode,
-	})
+	// Build search results section (from searchMode)
+	let generalSearchMemories = ""
+	if (searchMemories.length > 0) {
+		generalSearchMemories = `Relevant memories:\n${searchMemories.map((memory) => `- ${memory}`).join("\n")}`
+	}
 
-	const deduplicated = deduplicateMemories({
-		static: memoriesResponse.profile.static,
-		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults?.results,
-	})
-
-	logger.debug("Memory deduplication completed", {
-		static: {
-			original: memoryCountStatic,
-			deduplicated: deduplicated.static.length,
-		},
-		dynamic: {
-			original: memoryCountDynamic,
-			deduplicated: deduplicated.dynamic.length,
-		},
-		searchResults: {
-			original: memoriesResponse.searchResults?.results?.length,
-			deduplicated: deduplicated.searchResults?.length,
-		},
-	})
-
-	const userMemories =
-		mode !== "query"
-			? convertProfileToMarkdown({
-					profile: {
-						static: deduplicated.static,
-						dynamic: deduplicated.dynamic,
-					},
-					searchResults: { results: [] },
-				})
-			: ""
-	const generalSearchMemories =
-		mode !== "profile"
-			? `Search results for user's recent message: \n${deduplicated.searchResults
-					.map((memory) => `- ${memory}`)
-					.join("\n")}`
-			: ""
+	// Add document chunks section
+	if (documentChunks.length > 0) {
+		const prefix = generalSearchMemories ? "\n\n" : ""
+		generalSearchMemories += `${prefix}Relevant document excerpts:\n${documentChunks.map((chunk) => `- ${chunk}`).join("\n")}`
+	}
 
 	const promptData: MemoryPromptData = {
 		userMemories,
 		generalSearchMemories,
-		searchResults: memoriesResponse.searchResults?.results ?? [],
+		searchResults: allMemories.map((memory) => ({ memory })),
 	}
 
-	const memories = promptTemplate(promptData)
-	if (memories) {
+	const result = promptTemplate(promptData)
+	if (result) {
 		logger.debug("Memory content preview", {
-			content: memories,
-			fullLength: memories.length,
+			content: result,
+			fullLength: result.length,
 		})
 	}
 
-	return memories
+	return result
 }
 
 /**

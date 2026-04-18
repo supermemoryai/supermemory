@@ -84,11 +84,21 @@ export const getLastUserMessage = (params: LanguageModelCallOptions) => {
 		.slice()
 		.reverse()
 		.find((prompt: LanguageModelMessage) => prompt.role === "user")
-	const memories = lastUserMessage?.content
-		.filter((content) => content.type === "text")
-		.map((content) => (content as { type: "text"; text: string }).text)
+
+	const content = lastUserMessage?.content
+	if (!content) return undefined
+
+	// Handle string content (allowed by Vercel AI SDK)
+	if (typeof content === "string") {
+		return content
+	}
+
+	// Handle array content
+	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
+	return (content as any[])
+		.filter((part) => part.type === "text")
+		.map((part) => part.text || "")
 		.join(" ")
-	return memories
 }
 
 export const filterOutSupermemories = (content: string) => {

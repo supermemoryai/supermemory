@@ -44,6 +44,7 @@
     "./claude-memory": "./dist/claude-memory.js",
     "./openai": "./dist/openai/index.js",
     "./mastra": "./dist/mastra/index.js",
+    "./voltagent": "./dist/voltagent/index.js",
     "./package.json": "./package.json"
   },
   "repository": {
