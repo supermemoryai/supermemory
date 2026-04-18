@@ -236,11 +236,13 @@ export const buildMemoriesText = async (
 	} = options
 
 	// Fetch profile data when mode includes profile (profile or full)
+	// Note: We don't send queryText here - profile endpoint is only for static/dynamic memories.
+	// Query-based search is handled separately by the SDK search functions.
 	let profileData: ProfileStructure | null = null
 	if (mode !== "query") {
 		profileData = await supermemoryProfileSearch(
 			containerTag,
-			mode === "profile" ? "" : queryText, // Only send query for full mode
+			"", // No query - profile is for static/dynamic only
 			baseUrl,
 			apiKey,
 		)
