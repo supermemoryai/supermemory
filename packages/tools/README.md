@@ -294,12 +294,15 @@ The middleware accepts a single options object with the following properties:
 ```typescript
 interface SupermemoryOpenAIOptions {
   containerTag: string           // Required - User/container identifier for scoping memories
-  customId: string           // Required - Groups messages into conversations
+  customId: string               // Required - Groups messages into conversations
   apiKey?: string                // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string               // Custom API endpoint
   mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
+  searchMode?: "memories" | "hybrid" | "documents"  // Search mode for RAG (default: "memories")
+  searchLimit?: number           // Max search results for hybrid/documents mode (default: 10)
   addMemory?: "always" | "never"       // Auto-save conversations (default: "always")
   verbose?: boolean              // Enable debug logging (default: false)
+  promptTemplate?: PromptTemplate  // Custom function to format memory data
 }
 ```
 
@@ -318,6 +321,28 @@ const openaiWithSupermemory = withSupermemory(openai, {
 const completion = await openaiWithSupermemory.chat.completions.create({
   model: "gpt-4o-mini",
   messages: [{ role: "user", content: "Tell me about my preferences" }],
+})
+```
+
+#### RAG with Hybrid Search
+
+Use `searchMode` to search both memories AND document chunks for RAG applications:
+
+```typescript
+import { withSupermemory } from "@supermemory/tools/openai"
+
+// Hybrid search: memories + document chunks
+const ragClient = withSupermemory(openai, {
+  containerTag: "user-123",
+  customId: "conversation-789",
+  mode: "full",
+  searchMode: "hybrid",  // Search both memories and document chunks
+  searchLimit: 15,       // Return up to 15 results
+})
+
+const completion = await ragClient.chat.completions.create({
+  model: "gpt-4o-mini",
+  messages: [{ role: "user", content: "What do my uploaded documents say about project X?" }],
 })
 ```
 

@@ -72,6 +72,8 @@ const client = withSupermemory(openai, {
   // Optional options
   mode: "full",         // "profile" (user profile only), "query" (search only), "full" (both)
   addMemory: "always",  // "always" | "never" - auto-save conversations as memories
+  searchMode: "hybrid", // "memories" (default), "hybrid" (memories + chunks), "documents" (chunks only)
+  searchLimit: 15,      // Max search results for hybrid/documents mode (default: 10)
   verbose: true,        // Enable debug logging
   apiKey: "sm_...",     // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl: "https://custom.api.com" // Custom API endpoint
@@ -85,6 +87,25 @@ const client = withSupermemory(openai, {
 | `profile` | Injects user profile (static + dynamic facts) | General personalization |
 | `query` | Searches memories based on user message | Question answering |
 | `full` | Both profile and query-based search | Best for chatbots |
+
+### Search Modes (RAG Support)
+
+| Search Mode | Description | Use Case |
+|-------------|-------------|----------|
+| `memories` | Search only memory entries (default) | Personal memory recall |
+| `hybrid` | Search both memories AND document chunks | RAG with personalization |
+| `documents` | Search only document chunks | Pure RAG applications |
+
+```typescript
+// RAG example with hybrid search
+const ragClient = withSupermemory(openai, {
+  containerTag: "user-123",
+  customId: "conv-789",
+  mode: "full",
+  searchMode: "hybrid",  // Search both memories and document chunks
+  searchLimit: 15,       // Return up to 15 results
+})
+```
 
 ### Works with Responses API Too
 

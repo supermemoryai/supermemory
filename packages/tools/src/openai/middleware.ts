@@ -1,15 +1,16 @@
 import type OpenAI from "openai"
 import Supermemory from "supermemory"
 import { addConversation } from "../conversations-client"
-import { deduplicateMemories } from "../tools-shared"
-import { createLogger, type Logger } from "../vercel/logger"
-import { convertProfileToMarkdown } from "../vercel/util"
-
-const normalizeBaseUrl = (url?: string): string => {
-	const defaultUrl = "https://api.supermemory.ai"
-	if (!url) return defaultUrl
-	return url.endsWith("/") ? url.slice(0, -1) : url
-}
+import {
+	createLogger,
+	normalizeBaseUrl,
+	buildMemoriesText,
+	type Logger,
+	type MemoryMode,
+	type SearchMode,
+	type AddMemoryMode,
+	type PromptTemplate,
+} from "../shared"
 
 /**
  * Configuration options for the Supermemory OpenAI middleware.
@@ -31,50 +32,35 @@ export interface SupermemoryOpenAIOptions {
 	 * - "query": Searches memories based on semantic similarity to the user's message
 	 * - "full": Combines both profile and query-based results
 	 */
-	mode?: "profile" | "query" | "full"
+	mode?: MemoryMode
+	/**
+	 * Search mode for memory retrieval:
+	 * - "memories": Search only memory entries (default)
+	 * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+	 * - "documents": Search only document chunks
+	 */
+	searchMode?: SearchMode
+	/** Maximum number of search results to return when using hybrid/documents mode (default: 10) */
+	searchLimit?: number
 	/**
 	 * Memory persistence mode:
 	 * - "always": Automatically save conversations as memories (default)
 	 * - "never": Only retrieve memories, don't store new ones
 	 */
-	addMemory?: "always" | "never"
-}
-
-interface SupermemoryProfileSearch {
-	profile: {
-		static?: Array<{ memory: string; metadata?: Record<string, unknown> }>
-		dynamic?: Array<{ memory: string; metadata?: Record<string, unknown> }>
-	}
-	searchResults: {
-		results: Array<{ memory: string; metadata?: Record<string, unknown> }>
-	}
+	addMemory?: AddMemoryMode
+	/**
+	 * Custom function to format memory data into the system prompt.
+	 * If not provided, uses the default "User Supermemories:" format.
+	 */
+	promptTemplate?: PromptTemplate
 }
 
 /**
  * Extracts the last user message from an array of chat completion messages.
- *
- * Searches through the messages array in reverse order to find the most recent
- * message with role "user" and returns its content as a string.
- *
- * @param messages - Array of chat completion message parameters
- * @returns The content of the last user message, or empty string if none found
- *
- * @example
- * ```typescript
- * const messages = [
- *   { role: "system", content: "You are a helpful assistant." },
- *   { role: "user", content: "Hello there!" },
- *   { role: "assistant", content: "Hi! How can I help you?" },
- *   { role: "user", content: "What's the weather like?" }
- * ]
- *
- * const lastMessage = getLastUserMessage(messages)
- * // Returns: "What's the weather like?"
- * ```
  */
 const getLastUserMessage = (
 	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-) => {
+): string => {
 	const lastUserMessage = messages
 		.slice()
 		.reverse()
@@ -86,177 +72,30 @@ const getLastUserMessage = (
 }
 
 /**
- * Searches for memories using the SuperMemory profile API.
- *
- * Makes a POST request to the SuperMemory API to retrieve user profile memories
- * and search results based on the provided container tag and optional query text.
- *
- * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param queryText - Optional query text to search for specific memories. If empty, returns all profile memories
- * @param baseUrl - Base URL for the Supermemory API
- * @param apiKey - Supermemory API key
- * @returns Promise that resolves to the SuperMemory profile search response
- * @throws {Error} When the API request fails or returns an error status
- *
- * @example
- * ```typescript
- * // Search with query
- * const results = await supermemoryProfileSearch("user-123", "favorite programming language", baseUrl, apiKey)
- *
- * // Get all profile memories
- * const profile = await supermemoryProfileSearch("user-123", "", baseUrl, apiKey)
- * ```
+ * Converts an array of chat completion messages into a formatted conversation string.
  */
-const supermemoryProfileSearch = async (
-	containerTag: string,
-	queryText: string,
-	baseUrl: string,
-	apiKey: string,
-): Promise<SupermemoryProfileSearch> => {
-	const payload = queryText
-		? JSON.stringify({
-				q: queryText,
-				containerTag: containerTag,
-			})
-		: JSON.stringify({
-				containerTag: containerTag,
-			})
-
-	try {
-		const response = await fetch(`${baseUrl}/v4/profile`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
-			},
-			body: payload,
+const getConversationContent = (
+	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+): string => {
+	return messages
+		.map((msg) => {
+			const role = msg.role === "user" ? "User" : "Assistant"
+			const content = typeof msg.content === "string" ? msg.content : ""
+			return `${role}: ${content}`
 		})
-
-		if (!response.ok) {
-			const errorText = await response.text().catch(() => "Unknown error")
-			throw new Error(
-				`Supermemory profile search failed: ${response.status} ${response.statusText}. ${errorText}`,
-			)
-		}
-
-		return await response.json()
-	} catch (error) {
-		if (error instanceof Error) {
-			throw error
-		}
-		throw new Error(`Supermemory API request failed: ${error}`)
-	}
+		.join("\n\n")
 }
 
 /**
- * Adds memory-enhanced system prompts to chat completion messages.
- *
- * Searches for relevant memories based on the specified mode and injects them
- * into the conversation. If a system prompt already exists, memories are appended
- * to it. Otherwise, a new system prompt is created with the memories.
- *
- * @param messages - Array of chat completion message parameters
- * @param containerTag - The container tag/identifier for memory search
- * @param logger - Logger instance for debugging and info output
- * @param mode - Memory search mode: "profile" (all memories), "query" (search-based), or "full" (both)
- * @param baseUrl - Base URL for the Supermemory API
- * @param apiKey - Supermemory API key
- * @returns Promise that resolves to enhanced messages with memory-injected system prompt
- *
- * @example
- * ```typescript
- * const messages = [
- *   { role: "user", content: "What's my favorite programming language?" }
- * ]
- *
- * const enhancedMessages = await addSystemPrompt(
- *   messages,
- *   "user-123",
- *   logger,
- *   "full",
- *   baseUrl,
- *   apiKey
- * )
- * // Returns messages with system prompt containing relevant memories
- * ```
+ * Injects memories into messages by appending to existing system prompt
+ * or creating a new one.
  */
-const addSystemPrompt = async (
+const injectMemoriesIntoMessages = (
 	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-	containerTag: string,
+	memories: string,
 	logger: Logger,
-	mode: "profile" | "query" | "full",
-	baseUrl: string,
-	apiKey: string,
-) => {
+): OpenAI.Chat.Completions.ChatCompletionMessageParam[] => {
 	const systemPromptExists = messages.some((msg) => msg.role === "system")
-
-	const queryText = mode !== "profile" ? getLastUserMessage(messages) : ""
-
-	const memoriesResponse = await supermemoryProfileSearch(
-		containerTag,
-		queryText,
-		baseUrl,
-		apiKey,
-	)
-
-	const memoryCountStatic = memoriesResponse.profile.static?.length || 0
-	const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
-
-	logger.info("Memory search completed for chat API", {
-		containerTag,
-		memoryCountStatic,
-		memoryCountDynamic,
-		queryText:
-			queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
-		mode,
-	})
-
-	const deduplicated = deduplicateMemories({
-		static: memoriesResponse.profile.static,
-		dynamic: memoriesResponse.profile.dynamic,
-		searchResults: memoriesResponse.searchResults?.results,
-	})
-
-	logger.debug("Memory deduplication completed for chat API", {
-		static: {
-			original: memoryCountStatic,
-			deduplicated: deduplicated.static.length,
-		},
-		dynamic: {
-			original: memoryCountDynamic,
-			deduplicated: deduplicated.dynamic.length,
-		},
-		searchResults: {
-			original: memoriesResponse.searchResults?.results?.length,
-			deduplicated: deduplicated.searchResults.length,
-		},
-	})
-
-	const profileData =
-		mode !== "query"
-			? convertProfileToMarkdown({
-					profile: {
-						static: deduplicated.static,
-						dynamic: deduplicated.dynamic,
-					},
-					searchResults: { results: [] },
-				})
-			: ""
-	const searchResultsMemories =
-		mode !== "profile"
-			? `Search results for user's recent message: \n${deduplicated.searchResults
-					.map((memory) => `- ${memory}`)
-					.join("\n")}`
-			: ""
-
-	const memories = `${profileData}\n${searchResultsMemories}`.trim()
-
-	if (memories) {
-		logger.debug("Memory content preview for chat API", {
-			content: memories,
-			fullLength: memories.length,
-		})
-	}
 
 	if (systemPromptExists) {
 		logger.debug("Added memories to existing system prompt")
@@ -274,86 +113,20 @@ const addSystemPrompt = async (
 }
 
 /**
- * Converts an array of chat completion messages into a formatted conversation string.
- *
- * Transforms the messages array into a readable conversation format where each
- * message is prefixed with its role (User/Assistant) and messages are separated
- * by double newlines.
- *
- * @param messages - Array of chat completion message parameters
- * @returns Formatted conversation string with role prefixes
- *
- * @example
- * ```typescript
- * const messages = [
- *   { role: "user", content: "Hello!" },
- *   { role: "assistant", content: "Hi there!" },
- *   { role: "user", content: "How are you?" }
- * ]
- *
- * const conversation = getConversationContent(messages)
- * // Returns: "User: Hello!\n\nAssistant: Hi there!\n\nUser: How are you?"
- * ```
+ * Saves a conversation to Supermemory.
  */
-const getConversationContent = (
-	messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-) => {
-	return messages
-		.map((msg) => {
-			const role = msg.role === "user" ? "User" : "Assistant"
-			const content = typeof msg.content === "string" ? msg.content : ""
-			return `${role}: ${content}`
-		})
-		.join("\n\n")
-}
-
-/**
- * Adds a new memory to the SuperMemory system.
- *
- * Saves the provided content as a memory with the specified container tag and
- * optional custom ID. Logs success or failure information for debugging.
- *
- * If customId starts with "conversation:" and messages are provided, uses the
- * /v4/conversations endpoint with structured messages instead of the memories endpoint.
- *
- * @param client - SuperMemory client instance
- * @param containerTag - The container tag/identifier for the memory
- * @param content - The content to save as a memory (used for fallback)
- * @param customId - Optional custom ID for the memory (e.g., conversation:456)
- * @param logger - Logger instance for debugging and info output
- * @param messages - Optional OpenAI messages array (for conversation endpoint)
- * @param apiKey - API key for direct conversation endpoint calls
- * @param baseUrl - Base URL for API calls
- * @returns Promise that resolves when memory is saved (or fails silently)
- *
- * @example
- * ```typescript
- * await addMemoryTool(
- *   supermemoryClient,
- *   "user-123",
- *   "User: Hello\n\nAssistant: Hi!",
- *   "conversation:456",
- *   logger,
- *   messages, // OpenAI messages array
- *   apiKey,
- *   baseUrl
- * )
- * ```
- */
-const addMemoryTool = async (
+const saveConversation = async (
 	client: Supermemory,
 	containerTag: string,
+	customId: string,
 	content: string,
-	customId: string | undefined,
 	logger: Logger,
 	messages?: OpenAI.Chat.Completions.ChatCompletionMessageParam[],
 	apiKey?: string,
 	baseUrl?: string,
 ): Promise<void> => {
 	try {
-		if (customId && messages && apiKey) {
-			const conversationId = customId.replace("conversation:", "")
-
+		if (messages && apiKey) {
 			// Convert OpenAI messages to conversation format
 			const conversationMessages = messages.map((msg) => ({
 				role: msg.role as "user" | "assistant" | "system" | "tool",
@@ -368,15 +141,19 @@ const addMemoryTool = async (
 										text: (c as { type: "text"; text: string }).text,
 									}))
 							: "",
+				// biome-ignore lint/suspicious/noExplicitAny: OpenAI message types
 				...((msg as any).name && { name: (msg as any).name }),
+				// biome-ignore lint/suspicious/noExplicitAny: OpenAI message types
 				...((msg as any).tool_calls && { tool_calls: (msg as any).tool_calls }),
+				// biome-ignore lint/suspicious/noExplicitAny: OpenAI message types
 				...((msg as any).tool_call_id && {
+					// biome-ignore lint/suspicious/noExplicitAny: OpenAI message types
 					tool_call_id: (msg as any).tool_call_id,
 				}),
 			}))
 
 			const response = await addConversation({
-				conversationId,
+				conversationId: customId,
 				messages: conversationMessages,
 				containerTags: [containerTag],
 				apiKey,
@@ -385,18 +162,18 @@ const addMemoryTool = async (
 
 			logger.info("Conversation saved successfully via /v4/conversations", {
 				containerTag,
-				conversationId,
+				customId,
 				messageCount: messages.length,
 				responseId: response.id,
 			})
 			return
 		}
 
-		// Fallback to old behavior for non-conversation memories
+		// Fallback to old behavior
 		const response = await client.add({
 			content,
 			containerTags: [containerTag],
-			customId,
+			customId: `conversation:${customId}`,
 		})
 
 		logger.info("Memory saved successfully", {
@@ -414,25 +191,6 @@ const addMemoryTool = async (
 
 /**
  * Creates SuperMemory middleware for OpenAI clients.
- *
- * This function creates middleware that automatically injects relevant memories
- * into OpenAI chat completions and optionally saves new memories. The middleware
- * can wrap existing OpenAI clients or create new ones with SuperMemory capabilities.
- *
- * @param openaiClient - The OpenAI client to wrap
- * @param options - Configuration options for the middleware
- * @returns OpenAI client with SuperMemory middleware injected
- *
- * @example
- * ```typescript
- * const openaiWithSupermemory = createOpenAIMiddleware(openai, {
- *   containerTag: "user-123",
- *   customId: "conv-456",
- *   mode: "full",
- *   addMemory: "always",
- *   verbose: true,
- * })
- * ```
  */
 export function createOpenAIMiddleware(
 	openaiClient: OpenAI,
@@ -445,7 +203,10 @@ export function createOpenAIMiddleware(
 		baseUrl,
 		verbose = false,
 		mode = "profile",
+		searchMode = "memories",
+		searchLimit = 10,
 		addMemory = "always",
+		promptTemplate,
 	} = options
 
 	const logger = createLogger(verbose)
@@ -461,96 +222,81 @@ export function createOpenAIMiddleware(
 	const originalResponsesCreate = openaiClient.responses?.create
 
 	/**
-	 * Searches for memories and formats them for injection into API calls.
-	 *
-	 * This shared function handles memory search and formatting for both Chat Completions
-	 * and Responses APIs, reducing code duplication.
-	 *
-	 * @param queryText - The text to search for (empty string for profile-only mode)
-	 * @param containerTag - The container tag for memory search
-	 * @param logger - Logger instance
-	 * @param mode - Memory search mode
-	 * @param context - API context for logging differentiation
-	 * @returns Formatted memories string
+	 * Wraps chat.completions.create with memory injection
 	 */
-	const searchAndFormatMemories = async (
-		queryText: string,
-		containerTag: string,
-		logger: Logger,
-		mode: "profile" | "query" | "full",
-		context: "chat" | "responses",
+	const createWithMemory = async (
+		params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
 	) => {
-		const memoriesResponse = await supermemoryProfileSearch(
-			containerTag,
-			queryText,
-			normalizedBaseUrl,
-			apiKey,
-		)
+		const messages = Array.isArray(params.messages) ? params.messages : []
 
-		const memoryCountStatic = memoriesResponse.profile.static?.length || 0
-		const memoryCountDynamic = memoriesResponse.profile.dynamic?.length || 0
-
-		logger.info(`Memory search completed for ${context} API`, {
-			containerTag,
-			memoryCountStatic,
-			memoryCountDynamic,
-			queryText:
-				queryText.substring(0, 100) + (queryText.length > 100 ? "..." : ""),
-			mode,
-		})
-
-		const deduplicated = deduplicateMemories({
-			static: memoriesResponse.profile.static,
-			dynamic: memoriesResponse.profile.dynamic,
-			searchResults: memoriesResponse.searchResults?.results,
-		})
-
-		logger.debug(`Memory deduplication completed for ${context} API`, {
-			static: {
-				original: memoryCountStatic,
-				deduplicated: deduplicated.static.length,
-			},
-			dynamic: {
-				original: memoryCountDynamic,
-				deduplicated: deduplicated.dynamic.length,
-			},
-			searchResults: {
-				original: memoriesResponse.searchResults?.results?.length,
-				deduplicated: deduplicated.searchResults.length,
-			},
-		})
-
-		const profileData =
-			mode !== "query"
-				? convertProfileToMarkdown({
-						profile: {
-							static: deduplicated.static,
-							dynamic: deduplicated.dynamic,
-						},
-						searchResults: { results: [] },
-					})
-				: ""
-		const searchResultsMemories =
-			mode !== "profile"
-				? `Search results for user's ${context === "chat" ? "recent message" : "input"}: \n${deduplicated.searchResults
-						.map((memory) => `- ${memory}`)
-						.join("\n")}`
-				: ""
-
-		const memories = `${profileData}\n${searchResultsMemories}`.trim()
-
-		if (memories) {
-			logger.debug(`Memory content preview for ${context} API`, {
-				content: memories,
-				fullLength: memories.length,
-			})
+		const userMessage = getLastUserMessage(messages)
+		if (mode !== "profile" && !userMessage) {
+			logger.debug("No user message found, skipping memory search")
+			return originalCreate.call(openaiClient.chat.completions, params)
 		}
 
-		return memories
+		logger.info("Starting memory search", {
+			containerTag,
+			customId,
+			mode,
+			searchMode,
+		})
+
+		const operations: Promise<unknown>[] = []
+
+		// Save conversation if enabled
+		if (addMemory === "always" && userMessage?.trim()) {
+			const content = getConversationContent(messages)
+			operations.push(
+				saveConversation(
+					client,
+					containerTag,
+					customId,
+					content,
+					logger,
+					messages,
+					apiKey,
+					normalizedBaseUrl,
+				),
+			)
+		}
+
+		// Fetch and inject memories
+		const queryText = mode !== "profile" ? userMessage : ""
+		operations.push(
+			buildMemoriesText({
+				containerTag,
+				queryText,
+				mode,
+				baseUrl: normalizedBaseUrl,
+				apiKey,
+				logger,
+				promptTemplate,
+				searchMode,
+				searchLimit,
+			}),
+		)
+
+		const results = await Promise.all(operations)
+		const memories = results[results.length - 1] as string
+
+		const enhancedMessages = injectMemoriesIntoMessages(
+			messages,
+			memories,
+			logger,
+		)
+
+		return originalCreate.call(openaiClient.chat.completions, {
+			...params,
+			messages: enhancedMessages,
+		})
 	}
 
+	/**
+	 * Wraps responses.create with memory injection
+	 */
 	const createResponsesWithMemory = async (
-		params: Parameters<typeof originalResponsesCreate>[0],
+		params: Parameters<NonNullable<typeof originalResponsesCreate>>[0],
 	) => {
 		if (!originalResponsesCreate) {
 			throw new Error(
@@ -569,43 +315,46 @@ export function createOpenAIMiddleware(
 			containerTag,
 			customId,
 			mode,
+			searchMode,
 		})
 
-		const operations: Promise<any>[] = []
+		const operations: Promise<unknown>[] = []
 
+		// Save input if enabled (Responses API doesn't have messages array)
 		if (addMemory === "always" && input?.trim()) {
-			const content = customId ? `Input: ${input}` : input
-			const memoryCustomId = customId ? `conversation:${customId}` : undefined
-
-			// Note: Responses API doesn't have a messages array, so we pass undefined
-			// This means it will use the regular memory storage instead of conversation endpoint
+			const content = `Input: ${input}`
 			operations.push(
-				addMemoryTool(
+				saveConversation(
 					client,
 					containerTag,
+					customId,
 					content,
-					memoryCustomId,
 					logger,
-					undefined, // No messages for Responses API
+					undefined,
 					apiKey,
 					normalizedBaseUrl,
 				),
 			)
 		}
 
+		// Fetch memories
 		const queryText = mode !== "profile" ? input : ""
 		operations.push(
-			searchAndFormatMemories(
-				queryText,
+			buildMemoriesText({
 				containerTag,
-				logger,
+				queryText,
 				mode,
-				"responses",
-			),
+				baseUrl: normalizedBaseUrl,
+				apiKey,
+				logger,
+				promptTemplate,
+				searchMode,
+				searchLimit,
+			}),
 		)
 
 		const results = await Promise.all(operations)
-		const memories = results[results.length - 1] // Memory search result is always last
+		const memories = results[results.length - 1] as string
 
 		const enhancedInstructions = memories
 			? `${params.instructions || ""}\n\n${memories}`.trim()
@@ -617,74 +366,10 @@ export function createOpenAIMiddleware(
 		})
 	}
 
-	const createWithMemory = async (
-		params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
-	) => {
-		const messages = Array.isArray(params.messages) ? params.messages : []
-
-		if (mode !== "profile") {
-			const userMessage = getLastUserMessage(messages)
-			if (!userMessage) {
-				logger.debug("No user message found, skipping memory search")
-				return originalCreate.call(openaiClient.chat.completions, params)
-			}
-		}
-
-		logger.info("Starting memory search", {
-			containerTag,
-			customId,
-			mode,
-		})
-
-		const operations: Promise<any>[] = []
-
-		if (addMemory === "always") {
-			const userMessage = getLastUserMessage(messages)
-			if (userMessage?.trim()) {
-				const content = customId
-					? getConversationContent(messages)
-					: userMessage
-				const memoryCustomId = customId ? `conversation:${customId}` : undefined
-
-				operations.push(
-					addMemoryTool(
-						client,
-						containerTag,
-						content,
-						memoryCustomId,
-						logger,
-						messages,
-						apiKey,
-						normalizedBaseUrl,
-					),
-				)
-			}
-		}
-
-		operations.push(
-			addSystemPrompt(
-				messages,
-				containerTag,
-				logger,
-				mode,
-				normalizedBaseUrl,
-				apiKey,
-			),
-		)
-
-		const results = await Promise.all(operations)
-		const enhancedMessages = results[results.length - 1] // Enhanced messages result is always last
-
-		return originalCreate.call(openaiClient.chat.completions, {
-			...params,
-			messages: enhancedMessages,
-		})
-	}
-
+	// Replace original methods with memory-enhanced versions
 	openaiClient.chat.completions.create =
 		createWithMemory as typeof originalCreate
 
-	// Wrap Responses API if available
 	if (originalResponsesCreate) {
 		openaiClient.responses.create =
 			createResponsesWithMemory as typeof originalResponsesCreate

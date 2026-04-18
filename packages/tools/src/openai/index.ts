@@ -19,10 +19,13 @@ import {
  * @param options.containerTag - The container tag/identifier for memory search (e.g., user ID)
  * @param options.customId - Custom ID to group messages into a single document (e.g., conversation ID)
  * @param options.mode - Memory search mode: "profile" (default), "query", or "full"
+ * @param options.searchMode - Search mode: "memories" (default), "hybrid" (memories + chunks), or "documents" (chunks only)
+ * @param options.searchLimit - Maximum number of search results when using hybrid/documents mode (default: 10)
  * @param options.addMemory - Memory persistence mode: "always" (default) or "never"
  * @param options.verbose - Enable detailed logging (default: false)
  * @param options.apiKey - Supermemory API key (falls back to SUPERMEMORY_API_KEY env var)
  * @param options.baseUrl - Custom Supermemory API base URL
+ * @param options.promptTemplate - Custom function to format memory data into the system prompt
  *
  * @returns An OpenAI client with SuperMemory middleware injected for both Chat Completions and Responses APIs
  *
@@ -33,10 +36,20 @@ import {
  *
  * const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
  *
+ * // Basic usage
  * const openaiWithSupermemory = withSupermemory(openai, {
  *   containerTag: "user-123",
  *   customId: "conv-456",
  *   mode: "full",
+ * })
+ *
+ * // RAG usage with hybrid search (memories + document chunks)
+ * const ragClient = withSupermemory(openai, {
+ *   containerTag: "user-123",
+ *   customId: "conv-789",
+ *   mode: "full",
+ *   searchMode: "hybrid",
+ *   searchLimit: 15,
  * })
  *
  * // Use with Chat Completions API - memories injected into system prompt

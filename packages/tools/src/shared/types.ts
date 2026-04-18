@@ -48,6 +48,14 @@ export type PromptTemplate = (data: MemoryPromptData) => string
 export type MemoryMode = "profile" | "query" | "full"
 
 /**
+ * Search mode for memory retrieval:
+ * - "memories": Search only memory entries (default)
+ * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+ * - "documents": Search only document chunks
+ */
+export type SearchMode = "memories" | "hybrid" | "documents"
+
+/**
  * Memory persistence mode:
  * - "always": Automatically save conversations as memories
  * - "never": Only retrieve memories, don't store new ones

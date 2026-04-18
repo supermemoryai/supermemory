@@ -2,6 +2,7 @@ import { deduplicateMemories } from "../tools-shared"
 import type {
 	Logger,
 	MemoryMode,
+	SearchMode,
 	MemoryPromptData,
 	ProfileStructure,
 	PromptTemplate,
@@ -72,6 +73,15 @@ export interface BuildMemoriesTextOptions {
 	apiKey: string
 	logger: Logger
 	promptTemplate?: PromptTemplate
+	/**
+	 * Search mode for memory retrieval:
+	 * - "memories": Search only memory entries (default)
+	 * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+	 * - "documents": Search only document chunks
+	 */
+	searchMode?: SearchMode
+	/** Maximum number of search results to return when using hybrid/documents mode (default: 10) */
+	searchLimit?: number
 }
 
 /**
