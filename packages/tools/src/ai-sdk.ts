@@ -135,14 +135,8 @@ export const getProfileTool = (
 		inputSchema: z.object({
 			containerTag: strict
 				? z.string().describe(PARAMETER_DESCRIPTIONS.containerTag)
-				: z
-						.string()
-						.optional()
-						.describe(PARAMETER_DESCRIPTIONS.containerTag),
-			query: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.query),
+				: z.string().optional().describe(PARAMETER_DESCRIPTIONS.containerTag),
+			query: z.string().optional().describe(PARAMETER_DESCRIPTIONS.query),
 		}),
 		execute: async ({ containerTag, query }) => {
 			try {
@@ -197,14 +191,8 @@ export const documentListTool = (
 						.optional()
 						.default(DEFAULT_VALUES.limit)
 						.describe(PARAMETER_DESCRIPTIONS.limit),
-			offset: z
-				.number()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.offset),
-			status: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.status),
+			offset: z.number().optional().describe(PARAMETER_DESCRIPTIONS.offset),
+			status: z.string().optional().describe(PARAMETER_DESCRIPTIONS.status),
 		}),
 		execute: async ({ containerTag, limit, offset, status }) => {
 			try {
@@ -329,10 +317,7 @@ export const memoryForgetTool = (
 				.string()
 				.optional()
 				.describe(PARAMETER_DESCRIPTIONS.containerTag),
-			memoryId: z
-				.string()
-				.optional()
-				.describe(PARAMETER_DESCRIPTIONS.memoryId),
+			memoryId: z.string().optional().describe(PARAMETER_DESCRIPTIONS.memoryId),
 			memoryContent: z
 				.string()
 				.optional()

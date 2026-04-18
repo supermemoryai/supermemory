@@ -162,7 +162,9 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 	) as T
 
 	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-	wrappedModel.doGenerate = async (params: LanguageModelCallOptions): Promise<any> => {
+	wrappedModel.doGenerate = async (
+		params: LanguageModelCallOptions,
+	): Promise<any> => {
 		try {
 			const transformedParams = await transformParamsWithMemory(params, ctx)
 
@@ -201,7 +203,9 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 	}
 
 	// biome-ignore lint/suspicious/noExplicitAny: Union type compatibility between V2 and V3
-	wrappedModel.doStream = async (params: LanguageModelCallOptions): Promise<any> => {
+	wrappedModel.doStream = async (
+		params: LanguageModelCallOptions,
+	): Promise<any> => {
 		let generatedText = ""
 
 		try {
