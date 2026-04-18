@@ -280,11 +280,10 @@ export function createOpenAIMiddleware(
 		const results = await Promise.all(operations)
 		const memories = results[results.length - 1] as string
 
-		const enhancedMessages = injectMemoriesIntoMessages(
-			messages,
-			memories,
-			logger,
-		)
+		// Only inject memories if we actually have some
+		const enhancedMessages = memories
+			? injectMemoriesIntoMessages(messages, memories, logger)
+			: messages
 
 		return originalCreate.call(openaiClient.chat.completions, {
 			...params,
