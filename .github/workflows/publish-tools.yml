@@ -23,7 +23,11 @@ jobs:
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
+                node-version: '24'
                 registry-url: 'https://registry.npmjs.org'
+
+            - name: Upgrade npm for trusted publishing support
+              run: npm install -g npm@latest
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@v2
@@ -34,11 +38,24 @@ jobs:
             - name: Install dependencies
               run: bun install
 
+            - name: Check if version changed
+              id: version-check
+              run: |
+                PACKAGE_NAME=$(jq -r '.name' package.json)
+                LOCAL_VERSION=$(jq -r '.version' package.json)
+                NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "0.0.0")
+                if [ "$LOCAL_VERSION" = "$NPM_VERSION" ]; then
+                  echo "Version $LOCAL_VERSION already published, skipping."
+                  echo "changed=false" >> "$GITHUB_OUTPUT"
+                else
+                  echo "Publishing $LOCAL_VERSION (npm has $NPM_VERSION)"
+                  echo "changed=true" >> "$GITHUB_OUTPUT"
+                fi
+
             - name: Build
+              if: steps.version-check.outputs.changed == 'true'
               run: bun run build
 
             - name: Publish
-              run: pnpm publish --access public --verbose
-              env:
-                NPM_CONFIG_PROVENANCE: true
-                NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+              if: steps.version-check.outputs.changed == 'true'
+              run: npm publish --access public --provenance

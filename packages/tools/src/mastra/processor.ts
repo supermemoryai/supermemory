@@ -22,6 +22,7 @@ import {
 	type Logger,
 	type MemoryMode,
 	type PromptTemplate,
+	type SearchMode,
 } from "../shared"
 import {
 	addConversation,
@@ -48,6 +49,8 @@ interface ProcessorContext {
 	baseUrl: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
+	searchMode: SearchMode
+	searchLimit: number
 	logger: Logger
 	promptTemplate?: PromptTemplate
 	memoryCache: MemoryCache<string>
@@ -92,6 +95,8 @@ function createProcessorContext(
 		baseUrl,
 		mode: options.mode ?? "profile",
 		addMemory: options.addMemory ?? "always",
+		searchMode: options.searchMode ?? "memories",
+		searchLimit: options.searchLimit ?? 10,
 		logger,
 		promptTemplate: options.promptTemplate,
 		memoryCache: new MemoryCache<string>(),
@@ -204,6 +209,8 @@ export class SupermemoryInputProcessor implements Processor {
 				apiKey: this.ctx.apiKey,
 				logger: this.ctx.logger,
 				promptTemplate: this.ctx.promptTemplate,
+				searchMode: this.ctx.searchMode,
+				searchLimit: this.ctx.searchLimit,
 			})
 
 			if (memories) {

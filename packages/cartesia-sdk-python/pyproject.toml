@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "supermemory-cartesia"
-version = "0.1.0"
+version = "0.1.1"
 description = "Supermemory integration for Cartesia Line - memory-enhanced voice agents"
 readme = "README.md"
 license = "MIT"

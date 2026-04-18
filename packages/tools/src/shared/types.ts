@@ -55,6 +55,14 @@ export type MemoryMode = "profile" | "query" | "full"
 export type AddMemoryMode = "always" | "never"
 
 /**
+ * Search mode for memory retrieval:
+ * - "memories": Search only memory entries (default)
+ * - "hybrid": Search both memories AND document chunks (recommended for RAG)
+ * - "documents": Search only document chunks
+ */
+export type SearchMode = "memories" | "hybrid" | "documents"
+
+/**
  * Logger interface for consistent logging across integrations.
  */
 export interface Logger {
@@ -119,6 +127,10 @@ export interface SupermemoryBaseOptions {
 	mode?: MemoryMode
 	/** Memory persistence mode */
 	addMemory?: AddMemoryMode
+	/** Search mode for memory retrieval (default: "memories") */
+	searchMode?: SearchMode
+	/** Maximum number of search results to return (default: 10) */
+	searchLimit?: number
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
 	/** Custom function to format memory data into the system prompt */

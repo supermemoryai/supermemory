@@ -518,8 +518,10 @@ main()
 
 #### Memory Search Modes
 
+The `mode` option controls whether profile data is fetched:
+
 - **`profile`** (default): Fetches user profile memories (static facts + dynamic context)
-- **`query`**: Searches memories based on the user's message
+- **`query`**: Searches memories based on the user's message (no profile data)
 - **`full`**: Combines both profile and query results
 
 ```typescript
@@ -542,6 +544,42 @@ const { input } = createSupermemoryProcessors({
   containerTag: "user-123",
   customId: "conv-456",
   mode: "full"
+})
+```
+
+#### Search Mode Options (RAG)
+
+The `searchMode` option controls which search endpoints are used when `mode` is `"query"` or `"full"`:
+
+- **`memories`** (default): Searches memory entries only - low latency, best for conversational context
+- **`documents`**: Searches document chunks only - best for RAG with uploaded documents
+- **`hybrid`**: Searches both memories AND document chunks in parallel - comprehensive retrieval
+
+```typescript
+// Search only memories (default) - fast, conversational
+const { input } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+  searchMode: "memories"
+})
+
+// Search only document chunks - RAG use case
+const { input } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+  searchMode: "documents",
+  searchLimit: 20  // Get more chunks for RAG
+})
+
+// Hybrid search - both memories and documents
+const { input } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+  searchMode: "hybrid",
+  searchLimit: 10  // 10 from each endpoint
 })
 ```
 
@@ -606,8 +644,10 @@ interface SupermemoryMastraOptions {
   customId: string             // Required: Conversation ID to group messages
   apiKey?: string              // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string             // Custom API endpoint
-  mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
+  mode?: "profile" | "query" | "full"  // Memory retrieval mode (default: "profile")
   addMemory?: "always" | "never"       // Auto-save conversations (default: "always")
+  searchMode?: "memories" | "hybrid" | "documents"  // Search endpoint mode (default: "memories")
+  searchLimit?: number         // Max search results per endpoint (default: 10)
   verbose?: boolean            // Enable debug logging (default: false)
   promptTemplate?: (data: MemoryPromptData) => string  // Custom memory formatting
 }

@@ -169,19 +169,19 @@ describe.skipIf(!shouldRunIntegration)(
 					}),
 				)
 
+				// In query mode, profile API should NOT be called (only SDK search endpoints)
 				const profileCalls = fetchSpy.mock.calls.filter(
 					(call) =>
 						typeof call[0] === "string" && call[0].includes("/v4/profile"),
 				)
-				expect(profileCalls.length).toBeGreaterThan(0)
+				expect(profileCalls.length).toBe(0)
 
-				const profileCall = profileCalls[0]
-				if (profileCall?.[1]) {
-					const body = JSON.parse(
-						(profileCall[1] as RequestInit).body as string,
-					)
-					expect(body.q).toBe("What are my favorite programming languages?")
-				}
+				// SDK search endpoint should be called (search.memories uses /v4/search)
+				const searchCalls = fetchSpy.mock.calls.filter(
+					(call) =>
+						typeof call[0] === "string" && call[0].includes("/v4/search"),
+				)
+				expect(searchCalls.length).toBeGreaterThan(0)
 
 				fetchSpy.mockRestore()
 			})

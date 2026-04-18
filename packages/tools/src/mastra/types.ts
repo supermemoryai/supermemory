@@ -9,6 +9,7 @@ import type {
 	PromptTemplate,
 	MemoryMode,
 	AddMemoryMode,
+	SearchMode,
 	MemoryPromptData,
 	SupermemoryBaseOptions,
 } from "../shared"
@@ -48,4 +49,10 @@ export interface SupermemoryMastraOptions extends SupermemoryBaseOptions {
 	customId: string
 }
 
-export type { PromptTemplate, MemoryMode, AddMemoryMode, MemoryPromptData }
+export type {
+	PromptTemplate,
+	MemoryMode,
+	AddMemoryMode,
+	SearchMode,
+	MemoryPromptData,
+}

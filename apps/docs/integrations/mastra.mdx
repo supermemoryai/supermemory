@@ -98,8 +98,10 @@ sequenceDiagram
 |--------|------|---------|-------------|
 | `apiKey` | `string` | `SUPERMEMORY_API_KEY` env | Your Supermemory API key |
 | `baseUrl` | `string` | `https://api.supermemory.ai` | Custom API endpoint |
-| `mode` | `"profile" \| "query" \| "full"` | `"profile"` | Memory search mode |
+| `mode` | `"profile" \| "query" \| "full"` | `"profile"` | Memory retrieval mode |
 | `addMemory` | `"always" \| "never"` | `"always"` | Auto-save conversations |
+| `searchMode` | `"memories" \| "hybrid" \| "documents"` | `"memories"` | Search endpoint mode |
+| `searchLimit` | `number` | `10` | Max search results per endpoint |
 | `verbose` | `boolean` | `false` | Enable debug logging |
 | `promptTemplate` | `function` | - | Custom memory formatting |
 
@@ -131,6 +133,55 @@ const agent = new Agent(withSupermemory(config, { containerTag: "user-123", cust
 | `profile` | Static + dynamic user facts | General personalization |
 | `query` | Semantic search on user message | Specific Q&A |
 | `full` | Both profile and search | Chatbots, assistants |
+
+---
+
+## Search Mode Options (RAG)
+
+The `searchMode` option controls which search endpoints are used when `mode` is `"query"` or `"full"`:
+
+**Memories (Default)** - Searches memory entries only. Low latency, best for conversational context:
+
+```typescript
+const agent = new Agent(withSupermemory(config, {
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+  searchMode: "memories"
+}))
+```
+
+**Documents** - Searches document chunks only. Best for RAG with uploaded documents:
+
+```typescript
+const agent = new Agent(withSupermemory(config, {
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+  searchMode: "documents",
+  searchLimit: 20  // Get more chunks for RAG
+}))
+```
+
+**Hybrid** - Searches both memories AND document chunks in parallel. Comprehensive retrieval:
+
+```typescript
+const agent = new Agent(withSupermemory(config, {
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+  searchMode: "hybrid",
+  searchLimit: 10  // 10 from each endpoint
+}))
+```
+
+### Search Mode Comparison
+
+| Search Mode | Endpoint | Use Case |
+|-------------|----------|----------|
+| `memories` | `/v4/search` | Conversational memory, low latency |
+| `documents` | `/v3/search` | RAG with uploaded docs |
+| `hybrid` | Both | Comprehensive context |
 
 ---
 
@@ -404,6 +455,8 @@ interface SupermemoryMastraOptions {
   baseUrl?: string
   mode?: "profile" | "query" | "full"
   addMemory?: "always" | "never"
+  searchMode?: "memories" | "hybrid" | "documents"  // Search endpoint mode
+  searchLimit?: number           // Max search results per endpoint (default: 10)
   verbose?: boolean
   promptTemplate?: (data: MemoryPromptData) => string
 }
