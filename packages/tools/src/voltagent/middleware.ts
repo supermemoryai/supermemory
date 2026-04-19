@@ -90,6 +90,7 @@ export const createSupermemoryContext = (
 		metadata,
 		searchMode,
 		entityContext,
+		verbose = false,
 	} = options
 
 	// Runtime validation: customId is required
@@ -99,7 +100,7 @@ export const createSupermemoryContext = (
 		)
 	}
 
-	const logger = createLogger(false) // VoltAgent SDK doesn't use verbose
+	const logger = createLogger(verbose)
 	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
 	const client = new Supermemory({

@@ -17,8 +17,7 @@ import type {
  * Configuration options for the Supermemory VoltAgent integration.
  * Extends base options with VoltAgent-specific settings.
  */
-export interface SupermemoryVoltAgent
-	extends Omit<SupermemoryBaseOptions, "verbose"> {
+export interface SupermemoryVoltAgent extends SupermemoryBaseOptions {
 	/**
 	 * Custom ID to group messages into a single document.
 	 * Ensures related messages are added to the same document for that conversation.
