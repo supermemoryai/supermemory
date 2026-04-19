@@ -11,7 +11,7 @@ import os
 from openai import AsyncOpenAI, OpenAI
 from supermemory_openai import (
     with_supermemory,
-    OpenAIMiddlewareOptions,
+    SupermemoryOpenAIOptions,
     SupermemoryConfigurationError,
     SupermemoryAPIError,
 )
@@ -37,8 +37,9 @@ async def test_async_middleware():
         # Wrap with Supermemory middleware
         openai_with_memory = with_supermemory(
             openai_client,
-            container_tag="test-user-123",
-            options=OpenAIMiddlewareOptions(
+            SupermemoryOpenAIOptions(
+                container_tag="test-user-123",
+                custom_id="test-conversation-async",
                 mode="profile",
                 verbose=True,
                 add_memory="never"  # Don't save test messages
@@ -87,8 +88,9 @@ def test_sync_middleware():
         # Wrap with Supermemory middleware
         openai_with_memory = with_supermemory(
             openai_client,
-            container_tag="test-user-sync-123",
-            options=OpenAIMiddlewareOptions(
+            SupermemoryOpenAIOptions(
+                container_tag="test-user-sync-123",
+                custom_id="test-conversation-sync",
                 mode="profile",
                 verbose=True
             )
@@ -122,17 +124,35 @@ def test_error_handling():
     print("\n🔄 Testing Error Handling...")
 
     try:
-        # Test with missing API key
+        # Test with missing API key (clear env var temporarily)
+        original_key = os.environ.pop("SUPERMEMORY_API_KEY", None)
+
         openai_client = OpenAI(api_key="fake-key")
 
         # This should raise SupermemoryConfigurationError
-        with_supermemory(openai_client, "test-user")
+        with_supermemory(
+            openai_client,
+            SupermemoryOpenAIOptions(
+                container_tag="test-user",
+                custom_id="test-conv"
+            )
+        )
+
+        # Restore key if it existed
+        if original_key:
+            os.environ["SUPERMEMORY_API_KEY"] = original_key
 
         print("❌ Should have raised SupermemoryConfigurationError")
 
     except SupermemoryConfigurationError as e:
+        # Restore key if it existed
+        if original_key:
+            os.environ["SUPERMEMORY_API_KEY"] = original_key
         print(f"✅ Correctly caught configuration error: {e}")
     except Exception as e:
+        # Restore key if it existed
+        if original_key:
+            os.environ["SUPERMEMORY_API_KEY"] = original_key
         print(f"❌ Wrong exception type: {type(e).__name__}: {e}")
 
 
@@ -156,8 +176,9 @@ def test_background_tasks():
         # Wrap with memory storage enabled
         wrapped_client = with_supermemory(
             openai_client,
-            container_tag="test-background-tasks",
-            options=OpenAIMiddlewareOptions(
+            SupermemoryOpenAIOptions(
+                container_tag="test-background-tasks",
+                custom_id="test-bg-tasks-conv",
                 add_memory="always",
                 verbose=True
             )

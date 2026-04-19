@@ -22,6 +22,9 @@ from .middleware import (
     SupermemoryOpenAIWrapper,
 )
 
+# Backward compatibility alias for renamed class
+OpenAIMiddlewareOptions = SupermemoryOpenAIOptions
+
 from .utils import (
     Logger,
     create_logger,
@@ -59,6 +62,7 @@ __all__ = [
     # Middleware
     "with_supermemory",
     "SupermemoryOpenAIOptions",
+    "OpenAIMiddlewareOptions",  # Backward compatibility alias
     "SupermemoryOpenAIWrapper",
     # Utils
     "Logger",

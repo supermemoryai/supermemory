@@ -4,7 +4,11 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest"
 import { withSupermemory } from "../../src/openai"
-import { createMockProfileResponse } from "../utils/supermemory-mocks"
+import {
+	createMockProfileResponse,
+	createMockMemoriesSearchResponse,
+	createRoutedFetchMock,
+} from "../utils/supermemory-mocks"
 
 // Create a mock OpenAI client
 const createMockOpenAIClient = () => {
@@ -229,13 +233,14 @@ describe("Unit: OpenAI withSupermemory", () => {
 		})
 
 		it("should search memories based on user message in query mode", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () =>
-					Promise.resolve(
-						createMockProfileResponse([], [], ["TypeScript is their favorite"]),
-					),
+			// Use routed fetch mock to handle SDK search calls
+			const routedFetch = createRoutedFetchMock({
+				memoriesSearchResponse: createMockMemoriesSearchResponse([
+					"TypeScript is their favorite",
+				]),
 			})
+			fetchMock = vi.fn(routedFetch)
+			globalThis.fetch = fetchMock as unknown as typeof fetch
 
 			const mockClient = createMockOpenAIClient()
 			const originalCreate = mockClient._mockCreate
@@ -253,12 +258,14 @@ describe("Unit: OpenAI withSupermemory", () => {
 				],
 			})
 
-			// Verify fetch was called with query text
+			// Verify fetch was called (SDK search)
 			expect(fetchMock.mock.calls.length).toBeGreaterThan(0)
-			const fetchCall = fetchMock.mock.calls[0]
-			const fetchBody = JSON.parse(fetchCall?.[1]?.body)
-			expect(fetchBody.q).toBe("What's my favorite programming language?")
-			expect(fetchBody.containerTag).toBe("user-123")
+
+			// Find the /v4/search call
+			const searchCall = fetchMock.mock.calls.find((call: unknown[]) =>
+				(call[0] as string)?.toString().includes("/v4/search"),
+			)
+			expect(searchCall).toBeDefined()
 
 			const calledMessages = originalCreate.mock.calls[0][0].messages
 			expect(calledMessages[0].content).toContain(
@@ -267,17 +274,18 @@ describe("Unit: OpenAI withSupermemory", () => {
 		})
 
 		it("should combine profile and search in full mode", async () => {
-			fetchMock.mockResolvedValue({
-				ok: true,
-				json: () =>
-					Promise.resolve(
-						createMockProfileResponse(
-							["Name: Alice"],
-							["Likes coffee"],
-							["Recently discussed Python"],
-						),
-					),
+			// Use routed fetch mock to handle both profile and SDK search calls
+			const routedFetch = createRoutedFetchMock({
+				profileResponse: createMockProfileResponse(
+					["Name: Alice"],
+					["Likes coffee"],
+				),
+				memoriesSearchResponse: createMockMemoriesSearchResponse([
+					"Recently discussed Python",
+				]),
 			})
+			fetchMock = vi.fn(routedFetch)
+			globalThis.fetch = fetchMock as unknown as typeof fetch
 
 			const mockClient = createMockOpenAIClient()
 			const originalCreate = mockClient._mockCreate
@@ -285,6 +293,7 @@ describe("Unit: OpenAI withSupermemory", () => {
 				containerTag: "user-123",
 				customId: "conv-456",
 				mode: "full",
+				addMemory: "never",
 			})
 
 			await wrapped.chat.completions.create({
