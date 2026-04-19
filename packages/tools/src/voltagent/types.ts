@@ -29,34 +29,46 @@ export interface SupermemoryVoltAgent
 	 * Threshold / sensitivity for memory selection. 0 is least sensitive (returns
 	 * most memories, more results), 1 is most sensitive (returns fewer memories,
 	 * more accurate results). Default: 0.1
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	threshold?: number
 
 	/**
 	 * Maximum number of memory results to return. Default: 10
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	limit?: number
 
 	/**
 	 * If true, rerank the results based on the query. This helps ensure the most
 	 * relevant results are returned. Default: false
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	rerank?: boolean
 
 	/**
 	 * If true, rewrites the query to make it easier to find memories. This increases
 	 * latency by about 400ms. Default: false
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	rewriteQuery?: boolean
 
 	/**
 	 * Advanced filters to apply to the search using AND/OR logic.
 	 * Example: { OR: [{ metadata: { type: "note" } }, { metadata: { type: "conversation" } }] }
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	filters?: SearchFilters
 
 	/**
 	 * Control what additional data to include in search results
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	include?: IncludeOptions
 
@@ -71,6 +83,8 @@ export interface SupermemoryVoltAgent
 	 * - "memories": Search only memory entries (atomic facts)
 	 * - "documents": Search only document chunks
 	 * - "hybrid": Search both memories AND document chunks (recommended)
+	 *
+	 * Note: Only effective when mode is "query" or "full". Ignored in "profile" mode.
 	 */
 	searchMode?: "memories" | "documents" | "hybrid"
 
