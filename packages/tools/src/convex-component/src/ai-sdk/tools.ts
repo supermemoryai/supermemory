@@ -1,7 +1,7 @@
-import { tool } from "ai";
-import { z } from "zod";
-import type { ConvexClient } from "convex/browser";
-import type { FunctionReference } from "convex/server";
+import { tool } from "ai"
+import { z } from "zod"
+import type { ConvexClient } from "convex/browser"
+import type { FunctionReference } from "convex/server"
 
 /**
  * Supermemory AI SDK Tools for Convex
@@ -34,125 +34,142 @@ import type { FunctionReference } from "convex/server";
  * ```
  */
 export function supermemoryConvexTools(
-  convexClient: ConvexClient,
-  containerTag: string,
-  componentPath: string = "supermemory"
+	convexClient: ConvexClient,
+	containerTag: string,
+	componentPath = "supermemory",
 ): any {
-  const addAction = `${componentPath}:actions.add` as unknown as FunctionReference<"action">;
-  const searchAction = `${componentPath}:actions.search` as unknown as FunctionReference<"action">;
+	const addAction =
+		`${componentPath}:actions.add` as unknown as FunctionReference<"action">
+	const searchAction =
+		`${componentPath}:actions.search` as unknown as FunctionReference<"action">
 
-  return {
-    /**
-     * Search through user's memories using semantic search
-     * The AI agent calls this when it needs to recall information
-     */
-    // @ts-ignore - AI SDK v4 tool type compatibility
-    searchMemories: tool({
-      description:
-        "Search through the user's memories and past conversations. Use this to recall information the user has shared previously, their preferences, or relevant context from past interactions.",
-      parameters: z.object({
-        informationToGet: z
-          .string()
-          .describe(
-            "What information you're looking for. Be specific and use natural language (e.g., 'user dietary preferences', 'previous conversation about TypeScript')"
-          ),
-        limit: z
-          .number()
-          .optional()
-          .describe("Maximum number of memories to retrieve (default: 5)"),
-      }),
-      // @ts-expect-error - AI SDK v4 tool type compatibility
-      execute: async ({ informationToGet, limit = 5 }: { informationToGet: string; limit?: number }) => {
-        try {
-          const result = await convexClient.action(searchAction, {
-            q: informationToGet,
-            containerTag,
-            searchMode: "hybrid" as const,
-            limit,
-          });
+	return {
+		/**
+		 * Search through user's memories using semantic search
+		 * The AI agent calls this when it needs to recall information
+		 */
+		// @ts-expect-error - AI SDK v4 tool type compatibility
+		searchMemories: tool({
+			description:
+				"Search through the user's memories and past conversations. Use this to recall information the user has shared previously, their preferences, or relevant context from past interactions.",
+			parameters: z.object({
+				informationToGet: z
+					.string()
+					.describe(
+						"What information you're looking for. Be specific and use natural language (e.g., 'user dietary preferences', 'previous conversation about TypeScript')",
+					),
+				limit: z
+					.number()
+					.optional()
+					.describe("Maximum number of memories to retrieve (default: 5)"),
+			}),
+			// @ts-expect-error - AI SDK v4 tool type compatibility
+			execute: async ({
+				informationToGet,
+				limit = 5,
+			}: {
+				informationToGet: string
+				limit?: number
+			}) => {
+				try {
+					const result = await convexClient.action(searchAction, {
+						q: informationToGet,
+						containerTag,
+						searchMode: "hybrid" as const,
+						limit,
+					})
 
-          if (!result || result.results.length === 0) {
-            return {
-              success: true,
-              results: [],
-              count: 0,
-              message: "No relevant memories found",
-            };
-          }
+					if (!result || result.results.length === 0) {
+						return {
+							success: true,
+							results: [],
+							count: 0,
+							message: "No relevant memories found",
+						}
+					}
 
-          return {
-            success: true,
-            results: result.results.map((r: any) => ({
-              content: r.memory || r.chunk,
-              similarity: r.similarity,
-              metadata: r.metadata,
-            })),
-            count: result.total,
-            cached: result.cached,
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Search failed",
-            results: [],
-            count: 0,
-          };
-        }
-      },
-    }),
+					return {
+						success: true,
+						results: result.results.map((r: any) => ({
+							content: r.memory || r.chunk,
+							similarity: r.similarity,
+							metadata: r.metadata,
+						})),
+						count: result.total,
+						cached: result.cached,
+					}
+				} catch (error) {
+					return {
+						success: false,
+						error: error instanceof Error ? error.message : "Search failed",
+						results: [],
+						count: 0,
+					}
+				}
+			},
+		}),
 
-    /**
-     * Add new information to user's memory
-     * The AI agent calls this when the user shares important information
-     */
-    // @ts-ignore - AI SDK v4 tool type compatibility
-    addMemory: tool({
-      description:
-        "Store new information about the user that should be remembered for future conversations. Use this when the user shares preferences, facts about themselves, or important context that should be recalled later.",
-      parameters: z.object({
-        memory: z
-          .string()
-          .describe(
-            "The information to remember. Be clear and concise. Store facts, not full conversations (e.g., 'User is allergic to peanuts', 'User prefers dark mode')"
-          ),
-        customId: z
-          .string()
-          .optional()
-          .describe(
-            "Optional unique identifier for this memory (useful for updating existing memories)"
-          ),
-        metadata: z
-          .record(z.string(), z.any())
-          .optional()
-          .describe("Optional metadata for categorization or filtering"),
-      }),
-      // @ts-expect-error - AI SDK v4 tool type compatibility
-      execute: async ({ memory, customId, metadata }: { memory: string; customId?: string; metadata?: Record<string, any> }) => {
-        try {
-          const result = await convexClient.action(addAction, {
-            content: memory,
-            containerTag,
-            customId,
-            metadata,
-          });
+		/**
+		 * Add new information to user's memory
+		 * The AI agent calls this when the user shares important information
+		 */
+		// @ts-expect-error - AI SDK v4 tool type compatibility
+		addMemory: tool({
+			description:
+				"Store new information about the user that should be remembered for future conversations. Use this when the user shares preferences, facts about themselves, or important context that should be recalled later.",
+			parameters: z.object({
+				memory: z
+					.string()
+					.describe(
+						"The information to remember. Be clear and concise. Store facts, not full conversations (e.g., 'User is allergic to peanuts', 'User prefers dark mode')",
+					),
+				customId: z
+					.string()
+					.optional()
+					.describe(
+						"Optional unique identifier for this memory (useful for updating existing memories)",
+					),
+				metadata: z
+					.record(z.string(), z.any())
+					.optional()
+					.describe("Optional metadata for categorization or filtering"),
+			}),
+			// @ts-expect-error - AI SDK v4 tool type compatibility
+			execute: async ({
+				memory,
+				customId,
+				metadata,
+			}: {
+				memory: string
+				customId?: string
+				metadata?: Record<string, any>
+			}) => {
+				try {
+					const result = await convexClient.action(addAction, {
+						content: memory,
+						containerTag,
+						customId,
+						metadata,
+					})
 
-          return {
-            success: true,
-            memory: {
-              id: result.id,
-              status: result.status,
-            },
-            message: "Memory stored successfully",
-          };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Failed to add memory",
-          };
-        }
-      },
-    }),
-  };
+					return {
+						success: true,
+						memory: {
+							id: result.id,
+							status: result.status,
+						},
+						message: "Memory stored successfully",
+					}
+				} catch (error) {
+					return {
+						success: false,
+						error:
+							error instanceof Error ? error.message : "Failed to add memory",
+					}
+				}
+			},
+		}),
+	}
 }
 
 /**
@@ -160,19 +177,19 @@ export function supermemoryConvexTools(
  */
 
 export function searchMemoriesTool(
-  convexClient: ConvexClient,
-  containerTag: string,
-  componentPath: string = "supermemory"
+	convexClient: ConvexClient,
+	containerTag: string,
+	componentPath = "supermemory",
 ) {
-  return supermemoryConvexTools(convexClient, containerTag, componentPath)
-    .searchMemories;
+	return supermemoryConvexTools(convexClient, containerTag, componentPath)
+		.searchMemories
 }
 
 export function addMemoryTool(
-  convexClient: ConvexClient,
-  containerTag: string,
-  componentPath: string = "supermemory"
+	convexClient: ConvexClient,
+	containerTag: string,
+	componentPath = "supermemory",
 ) {
-  return supermemoryConvexTools(convexClient, containerTag, componentPath)
-    .addMemory;
+	return supermemoryConvexTools(convexClient, containerTag, componentPath)
+		.addMemory
 }

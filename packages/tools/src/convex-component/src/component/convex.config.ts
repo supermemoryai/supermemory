@@ -1,4 +1,4 @@
-import { defineComponent } from "convex/server";
+import { defineComponent } from "convex/server"
 
 /**
  * Supermemory Convex Component
@@ -7,4 +7,4 @@ import { defineComponent } from "convex/server";
  * into your Convex application, providing reactive access to AI-powered memory,
  * user profiles, and semantic search.
  */
-export default defineComponent("supermemory");
+export default defineComponent("supermemory")
