@@ -38,7 +38,8 @@ export const getSearchCache = query({
 		if (!cached || cached.expiresAt < now) {
 			return null
 		}
-		if (args.searchMode && cached.searchMode !== args.searchMode) {
+		const effectiveMode = args.searchMode || "hybrid"
+		if (cached.searchMode !== effectiveMode) {
 			return null
 		}
 
