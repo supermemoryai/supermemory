@@ -64,11 +64,12 @@ export const add = action({
 				incrementMemories: 1,
 			})
 
-			// Log API call
+			// Log API call (truncate content to avoid 1MiB field limit)
+			const logBody = { ...args, content: args.content.substring(0, 500) }
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "add",
 				containerTag: args.containerTag,
-				requestBody: args,
+				requestBody: logBody,
 				responseStatus: "success",
 				responseTime,
 			})
@@ -77,15 +78,21 @@ export const add = action({
 		} catch (error) {
 			const responseTime = Date.now() - startTime
 
-			// Log error
-			await ctx.runMutation(internal.mutations.logApiCall, {
-				endpoint: "add",
-				containerTag: args.containerTag,
-				requestBody: args,
-				responseStatus: "error",
-				responseTime,
-				errorMessage: error instanceof Error ? error.message : "Unknown error",
-			})
+			// Log error (wrapped to prevent logging failure from masking the real error)
+			try {
+				const logBody = { ...args, content: args.content.substring(0, 500) }
+				await ctx.runMutation(internal.mutations.logApiCall, {
+					endpoint: "add",
+					containerTag: args.containerTag,
+					requestBody: logBody,
+					responseStatus: "error",
+					responseTime,
+					errorMessage:
+						error instanceof Error ? error.message : "Unknown error",
+				})
+			} catch {
+				console.error("[Supermemory] Failed to log API error")
+			}
 
 			throw error
 		}
@@ -167,11 +174,12 @@ export const search = action({
 				responseTime,
 			})
 
-			// Log API call
+			// Log API call (exclude large filters from log)
+			const logBody = { q: args.q, containerTag: args.containerTag, searchMode: args.searchMode, limit: args.limit }
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "search",
 				containerTag: args.containerTag,
-				requestBody: args,
+				requestBody: logBody,
 				responseStatus: "success",
 				responseTime,
 			})
@@ -183,15 +191,20 @@ export const search = action({
 		} catch (error) {
 			const responseTime = Date.now() - startTime
 
-			// Log error
-			await ctx.runMutation(internal.mutations.logApiCall, {
-				endpoint: "search",
-				containerTag: args.containerTag,
-				requestBody: args,
-				responseStatus: "error",
-				responseTime,
-				errorMessage: error instanceof Error ? error.message : "Unknown error",
-			})
+			try {
+				const logBody = { q: args.q, containerTag: args.containerTag, searchMode: args.searchMode, limit: args.limit }
+				await ctx.runMutation(internal.mutations.logApiCall, {
+					endpoint: "search",
+					containerTag: args.containerTag,
+					requestBody: logBody,
+					responseStatus: "error",
+					responseTime,
+					errorMessage:
+						error instanceof Error ? error.message : "Unknown error",
+				})
+			} catch {
+				console.error("[Supermemory] Failed to log API error")
+			}
 
 			throw error
 		}
@@ -266,15 +279,19 @@ export const profile = action({
 		} catch (error) {
 			const responseTime = Date.now() - startTime
 
-			// Log error
-			await ctx.runMutation(internal.mutations.logApiCall, {
-				endpoint: "profile",
-				containerTag: args.containerTag,
-				requestBody: args,
-				responseStatus: "error",
-				responseTime,
-				errorMessage: error instanceof Error ? error.message : "Unknown error",
-			})
+			try {
+				await ctx.runMutation(internal.mutations.logApiCall, {
+					endpoint: "profile",
+					containerTag: args.containerTag,
+					requestBody: args,
+					responseStatus: "error",
+					responseTime,
+					errorMessage:
+						error instanceof Error ? error.message : "Unknown error",
+				})
+			} catch {
+				console.error("[Supermemory] Failed to log API error")
+			}
 
 			throw error
 		}
