@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "1.4.4",
+  "version": "2.0.0",
   "description": "Memory tools for AI SDK and OpenAI function calling with supermemory",
   "scripts": {
     "build": "tsdown",
