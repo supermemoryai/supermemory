@@ -156,16 +156,19 @@ export const getApiLogs = query({
 export const getApiStats = query({
 	args: {
 		containerTag: v.optional(v.string()),
+		limit: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
+		const limit = args.limit || 1000
 		const logs = args.containerTag
 			? await ctx.db
 					.query("apiLogs")
 					.withIndex("by_container", (q) =>
 						q.eq("containerTag", args.containerTag),
 					)
-					.collect()
-			: await ctx.db.query("apiLogs").collect()
+					.order("desc")
+					.take(limit)
+			: await ctx.db.query("apiLogs").order("desc").take(limit)
 
 		const stats = {
 			totalCalls: logs.length,

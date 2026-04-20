@@ -290,7 +290,7 @@ export function useApiLogs(
  * ```
  */
 export function useApiStats(
-	args?: { containerTag?: string },
+	args?: { containerTag?: string; limit?: number },
 	componentPath = "supermemory",
 ) {
 	const query =

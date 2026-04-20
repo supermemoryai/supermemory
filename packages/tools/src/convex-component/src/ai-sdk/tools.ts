@@ -48,7 +48,6 @@ export function supermemoryConvexTools(
 		 * Search through user's memories using semantic search
 		 * The AI agent calls this when it needs to recall information
 		 */
-		// @ts-expect-error - AI SDK v4 tool type compatibility
 		searchMemories: tool({
 			description:
 				"Search through the user's memories and past conversations. Use this to recall information the user has shared previously, their preferences, or relevant context from past interactions.",
@@ -113,7 +112,6 @@ export function supermemoryConvexTools(
 		 * Add new information to user's memory
 		 * The AI agent calls this when the user shares important information
 		 */
-		// @ts-expect-error - AI SDK v4 tool type compatibility
 		addMemory: tool({
 			description:
 				"Store new information about the user that should be remembered for future conversations. Use this when the user shares preferences, facts about themselves, or important context that should be recalled later.",

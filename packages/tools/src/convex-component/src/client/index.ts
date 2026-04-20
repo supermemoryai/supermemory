@@ -201,6 +201,7 @@ export function createSupermemoryClient(
 		 */
 		getApiStats: async (args?: {
 			containerTag?: string
+			limit?: number
 		}): Promise<ApiStats> => {
 			return await client.query(query("getApiStats"), args || {})
 		},
