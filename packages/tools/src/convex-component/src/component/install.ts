@@ -6,5 +6,5 @@
  */
 
 export { add, search, profile } from "./actions";
-export { getApiStats, getApiLogs, listDocuments, getDocumentByCustomId } from "./queries";
-export { cleanExpiredCache, setApiKey, updateDocumentStatus } from "./mutations";
+export { getApiStats, getApiLogs, listDocuments, getDocumentByCustomId, listMemories, getChatSessions, getChatSession, getAnalytics, getDashboardOverview } from "./queries";
+export { cleanExpiredCache, setApiKey, updateDocumentStatus, trackChatMessage } from "./mutations";

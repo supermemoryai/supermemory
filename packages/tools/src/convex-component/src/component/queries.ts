@@ -204,3 +204,129 @@ export const searchCachedDocuments = query({
       .slice(0, limit);
   },
 });
+
+/**
+ * List memories for a user
+ * View all memories saved through Supermemory
+ */
+export const listMemories = query({
+  args: {
+    containerTag: v.string(),
+    source: v.optional(v.union(v.literal("chat"), v.literal("document"), v.literal("manual"))),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 50;
+
+    if (args.source) {
+      return await ctx.db
+        .query("memories")
+        .withIndex("by_source", (q) => q.eq("source", args.source))
+        .order("desc")
+        .filter((q) => q.eq(q.field("containerTag"), args.containerTag))
+        .take(limit);
+    }
+
+    return await ctx.db
+      .query("memories")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .order("desc")
+      .take(limit);
+  },
+});
+
+/**
+ * Get chat sessions for a user
+ * View conversation history with memory usage
+ */
+export const getChatSessions = query({
+  args: {
+    containerTag: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 20;
+
+    return await ctx.db
+      .query("chatSessions")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .order("desc")
+      .take(limit);
+  },
+});
+
+/**
+ * Get a specific chat session
+ * View full conversation with memory usage
+ */
+export const getChatSession = query({
+  args: {
+    sessionId: v.id("chatSessions"),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.sessionId);
+  },
+});
+
+/**
+ * Get analytics for a user
+ * View usage statistics and metrics
+ */
+export const getAnalytics = query({
+  args: {
+    containerTag: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("analytics")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .first();
+  },
+});
+
+/**
+ * Get dashboard overview
+ * Comprehensive view of user's memory usage
+ */
+export const getDashboardOverview = query({
+  args: {
+    containerTag: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const analytics = await ctx.db
+      .query("analytics")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .first();
+
+    const recentMemories = await ctx.db
+      .query("memories")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .order("desc")
+      .take(10);
+
+    const recentSessions = await ctx.db
+      .query("chatSessions")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .order("desc")
+      .take(5);
+
+    const recentDocuments = await ctx.db
+      .query("documents")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .order("desc")
+      .take(10);
+
+    return {
+      analytics: analytics || {
+        totalMemories: 0,
+        totalChats: 0,
+        totalSearches: 0,
+        avgResponseTime: 0,
+        lastActive: Date.now(),
+      },
+      recentMemories,
+      recentSessions,
+      recentDocuments,
+    };
+  },
+});

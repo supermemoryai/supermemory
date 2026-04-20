@@ -18,7 +18,7 @@ export interface AddMemoryArgs {
 export interface SearchMemoriesArgs {
   q: string;
   containerTag: string;
-  searchMode?: "hybrid" | "memories";
+  searchMode?: "hybrid" | "memories" | "documents";
   limit?: number;
   threshold?: number;
   rerank?: boolean;

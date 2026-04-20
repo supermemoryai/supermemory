@@ -15,7 +15,7 @@ export default defineSchema({
   searchCache: defineTable({
     query: v.string(),
     containerTag: v.string(),
-    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"))),
+    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"), v.literal("documents"))),
     results: v.any(), // Accept any shape from Supermemory API
     timing: v.number(),
     total: v.number(),
@@ -96,4 +96,53 @@ export default defineSchema({
     key: v.string(),
     value: v.any(),
   }).index("by_key", ["key"]),
+
+  /**
+   * Memories - Core memory storage
+   * All user memories saved through Supermemory
+   */
+  memories: defineTable({
+    content: v.string(),
+    containerTag: v.string(),
+    source: v.union(v.literal("chat"), v.literal("document"), v.literal("manual")),
+    supermemoryId: v.optional(v.string()), // ID from Supermemory API
+    createdAt: v.number(),
+    metadata: v.optional(v.any()),
+  })
+    .index("by_container", ["containerTag"])
+    .index("by_source", ["source"])
+    .index("by_created", ["createdAt"]),
+
+  /**
+   * Chat Sessions - Conversation history with memory usage
+   * Tracks full conversations and which memories were retrieved
+   */
+  chatSessions: defineTable({
+    containerTag: v.string(),
+    messages: v.array(
+      v.object({
+        role: v.union(v.literal("user"), v.literal("assistant")),
+        content: v.string(),
+        timestamp: v.number(),
+      })
+    ),
+    memoriesRetrieved: v.array(v.string()), // IDs of memories used in this session
+    createdAt: v.number(),
+    lastMessageAt: v.number(),
+  })
+    .index("by_container", ["containerTag"])
+    .index("by_last_message", ["lastMessageAt"]),
+
+  /**
+   * Analytics - Usage statistics per user
+   * Dashboard metrics for monitoring
+   */
+  analytics: defineTable({
+    containerTag: v.string(),
+    totalMemories: v.number(),
+    totalChats: v.number(),
+    totalSearches: v.number(),
+    avgResponseTime: v.number(),
+    lastActive: v.number(),
+  }).index("by_container", ["containerTag"]),
 });

@@ -16,9 +16,8 @@
     "types": ["react"],
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true
+    "isolatedModules": true
   },
-  "include": ["src/client/**/*", "src/react/**/*"],
+  "include": ["src/client/**/*", "src/react/**/*", "src/ai-sdk/**/*"],
   "exclude": ["node_modules", "dist", "src/component"]
 }

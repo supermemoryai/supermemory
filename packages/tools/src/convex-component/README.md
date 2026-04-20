@@ -363,13 +363,49 @@ Check out the `/example` directory for a complete Next.js chat app with:
 - Conversation memory
 - API analytics dashboard
 
-## Roadmap
+## AI SDK Integration
 
-- [ ] Vector search optimization
-- [ ] Streaming responses
-- [ ] Batch operations
-- [ ] Analytics dashboard component
-- [ ] Edge function support
+Use Supermemory with Vercel AI SDK through the Convex backend:
+
+### Middleware (Automatic Context Injection)
+
+```typescript
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { withSupermemory } from "@supermemory/convex-component/ai-sdk";
+import { ConvexHttpClient } from "convex/browser";
+
+const convex = new ConvexHttpClient(process.env.CONVEX_URL!);
+
+const modelWithMemory = withSupermemory(
+  openai("gpt-4"),
+  convex,
+  "user_123",
+  { mode: "full", addMemory: "always" }
+);
+
+const result = await generateText({
+  model: modelWithMemory,
+  messages: [{ role: "user", content: "What do you know about me?" }]
+});
+```
+
+### Tools (Agent-Based Memory)
+
+```typescript
+import { streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { supermemoryConvexTools } from "@supermemory/convex-component/ai-sdk";
+import { ConvexHttpClient } from "convex/browser";
+
+const convex = new ConvexHttpClient(process.env.CONVEX_URL!);
+
+const result = await streamText({
+  model: openai("gpt-4"),
+  prompt: "Remember that I love TypeScript",
+  tools: supermemoryConvexTools(convex, "user_123")
+});
+```
 
 ## Contributing
 

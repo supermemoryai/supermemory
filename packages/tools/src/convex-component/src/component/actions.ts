@@ -49,6 +49,21 @@ export const add = action({
         status: result.status === "queued" ? "queued" : "processed",
       });
 
+      // Store memory in dashboard table
+      await ctx.runMutation(internal.mutations.storeMemory, {
+        content: args.content,
+        containerTag: args.containerTag,
+        source: "manual",
+        supermemoryId: result.id,
+        metadata: args.metadata,
+      });
+
+      // Update analytics
+      await ctx.runMutation(internal.mutations.updateAnalytics, {
+        containerTag: args.containerTag,
+        incrementMemories: 1,
+      });
+
       // Log API call
       await ctx.runMutation(internal.mutations.logApiCall, {
         endpoint: "add",
@@ -85,7 +100,7 @@ export const search = action({
   args: {
     q: v.string(),
     containerTag: v.string(),
-    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"))),
+    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"), v.literal("documents"))),
     limit: v.optional(v.number()),
     threshold: v.optional(v.number()),
     rerank: v.optional(v.boolean()),
@@ -136,6 +151,13 @@ export const search = action({
         timing: result.timing,
         total: result.total,
         ttl: 300, // 5 minutes
+      });
+
+      // Update analytics
+      await ctx.runMutation(internal.mutations.updateAnalytics, {
+        containerTag: args.containerTag,
+        incrementSearches: 1,
+        responseTime,
       });
 
       // Log API call

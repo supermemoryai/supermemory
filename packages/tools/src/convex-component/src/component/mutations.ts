@@ -16,7 +16,7 @@ export const cacheSearchResults = internalMutation({
   args: {
     query: v.string(),
     containerTag: v.string(),
-    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"))),
+    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"), v.literal("documents"))),
     results: v.array(v.any()), // Accept any shape from Supermemory API
     timing: v.number(),
     total: v.number(),
@@ -271,6 +271,172 @@ export const setApiKey = mutation({
       await ctx.db.insert("config", {
         key: "SUPERMEMORY_API_KEY",
         value: args.apiKey,
+      });
+    }
+  },
+});
+
+/**
+ * Store a memory
+ * Tracks individual memories in the dashboard
+ */
+export const storeMemory = internalMutation({
+  args: {
+    content: v.string(),
+    containerTag: v.string(),
+    source: v.union(v.literal("chat"), v.literal("document"), v.literal("manual")),
+    supermemoryId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("memories", {
+      content: args.content,
+      containerTag: args.containerTag,
+      source: args.source,
+      supermemoryId: args.supermemoryId,
+      createdAt: Date.now(),
+      metadata: args.metadata,
+    });
+  },
+});
+
+/**
+ * Create or update chat session
+ * Tracks conversation history with memory usage
+ */
+export const updateChatSession = internalMutation({
+  args: {
+    containerTag: v.string(),
+    sessionId: v.optional(v.id("chatSessions")),
+    newMessage: v.object({
+      role: v.union(v.literal("user"), v.literal("assistant")),
+      content: v.string(),
+      timestamp: v.number(),
+    }),
+    memoriesRetrieved: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.sessionId) {
+      // Update existing session
+      const session = await ctx.db.get(args.sessionId);
+      if (session) {
+        await ctx.db.patch(args.sessionId, {
+          messages: [...session.messages, args.newMessage],
+          memoriesRetrieved: [
+            ...new Set([...session.memoriesRetrieved, ...args.memoriesRetrieved])
+          ],
+          lastMessageAt: args.newMessage.timestamp,
+        });
+        return args.sessionId;
+      }
+    }
+
+    // Create new session
+    const sessionId = await ctx.db.insert("chatSessions", {
+      containerTag: args.containerTag,
+      messages: [args.newMessage],
+      memoriesRetrieved: args.memoriesRetrieved,
+      createdAt: Date.now(),
+      lastMessageAt: args.newMessage.timestamp,
+    });
+    return sessionId;
+  },
+});
+
+/**
+ * Public wrapper for updateChatSession
+ * Allows clients to track chat sessions
+ */
+export const trackChatMessage = mutation({
+  args: {
+    containerTag: v.string(),
+    sessionId: v.optional(v.id("chatSessions")),
+    newMessage: v.object({
+      role: v.union(v.literal("user"), v.literal("assistant")),
+      content: v.string(),
+      timestamp: v.number(),
+    }),
+    memoriesRetrieved: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Inline the logic instead of calling another mutation
+    if (args.sessionId) {
+      // Update existing session
+      const session = await ctx.db.get(args.sessionId);
+      if (session) {
+        await ctx.db.patch(args.sessionId, {
+          messages: [...session.messages, args.newMessage],
+          memoriesRetrieved: [
+            ...new Set([...session.memoriesRetrieved, ...args.memoriesRetrieved])
+          ],
+          lastMessageAt: args.newMessage.timestamp,
+        });
+        return args.sessionId;
+      }
+    }
+
+    // Create new session
+    const sessionId = await ctx.db.insert("chatSessions", {
+      containerTag: args.containerTag,
+      messages: [args.newMessage],
+      memoriesRetrieved: args.memoriesRetrieved,
+      createdAt: Date.now(),
+      lastMessageAt: args.newMessage.timestamp,
+    });
+    return sessionId;
+  },
+});
+
+/**
+ * Update analytics
+ * Updates usage statistics for a user
+ */
+export const updateAnalytics = internalMutation({
+  args: {
+    containerTag: v.string(),
+    incrementMemories: v.optional(v.number()),
+    incrementChats: v.optional(v.number()),
+    incrementSearches: v.optional(v.number()),
+    responseTime: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("analytics")
+      .withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
+      .first();
+
+    if (existing) {
+      // Update existing analytics
+      const updates: any = {
+        lastActive: Date.now(),
+      };
+
+      if (args.incrementMemories) {
+        updates.totalMemories = existing.totalMemories + args.incrementMemories;
+      }
+      if (args.incrementChats) {
+        updates.totalChats = existing.totalChats + args.incrementChats;
+      }
+      if (args.incrementSearches) {
+        updates.totalSearches = existing.totalSearches + args.incrementSearches;
+      }
+      if (args.responseTime) {
+        // Calculate new average
+        const totalTime = existing.avgResponseTime * existing.totalSearches;
+        const newTotal = totalTime + args.responseTime;
+        updates.avgResponseTime = newTotal / (existing.totalSearches + 1);
+      }
+
+      await ctx.db.patch(existing._id, updates);
+    } else {
+      // Create new analytics entry
+      await ctx.db.insert("analytics", {
+        containerTag: args.containerTag,
+        totalMemories: args.incrementMemories || 0,
+        totalChats: args.incrementChats || 0,
+        totalSearches: args.incrementSearches || 0,
+        avgResponseTime: args.responseTime || 0,
+        lastActive: Date.now(),
       });
     }
   },

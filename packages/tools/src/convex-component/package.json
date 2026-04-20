@@ -30,18 +30,19 @@
       "import": "./dist/react/index.js",
       "default": "./dist/react/index.js"
     },
-    "./convex.config": {
-      "types": "./dist/component/convex.config.d.ts",
-      "import": "./dist/component/convex.config.js",
-      "default": "./dist/component/convex.config.js"
-    }
+    "./ai-sdk": {
+      "types": "./dist/ai-sdk/index.d.ts",
+      "import": "./dist/ai-sdk/index.js",
+      "default": "./dist/ai-sdk/index.js"
+    },
+    "./convex.config": "./dist/component/convex.config.ts"
   },
   "files": [
     "dist",
     "src"
   ],
   "scripts": {
-    "build": "bun run build:component && bun run build:lib",
+    "build": "tsc && cp -r src/component dist/component",
     "build:component": "cd src/component && npx convex dev --once --typecheck disable",
     "build:lib": "tsc",
     "dev": "cd src/component && npx convex dev",
@@ -49,8 +50,12 @@
     "check-types": "bun run typecheck"
   },
   "dependencies": {
-    "supermemory": "^4.21.1",
-    "convex": "^1.35.0"
+    "convex": "^1.35.0",
+    "supermemory": "^4.21.1"
+  },
+  "optionalDependencies": {
+    "ai": "^6.0.168",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/react": "^19.2.14",

@@ -342,6 +342,155 @@ export function useSetApiKey(componentPath: string = "supermemory") {
   );
 }
 
+/**
+ * Hook to list memories for a user
+ *
+ * @param args - Filter arguments
+ * @param componentPath - Path to the component (default: "supermemory")
+ *
+ * @example
+ * ```tsx
+ * function MemoryList({ userId }) {
+ *   const memories = useMemories({ containerTag: userId, limit: 50 });
+ *
+ *   return (
+ *     <div>
+ *       {memories?.map(memory => (
+ *         <div key={memory._id}>
+ *           <p>{memory.content}</p>
+ *           <span>Source: {memory.source}</span>
+ *         </div>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useMemories(
+  args: { containerTag: string; source?: "chat" | "document" | "manual"; limit?: number },
+  componentPath: string = "supermemory"
+) {
+  const query = `${componentPath}:listMemories` as unknown as FunctionReference<"query">;
+  return useQuery(query, args) as any[] | undefined;
+}
+
+/**
+ * Hook to get chat sessions for a user
+ *
+ * @param args - Filter arguments
+ * @param componentPath - Path to the component (default: "supermemory")
+ *
+ * @example
+ * ```tsx
+ * function ChatHistory({ userId }) {
+ *   const sessions = useChatSessions({ containerTag: userId, limit: 10 });
+ *
+ *   return (
+ *     <div>
+ *       {sessions?.map(session => (
+ *         <div key={session._id}>
+ *           <p>{session.messages.length} messages</p>
+ *           <p>Last active: {new Date(session.lastMessageAt).toLocaleString()}</p>
+ *         </div>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useChatSessions(
+  args: { containerTag: string; limit?: number },
+  componentPath: string = "supermemory"
+) {
+  const query = `${componentPath}:getChatSessions` as unknown as FunctionReference<"query">;
+  return useQuery(query, args) as any[] | undefined;
+}
+
+/**
+ * Hook to get a specific chat session
+ *
+ * @param sessionId - Chat session ID
+ * @param componentPath - Path to the component (default: "supermemory")
+ */
+export function useChatSession(
+  sessionId: string | null,
+  componentPath: string = "supermemory"
+) {
+  const query = `${componentPath}:getChatSession` as unknown as FunctionReference<"query">;
+  return useQuery(query, sessionId ? { sessionId } : "skip") as any | null | undefined;
+}
+
+/**
+ * Hook to get analytics for a user
+ *
+ * @param containerTag - User identifier
+ * @param componentPath - Path to the component (default: "supermemory")
+ *
+ * @example
+ * ```tsx
+ * function Analytics({ userId }) {
+ *   const analytics = useAnalytics(userId);
+ *
+ *   if (!analytics) return <div>Loading...</div>;
+ *
+ *   return (
+ *     <div>
+ *       <p>Total Memories: {analytics.totalMemories}</p>
+ *       <p>Total Chats: {analytics.totalChats}</p>
+ *       <p>Total Searches: {analytics.totalSearches}</p>
+ *       <p>Avg Response Time: {analytics.avgResponseTime.toFixed(0)}ms</p>
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useAnalytics(
+  containerTag: string | null,
+  componentPath: string = "supermemory"
+) {
+  const query = `${componentPath}:getAnalytics` as unknown as FunctionReference<"query">;
+  return useQuery(query, containerTag ? { containerTag } : "skip") as any | null | undefined;
+}
+
+/**
+ * Hook to get dashboard overview
+ *
+ * @param containerTag - User identifier
+ * @param componentPath - Path to the component (default: "supermemory")
+ *
+ * @example
+ * ```tsx
+ * function Dashboard({ userId }) {
+ *   const overview = useDashboardOverview(userId);
+ *
+ *   if (!overview) return <div>Loading...</div>;
+ *
+ *   return (
+ *     <div>
+ *       <h2>Analytics</h2>
+ *       <p>Total Memories: {overview.analytics.totalMemories}</p>
+ *       <p>Total Chats: {overview.analytics.totalChats}</p>
+ *
+ *       <h2>Recent Memories</h2>
+ *       {overview.recentMemories.map(m => <p key={m._id}>{m.content}</p>)}
+ *
+ *       <h2>Recent Sessions</h2>
+ *       {overview.recentSessions.map(s => (
+ *         <p key={s._id}>{s.messages.length} messages</p>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useDashboardOverview(
+  containerTag: string | null,
+  componentPath: string = "supermemory"
+) {
+  const query = `${componentPath}:getDashboardOverview` as unknown as FunctionReference<"query">;
+  return useQuery(query, containerTag ? { containerTag } : "skip") as any | undefined;
+}
+
 // Export all types
 export type {
   AddMemoryArgs,
