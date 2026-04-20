@@ -221,9 +221,10 @@ export const listMemories = query({
     if (args.source) {
       return await ctx.db
         .query("memories")
-        .withIndex("by_source", (q) => q.eq("source", args.source))
+        .withIndex("by_source_container", (q) =>
+          q.eq("source", args.source).eq("containerTag", args.containerTag)
+        )
         .order("desc")
-        .filter((q) => q.eq(q.field("containerTag"), args.containerTag))
         .take(limit);
     }
 

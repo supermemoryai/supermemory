@@ -111,6 +111,7 @@ export default defineSchema({
   })
     .index("by_container", ["containerTag"])
     .index("by_source", ["source"])
+    .index("by_source_container", ["source", "containerTag"])
     .index("by_created", ["createdAt"]),
 
   /**

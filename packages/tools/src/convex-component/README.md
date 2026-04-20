@@ -44,14 +44,10 @@ export default app;
 
 ### 2. Set API Key
 
-Get your API key from [Supermemory Dashboard](https://supermemory.ai/dashboard) and set it:
+Get your API key from [console.supermemory.ai](https://console.supermemory.ai) and set it as a Convex environment variable:
 
 ```bash
-# Environment variable (recommended)
-export SUPERMEMORY_API_KEY="your-api-key"
-
-# Or set it programmatically
-npx convex run supermemory:mutations.setApiKey '{"apiKey": "your-api-key"}'
+npx convex env set SUPERMEMORY_API_KEY your-api-key
 ```
 
 ### 3. Use in Your App

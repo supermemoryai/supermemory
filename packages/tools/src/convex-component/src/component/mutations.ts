@@ -254,8 +254,11 @@ export const updateDocumentStatus = mutation({
 /**
  * Initialize or update API key
  * Stores the Supermemory API key in Convex
+ *
+ * SECURITY NOTE: This is an internal mutation. Use `npx convex env set SUPERMEMORY_API_KEY`
+ * for production, or call this from a server-side admin endpoint with proper auth checks.
  */
-export const setApiKey = mutation({
+export const setApiKey = internalMutation({
   args: {
     apiKey: v.string(),
   },
@@ -420,11 +423,12 @@ export const updateAnalytics = internalMutation({
       if (args.incrementSearches) {
         updates.totalSearches = existing.totalSearches + args.incrementSearches;
       }
-      if (args.responseTime) {
-        // Calculate new average
+      if (args.incrementSearches && args.responseTime) {
+        // Only update average when we're also incrementing searches
         const totalTime = existing.avgResponseTime * existing.totalSearches;
         const newTotal = totalTime + args.responseTime;
-        updates.avgResponseTime = newTotal / (existing.totalSearches + 1);
+        const newSearchCount = existing.totalSearches + args.incrementSearches;
+        updates.avgResponseTime = newTotal / newSearchCount;
       }
 
       await ctx.db.patch(existing._id, updates);

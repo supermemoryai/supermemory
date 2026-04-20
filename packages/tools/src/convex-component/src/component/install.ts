@@ -7,4 +7,4 @@
 
 export { add, search, profile } from "./actions";
 export { getApiStats, getApiLogs, listDocuments, getDocumentByCustomId, listMemories, getChatSessions, getChatSession, getAnalytics, getDashboardOverview } from "./queries";
-export { cleanExpiredCache, setApiKey, updateDocumentStatus, trackChatMessage } from "./mutations";
+export { cleanExpiredCache, updateDocumentStatus, trackChatMessage } from "./mutations";

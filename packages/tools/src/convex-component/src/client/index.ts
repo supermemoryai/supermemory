@@ -233,13 +233,6 @@ export function createSupermemoryClient(
       return await client.mutation(mutation("updateDocumentStatus"), args);
     },
 
-    /**
-     * Set Supermemory API key
-     * Configure the API key for Supermemory calls
-     */
-    setApiKey: async (apiKey: string) => {
-      return await client.mutation(mutation("setApiKey"), { apiKey });
-    },
   };
 }
 

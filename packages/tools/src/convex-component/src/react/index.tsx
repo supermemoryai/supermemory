@@ -326,23 +326,6 @@ export function useUpdateDocumentStatus(componentPath: string = "supermemory") {
 }
 
 /**
- * Hook to set Supermemory API key
- *
- * @param componentPath - Path to the component (default: "supermemory")
- */
-export function useSetApiKey(componentPath: string = "supermemory") {
-  const mutation = `${componentPath}:setApiKey` as unknown as FunctionReference<"mutation">;
-  const setKeyMutation = useMutation(mutation);
-
-  return useCallback(
-    async (apiKey: string) => {
-      return await setKeyMutation({ apiKey });
-    },
-    [setKeyMutation]
-  );
-}
-
-/**
  * Hook to list memories for a user
  *
  * @param args - Filter arguments
