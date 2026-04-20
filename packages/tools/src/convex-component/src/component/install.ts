@@ -18,7 +18,6 @@ export {
 	getDashboardOverview,
 } from "./queries"
 export {
-	cleanExpiredCache,
 	updateDocumentStatus,
 	trackChatMessage,
 } from "./mutations"

@@ -299,21 +299,6 @@ export function useApiStats(
 }
 
 /**
- * Hook to clean expired cache
- *
- * @param componentPath - Path to the component (default: "supermemory")
- */
-export function useCleanCache(componentPath = "supermemory") {
-	const mutation =
-		`${componentPath}:mutations.cleanExpiredCache` as unknown as FunctionReference<"mutation">
-	const cleanMutation = useMutation(mutation)
-
-	return useCallback(async () => {
-		return await cleanMutation({})
-	}, [cleanMutation])
-}
-
-/**
  * Hook to update document status
  *
  * @param componentPath - Path to the component (default: "supermemory")

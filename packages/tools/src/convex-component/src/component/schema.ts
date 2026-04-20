@@ -9,52 +9,6 @@ import { v } from "convex/values"
  */
 export default defineSchema({
 	/**
-	 * Cached search results from Supermemory
-	 * Stores recent search queries and their results for fast reactive access
-	 */
-	searchCache: defineTable({
-		query: v.string(),
-		containerTag: v.string(),
-		searchMode: v.optional(
-			v.union(
-				v.literal("hybrid"),
-				v.literal("memories"),
-				v.literal("documents"),
-			),
-		),
-		results: v.any(), // Accept any shape from Supermemory API
-		timing: v.number(),
-		total: v.number(),
-		expiresAt: v.number(), // Timestamp when cache expires
-	})
-		.index("by_query_container", ["query", "containerTag"])
-		.index("by_expires", ["expiresAt"]),
-
-	/**
-	 * Cached user profiles from Supermemory
-	 * Stores user context (static + dynamic facts) for fast access
-	 */
-	profileCache: defineTable({
-		containerTag: v.string(),
-		staticProfile: v.array(v.string()),
-		dynamicProfile: v.array(v.string()),
-		searchResults: v.optional(
-			v.array(
-				v.object({
-					id: v.string(),
-					memory: v.optional(v.string()),
-					chunk: v.optional(v.string()),
-					similarity: v.number(),
-					metadata: v.optional(v.any()),
-				}),
-			),
-		),
-		expiresAt: v.number(),
-	})
-		.index("by_container", ["containerTag"])
-		.index("by_expires", ["expiresAt"]),
-
-	/**
 	 * Metadata about documents/memories added to Supermemory
 	 * Tracks what content has been sent to Supermemory for analytics
 	 */

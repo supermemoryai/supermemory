@@ -1,7 +1,7 @@
 import { action } from "./_generated/server"
 import { v } from "convex/values"
 import Supermemory from "supermemory"
-import { api, internal } from "./_generated/api"
+import { internal } from "./_generated/api"
 
 /**
  * Supermemory Actions
@@ -123,22 +123,6 @@ export const search = action({
 		const startTime = Date.now()
 
 		try {
-			// Check cache first
-			const cached = await ctx.runQuery(api.queries.getSearchCache, {
-				query: args.q,
-				containerTag: args.containerTag,
-				searchMode: args.searchMode,
-			})
-
-			if (cached) {
-				return {
-					results: cached.results,
-					timing: cached.timing,
-					total: cached.total,
-					cached: true,
-				}
-			}
-
 			// Get API key from config
 			const apiKey = await ctx.runQuery(internal.lib.getApiKey)
 			const client = new Supermemory({ apiKey })
@@ -155,17 +139,6 @@ export const search = action({
 			})
 
 			const responseTime = Date.now() - startTime
-
-			// Cache results (expires in 5 minutes)
-			await ctx.runMutation(internal.mutations.cacheSearchResults, {
-				query: args.q,
-				containerTag: args.containerTag,
-				searchMode: args.searchMode,
-				results: result.results,
-				timing: result.timing,
-				total: result.total,
-				ttl: 300, // 5 minutes
-			})
 
 			// Update analytics
 			await ctx.runMutation(internal.mutations.updateAnalytics, {
@@ -184,10 +157,7 @@ export const search = action({
 				responseTime,
 			})
 
-			return {
-				...result,
-				cached: false,
-			}
+			return result
 		} catch (error) {
 			const responseTime = Date.now() - startTime
 
@@ -224,24 +194,6 @@ export const profile = action({
 		const startTime = Date.now()
 
 		try {
-			// Check cache first
-			const cached = await ctx.runQuery(api.queries.getProfileCache, {
-				containerTag: args.containerTag,
-			})
-
-			if (cached) {
-				return {
-					profile: {
-						static: cached.staticProfile,
-						dynamic: cached.dynamicProfile,
-					},
-					searchResults: cached.searchResults
-						? { results: cached.searchResults }
-						: undefined,
-					cached: true,
-				}
-			}
-
 			// Get API key from config
 			const apiKey = await ctx.runQuery(internal.lib.getApiKey)
 			const client = new Supermemory({ apiKey })
@@ -254,15 +206,6 @@ export const profile = action({
 
 			const responseTime = Date.now() - startTime
 
-			// Cache profile (expires in 2 minutes for freshness)
-			await ctx.runMutation(internal.mutations.cacheProfile, {
-				containerTag: args.containerTag,
-				staticProfile: result.profile.static,
-				dynamicProfile: result.profile.dynamic,
-				searchResults: result.searchResults?.results,
-				ttl: 120, // 2 minutes
-			})
-
 			// Log API call
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "profile",
@@ -272,10 +215,7 @@ export const profile = action({
 				responseTime,
 			})
 
-			return {
-				...result,
-				cached: false,
-			}
+			return result
 		} catch (error) {
 			const responseTime = Date.now() - startTime
 

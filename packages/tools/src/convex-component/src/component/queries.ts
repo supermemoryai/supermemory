@@ -4,73 +4,9 @@ import { v } from "convex/values"
 /**
  * Supermemory Queries
  *
- * Queries provide reactive, read-only access to cached Supermemory data.
+ * Queries provide reactive, read-only access to Supermemory data.
  * Components using these queries will automatically re-render when data changes.
  */
-
-/**
- * Get cached search results
- * Returns cached search results if available and not expired
- */
-export const getSearchCache = query({
-	args: {
-		query: v.string(),
-		containerTag: v.string(),
-		searchMode: v.optional(
-			v.union(
-				v.literal("hybrid"),
-				v.literal("memories"),
-				v.literal("documents"),
-			),
-		),
-	},
-	handler: async (ctx, args) => {
-		const now = Date.now()
-
-		const cached = await ctx.db
-			.query("searchCache")
-			.withIndex("by_query_container", (q) =>
-				q.eq("query", args.query).eq("containerTag", args.containerTag),
-			)
-			.first()
-
-		// Return null if cache expired or searchMode doesn't match
-		if (!cached || cached.expiresAt < now) {
-			return null
-		}
-		const effectiveMode = args.searchMode || "hybrid"
-		if (cached.searchMode !== effectiveMode) {
-			return null
-		}
-
-		return cached
-	},
-})
-
-/**
- * Get cached user profile
- * Returns cached profile if available and not expired
- */
-export const getProfileCache = query({
-	args: {
-		containerTag: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const now = Date.now()
-
-		const cached = await ctx.db
-			.query("profileCache")
-			.withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
-			.first()
-
-		// Return null if cache expired
-		if (!cached || cached.expiresAt < now) {
-			return null
-		}
-
-		return cached
-	},
-})
 
 /**
  * List documents added to Supermemory
@@ -188,37 +124,6 @@ export const getApiStats = query({
 		}
 
 		return stats
-	},
-})
-
-/**
- * Search documents locally (in Convex cache)
- * Fast text search across cached content previews
- */
-export const searchCachedDocuments = query({
-	args: {
-		searchText: v.string(),
-		containerTag: v.optional(v.string()),
-		limit: v.optional(v.number()),
-	},
-	handler: async (ctx, args) => {
-		const limit = args.limit || 20
-		const searchLower = args.searchText.toLowerCase()
-
-		const query = args.containerTag
-			? ctx.db
-					.query("documents")
-					.withIndex("by_container", (q) =>
-						q.eq("containerTag", args.containerTag),
-					)
-			: ctx.db.query("documents")
-
-		const allDocs = await query.collect()
-
-		// Simple text matching on content preview
-		return allDocs
-			.filter((doc) => doc.contentPreview.toLowerCase().includes(searchLower))
-			.slice(0, limit)
 	},
 })
 

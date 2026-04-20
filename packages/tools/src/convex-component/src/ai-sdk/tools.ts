@@ -7,7 +7,7 @@ import type { FunctionReference } from "convex/server"
  * Supermemory AI SDK Tools for Convex
  *
  * Provides AI agent tools that use Convex actions for memory operations.
- * All operations are cached and tracked in the Convex dashboard.
+ * All operations are tracked in the Convex dashboard.
  */
 
 /**
@@ -95,7 +95,6 @@ export function supermemoryConvexTools(
 							metadata: r.metadata,
 						})),
 						count: result.total,
-						cached: result.cached,
 					}
 				} catch (error) {
 					return {

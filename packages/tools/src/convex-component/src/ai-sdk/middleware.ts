@@ -4,7 +4,7 @@ import type { FunctionReference } from "convex/server"
 /**
  * Supermemory AI SDK Middleware for Convex
  *
- * Wraps AI models to automatically inject user context from Convex-cached memories.
+ * Wraps AI models to automatically inject user context from Supermemory.
  */
 
 /**
@@ -182,7 +182,7 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 
 					if (verbose) {
 						console.log(
-							`[Supermemory] Found ${searchResults.length} relevant memories (cached: ${searchResult.cached})`,
+							`[Supermemory] Found ${searchResults.length} relevant memories`,
 						)
 					}
 				}
@@ -200,15 +200,15 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 					...callOptions.prompt,
 				]
 
-				// Auto-save user message if enabled
+				// Auto-save user message if enabled (fire-and-forget to avoid blocking)
 				if (addMemory === "always" && userQuery) {
 					if (verbose) console.log("[Supermemory] Auto-saving user message...")
 
-					await convexClient.action(addAction, {
+					convexClient.action(addAction, {
 						content: userQuery,
 						containerTag,
 						metadata: { source: "ai-middleware", auto: true },
-					})
+					}).catch((e) => console.error("[Supermemory] Failed to auto-save:", e))
 				}
 
 				// Call original model with enhanced context
@@ -281,11 +281,11 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 				]
 
 				if (addMemory === "always" && userQuery) {
-					await convexClient.action(addAction, {
+					convexClient.action(addAction, {
 						content: userQuery,
 						containerTag,
 						metadata: { source: "ai-middleware", auto: true },
-					})
+					}).catch((e) => console.error("[Supermemory] Failed to auto-save:", e))
 				}
 
 				return await model.doStream({

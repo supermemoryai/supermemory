@@ -44,7 +44,6 @@ export interface SearchResponse {
 	results: SearchResult[]
 	timing: number
 	total: number
-	cached: boolean
 }
 
 export interface ProfileResponse {
@@ -61,7 +60,6 @@ export interface ProfileResponse {
 			metadata?: Record<string, any>
 		}>
 	}
-	cached: boolean
 }
 
 export interface Document {
@@ -204,26 +202,6 @@ export function createSupermemoryClient(
 			limit?: number
 		}): Promise<ApiStats> => {
 			return await client.query(query("getApiStats"), args || {})
-		},
-
-		/**
-		 * Search cached documents locally
-		 * Fast text search across cached content
-		 */
-		searchCached: async (args: {
-			searchText: string
-			containerTag?: string
-			limit?: number
-		}): Promise<Document[]> => {
-			return await client.query(query("searchCachedDocuments"), args)
-		},
-
-		/**
-		 * Clean expired cache entries
-		 * Removes old search and profile caches
-		 */
-		cleanCache: async () => {
-			return await client.mutation(mutation("cleanExpiredCache"), {})
 		},
 
 		/**
