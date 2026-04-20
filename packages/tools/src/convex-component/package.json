@@ -1,0 +1,69 @@
+{
+  "name": "@supermemory/convex-component",
+  "version": "0.1.0",
+  "description": "Convex component for Supermemory - Add semantic memory and RAG to your Convex apps",
+  "keywords": [
+    "convex",
+    "supermemory",
+    "rag",
+    "memory",
+    "ai",
+    "semantic-search",
+    "vector-database"
+  ],
+  "license": "MIT",
+  "author": "Supermemory",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/supermemoryai/supermemory.git",
+    "directory": "packages/tools/src/convex-component"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js",
+      "default": "./dist/client/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "default": "./dist/react/index.js"
+    },
+    "./convex.config": {
+      "types": "./dist/component/convex.config.d.ts",
+      "import": "./dist/component/convex.config.js",
+      "default": "./dist/component/convex.config.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "bun run build:component && bun run build:lib",
+    "build:component": "cd src/component && npx convex dev --once --typecheck disable",
+    "build:lib": "tsc",
+    "dev": "cd src/component && npx convex dev",
+    "typecheck": "tsc --noEmit",
+    "check-types": "bun run typecheck"
+  },
+  "dependencies": {
+    "supermemory": "^4.21.1",
+    "convex": "^1.35.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "react": "^19.0.0",
+    "typescript": "5.8.3"
+  },
+  "peerDependencies": {
+    "convex": "^1.35.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}
