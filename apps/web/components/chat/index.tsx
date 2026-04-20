@@ -214,6 +214,7 @@ function ChatEmptyStatePlaceholder({
 						? // Skeletons at the same dimensions as the real buttons —
 							// prevents layout shift when suggestions arrive
 							Array.from({ length: 4 }).map((_, i) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: stable skeleton
 								<div
 									key={i}
 									className="h-10 w-[300px] rounded-full bg-[#041127] border border-[#2261CA33] animate-pulse"
