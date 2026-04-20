@@ -16,6 +16,7 @@ export const getSearchCache = query({
   args: {
     query: v.string(),
     containerTag: v.string(),
+    searchMode: v.optional(v.union(v.literal("hybrid"), v.literal("memories"), v.literal("documents"))),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -27,8 +28,11 @@ export const getSearchCache = query({
       )
       .first();
 
-    // Return null if cache expired
+    // Return null if cache expired or searchMode doesn't match
     if (!cached || cached.expiresAt < now) {
+      return null;
+    }
+    if (args.searchMode && cached.searchMode !== args.searchMode) {
       return null;
     }
 

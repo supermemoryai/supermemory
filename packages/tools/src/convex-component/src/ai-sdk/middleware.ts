@@ -109,9 +109,9 @@ export function withSupermemory<T extends WrappableLanguageModel>(
     verbose = false,
   } = options;
 
-  const profileAction = `${componentPath}:profile` as unknown as FunctionReference<"action">;
-  const searchAction = `${componentPath}:search` as unknown as FunctionReference<"action">;
-  const addAction = `${componentPath}:add` as unknown as FunctionReference<"action">;
+  const profileAction = `${componentPath}:actions.profile` as unknown as FunctionReference<"action">;
+  const searchAction = `${componentPath}:actions.search` as unknown as FunctionReference<"action">;
+  const addAction = `${componentPath}:actions.add` as unknown as FunctionReference<"action">;
 
   return {
     ...model,

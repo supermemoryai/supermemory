@@ -38,8 +38,8 @@ export function supermemoryConvexTools(
   containerTag: string,
   componentPath: string = "supermemory"
 ): any {
-  const addAction = `${componentPath}:add` as unknown as FunctionReference<"action">;
-  const searchAction = `${componentPath}:search` as unknown as FunctionReference<"action">;
+  const addAction = `${componentPath}:actions.add` as unknown as FunctionReference<"action">;
+  const searchAction = `${componentPath}:actions.search` as unknown as FunctionReference<"action">;
 
   return {
     /**

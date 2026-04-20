@@ -39,7 +39,7 @@ import type {
  * ```
  */
 export function useAddMemory(componentPath: string = "supermemory") {
-  const action = `${componentPath}:add` as unknown as FunctionReference<"action">;
+  const action = `${componentPath}:actions.add` as unknown as FunctionReference<"action">;
   const addAction = useAction(action);
 
   return useCallback(
@@ -82,7 +82,7 @@ export function useSupermemorySearch(
   args: SearchMemoriesArgs | null,
   componentPath: string = "supermemory"
 ) {
-  const action = `${componentPath}:search` as unknown as FunctionReference<"action">;
+  const action = `${componentPath}:actions.search` as unknown as FunctionReference<"action">;
   const searchAction = useAction(action);
   const [results, setResults] = useState<SearchResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -148,7 +148,7 @@ export function useSupermemoryProfile(
   args: ProfileArgs | null,
   componentPath: string = "supermemory"
 ) {
-  const action = `${componentPath}:profile` as unknown as FunctionReference<"action">;
+  const action = `${componentPath}:actions.profile` as unknown as FunctionReference<"action">;
   const profileAction = useAction(action);
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -210,7 +210,7 @@ export function useDocumentList(
   args?: { containerTag?: string; limit?: number },
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:listDocuments` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.listDocuments` as unknown as FunctionReference<"query">;
   return useQuery(query, args || {}) as Document[] | undefined;
 }
 
@@ -225,7 +225,7 @@ export function useDocument(
   componentPath: string = "supermemory"
 ) {
   const query =
-    `${componentPath}:getDocumentByCustomId` as unknown as FunctionReference<"query">;
+    `${componentPath}:queries.getDocumentByCustomId` as unknown as FunctionReference<"query">;
   return useQuery(
     query,
     customId ? { customId } : "skip"
@@ -259,7 +259,7 @@ export function useApiLogs(
   args?: { endpoint?: string; containerTag?: string; limit?: number },
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:getApiLogs` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.getApiLogs` as unknown as FunctionReference<"query">;
   return useQuery(query, args || {}) as ApiLog[] | undefined;
 }
 
@@ -288,7 +288,7 @@ export function useApiStats(
   args?: { containerTag?: string },
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:getApiStats` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.getApiStats` as unknown as FunctionReference<"query">;
   return useQuery(query, args || {}) as ApiStats | undefined;
 }
 
@@ -299,7 +299,7 @@ export function useApiStats(
  */
 export function useCleanCache(componentPath: string = "supermemory") {
   const mutation =
-    `${componentPath}:cleanExpiredCache` as unknown as FunctionReference<"mutation">;
+    `${componentPath}:mutations.cleanExpiredCache` as unknown as FunctionReference<"mutation">;
   const cleanMutation = useMutation(mutation);
 
   return useCallback(async () => {
@@ -314,7 +314,7 @@ export function useCleanCache(componentPath: string = "supermemory") {
  */
 export function useUpdateDocumentStatus(componentPath: string = "supermemory") {
   const mutation =
-    `${componentPath}:updateDocumentStatus` as unknown as FunctionReference<"mutation">;
+    `${componentPath}:mutations.updateDocumentStatus` as unknown as FunctionReference<"mutation">;
   const updateMutation = useMutation(mutation);
 
   return useCallback(
@@ -353,7 +353,7 @@ export function useMemories(
   args: { containerTag: string; source?: "chat" | "document" | "manual"; limit?: number },
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:listMemories` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.listMemories` as unknown as FunctionReference<"query">;
   return useQuery(query, args) as any[] | undefined;
 }
 
@@ -385,7 +385,7 @@ export function useChatSessions(
   args: { containerTag: string; limit?: number },
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:getChatSessions` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.getChatSessions` as unknown as FunctionReference<"query">;
   return useQuery(query, args) as any[] | undefined;
 }
 
@@ -399,7 +399,7 @@ export function useChatSession(
   sessionId: string | null,
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:getChatSession` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.getChatSession` as unknown as FunctionReference<"query">;
   return useQuery(query, sessionId ? { sessionId } : "skip") as any | null | undefined;
 }
 
@@ -431,7 +431,7 @@ export function useAnalytics(
   containerTag: string | null,
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:getAnalytics` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.getAnalytics` as unknown as FunctionReference<"query">;
   return useQuery(query, containerTag ? { containerTag } : "skip") as any | null | undefined;
 }
 
@@ -470,7 +470,7 @@ export function useDashboardOverview(
   containerTag: string | null,
   componentPath: string = "supermemory"
 ) {
-  const query = `${componentPath}:getDashboardOverview` as unknown as FunctionReference<"query">;
+  const query = `${componentPath}:queries.getDashboardOverview` as unknown as FunctionReference<"query">;
   return useQuery(query, containerTag ? { containerTag } : "skip") as any | undefined;
 }
 

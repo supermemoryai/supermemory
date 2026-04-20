@@ -114,6 +114,7 @@ export const search = action({
       const cached = await ctx.runQuery(api.queries.getSearchCache, {
         query: args.q,
         containerTag: args.containerTag,
+        searchMode: args.searchMode,
       });
 
       if (cached) {
