@@ -46,18 +46,18 @@ npx convex env set SUPERMEMORY_API_KEY your-api-key
 <Tabs>
   <Tab title="React Hooks">
     ```tsx
-    import { addMemory, searchMemories } from "@supermemory/convex-component/react";
+    import { useAddMemory, useSupermemorySearch } from "@supermemory/convex-component/react";
 
     function ChatApp() {
-      const add = addMemory();
-      const { results, isLoading, search } = searchMemories({
+      const addMemory = useAddMemory();
+      const { results, isLoading, search } = useSupermemorySearch({
         q: "user preferences",
         containerTag: "user_123",
         searchMode: "hybrid"
       });
 
       const handleSendMessage = async (message: string) => {
-        await add({
+        await addMemory({
           content: message,
           containerTag: "user_123"
         });
@@ -112,14 +112,14 @@ npx convex env set SUPERMEMORY_API_KEY your-api-key
 
 ## React Hooks
 
-### `addMemory()`
+### `useAddMemory()`
 
-Add memories to Supermemory through a Convex action.
+Hook to add memories to Supermemory through a Convex action.
 
 ```tsx
-const add = addMemory();
+const addMemory = useAddMemory();
 
-await add({
+await addMemory({
   content: "Meeting notes from Q1 planning",
   containerTag: "user_123",
   customId: "meeting_2024_q1",
@@ -127,12 +127,12 @@ await add({
 });
 ```
 
-### `searchMemories(args)`
+### `useSupermemorySearch(args)`
 
-Reactive semantic search with loading and error states.
+Hook for reactive semantic search with loading and error states.
 
 ```tsx
-const { results, isLoading, error, search } = searchMemories({
+const { results, isLoading, error, search } = useSupermemorySearch({
   q: "project updates",
   containerTag: "user_123",
   searchMode: "hybrid",
@@ -143,12 +143,12 @@ const { results, isLoading, error, search } = searchMemories({
 await search({ q: "new query", containerTag: "user_123" });
 ```
 
-### `getProfile(args)`
+### `useSupermemoryProfile(args)`
 
-Get user profile with static and dynamic facts.
+Hook to get user profile with static and dynamic facts.
 
 ```tsx
-const { profile, isLoading, refresh } = getProfile({
+const { profile, isLoading, refresh } = useSupermemoryProfile({
   containerTag: "user_123",
   q: "recent preferences"
 });
@@ -157,12 +157,12 @@ const { profile, isLoading, refresh } = getProfile({
 await refresh();
 ```
 
-### `listMemories(args)`
+### `useMemories(args)`
 
-List memories by container tag and source.
+Hook to list memories by container tag and source.
 
 ```tsx
-const memories = listMemories({
+const memories = useMemories({
   containerTag: "user_123",
   source: "manual", // "chat" | "document" | "manual"
   limit: 50

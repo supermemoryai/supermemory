@@ -20,17 +20,17 @@ import type {
  */
 
 /**
- * Add memories to Supermemory
+ * Hook to add memories to Supermemory
  *
  * @example
  * ```tsx
  * function ChatApp() {
- *   const add = addMemory();
- *   await add({ content: "Hello", containerTag: "user_123" });
+ *   const addMemory = useAddMemory();
+ *   await addMemory({ content: "Hello", containerTag: "user_123" });
  * }
  * ```
  */
-export function addMemory(componentPath = "supermemory") {
+export function useAddMemory(componentPath = "supermemory") {
 	const action =
 		`${componentPath}:actions.add` as unknown as FunctionReference<"action">
 	const addAction = useAction(action)
@@ -44,16 +44,16 @@ export function addMemory(componentPath = "supermemory") {
 }
 
 /**
- * Search Supermemory with reactive results
+ * Hook for reactive semantic search with loading and error states
  *
  * @example
  * ```tsx
- * const { results, isLoading, search } = searchMemories({
+ * const { results, isLoading, search } = useSupermemorySearch({
  *   q: "typescript", containerTag: "user_123"
  * });
  * ```
  */
-export function searchMemories(
+export function useSupermemorySearch(
 	args: SearchMemoriesArgs | null,
 	componentPath = "supermemory",
 ) {
@@ -88,16 +88,16 @@ export function searchMemories(
 }
 
 /**
- * Get user profile
+ * Hook to get user profile with static and dynamic facts
  *
  * @example
  * ```tsx
- * const { profile, isLoading, refresh } = getProfile({
+ * const { profile, isLoading, refresh } = useSupermemoryProfile({
  *   containerTag: "user_123"
  * });
  * ```
  */
-export function getProfile(
+export function useSupermemoryProfile(
 	args: ProfileArgs | null,
 	componentPath = "supermemory",
 ) {
@@ -132,15 +132,15 @@ export function getProfile(
 }
 
 /**
- * List memories reactively
+ * Hook to list memories reactively
  *
  * @example
  * ```tsx
- * const memories = listMemories({ containerTag: "user_123" });
+ * const memories = useMemories({ containerTag: "user_123" });
  * // memories includes content + extractedMemories for each entry
  * ```
  */
-export function listMemories(
+export function useMemories(
 	args: {
 		containerTag: string
 		source?: "chat" | "document" | "manual"
