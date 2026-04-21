@@ -2,57 +2,7 @@ import { query } from "./_generated/server"
 import { v } from "convex/values"
 
 /**
- * Supermemory Queries
- *
- * Queries provide reactive, read-only access to Supermemory data.
- * Components using these queries will automatically re-render when data changes.
- */
-
-/**
- * List documents added to Supermemory
- * Provides visibility into what content has been indexed
- */
-export const listDocuments = query({
-	args: {
-		containerTag: v.optional(v.string()),
-		limit: v.optional(v.number()),
-	},
-	handler: async (ctx, args) => {
-		const limit = args.limit || 50
-
-		if (args.containerTag) {
-			return await ctx.db
-				.query("documents")
-				.withIndex("by_container", (q) =>
-					q.eq("containerTag", args.containerTag),
-				)
-				.order("desc")
-				.take(limit)
-		}
-
-		return await ctx.db.query("documents").order("desc").take(limit)
-	},
-})
-
-/**
- * Get document by custom ID
- * Find a specific document using your custom identifier
- */
-export const getDocumentByCustomId = query({
-	args: {
-		customId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query("documents")
-			.withIndex("by_custom_id", (q) => q.eq("customId", args.customId))
-			.first()
-	},
-})
-
-/**
  * Get API call logs
- * View recent Supermemory API calls for debugging and analytics
  */
 export const getApiLogs = query({
 	args: {
@@ -87,7 +37,6 @@ export const getApiLogs = query({
 
 /**
  * Get API statistics
- * Aggregate stats for dashboard visibility
  */
 export const getApiStats = query({
 	args: {
@@ -117,7 +66,6 @@ export const getApiStats = query({
 			callsByEndpoint: {} as Record<string, number>,
 		}
 
-		// Count calls by endpoint
 		for (const log of logs) {
 			stats.callsByEndpoint[log.endpoint] =
 				(stats.callsByEndpoint[log.endpoint] || 0) + 1
@@ -129,7 +77,7 @@ export const getApiStats = query({
 
 /**
  * List memories for a user
- * View all memories saved through Supermemory
+ * Includes content and extractedMemories
  */
 export const listMemories = query({
 	args: {
@@ -162,7 +110,6 @@ export const listMemories = query({
 
 /**
  * Get chat sessions for a user
- * View conversation history with memory usage
  */
 export const getChatSessions = query({
 	args: {
@@ -182,7 +129,6 @@ export const getChatSessions = query({
 
 /**
  * Get a specific chat session
- * View full conversation with memory usage
  */
 export const getChatSession = query({
 	args: {
@@ -195,7 +141,6 @@ export const getChatSession = query({
 
 /**
  * Get analytics for a user
- * View usage statistics and metrics
  */
 export const getAnalytics = query({
 	args: {
@@ -211,7 +156,6 @@ export const getAnalytics = query({
 
 /**
  * Get dashboard overview
- * Comprehensive view of user's memory usage
  */
 export const getDashboardOverview = query({
 	args: {
@@ -235,12 +179,6 @@ export const getDashboardOverview = query({
 			.order("desc")
 			.take(5)
 
-		const recentDocuments = await ctx.db
-			.query("documents")
-			.withIndex("by_container", (q) => q.eq("containerTag", args.containerTag))
-			.order("desc")
-			.take(10)
-
 		return {
 			analytics: analytics || {
 				totalMemories: 0,
@@ -251,7 +189,6 @@ export const getDashboardOverview = query({
 			},
 			recentMemories,
 			recentSessions,
-			recentDocuments,
 		}
 	},
 })

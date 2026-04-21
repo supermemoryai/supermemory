@@ -62,15 +62,15 @@ export interface ProfileResponse {
 	}
 }
 
-export interface Document {
+export interface Memory {
 	_id: string
-	documentId: string
-	customId?: string
+	content: string
 	containerTag: string
-	contentPreview: string
+	source: "chat" | "document" | "manual"
+	supermemoryId?: string
+	extractedMemories?: string[]
+	createdAt: number
 	metadata?: Record<string, any>
-	status: "queued" | "processed" | "failed"
-	addedAt: number
 }
 
 export interface ApiLog {
@@ -123,7 +123,6 @@ export function createSupermemoryClient(
 	client: ConvexClient,
 	componentPath = "supermemory",
 ) {
-	// Helper to construct function references
 	const action = (name: string): FunctionReference<"action"> => {
 		return `${componentPath}:actions.${name}` as any
 	}
@@ -132,21 +131,17 @@ export function createSupermemoryClient(
 		return `${componentPath}:queries.${name}` as any
 	}
 
-	const mutation = (name: string): FunctionReference<"mutation"> => {
-		return `${componentPath}:mutations.${name}` as any
-	}
-
 	return {
 		/**
 		 * Add content to Supermemory
-		 * Stores text, conversations, files, or URLs for semantic search
+		 * Stores text and extracts memories from it
 		 */
 		add: async (args: AddMemoryArgs) => {
 			return await client.action(action("add"), args)
 		},
 
 		/**
-		 * Search memories and documents
+		 * Search memories
 		 * Performs semantic search across all content
 		 */
 		search: async (args: SearchMemoriesArgs): Promise<SearchResponse> => {
@@ -155,35 +150,26 @@ export function createSupermemoryClient(
 
 		/**
 		 * Get user profile with context
-		 * Retrieves static/dynamic facts about a user plus relevant memories
+		 * Retrieves static/dynamic facts about a user
 		 */
 		profile: async (args: ProfileArgs): Promise<ProfileResponse> => {
 			return await client.action(action("profile"), args)
 		},
 
 		/**
-		 * List documents added to Supermemory
-		 * Query documents with optional filtering
+		 * List memories for a user
+		 * Includes content and extracted memories
 		 */
-		listDocuments: async (args?: {
-			containerTag?: string
+		listMemories: async (args: {
+			containerTag: string
+			source?: "chat" | "document" | "manual"
 			limit?: number
-		}): Promise<Document[]> => {
-			return await client.query(query("listDocuments"), args || {})
-		},
-
-		/**
-		 * Get a document by custom ID
-		 */
-		getDocumentByCustomId: async (
-			customId: string,
-		): Promise<Document | null> => {
-			return await client.query(query("getDocumentByCustomId"), { customId })
+		}): Promise<Memory[]> => {
+			return await client.query(query("listMemories"), args)
 		},
 
 		/**
 		 * Get API call logs
-		 * View recent Supermemory API calls for debugging
 		 */
 		getApiLogs: async (args?: {
 			endpoint?: string
@@ -195,23 +181,12 @@ export function createSupermemoryClient(
 
 		/**
 		 * Get API statistics
-		 * Aggregate stats for dashboard visibility
 		 */
 		getApiStats: async (args?: {
 			containerTag?: string
 			limit?: number
 		}): Promise<ApiStats> => {
 			return await client.query(query("getApiStats"), args || {})
-		},
-
-		/**
-		 * Update document status
-		 */
-		updateDocumentStatus: async (args: {
-			documentId: string
-			status: "queued" | "processed" | "failed"
-		}) => {
-			return await client.mutation(mutation("updateDocumentStatus"), args)
 		},
 	}
 }

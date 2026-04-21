@@ -16,8 +16,7 @@ Supermemory Convex Component integrates [Supermemory](https://supermemory.ai)'s 
 - **User Profiles**: Automatic extraction of static and dynamic user facts
 - **Hybrid Search**: Combine memory extraction with document chunk search
 - **Reactive Queries**: Auto-updating UI components via Convex
-- **Smart Caching**: Reduce API calls with intelligent Convex-based caching
-- **Dashboard Visibility**: See all Supermemory API calls in your Convex dashboard
+- **Dashboard Visibility**: See all memories, API calls, chat sessions, and analytics in your Convex dashboard
 - **TypeScript First**: Fully typed SDK and React hooks
 
 ## Installation
@@ -55,11 +54,11 @@ npx convex env set SUPERMEMORY_API_KEY your-api-key
 #### React/Next.js with Hooks
 
 ```tsx
-import { useAddMemory, useSupermemorySearch } from "@supermemory/convex-component/react";
+import { addMemory, searchMemories } from "@supermemory/convex-component/react";
 
 function ChatApp() {
-  const addMemory = useAddMemory();
-  const { results, isLoading, search } = useSupermemorySearch({
+  const add = addMemory();
+  const { results, isLoading, search } = searchMemories({
     q: "user preferences",
     containerTag: "user_123",
     searchMode: "hybrid"
@@ -67,7 +66,7 @@ function ChatApp() {
 
   const handleSendMessage = async (message: string) => {
     // Add to memory
-    await addMemory({
+    await add({
       content: `User: ${message}`,
       containerTag: "user_123"
     });
@@ -128,14 +127,14 @@ console.log("Dynamic context:", profile.profile.dynamic);
 
 ### React Hooks
 
-#### `useAddMemory(componentPath?)`
+#### `addMemory(componentPath?)`
 
-Hook to add memories to Supermemory.
+Add memories to Supermemory.
 
 ```tsx
-const addMemory = useAddMemory();
+const add = addMemory();
 
-await addMemory({
+await add({
   content: "Meeting notes from Q1 planning",
   containerTag: "user_123",
   customId: "meeting_2024_q1",
@@ -143,12 +142,12 @@ await addMemory({
 });
 ```
 
-#### `useSupermemorySearch(args, componentPath?)`
+#### `searchMemories(args, componentPath?)`
 
-Hook for reactive semantic search.
+Search Supermemory with reactive results.
 
 ```tsx
-const { results, isLoading, error, search } = useSupermemorySearch({
+const { results, isLoading, error, search } = searchMemories({
   q: "project updates",
   containerTag: "user_123",
   searchMode: "hybrid",
@@ -159,12 +158,12 @@ const { results, isLoading, error, search } = useSupermemorySearch({
 await search({ q: "new query", containerTag: "user_123" });
 ```
 
-#### `useSupermemoryProfile(args, componentPath?)`
+#### `getProfile(args, componentPath?)`
 
-Hook to get user profile with context.
+Get user profile with context.
 
 ```tsx
-const { profile, isLoading, refresh } = useSupermemoryProfile({
+const { profile, isLoading, refresh } = getProfile({
   containerTag: "user_123",
   q: "recent preferences"
 });
@@ -173,29 +172,23 @@ const { profile, isLoading, refresh } = useSupermemoryProfile({
 await refresh();
 ```
 
-#### `useDocumentList(args?, componentPath?)`
+#### `listMemories(args, componentPath?)`
 
-Hook to list documents reactively.
-
-```tsx
-const documents = useDocumentList({
-  containerTag: "user_123",
-  limit: 20
-});
-```
-
-#### `useApiStats(args?, componentPath?)`
-
-Hook to get API statistics for dashboard.
+List memories reactively. Includes content and extracted memories.
 
 ```tsx
-const stats = useApiStats({ containerTag: "user_123" });
+const memories = listMemories({ containerTag: "user_123", limit: 20 });
 
 return (
   <div>
-    <p>Total Calls: {stats?.totalCalls}</p>
-    <p>Success Rate: {((stats?.successfulCalls / stats?.totalCalls) * 100).toFixed(1)}%</p>
-    <p>Avg Response: {stats?.averageResponseTime.toFixed(0)}ms</p>
+    {memories?.map(m => (
+      <div key={m._id}>
+        <p>{m.content}</p>
+        {m.extractedMemories?.map((em, i) => (
+          <span key={i}>{em}</span>
+        ))}
+      </div>
+    ))}
   </div>
 );
 ```
@@ -218,17 +211,8 @@ const results = await client.search({ q: "...", containerTag: "user_123" });
 // Get profile
 const profile = await client.profile({ containerTag: "user_123" });
 
-// List documents
-const docs = await client.listDocuments({ containerTag: "user_123" });
-
-// Get API logs
-const logs = await client.getApiLogs({ limit: 50 });
-
-// Get stats
-const stats = await client.getApiStats();
-
-// Clean cache
-await client.cleanCache();
+// List memories
+const memories = await client.listMemories({ containerTag: "user_123" });
 ```
 
 ## Advanced Usage
@@ -294,22 +278,13 @@ await addMemory({
 });
 ```
 
-### Cache Management
-
-The component automatically caches search results (5 min) and profiles (2 min). Clean manually:
-
-```typescript
-const cleanCache = useCleanCache();
-await cleanCache(); // Removes all expired entries
-```
-
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Your Next.js/React App                   │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  useSupermemorySearch, useAddMemory, etc.            │  │
+│  │  searchMemories, addMemory, listMemories             │  │
 │  └────────────────────┬─────────────────────────────────┘  │
 └───────────────────────┼──────────────────────────────────────┘
                         │
@@ -318,18 +293,19 @@ await cleanCache(); // Removes all expired entries
 │                    Convex Backend                            │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
 │  │   Queries    │  │  Mutations   │  │    Actions       │  │
-│  │ (Reactive)   │  │ (Tx Cache)   │  │ (Supermemory     │  │
+│  │ (Reactive)   │  │ (Storage)    │  │ (Supermemory     │  │
 │  │              │  │              │  │  API Calls)      │  │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────────┘  │
 │         │                 │                 │               │
 │         └─────────────────┼─────────────────┘               │
 │                           │                                 │
 │  ┌────────────────────────▼──────────────────────────────┐  │
-│  │         Convex Tables (Smart Cache)                   │  │
-│  │  - searchCache: Search results with TTL              │  │
-│  │  - profileCache: User profiles with TTL              │  │
-│  │  - documents: Document metadata                       │  │
-│  │  - apiLogs: API call logs for dashboard              │  │
+│  │              Convex Tables                            │  │
+│  │  - memories: Content + extracted memories             │  │
+│  │  - chatSessions: Conversation history                 │  │
+│  │  - analytics: Usage tracking                          │  │
+│  │  - apiLogs: API call logs for dashboard               │  │
+│  │  - config: Component configuration                    │  │
 │  └───────────────────────────────────────────────────────┘  │
 └───────────────────────┬──────────────────────────────────────┘
                         │
@@ -346,62 +322,15 @@ await cleanCache(); // Removes all expired entries
 ## Why This Architecture?
 
 1. **Best of Both Worlds**: Supermemory's AI-powered memory + Convex's reactive sync
-2. **Dashboard Visibility**: See all API calls, cache hits, errors in Convex dashboard
-3. **Performance**: Smart caching reduces Supermemory API calls by ~80%
-4. **Real-time**: Search results update reactively across all connected clients
-5. **DX**: Install one package, 3 lines of config, start building
+2. **Dashboard Visibility**: See all API calls, memories, chat sessions, and analytics in Convex dashboard
+3. **Real-time**: Memories and search results update reactively across all connected clients
+4. **DX**: Install one package, 3 lines of config, start building
 
 ## Examples
 
-Check out the `/example` directory for a complete Next.js chat app with:
-- Real-time semantic search
-- User profile extraction
-- Conversation memory
-- API analytics dashboard
-
-## AI SDK Integration
-
-Use Supermemory with Vercel AI SDK through the Convex backend:
-
-### Middleware (Automatic Context Injection)
-
-```typescript
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { withSupermemory } from "@supermemory/convex-component/ai-sdk";
-import { ConvexHttpClient } from "convex/browser";
-
-const convex = new ConvexHttpClient(process.env.CONVEX_URL!);
-
-const modelWithMemory = withSupermemory(
-  openai("gpt-4"),
-  convex,
-  "user_123",
-  { mode: "full", addMemory: "always" }
-);
-
-const result = await generateText({
-  model: modelWithMemory,
-  messages: [{ role: "user", content: "What do you know about me?" }]
-});
-```
-
-### Tools (Agent-Based Memory)
-
-```typescript
-import { streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { supermemoryConvexTools } from "@supermemory/convex-component/ai-sdk";
-import { ConvexHttpClient } from "convex/browser";
-
-const convex = new ConvexHttpClient(process.env.CONVEX_URL!);
-
-const result = await streamText({
-  model: openai("gpt-4"),
-  prompt: "Remember that I love TypeScript",
-  tools: supermemoryConvexTools(convex, "user_123")
-});
-```
+Check out the `/example` directory for complete examples:
+- `basic-usage.ts` - Vanilla TypeScript client usage
+- `react-example.tsx` - React hooks with reactive UI
 
 ## Contributing
 

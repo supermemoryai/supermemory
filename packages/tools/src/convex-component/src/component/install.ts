@@ -9,15 +9,10 @@ export { add, search, profile } from "./actions"
 export {
 	getApiStats,
 	getApiLogs,
-	listDocuments,
-	getDocumentByCustomId,
 	listMemories,
 	getChatSessions,
 	getChatSession,
 	getAnalytics,
 	getDashboardOverview,
 } from "./queries"
-export {
-	updateDocumentStatus,
-	trackChatMessage,
-} from "./mutations"
+export { trackChatMessage } from "./mutations"

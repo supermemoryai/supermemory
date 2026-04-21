@@ -4,15 +4,8 @@ import Supermemory from "supermemory"
 import { internal } from "./_generated/api"
 
 /**
- * Supermemory Actions
- *
- * Actions handle non-deterministic operations like calling external APIs.
- * These functions call the Supermemory REST API and cache results in Convex.
- */
-
-/**
  * Add content to Supermemory
- * Stores text, conversations, files, or URLs in Supermemory for semantic search
+ * Stores text and then searches for the extracted memories from it
  */
 export const add = action({
 	args: {
@@ -25,11 +18,10 @@ export const add = action({
 		const startTime = Date.now()
 
 		try {
-			// Get API key from config
 			const apiKey = await ctx.runQuery(internal.lib.getApiKey)
 			const client = new Supermemory({ apiKey })
 
-			// Call Supermemory API
+			// Add content to Supermemory
 			const result = await client.add({
 				content: args.content,
 				containerTag: args.containerTag,
@@ -39,22 +31,31 @@ export const add = action({
 
 			const responseTime = Date.now() - startTime
 
-			// Store document metadata in Convex
-			await ctx.runMutation(internal.mutations.storeDocument, {
-				documentId: result.id,
-				customId: args.customId,
-				containerTag: args.containerTag,
-				contentPreview: args.content.substring(0, 200),
-				metadata: args.metadata,
-				status: result.status === "queued" ? "queued" : "processed",
-			})
+			// Search for extracted memories from this content
+			let extractedMemories: string[] = []
+			try {
+				// Small delay to let Supermemory process
+				await new Promise((r) => setTimeout(r, 1000))
+				const searchResult = await client.search.memories({
+					q: args.content,
+					containerTag: args.containerTag,
+					searchMode: "memories",
+					limit: 10,
+				})
+				extractedMemories = (searchResult.results || [])
+					.map((r: any) => r.memory || r.chunk || "")
+					.filter((m: string) => m.length > 0)
+			} catch {
+				// Extraction might not be ready yet, that's ok
+			}
 
-			// Store memory in dashboard table
+			// Store memory with extracted memories
 			await ctx.runMutation(internal.mutations.storeMemory, {
 				content: args.content,
 				containerTag: args.containerTag,
 				source: "manual",
 				supermemoryId: result.id,
+				extractedMemories,
 				metadata: args.metadata,
 			})
 
@@ -64,7 +65,7 @@ export const add = action({
 				incrementMemories: 1,
 			})
 
-			// Log API call (truncate content to avoid 1MiB field limit)
+			// Log API call
 			const logBody = { ...args, content: args.content.substring(0, 500) }
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "add",
@@ -78,7 +79,6 @@ export const add = action({
 		} catch (error) {
 			const responseTime = Date.now() - startTime
 
-			// Log error (wrapped to prevent logging failure from masking the real error)
 			try {
 				const logBody = { ...args, content: args.content.substring(0, 500) }
 				await ctx.runMutation(internal.mutations.logApiCall, {
@@ -101,7 +101,6 @@ export const add = action({
 
 /**
  * Search memories and documents
- * Performs semantic search across all content in Supermemory
  */
 export const search = action({
 	args: {
@@ -123,11 +122,9 @@ export const search = action({
 		const startTime = Date.now()
 
 		try {
-			// Get API key from config
 			const apiKey = await ctx.runQuery(internal.lib.getApiKey)
 			const client = new Supermemory({ apiKey })
 
-			// Call Supermemory API
 			const result = await client.search.memories({
 				q: args.q,
 				containerTag: args.containerTag,
@@ -147,7 +144,7 @@ export const search = action({
 				responseTime,
 			})
 
-			// Log API call (exclude large filters from log)
+			// Log API call
 			const logBody = { q: args.q, containerTag: args.containerTag, searchMode: args.searchMode, limit: args.limit }
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "search",
@@ -183,7 +180,6 @@ export const search = action({
 
 /**
  * Get user profile with context
- * Retrieves static/dynamic facts about a user plus relevant memories
  */
 export const profile = action({
 	args: {
@@ -194,11 +190,9 @@ export const profile = action({
 		const startTime = Date.now()
 
 		try {
-			// Get API key from config
 			const apiKey = await ctx.runQuery(internal.lib.getApiKey)
 			const client = new Supermemory({ apiKey })
 
-			// Call Supermemory API
 			const result = await client.profile({
 				containerTag: args.containerTag,
 				q: args.q,
@@ -206,7 +200,6 @@ export const profile = action({
 
 			const responseTime = Date.now() - startTime
 
-			// Log API call
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "profile",
 				containerTag: args.containerTag,

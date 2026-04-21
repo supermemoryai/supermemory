@@ -2,72 +2,7 @@ import { internalMutation, mutation } from "./_generated/server"
 import { v } from "convex/values"
 
 /**
- * Supermemory Mutations
- *
- * Mutations handle all database writes in transactions.
- * These functions update the Convex cache with Supermemory data.
- */
-
-/**
- * Store document metadata
- * Tracks documents/memories added to Supermemory
- */
-export const storeDocument = internalMutation({
-	args: {
-		documentId: v.string(),
-		customId: v.optional(v.string()),
-		containerTag: v.string(),
-		contentPreview: v.string(),
-		metadata: v.optional(v.any()),
-		status: v.union(
-			v.literal("queued"),
-			v.literal("processed"),
-			v.literal("failed"),
-		),
-	},
-	handler: async (ctx, args) => {
-		// Check if document with this customId or documentId exists
-		const existingByCustomId = args.customId
-			? await ctx.db
-					.query("documents")
-					.withIndex("by_custom_id", (q) => q.eq("customId", args.customId))
-					.first()
-			: null
-
-		const existingByDocId = await ctx.db
-			.query("documents")
-			.withIndex("by_document_id", (q) => q.eq("documentId", args.documentId))
-			.first()
-
-		const existing = existingByCustomId || existingByDocId
-
-		if (existing) {
-			// Update existing document
-			await ctx.db.patch(existing._id, {
-				documentId: args.documentId,
-				customId: args.customId,
-				contentPreview: args.contentPreview,
-				metadata: args.metadata,
-				status: args.status,
-			})
-		} else {
-			// Create new document entry
-			await ctx.db.insert("documents", {
-				documentId: args.documentId,
-				customId: args.customId,
-				containerTag: args.containerTag,
-				contentPreview: args.contentPreview,
-				metadata: args.metadata,
-				status: args.status,
-				addedAt: Date.now(),
-			})
-		}
-	},
-})
-
-/**
  * Log API call
- * Records API calls for debugging and analytics
  */
 export const logApiCall = internalMutation({
 	args: {
@@ -96,38 +31,7 @@ export const logApiCall = internalMutation({
 })
 
 /**
- * Update document status
- * Updates the processing status of a document
- */
-export const updateDocumentStatus = mutation({
-	args: {
-		documentId: v.string(),
-		status: v.union(
-			v.literal("queued"),
-			v.literal("processed"),
-			v.literal("failed"),
-		),
-	},
-	handler: async (ctx, args) => {
-		const doc = await ctx.db
-			.query("documents")
-			.withIndex("by_document_id", (q) => q.eq("documentId", args.documentId))
-			.first()
-
-		if (!doc) {
-			throw new Error(`Document ${args.documentId} not found`)
-		}
-
-		await ctx.db.patch(doc._id, { status: args.status })
-	},
-})
-
-/**
  * Initialize or update API key
- * Stores the Supermemory API key in Convex
- *
- * SECURITY NOTE: This is an internal mutation. Use `npx convex env set SUPERMEMORY_API_KEY`
- * for production, or call this from a server-side admin endpoint with proper auth checks.
  */
 export const setApiKey = internalMutation({
 	args: {
@@ -151,8 +55,7 @@ export const setApiKey = internalMutation({
 })
 
 /**
- * Store a memory
- * Tracks individual memories in the dashboard
+ * Store a memory with extracted memories
  */
 export const storeMemory = internalMutation({
 	args: {
@@ -164,6 +67,7 @@ export const storeMemory = internalMutation({
 			v.literal("manual"),
 		),
 		supermemoryId: v.optional(v.string()),
+		extractedMemories: v.optional(v.array(v.string())),
 		metadata: v.optional(v.any()),
 	},
 	handler: async (ctx, args) => {
@@ -172,6 +76,7 @@ export const storeMemory = internalMutation({
 			containerTag: args.containerTag,
 			source: args.source,
 			supermemoryId: args.supermemoryId,
+			extractedMemories: args.extractedMemories,
 			createdAt: Date.now(),
 			metadata: args.metadata,
 		})
@@ -179,8 +84,22 @@ export const storeMemory = internalMutation({
 })
 
 /**
+ * Update extracted memories for an existing memory
+ */
+export const updateExtractedMemories = internalMutation({
+	args: {
+		memoryId: v.id("memories"),
+		extractedMemories: v.array(v.string()),
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.memoryId, {
+			extractedMemories: args.extractedMemories,
+		})
+	},
+})
+
+/**
  * Create or update chat session
- * Tracks conversation history with memory usage
  */
 export const updateChatSession = internalMutation({
 	args: {
@@ -196,7 +115,6 @@ export const updateChatSession = internalMutation({
 	handler: async (ctx, args) => {
 		const MAX_MESSAGES = 500
 		if (args.sessionId) {
-			// Update existing session
 			const session = await ctx.db.get(args.sessionId)
 			if (session) {
 				const messages = [...session.messages, args.newMessage].slice(
@@ -216,7 +134,6 @@ export const updateChatSession = internalMutation({
 			}
 		}
 
-		// Create new session
 		const sessionId = await ctx.db.insert("chatSessions", {
 			containerTag: args.containerTag,
 			messages: [args.newMessage],
@@ -230,7 +147,6 @@ export const updateChatSession = internalMutation({
 
 /**
  * Public wrapper for updateChatSession
- * Allows clients to track chat sessions
  */
 export const trackChatMessage = mutation({
 	args: {
@@ -246,7 +162,6 @@ export const trackChatMessage = mutation({
 	handler: async (ctx, args) => {
 		const MAX_MESSAGES = 500
 		if (args.sessionId) {
-			// Update existing session
 			const session = await ctx.db.get(args.sessionId)
 			if (session) {
 				const messages = [...session.messages, args.newMessage].slice(
@@ -266,7 +181,6 @@ export const trackChatMessage = mutation({
 			}
 		}
 
-		// Create new session
 		const sessionId = await ctx.db.insert("chatSessions", {
 			containerTag: args.containerTag,
 			messages: [args.newMessage],
@@ -280,7 +194,6 @@ export const trackChatMessage = mutation({
 
 /**
  * Update analytics
- * Updates usage statistics for a user
  */
 export const updateAnalytics = internalMutation({
 	args: {
@@ -297,7 +210,6 @@ export const updateAnalytics = internalMutation({
 			.first()
 
 		if (existing) {
-			// Update existing analytics
 			const updates: any = {
 				lastActive: Date.now(),
 			}
@@ -312,7 +224,6 @@ export const updateAnalytics = internalMutation({
 				updates.totalSearches = existing.totalSearches + args.incrementSearches
 			}
 			if (args.incrementSearches && args.responseTime) {
-				// Only update average when we're also incrementing searches
 				const totalTime = existing.avgResponseTime * existing.totalSearches
 				const newTotal = totalTime + args.responseTime
 				const newSearchCount = existing.totalSearches + args.incrementSearches
@@ -321,7 +232,6 @@ export const updateAnalytics = internalMutation({
 
 			await ctx.db.patch(existing._id, updates)
 		} else {
-			// Create new analytics entry
 			await ctx.db.insert("analytics", {
 				containerTag: args.containerTag,
 				totalMemories: args.incrementMemories || 0,
