@@ -197,7 +197,11 @@ export function MemoryGraph({
 				setViewportVersion((v) => v + 1)
 			}
 
-			const { hasMore: more, isLoadingMore: loading, onLoadMore: load } = loadMoreRef.current
+			const {
+				hasMore: more,
+				isLoadingMore: loading,
+				onLoadMore: load,
+			} = loadMoreRef.current
 			if (!more || loading || !load || !viewportRef.current) return
 
 			const vp = viewportRef.current
@@ -205,14 +209,17 @@ export function MemoryGraph({
 			if (currentNodes.length === 0) return
 
 			const topLeft = vp.screenToWorld(0, 0)
-			const bottomRight = vp.screenToWorld(containerSize.width, containerSize.height)
+			const bottomRight = vp.screenToWorld(
+				containerSize.width,
+				containerSize.height,
+			)
 			const viewW = bottomRight.x - topLeft.x
 			const viewH = bottomRight.y - topLeft.y
 
-			let minX = Infinity
-			let minY = Infinity
-			let maxX = -Infinity
-			let maxY = -Infinity
+			let minX = Number.POSITIVE_INFINITY
+			let minY = Number.POSITIVE_INFINITY
+			let maxX = Number.NEGATIVE_INFINITY
+			let maxY = Number.NEGATIVE_INFINITY
 			for (const n of currentNodes) {
 				if (n.x < minX) minX = n.x
 				if (n.y < minY) minY = n.y
@@ -612,7 +619,6 @@ export function MemoryGraph({
 				totalLoaded={totalCount ?? documents.length}
 				colors={colors}
 			/>
-
 
 			{!isLoading && !nodes.some((n) => n.type === "document") && children && (
 				<div style={emptyStateStyle}>{children}</div>

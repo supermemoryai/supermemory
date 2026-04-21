@@ -145,7 +145,12 @@ export const search = action({
 			})
 
 			// Log API call
-			const logBody = { q: args.q, containerTag: args.containerTag, searchMode: args.searchMode, limit: args.limit }
+			const logBody = {
+				q: args.q,
+				containerTag: args.containerTag,
+				searchMode: args.searchMode,
+				limit: args.limit,
+			}
 			await ctx.runMutation(internal.mutations.logApiCall, {
 				endpoint: "search",
 				containerTag: args.containerTag,
@@ -159,7 +164,12 @@ export const search = action({
 			const responseTime = Date.now() - startTime
 
 			try {
-				const logBody = { q: args.q, containerTag: args.containerTag, searchMode: args.searchMode, limit: args.limit }
+				const logBody = {
+					q: args.q,
+					containerTag: args.containerTag,
+					searchMode: args.searchMode,
+					limit: args.limit,
+				}
 				await ctx.runMutation(internal.mutations.logApiCall, {
 					endpoint: "search",
 					containerTag: args.containerTag,

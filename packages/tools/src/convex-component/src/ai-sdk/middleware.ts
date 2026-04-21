@@ -13,7 +13,9 @@ import type { FunctionReference } from "convex/server"
  * a direct dependency on @ai-sdk/provider.
  */
 interface WrappableLanguageModel {
+	// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 	doGenerate: (options: any) => Promise<any>
+	// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 	doStream: (options: any) => Promise<any>
 	[key: string]: unknown
 }
@@ -49,7 +51,7 @@ export interface SupermemoryOptions {
 export interface MemoryPromptData {
 	userMemories: string
 	generalSearchMemories: string
-	searchResults: any[]
+	searchResults: unknown[]
 }
 
 const DEFAULT_PROMPT_TEMPLATE = (data: MemoryPromptData) =>
@@ -119,10 +121,12 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 
 	return {
 		...model,
+		// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 		doGenerate: async (callOptions: any) => {
 			try {
 				// Extract user's last message for query-based search
 				const lastUserMessage = callOptions.prompt
+					// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 					.filter((msg: any) => msg.role === "user")
 					.slice(-1)[0]
 
@@ -131,13 +135,14 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 						? typeof lastUserMessage.content === "string"
 							? lastUserMessage.content
 							: lastUserMessage.content
+									// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 									.map((c: any) => (c.type === "text" ? c.text : ""))
 									.join(" ")
 						: ""
 
 				let userMemories = ""
 				let generalSearchMemories = ""
-				let searchResults: any[] = []
+				let searchResults: unknown[] = []
 
 				// Fetch profile if needed
 				if (mode === "profile" || mode === "full") {
@@ -175,6 +180,7 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 					searchResults = searchResult.results
 					generalSearchMemories = searchResults
 						.map(
+							// biome-ignore lint/suspicious/noExplicitAny: search result types not exported
 							(r: any) =>
 								`- ${r.memory || r.chunk} (similarity: ${r.similarity.toFixed(2)})`,
 						)
@@ -204,11 +210,15 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 				if (addMemory === "always" && userQuery) {
 					if (verbose) console.log("[Supermemory] Auto-saving user message...")
 
-					convexClient.action(addAction, {
-						content: userQuery,
-						containerTag,
-						metadata: { source: "ai-middleware", auto: true },
-					}).catch((e) => console.error("[Supermemory] Failed to auto-save:", e))
+					convexClient
+						.action(addAction, {
+							content: userQuery,
+							containerTag,
+							metadata: { source: "ai-middleware", auto: true },
+						})
+						.catch((e) =>
+							console.error("[Supermemory] Failed to auto-save:", e),
+						)
 				}
 
 				// Call original model with enhanced context
@@ -223,10 +233,12 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 			}
 		},
 
+		// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 		doStream: async (callOptions: any) => {
 			// For streaming, we inject context upfront then stream normally
 			try {
 				const lastUserMessage = callOptions.prompt
+					// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 					.filter((msg: any) => msg.role === "user")
 					.slice(-1)[0]
 
@@ -235,13 +247,14 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 						? typeof lastUserMessage.content === "string"
 							? lastUserMessage.content
 							: lastUserMessage.content
+									// biome-ignore lint/suspicious/noExplicitAny: AI SDK internal types not exported
 									.map((c: any) => (c.type === "text" ? c.text : ""))
 									.join(" ")
 						: ""
 
 				let userMemories = ""
 				let generalSearchMemories = ""
-				let searchResults: any[] = []
+				let searchResults: unknown[] = []
 
 				if (mode === "profile" || mode === "full") {
 					const profile = await convexClient.action(profileAction, {
@@ -265,6 +278,7 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 
 					searchResults = searchResult.results
 					generalSearchMemories = searchResults
+						// biome-ignore lint/suspicious/noExplicitAny: search result types not exported
 						.map((r: any) => `- ${r.memory || r.chunk}`)
 						.join("\n")
 				}
@@ -281,11 +295,15 @@ export function withSupermemory<T extends WrappableLanguageModel>(
 				]
 
 				if (addMemory === "always" && userQuery) {
-					convexClient.action(addAction, {
-						content: userQuery,
-						containerTag,
-						metadata: { source: "ai-middleware", auto: true },
-					}).catch((e) => console.error("[Supermemory] Failed to auto-save:", e))
+					convexClient
+						.action(addAction, {
+							content: userQuery,
+							containerTag,
+							metadata: { source: "ai-middleware", auto: true },
+						})
+						.catch((e) =>
+							console.error("[Supermemory] Failed to auto-save:", e),
+						)
 				}
 
 				return await model.doStream({

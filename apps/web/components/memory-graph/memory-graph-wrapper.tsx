@@ -71,10 +71,12 @@ export function MemoryGraph({
 				maxNodes={maxNodes}
 				canvasRef={canvasRef}
 				totalCount={totalCount}
-				colors={{
-					bg: "transparent",
-					edgeDerives: "#9ca3af",
-				} as any}
+				colors={
+					{
+						bg: "transparent",
+						edgeDerives: "#9ca3af",
+					} as any
+				}
 				{...rest}
 			>
 				{children}

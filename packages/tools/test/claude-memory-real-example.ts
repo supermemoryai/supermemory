@@ -119,10 +119,16 @@ export async function realClaudeMemoryExample() {
 	const toolResults = []
 
 	if (responseData.content) {
-    const memoryToolCalls = responseData.content.filter(
-      (block: any): block is { type: 'tool_use'; id: string; name: 'memory'; input: { command: MemoryCommand; path: string } } =>
-        block.type === "tool_use" && block.name === "memory",
-    )
+		const memoryToolCalls = responseData.content.filter(
+			(
+				block: any,
+			): block is {
+				type: "tool_use"
+				id: string
+				name: "memory"
+				input: { command: MemoryCommand; path: string }
+			} => block.type === "tool_use" && block.name === "memory",
+		)
 
 		const results = await Promise.all(
 			memoryToolCalls.map((block: any) => {
@@ -196,10 +202,16 @@ export async function processClaudeResponse(
 	const toolResults = []
 
 	if (claudeResponseData.content) {
-    const memoryToolCalls = claudeResponseData.content.filter(
-      (block: any): block is { type: 'tool_use'; id: string; name: 'memory'; input: { command: MemoryCommand; path: string } } =>
-        block.type === "tool_use" && block.name === "memory",
-    )
+		const memoryToolCalls = claudeResponseData.content.filter(
+			(
+				block: any,
+			): block is {
+				type: "tool_use"
+				id: string
+				name: "memory"
+				input: { command: MemoryCommand; path: string }
+			} => block.type === "tool_use" && block.name === "memory",
+		)
 
 		const results = await Promise.all(
 			memoryToolCalls.map((block: any) =>
