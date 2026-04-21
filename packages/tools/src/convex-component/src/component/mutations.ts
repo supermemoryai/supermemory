@@ -194,12 +194,16 @@ export const updateChatSession = internalMutation({
 		memoriesRetrieved: v.array(v.string()),
 	},
 	handler: async (ctx, args) => {
+		const MAX_MESSAGES = 500
 		if (args.sessionId) {
 			// Update existing session
 			const session = await ctx.db.get(args.sessionId)
 			if (session) {
+				const messages = [...session.messages, args.newMessage].slice(
+					-MAX_MESSAGES,
+				)
 				await ctx.db.patch(args.sessionId, {
-					messages: [...session.messages, args.newMessage],
+					messages,
 					memoriesRetrieved: [
 						...new Set([
 							...session.memoriesRetrieved,
@@ -240,13 +244,16 @@ export const trackChatMessage = mutation({
 		memoriesRetrieved: v.array(v.string()),
 	},
 	handler: async (ctx, args) => {
-		// Inline the logic instead of calling another mutation
+		const MAX_MESSAGES = 500
 		if (args.sessionId) {
 			// Update existing session
 			const session = await ctx.db.get(args.sessionId)
 			if (session) {
+				const messages = [...session.messages, args.newMessage].slice(
+					-MAX_MESSAGES,
+				)
 				await ctx.db.patch(args.sessionId, {
-					messages: [...session.messages, args.newMessage],
+					messages,
 					memoriesRetrieved: [
 						...new Set([
 							...session.memoriesRetrieved,
