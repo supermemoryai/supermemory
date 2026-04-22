@@ -24,9 +24,12 @@ type Props = {
 	name?: string
 }
 
+const CONTAINER_TAGS_TTL_MS = 5 * 60 * 1000
+
 export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private clientInfo: { name: string; version?: string } | null = null
 	private cachedContainerTags: string[] = []
+	private containerTagsLastFetchedAt: number | null = null
 
 	server = new McpServer({
 		name: "supermemory",
@@ -168,8 +171,8 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 			"supermemory://projects",
 			{},
 			async () => {
-				const client = this.getClient()
-				const projects = await client.getProjects()
+				await this.ensureContainerTagsFresh()
+				const projects = this.cachedContainerTags
 
 				return {
 					contents: [
@@ -193,15 +196,19 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					refresh: z
 						.boolean()
 						.optional()
-						.default(true)
-						.describe("Refresh the list from the server (default: true)"),
+						.default(false)
+						.describe(
+							"Force refresh from the server (default: false; uses cache with TTL)",
+						),
 				}),
 			},
 			// @ts-expect-error - zod type inference issue with MCP SDK
 			async (args: { refresh?: boolean }) => {
 				try {
-					if (args.refresh !== false) {
+					if (args.refresh === true) {
 						await this.refreshContainerTags()
+					} else {
+						await this.ensureContainerTagsFresh()
 					}
 					const projects = this.cachedContainerTags
 
@@ -566,6 +573,10 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 
 			const result = await client.createMemory(content)
 
+			if (!this.cachedContainerTags.includes(result.containerTag)) {
+				await this.refreshContainerTags()
+			}
+
 			// Track memory added event
 			posthog
 				.memoryAdded({
@@ -758,10 +769,21 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 		return this.ctx.id.name || "unknown"
 	}
 
+	private async ensureContainerTagsFresh(): Promise<void> {
+		const now = Date.now()
+		const needsRefresh =
+			this.containerTagsLastFetchedAt === null ||
+			now - this.containerTagsLastFetchedAt > CONTAINER_TAGS_TTL_MS
+		if (needsRefresh) {
+			await this.refreshContainerTags()
+		}
+	}
+
 	private async refreshContainerTags(): Promise<void> {
 		try {
 			const client = this.getClient()
 			this.cachedContainerTags = await client.getProjects()
+			this.containerTagsLastFetchedAt = Date.now()
 		} catch (error) {
 			console.error("Failed to fetch container tags:", error)
 		}

@@ -13,7 +13,9 @@
 		"resolveJsonModule": true,
 		"outDir": "dist",
 		"rootDir": "src",
-		"baseUrl": "."
+		"paths": {
+			"*": ["./*"]
+		}
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules"]
