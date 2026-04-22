@@ -12,7 +12,7 @@ import {
 } from "@ui/components/dropdown-menu"
 import { authClient } from "@lib/auth"
 import { useRouter } from "next/navigation"
-import { LogOut, Settings, RotateCcw, HelpCircle } from "lucide-react"
+import { LogOut, Settings, RotateCcw, HelpCircle, LifeBuoy } from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
@@ -21,9 +21,11 @@ import { useTokenUsage } from "@/hooks/use-token-usage"
 export function UserProfileMenu({
 	className,
 	avatarClassName,
+	onOpenFeedback,
 }: {
 	className?: string
 	avatarClassName?: string
+	onOpenFeedback?: () => void
 }) {
 	const { user } = useAuth()
 	const router = useRouter()
@@ -68,10 +70,7 @@ export function UserProfileMenu({
 					)}
 				>
 					<Avatar
-						className={cn(
-							"size-9 border border-[#161F2C]",
-							avatarClassName,
-						)}
+						className={cn("size-9 border border-[#161F2C]", avatarClassName)}
 					>
 						<AvatarImage src={user.image ?? ""} />
 						<AvatarFallback className="bg-[#0D121A] text-xs font-medium text-white">
@@ -120,6 +119,15 @@ export function UserProfileMenu({
 					<RotateCcw className="h-4 w-4 text-[#737373]" />
 					Restart Onboarding
 				</DropdownMenuItem>
+				{onOpenFeedback ? (
+					<DropdownMenuItem
+						onClick={onOpenFeedback}
+						className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+					>
+						<LifeBuoy className="h-4 w-4 text-[#737373]" />
+						Feedback
+					</DropdownMenuItem>
+				) : null}
 				<DropdownMenuSeparator className="bg-[#2E3033]" />
 				<DropdownMenuItem
 					asChild
