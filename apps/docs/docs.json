@@ -152,26 +152,27 @@
 				"icon": "plug",
 				"anchors": [
 					{
-						"anchor": "API Integrations",
-						"pages": [
-							"integrations/supermemory-sdk",
-							"integrations/ai-sdk",
-							"integrations/openai",
-							"integrations/langgraph",
-							"integrations/openai-agents-sdk",
-							"integrations/agent-framework",
-							"integrations/mastra",
-							"integrations/voltagent",
-							"integrations/langchain",
-							"integrations/crewai",
-							"integrations/agno",
-							"integrations/memory-graph",
-							"integrations/claude-memory",
-							"integrations/pipecat",
-							"integrations/n8n",
-							"integrations/viasocket",
-							"integrations/zapier"
-						]
+				"anchor": "API Integrations",
+					"pages": [
+						"integrations/supermemory-sdk",
+						"integrations/ai-sdk",
+						"integrations/openai",
+						"integrations/langgraph",
+						"integrations/openai-agents-sdk",
+						"integrations/agent-framework",
+						"integrations/mastra",
+						"integrations/voltagent",
+						"integrations/convex",
+						"integrations/langchain",
+						"integrations/crewai",
+						"integrations/agno",
+						"integrations/memory-graph",
+						"integrations/claude-memory",
+						"integrations/pipecat",
+						"integrations/n8n",
+						"integrations/viasocket",
+						"integrations/zapier"
+					]
 					}
 				],
 				"tab": "API Integrations"
