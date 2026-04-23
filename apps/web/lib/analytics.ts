@@ -46,6 +46,11 @@ export const analytics = {
 	connectionAuthCompleted: () => safeCapture("connection_auth_completed"),
 	connectionAuthFailed: () => safeCapture("connection_auth_failed"),
 
+	nextAppResearchCtaDismissed: () =>
+		safeCapture("next_app_research_cta_dismissed"),
+	nextAppResearchCtaBookCallClicked: () =>
+		safeCapture("next_app_research_cta_book_call_clicked"),
+
 	mcpViewOpened: () => safeCapture("mcp_view_opened"),
 	mcpInstallCmdCopied: () => safeCapture("mcp_install_cmd_copied"),
 
