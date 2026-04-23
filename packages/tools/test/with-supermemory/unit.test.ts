@@ -73,8 +73,7 @@ describe("Unit: withSupermemory", () => {
 			const mockModel = createMockLanguageModel()
 
 			expect(() => {
-				withSupermemory(mockModel, {
-					containerTag: TEST_CONFIG.containerTag,
+				withSupermemory(mockModel, TEST_CONFIG.containerTag, {
 					customId: "test-conv-123",
 				})
 			}).toThrow("SUPERMEMORY_API_KEY is not set")

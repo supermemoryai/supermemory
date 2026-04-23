@@ -13,6 +13,8 @@ import {
 import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
 
 interface WrapVercelLanguageModelOptions {
+	/** The container tag/identifier for memory search (e.g., user ID, project ID) */
+	containerTag: string
 	/** Custom ID to group messages into a single document. Required. */
 	customId: string
 	/** Enable detailed logging of memory search and injection */
@@ -70,12 +72,12 @@ interface WrapVercelLanguageModelOptions {
  * detection of `model.specificationVersion`.
  *
  * @param model - The language model to wrap with supermemory capabilities (V2 or V3)
- * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param options - Optional configuration options for the middleware
- * @param options.customId - Required custom ID to group messages into a single document
+ * @param options - Configuration options for Supermemory integration
+ * @param options.containerTag - Required. The container tag/identifier for memory search (e.g., user ID, project ID)
+ * @param options.customId - Required. Custom ID to group messages into a single document
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
- * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
+ * @param options.addMemory - Optional mode for memory persistence: "always", "never" (default: "never")
  * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  * @param options.skipMemoryOnError - When memory retrieval fails: `false` (default) throws; `true` continues without injected memories
@@ -87,7 +89,8 @@ interface WrapVercelLanguageModelOptions {
  * import { withSupermemory } from "@supermemory/tools/ai-sdk"
  * import { openai } from "@ai-sdk/openai"
  *
- * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123", {
+ * const modelWithMemory = withSupermemory(openai("gpt-4"), {
+ *   containerTag: "user-123",
  *   customId: "conversation-456",
  *   mode: "full",
  *   addMemory: "always"
@@ -104,9 +107,9 @@ interface WrapVercelLanguageModelOptions {
  */
 const wrapVercelLanguageModel = <T extends LanguageModel>(
 	model: T,
-	containerTag: string,
 	options: WrapVercelLanguageModelOptions,
 ): T => {
+	const { containerTag } = options
 	const providedApiKey = options.apiKey ?? process.env.SUPERMEMORY_API_KEY
 
 	if (!providedApiKey) {
