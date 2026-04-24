@@ -50,6 +50,8 @@ export const analytics = {
 		safeCapture("next_app_research_cta_dismissed"),
 	nextAppResearchCtaBookCallClicked: () =>
 		safeCapture("next_app_research_cta_book_call_clicked"),
+	nextAppResearchCtaLobbysideCallClicked: () =>
+		safeCapture("next_app_research_cta_lobbyside_call_clicked"),
 
 	mcpViewOpened: () => safeCapture("mcp_view_opened"),
 	mcpInstallCmdCopied: () => safeCapture("mcp_install_cmd_copied"),
