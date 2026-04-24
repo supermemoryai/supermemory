@@ -104,6 +104,18 @@ export function NextAppResearchCta() {
 	const handleJoinCall = useCallback(async () => {
 		if (widget.status !== "online" || widget.isQueueFull) return
 		analytics.nextAppResearchCtaLobbysideCallClicked()
+		// Open the tab synchronously so Safari/iOS keep the user-activation
+		// gesture. We redirect it once joinCall() resolves, or fall back to
+		// the book-a-call URL if the host goes offline / queue fills / the
+		// request errors between render and click.
+		const pendingTab = window.open("", "_blank")
+		const navigate = (url: string) => {
+			if (pendingTab && !pendingTab.closed) {
+				pendingTab.location.href = url
+			} else {
+				window.open(url, "_blank", "noopener,noreferrer")
+			}
+		}
 		try {
 			const visitor: Record<string, string> = {}
 			if (user?.email) visitor.email = user.email
@@ -114,9 +126,10 @@ export function NextAppResearchCta() {
 			const joinArgs =
 				Object.keys(visitor).length > 0 ? { visitor } : undefined
 			const { entryUrl } = await widget.joinCall(joinArgs)
-			window.open(entryUrl, "_blank", "noopener,noreferrer")
+			navigate(entryUrl)
 		} catch (err) {
 			console.error("[Lobbyside] joinCall failed", err)
+			navigate(BOOK_CALL_HREF)
 		}
 	}, [widget, user, org])
 
