@@ -49,7 +49,9 @@ function ResearchCtaHeroGraphic({
 				/>
 			</div>
 			<div className="relative z-10 flex flex-row items-center justify-center gap-10 px-3">
-				<Phone className="size-[24px] text-[#7EB0FF]" strokeWidth={1.65} />
+				<div className="flex size-9 items-center justify-center">
+					<Phone className="size-[24px] text-[#7EB0FF]" strokeWidth={1.65} />
+				</div>
 				<span
 					className={cn(
 						dmSans125ClassName(),
@@ -59,13 +61,21 @@ function ResearchCtaHeroGraphic({
 					×
 				</span>
 				{avatarUrl ? (
-					<img
-						src={avatarUrl}
-						alt={hostName ?? ""}
-						className="size-[24px] rounded-full object-cover ring-1 ring-[#B49CFB]/40"
-					/>
+					<span className="relative inline-flex">
+						<img
+							src={avatarUrl}
+							alt={hostName ?? ""}
+							className="size-9 rounded-full object-cover ring-1 ring-[#B49CFB]/40"
+						/>
+						<span
+							aria-hidden
+							className="absolute bottom-0 right-0 size-[10px] rounded-full bg-[#22c55e] ring-2 ring-[#0D121A]"
+						/>
+					</span>
 				) : (
-					<Users className="size-[24px] text-[#B49CFB]" strokeWidth={1.65} />
+					<div className="flex size-9 items-center justify-center">
+						<Users className="size-[24px] text-[#B49CFB]" strokeWidth={1.65} />
+					</div>
 				)}
 			</div>
 		</div>
