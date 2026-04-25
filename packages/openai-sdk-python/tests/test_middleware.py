@@ -103,26 +103,32 @@ class TestMiddlewareInitialization:
     def test_with_supermemory_basic(self, mock_openai_client):
         """Test basic middleware initialization."""
         with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
-            wrapped_client = with_supermemory(mock_openai_client, "user-123")
+            options = OpenAIMiddlewareOptions(
+                container_tag="user-123",
+                custom_id="test-conv"
+            )
+            wrapped_client = with_supermemory(mock_openai_client, options)
 
             assert isinstance(wrapped_client, SupermemoryOpenAIWrapper)
             assert wrapped_client._container_tag == "user-123"
             assert wrapped_client._options.mode == "profile"
             assert wrapped_client._options.verbose is False
+            assert wrapped_client._options.add_memory == "always"  # New default
 
     def test_with_supermemory_with_options(self, mock_openai_client):
         """Test middleware initialization with options."""
         options = OpenAIMiddlewareOptions(
-            conversation_id="conv-456",
+            container_tag="user-123",
+            custom_id="conv-456",
             verbose=True,
             mode="full",
             add_memory="always"
         )
 
         with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
-            wrapped_client = with_supermemory(mock_openai_client, "user-123", options)
+            wrapped_client = with_supermemory(mock_openai_client, options)
 
-            assert wrapped_client._options.conversation_id == "conv-456"
+            assert wrapped_client._options.custom_id == "conv-456"
             assert wrapped_client._options.verbose is True
             assert wrapped_client._options.mode == "full"
             assert wrapped_client._options.add_memory == "always"
@@ -132,15 +138,23 @@ class TestMiddlewareInitialization:
         from supermemory_openai.exceptions import SupermemoryConfigurationError
 
         with patch.dict(os.environ, {}, clear=True):
+            options = OpenAIMiddlewareOptions(
+                container_tag="user-123",
+                custom_id="test-conv"
+            )
             with pytest.raises(SupermemoryConfigurationError, match="SUPERMEMORY_API_KEY"):
-                with_supermemory(mock_openai_client, "user-123")
+                with_supermemory(mock_openai_client, options)
 
     def test_wrapper_delegates_attributes(self, mock_openai_client):
         """Test that wrapper delegates attributes to wrapped client."""
         mock_openai_client.models = Mock()
 
         with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
-            wrapped_client = with_supermemory(mock_openai_client, "user-123")
+            options = OpenAIMiddlewareOptions(
+                container_tag="user-123",
+                custom_id="test-conv"
+            )
+            wrapped_client = with_supermemory(mock_openai_client, options)
 
             # Should delegate to the original client
             assert wrapped_client.models is mock_openai_client.models
@@ -165,8 +179,7 @@ class TestMemoryInjection:
 
                 wrapped_client = with_supermemory(
                     mock_async_openai_client,
-                    "user-123",
-                    OpenAIMiddlewareOptions(mode="profile")
+                    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", mode="profile")
                 )
 
                 messages = [
@@ -207,8 +220,7 @@ class TestMemoryInjection:
 
                 wrapped_client = with_supermemory(
                     mock_async_openai_client,
-                    "user-123",
-                    OpenAIMiddlewareOptions(mode="query")
+                    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", mode="query")
                 )
 
                 messages = [
@@ -241,8 +253,7 @@ class TestMemoryInjection:
 
                 wrapped_client = with_supermemory(
                     mock_async_openai_client,
-                    "user-123",
-                    OpenAIMiddlewareOptions(mode="full")
+                    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", mode="full")
                 )
 
                 messages = [
@@ -278,7 +289,10 @@ class TestMemoryInjection:
                 mock_search.return_value.profile = mock_supermemory_response["profile"]
                 mock_search.return_value.search_results = mock_supermemory_response["searchResults"]
 
-                wrapped_client = with_supermemory(mock_async_openai_client, "user-123")
+                wrapped_client = with_supermemory(
+                    mock_async_openai_client,
+                    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv")
+                )
 
                 messages = [
                     {"role": "system", "content": "You are a helpful assistant."},
@@ -324,8 +338,7 @@ class TestMemoryStorage:
 
                     wrapped_client = with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="always")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="always")
                     )
 
                     messages = [
@@ -359,8 +372,7 @@ class TestMemoryStorage:
 
                     wrapped_client = with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="never")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="never")
                     )
 
                     await wrapped_client.chat.completions.create(
@@ -386,7 +398,10 @@ class TestSyncAsyncCompatibility:
                 mock_search.return_value.profile = {"static": [], "dynamic": []}
                 mock_search.return_value.search_results = {"results": []}
 
-                wrapped_client = with_supermemory(mock_openai_client, "user-123")
+                wrapped_client = with_supermemory(
+                    mock_openai_client,
+                    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv")
+                )
 
                 # This should work for sync clients too
                 wrapped_client.chat.completions.create(
@@ -410,7 +425,10 @@ class TestSyncAsyncCompatibility:
                     mock_search.return_value.profile = {"static": [], "dynamic": []}
                     mock_search.return_value.search_results = {"results": []}
 
-                    wrapped_client = with_supermemory(mock_openai_client, "user-123")
+                    wrapped_client = with_supermemory(
+                        mock_openai_client,
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv")
+                    )
 
                     # This should work even when called from async context
                     result = wrapped_client.chat.completions.create(
@@ -441,8 +459,7 @@ class TestSyncAsyncCompatibility:
 
                     wrapped_client = with_supermemory(
                         mock_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="always")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="always")
                     )
 
                     # Should not raise exception, should continue with main request
@@ -470,7 +487,10 @@ class TestErrorHandling:
             with patch("supermemory_openai.middleware.supermemory_profile_search") as mock_search:
                 mock_search.side_effect = Exception("API Error")
 
-                wrapped_client = with_supermemory(mock_async_openai_client, "user-123")
+                wrapped_client = with_supermemory(
+                    mock_async_openai_client,
+                    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv")
+                )
 
                 # Should not raise exception, should fall back gracefully
                 with pytest.raises(Exception):
@@ -490,8 +510,7 @@ class TestErrorHandling:
         with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
             wrapped_client = with_supermemory(
                 mock_async_openai_client,
-                "user-123",
-                OpenAIMiddlewareOptions(mode="query")
+                OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", mode="query")
             )
 
             messages = [
@@ -529,8 +548,7 @@ class TestLogging:
 
                     wrapped_client = with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(verbose=True)
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", verbose=True)
                     )
 
                     await wrapped_client.chat.completions.create(
@@ -558,8 +576,7 @@ class TestLogging:
 
                     wrapped_client = with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(verbose=False)
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", verbose=False)
                     )
 
                     await wrapped_client.chat.completions.create(
@@ -597,8 +614,7 @@ class TestBackgroundTaskManagement:
 
                     wrapped_client = with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="always")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="always")
                     )
 
                     # Make a request that should create a background task
@@ -644,8 +660,7 @@ class TestBackgroundTaskManagement:
                     # Use async context manager
                     async with with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="always")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="always")
                     ) as wrapped_client:
                         await wrapped_client.chat.completions.create(
                             model="gpt-4",
@@ -680,8 +695,7 @@ class TestBackgroundTaskManagement:
 
                     wrapped_client = with_supermemory(
                         mock_async_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="always")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="always")
                     )
 
                     await wrapped_client.chat.completions.create(
@@ -714,8 +728,7 @@ class TestBackgroundTaskManagement:
                     # Use sync context manager
                     with with_supermemory(
                         mock_openai_client,
-                        "user-123",
-                        OpenAIMiddlewareOptions(add_memory="always")
+                        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="test-conv", add_memory="always")
                     ) as wrapped_client:
                         wrapped_client.chat.completions.create(
                             model="gpt-4",

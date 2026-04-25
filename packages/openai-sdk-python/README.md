@@ -44,11 +44,12 @@ async def main():
     # Wrap with Supermemory middleware
     openai_with_memory = with_supermemory(
         openai,
-        container_tag="user-123",  # Unique identifier for user's memories
-        options=OpenAIMiddlewareOptions(
-            mode="full",        # "profile", "query", or "full"
-            verbose=True,       # Enable logging
-            add_memory="always" # Automatically save conversations
+        OpenAIMiddlewareOptions(
+            container_tag="user-123",  # Required: unique identifier for user's memories
+            custom_id="chat-123",      # Required: groups messages into documents
+            mode="full",               # "profile", "query", or "full"
+            verbose=True,              # Enable logging
+            add_memory="always"        # Automatically save conversations (default)
         )
     )
 
@@ -122,7 +123,13 @@ from supermemory_openai import with_supermemory
 
 # Sync client
 openai = OpenAI(api_key="your-openai-api-key")
-openai_with_memory = with_supermemory(openai, "user-123")
+openai_with_memory = with_supermemory(
+    openai,
+    OpenAIMiddlewareOptions(
+        container_tag="user-123",
+        custom_id="session-456"
+    )
+)
 
 # Works the same way
 response = openai_with_memory.chat.completions.create(
@@ -136,13 +143,21 @@ response = openai_with_memory.chat.completions.create(
 **Background Task Management**: When `add_memory="always"`, memory storage happens in background tasks. Use context managers or manual cleanup to ensure tasks complete:
 
 ```python
+from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
+
 # Async context manager (recommended)
-async with with_supermemory(openai, "user-123") as client:
+async with with_supermemory(
+    openai,
+    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456")
+) as client:
     response = await client.chat.completions.create(...)
 # Background tasks automatically waited for on exit
 
 # Manual cleanup
-client = with_supermemory(openai, "user-123")
+client = with_supermemory(
+    openai,
+    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456")
+)
 response = await client.chat.completions.create(...)
 await client.wait_for_background_tasks()  # Ensure memory is saved
 ```
@@ -159,8 +174,7 @@ Injects all static and dynamic profile memories into every request. Best for mai
 ```python
 openai_with_memory = with_supermemory(
     openai,
-    "user-123",
-    OpenAIMiddlewareOptions(mode="profile")
+    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456", mode="profile")
 )
 ```
 
@@ -170,8 +184,7 @@ Only searches for memories relevant to the current user message. More efficient 
 ```python
 openai_with_memory = with_supermemory(
     openai,
-    "user-123",
-    OpenAIMiddlewareOptions(mode="query")
+    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456", mode="query")
 )
 ```
 
@@ -181,8 +194,7 @@ Combines both profile and query modes - includes all profile memories plus relev
 ```python
 openai_with_memory = with_supermemory(
     openai,
-    "user-123",
-    OpenAIMiddlewareOptions(mode="full")
+    OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456", mode="full")
 )
 ```
 
@@ -191,11 +203,11 @@ openai_with_memory = with_supermemory(
 Control when conversations are automatically saved as memories:
 
 ```python
-# Always save conversations as memories
-OpenAIMiddlewareOptions(add_memory="always")
+# Always save conversations as memories (default in v2.0.0+)
+OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456", add_memory="always")
 
-# Never save conversations (default)
-OpenAIMiddlewareOptions(add_memory="never")
+# Never save conversations
+OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456", add_memory="never")
 ```
 
 ### Complete Configuration Example
@@ -205,12 +217,12 @@ from supermemory_openai import with_supermemory, OpenAIMiddlewareOptions
 
 openai_with_memory = with_supermemory(
     openai_client,
-    container_tag="user-123",
-    options=OpenAIMiddlewareOptions(
-        conversation_id="chat-session-456",  # Group messages into conversations
-        verbose=True,                        # Enable detailed logging
-        mode="full",                         # Use both profile and query
-        add_memory="always"                  # Auto-save conversations
+    OpenAIMiddlewareOptions(
+        container_tag="user-123",        # Required: unique user/container identifier
+        custom_id="chat-session-456",    # Required: groups messages into documents
+        verbose=True,                    # Enable detailed logging
+        mode="full",                     # Use both profile and query
+        add_memory="always"              # Auto-save conversations (default)
     )
 )
 ```
@@ -291,14 +303,12 @@ Wraps an OpenAI client with automatic memory injection middleware.
 ```python
 def with_supermemory(
     openai_client: Union[OpenAI, AsyncOpenAI],
-    container_tag: str,
-    options: Optional[OpenAIMiddlewareOptions] = None
+    options: OpenAIMiddlewareOptions
 ) -> Union[OpenAI, AsyncOpenAI]
 ```
 
 **Parameters:**
 - `openai_client`: OpenAI or AsyncOpenAI client instance
-- `container_tag`: Unique identifier for memory storage (e.g., user ID)
 - `options`: Configuration options (see `OpenAIMiddlewareOptions`)
 
 #### `OpenAIMiddlewareOptions`
@@ -308,10 +318,11 @@ Configuration dataclass for middleware behavior.
 ```python
 @dataclass
 class OpenAIMiddlewareOptions:
-    conversation_id: Optional[str] = None      # Group messages into conversations
+    container_tag: str                         # Required: unique identifier for memory storage
+    custom_id: str                             # Required: groups messages into documents
     verbose: bool = False                      # Enable detailed logging
     mode: Literal["profile", "query", "full"] = "profile"  # Memory injection mode
-    add_memory: Literal["always", "never"] = "never"       # Auto-save behavior
+    add_memory: Literal["always", "never"] = "always"      # Auto-save behavior
 ```
 
 ### SupermemoryTools
@@ -341,6 +352,7 @@ The package provides specific exception types for better error handling:
 ```python
 from supermemory_openai import (
     with_supermemory,
+    OpenAIMiddlewareOptions,
     SupermemoryConfigurationError,
     SupermemoryAPIError,
     SupermemoryNetworkError,
@@ -349,7 +361,10 @@ from supermemory_openai import (
 
 try:
     # This will raise SupermemoryConfigurationError if API key is missing
-    client = with_supermemory(openai_client, "user-123")
+    client = with_supermemory(
+        openai_client,
+        OpenAIMiddlewareOptions(container_tag="user-123", custom_id="session-456")
+    )
 
     response = await client.chat.completions.create(
         messages=[{"role": "user", "content": "Hello"}],

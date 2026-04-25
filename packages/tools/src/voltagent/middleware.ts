@@ -90,6 +90,7 @@ export const createSupermemoryContext = (
 		metadata,
 		searchMode,
 		entityContext,
+		verbose = false,
 	} = options
 
 	// Runtime validation: customId is required
@@ -99,7 +100,7 @@ export const createSupermemoryContext = (
 		)
 	}
 
-	const logger = createLogger(false) // VoltAgent SDK doesn't use verbose
+	const logger = createLogger(verbose)
 	const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
 
 	const client = new Supermemory({
@@ -242,6 +243,15 @@ export const enhanceMessagesWithMemories = async (
 		ctx.filters !== undefined ||
 		ctx.include !== undefined ||
 		ctx.searchMode !== undefined
+
+	// Warn if advanced search params are set but mode is "profile"
+	// Profile mode only fetches static/dynamic user data, not query-based search
+	if (useAdvancedSearch && ctx.mode === "profile") {
+		ctx.logger.warn(
+			"Advanced search parameters (threshold, limit, rerank, rewriteQuery, filters, include, searchMode) " +
+				'are ignored when mode is "profile". Use mode "query" or "full" to enable advanced search.',
+		)
+	}
 
 	let memories: string
 

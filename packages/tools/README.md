@@ -268,10 +268,11 @@ The `withSupermemory` function creates an OpenAI client with SuperMemory middlew
 import { withSupermemory } from "@supermemory/tools/openai"
 
 // Create OpenAI client with supermemory middleware
-const openaiWithSupermemory = withSupermemory("user-123", {
-  conversationId: "conversation-456",
+const openaiWithSupermemory = withSupermemory(openai, {
+  containerTag: "user-123",      // Required: identifies the user/container
+  customId: "conversation-456",  // Required: groups messages into the same document 
   mode: "full",
-  addMemory: "always",
+  addMemory: "always",           // Default: "always"
   verbose: true,
 })
 
@@ -291,37 +292,12 @@ console.log(completion.choices[0]?.message?.content)
 The middleware supports the same configuration options as the AI SDK version:
 
 ```typescript
-const openaiWithSupermemory = withSupermemory("user-123", {
-  conversationId: "conversation-456", // Group messages for contextual memory
-  mode: "full",                       // "profile" | "query" | "full"
-  addMemory: "always",                // "always" | "never"
-  verbose: true,                      // Enable detailed logging
-})
-```
-
-#### Advanced Usage with Custom OpenAI Options
-
-You can also pass custom OpenAI client options:
-
-```typescript
-import { withSupermemory } from "@supermemory/tools/openai"
-
-const openaiWithSupermemory = withSupermemory(
-  "user-123", 
-  {
-    mode: "profile",
-    addMemory: "always",
-  },
-  {
-    baseURL: "https://api.openai.com/v1",
-    organization: "org-123",
-  },
-  "custom-api-key" // Optional: custom API key
-)
-
-const completion = await openaiWithSupermemory.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Tell me about my preferences" }],
+const openaiWithSupermemory = withSupermemory(openai, {
+  containerTag: "user-123",      // Required: identifies the user/container
+  customId: "conversation-456",  // Required: groups messages for contextual memory
+  mode: "full",                  // "profile" | "query" | "full"
+  addMemory: "always",           // "always" (default) | "never"
+  verbose: true,                 // Enable detailed logging
 })
 ```
 
@@ -340,8 +316,9 @@ export async function POST(req: Request) {
     conversationId: string
   }
 
-  const openaiWithSupermemory = withSupermemory("user-123", {
-    conversationId,
+  const openaiWithSupermemory = withSupermemory(openai, {
+    containerTag: "user-123",
+    customId: conversationId,
     mode: "full",
     addMemory: "always",
     verbose: true,
@@ -670,11 +647,11 @@ The `withSupermemory` middleware accepts a configuration object as the second ar
 
 ```typescript
 interface WithSupermemoryOptions {
-  containerTag: string
-  customId: string
+  containerTag: string  // Required: identifies the user/container
+  customId: string      // Required: groups messages into the same document 
   verbose?: boolean
   mode?: "profile" | "query" | "full"
-  addMemory?: "always" | "never"
+  addMemory?: "always" | "never"  // Default: "always"
   /** Optional Supermemory API key. Use this in browser environments. */
   apiKey?: string
   baseUrl?: string
@@ -687,7 +664,7 @@ interface WithSupermemoryOptions {
 - **customId**: Required. Custom ID to group messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
-- **addMemory**: Automatic memory storage mode - "always" or "never" (default: "never")
+- **addMemory**: Automatic memory storage mode - "always" (default) or "never"
 - **skipMemoryOnError**: If memory retrieval fails or hits the internal timeout, continue with the original prompt (default: true)
 
 ## Available Tools

@@ -44,9 +44,11 @@ import { withSupermemory } from "@supermemory/tools/openai"
 const openai = new OpenAI()
 
 // Wrap client with memory - memories auto-injected into system prompts
-const client = withSupermemory(openai, "user-123", {
-  mode: "full",        // "profile" | "query" | "full"
-  addMemory: "always", // "always" | "never"
+const client = withSupermemory(openai, {
+  containerTag: "user-123",     // Required: identifies the user/container
+  customId: "conversation-456", // Required: groups messages into the same document 
+  mode: "full",                 // "profile" | "query" | "full"
+  addMemory: "always",          // "always" (default) | "never"
 })
 
 // Use normally - memories are automatically included
@@ -62,15 +64,18 @@ const response = await client.chat.completions.create({
 ### Configuration Options
 
 ```typescript
-const client = withSupermemory(openai, "user-123", {
+const client = withSupermemory(openai, {
+  // Required: identifies the user/container
+  containerTag: "user-123",
+
+  // Required: Group messages into the same document
+  customId: "conv-456",
+
   // Memory search mode
   mode: "full",  // "profile" (user profile only), "query" (search only), "full" (both)
 
-  // Auto-save conversations as memories
+  // Auto-save conversations as memories (default: "always")
   addMemory: "always",  // "always" | "never"
-
-  // Group messages into conversations
-  conversationId: "conv-456",
 
   // Enable debug logging
   verbose: true,
@@ -91,7 +96,7 @@ const client = withSupermemory(openai, "user-123", {
 ### Works with Responses API Too
 
 ```typescript
-const client = withSupermemory(openai, "user-123", { mode: "full" })
+const client = withSupermemory(openai, { containerTag: "user-123", customId: "conv-456", mode: "full" })
 
 // Memories injected into instructions
 const response = await client.responses.create({
