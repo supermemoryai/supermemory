@@ -9,7 +9,10 @@ icon: "terminal"
 This integration requires the **Supermemory Pro plan**. [Upgrade here](https://console.supermemory.ai/billing).
 </Warning>
 
-[codex-supermemory](https://github.com/supermemoryai/codex-supermemory) wires Supermemory into the [OpenAI Codex CLI](https://github.com/openai/codex) via its hooks system. Your agent automatically recalls relevant context before each prompt and captures the conversation after each session — no slash commands required.
+[codex-supermemory](https://github.com/supermemoryai/codex-supermemory) wires Supermemory into the [OpenAI Codex CLI](https://github.com/openai/codex) via hooks and an MCP server. Your agent gets **two layers of memory**:
+
+- **Implicit** (hooks) — automatically recalls context before each prompt and captures conversations after each session.
+- **Explicit** (MCP tools) — lets you or the agent save, search, and manage memories on demand.
 
 ## Get Your API Key
 
@@ -46,6 +49,7 @@ This command:
 - Copies hook scripts to `~/.codex/supermemory/`
 - Enables `codex_hooks = true` in `~/.codex/config.toml`
 - Registers `UserPromptSubmit` (recall) and `Stop` (capture) hooks in `~/.codex/hooks.json`
+- Registers the `supermemory` MCP server in `~/.codex/config.toml` for explicit memory tools
 
 Restart Codex CLI after installing.
 
@@ -66,6 +70,37 @@ Memories are tagged with two container tags per session:
 | User | `codex_user_{sha256}` | Memories shared across all your projects |
 | Project | `codex_project_{sha256}` | Memories scoped to the current working directory |
 
+## Explicit Memory Tools (MCP)
+
+The installer also registers Supermemory's MCP server, giving Codex four on-demand tools:
+
+| Tool | Description |
+|------|-------------|
+| `memory` | Save a new memory or forget an existing one |
+| `recall` | Search your memories by natural-language query |
+| `listProjects` | List all memory containers (projects) |
+| `whoAmI` | Show the current user profile |
+
+These tools let you interact with memory explicitly — for example:
+
+```
+> Remember that this project uses Vitest for unit tests and Playwright for E2E.
+> What do you remember about our database schema?
+> Forget the memory about the old API endpoint.
+```
+
+You can verify the MCP server is registered:
+
+```bash
+codex mcp list
+```
+
+Expected output:
+
+```
+supermemory  https://mcp.supermemory.ai/mcp  -  enabled
+```
+
 ## Verify Installation
 
 ```bash
@@ -80,7 +115,8 @@ codex-supermemory status:
   API key:       ✓ set (SUPERMEMORY_CODEX_API_KEY)
   Hook scripts:  ✓ installed at ~/.codex/supermemory
   hooks.json:    ✓ registered
-  config.toml:   ✓ exists
+  config.toml:   ✓ codex_hooks enabled
+  MCP server:    ✓ registered (explicit memory tools)
 
 All good! Memory is active.
 ```
@@ -91,7 +127,7 @@ All good! Memory is active.
 npx codex-supermemory uninstall
 ```
 
-This removes the hook registrations from `~/.codex/hooks.json` and disables `codex_hooks` in `~/.codex/config.toml`. Your existing memories in Supermemory are preserved.
+This removes the hook registrations from `~/.codex/hooks.json`, disables `codex_hooks`, and removes the MCP server from `~/.codex/config.toml`. Your existing memories in Supermemory are preserved.
 
 ## Configuration
 
