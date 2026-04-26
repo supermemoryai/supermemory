@@ -15,9 +15,9 @@
     "postdeploy": "bun run sentry:sourcemaps"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.9",
-    "@ai-sdk/react": "^3.0.39",
-    "@ai-sdk/xai": "^3.0.23",
+    "@ai-sdk/google": "^3.0.64",
+    "@ai-sdk/react": "^3.0.170",
+    "@ai-sdk/xai": "^3.0.83",
     "@better-fetch/fetch": "^1.1.18",
     "@cloudflare/ai-chat": "^0.0.7",
     "@dnd-kit/core": "^6.3.1",
@@ -69,7 +69,7 @@
     "@types/d3-force": "^3.0.10",
     "@types/dompurify": "^3.2.0",
     "agents": "^0.4.0",
-    "ai": "^6.0.35",
+    "ai": "^6.0.168",
     "autumn-js": "0.0.116",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

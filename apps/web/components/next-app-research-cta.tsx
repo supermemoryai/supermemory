@@ -123,8 +123,7 @@ export function NextAppResearchCta() {
 			if (org?.name) visitor.company = org.name
 			const github = (user as { github?: unknown } | null)?.github
 			if (typeof github === "string" && github) visitor.github = github
-			const joinArgs =
-				Object.keys(visitor).length > 0 ? { visitor } : undefined
+			const joinArgs = Object.keys(visitor).length > 0 ? { visitor } : undefined
 			const { entryUrl } = await widget.joinCall(joinArgs)
 			navigate(entryUrl)
 		} catch (err) {
@@ -226,9 +225,9 @@ export function NextAppResearchCta() {
 	}
 
 	return (
-		<section
+		<button
+			type="button"
 			id="next-app-research-cta"
-			role="button"
 			tabIndex={0}
 			onClick={handleJoinCall}
 			onKeyDown={handleCardKeyDown}
@@ -306,6 +305,6 @@ export function NextAppResearchCta() {
 					</div>
 				</div>
 			</div>
-		</section>
+		</button>
 	)
 }

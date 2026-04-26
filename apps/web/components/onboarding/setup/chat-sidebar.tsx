@@ -85,7 +85,7 @@ export function ChatSidebar({ formData }: ChatSidebarProps) {
 
 	useEffect(() => {
 		agent.setState({
-			model: "gemini-2.5-pro" as const,
+			model: "claude-sonnet-4.6" as const,
 			projectId: selectedProject,
 		})
 	}, [agent, selectedProject])

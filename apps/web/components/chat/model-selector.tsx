@@ -17,7 +17,8 @@ export default function ChatModelSelector({
 	selectedModel: selectedModelProp,
 	onModelChange,
 }: ChatModelSelectorProps = {}) {
-	const [internalModel, setInternalModel] = useState<ModelId>("gemini-2.5-pro")
+	const [internalModel, setInternalModel] =
+		useState<ModelId>("claude-sonnet-4.6")
 	const [isOpen, setIsOpen] = useState(false)
 
 	const selectedModel = selectedModelProp ?? internalModel

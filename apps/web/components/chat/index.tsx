@@ -114,7 +114,8 @@ export function ChatSidebar({
 }) {
 	const isMobile = useIsMobile()
 	const [input, setInput] = useState("")
-	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
+	const [selectedModel, setSelectedModel] =
+		useState<ModelId>("claude-sonnet-4.6")
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
