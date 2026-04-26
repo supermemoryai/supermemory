@@ -9,10 +9,10 @@ icon: "terminal"
 This integration requires the **Supermemory Pro plan**. [Upgrade here](https://console.supermemory.ai/billing).
 </Warning>
 
-[codex-supermemory](https://github.com/supermemoryai/codex-supermemory) wires Supermemory into the [OpenAI Codex CLI](https://github.com/openai/codex) via hooks and an MCP server. Your agent gets **two layers of memory**:
+[codex-supermemory](https://github.com/supermemoryai/codex-supermemory) wires Supermemory into the [OpenAI Codex CLI](https://github.com/openai/codex) via hooks and skills. Your agent gets **two layers of memory**:
 
 - **Implicit** (hooks) — automatically recalls context before each prompt and captures conversations after each session.
-- **Explicit** (MCP tools) — lets you or the agent save, search, and manage memories on demand.
+- **Explicit** (skills) — lets you or the agent save, search, and manage memories on demand.
 
 ## Get Your API Key
 
@@ -46,10 +46,10 @@ npx codex-supermemory@latest install
 ```
 
 This command:
-- Copies hook scripts and the MCP server to `~/.codex/supermemory/`
+- Copies hook and skill scripts to `~/.codex/supermemory/`
 - Enables `codex_hooks = true` in `~/.codex/config.toml`
 - Registers `UserPromptSubmit` (recall) and `Stop` (capture) hooks in `~/.codex/hooks.json`
-- Registers the `supermemory` MCP server in `~/.codex/config.toml`
+- Installs `super-search`, `super-save`, and `forget` skills to `~/.codex/skills/`
 
 Restart Codex CLI after installing.
 
@@ -70,28 +70,22 @@ Memories are tagged with two container tags per session:
 | User | `codex_user_{sha256}` | Memories shared across all your projects |
 | Project | `codex_project_{sha256}` | Memories scoped to the current working directory |
 
-## Explicit Memory Tools (MCP)
+## Explicit Memory Skills
 
-The installer registers a local stdio MCP server that runs alongside Codex — no separate login needed. It uses the same `SUPERMEMORY_CODEX_API_KEY` as the hooks.
+The installer includes three skills that Codex auto-discovers from `~/.codex/skills/`. They use the same `SUPERMEMORY_CODEX_API_KEY` as the hooks — no separate login needed.
 
-Three tools are available directly in your Codex session:
+| Skill | Description |
+|-------|-------------|
+| `super-search` | Search your memories by natural-language query |
+| `super-save` | Save important project knowledge to memory |
+| `forget` | Remove outdated or incorrect memories |
 
-| Tool | Description |
-|------|-------------|
-| `memory` | Save a new memory (`mode: "add"`) or forget one by ID (`mode: "forget"`) |
-| `recall` | Search memories by natural-language query |
-| `listProjects` | List recent memories in the current project or user scope |
+These skills let you interact with memory explicitly — for example:
 
-Examples:
 ```
 > Remember that this project uses Vitest for unit tests and Playwright for E2E.
 > What do you remember about our database schema?
 > Forget the memory about the old API endpoint.
-```
-
-Verify the MCP server is registered:
-```bash
-codex mcp list
 ```
 
 ## Verify Installation
@@ -107,9 +101,9 @@ codex-supermemory status:
 
   API key:       ✓ set (SUPERMEMORY_CODEX_API_KEY)
   Hook scripts:  ✓ installed at ~/.codex/supermemory
-  hooks.json:    ✓ registered
-  config.toml:   ✓ codex_hooks enabled
-  MCP server:    ✓ registered
+  hooks.json:    ✓ registered (implicit memory)
+  Skills:        ✓ installed (super-search, super-save, forget)
+  config.toml:   ✓ exists
 
 All good! Memory is active.
 ```
@@ -120,7 +114,7 @@ All good! Memory is active.
 npx codex-supermemory uninstall
 ```
 
-This removes the hook scripts and MCP server from `~/.codex/supermemory/`, the hook registrations from `~/.codex/hooks.json`, and disables `codex_hooks` and the MCP server entry in `~/.codex/config.toml`. Your existing memories in Supermemory are preserved.
+This removes the hook registrations and skill scripts from `~/.codex/supermemory/`, removes skill directories from `~/.codex/skills/`, and disables `codex_hooks` in `~/.codex/config.toml`. Your existing memories in Supermemory are preserved.
 
 ## Configuration
 
@@ -147,7 +141,6 @@ Create `~/.codex/supermemory.json` to override defaults:
 | `injectProfile` | `true` | Include user profile in context |
 | `containerTagPrefix` | `"codex"` | Prefix for container tags |
 | `debug` | `false` | Write debug logs to `~/.codex-supermemory.log` |
-
 
 ## Logging
 
