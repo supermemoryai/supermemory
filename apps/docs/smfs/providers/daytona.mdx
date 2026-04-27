@@ -7,11 +7,12 @@ Mount a Supermemory container inside a [Daytona](https://daytona.io) sandbox so
 your agent can read and write memory using standard filesystem commands.
 
 <Warning>
-  Daytona sandboxes currently cannot reach `api.supermemory.ai` due to network
-  restrictions from their datacenter IPs. The SMFS binary installs and the FUSE
-  mount starts, but it cannot sync data. We're working with Daytona to resolve
-  this. In the meantime, use [E2B](/smfs/providers/e2b) or a
-  [local mount](/smfs/providers/vercel) instead.
+  Daytona sandboxes currently cannot reach `api.supermemory.ai` from their
+  datacenter IPs. The SMFS binary still installs (we download it directly from
+  GitHub Releases), the FUSE mount still starts, and `pip install
+  claude-agent-sdk` still works — but the runtime sync to Supermemory fails. We're
+  working with Daytona to resolve this. In the meantime, use
+  [E2B](/smfs/providers/e2b) or a [self-hosted mount](/smfs/providers/vercel).
 </Warning>
 
 ## How it works
@@ -26,7 +27,7 @@ The agent process runs inside the sandbox and accesses the SMFS mount directly.
 ```mermaid
 graph LR
     subgraph Daytona Sandbox
-        Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["/home/daytona/memory\n(SMFS mount)"]
+        Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["/home/daytona/memory<br/>(SMFS mount)"]
     end
     Mount -->|sync| SM["Supermemory"]
 ```
@@ -38,9 +39,9 @@ sandbox remotely.
 
 ```mermaid
 graph LR
-    Agent["Claude Agent\n(your server)"] -->|"sandbox.process.exec()"| Sandbox
+    Agent["Claude Agent<br/>(your server)"] -->|"sandbox.process.exec()"| Sandbox
     subgraph Sandbox ["Daytona Sandbox"]
-        Mount["/home/daytona/memory\n(SMFS mount)"]
+        Mount["/home/daytona/memory<br/>(SMFS mount)"]
     end
     Mount -->|sync| SM["Supermemory"]
 ```
@@ -50,6 +51,40 @@ graph LR
 - A [Supermemory API key](https://supermemory.ai)
 - A [Daytona API key](https://app.daytona.io) — go to **API Keys** in the sidebar
 - An [Anthropic API key](https://console.anthropic.com)
+
+---
+
+## Install SMFS in a Daytona sandbox
+
+Both patterns below run the same setup snippet inside the sandbox before
+mounting. Daytona can't reach `smfs.ai`, so we download the binary directly
+from GitHub Releases and add `~/.local/bin` to PATH.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    SMFS_INSTALL = (
+        "mkdir -p $HOME/.local/bin && "
+        "curl -sL https://github.com/supermemoryai/smfs/releases/download/"
+        "v0.0.1-rc2/smfs-linux-x64 -o $HOME/.local/bin/smfs && "
+        "chmod +x $HOME/.local/bin/smfs && "
+        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null && "
+        "pip install claude-agent-sdk"
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    const SMFS_INSTALL =
+      "mkdir -p $HOME/.local/bin && " +
+      "curl -sL https://github.com/supermemoryai/smfs/releases/download/" +
+      "v0.0.1-rc2/smfs-linux-x64 -o $HOME/.local/bin/smfs && " +
+      "chmod +x $HOME/.local/bin/smfs && " +
+      "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null && " +
+      "pip install claude-agent-sdk";
+    ```
+  </Tab>
+</Tabs>
 
 ---
 
@@ -84,6 +119,7 @@ asyncio.run(main())
   <Tab title="Python">
     ```python run.py
     import os
+    from pathlib import Path
     from daytona_sdk import Daytona, DaytonaConfig
 
     daytona = Daytona(DaytonaConfig(
@@ -96,19 +132,8 @@ asyncio.run(main())
         },
     )
 
-    # Install SMFS (from GitHub releases — smfs.ai is unreachable from Daytona)
-    sandbox.process.exec(
-        "mkdir -p $HOME/.local/bin && "
-        "curl -sL https://github.com/supermemoryai/smfs/releases/download/"
-        "v0.0.1-rc2/smfs-linux-x64 -o $HOME/.local/bin/smfs && "
-        "chmod +x $HOME/.local/bin/smfs"
-    )
-
-    # Fix FUSE config and install agent SDK
-    sandbox.process.exec(
-        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-    )
-    sandbox.process.exec("pip install claude-agent-sdk")
+    # See "Install SMFS in a Daytona sandbox" above
+    sandbox.process.exec(SMFS_INSTALL)
 
     # Mount memory
     sandbox.process.exec("$HOME/.local/bin/smfs login --key $SUPERMEMORY_API_KEY")
@@ -117,7 +142,8 @@ asyncio.run(main())
         " --path /home/daytona/memory --foreground &' && sleep 3"
     )
 
-    # Run the agent
+    # Upload and run the agent
+    sandbox.fs.upload_file(Path("agent.py").read_bytes(), "agent.py")
     result = sandbox.process.exec("python3 agent.py")
     print(result.result)
 
@@ -127,6 +153,7 @@ asyncio.run(main())
   <Tab title="TypeScript">
     ```typescript run.ts
     import { Daytona } from "@daytonaio/sdk";
+    import { readFileSync } from "fs";
 
     const daytona = new Daytona({
       apiKey: process.env.DAYTONA_API_KEY!,
@@ -138,19 +165,8 @@ asyncio.run(main())
       },
     });
 
-    // Install SMFS (from GitHub releases — smfs.ai is unreachable from Daytona)
-    await sandbox.process.exec(
-      "mkdir -p $HOME/.local/bin && " +
-      "curl -sL https://github.com/supermemoryai/smfs/releases/download/" +
-      "v0.0.1-rc2/smfs-linux-x64 -o $HOME/.local/bin/smfs && " +
-      "chmod +x $HOME/.local/bin/smfs"
-    );
-
-    // Fix FUSE config and install agent SDK
-    await sandbox.process.exec(
-      "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-    );
-    await sandbox.process.exec("pip install claude-agent-sdk");
+    // See "Install SMFS in a Daytona sandbox" above
+    await sandbox.process.exec(SMFS_INSTALL);
 
     // Mount memory
     await sandbox.process.exec(
@@ -162,6 +178,7 @@ asyncio.run(main())
     );
 
     // Upload and run the agent
+    await sandbox.fs.uploadFile(readFileSync("agent.py"), "agent.py");
     const result = await sandbox.process.exec("python3 agent.py");
     console.log(result.result);
 
@@ -192,16 +209,8 @@ remotely via `sandbox.process.exec()`.
         },
     )
 
-    # Install and mount SMFS
-    sandbox.process.exec(
-        "mkdir -p $HOME/.local/bin && "
-        "curl -sL https://github.com/supermemoryai/smfs/releases/download/"
-        "v0.0.1-rc2/smfs-linux-x64 -o $HOME/.local/bin/smfs && "
-        "chmod +x $HOME/.local/bin/smfs"
-    )
-    sandbox.process.exec(
-        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-    )
+    # See "Install SMFS in a Daytona sandbox" above
+    sandbox.process.exec(SMFS_INSTALL)
     sandbox.process.exec("$HOME/.local/bin/smfs login --key $SUPERMEMORY_API_KEY")
     sandbox.process.exec(
         "bash -c '$HOME/.local/bin/smfs mount my_agent --ephemeral"
@@ -235,16 +244,8 @@ remotely via `sandbox.process.exec()`.
       },
     });
 
-    // Install and mount SMFS
-    await sandbox.process.exec(
-      "mkdir -p $HOME/.local/bin && " +
-      "curl -sL https://github.com/supermemoryai/smfs/releases/download/" +
-      "v0.0.1-rc2/smfs-linux-x64 -o $HOME/.local/bin/smfs && " +
-      "chmod +x $HOME/.local/bin/smfs"
-    );
-    await sandbox.process.exec(
-      "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-    );
+    // See "Install SMFS in a Daytona sandbox" above
+    await sandbox.process.exec(SMFS_INSTALL);
     await sandbox.process.exec(
       "$HOME/.local/bin/smfs login --key $SUPERMEMORY_API_KEY"
     );
@@ -275,12 +276,7 @@ remotely via `sandbox.process.exec()`.
 
 - FUSE is available in Daytona sandboxes but `user_allow_other` needs to be
   added to `/etc/fuse.conf`
-- The binary installs to `~/.local/bin/` which isn't on PATH by default in
-  Daytona's zsh — use the full path or `export PATH=$HOME/.local/bin:$PATH`
+- We invoke SMFS as `$HOME/.local/bin/smfs` in the examples because Daytona's
+  default zsh PATH doesn't include `~/.local/bin`. Alternatively, prepend it
+  once with `export PATH=$HOME/.local/bin:$PATH`
 - Use `pip install claude-agent-sdk` to install the agent SDK (PyPI is reachable)
-
-<Note>
-  Daytona sandboxes can't reach `smfs.ai`, so the install downloads the binary
-  directly from GitHub releases. The SMFS binary and Claude Agent SDK both
-  install successfully — only the Supermemory API connection is blocked.
-</Note>

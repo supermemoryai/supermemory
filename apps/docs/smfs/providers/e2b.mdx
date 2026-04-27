@@ -19,7 +19,7 @@ Your orchestrating code just boots the sandbox and kicks off the agent.
 ```mermaid
 graph LR
     subgraph E2B Sandbox
-        Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["/home/user/memory\n(SMFS mount)"]
+        Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["/home/user/memory<br/>(SMFS mount)"]
     end
     Mount -->|sync| SM["Supermemory"]
 ```
@@ -32,9 +32,9 @@ infra.
 
 ```mermaid
 graph LR
-    Agent["Claude Agent\n(your server)"] -->|"sbx.commands.run()"| Sandbox
+    Agent["Claude Agent<br/>(your server)"] -->|"sbx.commands.run()"| Sandbox
     subgraph Sandbox ["E2B Sandbox"]
-        Mount["/home/user/memory\n(SMFS mount)"]
+        Mount["/home/user/memory<br/>(SMFS mount)"]
     end
     Mount -->|sync| SM["Supermemory"]
 ```
@@ -99,6 +99,7 @@ asyncio.run(main())
   <Tab title="Python">
     ```python run.py
     import os
+    from pathlib import Path
     from e2b_code_interpreter import Sandbox
 
     sbx = Sandbox.create(
@@ -110,10 +111,11 @@ asyncio.run(main())
         },
     )
 
-    # One-time FUSE fix (device exists but is root-only by default)
+    # /dev/fuse exists in E2B but is root-only by default. chmod once per sandbox.
     sbx.commands.run("sudo chmod 666 /dev/fuse")
 
-    # Mount memory
+    # Mount memory. We background the foreground daemon so this command returns,
+    # then sleep briefly to let the FUSE mount come up before the agent reads it.
     sbx.commands.run("smfs login --key $SUPERMEMORY_API_KEY")
     sbx.commands.run(
         "bash -c 'smfs mount my_agent --ephemeral"
@@ -121,7 +123,7 @@ asyncio.run(main())
     )
 
     # Upload and run the agent
-    sbx.files.write("/home/user/agent.py", open("agent.py").read())
+    sbx.files.write("/home/user/agent.py", Path("agent.py").read_text())
     result = sbx.commands.run("python3 /home/user/agent.py", timeout=120)
     print(result.stdout)
 
@@ -142,10 +144,11 @@ asyncio.run(main())
       },
     });
 
-    // One-time FUSE fix (device exists but is root-only by default)
+    // /dev/fuse exists in E2B but is root-only by default. chmod once per sandbox.
     await sbx.commands.run("sudo chmod 666 /dev/fuse");
 
-    // Mount memory
+    // Mount memory. We background the foreground daemon so this command returns,
+    // then sleep briefly to let the FUSE mount come up before the agent reads it.
     await sbx.commands.run("smfs login --key $SUPERMEMORY_API_KEY");
     await sbx.commands.run(
       "bash -c 'smfs mount my_agent --ephemeral --path /home/user/memory --foreground &' && sleep 3"
@@ -170,6 +173,12 @@ asyncio.run(main())
 The agent runs in your server process and executes commands inside the sandbox
 remotely via `sbx.commands.run()`. The SMFS mount lives inside the sandbox —
 the agent never touches the filesystem directly.
+
+<Note>
+  The FUSE mount is owned by root inside the sandbox. When writing to it from
+  outside the agent, wrap the command in `sudo bash -c '…'` so the redirect
+  runs with the right permissions. You'll see this in the write examples below.
+</Note>
 
 <Tabs>
   <Tab title="Python">
@@ -241,11 +250,6 @@ the agent never touches the filesystem directly.
     ```
   </Tab>
 </Tabs>
-
-<Note>
-  The FUSE mount is owned by root. When writing files from outside the agent,
-  use `sudo bash -c 'echo "..." > /path/file'`.
-</Note>
 
 ---
 
