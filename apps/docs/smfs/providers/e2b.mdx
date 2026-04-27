@@ -126,7 +126,7 @@ E2B sandboxes are ephemeral Linux microVMs with full shell access and unrestrict
     )
 
     # 3. Install SMFS and log in
-    sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
+    sandbox.commands.run("curl -fsSL https://smfs.ai/install | bash")
     sandbox.commands.run(
         f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
     )
@@ -185,7 +185,7 @@ sandbox.commands.run(
 )
 
 # Install SMFS
-sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
+sandbox.commands.run("curl -fsSL https://smfs.ai/install | bash")
 
 # Log in
 sandbox.commands.run(
@@ -231,7 +231,7 @@ For faster startup, bake SMFS and the FUSE fixes into a custom E2B template:
 FROM e2b/code-interpreter:latest
 
 # Pre-install SMFS
-RUN curl -fsSL https://smfs.ai/install | sh
+RUN curl -fsSL https://smfs.ai/install | bash
 
 # Fix FUSE permissions for SMFS mount
 RUN echo 'user_allow_other' >> /etc/fuse.conf
