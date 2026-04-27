@@ -1,0 +1,168 @@
+---
+title: "Vercel AI SDK"
+sidebarTitle: "Vercel AI SDK"
+description: "Add persistent memory to agents built with the Vercel AI SDK."
+icon: "triangle"
+---
+
+The [Vercel AI SDK](https://sdk.vercel.ai) is the most popular framework for building AI agents in TypeScript. SMFS plugs in as a tool — give your agent a `bash` tool backed by `@supermemory/bash` and it can `ls`, `cat`, `grep`, and write to a Supermemory container without any filesystem to manage.
+
+## Architecture
+
+The Vercel AI SDK uses a tool-calling pattern: you define tools, the model decides when to call them. `@supermemory/bash` fits this perfectly — it's a single tool that exposes a virtual filesystem backed by Supermemory.
+
+```
+User → AI SDK → LLM → calls bash tool → @supermemory/bash → Supermemory API
+```
+
+No sandbox needed. The bash tool runs in your server process and handles all the memory operations.
+
+## Prerequisites
+
+- A [Supermemory](https://console.supermemory.ai) account and API key
+- Node.js 18+
+- An LLM provider (OpenAI, Anthropic, Google, etc.)
+
+## 1. Install
+
+```bash
+npm install @supermemory/bash ai @ai-sdk/openai zod
+```
+
+## 2. Create an agent with memory
+
+```typescript agent.ts
+import { createBash } from "@supermemory/bash";
+import { generateText, tool } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+async function main() {
+  // Set up the SMFS bash tool
+  const { bash, toolDescription } = await createBash({
+    apiKey: process.env.SUPERMEMORY_API_KEY!,
+    containerTag: "user_42",
+  });
+
+  const result = await generateText({
+    model: openai("gpt-4o"),
+    tools: {
+      bash: tool({
+        description: toolDescription,
+        parameters: z.object({ cmd: z.string() }),
+        execute: async ({ cmd }) => bash.exec(cmd),
+      }),
+    },
+    maxSteps: 10,
+    system: `You have access to a persistent memory filesystem via the bash tool.
+Use it to remember things about the user across conversations.
+Start by reading /profile.md to see what you already know.`,
+    prompt: "What do you remember about me?",
+  });
+
+  console.log(result.text);
+}
+
+main();
+```
+
+That's it. The model will call `bash({ cmd: "cat /profile.md" })` to read the user's profile, `bash({ cmd: "ls /" })` to browse memory, and `bash({ cmd: "grep 'preferences'" })` to search semantically.
+
+## 3. Multi-step agent with memory
+
+A more complete example with conversation history and memory persistence:
+
+```typescript chat.ts
+import { createBash } from "@supermemory/bash";
+import { generateText, tool, CoreMessage } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+// Create one bash instance per user (reuse across requests)
+const userBashInstances = new Map();
+
+async function getBash(userId: string) {
+  if (!userBashInstances.has(userId)) {
+    const instance = await createBash({
+      apiKey: process.env.SUPERMEMORY_API_KEY!,
+      containerTag: `user_${userId}`,
+    });
+    userBashInstances.set(userId, instance);
+  }
+  return userBashInstances.get(userId);
+}
+
+export async function chat(userId: string, messages: CoreMessage[]) {
+  const { bash, toolDescription } = await getBash(userId);
+
+  return generateText({
+    model: openai("gpt-4o"),
+    tools: {
+      bash: tool({
+        description: toolDescription,
+        parameters: z.object({ cmd: z.string() }),
+        execute: async ({ cmd }) => bash.exec(cmd),
+      }),
+    },
+    maxSteps: 10,
+    system: `You are a helpful assistant with persistent memory.
+
+Use the bash tool to:
+- Read /profile.md at the start of each conversation for context
+- Save important facts to /memory.md
+- Search with grep when looking for specific information
+- Organize notes in subdirectories as needed`,
+    messages,
+  });
+}
+```
+
+## With Vercel AI SDK Streams
+
+For streaming responses in a Next.js app:
+
+```typescript app/api/chat/route.ts
+import { createBash } from "@supermemory/bash";
+import { streamText, tool } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+export async function POST(req: Request) {
+  const { messages, userId } = await req.json();
+
+  const { bash, toolDescription } = await createBash({
+    apiKey: process.env.SUPERMEMORY_API_KEY!,
+    containerTag: `user_${userId}`,
+  });
+
+  const result = streamText({
+    model: openai("gpt-4o"),
+    tools: {
+      bash: tool({
+        description: toolDescription,
+        parameters: z.object({ cmd: z.string() }),
+        execute: async ({ cmd }) => bash.exec(cmd),
+      }),
+    },
+    maxSteps: 10,
+    system: "You have persistent memory via the bash tool. Read /profile.md for context.",
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+## Tips
+
+- **One `createBash` per user.** Use the user's ID as the container tag. Each user gets their own isolated memory.
+- **Read `profile.md` first.** Tell the model to `cat /profile.md` at the start of each conversation. It's a live digest of everything in the container.
+- **`sgrep` for semantic search.** Inside the bash tool, `sgrep "query"` searches by meaning, not just text. Regular `grep` does literal matching.
+- **Cache the bash instance.** `createBash` warms the path index on startup. Reuse the instance across requests for the same user.
+- **Works with any LLM provider.** Swap `openai("gpt-4o")` for `anthropic("claude-sonnet-4-20250514")`, `google("gemini-2.0-flash")`, or any AI SDK-compatible provider.
+
+## Resources
+
+- [Vercel AI SDK docs](https://sdk.vercel.ai/docs)
+- [SMFS Bash Tool reference](/smfs/bash-tool)
+- [Supermemory quickstart](/quickstart)

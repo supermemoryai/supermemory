@@ -1,0 +1,218 @@
+---
+title: "E2B"
+sidebarTitle: "E2B"
+description: "Give your E2B sandboxes persistent memory with SMFS."
+icon: "cube"
+---
+
+[E2B](https://e2b.dev) runs AI-generated code in secure Firecracker microVMs. Pair it with SMFS and your agent gets both safe code execution **and** persistent memory it can `ls`, `cat`, and `grep`.
+
+## Architecture
+
+E2B sandboxes are ephemeral Linux microVMs with full shell access. Two ways to wire SMFS in:
+
+<CardGroup cols={2}>
+  <Card title="Mount inside the sandbox" icon="hard-drive">
+    Install the `smfs` binary inside the sandbox and mount a container. The agent uses standard Unix commands to read and write memory.
+  </Card>
+  <Card title="Bash Tool in your agent code" icon="terminal">
+    Use `@supermemory/bash` in the code that **orchestrates** the sandbox. Memory lives in your agent code; code execution lives in E2B.
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+- A [Supermemory](https://console.supermemory.ai) account and API key
+- An [E2B](https://e2b.dev) account and API key
+- Node.js 18+ or Python 3.10+
+
+## 1. Get your API keys
+
+### Supermemory
+
+1. Go to [console.supermemory.ai](https://console.supermemory.ai)
+2. Navigate to **Settings → API Keys**
+3. Create a new key and copy it
+
+### E2B
+
+1. Go to [e2b.dev](https://e2b.dev) and sign up
+2. Open the [Dashboard](https://e2b.dev/dashboard)
+3. Navigate to **API Keys**
+4. Copy your API key
+
+## 2. Install the SDKs
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```bash
+    npm install @supermemory/bash @e2b/code-interpreter
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```bash
+    pip install supermemory e2b-code-interpreter
+    ```
+  </Tab>
+</Tabs>
+
+## 3. Build an agent with memory + code execution
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript agent.ts
+    import { createBash } from "@supermemory/bash";
+    import { Sandbox } from "@e2b/code-interpreter";
+    import { generateText, tool } from "ai";
+    import { openai } from "@ai-sdk/openai";
+    import { z } from "zod";
+
+    async function main() {
+      // 1. Set up memory (SMFS bash tool)
+      const { bash, toolDescription } = await createBash({
+        apiKey: process.env.SUPERMEMORY_API_KEY!,
+        containerTag: "agent_memory",
+      });
+
+      // 2. Set up code execution (E2B sandbox)
+      const sandbox = await Sandbox.create({
+        apiKey: process.env.E2B_API_KEY!,
+      });
+
+      // 3. Give the LLM both tools
+      const result = await generateText({
+        model: openai("gpt-4o"),
+        tools: {
+          memory: tool({
+            description: toolDescription,
+            parameters: z.object({ cmd: z.string() }),
+            execute: async ({ cmd }) => bash.exec(cmd),
+          }),
+          execute_code: tool({
+            description: "Run Python code in an isolated sandbox",
+            parameters: z.object({ code: z.string() }),
+            execute: async ({ code }) => {
+              const execution = await sandbox.runCode(code);
+              return execution.text;
+            },
+          }),
+        },
+        prompt: "Check my memory for the user's preferences, then write a script that uses them.",
+      });
+
+      console.log(result.text);
+
+      // 4. Clean up
+      await sandbox.kill();
+    }
+
+    main();
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python agent.py
+    import os
+    from e2b_code_interpreter import Sandbox
+
+    # 1. Create an E2B sandbox
+    sandbox = Sandbox(api_key=os.environ["E2B_API_KEY"])
+
+    # 2. Install SMFS inside the sandbox
+    sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
+
+    # 3. Log in and mount
+    sandbox.commands.run(
+        f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
+    )
+    sandbox.commands.run(
+        "~/.local/bin/smfs mount agent_memory --ephemeral --path /memory"
+    )
+
+    # 4. Your agent can now use the filesystem
+    sandbox.commands.run('echo "User prefers dark mode" > /memory/memory.md')
+
+    result = sandbox.commands.run("cat /memory/profile.md")
+    print(result.stdout)
+
+    # 5. Semantic search
+    result = sandbox.commands.run("cd /memory && grep 'preferences'")
+    print(result.stdout)
+
+    # 6. Clean up
+    sandbox.commands.run("~/.local/bin/smfs unmount agent_memory")
+    sandbox.kill()
+    ```
+  </Tab>
+</Tabs>
+
+## Alternative: Mount SMFS inside the sandbox
+
+E2B sandboxes have full network access, so you can install and mount SMFS directly. This gives the agent a real filesystem with semantic grep.
+
+```python
+from e2b_code_interpreter import Sandbox
+import os
+
+sandbox = Sandbox(api_key=os.environ["E2B_API_KEY"])
+
+# Install SMFS
+sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
+
+# Log in and mount
+sandbox.commands.run(
+    f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
+)
+sandbox.commands.run(
+    "~/.local/bin/smfs mount agent_memory --ephemeral --path /memory"
+)
+
+# Write some memory
+sandbox.commands.run('echo "Project deadline is March 15" > /memory/notes.md')
+
+# Read the auto-generated profile
+result = sandbox.commands.run("cat /memory/profile.md")
+print(result.stdout)
+
+# Semantic search across all memory
+result = sandbox.commands.run("cd /memory && grep 'deadline'")
+print(result.stdout)
+
+# Clean up
+sandbox.commands.run("~/.local/bin/smfs unmount agent_memory")
+sandbox.kill()
+```
+
+## Custom E2B template with SMFS pre-installed
+
+For faster startup, bake SMFS into a custom E2B template so you don't have to install it every time:
+
+```dockerfile e2b.Dockerfile
+FROM e2b/code-interpreter:latest
+
+# Pre-install SMFS
+RUN curl -fsSL https://smfs.ai/install | sh
+```
+
+```bash
+e2b template build -d e2b.Dockerfile
+```
+
+Then use your custom template:
+
+```python
+sandbox = Sandbox(template="your-custom-template")
+```
+
+## Tips
+
+- **Use `--ephemeral` for sandboxes.** E2B sandboxes are short-lived. Ephemeral mode avoids writing a local cache that will be thrown away.
+- **Custom templates save time.** Pre-install SMFS in a template to skip the install step on every sandbox boot.
+- **E2B sandboxes have a timeout.** Default is 5 minutes. Set `timeout` when creating the sandbox if your agent needs longer.
+- **One container, many sandboxes.** Mount the same container tag from multiple E2B sandboxes. Bidirectional sync keeps them in step.
+
+## Resources
+
+- [E2B docs](https://e2b.dev/docs)
+- [E2B SDK reference](https://e2b.dev/docs/sdk-reference)
+- [SMFS Mount reference](/smfs/mount)
+- [SMFS Bash Tool reference](/smfs/bash-tool)

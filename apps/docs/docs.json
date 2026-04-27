@@ -152,7 +152,17 @@
 							"smfs/overview",
 							"smfs/install",
 							"smfs/mount",
-							"smfs/bash-tool"
+							"smfs/bash-tool",
+							{
+								"group": "Providers",
+								"icon": "cloud",
+								"pages": [
+									"smfs/providers/daytona",
+									"smfs/providers/e2b",
+									"smfs/providers/vercel",
+									"smfs/providers/cloudflare"
+								]
+							}
 						]
 					}
 				],
