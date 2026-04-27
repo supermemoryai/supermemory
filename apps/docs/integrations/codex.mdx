@@ -49,7 +49,7 @@ This command:
 - Copies hook and skill scripts to `~/.codex/supermemory/`
 - Enables `codex_hooks = true` in `~/.codex/config.toml`
 - Registers `UserPromptSubmit` (recall) and `Stop` (capture) hooks in `~/.codex/hooks.json`
-- Installs `super-search`, `super-save`, and `forget` skills to `~/.codex/skills/`
+- Installs `supermemory-search`, `supermemory-save`, and `supermemory-forget` skills to `~/.codex/skills/`
 
 Restart Codex CLI after installing.
 
@@ -76,9 +76,9 @@ The installer includes three skills that Codex auto-discovers from `~/.codex/ski
 
 | Skill | Description |
 |-------|-------------|
-| `super-search` | Search your memories by natural-language query |
-| `super-save` | Save important project knowledge to memory |
-| `forget` | Remove outdated or incorrect memories |
+| `supermemory-search` | Search your memories by natural-language query |
+| `supermemory-save` | Save important project knowledge to memory |
+| `supermemory-forget` | Remove outdated or incorrect memories |
 
 These skills let you interact with memory explicitly — for example:
 
@@ -102,7 +102,7 @@ codex-supermemory status:
   API key:       ✓ set (SUPERMEMORY_CODEX_API_KEY)
   Hook scripts:  ✓ installed at ~/.codex/supermemory
   hooks.json:    ✓ registered (implicit memory)
-  Skills:        ✓ installed (super-search, super-save, forget)
+  Skills:        ✓ installed (supermemory-search, supermemory-save, supermemory-forget)
   config.toml:   ✓ exists
 
 All good! Memory is active.
