@@ -1,205 +1,122 @@
 ---
 title: "Cloudflare"
-sidebarTitle: "Cloudflare"
-description: "Add persistent memory to Cloudflare Workers agents with SMFS."
-icon: "cloud"
+description: "Give your AI agent persistent memory inside a Cloudflare Container using SMFS"
 ---
 
-[Cloudflare Workers](https://workers.cloudflare.com) run at the edge in V8 isolates — no filesystem, no shell. That's exactly what `@supermemory/bash` is built for. It gives your Worker a virtual bash environment backed by Supermemory, so your agent can `ls`, `cat`, `grep`, and write to a persistent memory container without needing a real filesystem.
+Mount a Supermemory container inside a
+[Cloudflare Container](https://developers.cloudflare.com/containers/) so your
+agent can read and write memory with plain bash commands.
 
-## Architecture
+## How it works
 
-Cloudflare Workers can't mount SMFS (no FUSE, no disk). Instead, use `@supermemory/bash` as a tool for your agent. The bash tool runs entirely in-process — no child processes, no disk I/O, no native dependencies.
-
-```
-Request → Worker → LLM → calls bash tool → @supermemory/bash → Supermemory API
-```
-
-<Note>
-  If you're using [Cloudflare Containers](https://developers.cloudflare.com/containers/) (full Linux containers at the edge), you can install the `smfs` binary directly. See [Alternative: Cloudflare Containers](#alternative-cloudflare-containers) below.
-</Note>
+1. Build a container image with SMFS pre-installed
+2. Deploy it as a Cloudflare Container
+3. On startup, mount a Supermemory container inside the container
+4. Run a Claude agent with bash access — it reads/writes the SMFS mount naturally
 
 ## Prerequisites
 
-- A [Supermemory](https://console.supermemory.ai) account and API key
-- A [Cloudflare](https://dash.cloudflare.com) account
-- Node.js 18+ and Wrangler CLI
+- A [Supermemory API key](https://supermemory.ai)
+- An [Anthropic API key](https://console.anthropic.com)
+- A [Cloudflare account](https://dash.cloudflare.com) with Containers enabled
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
 
-## 1. Set up a Worker
+## Container setup
 
-```bash
-npm create cloudflare@latest -- my-memory-agent
-cd my-memory-agent
-npm install @supermemory/bash
-```
-
-Add your Supermemory API key as a secret:
-
-```bash
-npx wrangler secret put SUPERMEMORY_API_KEY
-```
-
-## 2. Build an agent with memory
-
-```typescript src/index.ts
-import { createBash } from "@supermemory/bash";
-
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const { bash, toolDescription } = await createBash({
-      apiKey: env.SUPERMEMORY_API_KEY,
-      containerTag: "user_42",
-    });
-
-    // Read the user's profile
-    const profile = await bash.exec("cat /profile.md");
-
-    // Search memory semantically
-    const results = await bash.exec("sgrep 'project deadlines'");
-
-    // Write new memory
-    await bash.exec('echo "Met with client on April 27" >> /notes.md');
-
-    return new Response(JSON.stringify({
-      profile: profile.stdout,
-      search: results.stdout,
-    }));
-  },
-};
-```
-
-## 3. Full agent with tool calling
-
-Wire `@supermemory/bash` as a tool for an LLM. This example uses the OpenAI API, but any provider works:
-
-```typescript src/index.ts
-import { createBash } from "@supermemory/bash";
-
-interface Env {
-  SUPERMEMORY_API_KEY: string;
-  OPENAI_API_KEY: string;
-}
-
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    const { messages, userId } = await request.json() as {
-      messages: any[];
-      userId: string;
-    };
-
-    const { bash, toolDescription } = await createBash({
-      apiKey: env.SUPERMEMORY_API_KEY,
-      containerTag: `user_${userId}`,
-    });
-
-    // Call the LLM with the bash tool
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You have persistent memory via a bash tool.
-Use it to remember things about the user.
-Start by reading /profile.md for context.`,
-          },
-          ...messages,
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "bash",
-            description: toolDescription,
-            parameters: {
-              type: "object",
-              properties: { cmd: { type: "string" } },
-              required: ["cmd"],
-            },
-          },
-        }],
-      }),
-    });
-
-    const data = await response.json() as any;
-
-    // Handle tool calls
-    if (data.choices[0].message.tool_calls) {
-      const toolCall = data.choices[0].message.tool_calls[0];
-      const cmd = JSON.parse(toolCall.function.arguments).cmd;
-      const result = await bash.exec(cmd);
-
-      // Send the result back to the LLM
-      const followUp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            ...messages,
-            data.choices[0].message,
-            {
-              role: "tool",
-              tool_call_id: toolCall.id,
-              content: JSON.stringify(result),
-            },
-          ],
-        }),
-      });
-
-      const followUpData = await followUp.json() as any;
-      return new Response(followUpData.choices[0].message.content);
-    }
-
-    return new Response(data.choices[0].message.content);
-  },
-};
-```
-
-## Alternative: Cloudflare Containers
-
-[Cloudflare Containers](https://developers.cloudflare.com/containers/) give you full Linux environments at the edge. Unlike Workers, containers have a real filesystem and shell — so you can install and mount SMFS directly.
+### Dockerfile
 
 ```dockerfile Dockerfile
 FROM node:20-slim
 
+# Install FUSE and bash
+RUN apt-get update && apt-get install -y fuse3 curl bash && rm -rf /var/lib/apt/lists/*
+RUN echo 'user_allow_other' >> /etc/fuse.conf
+
 # Install SMFS
 RUN curl -fsSL https://smfs.ai/install | bash
 
-# Your agent code
-COPY . /app
-WORKDIR /app
-RUN npm install
+# Install the Claude Agent SDK
+RUN npm install -g @anthropic-ai/claude-agent-sdk
 
-CMD ["node", "agent.js"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-Inside the container, mount SMFS as you would on any Linux machine:
+### Entrypoint
 
-```bash
-smfs login --key $SUPERMEMORY_API_KEY
-smfs mount agent_memory --ephemeral --path /memory
+```bash entrypoint.sh
+#!/bin/bash
+set -e
+
+# Log in and mount
+smfs login --key "$SUPERMEMORY_API_KEY"
+smfs mount my_agent --ephemeral --path /memory --foreground &
+sleep 5
+
+# Run the agent
+node agent.js
 ```
 
-Your agent can then use standard Unix commands to interact with memory.
+### Agent
+
+```typescript agent.ts
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+async function main() {
+  for await (const message of query({
+    prompt: `You have access to a persistent memory filesystem mounted at /memory.
+Use bash commands to explore it (ls, cat) and write notes to it (echo "..." > file).
+
+Read /memory/profile.md to learn about the user.
+Then create /memory/session_notes.md with a summary of what you found.`,
+    options: {
+      allowedTools: ["Bash", "Read", "Write"],
+    },
+  })) {
+    if (message.type === "text") console.log(message.text);
+  }
+}
+
+main();
+```
+
+## Worker + Container pattern
+
+Use a Cloudflare Worker as the HTTP frontend that triggers the container:
+
+```typescript worker.ts
+export default {
+  async fetch(request: Request, env: any) {
+    // Start the container (it runs the agent with SMFS mounted)
+    const container = await env.MY_CONTAINER.start();
+
+    // The container runs the agent and writes results to SMFS
+    // Read the result back
+    const response = await container.fetch("/result");
+    return response;
+  },
+};
+```
+
+```toml wrangler.toml
+name = "memory-agent"
+main = "worker.ts"
+
+[[containers]]
+class_name = "MY_CONTAINER"
+image = "./Dockerfile"
+max_instances = 5
+```
 
 ## Tips
 
-- **Workers have a 30-second CPU time limit.** Keep tool call chains short. If your agent needs many steps, consider using Durable Objects for longer-running workflows.
-- **One container tag per user.** Use the user's ID as the container tag for isolated memory per user.
-- **`sgrep` for semantic search.** Inside the bash tool, `sgrep "query"` searches by meaning. Regular `grep` does literal matching.
-- **Cache-friendly.** `@supermemory/bash` warms its path index on `createBash`. For Workers that handle many requests, consider caching the instance in a Durable Object.
-
-## Resources
-
-- [Cloudflare Workers docs](https://developers.cloudflare.com/workers/)
-- [Cloudflare Containers docs](https://developers.cloudflare.com/containers/)
-- [SMFS Bash Tool reference](/smfs/bash-tool)
-- [Supermemory quickstart](/quickstart)
+- Use `--ephemeral` when mounting inside containers — it keeps the cache in memory
+  only, but writes still push to Supermemory
+- Use `smfs grep 'query'` for semantic search across all files in the container
+- Set `SUPERMEMORY_API_KEY` and `ANTHROPIC_API_KEY` as Cloudflare secrets:
+  ```bash
+  wrangler secret put SUPERMEMORY_API_KEY
+  wrangler secret put ANTHROPIC_API_KEY
+  ```
