@@ -153,6 +153,7 @@
 							"smfs/install",
 							"smfs/mount",
 							"smfs/bash-tool",
+							"smfs/bash-tool-python",
 							{
 								"group": "Providers",
 								"icon": "cloud",
