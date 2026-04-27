@@ -51,17 +51,17 @@ E2B sandboxes are ephemeral Linux microVMs with full shell access and unrestrict
   </Tab>
   <Tab title="Python">
     ```bash
-    pip install supermemory e2b-code-interpreter
+    pip install e2b-code-interpreter
     ```
   </Tab>
 </Tabs>
 
 ## 3. Build an agent with memory + code execution
 
-The recommended pattern: your agent code uses `@supermemory/bash` for memory and the E2B SDK for code execution. The LLM gets both as tools.
-
 <Tabs>
   <Tab title="TypeScript">
+    The recommended TypeScript pattern: use `@supermemory/bash` for memory in your orchestrating code and the E2B SDK for code execution. The LLM gets both as tools.
+
     ```typescript agent.ts
     import { createBash } from "@supermemory/bash";
     import { Sandbox } from "@e2b/code-interpreter";
@@ -110,33 +110,50 @@ The recommended pattern: your agent code uses `@supermemory/bash` for memory and
     ```
   </Tab>
   <Tab title="Python">
+    In Python, mount SMFS inside the E2B sandbox. The agent reads and writes memory via standard shell commands.
+
     ```python agent.py
     import os
-    from supermemory import create_bash
     from e2b_code_interpreter import Sandbox
 
-    # 1. Set up memory (SMFS bash tool — runs in your code, not the sandbox)
-    bash = create_bash(
-        api_key=os.environ["SUPERMEMORY_API_KEY"],
-        container_tag="agent_memory",
-    )
-
-    # 2. Set up code execution (E2B sandbox)
+    # 1. Create an E2B sandbox
     sandbox = Sandbox.create(timeout=300)
 
-    # 3. Read memory from your orchestrating code
-    profile = bash.exec("cat /profile.md")
-    print(profile.stdout)
+    # 2. Fix FUSE permissions (required in E2B sandboxes)
+    sandbox.commands.run("sudo chmod 666 /dev/fuse")
+    sandbox.commands.run(
+        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
+    )
 
-    # 4. Execute code in the sandbox
-    execution = sandbox.run_code("print('Hello from E2B!')")
-    print(execution.text)
+    # 3. Install SMFS and log in
+    sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
+    sandbox.commands.run(
+        f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
+    )
 
-    # 5. Semantic search across memory
-    results = bash.exec("sgrep 'preferred language'")
-    print(results.stdout)
+    # 4. Mount memory
+    sandbox.commands.run(
+        "bash -c '~/.local/bin/smfs mount agent_memory --ephemeral"
+        " --path /home/user/memory --foreground > /tmp/smfs.log 2>&1"
+        " & sleep 5 && echo MOUNTED'",
+        timeout=15,
+    )
 
-    # 6. Clean up
+    # 5. Read the auto-generated profile
+    result = sandbox.commands.run("cat /home/user/memory/profile.md")
+    print(result.stdout)
+
+    # 6. Semantic search
+    result = sandbox.commands.run(
+        "~/.local/bin/smfs grep 'preferred language'"
+    )
+    print(result.stdout)
+
+    # 7. Clean up
+    sandbox.commands.run(
+        "~/.local/bin/smfs unmount agent_memory 2>/dev/null",
+        timeout=10,
+    )
     sandbox.kill()
     ```
   </Tab>

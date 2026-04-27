@@ -60,17 +60,17 @@ Daytona sandboxes run full Linux with shell access, filesystem, and network. The
   </Tab>
   <Tab title="Python">
     ```bash
-    pip install supermemory daytona-sdk
+    pip install daytona-sdk
     ```
   </Tab>
 </Tabs>
 
 ## 3. Build an agent with memory + code execution
 
-The recommended pattern: your agent code uses `@supermemory/bash` for memory and the Daytona SDK for code execution. The LLM gets both as tools.
-
 <Tabs>
   <Tab title="TypeScript">
+    The recommended TypeScript pattern: use `@supermemory/bash` for memory in your orchestrating code and the Daytona SDK for code execution. The LLM gets both as tools.
+
     ```typescript agent.ts
     import { createBash } from "@supermemory/bash";
     import { Daytona } from "@daytonaio/sdk";
@@ -123,18 +123,17 @@ The recommended pattern: your agent code uses `@supermemory/bash` for memory and
     ```
   </Tab>
   <Tab title="Python">
+    In Python, install and mount SMFS inside the Daytona sandbox. The agent reads and writes memory via standard shell commands.
+
+    <Warning>
+      This requires unrestricted outbound HTTPS from the sandbox. If `smfs login` fails with a connection error, see the note at the top of this page.
+    </Warning>
+
     ```python agent.py
     import os
-    from supermemory import create_bash
     from daytona_sdk import Daytona, DaytonaConfig
 
-    # 1. Set up memory (SMFS bash tool — runs in your code, not the sandbox)
-    bash = create_bash(
-        api_key=os.environ["SUPERMEMORY_API_KEY"],
-        container_tag="agent_memory",
-    )
-
-    # 2. Set up code execution (Daytona sandbox)
+    # 1. Set up code execution (Daytona sandbox)
     config = DaytonaConfig(
         api_key=os.environ["DAYTONA_API_KEY"],
         api_url="https://app.daytona.io/api",
@@ -142,72 +141,35 @@ The recommended pattern: your agent code uses `@supermemory/bash` for memory and
     daytona = Daytona(config)
     sandbox = daytona.create()
 
-    # 3. Read memory from your orchestrating code
-    profile = bash.exec("cat /profile.md")
-    print(profile.stdout)
+    # 2. Install SMFS inside the sandbox
+    sandbox.process.exec(
+        "curl -fsSL https://smfs.ai/install | sh"
+    )
 
-    # 4. Execute code in the sandbox
-    response = sandbox.process.exec("python3 -c 'print(\"Hello from Daytona!\")'")
+    # 3. Log in and mount
+    sandbox.process.exec(
+        f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
+    )
+    sandbox.process.exec(
+        "~/.local/bin/smfs mount agent_memory --ephemeral"
+    )
+
+    # 4. Read the auto-generated profile
+    response = sandbox.process.exec("cat agent_memory/profile.md")
     print(response.result)
 
-    # 5. Semantic search across memory
-    results = bash.exec("sgrep 'preferred language'")
-    print(results.stdout)
+    # 5. Semantic search
+    response = sandbox.process.exec(
+        "~/.local/bin/smfs grep 'preferred language'"
+    )
+    print(response.result)
 
     # 6. Clean up
+    sandbox.process.exec("~/.local/bin/smfs unmount agent_memory")
     daytona.delete(sandbox)
     ```
   </Tab>
 </Tabs>
-
-## Alternative: Mount SMFS inside the sandbox
-
-If your Daytona sandbox has unrestricted network access, you can install and mount SMFS directly inside it. This gives the agent a real filesystem it can navigate with standard Unix commands.
-
-<Warning>
-  Some Daytona datacenter IPs are blocked by upstream firewalls. If `smfs login` or `smfs mount` fails with a TLS connection error from inside the sandbox, switch to the **Bash Tool** pattern above — it runs in your orchestrating code where network access is unrestricted.
-</Warning>
-
-```python
-from daytona_sdk import Daytona, DaytonaConfig
-import os
-
-config = DaytonaConfig(
-    api_key=os.environ["DAYTONA_API_KEY"],
-    api_url="https://app.daytona.io/api",
-)
-daytona = Daytona(config)
-sandbox = daytona.create()
-
-# Install SMFS
-sandbox.process.exec("curl -fsSL https://smfs.ai/install | sh")
-
-# Log in
-sandbox.process.exec(
-    f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
-)
-
-# Mount with ephemeral mode (recommended for sandboxes)
-sandbox.process.exec(
-    "~/.local/bin/smfs mount agent_memory --ephemeral --path /memory"
-)
-
-# Now the agent can use standard Unix commands
-result = sandbox.process.exec("cat /memory/profile.md")
-print(result.result)
-
-# Semantic grep works inside the mount
-result = sandbox.process.exec("cd /memory && grep 'standup'")
-print(result.result)
-
-# Clean up
-sandbox.process.exec("~/.local/bin/smfs unmount agent_memory")
-daytona.delete(sandbox)
-```
-
-<Note>
-  Use `--ephemeral` when mounting inside sandboxes. It keeps the cache in memory only — nothing persists locally after unmount, but writes still push to Supermemory.
-</Note>
 
 ## Tips
 
