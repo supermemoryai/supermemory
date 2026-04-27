@@ -8,25 +8,36 @@ agent can read and write memory using standard filesystem commands.
 
 ## How it works
 
-```
-┌─────────────────────────────────────────┐
-│  E2B Sandbox                            │
-│                                         │
-│  ┌──────────┐    ┌───────────────────┐  │
-│  │  Claude   │───▶│  /home/user/memory │  │
-│  │  Agent    │    │  (SMFS mount)     │  │
-│  └──────────┘    └────────┬──────────┘  │
-│                           │              │
-└───────────────────────────┼──────────────┘
-                            │
-                    ┌───────▼───────┐
-                    │  Supermemory  │
-                    └───────────────┘
+There are two ways to wire SMFS into an E2B sandbox — pick the one that fits
+your architecture.
+
+### Agent inside the sandbox
+
+The agent process runs inside the sandbox and accesses the SMFS mount directly.
+Your orchestrating code just boots the sandbox and kicks off the agent.
+
+```mermaid
+graph LR
+    subgraph E2B Sandbox
+        Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["/home/user/memory\n(SMFS mount)"]
+    end
+    Mount -->|sync| SM["Supermemory"]
 ```
 
-The agent runs inside the sandbox. SMFS mounts a Supermemory container as a
-regular directory. The agent uses `cat`, `ls`, `echo` — standard bash. Writes
-sync to Supermemory automatically.
+### Agent outside the sandbox
+
+The agent runs in your orchestrating code and executes commands inside the
+sandbox remotely. Useful when you want to keep the agent loop in your own
+infra.
+
+```mermaid
+graph LR
+    Agent["Claude Agent\n(your server)"] -->|"sbx.commands.run()"| Sandbox
+    subgraph Sandbox ["E2B Sandbox"]
+        Mount["/home/user/memory\n(SMFS mount)"]
+    end
+    Mount -->|sync| SM["Supermemory"]
+```
 
 ## Prerequisites
 
@@ -52,10 +63,14 @@ RUN pip install claude-agent-sdk
 e2b template build -d e2b.Dockerfile
 ```
 
-## 2. Write your agent
+---
 
-This is the code that runs inside the sandbox. It's just normal Python —
-nothing sandbox-specific:
+## Pattern A: Agent inside the sandbox
+
+The agent runs inside the sandbox as a Python script. Your orchestrating code
+just sets up the mount and starts it.
+
+### Agent code
 
 ```python agent.py
 import asyncio
@@ -78,7 +93,7 @@ async def main():
 asyncio.run(main())
 ```
 
-## 3. Run it
+### Orchestration
 
 <Tabs>
   <Tab title="Python">
@@ -105,8 +120,9 @@ asyncio.run(main())
         " --path /home/user/memory --foreground &' && sleep 3"
     )
 
-    # Run the agent
-    result = sbx.commands.run("python3 agent.py", timeout=120)
+    # Upload and run the agent
+    sbx.files.write("/home/user/agent.py", open("agent.py").read())
+    result = sbx.commands.run("python3 /home/user/agent.py", timeout=120)
     print(result.stdout)
 
     sbx.kill()
@@ -115,6 +131,7 @@ asyncio.run(main())
   <Tab title="TypeScript">
     ```typescript run.ts
     import { Sandbox } from "@e2b/code-interpreter";
+    import { readFileSync } from "fs";
 
     const sbx = await Sandbox.create({
       template: "your-template-id",
@@ -134,8 +151,9 @@ asyncio.run(main())
       "bash -c 'smfs mount my_agent --ephemeral --path /home/user/memory --foreground &' && sleep 3"
     );
 
-    // Run the agent
-    const result = await sbx.commands.run("python3 agent.py", {
+    // Upload and run the agent
+    await sbx.files.write("/home/user/agent.py", readFileSync("agent.py", "utf-8"));
+    const result = await sbx.commands.run("python3 /home/user/agent.py", {
       timeoutMs: 120_000,
     });
     console.log(result.stdout);
@@ -145,11 +163,91 @@ asyncio.run(main())
   </Tab>
 </Tabs>
 
+---
+
+## Pattern B: Agent outside the sandbox
+
+The agent runs in your server process and executes commands inside the sandbox
+remotely via `sbx.commands.run()`. The SMFS mount lives inside the sandbox —
+the agent never touches the filesystem directly.
+
+<Tabs>
+  <Tab title="Python">
+    ```python run.py
+    import os
+    from e2b_code_interpreter import Sandbox
+
+    sbx = Sandbox.create(
+        template="your-template-id",
+        timeout=300,
+        envs={
+            "SUPERMEMORY_API_KEY": os.environ["SUPERMEMORY_API_KEY"],
+        },
+    )
+
+    # Set up SMFS inside the sandbox
+    sbx.commands.run("sudo chmod 666 /dev/fuse")
+    sbx.commands.run("smfs login --key $SUPERMEMORY_API_KEY")
+    sbx.commands.run(
+        "bash -c 'smfs mount my_agent --ephemeral"
+        " --path /home/user/memory --foreground &' && sleep 3"
+    )
+
+    # Agent runs here — executes commands in the sandbox
+    profile = sbx.commands.run("cat /home/user/memory/profile.md").stdout
+    print("Profile:", profile)
+
+    sbx.commands.run(
+        "sudo bash -c 'echo \"Session started at $(date)\" > /home/user/memory/session_notes.md'"
+    )
+
+    files = sbx.commands.run("ls /home/user/memory").stdout
+    print("Files:", files)
+
+    sbx.kill()
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript run.ts
+    import { Sandbox } from "@e2b/code-interpreter";
+
+    const sbx = await Sandbox.create({
+      template: "your-template-id",
+      timeoutMs: 300_000,
+      envs: {
+        SUPERMEMORY_API_KEY: process.env.SUPERMEMORY_API_KEY!,
+      },
+    });
+
+    // Set up SMFS inside the sandbox
+    await sbx.commands.run("sudo chmod 666 /dev/fuse");
+    await sbx.commands.run("smfs login --key $SUPERMEMORY_API_KEY");
+    await sbx.commands.run(
+      "bash -c 'smfs mount my_agent --ephemeral --path /home/user/memory --foreground &' && sleep 3"
+    );
+
+    // Agent runs here — executes commands in the sandbox
+    const profile = await sbx.commands.run("cat /home/user/memory/profile.md");
+    console.log("Profile:", profile.stdout);
+
+    await sbx.commands.run(
+      `sudo bash -c 'echo "Session started at $(date)" > /home/user/memory/session_notes.md'`
+    );
+
+    const files = await sbx.commands.run("ls /home/user/memory");
+    console.log("Files:", files.stdout);
+
+    await sbx.kill();
+    ```
+  </Tab>
+</Tabs>
+
 <Note>
-  The FUSE mount is owned by root. The Claude agent handles this automatically
-  with the Bash tool (it uses `sudo` when needed). If you're writing files
-  manually, use `sudo bash -c 'echo "..." > /path/file'`.
+  The FUSE mount is owned by root. When writing files from outside the agent,
+  use `sudo bash -c 'echo "..." > /path/file'`.
 </Note>
+
+---
 
 ## Tips
 

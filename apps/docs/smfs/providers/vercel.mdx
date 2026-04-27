@@ -8,24 +8,35 @@ write memory using standard filesystem commands.
 
 ## How it works
 
-```
-┌──────────────────────────────────────┐
-│  Your Server                         │
-│                                      │
-│  ┌──────────┐    ┌────────────────┐  │
-│  │  Claude   │───▶│  ./memory      │  │
-│  │  Agent    │    │  (SMFS mount)  │  │
-│  └──────────┘    └───────┬────────┘  │
-│                          │           │
-└──────────────────────────┼───────────┘
-                           │
-                   ┌───────▼───────┐
-                   │  Supermemory  │
-                   └───────────────┘
+There are two ways to wire SMFS into a Vercel-based agent — pick the one that
+fits your architecture.
+
+### Claude Agent SDK (agent has full filesystem access)
+
+The agent runs as a separate process with direct access to the SMFS mount.
+Best when you want the agent to have full bash, read, and write capabilities.
+
+```mermaid
+graph LR
+    subgraph Your Server
+        Agent["Claude Agent"] -->|"cat, ls, echo"| Mount["./memory\n(SMFS mount)"]
+    end
+    Mount -->|sync| SM["Supermemory"]
 ```
 
-SMFS mounts directly on the host. No sandbox needed — the agent runs in your
-server process and accesses memory through the filesystem.
+### Vercel AI SDK (agent uses a tool)
+
+The agent runs inside `generateText` and accesses memory through a bash tool
+you define. Best when you're building an API route and want to keep everything
+in one TypeScript process.
+
+```mermaid
+graph LR
+    subgraph Your Server
+        AI["generateText()"] -->|"bash tool"| Mount["./memory\n(SMFS mount)"]
+    end
+    Mount -->|sync| SM["Supermemory"]
+```
 
 ## Prerequisites
 
@@ -33,27 +44,36 @@ server process and accesses memory through the filesystem.
 - An [Anthropic API key](https://console.anthropic.com)
 - SMFS installed: `curl -fsSL https://smfs.ai/install | bash`
 
-## 1. Mount memory
+## Mount memory
+
+Start the mount once when your server boots — not per-request:
 
 ```bash
 smfs login --key $SUPERMEMORY_API_KEY
 smfs mount my_agent --path ./memory
 ```
 
-## 2. Write your agent
+---
+
+## Pattern A: Claude Agent SDK
+
+Write a standalone agent script. Nothing server-specific — just Python that
+reads and writes files.
 
 ```python agent.py
 import asyncio
 from claude_agent_sdk import query, ClaudeAgentOptions
 
+MEMORY = "./memory"
+
 async def main():
     async for message in query(
-        prompt="You have a persistent memory filesystem at ./memory. "
+        prompt=f"You have a persistent memory filesystem at {MEMORY}. "
                "Read profile.md to learn about the user, then create "
                "session_notes.md summarizing what you found.",
         options=ClaudeAgentOptions(
             allowed_tools=["Bash", "Read", "Write"],
-            cwd="./memory",
+            cwd=MEMORY,
         ),
     ):
         print(message)
@@ -65,13 +85,12 @@ asyncio.run(main())
 python3 agent.py
 ```
 
-That's it. The agent reads and writes files in `./memory` using standard bash
-commands. Everything syncs to Supermemory automatically.
+---
 
-## Using with the Vercel AI SDK
+## Pattern B: Vercel AI SDK
 
-If you're building an API route with the Vercel AI SDK, expose the memory
-filesystem as a tool:
+Expose the memory filesystem as a bash tool inside an API route. The agent
+calls the tool to run commands against the mount.
 
 ```typescript api/agent.ts
 import { generateText, tool } from "ai";
@@ -79,7 +98,6 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import { execSync } from "child_process";
 
-// SMFS is mounted at ./memory (started when the server boots)
 const MEMORY = "./memory";
 
 export async function POST(req: Request) {
@@ -93,7 +111,11 @@ export async function POST(req: Request) {
         parameters: z.object({ command: z.string() }),
         execute: async ({ command }) => {
           try {
-            return execSync(command, { cwd: MEMORY, encoding: "utf-8", timeout: 10_000 });
+            return execSync(command, {
+              cwd: MEMORY,
+              encoding: "utf-8",
+              timeout: 10_000,
+            });
           } catch (e: any) {
             return e.stderr || e.message;
           }
@@ -107,6 +129,8 @@ export async function POST(req: Request) {
   return Response.json({ text: result.text });
 }
 ```
+
+---
 
 ## Tips
 
