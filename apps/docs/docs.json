@@ -144,6 +144,16 @@
 								"pages": ["supermemory-mcp/claude-desktop"]
 							}
 						]
+					},
+					{
+						"anchor": "SMFS",
+						"icon": "database",
+						"pages": [
+							"smfs/overview",
+							"smfs/install",
+							"smfs/mount",
+							"smfs/bash-tool"
+						]
 					}
 				],
 				"tab": "Developer Platform"

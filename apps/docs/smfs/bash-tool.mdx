@@ -1,0 +1,203 @@
+---
+title: "Bash Tool"
+sidebarTitle: "Bash Tool"
+description: "@supermemory/bash. The SMFS idea wrapped as a single agent tool, for serverless and edge runtimes."
+icon: "terminal"
+---
+
+`@supermemory/bash` is the SMFS idea wrapped as a single agent tool: `run_bash(command)`. The "filesystem" is your Supermemory container. Runs anywhere TypeScript runs. Cloudflare Workers, AWS Lambda, Vercel, Node, the browser. No mount, no FUSE, no local disk.
+
+Reach for the Bash Tool when your agent runs somewhere it can't mount a real filesystem.
+
+## Install
+
+```bash
+npm install @supermemory/bash
+```
+
+Or with bun:
+
+```bash
+bun add @supermemory/bash
+```
+
+## Quickstart
+
+```typescript
+import { createBash } from "@supermemory/bash";
+
+const { bash, toolDescription } = await createBash({
+  apiKey: process.env.SUPERMEMORY_API_KEY!,
+  containerTag: "user_42",
+});
+
+const result = await bash.exec("ls /");
+console.log(result.stdout);
+```
+
+`createBash` returns:
+
+- `bash`: the instance with `.exec(cmd)`
+- `toolDescription`: a pre-written tool description ready to hand to the model
+- `configureMemoryPaths(paths)`: scope which paths get extracted into Supermemory
+- `refresh()`: re-prime the path index after external writes
+
+## Use it as a model tool
+
+### Vercel AI SDK
+
+```typescript
+import { generateText, tool } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
+
+const { bash, toolDescription } = await createBash({
+  apiKey: process.env.SUPERMEMORY_API_KEY!,
+  containerTag: "user_42",
+});
+
+const result = await generateText({
+  model: openai("gpt-4o"),
+  tools: {
+    bash: tool({
+      description: toolDescription,
+      inputSchema: z.object({ cmd: z.string() }),
+      execute: async ({ cmd }) => bash.exec(cmd),
+    }),
+  },
+  prompt: "What's in my notes about the Q3 launch?",
+});
+```
+
+### Anthropic SDK
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const { bash, toolDescription } = await createBash({
+  apiKey: process.env.SUPERMEMORY_API_KEY!,
+  containerTag: "user_42",
+});
+
+const response = await client.messages.create({
+  model: "claude-opus-4-7",
+  max_tokens: 4096,
+  tools: [
+    {
+      name: "bash",
+      description: toolDescription,
+      input_schema: {
+        type: "object",
+        properties: { cmd: { type: "string" } },
+        required: ["cmd"],
+      },
+    },
+  ],
+  messages: [{ role: "user", content: "List my notes" }],
+});
+```
+
+### OpenAI SDK
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI();
+const { bash, toolDescription } = await createBash({
+  apiKey: process.env.SUPERMEMORY_API_KEY!,
+  containerTag: "user_42",
+});
+
+const response = await client.chat.completions.create({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "List my notes" }],
+  tools: [
+    {
+      type: "function",
+      function: {
+        name: "bash",
+        description: toolDescription,
+        parameters: {
+          type: "object",
+          properties: { cmd: { type: "string" } },
+          required: ["cmd"],
+        },
+      },
+    },
+  ],
+});
+```
+
+## Memory
+
+The Bash Tool inherits SMFS memory semantics. By default, files named `user.md` or `memory.md` are extracted as memories. Configure additional memory paths after construction:
+
+```typescript
+const { configureMemoryPaths } = await createBash({ apiKey, containerTag });
+
+await configureMemoryPaths(["/notes/", "/journal.md"]);
+```
+
+Trailing `/` matches recursively. No slash matches an exact file. Pass `[]` to disable memory generation.
+
+The container also exposes a virtual `profile.md` at the root: a live digest of everything in the container. Read it once at the start of a session to give the model context without walking every file.
+
+```typescript
+const { stdout } = await bash.exec("cat /profile.md");
+```
+
+## Commands the agent can run
+
+Standard Unix surface, plus one custom command. Each does what you'd expect.
+
+### Filesystem
+
+- `pwd`: print working directory
+- `cd`: change directory
+- `ls`, `ls -la`: list
+- `cat`: read a file
+- `stat`: file metadata
+- `mkdir`: create directory
+- `rm`, `rm -rf`: delete
+- `rmdir`: delete empty directory
+- `mv`: move or rename
+- `cp`: copy
+- `echo`: write or append (`echo "x" > file`, `echo "x" >> file`)
+
+### Search and text
+
+- `grep`: literal substring match against a known path
+- `sgrep <query> [path]`: **semantic** search across the container. Trailing `/` on path scopes to a directory. No path searches everything.
+- `find`: search by name or properties
+- `head`, `tail`: first or last N lines
+- `wc`: word, line, byte counts
+- `sort`: sort lines
+- `sed`, `awk`: text transformation
+
+### Shell features
+
+- Pipes (`|`)
+- Redirects (`>`, `>>`)
+- Conditionals (`&&`, `||`)
+- Loops (`for`, `while`)
+- File tests (`[ -f ]`, `[ -d ]`, `[ -e ]`)
+
+## Configuration
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `apiKey` | required | Supermemory API key |
+| `containerTag` | required | Container to expose as the filesystem |
+| `baseURL` | SDK default | Override the API endpoint |
+| `eagerLoad` | `true` | Warm the path index when the instance starts |
+| `eagerContent` | `true` | Also warm the content cache during eager load |
+| `cacheTtlMs` | `150_000` | Content cache TTL in ms. `null` = never expires (single-writer). `0` = no cache. |
+
+Other options (`customCommands`, `logger`, plus `just-bash` pass-throughs like `executionLimits`, `network`, `python`, `javascript`, `cwd`, `env`) exist but aren't part of the supported surface for the SMFS use case. The container is what defines the filesystem; setting `cwd` or extra `env` from the host doesn't change that.
+
+## Limitations
+
+- `chmod`, `utimes`, and symlinks (`ln -s`, `readlink`) throw `ENOSYS`.
+- `/dev/null` as a redirect target isn't supported. Write to `/tmp/discard.log` instead.
+- Binary uploads aren't supported. Text is extracted server-side.
