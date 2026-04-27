@@ -112,44 +112,31 @@ The recommended pattern: your agent code uses `@supermemory/bash` for memory and
   <Tab title="Python">
     ```python agent.py
     import os
+    from supermemory import create_bash
     from e2b_code_interpreter import Sandbox
 
-    # 1. Create an E2B sandbox
+    # 1. Set up memory (SMFS bash tool — runs in your code, not the sandbox)
+    bash = create_bash(
+        api_key=os.environ["SUPERMEMORY_API_KEY"],
+        container_tag="agent_memory",
+    )
+
+    # 2. Set up code execution (E2B sandbox)
     sandbox = Sandbox.create(timeout=300)
 
-    # 2. Install SMFS inside the sandbox
-    sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
+    # 3. Read memory from your orchestrating code
+    profile = bash.exec("cat /profile.md")
+    print(profile.stdout)
 
-    # 3. Fix FUSE permissions (required in E2B sandboxes)
-    sandbox.commands.run("sudo chmod 666 /dev/fuse")
-    sandbox.commands.run(
-        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-    )
+    # 4. Execute code in the sandbox
+    execution = sandbox.run_code("print('Hello from E2B!')")
+    print(execution.text)
 
-    # 4. Log in and mount
-    sandbox.commands.run(
-        f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
-    )
-    sandbox.commands.run(
-        "bash -c '~/.local/bin/smfs mount agent_memory --ephemeral"
-        " --path /home/user/memory --foreground > /tmp/smfs.log 2>&1"
-        " & sleep 5 && echo MOUNTED'",
-        timeout=15,
-    )
+    # 5. Semantic search across memory
+    results = bash.exec("sgrep 'preferred language'")
+    print(results.stdout)
 
-    # 5. Your agent can now use the filesystem
-    sandbox.commands.run("cat /home/user/memory/profile.md")
-
-    # 6. Semantic search
-    sandbox.commands.run(
-        "~/.local/bin/smfs grep 'preferred language'"
-    )
-
-    # 7. Clean up
-    sandbox.commands.run(
-        "~/.local/bin/smfs unmount agent_memory 2>/dev/null",
-        timeout=10,
-    )
+    # 6. Clean up
     sandbox.kill()
     ```
   </Tab>
@@ -201,6 +188,11 @@ sandbox.commands.run(
 result = sandbox.commands.run("cat /home/user/memory/profile.md")
 print(result.stdout)
 
+# Write to memory (use sudo — FUSE mount is owned by root)
+sandbox.commands.run(
+    "sudo bash -c 'echo \"User prefers Python\" > /home/user/memory/notes.md'"
+)
+
 # Semantic grep works inside the mount
 result = sandbox.commands.run("~/.local/bin/smfs grep 'deadlines'")
 print(result.stdout)
@@ -209,6 +201,10 @@ print(result.stdout)
 sandbox.commands.run("~/.local/bin/smfs unmount agent_memory 2>/dev/null", timeout=10)
 sandbox.kill()
 ```
+
+<Note>
+  The FUSE mount is owned by root. Writing files requires `sudo` (e.g., `sudo bash -c 'echo "..." > /path/file'`). Reads work without sudo.
+</Note>
 
 ## Custom E2B template with SMFS pre-installed
 
