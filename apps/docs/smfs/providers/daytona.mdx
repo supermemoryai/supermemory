@@ -10,8 +10,8 @@ your agent can read and write memory with plain bash commands.
 
 1. Create a Daytona sandbox
 2. Install SMFS and mount a Supermemory container inside it
-3. Run a Claude agent inside the sandbox — it uses `cat`, `ls`, `echo`, etc. on the mount
-4. Everything the agent writes is persisted to Supermemory automatically
+3. Install the Claude Agent SDK inside the sandbox and run the agent there
+4. The agent uses `cat`, `ls`, `echo`, etc. on the mount — everything persists to Supermemory
 
 ## Prerequisites
 
@@ -24,22 +24,20 @@ your agent can read and write memory with plain bash commands.
 <Tabs>
   <Tab title="TypeScript">
     ```bash
-    npm install @anthropic-ai/claude-agent-sdk @daytonaio/sdk
+    npm install @daytonaio/sdk
     ```
 
     ```typescript agent.ts
     import { Daytona } from "@daytonaio/sdk";
-    import { query } from "@anthropic-ai/claude-agent-sdk";
 
     async function main() {
-      // 1. Create a Daytona sandbox
       const daytona = new Daytona({
         apiKey: process.env.DAYTONA_API_KEY!,
         apiUrl: "https://app.daytona.io/api",
       });
       const sandbox = await daytona.create();
 
-      // 2. Install SMFS, log in, and mount
+      // Install SMFS, log in, and mount
       await sandbox.process.exec("curl -fsSL https://smfs.ai/install | bash");
       await sandbox.process.exec(
         `~/.local/bin/smfs login --key ${process.env.SUPERMEMORY_API_KEY}`
@@ -48,24 +46,40 @@ your agent can read and write memory with plain bash commands.
         "~/.local/bin/smfs mount my_agent --ephemeral --path /home/daytona/memory"
       );
 
-      // 3. Run a Claude agent inside the sandbox with bash access
-      for await (const message of query({
-        prompt: `You have access to a persistent memory filesystem mounted at /home/daytona/memory.
-    Use bash commands to explore it (ls, cat) and write notes to it (echo "..." > file).
+      // Install Claude Agent SDK inside the sandbox
+      await sandbox.process.exec("pip install claude-agent-sdk");
 
-    First, read /home/daytona/memory/profile.md to learn about the user.
-    Then create /home/daytona/memory/session_notes.md with a summary of what you found.`,
-        options: {
-          allowedTools: ["Bash", "Read", "Write"],
-        },
-      })) {
-        if (message.type === "text") console.log(message.text);
-      }
+      // Write the agent script into the sandbox
+      await sandbox.fs.uploadFile(
+        "/home/daytona/agent.py",
+        new TextEncoder().encode(`
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+import os
 
-      // 4. Clean up
-      await sandbox.process.exec(
-        "~/.local/bin/smfs unmount my_agent 2>/dev/null"
+async def main():
+    async for message in query(
+        prompt="""You have a persistent memory filesystem at /home/daytona/memory.
+Use bash to explore it (ls, cat) and write notes (echo "..." > file).
+
+Read /home/daytona/memory/profile.md to learn about the user.
+Then create /home/daytona/memory/session_notes.md summarizing what you found.""",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Bash", "Read", "Write"],
+        ),
+    ):
+        print(message)
+
+asyncio.run(main())
+`)
       );
+
+      // Run the agent inside the sandbox
+      const result = await sandbox.process.exec(
+        `ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY} python3 /home/daytona/agent.py`
+      );
+      console.log(result.result);
+
       await daytona.delete(sandbox);
     }
 
@@ -74,51 +88,64 @@ your agent can read and write memory with plain bash commands.
   </Tab>
   <Tab title="Python">
     ```bash
-    pip install claude-agent-sdk daytona-sdk
+    pip install daytona-sdk
     ```
 
     ```python agent.py
-    import asyncio
     import os
-    from claude_agent_sdk import query, ClaudeAgentOptions
     from daytona_sdk import Daytona, DaytonaConfig
 
-    async def main():
-        # 1. Create a Daytona sandbox
-        config = DaytonaConfig(
-            api_key=os.environ["DAYTONA_API_KEY"],
-            api_url="https://app.daytona.io/api",
-        )
-        daytona = Daytona(config)
-        sandbox = daytona.create()
+    config = DaytonaConfig(
+        api_key=os.environ["DAYTONA_API_KEY"],
+        api_url="https://app.daytona.io/api",
+    )
+    daytona = Daytona(config)
+    sandbox = daytona.create()
 
-        # 2. Install SMFS, log in, and mount
-        sandbox.process.exec("curl -fsSL https://smfs.ai/install | bash")
-        sandbox.process.exec(
-            f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
-        )
-        sandbox.process.exec(
-            "~/.local/bin/smfs mount my_agent --ephemeral --path /home/daytona/memory"
-        )
+    # Install SMFS, log in, and mount
+    sandbox.process.exec("curl -fsSL https://smfs.ai/install | bash")
+    sandbox.process.exec(
+        f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
+    )
+    sandbox.process.exec(
+        "~/.local/bin/smfs mount my_agent --ephemeral --path /home/daytona/memory"
+    )
 
-        # 3. Run a Claude agent inside the sandbox with bash access
-        async for message in query(
-            prompt="""You have access to a persistent memory filesystem mounted at /home/daytona/memory.
-    Use bash commands to explore it (ls, cat) and write notes to it.
+    # Install Claude Agent SDK inside the sandbox
+    sandbox.process.exec("pip install claude-agent-sdk")
 
-    First, read /home/daytona/memory/profile.md to learn about the user.
-    Then create /home/daytona/memory/session_notes.md with a summary of what you found.""",
-            options=ClaudeAgentOptions(
-                allowed_tools=["Bash", "Read", "Write"],
-            ),
-        ):
-            print(message)
+    # Write the agent script into the sandbox
+    AGENT_SCRIPT = '''
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
 
-        # 4. Clean up
-        sandbox.process.exec("~/.local/bin/smfs unmount my_agent 2>/dev/null")
-        daytona.delete(sandbox)
+async def main():
+    async for message in query(
+        prompt="""You have a persistent memory filesystem at /home/daytona/memory.
+Use bash to explore it (ls, cat) and write notes (echo "..." > file).
 
-    asyncio.run(main())
+Read /home/daytona/memory/profile.md to learn about the user.
+Then create /home/daytona/memory/session_notes.md summarizing what you found.""",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Bash", "Read", "Write"],
+        ),
+    ):
+        print(message)
+
+asyncio.run(main())
+'''
+    sandbox.process.exec(
+        f"cat << 'EOF' > /home/daytona/run_agent.py\n{AGENT_SCRIPT}\nEOF"
+    )
+
+    # Run the agent inside the sandbox
+    result = sandbox.process.exec(
+        f"ANTHROPIC_API_KEY={os.environ['ANTHROPIC_API_KEY']}"
+        " python3 /home/daytona/run_agent.py"
+    )
+    print(result.result)
+
+    daytona.delete(sandbox)
     ```
   </Tab>
 </Tabs>
@@ -131,7 +158,7 @@ your agent can read and write memory with plain bash commands.
 
 ## Tips
 
-- Use `--ephemeral` when mounting inside sandboxes — it keeps the cache in memory
+- Use `--ephemeral` when mounting inside sandboxes — keeps the cache in memory
   only, but writes still push to Supermemory
 - Use `smfs grep 'query'` for semantic search across all files in the container
 - The agent can write structured data (JSON, markdown) to the mount and it

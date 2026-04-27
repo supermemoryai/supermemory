@@ -9,10 +9,10 @@ agent can read and write memory with plain bash commands.
 
 ## How it works
 
-1. Build a container image with SMFS pre-installed
+1. Build a container image with SMFS and the Claude Agent SDK pre-installed
 2. Deploy it as a Cloudflare Container
-3. On startup, mount a Supermemory container inside the container
-4. Run a Claude agent with bash access — it reads/writes the SMFS mount naturally
+3. On startup, mount a Supermemory container and run the agent
+4. The agent uses `cat`, `ls`, `echo`, etc. on the mount — everything persists to Supermemory
 
 ## Prerequisites
 
@@ -26,18 +26,15 @@ agent can read and write memory with plain bash commands.
 ### Dockerfile
 
 ```dockerfile Dockerfile
-FROM node:20-slim
+FROM python:3.12-slim
 
-# Install FUSE and bash
 RUN apt-get update && apt-get install -y fuse3 curl bash && rm -rf /var/lib/apt/lists/*
 RUN echo 'user_allow_other' >> /etc/fuse.conf
 
-# Install SMFS
 RUN curl -fsSL https://smfs.ai/install | bash
+RUN pip install claude-agent-sdk
 
-# Install the Claude Agent SDK
-RUN npm install -g @anthropic-ai/claude-agent-sdk
-
+COPY agent.py /app/agent.py
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
@@ -50,36 +47,33 @@ ENTRYPOINT ["/entrypoint.sh"]
 #!/bin/bash
 set -e
 
-# Log in and mount
 smfs login --key "$SUPERMEMORY_API_KEY"
 smfs mount my_agent --ephemeral --path /memory --foreground &
 sleep 5
 
-# Run the agent
-node agent.js
+python3 /app/agent.py
 ```
 
 ### Agent
 
-```typescript agent.ts
-import { query } from "@anthropic-ai/claude-agent-sdk";
+```python agent.py
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
 
-async function main() {
-  for await (const message of query({
-    prompt: `You have access to a persistent memory filesystem mounted at /memory.
-Use bash commands to explore it (ls, cat) and write notes to it (echo "..." > file).
+async def main():
+    async for message in query(
+        prompt="""You have a persistent memory filesystem at /memory.
+Use bash to explore it (ls, cat) and write notes (echo "..." > file).
 
 Read /memory/profile.md to learn about the user.
-Then create /memory/session_notes.md with a summary of what you found.`,
-    options: {
-      allowedTools: ["Bash", "Read", "Write"],
-    },
-  })) {
-    if (message.type === "text") console.log(message.text);
-  }
-}
+Then create /memory/session_notes.md summarizing what you found.""",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Bash", "Read", "Write"],
+        ),
+    ):
+        print(message)
 
-main();
+asyncio.run(main())
 ```
 
 ## Worker + Container pattern
@@ -89,11 +83,7 @@ Use a Cloudflare Worker as the HTTP frontend that triggers the container:
 ```typescript worker.ts
 export default {
   async fetch(request: Request, env: any) {
-    // Start the container (it runs the agent with SMFS mounted)
     const container = await env.MY_CONTAINER.start();
-
-    // The container runs the agent and writes results to SMFS
-    // Read the result back
     const response = await container.fetch("/result");
     return response;
   },
@@ -112,10 +102,10 @@ max_instances = 5
 
 ## Tips
 
-- Use `--ephemeral` when mounting inside containers — it keeps the cache in memory
+- Use `--ephemeral` when mounting inside containers — keeps the cache in memory
   only, but writes still push to Supermemory
 - Use `smfs grep 'query'` for semantic search across all files in the container
-- Set `SUPERMEMORY_API_KEY` and `ANTHROPIC_API_KEY` as Cloudflare secrets:
+- Set secrets via Wrangler:
   ```bash
   wrangler secret put SUPERMEMORY_API_KEY
   wrangler secret put ANTHROPIC_API_KEY

@@ -3,14 +3,14 @@ title: "Vercel AI SDK"
 description: "Give your AI agent persistent memory using SMFS with the Vercel AI SDK"
 ---
 
-Mount a Supermemory container on your server and give your Vercel AI SDK agent
-access to it through a bash tool.
+Mount a Supermemory container on your server and let a Claude agent access it
+through the built-in bash tool.
 
 ## How it works
 
 1. Install SMFS on your server and mount a Supermemory container
-2. Define a bash tool that runs commands against the mount
-3. The Vercel AI SDK agent uses the tool to read/write memory with standard commands
+2. Run a Claude agent with bash tool access — it reads/writes the mount using standard commands
+3. Everything the agent writes persists to Supermemory automatically
 
 <Note>
   The Vercel AI SDK runs in your server process (not in a sandbox). SMFS mounts
@@ -20,99 +20,71 @@ access to it through a bash tool.
 ## Prerequisites
 
 - A [Supermemory API key](https://supermemory.ai)
-- An [OpenAI](https://platform.openai.com) or [Anthropic](https://console.anthropic.com) API key
+- An [Anthropic API key](https://console.anthropic.com)
 - SMFS installed on your server: `curl -fsSL https://smfs.ai/install | bash`
 
 ## Quick start
 
+First, mount SMFS on your server:
+
 ```bash
-npm install ai @ai-sdk/anthropic zod
+smfs login --key $SUPERMEMORY_API_KEY
+smfs mount my_agent --path ./memory
+```
+
+Then run the agent:
+
+```bash
+pip install claude-agent-sdk
+```
+
+```python agent.py
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+async def main():
+    async for message in query(
+        prompt="""You have a persistent memory filesystem at ./memory.
+Use bash to explore it (ls, cat) and write notes (echo "..." > file).
+
+Read ./memory/profile.md to learn about the user.
+Then create ./memory/session_notes.md summarizing what you found.""",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Bash", "Read", "Write"],
+            cwd="./memory",
+        ),
+    ):
+        print(message)
+
+asyncio.run(main())
+```
+
+Or with TypeScript:
+
+```bash
+npm install @anthropic-ai/claude-agent-sdk
 ```
 
 ```typescript agent.ts
-import { generateText, tool } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
-import { z } from "zod";
-import { execSync } from "child_process";
-
-// Mount SMFS before starting the server:
-//   smfs login --key $SUPERMEMORY_API_KEY
-//   smfs mount my_agent --path ./memory
-
-const MEMORY_PATH = "./memory";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 
 async function main() {
-  const result = await generateText({
-    model: anthropic("claude-sonnet-4-20250514"),
-    tools: {
-      bash: tool({
-        description:
-          "Run a bash command. The persistent memory filesystem is at " +
-          MEMORY_PATH,
-        parameters: z.object({ command: z.string() }),
-        execute: async ({ command }) => {
-          try {
-            return execSync(command, {
-              cwd: MEMORY_PATH,
-              encoding: "utf-8",
-              timeout: 10_000,
-            });
-          } catch (e: any) {
-            return e.stderr || e.message;
-          }
-        },
-      }),
+  for await (const message of query({
+    prompt: `You have a persistent memory filesystem at ./memory.
+Use bash to explore it (ls, cat) and write notes (echo "..." > file).
+
+Read ./memory/profile.md to learn about the user.
+Then create ./memory/session_notes.md summarizing what you found.`,
+    options: {
+      allowedTools: ["Bash", "Read", "Write"],
+      cwd: "./memory",
     },
-    maxSteps: 10,
-    prompt: `You have access to a persistent memory filesystem at ${MEMORY_PATH}.
-Use the bash tool to explore it (ls, cat) and write notes (echo "..." > file).
-
-Read profile.md to learn about the user, then create session_notes.md with a summary.`,
-  });
-
-  console.log(result.text);
+  })) {
+    if (message.type === "text") console.log(message.text);
+  }
 }
 
 main();
-```
-
-## Streaming
-
-```typescript
-import { streamText, tool } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
-import { z } from "zod";
-import { execSync } from "child_process";
-
-const MEMORY_PATH = "./memory";
-
-const result = streamText({
-  model: anthropic("claude-sonnet-4-20250514"),
-  tools: {
-    bash: tool({
-      description:
-        "Run a bash command against the memory filesystem at " + MEMORY_PATH,
-      parameters: z.object({ command: z.string() }),
-      execute: async ({ command }) => {
-        try {
-          return execSync(command, {
-            cwd: MEMORY_PATH,
-            encoding: "utf-8",
-            timeout: 10_000,
-          });
-        } catch (e: any) {
-          return e.stderr || e.message;
-        }
-      },
-    }),
-  },
-  maxSteps: 10,
-  prompt: "Read my memory and summarize what you know about me.",
-});
-
-for await (const chunk of result.textStream) {
-  process.stdout.write(chunk);
-}
 ```
 
 ## Tips
