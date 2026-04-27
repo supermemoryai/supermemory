@@ -5,14 +5,28 @@ description: "Give your AI agent persistent memory inside a Cloudflare Container
 
 Mount a Supermemory container inside a
 [Cloudflare Container](https://developers.cloudflare.com/containers/) so your
-agent can read and write memory with plain bash commands.
+agent can read and write memory using standard filesystem commands.
 
 ## How it works
 
-1. Build a container image with SMFS and the Claude Agent SDK pre-installed
-2. Deploy it as a Cloudflare Container
-3. On startup, mount a Supermemory container and run the agent
-4. The agent uses `cat`, `ls`, `echo`, etc. on the mount — everything persists to Supermemory
+```
+┌──────────────────────────────────────────┐
+│  Cloudflare Container                    │
+│                                          │
+│  ┌──────────┐    ┌────────────────────┐  │
+│  │  Claude   │───▶│  /memory           │  │
+│  │  Agent    │    │  (SMFS mount)      │  │
+│  └──────────┘    └────────┬───────────┘  │
+│                           │              │
+└───────────────────────────┼──────────────┘
+                            │
+                    ┌───────▼───────┐
+                    │  Supermemory  │
+                    └───────────────┘
+```
+
+SMFS and the Claude Agent SDK are baked into the container image. On startup,
+the entrypoint mounts memory and runs the agent.
 
 ## Prerequisites
 
@@ -21,9 +35,7 @@ agent can read and write memory with plain bash commands.
 - A [Cloudflare account](https://dash.cloudflare.com) with Containers enabled
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/install-and-update/)
 
-## Container setup
-
-### Dockerfile
+## 1. Dockerfile
 
 ```dockerfile Dockerfile
 FROM python:3.12-slim
@@ -31,7 +43,8 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y fuse3 curl bash && rm -rf /var/lib/apt/lists/*
 RUN echo 'user_allow_other' >> /etc/fuse.conf
 
-RUN curl -fsSL https://smfs.ai/install | bash
+RUN curl -fsSL https://smfs.ai/install | bash -s -- 0.0.1-rc2
+ENV PATH="/root/.local/bin:$PATH"
 RUN pip install claude-agent-sdk
 
 COPY agent.py /app/agent.py
@@ -41,7 +54,7 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-### Entrypoint
+## 2. Entrypoint
 
 ```bash entrypoint.sh
 #!/bin/bash
@@ -49,12 +62,12 @@ set -e
 
 smfs login --key "$SUPERMEMORY_API_KEY"
 smfs mount my_agent --ephemeral --path /memory --foreground &
-sleep 5
+sleep 3
 
-python3 /app/agent.py
+exec python3 /app/agent.py
 ```
 
-### Agent
+## 3. Agent
 
 ```python agent.py
 import asyncio
@@ -62,13 +75,12 @@ from claude_agent_sdk import query, ClaudeAgentOptions
 
 async def main():
     async for message in query(
-        prompt="""You have a persistent memory filesystem at /memory.
-Use bash to explore it (ls, cat) and write notes (echo "..." > file).
-
-Read /memory/profile.md to learn about the user.
-Then create /memory/session_notes.md summarizing what you found.""",
+        prompt="You have a persistent memory filesystem at /memory. "
+               "Read profile.md to learn about the user, then create "
+               "session_notes.md summarizing what you found.",
         options=ClaudeAgentOptions(
             allowed_tools=["Bash", "Read", "Write"],
+            cwd="/memory",
         ),
     ):
         print(message)
@@ -76,19 +88,7 @@ Then create /memory/session_notes.md summarizing what you found.""",
 asyncio.run(main())
 ```
 
-## Worker + Container pattern
-
-Use a Cloudflare Worker as the HTTP frontend that triggers the container:
-
-```typescript worker.ts
-export default {
-  async fetch(request: Request, env: any) {
-    const container = await env.MY_CONTAINER.start();
-    const response = await container.fetch("/result");
-    return response;
-  },
-};
-```
+## 4. Deploy
 
 ```toml wrangler.toml
 name = "memory-agent"
@@ -100,13 +100,27 @@ image = "./Dockerfile"
 max_instances = 5
 ```
 
+```bash
+wrangler secret put SUPERMEMORY_API_KEY
+wrangler secret put ANTHROPIC_API_KEY
+wrangler deploy
+```
+
+## Worker frontend (optional)
+
+Use a Worker as the HTTP frontend that triggers the container:
+
+```typescript worker.ts
+export default {
+  async fetch(request: Request, env: any) {
+    const container = await env.MY_CONTAINER.start();
+    return container.fetch("/result");
+  },
+};
+```
+
 ## Tips
 
-- Use `--ephemeral` when mounting inside containers — keeps the cache in memory
-  only, but writes still push to Supermemory
-- Use `smfs grep 'query'` for semantic search across all files in the container
-- Set secrets via Wrangler:
-  ```bash
-  wrangler secret put SUPERMEMORY_API_KEY
-  wrangler secret put ANTHROPIC_API_KEY
-  ```
+- Use `--ephemeral` for container mounts — keeps the cache in memory only, but
+  writes still push to Supermemory
+- Use `smfs grep 'query'` for semantic search across all files

@@ -4,14 +4,29 @@ description: "Give your AI agent persistent memory inside an E2B sandbox using S
 ---
 
 Mount a Supermemory container inside an [E2B](https://e2b.dev) sandbox so your
-agent can read and write memory with plain bash commands.
+agent can read and write memory using standard filesystem commands.
 
 ## How it works
 
-1. Create an E2B sandbox
-2. Install SMFS and mount a Supermemory container inside it
-3. Install the Claude Agent SDK inside the sandbox and run the agent there
-4. The agent uses `cat`, `ls`, `echo`, etc. on the mount — everything persists to Supermemory
+```
+┌─────────────────────────────────────────┐
+│  E2B Sandbox                            │
+│                                         │
+│  ┌──────────┐    ┌───────────────────┐  │
+│  │  Claude   │───▶│  /home/user/memory │  │
+│  │  Agent    │    │  (SMFS mount)     │  │
+│  └──────────┘    └────────┬──────────┘  │
+│                           │              │
+└───────────────────────────┼──────────────┘
+                            │
+                    ┌───────▼───────┐
+                    │  Supermemory  │
+                    └───────────────┘
+```
+
+The agent runs inside the sandbox. SMFS mounts a Supermemory container as a
+regular directory. The agent uses `cat`, `ls`, `echo` — standard bash. Writes
+sync to Supermemory automatically.
 
 ## Prerequisites
 
@@ -19,186 +34,130 @@ agent can read and write memory with plain bash commands.
 - An [E2B API key](https://e2b.dev)
 - An [Anthropic API key](https://console.anthropic.com)
 
-## Quick start
+## 1. Create a custom template
 
-<Tabs>
-  <Tab title="TypeScript">
-    ```bash
-    npm install @e2b/code-interpreter
-    ```
-
-    ```typescript agent.ts
-    import { Sandbox } from "@e2b/code-interpreter";
-
-    async function main() {
-      const sandbox = await Sandbox.create({ timeoutMs: 300_000 });
-
-      // Fix FUSE permissions (required in E2B)
-      await sandbox.commands.run("sudo chmod 666 /dev/fuse");
-      await sandbox.commands.run(
-        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-      );
-
-      // Install SMFS, log in, and mount
-      await sandbox.commands.run(
-        "curl -fsSL https://smfs.ai/install | bash",
-        { timeoutMs: 60_000 }
-      );
-      await sandbox.commands.run(
-        `~/.local/bin/smfs login --key ${process.env.SUPERMEMORY_API_KEY}`
-      );
-      await sandbox.commands.run(
-        "bash -c '~/.local/bin/smfs mount my_agent --ephemeral --path /home/user/memory --foreground > /tmp/smfs.log 2>&1 & sleep 5'"
-      );
-
-      // Install Claude Agent SDK inside the sandbox
-      await sandbox.commands.run(
-        "pip install claude-agent-sdk",
-        { timeoutMs: 60_000 }
-      );
-
-      // Write the agent script into the sandbox
-      await sandbox.files.write("/home/user/agent.py", `
-import asyncio
-from claude_agent_sdk import query, ClaudeAgentOptions
-
-async def main():
-    async for message in query(
-        prompt="""You have a persistent memory filesystem at /home/user/memory.
-Use bash to explore it (ls, cat) and write notes (echo "..." > file).
-
-Read /home/user/memory/profile.md to learn about the user.
-Then create /home/user/memory/session_notes.md summarizing what you found.""",
-        options=ClaudeAgentOptions(
-            allowed_tools=["Bash", "Read", "Write"],
-        ),
-    ):
-        print(message)
-
-asyncio.run(main())
-`);
-
-      // Run the agent inside the sandbox
-      const result = await sandbox.commands.run(
-        `ANTHROPIC_API_KEY=${process.env.ANTHROPIC_API_KEY} python3 /home/user/agent.py`,
-        { timeoutMs: 120_000 }
-      );
-      console.log(result.stdout);
-
-      await sandbox.kill();
-    }
-
-    main();
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```bash
-    pip install e2b-code-interpreter
-    ```
-
-    ```python agent.py
-    import os
-    from e2b_code_interpreter import Sandbox
-
-    sandbox = Sandbox.create(timeout=300)
-
-    # Fix FUSE permissions (required in E2B)
-    sandbox.commands.run("sudo chmod 666 /dev/fuse")
-    sandbox.commands.run(
-        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
-    )
-
-    # Install SMFS, log in, and mount
-    sandbox.commands.run(
-        "curl -fsSL https://smfs.ai/install | bash",
-        timeout=60,
-    )
-    sandbox.commands.run(
-        f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
-    )
-    sandbox.commands.run(
-        "bash -c '~/.local/bin/smfs mount my_agent --ephemeral"
-        " --path /home/user/memory --foreground > /tmp/smfs.log 2>&1"
-        " & sleep 5'",
-        timeout=15,
-    )
-
-    # Install Claude Agent SDK inside the sandbox
-    sandbox.commands.run("pip install claude-agent-sdk", timeout=60)
-
-    # Write the agent script into the sandbox
-    AGENT_SCRIPT = '''
-import asyncio
-from claude_agent_sdk import query, ClaudeAgentOptions
-
-async def main():
-    async for message in query(
-        prompt="""You have a persistent memory filesystem at /home/user/memory.
-Use bash to explore it (ls, cat) and write notes (echo "..." > file).
-
-Read /home/user/memory/profile.md to learn about the user.
-Then create /home/user/memory/session_notes.md summarizing what you found.""",
-        options=ClaudeAgentOptions(
-            allowed_tools=["Bash", "Read", "Write"],
-        ),
-    ):
-        print(message)
-
-asyncio.run(main())
-'''
-    sandbox.files.write("/home/user/run_agent.py", AGENT_SCRIPT)
-
-    # Run the agent inside the sandbox
-    result = sandbox.commands.run(
-        f"ANTHROPIC_API_KEY={os.environ['ANTHROPIC_API_KEY']}"
-        " python3 /home/user/run_agent.py",
-        timeout=120,
-    )
-    print(result.stdout)
-
-    sandbox.kill()
-    ```
-  </Tab>
-</Tabs>
-
-<Warning>
-  E2B sandboxes require two FUSE permission fixes before mounting:
-  1. `sudo chmod 666 /dev/fuse` — the device exists but is root-only by default
-  2. `echo 'user_allow_other' | sudo tee -a /etc/fuse.conf` — needed for the `allow_other` mount option
-
-  Without these, `smfs mount` will fail with a permission error.
-</Warning>
-
-<Note>
-  The FUSE mount is owned by root. Writing files requires `sudo`
-  (e.g., `sudo bash -c 'echo "..." > /path/file'`). Reads work without sudo.
-  The Claude agent handles this automatically when using the Bash tool.
-</Note>
-
-## Custom E2B template
-
-For production, bake SMFS into a custom E2B template so every sandbox starts
-with it pre-installed:
+Bake SMFS and the Claude Agent SDK into a template so sandboxes start ready:
 
 ```dockerfile e2b.Dockerfile
 FROM e2b/code-interpreter:latest
 
-RUN curl -fsSL https://smfs.ai/install | bash
-RUN pip install claude-agent-sdk
-RUN chmod 666 /dev/fuse
+RUN apt-get update && apt-get install -y fuse3 && rm -rf /var/lib/apt/lists/*
 RUN echo 'user_allow_other' >> /etc/fuse.conf
+RUN curl -fsSL https://smfs.ai/install | bash -s -- 0.0.1-rc2
+ENV PATH="/root/.local/bin:$PATH"
+RUN pip install claude-agent-sdk
 ```
 
 ```bash
 e2b template build -d e2b.Dockerfile
 ```
 
-Then your orchestrating code only needs to log in, mount, and run the agent.
+## 2. Write your agent
+
+This is the code that runs inside the sandbox. It's just normal Python —
+nothing sandbox-specific:
+
+```python agent.py
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+MEMORY = "/home/user/memory"
+
+async def main():
+    async for message in query(
+        prompt=f"You have a persistent memory filesystem at {MEMORY}. "
+               "Read profile.md to learn about the user, then create "
+               "session_notes.md summarizing what you found.",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Bash", "Read", "Write"],
+            cwd=MEMORY,
+        ),
+    ):
+        print(message)
+
+asyncio.run(main())
+```
+
+## 3. Run it
+
+<Tabs>
+  <Tab title="Python">
+    ```python run.py
+    import os
+    from e2b_code_interpreter import Sandbox
+
+    sbx = Sandbox.create(
+        template="your-template-id",
+        timeout=300,
+        envs={
+            "SUPERMEMORY_API_KEY": os.environ["SUPERMEMORY_API_KEY"],
+            "ANTHROPIC_API_KEY": os.environ["ANTHROPIC_API_KEY"],
+        },
+    )
+
+    # One-time FUSE fix (device exists but is root-only by default)
+    sbx.commands.run("sudo chmod 666 /dev/fuse")
+
+    # Mount memory
+    sbx.commands.run("smfs login --key $SUPERMEMORY_API_KEY")
+    sbx.commands.run(
+        "bash -c 'smfs mount my_agent --ephemeral"
+        " --path /home/user/memory --foreground &' && sleep 3"
+    )
+
+    # Run the agent
+    result = sbx.commands.run("python3 agent.py", timeout=120)
+    print(result.stdout)
+
+    sbx.kill()
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript run.ts
+    import { Sandbox } from "@e2b/code-interpreter";
+
+    const sbx = await Sandbox.create({
+      template: "your-template-id",
+      timeoutMs: 300_000,
+      envs: {
+        SUPERMEMORY_API_KEY: process.env.SUPERMEMORY_API_KEY!,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY!,
+      },
+    });
+
+    // One-time FUSE fix (device exists but is root-only by default)
+    await sbx.commands.run("sudo chmod 666 /dev/fuse");
+
+    // Mount memory
+    await sbx.commands.run("smfs login --key $SUPERMEMORY_API_KEY");
+    await sbx.commands.run(
+      "bash -c 'smfs mount my_agent --ephemeral --path /home/user/memory --foreground &' && sleep 3"
+    );
+
+    // Run the agent
+    const result = await sbx.commands.run("python3 agent.py", {
+      timeoutMs: 120_000,
+    });
+    console.log(result.stdout);
+
+    await sbx.kill();
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  The FUSE mount is owned by root. The Claude agent handles this automatically
+  with the Bash tool (it uses `sudo` when needed). If you're writing files
+  manually, use `sudo bash -c 'echo "..." > /path/file'`.
+</Note>
 
 ## Tips
 
-- Use `--ephemeral` when mounting inside sandboxes — keeps the cache in memory
-  only, but writes still push to Supermemory
+- Use `--ephemeral` for sandbox mounts — keeps the cache in memory only, but
+  writes still push to Supermemory
 - Use `smfs grep 'query'` for semantic search across all files in the container
-- The agent can write structured data (JSON, markdown) to the mount and it
-  persists across sandbox sessions via Supermemory
+- Without a custom template, add the install steps to your run script:
+  ```python
+  sbx.commands.run("curl -fsSL https://smfs.ai/install | bash -s -- 0.0.1-rc2", timeout=60)
+  sbx.commands.run("pip install claude-agent-sdk", timeout=60)
+  ```

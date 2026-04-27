@@ -3,40 +3,44 @@ title: "Vercel AI SDK"
 description: "Give your AI agent persistent memory using SMFS with the Vercel AI SDK"
 ---
 
-Mount a Supermemory container on your server and let a Claude agent access it
-through the built-in bash tool.
+Mount a Supermemory container on your server and let a Claude agent read and
+write memory using standard filesystem commands.
 
 ## How it works
 
-1. Install SMFS on your server and mount a Supermemory container
-2. Run a Claude agent with bash tool access — it reads/writes the mount using standard commands
-3. Everything the agent writes persists to Supermemory automatically
+```
+┌──────────────────────────────────────┐
+│  Your Server                         │
+│                                      │
+│  ┌──────────┐    ┌────────────────┐  │
+│  │  Claude   │───▶│  ./memory      │  │
+│  │  Agent    │    │  (SMFS mount)  │  │
+│  └──────────┘    └───────┬────────┘  │
+│                          │           │
+└──────────────────────────┼───────────┘
+                           │
+                   ┌───────▼───────┐
+                   │  Supermemory  │
+                   └───────────────┘
+```
 
-<Note>
-  The Vercel AI SDK runs in your server process (not in a sandbox). SMFS mounts
-  directly on the host where your server runs.
-</Note>
+SMFS mounts directly on the host. No sandbox needed — the agent runs in your
+server process and accesses memory through the filesystem.
 
 ## Prerequisites
 
 - A [Supermemory API key](https://supermemory.ai)
 - An [Anthropic API key](https://console.anthropic.com)
-- SMFS installed on your server: `curl -fsSL https://smfs.ai/install | bash`
+- SMFS installed: `curl -fsSL https://smfs.ai/install | bash`
 
-## Quick start
-
-First, mount SMFS on your server:
+## 1. Mount memory
 
 ```bash
 smfs login --key $SUPERMEMORY_API_KEY
 smfs mount my_agent --path ./memory
 ```
 
-Then run the agent:
-
-```bash
-pip install claude-agent-sdk
-```
+## 2. Write your agent
 
 ```python agent.py
 import asyncio
@@ -44,11 +48,9 @@ from claude_agent_sdk import query, ClaudeAgentOptions
 
 async def main():
     async for message in query(
-        prompt="""You have a persistent memory filesystem at ./memory.
-Use bash to explore it (ls, cat) and write notes (echo "..." > file).
-
-Read ./memory/profile.md to learn about the user.
-Then create ./memory/session_notes.md summarizing what you found.""",
+        prompt="You have a persistent memory filesystem at ./memory. "
+               "Read profile.md to learn about the user, then create "
+               "session_notes.md summarizing what you found.",
         options=ClaudeAgentOptions(
             allowed_tools=["Bash", "Read", "Write"],
             cwd="./memory",
@@ -59,36 +61,55 @@ Then create ./memory/session_notes.md summarizing what you found.""",
 asyncio.run(main())
 ```
 
-Or with TypeScript:
-
 ```bash
-npm install @anthropic-ai/claude-agent-sdk
+python3 agent.py
 ```
 
-```typescript agent.ts
-import { query } from "@anthropic-ai/claude-agent-sdk";
+That's it. The agent reads and writes files in `./memory` using standard bash
+commands. Everything syncs to Supermemory automatically.
 
-async function main() {
-  for await (const message of query({
-    prompt: `You have a persistent memory filesystem at ./memory.
-Use bash to explore it (ls, cat) and write notes (echo "..." > file).
+## Using with the Vercel AI SDK
 
-Read ./memory/profile.md to learn about the user.
-Then create ./memory/session_notes.md summarizing what you found.`,
-    options: {
-      allowedTools: ["Bash", "Read", "Write"],
-      cwd: "./memory",
+If you're building an API route with the Vercel AI SDK, expose the memory
+filesystem as a tool:
+
+```typescript api/agent.ts
+import { generateText, tool } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
+import { execSync } from "child_process";
+
+// SMFS is mounted at ./memory (started when the server boots)
+const MEMORY = "./memory";
+
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+
+  const result = await generateText({
+    model: anthropic("claude-sonnet-4-20250514"),
+    tools: {
+      bash: tool({
+        description: `Run a bash command. Memory filesystem is at ${MEMORY}.`,
+        parameters: z.object({ command: z.string() }),
+        execute: async ({ command }) => {
+          try {
+            return execSync(command, { cwd: MEMORY, encoding: "utf-8", timeout: 10_000 });
+          } catch (e: any) {
+            return e.stderr || e.message;
+          }
+        },
+      }),
     },
-  })) {
-    if (message.type === "text") console.log(message.text);
-  }
-}
+    maxSteps: 10,
+    prompt,
+  });
 
-main();
+  return Response.json({ text: result.text });
+}
 ```
 
 ## Tips
 
 - Mount SMFS once when your server starts, not per-request
-- Use `smfs grep 'query'` for semantic search across all files in the container
+- Use `smfs grep 'query'` for semantic search across all files
 - Use `--ephemeral` if you don't need a local cache on the server
