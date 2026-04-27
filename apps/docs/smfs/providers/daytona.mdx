@@ -12,16 +12,16 @@ icon: "server"
 Daytona sandboxes run full Linux with shell access, filesystem, and network. There are two ways to wire SMFS in:
 
 <CardGroup cols={2}>
-  <Card title="Mount inside the sandbox" icon="hard-drive">
-    Install the `smfs` binary inside the sandbox and mount a container directly. Best when the sandbox has unrestricted outbound HTTPS.
-  </Card>
   <Card title="Bash Tool in your agent code" icon="terminal">
-    Use `@supermemory/bash` in the code that **orchestrates** the sandbox. The agent reads memory via the bash tool, then sends code to Daytona for execution. Best for most setups.
+    Use `@supermemory/bash` in the code that **orchestrates** the sandbox. The agent reads memory via the bash tool, then sends code to Daytona for execution. Works everywhere.
+  </Card>
+  <Card title="Mount inside the sandbox" icon="hard-drive">
+    Install the `smfs` binary inside the sandbox and mount a container directly. Requires unrestricted outbound HTTPS from the sandbox.
   </Card>
 </CardGroup>
 
 <Note>
-  Daytona sandboxes may restrict outbound TLS to certain hosts. If `smfs mount` fails with connection errors, use the Bash Tool pattern instead — it runs in your orchestrating code, not inside the sandbox.
+  Some Daytona sandbox configurations may restrict outbound TLS to certain hosts. If `smfs mount` or `smfs login` fails with connection errors, use the Bash Tool pattern instead — it runs in your orchestrating code, not inside the sandbox.
 </Note>
 
 ## Prerequisites
@@ -149,7 +149,6 @@ The recommended pattern: your agent code uses `@supermemory/bash` for memory and
     )
 
     # 4. Your agent can now use the filesystem
-    sandbox.process.exec('echo "User prefers Python" > agent_memory/memory.md')
     response = sandbox.process.exec("cat agent_memory/profile.md")
     print(response.result)
 
@@ -195,7 +194,6 @@ sandbox.process.exec(
 )
 
 # Now the agent can use standard Unix commands
-sandbox.process.exec('echo "Meeting notes from standup" > /memory/notes.md')
 result = sandbox.process.exec("cat /memory/profile.md")
 print(result.result)
 

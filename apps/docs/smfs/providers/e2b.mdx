@@ -9,7 +9,7 @@ icon: "cube"
 
 ## Architecture
 
-E2B sandboxes are ephemeral Linux microVMs with full shell access. Two ways to wire SMFS in:
+E2B sandboxes are ephemeral Linux microVMs with full shell access and unrestricted network. Two ways to wire SMFS in:
 
 <CardGroup cols={2}>
   <Card title="Mount inside the sandbox" icon="hard-drive">
@@ -58,6 +58,8 @@ E2B sandboxes are ephemeral Linux microVMs with full shell access. Two ways to w
 
 ## 3. Build an agent with memory + code execution
 
+The recommended pattern: your agent code uses `@supermemory/bash` for memory and the E2B SDK for code execution. The LLM gets both as tools.
+
 <Tabs>
   <Tab title="TypeScript">
     ```typescript agent.ts
@@ -75,9 +77,7 @@ E2B sandboxes are ephemeral Linux microVMs with full shell access. Two ways to w
       });
 
       // 2. Set up code execution (E2B sandbox)
-      const sandbox = await Sandbox.create({
-        apiKey: process.env.E2B_API_KEY!,
-      });
+      const sandbox = await Sandbox.create();
 
       // 3. Give the LLM both tools
       const result = await generateText({
@@ -115,99 +115,146 @@ E2B sandboxes are ephemeral Linux microVMs with full shell access. Two ways to w
     from e2b_code_interpreter import Sandbox
 
     # 1. Create an E2B sandbox
-    sandbox = Sandbox(api_key=os.environ["E2B_API_KEY"])
+    sandbox = Sandbox.create(timeout=300)
 
     # 2. Install SMFS inside the sandbox
     sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
 
-    # 3. Log in and mount
+    # 3. Fix FUSE permissions (required in E2B sandboxes)
+    sandbox.commands.run("sudo chmod 666 /dev/fuse")
+    sandbox.commands.run(
+        "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
+    )
+
+    # 4. Log in and mount
     sandbox.commands.run(
         f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
     )
     sandbox.commands.run(
-        "~/.local/bin/smfs mount agent_memory --ephemeral --path /memory"
+        "bash -c '~/.local/bin/smfs mount agent_memory --ephemeral"
+        " --path /home/user/memory --foreground > /tmp/smfs.log 2>&1"
+        " & sleep 5 && echo MOUNTED'",
+        timeout=15,
     )
 
-    # 4. Your agent can now use the filesystem
-    sandbox.commands.run('echo "User prefers dark mode" > /memory/memory.md')
+    # 5. Your agent can now use the filesystem
+    sandbox.commands.run("cat /home/user/memory/profile.md")
 
-    result = sandbox.commands.run("cat /memory/profile.md")
-    print(result.stdout)
+    # 6. Semantic search
+    sandbox.commands.run(
+        "~/.local/bin/smfs grep 'preferred language'"
+    )
 
-    # 5. Semantic search
-    result = sandbox.commands.run("cd /memory && grep 'preferences'")
-    print(result.stdout)
-
-    # 6. Clean up
-    sandbox.commands.run("~/.local/bin/smfs unmount agent_memory")
+    # 7. Clean up
+    sandbox.commands.run(
+        "~/.local/bin/smfs unmount agent_memory 2>/dev/null",
+        timeout=10,
+    )
     sandbox.kill()
     ```
   </Tab>
 </Tabs>
 
-## Alternative: Mount SMFS inside the sandbox
+## Mount SMFS inside the sandbox
 
-E2B sandboxes have full network access, so you can install and mount SMFS directly. This gives the agent a real filesystem with semantic grep.
+E2B sandboxes have full network access and FUSE support, so you can install and mount SMFS directly. Two setup steps are needed first:
+
+<Warning>
+  E2B sandboxes require FUSE permission fixes before mounting. Run these commands once after creating the sandbox:
+
+  ```bash
+  sudo chmod 666 /dev/fuse
+  echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null
+  ```
+</Warning>
 
 ```python
 from e2b_code_interpreter import Sandbox
 import os
 
-sandbox = Sandbox(api_key=os.environ["E2B_API_KEY"])
+sandbox = Sandbox.create(timeout=300)
+
+# One-time FUSE setup
+sandbox.commands.run("sudo chmod 666 /dev/fuse")
+sandbox.commands.run(
+    "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf > /dev/null"
+)
 
 # Install SMFS
 sandbox.commands.run("curl -fsSL https://smfs.ai/install | sh")
 
-# Log in and mount
+# Log in
 sandbox.commands.run(
     f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
 )
+
+# Mount with ephemeral mode (recommended for sandboxes)
+# Run in background since mount is a long-running daemon
 sandbox.commands.run(
-    "~/.local/bin/smfs mount agent_memory --ephemeral --path /memory"
+    "bash -c '~/.local/bin/smfs mount agent_memory --ephemeral"
+    " --path /home/user/memory --foreground > /tmp/smfs.log 2>&1"
+    " & sleep 5 && echo MOUNTED'",
+    timeout=15,
 )
 
-# Write some memory
-sandbox.commands.run('echo "Project deadline is March 15" > /memory/notes.md')
-
 # Read the auto-generated profile
-result = sandbox.commands.run("cat /memory/profile.md")
+result = sandbox.commands.run("cat /home/user/memory/profile.md")
 print(result.stdout)
 
-# Semantic search across all memory
-result = sandbox.commands.run("cd /memory && grep 'deadline'")
+# Semantic grep works inside the mount
+result = sandbox.commands.run("~/.local/bin/smfs grep 'deadlines'")
 print(result.stdout)
 
 # Clean up
-sandbox.commands.run("~/.local/bin/smfs unmount agent_memory")
+sandbox.commands.run("~/.local/bin/smfs unmount agent_memory 2>/dev/null", timeout=10)
 sandbox.kill()
 ```
 
 ## Custom E2B template with SMFS pre-installed
 
-For faster startup, bake SMFS into a custom E2B template so you don't have to install it every time:
+For faster startup, bake SMFS and the FUSE fixes into a custom E2B template:
 
 ```dockerfile e2b.Dockerfile
 FROM e2b/code-interpreter:latest
 
 # Pre-install SMFS
 RUN curl -fsSL https://smfs.ai/install | sh
+
+# Fix FUSE permissions for SMFS mount
+RUN echo 'user_allow_other' >> /etc/fuse.conf
 ```
 
 ```bash
 e2b template build -d e2b.Dockerfile
 ```
 
-Then use your custom template:
+Then use your custom template — no setup needed at runtime:
 
 ```python
-sandbox = Sandbox(template="your-custom-template")
+sandbox = Sandbox.create(template="your-custom-template")
+
+# FUSE device still needs chmod at runtime (device nodes reset on boot)
+sandbox.commands.run("sudo chmod 666 /dev/fuse")
+
+# Mount directly
+sandbox.commands.run(
+    f"~/.local/bin/smfs login --key {os.environ['SUPERMEMORY_API_KEY']}"
+)
+sandbox.commands.run(
+    "bash -c '~/.local/bin/smfs mount agent_memory --ephemeral"
+    " --path /home/user/memory --foreground > /tmp/smfs.log 2>&1"
+    " & sleep 5'",
+    timeout=15,
+)
 ```
 
 ## Tips
 
 - **Use `--ephemeral` for sandboxes.** E2B sandboxes are short-lived. Ephemeral mode avoids writing a local cache that will be thrown away.
+- **Always fix FUSE permissions.** E2B sandboxes need `sudo chmod 666 /dev/fuse` and `user_allow_other` in `/etc/fuse.conf` before mounting.
+- **Mount in background.** The SMFS daemon is long-running. Use `bash -c '... --foreground &'` with a sleep to let it initialize.
 - **Custom templates save time.** Pre-install SMFS in a template to skip the install step on every sandbox boot.
-- **E2B sandboxes have a timeout.** Default is 5 minutes. Set `timeout` when creating the sandbox if your agent needs longer.
+- **E2B sandboxes have a timeout.** Default is 5 minutes. Pass `timeout=300` (or more) when creating the sandbox if your agent needs longer.
 - **One container, many sandboxes.** Mount the same container tag from multiple E2B sandboxes. Bidirectional sync keeps them in step.
 
 ## Resources
