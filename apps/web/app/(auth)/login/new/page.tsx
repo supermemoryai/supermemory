@@ -204,18 +204,12 @@ export default function LoginPage() {
 			email_domain: email.split("@")[1] || "unknown",
 		})
 
-		try {
-			await signIn.magicLink({
-				callbackURL: getCallbackURL(),
-				email,
-			})
-			setSubmittedEmail(email)
-			setPendingLoginMethod("magic_link")
-			// Track successful magic link send
-			posthog.capture("login_magic_link_sent", {
-				email_domain: email.split("@")[1] || "unknown",
-			})
-		} catch (error) {
+		const { error } = await signIn.magicLink({
+			callbackURL: getCallbackURL(),
+			email,
+		})
+
+		if (error) {
 			console.error(error)
 
 			// Track login failure
@@ -231,6 +225,12 @@ export default function LoginPage() {
 			setIsLoadingEmail(false)
 			return
 		}
+
+		setSubmittedEmail(email)
+		setPendingLoginMethod("magic_link")
+		posthog.capture("login_magic_link_sent", {
+			email_domain: email.split("@")[1] || "unknown",
+		})
 
 		setIsLoading(false)
 		setIsLoadingEmail(false)
@@ -355,6 +355,9 @@ export default function LoginPage() {
 															callbackURL: getCallbackURL(),
 															provider: "google",
 														})
+														.catch((err: unknown) => {
+															setError(getErrorMessage(err))
+														})
 														.finally(() => {
 															setIsLoading(false)
 														})
@@ -418,6 +421,9 @@ export default function LoginPage() {
 														.social({
 															callbackURL: getCallbackURL(),
 															provider: "github",
+														})
+														.catch((err: unknown) => {
+															setError(getErrorMessage(err))
 														})
 														.finally(() => {
 															setIsLoading(false)
