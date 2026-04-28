@@ -7,6 +7,10 @@ icon: "triangle"
 
 The Supermemory AI SDK provides native integration with Vercel's AI SDK through two approaches: **User Profiles** for automatic personalization and **Memory Tools** for agent-based interactions.
 
+<Note>
+  Migrating to v2 from 1.4.x? Check the [migration guide](/migration/tools-v2-upgrade).
+</Note>
+
 <Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
@@ -46,14 +50,21 @@ const result = await generateText({
 })
 ```
 
+### Required fields
+
+Both `containerTag` and `customId` are required.
+
+- **`containerTag`** — *who* the memories belong to. Use a stable identifier per user, workspace, or tenant (e.g. `"user-123"`, `"acme-workspace"`). Memory search and writes are scoped to this tag.
+- **`customId`** — *which conversation* this turn belongs to. Use it to group messages from the same chat session into a single document (e.g. `"chat-2026-04-25"`, a thread ID, or a UUID per session).
+
 <Note>
-  **Memory saving is disabled by default.** The middleware only retrieves existing memories. To automatically save new memories:
+  **Memory saving is enabled by default** (`addMemory: "always"`). New conversations are persisted automatically. To opt out, set `addMemory: "never"`:
 
   ```typescript
   const modelWithMemory = withSupermemory(openai("gpt-5"), {
     containerTag: "user-123",
     customId: "conversation-456",
-    addMemory: "always",
+    addMemory: "never",
   })
   ```
 </Note>

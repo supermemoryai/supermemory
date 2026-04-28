@@ -1,7 +1,7 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "1.4.7",
+  "version": "2.0.0",
   "description": "Memory tools for AI SDK, OpenAI, Voltagent and Mastra with supermemory",
   "scripts": {
     "build": "tsdown",
