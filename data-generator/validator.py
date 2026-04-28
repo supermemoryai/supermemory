@@ -7,6 +7,7 @@ integrity.
 
 from __future__ import annotations
 
+import calendar
 import logging
 import re
 import statistics
@@ -14,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from utils import FAST_MODEL, count_tokens, llm_call, read_json, read_text, write_json
+from utils import FAST_MODEL, count_tokens, llm_call, read_json, read_text, write_json, write_text
 
 logger = logging.getLogger(__name__)
 
@@ -150,8 +151,6 @@ def _normalize_date(date_str: str) -> list[str]:
     - "04/22/2026"
     - "22 April 2026"
     """
-    import calendar
-
     variants: list[str] = [date_str]
 
     match = re.match(r"(\d{4})-(\d{2})-(\d{2})", date_str)
@@ -616,9 +615,7 @@ Rewrite (or generate) the file content to fix ALL validation issues above.
             )
 
             # Write repaired file
-            full_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(full_path, "w") as f:
-                f.write(repaired_content)
+            write_text(full_path, repaired_content)
 
             logger.info("Repaired file %s (%s)", file_id, rel_path)
 

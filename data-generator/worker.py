@@ -21,6 +21,7 @@ from utils import (
     count_tokens,
     llm_call,
     read_text,
+    truncate_to_tokens,
     write_text,
 )
 
@@ -40,40 +41,12 @@ MAX_RETRIES = 2
 
 
 def _get_cluster_file_ids(cluster: Any) -> list[str]:
-    """Extract file IDs from a cluster object.
-
-    Supports both the ``file_ids`` attribute (list[str]) and the
-    ``file_entries`` attribute (list[dict] with ``file_id`` keys) used by the
-    Cluster dataclass in ``clusterer.py``.
-    """
-    if hasattr(cluster, "file_ids"):
-        return list(cluster.file_ids)
+    """Extract file IDs from a cluster object's ``file_entries`` list."""
     if hasattr(cluster, "file_entries"):
         return [e.get("file_id", "") for e in cluster.file_entries if e.get("file_id")]
     raise TypeError(
-        f"Cluster object has neither 'file_ids' nor 'file_entries': {type(cluster)}"
+        f"Cluster object has no 'file_entries' attribute: {type(cluster)}"
     )
-
-
-def _truncate_to_tokens(text: str, max_tokens: int) -> str:
-    """Truncate *text* to approximately *max_tokens* tokens.
-
-    Uses a character-based heuristic first (1 token ≈ 4 chars) for speed, then
-    verifies with the real tokeniser and trims further if needed.
-    """
-    # Fast character-based pre-filter
-    approx_chars = max_tokens * 4
-    if len(text) <= approx_chars:
-        # Likely already within budget – verify
-        if count_tokens(text) <= max_tokens:
-            return text
-
-    # Trim to approximate char limit, then refine
-    trimmed = text[:approx_chars]
-    while count_tokens(trimmed) > max_tokens and len(trimmed) > 200:
-        # Remove ~10% each iteration
-        trimmed = trimmed[: int(len(trimmed) * 0.9)]
-    return trimmed
 
 
 def _build_context_files(
@@ -101,7 +74,7 @@ def _build_context_files(
     for ref_id in cross_refs:
         content = generated.get(ref_id)
         if content is not None:
-            truncated = _truncate_to_tokens(content, MAX_CONTEXT_TOKENS_PER_FILE)
+            truncated = truncate_to_tokens(content, MAX_CONTEXT_TOKENS_PER_FILE)
             candidates.append((ref_id, truncated))
 
     # Sort by number of cross-references each candidate has (most connected first)
@@ -120,7 +93,7 @@ def _build_context_files(
             # Try to fit a smaller portion
             remaining = MAX_TOTAL_CONTEXT_TOKENS - total_tokens
             if remaining > 200:
-                content = _truncate_to_tokens(content, remaining)
+                content = truncate_to_tokens(content, remaining)
                 context[fid] = content
             break
         context[fid] = content
@@ -240,15 +213,15 @@ async def generate_file(
         context_files: already-generated files this file cross-references
             (file_id -> content).
         output_dir: base output directory.  File is written to
-            ``output_dir / data / <path>``.
+            ``output_dir / <path>`` (manifest paths already include ``data/``).
         model: LLM model to use.
         gen_log: optional generation log for tracking.
         manifest_entries: full file_id -> manifest entry map (used for
             cross-reference briefs of not-yet-generated files).
     """
     file_id: str = file_entry.get("file_id", "unknown")
-    file_path_rel: str = file_entry.get("path", f"{file_id}.md")
-    dest = output_dir / "data" / file_path_rel
+    file_path_rel: str = file_entry.get("path", f"data/{file_id}.md")
+    dest = output_dir / file_path_rel
 
     # --- Resume support ---
     if gen_log and gen_log.is_done(file_id):

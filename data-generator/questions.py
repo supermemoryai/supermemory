@@ -11,7 +11,16 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from utils import DEFAULT_MODEL, count_tokens, llm_call_json, read_text, write_json
+from utils import (
+    DEFAULT_MODEL,
+    count_tokens,
+    llm_call_json,
+    read_json,
+    read_text,
+    truncate_to_tokens,
+    unwrap_json_list,
+    write_json,
+)
 from prompts.questions import QUESTION_GEN_PROMPT, QUESTION_GEN_SYSTEM
 
 logger = logging.getLogger(__name__)
@@ -33,31 +42,9 @@ VALID_FAMILIES = {"single_hop", "multi_hop", "format_spanning", "edit_then_recal
 # ---------------------------------------------------------------------------
 
 
-def _truncate_to_tokens(text: str, max_tokens: int) -> str:
-    """Truncate text to approximately max_tokens.
-
-    Uses a rough 4-chars-per-token estimate for speed, then verifies.
-    """
-    if count_tokens(text) <= max_tokens:
-        return text
-
-    # Rough cut, then refine
-    char_estimate = max_tokens * 4
-    truncated = text[:char_estimate]
-
-    # Trim to last complete sentence or paragraph
-    for sep in ("\n\n", "\n", ". ", " "):
-        idx = truncated.rfind(sep)
-        if idx > char_estimate // 2:
-            truncated = truncated[: idx + len(sep)]
-            break
-
-    return truncated + "\n\n[… truncated …]"
-
-
 def _build_scenario_summary(scenario_brief: str) -> str:
     """Build a truncated scenario summary for the prompt."""
-    return _truncate_to_tokens(scenario_brief, MAX_SCENARIO_TOKENS)
+    return truncate_to_tokens(scenario_brief, MAX_SCENARIO_TOKENS, add_suffix=True)
 
 
 def _build_fact_summary(fact_registry: dict) -> str:
@@ -157,8 +144,8 @@ def _sample_file_excerpts(
         if not full_path.exists():
             continue
 
-        content = read_text(full_path)
-        excerpt = _truncate_to_tokens(content, MAX_EXCERPT_TOKENS)
+        content = full_path.read_text(encoding="utf-8")
+        excerpt = truncate_to_tokens(content, MAX_EXCERPT_TOKENS, add_suffix=True)
         excerpt_tokens = count_tokens(excerpt)
 
         if total_tokens + excerpt_tokens > MAX_TOTAL_EXCERPT_TOKENS:
@@ -252,7 +239,7 @@ async def generate_questions(
     # Resume support: skip if already exists
     if output_path.exists():
         logger.info("Phase 7 skipped — question.json already exists")
-        return read_text(output_path)
+        return read_json(output_path)
 
     logger.info("Phase 7: Generating eval questions …")
 
@@ -284,26 +271,7 @@ async def generate_questions(
     )
 
     # Handle wrapped responses — LLM may return {"questions": [...]}
-    questions: list[dict]
-    if isinstance(result, list):
-        questions = result
-    elif isinstance(result, dict):
-        for key in ("questions", "eval_questions", "items"):
-            if key in result and isinstance(result[key], list):
-                questions = result[key]
-                break
-        else:
-            # Look for any list value
-            for v in result.values():
-                if isinstance(v, list):
-                    questions = v
-                    break
-            else:
-                raise ValueError(
-                    f"Expected a JSON array for questions, got dict with keys: {list(result.keys())}"
-                )
-    else:
-        raise ValueError(f"Unexpected questions response type: {type(result)}")
+    questions = unwrap_json_list(result, expected_keys=("questions", "eval_questions", "items"))
 
     # Validate and clean up
     questions = _validate_questions(questions, manifest)

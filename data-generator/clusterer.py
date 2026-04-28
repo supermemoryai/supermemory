@@ -365,7 +365,7 @@ def _detect_and_merge_cycles(
             merge_map[cid] = primary
             cluster_groups[primary].extend(cluster_groups.pop(cid))
         logger.info(
-            f"Merged cyclic clusters {scc_sorted[1:]} into '{primary}'"
+            "Merged cyclic clusters %s into '%s'", scc_sorted[1:], primary
         )
 
     if not merge_map:
@@ -431,8 +431,9 @@ def _topological_sort_with_levels(
     if len(result) < len(all_ids):
         missing = all_ids - {cid for cid, _ in result}
         logger.warning(
-            f"Topological sort did not visit all clusters. "
-            f"Remaining (possible cycle): {missing}. Assigning max level."
+            "Topological sort did not visit all clusters. "
+            "Remaining (possible cycle): %s. Assigning max level.",
+            missing,
         )
         max_level = max((lvl for _, lvl in result), default=0) + 1
         for cid in sorted(missing):
@@ -481,7 +482,6 @@ def assign_clusters(
 
     # Step 2: Split oversize groups
     split_groups: dict[str, list[dict]] = {}
-    counter = 0
     for hint, entries in groups.items():
         if len(entries) <= max_cluster_size:
             split_groups[hint] = entries
@@ -490,7 +490,6 @@ def assign_clusters(
             for i, sub in enumerate(sub_groups):
                 key = f"{hint}_{i}" if len(sub_groups) > 1 else hint
                 split_groups[key] = sub
-                counter += 1
 
     # Step 3: Merge singletons
     split_groups = _try_merge_singletons(split_groups, max_cluster_size, adjacency)

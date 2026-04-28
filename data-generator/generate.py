@@ -37,7 +37,7 @@ from pathlib import Path
 from clusterer import assign_clusters
 from planner import run_planning
 from questions import generate_questions
-from utils import DEFAULT_MODEL, GenerationLog, read_json, read_text, write_json
+from utils import DEFAULT_MODEL, GenerationLog, read_json, read_text
 from validator import validate_corpus
 from worker import generate_all
 
@@ -436,18 +436,7 @@ async def run_pipeline(
         report = await validate_corpus(output_dir, manifest, facts)
         logger.info("Validation: %d errors, %d warnings out of %d files",
                      len(report.errors), len(report.warnings), report.total_files)
-        write_json(output_dir / "validation_report.json", {
-            "total_files": report.total_files,
-            "files_checked": report.files_checked,
-            "errors": len(report.errors),
-            "warnings": len(report.warnings),
-            "token_stats": report.token_stats,
-            "issues": [
-                {"file_id": i.file_id, "type": i.issue_type, "severity": i.severity,
-                 "description": i.description}
-                for i in report.issues
-            ],
-        })
+        # validate_corpus already writes validation_report.json to disk
         return
 
     # --- Questions-only mode ---
@@ -510,19 +499,7 @@ async def run_pipeline(
     report = await validate_corpus(output_dir, manifest, facts)
     logger.info("Validation: %d errors, %d warnings out of %d files",
                 len(report.errors), len(report.warnings), report.total_files)
-
-    write_json(output_dir / "validation_report.json", {
-        "total_files": report.total_files,
-        "files_checked": report.files_checked,
-        "errors": len(report.errors),
-        "warnings": len(report.warnings),
-        "token_stats": report.token_stats,
-        "issues": [
-            {"file_id": i.file_id, "type": i.issue_type, "severity": i.severity,
-             "description": i.description}
-            for i in report.issues
-        ],
-    })
+    # validate_corpus already writes validation_report.json to disk
 
     # Phase 7: Questions
     logger.info("--- QUESTIONS (Phase 7) ---")

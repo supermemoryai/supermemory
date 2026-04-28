@@ -20,6 +20,7 @@ from utils import (
     llm_call,
     llm_call_json,
     read_text,
+    unwrap_json_list,
     write_json,
     write_text,
 )
@@ -231,7 +232,7 @@ def _validate_manifest(manifest: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     if all_warnings:
         for w in all_warnings:
-            logger.warning(f"Manifest validation: {w}")
+            logger.warning("Manifest validation: %s", w)
 
     return manifest
 
@@ -365,23 +366,7 @@ async def _generate_small_manifest(
         max_tokens=16384,
     )
 
-    # Handle wrapped response — the LLM may return {"files": [...]} or similar
-    if isinstance(result, dict):
-        for key in ("files", "manifest", "entries"):
-            if key in result and isinstance(result[key], list):
-                return result[key]
-        # If it's a dict but no known key, look for any list value
-        for v in result.values():
-            if isinstance(v, list):
-                return v
-        raise ValueError(
-            f"Expected a JSON array for manifest, got dict with keys: {list(result.keys())}"
-        )
-
-    if isinstance(result, list):
-        return result
-
-    raise ValueError(f"Unexpected manifest response type: {type(result)}")
+    return unwrap_json_list(result, expected_keys=("files", "manifest", "entries"))
 
 
 async def _generate_large_manifest(
@@ -469,29 +454,7 @@ async def _generate_large_manifest(
             max_tokens=16384,
         )
 
-        # Extract list from potential wrapper
-        entries: list[dict]
-        if isinstance(result, list):
-            entries = result
-        elif isinstance(result, dict):
-            for key in ("files", "manifest", "entries"):
-                if key in result and isinstance(result[key], list):
-                    entries = result[key]
-                    break
-            else:
-                for v in result.values():
-                    if isinstance(v, list):
-                        entries = v
-                        break
-                else:
-                    raise ValueError(
-                        f"Section '{section_name}' returned unexpected dict: "
-                        f"{list(result.keys())}"
-                    )
-        else:
-            raise ValueError(
-                f"Section '{section_name}' returned unexpected type: {type(result)}"
-            )
+        entries = unwrap_json_list(result, expected_keys=("files", "manifest", "entries"))
 
         all_entries.extend(entries)
         current_start_id += section_file_count
@@ -552,11 +515,10 @@ async def run_planning(
 
     Returns (brief, facts, manifest).
     """
-    out = Path(output_dir)
-    out.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    brief = await generate_scenario_brief(scenario_block, file_count, out, model)
-    facts = await extract_fact_registry(brief, out, model)
-    manifest = await generate_manifest(brief, facts, file_count, out, model)
+    brief = await generate_scenario_brief(scenario_block, file_count, output_dir, model)
+    facts = await extract_fact_registry(brief, output_dir, model)
+    manifest = await generate_manifest(brief, facts, file_count, output_dir, model)
 
     return brief, facts, manifest

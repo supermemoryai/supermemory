@@ -1,5 +1,7 @@
 """Prompt templates for Phase 5: Individual file generation."""
 
+from utils import estimate_chars_for_tokens
+
 FILE_GEN_SYSTEM = """\
 You are generating a single realistic document for an eval corpus.
 The document must feel like it was written by a real human in a real organization.
@@ -341,7 +343,7 @@ def _build_cross_reference_context(
             brief = (
                 f"**{ref_id}** — {entry.get('path', 'unknown path')}\n"
                 f"Format: {entry.get('format', 'unknown')}\n"
-                f"Summary: {entry.get('summary', 'No summary available')}"
+                f"Brief: {entry.get('brief', 'No brief available')}"
             )
             parts.append(f"### {ref_id} (not yet generated — brief only)\n\n{brief}")
         else:
@@ -383,8 +385,8 @@ def format_file_gen_prompt(
     target_tokens = file_entry.get("target_tokens", [5000, 10000])
     target_min_tokens = target_tokens[0] if isinstance(target_tokens, list) else 5000
     target_max_tokens = target_tokens[1] if isinstance(target_tokens, list) else 10000
-    target_min_chars = target_min_tokens * 4
-    target_max_chars = target_max_tokens * 4
+    target_min_chars = estimate_chars_for_tokens(target_min_tokens)
+    target_max_chars = estimate_chars_for_tokens(target_max_tokens)
 
     target_length_instructions = (
         f"- Target: **{target_min_tokens:,}-{target_max_tokens:,} tokens** "
@@ -407,7 +409,7 @@ def format_file_gen_prompt(
         file_date=file_entry.get("date", "unknown"),
         file_authors=authors_str,
         file_tone=file_entry.get("tone", "neutral"),
-        file_summary=file_entry.get("summary", "No summary provided."),
+        file_summary=file_entry.get("brief", "No brief provided."),
         target_length_instructions=target_length_instructions,
         format_instructions=format_instructions,
         format_notes=format_notes,

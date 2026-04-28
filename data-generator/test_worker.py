@@ -19,12 +19,12 @@ from worker import (
     _extract_key_values,
     _get_cluster_file_ids,
     _strip_wrapping_fences,
-    _truncate_to_tokens,
     _validate_content,
     generate_all,
     generate_cluster,
     generate_file,
 )
+from utils import truncate_to_tokens as _truncate_to_tokens
 
 # ---------------------------------------------------------------------------
 # Helpers & fixtures
@@ -66,13 +66,13 @@ def _make_entry(
 ) -> dict:
     return {
         "file_id": file_id,
-        "path": path or f"docs/{file_id}.md",
+        "path": path or f"data/docs/{file_id}.md",
         "format": fmt,
         "date": "2024-03-15",
         "authors": authors or ["alice"],
         "author": authors or ["alice"],
         "tone": "casual",
-        "summary": f"Test document {file_id}",
+        "brief": f"Test document {file_id}",
         "cross_references": cross_refs or [],
         "locked_facts": locked_facts or [],
         "target_tokens": target_tokens or [5000, 10000],
@@ -414,7 +414,7 @@ class TestGetClusterFileIds:
         class BadCluster:
             level = 0
 
-        with pytest.raises(TypeError, match="neither"):
+        with pytest.raises(TypeError, match="file_entries"):
             _get_cluster_file_ids(BadCluster())
 
 

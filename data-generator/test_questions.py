@@ -16,10 +16,10 @@ from questions import (
     _build_manifest_summary,
     _build_scenario_summary,
     _sample_file_excerpts,
-    _truncate_to_tokens,
     _validate_questions,
     generate_questions,
 )
+from utils import truncate_to_tokens as _truncate_to_tokens
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ class TestTruncateToTokens:
 
     def test_long_text_truncated(self):
         text = "Word " * 5000  # ~5000 tokens
-        result = _truncate_to_tokens(text, 100)
+        result = _truncate_to_tokens(text, 100, add_suffix=True)
         assert len(result) < len(text)
         assert result.endswith("[… truncated …]")
 
@@ -469,8 +469,10 @@ class TestGenerateQuestions:
             )
         )
 
-        # Should return the existing content (as string since read_text returns string)
-        assert "Existing?" in str(result)
+        # Should return the existing content as a parsed list, not a raw string
+        assert isinstance(result, list), f"Expected list, got {type(result)}: {result!r}"
+        assert len(result) == 1
+        assert result[0]["prompt"] == "Existing?"
 
 
 # ---------------------------------------------------------------------------

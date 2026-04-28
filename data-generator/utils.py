@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import time
 from pathlib import Path
 from typing import Any
@@ -44,6 +43,78 @@ def estimate_chars_for_tokens(target_tokens: int) -> int:
     return target_tokens * 4
 
 
+def truncate_to_tokens(text: str, max_tokens: int, *, add_suffix: bool = False) -> str:
+    """Truncate *text* to approximately *max_tokens* tokens.
+
+    Uses a character-based heuristic first (via :func:`estimate_chars_for_tokens`)
+    for speed, then verifies with the real tokeniser and trims further if needed.
+
+    Args:
+        text: The text to truncate.
+        max_tokens: Maximum number of tokens.
+        add_suffix: If ``True``, append ``"[… truncated …]"`` when truncation
+            occurs.  Used by the question generator; the worker skips it.
+    """
+    approx_chars = estimate_chars_for_tokens(max_tokens)
+    if len(text) <= approx_chars and count_tokens(text) <= max_tokens:
+        return text
+
+    trimmed = text[:approx_chars]
+
+    if add_suffix:
+        # Try to cut at a sentence/paragraph boundary for cleaner output
+        for sep in ("\n\n", "\n", ". ", " "):
+            idx = trimmed.rfind(sep)
+            if idx > approx_chars // 2:
+                trimmed = trimmed[: idx + len(sep)]
+                break
+        return trimmed + "\n\n[… truncated …]"
+
+    # Iterative refinement for the non-suffix (worker) path
+    while count_tokens(trimmed) > max_tokens and len(trimmed) > 200:
+        trimmed = trimmed[: int(len(trimmed) * 0.9)]
+    return trimmed
+
+
+def unwrap_json_list(
+    result: Any,
+    expected_keys: tuple[str, ...] = (),
+) -> list[dict]:
+    """Unwrap an LLM JSON response that should be a list of dicts.
+
+    The LLM may return a bare list or wrap it in a dict with a key like
+    ``"files"``, ``"manifest"``, ``"entries"``, ``"questions"``, etc.
+
+    Args:
+        result: Parsed JSON value (list or dict).
+        expected_keys: Key names to probe in order when *result* is a dict.
+            After these, any remaining dict values that are lists are tried as
+            a fallback.
+
+    Returns:
+        The unwrapped ``list[dict]``.
+
+    Raises:
+        ValueError: If the result cannot be unwrapped into a list.
+    """
+    if isinstance(result, list):
+        return result
+
+    if isinstance(result, dict):
+        for key in expected_keys:
+            if key in result and isinstance(result[key], list):
+                return result[key]
+        # Fallback: first list value we find
+        for v in result.values():
+            if isinstance(v, list):
+                return v
+        raise ValueError(
+            f"Expected a JSON array, got dict with keys: {list(result.keys())}"
+        )
+
+    raise ValueError(f"Unexpected response type: {type(result)}")
+
+
 # ---------------------------------------------------------------------------
 # LLM client
 # ---------------------------------------------------------------------------
@@ -53,12 +124,14 @@ FAST_MODEL = "gemini/gemini-2.5-flash"
 
 # Rate limiting
 _semaphore: asyncio.Semaphore | None = None
+_semaphore_capacity: int = 0
 
 
 def get_semaphore(max_concurrent: int = 10) -> asyncio.Semaphore:
-    global _semaphore
-    if _semaphore is None or _semaphore._value != max_concurrent:
+    global _semaphore, _semaphore_capacity
+    if _semaphore is None or _semaphore_capacity != max_concurrent:
         _semaphore = asyncio.Semaphore(max_concurrent)
+        _semaphore_capacity = max_concurrent
     return _semaphore
 
 
@@ -127,20 +200,20 @@ async def llm_call(
 
                 text = response.choices[0].message.content
                 if not text:
-                    logger.warning(f"Empty response from {model} (attempt {attempt})")
+                    logger.warning("Empty response from %s (attempt %d)", model, attempt)
                     continue
 
                 input_tokens = getattr(response.usage, "prompt_tokens", 0)
                 output_tokens = getattr(response.usage, "completion_tokens", 0)
                 logger.debug(
-                    f"LLM call: model={model} attempt={attempt} "
-                    f"elapsed={elapsed:.1f}s in={input_tokens} out={output_tokens}"
+                    "LLM call: model=%s attempt=%d elapsed=%.1fs in=%d out=%d",
+                    model, attempt, elapsed, input_tokens, output_tokens,
                 )
                 return text
 
             except Exception as e:
                 last_error = e
-                logger.warning(f"LLM call failed (attempt {attempt}/{max_retries}): {e}")
+                logger.warning("LLM call failed (attempt %d/%d): %s", attempt, max_retries, e)
                 if attempt < max_retries:
                     await asyncio.sleep(retry_delay * attempt)
 
