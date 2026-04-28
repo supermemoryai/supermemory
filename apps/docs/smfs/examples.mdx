@@ -1,0 +1,47 @@
+---
+title: "Examples"
+sidebarTitle: "Examples"
+description: "Full working apps you can clone and run."
+icon: "code"
+---
+
+Standalone example apps showing SMFS in realistic use cases. Each one is a
+complete project with its own README, dependencies, and sample data.
+
+<CardGroup cols={2}>
+  <Card
+    title="Legal Docs Assistant"
+    icon="scale-balanced"
+    href="https://github.com/supermemoryai/examples/tree/main/legal-docs-assistant"
+  >
+    Ingest contracts into a Supermemory container, then query them with
+    semantic search. Python + Anthropic SDK.
+  </Card>
+  <Card
+    title="Docs Answering Agent"
+    icon="book"
+    href="https://github.com/supermemoryai/examples/tree/main/docs-answering-agent"
+  >
+    Ingest documentation, answer questions about it. TypeScript + Vercel AI
+    SDK.
+  </Card>
+  <Card
+    title="Customer Support Agent"
+    icon="headset"
+    href="https://github.com/supermemoryai/examples/tree/main/customer-support-agent"
+  >
+    Per-customer memory for support ticket drafting. Each customer gets their
+    own container. Python + Anthropic SDK.
+  </Card>
+</CardGroup>
+
+All examples use the [Bash Tool](/smfs/bash-tool) — the serverless-friendly
+way to give an agent a Supermemory-backed filesystem. No mount or FUSE
+required.
+
+## Running an example
+
+1. Clone the [examples repo](https://github.com/supermemoryai/examples)
+2. `cd` into the example you want
+3. Follow the README — typically: install deps, copy `.env.example` to `.env`,
+   fill in your API keys, run the ingest script, then run the agent

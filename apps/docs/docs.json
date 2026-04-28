@@ -163,7 +163,8 @@
 									"smfs/providers/vercel",
 									"smfs/providers/cloudflare"
 								]
-							}
+							},
+							"smfs/examples"
 						]
 					}
 				],
