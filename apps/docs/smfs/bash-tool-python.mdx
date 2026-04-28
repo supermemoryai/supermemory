@@ -24,25 +24,30 @@ uv add supermemory-bash
 ## Quickstart
 
 ```python
+import asyncio
 import os
 from supermemory_bash import create_bash
 
-result = await create_bash(
-    api_key=os.environ["SUPERMEMORY_API_KEY"],
-    container_tag="user_42",
-)
-bash = result.bash
-r = await bash.exec("ls /")
-print(r.stdout)
+
+async def main() -> None:
+    result = await create_bash(
+        api_key=os.environ["SUPERMEMORY_API_KEY"],
+        container_tag="user_42",
+    )
+    bash = result.bash
+    r = await bash.exec("ls /")
+    print(r.stdout)
+
+
+asyncio.run(main())
 ```
 
 `create_bash` returns a `CreateBashResult` with:
 
 - `bash`: a `Shell` instance with `.exec(cmd)`
-- `volume`: the underlying `SupermemoryVolume`
-- `tool_description`: a pre-written tool description (`str`) ready to hand to the model
-- `configure_memory_paths(paths)`: async callable to scope which paths get extracted into Supermemory
-- `refresh()`: async callable to re-prime the path index after external writes
+- `tool_description`: a pre-written tool description ready to hand to the model
+- `configure_memory_paths(paths)`: scope which paths get extracted into Supermemory
+- `refresh()`: re-prime the path index after external writes
 
 ## Use it as a model tool
 
@@ -80,7 +85,7 @@ async def run_agent(user_message: str) -> str:
         }
     ]
 
-    messages: list[dict] = [{"role": "user", "content": user_message}]
+    messages = [{"role": "user", "content": user_message}]
 
     for _ in range(10):
         response = client.messages.create(
@@ -158,7 +163,7 @@ async def run_agent(user_message: str) -> str:
         }
     ]
 
-    messages: list[dict] = [{"role": "user", "content": user_message}]
+    messages = [{"role": "user", "content": user_message}]
 
     for _ in range(10):
         response = client.chat.completions.create(
@@ -206,6 +211,7 @@ The Bash Tool inherits SMFS memory semantics. By default, files named `user.md` 
 
 ```python
 result = await create_bash(api_key=api_key, container_tag=container_tag)
+bash = result.bash
 await result.configure_memory_paths(["/notes/", "/journal.md"])
 ```
 
@@ -214,7 +220,7 @@ Trailing `/` matches recursively. No slash matches an exact file. Pass `[]` to d
 The container also exposes a virtual `profile.md` at the root: a live digest of everything in the container. Read it once at the start of a session to give the model context without walking every file.
 
 ```python
-r = await result.bash.exec("cat /profile.md")
+r = await bash.exec("cat /profile.md")
 print(r.stdout)
 ```
 
