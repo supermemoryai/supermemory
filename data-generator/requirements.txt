@@ -1,0 +1,6 @@
+litellm>=1.50.0
+pydantic>=2.0
+pydantic-settings>=2.0
+tiktoken>=0.7.0
+pyyaml>=6.0
+asyncio-pool>=0.7.0
