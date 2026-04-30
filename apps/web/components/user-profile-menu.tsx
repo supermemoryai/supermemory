@@ -38,7 +38,7 @@ export function UserProfileMenu({
 
 	const handleTryOnboarding = () => {
 		resetOrgOnboarded()
-		router.push("/onboarding?step=input&flow=welcome")
+		router.push("/old/onboarding/welcome?step=input")
 	}
 
 	const handleSignOut = () => {
@@ -53,6 +53,34 @@ export function UserProfileMenu({
 	}
 
 	if (!user) return null
+
+	const initials = (() => {
+		if (user.name) {
+			const parts = user.name.trim().split(/\s+/)
+			return parts.length >= 2
+				? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+				: parts[0].slice(0, 2).toUpperCase()
+		}
+		if (user.email) return user.email.slice(0, 2).toUpperCase()
+		return "SM"
+	})()
+
+	const avatarColor = (() => {
+		const palette = [
+			"#0e2244", // navy blue
+			"#1a1a3e", // deep indigo
+			"#1e1030", // dark violet
+			"#0d2e2e", // dark teal
+			"#2a1020", // dark rose
+			"#1a2a10", // deep forest
+			"#2e1a0a", // dark amber
+			"#0a1e2e", // ocean
+		]
+		const seed = user.email ?? user.name ?? ""
+		let hash = 0
+		for (let i = 0; i < seed.length; i++) hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+		return palette[((hash % palette.length) + palette.length) % palette.length]
+	})()
 
 	return (
 		<DropdownMenu>
@@ -73,8 +101,11 @@ export function UserProfileMenu({
 						className={cn("size-9 border border-[#161F2C]", avatarClassName)}
 					>
 						<AvatarImage src={user.image ?? ""} />
-						<AvatarFallback className="bg-[#0D121A] text-xs font-medium text-white">
-							{user.name?.charAt(0)}
+						<AvatarFallback
+							className="text-xs font-medium text-white"
+							style={{ background: avatarColor }}
+						>
+							{initials}
 						</AvatarFallback>
 					</Avatar>
 					{!planLoading && planBadgeLabel ? (
@@ -113,11 +144,18 @@ export function UserProfileMenu({
 					Settings
 				</DropdownMenuItem>
 				<DropdownMenuItem
+					onClick={() => router.push("/onboarding")}
+					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+				>
+					<RotateCcw className="h-4 w-4 text-[#737373]" />
+					Try new onboarding
+				</DropdownMenuItem>
+				<DropdownMenuItem
 					onClick={handleTryOnboarding}
 					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 				>
 					<RotateCcw className="h-4 w-4 text-[#737373]" />
-					Restart Onboarding
+					Try old onboarding
 				</DropdownMenuItem>
 				{onOpenFeedback ? (
 					<DropdownMenuItem

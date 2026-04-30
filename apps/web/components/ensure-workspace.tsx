@@ -20,7 +20,7 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 		if (organizations === null) return
 		if (organizations.length > 0) return
 		if (pathname.startsWith("/onboarding")) return
-		router.replace("/onboarding/welcome?step=input")
+		router.replace("/onboarding")
 	}, [session, organizations, isRestoring, pathname, router])
 
 	return children

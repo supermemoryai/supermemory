@@ -256,7 +256,7 @@ export function ProfileStep({ onSubmit }: ProfileStepProps) {
 							description_length: description.trim().length,
 						})
 						onSubmit(formData)
-						router.push("/onboarding/setup?step=relatable")
+						router.push("/old/onboarding/setup?step=integrations")
 					}}
 				>
 					{isSubmitting ? "Fetching..." : "Remember this →"}

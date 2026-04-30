@@ -11,7 +11,6 @@ import { OnboardingContentStep } from "@/components/onboarding/welcome/continue-
 import { InitialHeader } from "@/components/initial-header"
 import { Logo } from "@ui/assets/Logo"
 import NovaOrb from "@/components/nova/nova-orb"
-import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 
 import {
 	useWelcomeContext,
@@ -215,11 +214,7 @@ export default function WelcomePage() {
 				name={name}
 			/>
 
-			{currentStep === "input" && (
-				<AnimatedGradientBackground animateFromBottom={true} />
-			)}
-
-			{showWelcomeContent && (
+{showWelcomeContent && (
 				<div className="fixed inset-0 flex flex-col items-center justify-center overflow-y-auto">
 					<motion.div
 						className="absolute inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat pointer-events-none"
@@ -248,7 +243,6 @@ export default function WelcomePage() {
 							initial={{
 								padding: 0,
 								paddingTop: 0,
-								y: 60,
 							}}
 							className="relative"
 						>

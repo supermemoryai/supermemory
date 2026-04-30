@@ -171,14 +171,7 @@ export function IntegrationsStep() {
 				})}
 			</div>
 
-			<div className="flex justify-between w-full max-w-4xl">
-				<Button
-					variant="link"
-					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"
-					onClick={() => router.push("/onboarding/setup?step=relatable")}
-				>
-					← Back
-				</Button>
+			<div className="flex justify-end w-full max-w-4xl">
 				<Button
 					variant="link"
 					className="text-white hover:text-gray-300 hover:no-underline cursor-pointer"

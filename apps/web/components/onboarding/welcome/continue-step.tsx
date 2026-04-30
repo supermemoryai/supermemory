@@ -42,11 +42,11 @@ export function OnboardingContentStep({
 	const router = useRouter()
 
 	const handleContinue = () => {
-		router.push("/onboarding/welcome?step=features")
+		router.push("/old/onboarding/welcome?step=features")
 	}
 
 	const handleAddMemories = () => {
-		router.push("/onboarding/welcome?step=memories")
+		router.push("/old/onboarding/welcome?step=memories")
 	}
 
 	const isContinue = currentView === "continue"

@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useOnboardingContext, type MemoryFormData } from "../layout"
 import { analytics } from "@/lib/analytics"
 
-export const SETUP_STEPS = ["relatable", "integrations"] as const
+export const SETUP_STEPS = ["integrations"] as const
 export type SetupStep = (typeof SETUP_STEPS)[number]
 
 interface SetupContextValue {
@@ -41,7 +41,7 @@ export default function SetupLayout({ children }: { children: ReactNode }) {
 	const stepParam = searchParams.get("step")
 	const currentStep: SetupStep = SETUP_STEPS.includes(stepParam as SetupStep)
 		? (stepParam as SetupStep)
-		: "relatable"
+		: "integrations"
 	const hasTrackedInitialStep = useRef(false)
 
 	const goToStep = useCallback(
