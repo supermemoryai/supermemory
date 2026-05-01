@@ -32,6 +32,7 @@ import {
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
 import { analytics } from "@/lib/analytics"
+import { consumePendingConnectUrl } from "@/lib/constants"
 
 type DetectedSource = "x" | "linkedin" | "resume" | null
 type Status = "idle" | "processing" | "done" | "error"
@@ -374,6 +375,12 @@ export default function OnboardingPage() {
 	const skippingRef = useRef(false)
 	const [spotlightCategory, setSpotlightCategory] =
 		useState<SpotlightCategoryId>("productivity")
+
+	/** Navigate home, or back to the plugin connect page if one is pending. */
+	const goHomeOrPendingConnect = useCallback(() => {
+		const pendingPath = consumePendingConnectUrl()
+		router.push(pendingPath ?? "/")
+	}, [router])
 	const [pauseSpotlight, setPauseSpotlight] = useState(false)
 
 	const spotlightCatalog = useMemo(
@@ -467,7 +474,8 @@ export default function OnboardingPage() {
 		skippingRef.current = true
 		try {
 			await ensureOrg()
-			router.push("/")
+			const pendingPath = consumePendingConnectUrl()
+			router.push(pendingPath ?? "/")
 		} catch (err) {
 			console.error(err)
 			skippingRef.current = false
@@ -1077,7 +1085,7 @@ export default function OnboardingPage() {
 								</button>
 								<button
 									type="button"
-									onClick={() => router.push("/")}
+									onClick={goHomeOrPendingConnect}
 									className="text-sm text-[#3A4A5E] hover:text-[#6B7A8D] transition-colors cursor-pointer"
 								>
 									Go to home

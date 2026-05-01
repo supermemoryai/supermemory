@@ -5,6 +5,7 @@ import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { analytics } from "@/lib/analytics"
+import { consumePendingConnectUrl } from "@/lib/constants"
 
 export function InitialHeader({
 	showUserSupermemory,
@@ -22,7 +23,8 @@ export function InitialHeader({
 	const handleSkip = () => {
 		markOrgOnboarded()
 		analytics.onboardingCompleted()
-		router.push("/")
+		const pendingPath = consumePendingConnectUrl()
+		router.push(pendingPath ?? "/")
 	}
 
 	return (
