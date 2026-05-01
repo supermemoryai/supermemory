@@ -10,6 +10,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { analytics } from "@/lib/analytics"
+import { consumePendingConnectUrl } from "@/lib/constants"
 
 export function SetupHeader() {
 	const { user } = useAuth()
@@ -20,7 +21,8 @@ export function SetupHeader() {
 	const handleSkip = () => {
 		markOrgOnboarded()
 		analytics.onboardingCompleted()
-		router.push("/")
+		const pendingPath = consumePendingConnectUrl()
+		router.push(pendingPath ?? "/")
 	}
 
 	const displayName =

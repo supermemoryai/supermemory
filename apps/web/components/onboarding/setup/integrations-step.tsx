@@ -10,6 +10,7 @@ import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { analytics } from "@/lib/analytics"
+import { consumePendingConnectUrl } from "@/lib/constants"
 
 const integrationCards = [
 	{
@@ -67,7 +68,8 @@ export function IntegrationsStep() {
 	const handleContinue = () => {
 		markOrgOnboarded()
 		analytics.onboardingCompleted()
-		router.push("/")
+		const pendingPath = consumePendingConnectUrl()
+		router.push(pendingPath ?? "/")
 	}
 
 	if (selectedCard === "Connect to AI") {

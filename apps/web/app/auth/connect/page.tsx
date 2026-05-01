@@ -7,8 +7,10 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { useCustomer } from "autumn-js/react"
 import { ArrowRight, Loader, XCircle } from "lucide-react"
 import Image from "next/image"
-import { useSearchParams } from "next/navigation"
-import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+
+import { PENDING_CONNECT_URL_KEY } from "@/lib/constants"
 
 const API_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
@@ -105,8 +107,9 @@ const cardClass = cn(
 
 function AuthConnectContent() {
 	const params = useSearchParams()
+	const router = useRouter()
 	const { data: session, isPending } = useSession()
-	const { org } = useAuth()
+	const { org, organizations, isRestoring } = useAuth()
 	const autumn = useCustomer()
 	const [status, setStatus] = useState<Status>("loading")
 	const [error, setError] = useState<string | null>(null)
@@ -117,6 +120,29 @@ function AuthConnectContent() {
 	const validClient = client && client in PLUGIN_INFO ? client : null
 	const displayName = validClient ? getPluginName(validClient) : "External Tool"
 	const pluginInfo = validClient ? PLUGIN_INFO[validClient] : null
+
+	// Redirect new users (logged in but no organization) to onboarding.
+	// Store the current connect URL so onboarding can redirect back here.
+	const shouldRedirectToOnboarding =
+		!isPending &&
+		!isRestoring &&
+		!!session &&
+		Array.isArray(organizations) &&
+		organizations.length === 0
+
+	useEffect(() => {
+		if (isPending || isRestoring) return
+		if (!session) return
+		if (organizations === null) return // orgs query still pending
+		if (organizations.length > 0) return // has orgs, nothing to do
+
+		try {
+			sessionStorage.setItem(PENDING_CONNECT_URL_KEY, window.location.href)
+		} catch (e) {
+			console.warn("Failed to access sessionStorage for pending connect URL", e)
+		}
+		router.replace("/onboarding")
+	}, [isPending, isRestoring, session, organizations, router])
 
 	async function handleConnect() {
 		if (!callback) {
@@ -129,7 +155,13 @@ function AuthConnectContent() {
 			setError("Invalid callback URL.")
 			return
 		}
-		if (!session || !org) return
+		if (!session || !org) {
+			setStatus("error")
+			setError(
+				"Your account is not fully set up yet. Please complete onboarding first.",
+			)
+			return
+		}
 
 		try {
 			setStatus("creating")
@@ -178,7 +210,10 @@ function AuthConnectContent() {
 		}
 	}
 
-	if (isPending) {
+	// Show a spinner while session/org data is loading or while we're about
+	// to redirect to onboarding (prevents a brief flash of the connect card).
+	const isAuthLoading = isPending || isRestoring || organizations === null
+	if (isAuthLoading || shouldRedirectToOnboarding) {
 		return (
 			<div className="flex items-center justify-center min-h-screen bg-background">
 				<div className="size-6 border-2 border-[#4BA0FA] border-t-transparent rounded-full animate-spin" />

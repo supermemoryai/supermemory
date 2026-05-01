@@ -11,6 +11,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import { useOnboardingContext, type MemoryFormData } from "../layout"
 import { analytics } from "@/lib/analytics"
+import { consumePendingConnectUrl } from "@/lib/constants"
 
 export const SETUP_STEPS = ["integrations"] as const
 export type SetupStep = (typeof SETUP_STEPS)[number]
@@ -61,7 +62,11 @@ export default function SetupLayout({ children }: { children: ReactNode }) {
 
 	const finishOnboarding = useCallback(() => {
 		resetOnboarding()
-		router.push("/")
+
+		// If the user arrived from the plugin connect page (e.g. OpenCode),
+		// redirect back there so the auth flow can complete automatically.
+		const pendingPath = consumePendingConnectUrl()
+		router.push(pendingPath ?? "/")
 	}, [router, resetOnboarding])
 
 	useEffect(() => {
