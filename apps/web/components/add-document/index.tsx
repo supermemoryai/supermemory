@@ -5,7 +5,7 @@ import { useQueryState } from "nuqs"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { FileTextIcon, GlobeIcon, ZapIcon, Loader2 } from "lucide-react"
+import { FileTextIcon, GlobeIcon, ZapIcon, Loader2, XIcon } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { ConnectContent } from "./connections"
 import { NoteContent } from "./note"
@@ -35,10 +35,10 @@ export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
 			<DialogContent
 				className={cn(
-					"border-none bg-[#1B1F24] flex flex-col p-3 md:p-4 gap-3",
+					"border-none bg-[#1B1F24] flex flex-col",
 					isMobile
-						? "w-[calc(100vw-1rem)]! h-[calc(100dvh-1rem)]! max-w-none! max-h-none! rounded-xl"
-						: "w-[80%]! max-w-[1000px]! h-[80%]! max-h-[800px]! rounded-[22px]",
+						? "top-2! left-2! translate-x-0! translate-y-0! w-[calc(100vw-1rem)]! h-[calc(100dvh-1rem)]! max-w-none! max-h-none! rounded-[18px] p-0 gap-0 overflow-hidden"
+						: "w-[80%]! max-w-[1000px]! h-[80%]! max-h-[800px]! rounded-[22px] p-4 gap-3",
 					dmSansClassName(),
 				)}
 				style={{
@@ -48,7 +48,7 @@ export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 				showCloseButton={false}
 			>
 				<DialogTitle className="sr-only">Add Document</DialogTitle>
-				<div className="flex-1 overflow-hidden">
+				<div className="min-h-0 flex-1 overflow-hidden">
 					<AddDocument onClose={onClose} isOpen={isOpen} />
 				</div>
 			</DialogContent>
@@ -259,19 +259,44 @@ export function AddDocument({
 		activeTab === "file" && (!fileTabHasPending || isSubmitting)
 
 	return (
-		<div className="h-full flex flex-col md:flex-row text-white md:space-x-5 space-y-3 md:space-y-0">
+		<div className="flex h-full min-h-0 flex-col overflow-hidden text-white md:flex-row md:space-x-5">
 			<div
 				className={cn(
 					"flex flex-col justify-between",
-					isMobile ? "w-full" : "w-1/3",
+					isMobile
+						? "w-full shrink-0 border-b border-[#0F1621] bg-[#1B1F24] px-3 pt-3 pb-3"
+						: "w-1/3",
 				)}
 			>
+				{isMobile && (
+					<div className="mb-3 flex items-center justify-between">
+						<div>
+							<p
+								className={cn(
+									"text-sm font-medium text-white",
+									dmSansClassName(),
+								)}
+							>
+								Add memory
+							</p>
+							<p className="text-xs text-[#737373]">
+								Save something to recall later
+							</p>
+						</div>
+						<button
+							type="button"
+							onClick={onClose}
+							disabled={isSubmitting}
+							className="flex size-9 items-center justify-center rounded-full border border-[#1F2937] bg-[#0D121A] text-[#8B8B8B] transition-colors hover:text-white disabled:opacity-50"
+							aria-label="Close add memory"
+						>
+							<XIcon className="size-4" />
+						</button>
+					</div>
+				)}
 				<div
 					className={cn(
-						"flex gap-1",
-						isMobile
-							? "flex-row overflow-x-auto pb-2 scrollbar-thin"
-							: "flex-col",
+						isMobile ? "grid grid-cols-4 gap-1" : "flex flex-col gap-1",
 					)}
 				>
 					{tabs.map((tab) => (
@@ -287,6 +312,31 @@ export function AddDocument({
 						/>
 					))}
 				</div>
+
+				{isMobile && (
+					<div className="mt-3 grid grid-cols-2 gap-2">
+						<UsageMeter
+							label="Credits"
+							value={
+								isLoadingUsage
+									? "..."
+									: `${tokensToCredits(tokensUsed)} / ${tokensToCredits(tokensLimit)}`
+							}
+							percent={tokensPercent}
+							active={hasPaidPlan}
+						/>
+						<UsageMeter
+							label="Searches"
+							value={
+								isLoadingUsage
+									? "..."
+									: `${formatUsageNumber(searchesUsed)} / ${formatUsageNumber(searchesLimit)}`
+							}
+							percent={searchesPercent}
+							active={hasPaidPlan}
+						/>
+					</div>
+				)}
 
 				{!isMobile && (
 					<div data-testid="usage-counter" className="flex flex-col gap-3 mr-4">
@@ -414,11 +464,11 @@ export function AddDocument({
 
 			<div
 				className={cn(
-					"flex flex-col flex-1 min-h-0 px-1",
-					isMobile ? "w-full" : "w-2/3",
+					"flex min-h-0 flex-1 flex-col",
+					isMobile ? "w-full px-3 pt-3" : "w-2/3 px-1",
 				)}
 			>
-				<div className="overflow-auto flex-1 min-h-0 scrollbar-thin">
+				<div className="min-h-0 flex-1 overflow-auto scrollbar-thin">
 					{activeTab === "note" && (
 						<NoteContent
 							onSubmit={handleNoteSubmit}
@@ -452,8 +502,10 @@ export function AddDocument({
 				</div>
 				<div
 					className={cn(
-						"flex gap-2 pt-3 shrink-0",
-						isMobile ? "flex-col" : "justify-between",
+						"flex shrink-0 gap-2",
+						isMobile
+							? "mx-[-0.75rem] mt-3 border-t border-[#0F1621] bg-[#1B1F24] px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+							: "justify-between pt-3",
 					)}
 				>
 					{!isMobile && (
@@ -467,13 +519,19 @@ export function AddDocument({
 						/>
 					)}
 					<div
-						className={cn("flex items-center gap-2", isMobile && "justify-end")}
+						className={cn(
+							"flex items-center gap-2",
+							isMobile && "w-full justify-end",
+						)}
 					>
 						<Button
 							variant="ghost"
 							onClick={onClose}
 							disabled={isSubmitting}
-							className="text-[#737373] cursor-pointer rounded-full"
+							className={cn(
+								"cursor-pointer rounded-full text-[#737373]",
+								isMobile && "h-11 px-4",
+							)}
 						>
 							Cancel
 						</Button>
@@ -484,6 +542,7 @@ export function AddDocument({
 								disabled={
 									activeTab === "file" ? fileTabSubmitDisabled : isSubmitting
 								}
+								className={cn(isMobile && "h-11 min-w-[8rem] px-5")}
 							>
 								{isSubmitting ? (
 									<>
@@ -514,6 +573,53 @@ export function AddDocument({
 	)
 }
 
+function UsageMeter({
+	label,
+	value,
+	percent,
+	active,
+}: {
+	label: string
+	value: string
+	percent: number
+	active: boolean
+}) {
+	const safePercent = Math.max(0, Math.min(100, percent))
+
+	return (
+		<div className="rounded-xl border border-[#0F1621] bg-[#10151C] px-3 py-2 shadow-inside-out">
+			<div className="mb-1.5 flex items-center justify-between gap-2">
+				<span className="truncate text-[11px] font-medium text-[#FAFAFA]">
+					{label}
+				</span>
+				<span
+					className={cn(
+						"shrink-0 text-[10px] font-medium",
+						active ? "text-[#4BA0FA]" : "text-[#8B8B8B]",
+						dmSansClassName(),
+					)}
+				>
+					{value}
+				</span>
+			</div>
+			<div className="h-1.5 w-full overflow-hidden rounded-full bg-[#2E353D] p-px">
+				<div
+					className="h-full rounded-full"
+					style={{
+						width: `${safePercent}%`,
+						background:
+							safePercent > 80
+								? "#ef4444"
+								: active
+									? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
+									: "#0054AD",
+					}}
+				/>
+			</div>
+		</div>
+	)
+}
+
 function TabButton({
 	active,
 	onClick,
@@ -537,19 +643,24 @@ function TabButton({
 				type="button"
 				onClick={onClick}
 				className={cn(
-					"flex items-center gap-2 px-3 py-2 rounded-full text-left transition-colors whitespace-nowrap focus:outline-none focus:ring-0 shrink-0",
-					active ? "bg-[#14161A] shadow-inside-out" : "hover:bg-[#14161A]/50",
+					"relative flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-center transition-colors focus:outline-none focus:ring-0",
+					active
+						? "bg-[#0F141B] text-white shadow-inside-out ring-1 ring-[#2261CA33]"
+						: "text-[#8B8B8B] hover:bg-[#14161A]/50",
 					dmSansClassName(),
 				)}
 			>
-				<Icon className={cn("size-4 shrink-0 text-white")} />
+				<Icon className="size-3.5 shrink-0" />
 				<span
-					className={cn("font-medium text-white text-sm", dmSansClassName())}
+					className={cn(
+						"min-w-0 truncate text-xs font-medium leading-none",
+						dmSansClassName(),
+					)}
 				>
 					{title.split(" ")[0]}
 				</span>
 				{isPro && (
-					<span className="bg-[#4BA0FA] text-black text-[8px] font-semibold px-1 py-0.5 rounded">
+					<span className="absolute top-1 right-1 rounded bg-[#4BA0FA] px-1 py-0.5 text-[7px] font-semibold leading-none text-black">
 						PRO
 					</span>
 				)}
