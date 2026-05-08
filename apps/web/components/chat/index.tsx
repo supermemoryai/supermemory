@@ -164,8 +164,9 @@ export function ChatSidebar({
 	const isMobile = useIsMobile()
 	const isPageDesktop = layout === "page" && !isMobile
 	const [input, setInput] = useState("")
-	const [selectedModel, setSelectedModel] =
-		useState<ModelId>(initialSelectedModel ?? "claude-sonnet-4.6")
+	const [selectedModel, setSelectedModel] = useState<ModelId>(
+		initialSelectedModel ?? "claude-sonnet-4.6",
+	)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
