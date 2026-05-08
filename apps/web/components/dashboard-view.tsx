@@ -7,12 +7,14 @@ import { $fetch } from "@lib/api"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import {
 	ArrowRight,
 	ExternalLink,
 	FileText,
 	Lightbulb,
 	Link2,
+	Plug,
 	RotateCcw,
 	SearchIcon,
 	Terminal,
@@ -292,6 +294,262 @@ const PLUGIN_STATIC = [
 		cta: "Connect",
 	},
 ] as const
+
+// Plugin catalog for tool usage display - maps plugin IDs to display names and icons
+const PLUGIN_DISPLAY_CATALOG: Record<
+	string,
+	{ name: string; icon: string; type: "Plugin" }
+> = {
+	claude_code: {
+		name: "Claude Code",
+		icon: "/images/plugins/claude-code.svg",
+		type: "Plugin",
+	},
+	opencode: {
+		name: "OpenCode",
+		icon: "/images/plugins/opencode.svg",
+		type: "Plugin",
+	},
+	openclaw: {
+		name: "OpenClaw",
+		icon: "/images/plugins/openclaw.svg",
+		type: "Plugin",
+	},
+	hermes: {
+		name: "Hermes",
+		icon: "/images/plugins/hermes.svg",
+		type: "Plugin",
+	},
+}
+
+// Types for tool usage
+interface ToolUsageItem {
+	id: string
+	name: string
+	type: "Plugin" | "MCP"
+	icon: string | null
+	lastUsedAt: Date | null
+	hasBeenUsed: boolean
+}
+
+// Parse API keys to extract tool usage data
+function parseToolUsage(
+	apiKeys: Array<{
+		id: string
+		name: string
+		createdAt: string
+		lastRequest: string | null
+		metadata: string
+	}>,
+): ToolUsageItem[] {
+	const toolMap = new Map<string, ToolUsageItem>()
+
+	for (const key of apiKeys) {
+		let meta: Record<string, unknown> = {}
+		try {
+			meta = key.metadata ? JSON.parse(key.metadata) : {}
+		} catch {
+			continue
+		}
+
+		const smType = meta.sm_type as string | undefined
+		const smClient = meta.sm_client as string | undefined
+		const smSource = meta.sm_source as string | undefined
+		const smKind = meta.sm_kind as string | undefined
+
+		// Plugin keys
+		if (smType === "plugin_auth" && smClient) {
+			const catalog = PLUGIN_DISPLAY_CATALOG[smClient]
+			const existingItem = toolMap.get(`plugin_${smClient}`)
+			const lastUsed = key.lastRequest
+				? new Date(key.lastRequest)
+				: key.createdAt
+					? new Date(key.createdAt)
+					: null
+			const existingLastUsed = existingItem?.lastUsedAt
+
+			// Keep the most recent usage
+			if (
+				!existingItem ||
+				(lastUsed &&
+					(!existingLastUsed ||
+						lastUsed.getTime() > existingLastUsed.getTime()))
+			) {
+				toolMap.set(`plugin_${smClient}`, {
+					id: `plugin_${smClient}`,
+					name: catalog?.name ?? smClient,
+					type: "Plugin",
+					icon: catalog?.icon ?? null,
+					lastUsedAt: lastUsed,
+					hasBeenUsed: !!key.lastRequest,
+				})
+			}
+		}
+
+		// MCP keys
+		if (smSource === "mcp" || smKind === "mcp_oauth_exchange") {
+			const existingItem = toolMap.get("mcp")
+			const lastUsed = key.lastRequest
+				? new Date(key.lastRequest)
+				: key.createdAt
+					? new Date(key.createdAt)
+					: null
+			const existingLastUsed = existingItem?.lastUsedAt
+
+			// Keep the most recent usage
+			if (
+				!existingItem ||
+				(lastUsed &&
+					(!existingLastUsed ||
+						lastUsed.getTime() > existingLastUsed.getTime()))
+			) {
+				// Try to get MCP client name from metadata
+				const mcpClientName = meta.sm_internal_mcp_client_name as
+					| string
+					| undefined
+				toolMap.set("mcp", {
+					id: "mcp",
+					name: mcpClientName || "Supermemory MCP",
+					type: "MCP",
+					icon: null,
+					lastUsedAt: lastUsed,
+					hasBeenUsed: !!key.lastRequest,
+				})
+			}
+		}
+	}
+
+	// Sort by lastUsedAt (most recent first), then by hasBeenUsed
+	return Array.from(toolMap.values()).sort((a, b) => {
+		// Items that have been used come first
+		if (a.hasBeenUsed !== b.hasBeenUsed) {
+			return a.hasBeenUsed ? -1 : 1
+		}
+		// Then sort by recency
+		if (!a.lastUsedAt && !b.lastUsedAt) return 0
+		if (!a.lastUsedAt) return 1
+		if (!b.lastUsedAt) return -1
+		return b.lastUsedAt.getTime() - a.lastUsedAt.getTime()
+	})
+}
+
+// Format relative time for tool usage
+function formatToolUsageTime(date: Date | null, hasBeenUsed: boolean): string {
+	if (!hasBeenUsed) return "Never used"
+	if (!date) return "Connected"
+	const diffMs = Date.now() - date.getTime()
+	const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+	const diffDays = Math.floor(diffHours / 24)
+	if (diffHours < 1) return "Just now"
+	if (diffHours < 24) return `${diffHours}h ago`
+	if (diffDays === 1) return "Yesterday"
+	if (diffDays < 7) return `${diffDays}d ago`
+	return date.toLocaleDateString()
+}
+
+function RecentToolUsageCard({
+	items,
+	onOpenPlugins,
+	onOpenIntegrations,
+}: {
+	items: ToolUsageItem[]
+	onOpenPlugins: () => void
+	onOpenIntegrations: (integration?: IntegrationParamValue) => void
+}) {
+	// Show at most 3 items
+	const displayItems = items.slice(0, 3)
+
+	// Empty state - no tool activity
+	if (displayItems.length === 0) {
+		return (
+			<div
+				className={cn(
+					"bg-surface-card/60 backdrop-blur-md rounded-xl px-3 py-4 flex flex-col items-center justify-center gap-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.22)] h-full min-h-[120px]",
+					dmSansClassName(),
+				)}
+			>
+				<Plug className="size-5 text-fg-faint" />
+				<p className="text-[11px] text-fg-subtle text-center">
+					No recent tool activity
+				</p>
+				<button
+					type="button"
+					onClick={onOpenPlugins}
+					className="text-[11px] font-medium text-[#5EA8FF] hover:text-[#8BC6FF] transition-colors cursor-pointer"
+				>
+					Set up integrations →
+				</button>
+			</div>
+		)
+	}
+
+	return (
+		<div
+			className={cn(
+				"bg-surface-card/60 backdrop-blur-md rounded-xl px-3 py-2 flex flex-col gap-0.5 shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
+				dmSansClassName(),
+			)}
+		>
+			<ul>
+				{displayItems.map((item) => (
+					<li key={item.id}>
+						<button
+							type="button"
+							onClick={() => {
+								if (item.type === "Plugin") {
+									onOpenPlugins()
+								} else {
+									// Open MCP settings
+									onOpenIntegrations("mcp" as IntegrationParamValue)
+								}
+							}}
+							className="group w-full flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover transition-colors cursor-pointer"
+						>
+							{/* Icon */}
+							<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border group-hover:ring-[#3A4A63] transition-colors">
+								{item.icon ? (
+									<Image
+										src={item.icon}
+										alt={item.name}
+										width={16}
+										height={16}
+										className="size-4"
+									/>
+								) : item.type === "MCP" ? (
+									<MCPIcon className="size-4" />
+								) : (
+									<Plug className="size-4 text-fg-subtle" />
+								)}
+							</div>
+
+							{/* Name and type */}
+							<div className="flex-1 min-w-0 text-left">
+								<p className="text-[12px] text-fg-secondary group-hover:text-white transition-colors leading-tight truncate">
+									{item.name}
+								</p>
+								<p className="text-[10px] text-fg-faint leading-tight mt-0.5">
+									{item.type}
+								</p>
+							</div>
+
+							{/* Last used */}
+							<span
+								className={cn(
+									"shrink-0 text-[10px] transition-colors",
+									item.hasBeenUsed
+										? "text-fg-muted group-hover:text-fg-secondary"
+										: "text-fg-faint",
+								)}
+							>
+								{formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)}
+							</span>
+						</button>
+					</li>
+				))}
+			</ul>
+		</div>
+	)
+}
 
 function RecommendedPluginsCard({
 	profession,
@@ -678,6 +936,35 @@ export function DashboardView({
 		enabled: !!user,
 	})
 
+	// Fetch API keys for tool usage tracking
+	const { data: apiKeysData } = useQuery({
+		queryKey: ["api-keys-tool-usage"],
+		queryFn: async () => {
+			const API_URL =
+				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+			const res = await fetch(`${API_URL}/v3/auth/keys`, {
+				credentials: "include",
+			})
+			if (!res.ok) return { keys: [] }
+			return (await res.json()) as {
+				keys: Array<{
+					id: string
+					name: string
+					createdAt: string
+					lastRequest: string | null
+					metadata: string
+				}>
+			}
+		},
+		staleTime: 5 * 60 * 1000,
+		enabled: !!user,
+	})
+
+	const toolUsageItems = useMemo(
+		() => parseToolUsage(apiKeysData?.keys ?? []),
+		[apiKeysData],
+	)
+
 	const {
 		copy: personalizedCopy,
 		profession,
@@ -839,7 +1126,7 @@ export function DashboardView({
 					</p>
 				</motion.section>
 
-				{/* Recently saved + Suggested for you */}
+				{/* Recently saved + Suggested for you + Pick up where you left off */}
 				<motion.section
 					{...fadeUp}
 					transition={{ ...fadeUp.transition, delay: 0.15 }}
@@ -847,7 +1134,7 @@ export function DashboardView({
 				>
 					{recents.length > 0 ? (
 						<>
-							{/* Shared header row — both labels aligned */}
+							{/* Shared header row — all labels aligned */}
 							<div className="flex gap-4">
 								<div className="flex-[3] min-w-0">
 									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
@@ -857,6 +1144,11 @@ export function DashboardView({
 								<div className="flex-[2] min-w-0 hidden sm:block">
 									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 										Suggested for you
+									</p>
+								</div>
+								<div className="flex-[2] min-w-0 hidden lg:block">
+									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+										Pick up where you left off
 									</p>
 								</div>
 							</div>
@@ -900,24 +1192,82 @@ export function DashboardView({
 										onOpenIntegrations={onOpenIntegrations}
 									/>
 								</div>
+
+								{/* Pick up where you left off - desktop only */}
+								<div className="flex-[2] min-w-0 hidden lg:block">
+									<RecentToolUsageCard
+										items={toolUsageItems}
+										onOpenPlugins={onOpenPlugins}
+										onOpenIntegrations={onOpenIntegrations}
+									/>
+								</div>
 							</div>
+
+							{/* Mobile/tablet: Show pick up where you left off below */}
+							{toolUsageItems.length > 0 && (
+								<div className="block lg:hidden mt-4 space-y-2">
+									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+										Pick up where you left off
+									</p>
+									<RecentToolUsageCard
+										items={toolUsageItems}
+										onOpenPlugins={onOpenPlugins}
+										onOpenIntegrations={onOpenIntegrations}
+									/>
+								</div>
+							)}
 						</>
 					) : (
-						/* No recents yet — show suggestions full-width */
+						/* No recents yet — show suggestions and tool usage */
 						<>
-							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-								Suggested for you
-							</p>
-							<div className="max-w-sm">
-								<RecommendedPluginsCard
-									profession={profession}
-									setProfession={setProfession}
-									connectedProviders={connectedProviders}
-									hasMcp={hasMcp}
-									onOpenPlugins={onOpenPlugins}
-									onOpenIntegrations={onOpenIntegrations}
-								/>
+							<div className="flex gap-4">
+								<div className="flex-1 min-w-0">
+									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+										Suggested for you
+									</p>
+								</div>
+								{toolUsageItems.length > 0 && (
+									<div className="flex-1 min-w-0 hidden sm:block">
+										<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+											Pick up where you left off
+										</p>
+									</div>
+								)}
 							</div>
+							<div className="flex gap-4 items-start">
+								<div className="flex-1 min-w-0 max-w-sm">
+									<RecommendedPluginsCard
+										profession={profession}
+										setProfession={setProfession}
+										connectedProviders={connectedProviders}
+										hasMcp={hasMcp}
+										onOpenPlugins={onOpenPlugins}
+										onOpenIntegrations={onOpenIntegrations}
+									/>
+								</div>
+								{toolUsageItems.length > 0 && (
+									<div className="flex-1 min-w-0 max-w-sm hidden sm:block">
+										<RecentToolUsageCard
+											items={toolUsageItems}
+											onOpenPlugins={onOpenPlugins}
+											onOpenIntegrations={onOpenIntegrations}
+										/>
+									</div>
+								)}
+							</div>
+							{/* Mobile: Show tool usage below */}
+							{toolUsageItems.length > 0 && (
+								<div className="block sm:hidden mt-4 space-y-2">
+									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+										Pick up where you left off
+									</p>
+									<RecentToolUsageCard
+										items={toolUsageItems}
+										onOpenPlugins={onOpenPlugins}
+										onOpenIntegrations={onOpenIntegrations}
+									/>
+								</div>
+							)}
 						</>
 					)}
 				</motion.section>
