@@ -165,7 +165,9 @@ export function ChatSidebar({
 	const isPageDesktop = layout === "page" && !isMobile
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] =
-		useState<ModelId>("claude-sonnet-4.6")
+		useState<ModelId>(initialSelectedModel ?? "claude-sonnet-4.6")
+	const selectedModelRef = useRef(selectedModel)
+	selectedModelRef.current = selectedModel
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -187,6 +189,8 @@ export function ChatSidebar({
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
+	const selectedProjectRef = useRef(selectedProject)
+	selectedProjectRef.current = selectedProject
 	const chatSpaceLabel = useMemo(
 		() =>
 			getChatSpaceDisplayLabel({
@@ -206,23 +210,26 @@ export function ChatSidebar({
 		(id: string) => setThreadId(id),
 		[setThreadId],
 	)
+	const chatApiBase =
+		process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
 	const chatTransport = useMemo(
 		() =>
 			new DefaultChatTransport({
-				api: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/chat`,
+				api: `${chatApiBase}/chat`,
 				credentials: "include",
 				prepareSendMessagesRequest: ({ messages }) => ({
 					body: {
 						messages,
 						metadata: {
 							chatId: chatIdRef.current,
-							projectId: selectedProject,
-							model: selectedModel,
+							projectId: selectedProjectRef.current,
+							model: selectedModelRef.current,
 						},
 					},
 				}),
 			}),
-		[selectedProject, selectedModel],
+		[chatApiBase],
 	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
@@ -502,6 +509,10 @@ export function ChatSidebar({
 			status !== "streaming" &&
 			sentQueuedMessageRef.current !== queuedMessage
 		) {
+			if (initialSelectedModel && selectedModel !== initialSelectedModel) {
+				setSelectedModel(initialSelectedModel)
+				return
+			}
 			sentQueuedMessageRef.current = queuedMessage
 			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatMessageSent({ source: queuedMessageSource })
@@ -512,6 +523,8 @@ export function ChatSidebar({
 		isChatOpen,
 		queuedMessage,
 		queuedMessageSource,
+		initialSelectedModel,
+		selectedModel,
 		status,
 		sendMessage,
 		onConsumeQueuedMessage,
