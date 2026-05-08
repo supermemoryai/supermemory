@@ -515,12 +515,11 @@ export default function NewPage() {
 	const gradientTopPosition = gradientTopPositionForWidth(viewportWidth)
 
 	const isChatView = viewMode === "chat"
-	const isGraphMode = viewMode === "graph" && !isMobile
+	const isGraphMode = viewMode === "graph"
 	const isMemoriesDesktop = viewMode === "list" && !isMobile
 	const isHomeDesktop = viewMode === "dashboard" && !isMobile
 	const showNovaBackdrop = isGraphMode || isMemoriesDesktop || isHomeDesktop
-	const isDashboardShell =
-		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
+	const isDashboardShell = viewMode === "dashboard"
 
 	return (
 		<HotkeysProvider>
@@ -629,7 +628,7 @@ export default function NewPage() {
 									<XBookmarksDetailView
 										onBack={() => void setViewMode("integrations")}
 									/>
-								) : viewMode === "graph" && !isMobile ? (
+								) : viewMode === "graph" ? (
 									<div className="min-h-0 min-w-0 flex-1">
 										<GraphLayoutView />
 									</div>
@@ -674,20 +673,7 @@ export default function NewPage() {
 								) : (
 									<DashboardView
 										spaceLabel={dashboardSpaceLabel}
-										headerNotice={
-											viewMode === "graph" && isMobile ? (
-												<div
-													id="graph-mobile-notice"
-													className="rounded-lg border border-[#2261CA33] bg-[#041127] px-3 py-2.5 text-sm text-[#8B8B8B]"
-												>
-													<span className="font-medium text-white">
-														Graph view is available on desktop.
-													</span>{" "}
-													Use a larger screen for the full graph, or keep
-													working from this home view.
-												</div>
-											) : undefined
-										}
+										headerNotice={undefined}
 										highlights={highlightsData?.highlights ?? []}
 										isLoadingHighlights={isLoadingHighlights}
 										onAddMemory={handleAddMemory}
