@@ -311,27 +311,54 @@ export function AddDocument({
 				</div>
 
 				{isMobile && (
-					<div className="mt-3 grid grid-cols-2 gap-2">
-						<UsageMeter
-							label="Credits"
-							value={
-								isLoadingUsage
-									? "..."
-									: `${tokensToCredits(tokensUsed)} / ${tokensToCredits(tokensLimit)}`
-							}
-							percent={tokensPercent}
-							active={hasPaidPlan}
-						/>
-						<UsageMeter
-							label="Searches"
-							value={
-								isLoadingUsage
-									? "..."
-									: `${formatUsageNumber(searchesUsed)} / ${formatUsageNumber(searchesLimit)}`
-							}
-							percent={searchesPercent}
-							active={hasPaidPlan}
-						/>
+					<div className="mt-3 flex flex-col gap-2">
+						<div className="flex justify-between items-center">
+							<span
+								className={cn(
+									"text-[#FAFAFA] text-sm font-medium",
+									dmSansClassName(),
+								)}
+							>
+								Plan usage
+							</span>
+							<span
+								className={cn(
+									"text-sm font-medium tabular-nums",
+									hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]",
+									dmSansClassName(),
+								)}
+							>
+								{isLoadingUsage
+									? "…"
+									: `${planUsagePct < 1 && planUsagePct > 0 ? "< 1" : Math.round(planUsagePct)}% used`}
+							</span>
+						</div>
+						<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
+							<div
+								className="h-full rounded-[40px]"
+								style={{
+									width: `${planUsagePct}%`,
+									background:
+										planUsagePct > 80
+											? "#ef4444"
+											: hasPaidPlan
+												? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
+												: "#0054AD",
+								}}
+								title={`${formatUsageNumber(tokensUsed)} tokens · ${formatUsageNumber(searchesUsed)} queries`}
+							/>
+						</div>
+						{!isLoadingUsage && (
+							<p
+								className={cn(
+									"text-xs text-[#737373] tabular-nums",
+									dmSansClassName(),
+								)}
+							>
+								{formatUsageNumber(tokensUsed)} tokens ·{" "}
+								{formatUsageNumber(searchesUsed)} queries
+							</p>
+						)}
 					</div>
 				)}
 
@@ -539,53 +566,6 @@ export function AddDocument({
 						)}
 					</div>
 				</div>
-			</div>
-		</div>
-	)
-}
-
-function UsageMeter({
-	label,
-	value,
-	percent,
-	active,
-}: {
-	label: string
-	value: string
-	percent: number
-	active: boolean
-}) {
-	const safePercent = Math.max(0, Math.min(100, percent))
-
-	return (
-		<div className="rounded-xl border border-[#0F1621] bg-[#10151C] px-3 py-2 shadow-inside-out">
-			<div className="mb-1.5 flex items-center justify-between gap-2">
-				<span className="truncate text-[11px] font-medium text-[#FAFAFA]">
-					{label}
-				</span>
-				<span
-					className={cn(
-						"shrink-0 text-[10px] font-medium",
-						active ? "text-[#4BA0FA]" : "text-[#8B8B8B]",
-						dmSansClassName(),
-					)}
-				>
-					{value}
-				</span>
-			</div>
-			<div className="h-1.5 w-full overflow-hidden rounded-full bg-[#2E353D] p-px">
-				<div
-					className="h-full rounded-full"
-					style={{
-						width: `${safePercent}%`,
-						background:
-							safePercent > 80
-								? "#ef4444"
-								: active
-									? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
-									: "#0054AD",
-					}}
-				/>
 			</div>
 		</div>
 	)
