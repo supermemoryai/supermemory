@@ -63,7 +63,7 @@ function CustomTweetHeader({
 					<div className="flex gap-0.5 items-center">
 						<p
 							className={cn(
-								"font-semibold leading-tight overflow-hidden text-[#fafafa] text-[12px] truncate tracking-[-0.12px]",
+								"font-semibold leading-tight overflow-hidden text-[#fafafa] text-[13px] truncate tracking-[-0.12px]",
 								dmSansClassName(),
 							)}
 						>
@@ -73,7 +73,7 @@ function CustomTweetHeader({
 					</div>
 					<p
 						className={cn(
-							"font-medium leading-tight overflow-hidden text-[#737373] text-[12px] truncate tracking-[-0.12px]",
+							"font-medium leading-tight overflow-hidden text-[#737373] text-[13px] truncate tracking-[-0.12px]",
 							dmSansClassName(),
 						)}
 					>

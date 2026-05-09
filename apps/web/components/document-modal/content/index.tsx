@@ -87,6 +87,7 @@ export function DocumentContent({
 				<TweetContent
 					url={document.url}
 					tweetMetadata={document.metadata?.sm_internal_twitter_metadata}
+					content={document.content}
 				/>
 			)
 

@@ -34,11 +34,10 @@ interface AgentConfig {
  *
  * The enhanced config includes:
  * - Input processor: Fetches relevant memories before LLM calls
- * - Output processor: Optionally saves conversations after responses
+ * - Output processor: Saves conversations after responses (when addMemory is "always")
  *
  * @param config - The Mastra agent configuration to enhance
- * @param containerTag - The container tag/user ID for scoping memories
- * @param options - Configuration options for memory behavior
+ * @param options - Configuration options including required containerTag and customId
  * @returns Enhanced agent config with Supermemory processors injected
  *
  * @example
@@ -54,11 +53,11 @@ interface AgentConfig {
  *     model: openai("gpt-4o"),
  *     instructions: "You are a helpful assistant.",
  *   },
- *   "user-123",
  *   {
+ *     containerTag: "user-123",
+ *     customId: "conv-456",
  *     mode: "full",
  *     addMemory: "always",
- *     threadId: "conv-456",
  *   }
  * )
  *
@@ -69,13 +68,25 @@ interface AgentConfig {
  */
 export function withSupermemory<T extends AgentConfig>(
 	config: T,
-	containerTag: string,
-	options: SupermemoryMastraOptions = {},
+	options: SupermemoryMastraOptions,
 ): T {
+	// Runtime guard for breaking API change - catch old 3-arg signature usage
+	if (
+		typeof options !== "object" ||
+		options === null ||
+		!options.containerTag ||
+		!options.customId
+	) {
+		throw new Error(
+			"withSupermemory: options must be an object with required containerTag and customId fields. " +
+				"The API changed in v2.0.0 — see https://docs.supermemory.ai/integrations/mastra for the new signature.",
+		)
+	}
+
 	validateApiKey(options.apiKey)
 
-	const inputProcessor = new SupermemoryInputProcessor(containerTag, options)
-	const outputProcessor = new SupermemoryOutputProcessor(containerTag, options)
+	const inputProcessor = new SupermemoryInputProcessor(options)
+	const outputProcessor = new SupermemoryOutputProcessor(options)
 
 	const existingInputProcessors = config.inputProcessors ?? []
 	const existingOutputProcessors = config.outputProcessors ?? []

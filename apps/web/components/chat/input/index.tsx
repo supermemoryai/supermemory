@@ -4,7 +4,7 @@ import { ChevronUpIcon } from "lucide-react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { useRef, useState } from "react"
+import { type ReactNode, useRef, useState } from "react"
 import { motion } from "motion/react"
 import { SendButton, StopButton } from "./actions"
 
@@ -18,6 +18,10 @@ interface ChatInputProps {
 	activeStatus?: string
 	chainOfThoughtComponent?: React.ReactNode
 	onExpandedChange?: (expanded: boolean) => void
+	/** Model + space controls on one row with send; textarea full-width above */
+	stackedToolbar?: ReactNode
+	/** Nova status row + chain-of-thought toggle (off for e.g. home composer) */
+	showStatusStrip?: boolean
 }
 
 export default function ChatInput({
@@ -30,6 +34,8 @@ export default function ChatInput({
 	activeStatus,
 	chainOfThoughtComponent,
 	onExpandedChange,
+	stackedToolbar,
+	showStatusStrip = true,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -52,82 +58,122 @@ export default function ChatInput({
 		<motion.div
 			className={cn("relative z-20!")}
 			animate={{
-				padding: isExpanded ? "16px" : "0",
-				margin: isExpanded ? "0" : "16px",
-				borderRadius: isExpanded ? "0 0 12px 12px" : "12px",
-				backgroundColor: isExpanded ? "#000B1B" : "#01173C",
+				padding: showStatusStrip ? (isExpanded ? "16px" : "0") : "0",
+				margin: showStatusStrip ? (isExpanded ? "0" : "16px") : "0",
+				borderRadius: showStatusStrip
+					? isExpanded
+						? "0 0 12px 12px"
+						: "12px"
+					: "0",
+				backgroundColor: showStatusStrip
+					? isExpanded
+						? "#000B1B"
+						: "#01173C"
+					: "transparent",
 			}}
 			transition={{
 				duration: 0.3,
 				ease: "easeOut",
 			}}
 		>
-			<div
-				className={cn(
-					"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
-					isExpanded
-						? "max-h-[60vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
-						: "max-h-0 opacity-0",
-				)}
-				style={{
-					zIndex: isExpanded ? 50 : 0,
-				}}
-			>
-				{chainOfThoughtComponent}
-			</div>
-			<button
-				type="button"
-				className={cn(
-					"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left",
-					!chainOfThoughtComponent && "disabled:cursor-not-allowed",
-				)}
-				onClick={() => {
-					const newExpanded = !isExpanded
-					setIsExpanded(newExpanded)
-					onExpandedChange?.(newExpanded)
-				}}
-				disabled={!chainOfThoughtComponent}
-			>
-				<div className="flex items-center gap-3">
-					<NovaOrb size={24} className="blur-[1px]! z-10" />
-					<p className={cn("text-[#525D6E]", dmSansClassName())}>
-						{activeStatus || "Waiting for input..."}
-					</p>
-				</div>
-				{chainOfThoughtComponent && (
-					<ChevronUpIcon
+			{showStatusStrip ? (
+				<>
+					<div
 						className={cn(
-							"size-4 text-[#525D6E] transition-transform duration-300",
-							isExpanded && "rotate-180",
+							"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
+							isExpanded
+								? "max-h-[60vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
+								: "max-h-0 opacity-0",
 						)}
+						style={{
+							zIndex: isExpanded ? 50 : 0,
+						}}
+					>
+						{chainOfThoughtComponent}
+					</div>
+					<button
+						type="button"
+						className={cn(
+							"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left",
+							!chainOfThoughtComponent && "disabled:cursor-not-allowed",
+						)}
+						onClick={() => {
+							const newExpanded = !isExpanded
+							setIsExpanded(newExpanded)
+							onExpandedChange?.(newExpanded)
+						}}
+						disabled={!chainOfThoughtComponent}
+					>
+						<div className="flex items-center gap-3">
+							<NovaOrb size={24} className="blur-[1px]! z-10" />
+							<p className={cn("text-[#525D6E]", dmSansClassName())}>
+								{activeStatus || "Waiting for input..."}
+							</p>
+						</div>
+						{chainOfThoughtComponent && (
+							<ChevronUpIcon
+								className={cn(
+									"size-4 text-[#525D6E] transition-transform duration-300",
+									isExpanded && "rotate-180",
+								)}
+							/>
+						)}
+					</button>
+				</>
+			) : null}
+			{stackedToolbar ? (
+				<div className="flex flex-col gap-2 rounded-xl bg-surface-card/60 backdrop-blur-md p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10">
+					<textarea
+						ref={textareaRef}
+						value={value}
+						onChange={handleChange}
+						onKeyDown={onKeyDown}
+						placeholder="Ask your supermemory..."
+						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
+						style={{ minHeight: "36px" }}
+						rows={1}
+						disabled={isResponding}
 					/>
-				)}
-			</button>
-			<div
-				className={cn(
-					"flex items-end gap-2 bg-[#070E1B] rounded-xl p-2 border-[#52596633] border focus-within:outline-[#525D6EB2] focus-within:outline-1 transition-all duration-200",
-					isMultiline && "flex-col",
-				)}
-			>
-				<textarea
-					ref={textareaRef}
-					value={value}
-					onChange={handleChange}
-					onKeyDown={onKeyDown}
-					placeholder="Ask your supermemory..."
-					className="bg-transparent w-full p-2 placeholder:text-[#525D6E] focus:outline-none resize-none overflow-y-auto transition-all duration-200"
-					style={{ minHeight: "36px" }}
-					rows={1}
-					disabled={isResponding}
-				/>
-				<div className="transition-all duration-200">
-					{isResponding ? (
-						<StopButton onClick={onStop} />
-					) : (
-						<SendButton onClick={onSend} disabled={!value.trim()} />
-					)}
+					<div className="flex items-center gap-2">
+						<div className="flex min-w-0 flex-1 items-center gap-2">
+							{stackedToolbar}
+						</div>
+						<div className="shrink-0">
+							{isResponding ? (
+								<StopButton onClick={onStop} />
+							) : (
+								<SendButton onClick={onSend} disabled={!value.trim()} />
+							)}
+						</div>
+					</div>
 				</div>
-			</div>
+			) : (
+				<div
+					className={cn(
+						"flex items-end gap-2 rounded-xl bg-surface-card/60 backdrop-blur-md p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10",
+						isMultiline && "flex-col",
+					)}
+				>
+					<textarea
+						ref={textareaRef}
+						value={value}
+						onChange={handleChange}
+						onKeyDown={onKeyDown}
+						placeholder="Ask your supermemory..."
+						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
+						style={{ minHeight: "36px" }}
+						rows={1}
+						disabled={isResponding}
+					/>
+					<div className="transition-all duration-200">
+						{isResponding ? (
+							<StopButton onClick={onStop} />
+						) : (
+							<SendButton onClick={onSend} disabled={!value.trim()} />
+						)}
+					</div>
+				</div>
+			)}
 		</motion.div>
 	)
 }

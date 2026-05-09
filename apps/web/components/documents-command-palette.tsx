@@ -35,7 +35,6 @@ interface DocumentsCommandPaletteProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	projectId: string
-	novaContainerTags?: string[]
 	onOpenDocument: (document: DocumentWithMemories) => void
 	onAddMemory?: () => void
 	onOpenIntegrations?: () => void
@@ -46,7 +45,6 @@ export function DocumentsCommandPalette({
 	open,
 	onOpenChange,
 	projectId,
-	novaContainerTags,
 	onOpenDocument,
 	onAddMemory,
 	onOpenIntegrations,
@@ -159,8 +157,7 @@ export function DocumentsCommandPalette({
 					body: {
 						q: search.trim(),
 						limit: 10,
-						containerTags:
-							novaContainerTags ?? (projectId ? [projectId] : undefined),
+						containerTags: projectId ? [projectId] : undefined,
 						includeSummary: true,
 					},
 					signal: controller.signal,
@@ -178,7 +175,7 @@ export function DocumentsCommandPalette({
 		return () => {
 			if (debounceRef.current) clearTimeout(debounceRef.current)
 		}
-	}, [search, projectId, novaContainerTags])
+	}, [search, projectId])
 
 	// Build the item list
 	const hasQuery = search.trim().length > 0
@@ -202,7 +199,7 @@ export function DocumentsCommandPalette({
 	// Reset selection on items change
 	useEffect(() => {
 		setSelectedIndex(0)
-	}, [search, searchResults.length])
+	}, [])
 
 	// Scroll selected into view
 	useEffect(() => {

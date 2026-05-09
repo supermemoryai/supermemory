@@ -352,8 +352,11 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-// One line setup - profiles automatically injected
-const model = withSupermemory(openai("gpt-4"), "user-123")
+// Simple setup - profiles automatically injected
+const model = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conv-1",
+})
 
 const result = await generateText({
   model,

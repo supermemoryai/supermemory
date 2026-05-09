@@ -4,15 +4,7 @@ import { useState, useMemo } from "react"
 import { cn } from "@lib/utils"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
-import {
-	ChevronsLeftRight,
-	Plus,
-	Trash2,
-	XIcon,
-	Loader2,
-	Globe,
-	Layers,
-} from "lucide-react"
+import { ChevronDown, Plus, Trash2, XIcon, Loader2, Layers } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
 import { AddSpaceModal } from "./add-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
@@ -42,6 +34,10 @@ import {
 } from "@repo/ui/components/select"
 import { Button } from "@repo/ui/components/button"
 import { analytics } from "@/lib/analytics"
+import {
+	compareSpacesUserFirst,
+	spaceSelectorDisplayName,
+} from "@/lib/ingest-auto-space"
 
 export interface SpaceSelectorProps {
 	selectedProjects: string[]
@@ -57,8 +53,13 @@ export interface SpaceSelectorProps {
 }
 
 const triggerVariants = {
-	default: "px-3 py-2 rounded-md hover:bg-white/5",
-	insideOut: "px-3 py-2 rounded-full bg-[#0D121A] shadow-inside-out",
+	default:
+		"h-10 min-h-10 shrink-0 rounded-full border border-[#161F2C] bg-muted px-3 gap-2 " +
+		"hover:bg-white/5 " +
+		"data-[state=open]:border-[#2261CA33] data-[state=open]:bg-[#00173C]/35 " +
+		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2261CA33]/35",
+	insideOut:
+		"h-10 min-h-10 gap-2 px-3 rounded-full bg-[#0D121A] shadow-inside-out hover:bg-[#121820]",
 }
 
 export function SpaceSelector({
@@ -90,17 +91,21 @@ export function SpaceSelector({
 
 	const { deleteProjectMutation } = useProjectMutations()
 
-	const { allProjects, novaProjects, isLoading } = useContainerTags()
+	const { allProjects, isLoading } = useContainerTags()
 
-	const isNovaSpaces = selectedProjects.length === 0
+	const sortedOtherSpaces = useMemo(
+		() =>
+			allProjects
+				.filter(
+					(p: ContainerTagListType) => p.containerTag !== DEFAULT_PROJECT_ID,
+				)
+				.sort(compareSpacesUserFirst),
+		[allProjects],
+	)
 
 	const displayInfo = useMemo(() => {
-		if (isNovaSpaces) {
-			return { name: "Nova Spaces", emoji: null, isMultiple: false }
-		}
-
 		if (selectedProjects.length === 1) {
-			const containerTag = selectedProjects[0]
+			const containerTag = selectedProjects[0] ?? ""
 			if (containerTag === DEFAULT_PROJECT_ID) {
 				return { name: "My Space", emoji: "📁", isMultiple: false }
 			}
@@ -108,24 +113,22 @@ export function SpaceSelector({
 				(p: ContainerTagListType) => p.containerTag === containerTag,
 			)
 			return {
-				name: found?.name || containerTag,
+				name: spaceSelectorDisplayName(found, containerTag),
 				emoji: found?.emoji || "📁",
 				isMultiple: false,
 			}
 		}
 
-		return {
-			name: `${selectedProjects.length} spaces`,
-			emoji: null,
-			isMultiple: true,
+		if (selectedProjects.length > 1) {
+			return {
+				name: `${selectedProjects.length} spaces`,
+				emoji: null,
+				isMultiple: true,
+			}
 		}
-	}, [allProjects, selectedProjects, isNovaSpaces])
 
-	const handleSelectNovaSpaces = () => {
-		analytics.spaceSwitched({ space_id: "nova_spaces" })
-		onValueChange([]) // Empty array = "Nova Spaces" (all nova)
-		setIsOpen(false)
-	}
+		return { name: "My Space", emoji: "📁", isMultiple: false }
+	}, [allProjects, selectedProjects])
 
 	const handleSelectSingleSpace = (containerTag: string) => {
 		analytics.spaceSwitched({ space_id: containerTag })
@@ -204,13 +207,13 @@ export function SpaceSelector({
 	}
 
 	const availableTargetProjects = useMemo(() => {
-		const filtered = novaProjects.filter(
+		const filtered = allProjects.filter(
 			(p: ContainerTagListType) =>
 				p.id !== deleteDialog.project?.id &&
 				p.containerTag !== deleteDialog.project?.containerTag,
 		)
 
-		const defaultProject = novaProjects.find(
+		const defaultProject = allProjects.find(
 			(p: ContainerTagListType) => p.containerTag === DEFAULT_PROJECT_ID,
 		)
 
@@ -227,7 +230,7 @@ export function SpaceSelector({
 		}
 
 		return filtered
-	}, [novaProjects, deleteDialog.project])
+	}, [allProjects, deleteDialog.project])
 
 	return (
 		<>
@@ -235,36 +238,68 @@ export function SpaceSelector({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
+						aria-label={
+							isLoading
+								? "Loading spaces"
+								: `Space: ${displayInfo.name}. Open menu to switch.`
+						}
 						className={cn(
-							"flex items-center gap-2 cursor-pointer transition-colors focus:outline-none focus-visible:outline-none",
+							"flex min-w-0 max-w-full items-center cursor-pointer transition-colors",
 							triggerVariants[variant],
+							variant === "default" && compact && "h-9 min-h-9 gap-1.5 px-2.5",
 							dmSansClassName(),
 							triggerClassName,
 						)}
 					>
-						{isNovaSpaces ? (
-							<Globe className="size-4 text-white" />
-						) : displayInfo.isMultiple ? (
-							<Layers className="size-4 text-white" />
+						{displayInfo.isMultiple ? (
+							<Layers
+								className={cn(
+									"shrink-0",
+									variant === "insideOut" ? "text-white" : "text-[#737373]",
+									compact ? "size-3.5" : "size-4",
+								)}
+								aria-hidden
+							/>
 						) : (
-							<span className="text-sm font-bold tracking-[-0.98px]">
+							<span
+								className="shrink-0 text-sm font-bold tracking-[-0.98px]"
+								aria-hidden
+							>
 								{displayInfo.emoji}
 							</span>
 						)}
 						{!compact && (
-							<span className="text-sm font-medium text-white">
-								{isLoading ? "..." : displayInfo.name}
+							<span
+								className={cn(
+									"min-w-0 truncate text-sm font-medium text-white",
+									"max-w-[10rem] md:max-w-[15rem]",
+								)}
+								title={isLoading ? undefined : displayInfo.name}
+							>
+								{isLoading ? "…" : displayInfo.name}
+							</span>
+						)}
+						{compact && (
+							<span className="sr-only">
+								{isLoading ? "Loading" : displayInfo.name}
 							</span>
 						)}
 						{showChevron && (
-							<ChevronsLeftRight className="size-4 rotate-90 text-white/70" />
+							<ChevronDown
+								className={cn(
+									"shrink-0 opacity-90",
+									variant === "insideOut" ? "text-white/80" : "text-[#737373]",
+									compact ? "size-3.5" : "size-4",
+								)}
+								aria-hidden
+							/>
 						)}
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
 					align="start"
 					className={cn(
-						"min-w-[200px] p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+						"min-w-[200px] max-w-[min(calc(100vw-1.5rem),20rem)] overflow-hidden p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
 						dmSansClassName(),
 						contentClassName,
 					)}
@@ -272,37 +307,23 @@ export function SpaceSelector({
 						background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 					}}
 				>
-					<div className="flex flex-col gap-2">
-						<div className="flex flex-col">
-							{!singleSelect && (
-								<>
-									<DropdownMenuItem
-										onClick={handleSelectNovaSpaces}
-										className={cn(
-											"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
-											isNovaSpaces
-												? "bg-[#293952]/40"
-												: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
-										)}
-									>
-										<Globe className="size-4" />
-										<span className="flex-1">Nova Spaces</span>
-									</DropdownMenuItem>
+					<div className="flex min-w-0 max-w-full flex-col gap-2">
+						<div className="shrink-0 px-3 py-1">
+							<span className="text-[10px] uppercase tracking-wider text-[#737373] font-medium">
+								My Spaces
+							</span>
+						</div>
 
-									<DropdownMenuSeparator className="bg-[#2E3033] my-1" />
-								</>
+						<div
+							className={cn(
+								"flex min-h-0 max-h-[min(40vh,18rem)] min-w-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain",
+								"scrollbar-thin pr-0.5",
 							)}
-
-							<div className="px-3 py-1">
-								<span className="text-[10px] uppercase tracking-wider text-[#737373] font-medium">
-									My Spaces
-								</span>
-							</div>
-
+						>
 							<DropdownMenuItem
 								onClick={() => handleSelectSingleSpace(DEFAULT_PROJECT_ID)}
 								className={cn(
-									"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
+									"flex min-w-0 max-w-full items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
 									selectedProjects.length === 1 &&
 										selectedProjects[0] === DEFAULT_PROJECT_ID
 										? "bg-[#293952]/40"
@@ -310,59 +331,57 @@ export function SpaceSelector({
 								)}
 							>
 								<span className="font-bold tracking-[-0.98px]">📁</span>
-								<span className="flex-1">My Space</span>
+								<span className="min-w-0 flex-1 truncate">My Space</span>
 							</DropdownMenuItem>
 
-							{novaProjects
-								.filter(
-									(p: ContainerTagListType) =>
-										p.containerTag !== DEFAULT_PROJECT_ID,
-								)
-								.map((project: ContainerTagListType) => (
-									<DropdownMenuItem
-										key={project.id}
-										onClick={() =>
-											handleSelectSingleSpace(project.containerTag)
-										}
-										className={cn(
-											"flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium group",
-											selectedProjects.length === 1 &&
-												selectedProjects[0] === project.containerTag
-												? "bg-[#293952]/40"
-												: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
-										)}
+							{sortedOtherSpaces.map((project: ContainerTagListType) => (
+								<DropdownMenuItem
+									key={project.id}
+									onClick={() => handleSelectSingleSpace(project.containerTag)}
+									className={cn(
+										"flex min-w-0 max-w-full items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium group",
+										selectedProjects.length === 1 &&
+											selectedProjects[0] === project.containerTag
+											? "bg-[#293952]/40"
+											: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
+									)}
+								>
+									<span className="shrink-0 font-bold tracking-[-0.98px]">
+										{project.emoji || "📁"}
+									</span>
+									<span
+										className="min-w-0 flex-1 truncate"
+										title={project.name ?? project.containerTag}
 									>
-										<span className="font-bold tracking-[-0.98px]">
-											{project.emoji || "📁"}
-										</span>
-										<span className="truncate flex-1">
-											{project.name ?? project.containerTag}
-										</span>
-										{enableDelete && (
-											<button
-												type="button"
-												onClick={(e) =>
-													handleDeleteClick(e, {
-														id: project.id,
-														name: project.name,
-														containerTag: project.containerTag,
-													})
-												}
-												className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-500/20"
-											>
-												<Trash2 className="size-3.5 text-red-500" />
-											</button>
-										)}
-									</DropdownMenuItem>
-								))}
+										{spaceSelectorDisplayName(project, project.containerTag)}
+									</span>
+									{enableDelete && (
+										<button
+											type="button"
+											onClick={(e) =>
+												handleDeleteClick(e, {
+													id: project.id,
+													name: project.name,
+													containerTag: project.containerTag,
+												})
+											}
+											className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-500/20"
+										>
+											<Trash2 className="size-3.5 text-red-500" />
+										</button>
+									)}
+								</DropdownMenuItem>
+							))}
 						</div>
 
-						<DropdownMenuSeparator className="bg-[#2E3033]" />
+						<DropdownMenuSeparator className="shrink-0 bg-[#2E3033]" />
 
 						<button
 							type="button"
 							onClick={handleOpenSelectSpaces}
-							className="flex items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors"
+							className={cn(
+								"flex min-w-0 w-full max-w-full shrink-0 items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors",
+							)}
 							style={{
 								background: "linear-gradient(180deg, #0D121A 0%, #000000 100%)",
 							}}
@@ -375,7 +394,9 @@ export function SpaceSelector({
 							<button
 								type="button"
 								onClick={handleNewSpace}
-								className="flex items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors"
+								className={cn(
+									"flex min-w-0 w-full max-w-full shrink-0 items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors",
+								)}
 								style={{
 									background:
 										"linear-gradient(180deg, #0D121A 0%, #000000 100%)",
@@ -544,12 +565,12 @@ export function SpaceSelector({
 														value={p.id}
 														className="text-[#fafafa] hover:bg-[#1B1F24] cursor-pointer rounded-md"
 													>
-														<span className="flex items-center gap-2">
+														<span className="flex items-center gap-2 min-w-0">
 															<span>{p.emoji || "📁"}</span>
-															<span>
+															<span className="truncate">
 																{p.containerTag === DEFAULT_PROJECT_ID
 																	? "My Space"
-																	: p.name}
+																	: spaceSelectorDisplayName(p, p.containerTag)}
 															</span>
 														</span>
 													</SelectItem>

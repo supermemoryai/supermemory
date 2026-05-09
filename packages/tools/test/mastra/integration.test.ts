@@ -37,6 +37,7 @@ const INTEGRATION_CONFIG = {
 	apiKey: process.env.SUPERMEMORY_API_KEY || "",
 	baseUrl: process.env.SUPERMEMORY_BASE_URL || "https://api.supermemory.ai",
 	containerTag: "integration-test-mastra",
+	customId: "integration-test-conversation",
 }
 
 const shouldRunIntegration = !!process.env.SUPERMEMORY_API_KEY
@@ -100,14 +101,13 @@ describe.skipIf(!shouldRunIntegration)(
 	() => {
 		describe("SupermemoryInputProcessor", () => {
 			it("should fetch real memories and inject into messageList", async () => {
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+				})
 
 				const messageList = createIntegrationMessageList()
 				const messages: MastraDBMessage[] = [
@@ -132,14 +132,13 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should use query mode with user message as search query", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "query",
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "query",
+				})
 
 				const messageList = createIntegrationMessageList()
 				const args: ProcessInputArgs = {
@@ -177,14 +176,13 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should use full mode with both profile and query", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "full",
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "full",
+				})
 
 				const messageList = createIntegrationMessageList()
 				const args: ProcessInputArgs = {
@@ -217,14 +215,13 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should cache memories for repeated calls with same message", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+				})
 
 				const messages: MastraDBMessage[] = [
 					createMessage("user", "Cache test message"),
@@ -269,15 +266,14 @@ describe.skipIf(!shouldRunIntegration)(
 					generalSearchMemories: string
 				}) => `<mastra-memories>${data.userMemories}</mastra-memories>`
 
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-						promptTemplate: customTemplate,
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+					promptTemplate: customTemplate,
+				})
 
 				const messageList = createIntegrationMessageList()
 				const args: ProcessInputArgs = {
@@ -299,17 +295,15 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should save conversation when addMemory is always", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const threadId = `test-mastra-${Date.now()}`
+				const customId = `test-mastra-${Date.now()}`
 
-				const processor = new SupermemoryOutputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						addMemory: "always",
-						threadId,
-					},
-				)
+				const processor = new SupermemoryOutputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					addMemory: "always",
+				})
 
 				const args: ProcessOutputResultArgs = {
 					messages: [
@@ -336,15 +330,13 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should not save when addMemory is never", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const processor = new SupermemoryOutputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						addMemory: "never",
-						threadId: "test-thread",
-					},
-				)
+				const processor = new SupermemoryOutputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-thread",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					addMemory: "never",
+				})
 
 				const args: ProcessOutputResultArgs = {
 					messages: [
@@ -368,17 +360,16 @@ describe.skipIf(!shouldRunIntegration)(
 				fetchSpy.mockRestore()
 			})
 
-			it("should use threadId from RequestContext when not in options", async () => {
+			it("should use threadId from RequestContext when available", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const processor = new SupermemoryOutputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						addMemory: "always",
-					},
-				)
+				const processor = new SupermemoryOutputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					addMemory: "always",
+				})
 
 				const contextThreadId = `context-thread-${Date.now()}`
 				const requestContext = new RequestContext()
@@ -410,16 +401,14 @@ describe.skipIf(!shouldRunIntegration)(
 
 		describe("createSupermemoryProcessors", () => {
 			it("should create working input and output processors", async () => {
-				const { input, output } = createSupermemoryProcessors(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-						addMemory: "always",
-						threadId: `processors-test-${Date.now()}`,
-					},
-				)
+				const { input, output } = createSupermemoryProcessors({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: `processors-test-${Date.now()}`,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+					addMemory: "always",
+				})
 
 				const messageList = createIntegrationMessageList()
 				const inputArgs: ProcessInputArgs = {
@@ -455,17 +444,14 @@ describe.skipIf(!shouldRunIntegration)(
 					model: "gpt-4o",
 				}
 
-				const enhanced = withSupermemory(
-					config,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-						addMemory: "always",
-						threadId: `wrapper-test-${Date.now()}`,
-					},
-				)
+				const enhanced = withSupermemory(config, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: `wrapper-test-${Date.now()}`,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+					addMemory: "always",
+				})
 
 				expect(enhanced.id).toBe("test-mastra-agent")
 				expect(enhanced.name).toBe("Test Mastra Agent")
@@ -511,15 +497,13 @@ describe.skipIf(!shouldRunIntegration)(
 					outputProcessors: [existingOutputProcessor],
 				}
 
-				const enhanced = withSupermemory(
-					config,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-					},
-				)
+				const enhanced = withSupermemory(config, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+				})
 
 				expect(enhanced.inputProcessors).toHaveLength(2)
 				expect(enhanced.outputProcessors).toHaveLength(2)
@@ -534,15 +518,14 @@ describe.skipIf(!shouldRunIntegration)(
 
 		describe("Options", () => {
 			it("verbose mode should not break functionality", async () => {
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-						verbose: true,
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+					verbose: true,
+				})
 
 				const messageList = createIntegrationMessageList()
 				const args: ProcessInputArgs = {
@@ -561,14 +544,13 @@ describe.skipIf(!shouldRunIntegration)(
 			it("custom baseUrl should be used for API calls", async () => {
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+				})
 
 				const args: ProcessInputArgs = {
 					messages: [createMessage("user", "Base URL test")],
@@ -595,14 +577,13 @@ describe.skipIf(!shouldRunIntegration)(
 
 		describe("Error handling", () => {
 			it("should handle invalid API key gracefully", async () => {
-				const processor = new SupermemoryInputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: "invalid-api-key-12345",
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						mode: "profile",
-					},
-				)
+				const processor = new SupermemoryInputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: INTEGRATION_CONFIG.customId,
+					apiKey: "invalid-api-key-12345",
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					mode: "profile",
+				})
 
 				const messageList = createIntegrationMessageList()
 				const args: ProcessInputArgs = {
@@ -619,15 +600,13 @@ describe.skipIf(!shouldRunIntegration)(
 			})
 
 			it("output processor should handle save errors gracefully", async () => {
-				const processor = new SupermemoryOutputProcessor(
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: "invalid-api-key-12345",
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-						addMemory: "always",
-						threadId: "error-test",
-					},
-				)
+				const processor = new SupermemoryOutputProcessor({
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "error-test",
+					apiKey: "invalid-api-key-12345",
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+					addMemory: "always",
+				})
 
 				const args: ProcessOutputResultArgs = {
 					messages: [

@@ -1,17 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useQueryState } from "nuqs"
+import { useQuery } from "@tanstack/react-query"
+import { useCustomer } from "autumn-js/react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
+import { hasActivePlan } from "@lib/queries"
+import { $fetch } from "@lib/api"
+import { authClient } from "@lib/auth"
+import { useAuth } from "@lib/auth-context"
+import type { ConnectionResponseSchema } from "@repo/validation/api"
+import type { z } from "zod"
 import { Button } from "@ui/components/button"
-import { MCPDetailView } from "@/components/mcp-modal/mcp-detail-view"
-import { XBookmarksDetailView } from "@/components/onboarding/x-bookmarks-detail-view"
-import { ChromeDetail } from "@/components/integrations/chrome-detail"
-import { ShortcutsDetail } from "@/components/integrations/shortcuts-detail"
-import { RaycastDetail } from "@/components/integrations/raycast-detail"
-import { ConnectionsDetail } from "@/components/integrations/connections-detail"
-import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import {
 	ChromeIcon,
 	AppleShortcutsIcon,
@@ -19,12 +18,15 @@ import {
 } from "@/components/integration-icons"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { ArrowLeft, Sun } from "lucide-react"
-import {
-	integrationParam,
-	pluginsPanelParam,
-	type IntegrationParamValue,
-} from "@/lib/search-params"
+import { CHROME_EXTENSION_URL } from "@repo/lib/constants"
+import { analytics } from "@/lib/analytics"
 import Image from "next/image"
+import { IntegrationGridCard } from "@/components/integrations/integration-grid-card"
+import { useViewMode } from "@/lib/view-mode-context"
+import { addDocumentParam, type ViewParamValue } from "@/lib/search-params"
+import { useQueryState } from "nuqs"
+
+type Connection = z.infer<typeof ConnectionResponseSchema>
 
 type CardId =
 	| "mcp"
@@ -41,6 +43,7 @@ interface IntegrationCardDef {
 	description: string
 	icon: React.ReactNode
 	pro?: boolean
+	externalHref?: string
 }
 
 const cards: IntegrationCardDef[] = [
@@ -108,6 +111,7 @@ const cards: IntegrationCardDef[] = [
 		title: "Chrome Extension",
 		description: "Save any webpage, import bookmarks, sync ChatGPT memories",
 		icon: <ChromeIcon className="size-14" />,
+		externalHref: CHROME_EXTENSION_URL,
 	},
 	{
 		id: "shortcuts",
@@ -129,7 +133,7 @@ const cards: IntegrationCardDef[] = [
 	},
 ]
 
-function DetailWrapper({
+export function DetailWrapper({
 	onBack,
 	children,
 }: {
@@ -153,74 +157,92 @@ function DetailWrapper({
 	)
 }
 
-const INTEGRATION_TO_CARD: Record<IntegrationParamValue, CardId> = {
-	import: "import",
-	chrome: "chrome",
-	connections: "connections",
-}
+const CARD_GROUPS: Array<{ label: string; ids: CardId[] }> = [
+	{ label: "AI tools", ids: ["plugins", "mcp"] },
+	{
+		label: "Apps & extensions",
+		ids: ["connections", "chrome", "shortcuts", "raycast", "import"],
+	},
+]
 
 export function IntegrationsView() {
-	const [integration, setIntegration] = useQueryState(
-		"integration",
-		integrationParam,
-	)
-	const [pluginsPanel, setPluginsPanel] = useQueryState(
-		"plugins",
-		pluginsPanelParam,
-	)
-	const [selectedCard, setSelectedCard] = useState<CardId | null>(null)
+	const { setViewMode } = useViewMode()
+	const [, setAddDoc] = useQueryState("add", addDocumentParam)
+	const { org } = useAuth()
+	const autumn = useCustomer()
+	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
-	useEffect(() => {
-		if (pluginsPanel === true) {
-			setSelectedCard("plugins")
-			return
+	const { data: connections = [] } = useQuery({
+		queryKey: ["connections"],
+		queryFn: async () => {
+			const response = await $fetch("@post/connections/list", {
+				body: { containerTags: [] },
+			})
+			if (response.error)
+				throw new Error(response.error?.message || "Failed to load connections")
+			return response.data as Connection[]
+		},
+		staleTime: 30 * 1000,
+		enabled: hasProProduct,
+	})
+
+	const { data: facetsData } = useQuery({
+		queryKey: ["document-facets", []],
+		queryFn: async () => {
+			const response = await $fetch("@post/documents/documents/facets", {
+				body: { containerTags: [] },
+				disableValidation: true,
+			})
+			if (response.error)
+				throw new Error(response.error?.message || "Failed to fetch facets")
+			return response.data as {
+				facets: Array<{ category: string; count: number }>
+				total: number
+			}
+		},
+		staleTime: 5 * 60 * 1000,
+	})
+
+	type ApiKey = { metadata: Record<string, unknown> | null }
+	const { data: apiKeys = [] } = useQuery({
+		queryKey: ["api-keys", org?.id],
+		queryFn: async () => {
+			if (!org?.id) return []
+			const data = (await authClient.apiKey.list({
+				fetchOptions: { query: { metadata: { organizationId: org.id } } },
+			})) as unknown as ApiKey[]
+			return data.filter((key) => key.metadata?.organizationId === org.id)
+		},
+		enabled: !!org?.id,
+		staleTime: 30 * 1000,
+	})
+
+	const connectedPluginCount = apiKeys.filter(
+		(key) => key.metadata?.sm_type === "plugin_auth",
+	).length
+
+	const tweetCount =
+		facetsData?.facets.find((f) => f.category === "tweet")?.count ?? 0
+
+	const getStatusLabel = (
+		id: CardId,
+	): { label: string; variant: "connected" | "neutral" } | undefined => {
+		if (id === "connections" && hasProProduct) {
+			return connections.length > 0
+				? { label: `${connections.length} connected`, variant: "connected" }
+				: { label: "Not connected", variant: "neutral" }
 		}
-		if (integration && INTEGRATION_TO_CARD[integration]) {
-			setSelectedCard(INTEGRATION_TO_CARD[integration])
+		if (id === "import") {
+			return tweetCount > 0
+				? { label: `${tweetCount} tweets imported`, variant: "connected" }
+				: undefined
 		}
-	}, [integration, pluginsPanel])
-
-	const handleBack = () => {
-		setSelectedCard(null)
-		setIntegration(null)
-		void setPluginsPanel(null)
-	}
-
-	switch (selectedCard) {
-		case "mcp":
-			return <MCPDetailView onBack={handleBack} />
-		case "import":
-			return <XBookmarksDetailView onBack={handleBack} />
-		case "chrome":
-			return (
-				<DetailWrapper onBack={handleBack}>
-					<ChromeDetail />
-				</DetailWrapper>
-			)
-		case "shortcuts":
-			return (
-				<DetailWrapper onBack={handleBack}>
-					<ShortcutsDetail />
-				</DetailWrapper>
-			)
-		case "raycast":
-			return (
-				<DetailWrapper onBack={handleBack}>
-					<RaycastDetail />
-				</DetailWrapper>
-			)
-		case "connections":
-			return (
-				<DetailWrapper onBack={handleBack}>
-					<ConnectionsDetail />
-				</DetailWrapper>
-			)
-		case "plugins":
-			return (
-				<DetailWrapper onBack={handleBack}>
-					<PluginsDetail />
-				</DetailWrapper>
-			)
+		if (id === "plugins") {
+			return connectedPluginCount > 0
+				? { label: `${connectedPluginCount} connected`, variant: "connected" }
+				: undefined
+		}
+		return undefined
 	}
 
 	return (
@@ -236,42 +258,53 @@ export function IntegrationsView() {
 					</p>
 				</div>
 
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-					{cards.map((card) => (
-						<button
-							key={card.id}
-							type="button"
-							onClick={() => setSelectedCard(card.id)}
-							className={cn(
-								"bg-[#080B0F] relative rounded-xl p-4 pt-14",
-								"border border-[#0D121A]",
-								"hover:border-[#3374FF]/50",
-								"transition-all duration-300 cursor-pointer text-left w-full",
-								"hover:bg-[url('/onboarding/bg-gradient-1.png')] hover:bg-[length:200%_auto] hover:bg-[center_top_1rem] hover:bg-no-repeat",
-								"group",
-							)}
-						>
-							{card.pro && (
-								<span className="absolute top-3 left-3 bg-[#4BA0FA] text-[#00171A] text-[10px] font-bold tracking-[0.3px] px-1.5 py-0.5 rounded-[3px]">
-									PRO
-								</span>
-							)}
-							<div className="absolute top-2 right-2 opacity-60 group-hover:opacity-100 transition-opacity">
-								{card.icon}
+				<div className="space-y-6">
+					{CARD_GROUPS.map((group) => {
+						const groupCards = cards.filter((c) => group.ids.includes(c.id))
+						return (
+							<div key={group.label}>
+								<div className="flex items-center gap-3 mb-3">
+									<span className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#3A4455] shrink-0">
+										{group.label}
+									</span>
+									<div className="flex-1 h-px bg-[#0F1621]" />
+								</div>
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+									{groupCards.map((card) => {
+										const status = getStatusLabel(card.id)
+										return (
+											<IntegrationGridCard
+												key={card.id}
+												title={card.title}
+												description={card.description}
+												icon={card.icon}
+												pro={card.pro}
+												statusLabel={status?.label}
+												statusVariant={status?.variant}
+												isExternal={!!card.externalHref}
+												onClick={() => {
+													if (card.externalHref) {
+														window.open(
+															card.externalHref,
+															"_blank",
+															"noopener,noreferrer",
+														)
+														analytics.onboardingChromeExtensionClicked({
+															source: "integrations",
+														})
+													} else if (card.id === "connections") {
+														void setAddDoc("connect")
+													} else {
+														void setViewMode(card.id as ViewParamValue)
+													}
+												}}
+											/>
+										)
+									})}
+								</div>
 							</div>
-							<div className="flex-1">
-								<h3 className="text-white text-sm font-medium">{card.title}</h3>
-								<p
-									className={cn(
-										"text-[#8B8B8B] text-xs leading-relaxed mt-0.5",
-										dmSansClassName(),
-									)}
-								>
-									{card.description}
-								</p>
-							</div>
-						</button>
-					))}
+						)
+					})}
 				</div>
 			</div>
 		</div>

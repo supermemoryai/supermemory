@@ -15,8 +15,10 @@ import type { PromptTemplate, MemoryPromptData } from "./memory-prompt"
 const DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS = 5000
 
 interface WrapVercelLanguageModelOptions {
-	/** Optional conversation ID to group messages for contextual memory generation */
-	conversationId?: string
+	/** The container tag/identifier for memory search (e.g., user ID, project ID) */
+	containerTag: string
+	/** Custom ID to group messages into a single document. Required. */
+	customId: string
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
 	/**
@@ -73,12 +75,12 @@ interface WrapVercelLanguageModelOptions {
  * detection of `model.specificationVersion`.
  *
  * @param model - The language model to wrap with supermemory capabilities (V2 or V3)
- * @param containerTag - The container tag/identifier for memory search (e.g., user ID, project ID)
- * @param options - Optional configuration options for the middleware
- * @param options.conversationId - Optional conversation ID to group messages into a single document for contextual memory generation
+ * @param options - Configuration options for Supermemory integration
+ * @param options.containerTag - Required. The container tag/identifier for memory search (e.g., user ID, project ID)
+ * @param options.customId - Required. Custom ID to group messages into a single document for contextual memory generation
  * @param options.verbose - Optional flag to enable detailed logging of memory search and injection process (default: false)
  * @param options.mode - Optional mode for memory search: "profile", "query", or "full" (default: "profile")
- * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "never")
+ * @param options.addMemory - Optional mode for memory search: "always", "never" (default: "always")
  * @param options.apiKey - Optional Supermemory API key to use instead of the environment variable
  * @param options.baseUrl - Optional base URL for the Supermemory API (default: "https://api.supermemory.ai")
  * @param options.skipMemoryOnError - When memory retrieval fails or times out: `true` (default) continues without injected memories; `false` throws
@@ -90,8 +92,9 @@ interface WrapVercelLanguageModelOptions {
  * import { withSupermemory } from "@supermemory/tools/ai-sdk"
  * import { openai } from "@ai-sdk/openai"
  *
- * const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123", {
- *   conversationId: "conversation-456",
+ * const modelWithMemory = withSupermemory(openai("gpt-4"), {
+ *   containerTag: "user-123",
+ *   customId: "conversation-456",
  *   mode: "full",
  *   addMemory: "always"
  * })
@@ -107,10 +110,9 @@ interface WrapVercelLanguageModelOptions {
  */
 const wrapVercelLanguageModel = <T extends LanguageModel>(
 	model: T,
-	containerTag: string,
-	options?: WrapVercelLanguageModelOptions,
+	options: WrapVercelLanguageModelOptions,
 ): T => {
-	const providedApiKey = options?.apiKey ?? process.env.SUPERMEMORY_API_KEY
+	const providedApiKey = options.apiKey ?? process.env.SUPERMEMORY_API_KEY
 
 	if (!providedApiKey) {
 		throw new Error(
@@ -118,19 +120,25 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 		)
 	}
 
+	if (!options.customId) {
+		throw new Error(
+			"customId is required — provide a non-empty string to group messages into a single document",
+		)
+	}
+
 	const ctx = createSupermemoryContext({
-		containerTag,
+		containerTag: options.containerTag,
 		apiKey: providedApiKey,
-		conversationId: options?.conversationId,
-		verbose: options?.verbose ?? false,
-		mode: options?.mode ?? "profile",
-		addMemory: options?.addMemory ?? "never",
-		baseUrl: options?.baseUrl,
-		promptTemplate: options?.promptTemplate,
+		customId: options.customId,
+		verbose: options.verbose ?? false,
+		mode: options.mode ?? "profile",
+		addMemory: options.addMemory ?? "always",
+		baseUrl: options.baseUrl,
+		promptTemplate: options.promptTemplate,
 		memoryRetrievalTimeoutMs: DEFAULT_MEMORY_RETRIEVAL_TIMEOUT_MS,
 	})
 
-	const skipMemoryOnError = options?.skipMemoryOnError ?? true
+	const skipMemoryOnError = options.skipMemoryOnError ?? true
 
 	// Proxy keeps prototype/getter fields (e.g. provider, modelId) that `{ ...model }` drops.
 	return new Proxy(model, {
@@ -179,7 +187,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 							saveMemoryAfterResponse(
 								ctx.client,
 								ctx.containerTag,
-								ctx.conversationId,
+								ctx.customId,
 								assistantResponseText,
 								params,
 								ctx.logger,
@@ -254,7 +262,7 @@ const wrapVercelLanguageModel = <T extends LanguageModel>(
 									saveMemoryAfterResponse(
 										ctx.client,
 										ctx.containerTag,
-										ctx.conversationId,
+										ctx.customId,
 										generatedText,
 										params,
 										ctx.logger,

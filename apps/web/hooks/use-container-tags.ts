@@ -1,7 +1,6 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useMemo } from "react"
 import { $fetch } from "@lib/api"
 import type { ContainerTagListType } from "@lib/types"
 
@@ -18,20 +17,8 @@ export function useContainerTags() {
 		staleTime: 30 * 1000,
 	})
 
-	const novaProjects = useMemo(
-		() => allProjects.filter((p) => p.isNova),
-		[allProjects],
-	)
-
-	const novaContainerTags = useMemo(
-		() => novaProjects.map((p) => p.containerTag),
-		[novaProjects],
-	)
-
 	return {
 		allProjects,
-		novaProjects,
-		novaContainerTags,
 		isLoading,
 	}
 }

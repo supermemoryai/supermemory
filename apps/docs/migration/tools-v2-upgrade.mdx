@@ -1,0 +1,188 @@
+---
+title: 'Upgrading @supermemory/tools to v2.0.0'
+description: 'Migrate your code from @supermemory/tools 1.4.x to 2.0.0 — config-object signature, customId, and new defaults'
+sidebarTitle: 'Tools: v1.4 → 2.0'
+---
+
+`@supermemory/tools` v2.0.0 unifies the API across all four integrations (Vercel AI SDK, OpenAI, Mastra, VoltAgent) around a single config-object signature and a consistent conversation-grouping concept. This guide walks you through the breaking changes.
+
+<Note>
+  This release is **breaking**. Update calls and re-test before bumping in
+  production.
+</Note>
+
+## What changed at a glance
+
+| Area                  | v1.4.x                                                | v2.0.0                                                      |
+| --------------------- | ----------------------------------------------------- | ----------------------------------------------------------- |
+| Signature             | `withSupermemory(model, "user-123", { ... })`         | `withSupermemory(model, { containerTag: "user-123", ... })` |
+| Conversation grouping | `conversationId` (Vercel/OpenAI), `threadId` (Mastra) | **`customId`** everywhere                                   |
+| `customId`            | Optional                                              | **Required** — throws if missing or empty                   |
+| `containerTag`        | Positional argument                                   | **Required** field on options object                        |
+| `addMemory` default   | `"never"`                                             | `"always"`                                                  |
+| VoltAgent `verbose`   | Hardcoded to `false`                                  | Honored from options                                        |
+
+## Install
+
+```bash
+npm install @supermemory/tools@^2.0.0
+```
+
+## 1. Vercel AI SDK
+
+```typescript
+// v1.4.x
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+
+const model = withSupermemory(openai('gpt-4'), 'user-123', {
+  conversationId: 'conv-456',
+  mode: 'full',
+});
+```
+
+```typescript
+// v2.0.0
+import { withSupermemory } from '@supermemory/tools/ai-sdk';
+
+const model = withSupermemory(openai('gpt-4'), {
+  containerTag: 'user-123',
+  customId: 'conv-456',
+  mode: 'full',
+});
+```
+
+<Warning>
+  `customId` is now **required**. Passing an empty string or omitting it throws
+  at construction time.
+</Warning>
+
+## 2. OpenAI SDK
+
+```typescript
+// v1.4.x
+import { withSupermemory } from '@supermemory/tools/openai';
+
+const client = withSupermemory(openai, 'user-123', {
+  conversationId: 'conv-456',
+});
+```
+
+```typescript
+// v2.0.0
+import { withSupermemory } from '@supermemory/tools/openai';
+
+const client = withSupermemory(openai, {
+  containerTag: 'user-123',
+  customId: 'conv-456',
+});
+```
+
+Both `containerTag` and `customId` are validated and throw with explicit error messages if missing.
+
+## 3. Mastra
+
+Processor constructors and factory functions both moved to a single options argument. `threadId` is gone — use `customId` instead.
+
+```typescript
+// v1.4.x
+import {
+  SupermemoryInputProcessor,
+  createSupermemoryOutputProcessor,
+} from '@supermemory/tools/mastra';
+
+const input = new SupermemoryInputProcessor('user-123', {
+  mode: 'full',
+});
+
+const output = createSupermemoryOutputProcessor('user-123', {
+  threadId: 'conv-456',
+  addMemory: 'always',
+});
+```
+
+```typescript
+// v2.0.0
+import {
+  SupermemoryInputProcessor,
+  createSupermemoryOutputProcessor,
+} from '@supermemory/tools/mastra';
+
+const input = new SupermemoryInputProcessor({
+  containerTag: 'user-123',
+  customId: 'conv-456',
+  mode: 'full',
+});
+
+const output = createSupermemoryOutputProcessor({
+  containerTag: 'user-123',
+  customId: 'conv-456',
+});
+```
+
+<Note>
+  In server setups, Mastra's `RequestContext` thread ID still takes precedence
+  over the construction-time `customId` — the option now acts as the fallback
+  when no per-request thread ID is provided.
+</Note>
+
+## 4. VoltAgent
+
+VoltAgent already used a config-object signature, so the call shape is unchanged. Two behavior fixes ship in v2.0.0:
+
+- `verbose: true` is now honored (was hardcoded to `false` in v1.4.x).
+- A runtime warning is logged when advanced search params (`threshold`, `limit`, `rerank`, `rewriteQuery`, `filters`, `include`, `searchMode`) are set while `mode: "profile"` — those parameters are ignored in profile mode.
+
+If you were relying on `verbose: false` implicitly while passing `verbose: true`, you will now see logs. Adjust as needed.
+
+## 5. New default: `addMemory: "always"`
+
+Across all four integrations, `addMemory` now defaults to `"always"`. If your v1.4.x code relied on the old default of `"never"`, set it explicitly:
+
+```typescript
+const model = withSupermemory(openai('gpt-4'), {
+  containerTag: 'user-123',
+  customId: 'conv-456',
+  addMemory: 'never', // preserve v1.4.x behavior
+});
+```
+
+## Conversation persistence
+
+In v1.4.x the Vercel middleware fell back to `client.add` with a synthesized `customId` when no `conversationId` was passed. In v2.0.0, because `customId` is required, all conversation persistence goes through the `/v4/conversations` endpoint via `addConversation`. There is no fallback path.
+
+## Migration checklist
+
+<Steps>
+  <Step title="Bump the dependency">
+    `npm install @supermemory/tools@^2.0.0`
+  </Step>
+  <Step title="Find every withSupermemory / processor call">
+    Grep your codebase for `withSupermemory(`, `SupermemoryInputProcessor`,
+    `SupermemoryOutputProcessor`, `createSupermemoryProcessor`,
+    `createSupermemoryOutputProcessor`.
+  </Step>
+  <Step title="Move containerTag into the options object">
+    Drop the positional `containerTag` argument and add it to the options
+    object.
+  </Step>
+  <Step title="Rename conversationId / threadId to customId">
+    Make sure every call site provides a non-empty `customId`.
+  </Step>
+  <Step title="Audit addMemory">
+    If you depended on the old `"never"` default, pass `addMemory: "never"`
+    explicitly.
+  </Step>
+  <Step title="Run your test suite">
+    Validation throws happen at construction time, so missing fields surface
+    immediately.
+  </Step>
+</Steps>
+
+## Need help?
+
+- [Vercel AI SDK integration](/integrations/ai-sdk)
+- [OpenAI integration](/integrations/openai)
+- [Mastra integration](/integrations/mastra)
+- [VoltAgent integration](/integrations/voltagent)
+
+If you hit something this guide does not cover, open an issue on [GitHub](https://github.com/supermemoryai/supermemory).

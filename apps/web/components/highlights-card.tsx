@@ -7,7 +7,6 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Info,
-	Loader2,
 	MessageSquare,
 	Link2,
 } from "lucide-react"
@@ -103,14 +102,24 @@ export function HighlightsCard({
 		return (
 			<div
 				className={cn(
-					"bg-[#0B1017] border border-[rgba(255,255,255,0.05)] rounded-[18px] p-3 flex flex-col gap-3 min-h-[180px] items-center justify-center",
+					"bg-surface-card/60 backdrop-blur-md rounded-[18px] p-3 flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
 					dmSansClassName(),
 				)}
 			>
-				<Loader2 className="size-5 animate-spin text-[#4BA0FA]" />
-				<span className="text-[10px] text-[#737373]">
-					Loading highlights...
-				</span>
+				<div className="flex items-center gap-1">
+					<div className="size-[14px] rounded-full bg-[#1A2030] animate-pulse" />
+					<div className="h-2 w-20 rounded bg-[#1A2030] animate-pulse" />
+				</div>
+				<div className="flex flex-col gap-1.5">
+					<div className="h-2.5 w-2/5 rounded bg-[#1A2030] animate-pulse" />
+					<div className="h-2 w-full rounded bg-[#1A2030] animate-pulse" />
+					<div className="h-2 w-[85%] rounded bg-[#1A2030] animate-pulse" />
+					<div className="h-2 w-[65%] rounded bg-[#1A2030] animate-pulse" />
+				</div>
+				<div className="flex items-center gap-2">
+					<div className="h-[26px] w-14 rounded-lg bg-[#1A2030] animate-pulse" />
+					<div className="h-[26px] w-16 rounded-lg bg-[#1A2030] animate-pulse" />
+				</div>
 			</div>
 		)
 	}
@@ -119,7 +128,7 @@ export function HighlightsCard({
 		return (
 			<div
 				className={cn(
-					"bg-[#0B1017] border border-[rgba(255,255,255,0.05)] rounded-[18px] p-3 flex flex-col gap-3 min-h-[180px]",
+					"bg-surface-card/60 backdrop-blur-md rounded-[18px] p-3 flex flex-col gap-3 min-h-[180px] shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
 					dmSansClassName(),
 				)}
 			>
@@ -137,7 +146,7 @@ export function HighlightsCard({
 					</div>
 				</div>
 				<div className="flex-1 flex items-center justify-center">
-					<p className="text-[11px] text-[#737373] text-center">
+					<p className="text-[11px] text-fg-muted text-center">
 						Add some documents to see highlights here
 					</p>
 				</div>
@@ -148,7 +157,7 @@ export function HighlightsCard({
 	return (
 		<div
 			className={cn(
-				"bg-[#0B1017] border border-[rgba(255,255,255,0.05)] rounded-[18px] p-3 flex flex-col gap-3",
+				"bg-surface-card/60 backdrop-blur-md rounded-[18px] p-3 flex flex-col gap-3 shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
 				dmSansClassName(),
 			)}
 		>
@@ -164,14 +173,14 @@ export function HighlightsCard({
 						</span>
 					</div>
 				</div>
-				<Info className="size-[14px] text-[#737373]" />
+				<Info className="size-[14px] text-fg-subtle" />
 			</div>
 
 			<div id="highlights-body" className="flex flex-col gap-1.5">
-				<p className="text-[12px] font-semibold text-[#FAFAFA] leading-tight truncate">
+				<p className="text-[12px] font-semibold text-fg-primary leading-tight truncate">
 					{currentItem.title}
 				</p>
-				<div className="text-[12px] text-[#FAFAFA] leading-normal line-clamp-5">
+				<div className="text-[12px] text-fg-primary leading-normal line-clamp-5">
 					{renderContent(currentItem.content, currentItem.format)}
 				</div>
 			</div>
@@ -181,27 +190,27 @@ export function HighlightsCard({
 					<button
 						type="button"
 						onClick={handleChat}
-						className="bg-[#1B1F24] rounded-[8px] px-2 py-1.5 flex items-center gap-1.5 cursor-pointer relative"
+						className="bg-[#182333] border border-surface-border rounded-[8px] px-2 py-1.5 flex items-center gap-1.5 cursor-pointer relative"
 						style={{
 							boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.25)",
 						}}
 						aria-label="Chat with Nova"
 					>
-						<MessageSquare className="size-3.5 text-[#FAFAFA]" />
-						<span className="text-[11px] text-[#FAFAFA]">Chat</span>
+						<MessageSquare className="size-3.5 text-fg-primary" />
+						<span className="text-[11px] text-fg-primary">Chat</span>
 						<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.1)]" />
 					</button>
 					<button
 						type="button"
 						onClick={handleShowRelated}
-						className="bg-[#1B1F24] rounded-[8px] px-2 py-1.5 flex items-center gap-1.5 cursor-pointer relative"
+						className="bg-[#182333] border border-surface-border rounded-[8px] px-2 py-1.5 flex items-center gap-1.5 cursor-pointer relative"
 						style={{
 							boxShadow: "0 4px 20px 0 rgba(0, 0, 0, 0.25)",
 						}}
 						aria-label="Show related"
 					>
-						<Link2 className="size-3.5 text-[#FAFAFA]" />
-						<span className="text-[11px] text-[#FAFAFA]">Related</span>
+						<Link2 className="size-3.5 text-fg-primary" />
+						<span className="text-[11px] text-fg-primary">Related</span>
 						<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.1)]" />
 					</button>
 				</div>
@@ -211,7 +220,7 @@ export function HighlightsCard({
 						<button
 							type="button"
 							onClick={handlePrev}
-							className="text-[#737373] hover:text-white transition-colors cursor-pointer"
+							className="text-fg-subtle hover:text-white transition-colors cursor-pointer"
 							aria-label="Previous item"
 						>
 							<ChevronLeft className="size-4" />
@@ -226,7 +235,7 @@ export function HighlightsCard({
 										"rounded-full transition-all cursor-pointer",
 										idx === activeIndex
 											? "w-4 h-1.5 bg-[#4BA0FA]"
-											: "size-1.5 bg-[#737373] hover:bg-[#999999]",
+											: "size-1.5 bg-fg-subtle hover:bg-fg-secondary",
 									)}
 									aria-label={`Go to item ${idx + 1}`}
 								/>
@@ -235,7 +244,7 @@ export function HighlightsCard({
 						<button
 							type="button"
 							onClick={handleNext}
-							className="text-[#737373] hover:text-white transition-colors cursor-pointer"
+							className="text-fg-subtle hover:text-white transition-colors cursor-pointer"
 							aria-label="Next item"
 						>
 							<ChevronRight className="size-4" />

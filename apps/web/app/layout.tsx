@@ -11,7 +11,6 @@ import { Suspense } from "react"
 import { Toaster } from "@ui/components/sonner"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import { ThemeProvider } from "@/lib/theme-provider"
-import Script from "next/script"
 
 const font = Space_Grotesk({
 	subsets: ["latin"],
@@ -70,11 +69,6 @@ export default function RootLayout({
 						</QueryProvider>
 					</AutumnProvider>
 				</ThemeProvider>
-				<Script
-					src="https://lobbyside.com/widget.js"
-					data-widget-id="e385c52f-4dd3-4fb2-81eb-da3a78059014"
-					strategy="lazyOnload"
-				/>
 			</body>
 		</html>
 	)

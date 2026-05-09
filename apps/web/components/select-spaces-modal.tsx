@@ -9,6 +9,10 @@ import { XIcon, Search, Check } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { ContainerTagListType } from "@lib/types"
+import {
+	compareSpacesUserFirst,
+	spaceSelectorDisplayName,
+} from "@/lib/ingest-auto-space"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -75,24 +79,26 @@ export function SelectSpacesModal({
 			name: "My Space",
 			emoji: "📁",
 			containerTag: DEFAULT_PROJECT_ID,
+			isExperimental: false,
+			isNova: false,
+			createdAt: "",
+			updatedAt: "",
+		} as ContainerTagListType
+
+		const rest = projects
+			.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID)
+			.sort(compareSpacesUserFirst)
+
+		const allSpaces = [defaultSpace, ...rest]
+		if (!searchQuery.trim()) {
+			return allSpaces
 		}
-
-		const allSpaces = [
-			defaultSpace,
-			...projects.filter((p) => p.containerTag !== DEFAULT_PROJECT_ID),
-		]
-
-		let result = allSpaces
-		if (searchQuery.trim()) {
-			const query = searchQuery.toLowerCase()
-			result = allSpaces.filter(
-				(p) =>
-					p.containerTag.toLowerCase().includes(query) ||
-					p.name?.toLowerCase().includes(query),
-			)
-		}
-
-		return result
+		const query = searchQuery.trim().toLowerCase()
+		return allSpaces.filter(
+			(p) =>
+				p.containerTag.toLowerCase().includes(query) ||
+				(p.name ?? "").toLowerCase().includes(query),
+		)
 	}, [projects, searchQuery])
 
 	return (
@@ -169,7 +175,7 @@ export function SelectSpacesModal({
 										type="button"
 										onClick={() => handleToggle(project.containerTag)}
 										className={cn(
-											"flex items-center gap-3 w-full px-3 py-2.5 rounded-[12px] cursor-pointer transition-colors text-left",
+											"flex min-w-0 max-w-full items-center gap-3 w-full px-3 py-2.5 rounded-[12px] cursor-pointer transition-colors text-left",
 											isSelected
 												? "bg-[#14161A] border border-[rgba(82,89,102,0.3)]"
 												: "bg-transparent border border-transparent hover:bg-[#14161A]/50",
@@ -198,9 +204,14 @@ export function SelectSpacesModal({
 												{isSelected && <Check className="size-3 text-white" />}
 											</div>
 										)}
-										<span className="text-lg">{project.emoji || "📁"}</span>
-										<span className="text-[#fafafa] text-sm font-medium truncate flex-1">
-											{project.name ?? project.containerTag}
+										<span className="shrink-0 text-lg">
+											{project.emoji || "📁"}
+										</span>
+										<span
+											className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
+											title={project.name ?? project.containerTag}
+										>
+											{spaceSelectorDisplayName(project, project.containerTag)}
 										</span>
 									</button>
 								)

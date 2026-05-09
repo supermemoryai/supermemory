@@ -2,8 +2,10 @@
   "name": "memory-graph-playground",
   "version": "0.1.0",
   "private": true,
+  "portless": { "name": "graph.dev.supermemory", "script": "dev:app" },
   "scripts": {
-    "dev": "next dev",
+    "dev": "portless",
+    "dev:app": "next dev --port ${PORT:-3004}",
     "build": "next build",
     "start": "next start"
   },

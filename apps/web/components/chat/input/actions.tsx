@@ -14,10 +14,10 @@ export function SendButton({
 			onClick={onClick}
 			disabled={disabled}
 			className={cn(
-				"bg-[#000000] border-[#161F2C] border p-2 rounded-lg shrink-0 transition-opacity",
+				"bg-surface-card border-surface-border border p-2 rounded-lg shrink-0 transition-opacity",
 				disabled
 					? "opacity-50 cursor-not-allowed"
-					: "cursor-pointer hover:bg-[#161F2C]",
+					: "cursor-pointer hover:bg-surface-hover",
 			)}
 		>
 			<svg
@@ -42,7 +42,7 @@ export function StopButton({ onClick }: { onClick: () => void }) {
 		<button
 			type="button"
 			onClick={onClick}
-			className="bg-[#000000] border-[#161F2C] border p-2 rounded-lg shrink-0 cursor-pointer hover:bg-[#161F2C] transition-opacity"
+			className="bg-surface-card border-surface-border border p-2 rounded-lg shrink-0 cursor-pointer hover:bg-surface-hover transition-opacity"
 		>
 			<SquareIcon className="size-4 text-white fill-white" />
 		</button>

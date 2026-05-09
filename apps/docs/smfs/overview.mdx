@@ -1,0 +1,71 @@
+---
+title: "SMFS"
+sidebarTitle: "Overview"
+description: "Memory your agent can grep."
+icon: "database"
+---
+
+**SMFS** mounts your Supermemory container as a real directory. Agents read it with `ls`, `cat`, and `grep`. No SDK to learn, no client to wire up, no embeddings to think about.
+
+SMFS is open source and free for everyone.
+
+## Why a filesystem
+
+Every model already knows how a filesystem works. It can `ls`, `cat`, `grep`, `find`, redirect with `>`, pipe with `|`. You don't have to teach it a new API surface, and the grammar carries across runtimes.
+
+The catch: a filesystem on its own isn't great for memory. Search means walking the tree. Long files burn through context. The model has to hold the directory structure in its head. None of that scales as memory grows.
+
+SMFS fixes the catch. The shell is real, but underneath:
+
+- **Semantic `grep` by default.** One call surfaces what matters across the whole container, ranked by meaning. Pass any flag and you fall through to the real `grep` for exact matches.
+- **Memory paths get distilled.** Files marked as memory paths are extracted and indexed by Supermemory. They don't bloat the model's context.
+- **Virtual `profile.md`.** A live digest of the container at the mount root. The model can `cat profile.md` for a one-shot summary instead of walking every file.
+- **Bidirectional sync** runs in the background. Local reads hit cache; writes push to Supermemory.
+
+You get filesystem ergonomics without paying the filesystem tax in tokens.
+
+## Two ways to use SMFS
+
+Pick by where your agent runs.
+
+<CardGroup cols={2}>
+  <Card title="Mount (smfs binary)" icon="hard-drive" href="/smfs/install">
+    For agents and tools with a real filesystem. Claude Code, Cursor, devcontainers, Docker, Codespaces. NFSv3 on macOS, FUSE on Linux.
+  </Card>
+  <Card title="Bash Tool (TypeScript & Python)" icon="terminal" href="/smfs/bash-tool">
+    For agents running serverless or at the edge. Cloudflare Workers, AWS Lambda, Vercel, Modal. A virtual bash where the filesystem is your container. Available as [`@supermemory/bash`](/smfs/bash-tool) for TypeScript and [`supermemory-bash`](/smfs/bash-tool-python) for Python.
+  </Card>
+</CardGroup>
+
+## Use SMFS with your sandbox provider
+
+Already using a sandbox or agent platform? Jump straight to the guide for your provider.
+
+<CardGroup cols={2}>
+  <Card title="Daytona" icon="server" href="/smfs/providers/daytona">
+    Isolated Linux sandboxes with millisecond boot times. Mount SMFS inside or use the bash tool from your orchestrating code.
+  </Card>
+  <Card title="E2B" icon="cube" href="/smfs/providers/e2b">
+    Firecracker microVMs for AI code execution. Install SMFS directly or use a custom template with it pre-installed.
+  </Card>
+  <Card title="Vercel AI SDK" icon="triangle" href="/smfs/providers/vercel">
+    The most popular TypeScript agent framework. Add memory as a tool with one function call.
+  </Card>
+  <Card title="Cloudflare Workers" icon="cloud" href="/smfs/providers/cloudflare">
+    Edge-first agents. Use the bash tool in Workers, or mount SMFS in Cloudflare Containers.
+  </Card>
+</CardGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Install SMFS" icon="download" href="/smfs/install">
+    One curl, one mount, you're done.
+  </Card>
+  <Card title="Use the Bash Tool" icon="terminal" href="/smfs/bash-tool">
+    Drop SMFS into a TypeScript or Python agent without mounting anything.
+  </Card>
+  <Card title="Examples" icon="code" href="/smfs/examples">
+    Full working apps you can clone and run — legal docs, support agents, and more.
+  </Card>
+</CardGroup>

@@ -228,7 +228,10 @@ ${result.searchResults?.results.map(m => m.memory).join('\n') || 'None'}
   import { openai } from "@ai-sdk/openai"
 
   // Profiles automatically injected
-  const model = withSupermemory(openai("gpt-4"), "user-123")
+  const model = withSupermemory(openai("gpt-4"), {
+    containerTag: "user-123",
+    customId: "conv-1",
+  })
 
   const result = await generateText({
     model,

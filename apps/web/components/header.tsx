@@ -3,7 +3,6 @@
 import { Logo } from "@ui/assets/Logo"
 import { useAuth } from "@lib/auth-context"
 import {
-	LayoutGridIcon,
 	Plus,
 	SearchIcon,
 	Settings,
@@ -13,11 +12,12 @@ import {
 	ExternalLink,
 	MenuIcon,
 	MessageCircleIcon,
+	LifeBuoy,
+	LayoutGrid,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { Tabs, TabsList, TabsTrigger } from "@ui/components/tabs"
 import { GraphIcon, IntegrationsIcon } from "@/components/integration-icons"
 import {
 	DropdownMenu,
@@ -26,6 +26,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { useProject } from "@/stores"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -34,17 +35,16 @@ import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { FeedbackModal } from "./feedback-modal"
-import { useViewMode, type ViewMode } from "@/lib/view-mode-context"
+import { useViewMode } from "@/lib/view-mode-context"
 import { useQueryState } from "nuqs"
 import { feedbackParam } from "@/lib/search-params"
 
 interface HeaderProps {
 	onAddMemory?: () => void
-	onOpenChat?: () => void
 	onOpenSearch?: () => void
 }
 
-export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
+export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 	const { user, isRestoring } = useAuth()
 	const { selectedProjects, setSelectedProjects } = useProject()
 	const router = useRouter()
@@ -65,21 +65,21 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 	return (
-		<div className="flex p-3 md:p-4 justify-between items-center gap-2">
-			<div className="flex items-center justify-center gap-2 md:gap-4 z-10! min-w-0">
+		<div className="relative z-10 flex shrink-0 items-center justify-between gap-1.5 p-2.5 md:gap-2 md:p-3">
+			<div className="z-10! flex min-w-0 shrink items-center justify-center gap-1.5 md:gap-3">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="flex items-center rounded-lg px-2 py-1.5 -ml-2 cursor-pointer hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 transition-colors shrink-0"
+							className="-ml-2 flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
 						>
-							<Logo className="h-7" />
+							<Logo className="h-6 md:h-7" />
 							{!isMobile && userName && (
-								<div className="flex flex-col items-start justify-center ml-2">
-									<p className="text-[#8B8B8B] text-[11px] leading-tight">
+								<div className="ml-1.5 flex flex-col items-start justify-center sm:ml-2">
+									<p className="text-[10px] leading-tight text-[#6B6B6B] sm:text-[11px]">
 										{userName}
 									</p>
-									<p className="text-white font-bold text-xl leading-none -mt-1">
+									<p className="-mt-0.5 text-base leading-none font-medium text-white/90 sm:text-lg">
 										supermemory
 									</p>
 								</div>
@@ -129,7 +129,6 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
-				<div className="self-stretch w-px bg-[#FFFFFF33] hidden md:block" />
 				{!isMobile && (
 					<SpaceSelector
 						selectedProjects={selectedProjects}
@@ -140,47 +139,120 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 				)}
 			</div>
 			{!isMobile && (
-				<Tabs
-					value={viewMode === "list" ? "grid" : viewMode}
-					onValueChange={(v) =>
-						setViewMode(v === "grid" ? "list" : (v as ViewMode))
-					}
-				>
-					<TabsList className="rounded-full border border-[#161F2C] h-11! z-10!">
-						<TabsTrigger
-							value="grid"
-							className={cn(
-								"rounded-full data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
-								dmSansClassName(),
-							)}
-						>
-							<LayoutGridIcon className="size-4" />
-							Grid
-						</TabsTrigger>
-						<TabsTrigger
-							value="graph"
-							className={cn(
-								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
-								dmSansClassName(),
-							)}
-						>
-							<GraphIcon className="size-4" />
-							Graph
-						</TabsTrigger>
-						<TabsTrigger
-							value="integrations"
-							className={cn(
-								"rounded-full dark:data-[state=active]:bg-[#00173C]! dark:data-[state=active]:border-[#2261CA33]! px-4 py-4 cursor-pointer",
-								dmSansClassName(),
-							)}
-						>
-							<IntegrationsIcon className="size-4" />
-							Integrations
-						</TabsTrigger>
-					</TabsList>
-				</Tabs>
+				<div className="z-10! flex min-w-0 max-w-full flex-1 items-center justify-center gap-1.5 overflow-hidden px-1">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Home"
+								aria-current={viewMode === "dashboard" ? "page" : undefined}
+								onClick={() => void setViewMode("dashboard")}
+								className={cn(
+									"flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
+									viewMode === "dashboard"
+										? "border-[#2261CA33] bg-[#00173C] text-white"
+										: "border-[#161F2C] bg-muted text-muted-foreground hover:bg-white/5",
+									dmSansClassName(),
+								)}
+							>
+								<Home className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" className={dmSansClassName()}>
+							Home
+						</TooltipContent>
+					</Tooltip>
+					<div
+						role="tablist"
+						aria-label="Content"
+						aria-orientation="horizontal"
+						className="text-muted-foreground z-10! inline-flex h-10 w-fit min-w-0 max-w-full items-center justify-center gap-0.5 overflow-x-auto rounded-full border border-[#161F2C] bg-muted p-1 [scrollbar-width:thin]"
+					>
+						{(
+							[
+								{
+									mode: "integrations" as const,
+									label: "Integrations",
+									icon: IntegrationsIcon,
+								},
+								{ mode: "graph" as const, label: "Graph", icon: GraphIcon },
+								{
+									mode: "list" as const,
+									label: "Memories",
+									icon: LayoutGrid,
+								},
+							] as const
+						).map(({ mode, label, icon: Icon }) => (
+							<button
+								key={mode}
+								type="button"
+								role="tab"
+								aria-selected={
+									mode === "integrations"
+										? [
+												"integrations",
+												"mcp",
+												"plugins",
+												"chrome",
+												"connections",
+												"shortcuts",
+												"raycast",
+												"import",
+											].includes(viewMode)
+										: viewMode === mode
+								}
+								onClick={() => void setViewMode(mode)}
+								className={cn(
+									"inline-flex h-[calc(100%-1px)] min-h-0 cursor-pointer items-center justify-center gap-1 rounded-full border border-transparent px-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:gap-1.5 sm:px-3 sm:text-sm",
+									(
+										mode === "integrations"
+											? [
+													"integrations",
+													"mcp",
+													"plugins",
+													"chrome",
+													"connections",
+													"shortcuts",
+													"raycast",
+													"import",
+												].includes(viewMode)
+											: viewMode === mode
+									)
+										? "border-[#2261CA33] bg-[#00173C] text-white"
+										: "text-foreground hover:bg-white/5",
+									dmSansClassName(),
+								)}
+							>
+								<Icon className="size-3.5 shrink-0 sm:size-4" />
+								{label}
+							</button>
+						))}
+					</div>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								aria-label="Chat"
+								aria-current={viewMode === "chat" ? "page" : undefined}
+								onClick={() => void setViewMode("chat")}
+								className={cn(
+									"flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
+									viewMode === "chat"
+										? "border-[#2261CA33] bg-[#00173C] text-white"
+										: "border-[#161F2C] bg-muted text-muted-foreground hover:bg-white/5",
+									dmSansClassName(),
+								)}
+							>
+								<MessageCircleIcon className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" className={dmSansClassName()}>
+							Chat
+						</TooltipContent>
+					</Tooltip>
+				</div>
 			)}
-			<div className="flex items-center gap-2 z-10!">
+			<div className="z-10! flex shrink-0 items-center gap-1.5">
 				{isMobile ? (
 					<>
 						<SpaceSelector
@@ -218,6 +290,13 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 									Add memory
 								</DropdownMenuItem>
 								<DropdownMenuItem
+									onClick={() => void setViewMode("dashboard")}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<Home className="h-4 w-4 text-[#737373]" />
+									Home
+								</DropdownMenuItem>
+								<DropdownMenuItem
 									onClick={() => setViewMode("integrations")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
@@ -225,7 +304,28 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 									Integrations
 								</DropdownMenuItem>
 								<DropdownMenuItem
-									onClick={onOpenChat}
+									onClick={() => void setViewMode("graph")}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<GraphIcon className="h-4 w-4 text-[#737373]" />
+									Graph
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => onOpenSearch?.()}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<SearchIcon className="h-4 w-4 text-[#737373]" />
+									Search
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => void setViewMode("list")}
+									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+								>
+									<LayoutGrid className="h-4 w-4 text-[#737373]" />
+									Memories
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => void setViewMode("chat")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
 									<MessageCircleIcon className="h-4 w-4 text-[#737373]" />
@@ -236,7 +336,7 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 									onClick={handleFeedback}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<MessageCircleIcon className="h-4 w-4 text-[#737373]" />
+									<LifeBuoy className="h-4 w-4 text-[#737373]" />
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
@@ -251,67 +351,106 @@ export function Header({ onAddMemory, onOpenChat, onOpenSearch }: HeaderProps) {
 					</>
 				) : (
 					<>
-						<Button
-							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
-							onClick={onAddMemory}
-						>
-							<div className="flex items-center gap-2">
-								<Plus className="size-4" />
-								Add memory
-							</div>
-							<span
-								className={cn(
-									"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
-									dmSansClassName(),
-								)}
-							>
-								C
-							</span>
-						</Button>
-						<Button
-							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
-							onClick={onOpenSearch}
-						>
-							<SearchIcon className="size-4" />
-							<span className="bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm text-[10px] flex items-center justify-center gap-0.5 px-1">
-								<svg
-									className="size-[7.5px]"
-									viewBox="0 0 9 9"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="headers"
+									className={cn(
+										"rounded-full! h-9! min-h-9 shrink-0",
+										"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+										"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-medium",
+										dmSansClassName(),
+									)}
+									onClick={onAddMemory}
+									aria-label="Add memory"
 								>
-									<title>Command Key</title>
-									<path
-										d="M6.66663 0.416626C6.33511 0.416626 6.01716 0.548322 5.78274 0.782743C5.54832 1.01716 5.41663 1.33511 5.41663 1.66663V6.66663C5.41663 6.99815 5.54832 7.31609 5.78274 7.55051C6.01716 7.78493 6.33511 7.91663 6.66663 7.91663C6.99815 7.91663 7.31609 7.78493 7.55051 7.55051C7.78493 7.31609 7.91663 6.99815 7.91663 6.66663C7.91663 6.33511 7.78493 6.01716 7.55051 5.78274C7.31609 5.54832 6.99815 5.41663 6.66663 5.41663H1.66663C1.33511 5.41663 1.01716 5.54832 0.782743 5.78274C0.548322 6.01716 0.416626 6.33511 0.416626 6.66663C0.416626 6.99815 0.548322 7.31609 0.782743 7.55051C1.01716 7.78493 1.33511 7.91663 1.66663 7.91663C1.99815 7.91663 2.31609 7.78493 2.55051 7.55051C2.78493 7.31609 2.91663 6.99815 2.91663 6.66663V1.66663C2.91663 1.33511 2.78493 1.01716 2.55051 0.782743C2.31609 0.548322 1.99815 0.416626 1.66663 0.416626C1.33511 0.416626 1.01716 0.548322 0.782743 0.782743C0.548322 1.01716 0.416626 1.33511 0.416626 1.66663C0.416626 1.99815 0.548322 2.31609 0.782743 2.55051C1.01716 2.78493 1.33511 2.91663 1.66663 2.91663H6.66663C6.99815 2.91663 7.31609 2.78493 7.55051 2.55051C7.78493 2.31609 7.91663 1.99815 7.91663 1.66663C7.91663 1.33511 7.78493 1.01716 7.55051 0.782743C7.31609 0.548322 6.99815 0.416626 6.66663 0.416626Z"
-										stroke="#737373"
-										strokeWidth="0.833333"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-								</svg>
-								<span className={cn(dmSansClassName())}>K</span>
-							</span>
-						</Button>
-						<Button
-							variant="headers"
-							className="rounded-full text-base gap-2 h-10!"
-							onClick={handleFeedback}
-						>
-							<div className="flex items-center gap-2">
-								<MessageCircleIcon className="size-4" />
-								Feedback
-							</div>
-						</Button>
+									<Plus className="size-3.5 shrink-0 lg:size-4" />
+									<span className="max-lg:sr-only">Add memory</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Add memory (C)
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="headers"
+									className={cn(
+										"size-9! min-h-9 min-w-9 shrink-0 rounded-full! border-[#161F2C]/90 px-0! text-muted-foreground hover:text-foreground",
+										dmSansClassName(),
+									)}
+									onClick={onOpenSearch}
+									aria-label="Search"
+								>
+									<SearchIcon className="size-4 shrink-0" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Search (⌘K)
+							</TooltipContent>
+						</Tooltip>
 					</>
 				)}
-				<UserProfileMenu />
+				<UserProfileMenu onOpenFeedback={handleFeedback} />
 			</div>
 			<FeedbackModal
 				isOpen={feedbackOpen}
 				onClose={() => setFeedbackOpen(false)}
 			/>
+		</div>
+	)
+}
+
+export function PublicHeader() {
+	return (
+		<div className="relative z-10 flex shrink-0 items-center justify-between gap-2 p-2.5 md:p-3">
+			<Link
+				href="/"
+				className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+			>
+				<Logo className="h-6 md:h-7" />
+				<div className="hidden sm:flex flex-col items-start">
+					<p className="text-[10px] leading-tight text-[#6B6B6B]">Your AI</p>
+					<p className="-mt-0.5 text-base leading-none font-medium text-white/90">
+						supermemory
+					</p>
+				</div>
+			</Link>
+
+			<div className="flex items-center gap-2">
+				<p
+					className={cn(
+						"hidden md:block text-[13px] text-[#4B5563]",
+						dmSansClassName(),
+					)}
+				>
+					Connect your tools, search everything.
+				</p>
+				<Link href="/login">
+					<button
+						type="button"
+						className={cn(
+							"text-[13px] font-medium text-[#8B8B8B] hover:text-white transition-colors px-3 h-8 cursor-pointer",
+							dmSansClassName(),
+						)}
+					>
+						Sign in
+					</button>
+				</Link>
+				<Link href="/login/new">
+					<button
+						type="button"
+						className={cn(
+							"flex items-center gap-1.5 text-[13px] font-medium text-white",
+							"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 rounded-full px-4 h-8 transition-colors cursor-pointer",
+							dmSansClassName(),
+						)}
+					>
+						Get started free
+					</button>
+				</Link>
+			</div>
 		</div>
 	)
 }

@@ -652,31 +652,33 @@ interface MCPDetailViewProps {
 
 export function MCPDetailView({ onBack }: MCPDetailViewProps) {
 	return (
-		<div className="flex h-full flex-col p-6 md:p-8">
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-				<Button
-					variant="link"
-					className="h-auto self-start p-0 text-[#FAFAFA] hover:text-[#BFBFBF] hover:no-underline"
-					onClick={onBack}
-				>
-					← Back
-				</Button>
-			</div>
+		<div className="flex flex-1 w-full flex-col p-6 md:p-8">
+			<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col">
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<Button
+						variant="link"
+						className="h-auto self-start p-0 text-[#FAFAFA] hover:text-[#BFBFBF] hover:no-underline"
+						onClick={onBack}
+					>
+						← Back
+					</Button>
+				</div>
 
-			<div className="flex flex-1 flex-col items-center justify-start">
-				<h1
-					className={cn(
-						"mb-1 text-2xl font-semibold tracking-[-0.02em] text-[#FAFAFA]",
-						dmSansClassName(),
-					)}
-				>
-					Connect Supermemory MCP to your AI Tools
-				</h1>
-				<p className={cn("mb-4 text-sm text-[#737373]", dmSansClassName())}>
-					Connect Cursor, Claude, VS Code, and more via MCP.
-				</p>
+				<div className="flex flex-1 flex-col items-center justify-start">
+					<h1
+						className={cn(
+							"mb-1 text-2xl font-semibold tracking-[-0.02em] text-[#FAFAFA]",
+							dmSansClassName(),
+						)}
+					>
+						Connect Supermemory MCP to your AI Tools
+					</h1>
+					<p className={cn("mb-4 text-sm text-[#737373]", dmSansClassName())}>
+						Connect Cursor, Claude, VS Code, and more via MCP.
+					</p>
 
-				<MCPSteps variant="full" />
+					<MCPSteps variant="full" />
+				</div>
 			</div>
 		</div>
 	)

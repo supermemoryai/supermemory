@@ -6,7 +6,7 @@ import { motion } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { useState, useEffect, useRef } from "react"
 import { cn } from "@lib/utils"
-import { dmSansClassName } from "@/lib/fonts"
+import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import Account from "@/components/settings/account"
 import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
@@ -16,7 +16,11 @@ import { useRouter } from "next/navigation"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { analytics } from "@/lib/analytics"
-import { Sun } from "lucide-react"
+import { LogOut, RotateCcw, Trash2, Sun, LoaderIcon } from "lucide-react"
+import { authClient } from "@lib/auth"
+import { Dialog, DialogContent, DialogClose } from "@ui/components/dialog"
+import { useResetOrganization } from "@/hooks/use-reset-organization"
+import { useDeleteUserAccount } from "@/hooks/use-account-settings"
 
 const TABS = ["account", "integrations", "connections", "support"] as const
 type SettingsTab = (typeof TABS)[number]
@@ -26,6 +30,14 @@ type NavItem = {
 	label: string
 	description: string
 	icon: React.ReactNode
+}
+
+type DangerItem = {
+	id: "logout" | "reset" | "delete"
+	label: string
+	description: string
+	icon: React.ReactNode
+	color: "neutral" | "amber" | "red"
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -103,6 +115,51 @@ const NAV_ITEMS: NavItem[] = [
 	},
 ]
 
+const DANGER_ITEMS: DangerItem[] = [
+	{
+		id: "logout",
+		label: "Log out",
+		description: "Sign out of your account on this device",
+		icon: <LogOut className="size-5" />,
+		color: "neutral",
+	},
+	{
+		id: "reset",
+		label: "Reset data",
+		description: "Erase all memories, connections and spaces",
+		icon: <RotateCcw className="size-5" />,
+		color: "amber",
+	},
+	{
+		id: "delete",
+		label: "Delete account",
+		description: "Permanently delete your account and all data",
+		icon: <Trash2 className="size-5" />,
+		color: "red",
+	},
+]
+
+const DANGER_COLORS: Record<
+	DangerItem["color"],
+	{ idle: string; hover: string; icon: string }
+> = {
+	neutral: {
+		idle: "text-white/50",
+		hover: "hover:text-white",
+		icon: "text-white/40",
+	},
+	amber: {
+		idle: "text-[#7A6030]",
+		hover: "hover:text-[#C7991B]",
+		icon: "text-[#7A6030]",
+	},
+	red: {
+		idle: "text-[#6B2A2A]",
+		hover: "hover:text-[#C73B1B]",
+		icon: "text-[#6B2A2A]",
+	},
+}
+
 function parseHashToTab(hash: string): SettingsTab {
 	const cleaned = hash.replace("#", "").toLowerCase()
 	return TABS.includes(cleaned as SettingsTab)
@@ -133,12 +190,39 @@ export function UserSupermemory({ name }: { name: string }) {
 }
 
 export default function SettingsPage() {
-	const { user } = useAuth()
+	const { user, org } = useAuth()
 	const [activeTab, setActiveTab] = useState<SettingsTab>("account")
 	const hasInitialized = useRef(false)
 	const router = useRouter()
 	const isMobile = useIsMobile()
 	const localStorageUsername = useLocalStorageUsername()
+
+	const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+	const [resetConfirmation, setResetConfirmation] = useState("")
+	const resetOrganization = useResetOrganization()
+
+	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+	const [deleteEmailConfirm, setDeleteEmailConfirm] = useState("")
+	const deleteUserAccount = useDeleteUserAccount()
+
+	const handleLogout = async () => {
+		await authClient.signOut()
+		router.push("/login")
+	}
+
+	const handleDeleteAccount = async () => {
+		if (deleteEmailConfirm !== user?.email) return
+		deleteUserAccount.mutate(
+			{ confirmation: deleteEmailConfirm },
+			{
+				onSuccess: () => {
+					setIsDeleteDialogOpen(false)
+					setDeleteEmailConfirm("")
+					router.push("/login")
+				},
+			},
+		)
+	}
 
 	useEffect(() => {
 		if (hasInitialized.current) return
@@ -277,6 +361,55 @@ export default function SettingsPage() {
 									)}
 								</button>
 							))}
+
+							{/* Divider */}
+							{!isMobile && <div className="my-1 h-px bg-[#0F1621]" />}
+
+							{DANGER_ITEMS.map((item) => {
+								const colors = DANGER_COLORS[item.color]
+								const handleClick = () => {
+									if (item.id === "logout") handleLogout()
+									else if (item.id === "reset") setIsResetDialogOpen(true)
+									else if (item.id === "delete") setIsDeleteDialogOpen(true)
+								}
+								return (
+									<button
+										key={item.id}
+										type="button"
+										onClick={handleClick}
+										className={cn(
+											"rounded-xl transition-colors flex items-start gap-3 shrink-0 group",
+											isMobile ? "px-3 py-2 text-sm" : "text-left p-4",
+											"hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+											colors.idle,
+											colors.hover,
+										)}
+									>
+										<span
+											className={cn(
+												"shrink-0",
+												!isMobile && "mt-0.5",
+												colors.icon,
+												`group-hover:${colors.hover.replace("hover:", "")}`,
+											)}
+										>
+											{item.icon}
+										</span>
+										{isMobile ? (
+											<span className="font-medium whitespace-nowrap">
+												{item.label}
+											</span>
+										) : (
+											<div className="flex flex-col gap-0.5">
+												<span className="font-medium">{item.label}</span>
+												<span className="text-sm opacity-60">
+													{item.description}
+												</span>
+											</div>
+										)}
+									</button>
+								)
+							})}
 						</nav>
 					</div>
 					<div className="flex-1 flex flex-col gap-4 md:overflow-y-auto md:max-w-2xl [scrollbar-gutter:stable] md:pr-[17px]">
@@ -303,6 +436,169 @@ export default function SettingsPage() {
 					</div>
 				</div>
 			</main>
+
+			{/* Reset data dialog */}
+			{(() => {
+				const confirmText = org?.name || user?.name || ""
+				return (
+					<Dialog
+						open={isResetDialogOpen}
+						onOpenChange={(open) => {
+							setIsResetDialogOpen(open)
+							if (!open) setResetConfirmation("")
+						}}
+					>
+						<DialogContent className="sm:max-w-md">
+							<div
+								className={cn("flex flex-col gap-5 p-1", dmSans125ClassName())}
+							>
+								<div className="flex flex-col gap-1.5">
+									<h2 className="text-[18px] font-semibold text-[#FAFAFA]">
+										Reset all data?
+									</h2>
+									<p className="text-sm text-[#8B8B8B]">
+										This permanently removes:
+									</p>
+									<ul className="text-sm text-[#8B8B8B] list-disc pl-5 space-y-0.5 mt-1">
+										<li>All documents and memories</li>
+										<li>All connections (Google Drive, Notion, etc.)</li>
+										<li>All custom spaces (default space stays)</li>
+										<li>Organization settings and filters</li>
+									</ul>
+									<p className="text-sm text-[#8B8B8B] mt-1">
+										Your account and billing plan stay intact.{" "}
+										<strong className="text-[#FAFAFA]">
+											This cannot be undone.
+										</strong>
+									</p>
+								</div>
+								<div className="flex flex-col gap-2">
+									<p className="text-sm text-[#8B8B8B]">
+										Type{" "}
+										<strong className="text-[#FAFAFA]">
+											{confirmText || "your name"}
+										</strong>{" "}
+										to confirm:
+									</p>
+									<input
+										type="text"
+										value={resetConfirmation}
+										onChange={(e) => setResetConfirmation(e.target.value)}
+										placeholder={confirmText || "Your name"}
+										autoComplete="off"
+										className="w-full rounded-xl border border-[#2A2D35] bg-[#0D0F14] px-4 py-2.5 text-sm text-white placeholder:text-[#525D6E] focus:outline-none focus:border-[#C7991B]/50 transition-colors"
+									/>
+								</div>
+								<div className="flex gap-3 justify-end">
+									<DialogClose asChild>
+										<button
+											type="button"
+											className="px-4 py-2 rounded-full border border-[#2A2D35] text-sm text-[#8B8B8B] hover:text-white hover:border-[#3A3D45] transition-colors cursor-pointer"
+										>
+											Cancel
+										</button>
+									</DialogClose>
+									<button
+										type="button"
+										disabled={
+											!confirmText ||
+											resetConfirmation !== confirmText ||
+											resetOrganization.isPending
+										}
+										onClick={() =>
+											resetOrganization.mutate(
+												{ confirmation: confirmText },
+												{
+													onSuccess: () => {
+														setIsResetDialogOpen(false)
+														setResetConfirmation("")
+													},
+												},
+											)
+										}
+										className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-opacity bg-[#1A1200] text-[#C7991B] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+									>
+										{resetOrganization.isPending ? (
+											<LoaderIcon className="size-[15px] animate-spin" />
+										) : (
+											<RotateCcw className="size-[15px]" />
+										)}
+										{resetOrganization.isPending
+											? "Resetting…"
+											: "Reset organization"}
+									</button>
+								</div>
+							</div>
+						</DialogContent>
+					</Dialog>
+				)
+			})()}
+
+			{/* Delete account dialog */}
+			<Dialog
+				open={isDeleteDialogOpen}
+				onOpenChange={(open) => {
+					setIsDeleteDialogOpen(open)
+					if (!open) setDeleteEmailConfirm("")
+				}}
+			>
+				<DialogContent className="sm:max-w-md">
+					<div className={cn("flex flex-col gap-5 p-1", dmSans125ClassName())}>
+						<div className="flex flex-col gap-1.5">
+							<h2 className="text-[18px] font-semibold text-[#FAFAFA]">
+								Delete your account?
+							</h2>
+							<p className="text-sm text-[#8B8B8B]">
+								Permanently deletes all your data and cancels any active
+								subscriptions.{" "}
+								<strong className="text-[#FAFAFA]">
+									This cannot be undone.
+								</strong>
+							</p>
+						</div>
+						<div className="flex flex-col gap-2">
+							<p className="text-sm text-[#8B8B8B]">
+								Type your email{" "}
+								<strong className="text-[#FAFAFA]">{user?.email}</strong> to
+								confirm:
+							</p>
+							<input
+								type="email"
+								value={deleteEmailConfirm}
+								onChange={(e) => setDeleteEmailConfirm(e.target.value)}
+								placeholder={user?.email ?? "your@email.com"}
+								className="w-full rounded-xl border border-[#2A2D35] bg-[#0D0F14] px-4 py-2.5 text-sm text-white placeholder:text-[#525D6E] focus:outline-none focus:border-[#C73B1B]/50 transition-colors"
+							/>
+						</div>
+						<div className="flex gap-3 justify-end">
+							<DialogClose asChild>
+								<button
+									type="button"
+									className="px-4 py-2 rounded-full border border-[#2A2D35] text-sm text-[#8B8B8B] hover:text-white hover:border-[#3A3D45] transition-colors cursor-pointer"
+								>
+									Cancel
+								</button>
+							</DialogClose>
+							<button
+								type="button"
+								disabled={
+									deleteEmailConfirm !== user?.email ||
+									deleteUserAccount.isPending
+								}
+								onClick={handleDeleteAccount}
+								className="relative flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-opacity bg-[#290F0A] text-[#C73B1B] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+							>
+								{deleteUserAccount.isPending ? (
+									<LoaderIcon className="size-[15px] animate-spin" />
+								) : (
+									<Trash2 className="size-[15px]" />
+								)}
+								{deleteUserAccount.isPending ? "Deleting…" : "Delete account"}
+							</button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	)
 }

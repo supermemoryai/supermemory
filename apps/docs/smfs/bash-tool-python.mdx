@@ -1,0 +1,252 @@
+---
+title: "Bash Tool (Python)"
+sidebarTitle: "Bash Tool (Python)"
+description: "supermemory-bash. The SMFS idea wrapped as a single agent tool, for Python agents and serverless runtimes."
+icon: "terminal"
+---
+
+`supermemory-bash` is the SMFS idea wrapped as a single agent tool: `run_bash(command)`. The "filesystem" is your Supermemory container. Runs anywhere Python runs. AWS Lambda, Modal, Fly Machines, Cloud Run, your laptop. No mount, no FUSE, no local disk.
+
+Reach for the Bash Tool when your agent runs somewhere it can't mount a real filesystem.
+
+## Install
+
+```bash
+pip install supermemory-bash
+```
+
+Or with uv:
+
+```bash
+uv add supermemory-bash
+```
+
+## Quickstart
+
+```python
+import asyncio
+import os
+from supermemory_bash import create_bash
+
+
+async def main() -> None:
+    result = await create_bash(
+        api_key=os.environ["SUPERMEMORY_API_KEY"],
+        container_tag="user_42",
+    )
+    bash = result.bash
+    r = await bash.exec("ls /")
+    print(r.stdout)
+
+
+asyncio.run(main())
+```
+
+`create_bash` returns a `CreateBashResult` with:
+
+- `bash`: a `Shell` instance with `.exec(cmd)`
+- `tool_description`: a pre-written tool description ready to hand to the model
+- `configure_memory_paths(paths)`: scope which paths get extracted into Supermemory
+- `refresh()`: re-prime the path index after external writes
+
+## Use it as a model tool
+
+### Anthropic SDK
+
+Pass `tool_description` straight into Claude's tool definition and run a normal agent loop. Each `tool_use` block calls `bash.exec` and the result goes back as a `tool_result`.
+
+```python
+import asyncio
+import os
+
+import anthropic
+from supermemory_bash import create_bash
+
+
+async def run_agent(user_message: str) -> str:
+    result = await create_bash(
+        api_key=os.environ["SUPERMEMORY_API_KEY"],
+        container_tag="user_42",
+    )
+    bash = result.bash
+
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    tools = [
+        {
+            "name": "bash",
+            "description": result.tool_description,
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "cmd": {"type": "string", "description": "The bash command to run."}
+                },
+                "required": ["cmd"],
+            },
+        }
+    ]
+
+    messages = [{"role": "user", "content": user_message}]
+
+    for _ in range(10):
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4096,
+            tools=tools,
+            messages=messages,
+        )
+
+        if response.stop_reason == "end_turn":
+            for block in response.content:
+                if hasattr(block, "text"):
+                    return block.text
+            return ""
+
+        messages.append({"role": "assistant", "content": response.content})
+        tool_results = []
+        for block in response.content:
+            if block.type == "tool_use":
+                cmd = block.input.get("cmd", "")
+                r = await bash.exec(cmd)
+                output = r.stdout
+                if r.stderr:
+                    output += f"\n[stderr]: {r.stderr}"
+                if r.exit_code != 0:
+                    output += f"\n[exit_code]: {r.exit_code}"
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": output or "(no output)",
+                    }
+                )
+        messages.append({"role": "user", "content": tool_results})
+
+    return "(max steps reached)"
+
+
+asyncio.run(run_agent("What's in my notes about the Q3 launch?"))
+```
+
+### OpenAI SDK
+
+Same idea with OpenAI's function-calling format. Define a single `bash` function, dispatch each `tool_calls` entry to `bash.exec`, and feed the output back as a `tool` message.
+
+```python
+import asyncio
+import json
+import os
+
+from openai import OpenAI
+from supermemory_bash import create_bash
+
+
+async def run_agent(user_message: str) -> str:
+    result = await create_bash(
+        api_key=os.environ["SUPERMEMORY_API_KEY"],
+        container_tag="user_42",
+    )
+    bash = result.bash
+
+    client = OpenAI()
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "bash",
+                "description": result.tool_description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {"cmd": {"type": "string"}},
+                    "required": ["cmd"],
+                },
+            },
+        }
+    ]
+
+    messages = [{"role": "user", "content": user_message}]
+
+    for _ in range(10):
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            tools=tools,
+        )
+        message = response.choices[0].message
+
+        if not message.tool_calls:
+            return message.content or ""
+
+        messages.append(message.model_dump(exclude_none=True))
+        for call in message.tool_calls:
+            args = json.loads(call.function.arguments or "{}")
+            r = await bash.exec(args.get("cmd", ""))
+            output = r.stdout
+            if r.stderr:
+                output += f"\n[stderr]: {r.stderr}"
+            if r.exit_code != 0:
+                output += f"\n[exit_code]: {r.exit_code}"
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "content": output or "(no output)",
+                }
+            )
+
+    return "(max steps reached)"
+
+
+asyncio.run(run_agent("List my notes"))
+```
+
+### Claude Agent SDK
+
+The [Claude Agent SDK](https://docs.claude.com/en/api/agent-sdk/overview) ships with built-in `Bash`, `Read`, and `Write` tools. If your agent runs somewhere SMFS can be mounted (a long-lived process on macOS or Linux), point those built-ins at an SMFS mount and you don't need `supermemory-bash` at all — the agent just sees your container as a directory.
+
+See [Mount SMFS](/smfs/mount) for setup, or the [provider guides](/smfs/overview#use-smfs-with-your-sandbox-provider) for sandbox-specific instructions.
+
+## Memory
+
+The Bash Tool inherits SMFS memory semantics. By default, files named `user.md` or `memory.md` are extracted as memories. Configure additional memory paths after construction:
+
+```python
+result = await create_bash(api_key=api_key, container_tag=container_tag)
+bash = result.bash
+await result.configure_memory_paths(["/notes/", "/journal.md"])
+```
+
+Trailing `/` matches recursively. No slash matches an exact file. Pass `[]` to disable memory generation.
+
+The container also exposes a virtual `profile.md` at the root: a live digest of everything in the container. Read it once at the start of a session to give the model context without walking every file.
+
+```python
+r = await bash.exec("cat /profile.md")
+print(r.stdout)
+```
+
+## Commands the agent can run
+
+The Python tool exposes the same command surface as the TypeScript version: standard Unix builtins (`pwd`, `cd`, `ls`, `cat`, `stat`, `mkdir`, `rm`, `mv`, `cp`, `echo`), search and text utilities (`grep`, `find`, `head`, `tail`, `wc`, `sort`, `sed`, `awk`), plus the custom `sgrep <query> [path]` for semantic search across the container. Pipes, redirects, conditionals, loops, and file tests all work.
+
+See the [TypeScript Bash Tool reference](/smfs/bash-tool#commands-the-agent-can-run) for the full list.
+
+## Configuration
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `api_key` | required | Supermemory API key |
+| `container_tag` | required | Container to expose as the filesystem |
+| `base_url` | `None` | Override the API endpoint |
+| `eager_load` | `True` | Warm the path index when the instance starts |
+| `eager_content` | `True` | Also warm the content cache during eager load |
+| `cwd` | `"/home/user"` | Initial working directory |
+| `env` | `None` | Extra environment variables |
+| `cache_ttl_ms` | `150_000` | Content cache TTL in ms. `None` = never expires (single-writer). `0` = no cache. |
+
+The container is what defines the filesystem; setting `cwd` or extra `env` from the host doesn't change the files the agent sees.
+
+## Limitations
+
+- `chmod`, `utimes`, and symlinks (`ln -s`, `readlink`) raise `ENOSYS`.
+- `/dev/null` as a redirect target isn't supported. Write to `/tmp/discard.log` instead.
+- Binary uploads aren't supported. Text is extracted server-side.

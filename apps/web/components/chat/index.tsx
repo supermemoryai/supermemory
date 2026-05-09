@@ -3,21 +3,21 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
-import { motion, AnimatePresence } from "motion/react"
+import { motion } from "motion/react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import NovaOrb from "@/components/nova/nova-orb"
 import { Button } from "@ui/components/button"
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from "@ui/components/dialog"
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@ui/components/sheet"
 import { ScrollArea } from "@ui/components/scroll-area"
 import {
+	ArrowLeft,
 	Check,
 	ChevronDownIcon,
 	HistoryIcon,
@@ -41,6 +41,7 @@ import { modelNames, type ModelId } from "@/lib/models"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
+import { ChatGraphContextRail } from "./chat-graph-context-rail"
 import { ChainOfThought } from "./input/chain-of-thought"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useAuth } from "@lib/auth-context"
@@ -99,22 +100,75 @@ function ChatEmptyStatePlaceholder({
 	)
 }
 
+export function ChatLaunchFab({
+	onOpen,
+	isMobile,
+}: {
+	onOpen: () => void
+	isMobile: boolean
+}) {
+	return (
+		<motion.div
+			className={cn(
+				"flex items-start justify-start pointer-events-none",
+				isMobile
+					? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
+					: "fixed z-20 top-24 right-4 md:right-6",
+				dmSansClassName(),
+			)}
+			layoutId="chat-toggle-button"
+		>
+			<motion.button
+				type="button"
+				onClick={onOpen}
+				className={cn(
+					"pointer-events-auto flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border text-white cursor-pointer whitespace-nowrap",
+					isMobile
+						? "gap-2.5 px-5 py-3 text-[15px] border-[#1E2128] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)]"
+						: "border-[#17181A] shadow-lg",
+				)}
+				style={{
+					background: isMobile
+						? "linear-gradient(135deg, #12161C 0%, #0A0D12 100%)"
+						: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+				}}
+				whileHover={{ scale: 1.02 }}
+				whileTap={{ scale: 0.98 }}
+			>
+				<NovaOrb size={isMobile ? 26 : 24} className="blur-[0.6px]! z-10" />
+				<span className={cn(isMobile && "font-medium")}>Chat with Nova</span>
+			</motion.button>
+		</motion.div>
+	)
+}
+
 export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen,
 	queuedMessage,
 	onConsumeQueuedMessage,
+	queuedMessageSource = "highlight",
+	initialSelectedModel = null,
 	emptyStateSuggestions,
+	layout = "sidebar",
 }: {
 	isChatOpen: boolean
 	setIsChatOpen: (open: boolean) => void
 	queuedMessage?: string | null
 	onConsumeQueuedMessage?: () => void
+	queuedMessageSource?: "highlight" | "home"
+	initialSelectedModel?: ModelId | null
 	emptyStateSuggestions?: string[]
+	layout?: "sidebar" | "page"
 }) {
 	const isMobile = useIsMobile()
+	const isPageDesktop = layout === "page" && !isMobile
 	const [input, setInput] = useState("")
-	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
+	const [selectedModel, setSelectedModel] = useState<ModelId>(
+		initialSelectedModel ?? "claude-sonnet-4.6",
+	)
+	const selectedModelRef = useRef(selectedModel)
+	selectedModelRef.current = selectedModel
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -136,6 +190,8 @@ export function ChatSidebar({
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
+	const selectedProjectRef = useRef(selectedProject)
+	selectedProjectRef.current = selectedProject
 	const chatSpaceLabel = useMemo(
 		() =>
 			getChatSpaceDisplayLabel({
@@ -155,23 +211,26 @@ export function ChatSidebar({
 		(id: string) => setThreadId(id),
 		[setThreadId],
 	)
+	const chatApiBase =
+		process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
 	const chatTransport = useMemo(
 		() =>
 			new DefaultChatTransport({
-				api: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/chat`,
+				api: `${chatApiBase}/chat`,
 				credentials: "include",
 				prepareSendMessagesRequest: ({ messages }) => ({
 					body: {
 						messages,
 						metadata: {
 							chatId: chatIdRef.current,
-							projectId: selectedProject,
-							model: selectedModel,
+							projectId: selectedProjectRef.current,
+							model: selectedModelRef.current,
 						},
 					},
 				}),
 			}),
-		[selectedProject, selectedModel],
+		[chatApiBase],
 	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
@@ -182,6 +241,7 @@ export function ChatSidebar({
 	useEffect(() => {
 		if (isMobile) return
 		if (viewMode === "graph") return
+		if (layout === "page") return
 
 		const handleWindowScroll = () => {
 			const scrollThreshold = 80
@@ -195,7 +255,7 @@ export function ChatSidebar({
 		handleWindowScroll()
 
 		return () => window.removeEventListener("scroll", handleWindowScroll)
-	}, [isMobile, viewMode])
+	}, [isMobile, viewMode, layout])
 
 	const {
 		messages,
@@ -250,6 +310,7 @@ export function ChatSidebar({
 	const handleSend = () => {
 		if (!input.trim() || status === "submitted" || status === "streaming")
 			return
+		if (!threadId) setThreadId(fallbackChatId)
 		analytics.chatMessageSent({ source: "typed" })
 		sendMessage({ text: input })
 		setInput("")
@@ -261,10 +322,6 @@ export function ChatSidebar({
 			e.preventDefault()
 			handleSend()
 		}
-	}
-
-	const toggleChat = () => {
-		setIsChatOpen(!isChatOpen)
 	}
 
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
@@ -355,12 +412,17 @@ export function ChatSidebar({
 						(m: {
 							id: string
 							role: string
-							parts: unknown
+							parts: Array<{ type: string }>
 							createdAt: string
 						}) => ({
 							id: m.id,
 							role: m.role,
-							parts: m.parts || [],
+							// Strip tool parts — persisted format doesn't round-trip through
+							// convertToModelMessages correctly and causes tool_use/tool_result
+							// mismatch errors. Text history is sufficient for context.
+							parts: (m.parts || []).filter(
+								(p) => p.type === "text" || p.type === "reasoning",
+							),
 							createdAt: new Date(m.createdAt),
 						}),
 					)
@@ -376,6 +438,15 @@ export function ChatSidebar({
 		},
 		[setThreadId],
 	)
+
+	// Auto-restore thread from URL on mount (e.g. reload or direct link)
+	const didAutoLoadRef = useRef(false)
+	useEffect(() => {
+		if (didAutoLoadRef.current) return
+		if (!threadId) return
+		didAutoLoadRef.current = true
+		loadThread(threadId)
+	}, [threadId, loadThread])
 
 	const deleteThread = useCallback(
 		async (threadId: string) => {
@@ -439,12 +510,29 @@ export function ChatSidebar({
 			status !== "streaming" &&
 			sentQueuedMessageRef.current !== queuedMessage
 		) {
+			if (initialSelectedModel && selectedModel !== initialSelectedModel) {
+				setSelectedModel(initialSelectedModel)
+				return
+			}
 			sentQueuedMessageRef.current = queuedMessage
-			analytics.chatMessageSent({ source: "highlight" })
+			if (!threadId) setThreadId(fallbackChatId)
+			analytics.chatMessageSent({ source: queuedMessageSource })
 			sendMessage({ text: queuedMessage })
 			onConsumeQueuedMessage?.()
 		}
-	}, [isChatOpen, queuedMessage, status, sendMessage, onConsumeQueuedMessage])
+	}, [
+		isChatOpen,
+		queuedMessage,
+		queuedMessageSource,
+		initialSelectedModel,
+		selectedModel,
+		status,
+		sendMessage,
+		onConsumeQueuedMessage,
+		fallbackChatId,
+		setThreadId,
+		threadId,
+	])
 
 	// Reset the sent message ref when queued message is consumed
 	useEffect(() => {
@@ -496,431 +584,477 @@ export function ChatSidebar({
 		}
 	}, [checkIfScrolledToBottom])
 
-	return (
-		<AnimatePresence mode="wait">
-			{!isChatOpen ? (
-				<motion.div
-					key="closed"
-					className={cn(
-						"flex items-start justify-start",
-						isMobile
-							? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
-							: "absolute top-[-10px] right-0 m-4",
-						dmSansClassName(),
-					)}
-					layoutId="chat-toggle-button"
-				>
-					<motion.button
-						onClick={toggleChat}
-						className={cn(
-							"flex items-center gap-3 rounded-full px-3 py-1.5 text-sm font-medium border text-white cursor-pointer whitespace-nowrap",
-							isMobile
-								? "gap-2.5 px-5 py-3 text-[15px] border-[#1E2128] shadow-[0_8px_32px_rgba(0,0,0,0.5),0_2px_8px_rgba(0,0,0,0.3)]"
-								: "border-[#17181A] shadow-lg",
-						)}
-						style={{
-							background: isMobile
-								? "linear-gradient(135deg, #12161C 0%, #0A0D12 100%)"
-								: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
-						}}
-						whileHover={{ scale: 1.02 }}
-						whileTap={{ scale: 0.98 }}
-					>
-						<NovaOrb size={isMobile ? 26 : 24} className="blur-[0.6px]! z-10" />
-						<span className={cn(isMobile && "font-medium")}>
-							Chat with Nova
-						</span>
-					</motion.button>
-				</motion.div>
-			) : (
-				<motion.div
-					key="open"
-					className={cn(
-						"bg-[#05070A] backdrop-blur-md flex flex-col border border-[#17181AB2] relative pt-4",
-						isMobile
-							? "fixed inset-0 z-50 w-full h-dvh rounded-none m-0"
-							: "w-[450px] rounded-2xl m-4 mt-2",
-						dmSansClassName(),
-					)}
-					style={
-						isMobile
-							? undefined
-							: {
-									height: `calc(100vh - ${heightOffset}px)`,
-								}
-					}
-					initial={
-						isMobile ? { y: "100%", opacity: 0 } : { x: "100px", opacity: 0 }
-					}
-					animate={{ x: 0, y: 0, opacity: 1 }}
-					exit={
-						isMobile ? { y: "100%", opacity: 0 } : { x: "100px", opacity: 0 }
-					}
-					transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
-				>
-					<div
-						className={cn(
-							"absolute top-0 left-0 right-0 flex items-center justify-between pt-4 px-4",
-							!isMobile && "rounded-t-2xl",
-						)}
-						style={{
-							background:
-								"linear-gradient(180deg, #0A0E14 40.49%, rgba(10, 14, 20, 0.00) 100%)",
-						}}
-					>
-						<div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
-							<ChatModelSelector
-								selectedModel={selectedModel}
-								onModelChange={handleModelChange}
-							/>
-							<div
-								className={cn(
-									"inline-flex h-10 max-w-[min(192px,42vw)] shrink min-w-0 items-center rounded-full border border-[#73737333] bg-[#0D121A] px-3",
-									dmSansClassName(),
-								)}
-								style={{
-									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-								}}
-								title={chatSpaceLabel}
-							>
-								<span className="truncate text-sm text-white">
-									{chatSpaceLabel}
-								</span>
+	if (!isChatOpen) {
+		return null
+	}
+
+	const isStackedInput = layout === "page"
+	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
+
+	const chatHistorySheet = (
+		<Sheet
+			open={isHistoryOpen}
+			onOpenChange={(open) => {
+				setIsHistoryOpen(open)
+				if (open) {
+					fetchThreads()
+					analytics.chatHistoryViewed?.()
+				} else {
+					setConfirmingDeleteId(null)
+				}
+			}}
+		>
+			<SheetContent
+				side="right"
+				className={cn(
+					"flex h-full max-h-dvh w-full flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 text-white sm:max-w-md",
+					"[&>button]:text-[#FAFAFA]",
+					dmSansClassName(),
+				)}
+			>
+				<SheetHeader className="shrink-0 space-y-1 border-[#17181AB2] border-b px-6 pt-6 pb-4">
+					<SheetTitle>Chat History</SheetTitle>
+					<SheetDescription className="text-[#737373]">
+						Space: {chatSpaceLabel}
+					</SheetDescription>
+				</SheetHeader>
+				<ScrollArea className="min-h-0 flex-1 px-6">
+					<div className="py-4">
+						{isLoadingThreads ? (
+							<div className="flex items-center justify-center py-8">
+								<SuperLoader label="Loading..." />
 							</div>
-						</div>
-						<div className="flex items-center gap-2 shrink-0">
-							<Dialog
-								open={isHistoryOpen}
-								onOpenChange={(open) => {
-									setIsHistoryOpen(open)
-									if (open) {
-										fetchThreads()
-										analytics.chatHistoryViewed?.()
-									} else {
-										setConfirmingDeleteId(null)
-									}
-								}}
-							>
-								<DialogTrigger asChild>
-									<Button
-										variant="headers"
-										className="rounded-full text-base gap-2 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
-										style={{
-											boxShadow:
-												"1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-										}}
-									>
-										<HistoryIcon className="size-4 text-[#737373]" />
-									</Button>
-								</DialogTrigger>
-								<DialogContent className="sm:max-w-lg bg-[#0A0E14] border-[#17181AB2] text-white">
-									<DialogHeader className="pb-4 border-b border-[#17181AB2]">
-										<DialogTitle>Chat History</DialogTitle>
-										<DialogDescription className="text-[#737373]">
-											Space: {chatSpaceLabel}
-										</DialogDescription>
-									</DialogHeader>
-									<ScrollArea className="max-h-96">
-										{isLoadingThreads ? (
-											<div className="flex items-center justify-center py-8">
-												<SuperLoader label="Loading..." />
+						) : threads.length === 0 ? (
+							<div className="py-8 text-center text-sm text-[#737373]">
+								No conversations yet
+							</div>
+						) : (
+							<div className="flex flex-col gap-1">
+								{threads.map((thread) => {
+									const isActive = thread.id === currentChatId
+									return (
+										<button
+											key={thread.id}
+											type="button"
+											onClick={() => loadThread(thread.id)}
+											className={cn(
+												"flex w-full items-center justify-between rounded-md px-3 py-2 text-left transition-colors",
+												isActive ? "bg-[#267BF1]/10" : "hover:bg-[#17181A]",
+											)}
+										>
+											<div className="min-w-0 flex-1">
+												<div className="truncate text-sm font-medium">
+													{thread.title || "Untitled Chat"}
+												</div>
+												<div className="text-xs text-[#737373]">
+													{formatRelativeTime(thread.updatedAt)}
+												</div>
 											</div>
-										) : threads.length === 0 ? (
-											<div className="text-sm text-[#737373] text-center py-8">
-												No conversations yet
-											</div>
-										) : (
-											<div className="flex flex-col gap-1">
-												{threads.map((thread) => {
-													const isActive = thread.id === currentChatId
-													return (
-														<button
-															key={thread.id}
-															type="button"
-															onClick={() => loadThread(thread.id)}
-															className={cn(
-																"flex items-center justify-between rounded-md px-3 py-2 w-full text-left transition-colors",
-																isActive
-																	? "bg-[#267BF1]/10"
-																	: "hover:bg-[#17181A]",
-															)}
-														>
-															<div className="min-w-0 flex-1">
-																<div className="text-sm font-medium truncate">
-																	{thread.title || "Untitled Chat"}
-																</div>
-																<div className="text-xs text-[#737373]">
-																	{formatRelativeTime(thread.updatedAt)}
-																</div>
-															</div>
-															{confirmingDeleteId === thread.id ? (
-																<div className="flex items-center gap-1 ml-2">
-																	<Button
-																		type="button"
-																		size="icon"
-																		onClick={(e) => {
-																			e.stopPropagation()
-																			deleteThread(thread.id)
-																		}}
-																		className="bg-red-500 text-white hover:bg-red-600 h-7 w-7"
-																	>
-																		<Check className="size-3" />
-																	</Button>
-																	<Button
-																		type="button"
-																		variant="ghost"
-																		size="icon"
-																		onClick={(e) => {
-																			e.stopPropagation()
-																			setConfirmingDeleteId(null)
-																		}}
-																		className="h-7 w-7"
-																	>
-																		<XIcon className="size-3 text-[#737373]" />
-																	</Button>
-																</div>
-															) : (
-																<Button
-																	type="button"
-																	variant="ghost"
-																	size="icon"
-																	onClick={(e) => {
-																		e.stopPropagation()
-																		setConfirmingDeleteId(thread.id)
-																	}}
-																	className="h-7 w-7 ml-2"
-																>
-																	<Trash2 className="size-3 text-[#737373]" />
-																</Button>
-															)}
-														</button>
-													)
-												})}
-											</div>
-										)}
-									</ScrollArea>
-									<Button
-										variant="outline"
-										className="w-full border-dashed border-[#73737333] bg-transparent hover:bg-[#17181A]"
-										onClick={() => {
-											handleNewChat()
-											setIsHistoryOpen(false)
-										}}
-									>
-										<Plus className="size-4 mr-1" /> New Conversation
-									</Button>
-								</DialogContent>
-							</Dialog>
-							<Button
-								variant="headers"
-								className="rounded-full text-base gap-3 h-10! border-[#73737333] bg-[#0D121A] cursor-pointer"
-								style={{
-									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-								}}
-								onClick={handleNewChat}
-								title="New chat (T)"
-							>
-								<SquarePenIcon className="size-4 text-[#737373]" />
-								{!isMobile && (
-									<span
-										className={cn(
-											"bg-[#21212180] border border-[#73737333] text-[#737373] rounded-sm size-4 text-[10px] flex items-center justify-center",
-											dmSansClassName(),
-										)}
-									>
-										T
-									</span>
-								)}
-							</Button>
-							{/*<motion.button
-								onClick={toggleChat}
-								className={cn(
-									"flex items-center gap-2 rounded-full p-2 text-xs text-white cursor-pointer",
-									isMobile && "bg-[#0D121A] border border-[#73737333]",
-								)}
-								style={
-									isMobile
-										? {
-												boxShadow:
-													"1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-											}
-										: undefined
-								}
-								layoutId="chat-toggle-button"
-							>
-								{isMobile ? (
-									<XIcon className="size-4" />
-								) : (
-									<PanelRightCloseIcon className="size-4" />
-								)}
-							</motion.button>*/}
-						</div>
-					</div>
-					<div
-						ref={messagesContainerRef}
-						className={cn(
-							"flex-1 overflow-y-auto px-4 scrollbar-thin",
-							dmSansClassName(),
-						)}
-					>
-						{isInputExpanded && (
-							<div
-								className="absolute inset-0 z-10! rounded-2xl pointer-events-none"
-								style={{ backgroundColor: "#000000E5" }}
-							/>
-						)}
-						{messages.length === 0 && (
-							<ChatEmptyStatePlaceholder
-								onSuggestionClick={(suggestion) => {
-									analytics.chatSuggestedQuestionClicked()
-									analytics.chatMessageSent({ source: "suggested" })
-									sendMessage({ text: suggestion })
-								}}
-								suggestions={emptyStateSuggestions}
-							/>
-						)}
-						<div
-							className={cn(
-								messages.length > 0
-									? "flex flex-col space-y-3 min-h-full justify-end pt-14"
-									: "",
-							)}
-						>
-							{messages.map((message, index) => (
-								// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
-								<div
-									key={message.id}
-									className={cn(
-										"flex gap-2 w-full",
-										message.role === "user" ? "justify-end" : "justify-start",
-									)}
-									onMouseEnter={() =>
-										message.role === "assistant" &&
-										setHoveredMessageId(message.id)
-									}
-									onMouseLeave={() =>
-										message.role === "assistant" && setHoveredMessageId(null)
-									}
-								>
-									{message.role === "user" ? (
-										<UserMessage
-											message={message}
-											copiedMessageId={copiedMessageId}
-											onCopy={handleCopyMessage}
-										/>
-									) : (
-										<AgentMessage
-											message={message}
-											index={index}
-											messagesLength={messages.length}
-											hoveredMessageId={hoveredMessageId}
-											copiedMessageId={copiedMessageId}
-											messageFeedback={messageFeedback}
-											expandedMemories={expandedMemories}
-											onCopy={handleCopyMessage}
-											onLike={handleLikeMessage}
-											onDislike={handleDislikeMessage}
-											onToggleMemories={handleToggleMemories}
-										/>
-									)}
-								</div>
-							))}
-							{(status === "submitted" || status === "streaming") && (
-								<div className="flex gap-2">
-									<SuperLoader label="Thinking..." />
-								</div>
-							)}
-						</div>
-					</div>
-
-					{!isScrolledToBottom && messages.length > 0 && (
-						<div className="absolute bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
-							<button
-								type="button"
-								className="cursor-pointer pointer-events-auto"
-								onClick={scrollToBottom}
-							>
-								<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
-									<ChevronDownIcon className="size-4 text-white" />
-								</div>
-							</button>
-						</div>
-					)}
-
-					{chatStreamError && (
-						<div
-							role="alert"
-							className={cn(
-								"mx-4 mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
-								dmSansClassName(),
-							)}
-						>
-							<div className="flex justify-between gap-2 items-start">
-								<div className="min-w-0">
-									<p className="font-medium leading-snug">
-										{chatStreamError.title}
-									</p>
-									<p className="text-xs text-amber-100/70 mt-1 leading-snug">
-										{chatStreamError.body}
-									</p>
-									{chatStreamError.otherModels.length > 0 && (
-										<div className="flex flex-wrap gap-2 mt-2">
-											{chatStreamError.otherModels.map((id) => {
-												const m = modelNames[id]
-												return (
+											{confirmingDeleteId === thread.id ? (
+												<div className="ml-2 flex items-center gap-1">
 													<Button
-														key={id}
 														type="button"
-														size="sm"
-														variant="secondary"
-														className="h-8 text-xs rounded-full bg-[#141922] border-[#73737333] hover:bg-[#1a2230] text-white/90"
-														onClick={() => {
-															handleModelChange(id)
-															analytics.modelChanged({ model: id })
+														size="icon"
+														onClick={(e) => {
+															e.stopPropagation()
+															deleteThread(thread.id)
 														}}
+														className="h-7 w-7 bg-red-500 text-white hover:bg-red-600"
 													>
-														Switch to {m.name} {m.version}
+														<Check className="size-3" />
 													</Button>
-												)
-											})}
-										</div>
-									)}
-								</div>
-								<button
-									type="button"
-									onClick={clearError}
-									className="shrink-0 p-1 rounded-md text-amber-200/50 hover:text-amber-100/90 hover:bg-white/5"
-									aria-label="Dismiss error"
-								>
-									<XIcon className="size-4" />
-								</button>
+													<Button
+														type="button"
+														variant="ghost"
+														size="icon"
+														onClick={(e) => {
+															e.stopPropagation()
+															setConfirmingDeleteId(null)
+														}}
+														className="h-7 w-7"
+													>
+														<XIcon className="size-3 text-[#737373]" />
+													</Button>
+												</div>
+											) : (
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													onClick={(e) => {
+														e.stopPropagation()
+														setConfirmingDeleteId(thread.id)
+													}}
+													className="ml-2 h-7 w-7"
+												>
+													<Trash2 className="size-3 text-[#737373]" />
+												</Button>
+											)}
+										</button>
+									)
+								})}
 							</div>
+						)}
+					</div>
+				</ScrollArea>
+				<div className="shrink-0 border-[#17181AB2] border-t p-4">
+					<Button
+						variant="outline"
+						className="w-full border-[#161F2C] border-dashed bg-transparent hover:bg-[#17181A]"
+						onClick={() => {
+							handleNewChat()
+							setIsHistoryOpen(false)
+						}}
+					>
+						<Plus className="mr-1 size-4" /> New Conversation
+					</Button>
+				</div>
+			</SheetContent>
+		</Sheet>
+	)
+
+	const chatToolbarActions = (
+		<div className="flex shrink-0 items-center gap-2">
+			<button
+				type="button"
+				onClick={() => setIsHistoryOpen(true)}
+				className={cn(
+					"flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#161F2C] bg-[#000000] transition-colors hover:bg-[#161F2C]",
+					dmSansClassName(),
+				)}
+				aria-label="Chat history"
+			>
+				<HistoryIcon className="size-4 text-[#FAFAFA]" />
+			</button>
+			<button
+				type="button"
+				onClick={handleNewChat}
+				title="New chat (T)"
+				className={cn(
+					"flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border border-[#161F2C] bg-[#000000] transition-colors hover:bg-[#161F2C]",
+					dmSansClassName(),
+				)}
+				aria-label="New chat"
+			>
+				<SquarePenIcon className="size-4 text-[#FAFAFA]" />
+			</button>
+		</div>
+	)
+
+	const pageDesktopToolbarRow = isPageDesktop ? (
+		<div
+			className={cn(
+				"flex w-full shrink-0 items-center justify-end gap-2 px-4 pt-2 pb-1 z-10",
+				dmSansClassName(),
+			)}
+		>
+			{chatToolbarActions}
+		</div>
+	) : null
+
+	const shell = (
+		<>
+			{showHeaderRow ? (
+				<div
+					className={cn(
+						"flex items-center justify-between px-0 z-10",
+						isPageDesktop
+							? "relative shrink-0 pt-2 pb-1"
+							: "absolute top-0 right-0 left-0 pt-4 px-4",
+						!isMobile && !isPageDesktop && "rounded-t-2xl",
+					)}
+				>
+					<div className="mr-2 flex min-w-0 flex-1 items-center gap-2">
+						{layout === "page" && isMobile && (
+							<Button
+								type="button"
+								variant="headers"
+								className="h-10! w-10! shrink-0 cursor-pointer rounded-full border-[#73737333] bg-[#0D121A] p-0!"
+								style={{
+									boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+								}}
+								onClick={() => setIsChatOpen(false)}
+								aria-label="Back to memories"
+							>
+								<ArrowLeft className="size-4 text-[#737373]" />
+							</Button>
+						)}
+						{!isStackedInput && (
+							<>
+								<ChatModelSelector
+									selectedModel={selectedModel}
+									onModelChange={handleModelChange}
+								/>
+								<div
+									className={cn(
+										"inline-flex h-10 max-w-[min(192px,42vw)] shrink min-w-0 items-center rounded-full border border-[#73737333] bg-[#0D121A] px-3",
+										dmSansClassName(),
+									)}
+									style={{
+										boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
+									}}
+									title={chatSpaceLabel}
+								>
+									<span className="truncate text-sm text-white">
+										{chatSpaceLabel}
+									</span>
+								</div>
+							</>
+						)}
+					</div>
+					{chatToolbarActions}
+				</div>
+			) : null}
+			<div
+				ref={messagesContainerRef}
+				className={cn(
+					"relative flex-1 overflow-y-auto scrollbar-thin",
+					isPageDesktop && "min-h-0",
+					"px-4",
+					dmSansClassName(),
+				)}
+			>
+				{isInputExpanded && (
+					<div
+						className={cn(
+							"absolute inset-0 z-10! pointer-events-none",
+							isPageDesktop ? "rounded-none" : "rounded-2xl",
+						)}
+						style={{ backgroundColor: "#000000E5" }}
+					/>
+				)}
+				{messages.length === 0 && (
+					<ChatEmptyStatePlaceholder
+						onSuggestionClick={(suggestion) => {
+							analytics.chatSuggestedQuestionClicked()
+							analytics.chatMessageSent({ source: "suggested" })
+							sendMessage({ text: suggestion })
+						}}
+						suggestions={emptyStateSuggestions}
+					/>
+				)}
+				<div
+					className={
+						messages.length > 0
+							? cn(
+									"flex flex-col space-y-3 min-h-full justify-end",
+									isPageDesktop ? "pt-2" : "pt-14",
+								)
+							: ""
+					}
+				>
+					{messages.map((message, index) => (
+						// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
+						<div
+							key={message.id}
+							className={cn(
+								"flex gap-2 w-full",
+								message.role === "user" ? "justify-end" : "justify-start",
+							)}
+							onMouseEnter={() =>
+								message.role === "assistant" && setHoveredMessageId(message.id)
+							}
+							onMouseLeave={() =>
+								message.role === "assistant" && setHoveredMessageId(null)
+							}
+						>
+							{message.role === "user" ? (
+								<UserMessage
+									message={message}
+									copiedMessageId={copiedMessageId}
+									onCopy={handleCopyMessage}
+								/>
+							) : (
+								<AgentMessage
+									message={message}
+									index={index}
+									messagesLength={messages.length}
+									hoveredMessageId={hoveredMessageId}
+									copiedMessageId={copiedMessageId}
+									messageFeedback={messageFeedback}
+									expandedMemories={expandedMemories}
+									onCopy={handleCopyMessage}
+									onLike={handleLikeMessage}
+									onDislike={handleDislikeMessage}
+									onToggleMemories={handleToggleMemories}
+								/>
+							)}
+						</div>
+					))}
+					{(status === "submitted" || status === "streaming") && (
+						<div className="flex gap-2">
+							<SuperLoader label="Thinking..." />
 						</div>
 					)}
+				</div>
+			</div>
 
-					<ChatInput
-						value={input}
-						onChange={(e) => setInput(e.target.value)}
-						onSend={handleSend}
-						onStop={stop}
-						onKeyDown={handleKeyDown}
-						isResponding={status === "submitted" || status === "streaming"}
-						activeStatus={
-							status === "submitted"
-								? "Thinking..."
-								: status === "streaming"
-									? "Structuring response..."
-									: "Waiting for input..."
-						}
-						onExpandedChange={setIsInputExpanded}
-						chainOfThoughtComponent={
-							messages.length > 0 ? (
-								<ChainOfThought messages={messages} />
-							) : null
-						}
-					/>
-				</motion.div>
+			{!isScrolledToBottom && messages.length > 0 && (
+				<div className="absolute bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
+					<button
+						type="button"
+						className="cursor-pointer pointer-events-auto"
+						onClick={scrollToBottom}
+					>
+						<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
+							<ChevronDownIcon className="size-4 text-white" />
+						</div>
+					</button>
+				</div>
 			)}
-		</AnimatePresence>
+
+			{chatStreamError && (
+				<div
+					role="alert"
+					className={cn(
+						"mb-2 rounded-lg bg-amber-950/40 px-3 py-2 text-sm text-amber-50/95",
+						isPageDesktop ? "mx-0" : "mx-4",
+						dmSansClassName(),
+					)}
+				>
+					<div className="flex justify-between gap-2 items-start">
+						<div className="min-w-0">
+							<p className="font-medium leading-snug">
+								{chatStreamError.title}
+							</p>
+							<p className="text-xs text-amber-100/70 mt-1 leading-snug">
+								{chatStreamError.body}
+							</p>
+							{chatStreamError.otherModels.length > 0 && (
+								<div className="flex flex-wrap gap-2 mt-2">
+									{chatStreamError.otherModels.map((id) => {
+										const m = modelNames[id]
+										return (
+											<Button
+												key={id}
+												type="button"
+												size="sm"
+												variant="secondary"
+												className="h-8 text-xs rounded-full bg-[#141922] border-[#73737333] hover:bg-[#1a2230] text-white/90"
+												onClick={() => {
+													handleModelChange(id)
+													analytics.modelChanged({ model: id })
+												}}
+											>
+												Switch to {m.name} {m.version}
+											</Button>
+										)
+									})}
+								</div>
+							)}
+						</div>
+						<button
+							type="button"
+							onClick={clearError}
+							className="shrink-0 p-1 rounded-md text-amber-200/50 hover:text-amber-100/90 hover:bg-white/5"
+							aria-label="Dismiss error"
+						>
+							<XIcon className="size-4" />
+						</button>
+					</div>
+				</div>
+			)}
+
+			<div className="shrink-0">
+				<ChatInput
+					value={input}
+					onChange={(e) => setInput(e.target.value)}
+					onSend={handleSend}
+					onStop={stop}
+					onKeyDown={handleKeyDown}
+					isResponding={status === "submitted" || status === "streaming"}
+					activeStatus={
+						status === "submitted"
+							? "Thinking..."
+							: status === "streaming"
+								? "Structuring response..."
+								: "Waiting for input..."
+					}
+					onExpandedChange={setIsInputExpanded}
+					chainOfThoughtComponent={
+						messages.length > 0 ? <ChainOfThought messages={messages} /> : null
+					}
+					stackedToolbar={
+						isStackedInput ? (
+							<>
+								<ChatModelSelector
+									selectedModel={selectedModel}
+									onModelChange={handleModelChange}
+									minimal
+								/>
+								<div
+									className={cn(
+										"inline-flex max-w-[min(160px,35vw)] shrink min-w-0 items-center rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5",
+										dmSansClassName(),
+									)}
+									title={chatSpaceLabel}
+								>
+									<span className="truncate text-sm text-[#FAFAFA]">
+										{chatSpaceLabel}
+									</span>
+								</div>
+							</>
+						) : undefined
+					}
+				/>
+			</div>
+		</>
+	)
+
+	return (
+		<motion.div
+			key="open"
+			className={cn(
+				"relative flex flex-col backdrop-blur-md",
+				isMobile
+					? "fixed inset-0 z-50 m-0 h-dvh w-full rounded-none"
+					: isPageDesktop
+						? "flex h-full min-h-0 w-full min-w-0 flex-1 flex-col basis-0 rounded-none border-x-0"
+						: "m-4 mt-2 w-[450px] rounded-2xl",
+				dmSansClassName(),
+			)}
+			style={
+				isMobile
+					? undefined
+					: isPageDesktop
+						? undefined
+						: {
+								height: `calc(100vh - ${heightOffset}px)`,
+							}
+			}
+			initial={
+				isMobile
+					? { y: "100%", opacity: 0 }
+					: layout === "page"
+						? { opacity: 0, y: 20 }
+						: { x: "100px", opacity: 0 }
+			}
+			animate={{ x: 0, y: 0, opacity: 1 }}
+			exit={
+				isMobile
+					? { y: "100%", opacity: 0 }
+					: layout === "page"
+						? { opacity: 0, y: 12 }
+						: { x: "100px", opacity: 0 }
+			}
+			transition={{ duration: 0.3, ease: "easeOut", bounce: 0 }}
+		>
+			{chatHistorySheet}
+			{isPageDesktop ? (
+				<div className="flex h-full min-h-0 w-full flex-1 flex-row">
+					<ChatGraphContextRail messages={messages} />
+					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[720px] shrink-0 basis-[min(720px,50vw)] flex-col">
+						{pageDesktopToolbarRow}
+						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[720px] flex-1 flex-col">
+							{shell}
+						</div>
+					</div>
+				</div>
+			) : (
+				shell
+			)}
+		</motion.div>
 	)
 }
+
+export { HomeChatComposer } from "./home-chat-composer"

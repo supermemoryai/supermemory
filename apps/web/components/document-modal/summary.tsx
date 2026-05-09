@@ -37,7 +37,8 @@ export function Summary({
 				<p className="text-[16px] font-semibold text-[#FAFAFA] line-clamp-1 leading-[125%]">
 					Summary
 				</p>
-				<div className="text-[#737373] text-[10px] leading-[150%]">
+				<div className="flex items-center gap-1 text-[#737373] opacity-50 text-[10px] leading-[150%]">
+					<SyncLogoIcon className="w-[10px] h-[10px]" />
 					powered by supermemory
 				</div>
 			</div>

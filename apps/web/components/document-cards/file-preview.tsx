@@ -96,14 +96,14 @@ export const FilePreview = memo(function FilePreview({
 							className="w-4 h-4"
 						/>
 						<p
-							className={cn(dmSansClassName(), "text-[10px] font-semibold")}
+							className={cn(dmSansClassName(), "text-[11px] font-semibold")}
 							style={{ color: color }}
 						>
 							{extension}
 						</p>
 					</div>
 					{document.content && (
-						<p className="text-[10px] text-[#737373] line-clamp-4">
+						<p className="text-[11px] text-[#737373] line-clamp-4">
 							{document.content}
 						</p>
 					)}

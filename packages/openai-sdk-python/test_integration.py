@@ -37,8 +37,9 @@ async def test_async_middleware():
         # Wrap with Supermemory middleware
         openai_with_memory = with_supermemory(
             openai_client,
-            container_tag="test-user-123",
-            options=OpenAIMiddlewareOptions(
+            OpenAIMiddlewareOptions(
+                container_tag="test-user-123",
+                custom_id="test-integration",
                 mode="profile",
                 verbose=True,
                 add_memory="never"  # Don't save test messages
@@ -87,8 +88,9 @@ def test_sync_middleware():
         # Wrap with Supermemory middleware
         openai_with_memory = with_supermemory(
             openai_client,
-            container_tag="test-user-sync-123",
-            options=OpenAIMiddlewareOptions(
+            OpenAIMiddlewareOptions(
+                container_tag="test-user-sync-123",
+                custom_id="test-integration-sync",
                 mode="profile",
                 verbose=True
             )
@@ -126,7 +128,7 @@ def test_error_handling():
         openai_client = OpenAI(api_key="fake-key")
 
         # This should raise SupermemoryConfigurationError
-        with_supermemory(openai_client, "test-user")
+        with_supermemory(openai_client, OpenAIMiddlewareOptions(container_tag="test-user", custom_id="test-conv"))
 
         print("❌ Should have raised SupermemoryConfigurationError")
 
@@ -156,8 +158,9 @@ def test_background_tasks():
         # Wrap with memory storage enabled
         wrapped_client = with_supermemory(
             openai_client,
-            container_tag="test-background-tasks",
-            options=OpenAIMiddlewareOptions(
+            OpenAIMiddlewareOptions(
+                container_tag="test-background-tasks",
+                custom_id="test-background",
                 add_memory="always",
                 verbose=True
             )

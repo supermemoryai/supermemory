@@ -10,12 +10,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
 	ArrowRight,
 	BookOpen,
-	Brain,
 	Check,
 	CheckCircle,
 	Copy,
 	ExternalLink,
-	Key,
 	Loader,
 	Trash2,
 	Zap,
@@ -30,7 +28,6 @@ import {
 	DialogTitle,
 	DialogPortal,
 } from "@ui/components/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/tabs"
 
 /** Match `FREE_TIER_PLUGIN_IDS` in mono `packages/lib/plugins.ts`. */
 function isFreeTierPlugin(pluginId: string): boolean {
@@ -52,11 +49,11 @@ const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		id: "claude_code",
 		name: "Claude Code",
 		description:
-			"Persistent memory for Claude Code. Remembers your coding context, patterns, and decisions across sessions.",
+			"Claude Code remembers your conventions, past decisions, and project context across every session — no re-explaining yourself.",
 		features: [
-			"Auto-recalls relevant context at session start",
-			"Captures important observations from tool usage",
-			"Builds persistent user profile from interactions",
+			"Picks up where you left off at session start",
+			"Captures decisions and patterns from tool usage",
+			"Builds a persistent profile of how you work",
 		],
 		icon: "/images/plugins/claude-code.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/claude-code",
@@ -66,11 +63,11 @@ const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		id: "opencode",
 		name: "OpenCode",
 		description:
-			"Memory layer for OpenCode. Enhances your coding assistant with long-term memory capabilities.",
+			"Gives OpenCode persistent memory — your patterns, preferences, and decisions carry forward automatically, session to session.",
 		features: [
 			"Semantic search across previous sessions",
 			"Auto-capture of coding decisions",
-			"Context injection before each prompt",
+			"Context injected before each prompt",
 		],
 		icon: "/images/plugins/opencode.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
@@ -79,11 +76,11 @@ const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 		id: "openclaw",
 		name: "OpenClaw",
 		description:
-			"Multi-platform memory for OpenClaw. Works across Telegram, WhatsApp, Discord, Slack and more.",
+			"Persists memory across Telegram, WhatsApp, Discord, and Slack. OpenClaw knows who users are and what they talked about before.",
 		features: [
-			"Cross-channel memory persistence",
+			"Cross-channel memory that follows the user",
 			"Automatic conversation capture",
-			"User profile building across platforms",
+			"User profiles built across every platform",
 		],
 		icon: "/images/plugins/openclaw.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/openclaw",
@@ -92,11 +89,12 @@ const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 	hermes: {
 		id: "hermes",
 		name: "Hermes",
-		description: "Memory layer for Hermes agent",
+		description:
+			"Hermes never forgets. Conversations, user profiles, and context persist so every session feels like a continuation, not a cold start.",
 		features: [
 			"Semantic search across previous sessions",
 			"Auto-capture of conversation context",
-			"Builds persistent user profile from interactions",
+			"Persistent user profile built over time",
 		],
 		icon: "/images/plugins/hermes.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/hermes",
@@ -113,119 +111,27 @@ interface ConnectedPlugin {
 	keyStart?: string | null
 }
 
-function ProUpgradeBanner({ onUpgrade }: { onUpgrade: () => void }) {
+function ProUpgradeNudge({ onUpgrade }: { onUpgrade: () => void }) {
 	return (
-		<div
-			className={cn(
-				"bg-gradient-to-br from-[#0D121A] to-[#14161A] rounded-[14px] p-6 border border-[#4BA0FA]/20 mb-6",
-				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-			)}
-		>
-			<div className="flex flex-col gap-5">
-				<div className="flex items-start gap-4">
-					<div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#4BA0FA]/10 shrink-0">
-						<Zap className="size-6 text-[#4BA0FA]" />
-					</div>
-					<div className="flex-1">
-						<h3
-							className={cn(
-								dmSans125ClassName(),
-								"font-semibold text-[18px] text-[#FAFAFA]",
-							)}
-						>
-							Unlock Pro plugins
-						</h3>
-						<p
-							className={cn(
-								dmSans125ClassName(),
-								"text-[14px] text-[#737373] mt-1",
-							)}
-						>
-							Connect Claude Code, OpenCode, OpenClaw, Cursor, and more with a
-							Pro plan.
-						</p>
-					</div>
-				</div>
-
-				<div className="grid gap-4 sm:grid-cols-3">
-					{[
-						{
-							icon: Brain,
-							title: "Context Retention",
-							desc: "AI remembers your preferences across sessions",
-						},
-						{
-							icon: Zap,
-							title: "Instant Recall",
-							desc: "Past decisions surface automatically when relevant",
-						},
-						{
-							icon: Key,
-							title: "Secure & Private",
-							desc: "Your data stays yours with encrypted storage",
-						},
-					].map(({ icon: Icon, title, desc }) => (
-						<div key={title} className="flex items-start gap-2.5">
-							<Icon className="mt-0.5 size-4 text-[#4BA0FA] shrink-0" />
-							<div>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[13px] font-medium text-[#FAFAFA]",
-									)}
-								>
-									{title}
-								</p>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[11px] text-[#737373]",
-									)}
-								>
-									{desc}
-								</p>
-							</div>
-						</div>
-					))}
-				</div>
-
-				<div className="flex items-center gap-3 flex-wrap">
-					{Object.values(PLUGIN_CATALOG)
-						.filter((p) => !isFreeTierPlugin(p.id))
-						.map((plugin) => (
-							<div
-								key={plugin.id}
-								className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]"
-							>
-								<Image
-									alt={plugin.name}
-									className="size-5"
-									height={20}
-									src={plugin.icon}
-									width={20}
-								/>
-							</div>
-						))}
-					<span
-						className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
-					>
-						Claude Code, OpenCode, OpenClaw & more
-					</span>
-				</div>
-
-				<button
-					type="button"
-					onClick={onUpgrade}
-					className={cn(
-						"w-full sm:w-auto flex items-center justify-center gap-2",
-						"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white",
-						"rounded-full h-11 px-6 font-medium text-sm transition-colors cursor-pointer",
-						dmSans125ClassName(),
-					)}
-				>
-					Upgrade to Pro
-				</button>
+		<div className="flex items-center justify-between gap-3 bg-[#4BA0FA]/5 border border-[#4BA0FA]/20 rounded-xl px-4 py-3 mb-6">
+			<div className="flex items-center gap-2">
+				<Zap className="size-4 text-[#4BA0FA] shrink-0" />
+				<p className={cn(dmSans125ClassName(), "text-[13px] text-[#8B8B8B]")}>
+					Unlock Claude Code, OpenCode, OpenClaw and more with{" "}
+					<span className="text-white font-medium">Pro</span>
+				</p>
 			</div>
+			<button
+				type="button"
+				onClick={onUpgrade}
+				className={cn(
+					"shrink-0 flex items-center gap-1.5 text-[12px] font-medium text-white",
+					"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 rounded-full px-3 h-7 transition-colors cursor-pointer",
+					dmSans125ClassName(),
+				)}
+			>
+				Upgrade
+			</button>
 		</div>
 	)
 }
@@ -321,11 +227,20 @@ function PluginCard({
 		<div
 			className={cn(
 				"bg-[#0D121A] rounded-[12px] p-4 flex flex-col gap-3 border",
-				isConnected ? "border-[#4BA0FA]/30" : "border-[rgba(82,89,102,0.2)]",
+				isConnected
+					? "border-[#4BA0FA]/30"
+					: needsProUpgrade
+						? "border-[rgba(82,89,102,0.12)]"
+						: "border-[rgba(82,89,102,0.2)]",
 			)}
 		>
 			<div className="flex items-start gap-3">
-				<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
+				<div
+					className={cn(
+						"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]",
+						needsProUpgrade && "opacity-50",
+					)}
+				>
 					<Image
 						alt={plugin.name}
 						className="size-6"
@@ -339,7 +254,8 @@ function PluginCard({
 						<span
 							className={cn(
 								dmSans125ClassName(),
-								"font-medium text-[14px] text-[#FAFAFA]",
+								"font-medium text-[14px]",
+								needsProUpgrade ? "text-[#737373]" : "text-[#FAFAFA]",
 							)}
 						>
 							{plugin.name}
@@ -349,11 +265,17 @@ function PluginCard({
 								<CheckCircle className="size-2.5" /> Connected
 							</span>
 						)}
+						{needsProUpgrade && (
+							<span className="text-[10px] font-bold text-[#00171A] bg-[#4BA0FA] px-1.5 py-0.5 rounded-[3px]">
+								PRO
+							</span>
+						)}
 					</div>
 					<p
 						className={cn(
 							dmSans125ClassName(),
-							"text-[12px] text-[#737373] mt-0.5",
+							"text-[12px] mt-0.5",
+							needsProUpgrade ? "text-[#4B5563]" : "text-[#737373]",
 						)}
 					>
 						{plugin.description}
@@ -361,7 +283,7 @@ function PluginCard({
 				</div>
 			</div>
 
-			<ul className="space-y-1.5">
+			<ul className={cn("space-y-1.5", needsProUpgrade && "opacity-40")}>
 				{plugin.features.map((feature) => (
 					<li key={feature} className="flex items-start gap-2">
 						<ArrowRight className="mt-0.5 size-3 shrink-0 text-[#4BA0FA]" />
@@ -464,7 +386,7 @@ export function PluginsDetail() {
 	})
 	const [keyCopied, setKeyCopied] = useState(false)
 
-	const hasProProduct = hasActivePlan(autumn.customer?.products, "api_pro")
+	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
 	const { data: pluginsData } = useQuery({
 		queryFn: async () => {
@@ -524,16 +446,6 @@ export function PluginsDetail() {
 		[connectedPlugins],
 	)
 
-	const freeConnected = useMemo(
-		() => connectedPlugins.filter((p) => isFreeTierPlugin(p.pluginId)),
-		[connectedPlugins],
-	)
-
-	const proConnected = useMemo(
-		() => connectedPlugins.filter((p) => !isFreeTierPlugin(p.pluginId)),
-		[connectedPlugins],
-	)
-
 	const createPluginKeyMutation = useMutation({
 		mutationFn: async (pluginId: string) => {
 			const API_URL =
@@ -584,7 +496,7 @@ export function PluginsDetail() {
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
-				productId: "api_pro",
+				planId: "api_pro",
 				successUrl: "https://app.supermemory.ai/?view=integrations",
 			})
 			window.location.reload()
@@ -607,30 +519,10 @@ export function PluginsDetail() {
 	const isLoading = autumn.isLoading
 	const availablePlugins = pluginsData?.plugins ?? Object.keys(PLUGIN_CATALOG)
 
-	const freePluginIds = useMemo(() => {
-		const ids = new Set(
-			availablePlugins.filter(
-				(id) => PLUGIN_CATALOG[id] && isFreeTierPlugin(id),
-			),
-		)
-		if (PLUGIN_CATALOG.hermes) ids.add("hermes")
-		return [...ids]
-	}, [availablePlugins])
-
-	const proPluginIds = useMemo(
-		() =>
-			availablePlugins.filter(
-				(id) => PLUGIN_CATALOG[id] && !isFreeTierPlugin(id),
-			),
-		[availablePlugins],
-	)
-
 	const allCatalogPluginIds = useMemo(
 		() => availablePlugins.filter((id) => PLUGIN_CATALOG[id]),
 		[availablePlugins],
 	)
-
-	const showPaidAllInOne = !isLoading && hasProProduct
 
 	return (
 		<>
@@ -640,221 +532,66 @@ export function PluginsDetail() {
 					"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 				)}
 			>
-				{showPaidAllInOne ? (
-					<div className="flex flex-col gap-6">
-						{connectedPlugins.length > 0 && (
-							<div className="flex flex-col gap-3">
-								<span
-									className={cn(
-										dmSans125ClassName(),
-										"font-semibold text-[16px] text-[#FAFAFA]",
-									)}
-								>
-									Connected
-								</span>
-								{connectedPlugins.map((plugin) => (
-									<ConnectedPluginRow
-										key={plugin.id}
-										plugin={plugin}
-										info={PLUGIN_CATALOG[plugin.pluginId]}
-										onRevoke={handleRevoke}
-									/>
-								))}
-							</div>
-						)}
+				{!hasProProduct && !isLoading && (
+					<ProUpgradeNudge onUpgrade={handleUpgrade} />
+				)}
 
-						<div className="flex flex-col gap-3">
-							<span
-								className={cn(
-									dmSans125ClassName(),
-									"font-semibold text-[16px] text-[#FAFAFA]",
-								)}
-							>
-								{connectedPlugins.length > 0
-									? "Add more plugins"
-									: "Available plugins"}
-							</span>
-							<div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-								{allCatalogPluginIds.map((pluginId) => {
-									const plugin = PLUGIN_CATALOG[pluginId]
-									if (!plugin) return null
-									const isConnected = connectedPluginIds.includes(pluginId)
-									const isCurrentlyConnecting = connectingPlugin === pluginId
-									return (
-										<PluginCard
-											key={pluginId}
-											plugin={plugin}
-											pluginId={pluginId}
-											isConnected={isConnected}
-											isCurrentlyConnecting={isCurrentlyConnecting}
-											connectingPlugin={connectingPlugin}
-											needsProUpgrade={false}
-											onConnect={(id) => createPluginKeyMutation.mutate(id)}
-											onUpgrade={handleUpgrade}
-										/>
-									)
-								})}
-							</div>
-						</div>
-					</div>
-				) : (
-					<Tabs defaultValue="free" className="gap-0">
-						<TabsList
+				{connectedPlugins.length > 0 && (
+					<div className="flex flex-col gap-3 mb-6">
+						<span
 							className={cn(
-								"grid h-auto w-full grid-cols-2 gap-0 rounded-none border-0 border-b border-[#252a33] bg-transparent p-0",
+								dmSans125ClassName(),
+								"font-semibold text-[16px] text-[#FAFAFA]",
 							)}
 						>
-							<TabsTrigger
-								value="free"
-								className={cn(
-									"relative flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center rounded-none border-0 border-transparent bg-transparent px-3 py-3 text-[15px] font-medium shadow-none",
-									"text-[#737373] hover:text-[#FAFAFA] transition-colors",
-									"data-[state=active]:bg-transparent data-[state=active]:text-[#FAFAFA] data-[state=active]:shadow-none",
-									"after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-t-[1px] after:bg-[#4BA0FA] after:opacity-0 data-[state=active]:after:opacity-100",
-									dmSans125ClassName(),
-								)}
-							>
-								Free plugins
-							</TabsTrigger>
-							<TabsTrigger
-								value="pro"
-								className={cn(
-									"relative flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center rounded-none border-0 border-transparent bg-transparent px-3 py-3 text-[15px] font-medium shadow-none",
-									"text-[#737373] hover:text-[#FAFAFA] transition-colors",
-									"data-[state=active]:bg-transparent data-[state=active]:text-[#FAFAFA] data-[state=active]:shadow-none",
-									"after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-t-[1px] after:bg-[#4BA0FA] after:opacity-0 data-[state=active]:after:opacity-100",
-									dmSans125ClassName(),
-								)}
-							>
-								Pro plugins
-							</TabsTrigger>
-						</TabsList>
-
-						<TabsContent value="free" className="mt-5">
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[13px] text-[#737373] mb-4",
-								)}
-							>
-								Included on every plan — connect with no upgrade.
-							</p>
-
-							{freeConnected.length > 0 && (
-								<div className="flex flex-col gap-3 mb-6">
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"font-semibold text-[16px] text-[#FAFAFA]",
-										)}
-									>
-										Connected
-									</span>
-									{freeConnected.map((plugin) => (
-										<ConnectedPluginRow
-											key={plugin.id}
-											plugin={plugin}
-											info={PLUGIN_CATALOG[plugin.pluginId]}
-											onRevoke={handleRevoke}
-										/>
-									))}
-								</div>
-							)}
-
-							<div className="flex flex-col gap-3">
-								<span
-									className={cn(
-										dmSans125ClassName(),
-										"font-semibold text-[16px] text-[#FAFAFA]",
-									)}
-								>
-									{freeConnected.length > 0 ? "Add or manage" : "Available"}
-								</span>
-								<div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-									{freePluginIds.map((pluginId) => {
-										const plugin = PLUGIN_CATALOG[pluginId]
-										if (!plugin) return null
-										const isConnected = connectedPluginIds.includes(pluginId)
-										const isCurrentlyConnecting = connectingPlugin === pluginId
-										return (
-											<PluginCard
-												key={pluginId}
-												plugin={plugin}
-												pluginId={pluginId}
-												isConnected={isConnected}
-												isCurrentlyConnecting={isCurrentlyConnecting}
-												connectingPlugin={connectingPlugin}
-												needsProUpgrade={false}
-												onConnect={(id) => createPluginKeyMutation.mutate(id)}
-												onUpgrade={handleUpgrade}
-											/>
-										)
-									})}
-								</div>
-							</div>
-						</TabsContent>
-
-						<TabsContent value="pro" className="mt-5">
-							{!hasProProduct && !isLoading && (
-								<ProUpgradeBanner onUpgrade={handleUpgrade} />
-							)}
-
-							{proConnected.length > 0 && (
-								<div className="flex flex-col gap-3 mb-6">
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"font-semibold text-[16px] text-[#FAFAFA]",
-										)}
-									>
-										Connected
-									</span>
-									{proConnected.map((plugin) => (
-										<ConnectedPluginRow
-											key={plugin.id}
-											plugin={plugin}
-											info={PLUGIN_CATALOG[plugin.pluginId]}
-											onRevoke={handleRevoke}
-										/>
-									))}
-								</div>
-							)}
-
-							<div className="flex flex-col gap-3">
-								<span
-									className={cn(
-										dmSans125ClassName(),
-										"font-semibold text-[16px] text-[#FAFAFA]",
-									)}
-								>
-									{proConnected.length > 0 ? "Add more" : "Available plugins"}
-								</span>
-								<div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-									{proPluginIds.map((pluginId) => {
-										const plugin = PLUGIN_CATALOG[pluginId]
-										if (!plugin) return null
-										const isConnected = connectedPluginIds.includes(pluginId)
-										const isCurrentlyConnecting = connectingPlugin === pluginId
-										const needsProUpgrade = !hasProProduct
-										return (
-											<PluginCard
-												key={pluginId}
-												plugin={plugin}
-												pluginId={pluginId}
-												isConnected={isConnected}
-												isCurrentlyConnecting={isCurrentlyConnecting}
-												connectingPlugin={connectingPlugin}
-												needsProUpgrade={needsProUpgrade}
-												onConnect={(id) => createPluginKeyMutation.mutate(id)}
-												onUpgrade={handleUpgrade}
-											/>
-										)
-									})}
-								</div>
-							</div>
-						</TabsContent>
-					</Tabs>
+							Connected
+						</span>
+						{connectedPlugins.map((plugin) => (
+							<ConnectedPluginRow
+								key={plugin.id}
+								plugin={plugin}
+								info={PLUGIN_CATALOG[plugin.pluginId]}
+								onRevoke={handleRevoke}
+							/>
+						))}
+					</div>
 				)}
+
+				<div className="flex flex-col gap-3">
+					<span
+						className={cn(
+							dmSans125ClassName(),
+							"font-semibold text-[16px] text-[#FAFAFA]",
+						)}
+					>
+						{connectedPlugins.length > 0
+							? "Add more plugins"
+							: "Available plugins"}
+					</span>
+					<div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+						{allCatalogPluginIds.map((pluginId) => {
+							const plugin = PLUGIN_CATALOG[pluginId]
+							if (!plugin) return null
+							const isConnected = connectedPluginIds.includes(pluginId)
+							const isCurrentlyConnecting = connectingPlugin === pluginId
+							const needsProUpgrade =
+								!isLoading && !hasProProduct && !isFreeTierPlugin(pluginId)
+							return (
+								<PluginCard
+									key={pluginId}
+									plugin={plugin}
+									pluginId={pluginId}
+									isConnected={isConnected}
+									isCurrentlyConnecting={isCurrentlyConnecting}
+									connectingPlugin={connectingPlugin}
+									needsProUpgrade={needsProUpgrade}
+									onConnect={(id) => createPluginKeyMutation.mutate(id)}
+									onUpgrade={handleUpgrade}
+								/>
+							)
+						})}
+					</div>
+				</div>
 			</div>
 
 			<Dialog

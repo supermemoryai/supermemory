@@ -1,6 +1,7 @@
 """Supermemory middleware for OpenAI clients."""
 
 import asyncio
+import inspect
 import os
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, Union, cast
@@ -32,10 +33,11 @@ from .utils import (
 class OpenAIMiddlewareOptions:
     """Configuration options for OpenAI middleware."""
 
-    conversation_id: Optional[str] = None
+    container_tag: str  # Required: identifies the user/container
+    custom_id: str  # Required: groups messages into the same document
     verbose: bool = False
     mode: Literal["profile", "query", "full"] = "profile"
-    add_memory: Literal["always", "never"] = "never"
+    add_memory: Literal["always", "never"] = "always"
 
 
 class SupermemoryProfileSearch:
@@ -225,11 +227,11 @@ async def add_memory_tool(
             add_params["custom_id"] = custom_id
 
         # Handle both sync and async supermemory clients
-        try:
-            response = await client.add(**add_params)
-        except TypeError:
-            # If it's not awaitable, call it synchronously
-            response = client.add(**add_params)
+        result = client.add(**add_params)
+        if inspect.isawaitable(result):
+            response = await result
+        else:
+            response = result
 
         logger.info(
             "Memory saved successfully",
@@ -262,12 +264,11 @@ class SupermemoryOpenAIWrapper:
     def __init__(
         self,
         openai_client: Union[OpenAI, AsyncOpenAI],
-        container_tag: str,
-        options: Optional[OpenAIMiddlewareOptions] = None,
+        options: OpenAIMiddlewareOptions,
     ):
         self._client: Union[OpenAI, AsyncOpenAI] = openai_client
-        self._container_tag: str = container_tag
-        self._options: OpenAIMiddlewareOptions = options or OpenAIMiddlewareOptions()
+        self._container_tag: str = options.container_tag
+        self._options: OpenAIMiddlewareOptions = options
         self._logger: Logger = create_logger(self._options.verbose)
 
         # Track background tasks to ensure they complete
@@ -336,12 +337,12 @@ class SupermemoryOpenAIWrapper:
             if user_message and user_message.strip():
                 content = (
                     get_conversation_content(messages)
-                    if self._options.conversation_id
+                    if self._options.custom_id
                     else user_message
                 )
                 custom_id = (
-                    f"conversation:{self._options.conversation_id}"
-                    if self._options.conversation_id
+                    f"conversation:{self._options.custom_id}"
+                    if self._options.custom_id
                     else None
                 )
 
@@ -399,7 +400,7 @@ class SupermemoryOpenAIWrapper:
             "Starting memory search",
             {
                 "container_tag": self._container_tag,
-                "conversation_id": self._options.conversation_id,
+                "conversation_id": self._options.custom_id,
                 "mode": self._options.mode,
             },
         )
@@ -430,12 +431,12 @@ class SupermemoryOpenAIWrapper:
             if user_message and user_message.strip():
                 content = (
                     get_conversation_content(messages)
-                    if self._options.conversation_id
+                    if self._options.custom_id
                     else user_message
                 )
                 custom_id = (
-                    f"conversation:{self._options.conversation_id}"
-                    if self._options.conversation_id
+                    f"conversation:{self._options.custom_id}"
+                    if self._options.custom_id
                     else None
                 )
 
@@ -483,7 +484,7 @@ class SupermemoryOpenAIWrapper:
             "Starting memory search",
             {
                 "container_tag": self._container_tag,
-                "conversation_id": self._options.conversation_id,
+                "conversation_id": self._options.custom_id,
                 "mode": self._options.mode,
             },
         )
@@ -617,8 +618,7 @@ class SupermemoryOpenAIWrapper:
 
 def with_supermemory(
     openai_client: Union[OpenAI, AsyncOpenAI],
-    container_tag: str,
-    options: Optional[OpenAIMiddlewareOptions] = None,
+    options: OpenAIMiddlewareOptions,
 ) -> Union[OpenAI, AsyncOpenAI]:
     """
     Wraps an OpenAI client with SuperMemory middleware to automatically inject relevant memories
@@ -630,8 +630,7 @@ def with_supermemory(
 
     Args:
         openai_client: The OpenAI client to wrap with SuperMemory middleware
-        container_tag: The container tag/identifier for memory search (e.g., user ID, project ID)
-        options: Optional configuration options for the middleware
+        options: Configuration options for the middleware (container_tag and custom_id are required)
 
     Returns:
         An OpenAI client with SuperMemory middleware injected
@@ -645,9 +644,9 @@ def with_supermemory(
         openai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         openai_with_supermemory = with_supermemory(
             openai,
-            "user-123",
             OpenAIMiddlewareOptions(
-                conversation_id="conversation-456",
+                container_tag="user-123",
+                custom_id="conversation-456",
                 mode="full",
                 add_memory="always"
             )
@@ -666,6 +665,6 @@ def with_supermemory(
         ValueError: When SUPERMEMORY_API_KEY environment variable is not set
         Exception: When supermemory API request fails
     """
-    wrapper = SupermemoryOpenAIWrapper(openai_client, container_tag, options)
+    wrapper = SupermemoryOpenAIWrapper(openai_client, options)
     # Return the wrapper, which delegates all attributes to the original client
     return cast(Union[OpenAI, AsyncOpenAI], wrapper)

@@ -66,27 +66,9 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life")
-
-const result = await generateText({
-	model: modelWithMemory,
-	messages: [{ role: "user", content: "where do i live?" }],
-})
-
-console.log(result.text)
-```
-
-#### Conversation Grouping
-
-Use the `conversationId` option to group messages into a single document for contextual memory generation:
-
-```typescript
-import { generateText } from "ai"
-import { withSupermemory } from "@supermemory/tools/ai-sdk"
-import { openai } from "@ai-sdk/openai"
-
-const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life", {
-	conversationId: "conversation-456"
+const modelWithMemory = withSupermemory(openai("gpt-5"), {
+	containerTag: "user_id_life",
+	customId: "conversation-456",
 })
 
 const result = await generateText({
@@ -106,8 +88,10 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithMemory = withSupermemory(openai("gpt-5"), "user_id_life", {
-	verbose: true
+const modelWithMemory = withSupermemory(openai("gpt-5"), {
+	containerTag: "user_id_life",
+	customId: "conversation-456",
+	verbose: true,
 })
 
 const result = await generateText({
@@ -139,11 +123,16 @@ import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
 // Uses profile mode by default - gets all user profile memories
-const modelWithMemory = withSupermemory(openai("gpt-4"), "user-123")
+const modelWithMemory = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+})
 
 // Explicitly specify profile mode
-const modelWithProfile = withSupermemory(openai("gpt-4"), "user-123", { 
-  mode: "profile" 
+const modelWithProfile = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  mode: "profile",
 })
 
 const result = await generateText({
@@ -158,8 +147,10 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithQuery = withSupermemory(openai("gpt-4"), "user-123", { 
-  mode: "query" 
+const modelWithQuery = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  mode: "query",
 })
 
 const result = await generateText({
@@ -174,8 +165,10 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithFull = withSupermemory(openai("gpt-4"), "user-123", { 
-  mode: "full" 
+const modelWithFull = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  mode: "full",
 })
 
 const result = await generateText({
@@ -194,8 +187,10 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithAutoSave = withSupermemory(openai("gpt-4"), "user-123", {
-  addMemory: "always"
+const modelWithAutoSave = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  addMemory: "always",
 })
 
 const result = await generateText({
@@ -205,17 +200,23 @@ const result = await generateText({
 // This message will be automatically saved as a memory
 ```
 
-**Never Save Memories (Default)** - Only retrieves memories without storing new ones:
+**Never Save Memories** - Only retrieves memories without storing new ones:
 ```typescript
-const modelWithNoSave = withSupermemory(openai("gpt-4"), "user-123")
+const modelWithNoSave = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+  addMemory: "never",  // explicit since default is now "always"
+})
 ```
 
 **Combined Options** - Use verbose logging with specific modes and memory storage:
 ```typescript
-const modelWithOptions = withSupermemory(openai("gpt-4"), "user-123", {
+const modelWithOptions = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
   mode: "profile",
   addMemory: "always",
-  verbose: true
+  verbose: true,
 })
 ```
 
@@ -239,7 +240,9 @@ ${data.generalSearchMemories}
 </user_memories>
 `.trim()
 
-const modelWithCustomPrompt = withSupermemory(openai("gpt-4"), "user-123", {
+const modelWithCustomPrompt = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
   mode: "full",
   promptTemplate: customPrompt,
 })
@@ -265,10 +268,11 @@ The `withSupermemory` function creates an OpenAI client with SuperMemory middlew
 import { withSupermemory } from "@supermemory/tools/openai"
 
 // Create OpenAI client with supermemory middleware
-const openaiWithSupermemory = withSupermemory("user-123", {
-  conversationId: "conversation-456",
+const openaiWithSupermemory = withSupermemory(openai, {
+  containerTag: "user-123",      // Required: identifies the user/container
+  customId: "conversation-456",  // Required: groups messages into the same document 
   mode: "full",
-  addMemory: "always",
+  addMemory: "always",           // Default: "always"
   verbose: true,
 })
 
@@ -288,37 +292,12 @@ console.log(completion.choices[0]?.message?.content)
 The middleware supports the same configuration options as the AI SDK version:
 
 ```typescript
-const openaiWithSupermemory = withSupermemory("user-123", {
-  conversationId: "conversation-456", // Group messages for contextual memory
-  mode: "full",                       // "profile" | "query" | "full"
-  addMemory: "always",                // "always" | "never"
-  verbose: true,                      // Enable detailed logging
-})
-```
-
-#### Advanced Usage with Custom OpenAI Options
-
-You can also pass custom OpenAI client options:
-
-```typescript
-import { withSupermemory } from "@supermemory/tools/openai"
-
-const openaiWithSupermemory = withSupermemory(
-  "user-123", 
-  {
-    mode: "profile",
-    addMemory: "always",
-  },
-  {
-    baseURL: "https://api.openai.com/v1",
-    organization: "org-123",
-  },
-  "custom-api-key" // Optional: custom API key
-)
-
-const completion = await openaiWithSupermemory.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Tell me about my preferences" }],
+const openaiWithSupermemory = withSupermemory(openai, {
+  containerTag: "user-123",      // Required: identifies the user/container
+  customId: "conversation-456",  // Required: groups messages for contextual memory
+  mode: "full",                  // "profile" | "query" | "full"
+  addMemory: "always",           // "always" (default) | "never"
+  verbose: true,                 // Enable detailed logging
 })
 ```
 
@@ -337,8 +316,9 @@ export async function POST(req: Request) {
     conversationId: string
   }
 
-  const openaiWithSupermemory = withSupermemory("user-123", {
-    conversationId,
+  const openaiWithSupermemory = withSupermemory(openai, {
+    containerTag: "user-123",
+    customId: conversationId,
     mode: "full",
     addMemory: "always",
     verbose: true,
@@ -411,7 +391,7 @@ const addResult = await tools.addMemory({
 
 Add persistent memory to [Mastra](https://mastra.ai) AI agents. The integration provides processors that:
 - **Input Processor**: Fetches relevant memories and injects them into the system prompt before LLM calls
-- **Output Processor**: Optionally saves conversations to Supermemory after responses
+- **Output Processor**: Saves conversations to Supermemory after responses (enabled by default)
 
 #### Quick Start with `withSupermemory` Wrapper
 
@@ -430,11 +410,10 @@ const agent = new Agent(withSupermemory(
     model: openai("gpt-4o"),
     instructions: "You are a helpful assistant.",
   },
-  "user-123",  // containerTag - scopes memories to this user
   {
+    containerTag: "user-123",  // Required: scopes memories to this user
+    customId: "conv-456",      // Required: groups messages for contextual memory
     mode: "full",
-    addMemory: "always",
-    threadId: "conv-456",
   }
 ))
 
@@ -451,10 +430,10 @@ import { Agent } from "@mastra/core/agent"
 import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 import { openai } from "@ai-sdk/openai"
 
-const { input, output } = createSupermemoryProcessors("user-123", {
+const { input, output } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
   mode: "full",
-  addMemory: "always",
-  threadId: "conv-456",
   verbose: true, // Enable logging
 })
 
@@ -481,12 +460,12 @@ import { openai } from "@ai-sdk/openai"
 
 async function main() {
   const userId = "user-alex-123"
-  const threadId = `thread-${Date.now()}`
+  const customId = `thread-${Date.now()}`
 
-  const { input, output } = createSupermemoryProcessors(userId, {
+  const { input, output } = createSupermemoryProcessors({
+    containerTag: userId,
+    customId,
     mode: "profile",      // Fetch user profile memories
-    addMemory: "always",  // Save all conversations
-    threadId,
     verbose: true,
   })
 
@@ -522,13 +501,25 @@ main()
 
 ```typescript
 // Profile mode - good for general personalization
-const { input } = createSupermemoryProcessors("user-123", { mode: "profile" })
+const { input } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "profile",
+})
 
 // Query mode - good for specific lookups
-const { input } = createSupermemoryProcessors("user-123", { mode: "query" })
+const { input } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "query",
+})
 
 // Full mode - comprehensive context
-const { input } = createSupermemoryProcessors("user-123", { mode: "full" })
+const { input } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+})
 ```
 
 #### Custom Prompt Templates
@@ -545,7 +536,9 @@ ${data.generalSearchMemories}
 </user_context>
 `.trim()
 
-const { input, output } = createSupermemoryProcessors("user-123", {
+const { input, output } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
   mode: "full",
   promptTemplate: customTemplate,
 })
@@ -553,17 +546,17 @@ const { input, output } = createSupermemoryProcessors("user-123", {
 
 #### Using RequestContext for Dynamic Thread IDs
 
-Instead of hardcoding `threadId`, use Mastra's RequestContext for dynamic values:
+For server setups where one agent instance handles multiple concurrent conversations, use Mastra's `RequestContext` to provide per-request thread IDs. **RequestContext takes precedence** over the construction-time `customId`:
 
 ```typescript
 import { Agent } from "@mastra/core/agent"
 import { RequestContext, MASTRA_THREAD_ID_KEY } from "@mastra/core/request-context"
 import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 
-const { input, output } = createSupermemoryProcessors("user-123", {
+const { input, output } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "fallback-conv",  // Used only when RequestContext doesn't provide a threadId
   mode: "profile",
-  addMemory: "always",
-  // threadId not set here - will be read from RequestContext
 })
 
 const agent = new Agent({
@@ -574,22 +567,26 @@ const agent = new Agent({
   outputProcessors: [output],
 })
 
-// Set threadId dynamically per request
+// Per-request threadId takes precedence over customId
 const ctx = new RequestContext()
-ctx.set(MASTRA_THREAD_ID_KEY, "dynamic-thread-123")
+ctx.set(MASTRA_THREAD_ID_KEY, "user-456-session-789")
 
 const response = await agent.generate("Hello!", { requestContext: ctx })
+// This conversation is stored under "user-456-session-789", not "fallback-conv"
 ```
+
+> **Server-side usage**: Always use `RequestContext` to pass unique conversation IDs per request. Using a fixed `customId` for all requests will merge conversations from different users.
 
 #### Mastra Configuration Options
 
 ```typescript
 interface SupermemoryMastraOptions {
+  containerTag: string         // Required: User/container tag for scoping memories
+  customId: string             // Required: Groups messages into a single document for contextual memory
   apiKey?: string              // Supermemory API key (or use SUPERMEMORY_API_KEY env var)
   baseUrl?: string             // Custom API endpoint
   mode?: "profile" | "query" | "full"  // Memory search mode (default: "profile")
-  addMemory?: "always" | "never"       // Auto-save conversations (default: "never")
-  threadId?: string            // Conversation ID for grouping messages
+  addMemory?: "always" | "never"       // Auto-save conversations (default: "always")
   verbose?: boolean            // Enable debug logging (default: false)
   promptTemplate?: (data: MemoryPromptData) => string  // Custom memory formatting
 }
@@ -646,14 +643,15 @@ Without `strict: true`, optional fields like `includeFullDocs` and `limit` won't
 
 ### withSupermemory Middleware Options
 
-The `withSupermemory` middleware accepts additional configuration options:
+The `withSupermemory` middleware accepts a configuration object as the second argument:
 
 ```typescript
 interface WithSupermemoryOptions {
-  conversationId?: string
+  containerTag: string  // Required: identifies the user/container
+  customId: string      // Required: groups messages into the same document 
   verbose?: boolean
   mode?: "profile" | "query" | "full"
-  addMemory?: "always" | "never"
+  addMemory?: "always" | "never"  // Default: "always"
   /** Optional Supermemory API key. Use this in browser environments. */
   apiKey?: string
   baseUrl?: string
@@ -662,10 +660,11 @@ interface WithSupermemoryOptions {
 }
 ```
 
-- **conversationId**: Optional conversation ID to group messages into a single document for contextual memory generation
+- **containerTag**: Required. The container tag/identifier for memory search (e.g., user ID, project ID)
+- **customId**: Required. Custom ID to group messages into a single document for contextual memory generation
 - **verbose**: Enable detailed logging of memory search and injection process (default: false)
 - **mode**: Memory search mode - "profile" (default), "query", or "full"
-- **addMemory**: Automatic memory storage mode - "always" or "never" (default: "never")
+- **addMemory**: Automatic memory storage mode - "always" (default) or "never"
 - **skipMemoryOnError**: If memory retrieval fails or hits the internal timeout, continue with the original prompt (default: true)
 
 ## Available Tools

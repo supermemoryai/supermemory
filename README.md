@@ -232,7 +232,7 @@ Drop-in wrappers for every major AI framework:
 ```typescript
 // Vercel AI SDK
 import { withSupermemory } from "@supermemory/tools/ai-sdk";
-const model = withSupermemory(openai("gpt-4o"), "user_123");
+const model = withSupermemory(openai("gpt-4o"), { containerTag: "user_123", customId: "conv-1" });
 
 // Mastra
 import { withSupermemory } from "@supermemory/tools/mastra";

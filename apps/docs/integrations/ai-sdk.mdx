@@ -7,6 +7,10 @@ icon: "triangle"
 
 The Supermemory AI SDK provides native integration with Vercel's AI SDK through two approaches: **User Profiles** for automatic personalization and **Memory Tools** for agent-based interactions.
 
+<Note>
+  Migrating to v2 from 1.4.x? Check the [migration guide](/migration/tools-v2-upgrade).
+</Note>
+
 <Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
@@ -35,7 +39,10 @@ import { generateText } from "ai"
 import { withSupermemory } from "@supermemory/tools/ai-sdk"
 import { openai } from "@ai-sdk/openai"
 
-const modelWithMemory = withSupermemory(openai("gpt-5"), "user-123")
+const modelWithMemory = withSupermemory(openai("gpt-5"), {
+  containerTag: "user-123",
+  customId: "conversation-456",
+})
 
 const result = await generateText({
   model: modelWithMemory,
@@ -43,12 +50,21 @@ const result = await generateText({
 })
 ```
 
+### Required fields
+
+Both `containerTag` and `customId` are required.
+
+- **`containerTag`** — *who* the memories belong to. Use a stable identifier per user, workspace, or tenant (e.g. `"user-123"`, `"acme-workspace"`). Memory search and writes are scoped to this tag.
+- **`customId`** — *which conversation* this turn belongs to. Use it to group messages from the same chat session into a single document (e.g. `"chat-2026-04-25"`, a thread ID, or a UUID per session).
+
 <Note>
-  **Memory saving is disabled by default.** The middleware only retrieves existing memories. To automatically save new memories:
+  **Memory saving is enabled by default** (`addMemory: "always"`). New conversations are persisted automatically. To opt out, set `addMemory: "never"`:
 
   ```typescript
-  const modelWithMemory = withSupermemory(openai("gpt-5"), "user-123", {
-    addMemory: "always"
+  const modelWithMemory = withSupermemory(openai("gpt-5"), {
+    containerTag: "user-123",
+    customId: "conversation-456",
+    addMemory: "never",
   })
   ```
 </Note>
@@ -58,19 +74,19 @@ const result = await generateText({
 **Profile Mode (Default)** - Retrieves the user's complete profile:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "profile" })
+const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "profile" })
 ```
 
 **Query Mode** - Searches memories based on the user's message:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "query" })
+const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "query" })
 ```
 
 **Full Mode** - Combines profile AND query-based search:
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", { mode: "full" })
+const model = withSupermemory(openai("gpt-4"), { containerTag: "user-123", customId: "conv-1", mode: "full" })
 ```
 
 ### Custom Prompt Templates
@@ -91,17 +107,21 @@ const claudePrompt = (data: MemoryPromptData) => `
 </context>
 `.trim()
 
-const model = withSupermemory(anthropic("claude-3-sonnet"), "user-123", {
+const model = withSupermemory(anthropic("claude-3-sonnet"), {
+  containerTag: "user-123",
+  customId: "conv-1",
   mode: "full",
-  promptTemplate: claudePrompt
+  promptTemplate: claudePrompt,
 })
 ```
 
 ### Verbose Logging
 
 ```typescript
-const model = withSupermemory(openai("gpt-4"), "user-123", {
-  verbose: true
+const model = withSupermemory(openai("gpt-4"), {
+  containerTag: "user-123",
+  customId: "conv-1",
+  verbose: true,
 })
 // Console output shows memory retrieval details
 ```
@@ -113,8 +133,10 @@ If the Supermemory API returns an error, is unreachable, or retrieval hits the i
 To **fail the call** when memory retrieval fails instead, set `skipMemoryOnError: false`:
 
 ```typescript
-const model = withSupermemory(openai("gpt-5"), "user-123", {
-  skipMemoryOnError: false
+const model = withSupermemory(openai("gpt-5"), {
+  containerTag: "user-123",
+  customId: "conv-1",
+  skipMemoryOnError: false,
 })
 ```
 

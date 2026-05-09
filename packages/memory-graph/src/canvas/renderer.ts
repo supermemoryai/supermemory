@@ -18,6 +18,15 @@ export interface RenderState {
 // Module-level reusable batch map – cleared each frame instead of reallocating
 const edgeBatches = new Map<string, PreparedEdge[]>()
 
+function nodeMatchesDocumentHighlights(
+	node: GraphNode,
+	highlightIds: Set<string>,
+): boolean {
+	if (highlightIds.size === 0) return false
+	if (node.type === "document") return highlightIds.has(node.id)
+	return highlightIds.has((node.data as MemoryNodeData).documentId)
+}
+
 /** Group items by their `color` property into batches for efficient canvas drawing */
 function groupByColor<T extends { color: string }>(
 	items: T[],
@@ -296,7 +305,13 @@ function drawNodes(
 
 		const isSelected = node.id === state.selectedNodeId
 		const isHovered = node.id === state.hoveredNodeId
-		const isHighlighted = state.highlightIds.has(node.id)
+		const isHighlighted = nodeMatchesDocumentHighlights(
+			node,
+			state.highlightIds,
+		)
+		const highlightFocus = state.highlightIds.size > 0
+		const fadeNonHighlights =
+			highlightFocus && !isSelected && !isHovered && !isHighlighted
 
 		if (screenSize < 8 && !isSelected && !isHovered && !isHighlighted) {
 			if (node.type === "document") {
@@ -317,6 +332,9 @@ function drawNodes(
 		let alpha = 1
 		if (state.selectedNodeId && state.dimProgress > 0 && !isSelected) {
 			alpha = 1 - state.dimProgress * 0.7
+		}
+		if (fadeNonHighlights) {
+			alpha *= 0.35
 		}
 		ctx.globalAlpha = alpha
 
@@ -363,12 +381,13 @@ function drawNodes(
 		state.selectedNodeId && state.dimProgress > 0
 			? 1 - state.dimProgress * 0.7
 			: 1
+	const hlBatchMult = state.highlightIds.size > 0 ? 0.4 : 1
 
 	if (docDots.length > 0) {
 		ctx.fillStyle = colors.docFill
 		ctx.strokeStyle = colors.docStroke
 		ctx.lineWidth = 1
-		ctx.globalAlpha = dimAlpha
+		ctx.globalAlpha = dimAlpha * hlBatchMult
 		for (const d of docDots) {
 			const h = d.s * 0.5
 			ctx.fillRect(d.x - h, d.y - h, d.s, d.s)
@@ -383,7 +402,7 @@ function drawNodes(
 
 		if (normalDots.length > 0) {
 			// Subtle glow behind memory dots for luminous effect
-			ctx.globalAlpha = dimAlpha * 0.25
+			ctx.globalAlpha = dimAlpha * hlBatchMult * 0.25
 			for (const [color, batch] of groupByColor(normalDots)) {
 				ctx.fillStyle = color
 				ctx.beginPath()
@@ -395,7 +414,7 @@ function drawNodes(
 			}
 
 			// Filled dot
-			ctx.globalAlpha = dimAlpha
+			ctx.globalAlpha = dimAlpha * hlBatchMult
 			ctx.fillStyle = colors.memFill
 			ctx.beginPath()
 			for (const d of normalDots) {
@@ -419,7 +438,7 @@ function drawNodes(
 
 		// Draw dimmed (superseded) memory dots at reduced opacity
 		if (dimmedDots.length > 0) {
-			ctx.globalAlpha = dimAlpha * 0.5
+			ctx.globalAlpha = dimAlpha * hlBatchMult * 0.5
 			ctx.fillStyle = colors.memFill
 			ctx.beginPath()
 			for (const d of dimmedDots) {

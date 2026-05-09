@@ -143,7 +143,10 @@ const result = await streamText({
 
 // Option 2: Profile middleware (automatic context injection)
 import { withSupermemory } from '@supermemory/tools/ai-sdk'
-const modelWithMemory = withSupermemory(anthropic('claude-3-5-sonnet-20241022'), userId)
+const modelWithMemory = withSupermemory(anthropic('claude-3-5-sonnet-20241022'), {
+  containerTag: userId,
+  customId: 'conversation-1',
+})
 
 const result = await generateText({
   model: modelWithMemory,

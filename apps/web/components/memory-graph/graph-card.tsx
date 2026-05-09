@@ -23,7 +23,7 @@ function seededRandom(seed: number) {
 	}
 }
 
-function StaticGraphPreview({
+export function StaticGraphPreview({
 	documentCount,
 	memoryCount,
 	width,
@@ -70,10 +70,10 @@ function StaticGraphPreview({
 			let b = Math.floor(rand() * nodes.length)
 			if (b === a) b = (a + 1) % nodes.length
 			result.push({
-				x1: nodes[a]!.x,
-				y1: nodes[a]!.y,
-				x2: nodes[b]!.x,
-				y2: nodes[b]!.y,
+				x1: nodes[a]?.x,
+				y1: nodes[a]?.y,
+				x2: nodes[b]?.x,
+				y2: nodes[b]?.y,
 			})
 		}
 		return result

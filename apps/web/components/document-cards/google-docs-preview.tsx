@@ -24,20 +24,20 @@ export function GoogleDocsPreview({
 					url={document.url}
 					className="w-4 h-4"
 				/>
-				<p className={cn(dmSansClassName(), "text-[12px] font-semibold")}>
+				<p className={cn(dmSansClassName(), "text-[13px] font-semibold")}>
 					{label}
 				</p>
 			</div>
 			{document.summary ? (
-				<p className="text-[10px] text-[#737373] line-clamp-4">
+				<p className="text-[11px] text-[#737373] line-clamp-4">
 					{document.summary}
 				</p>
 			) : document.content ? (
-				<p className="text-[10px] text-[#737373] line-clamp-4">
+				<p className="text-[11px] text-[#737373] line-clamp-4">
 					{document.content}
 				</p>
 			) : (
-				<p className="text-[10px] text-[#737373] line-clamp-4">
+				<p className="text-[11px] text-[#737373] line-clamp-4">
 					No summary available
 				</p>
 			)}

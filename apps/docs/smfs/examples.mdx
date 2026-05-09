@@ -1,0 +1,48 @@
+---
+title: "Examples"
+sidebarTitle: "Examples"
+description: "Full web-based demo apps you can clone and run."
+icon: "code"
+---
+
+Web-based example apps showing SMFS in realistic use cases. Each one is a
+complete project with its own README, dependencies, and a working UI.
+
+<CardGroup cols={2}>
+  <Card
+    title="Research Assistant"
+    icon="magnifying-glass"
+    href="https://github.com/supermemoryai/examples/tree/main/research-assistant"
+  >
+    Upload documents and chat with an AI that can search and cite them.
+    Next.js + TypeScript + `@supermemory/bash`.
+  </Card>
+  <Card
+    title="Knowledge Base"
+    icon="book"
+    href="https://github.com/supermemoryai/examples/tree/main/knowledge-base"
+  >
+    Add notes and chat with an AI that can search your knowledge base.
+    FastAPI + Python + `supermemory-bash`.
+  </Card>
+  <Card
+    title="Code Sandbox"
+    icon="terminal"
+    href="https://github.com/supermemoryai/examples/tree/main/code-sandbox"
+  >
+    Write and run code in an E2B sandbox with persistent AI memory.
+    Next.js + E2B SDK + SMFS mount.
+  </Card>
+</CardGroup>
+
+The Research Assistant and Knowledge Base examples use the
+[Bash Tool](/smfs/bash-tool) — the serverless-friendly way to give an agent a
+Supermemory-backed filesystem. The Code Sandbox example uses an
+[E2B](/smfs/providers/e2b) sandbox with a real SMFS mount.
+
+## Running an example
+
+1. Clone the [examples repo](https://github.com/supermemoryai/examples)
+2. `cd` into the example you want
+3. Follow the README — typically: install deps, copy `.env.example` to `.env`,
+   fill in your API keys, and start the dev server

@@ -1,0 +1,15 @@
+{
+	"apps": {
+		"apps/web": { "name": "app.dev.supermemory", "script": "dev:app" },
+		"apps/mcp": { "name": "mcp.dev.supermemory", "script": "dev:app" },
+		"apps/docs": {
+			"name": "docs.dev.supermemory",
+			"script": "dev:app",
+			"appPort": 3003
+		},
+		"apps/memory-graph-playground": {
+			"name": "graph.dev.supermemory",
+			"script": "dev:app"
+		}
+	}
+}

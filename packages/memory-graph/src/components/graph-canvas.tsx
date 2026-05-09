@@ -104,8 +104,24 @@ export const GraphCanvas = memo<ExtendedGraphCanvasProps>(function GraphCanvas({
 	}, [nodes])
 
 	useEffect(() => {
-		s.current.highlightIds = new Set(highlightDocumentIds ?? [])
+		const ids = new Set(highlightDocumentIds ?? [])
+		s.current.highlightIds = ids
 		renderNeeded.current = true
+
+		if (ids.size === 0) return
+		const vp = viewportRef.current
+		if (!vp) return
+		const highlighted = s.current.nodes.filter((n) => {
+			if (n.type === "document") return ids.has(n.id)
+			const d = n.data as { documentId?: string }
+			return typeof d.documentId === "string" && ids.has(d.documentId)
+		})
+		if (highlighted.length === 0) return
+		vp.fitToNodes(
+			highlighted.map((n) => ({ x: n.x, y: n.y, size: n.size ?? 24 })),
+			s.current.width,
+			s.current.height,
+		)
 	}, [highlightDocumentIds])
 
 	useEffect(() => {
