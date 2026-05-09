@@ -87,11 +87,53 @@ function looksUnavailable(source: AccountSource, html: string) {
 
 function linkedinFallback(account: ParsedAccount, status?: number) {
 	return Response.json({
-		found: true,
+		found: null,
 		verified: false,
-		reason: "valid_linkedin_profile_url",
+		reason: "unable_to_verify_linkedin",
 		handle: account.handle,
 		status,
+		url: account.url,
+	})
+}
+
+async function verifyXAccount(account: ParsedAccount, signal: AbortSignal) {
+	const oembedUrl = new URL("https://publish.twitter.com/oembed")
+	oembedUrl.searchParams.set("url", account.url)
+
+	const response = await fetch(oembedUrl, {
+		signal,
+		headers: {
+			Accept: "application/json",
+			"User-Agent":
+				"Mozilla/5.0 (compatible; SuperMemory/1.0; +https://supermemory.ai)",
+		},
+	})
+
+	if (response.status === 404 || response.status === 410) {
+		return Response.json({
+			found: false,
+			handle: account.handle,
+			status: response.status,
+			url: account.url,
+		})
+	}
+
+	if (!response.ok) {
+		return Response.json(
+			{
+				error: "Unable to verify account",
+				handle: account.handle,
+				status: response.status,
+				url: account.url,
+			},
+			{ status: 502 },
+		)
+	}
+
+	return Response.json({
+		found: true,
+		handle: account.handle,
+		status: response.status,
 		url: account.url,
 	})
 }
@@ -118,6 +160,10 @@ export async function GET(request: Request) {
 	const timeoutId = setTimeout(() => controller.abort(), 7000)
 
 	try {
+		if (source === "x") {
+			return await verifyXAccount(account, controller.signal)
+		}
+
 		const response = await fetch(account.url, {
 			signal: controller.signal,
 			redirect: "follow",

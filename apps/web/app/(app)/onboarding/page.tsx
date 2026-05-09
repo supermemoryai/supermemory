@@ -475,14 +475,10 @@ export default function OnboardingPage() {
 				if (response.ok && data.found === true) {
 					const account =
 						source === "x" && data.handle ? ` @${data.handle}` : ""
-					const message =
-						source === "linkedin" && data.verified === false
-							? "LinkedIn profile link looks valid - press Enter to continue"
-							: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`
 					setAccountLookup({
 						source,
 						status: "found",
-						message,
+						message: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`,
 					})
 					return
 				}
@@ -495,6 +491,15 @@ export default function OnboardingPage() {
 						source,
 						status: "not_found",
 						message: `${SOURCE_NAME[source]} account not found. Check the link and try again.`,
+					})
+					return
+				}
+
+				if (response.ok && data.verified === false) {
+					setAccountLookup({
+						source,
+						status: "error",
+						message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
 					})
 					return
 				}
