@@ -30,11 +30,24 @@ import {
 	RaycastIcon,
 } from "@/components/integration-icons"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
-import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+	Sparkles,
+	ChevronLeft,
+	ChevronRight,
+	AlertCircle,
+	CheckCircle2,
+	Loader2,
+} from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
 type DetectedSource = "x" | "linkedin" | "resume" | null
 type Status = "idle" | "processing" | "done" | "error"
+type AccountLookupStatus = "checking" | "found" | "not_found" | "error"
+type AccountLookup = {
+	source: "x" | "linkedin"
+	status: AccountLookupStatus
+	message: string
+}
 type DocStatus =
 	| "unknown"
 	| "queued"
@@ -121,8 +134,13 @@ const SOURCE_ICON: Record<
 }
 
 const SOURCE_LABEL: Record<"x" | "linkedin", string> = {
-	x: "X profile detected — press Enter to continue",
-	linkedin: "LinkedIn profile detected — press Enter to continue",
+	x: "X profile detected - checking account",
+	linkedin: "LinkedIn profile detected - checking account",
+}
+
+const SOURCE_NAME: Record<"x" | "linkedin", string> = {
+	x: "X",
+	linkedin: "LinkedIn",
 }
 
 type SpotlightItem = {
@@ -358,6 +376,7 @@ export default function OnboardingPage() {
 
 	const [value, setValue] = useState("")
 	const [detected, setDetected] = useState<DetectedSource>(null)
+	const [accountLookup, setAccountLookup] = useState<AccountLookup | null>(null)
 	const [resumeFile, setResumeFile] = useState<File | null>(null)
 	const [isDragging, setIsDragging] = useState(false)
 	const [status, setStatus] = useState<Status>("idle")
@@ -415,6 +434,87 @@ export default function OnboardingPage() {
 		const t = setTimeout(() => inputRef.current?.focus(), 500)
 		return () => clearTimeout(t)
 	}, [])
+
+	useEffect(() => {
+		if (status !== "idle") return
+
+		const source = detected === "x" || detected === "linkedin" ? detected : null
+		const trimmedValue = value.trim()
+
+		if (!source || !trimmedValue) {
+			setAccountLookup(null)
+			return
+		}
+
+		const controller = new AbortController()
+		setAccountLookup({
+			source,
+			status: "checking",
+			message: SOURCE_LABEL[source],
+		})
+
+		const timeout = setTimeout(async () => {
+			try {
+				const params = new URLSearchParams({
+					source,
+					value: trimmedValue,
+				})
+				const response = await fetch(
+					`/api/onboarding/account-status?${params.toString()}`,
+					{ signal: controller.signal },
+				)
+				const data: {
+					found?: boolean
+					handle?: string
+					reason?: string
+				} = await response.json().catch(() => ({}))
+
+				if (controller.signal.aborted) return
+
+				if (response.ok && data.found === true) {
+					const account =
+						source === "x" && data.handle ? ` @${data.handle}` : ""
+					setAccountLookup({
+						source,
+						status: "found",
+						message: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`,
+					})
+					return
+				}
+
+				if (
+					(response.ok && data.found === false) ||
+					data.reason === "invalid"
+				) {
+					setAccountLookup({
+						source,
+						status: "not_found",
+						message: `${SOURCE_NAME[source]} account not found. Check the link and try again.`,
+					})
+					return
+				}
+
+				setAccountLookup({
+					source,
+					status: "error",
+					message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
+				})
+			} catch (err) {
+				if (controller.signal.aborted) return
+				console.error(err)
+				setAccountLookup({
+					source,
+					status: "error",
+					message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
+				})
+			}
+		}, 450)
+
+		return () => {
+			clearTimeout(timeout)
+			controller.abort()
+		}
+	}, [detected, status, value])
 
 	useEffect(() => {
 		return () => {
@@ -597,7 +697,18 @@ export default function OnboardingPage() {
 		}
 	}
 
-	const canSubmit = detected && detected !== "resume"
+	const hasDetectedAccount = detected === "x" || detected === "linkedin"
+	const currentAccountLookup =
+		accountLookup?.source === detected ? accountLookup : null
+	const isCheckingAccount =
+		hasDetectedAccount &&
+		(!currentAccountLookup || currentAccountLookup.status === "checking")
+	const canSubmit = Boolean(
+		hasDetectedAccount &&
+			currentAccountLookup &&
+			currentAccountLookup.status !== "checking" &&
+			currentAccountLookup.status !== "not_found",
+	)
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: full-surface drag-and-drop for resume PDF
@@ -705,6 +816,20 @@ export default function OnboardingPage() {
 										)}
 									/>
 
+									<AnimatePresence>
+										{isCheckingAccount && (
+											<motion.span
+												initial={{ opacity: 0, scale: 0.8 }}
+												animate={{ opacity: 1, scale: 1 }}
+												exit={{ opacity: 0, scale: 0.8 }}
+												transition={{ duration: 0.15 }}
+												className="absolute right-3 flex items-center pointer-events-none"
+											>
+												<Loader2 className="size-4 animate-spin text-[#6BB0FF]" />
+											</motion.span>
+										)}
+									</AnimatePresence>
+
 									{canSubmit && (
 										<motion.button
 											type="button"
@@ -729,9 +854,35 @@ export default function OnboardingPage() {
 											animate={{ opacity: 1, y: 0 }}
 											exit={{ opacity: 0, y: -4 }}
 											transition={{ duration: 0.2 }}
-											className="text-xs text-[#6BB0FF] pl-1"
+											className={cn(
+												"flex items-center gap-1.5 text-xs pl-1",
+												currentAccountLookup?.status === "found" &&
+													"text-[#65D08C]",
+												currentAccountLookup?.status === "not_found" &&
+													"text-[#FF8A8A]",
+												currentAccountLookup?.status === "error" &&
+													"text-[#F0B86A]",
+												(!currentAccountLookup ||
+													currentAccountLookup.status === "checking") &&
+													"text-[#6BB0FF]",
+											)}
 										>
-											{SOURCE_LABEL[detected as "x" | "linkedin"]}
+											{currentAccountLookup?.status === "found" && (
+												<CheckCircle2 className="size-3.5 shrink-0" />
+											)}
+											{currentAccountLookup?.status === "not_found" && (
+												<AlertCircle className="size-3.5 shrink-0" />
+											)}
+											{currentAccountLookup?.status === "error" && (
+												<AlertCircle className="size-3.5 shrink-0" />
+											)}
+											{isCheckingAccount && (
+												<Loader2 className="size-3.5 shrink-0 animate-spin" />
+											)}
+											<span>
+												{currentAccountLookup?.message ??
+													SOURCE_LABEL[detected as "x" | "linkedin"]}
+											</span>
 										</motion.p>
 									)}
 								</AnimatePresence>
