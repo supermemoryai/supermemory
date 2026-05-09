@@ -40,11 +40,12 @@ export function NoteContent({
 	}, [isOpen, onContentChange])
 
 	return (
-		<div className="p-4 overflow-y-auto flex-1 w-full h-full mb-4! bg-[#14161A] shadow-inside-out rounded-[14px]">
+		<div className="flex h-full min-h-[45dvh] w-full flex-1 overflow-y-auto rounded-[14px] bg-[#10151C] p-3 shadow-inside-out ring-1 ring-[#202A36] md:mb-4! md:bg-[#14161A] md:p-4 md:ring-0">
 			<TextEditor
 				content={undefined}
 				onContentChange={handleContentChange}
 				onSubmit={handleSubmit}
+				debounceMs={0}
 			/>
 		</div>
 	)

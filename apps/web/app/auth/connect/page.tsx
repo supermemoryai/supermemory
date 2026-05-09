@@ -169,7 +169,7 @@ function AuthConnectContent() {
 			setIsUpgrading(true)
 			const safeSuccessUrl = `${window.location.origin}${window.location.pathname}?callback=${encodeURIComponent(callback ?? "")}&client=${encodeURIComponent(validClient ?? "")}`
 			await autumn.attach({
-				productId: "api_pro",
+				planId: "api_pro",
 				successUrl: safeSuccessUrl,
 			})
 		} catch (err) {

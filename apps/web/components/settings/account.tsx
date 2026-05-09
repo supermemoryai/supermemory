@@ -9,7 +9,7 @@ import {
 } from "@/hooks/use-account-settings"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { useTokenUsage } from "@/hooks/use-token-usage"
-import { formatUsageNumber, tokensToCredits } from "@/lib/billing-utils"
+import { formatUsageNumber } from "@/lib/billing-utils"
 import {
 	Dialog,
 	DialogContent,
@@ -153,11 +153,8 @@ export default function Account() {
 
 	const {
 		tokensUsed,
-		tokensLimit,
-		tokensPercent,
 		searchesUsed,
-		searchesLimit,
-		searchesPercent,
+		planUsagePct,
 		currentPlan,
 		hasPaidPlan,
 		isLoading: isCheckingStatus,
@@ -176,7 +173,7 @@ export default function Account() {
 		setIsUpgrading(true)
 		try {
 			await autumn.attach({
-				productId: "api_pro",
+				planId: "api_pro",
 				successUrl: "https://app.supermemory.ai/settings#account",
 			})
 			window.location.reload()
@@ -388,7 +385,7 @@ export default function Account() {
 									</p>
 								</div>
 
-								{/* Credits Usage Progress */}
+								{/* Plan usage (unified) */}
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center justify-between">
 										<p
@@ -397,84 +394,56 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											Credits Used
+											Plan usage
 										</p>
 										<span
 											className={cn(
 												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
+												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA] tabular-nums",
 											)}
 										>
-											{tokensToCredits(tokensUsed)} /{" "}
-											{tokensToCredits(tokensLimit)}
+											{planUsagePct < 1 && planUsagePct > 0
+												? "< 1"
+												: Math.round(planUsagePct)}
+											% used
 										</span>
 									</div>
 									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 										<div
 											className="h-full rounded-[40px]"
 											style={{
-												width: `${tokensPercent}%`,
+												width: `${planUsagePct}%`,
 												background:
-													tokensPercent > 80
+													planUsagePct > 80
 														? "#ef4444"
 														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
 											}}
+											title={`${formatUsageNumber(tokensUsed)} tokens · ${formatUsageNumber(searchesUsed)} queries`}
 										/>
 									</div>
-								</div>
-
-								{/* Search Queries Progress */}
-								<div className="flex flex-col gap-3">
-									<div className="flex items-center justify-between">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Search Queries
-										</p>
-										<span
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
-											)}
-										>
-											{formatUsageNumber(searchesUsed)} /{" "}
-											{formatUsageNumber(searchesLimit)}
-										</span>
-									</div>
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-										<div
-											className="h-full rounded-[40px]"
-											style={{
-												width: `${searchesPercent}%`,
-												background:
-													searchesPercent > 80
-														? "#ef4444"
-														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
-											}}
-										/>
-									</div>
-								</div>
-
-								{/* Days remaining indicator */}
-								{daysRemaining !== null && (
 									<p
 										className={cn(
 											dmSans125ClassName(),
-											"text-sm text-[#737373]",
+											"text-sm tracking-[-0.14px] text-[#737373] tabular-nums",
 										)}
 									>
-										Resets in {daysRemaining} day
-										{daysRemaining !== 1 ? "s" : ""}
+										{formatUsageNumber(tokensUsed)} tokens ·{" "}
+										{formatUsageNumber(searchesUsed)} queries
+										{daysRemaining !== null && (
+											<>
+												{" · resets in "}
+												{daysRemaining} day{daysRemaining !== 1 ? "s" : ""}
+											</>
+										)}
 									</p>
-								)}
+								</div>
 
 								<button
 									type="button"
 									onClick={() => {
-										autumn.openBillingPortal?.()
+										autumn.openCustomerPortal?.({
+											returnUrl: "https://app.supermemory.ai/settings#account",
+										})
 									}}
 									className={cn(
 										"relative w-full h-11 rounded-full flex items-center justify-center gap-2",
@@ -501,10 +470,7 @@ export default function Account() {
 											Free plan
 										</p>
 										<div className="flex flex-col gap-2">
-											<PlanFeatureRow
-												icon="check"
-												text="10 credits / 1M tokens"
-											/>
+											<PlanFeatureRow icon="check" text="1M tokens / month" />
 											<PlanFeatureRow icon="check" text="10K search queries" />
 											<PlanFeatureRow icon="x" text="No connections" />
 											<PlanFeatureRow icon="check" text="Basic support" />
@@ -536,7 +502,7 @@ export default function Account() {
 										<div className="flex flex-col gap-2">
 											<PlanFeatureRow
 												icon="check"
-												text="30 credits / 3M tokens"
+												text="3M tokens / month"
 												variant="highlight"
 											/>
 											<PlanFeatureRow
@@ -580,7 +546,7 @@ export default function Account() {
 									</p>
 								</div>
 
-								{/* Credits Usage Progress */}
+								{/* Plan usage (unified) */}
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center justify-between">
 										<p
@@ -589,74 +555,46 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											Credits Used
+											Plan usage
 										</p>
 										<p
 											className={cn(
 												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
+												"font-medium text-[16px] tracking-[-0.16px] text-[#737373] tabular-nums",
 											)}
 										>
-											{tokensToCredits(tokensUsed)} /{" "}
-											{tokensToCredits(tokensLimit)}
+											{planUsagePct < 1 && planUsagePct > 0
+												? "< 1"
+												: Math.round(planUsagePct)}
+											% used
 										</p>
 									</div>
 									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 										<div
 											className="h-full rounded-[40px] transition-all"
 											style={{
-												width: `${tokensPercent}%`,
-												background: tokensPercent > 80 ? "#ef4444" : "#0054AD",
+												width: `${planUsagePct}%`,
+												background: planUsagePct > 80 ? "#ef4444" : "#0054AD",
 											}}
+											title={`${formatUsageNumber(tokensUsed)} tokens · ${formatUsageNumber(searchesUsed)} queries`}
 										/>
 									</div>
-								</div>
-
-								{/* Search Queries Progress */}
-								<div className="flex flex-col gap-3">
-									<div className="flex items-center justify-between">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Search Queries
-										</p>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
-											)}
-										>
-											{formatUsageNumber(searchesUsed)} /{" "}
-											{formatUsageNumber(searchesLimit)}
-										</p>
-									</div>
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-										<div
-											className="h-full rounded-[40px] transition-all"
-											style={{
-												width: `${searchesPercent}%`,
-												background:
-													searchesPercent > 80 ? "#ef4444" : "#0054AD",
-											}}
-										/>
-									</div>
-								</div>
-
-								{/* Days remaining indicator */}
-								{daysRemaining !== null && (
 									<p
 										className={cn(
 											dmSans125ClassName(),
-											"text-sm text-[#737373]",
+											"text-sm tracking-[-0.14px] text-[#737373] tabular-nums",
 										)}
 									>
-										Resets in {daysRemaining} day
-										{daysRemaining !== 1 ? "s" : ""}
+										{formatUsageNumber(tokensUsed)} tokens ·{" "}
+										{formatUsageNumber(searchesUsed)} queries
+										{daysRemaining !== null && (
+											<>
+												{" · resets in "}
+												{daysRemaining} day{daysRemaining !== 1 ? "s" : ""}
+											</>
+										)}
 									</p>
-								)}
+								</div>
 
 								<button
 									type="button"
@@ -701,10 +639,7 @@ export default function Account() {
 											Free plan
 										</p>
 										<div className="flex flex-col gap-2">
-											<PlanFeatureRow
-												icon="check"
-												text="10 credits / 1M tokens"
-											/>
+											<PlanFeatureRow icon="check" text="1M tokens / month" />
 											<PlanFeatureRow icon="check" text="10K search queries" />
 											<PlanFeatureRow icon="x" text="No connections" />
 											<PlanFeatureRow icon="check" text="Basic support" />
@@ -737,7 +672,7 @@ export default function Account() {
 										<div className="flex flex-col gap-2">
 											<PlanFeatureRow
 												icon="check"
-												text="30 credits / 3M tokens"
+												text="3M tokens / month"
 												variant="highlight"
 											/>
 											<PlanFeatureRow

@@ -386,7 +386,7 @@ export function PluginsDetail() {
 	})
 	const [keyCopied, setKeyCopied] = useState(false)
 
-	const hasProProduct = hasActivePlan(autumn.customer?.products, "api_pro")
+	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
 	const { data: pluginsData } = useQuery({
 		queryFn: async () => {
@@ -496,7 +496,7 @@ export function PluginsDetail() {
 	const handleUpgrade = async () => {
 		try {
 			await autumn.attach({
-				productId: "api_pro",
+				planId: "api_pro",
 				successUrl: "https://app.supermemory.ai/?view=integrations",
 			})
 			window.location.reload()

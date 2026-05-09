@@ -226,7 +226,7 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const isProUser = hasActivePlan(autumn.customer?.products, "api_pro")
+	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [gdriveSyncScope, setGdriveSyncScope] =
@@ -244,7 +244,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		setIsUpgrading(true)
 		try {
 			await autumn.attach({
-				productId: "api_pro",
+				planId: "api_pro",
 				successUrl: window.location.href,
 			})
 		} catch (error) {
@@ -254,9 +254,9 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		}
 	}
 
-	const connectionsFeature = autumn.customer?.features?.connections
-	const connectionsUsed = connectionsFeature?.usage ?? 0
-	const connectionsLimit = connectionsFeature?.included_usage ?? 10
+	const connectionsBalance = autumn.data?.balances?.connections
+	const connectionsUsed = connectionsBalance?.usage ?? 0
+	const connectionsLimit = connectionsBalance?.granted ?? 10
 	const canAddConnection = connectionsUsed < connectionsLimit
 
 	// Fetch connections

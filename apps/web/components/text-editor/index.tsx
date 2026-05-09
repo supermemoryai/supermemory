@@ -17,10 +17,12 @@ export function TextEditor({
 	content: initialContent,
 	onContentChange,
 	onSubmit,
+	debounceMs = 500,
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
 	onSubmit: () => void
+	debounceMs?: number
 }) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const editorRef = useRef<Editor | null>(null)
@@ -36,7 +38,7 @@ export function TextEditor({
 		const json = editor.getJSON()
 		const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
 		onContentChange?.(markdown)
-	}, 500)
+	}, debounceMs)
 
 	const editor = useEditor({
 		extensions,
@@ -48,6 +50,13 @@ export function TextEditor({
 		},
 		onUpdate: ({ editor }) => {
 			editorRef.current = editor
+			if (!hasUserEditedRef.current) return
+			if (debounceMs === 0) {
+				const json = editor.getJSON()
+				const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
+				onContentChange?.(markdown)
+				return
+			}
 			debouncedUpdates(editor)
 		},
 		editorProps: {
@@ -120,7 +129,7 @@ export function TextEditor({
 				tabIndex={0}
 				ref={containerRef}
 				onClick={handleClick}
-				className="w-full h-full outline-none prose prose-invert max-w-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:focus:outline-none [&_.ProseMirror-focused]:outline-none text-editor-prose cursor-text"
+				className="h-full w-full cursor-text outline-none prose prose-invert max-w-none text-editor-prose [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none [&_.ProseMirror]:text-[15px] [&_.ProseMirror]:leading-6 [&_.ProseMirror]:text-[#D7DEE8] [&_.ProseMirror-focused]:outline-none [&_.ProseMirror]:focus:outline-none"
 			>
 				<EditorContent editor={editor} />
 			</div>

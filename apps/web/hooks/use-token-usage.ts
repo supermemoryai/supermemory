@@ -4,8 +4,15 @@ import { calculateUsagePercent, getDaysRemaining } from "@/lib/billing-utils"
 
 export type PlanType = "free" | "pro" | "scale" | "enterprise"
 
+const TOKEN_METER_IDS = [
+	"sm_tokens_text",
+	"sm_tokens_rich",
+	"sm_superrag_text",
+	"sm_superrag_rich",
+] as const
+
 export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
-	const status = getSubscriptionStatus(autumn.customer?.products)
+	const status = getSubscriptionStatus(autumn.data?.subscriptions)
 
 	let currentPlan: PlanType = "free"
 	if (isAllowedFrom(status, "api_enterprise")) {
@@ -18,30 +25,36 @@ export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
 
 	const hasPaidPlan = currentPlan !== "free"
 
-	// Get token usage from autumn customer features
-	const tokensFeature = autumn.customer?.features?.api_tokens
-	const tokensUsed = tokensFeature?.usage ?? 0
-	const tokensLimit = tokensFeature?.included_usage ?? 0
-	const tokensResetAt = tokensFeature?.next_reset_at
+	const balances = autumn.data?.balances ?? {}
 
-	// Get search queries usage from autumn customer features
-	const searchesFeature = autumn.customer?.features?.api_search_queries
-	const searchesUsed = searchesFeature?.usage ?? 0
-	const searchesLimit = searchesFeature?.included_usage ?? 0
+	const tokensUsed = TOKEN_METER_IDS.reduce((sum, id) => {
+		const balance = balances[id]
+		return sum + (balance?.usage ?? 0)
+	}, 0)
+
+	const searchesBalance = balances.sm_search_queries
+	const searchesUsed = searchesBalance?.usage ?? 0
+
+	const usdBalance = balances.usd_credits
+	const usdIncluded = usdBalance?.granted ?? 0
+	const usdSpent = usdBalance?.usage ?? 0
+
+	const planUsagePct =
+		usdIncluded > 0 ? calculateUsagePercent(usdSpent, usdIncluded) : 0
+
+	const resetAt =
+		usdBalance?.nextResetAt ??
+		balances.sm_tokens_text?.nextResetAt ??
+		searchesBalance?.nextResetAt ??
+		undefined
+	const daysRemaining = getDaysRemaining(resetAt)
 
 	const isLoading = autumn.isLoading
 
-	const tokensPercent = calculateUsagePercent(tokensUsed, tokensLimit)
-	const searchesPercent = calculateUsagePercent(searchesUsed, searchesLimit)
-	const daysRemaining = getDaysRemaining(tokensResetAt)
-
 	return {
 		tokensUsed,
-		tokensLimit,
-		tokensPercent,
 		searchesUsed,
-		searchesLimit,
-		searchesPercent,
+		planUsagePct,
 		currentPlan,
 		hasPaidPlan,
 		isLoading,
