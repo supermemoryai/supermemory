@@ -332,17 +332,28 @@ interface ToolUsageItem {
 	hasBeenUsed: boolean
 }
 
+type ToolUsageApiKey = {
+	id: string
+	name: string
+	createdAt: string
+	lastRequest: string | null
+	metadata: string
+}
+
+function toValidDate(value: string | Date | null | undefined): Date | null {
+	if (!value) return null
+	const date = new Date(value)
+	return Number.isNaN(date.getTime()) ? null : date
+}
+
 // Parse API keys to extract tool usage data
 function parseToolUsage(
-	apiKeys: Array<{
-		id: string
-		name: string
-		createdAt: string
-		lastRequest: string | null
-		metadata: string
-	}>,
+	apiKeys: ToolUsageApiKey[],
+	recentMcpDocuments: DocumentWithMemories[] = [],
 ): ToolUsageItem[] {
 	const toolMap = new Map<string, ToolUsageItem>()
+	let latestMcpClientName: string | null = null
+	let latestMcpDocumentAt: Date | null = null
 
 	for (const key of apiKeys) {
 		let meta: Record<string, unknown> = {}
@@ -361,11 +372,8 @@ function parseToolUsage(
 		if (smType === "plugin_auth" && smClient) {
 			const catalog = PLUGIN_DISPLAY_CATALOG[smClient]
 			const existingItem = toolMap.get(`plugin_${smClient}`)
-			const lastUsed = key.lastRequest
-				? new Date(key.lastRequest)
-				: key.createdAt
-					? new Date(key.createdAt)
-					: null
+			const lastUsed =
+				toValidDate(key.lastRequest) ?? toValidDate(key.createdAt)
 			const existingLastUsed = existingItem?.lastUsedAt
 
 			// Keep the most recent usage
@@ -389,11 +397,8 @@ function parseToolUsage(
 		// MCP keys
 		if (smSource === "mcp" || smKind === "mcp_oauth_exchange") {
 			const existingItem = toolMap.get("mcp")
-			const lastUsed = key.lastRequest
-				? new Date(key.lastRequest)
-				: key.createdAt
-					? new Date(key.createdAt)
-					: null
+			const lastUsed =
+				toValidDate(key.lastRequest) ?? toValidDate(key.createdAt)
 			const existingLastUsed = existingItem?.lastUsedAt
 
 			// Keep the most recent usage
@@ -403,19 +408,71 @@ function parseToolUsage(
 					(!existingLastUsed ||
 						lastUsed.getTime() > existingLastUsed.getTime()))
 			) {
-				// Try to get MCP client name from metadata
-				const mcpClientName = meta.sm_internal_mcp_client_name as
-					| string
-					| undefined
 				toolMap.set("mcp", {
 					id: "mcp",
-					name: mcpClientName || "Supermemory MCP",
+					name: "Supermemory MCP",
 					type: "MCP",
 					icon: null,
 					lastUsedAt: lastUsed,
 					hasBeenUsed: !!key.lastRequest,
 				})
 			}
+		}
+	}
+
+	for (const doc of recentMcpDocuments) {
+		const metadata =
+			doc.metadata && typeof doc.metadata === "object" ? doc.metadata : {}
+		const clientName =
+			typeof metadata.sm_internal_mcp_client_name === "string"
+				? metadata.sm_internal_mcp_client_name
+				: null
+		const isMcpDocument =
+			doc.source === "mcp" ||
+			metadata.sm_internal_event_from === "mcp" ||
+			!!clientName
+
+		if (!isMcpDocument) continue
+
+		const createdAt = toValidDate(doc.createdAt)
+		if (
+			clientName &&
+			clientName !== "unknown" &&
+			(!latestMcpDocumentAt ||
+				(createdAt && createdAt.getTime() > latestMcpDocumentAt.getTime()))
+		) {
+			latestMcpClientName = clientName
+			latestMcpDocumentAt = createdAt
+		}
+
+		const existingItem = toolMap.get("mcp")
+		const existingLastUsed = existingItem?.lastUsedAt
+		if (
+			!existingItem ||
+			(createdAt &&
+				(!existingLastUsed || createdAt.getTime() > existingLastUsed.getTime()))
+		) {
+			toolMap.set("mcp", {
+				id: "mcp",
+				name:
+					clientName && clientName !== "unknown"
+						? clientName
+						: "Supermemory MCP",
+				type: "MCP",
+				icon: null,
+				lastUsedAt: createdAt,
+				hasBeenUsed: true,
+			})
+		}
+	}
+
+	if (latestMcpClientName) {
+		const existingItem = toolMap.get("mcp")
+		if (existingItem) {
+			toolMap.set("mcp", {
+				...existingItem,
+				name: latestMcpClientName,
+			})
 		}
 	}
 
@@ -578,8 +635,8 @@ function RecommendedPluginsCard({
 				window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer"),
 			raycast: () =>
 				window.open(RAYCAST_EXTENSION_URL, "_blank", "noopener,noreferrer"),
-			notion: () => onOpenIntegrations("notion"),
-			"google-drive": () => onOpenIntegrations("google-drive"),
+			notion: () => onOpenIntegrations("connections"),
+			"google-drive": () => onOpenIntegrations("connections"),
 		}
 		const connected: Record<string, boolean> = {
 			mcp: hasMcp,
@@ -750,8 +807,8 @@ function PluginPromoCard({
 				window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer"),
 			raycast: () =>
 				window.open(RAYCAST_EXTENSION_URL, "_blank", "noopener,noreferrer"),
-			notion: () => onOpenIntegrations("notion"),
-			"google-drive": () => onOpenIntegrations("google-drive"),
+			notion: () => onOpenIntegrations("connections"),
+			"google-drive": () => onOpenIntegrations("connections"),
 		}
 		const connected: Record<string, boolean> = {
 			mcp: hasMcp,
@@ -890,7 +947,7 @@ export function DashboardView({
 	onResetHighlights: () => void
 	memoryOfDay: MemoryOfDay | null
 }) {
-	const { user } = useAuth()
+	const { user, org } = useAuth()
 	const { effectiveContainerTags } = useProject()
 	const _router = useRouter()
 	const { data: recentsData } = useQuery({
@@ -938,7 +995,7 @@ export function DashboardView({
 
 	// Fetch API keys for tool usage tracking
 	const { data: apiKeysData } = useQuery({
-		queryKey: ["api-keys-tool-usage"],
+		queryKey: ["api-keys-tool-usage", org?.id],
 		queryFn: async () => {
 			const API_URL =
 				process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
@@ -957,12 +1014,36 @@ export function DashboardView({
 			}
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user,
+		enabled: !!user && !!org?.id,
+	})
+
+	const { data: recentMcpDocumentsData } = useQuery({
+		queryKey: ["dashboard-mcp-documents", org?.id, effectiveContainerTags],
+		queryFn: async (): Promise<DocumentsResponse> => {
+			const response = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 50,
+					sort: "createdAt",
+					order: "desc",
+					containerTags: effectiveContainerTags,
+				},
+				disableValidation: true,
+			})
+			if (response.error) throw new Error(response.error?.message)
+			return response.data as DocumentsResponse
+		},
+		staleTime: 5 * 60 * 1000,
+		enabled: !!user && !!org?.id,
 	})
 
 	const toolUsageItems = useMemo(
-		() => parseToolUsage(apiKeysData?.keys ?? []),
-		[apiKeysData],
+		() =>
+			parseToolUsage(
+				apiKeysData?.keys ?? [],
+				recentMcpDocumentsData?.documents ?? [],
+			),
+		[apiKeysData, recentMcpDocumentsData],
 	)
 
 	const {
@@ -1204,18 +1285,16 @@ export function DashboardView({
 							</div>
 
 							{/* Mobile/tablet: Show pick up where you left off below */}
-							{toolUsageItems.length > 0 && (
-								<div className="block lg:hidden mt-4 space-y-2">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Pick up where you left off
-									</p>
-									<RecentToolUsageCard
-										items={toolUsageItems}
-										onOpenPlugins={onOpenPlugins}
-										onOpenIntegrations={onOpenIntegrations}
-									/>
-								</div>
-							)}
+							<div className="block lg:hidden mt-4 space-y-2">
+								<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+									Pick up where you left off
+								</p>
+								<RecentToolUsageCard
+									items={toolUsageItems}
+									onOpenPlugins={onOpenPlugins}
+									onOpenIntegrations={onOpenIntegrations}
+								/>
+							</div>
 						</>
 					) : (
 						/* No recents yet — show suggestions and tool usage */
@@ -1226,13 +1305,11 @@ export function DashboardView({
 										Suggested for you
 									</p>
 								</div>
-								{toolUsageItems.length > 0 && (
-									<div className="flex-1 min-w-0 hidden sm:block">
-										<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-											Pick up where you left off
-										</p>
-									</div>
-								)}
+								<div className="flex-1 min-w-0 hidden sm:block">
+									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+										Pick up where you left off
+									</p>
+								</div>
 							</div>
 							<div className="flex gap-4 items-start">
 								<div className="flex-1 min-w-0 max-w-sm">
@@ -1245,29 +1322,25 @@ export function DashboardView({
 										onOpenIntegrations={onOpenIntegrations}
 									/>
 								</div>
-								{toolUsageItems.length > 0 && (
-									<div className="flex-1 min-w-0 max-w-sm hidden sm:block">
-										<RecentToolUsageCard
-											items={toolUsageItems}
-											onOpenPlugins={onOpenPlugins}
-											onOpenIntegrations={onOpenIntegrations}
-										/>
-									</div>
-								)}
-							</div>
-							{/* Mobile: Show tool usage below */}
-							{toolUsageItems.length > 0 && (
-								<div className="block sm:hidden mt-4 space-y-2">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Pick up where you left off
-									</p>
+								<div className="flex-1 min-w-0 max-w-sm hidden sm:block">
 									<RecentToolUsageCard
 										items={toolUsageItems}
 										onOpenPlugins={onOpenPlugins}
 										onOpenIntegrations={onOpenIntegrations}
 									/>
 								</div>
-							)}
+							</div>
+							{/* Mobile: Show tool usage below */}
+							<div className="block sm:hidden mt-4 space-y-2">
+								<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+									Pick up where you left off
+								</p>
+								<RecentToolUsageCard
+									items={toolUsageItems}
+									onOpenPlugins={onOpenPlugins}
+									onOpenIntegrations={onOpenIntegrations}
+								/>
+							</div>
 						</>
 					)}
 				</motion.section>
