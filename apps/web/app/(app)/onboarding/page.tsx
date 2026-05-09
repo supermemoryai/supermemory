@@ -6,7 +6,10 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	type Dispatch,
+	type RefObject,
 	type ReactNode,
+	type SetStateAction,
 } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@lib/auth-context"
@@ -370,50 +373,15 @@ function buildSpotlightCatalog(
 	}
 }
 
-export default function OnboardingPage() {
-	const router = useRouter()
-	const { user, organizations, refetchOrganizations, setActiveOrg } = useAuth()
+function isAccountSource(source: DetectedSource): source is "x" | "linkedin" {
+	return source === "x" || source === "linkedin"
+}
 
-	const [value, setValue] = useState("")
-	const [detected, setDetected] = useState<DetectedSource>(null)
-	const [accountLookup, setAccountLookup] = useState<AccountLookup | null>(null)
-	const [resumeFile, setResumeFile] = useState<File | null>(null)
-	const [isDragging, setIsDragging] = useState(false)
-	const [status, setStatus] = useState<Status>("idle")
-	const [_docStatus, setDocStatus] = useState<DocStatus>("queued")
-	const [memoriesCount, setMemoriesCount] = useState(0)
-	const [memorySnippets, setMemorySnippets] = useState<string[]>([])
-	const [docTitle, setDocTitle] = useState("")
-	const [errorMsg, setErrorMsg] = useState("")
-	const [stampLanded, setStampLanded] = useState(false)
-	const [visibleSnippets, setVisibleSnippets] = useState(0)
-	const inputRef = useRef<HTMLInputElement>(null)
-	const fileRef = useRef<HTMLInputElement>(null)
-	const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
-	const skippingRef = useRef(false)
-	const [spotlightCategory, setSpotlightCategory] =
-		useState<SpotlightCategoryId>("productivity")
-	const [pauseSpotlight, setPauseSpotlight] = useState(false)
-
-	const spotlightCatalog = useMemo(
-		() => buildSpotlightCatalog(router),
-		[router],
-	)
-	const categoryCards = spotlightCatalog[spotlightCategory] ?? []
-
-	const bumpSpotlightCategory = useCallback(
-		(delta: number) => {
-			const n = SPOTLIGHT_CATEGORY_ORDER.length
-			if (n === 0) return
-			const i = SPOTLIGHT_CATEGORY_ORDER.indexOf(spotlightCategory)
-			const from = i >= 0 ? i : 0
-			const next = (from + delta + n) % n
-			const id = SPOTLIGHT_CATEGORY_ORDER[next]
-			if (id) setSpotlightCategory(id)
-		},
-		[spotlightCategory],
-	)
-
+function useSpotlightAutoRotation(
+	status: Status,
+	pauseSpotlight: boolean,
+	setSpotlightCategory: Dispatch<SetStateAction<SpotlightCategoryId>>,
+) {
 	useEffect(() => {
 		if (status !== "processing") return
 		if (pauseSpotlight) return
@@ -428,17 +396,31 @@ export default function OnboardingPage() {
 			})
 		}, 8000)
 		return () => clearInterval(t)
-	}, [status, pauseSpotlight])
+	}, [status, pauseSpotlight, setSpotlightCategory])
+}
 
+function useInitialInputFocus(inputRef: RefObject<HTMLInputElement | null>) {
 	useEffect(() => {
 		const t = setTimeout(() => inputRef.current?.focus(), 500)
 		return () => clearTimeout(t)
-	}, [])
+	}, [inputRef])
+}
+
+function useAccountLookup({
+	detected,
+	status,
+	value,
+}: {
+	detected: DetectedSource
+	status: Status
+	value: string
+}) {
+	const [accountLookup, setAccountLookup] = useState<AccountLookup | null>(null)
 
 	useEffect(() => {
 		if (status !== "idle") return
 
-		const source = detected === "x" || detected === "linkedin" ? detected : null
+		const source = isAccountSource(detected) ? detected : null
 		const trimmedValue = value.trim()
 
 		if (!source || !trimmedValue) {
@@ -495,15 +477,6 @@ export default function OnboardingPage() {
 					return
 				}
 
-				if (response.ok && data.verified === false) {
-					setAccountLookup({
-						source,
-						status: "error",
-						message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
-					})
-					return
-				}
-
 				setAccountLookup({
 					source,
 					status: "error",
@@ -526,12 +499,24 @@ export default function OnboardingPage() {
 		}
 	}, [detected, status, value])
 
+	return accountLookup
+}
+
+function usePollingCleanup(
+	pollingRef: RefObject<ReturnType<typeof setInterval> | null>,
+) {
 	useEffect(() => {
 		return () => {
 			if (pollingRef.current) clearInterval(pollingRef.current)
 		}
-	}, [])
+	}, [pollingRef])
+}
 
+function useDoneAnimation(
+	status: Status,
+	setStampLanded: Dispatch<SetStateAction<boolean>>,
+	setVisibleSnippets: Dispatch<SetStateAction<number>>,
+) {
 	useEffect(() => {
 		if (status !== "done") return
 		setStampLanded(false)
@@ -546,7 +531,57 @@ export default function OnboardingPage() {
 			clearTimeout(t3)
 			clearTimeout(t4)
 		}
-	}, [status])
+	}, [status, setStampLanded, setVisibleSnippets])
+}
+
+export default function OnboardingPage() {
+	const router = useRouter()
+	const { user, organizations, refetchOrganizations, setActiveOrg } = useAuth()
+
+	const [value, setValue] = useState("")
+	const [detected, setDetected] = useState<DetectedSource>(null)
+	const [resumeFile, setResumeFile] = useState<File | null>(null)
+	const [isDragging, setIsDragging] = useState(false)
+	const [status, setStatus] = useState<Status>("idle")
+	const [_docStatus, setDocStatus] = useState<DocStatus>("queued")
+	const [memoriesCount, setMemoriesCount] = useState(0)
+	const [memorySnippets, setMemorySnippets] = useState<string[]>([])
+	const [docTitle, setDocTitle] = useState("")
+	const [errorMsg, setErrorMsg] = useState("")
+	const [stampLanded, setStampLanded] = useState(false)
+	const [visibleSnippets, setVisibleSnippets] = useState(0)
+	const inputRef = useRef<HTMLInputElement>(null)
+	const fileRef = useRef<HTMLInputElement>(null)
+	const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+	const skippingRef = useRef(false)
+	const [spotlightCategory, setSpotlightCategory] =
+		useState<SpotlightCategoryId>("productivity")
+	const [pauseSpotlight, setPauseSpotlight] = useState(false)
+
+	const spotlightCatalog = useMemo(
+		() => buildSpotlightCatalog(router),
+		[router],
+	)
+	const categoryCards = spotlightCatalog[spotlightCategory] ?? []
+
+	const bumpSpotlightCategory = useCallback(
+		(delta: number) => {
+			const n = SPOTLIGHT_CATEGORY_ORDER.length
+			if (n === 0) return
+			const i = SPOTLIGHT_CATEGORY_ORDER.indexOf(spotlightCategory)
+			const from = i >= 0 ? i : 0
+			const next = (from + delta + n) % n
+			const id = SPOTLIGHT_CATEGORY_ORDER[next]
+			if (id) setSpotlightCategory(id)
+		},
+		[spotlightCategory],
+	)
+
+	useSpotlightAutoRotation(status, pauseSpotlight, setSpotlightCategory)
+	useInitialInputFocus(inputRef)
+	const accountLookup = useAccountLookup({ detected, status, value })
+	usePollingCleanup(pollingRef)
+	useDoneAnimation(status, setStampLanded, setVisibleSnippets)
 
 	const handleChange = (v: string) => {
 		setValue(v)
