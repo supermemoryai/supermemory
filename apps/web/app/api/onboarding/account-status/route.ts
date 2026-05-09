@@ -85,6 +85,17 @@ function looksUnavailable(source: AccountSource, html: string) {
 	)
 }
 
+function linkedinFallback(account: ParsedAccount, status?: number) {
+	return Response.json({
+		found: true,
+		verified: false,
+		reason: "valid_linkedin_profile_url",
+		handle: account.handle,
+		status,
+		url: account.url,
+	})
+}
+
 export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url)
 	const source = searchParams.get("source")
@@ -128,6 +139,10 @@ export async function GET(request: Request) {
 		}
 
 		if (!response.ok) {
+			if (source === "linkedin") {
+				return linkedinFallback(account, response.status)
+			}
+
 			return Response.json(
 				{
 					error: "Unable to verify account",
@@ -150,6 +165,10 @@ export async function GET(request: Request) {
 		})
 	} catch (error) {
 		if (error instanceof Error && error.name === "AbortError") {
+			if (source === "linkedin") {
+				return linkedinFallback(account)
+			}
+
 			return Response.json(
 				{ error: "Account lookup timed out", handle: account.handle },
 				{ status: 504 },
@@ -157,6 +176,10 @@ export async function GET(request: Request) {
 		}
 
 		console.error("Account status lookup failed:", error)
+		if (source === "linkedin") {
+			return linkedinFallback(account)
+		}
+
 		return Response.json(
 			{ error: "Unable to verify account", handle: account.handle },
 			{ status: 502 },

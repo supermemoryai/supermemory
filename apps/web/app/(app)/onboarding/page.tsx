@@ -467,6 +467,7 @@ export default function OnboardingPage() {
 					found?: boolean
 					handle?: string
 					reason?: string
+					verified?: boolean
 				} = await response.json().catch(() => ({}))
 
 				if (controller.signal.aborted) return
@@ -474,10 +475,14 @@ export default function OnboardingPage() {
 				if (response.ok && data.found === true) {
 					const account =
 						source === "x" && data.handle ? ` @${data.handle}` : ""
+					const message =
+						source === "linkedin" && data.verified === false
+							? "LinkedIn profile link looks valid - press Enter to continue"
+							: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`
 					setAccountLookup({
 						source,
 						status: "found",
-						message: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`,
+						message,
 					})
 					return
 				}
