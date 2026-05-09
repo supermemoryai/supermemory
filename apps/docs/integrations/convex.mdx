@@ -22,6 +22,12 @@ Install the packages:
 npm install supermemory convex
 ```
 
+For the AI chat example, also install the AI SDK packages:
+
+```bash
+npm install @supermemory/tools @ai-sdk/openai ai
+```
+
 Set up your environment variable in Convex:
 
 ```bash
@@ -96,7 +102,9 @@ export const chat = action({
   args: { userId: v.string(), message: v.string() },
   handler: async (ctx, { userId, message }) => {
     // Wrap the model - automatically injects context and saves memories
-    const model = withSupermemory(openai("gpt-4o-mini"), userId, {
+    const model = withSupermemory(openai("gpt-4o-mini"), {
+      containerTag: userId,
+      customId: `convex-chat-${userId}`,
       mode: "full",
       addMemory: "always",
     });
@@ -161,6 +169,8 @@ export const addMemory = action({
     await memory.add({ content, containerTag: userId });
     
     // Store in Convex
+    // Note: in production, handle partial failures — if the Convex mutation
+    // fails after the Supermemory write succeeds, the two stores will be out of sync.
     await ctx.runMutation(api.memory.storeMemory, { userId, content });
   },
 });
