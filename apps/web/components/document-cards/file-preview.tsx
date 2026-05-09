@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useState } from "react"
+import { memo, useCallback, useState } from "react"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 import { dmSansClassName } from "@/lib/fonts"
@@ -49,6 +49,7 @@ export const FilePreview = memo(function FilePreview({
 	document: DocumentWithMemories
 }) {
 	const [imageError, setImageError] = useState(false)
+	const [retryKey, setRetryKey] = useState(0)
 	const { extension, color } = getFileTypeInfo(document)
 
 	const type = document.type?.toLowerCase()
@@ -57,6 +58,17 @@ export const FilePreview = memo(function FilePreview({
 		(mimeType?.startsWith("image/") || type === "image") &&
 		document.url &&
 		!imageError
+
+	// On first failure, wait briefly then force a re-render with a new key to
+	// retry the fetch (covers transient R2 timing issues).
+	// On second failure, give up and show the fallback file icon view.
+	const handleImageError = useCallback(() => {
+		if (retryKey === 0) {
+			setTimeout(() => setRetryKey(1), 500)
+			return
+		}
+		setImageError(true)
+	}, [retryKey])
 
 	return (
 		<div className="bg-[#0B1017] rounded-[18px] gap-3 relative overflow-hidden">
@@ -80,10 +92,11 @@ export const FilePreview = memo(function FilePreview({
 					/>
 					<div className="absolute inset-0 bg-black/20" />
 					<img
+						key={retryKey}
 						src={document.url}
 						alt={document.title || "Image preview"}
 						className="relative max-w-full max-h-full w-auto h-auto object-contain z-10"
-						onError={() => setImageError(true)}
+						onError={handleImageError}
 						loading="lazy"
 					/>
 				</div>
