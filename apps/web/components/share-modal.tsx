@@ -284,7 +284,11 @@ export function ShareModal({
 
 	const localStorageUsername = useLocalStorageUsername()
 	const displayName =
-		user?.displayUsername || localStorageUsername || user?.name || ""
+		user?.displayUsername ||
+		localStorageUsername ||
+		user?.name ||
+		user?.email?.split("@")[0] ||
+		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "Your"
 
 	const capturePreview = useCallback(async (): Promise<Blob | null> => {

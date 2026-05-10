@@ -251,10 +251,14 @@ export default function SettingsPage() {
 	}, [])
 
 	const headerDisplayName =
-		user?.displayUsername || localStorageUsername || user?.name || ""
+		user?.displayUsername ||
+		localStorageUsername ||
+		user?.name ||
+		user?.email?.split("@")[0] ||
+		""
 	const headerPossessive = headerDisplayName
 		? `${headerDisplayName.split(" ")[0]}'s`
-		: ""
+		: "Your"
 
 	return (
 		<div className="h-screen flex flex-col overflow-hidden">

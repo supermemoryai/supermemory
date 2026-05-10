@@ -45,7 +45,11 @@ export function FullscreenNoteModal({
 	}, [isOpen, initialContent])
 
 	const displayName =
-		user?.displayUsername || localStorageUsername || user?.name || ""
+		user?.displayUsername ||
+		localStorageUsername ||
+		user?.name ||
+		user?.email?.split("@")[0] ||
+		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 
 	const handleSave = useCallback(() => {
