@@ -697,7 +697,7 @@ export function DashboardView({
 	return (
 		<div
 			className={cn(
-				"min-h-0 flex-1 overflow-y-auto p-4 pt-2! pb-32 md:p-6 md:pb-36 md:pr-0",
+				"min-h-0 flex-1 overflow-y-auto p-4 pt-2! pb-20 md:p-6 md:pb-36 md:pr-0",
 				dmSansClassName(),
 			)}
 		>
