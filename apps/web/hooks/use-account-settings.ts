@@ -20,6 +20,7 @@ export function useAccountMemberships() {
 		queryFn: async () => {
 			const res = await fetch(`${API_BASE}/v3/auth/account/memberships`, {
 				credentials: "include",
+				headers: { "X-App-Source": "nova" },
 			})
 			if (!res.ok) {
 				throw new Error("Failed to load organizations")
@@ -41,6 +42,7 @@ export function useLeaveNonOwnerMemberships() {
 				{
 					method: "POST",
 					credentials: "include",
+					headers: { "X-App-Source": "nova" },
 				},
 			)
 			if (!res.ok) {
@@ -73,7 +75,7 @@ export function useDeleteUserAccount() {
 			const res = await fetch(`${API_BASE}/v3/auth/account/delete`, {
 				method: "POST",
 				credentials: "include",
-				headers: { "Content-Type": "application/json" },
+				headers: { "Content-Type": "application/json", "X-App-Source": "nova" },
 				body: JSON.stringify({
 					confirmation,
 					...(notifyOnComplete === true ? { notifyOnComplete: true } : {}),

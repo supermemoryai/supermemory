@@ -54,6 +54,7 @@ export default function RootLayout({
 							"https://api.supermemory.ai"
 						}
 						includeCredentials={true}
+						headers={{ "X-App-Source": "nova" }}
 					>
 						<QueryProvider>
 							<AuthProvider>

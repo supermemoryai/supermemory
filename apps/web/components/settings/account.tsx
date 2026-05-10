@@ -192,7 +192,6 @@ export default function Account() {
 	const autumn = useCustomer()
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [emailConfirm, setEmailConfirm] = useState("")
-	const [notifyWhenDeleted, setNotifyWhenDeleted] = useState(false)
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [isClosingAccount, setIsClosingAccount] = useState(false)
 	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
@@ -287,7 +286,6 @@ export default function Account() {
 		try {
 			await deleteUserAccount.mutateAsync({
 				confirmation: user.email,
-				notifyOnComplete: notifyWhenDeleted,
 			})
 			clearActiveOrg()
 			try {
@@ -298,7 +296,6 @@ export default function Account() {
 			}
 			setIsDeleteDialogOpen(false)
 			setEmailConfirm("")
-			setNotifyWhenDeleted(false)
 			window.location.assign("/login/new")
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : "Something went wrong"
@@ -701,7 +698,6 @@ export default function Account() {
 								setIsDeleteDialogOpen(open)
 								if (!open) {
 									setEmailConfirm("")
-									setNotifyWhenDeleted(false)
 								}
 							}}
 						>
@@ -909,26 +905,6 @@ export default function Account() {
 												/>
 												<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0px_0px_0px_1px_rgba(43,49,67,0.08),inset_0px_1px_1px_rgba(0,0,0,0.08),inset_0px_2px_4px_rgba(0,0,0,0.02)]" />
 											</div>
-											<label
-												className={cn(
-													"flex cursor-pointer items-start gap-3 pl-2 pt-2",
-													dmSans125ClassName(),
-													"text-[13px] tracking-[-0.13px] text-[#A3A3A3]",
-												)}
-											>
-												<input
-													type="checkbox"
-													checked={notifyWhenDeleted}
-													onChange={(e) =>
-														setNotifyWhenDeleted(e.target.checked)
-													}
-													className="mt-0.5 size-4 shrink-0 rounded border-onboarding bg-[#14161A]"
-												/>
-												<span>
-													Email me when my account and data have been fully
-													removed.
-												</span>
-											</label>
 										</div>
 									</div>
 

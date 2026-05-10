@@ -13,6 +13,7 @@ export const authClient = createAuthClient({
 	baseURL: process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai",
 	fetchOptions: {
 		credentials: "include",
+		headers: { "X-App-Source": "nova" },
 	},
 	plugins: [
 		usernameClient(),
