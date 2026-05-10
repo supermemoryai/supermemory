@@ -187,6 +187,9 @@ export function ChatSidebar({
 		null,
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const messagesContentRef = useRef<HTMLDivElement>(null)
+	const isScrolledToBottomRef = useRef(true)
+	const shouldScrollToBottomOnNextMessagesRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
@@ -296,6 +299,7 @@ export function ChatSidebar({
 		const { scrollTop, scrollHeight, clientHeight } = container
 		const distanceFromBottom = scrollHeight - scrollTop - clientHeight
 		const isAtBottom = distanceFromBottom <= 20
+		isScrolledToBottomRef.current = isAtBottom
 		setIsScrolledToBottom(isAtBottom)
 	}, [])
 
@@ -303,6 +307,7 @@ export function ChatSidebar({
 		if (messagesContainerRef.current) {
 			messagesContainerRef.current.scrollTop =
 				messagesContainerRef.current.scrollHeight
+			isScrolledToBottomRef.current = true
 			setIsScrolledToBottom(true)
 		}
 	}, [])
@@ -428,6 +433,7 @@ export function ChatSidebar({
 					)
 					setThreadId(id)
 					setPendingThreadLoad({ id, messages: uiMessages })
+					shouldScrollToBottomOnNextMessagesRef.current = true
 					analytics.chatThreadLoaded({ thread_id: id })
 					setIsHistoryOpen(false)
 					setConfirmingDeleteId(null)
@@ -541,17 +547,22 @@ export function ChatSidebar({
 		}
 	}, [queuedMessage])
 
-	// Scroll to bottom when a new user message is added
+	// Keep the latest chat turn visible while preserving intentional scrollback.
 	useEffect(() => {
 		const lastMessage = messages[messages.length - 1]
-		if (lastMessage?.role === "user" && messagesContainerRef.current) {
-			messagesContainerRef.current.scrollTop =
-				messagesContainerRef.current.scrollHeight
-			setIsScrolledToBottom(true)
+		const shouldScroll =
+			shouldScrollToBottomOnNextMessagesRef.current ||
+			lastMessage?.role === "user" ||
+			isScrolledToBottomRef.current
+
+		if (shouldScroll && messagesContainerRef.current) {
+			shouldScrollToBottomOnNextMessagesRef.current = false
+			scrollToBottom()
+			return
 		}
-		// Always check scroll position when messages change
+
 		checkIfScrolledToBottom()
-	}, [messages, checkIfScrolledToBottom])
+	}, [messages, scrollToBottom, checkIfScrolledToBottom])
 
 	// Add scroll event listener to track scroll position
 	useEffect(() => {
@@ -570,19 +581,27 @@ export function ChatSidebar({
 			checkIfScrolledToBottom()
 		}, 100)
 
-		// Also observe resize to detect content height changes
+		// Observe both the viewport and message content; streamed text changes
+		// scrollHeight without changing the container's own dimensions.
 		const resizeObserver = new ResizeObserver(() => {
 			requestAnimationFrame(() => {
+				if (isScrolledToBottomRef.current) {
+					scrollToBottom()
+					return
+				}
 				checkIfScrolledToBottom()
 			})
 		})
 		resizeObserver.observe(container)
+		if (messagesContentRef.current) {
+			resizeObserver.observe(messagesContentRef.current)
+		}
 
 		return () => {
 			container.removeEventListener("scroll", handleScroll)
 			resizeObserver.disconnect()
 		}
-	}, [checkIfScrolledToBottom])
+	}, [checkIfScrolledToBottom, scrollToBottom])
 
 	if (!isChatOpen) {
 		return null
@@ -834,6 +853,7 @@ export function ChatSidebar({
 					/>
 				)}
 				<div
+					ref={messagesContentRef}
 					className={
 						messages.length > 0
 							? cn(
