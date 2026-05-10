@@ -399,6 +399,12 @@ export function ChatSidebar({
 		}
 	}, [selectedProject])
 
+	useEffect(() => {
+		if (!isHistoryOpen) return
+		fetchThreads()
+		analytics.chatHistoryViewed?.()
+	}, [isHistoryOpen, fetchThreads])
+
 	const loadThread = useCallback(
 		async (id: string) => {
 			try {
@@ -441,12 +447,14 @@ export function ChatSidebar({
 
 	// Auto-restore thread from URL on mount (e.g. reload or direct link)
 	const didAutoLoadRef = useRef(false)
+	const initialThreadIdRef = useRef(threadId)
 	useEffect(() => {
 		if (didAutoLoadRef.current) return
-		if (!threadId) return
+		const initialThreadId = initialThreadIdRef.current
+		if (!initialThreadId) return
 		didAutoLoadRef.current = true
-		loadThread(threadId)
-	}, [threadId, loadThread])
+		loadThread(initialThreadId)
+	}, [loadThread])
 
 	const deleteThread = useCallback(
 		async (threadId: string) => {
@@ -596,10 +604,7 @@ export function ChatSidebar({
 			open={isHistoryOpen}
 			onOpenChange={(open) => {
 				setIsHistoryOpen(open)
-				if (open) {
-					fetchThreads()
-					analytics.chatHistoryViewed?.()
-				} else {
+				if (!open) {
 					setConfirmingDeleteId(null)
 				}
 			}}
