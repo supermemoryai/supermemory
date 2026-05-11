@@ -14,21 +14,12 @@ import type { SyncRun } from "@/hooks/use-sync-runs"
 import {
 	formatRelativeTime,
 	TRIGGER_TYPE_LABELS,
+	PROVIDER_DISPLAY_NAMES,
 } from "@/components/settings/sync-utils"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import type { z } from "zod"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
-
-const PROVIDER_TITLES: Record<string, string> = {
-	"google-drive": "Google Drive",
-	notion: "Notion",
-	onedrive: "OneDrive",
-	gmail: "Gmail",
-	github: "GitHub",
-	"web-crawler": "Web Crawler",
-	s3: "S3",
-}
 
 const STATUS_COLORS: Record<string, { dot: string; text: string }> = {
 	completed: { dot: "bg-[#00AC3F]", text: "text-[#00AC3F]" },
@@ -122,7 +113,7 @@ export function SyncHistorySheet({
 	} = useSyncRuns(open && connection ? connection.id : "")
 
 	const providerTitle = connection
-		? (PROVIDER_TITLES[connection.provider] ?? connection.provider)
+		? (PROVIDER_DISPLAY_NAMES[connection.provider] ?? connection.provider)
 		: ""
 	const email = connection?.email ?? ""
 
@@ -130,7 +121,7 @@ export function SyncHistorySheet({
 		<Sheet open={open} onOpenChange={onOpenChange}>
 			<SheetContent
 				side="right"
-				className="bg-[#0D0F14] border-l border-[#1A1D24] w-[400px] sm:max-w-[400px] gap-0 overflow-hidden p-0 [&>button]:text-[#737373] [&>button]:hover:text-[#FAFAFA]"
+				className="bg-[#0D0F14] border-l border-[#1A1D24] w-full max-w-[400px] gap-0 overflow-hidden p-0 [&>button]:text-[#737373] [&>button]:hover:text-[#FAFAFA]"
 			>
 				<SheetHeader className="px-6 pt-6 pb-4 border-b border-[#1A1D24]">
 					<SheetTitle

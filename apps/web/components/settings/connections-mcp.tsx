@@ -28,6 +28,22 @@ import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
+/** Extract typed metadata from a connection, with runtime validation. */
+function getConnectionMeta(connection: Connection) {
+	const m = connection.metadata as Record<string, unknown> | undefined
+	return {
+		syncInProgress: m?.syncInProgress === true,
+		lastSyncedAt:
+			typeof m?.lastSyncedAt === "number" ? m.lastSyncedAt : undefined,
+		documentCount: typeof m?.documentCount === "number" ? m.documentCount : 0,
+	}
+}
+
+/** Check if a connection's auth token has expired. */
+function isConnectionExpired(connection: Connection): boolean {
+	return !!connection.expiresAt && new Date(connection.expiresAt) <= new Date()
+}
+
 const CONNECTORS = {
 	"google-drive": {
 		title: "Google Drive",
@@ -156,6 +172,8 @@ function ConnectionRow({
 	if (!config) return null
 
 	const Icon = config.icon
+	const meta = getConnectionMeta(connection)
+	const expired = isConnectionExpired(connection)
 
 	const getProjectDisplayName = (containerTag: string): string => {
 		if (containerTag === DEFAULT_PROJECT_ID) return "Default Project"
@@ -164,13 +182,11 @@ function ConnectionRow({
 		return containerTag.replace(/^sm_project_/, "") // if cached project is not found, remove the prefix
 	}
 
-	const documentCount = (connection.metadata?.documentCount as number) ?? 0
-	const containerTags = (
-		connection as Connection & { containerTags?: string[] }
-	).containerTags
 	const projectName =
-		containerTags && containerTags.length > 0 && containerTags[0]
-			? getProjectDisplayName(containerTags[0])
+		connection.containerTags &&
+		connection.containerTags.length > 0 &&
+		connection.containerTags[0]
+			? getProjectDisplayName(connection.containerTags[0])
 			: null
 
 	return (
@@ -195,14 +211,9 @@ function ConnectionRow({
 								{config.title}
 							</span>
 							<SyncStatusBadge
-								syncInProgress={
-									(connection.metadata as Record<string, unknown>)
-										?.syncInProgress as boolean | undefined
-								}
-								lastSyncedAt={
-									(connection.metadata as Record<string, unknown>)
-										?.lastSyncedAt as number | undefined
-								}
+								syncInProgress={meta.syncInProgress}
+								lastSyncedAt={meta.lastSyncedAt}
+								isExpired={expired}
 							/>
 						</div>
 						<span
@@ -221,10 +232,22 @@ function ConnectionRow({
 								e.stopPropagation()
 								onTriggerSync()
 							}}
-							disabled={isSyncing || disabled}
+							disabled={isSyncing || disabled || expired}
 							className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
-							aria-label={isSyncing ? "Sync in progress" : "Sync now"}
-							title={isSyncing ? "Sync in progress" : "Sync now"}
+							aria-label={
+								expired
+									? "Connection expired"
+									: isSyncing
+										? "Sync in progress"
+										: "Sync now"
+							}
+							title={
+								expired
+									? "Reconnect to sync"
+									: isSyncing
+										? "Sync in progress"
+										: "Sync now"
+							}
 						>
 							{isSyncing ? (
 								<Loader2 className="size-[18px] animate-spin" />
@@ -279,12 +302,7 @@ function ConnectionRow({
 							"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
 						)}
 					>
-						Last synced:{" "}
-						{formatRelativeTime(
-							(connection.metadata as Record<string, unknown>)?.lastSyncedAt as
-								| number
-								| undefined,
-						)}
+						Last synced: {formatRelativeTime(meta.lastSyncedAt)}
 					</span>
 					<div className="size-[3px] rounded-full bg-[#737373]" />
 					<span
@@ -293,7 +311,7 @@ function ConnectionRow({
 							"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
 						)}
 					>
-						{documentCount} {config.documentLabel} connected
+						{meta.documentCount} {config.documentLabel} connected
 					</span>
 				</div>
 			</div>
@@ -399,14 +417,10 @@ export default function ConnectionsMCP() {
 		staleTime: 30 * 1000,
 		refetchInterval: (query) => {
 			const conns = query.state.data as Connection[] | undefined
-			if (
-				conns?.some(
-					(c) => (c.metadata as Record<string, unknown>)?.syncInProgress,
-				)
-			) {
+			if (conns?.some((c) => getConnectionMeta(c).syncInProgress)) {
 				return 5000
 			}
-			return false
+			return 60 * 1000
 		},
 		enabled: hasProProduct,
 	})
@@ -532,19 +546,14 @@ export default function ConnectionsMCP() {
 											triggerSync.mutate({
 												connectionId: connection.id,
 												provider: connection.provider as ImportProvider,
-												containerTags: (
-													connection as Connection & {
-														containerTags?: string[]
-													}
-												).containerTags,
+												containerTags: connection.containerTags,
 											})
 										}
 										isSyncing={
 											(triggerSync.isPending &&
 												triggerSync.variables?.connectionId ===
 													connection.id) ||
-											!!(connection.metadata as Record<string, unknown>)
-												?.syncInProgress
+											getConnectionMeta(connection).syncInProgress
 										}
 										onViewHistory={() =>
 											setSyncHistorySheet({ open: true, connection })
@@ -635,7 +644,9 @@ export default function ConnectionsMCP() {
 				}}
 				provider={removeDialog.connection?.provider}
 				documentCount={
-					(removeDialog.connection?.metadata?.documentCount as number) ?? 0
+					removeDialog.connection
+						? getConnectionMeta(removeDialog.connection).documentCount
+						: 0
 				}
 				onConfirm={(deleteDocuments) => {
 					if (removeDialog.connection) {

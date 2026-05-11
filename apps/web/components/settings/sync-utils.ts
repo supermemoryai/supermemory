@@ -10,10 +10,16 @@ export function formatRelativeTime(
 	if (Number.isNaN(d.getTime())) return "Never"
 	const now = new Date()
 	const diffMs = now.getTime() - d.getTime()
+
+	// Handle future dates (e.g. slight server clock skew)
+	if (diffMs < 0) return "Just now"
+
+	const diffMinutes = Math.floor(diffMs / (1000 * 60))
 	const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
 	const diffDays = Math.floor(diffHours / 24)
 
-	if (diffHours < 1) return "Just now"
+	if (diffMinutes < 1) return "Just now"
+	if (diffMinutes < 60) return `${diffMinutes}m ago`
 	if (diffHours < 24) return `${diffHours}h ago`
 	if (diffDays === 1) return "Yesterday"
 	if (diffDays < 7) return `${diffDays} days ago`
@@ -25,6 +31,17 @@ export const TRIGGER_TYPE_LABELS: Record<string, string> = {
 	event: "Webhook",
 	cron: "Scheduled",
 	manual: "Manual",
+}
+
+/** Canonical provider → display name map. Import this everywhere instead of duplicating. */
+export const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+	"google-drive": "Google Drive",
+	notion: "Notion",
+	onedrive: "OneDrive",
+	gmail: "Gmail",
+	github: "GitHub",
+	"web-crawler": "Web Crawler",
+	s3: "S3",
 }
 
 /** Provider type union matching the backend import endpoint */

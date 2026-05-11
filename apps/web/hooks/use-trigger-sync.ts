@@ -13,6 +13,9 @@ export function useTriggerSync() {
 			provider,
 			containerTags,
 		}: {
+			// connectionId is not sent to the backend — the import endpoint is keyed
+			// by provider, so it re-syncs all connections for that provider.
+			// It's kept here so onSuccess can target cache invalidation.
 			connectionId: string
 			provider: ImportProvider
 			containerTags?: string[]

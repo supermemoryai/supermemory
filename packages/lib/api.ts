@@ -146,7 +146,7 @@ export const apiSchema = createSchema({
 		input: z.object({
 			containerTags: z.array(z.string()).optional(),
 		}),
-		output: z.any(),
+		output: z.unknown(),
 		params: z.object({
 			provider: z.enum([
 				"google-drive",

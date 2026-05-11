@@ -3,6 +3,10 @@
 import { $fetch } from "@lib/api"
 import { useQuery } from "@tanstack/react-query"
 
+/**
+ * Mirrors the Zod schema at `apiSchema["@get/connections/:connectionId/sync-runs"].output`.
+ * Keep in sync with `packages/lib/api.ts` if fields are added/removed.
+ */
 export type SyncRun = {
 	id: string
 	connectionId: string
@@ -31,5 +35,12 @@ export function useSyncRuns(connectionId: string) {
 		enabled: !!connectionId,
 		staleTime: 30 * 1000,
 		refetchOnMount: "always",
+		refetchInterval: (query) => {
+			const runs = query.state.data as SyncRun[] | undefined
+			if (runs?.some((r) => r.status === "running")) {
+				return 5000
+			}
+			return false
+		},
 	})
 }
