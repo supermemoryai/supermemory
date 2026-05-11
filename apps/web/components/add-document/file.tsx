@@ -210,10 +210,10 @@ export function FileContent({
 						multiple
 						onChange={handleFileSelect}
 						disabled={isSubmitting}
-						className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+						className="absolute inset-0 size-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
 						accept={FILE_ACCEPT}
 					/>
-					<div className="flex items-center justify-center w-12 h-12 rounded-full bg-[#0F1217]">
+					<div className="flex items-center justify-center size-12 rounded-full bg-[#0F1217]">
 						<FileIcon className="size-6 text-[#737373]" />
 					</div>
 					{hasItems ? (

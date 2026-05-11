@@ -33,28 +33,28 @@ export function isAllowedFrom(
 }
 
 export function getSubscriptionStatus(
-	products: Array<{ id: string; status: string }> | undefined,
+	subscriptions: Array<{ planId: string; status: string }> | undefined,
 ): SubscriptionStatusMap {
 	const statusMap: SubscriptionStatusMap = { ...DEFAULT_SUBSCRIPTION_STATUS }
-	if (!products) return statusMap
+	if (!subscriptions) return statusMap
 
-	const productMap = new Map(products.map((p) => [p.id, p]))
+	const subMap = new Map(subscriptions.map((s) => [s.planId, s]))
 
 	for (const tier of PLAN_TIERS) {
-		const product = productMap.get(tier)
+		const sub = subMap.get(tier)
 		statusMap[tier] = {
-			allowed: product?.status === "active",
-			status: product?.status ?? null,
+			allowed: sub?.status === "active",
+			status: sub?.status ?? null,
 		}
 	}
 	return statusMap
 }
 
 export function hasActivePlan(
-	products: Array<{ id: string; status: string }> | undefined,
+	subscriptions: Array<{ planId: string; status: string }> | undefined,
 	minimumTier: PlanTier,
 ): boolean {
-	return isAllowedFrom(getSubscriptionStatus(products), minimumTier)
+	return isAllowedFrom(getSubscriptionStatus(subscriptions), minimumTier)
 }
 
 export const useDeleteDocument = (selectedProject: string) => {

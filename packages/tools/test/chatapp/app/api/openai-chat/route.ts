@@ -13,8 +13,9 @@ export async function POST(req: Request) {
 		apiKey: process.env.OPENAI_API_KEY,
 	})
 
-	const openaiWithSupermemory = withSupermemory(openai, "user-123", {
-		conversationId,
+	const openaiWithSupermemory = withSupermemory(openai, {
+		containerTag: "user-123",
+		customId: conversationId,
 		mode: "full",
 		addMemory: "always",
 		verbose: true,

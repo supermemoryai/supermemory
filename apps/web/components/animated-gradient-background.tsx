@@ -8,55 +8,51 @@ export function AnimatedGradientBackground({
 	animateFromBottom?: boolean
 }) {
 	return (
-		<div className="fixed inset-0 z-0 overflow-hidden">
+		<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
 			<motion.div
 				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				style={{ top: animateFromBottom ? undefined : topPosition }}
-				initial={{ y: "100%" }}
-				animate={{
-					y: 0,
-					opacity: animateFromBottom ? 0 : [1, 0, 1],
-					top: animateFromBottom ? "0%" : topPosition,
-				}}
-				transition={{
-					y: { duration: 0.75, ease: "easeOut" },
-					opacity: animateFromBottom
-						? { duration: 2, ease: "easeOut" }
+				initial={{ opacity: 0 }}
+				animate={
+					animateFromBottom
+						? { opacity: 1 }
+						: { opacity: [1, 0, 1], top: topPosition }
+				}
+				transition={
+					animateFromBottom
+						? { duration: 1, ease: "easeOut" }
 						: {
-								duration: 8,
-								repeat: Number.POSITIVE_INFINITY,
-								ease: "easeInOut",
-							},
-					top: animateFromBottom
-						? { duration: 0.75, ease: "easeOut" }
-						: undefined,
-				}}
+								opacity: {
+									duration: 8,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "easeInOut",
+								},
+							}
+				}
 			/>
 			<motion.div
 				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				style={{ top: animateFromBottom ? undefined : topPosition }}
-				initial={{ y: "100%" }}
-				animate={{
-					y: 0,
-					opacity: animateFromBottom ? 0 : [0, 1, 0],
-					top: animateFromBottom ? "0%" : topPosition,
-				}}
-				transition={{
-					y: { duration: 0.75, ease: "easeOut" },
-					opacity: animateFromBottom
-						? { duration: 2, ease: "easeOut" }
+				initial={{ opacity: 0 }}
+				animate={
+					animateFromBottom
+						? { opacity: 1 }
+						: { opacity: [0, 1, 0], top: topPosition }
+				}
+				transition={
+					animateFromBottom
+						? { duration: 1, ease: "easeOut", delay: 0.2 }
 						: {
-								duration: 8,
-								repeat: Number.POSITIVE_INFINITY,
-								ease: "easeInOut",
-							},
-					top: animateFromBottom
-						? { duration: 0.75, ease: "easeOut" }
-						: undefined,
-				}}
+								opacity: {
+									duration: 8,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "easeInOut",
+								},
+							}
+				}
 			/>
 			<motion.div
-				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/bg-rectangle.png')] bg-cover bg-center bg-no-repeat"
+				className="absolute inset-0 bg-[url('/bg-rectangle.png')] bg-cover bg-bottom bg-no-repeat"
 				transition={{ duration: 0.75, ease: "easeOut", bounce: 0 }}
 				style={{
 					mixBlendMode: "soft-light",

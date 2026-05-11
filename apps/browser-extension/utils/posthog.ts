@@ -47,7 +47,10 @@ async function initializePostHog(): Promise<PostHog> {
 			throw new Error("PostHog API key not configured")
 		}
 
-		posthog.init(import.meta.env.WXT_POSTHOG_API_KEY || "", POSTHOG_CONFIG)
+		posthog.init(
+			"phc_ShqecfUPQgf16lWu6ZMUzduQvcWzCywrkCz5KHwmWsv",
+			POSTHOG_CONFIG,
+		)
 
 		await identifyUser(posthog)
 

@@ -19,6 +19,7 @@ import {
 	MemoryResponseSchema,
 	MigrateMCPRequestSchema,
 	MigrateMCPResponseSchema,
+	ProcessingDocumentsResponseSchema,
 	ProjectSchema,
 	SearchRequestSchema,
 	SearchResponseSchema,
@@ -132,6 +133,19 @@ export const apiSchema = createSchema({
 		input: SettingsRequestSchema,
 		output: SettingsResponseSchema,
 	},
+	"@post/settings/reset": {
+		input: z.object({ confirmation: z.string() }),
+		output: z.object({
+			success: z.boolean(),
+			deletedConnections: z.number(),
+			deletedDocumentBatches: z.number(),
+			deletedDocumentsApprox: z.number(),
+			deletedMemoryRows: z.number(),
+			deletedExtraSpaces: z.number(),
+			clearedDefaultSpaceContext: z.boolean(),
+			settingsReset: z.boolean(),
+		}),
+	},
 	// Memory operations
 	"@post/documents": {
 		input: MemoryAddSchema,
@@ -163,6 +177,15 @@ export const apiSchema = createSchema({
 	"@post/documents/migrate-mcp": {
 		input: MigrateMCPRequestSchema,
 		output: MigrateMCPResponseSchema,
+	},
+
+	"@get/documents/processing": {
+		output: ProcessingDocumentsResponseSchema,
+		query: z
+			.object({
+				containerTags: z.array(z.string()).optional(),
+			})
+			.optional(),
 	},
 
 	"@get/documents/:id": {

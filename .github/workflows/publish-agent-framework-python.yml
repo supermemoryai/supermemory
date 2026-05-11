@@ -1,0 +1,37 @@
+name: Publish Agent Framework Python
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - "packages/agent-framework-python/pyproject.toml"
+
+jobs:
+    publish:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        defaults:
+            run:
+                working-directory: ./packages/agent-framework-python
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Python
+              uses: actions/setup-python@v5
+              with:
+                python-version: "3.12"
+
+            - name: Install build dependencies
+              run: pip install hatchling build
+
+            - name: Build package
+              run: python -m build
+
+            - name: Publish to PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                packages-dir: packages/agent-framework-python/dist/

@@ -293,6 +293,7 @@ export function useDocumentMutations({
 				description: "Your note is being processed",
 			})
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
+			queryClient.invalidateQueries({ queryKey: ["processing-documents"] })
 			onClose?.()
 		},
 	})
@@ -356,6 +357,7 @@ export function useDocumentMutations({
 				description: "Your link is being processed",
 			})
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
+			queryClient.invalidateQueries({ queryKey: ["processing-documents"] })
 			onClose?.()
 		},
 	})
@@ -499,6 +501,7 @@ export function useDocumentMutations({
 				analytics.documentAdded({ type: "file", project_id: variables.project })
 			}
 			queryClient.invalidateQueries({ queryKey: ["documents-with-memories"] })
+			queryClient.invalidateQueries({ queryKey: ["processing-documents"] })
 			if (data.failures.length === 0) {
 				toast.success(
 					data.successCount === 1

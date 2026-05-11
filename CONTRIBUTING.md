@@ -48,10 +48,12 @@ Before you begin, ensure you have the following installed:
 5. **Start the Development Server**
 
    ```bash
-   bun run dev
+   bun run dev:local
    ```
 
-   This will start all applications in the monorepo. The web app will be available at `http://localhost:3000`.
+   This starts each app on plain `localhost` ports (web on 3000, mcp on 8788, docs on 3003, graph on 3004) and points the web app at the public API at `https://api.supermemory.ai` via `NEXT_PUBLIC_BACKEND_URL` in `.env.example`. Sign in with magic-link/email-OTP — Google/GitHub OAuth sign-in won't round-trip back to localhost.
+
+   > **Internal team note:** `bun run dev` (without `:local`) routes through [portless](https://github.com/portless/portless) to give every app a stable `*.dev.supermemory.ai` HTTPS URL with shared cookies and a working OAuth proxy. That path requires `bun run setup:dev` once (binds port 443, trusts a local CA). OSS contributors don't need it.
 
 ## 📁 Project Structure
 
@@ -84,7 +86,8 @@ supermemory/
 
 ### Available Scripts
 
-- `bun run dev` - Start development servers for all apps
+- `bun run dev:local` - Start dev servers on plain localhost ports (recommended for OSS contributors)
+- `bun run dev` - Start dev servers through portless (`*.dev.supermemory.ai`, internal team)
 - `bun run build` - Build all applications
 - `bun run format-lint` - Format and lint code using Biome
 - `bun run check-types` - Type check all packages

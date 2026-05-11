@@ -20,6 +20,7 @@ export interface NodeHoverPopoverProps {
 	onNavigateUp?: () => void
 	onNavigateDown?: () => void
 	onSelectNode?: (nodeId: string) => void
+	onOpenDocument?: (documentId: string) => void
 }
 
 function useCopyToClipboard(timeout = 2000) {
@@ -65,13 +66,34 @@ function KeyBadge({
 		borderRadius: 4,
 		fontSize: 10,
 		fontWeight: 500,
-		backgroundColor: colors.controlBg,
-		border: `1px solid ${colors.controlBorder}`,
 		color: colors.popoverTextMuted,
 		lineHeight: 1,
+		backgroundColor: colors.controlBg,
+		padding: 2,
+		border: `1px solid ${colors.controlBorder}`,
+		boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
 	}
 
 	return <span style={style}>{children}</span>
+}
+
+function EyeIcon({ color }: { color: string }) {
+	return (
+		<svg
+			aria-hidden="true"
+			width="14"
+			height="14"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke={color}
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+			<circle cx="12" cy="12" r="3" />
+		</svg>
+	)
 }
 
 function NavButton({
@@ -80,7 +102,7 @@ function NavButton({
 	onClick,
 	colors,
 }: {
-	icon: string
+	icon: React.ReactNode
 	label: string
 	onClick?: () => void
 	colors: GraphThemeColors
@@ -216,7 +238,7 @@ function VersionTimeline({
 		display: "flex",
 		flexDirection: "column",
 		gap: 0,
-		maxHeight: 120,
+		maxHeight: 160,
 		overflowY: "auto",
 	}
 
@@ -271,7 +293,7 @@ function VersionTimeline({
 						type="button"
 					>
 						<span style={versionStyle}>v{entry.version}</span>
-						<span style={textStyle}>{truncate(entry.memory, 60)}</span>
+						<span style={textStyle}>{truncate(entry.memory, 120)}</span>
 					</button>
 				)
 			})}
@@ -293,9 +315,10 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 		onNavigateUp,
 		onNavigateDown,
 		onSelectNode,
+		onOpenDocument,
 	}) {
 		const CARD_W = 280
-		const SHORTCUTS_W = 100
+		const SHORTCUTS_W = 160
 		const GAP = 24
 		const TOTAL_W = CARD_W + 12 + SHORTCUTS_W
 
@@ -318,7 +341,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 		const hasForgetInfo =
 			memoryMeta && (memoryMeta.isForgotten || memoryMeta.forgetAfter)
 
-		const CARD_H = hasChain ? 200 : hasForgetInfo ? 165 : 135
+		const CARD_H = hasChain ? 230 : hasForgetInfo ? 190 : 170
 		const TOTAL_H = CARD_H
 
 		const { popoverX, popoverY, connectorPath } = useMemo(() => {
@@ -383,6 +406,9 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 
 		const docData = !isMemory ? (data as DocumentNodeData) : null
 
+		// For document nodes, node.id IS the document ID
+		const documentId = isMemory ? (data as MemoryNodeData).documentId : node.id
+
 		const overlayStyle: React.CSSProperties = {
 			pointerEvents: "none",
 			position: "absolute",
@@ -426,6 +452,9 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 
 		const contentPadStyle: React.CSSProperties = {
 			padding: 12,
+			maxHeight: 100,
+			overflowY: "auto",
+			flex: "1 1 auto",
 		}
 
 		const contentTextStyle: React.CSSProperties = {
@@ -469,9 +498,6 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 			paddingRight: 12,
 			paddingTop: 8,
 			paddingBottom: 8,
-			borderRadius: 12,
-			border: `1px solid ${colors.popoverBorder}`,
-			backgroundColor: colors.popoverBg,
 		}
 
 		return (
@@ -497,9 +523,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 							/>
 						) : (
 							<div style={contentPadStyle}>
-								<p style={contentTextStyle}>
-									{truncate(content, 100) || "No content"}
-								</p>
+								<p style={contentTextStyle}>{content || "No content"}</p>
 							</div>
 						)}
 
@@ -602,6 +626,14 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 					</div>
 
 					<div style={shortcutsPanelStyle}>
+						{onOpenDocument && documentId && (
+							<NavButton
+								colors={colors}
+								icon={<EyeIcon color={colors.popoverTextMuted} />}
+								label="View document"
+								onClick={() => onOpenDocument(documentId)}
+							/>
+						)}
 						{isMemory && (
 							<NavButton
 								colors={colors}

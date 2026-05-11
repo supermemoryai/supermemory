@@ -1,0 +1,68 @@
+---
+title: "Install SMFS"
+sidebarTitle: "Install"
+description: "Install, log in, mount."
+icon: "download"
+---
+
+## 1. Install the binary
+
+```bash
+curl -fsSL https://smfs.ai/install | bash
+```
+
+Drops `smfs` into `~/.local/bin`. Works on macOS (arm64, x64) and Linux (arm64, x64).
+
+If `smfs` isn't on your `PATH` after install, add `~/.local/bin` to your shell profile and reopen the terminal.
+
+## 2. Log in
+
+```bash
+smfs login
+```
+
+One-time. Prompts you for your Supermemory API key and stores it in your global credentials. Get a key at [console.supermemory.ai](https://console.supermemory.ai).
+
+You can also pass the key directly:
+
+```bash
+smfs login --key sm_...
+```
+
+## 3. Mount a container
+
+```bash
+smfs mount agent_memory
+```
+
+`agent_memory` is your container tag. SMFS creates a folder named `agent_memory/` in the current directory and mounts the container there.
+
+That's it. Read it with `ls`, `cat`, `grep`. See [Mount](/smfs/mount) for memory paths, sync modes, flags, and every subcommand.
+
+To mount somewhere else, pass `--path`:
+
+```bash
+smfs mount agent_memory --path ~/memory
+```
+
+## Optional: refresh the semantic grep wrapper
+
+`smfs mount` installs the shell wrapper automatically the first time you mount. If you ever need to force a clean reinstall (after upgrading the binary, for example):
+
+```bash
+smfs init
+```
+
+It writes the wrapper into your `~/.zshrc` directly. Then reopen your terminal (or `source ~/.zshrc`) so the new shell picks it up.
+
+Inside any mount, plain `grep` becomes semantic. Outside a mount, your normal `grep` is untouched. Pass any flag (`grep -r`, `grep -i`, anything) and you get the real `grep` back.
+
+## Refresh the binary
+
+If anything ever feels broken:
+
+```bash
+smfs install
+```
+
+Re-copies the binary into `~/.local/bin` and resets permissions.

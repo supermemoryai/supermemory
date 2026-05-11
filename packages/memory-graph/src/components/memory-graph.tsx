@@ -29,6 +29,7 @@ export function MemoryGraph({
 	canvasRef: externalCanvasRef,
 	colors: colorOverrides,
 	totalCount,
+	onOpenDocument,
 }: MemoryGraphProps) {
 	const resolvedColors = useGraphTheme(colorOverrides)
 	const colors = useMemo<GraphThemeColors>(
@@ -197,7 +198,11 @@ export function MemoryGraph({
 				setViewportVersion((v) => v + 1)
 			}
 
-			const { hasMore: more, isLoadingMore: loading, onLoadMore: load } = loadMoreRef.current
+			const {
+				hasMore: more,
+				isLoadingMore: loading,
+				onLoadMore: load,
+			} = loadMoreRef.current
 			if (!more || loading || !load || !viewportRef.current) return
 
 			const vp = viewportRef.current
@@ -205,14 +210,17 @@ export function MemoryGraph({
 			if (currentNodes.length === 0) return
 
 			const topLeft = vp.screenToWorld(0, 0)
-			const bottomRight = vp.screenToWorld(containerSize.width, containerSize.height)
+			const bottomRight = vp.screenToWorld(
+				containerSize.width,
+				containerSize.height,
+			)
 			const viewW = bottomRight.x - topLeft.x
 			const viewH = bottomRight.y - topLeft.y
 
-			let minX = Infinity
-			let minY = Infinity
-			let maxX = -Infinity
-			let maxY = -Infinity
+			let minX = Number.POSITIVE_INFINITY
+			let minY = Number.POSITIVE_INFINITY
+			let maxX = Number.NEGATIVE_INFINITY
+			let maxY = Number.NEGATIVE_INFINITY
 			for (const n of currentNodes) {
 				if (n.x < minX) minX = n.x
 				if (n.y < minY) minY = n.y
@@ -274,6 +282,18 @@ export function MemoryGraph({
 		if (!vp) return
 		vp.zoomTo(vp.zoom / 1.3, containerSize.width / 2, containerSize.height / 2)
 	}, [containerSize.width, containerSize.height])
+
+	// Wrap onOpenDocument to dismiss the popover before opening the modal.
+	// Without this, the popover (z-index: 100) stays mounted on top of the
+	// document modal (z-50), obscuring it and intercepting clicks.
+	const handleOpenDocument = useCallback(
+		(documentId: string) => {
+			setSelectedNode(null)
+			setHoveredNode(null)
+			onOpenDocument?.(documentId)
+		},
+		[onOpenDocument],
+	)
 
 	// Keyboard shortcuts — using useEffect with keydown listener
 	useEffect(() => {
@@ -466,7 +486,6 @@ export function MemoryGraph({
 	const onSlideshowNodeChangeRef = useRef(onSlideshowNodeChange)
 	onSlideshowNodeChangeRef.current = onSlideshowNodeChange
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reads from refs to avoid resetting interval on resize/node changes
 	useEffect(() => {
 		if (!isSlideshowActive || nodes.length === 0) {
 			if (!isSlideshowActive) {
@@ -491,7 +510,8 @@ export function MemoryGraph({
 				idx = 0
 			}
 			lastIdx = idx
-			const n = currentNodes[idx]!
+			const n = currentNodes[idx]
+			if (!n) return
 			setSelectedNode(n.id)
 			const sz = containerSizeRef.current
 			viewportRef.current?.centerOn(n.x, n.y, sz.width, sz.height)
@@ -613,7 +633,6 @@ export function MemoryGraph({
 				colors={colors}
 			/>
 
-
 			{!isLoading && !nodes.some((n) => n.type === "document") && children && (
 				<div style={emptyStateStyle}>{children}</div>
 			)}
@@ -652,6 +671,7 @@ export function MemoryGraph({
 						onNavigatePrev={navigatePrev}
 						onNavigateUp={navigateUp}
 						onSelectNode={handleNodeClick}
+						onOpenDocument={onOpenDocument ? handleOpenDocument : undefined}
 						screenX={activePopoverPosition.screenX}
 						screenY={activePopoverPosition.screenY}
 						versionChain={activeVersionChain}

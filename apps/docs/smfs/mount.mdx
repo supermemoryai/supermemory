@@ -1,0 +1,289 @@
+---
+title: "Mount"
+sidebarTitle: "Mount"
+description: "Mount a Supermemory container, generate memories, and sync."
+icon: "hard-drive"
+---
+
+A mount turns a Supermemory container into a directory on your machine. macOS uses NFSv3, Linux uses FUSE. Both are handled for you.
+
+```bash
+smfs mount <container-tag>
+```
+
+Example:
+
+```bash
+smfs mount agent_memory
+```
+
+`agent_memory` is the container tag. SMFS creates a folder named `agent_memory/` in the current directory and mounts the container there. The mount runs as a background daemon. A marker file `.smfs` is written at the mount root so other tools (and the semantic `grep` wrapper from `smfs init`) can find the mount.
+
+To mount at a different path:
+
+```bash
+smfs mount agent_memory --path ~/memory
+```
+
+## Memory
+
+This is the part most people miss. SMFS isn't a normal filesystem. It generates **memories** from files at specific paths. Memories are extracted, summarized, and indexed by Supermemory.
+
+Files outside those paths are still semantically searchable; they're indexed through **SuperRAG** by default. Nothing in the mount is dead weight.
+
+### Defaults
+
+By default, files named `user.md` or `memory.md` are treated as memory paths. Drop those files anywhere in your mount and Supermemory generates memories from them automatically.
+
+### Configure your own memory paths
+
+Pass `--memory-paths` at mount time to control which files become memories:
+
+```bash
+smfs mount agent_memory --memory-paths "/notes/,/journal.md"
+```
+
+Rules:
+
+- Paths are **absolute**, anchored at the mount root. Always start with `/`.
+- Trailing `/` matches every file inside that folder, recursively (`/notes/` covers `/notes/foo.md`, `/notes/2026/march.md`, etc.).
+- No trailing slash matches one exact file (`/journal.md`).
+- Comma-separated. Multiple paths are fine.
+- Empty string disables memory generation entirely (`--memory-paths ""`).
+- Omit the flag and Supermemory keeps whatever the container tag already has, falling back to `user.md` and `memory.md`.
+
+### profile.md
+
+Every mount has a virtual file at the root called `profile.md`. It's auto-generated, read-only, and backed by Supermemory. The model can `cat profile.md` to get a live digest of everything in the container without walking every file. Useful as a first call at the start of a session.
+
+```bash
+cat agent_memory/profile.md
+```
+
+You can't write to it. As the underlying memories change, Supermemory regenerates it.
+
+## Sync modes
+
+Three modes plus a force-sync command. Pick by what your agent actually needs.
+
+### Bidirectional (default)
+
+Local reads hit the cache. Local writes queue and push to Supermemory in the background. Remote changes are pulled on a poll. This is what you get if you pass no flags.
+
+```bash
+smfs mount agent_memory
+```
+
+Use this when more than one writer (you, another agent, the dashboard) might touch the container.
+
+### No-sync
+
+Writes still push to Supermemory. Polling for remote changes is off. The agent sees a view that doesn't shift under it mid-task.
+
+```bash
+smfs mount agent_memory --no-sync
+```
+
+Use this when your agent is the only writer, or when you want predictable reads.
+
+### Ephemeral
+
+Cache is in memory only. Nothing persists after unmount. Writes still push.
+
+```bash
+smfs mount agent_memory --ephemeral
+```
+
+Use this for short-lived sandboxes. CI jobs, throwaway containers, one-shot agent runs.
+
+### Force a sync now
+
+```bash
+smfs sync
+```
+
+Pushes pending writes and pulls remote changes immediately. Useful right before tearing down a sandbox.
+
+## All mount flags
+
+| Flag | What it does |
+| --- | --- |
+| `--path <path>` | Override the default mount path (`./<container-tag>/`). |
+| `--memory-paths <paths>` | Scope which files become memories. See [Memory](#memory). |
+| `--no-sync` | Stop polling for remote changes. Writes still push. |
+| `--clean` | Wipe local cache before mounting. Pulls fresh from the API. |
+| `--ephemeral` | In-memory cache. Nothing persists after unmount. |
+| `--sync-interval <secs>` | Remote-change poll interval. Default `30`. |
+| `--drain-timeout <secs>` | Max time to flush pending writes during unmount. Default `30`. |
+| `--foreground` | Run the daemon inline instead of detaching. |
+| `--backend <name>` | Linux only. `fuse` (default) or `nfs`. |
+| `--key <key>` | Pass an API key explicitly. Saved to project credentials. |
+
+## Multiple agents and multiple containers
+
+- **Different devices, same container tag**: fully supported. Many agents can mount the same container concurrently from different machines.
+- **Same device, same container tag, mounted twice**: not supported. Use one mount per container per device.
+- **Same device, different containers**: mount as many as you want in parallel.
+
+## Commands
+
+Every `smfs` subcommand. Click any one to expand.
+
+<AccordionGroup>
+  <Accordion title="smfs mount" icon="play">
+    Mount a container. Defaults to `./<container-tag>/`; pass `--path` to mount elsewhere.
+
+    ```bash
+    smfs mount agent_memory
+    smfs mount agent_memory --path ~/memory
+    ```
+
+    See the flags table above for everything you can pass.
+  </Accordion>
+
+  <Accordion title="smfs unmount" icon="square">
+    Unmount a running mount. Drains pending writes up to `--drain-timeout`, then exits the daemon. Anything not drained resumes on the next mount.
+
+    ```bash
+    smfs unmount agent_memory
+    ```
+
+    Inside the mount, you can omit the tag and let SMFS resolve it from the nearest `.smfs` marker.
+
+    ```bash
+    smfs unmount
+    smfs unmount --force
+    ```
+  </Accordion>
+
+  <Accordion title="smfs list" icon="list">
+    List every SMFS mount running on this machine.
+
+    ```bash
+    smfs list
+    ```
+  </Accordion>
+
+  <Accordion title="smfs status" icon="activity">
+    Show daemon status for a mount: connectivity, queue depth, last sync. Auto-detects the tag via the nearest `.smfs` marker.
+
+    ```bash
+    smfs status
+    smfs status agent_memory
+    smfs status --json
+    ```
+  </Accordion>
+
+  <Accordion title="smfs logs" icon="scroll-text">
+    Tail the daemon log for a mount. Auto-detects the tag via the nearest `.smfs` marker.
+
+    ```bash
+    smfs logs
+    smfs logs -f
+    smfs logs -n 500
+    ```
+  </Accordion>
+
+  <Accordion title="smfs sync" icon="refresh-cw">
+    Force an immediate sync cycle. Push pending writes, pull remote changes.
+
+    ```bash
+    smfs sync agent_memory
+    ```
+
+    Inside the mount, the tag is optional (resolved from the nearest `.smfs` marker).
+
+    ```bash
+    smfs sync
+    ```
+  </Accordion>
+
+  <Accordion title="smfs grep" icon="search">
+    Semantic search across a container without being inside the mount. The optional second argument scopes the search to a subpath inside the container. Inside a mount, plain `grep` already does this; `smfs grep` is the explicit form for scripts.
+
+    ```bash
+    smfs grep "deadline"
+    smfs grep "deadline" /notes/
+    ```
+  </Accordion>
+
+  <Accordion title="smfs login" icon="log-in">
+    One-time auth. Prompts for your Supermemory API key and stores it in your global credentials. You can also pass it directly with `--key`.
+
+    ```bash
+    smfs login
+    smfs login --key sm_...
+    ```
+  </Accordion>
+
+  <Accordion title="smfs whoami" icon="user">
+    Print the currently-authenticated user, organization, and API endpoint.
+
+    ```bash
+    smfs whoami
+    ```
+  </Accordion>
+
+  <Accordion title="smfs logout" icon="log-out">
+    Remove stored credentials. Active mounts keep running until you `smfs unmount` them.
+
+    ```bash
+    smfs logout
+    ```
+  </Accordion>
+
+  <Accordion title="smfs init" icon="terminal">
+    Force-installs the shell wrapper that makes plain `grep` semantic inside mounts. Writes directly to `~/.zshrc`. `smfs mount` also installs it automatically the first time, so you only need this to refresh after an upgrade.
+
+    ```bash
+    smfs init
+    ```
+
+    Reopen your terminal (or `source ~/.zshrc`) after running it.
+  </Accordion>
+
+  <Accordion title="smfs install" icon="download">
+    Self-install. Copies the running binary to `~/.local/bin` and resets permissions. Run this if your `smfs` install ever feels broken.
+
+    ```bash
+    smfs install
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Semantic grep isn't working inside my mount" icon="circle-help">
+    Run `smfs init` to force-install the shell wrapper. It writes directly to `~/.zshrc`. Then reopen your terminal so the new shell picks it up.
+
+    The wrapper only triggers when you're inside a mount (it looks for the `.smfs` marker file at the mount root). Outside a mount, `grep` stays normal. Inside a mount, any flag you pass falls through to the real `grep`.
+  </Accordion>
+
+  <Accordion title="Can I install SMFS on Windows?" icon="circle-help">
+    Not yet. SMFS supports macOS (arm64, x64) and Linux (arm64, x64) for now. Windows isn't on the v0 roadmap.
+
+    On Windows, use the [Bash Tool](/smfs/bash-tool) instead. It runs anywhere TypeScript runs and gives your agent the same `ls`, `cat`, `grep`, `sgrep` surface without needing a mount.
+  </Accordion>
+
+  <Accordion title="My cache feels stale or out of sync" icon="circle-help">
+    Re-mount with `--clean` to wipe the local cache and pull everything fresh from the API:
+
+    ```bash
+    smfs unmount agent_memory
+    smfs mount agent_memory --clean
+    ```
+
+    Nothing on the server changes; only the local SQLite cache gets reset.
+  </Accordion>
+
+  <Accordion title="Can two agents on the same machine share a mount?" icon="circle-help">
+    Yes. Once a container is mounted, anything on that machine can read and write through the mount path. The constraint is one mount per container tag per device. Mount it once, point both agents at the same folder.
+  </Accordion>
+
+  <Accordion title="Can two separate sandboxes use the same container?" icon="circle-help">
+    Yes, absolutely. Mount the same container tag from each sandbox. Bidirectional sync keeps everything in step as either side writes, so Agent A in sandbox 1 sees Agent B's writes from sandbox 2 within a sync interval.
+
+    To avoid stepping on each other, give each agent its own subdirectory (`/agent_a/`, `/agent_b/`, etc.). They can still read across the whole mount, cross-reference each other's findings, and build on each other's work. The shared container is the point.
+  </Accordion>
+</AccordionGroup>

@@ -13,17 +13,24 @@ async function testMiddleware() {
 	console.log("=== Middleware ===")
 
 	// Basic wrapper
-	const model = withSupermemory(openai("gpt-4"), "user-123")
+	const model = withSupermemory(openai("gpt-4"), {
+		containerTag: "user-123",
+		customId: "conv-1",
+	})
 	console.log("✓ withSupermemory basic")
 
 	// With addMemory option
-	const modelWithAdd = withSupermemory(openai("gpt-4"), "user-123", {
+	const modelWithAdd = withSupermemory(openai("gpt-4"), {
+		containerTag: "user-123",
+		customId: "conv-1",
 		addMemory: "always",
 	})
 	console.log("✓ withSupermemory with addMemory")
 
 	// With verbose logging
-	const modelVerbose = withSupermemory(openai("gpt-4"), "user-123", {
+	const modelVerbose = withSupermemory(openai("gpt-4"), {
+		containerTag: "user-123",
+		customId: "conv-1",
 		verbose: true,
 	})
 	console.log("✓ withSupermemory with verbose")
@@ -32,17 +39,23 @@ async function testMiddleware() {
 async function testSearchModes() {
 	console.log("\n=== Search Modes ===")
 
-	const profileModel = withSupermemory(openai("gpt-4"), "user-123", {
+	const profileModel = withSupermemory(openai("gpt-4"), {
+		containerTag: "user-123",
+		customId: "conv-1",
 		mode: "profile",
 	})
 	console.log("✓ mode: profile")
 
-	const queryModel = withSupermemory(openai("gpt-4"), "user-123", {
+	const queryModel = withSupermemory(openai("gpt-4"), {
+		containerTag: "user-123",
+		customId: "conv-1",
 		mode: "query",
 	})
 	console.log("✓ mode: query")
 
-	const fullModel = withSupermemory(openai("gpt-4"), "user-123", {
+	const fullModel = withSupermemory(openai("gpt-4"), {
+		containerTag: "user-123",
+		customId: "conv-1",
 		mode: "full",
 	})
 	console.log("✓ mode: full")
@@ -61,14 +74,12 @@ async function testCustomPrompt() {
 </context>
 `.trim()
 
-	const model = withSupermemory(
-		anthropic("claude-3-sonnet-20240229"),
-		"user-123",
-		{
-			mode: "full",
-			promptTemplate: claudePrompt,
-		},
-	)
+	const model = withSupermemory(anthropic("claude-3-sonnet-20240229"), {
+		containerTag: "user-123",
+		customId: "conv-1",
+		mode: "full",
+		promptTemplate: claudePrompt,
+	})
 	console.log("✓ Custom prompt template")
 }
 

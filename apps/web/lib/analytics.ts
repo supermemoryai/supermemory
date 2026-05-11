@@ -29,8 +29,9 @@ export const analytics = {
 	chatHistoryViewed: () => safeCapture("chat_history_viewed"),
 	chatDeleted: () => safeCapture("chat_deleted"),
 
-	viewModeChanged: (mode: "graph" | "list" | "integrations") =>
-		safeCapture("view_mode_changed", { mode }),
+	viewModeChanged: (
+		mode: "dashboard" | "graph" | "list" | "integrations" | "chat",
+	) => safeCapture("view_mode_changed", { mode }),
 
 	documentCardClicked: () => safeCapture("document_card_clicked"),
 
@@ -45,6 +46,13 @@ export const analytics = {
 	connectionAuthStarted: () => safeCapture("connection_auth_started"),
 	connectionAuthCompleted: () => safeCapture("connection_auth_completed"),
 	connectionAuthFailed: () => safeCapture("connection_auth_failed"),
+
+	nextAppResearchCtaDismissed: () =>
+		safeCapture("next_app_research_cta_dismissed"),
+	nextAppResearchCtaBookCallClicked: () =>
+		safeCapture("next_app_research_cta_book_call_clicked"),
+	nextAppResearchCtaLobbysideCallClicked: () =>
+		safeCapture("next_app_research_cta_lobbyside_call_clicked"),
 
 	mcpViewOpened: () => safeCapture("mcp_view_opened"),
 	mcpInstallCmdCopied: () => safeCapture("mcp_install_cmd_copied"),
@@ -110,8 +118,9 @@ export const analytics = {
 	}) => safeCapture("highlight_clicked", props),
 
 	// chat analytics
-	chatMessageSent: (props: { source: "typed" | "suggested" | "highlight" }) =>
-		safeCapture("chat_message_sent", props),
+	chatMessageSent: (props: {
+		source: "typed" | "suggested" | "highlight" | "home"
+	}) => safeCapture("chat_message_sent", props),
 
 	chatSuggestedQuestionClicked: () =>
 		safeCapture("chat_suggested_question_clicked"),

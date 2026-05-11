@@ -1,15 +1,19 @@
 "use client"
 
 import { useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@lib/auth-context"
 
 export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname()
 	const router = useRouter()
+	const searchParams = useSearchParams()
 	const { session, organizations, isRestoring } = useAuth()
 
+	const isMcpPublicPage = searchParams.get("view") === "mcp"
+
 	useEffect(() => {
+		if (isMcpPublicPage) return
 		if (isRestoring) return
 		if (!session) {
 			router.replace(
@@ -20,8 +24,8 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 		if (organizations === null) return
 		if (organizations.length > 0) return
 		if (pathname.startsWith("/onboarding")) return
-		router.replace("/onboarding/welcome?step=input")
-	}, [session, organizations, isRestoring, pathname, router])
+		router.replace("/onboarding")
+	}, [session, organizations, isRestoring, pathname, router, isMcpPublicPage])
 
 	return children
 }

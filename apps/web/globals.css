@@ -4,6 +4,18 @@
 
 @theme {
 	--color-onboarding: #525966;
+
+	--color-fg-primary: #fafafa;
+	--color-fg-secondary: #e2e8f0;
+	--color-fg-muted: #d0dae7;
+	--color-fg-subtle: #b5c2d3;
+	--color-fg-faint: #a0aec4;
+
+	--color-surface-base: #0b1119;
+	--color-surface-card: #101822;
+	--color-surface-hover: #131b28;
+	--color-surface-border: #263348;
+
 	--animate-file-upload-grow: file-upload-grow 6s cubic-bezier(0.22, 1, 0.36, 1)
 		forwards;
 }

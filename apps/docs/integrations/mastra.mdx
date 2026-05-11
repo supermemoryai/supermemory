@@ -7,6 +7,10 @@ icon: "/images/mastra-icon.svg"
 
 Integrate Supermemory with [Mastra](https://mastra.ai) to give your AI agents persistent memory. Use the `withSupermemory` wrapper for zero-config setup or processors for fine-grained control.
 
+<Note>
+  Migrating to v2 from 1.4.x? Check the [migration guide](/migration/tools-v2-upgrade).
+</Note>
+
 <Card title="@supermemory/tools on npm" icon="npm" href="https://www.npmjs.com/package/@supermemory/tools">
     Check out the NPM page for more details
 </Card>
@@ -34,11 +38,10 @@ const agent = new Agent(withSupermemory(
     model: openai("gpt-4o"),
     instructions: "You are a helpful assistant.",
   },
-  "user-123",  // containerTag - scopes memories to this user
   {
+    containerTag: "user-123",  // Required: scopes memories to this user
+    customId: "conv-456",      // Required: groups messages for contextual memory
     mode: "full",
-    addMemory: "always",
-    threadId: "conv-456",
   }
 ))
 
@@ -46,15 +49,15 @@ const response = await agent.generate("What do you know about me?")
 ```
 
 <Note>
-  **Memory saving is disabled by default.** The wrapper only retrieves existing memories. To automatically save conversations:
+  **Memory saving is enabled by default.** Conversations are automatically saved to Supermemory. To disable saving:
 
   ```typescript
   const agent = new Agent(withSupermemory(
     { id: "my-assistant", model: openai("gpt-4o"), ... },
-    "user-123",
     {
-      addMemory: "always",
-      threadId: "conv-456"  // Required for conversation grouping
+      containerTag: "user-123",
+      customId: "conv-456",
+      addMemory: "never",  // Disable automatic conversation saving
     }
   ))
   ```
@@ -96,11 +99,12 @@ sequenceDiagram
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `containerTag` | `string` | **Required** | User/container tag for scoping memories |
+| `customId` | `string` | **Required** | Groups messages into a single document for contextual memory |
 | `apiKey` | `string` | `SUPERMEMORY_API_KEY` env | Your Supermemory API key |
 | `baseUrl` | `string` | `https://api.supermemory.ai` | Custom API endpoint |
 | `mode` | `"profile" \| "query" \| "full"` | `"profile"` | Memory search mode |
-| `addMemory` | `"always" \| "never"` | `"never"` | Auto-save conversations |
-| `threadId` | `string` | - | Conversation ID for grouping messages |
+| `addMemory` | `"always" \| "never"` | `"always"` | Auto-save conversations |
 | `verbose` | `boolean` | `false` | Enable debug logging |
 | `promptTemplate` | `function` | - | Custom memory formatting |
 
@@ -111,19 +115,31 @@ sequenceDiagram
 **Profile Mode (Default)** - Retrieves the user's complete profile without query-based filtering:
 
 ```typescript
-const agent = new Agent(withSupermemory(config, "user-123", { mode: "profile" }))
+const agent = new Agent(withSupermemory(config, {
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "profile",
+}))
 ```
 
 **Query Mode** - Searches memories based on the user's message:
 
 ```typescript
-const agent = new Agent(withSupermemory(config, "user-123", { mode: "query" }))
+const agent = new Agent(withSupermemory(config, {
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "query",
+}))
 ```
 
 **Full Mode** - Combines profile AND query-based search for maximum context:
 
 ```typescript
-const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }))
+const agent = new Agent(withSupermemory(config, {
+  containerTag: "user-123",
+  customId: "conv-456",
+  mode: "full",
+}))
 
 ### Mode Comparison
 
@@ -137,26 +153,34 @@ const agent = new Agent(withSupermemory(config, "user-123", { mode: "full" }))
 
 ## Saving Conversations
 
-Enable automatic conversation saving with `addMemory: "always"`. A `threadId` is required to group messages:
+Conversation saving is enabled by default (`addMemory: "always"`). Messages are grouped using the required `customId`:
 
 ```typescript
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
   {
-    addMemory: "always",
-    threadId: "conv-456",
+    containerTag: "user-123",
+    customId: "conv-456",  // Required: groups messages for contextual memory
   }
 ))
 
-// All messages in this conversation are saved
+// All messages in this conversation are saved automatically
 await agent.generate("I prefer TypeScript over JavaScript")
 await agent.generate("My favorite framework is Next.js")
 ```
 
-<Warning>
-  Without a `threadId`, the output processor will log a warning and skip saving. Always provide a `threadId` when using `addMemory: "always"`.
-</Warning>
+To disable automatic saving:
+
+```typescript
+const agent = new Agent(withSupermemory(
+  { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+    addMemory: "never",  // Only retrieve memories, don't save
+  }
+))
+```
 
 ---
 
@@ -182,8 +206,9 @@ const claudePrompt = (data: MemoryPromptData) => `
 
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
   {
+    containerTag: "user-123",
+    customId: "conv-456",
     mode: "full",
     promptTemplate: claudePrompt,
   }
@@ -210,8 +235,11 @@ const agent = new Agent({
   name: "My Assistant",
   model: openai("gpt-4o"),
   inputProcessors: [
-    createSupermemoryProcessor("user-123", {
+    createSupermemoryProcessor({
+      containerTag: "user-123",
+      customId: "conv-456",
       mode: "full",
+      addMemory: "never",
       verbose: true,
     }),
   ],
@@ -232,9 +260,9 @@ const agent = new Agent({
   name: "My Assistant",
   model: openai("gpt-4o"),
   outputProcessors: [
-    createSupermemoryOutputProcessor("user-123", {
-      addMemory: "always",
-      threadId: "conv-456",
+    createSupermemoryOutputProcessor({
+      containerTag: "user-123",
+      customId: "conv-456",
     }),
   ],
 })
@@ -249,10 +277,10 @@ import { Agent } from "@mastra/core/agent"
 import { createSupermemoryProcessors } from "@supermemory/tools/mastra"
 import { openai } from "@ai-sdk/openai"
 
-const { input, output } = createSupermemoryProcessors("user-123", {
+const { input, output } = createSupermemoryProcessors({
+  containerTag: "user-123",
+  customId: "conv-456",
   mode: "full",
-  addMemory: "always",
-  threadId: "conv-456",
   verbose: true,
 })
 
@@ -267,9 +295,9 @@ const agent = new Agent({
 
 ---
 
-## Using RequestContext
+## Using RequestContext for Dynamic Thread IDs
 
-Mastra's `RequestContext` can provide `threadId` dynamically:
+For server setups where one agent instance handles multiple concurrent conversations, use Mastra's `RequestContext` to provide per-request thread IDs. **RequestContext takes precedence** over the construction-time `customId`:
 
 ```typescript
 import { Agent } from "@mastra/core/agent"
@@ -279,20 +307,24 @@ import { openai } from "@ai-sdk/openai"
 
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
   {
+    containerTag: "user-123",
+    customId: "fallback-conv",  // Used only when RequestContext doesn't provide a threadId
     mode: "full",
-    addMemory: "always",
-    // threadId not set - will use RequestContext
   }
 ))
 
-// Set threadId dynamically via RequestContext
+// Per-request threadId takes precedence over customId
 const ctx = new RequestContext()
-ctx.set(MASTRA_THREAD_ID_KEY, "dynamic-thread-id")
+ctx.set(MASTRA_THREAD_ID_KEY, "user-456-session-789")
 
 await agent.generate("Hello!", { requestContext: ctx })
+// This conversation is stored under "user-456-session-789", not "fallback-conv"
 ```
+
+<Note>
+  **Server-side usage**: Always use `RequestContext` to pass unique conversation IDs per request. Using a fixed `customId` for all requests will merge conversations from different users.
+</Note>
 
 ---
 
@@ -303,8 +335,11 @@ Enable detailed logging for debugging:
 ```typescript
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  { verbose: true }
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+    verbose: true,
+  }
 ))
 
 // Console output:
@@ -330,7 +365,10 @@ const agent = new Agent(withSupermemory(
     inputProcessors: [myLoggingProcessor],
     outputProcessors: [myAnalyticsProcessor],
   },
-  "user-123"
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+  }
 ))
 ```
 
@@ -345,15 +383,13 @@ Enhances a Mastra agent config with memory capabilities.
 ```typescript
 function withSupermemory<T extends AgentConfig>(
   config: T,
-  containerTag: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): T
 ```
 
 **Parameters:**
 - `config` - The Mastra agent configuration object
-- `containerTag` - User/container ID for scoping memories
-- `options` - Configuration options
+- `options` - Configuration options (includes required `containerTag` and `customId`)
 
 **Returns:** Enhanced config with Supermemory processors injected
 
@@ -363,8 +399,7 @@ Creates an input processor for memory injection.
 
 ```typescript
 function createSupermemoryProcessor(
-  containerTag: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): SupermemoryInputProcessor
 ```
 
@@ -374,8 +409,7 @@ Creates an output processor for conversation saving.
 
 ```typescript
 function createSupermemoryOutputProcessor(
-  containerTag: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): SupermemoryOutputProcessor
 ```
 
@@ -385,8 +419,7 @@ Creates both processors with shared configuration.
 
 ```typescript
 function createSupermemoryProcessors(
-  containerTag: string,
-  options?: SupermemoryMastraOptions
+  options: SupermemoryMastraOptions
 ): {
   input: SupermemoryInputProcessor
   output: SupermemoryOutputProcessor
@@ -397,11 +430,12 @@ function createSupermemoryProcessors(
 
 ```typescript
 interface SupermemoryMastraOptions {
+  containerTag: string         // Required: User/container tag for scoping memories
+  customId: string             // Required: Groups messages for contextual memory generation
   apiKey?: string
   baseUrl?: string
   mode?: "profile" | "query" | "full"
-  addMemory?: "always" | "never"
-  threadId?: string
+  addMemory?: "always" | "never"  // Default: "always"
   verbose?: boolean
   promptTemplate?: (data: MemoryPromptData) => string
 }
@@ -423,14 +457,16 @@ Processors gracefully handle errors without breaking the agent:
 
 - **API errors** - Logged and skipped; agent continues without memories
 - **Missing API key** - Throws immediately with helpful error message
-- **Missing threadId** - Warns in console; skips saving
 
 ```typescript
 // Missing API key throws immediately
 const agent = new Agent(withSupermemory(
   { id: "my-assistant", model: openai("gpt-4o"), instructions: "..." },
-  "user-123",
-  { apiKey: undefined } // Will check SUPERMEMORY_API_KEY env
+  {
+    containerTag: "user-123",
+    customId: "conv-456",
+    apiKey: undefined,  // Will check SUPERMEMORY_API_KEY env
+  }
 ))
 // Error: SUPERMEMORY_API_KEY is not set
 ```

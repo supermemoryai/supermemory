@@ -12,31 +12,8 @@ import {
 	type PromptTemplate,
 	type MemoryMode,
 } from "../shared"
-import {
-	type LanguageModelCallOptions,
-	getLastUserMessage,
-	filterOutSupermemories,
-} from "./util"
+import { type LanguageModelCallOptions, getLastUserMessage } from "./util"
 import { extractQueryText, injectMemoriesIntoParams } from "./memory-prompt"
-
-const getConversationContent = (params: LanguageModelCallOptions) => {
-	return params.prompt
-		.filter((msg) => msg.role !== "system" && msg.role !== "tool")
-		.map((msg) => {
-			const role = msg.role === "user" ? "User" : "Assistant"
-
-			if (typeof msg.content === "string") {
-				return `${role}: ${filterOutSupermemories(msg.content)}`
-			}
-
-			const content = msg.content
-				.filter((c) => c.type === "text")
-				.map((c) => (c.type === "text" ? filterOutSupermemories(c.text) : ""))
-				.join(" ")
-			return `${role}: ${content}`
-		})
-		.join("\n\n")
-}
 
 const convertToConversationMessages = (
 	params: LanguageModelCallOptions,
@@ -99,58 +76,34 @@ const convertToConversationMessages = (
 }
 
 export const saveMemoryAfterResponse = async (
-	client: Supermemory,
+	_client: Supermemory,
 	containerTag: string,
-	conversationId: string | undefined,
+	customId: string,
 	assistantResponseText: string,
 	params: LanguageModelCallOptions,
 	logger: Logger,
 	apiKey: string,
 	baseUrl: string,
 ): Promise<void> => {
-	const customId = conversationId ? `conversation:${conversationId}` : undefined
-
 	try {
-		if (customId && conversationId) {
-			const conversationMessages = convertToConversationMessages(
-				params,
-				assistantResponseText,
-			)
+		const conversationMessages = convertToConversationMessages(
+			params,
+			assistantResponseText,
+		)
 
-			const response = await addConversation({
-				conversationId,
-				messages: conversationMessages,
-				containerTags: [containerTag],
-				apiKey,
-				baseUrl,
-			})
-
-			logger.info("Conversation saved successfully via /v4/conversations", {
-				containerTag,
-				conversationId,
-				messageCount: conversationMessages.length,
-				responseId: response.id,
-			})
-			return
-		}
-
-		const userMessage = getLastUserMessage(params)
-		const content = conversationId
-			? `${getConversationContent(params)} \n\n Assistant: ${assistantResponseText}`
-			: `User: ${userMessage} \n\n Assistant: ${assistantResponseText}`
-
-		const response = await client.add({
-			content,
+		const response = await addConversation({
+			conversationId: customId,
+			messages: conversationMessages,
 			containerTags: [containerTag],
-			customId,
+			apiKey,
+			baseUrl,
 		})
 
-		logger.info("Memory saved successfully via /v3/documents", {
+		logger.info("Conversation saved successfully via /v4/conversations", {
 			containerTag,
 			customId,
-			content,
-			contentLength: content.length,
-			memoryId: response.id,
+			messageCount: conversationMessages.length,
+			responseId: response.id,
 		})
 	} catch (error) {
 		logger.error("Error saving memory", {
@@ -167,8 +120,8 @@ interface SupermemoryMiddlewareOptions {
 	containerTag: string
 	/** Supermemory API key */
 	apiKey: string
-	/** Optional conversation ID to group messages for contextual memory generation */
-	conversationId?: string
+	/** Custom ID to group messages into a single document. Required. */
+	customId: string
 	/** Enable detailed logging of memory search and injection */
 	verbose?: boolean
 	/**
@@ -188,18 +141,21 @@ interface SupermemoryMiddlewareOptions {
 	baseUrl?: string
 	/** Custom function to format memory data into the system prompt */
 	promptTemplate?: PromptTemplate
+	/** Max wait (ms) for the pre-LLM `/v4/profile` retrieval. Omit for no limit (e.g. tests). `withSupermemory` sets this internally. */
+	memoryRetrievalTimeoutMs?: number
 }
 
 interface SupermemoryMiddlewareContext {
 	client: Supermemory
 	logger: Logger
 	containerTag: string
-	conversationId?: string
+	customId: string
 	mode: MemoryMode
 	addMemory: "always" | "never"
 	normalizedBaseUrl: string
 	apiKey: string
 	promptTemplate?: PromptTemplate
+	memoryRetrievalTimeoutMs?: number
 	/**
 	 * Per-turn memory cache. Stores the injected memories string for each
 	 * user turn (keyed by turnKey) to avoid redundant API calls during tool-call
@@ -213,12 +169,13 @@ export const createSupermemoryContext = (
 	const {
 		containerTag,
 		apiKey,
-		conversationId,
+		customId,
 		verbose = false,
 		mode = "profile",
-		addMemory = "never",
+		addMemory = "always",
 		baseUrl,
 		promptTemplate,
+		memoryRetrievalTimeoutMs,
 	} = options
 
 	const logger = createLogger(verbose)
@@ -235,12 +192,15 @@ export const createSupermemoryContext = (
 		client,
 		logger,
 		containerTag,
-		conversationId,
+		customId,
 		mode,
 		addMemory,
 		normalizedBaseUrl,
 		apiKey,
 		promptTemplate,
+		...(memoryRetrievalTimeoutMs !== undefined
+			? { memoryRetrievalTimeoutMs }
+			: {}),
 		memoryCache: new MemoryCache<string>(),
 	}
 }
@@ -255,7 +215,7 @@ const makeTurnKey = (
 ): string => {
 	return MemoryCache.makeTurnKey(
 		ctx.containerTag,
-		ctx.conversationId,
+		ctx.customId,
 		ctx.mode,
 		userMessage,
 	)
@@ -296,7 +256,7 @@ export const transformParamsWithMemory = async (
 
 	ctx.logger.info("Starting memory search", {
 		containerTag: ctx.containerTag,
-		conversationId: ctx.conversationId,
+		customId: ctx.customId,
 		mode: ctx.mode,
 		isNewTurn,
 		cacheHit: false,
@@ -304,15 +264,32 @@ export const transformParamsWithMemory = async (
 
 	const queryText = extractQueryText(params, ctx.mode)
 
-	const memories = await buildMemoriesText({
-		containerTag: ctx.containerTag,
-		queryText,
-		mode: ctx.mode,
-		baseUrl: ctx.normalizedBaseUrl,
-		apiKey: ctx.apiKey,
-		logger: ctx.logger,
-		promptTemplate: ctx.promptTemplate,
-	})
+	let fetchSignal: AbortSignal | undefined
+	let timeoutId: ReturnType<typeof setTimeout> | undefined
+	const timeoutMs = ctx.memoryRetrievalTimeoutMs
+	if (timeoutMs !== undefined && timeoutMs > 0) {
+		const controller = new AbortController()
+		fetchSignal = controller.signal
+		timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+	}
+
+	let memories: string
+	try {
+		memories = await buildMemoriesText({
+			containerTag: ctx.containerTag,
+			queryText,
+			mode: ctx.mode,
+			baseUrl: ctx.normalizedBaseUrl,
+			apiKey: ctx.apiKey,
+			logger: ctx.logger,
+			promptTemplate: ctx.promptTemplate,
+			...(fetchSignal ? { signal: fetchSignal } : {}),
+		})
+	} finally {
+		if (timeoutId !== undefined) {
+			clearTimeout(timeoutId)
+		}
+	}
 
 	ctx.memoryCache.set(turnKey, memories)
 	ctx.logger.debug("Cached memories for turn", { turnKey })

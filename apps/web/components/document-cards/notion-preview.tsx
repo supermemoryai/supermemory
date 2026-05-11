@@ -65,7 +65,7 @@ export function NotionPreview({
 					<span
 						className={cn(
 							dmSansClassName(),
-							"text-[10px] tracking-wide text-[#929292] uppercase",
+							"text-[11px] tracking-wide text-[#929292] uppercase",
 						)}
 					>
 						Notion
@@ -73,9 +73,9 @@ export function NotionPreview({
 				</div>
 				{/* Decorative dots mimicking Notion's block handles */}
 				<div className="flex gap-[3px]">
-					<div className="w-[3px] h-[3px] rounded-full bg-[#333]" />
-					<div className="w-[3px] h-[3px] rounded-full bg-[#333]" />
-					<div className="w-[3px] h-[3px] rounded-full bg-[#333]" />
+					<div className="size-[3px] rounded-full bg-[#333]" />
+					<div className="size-[3px] rounded-full bg-[#333]" />
+					<div className="size-[3px] rounded-full bg-[#333]" />
 				</div>
 			</div>
 
@@ -85,7 +85,7 @@ export function NotionPreview({
 					<p
 						className={cn(
 							dmSansClassName(),
-							"text-[12px] font-semibold text-[#E5E5E5] line-clamp-2 leading-[140%]",
+							"text-[13px] font-semibold text-[#E5E5E5] line-clamp-2 leading-[140%]",
 						)}
 					>
 						{document.title}
@@ -118,7 +118,7 @@ export function NotionPreview({
 									<div key={i} className="flex items-start gap-1.5">
 										<div
 											className={cn(
-												"mt-[2px] w-[10px] h-[10px] rounded-[2px] border shrink-0",
+												"mt-[2px] size-[10px] rounded-[2px] border shrink-0",
 												block.checked
 													? "bg-[#2F81F7] border-[#2F81F7]"
 													: "border-[#3B3B3B] bg-transparent",
@@ -127,7 +127,9 @@ export function NotionPreview({
 											{block.checked && (
 												<svg
 													viewBox="0 0 10 10"
-													className="w-full h-full text-white"
+													className="size-full text-white"
+													aria-label="Checked"
+													role="img"
 												>
 													<path
 														d="M2.5 5L4.5 7L7.5 3.5"
@@ -142,7 +144,7 @@ export function NotionPreview({
 										</div>
 										<p
 											className={cn(
-												"text-[10px] line-clamp-1 leading-[140%]",
+												"text-[11px] line-clamp-1 leading-[140%]",
 												block.checked
 													? "text-[#555] line-through"
 													: "text-[#737373]",
@@ -157,8 +159,8 @@ export function NotionPreview({
 							if (block.type === "bullet") {
 								return (
 									<div key={i} className="flex items-start gap-1.5">
-										<div className="mt-[5px] w-[4px] h-[4px] rounded-full bg-[#555] shrink-0" />
-										<p className="text-[10px] text-[#737373] line-clamp-1 leading-[140%]">
+										<div className="mt-[5px] size-[4px] rounded-full bg-[#555] shrink-0" />
+										<p className="text-[11px] text-[#737373] line-clamp-1 leading-[140%]">
 											{block.text}
 										</p>
 									</div>
@@ -168,7 +170,7 @@ export function NotionPreview({
 							return (
 								<p
 									key={i}
-									className="text-[10px] text-[#737373] line-clamp-1 leading-[140%]"
+									className="text-[11px] text-[#737373] line-clamp-1 leading-[140%]"
 								>
 									{block.text}
 								</p>
@@ -176,7 +178,7 @@ export function NotionPreview({
 						})}
 					</div>
 				) : document.summary ? (
-					<p className="text-[10px] text-[#737373] line-clamp-4">
+					<p className="text-[11px] text-[#737373] line-clamp-4">
 						{document.summary}
 					</p>
 				) : null}
@@ -189,7 +191,7 @@ export function NotionPreview({
 						<p
 							className={cn(
 								dmSansClassName(),
-								"text-[10px] font-semibold flex items-center gap-1",
+								"text-[11px] font-semibold flex items-center gap-1",
 							)}
 							style={{
 								background:
@@ -203,7 +205,7 @@ export function NotionPreview({
 							{document.memoryEntries.length}
 						</p>
 					)}
-					<p className={cn(dmSansClassName(), "text-[10px] text-[#737373]")}>
+					<p className={cn(dmSansClassName(), "text-[11px] text-[#737373]")}>
 						{new Date(document.createdAt).toLocaleDateString("en-US", {
 							month: "short",
 							day: "numeric",

@@ -1,17 +1,17 @@
 export const models = [
 	{
-		id: "gpt-5",
-		name: "GPT 5",
+		id: "gpt-5.1",
+		name: "GPT 5.1",
 		description: "OpenAI's latest model",
 	},
 	{
-		id: "claude-sonnet-4.5",
-		name: "Claude Sonnet 4.5",
+		id: "claude-sonnet-4.6",
+		name: "Claude Sonnet 4.6",
 		description: "Anthropic's advanced model",
 	},
 	{
 		id: "gemini-2.5-pro",
-		name: "Gemini 2.5 Pro",
+		name: "Gemini 3 Pro",
 		description: "Google's most capable model",
 	},
 ] as const
@@ -19,9 +19,9 @@ export const models = [
 export type ModelId = (typeof models)[number]["id"]
 
 export const modelNames: Record<ModelId, { name: string; version: string }> = {
-	"gpt-5": { name: "GPT", version: "5" },
-	"claude-sonnet-4.5": { name: "Claude", version: "4.5" },
-	"gemini-2.5-pro": { name: "Gemini", version: "2.5 Pro" },
+	"gpt-5.1": { name: "GPT", version: "5.1" },
+	"claude-sonnet-4.6": { name: "Claude", version: "4.6" },
+	"gemini-2.5-pro": { name: "Gemini", version: "3 Pro" },
 }
 
 interface ModelIconProps {

@@ -3,8 +3,10 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "portless": { "name": "docs.dev.supermemory", "script": "dev:app", "appPort": 3003 },
   "scripts": {
-    "dev": "bunx mintlify@latest dev --no-open --port 3003"
+    "dev": "portless",
+    "dev:app": "bunx mintlify@latest dev --no-open --port 3003"
   },
   "devDependencies": {
     "@types/bun": "latest",

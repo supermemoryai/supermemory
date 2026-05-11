@@ -10,7 +10,6 @@ import type {
 	MemoryMode,
 	AddMemoryMode,
 	MemoryPromptData,
-	SupermemoryBaseOptions,
 } from "../shared"
 
 // Re-export Mastra core types for consumers
@@ -34,14 +33,24 @@ export type { RequestContext } from "@mastra/core/request-context"
 
 /**
  * Configuration options for the Supermemory Mastra processor.
- * Extends base options with Mastra-specific settings.
  */
-export interface SupermemoryMastraOptions extends SupermemoryBaseOptions {
-	/**
-	 * When using the output processor, set this to enable automatic conversation saving.
-	 * The threadId is used to group messages into a single conversation.
-	 */
-	threadId?: string
+export interface SupermemoryMastraOptions {
+	/** Container tag/user ID for scoping memories. Required. */
+	containerTag: string
+	/** Custom ID to group messages into a single document for contextual memory generation. Required. */
+	customId: string
+	/** Supermemory API key (falls back to SUPERMEMORY_API_KEY env var) */
+	apiKey?: string
+	/** Custom Supermemory API base URL */
+	baseUrl?: string
+	/** Memory retrieval mode */
+	mode?: MemoryMode
+	/** Memory persistence mode (default: "always") */
+	addMemory?: AddMemoryMode
+	/** Enable detailed logging of memory search and injection */
+	verbose?: boolean
+	/** Custom function to format memory data into the system prompt */
+	promptTemplate?: PromptTemplate
 }
 
 export type { PromptTemplate, MemoryMode, AddMemoryMode, MemoryPromptData }

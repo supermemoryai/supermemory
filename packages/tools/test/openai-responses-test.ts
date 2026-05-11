@@ -5,7 +5,9 @@ const openai = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
 })
 
-const openaiWithSupermemory = withSupermemory(openai, "user_id_life", {
+const openaiWithSupermemory = withSupermemory(openai, {
+	containerTag: "user_id_life",
+	customId: "test-conversation",
 	verbose: true,
 	mode: "full",
 	addMemory: "always",

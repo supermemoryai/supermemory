@@ -63,7 +63,7 @@ function CustomTweetHeader({
 					<div className="flex gap-0.5 items-center">
 						<p
 							className={cn(
-								"font-semibold leading-tight overflow-hidden text-[#fafafa] text-[12px] truncate tracking-[-0.12px]",
+								"font-semibold leading-tight overflow-hidden text-[#fafafa] text-[13px] truncate tracking-[-0.12px]",
 								dmSansClassName(),
 							)}
 						>
@@ -73,7 +73,7 @@ function CustomTweetHeader({
 					</div>
 					<p
 						className={cn(
-							"font-medium leading-tight overflow-hidden text-[#737373] text-[12px] truncate tracking-[-0.12px]",
+							"font-medium leading-tight overflow-hidden text-[#737373] text-[13px] truncate tracking-[-0.12px]",
 							dmSansClassName(),
 						)}
 					>
@@ -105,7 +105,7 @@ function CustomTweetMedia({
 				<img
 					src={previewUrl}
 					alt="Tweet media"
-					className="w-full h-full object-cover"
+					className="size-full object-cover"
 				/>
 				{isVideo && (
 					<div className="absolute inset-0 bg-[rgba(4,5,5,0.8)] flex items-center justify-center">

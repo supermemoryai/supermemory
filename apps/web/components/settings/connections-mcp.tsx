@@ -346,12 +346,11 @@ export default function ConnectionsMCP() {
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
 
-	const hasProProduct = hasActivePlan(autumn.customer?.products, "api_pro")
+	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
-	// Get connections data directly from autumn customer
-	const connectionsFeature = autumn.customer?.features?.connections
-	const connectionsUsed = connectionsFeature?.usage ?? 0
-	const connectionsLimit = connectionsFeature?.included_usage ?? 10
+	const connectionsBalance = autumn.data?.balances?.connections
+	const connectionsUsed = connectionsBalance?.usage ?? 0
+	const connectionsLimit = connectionsBalance?.granted ?? 10
 
 	const canAddConnection = connectionsUsed < connectionsLimit
 
@@ -424,13 +423,18 @@ export default function ConnectionsMCP() {
 	// Upgrade handler
 	const handleUpgrade = async () => {
 		try {
-			await autumn.attach({
-				productId: "api_pro",
-				successUrl: "https://app.supermemory.ai/settings#connections",
+			const result = await autumn.attach({
+				planId: "api_pro",
+				successUrl: `${window.location.origin}/settings#connections`,
 			})
-			window.location.reload()
+			if (result?.paymentUrl) {
+				window.open(result.paymentUrl, "_self")
+				return
+			}
+			autumn.refetch?.()
 		} catch (error) {
 			console.error(error)
+			toast.error("Failed to start checkout. Please try again.")
 		}
 	}
 

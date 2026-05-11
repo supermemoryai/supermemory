@@ -273,7 +273,7 @@ export default function Integrations() {
 			<IntegrationCard id="chrome-extension-card">
 				<div className="flex flex-col gap-6">
 					<div id="chrome-extension-header" className="flex items-center gap-4">
-						<ChromeIcon className="shrink-0 w-10 h-10" />
+						<ChromeIcon className="shrink-0 size-10" />
 						<div className="flex flex-col gap-1.5">
 							<p
 								className={cn(
@@ -384,7 +384,7 @@ export default function Integrations() {
 						id="raycast-extension-header"
 						className="flex items-center gap-4"
 					>
-						<RaycastIcon className="shrink-0 w-10 h-10" />
+						<RaycastIcon className="shrink-0 size-10" />
 						<div className="flex flex-col gap-1.5">
 							<p
 								className={cn(
@@ -476,9 +476,9 @@ export default function Integrations() {
 										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
 									>
 										{copied ? (
-											<Check className="h-4 w-4 text-[#4BA0FA]" />
+											<Check className="size-4 text-[#4BA0FA]" />
 										) : (
-											<Copy className="h-4 w-4" />
+											<Copy className="size-4" />
 										)}
 									</button>
 								</div>
@@ -495,7 +495,7 @@ export default function Integrations() {
 								</h4>
 								<div className="space-y-2">
 									<div className="flex items-start gap-3">
-										<div className="shrink-0 w-6 h-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="shrink-0 size-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
 											1
 										</div>
 										<p
@@ -508,7 +508,7 @@ export default function Integrations() {
 										</p>
 									</div>
 									<div className="flex items-start gap-3">
-										<div className="shrink-0 w-6 h-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="shrink-0 size-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
 											2
 										</div>
 										<p
@@ -521,7 +521,7 @@ export default function Integrations() {
 										</p>
 									</div>
 									<div className="flex items-start gap-3">
-										<div className="shrink-0 w-6 h-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="shrink-0 size-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
 											3
 										</div>
 										<p
@@ -612,9 +612,9 @@ export default function Integrations() {
 										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
 									>
 										{raycastCopied ? (
-											<Check className="h-4 w-4 text-[#4BA0FA]" />
+											<Check className="size-4 text-[#4BA0FA]" />
 										) : (
-											<Copy className="h-4 w-4" />
+											<Copy className="size-4" />
 										)}
 									</button>
 								</div>
@@ -631,7 +631,7 @@ export default function Integrations() {
 								</h4>
 								<div className="space-y-2">
 									<div className="flex items-start gap-3">
-										<div className="shrink-0 w-6 h-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
 											1
 										</div>
 										<p
@@ -644,7 +644,7 @@ export default function Integrations() {
 										</p>
 									</div>
 									<div className="flex items-start gap-3">
-										<div className="shrink-0 w-6 h-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
 											2
 										</div>
 										<p
@@ -657,7 +657,7 @@ export default function Integrations() {
 										</p>
 									</div>
 									<div className="flex items-start gap-3">
-										<div className="shrink-0 w-6 h-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
+										<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
 											3
 										</div>
 										<p

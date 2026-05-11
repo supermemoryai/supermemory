@@ -99,7 +99,7 @@ export function RaycastDetail() {
 			>
 				<div className="flex flex-col gap-6">
 					<div className="flex items-center gap-4">
-						<RaycastIcon className="shrink-0 w-10 h-10" />
+						<RaycastIcon className="shrink-0 size-10" />
 						<div className="flex flex-col gap-1">
 							<p
 								className={cn(
@@ -196,9 +196,9 @@ export function RaycastDetail() {
 										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
 									>
 										{copied ? (
-											<Check className="h-4 w-4 text-[#4BA0FA]" />
+											<Check className="size-4 text-[#4BA0FA]" />
 										) : (
-											<Copy className="h-4 w-4" />
+											<Copy className="size-4" />
 										)}
 									</button>
 								</div>
@@ -219,7 +219,7 @@ export function RaycastDetail() {
 										'Use "Add Memory" or "Search Memories" commands!',
 									].map((text, i) => (
 										<div key={text} className="flex items-start gap-3">
-											<div className="shrink-0 w-6 h-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
+											<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
 												{i + 1}
 											</div>
 											<p

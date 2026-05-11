@@ -7,8 +7,8 @@ describe("generateMockGraphData", () => {
 		const data2 = generateMockGraphData({ documentCount: 10, seed: 42 })
 
 		expect(data1.documents.length).toBe(data2.documents.length)
-		expect(data1.documents[0]!.id).toBe(data2.documents[0]!.id)
-		expect(data1.documents[0]!.title).toBe(data2.documents[0]!.title)
+		expect(data1.documents[0]?.id).toBe(data2.documents[0]?.id)
+		expect(data1.documents[0]?.title).toBe(data2.documents[0]?.title)
 	})
 
 	it("produces different output with different seeds", () => {
@@ -43,8 +43,9 @@ describe("generateMockGraphData", () => {
 		const data = generateMockGraphData({ documentCount: 5, seed: 1 })
 		const doc = data.documents.find((d) => d.memories.length > 0)
 		expect(doc).toBeDefined()
+		if (!doc) return
 
-		for (const mem of doc!.memories) {
+		for (const mem of doc.memories) {
 			expect(mem.id).toBeDefined()
 			expect(mem.memory).toBeDefined()
 			expect(typeof mem.isStatic).toBe("boolean")

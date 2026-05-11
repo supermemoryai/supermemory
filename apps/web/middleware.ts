@@ -18,6 +18,11 @@ export default async function proxy(request: Request) {
 		return NextResponse.next()
 	}
 
+	// MCP setup page is public — no auth required
+	if (url.searchParams.get("view") === "mcp") {
+		return NextResponse.next()
+	}
+
 	if (url.pathname.startsWith("/api/")) {
 		if (!sessionCookie) {
 			console.debug("[MIDDLEWARE] API route without session, returning 401")
@@ -66,6 +71,6 @@ export default async function proxy(request: Request) {
 
 export const config = {
 	matcher: [
-		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails).*)",
+		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
 	],
 }

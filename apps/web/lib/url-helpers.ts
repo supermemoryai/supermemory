@@ -190,6 +190,29 @@ export function toLinkedInProfileUrl(handle: string): string {
 }
 
 /**
+ * Checks if a URL points to a supermemory-hosted file.
+ * Matches the public bucket domain (files.supermemory.ai) and
+ * presigned R2 URLs whose hostname ends with `.r2.cloudflarestorage.com`.
+ *
+ * Note: The R2 check is intentionally broad — it matches any Cloudflare R2
+ * presigned URL, not only supermemory's account.  This is acceptable because
+ * the function is only called on `document.url` values returned by our own
+ * backend, where all R2 URLs originate from the supermemory bucket.
+ * If user-supplied external R2 URLs ever appear in this field, tighten the
+ * check by also validating the account-id subdomain or the bucket path prefix.
+ */
+export const isSupermemoryFileUrl = (url: string): boolean => {
+	try {
+		const parsed = new URL(url)
+		if (parsed.hostname === "files.supermemory.ai") return true
+		if (parsed.hostname.endsWith(".r2.cloudflarestorage.com")) return true
+		return false
+	} catch {
+		return false
+	}
+}
+
+/**
  * Gets the favicon URL for a given URL.
  */
 export function getFaviconUrl(url: string | null | undefined): string | null {

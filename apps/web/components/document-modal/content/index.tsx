@@ -21,7 +21,7 @@ const PdfViewer = dynamic(
 		ssr: false,
 		loading: () => (
 			<div className="flex items-center justify-center h-full text-gray-400">
-				Loading PDF viewer...
+				Loading PDF viewer…
 			</div>
 		),
 	},
@@ -87,6 +87,7 @@ export function DocumentContent({
 				<TweetContent
 					url={document.url}
 					tweetMetadata={document.metadata?.sm_internal_twitter_metadata}
+					content={document.content}
 				/>
 			)
 

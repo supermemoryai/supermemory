@@ -1,6 +1,10 @@
 import type { ModelId } from "@/lib/models"
 
-const OTHER_MODELS: ModelId[] = ["gpt-5", "claude-sonnet-4.5"]
+const OTHER_MODELS: ModelId[] = [
+	"gpt-5.1",
+	"claude-sonnet-4.6",
+	"gemini-2.5-pro",
+]
 
 function flattenError(e: unknown): string {
 	if (e == null) return ""
@@ -36,6 +40,6 @@ export function getNovaChatErrorCopy(error: unknown, model: ModelId) {
 	return {
 		title: "Something went wrong",
 		body,
-		otherModels: model === "gemini-2.5-pro" ? OTHER_MODELS : [],
+		otherModels: OTHER_MODELS.filter((id) => id !== model),
 	}
 }

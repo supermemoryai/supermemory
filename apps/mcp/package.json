@@ -2,9 +2,11 @@
   "name": "supermemory-mcp",
   "version": "4.0.0",
   "type": "module",
+  "portless": { "name": "mcp.dev.supermemory", "script": "dev:app" },
   "scripts": {
     "build:ui": "vite build",
-    "dev": "vite build && wrangler dev --port 8788",
+    "dev": "portless",
+    "dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
     "deploy": "vite build && wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },

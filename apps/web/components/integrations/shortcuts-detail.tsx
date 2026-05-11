@@ -229,9 +229,9 @@ export function ShortcutsDetail() {
 										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
 									>
 										{copied ? (
-											<Check className="h-4 w-4 text-[#4BA0FA]" />
+											<Check className="size-4 text-[#4BA0FA]" />
 										) : (
-											<Copy className="h-4 w-4" />
+											<Copy className="size-4" />
 										)}
 									</button>
 								</div>
@@ -252,7 +252,7 @@ export function ShortcutsDetail() {
 										"Start using your shortcut!",
 									].map((text, i) => (
 										<div key={text} className="flex items-start gap-3">
-											<div className="shrink-0 w-6 h-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
+											<div className="shrink-0 size-6 bg-[#4BA0FA]/20 text-[#4BA0FA] rounded-full flex items-center justify-center text-xs font-medium">
 												{i + 1}
 											</div>
 											<p

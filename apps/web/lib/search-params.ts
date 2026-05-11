@@ -23,14 +23,34 @@ export const shareParam = parseAsBoolean.withDefault(false)
 export const feedbackParam = parseAsBoolean.withDefault(false)
 
 // View & filter states
-const viewLiterals = ["graph", "list", "integrations"] as const
-const integrationLiterals = ["import", "chrome", "connections"] as const
-export type IntegrationParamValue = (typeof integrationLiterals)[number]
-export const integrationParam = parseAsStringLiteral(integrationLiterals)
+const viewLiterals = [
+	"dashboard",
+	"graph",
+	"list",
+	"integrations",
+	"chat",
+	// Integration sub-views — each card is its own view
+	"mcp",
+	"plugins",
+	"chrome",
+	"connections",
+	"shortcuts",
+	"raycast",
+	"import",
+] as const
 export type ViewParamValue = (typeof viewLiterals)[number]
-export const viewParam = parseAsStringLiteral(viewLiterals).withDefault("list")
+export const viewParam =
+	parseAsStringLiteral(viewLiterals).withDefault("dashboard")
 
-export const pluginsPanelParam = parseAsBoolean
+// Kept for backwards compat with components that pass integration hints
+export type IntegrationParamValue =
+	| "mcp"
+	| "plugins"
+	| "chrome"
+	| "connections"
+	| "shortcuts"
+	| "raycast"
+	| "import"
 export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault(
 	[],
 )

@@ -16,7 +16,7 @@ export function McpPreview({ document }: { document: DocumentWithMemories }) {
 				<p
 					className={cn(
 						dmSansClassName(),
-						"text-[12px] font-semibold flex items-center gap-1",
+						"text-[13px] font-semibold flex items-center gap-1",
 					)}
 				>
 					<ClaudeDesktopIcon className="size-3" />
@@ -26,12 +26,12 @@ export function McpPreview({ document }: { document: DocumentWithMemories }) {
 			</div>
 			<div className="space-y-[6px]">
 				{document.title && (
-					<p className={cn(dmSansClassName(), "text-[12px] font-semibold")}>
+					<p className={cn(dmSansClassName(), "text-[13px] font-semibold")}>
 						{document.title}
 					</p>
 				)}
 				{document.content && (
-					<p className="text-[10px] text-[#737373] line-clamp-4">
+					<p className="text-[11px] text-[#737373] line-clamp-4">
 						{document.content}
 					</p>
 				)}

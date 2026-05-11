@@ -47,7 +47,7 @@ export function ChromeDetail() {
 		>
 			<div className="flex flex-col gap-6">
 				<div className="flex items-center gap-4">
-					<ChromeIcon className="shrink-0 w-10 h-10" />
+					<ChromeIcon className="shrink-0 size-10" />
 					<div className="flex flex-col gap-1">
 						<p
 							className={cn(

@@ -96,14 +96,12 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model, getCapturedGenerateParams } =
 					createIntegrationMockModel()
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-generate",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -125,18 +123,15 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const conversationId = `test-generate-${Date.now()}`
+				const customId = `test-generate-${Date.now()}`
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-						addMemory: "always",
-						conversationId,
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+					addMemory: "always",
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -166,21 +161,18 @@ describe.skipIf(!shouldRunIntegration)(
 				fetchSpy.mockRestore()
 			})
 
-			it("should work with conversationId for grouped memories", async () => {
+			it("should work with customId for grouped memories", async () => {
 				const { model, getCapturedGenerateParams } =
 					createIntegrationMockModel()
 
-				const conversationId = `test-conversation-${Date.now()}`
+				const customId = `test-conversation-${Date.now()}`
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-						conversationId,
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -203,14 +195,12 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should fetch memories and stream response", async () => {
 				const { model, getCapturedStreamParams } = createIntegrationMockModel()
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-stream",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+				})
 
 				const { stream } = await wrapped.doStream({
 					prompt: [
@@ -240,18 +230,15 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const conversationId = `test-stream-${Date.now()}`
+				const customId = `test-stream-${Date.now()}`
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-						addMemory: "always",
-						conversationId,
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId,
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+					addMemory: "always",
+				})
 
 				const { stream } = await wrapped.doStream({
 					prompt: [
@@ -286,14 +273,12 @@ describe.skipIf(!shouldRunIntegration)(
 			it("should handle text-delta chunks correctly", async () => {
 				const { model } = createIntegrationMockModel()
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-chunks",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+				})
 
 				const { stream } = await wrapped.doStream({
 					prompt: [
@@ -327,14 +312,12 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-profile",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -368,14 +351,12 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "query",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-query",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "query",
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -409,14 +390,12 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model } = createIntegrationMockModel()
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "full",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-full",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "full",
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -456,15 +435,13 @@ describe.skipIf(!shouldRunIntegration)(
 					generalSearchMemories: string
 				}) => `<custom-memories>${data.userMemories}</custom-memories>`
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-						promptTemplate: customTemplate,
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-template",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+					promptTemplate: customTemplate,
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -485,15 +462,13 @@ describe.skipIf(!shouldRunIntegration)(
 				const { model, getCapturedGenerateParams } =
 					createIntegrationMockModel()
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-						verbose: true,
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-verbose",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+					verbose: true,
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -514,15 +489,13 @@ describe.skipIf(!shouldRunIntegration)(
 				const fetchSpy = vi.spyOn(globalThis, "fetch")
 
 				// Use the configured base URL (or default)
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-						baseUrl: INTEGRATION_CONFIG.baseUrl,
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-baseurl",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+					baseUrl: INTEGRATION_CONFIG.baseUrl,
+				})
 
 				await wrapped.doGenerate({
 					prompt: [
@@ -556,14 +529,12 @@ describe.skipIf(!shouldRunIntegration)(
 					new Error("Model error"),
 				)
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: INTEGRATION_CONFIG.apiKey,
-						mode: "profile",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-error",
+					apiKey: INTEGRATION_CONFIG.apiKey,
+					mode: "profile",
+				})
 
 				await expect(
 					wrapped.doGenerate({
@@ -578,23 +549,46 @@ describe.skipIf(!shouldRunIntegration)(
 			})
 
 			it("should handle invalid API key gracefully", async () => {
+				const { model, getCapturedGenerateParams } =
+					createIntegrationMockModel()
+
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-invalid-key",
+					apiKey: "invalid-api-key-12345",
+					mode: "profile",
+				})
+
+				await wrapped.doGenerate({
+					prompt: [
+						{
+							role: "user",
+							content: [{ type: "text", text: "Invalid key test" }],
+						},
+					],
+				})
+
+				const captured = getCapturedGenerateParams()
+				expect(captured?.prompt[0]?.role).toBe("user")
+			})
+
+			it("should reject on invalid API key when skipMemoryOnError is false", async () => {
 				const { model } = createIntegrationMockModel()
 
-				const wrapped = withSupermemory(
-					model,
-					INTEGRATION_CONFIG.containerTag,
-					{
-						apiKey: "invalid-api-key-12345",
-						mode: "profile",
-					},
-				)
+				const wrapped = withSupermemory(model, {
+					containerTag: INTEGRATION_CONFIG.containerTag,
+					customId: "test-invalid-strict",
+					apiKey: "invalid-api-key-12345",
+					mode: "profile",
+					skipMemoryOnError: false,
+				})
 
 				await expect(
 					wrapped.doGenerate({
 						prompt: [
 							{
 								role: "user",
-								content: [{ type: "text", text: "Invalid key test" }],
+								content: [{ type: "text", text: "Invalid key strict test" }],
 							},
 						],
 					}),

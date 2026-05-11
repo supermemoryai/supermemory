@@ -18,6 +18,7 @@ import {
  * @param queryText - Optional query text for semantic search
  * @param baseUrl - The API base URL
  * @param apiKey - The API key for authentication
+ * @param signal - Optional AbortSignal to cancel the request (e.g. retrieval timeout)
  * @returns The profile structure with static, dynamic, and search results
  */
 export const supermemoryProfileSearch = async (
@@ -25,6 +26,7 @@ export const supermemoryProfileSearch = async (
 	queryText: string,
 	baseUrl: string,
 	apiKey: string,
+	signal?: AbortSignal,
 ): Promise<ProfileStructure> => {
 	const payload = queryText
 		? JSON.stringify({
@@ -43,6 +45,7 @@ export const supermemoryProfileSearch = async (
 				Authorization: `Bearer ${apiKey}`,
 			},
 			body: payload,
+			...(signal ? { signal } : {}),
 		})
 
 		if (!response.ok) {
@@ -72,6 +75,7 @@ export interface BuildMemoriesTextOptions {
 	apiKey: string
 	logger: Logger
 	promptTemplate?: PromptTemplate
+	signal?: AbortSignal
 }
 
 /**
@@ -92,6 +96,7 @@ export const buildMemoriesText = async (
 		apiKey,
 		logger,
 		promptTemplate = defaultPromptTemplate,
+		signal,
 	} = options
 
 	const memoriesResponse = await supermemoryProfileSearch(
@@ -99,6 +104,7 @@ export const buildMemoriesText = async (
 		queryText,
 		baseUrl,
 		apiKey,
+		signal,
 	)
 
 	const memoryCountStatic = memoriesResponse.profile.static?.length || 0

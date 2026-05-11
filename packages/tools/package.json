@@ -1,8 +1,8 @@
 {
   "name": "@supermemory/tools",
   "type": "module",
-  "version": "1.4.02",
-  "description": "Memory tools for AI SDK and OpenAI function calling with supermemory",
+  "version": "2.0.0",
+  "description": "Memory tools for AI SDK, OpenAI, Voltagent and Mastra with supermemory",
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch --ignore-watch .turbo",
