@@ -8,10 +8,23 @@ export default defineConfig({
 		alias: {
 			"@": resolve(__dirname, "./src"),
 		},
+		// Deduplicate React so the local package and @testing-library/react
+		// share a single React instance.  Without this vitest throws
+		// "Invalid hook call" because react-dom internally resolves a different
+		// React copy than the one the component was compiled against.
+		dedupe: ["react", "react-dom"],
 	},
 	test: {
-		include: ["src/**/*.test.ts"],
-		environment: "node",
+		include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+		environment: "happy-dom",
+		setupFiles: ["src/__tests__/setup.ts"],
+		deps: {
+			optimizer: {
+				web: {
+					include: ["react", "react-dom", "@testing-library/react"],
+				},
+			},
+		},
 	},
 	build: {
 		lib: {

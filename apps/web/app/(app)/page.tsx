@@ -402,6 +402,18 @@ export default function NewPage() {
 		[setDocId],
 	)
 
+	// Separate from handleOpenDocument because the graph view only has a document ID,
+	// not the full document object. The modal will fetch the document via the docId
+	// query param, so there may be a brief loading state (unlike handleOpenDocument
+	// which pre-populates via setSelectedDocument).
+	const handleOpenDocumentById = useCallback(
+		(documentId: string) => {
+			analytics.documentModalOpened({ document_id: documentId })
+			setDocId(documentId)
+		},
+		[setDocId],
+	)
+
 	const handleQuickNoteSave = useCallback(
 		(content: string) => {
 			if (content.trim()) {
@@ -630,7 +642,7 @@ export default function NewPage() {
 									/>
 								) : viewMode === "graph" ? (
 									<div className="min-h-0 min-w-0 flex-1">
-										<GraphLayoutView />
+										<GraphLayoutView onOpenDocument={handleOpenDocumentById} />
 									</div>
 								) : viewMode === "list" ? (
 									<div

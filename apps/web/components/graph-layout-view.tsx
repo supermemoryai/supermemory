@@ -13,7 +13,11 @@ import { dmSansClassName } from "@/lib/fonts"
 import { ShareModal } from "./share-modal"
 import { shareParam } from "@/lib/search-params"
 
-export const GraphLayoutView = memo(function GraphLayoutView() {
+export const GraphLayoutView = memo(function GraphLayoutView({
+	onOpenDocument,
+}: {
+	onOpenDocument?: (documentId: string) => void
+}) {
 	const { effectiveContainerTags } = useProject()
 	const { documentIds: allHighlightDocumentIds } = useGraphHighlights()
 	const [isShareModalOpen, setIsShareModalOpen] = useQueryState(
@@ -41,6 +45,7 @@ export const GraphLayoutView = memo(function GraphLayoutView() {
 					highlightsVisible
 					maxNodes={undefined}
 					canvasRef={canvasRef}
+					onOpenDocument={onOpenDocument}
 				/>
 			</div>
 

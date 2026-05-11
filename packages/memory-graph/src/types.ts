@@ -187,10 +187,12 @@ export interface MemoryGraphProps {
 	onSlideshowStop?: () => void
 	/** Canvas ref for external access (e.g. screenshot export) */
 	canvasRef?: React.RefObject<HTMLCanvasElement | null>
-	/** Custom theme colors - if not provided, reads from CSS variables */
-	colors?: GraphThemeColors
+	/** Custom theme colors (partial) - merged with CSS variable / default values */
+	colors?: Partial<GraphThemeColors>
 	/** Total count for loading indicator */
 	totalCount?: number
+	/** Callback when user wants to view full document content */
+	onOpenDocument?: (documentId: string) => void
 }
 
 export interface ChainEntry {

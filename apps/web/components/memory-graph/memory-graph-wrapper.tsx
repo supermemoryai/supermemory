@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { MemoryGraph as MemoryGraphBase } from "@supermemory/memory-graph"
+import type { GraphThemeColors } from "@supermemory/memory-graph"
 import { useGraphApi } from "./hooks/use-graph-api"
 
 export interface MemoryGraphWrapperProps {
@@ -19,6 +20,7 @@ export interface MemoryGraphWrapperProps {
 	onSlideshowNodeChange?: (nodeId: string | null) => void
 	onSlideshowStop?: () => void
 	canvasRef?: React.RefObject<HTMLCanvasElement | null>
+	onOpenDocument?: (documentId: string) => void
 }
 
 export function MemoryGraph({
@@ -75,7 +77,7 @@ export function MemoryGraph({
 					{
 						bg: "transparent",
 						edgeDerives: "#9ca3af",
-					} as any
+					} satisfies Partial<GraphThemeColors>
 				}
 				{...rest}
 			>
