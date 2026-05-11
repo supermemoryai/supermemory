@@ -48,7 +48,6 @@ export default function RootLayout({
 					enableSystem={false}
 					disableTransitionOnChange
 				>
-					{/* @ts-expect-error — autumn-js/react types don't declare `headers` yet, but the prop is supported at runtime */}
 					<AutumnProvider
 						backendUrl={
 							process.env.NEXT_PUBLIC_BACKEND_URL ??
