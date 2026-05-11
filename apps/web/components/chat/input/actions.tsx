@@ -29,7 +29,7 @@ export function SendButton({
 			>
 				<title>Send Icon</title>
 				<path
-					d="M12 6L10.55 7.4L7 3.85L7 16L5 16L5 3.85L1.45 7.4L-4.37114e-07 6L6 -2.62268e-07L12 6Z"
+					d="M12 6L10.55 7.4L7 3.85L7 16L5 16L5 3.85L1.45 7.4L-4.37e-07 6L6 -2.62e-07L12 6Z"
 					fill="#FAFAFA"
 				/>
 			</svg>

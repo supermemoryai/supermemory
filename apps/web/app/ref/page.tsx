@@ -16,8 +16,8 @@ export default function ReferralHomePage() {
 		<div className="min-h-screen flex items-center justify-center p-4 bg-[#0f1419]">
 			<Card className="max-w-md w-full bg-[#1a1f2a] border-white/10">
 				<CardHeader className="text-center">
-					<div className="mx-auto mb-4 w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center">
-						<ShareIcon className="w-8 h-8 text-orange-500" />
+					<div className="mx-auto mb-4 size-16 rounded-full bg-orange-500/10 flex items-center justify-center">
+						<ShareIcon className="size-8 text-orange-500" />
 					</div>
 					<CardTitle className="text-2xl font-bold text-white">
 						Missing Referral Code

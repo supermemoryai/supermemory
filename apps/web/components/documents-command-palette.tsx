@@ -129,10 +129,11 @@ export function DocumentsCommandPalette({
 			if (queryData?.pages) {
 				setCachedDocs(queryData.pages.flatMap((page) => page.documents ?? []))
 			}
-			setTimeout(() => inputRef.current?.focus(), 0)
+			const focusTimer = setTimeout(() => inputRef.current?.focus(), 0)
 			setSearch(initialSearch)
 			setSelectedIndex(0)
 			setSearchResults([])
+			return () => clearTimeout(focusTimer)
 		}
 	}, [open, queryClient, projectId, initialSearch])
 

@@ -13,7 +13,7 @@ export function NotePreview({ document }: { document: DocumentWithMemories }) {
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] space-y-2">
 			<div className="flex items-center gap-1">
-				<DocumentIcon type="note" className="w-4 h-4" />
+				<DocumentIcon type="note" className="size-4" />
 				<p className={cn(dmSansClassName(), "text-[13px] font-semibold")}>
 					Note
 				</p>

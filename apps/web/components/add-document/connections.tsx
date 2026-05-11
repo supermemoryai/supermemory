@@ -226,7 +226,7 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const isProUser = hasActivePlan(autumn.customer?.products, "api_pro")
+	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [gdriveSyncScope, setGdriveSyncScope] =
@@ -243,20 +243,26 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const handleUpgrade = async () => {
 		setIsUpgrading(true)
 		try {
-			await autumn.attach({
-				productId: "api_pro",
+			const result = await autumn.attach({
+				planId: "api_pro",
 				successUrl: window.location.href,
 			})
+			if (result?.paymentUrl) {
+				window.open(result.paymentUrl, "_self")
+				return
+			}
+			autumn.refetch?.()
 		} catch (error) {
 			console.error("Upgrade error:", error)
 			toast.error("Failed to start upgrade process")
+		} finally {
 			setIsUpgrading(false)
 		}
 	}
 
-	const connectionsFeature = autumn.customer?.features?.connections
-	const connectionsUsed = connectionsFeature?.usage ?? 0
-	const connectionsLimit = connectionsFeature?.included_usage ?? 10
+	const connectionsBalance = autumn.data?.balances?.connections
+	const connectionsUsed = connectionsBalance?.usage ?? 0
+	const connectionsLimit = connectionsBalance?.granted ?? 10
 	const canAddConnection = connectionsUsed < connectionsLimit
 
 	// Fetch connections
@@ -409,7 +415,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 								className="bg-[#14161A] rounded-[12px] px-4 py-3 flex items-center justify-between gap-3"
 							>
 								<div className="flex items-center gap-3 flex-1">
-									<Icon className="w-6 h-6 text-[#737373]" />
+									<Icon className="size-6 text-[#737373]" />
 									<div className="space-y-[6px] flex-1">
 										<p className="text-[16px] font-medium">{config.title}</p>
 										<p className="text-[16px] text-[#737373]">
@@ -431,7 +437,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 h-8 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 											>
 												{isConnecting ? (
-													<Loader className="h-4 w-4 animate-spin" />
+													<Loader className="size-4 animate-spin" />
 												) : (
 													"Connect"
 												)}
@@ -443,7 +449,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 														type="button"
 														className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 px-1.5 h-8 flex items-center transition-colors"
 													>
-														<ChevronDown className="w-3 h-3" />
+														<ChevronDown className="size-3" />
 													</button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end" className="w-40">
@@ -463,7 +469,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 														>
 															{label}
 															{gdriveSyncScope === scope && (
-																<Check className="w-3 h-3 text-[#4BA0FA]" />
+																<Check className="size-3 text-[#4BA0FA]" />
 															)}
 														</DropdownMenuItem>
 													))}
@@ -483,7 +489,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
 										>
 											{isConnecting ? (
-												<Loader className="h-4 w-4 animate-spin" />
+												<Loader className="size-4 animate-spin" />
 											) : (
 												"Connect"
 											)}
@@ -524,7 +530,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									className="flex items-center gap-1.5 bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium rounded-full h-8 px-3 transition-colors shrink-0"
 								>
 									{isAnyConnecting ? (
-										<Loader className="h-3.5 w-3.5 animate-spin" />
+										<Loader className="size-3.5 animate-spin" />
 									) : (
 										<>
 											<span>+ Add a connection</span>
@@ -650,14 +656,14 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					id="no-active-connections"
 					className="bg-[#14161A] shadow-inside-out rounded-[12px] px-4 py-6 h-full mb-4 flex flex-col justify-center items-center"
 				>
-					<Zap className="w-6 h-6 text-[#737373] mb-3" />
+					<Zap className="size-6 text-[#737373] mb-3" />
 					{!isProUser ? (
 						<>
 							<p className="text-[14px] text-[#737373] mb-4 text-center">
 								{isUpgrading || autumn.isLoading ? (
 									<span className="inline-flex items-center gap-2">
-										<Loader className="h-4 w-4 animate-spin" />
-										Upgrading...
+										<Loader className="size-4 animate-spin" />
+										Upgrading…
 									</span>
 								) : (
 									<>
@@ -676,19 +682,19 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 							</p>
 							<div className="space-y-2 text-[14px]">
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>Unlimited memories</span>
 								</div>
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>10 connections</span>
 								</div>
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>Advanced search</span>
 								</div>
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>Priority support</span>
 								</div>
 							</div>

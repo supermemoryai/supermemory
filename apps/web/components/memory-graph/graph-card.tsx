@@ -157,7 +157,7 @@ export const GraphCard = memo<GraphCardProps>(
 				<div className="flex-1 w-full relative overflow-hidden rounded-lg">
 					{isLoading ? (
 						<div className="absolute inset-0 flex items-center justify-center">
-							<div className="w-6 h-6 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+							<div className="size-6 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
 						</div>
 					) : documentCount > 0 || memoryCount > 0 ? (
 						<StaticGraphPreview
@@ -175,7 +175,7 @@ export const GraphCard = memo<GraphCardProps>(
 					)}
 
 					<div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
-						<Expand className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+						<Expand className="size-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
 					</div>
 				</div>
 

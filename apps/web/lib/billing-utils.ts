@@ -1,13 +1,4 @@
 /**
- * Convert tokens to credits
- * 100,000 tokens = 1 credit
- * Uses floor rounding (2.9 credits shows as 2, only shows 3 when it hits 3.0)
- */
-export function tokensToCredits(tokens: number): number {
-	return Math.floor(tokens / 100_000)
-}
-
-/**
  * Format a number with K/M suffix for display
  * @example formatUsageNumber(1500000) => "1.5M"
  * @example formatUsageNumber(50000) => "50K"

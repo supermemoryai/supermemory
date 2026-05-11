@@ -6,7 +6,10 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	type Dispatch,
+	type RefObject,
 	type ReactNode,
+	type SetStateAction,
 } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@lib/auth-context"
@@ -30,12 +33,25 @@ import {
 	RaycastIcon,
 } from "@/components/integration-icons"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
-import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+	Sparkles,
+	ChevronLeft,
+	ChevronRight,
+	AlertCircle,
+	CheckCircle2,
+	Loader2,
+} from "lucide-react"
 import { analytics } from "@/lib/analytics"
 import { consumePendingConnectUrl } from "@/lib/constants"
 
 type DetectedSource = "x" | "linkedin" | "resume" | null
 type Status = "idle" | "processing" | "done" | "error"
+type AccountLookupStatus = "checking" | "found" | "not_found" | "error"
+type AccountLookup = {
+	source: "x" | "linkedin"
+	status: AccountLookupStatus
+	message: string
+}
 type DocStatus =
 	| "unknown"
 	| "queued"
@@ -54,7 +70,7 @@ function XIcon({ className }: { className?: string }) {
 			fill="currentColor"
 			aria-hidden="true"
 		>
-			<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+			<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24H16.17l-4.71-6.23-5.4 6.23H2.74l7.73-8.84L1.25 2.25H8.08l4.25 5.62 5.91-5.62Zm-1.16 17.52h1.83L7.08 4.13H5.12z" />
 		</svg>
 	)
 }
@@ -67,7 +83,7 @@ function LinkedInIcon({ className }: { className?: string }) {
 			fill="currentColor"
 			aria-hidden="true"
 		>
-			<path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+			<path d="M20.45 20.45h-3.55v-5.57c0-1.33-.027-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.046c.477-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.29zM5.34 7.43a2.06 2.06 0 0 1-2.06-2.06 2.06 2.06 0 1 1 2.06 2.06zm1.78 13.02H3.56V9h3.56v11.45zM22.23 0H1.77C.792 0 0 .774 0 1.73v20.54C0 23.23.792 24 1.77 24h20.45C23.2 24 24 23.23 24 22.27V1.73C24 .774 23.2 0 22.22 0h.003z" />
 		</svg>
 	)
 }
@@ -77,7 +93,7 @@ function SubmitArrow() {
 		<svg width="12" height="9" viewBox="0 0 12 9" fill="none">
 			<title>Submit</title>
 			<path
-				d="M8.05099 9.60156L6.93234 8.49987L9.00014 6.44902L9.62726 6.04224L9.54251 5.788L8.79675 5.90665H0.0170898V4.31343H8.79675L9.54251 4.43207L9.62726 4.17783L9.00014 3.77105L6.93234 1.72021L8.05099 0.601562L11.9832 4.53377V5.68631L8.05099 9.60156Z"
+				d="M8.05 9.6L6.93 8.5L9 6.45L9.63 6.04L9.54 5.79L8.8 5.91H0.02V4.31H8.8L9.54 4.43L9.63 4.18L9 3.77L6.93 1.72L8.05 0.6L11.98 4.53V5.69L8.05 9.6Z"
 				fill="#FAFAFA"
 			/>
 		</svg>
@@ -122,8 +138,13 @@ const SOURCE_ICON: Record<
 }
 
 const SOURCE_LABEL: Record<"x" | "linkedin", string> = {
-	x: "X profile detected — press Enter to continue",
-	linkedin: "LinkedIn profile detected — press Enter to continue",
+	x: "X profile detected - checking account",
+	linkedin: "LinkedIn profile detected - checking account",
+}
+
+const SOURCE_NAME: Record<"x" | "linkedin", string> = {
+	x: "X",
+	linkedin: "LinkedIn",
 }
 
 type SpotlightItem = {
@@ -353,6 +374,167 @@ function buildSpotlightCatalog(
 	}
 }
 
+function isAccountSource(source: DetectedSource): source is "x" | "linkedin" {
+	return source === "x" || source === "linkedin"
+}
+
+function useSpotlightAutoRotation(
+	status: Status,
+	pauseSpotlight: boolean,
+	setSpotlightCategory: Dispatch<SetStateAction<SpotlightCategoryId>>,
+) {
+	useEffect(() => {
+		if (status !== "processing") return
+		if (pauseSpotlight) return
+		const n = SPOTLIGHT_CATEGORY_ORDER.length
+		if (n <= 1) return
+		const t = setInterval(() => {
+			setSpotlightCategory((cur) => {
+				const i = SPOTLIGHT_CATEGORY_ORDER.indexOf(cur)
+				const from = i >= 0 ? i : 0
+				const next = (from + 1) % n
+				return SPOTLIGHT_CATEGORY_ORDER[next] ?? cur
+			})
+		}, 8000)
+		return () => clearInterval(t)
+	}, [status, pauseSpotlight, setSpotlightCategory])
+}
+
+function useInitialInputFocus(inputRef: RefObject<HTMLInputElement | null>) {
+	useEffect(() => {
+		const t = setTimeout(() => inputRef.current?.focus(), 500)
+		return () => clearTimeout(t)
+	}, [inputRef])
+}
+
+function useAccountLookup({
+	detected,
+	status,
+	value,
+}: {
+	detected: DetectedSource
+	status: Status
+	value: string
+}) {
+	const [accountLookup, setAccountLookup] = useState<AccountLookup | null>(null)
+
+	useEffect(() => {
+		if (status !== "idle") return
+
+		const source = isAccountSource(detected) ? detected : null
+		const trimmedValue = value.trim()
+
+		if (!source || !trimmedValue) {
+			setAccountLookup(null)
+			return
+		}
+
+		const controller = new AbortController()
+		setAccountLookup({
+			source,
+			status: "checking",
+			message: SOURCE_LABEL[source],
+		})
+
+		const timeout = setTimeout(async () => {
+			try {
+				const params = new URLSearchParams({
+					source,
+					value: trimmedValue,
+				})
+				const response = await fetch(
+					`/api/onboarding/account-status?${params.toString()}`,
+					{ signal: controller.signal },
+				)
+				const data: {
+					found?: boolean
+					handle?: string
+					reason?: string
+					verified?: boolean
+				} = await response.json().catch(() => ({}))
+
+				if (controller.signal.aborted) return
+
+				if (response.ok && data.found === true) {
+					const account =
+						source === "x" && data.handle ? ` @${data.handle}` : ""
+					setAccountLookup({
+						source,
+						status: "found",
+						message: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`,
+					})
+					return
+				}
+
+				if (
+					(response.ok && data.found === false) ||
+					data.reason === "invalid"
+				) {
+					setAccountLookup({
+						source,
+						status: "not_found",
+						message: `${SOURCE_NAME[source]} account not found. Check the link and try again.`,
+					})
+					return
+				}
+
+				setAccountLookup({
+					source,
+					status: "error",
+					message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
+				})
+			} catch (err) {
+				if (controller.signal.aborted) return
+				console.error(err)
+				setAccountLookup({
+					source,
+					status: "error",
+					message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
+				})
+			}
+		}, 450)
+
+		return () => {
+			clearTimeout(timeout)
+			controller.abort()
+		}
+	}, [detected, status, value])
+
+	return accountLookup
+}
+
+function usePollingCleanup(
+	pollingRef: RefObject<ReturnType<typeof setInterval> | null>,
+) {
+	useEffect(() => {
+		return () => {
+			if (pollingRef.current) clearInterval(pollingRef.current)
+		}
+	}, [pollingRef])
+}
+
+function useDoneAnimation(
+	status: Status,
+	setStampLanded: Dispatch<SetStateAction<boolean>>,
+	setVisibleSnippets: Dispatch<SetStateAction<number>>,
+) {
+	useEffect(() => {
+		if (status !== "done") return
+		setStampLanded(false)
+		setVisibleSnippets(0)
+		const t1 = setTimeout(() => setStampLanded(true), 400)
+		const t2 = setTimeout(() => setVisibleSnippets(1), 900)
+		const t3 = setTimeout(() => setVisibleSnippets(2), 1200)
+		const t4 = setTimeout(() => setVisibleSnippets(3), 1500)
+		return () => {
+			clearTimeout(t1)
+			clearTimeout(t2)
+			clearTimeout(t3)
+			clearTimeout(t4)
+		}
+	}, [status, setStampLanded, setVisibleSnippets])
+}
+
 export default function OnboardingPage() {
 	const router = useRouter()
 	const { user, organizations, refetchOrganizations, setActiveOrg } = useAuth()
@@ -402,48 +584,11 @@ export default function OnboardingPage() {
 		[spotlightCategory],
 	)
 
-	useEffect(() => {
-		if (status !== "processing") return
-		if (pauseSpotlight) return
-		const n = SPOTLIGHT_CATEGORY_ORDER.length
-		if (n <= 1) return
-		const t = setInterval(() => {
-			setSpotlightCategory((cur) => {
-				const i = SPOTLIGHT_CATEGORY_ORDER.indexOf(cur)
-				const from = i >= 0 ? i : 0
-				const next = (from + 1) % n
-				return SPOTLIGHT_CATEGORY_ORDER[next] ?? cur
-			})
-		}, 8000)
-		return () => clearInterval(t)
-	}, [status, pauseSpotlight])
-
-	useEffect(() => {
-		const t = setTimeout(() => inputRef.current?.focus(), 500)
-		return () => clearTimeout(t)
-	}, [])
-
-	useEffect(() => {
-		return () => {
-			if (pollingRef.current) clearInterval(pollingRef.current)
-		}
-	}, [])
-
-	useEffect(() => {
-		if (status !== "done") return
-		setStampLanded(false)
-		setVisibleSnippets(0)
-		const t1 = setTimeout(() => setStampLanded(true), 400)
-		const t2 = setTimeout(() => setVisibleSnippets(1), 900)
-		const t3 = setTimeout(() => setVisibleSnippets(2), 1200)
-		const t4 = setTimeout(() => setVisibleSnippets(3), 1500)
-		return () => {
-			clearTimeout(t1)
-			clearTimeout(t2)
-			clearTimeout(t3)
-			clearTimeout(t4)
-		}
-	}, [status])
+	useSpotlightAutoRotation(status, pauseSpotlight, setSpotlightCategory)
+	useInitialInputFocus(inputRef)
+	const accountLookup = useAccountLookup({ detected, status, value })
+	usePollingCleanup(pollingRef)
+	useDoneAnimation(status, setStampLanded, setVisibleSnippets)
 
 	const handleChange = (v: string) => {
 		setValue(v)
@@ -605,7 +750,18 @@ export default function OnboardingPage() {
 		}
 	}
 
-	const canSubmit = detected && detected !== "resume"
+	const hasDetectedAccount = detected === "x" || detected === "linkedin"
+	const currentAccountLookup =
+		accountLookup?.source === detected ? accountLookup : null
+	const isCheckingAccount =
+		hasDetectedAccount &&
+		(!currentAccountLookup || currentAccountLookup.status === "checking")
+	const canSubmit = Boolean(
+		hasDetectedAccount &&
+			currentAccountLookup &&
+			currentAccountLookup.status !== "checking" &&
+			currentAccountLookup.status !== "not_found",
+	)
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: full-surface drag-and-drop for resume PDF
@@ -713,6 +869,20 @@ export default function OnboardingPage() {
 										)}
 									/>
 
+									<AnimatePresence>
+										{isCheckingAccount && (
+											<motion.span
+												initial={{ opacity: 0, scale: 0.8 }}
+												animate={{ opacity: 1, scale: 1 }}
+												exit={{ opacity: 0, scale: 0.8 }}
+												transition={{ duration: 0.15 }}
+												className="absolute right-3 flex items-center pointer-events-none"
+											>
+												<Loader2 className="size-4 animate-spin text-[#6BB0FF]" />
+											</motion.span>
+										)}
+									</AnimatePresence>
+
 									{canSubmit && (
 										<motion.button
 											type="button"
@@ -737,9 +907,35 @@ export default function OnboardingPage() {
 											animate={{ opacity: 1, y: 0 }}
 											exit={{ opacity: 0, y: -4 }}
 											transition={{ duration: 0.2 }}
-											className="text-xs text-[#6BB0FF] pl-1"
+											className={cn(
+												"flex items-center gap-1.5 text-xs pl-1",
+												currentAccountLookup?.status === "found" &&
+													"text-[#65D08C]",
+												currentAccountLookup?.status === "not_found" &&
+													"text-[#FF8A8A]",
+												currentAccountLookup?.status === "error" &&
+													"text-[#F0B86A]",
+												(!currentAccountLookup ||
+													currentAccountLookup.status === "checking") &&
+													"text-[#6BB0FF]",
+											)}
 										>
-											{SOURCE_LABEL[detected as "x" | "linkedin"]}
+											{currentAccountLookup?.status === "found" && (
+												<CheckCircle2 className="size-3.5 shrink-0" />
+											)}
+											{currentAccountLookup?.status === "not_found" && (
+												<AlertCircle className="size-3.5 shrink-0" />
+											)}
+											{currentAccountLookup?.status === "error" && (
+												<AlertCircle className="size-3.5 shrink-0" />
+											)}
+											{isCheckingAccount && (
+												<Loader2 className="size-3.5 shrink-0 animate-spin" />
+											)}
+											<span>
+												{currentAccountLookup?.message ??
+													SOURCE_LABEL[detected as "x" | "linkedin"]}
+											</span>
 										</motion.p>
 									)}
 								</AnimatePresence>
@@ -817,7 +1013,7 @@ export default function OnboardingPage() {
 									Finishing your first save
 								</p>
 								<p className="text-sm text-[#6b7c91] leading-relaxed">
-									Most finish in under a minute. Below is optional — ways to add
+									Most finish in under a minute. Below is optional: ways to add
 									more later.
 								</p>
 							</div>
@@ -956,7 +1152,7 @@ export default function OnboardingPage() {
 								</p>
 								<p className="text-sm text-[#8B9DB5] leading-relaxed">
 									Your first save is ready. When you want more, use Integrations
-									for browser, phone, editor, and AI tools — all in one place.
+									for browser, phone, editor, and AI tools, all in one place.
 								</p>
 							</div>
 

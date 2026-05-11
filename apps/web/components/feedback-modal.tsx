@@ -117,7 +117,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 						<DialogPrimitive.Close
 							onClick={handleClose}
 							disabled={isSubmitting}
-							className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+							className="bg-[#0D121A] size-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
 							style={{
 								boxShadow:
 									"0 0.711px 2.842px 0 rgba(0, 0, 0, 0.25), 0.178px 0.178px 0.178px 0 rgba(255, 255, 255, 0.10) inset",
@@ -133,7 +133,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 							value={feedback}
 							onChange={(e) => setFeedback(e.target.value)}
 							onKeyDown={handleKeyDown}
-							placeholder="Share your thoughts..."
+							placeholder="Share your thoughts…"
 							className={cn(
 								"min-h-[120px] bg-[#0D121A] border border-[rgba(115,115,115,0.2)] text-[#fafafa] placeholder:text-[#737373] focus-visible:border-[#2261CA] focus-visible:ring-[#2261CA33] resize-none",
 								dmSansClassName(),
@@ -164,7 +164,7 @@ export function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 								{isSubmitting ? (
 									<>
 										<Loader2 className="size-4 animate-spin mr-2" />
-										Submitting...
+										Submitting…
 									</>
 								) : (
 									"Submit"

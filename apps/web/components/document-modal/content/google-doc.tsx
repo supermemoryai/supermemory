@@ -33,11 +33,11 @@ export function GoogleDocViewer({ url, customId, type }: GoogleDocViewerProps) {
 	}
 
 	return (
-		<div className="flex flex-col h-full w-full overflow-hidden">
+		<div className="flex flex-col size-full overflow-hidden">
 			{loading && (
 				<div className="absolute inset-0 flex items-center justify-center bg-[#14161A] z-10">
 					<div className="flex items-center gap-2 text-gray-400">
-						<Loader2 className="w-5 h-5 animate-spin" />
+						<Loader2 className="size-5 animate-spin" />
 						<span>Loading {typeLabels[type]}...</span>
 					</div>
 				</div>
@@ -49,7 +49,7 @@ export function GoogleDocViewer({ url, customId, type }: GoogleDocViewerProps) {
 			)}
 			<iframe
 				src={embedUrl}
-				className="flex-1 w-full h-full border-0 rounded-[14px]"
+				className="flex-1 size-full border-0 rounded-[14px]"
 				onLoad={() => setLoading(false)}
 				onError={() => {
 					setLoading(false)

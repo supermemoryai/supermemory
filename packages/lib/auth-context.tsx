@@ -54,10 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const setActiveOrg = useCallback(async (slug: string) => {
 		if (!slug) return
 
-		const activeOrg = await authClient.organization.setActive({
+		const res = await authClient.organization.setActive({
 			organizationSlug: slug,
 		})
-		setOrg(activeOrg)
+		setOrg(res?.data ?? null)
 		localStorage.setItem(STORAGE_KEY, slug)
 	}, [])
 
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					if (!one) return
 					if (activeOrgId === one.id) {
 						const full = await authClient.organization.getFullOrganization()
-						if (!cancelled) setOrg(full)
+						if (!cancelled) setOrg(full?.data ?? null)
 					} else {
 						await setActiveOrg(one.slug)
 					}
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					if (match) {
 						if (activeOrgId === match.id) {
 							const full = await authClient.organization.getFullOrganization()
-							if (!cancelled) setOrg(full)
+							if (!cancelled) setOrg(full?.data ?? null)
 						} else {
 							await setActiveOrg(savedSlug)
 						}
@@ -138,13 +138,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					const fromList = orgs.find((o) => o.id === activeOrgId)
 					if (fromList) {
 						const full = await authClient.organization.getFullOrganization()
-						if (!cancelled) setOrg(full)
+						if (!cancelled) setOrg(full?.data ?? null)
 						return
 					}
 				}
 
 				const full = await authClient.organization.getFullOrganization()
-				if (!cancelled) setOrg(full)
+				if (!cancelled) setOrg(full?.data ?? null)
 			} catch (error) {
 				console.error("Failed to restore organization:", error)
 			} finally {

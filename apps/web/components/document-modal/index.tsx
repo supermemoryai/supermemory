@@ -110,10 +110,10 @@ function DeleteButton({
 					transition={{ duration: 0.15 }}
 					onClick={() => setDeleteConfirmOpen(true)}
 					tabIndex={-1}
-					className="bg-[#0D121A] w-7 h-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+					className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
 					disabled={deleteMutation.isPending}
 				>
-					<Trash2Icon className="w-4 h-4 text-red-500" />
+					<Trash2Icon className="size-4 text-red-500" />
 					<span className="sr-only">Delete document</span>
 				</motion.button>
 			) : (
@@ -129,21 +129,21 @@ function DeleteButton({
 						type="button"
 						onClick={() => setDeleteConfirmOpen(false)}
 						disabled={deleteMutation.isPending}
-						className="w-6 h-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						className="size-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						<XIcon className="w-4 h-4 text-[#737373]" />
+						<XIcon className="size-4 text-[#737373]" />
 						<span className="sr-only">Cancel delete</span>
 					</button>
 					<button
 						type="button"
 						onClick={handleDelete}
 						disabled={deleteMutation.isPending}
-						className="w-6 h-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+						className="size-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{deleteMutation.isPending ? (
-							<Loader2 className="w-4 h-4 text-green-500 animate-spin" />
+							<Loader2 className="size-4 text-green-500 animate-spin" />
 						) : (
-							<CheckIcon className="w-4 h-4 text-green-500" />
+							<CheckIcon className="size-4 text-green-500" />
 						)}
 						<span className="sr-only">Confirm delete</span>
 					</button>
@@ -268,17 +268,17 @@ export function DocumentModal({
 								rel="noopener noreferrer"
 								className={cn(
 									"flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
-									isMobile ? "w-7 h-7 justify-center" : "px-3 py-2",
+									isMobile ? "size-7 justify-center" : "px-3 py-2",
 								)}
 							>
 								{!isMobile && (
 									<span className="line-clamp-1">Visit source</span>
 								)}
-								<ArrowUpRightIcon className="w-4 h-4 text-[#737373]" />
+								<ArrowUpRightIcon className="size-4 text-[#737373]" />
 							</a>
 						)}
 						<DialogPrimitive.Close
-							className="bg-[#0D121A] w-7 h-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+							className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
 							data-slot="dialog-close"
 							type="button"
 							tabIndex={-1}

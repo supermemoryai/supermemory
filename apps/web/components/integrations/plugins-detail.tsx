@@ -154,7 +154,7 @@ function ConnectedPluginRow({
 		>
 			<div className="flex items-center gap-3">
 				{info && (
-					<div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
+					<div className="flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
 						<Image
 							alt={info.name}
 							className="size-6"
@@ -187,7 +187,7 @@ function ConnectedPluginRow({
 									"text-[12px] text-[#737373] font-mono",
 								)}
 							>
-								{plugin.keyStart}...
+								{plugin.keyStart}…
 							</span>
 						)}
 					</div>
@@ -237,7 +237,7 @@ function PluginCard({
 			<div className="flex items-start gap-3">
 				<div
 					className={cn(
-						"flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]",
+						"flex size-10 shrink-0 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]",
 						needsProUpgrade && "opacity-50",
 					)}
 				>
@@ -335,7 +335,7 @@ function PluginCard({
 					>
 						{isCurrentlyConnecting ? (
 							<>
-								<Loader className="size-3.5 animate-spin" /> Connecting...
+								<Loader className="size-3.5 animate-spin" /> Connecting…
 							</>
 						) : (
 							"Connect Plugin"
@@ -386,7 +386,7 @@ export function PluginsDetail() {
 	})
 	const [keyCopied, setKeyCopied] = useState(false)
 
-	const hasProProduct = hasActivePlan(autumn.customer?.products, "api_pro")
+	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
 	const { data: pluginsData } = useQuery({
 		queryFn: async () => {
@@ -495,13 +495,18 @@ export function PluginsDetail() {
 
 	const handleUpgrade = async () => {
 		try {
-			await autumn.attach({
-				productId: "api_pro",
-				successUrl: "https://app.supermemory.ai/?view=integrations",
+			const result = await autumn.attach({
+				planId: "api_pro",
+				successUrl: `${window.location.origin}/?view=integrations`,
 			})
-			window.location.reload()
+			if (result?.paymentUrl) {
+				window.open(result.paymentUrl, "_self")
+				return
+			}
+			autumn.refetch?.()
 		} catch (error) {
 			console.error(error)
+			toast.error("Failed to start checkout. Please try again.")
 		}
 	}
 
@@ -614,7 +619,7 @@ export function PluginsDetail() {
 						</DialogHeader>
 						<div className="space-y-4">
 							<p className={cn(dmSans125ClassName(), "text-sm text-[#737373]")}>
-								Save your API key now — you won't be able to see it again.
+								Save your API key now: you won't be able to see it again.
 							</p>
 							<div className="flex items-center gap-2">
 								<input
@@ -632,9 +637,9 @@ export function PluginsDetail() {
 									className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
 								>
 									{keyCopied ? (
-										<Check className="h-4 w-4 text-[#4BA0FA]" />
+										<Check className="size-4 text-[#4BA0FA]" />
 									) : (
-										<Copy className="h-4 w-4" />
+										<Copy className="size-4" />
 									)}
 								</button>
 							</div>

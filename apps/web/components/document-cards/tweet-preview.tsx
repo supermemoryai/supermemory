@@ -105,7 +105,7 @@ function CustomTweetMedia({
 				<img
 					src={previewUrl}
 					alt="Tweet media"
-					className="w-full h-full object-cover"
+					className="size-full object-cover"
 				/>
 				{isVideo && (
 					<div className="absolute inset-0 bg-[rgba(4,5,5,0.8)] flex items-center justify-center">

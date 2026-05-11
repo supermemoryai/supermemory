@@ -200,7 +200,7 @@ export function NextAppResearchCta() {
 								"mt-1 text-[12px] text-[#737373] tracking-[-0.12px]",
 							)}
 						>
-							Share what you want next—we’d love a quick call.
+							Share what you want next. We’d love a quick call.
 						</p>
 						<div className="mt-2.5 flex justify-end">
 							<a

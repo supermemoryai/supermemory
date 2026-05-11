@@ -141,14 +141,14 @@ export function UserProfileMenu({
 					onClick={() => router.push("/settings")}
 					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 				>
-					<Settings className="h-4 w-4 text-[#737373]" />
+					<Settings className="size-4 text-[#737373]" />
 					Settings
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={handleTryOnboarding}
 					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 				>
-					<RotateCcw className="h-4 w-4 text-[#737373]" />
+					<RotateCcw className="size-4 text-[#737373]" />
 					Try onboarding
 				</DropdownMenuItem>
 				{onOpenFeedback ? (
@@ -156,7 +156,7 @@ export function UserProfileMenu({
 						onClick={onOpenFeedback}
 						className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 					>
-						<LifeBuoy className="h-4 w-4 text-[#737373]" />
+						<LifeBuoy className="size-4 text-[#737373]" />
 						Feedback
 					</DropdownMenuItem>
 				) : null}
@@ -166,7 +166,7 @@ export function UserProfileMenu({
 					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 				>
 					<a href="mailto:support@supermemory.com">
-						<HelpCircle className="h-4 w-4 text-[#737373]" />
+						<HelpCircle className="size-4 text-[#737373]" />
 						Help & Support
 					</a>
 				</DropdownMenuItem>
@@ -180,7 +180,7 @@ export function UserProfileMenu({
 						rel="noreferrer"
 					>
 						<svg
-							className="h-4 w-4 text-[#737373]"
+							className="size-4 text-[#737373]"
 							viewBox="0 0 24 24"
 							fill="currentColor"
 							aria-hidden="true"
@@ -195,7 +195,7 @@ export function UserProfileMenu({
 					onClick={handleSignOut}
 					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 				>
-					<LogOut className="h-4 w-4 text-[#737373]" />
+					<LogOut className="size-4 text-[#737373]" />
 					Logout
 				</DropdownMenuItem>
 			</DropdownMenuContent>

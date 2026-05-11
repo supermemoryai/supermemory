@@ -24,7 +24,7 @@ import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
 import { McpPreview } from "./document-cards/mcp-preview"
 import { NotionPreview } from "./document-cards/notion-preview"
-import { getFaviconUrl } from "@/lib/url-helpers"
+import { getFaviconUrl, isSupermemoryFileUrl } from "@/lib/url-helpers"
 import { QuickNoteCard } from "./quick-note-card"
 import type { HighlightItem } from "./highlights-card"
 import { Button } from "@ui/components/button"
@@ -594,7 +594,7 @@ export function MemoriesGrid({
 								)}
 								onClick={() => handleSetViewMode("grid")}
 							>
-								<LayoutGrid className="w-3.5 h-3.5" />
+								<LayoutGrid className="size-3.5" />
 								Grid
 							</button>
 							<button
@@ -609,7 +609,7 @@ export function MemoriesGrid({
 								)}
 								onClick={() => handleSetViewMode("timeline")}
 							>
-								<AlignLeft className="w-3.5 h-3.5" />
+								<AlignLeft className="size-3.5" />
 								Timeline
 							</button>
 						</div>
@@ -618,10 +618,10 @@ export function MemoriesGrid({
 								type="button"
 								aria-label="Select documents"
 								title="Select documents"
-								className="w-8 h-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] hover:border-[#2261CA33] transition-colors cursor-pointer"
+								className="size-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] hover:border-[#2261CA33] transition-colors cursor-pointer"
 								onClick={onEnterSelectionMode}
 							>
-								<BoxSelect className="w-4 h-4 text-[#737373]" />
+								<BoxSelect className="size-4 text-[#737373]" />
 							</button>
 						)}
 					</div>
@@ -675,7 +675,7 @@ export function MemoriesGrid({
 							onClick={handleBulkDeleteClick}
 							disabled={selectedDocumentIds.size === 0 || isBulkDeleting}
 						>
-							<Trash2Icon className="w-3 h-3" />
+							<Trash2Icon className="size-3" />
 							<span>Delete</span>
 							{selectedDocumentIds.size > 0 && (
 								<span className="text-red-400/70">
@@ -690,7 +690,7 @@ export function MemoriesGrid({
 							className="flex items-center gap-1 text-xs px-3 h-7 rounded-full text-[#737373] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
 							onClick={onClearSelection}
 						>
-							<XIcon className="w-3 h-3" />
+							<XIcon className="size-3" />
 							<span>Done</span>
 						</button>
 					</div>
@@ -866,9 +866,9 @@ function ProcessingBadge() {
 
 	return (
 		<div className="flex items-center gap-1">
-			<span className="relative flex h-1.5 w-1.5 shrink-0">
-				<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-				<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-400" />
+			<span className="relative flex size-1.5 shrink-0">
+				<span className="animate-ping absolute inline-flex size-full rounded-full bg-sky-400 opacity-75" />
+				<span className="relative inline-flex rounded-full size-1.5 bg-sky-400" />
 			</span>
 			<span
 				className={cn(
@@ -886,7 +886,7 @@ function DoneBadge() {
 	return (
 		<div className="flex items-center gap-1">
 			<CheckIcon
-				className="w-2.5 h-2.5 text-emerald-400 shrink-0"
+				className="size-2.5 text-emerald-400 shrink-0"
 				strokeWidth={3}
 			/>
 			<span
@@ -947,7 +947,7 @@ const DocumentCard = memo(
 			document.type !== "notion_doc" &&
 			!document.url.includes("x.com") &&
 			!document.url.includes("twitter.com") &&
-			!document.url.includes("files.supermemory.ai") &&
+			!isSupermemoryFileUrl(document.url) &&
 			!document.url.includes("docs.googleapis.com") &&
 			!document.url.includes("notion.so") &&
 			(!document.title || !ogImage)
@@ -1019,11 +1019,11 @@ const DocumentCard = memo(
 						}}
 					>
 						{isSelected ? (
-							<div className="w-3 h-3 rounded-[2.25px] border border-[#369BFD] bg-[#369BFD] flex items-center justify-center">
-								<CheckIcon className="w-2 h-2 text-white" strokeWidth={3} />
+							<div className="size-3 rounded-[2.25px] border border-[#369BFD] bg-[#369BFD] flex items-center justify-center">
+								<CheckIcon className="size-2 text-white" strokeWidth={3} />
 							</div>
 						) : (
-							<div className="w-3 h-3 rounded-[2.25px] border border-[#737373]" />
+							<div className="size-3 rounded-[2.25px] border border-[#737373]" />
 						)}
 					</button>
 				)}
@@ -1062,7 +1062,7 @@ const DocumentCard = memo(
 					) && (
 						<div className="pb-[10px] space-y-1">
 							{document.url &&
-								!document.url.includes("files.supermemory.ai") &&
+								!isSupermemoryFileUrl(document.url) &&
 								(document.title ||
 									(!document.url.includes("x.com") &&
 										!document.url.includes("twitter.com"))) && (
@@ -1080,7 +1080,7 @@ const DocumentCard = memo(
 												<img
 													src={getFaviconUrl(document.url) || ""}
 													alt=""
-													className="w-4 h-4 shrink-0 rounded-lg"
+													className="size-4 shrink-0 rounded-lg"
 													onError={(e) => {
 														e.currentTarget.style.display = "none"
 													}}

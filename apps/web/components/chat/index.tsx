@@ -69,12 +69,12 @@ function ChatEmptyStatePlaceholder({
 			id="chat-empty-state"
 			className="flex flex-col items-center justify-center h-full"
 		>
-			<div className="relative w-32 h-32">
-				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16" />
-				<LogoBgGradient className="w-full h-full" />
+			<div className="relative size-32">
+				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-16" />
+				<LogoBgGradient className="size-full" />
 			</div>
 			<div className="gap-3 flex flex-col items-center justify-center">
-				<p>Ask me anything about your memories...</p>
+				<p>Ask me anything about your memories…</p>
 				<div
 					className={cn(
 						dmSansClassName(),
@@ -164,8 +164,11 @@ export function ChatSidebar({
 	const isMobile = useIsMobile()
 	const isPageDesktop = layout === "page" && !isMobile
 	const [input, setInput] = useState("")
-	const [selectedModel, setSelectedModel] =
-		useState<ModelId>("claude-sonnet-4.6")
+	const [selectedModel, setSelectedModel] = useState<ModelId>(
+		initialSelectedModel ?? "claude-sonnet-4.6",
+	)
+	const selectedModelRef = useRef(selectedModel)
+	selectedModelRef.current = selectedModel
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -187,6 +190,8 @@ export function ChatSidebar({
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
+	const selectedProjectRef = useRef(selectedProject)
+	selectedProjectRef.current = selectedProject
 	const chatSpaceLabel = useMemo(
 		() =>
 			getChatSpaceDisplayLabel({
@@ -206,23 +211,26 @@ export function ChatSidebar({
 		(id: string) => setThreadId(id),
 		[setThreadId],
 	)
+	const chatApiBase =
+		process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
 	const chatTransport = useMemo(
 		() =>
 			new DefaultChatTransport({
-				api: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/chat`,
+				api: `${chatApiBase}/chat`,
 				credentials: "include",
 				prepareSendMessagesRequest: ({ messages }) => ({
 					body: {
 						messages,
 						metadata: {
 							chatId: chatIdRef.current,
-							projectId: selectedProject,
-							model: selectedModel,
+							projectId: selectedProjectRef.current,
+							model: selectedModelRef.current,
 						},
 					},
 				}),
 			}),
-		[selectedProject, selectedModel],
+		[chatApiBase],
 	)
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
@@ -502,6 +510,10 @@ export function ChatSidebar({
 			status !== "streaming" &&
 			sentQueuedMessageRef.current !== queuedMessage
 		) {
+			if (initialSelectedModel && selectedModel !== initialSelectedModel) {
+				setSelectedModel(initialSelectedModel)
+				return
+			}
 			sentQueuedMessageRef.current = queuedMessage
 			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatMessageSent({ source: queuedMessageSource })
@@ -512,6 +524,8 @@ export function ChatSidebar({
 		isChatOpen,
 		queuedMessage,
 		queuedMessageSource,
+		initialSelectedModel,
+		selectedModel,
 		status,
 		sendMessage,
 		onConsumeQueuedMessage,
@@ -608,7 +622,7 @@ export function ChatSidebar({
 					<div className="py-4">
 						{isLoadingThreads ? (
 							<div className="flex items-center justify-center py-8">
-								<SuperLoader label="Loading..." />
+								<SuperLoader label="Loading…" />
 							</div>
 						) : threads.length === 0 ? (
 							<div className="py-8 text-center text-sm text-[#737373]">
@@ -645,7 +659,7 @@ export function ChatSidebar({
 															e.stopPropagation()
 															deleteThread(thread.id)
 														}}
-														className="h-7 w-7 bg-red-500 text-white hover:bg-red-600"
+														className="size-7 bg-red-500 text-white hover:bg-red-600"
 													>
 														<Check className="size-3" />
 													</Button>
@@ -657,7 +671,7 @@ export function ChatSidebar({
 															e.stopPropagation()
 															setConfirmingDeleteId(null)
 														}}
-														className="h-7 w-7"
+														className="size-7"
 													>
 														<XIcon className="size-3 text-[#737373]" />
 													</Button>
@@ -671,7 +685,7 @@ export function ChatSidebar({
 														e.stopPropagation()
 														setConfirmingDeleteId(thread.id)
 													}}
-													className="ml-2 h-7 w-7"
+													className="ml-2 size-7"
 												>
 													<Trash2 className="size-3 text-[#737373]" />
 												</Button>
@@ -869,7 +883,7 @@ export function ChatSidebar({
 					))}
 					{(status === "submitted" || status === "streaming") && (
 						<div className="flex gap-2">
-							<SuperLoader label="Thinking..." />
+							<SuperLoader label="Thinking…" />
 						</div>
 					)}
 				</div>
@@ -951,10 +965,10 @@ export function ChatSidebar({
 					isResponding={status === "submitted" || status === "streaming"}
 					activeStatus={
 						status === "submitted"
-							? "Thinking..."
+							? "Thinking…"
 							: status === "streaming"
-								? "Structuring response..."
-								: "Waiting for input..."
+								? "Structuring response…"
+								: "Waiting for input…"
 					}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={

@@ -30,7 +30,7 @@ export function Title({
 			)}
 		>
 			<div className="pl-1 flex items-center gap-1 shrink-0">
-				<DocumentIcon type={documentType} url={url} className="w-5 h-5" />
+				<DocumentIcon type={documentType} url={url} className="size-5" />
 				{extension && (
 					<p
 						className={cn(dmSansClassName(), "text-[12px] font-semibold")}

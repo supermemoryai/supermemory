@@ -170,7 +170,7 @@ export function IntegrationsView() {
 	const [, setAddDoc] = useQueryState("add", addDocumentParam)
 	const { org } = useAuth()
 	const autumn = useCustomer()
-	const hasProProduct = hasActivePlan(autumn.customer?.products, "api_pro")
+	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
 	const { data: connections = [] } = useQuery({
 		queryKey: ["connections"],

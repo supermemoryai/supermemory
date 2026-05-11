@@ -42,7 +42,7 @@ export const YoutubePreview = memo(function YoutubePreview({
 				<iframe
 					src={embedUrl}
 					title={document.title || "YouTube video"}
-					className="w-full h-full"
+					className="size-full"
 					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 					allowFullScreen
 					loading="lazy"

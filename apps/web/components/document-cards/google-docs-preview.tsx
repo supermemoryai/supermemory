@@ -22,7 +22,7 @@ export function GoogleDocsPreview({
 				<DocumentIcon
 					type={document.type}
 					url={document.url}
-					className="w-4 h-4"
+					className="size-4"
 				/>
 				<p className={cn(dmSansClassName(), "text-[13px] font-semibold")}>
 					{label}

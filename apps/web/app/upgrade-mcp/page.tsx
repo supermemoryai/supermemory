@@ -152,7 +152,7 @@ export default function MigrateMCPPage() {
 									<div className="relative">
 										<div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl" />
 										<div className="relative bg-blue-500/10 p-3 rounded-full border border-blue-500/20">
-											<Zap className="w-6 h-6 text-blue-400" />
+											<Zap className="size-6 text-blue-400" />
 										</div>
 									</div>
 								</div>
@@ -177,7 +177,7 @@ export default function MigrateMCPPage() {
 										className="text-sm font-medium text-slate-200 flex items-center gap-2"
 										htmlFor="mcpUrl"
 									>
-										<Upload className="w-4 h-4" />
+										<Upload className="size-4" />
 										MCP URL
 									</label>
 									<div className="relative">
@@ -231,13 +231,13 @@ export default function MigrateMCPPage() {
 									>
 										{migrateMutation.isPending ? (
 											<>
-												<Spinner className="mr-2 w-4 h-4" />
-												Migrating documents...
+												<Spinner className="mr-2 size-4" />
+												Migrating documents…
 											</>
 										) : (
 											<>
 												Start Upgrade
-												<ArrowRight className="ml-2 w-4 h-4" />
+												<ArrowRight className="ml-2 size-4" />
 											</>
 										)}
 									</Button>
@@ -260,7 +260,7 @@ export default function MigrateMCPPage() {
 											<div className="relative p-4 border border-green-500/20 rounded-xl">
 												<div className="text-green-400">
 													<div className="flex items-center gap-2 mb-2">
-														<CheckCircle className="w-5 h-5" />
+														<CheckCircle className="size-5" />
 														<p className="font-medium">
 															Migration completed successfully!
 														</p>

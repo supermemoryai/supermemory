@@ -32,7 +32,7 @@ export const WebsitePreview = memo(function WebsitePreview({
 					<img
 						src={displayOgImage}
 						alt={document.title || "Website preview"}
-						className="w-full h-full object-cover"
+						className="size-full object-cover"
 						onError={() => setImageError(true)}
 						loading="lazy"
 					/>

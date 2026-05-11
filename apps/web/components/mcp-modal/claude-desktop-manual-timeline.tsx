@@ -168,7 +168,7 @@ export function ClaudeDesktopManualTimeline({
 												</code>
 											</pre>
 											<Button
-												className="absolute top-2 right-2 h-8 w-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
+												className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
 												onClick={onCopySnippet}
 												size="icon"
 												type="button"

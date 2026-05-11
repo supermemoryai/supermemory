@@ -238,13 +238,8 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 
 			if (textareaElement) {
-				if (textareaElement.tagName === "TEXTAREA") {
-					;(textareaElement as HTMLTextAreaElement).dataset.supermemories =
-						`<br>Supermemories of user (only for the reference): ${response.data}</br>`
-				} else {
-					;(textareaElement as HTMLElement).dataset.supermemories =
-						`<br>Supermemories of user (only for the reference): ${response.data}</br>`
-				}
+				textareaElement.dataset.supermemories =
+					`\n\nSupermemories of user (only for the reference): ${response.data}`
 
 				iconElement.dataset.memoriesData = response.data
 
@@ -450,7 +445,7 @@ function updateT3IconFeedback(
 					(document.querySelector("textarea") as HTMLTextAreaElement) ||
 					(document.querySelector('div[contenteditable="true"]') as HTMLElement)
 				if (textareaElement) {
-					textareaElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${updatedMemories}</div>`
+					textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${updatedMemories}`
 				}
 
 				content
@@ -537,7 +532,7 @@ function setupT3PromptCapture() {
 					`${promptContent} ${storedMemories}`
 				promptContent = (textareaElement as HTMLTextAreaElement).value
 			} else {
-				textareaElement.innerHTML = `${textareaElement.innerHTML} ${storedMemories}`
+				textareaElement.appendChild(document.createTextNode(storedMemories))
 				promptContent =
 					textareaElement.textContent || textareaElement.innerText || ""
 			}
