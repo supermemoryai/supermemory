@@ -251,10 +251,14 @@ export default function SettingsPage() {
 	}, [])
 
 	const headerDisplayName =
-		user?.displayUsername || localStorageUsername || user?.name || ""
+		user?.displayUsername ||
+		localStorageUsername ||
+		user?.name ||
+		user?.email?.split("@")[0] ||
+		""
 	const headerPossessive = headerDisplayName
 		? `${headerDisplayName.split(" ")[0]}'s`
-		: ""
+		: "Your"
 
 	return (
 		<div className="h-screen flex flex-col overflow-hidden">
@@ -299,12 +303,12 @@ export default function SettingsPage() {
 			</header>
 			<main className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
 				<div className="flex flex-col md:flex-row md:justify-center gap-4 md:gap-8 lg:gap-12 px-4 md:px-6 pt-4 pb-6 md:h-full">
-					<div className="md:w-auto md:max-w-[380px] shrink-0">
+					<div className="md:flex md:h-full md:min-h-0 md:w-auto md:max-w-[380px] md:flex-col md:overflow-hidden shrink-0">
 						{!isMobile && (
 							<motion.div
 								animate={{
 									scale: 1,
-									padding: 48,
+									padding: 28,
 									paddingTop: 0,
 								}}
 								transition={{
@@ -314,16 +318,16 @@ export default function SettingsPage() {
 								}}
 								className="relative flex items-center justify-center"
 							>
-								<NovaOrb size={175} className="blur-[3px]!" />
-								<UserSupermemory name={user?.name ?? ""} />
+								<NovaOrb size={140} className="blur-[3px]!" />
+								<UserSupermemory name={headerDisplayName} />
 							</motion.div>
 						)}
 						<nav
 							className={cn(
-								"flex gap-2",
+								"flex",
 								isMobile
-									? "flex-row overflow-x-auto pb-2 scrollbar-thin"
-									: "flex-col",
+									? "flex-row gap-2 overflow-x-auto pb-2 scrollbar-thin"
+									: "min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
 								dmSansClassName(),
 							)}
 						>
@@ -338,7 +342,7 @@ export default function SettingsPage() {
 									}}
 									className={cn(
 										"rounded-xl transition-colors flex items-start gap-3 shrink-0",
-										isMobile ? "px-3 py-2 text-sm" : "text-left p-4",
+										isMobile ? "px-3 py-2 text-sm" : "text-left px-3 py-2.5",
 										activeTab === item.id
 											? "bg-[#14161A] text-white shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
 											: "text-white/60 hover:text-white hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
@@ -354,7 +358,7 @@ export default function SettingsPage() {
 									) : (
 										<div className="flex flex-col gap-0.5">
 											<span className="font-medium">{item.label}</span>
-											<span className="text-sm text-white/50">
+											<span className="text-xs leading-snug text-white/50">
 												{item.description}
 											</span>
 										</div>
@@ -363,7 +367,7 @@ export default function SettingsPage() {
 							))}
 
 							{/* Divider */}
-							{!isMobile && <div className="my-1 h-px bg-[#0F1621]" />}
+							{!isMobile && <div className="my-0.5 h-px bg-[#0F1621]" />}
 
 							{DANGER_ITEMS.map((item) => {
 								const colors = DANGER_COLORS[item.color]
@@ -379,7 +383,7 @@ export default function SettingsPage() {
 										onClick={handleClick}
 										className={cn(
 											"rounded-xl transition-colors flex items-start gap-3 shrink-0 group",
-											isMobile ? "px-3 py-2 text-sm" : "text-left p-4",
+											isMobile ? "px-3 py-2 text-sm" : "text-left px-3 py-2.5",
 											"hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 											colors.idle,
 											colors.hover,
@@ -402,7 +406,7 @@ export default function SettingsPage() {
 										) : (
 											<div className="flex flex-col gap-0.5">
 												<span className="font-medium">{item.label}</span>
-												<span className="text-sm opacity-60">
+												<span className="text-xs leading-snug opacity-60">
 													{item.description}
 												</span>
 											</div>

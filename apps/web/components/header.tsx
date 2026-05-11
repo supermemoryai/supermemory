@@ -62,6 +62,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		user?.displayUsername ||
 		(isRestoring ? localStorageUsername : "") ||
 		user?.name ||
+		user?.email?.split("@")[0] ||
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 	return (
