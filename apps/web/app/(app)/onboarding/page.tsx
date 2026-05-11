@@ -6,7 +6,10 @@ import {
 	useCallback,
 	useEffect,
 	useMemo,
+	type Dispatch,
+	type RefObject,
 	type ReactNode,
+	type SetStateAction,
 } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@lib/auth-context"
@@ -30,11 +33,24 @@ import {
 	RaycastIcon,
 } from "@/components/integration-icons"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
-import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+	Sparkles,
+	ChevronLeft,
+	ChevronRight,
+	AlertCircle,
+	CheckCircle2,
+	Loader2,
+} from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
 type DetectedSource = "x" | "linkedin" | "resume" | null
 type Status = "idle" | "processing" | "done" | "error"
+type AccountLookupStatus = "checking" | "found" | "not_found" | "error"
+type AccountLookup = {
+	source: "x" | "linkedin"
+	status: AccountLookupStatus
+	message: string
+}
 type DocStatus =
 	| "unknown"
 	| "queued"
@@ -121,8 +137,13 @@ const SOURCE_ICON: Record<
 }
 
 const SOURCE_LABEL: Record<"x" | "linkedin", string> = {
-	x: "X profile detected — press Enter to continue",
-	linkedin: "LinkedIn profile detected — press Enter to continue",
+	x: "X profile detected - checking account",
+	linkedin: "LinkedIn profile detected - checking account",
+}
+
+const SOURCE_NAME: Record<"x" | "linkedin", string> = {
+	x: "X",
+	linkedin: "LinkedIn",
 }
 
 type SpotlightItem = {
@@ -352,6 +373,167 @@ function buildSpotlightCatalog(
 	}
 }
 
+function isAccountSource(source: DetectedSource): source is "x" | "linkedin" {
+	return source === "x" || source === "linkedin"
+}
+
+function useSpotlightAutoRotation(
+	status: Status,
+	pauseSpotlight: boolean,
+	setSpotlightCategory: Dispatch<SetStateAction<SpotlightCategoryId>>,
+) {
+	useEffect(() => {
+		if (status !== "processing") return
+		if (pauseSpotlight) return
+		const n = SPOTLIGHT_CATEGORY_ORDER.length
+		if (n <= 1) return
+		const t = setInterval(() => {
+			setSpotlightCategory((cur) => {
+				const i = SPOTLIGHT_CATEGORY_ORDER.indexOf(cur)
+				const from = i >= 0 ? i : 0
+				const next = (from + 1) % n
+				return SPOTLIGHT_CATEGORY_ORDER[next] ?? cur
+			})
+		}, 8000)
+		return () => clearInterval(t)
+	}, [status, pauseSpotlight, setSpotlightCategory])
+}
+
+function useInitialInputFocus(inputRef: RefObject<HTMLInputElement | null>) {
+	useEffect(() => {
+		const t = setTimeout(() => inputRef.current?.focus(), 500)
+		return () => clearTimeout(t)
+	}, [inputRef])
+}
+
+function useAccountLookup({
+	detected,
+	status,
+	value,
+}: {
+	detected: DetectedSource
+	status: Status
+	value: string
+}) {
+	const [accountLookup, setAccountLookup] = useState<AccountLookup | null>(null)
+
+	useEffect(() => {
+		if (status !== "idle") return
+
+		const source = isAccountSource(detected) ? detected : null
+		const trimmedValue = value.trim()
+
+		if (!source || !trimmedValue) {
+			setAccountLookup(null)
+			return
+		}
+
+		const controller = new AbortController()
+		setAccountLookup({
+			source,
+			status: "checking",
+			message: SOURCE_LABEL[source],
+		})
+
+		const timeout = setTimeout(async () => {
+			try {
+				const params = new URLSearchParams({
+					source,
+					value: trimmedValue,
+				})
+				const response = await fetch(
+					`/api/onboarding/account-status?${params.toString()}`,
+					{ signal: controller.signal },
+				)
+				const data: {
+					found?: boolean
+					handle?: string
+					reason?: string
+					verified?: boolean
+				} = await response.json().catch(() => ({}))
+
+				if (controller.signal.aborted) return
+
+				if (response.ok && data.found === true) {
+					const account =
+						source === "x" && data.handle ? ` @${data.handle}` : ""
+					setAccountLookup({
+						source,
+						status: "found",
+						message: `${SOURCE_NAME[source]} account${account} found - press Enter to continue`,
+					})
+					return
+				}
+
+				if (
+					(response.ok && data.found === false) ||
+					data.reason === "invalid"
+				) {
+					setAccountLookup({
+						source,
+						status: "not_found",
+						message: `${SOURCE_NAME[source]} account not found. Check the link and try again.`,
+					})
+					return
+				}
+
+				setAccountLookup({
+					source,
+					status: "error",
+					message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
+				})
+			} catch (err) {
+				if (controller.signal.aborted) return
+				console.error(err)
+				setAccountLookup({
+					source,
+					status: "error",
+					message: `Could not verify ${SOURCE_NAME[source]} account. You can still continue.`,
+				})
+			}
+		}, 450)
+
+		return () => {
+			clearTimeout(timeout)
+			controller.abort()
+		}
+	}, [detected, status, value])
+
+	return accountLookup
+}
+
+function usePollingCleanup(
+	pollingRef: RefObject<ReturnType<typeof setInterval> | null>,
+) {
+	useEffect(() => {
+		return () => {
+			if (pollingRef.current) clearInterval(pollingRef.current)
+		}
+	}, [pollingRef])
+}
+
+function useDoneAnimation(
+	status: Status,
+	setStampLanded: Dispatch<SetStateAction<boolean>>,
+	setVisibleSnippets: Dispatch<SetStateAction<number>>,
+) {
+	useEffect(() => {
+		if (status !== "done") return
+		setStampLanded(false)
+		setVisibleSnippets(0)
+		const t1 = setTimeout(() => setStampLanded(true), 400)
+		const t2 = setTimeout(() => setVisibleSnippets(1), 900)
+		const t3 = setTimeout(() => setVisibleSnippets(2), 1200)
+		const t4 = setTimeout(() => setVisibleSnippets(3), 1500)
+		return () => {
+			clearTimeout(t1)
+			clearTimeout(t2)
+			clearTimeout(t3)
+			clearTimeout(t4)
+		}
+	}, [status, setStampLanded, setVisibleSnippets])
+}
+
 export default function OnboardingPage() {
 	const router = useRouter()
 	const { user, organizations, refetchOrganizations, setActiveOrg } = useAuth()
@@ -395,48 +577,11 @@ export default function OnboardingPage() {
 		[spotlightCategory],
 	)
 
-	useEffect(() => {
-		if (status !== "processing") return
-		if (pauseSpotlight) return
-		const n = SPOTLIGHT_CATEGORY_ORDER.length
-		if (n <= 1) return
-		const t = setInterval(() => {
-			setSpotlightCategory((cur) => {
-				const i = SPOTLIGHT_CATEGORY_ORDER.indexOf(cur)
-				const from = i >= 0 ? i : 0
-				const next = (from + 1) % n
-				return SPOTLIGHT_CATEGORY_ORDER[next] ?? cur
-			})
-		}, 8000)
-		return () => clearInterval(t)
-	}, [status, pauseSpotlight])
-
-	useEffect(() => {
-		const t = setTimeout(() => inputRef.current?.focus(), 500)
-		return () => clearTimeout(t)
-	}, [])
-
-	useEffect(() => {
-		return () => {
-			if (pollingRef.current) clearInterval(pollingRef.current)
-		}
-	}, [])
-
-	useEffect(() => {
-		if (status !== "done") return
-		setStampLanded(false)
-		setVisibleSnippets(0)
-		const t1 = setTimeout(() => setStampLanded(true), 400)
-		const t2 = setTimeout(() => setVisibleSnippets(1), 900)
-		const t3 = setTimeout(() => setVisibleSnippets(2), 1200)
-		const t4 = setTimeout(() => setVisibleSnippets(3), 1500)
-		return () => {
-			clearTimeout(t1)
-			clearTimeout(t2)
-			clearTimeout(t3)
-			clearTimeout(t4)
-		}
-	}, [status])
+	useSpotlightAutoRotation(status, pauseSpotlight, setSpotlightCategory)
+	useInitialInputFocus(inputRef)
+	const accountLookup = useAccountLookup({ detected, status, value })
+	usePollingCleanup(pollingRef)
+	useDoneAnimation(status, setStampLanded, setVisibleSnippets)
 
 	const handleChange = (v: string) => {
 		setValue(v)
@@ -597,7 +742,18 @@ export default function OnboardingPage() {
 		}
 	}
 
-	const canSubmit = detected && detected !== "resume"
+	const hasDetectedAccount = detected === "x" || detected === "linkedin"
+	const currentAccountLookup =
+		accountLookup?.source === detected ? accountLookup : null
+	const isCheckingAccount =
+		hasDetectedAccount &&
+		(!currentAccountLookup || currentAccountLookup.status === "checking")
+	const canSubmit = Boolean(
+		hasDetectedAccount &&
+			currentAccountLookup &&
+			currentAccountLookup.status !== "checking" &&
+			currentAccountLookup.status !== "not_found",
+	)
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: full-surface drag-and-drop for resume PDF
@@ -705,6 +861,20 @@ export default function OnboardingPage() {
 										)}
 									/>
 
+									<AnimatePresence>
+										{isCheckingAccount && (
+											<motion.span
+												initial={{ opacity: 0, scale: 0.8 }}
+												animate={{ opacity: 1, scale: 1 }}
+												exit={{ opacity: 0, scale: 0.8 }}
+												transition={{ duration: 0.15 }}
+												className="absolute right-3 flex items-center pointer-events-none"
+											>
+												<Loader2 className="size-4 animate-spin text-[#6BB0FF]" />
+											</motion.span>
+										)}
+									</AnimatePresence>
+
 									{canSubmit && (
 										<motion.button
 											type="button"
@@ -729,9 +899,35 @@ export default function OnboardingPage() {
 											animate={{ opacity: 1, y: 0 }}
 											exit={{ opacity: 0, y: -4 }}
 											transition={{ duration: 0.2 }}
-											className="text-xs text-[#6BB0FF] pl-1"
+											className={cn(
+												"flex items-center gap-1.5 text-xs pl-1",
+												currentAccountLookup?.status === "found" &&
+													"text-[#65D08C]",
+												currentAccountLookup?.status === "not_found" &&
+													"text-[#FF8A8A]",
+												currentAccountLookup?.status === "error" &&
+													"text-[#F0B86A]",
+												(!currentAccountLookup ||
+													currentAccountLookup.status === "checking") &&
+													"text-[#6BB0FF]",
+											)}
 										>
-											{SOURCE_LABEL[detected as "x" | "linkedin"]}
+											{currentAccountLookup?.status === "found" && (
+												<CheckCircle2 className="size-3.5 shrink-0" />
+											)}
+											{currentAccountLookup?.status === "not_found" && (
+												<AlertCircle className="size-3.5 shrink-0" />
+											)}
+											{currentAccountLookup?.status === "error" && (
+												<AlertCircle className="size-3.5 shrink-0" />
+											)}
+											{isCheckingAccount && (
+												<Loader2 className="size-3.5 shrink-0 animate-spin" />
+											)}
+											<span>
+												{currentAccountLookup?.message ??
+													SOURCE_LABEL[detected as "x" | "linkedin"]}
+											</span>
 										</motion.p>
 									)}
 								</AnimatePresence>
