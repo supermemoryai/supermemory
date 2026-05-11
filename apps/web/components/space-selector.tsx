@@ -297,9 +297,15 @@ export function SpaceSelector({
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
-					align="start"
+					align={compact ? "end" : "start"}
+					alignOffset={0}
+					sideOffset={compact ? 8 : 4}
+					collisionPadding={compact ? 16 : 8}
 					className={cn(
-						"min-w-[200px] max-w-[min(calc(100vw-1.5rem),20rem)] overflow-hidden p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+						"min-w-[200px] overflow-hidden p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+						compact
+							? "w-[min(calc(100vw-3rem),18rem)]"
+							: "max-w-[min(calc(100vw-2rem),20rem)]",
 						dmSansClassName(),
 						contentClassName,
 					)}

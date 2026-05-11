@@ -71,7 +71,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="-ml-2 flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+							className="flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none md:-ml-2"
 						>
 							<Logo className="h-6 md:h-7" />
 							{!isMobile && userName && (
