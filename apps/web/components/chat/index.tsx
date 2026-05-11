@@ -561,7 +561,11 @@ export function ChatSidebar({
 		const lastMessage = messages[messages.length - 1]
 		const isLastMessageFromAssistant = lastMessage?.role === "assistant"
 
-		if (isStreaming && isLastMessageFromAssistant && isScrolledToBottomRef.current) {
+		if (
+			isStreaming &&
+			isLastMessageFromAssistant &&
+			isScrolledToBottomRef.current
+		) {
 			scrollToBottom()
 		}
 	}, [status, messages, scrollToBottom])
