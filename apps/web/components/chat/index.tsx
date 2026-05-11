@@ -553,6 +553,45 @@ export function ChatSidebar({
 		checkIfScrolledToBottom()
 	}, [messages, checkIfScrolledToBottom])
 
+	useEffect(() => {
+		const isStreaming = status === "streaming"
+		const lastMessage = messages[messages.length - 1]
+		const isLastMessageFromAssistant = lastMessage?.role === "assistant"
+
+		if (isStreaming && isLastMessageFromAssistant && isScrolledToBottom) {
+			scrollToBottom()
+		}
+	}, [status, messages, isScrolledToBottom, scrollToBottom])
+
+	useEffect(() => {
+		const container = messagesContainerRef.current
+		if (!container) return
+
+		const isStreaming = status === "streaming"
+		if (!isStreaming) return
+
+		const mutationObserver = new MutationObserver(() => {
+			if (isScrolledToBottom) {
+				requestAnimationFrame(() => {
+					scrollToBottom()
+				})
+			}
+		})
+
+		const messagesWrapper = container.firstElementChild
+		if (messagesWrapper) {
+			mutationObserver.observe(messagesWrapper, {
+				childList: true,
+				subtree: true,
+				characterData: true,
+			})
+		}
+
+		return () => {
+			mutationObserver.disconnect()
+		}
+	}, [status, isScrolledToBottom, scrollToBottom])
+
 	// Add scroll event listener to track scroll position
 	useEffect(() => {
 		const container = messagesContainerRef.current
