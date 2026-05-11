@@ -187,6 +187,7 @@ export function ChatSidebar({
 		null,
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const isScrolledToBottomRef = useRef(true)
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
@@ -296,6 +297,7 @@ export function ChatSidebar({
 		const { scrollTop, scrollHeight, clientHeight } = container
 		const distanceFromBottom = scrollHeight - scrollTop - clientHeight
 		const isAtBottom = distanceFromBottom <= 20
+		isScrolledToBottomRef.current = isAtBottom
 		setIsScrolledToBottom(isAtBottom)
 	}, [])
 
@@ -303,6 +305,7 @@ export function ChatSidebar({
 		if (messagesContainerRef.current) {
 			messagesContainerRef.current.scrollTop =
 				messagesContainerRef.current.scrollHeight
+			isScrolledToBottomRef.current = true
 			setIsScrolledToBottom(true)
 		}
 	}, [])
@@ -571,26 +574,23 @@ export function ChatSidebar({
 		if (!isStreaming) return
 
 		const mutationObserver = new MutationObserver(() => {
-			if (isScrolledToBottom) {
+			if (isScrolledToBottomRef.current) {
 				requestAnimationFrame(() => {
 					scrollToBottom()
 				})
 			}
 		})
 
-		const messagesWrapper = container.firstElementChild
-		if (messagesWrapper) {
-			mutationObserver.observe(messagesWrapper, {
-				childList: true,
-				subtree: true,
-				characterData: true,
-			})
-		}
+		mutationObserver.observe(container, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+		})
 
 		return () => {
 			mutationObserver.disconnect()
 		}
-	}, [status, isScrolledToBottom, scrollToBottom])
+	}, [status, scrollToBottom])
 
 	// Add scroll event listener to track scroll position
 	useEffect(() => {
