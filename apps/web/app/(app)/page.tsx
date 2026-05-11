@@ -710,12 +710,7 @@ export default function NewPage() {
 				</AnimatePresence>
 
 				{isDashboardShell && (
-					<div
-						className={cn(
-							"pointer-events-none fixed inset-x-0 z-30 bg-gradient-to-t from-black via-black/40 to-transparent pt-12",
-							isMobile ? "bottom-[4.5rem]" : "bottom-0",
-						)}
-					>
+					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black via-black/40 to-transparent pt-12">
 						<div className="pointer-events-auto">
 							<HomeChatComposer onStartChat={handleHomeChatStart} />
 						</div>
