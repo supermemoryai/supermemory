@@ -7,7 +7,7 @@ import { hasActivePlan } from "@lib/queries"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, Plus, Trash2, Zap } from "lucide-react"
+import { Check, History, Loader2, Play, Plus, Trash2, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { useQueryState } from "nuqs"
@@ -20,6 +20,11 @@ import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
+import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
+import { SyncHistorySheet } from "@/components/settings/sync-history-sheet"
+import { useTriggerSync } from "@/hooks/use-trigger-sync"
+import { formatRelativeTime } from "@/components/settings/sync-utils"
+import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
@@ -128,64 +133,29 @@ function PillButton({
 	)
 }
 
-function ConnectionStatusBadge({ connected }: { connected: boolean }) {
-	return (
-		<div className="flex items-center gap-2">
-			<div
-				className={cn(
-					"size-[7px] rounded-full",
-					connected ? "bg-[#00AC3F]" : "bg-[#737373]",
-				)}
-			/>
-			<span
-				className={cn(
-					dmSans125ClassName(),
-					"font-medium text-[16px] tracking-[-0.16px]",
-					connected ? "text-[#00AC3F]" : "text-[#737373]",
-				)}
-			>
-				{connected ? "Connected" : "Disconnected"}
-			</span>
-		</div>
-	)
-}
-
 function ConnectionRow({
 	connection,
 	onDelete,
 	isDeleting,
 	disabled,
 	projects,
+	onTriggerSync,
+	isSyncing,
+	onViewHistory,
 }: {
 	connection: Connection
 	onDelete: () => void
 	isDeleting: boolean
 	disabled?: boolean
 	projects: Project[]
+	onTriggerSync: () => void
+	isSyncing: boolean
+	onViewHistory: () => void
 }) {
 	const config = CONNECTORS[connection.provider as ConnectorProvider]
 	if (!config) return null
 
 	const Icon = config.icon
-	// Check if connection is active: if expiresAt exists and is in the future, or if no expiresAt
-	const isConnected =
-		!connection.expiresAt || new Date(connection.expiresAt) > new Date()
-
-	// Format relative time
-	const formatRelativeTime = (date: string | null | undefined) => {
-		if (!date) return "Never"
-		const d = new Date(date)
-		const now = new Date()
-		const diffMs = now.getTime() - d.getTime()
-		const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-		const diffDays = Math.floor(diffHours / 24)
-
-		if (diffHours < 1) return "Just now"
-		if (diffHours < 24) return `${diffHours}h ago`
-		if (diffDays === 1) return "Yesterday"
-		if (diffDays < 7) return `${diffDays} days ago`
-		return d.toLocaleDateString()
-	}
 
 	const getProjectDisplayName = (containerTag: string): string => {
 		if (containerTag === DEFAULT_PROJECT_ID) return "Default Project"
@@ -224,7 +194,16 @@ function ConnectionRow({
 							>
 								{config.title}
 							</span>
-							<ConnectionStatusBadge connected={isConnected} />
+							<SyncStatusBadge
+								syncInProgress={
+									(connection.metadata as Record<string, unknown>)
+										?.syncInProgress as boolean | undefined
+								}
+								lastSyncedAt={
+									(connection.metadata as Record<string, unknown>)
+										?.lastSyncedAt as number | undefined
+								}
+							/>
 						</div>
 						<span
 							className={cn(
@@ -235,15 +214,48 @@ function ConnectionRow({
 							{connection.email || "Unknown"}
 						</span>
 					</div>
-					<button
-						type="button"
-						onClick={onDelete}
-						disabled={isDeleting || disabled}
-						className="text-[#737373] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-						aria-label="Delete connection"
-					>
-						<Trash2 className="size-[22px]" />
-					</button>
+					<div className="flex items-center gap-0.5">
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								onTriggerSync()
+							}}
+							disabled={isSyncing || disabled}
+							className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label={isSyncing ? "Sync in progress" : "Sync now"}
+							title={isSyncing ? "Sync in progress" : "Sync now"}
+						>
+							{isSyncing ? (
+								<Loader2 className="size-[18px] animate-spin" />
+							) : (
+								<Play className="size-[18px]" />
+							)}
+						</button>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								onViewHistory()
+							}}
+							disabled={disabled}
+							className="text-[#737373] hover:text-[#FAFAFA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label="Sync history"
+							title="Sync history"
+						>
+							<History className="size-[18px]" />
+						</button>
+						<button
+							type="button"
+							onClick={onDelete}
+							disabled={isDeleting || disabled}
+							className="text-[#737373] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label="Delete connection"
+							title="Remove connection"
+						>
+							<Trash2 className="size-[18px]" />
+						</button>
+					</div>
 				</div>
 
 				{/* Meta row */}
@@ -267,7 +279,12 @@ function ConnectionRow({
 							"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
 						)}
 					>
-						Added: {formatRelativeTime(connection.createdAt)}
+						Last synced:{" "}
+						{formatRelativeTime(
+							(connection.metadata as Record<string, unknown>)?.lastSyncedAt as
+								| number
+								| undefined,
+						)}
 					</span>
 					<div className="size-[3px] rounded-full bg-[#737373]" />
 					<span
@@ -342,6 +359,11 @@ export default function ConnectionsMCP() {
 		open: boolean
 		connection: Connection | null
 	}>({ open: false, connection: null })
+	const triggerSync = useTriggerSync()
+	const [syncHistorySheet, setSyncHistorySheet] = useState<{
+		open: boolean
+		connection: Connection | null
+	}>({ open: false, connection: null })
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
@@ -375,7 +397,17 @@ export default function ConnectionsMCP() {
 			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
-		refetchInterval: 60 * 1000,
+		refetchInterval: (query) => {
+			const conns = query.state.data as Connection[] | undefined
+			if (
+				conns?.some(
+					(c) => (c.metadata as Record<string, unknown>)?.syncInProgress,
+				)
+			) {
+				return 5000
+			}
+			return false
+		},
 		enabled: hasProProduct,
 	})
 
@@ -496,6 +528,27 @@ export default function ConnectionsMCP() {
 										isDeleting={deleteConnectionMutation.isPending}
 										disabled={!hasProProduct}
 										projects={projects}
+										onTriggerSync={() =>
+											triggerSync.mutate({
+												connectionId: connection.id,
+												provider: connection.provider as ImportProvider,
+												containerTags: (
+													connection as Connection & {
+														containerTags?: string[]
+													}
+												).containerTags,
+											})
+										}
+										isSyncing={
+											(triggerSync.isPending &&
+												triggerSync.variables?.connectionId ===
+													connection.id) ||
+											!!(connection.metadata as Record<string, unknown>)
+												?.syncInProgress
+										}
+										onViewHistory={() =>
+											setSyncHistorySheet({ open: true, connection })
+										}
 									/>
 								))
 							) : (
@@ -593,6 +646,14 @@ export default function ConnectionsMCP() {
 					}
 				}}
 				isDeleting={deleteConnectionMutation.isPending}
+			/>
+
+			<SyncHistorySheet
+				open={syncHistorySheet.open}
+				onOpenChange={(open) => {
+					if (!open) setSyncHistorySheet({ open: false, connection: null })
+				}}
+				connection={syncHistorySheet.connection}
 			/>
 		</div>
 	)
