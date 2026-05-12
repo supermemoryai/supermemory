@@ -320,6 +320,11 @@ const PLUGIN_DISPLAY_CATALOG: Record<
 		icon: "/images/plugins/hermes.svg",
 		type: "Plugin",
 	},
+	codex: {
+		name: "OpenAI Codex",
+		icon: "/images/plugins/codex.svg",
+		type: "Plugin",
+	},
 }
 
 // Types for tool usage

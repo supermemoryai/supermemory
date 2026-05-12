@@ -88,6 +88,17 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 		],
 		icon: "/images/plugins/cursor.svg",
 	},
+	codex: {
+		name: "OpenAI Codex",
+		description:
+			"Persistent memory for OpenAI Codex CLI. Remembers your coding context, patterns, and decisions across sessions.",
+		features: [
+			"Auto-recalls relevant context before each prompt",
+			"Captures coding decisions and patterns automatically",
+			"Builds persistent user profile across projects",
+		],
+		icon: "/images/plugins/codex.svg",
+	},
 }
 
 function getPluginName(client: string): string {
