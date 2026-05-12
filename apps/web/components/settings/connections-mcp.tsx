@@ -7,7 +7,16 @@ import { hasActivePlan } from "@lib/queries"
 import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, History, Loader2, Play, Plus, Trash2, Zap } from "lucide-react"
+import {
+	Check,
+	ChevronDown,
+	History,
+	Loader2,
+	Play,
+	Plus,
+	Trash2,
+	Zap,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { useQueryState } from "nuqs"
@@ -21,7 +30,7 @@ import { addDocumentParam } from "@/lib/search-params"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
 import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
-import { SyncHistorySheet } from "@/components/settings/sync-history-sheet"
+import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
@@ -157,7 +166,6 @@ function ConnectionRow({
 	projects,
 	onTriggerSync,
 	isSyncing,
-	onViewHistory,
 }: {
 	connection: Connection
 	onDelete: () => void
@@ -166,8 +174,8 @@ function ConnectionRow({
 	projects: Project[]
 	onTriggerSync: () => void
 	isSyncing: boolean
-	onViewHistory: () => void
 }) {
+	const [historyOpen, setHistoryOpen] = useState(false)
 	const config = CONNECTORS[connection.provider as ConnectorProvider]
 	if (!config) return null
 
@@ -259,14 +267,26 @@ function ConnectionRow({
 							type="button"
 							onClick={(e) => {
 								e.stopPropagation()
-								onViewHistory()
+								setHistoryOpen((v) => !v)
 							}}
 							disabled={disabled}
-							className="text-[#737373] hover:text-[#FAFAFA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
 							aria-label="Sync history"
-							title="Sync history"
+							aria-expanded={historyOpen}
+							title={historyOpen ? "Hide sync history" : "Sync history"}
+							className={cn(
+								"transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5 flex items-center gap-0.5",
+								historyOpen
+									? "text-[#FAFAFA] bg-white/5"
+									: "text-[#737373] hover:text-[#FAFAFA]",
+							)}
 						>
 							<History className="size-[18px]" />
+							<ChevronDown
+								className={cn(
+									"size-3 transition-transform",
+									historyOpen && "rotate-180",
+								)}
+							/>
 						</button>
 						<button
 							type="button"
@@ -314,6 +334,15 @@ function ConnectionRow({
 						{meta.documentCount} {config.documentLabel} connected
 					</span>
 				</div>
+
+				{historyOpen && (
+					<div className="border-t border-[rgba(82,89,102,0.15)] pt-4">
+						<SyncHistoryPanel
+							connectionId={connection.id}
+							isOpen={historyOpen}
+						/>
+					</div>
+				)}
 			</div>
 		</div>
 	)
@@ -378,10 +407,6 @@ export default function ConnectionsMCP() {
 		connection: Connection | null
 	}>({ open: false, connection: null })
 	const triggerSync = useTriggerSync()
-	const [syncHistorySheet, setSyncHistorySheet] = useState<{
-		open: boolean
-		connection: Connection | null
-	}>({ open: false, connection: null })
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
@@ -555,9 +580,6 @@ export default function ConnectionsMCP() {
 													connection.id) ||
 											getConnectionMeta(connection).syncInProgress
 										}
-										onViewHistory={() =>
-											setSyncHistorySheet({ open: true, connection })
-										}
 									/>
 								))
 							) : (
@@ -657,14 +679,6 @@ export default function ConnectionsMCP() {
 					}
 				}}
 				isDeleting={deleteConnectionMutation.isPending}
-			/>
-
-			<SyncHistorySheet
-				open={syncHistorySheet.open}
-				onOpenChange={(open) => {
-					if (!open) setSyncHistorySheet({ open: false, connection: null })
-				}}
-				connection={syncHistorySheet.connection}
 			/>
 		</div>
 	)

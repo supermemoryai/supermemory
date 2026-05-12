@@ -29,10 +29,10 @@ export function SyncStatusBadge({
 	const status = deriveStatus(syncInProgress, lastSyncedAt, isExpired)
 
 	return (
-		<div className={cn("flex items-center gap-2", className)}>
+		<div className={cn("flex items-center gap-1.5", className)}>
 			<div
 				className={cn(
-					"size-[7px] rounded-full",
+					"size-[6px] rounded-full",
 					status === "syncing" && "bg-[#4BA0FA] animate-pulse",
 					status === "synced" && "bg-[#00AC3F]",
 					status === "expired" && "bg-[#EF4444]",
@@ -43,7 +43,7 @@ export function SyncStatusBadge({
 				<span
 					className={cn(
 						dmSans125ClassName(),
-						"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
+						"font-medium text-[13px] tracking-[-0.13px] text-[#4BA0FA]",
 					)}
 				>
 					Syncing...
@@ -54,7 +54,7 @@ export function SyncStatusBadge({
 					<span
 						className={cn(
 							dmSans125ClassName(),
-							"font-medium text-[16px] tracking-[-0.16px] text-[#00AC3F]",
+							"font-medium text-[13px] tracking-[-0.13px] text-[#00AC3F]",
 						)}
 					>
 						Synced
@@ -63,7 +63,7 @@ export function SyncStatusBadge({
 					<span
 						className={cn(
 							dmSans125ClassName(),
-							"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
+							"font-medium text-[12px] tracking-[-0.12px] text-[#737373]",
 						)}
 					>
 						{formatRelativeTime(lastSyncedAt)}
@@ -74,7 +74,7 @@ export function SyncStatusBadge({
 				<span
 					className={cn(
 						dmSans125ClassName(),
-						"font-medium text-[16px] tracking-[-0.16px] text-[#EF4444]",
+						"font-medium text-[13px] tracking-[-0.13px] text-[#EF4444]",
 					)}
 				>
 					Disconnected
@@ -84,7 +84,7 @@ export function SyncStatusBadge({
 				<span
 					className={cn(
 						dmSans125ClassName(),
-						"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
+						"font-medium text-[13px] tracking-[-0.13px] text-[#737373]",
 					)}
 				>
 					Waiting for first sync
