@@ -300,37 +300,32 @@ const PLUGIN_STATIC = [
 // Plugin catalog for tool usage display - maps plugin IDs to display names and icons
 const PLUGIN_DISPLAY_CATALOG: Record<
 	string,
-	{ name: string; icon: string; type: "Plugin"; description: string }
+	{ name: string; icon: string; type: "Plugin" }
 > = {
 	claude_code: {
 		name: "Claude Code",
 		icon: "/images/plugins/claude-code.svg",
 		type: "Plugin",
-		description: "Persistent memory across coding sessions",
 	},
 	opencode: {
 		name: "OpenCode",
 		icon: "/images/plugins/opencode.svg",
 		type: "Plugin",
-		description: "Context that carries forward automatically",
 	},
 	openclaw: {
 		name: "OpenClaw",
 		icon: "/images/plugins/openclaw.svg",
 		type: "Plugin",
-		description: "Cross-channel memory for messaging",
 	},
 	hermes: {
 		name: "Hermes",
 		icon: "/images/plugins/hermes.svg",
 		type: "Plugin",
-		description: "Persistent conversation memory",
 	},
 	codex: {
 		name: "OpenAI Codex",
 		icon: "/images/plugins/codex.svg",
 		type: "Plugin",
-		description: "AI-powered code generation with memory",
 	},
 }
 
@@ -343,7 +338,8 @@ interface ToolUsageItem {
 	lastUsedAt: Date | null
 	hasBeenUsed: boolean
 	connectedAt: Date | null
-	description: string | null
+	lastDocumentTitle: string | null
+	lastDocumentId: string | null
 }
 
 type ToolUsageApiKey = {
@@ -368,6 +364,9 @@ function parseToolUsage(
 	const toolMap = new Map<string, ToolUsageItem>()
 	let latestMcpClientName: string | null = null
 	let latestMcpDocumentAt: Date | null = null
+
+	// Track latest document per plugin client
+	const latestDocPerPlugin = new Map<string, { title: string; id: string; at: Date }>()
 
 	for (const key of apiKeys) {
 		let meta: Record<string, unknown> = {}
@@ -405,7 +404,8 @@ function parseToolUsage(
 					lastUsedAt: lastUsed,
 					hasBeenUsed: !!key.lastRequest,
 					connectedAt: toValidDate(key.createdAt),
-					description: catalog?.description ?? null,
+					lastDocumentTitle: null,
+					lastDocumentId: null,
 				})
 			}
 		}
@@ -432,7 +432,8 @@ function parseToolUsage(
 					lastUsedAt: lastUsed,
 					hasBeenUsed: !!key.lastRequest,
 					connectedAt: toValidDate(key.createdAt),
-					description: "Query your saved knowledge from any AI client",
+					lastDocumentTitle: null,
+					lastDocumentId: null,
 				})
 			}
 		}
@@ -481,8 +482,21 @@ function parseToolUsage(
 				lastUsedAt: createdAt,
 				hasBeenUsed: true,
 				connectedAt: toolMap.get("mcp")?.connectedAt ?? null,
-				description: "Query your saved knowledge from any AI client",
+				lastDocumentTitle: doc.title?.trim() || null,
+				lastDocumentId: doc.id ?? null,
 			})
+		}
+
+		// Also track latest doc per plugin client name for plugin items
+		if (clientName && clientName !== "unknown" && createdAt && doc.id) {
+			const existing = latestDocPerPlugin.get(clientName)
+			if (!existing || createdAt.getTime() > existing.at.getTime()) {
+				latestDocPerPlugin.set(clientName, {
+					title: doc.title?.trim() || "Untitled",
+					id: doc.id,
+					at: createdAt,
+				})
+			}
 		}
 	}
 
@@ -493,6 +507,18 @@ function parseToolUsage(
 				...existingItem,
 				name: latestMcpClientName,
 			})
+		}
+	}
+
+	// Attach latest document info to plugin items where available from MCP documents
+	for (const [, item] of toolMap) {
+		if (item.type === "Plugin" && !item.lastDocumentTitle) {
+			// Try to find matching documents by plugin name
+			const docInfo = latestDocPerPlugin.get(item.name)
+			if (docInfo) {
+				item.lastDocumentTitle = docInfo.title
+				item.lastDocumentId = docInfo.id
+			}
 		}
 	}
 
@@ -547,11 +573,11 @@ function isRecentlyActive(date: Date | null): boolean {
 function RecentToolUsageCard({
 	items,
 	onOpenPlugins,
-	onOpenIntegrations,
+	onNavigateToMemories,
 }: {
 	items: ToolUsageItem[]
 	onOpenPlugins: () => void
-	onOpenIntegrations: (integration?: IntegrationParamValue) => void
+	onNavigateToMemories: () => void
 }) {
 	// Show at most 3 items
 	const displayItems = items.slice(0, 3)
@@ -590,7 +616,6 @@ function RecentToolUsageCard({
 			<ul className="flex flex-col gap-0.5">
 				{displayItems.map((item, index) => {
 					const recentlyActive = isRecentlyActive(item.lastUsedAt)
-					const isMostRecent = index === 0 && item.hasBeenUsed
 
 					return (
 						<motion.li
@@ -603,132 +628,102 @@ function RecentToolUsageCard({
 								ease: [0.4, 0, 0.2, 1],
 							}}
 						>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<button
-										type="button"
-										onClick={() => {
-											if (item.type === "Plugin") {
-												onOpenPlugins()
-											} else {
-												onOpenIntegrations("mcp" as IntegrationParamValue)
-											}
-										}}
+							<button
+								type="button"
+								onClick={() => {
+									// Navigate to memories tab to show relevant documents
+									onNavigateToMemories()
+								}}
+								className="group w-full flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover transition-all cursor-pointer"
+							>
+								{/* Icon with status indicator */}
+								<div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-card ring-1 ring-surface-border group-hover:ring-[#3A4A63] transition-colors">
+									{item.icon ? (
+										<Image
+											src={item.icon}
+											alt={item.name}
+											width={18}
+											height={18}
+											className="size-[18px]"
+										/>
+									) : item.type === "MCP" ? (
+										<MCPIcon className="size-[18px]" />
+									) : (
+										<Plug className="size-[18px] text-fg-subtle" />
+									)}
+									{/* Activity status dot */}
+									<span
 										className={cn(
-											"group w-full flex items-start gap-2.5 rounded-lg px-2 py-2 transition-all cursor-pointer",
-											isMostRecent
-												? "bg-[#4BA0FA]/[0.04] hover:bg-[#4BA0FA]/[0.08] border-l-2 border-l-[#4BA0FA]/40"
-												: "hover:bg-surface-hover border-l-2 border-l-transparent",
+											"absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-[#0D1117]",
+											item.hasBeenUsed
+												? recentlyActive
+													? "bg-[#00C853]"
+													: "bg-[#4BA0FA]"
+												: "bg-[#3A4455]",
 										)}
 									>
-										{/* Icon with status indicator */}
-										<div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-card ring-1 ring-surface-border group-hover:ring-[#3A4A63] transition-colors">
-											{item.icon ? (
-												<Image
-													src={item.icon}
-													alt={item.name}
-													width={18}
-													height={18}
-													className="size-[18px]"
-												/>
-											) : item.type === "MCP" ? (
-												<MCPIcon className="size-[18px]" />
-											) : (
-												<Plug className="size-[18px] text-fg-subtle" />
-											)}
-											{/* Activity status dot */}
+										{recentlyActive && (
+											<span className="absolute inset-0 rounded-full bg-[#00C853] animate-ping opacity-60" />
+										)}
+									</span>
+								</div>
+
+								{/* Name and metadata */}
+								<div className="flex-1 min-w-0 text-left">
+									<div className="flex items-center gap-1.5">
+										<p className="text-[12px] font-medium text-fg-secondary group-hover:text-white transition-colors leading-tight truncate">
+											{item.name}
+										</p>
+										<span className={cn(
+											"shrink-0 inline-flex items-center rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider",
+											item.type === "MCP"
+												? "bg-[#D4A853]/10 text-[#D4A853]/80"
+												: "bg-[#4BA0FA]/10 text-[#4BA0FA]/80",
+										)}>
+											{item.type}
+										</span>
+									</div>
+									{/* Last document / memory preview */}
+									{item.lastDocumentTitle && (
+										<p className="text-[10px] text-fg-muted leading-tight mt-0.5 truncate italic">
+											"{item.lastDocumentTitle}"
+										</p>
+									)}
+									<div className="flex items-center gap-1.5 mt-1 flex-wrap">
+										{/* Last used */}
+										<span className="inline-flex items-center gap-0.5">
+											<Activity className="size-2.5 text-fg-faint shrink-0" />
 											<span
 												className={cn(
-													"absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-[#0D1117]",
+													"text-[9px]",
 													item.hasBeenUsed
 														? recentlyActive
-															? "bg-[#00C853]"
-															: "bg-[#4BA0FA]"
-														: "bg-[#3A4455]",
+															? "text-[#00C853]/80"
+															: "text-fg-muted"
+														: "text-fg-faint",
 												)}
 											>
-												{recentlyActive && (
-													<span className="absolute inset-0 rounded-full bg-[#00C853] animate-ping opacity-60" />
-												)}
+												{item.hasBeenUsed && item.lastUsedAt
+													? `${formatToolUsageTime(item.lastUsedAt, true)} · ${formatAbsoluteTime(item.lastUsedAt)}`
+													: formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)
+												}
 											</span>
-										</div>
-
-										{/* Name, description, and metadata */}
-										<div className="flex-1 min-w-0 text-left">
-											<div className="flex items-center gap-1.5">
-												<p className="text-[12px] font-medium text-fg-secondary group-hover:text-white transition-colors leading-tight truncate">
-													{item.name}
-												</p>
-												<span className={cn(
-													"shrink-0 inline-flex items-center rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider",
-													item.type === "MCP"
-														? "bg-[#D4A853]/10 text-[#D4A853]/80"
-														: "bg-[#4BA0FA]/10 text-[#4BA0FA]/80",
-												)}>
-													{item.type}
-												</span>
-											</div>
-											{item.description && (
-												<p className="text-[10px] text-fg-faint leading-tight mt-0.5 truncate">
-													{item.description}
-												</p>
-											)}
-											<div className="flex items-center gap-2 mt-1">
-												{/* Last used time with icon */}
+										</span>
+										{/* Connected since */}
+										{item.connectedAt && (
+											<>
+												<span className="text-[#2A3040]">·</span>
 												<span className="inline-flex items-center gap-0.5">
-													{item.hasBeenUsed ? (
-														<Activity className="size-2.5 text-fg-faint shrink-0" />
-													) : (
-														<Clock className="size-2.5 text-fg-faint shrink-0" />
-													)}
-													<span
-														className={cn(
-															"text-[9px] transition-colors",
-															item.hasBeenUsed
-																? recentlyActive
-																	? "text-[#00C853]/80"
-																	: "text-fg-muted group-hover:text-fg-secondary"
-																: "text-fg-faint",
-														)}
-													>
-														{formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)}
+													<Clock className="size-2.5 text-fg-faint shrink-0" />
+													<span className="text-[9px] text-fg-faint">
+														Since {item.connectedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
 													</span>
 												</span>
-												{/* Connected since */}
-												{item.connectedAt && (
-													<>
-														<span className="text-[#2A3040]">·</span>
-														<span className="text-[9px] text-fg-faint">
-															Since {item.connectedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-														</span>
-													</>
-												)}
-											</div>
-										</div>
-
-										{/* Arrow indicator */}
-										<ArrowRight className="size-3 shrink-0 text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity self-center" />
-									</button>
-								</TooltipTrigger>
-								<TooltipContent side="left" className={dmSansClassName()}>
-									<div className="text-[11px] space-y-0.5">
-										<p className="font-medium">{item.name}</p>
-										{item.hasBeenUsed && item.lastUsedAt && (
-											<p className="text-fg-muted">
-												Last used: {formatAbsoluteTime(item.lastUsedAt)}
-											</p>
-										)}
-										{item.connectedAt && (
-											<p className="text-fg-faint">
-												Connected: {formatAbsoluteTime(item.connectedAt)}
-											</p>
-										)}
-										{!item.hasBeenUsed && (
-											<p className="text-fg-faint">Not yet used</p>
+											</>
 										)}
 									</div>
-								</TooltipContent>
-							</Tooltip>
+								</div>
+							</button>
 						</motion.li>
 					)
 				})}
@@ -1408,7 +1403,7 @@ export function DashboardView({
 									<RecentToolUsageCard
 										items={toolUsageItems}
 										onOpenPlugins={onOpenPlugins}
-										onOpenIntegrations={onOpenIntegrations}
+										onNavigateToMemories={onNavigateToMemories}
 									/>
 								</div>
 							</div>
@@ -1421,7 +1416,7 @@ export function DashboardView({
 								<RecentToolUsageCard
 									items={toolUsageItems}
 									onOpenPlugins={onOpenPlugins}
-									onOpenIntegrations={onOpenIntegrations}
+									onNavigateToMemories={onNavigateToMemories}
 								/>
 							</div>
 						</>
@@ -1455,7 +1450,7 @@ export function DashboardView({
 									<RecentToolUsageCard
 										items={toolUsageItems}
 										onOpenPlugins={onOpenPlugins}
-										onOpenIntegrations={onOpenIntegrations}
+										onNavigateToMemories={onNavigateToMemories}
 									/>
 								</div>
 							</div>
@@ -1467,7 +1462,7 @@ export function DashboardView({
 								<RecentToolUsageCard
 									items={toolUsageItems}
 									onOpenPlugins={onOpenPlugins}
-									onOpenIntegrations={onOpenIntegrations}
+									onNavigateToMemories={onNavigateToMemories}
 								/>
 							</div>
 						</>
