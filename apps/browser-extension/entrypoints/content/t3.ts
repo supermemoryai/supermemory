@@ -238,8 +238,7 @@ async function getRelatedMemoriesForT3(actionSource: string) {
 			}
 
 			if (textareaElement) {
-				textareaElement.dataset.supermemories =
-					`\n\nSupermemories of user (only for the reference): ${response.data}`
+				textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
 
 				iconElement.dataset.memoriesData = response.data
 

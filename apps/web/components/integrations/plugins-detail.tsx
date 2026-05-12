@@ -7,98 +7,161 @@ import { useAuth } from "@lib/auth-context"
 import { hasActivePlan } from "@lib/queries"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
-	ArrowRight,
 	BookOpen,
 	Check,
-	CheckCircle,
+	ChevronDown,
 	Copy,
-	ExternalLink,
 	Loader,
-	Trash2,
+	X,
 	Zap,
 } from "lucide-react"
 import Image from "next/image"
-import { useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogPortal,
-} from "@ui/components/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
+
+/** Recessed "inside-out" inset shadow used across Supermemory surfaces. */
+const INSET =
+	"shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
 
 /** Match `FREE_TIER_PLUGIN_IDS` in mono `packages/lib/plugins.ts`. */
+const FREE_TIER_PLUGIN_IDS = ["hermes", "codex"]
 function isFreeTierPlugin(pluginId: string): boolean {
-	return pluginId === "hermes"
+	return FREE_TIER_PLUGIN_IDS.includes(pluginId)
+}
+
+interface InstallStep {
+	title: string
+	description?: string
+	code?: string
+	copyLabel?: string
+	optional?: boolean
+	/** Blur the code block until hovered/focused (e.g. it contains the key). */
+	secret?: boolean
 }
 
 interface PluginInfo {
 	id: string
 	name: string
-	description: string
-	features: string[]
+	tagline: string
 	icon: string
 	docsUrl?: string
-	repoUrl?: string
+	/** Steps shown after a key is minted. The literal `sm_...` is replaced
+	 *  with the freshly generated key when rendered. */
+	installSteps?: InstallStep[]
 }
 
 const PLUGIN_CATALOG: Record<string, PluginInfo> = {
 	claude_code: {
 		id: "claude_code",
 		name: "Claude Code",
-		description:
-			"Claude Code remembers your conventions, past decisions, and project context across every session — no re-explaining yourself.",
-		features: [
-			"Picks up where you left off at session start",
-			"Captures decisions and patterns from tool usage",
-			"Builds a persistent profile of how you work",
-		],
+		tagline: "Remembers your conventions, decisions, and project context",
 		icon: "/images/plugins/claude-code.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/claude-code",
-		repoUrl: "https://github.com/supermemoryai/claude-supermemory",
+		installSteps: [
+			{
+				title: "Save your API key",
+				description:
+					"Add this to your shell profile so Claude Code can authenticate. This key is shown only once — save it now.",
+				code: 'export SUPERMEMORY_CC_API_KEY="sm_..."',
+				copyLabel: "API key",
+				secret: true,
+			},
+			{
+				title: "Install the plugin",
+				description: "Run these commands inside a Claude Code session:",
+				code: "/plugin marketplace add supermemoryai/claude-supermemory\n/plugin install claude-supermemory",
+			},
+		],
+	},
+	codex: {
+		id: "codex",
+		name: "Codex",
+		tagline: "Persistent memory for the Codex CLI — free on every plan",
+		icon: "/images/plugins/codex.png",
+		docsUrl: "https://docs.supermemory.ai/integrations/codex",
+		installSteps: [
+			{
+				title: "Save your API key",
+				description:
+					"Add this to your shell profile. This key is shown only once — save it now.",
+				code: 'export SUPERMEMORY_CODEX_API_KEY="sm_..."',
+				copyLabel: "API key",
+				secret: true,
+			},
+			{
+				title: "Install the hooks",
+				description: "Run this to wire Supermemory into Codex CLI:",
+				code: "npx codex-supermemory@latest install",
+			},
+		],
 	},
 	opencode: {
 		id: "opencode",
 		name: "OpenCode",
-		description:
-			"Gives OpenCode persistent memory — your patterns, preferences, and decisions carry forward automatically, session to session.",
-		features: [
-			"Semantic search across previous sessions",
-			"Auto-capture of coding decisions",
-			"Context injected before each prompt",
-		],
+		tagline: "Long-term memory for your OpenCode sessions",
 		icon: "/images/plugins/opencode.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
+		installSteps: [
+			{
+				title: "Save your API key",
+				description:
+					"Add this to your shell profile. This key is shown only once — save it now.",
+				code: 'export SUPERMEMORY_API_KEY="sm_..."',
+				copyLabel: "API key",
+				secret: true,
+			},
+			{
+				title: "Install the plugin",
+				description: "Use --no-tui for non-interactive environments.",
+				code: "bunx opencode-supermemory@latest install",
+			},
+			{
+				title: "Verify your config",
+				description:
+					"Ensure ~/.config/opencode/opencode.jsonc includes the plugin:",
+				code: '{\n  "plugin": ["opencode-supermemory"]\n}',
+				optional: true,
+			},
+		],
 	},
 	openclaw: {
 		id: "openclaw",
 		name: "OpenClaw",
-		description:
-			"Persists memory across Telegram, WhatsApp, Discord, and Slack. OpenClaw knows who users are and what they talked about before.",
-		features: [
-			"Cross-channel memory that follows the user",
-			"Automatic conversation capture",
-			"User profiles built across every platform",
-		],
+		tagline: "Cross-platform memory across Telegram, Discord, Slack",
 		icon: "/images/plugins/openclaw.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/openclaw",
-		repoUrl: "https://github.com/supermemoryai/openclaw-supermemory",
+		installSteps: [
+			{
+				title: "Install the plugin",
+				description: "Run this in your OpenClaw project:",
+				code: "openclaw plugins install @supermemory/openclaw-supermemory",
+			},
+			{
+				title: "Configure Supermemory",
+				description:
+					"Run the setup command and paste your API key when prompted:",
+				code: "openclaw supermemory setup",
+			},
+		],
 	},
 	hermes: {
 		id: "hermes",
 		name: "Hermes",
-		description:
-			"Hermes never forgets. Conversations, user profiles, and context persist so every session feels like a continuation, not a cold start.",
-		features: [
-			"Semantic search across previous sessions",
-			"Auto-capture of conversation context",
-			"Persistent user profile built over time",
-		],
+		tagline: "Persistent memory for the Hermes agent — free on every plan",
 		icon: "/images/plugins/hermes.svg",
 		docsUrl: "https://docs.supermemory.ai/integrations/hermes",
-		repoUrl: "https://github.com/NousResearch/hermes-agent",
+		installSteps: [
+			{
+				title: "Run Hermes memory setup",
+				description:
+					"On the machine where Hermes is deployed, start the memory wizard, choose Supermemory as the provider, and paste your API key when prompted:",
+				code: "hermes memory setup",
+			},
+		],
 	},
 }
 
@@ -107,271 +170,429 @@ interface ConnectedPlugin {
 	keyId: string
 	pluginId: string
 	createdAt: string
-	lastUsed?: string | null
 	keyStart?: string | null
 }
 
-function ProUpgradeNudge({ onUpgrade }: { onUpgrade: () => void }) {
+function SectionHeader({ children }: { children: ReactNode }) {
 	return (
-		<div className="flex items-center justify-between gap-3 bg-[#4BA0FA]/5 border border-[#4BA0FA]/20 rounded-xl px-4 py-3 mb-6">
-			<div className="flex items-center gap-2">
-				<Zap className="size-4 text-[#4BA0FA] shrink-0" />
-				<p className={cn(dmSans125ClassName(), "text-[13px] text-[#8B8B8B]")}>
-					Unlock Claude Code, OpenCode, OpenClaw and more with{" "}
-					<span className="text-white font-medium">Pro</span>
-				</p>
-			</div>
-			<button
-				type="button"
-				onClick={onUpgrade}
-				className={cn(
-					"shrink-0 flex items-center gap-1.5 text-[12px] font-medium text-white",
-					"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 rounded-full px-3 h-7 transition-colors cursor-pointer",
-					dmSans125ClassName(),
-				)}
-			>
-				Upgrade
-			</button>
+		<p
+			className={cn(
+				dmSans125ClassName(),
+				"text-[16px] font-semibold text-[#FAFAFA]",
+			)}
+		>
+			{children}
+		</p>
+	)
+}
+
+function PluginIconBox({
+	src,
+	alt,
+	dimmed,
+}: {
+	src: string
+	alt: string
+	dimmed?: boolean
+}) {
+	return (
+		<div
+			className={cn(
+				"flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#080B0F]",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)]",
+				dimmed && "opacity-50",
+			)}
+		>
+			<Image alt={alt} className="size-6" height={24} src={src} width={24} />
 		</div>
 	)
 }
 
-function ConnectedPluginRow({
-	plugin,
-	info,
+function ProChip() {
+	return (
+		<span
+			className={cn(
+				dmSans125ClassName(),
+				"shrink-0 rounded-[4px] border border-[#4BA0FA]/25 bg-[#4BA0FA]/10 px-1.5 py-0.5",
+				"text-[10px] font-semibold uppercase tracking-wide text-[#4BA0FA]",
+			)}
+		>
+			Pro
+		</span>
+	)
+}
+
+function PillButton({
+	children,
+	onClick,
+	disabled,
+}: {
+	children: ReactNode
+	onClick?: () => void
+	disabled?: boolean
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			className={cn(
+				dmSans125ClassName(),
+				"relative flex h-9 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-5",
+				"text-[14px] font-medium text-[#FAFAFA]",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
+				"cursor-pointer transition-opacity hover:opacity-80",
+				"disabled:cursor-not-allowed disabled:opacity-50",
+			)}
+		>
+			{children}
+		</button>
+	)
+}
+
+function DocsLink({ href }: { href: string }) {
+	return (
+		<a
+			href={href}
+			target="_blank"
+			rel="noopener noreferrer"
+			className={cn(
+				dmSans125ClassName(),
+				"flex shrink-0 items-center gap-1 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+			)}
+		>
+			<BookOpen className="size-3.5" /> Docs
+		</a>
+	)
+}
+
+function DisconnectButton({ onConfirm }: { onConfirm: () => void }) {
+	const [confirming, setConfirming] = useState(false)
+	useEffect(() => {
+		if (!confirming) return
+		const t = setTimeout(() => setConfirming(false), 3000)
+		return () => clearTimeout(t)
+	}, [confirming])
+	return (
+		<button
+			type="button"
+			onClick={() => (confirming ? onConfirm() : setConfirming(true))}
+			className={cn(
+				dmSans125ClassName(),
+				"shrink-0 rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+				confirming
+					? "bg-red-500/15 text-red-400"
+					: "text-[#737373] hover:bg-white/5 hover:text-red-400",
+			)}
+		>
+			{confirming ? "Confirm" : "Disconnect"}
+		</button>
+	)
+}
+
+function ConnectedPill({
+	connectedKeys,
 	onRevoke,
 }: {
-	plugin: ConnectedPlugin
-	info: PluginInfo | undefined
+	connectedKeys: ConnectedPlugin[]
 	onRevoke: (keyId: string) => void
 }) {
 	return (
-		<div
-			className={cn(
-				"bg-[#0D121A] border border-[rgba(82,89,102,0.2)] rounded-[12px] px-4 py-3",
-				"shadow-[0px_1px_2px_0px_rgba(0,43,87,0.1)]",
-			)}
-		>
-			<div className="flex items-center gap-3">
-				{info && (
-					<div className="flex size-10 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]">
-						<Image
-							alt={info.name}
-							className="size-6"
-							height={24}
-							src={info.icon}
-							width={24}
-						/>
-					</div>
+		<Popover>
+			<PopoverTrigger asChild>
+				<button
+					type="button"
+					className={cn(
+						dmSans125ClassName(),
+						"flex h-9 min-w-[116px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#0D121A] px-4 text-[13px] font-medium text-[#00AC3F]",
+						"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80",
+					)}
+				>
+					<span className="size-[7px] rounded-full bg-[#00AC3F]" />
+					Connected
+					<ChevronDown className="size-3 text-[#737373]" />
+				</button>
+			</PopoverTrigger>
+			<PopoverContent
+				align="end"
+				className={cn(
+					dmSans125ClassName(),
+					"w-[260px] rounded-xl border border-white/10 bg-[#1B1F24] p-2 text-[#FAFAFA]",
 				)}
-				<div className="flex-1">
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"font-medium text-[14px] text-[#FAFAFA]",
-						)}
-					>
-						{info?.name || plugin.pluginId}
-					</p>
-					<div className="flex items-center gap-2">
-						<div className="size-[7px] rounded-full bg-[#00AC3F]" />
-						<span
-							className={cn(dmSans125ClassName(), "text-[12px] text-[#00AC3F]")}
+			>
+				<p
+					className={cn(
+						dmSans125ClassName(),
+						"px-2 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-[#737373]",
+					)}
+				>
+					{connectedKeys.length > 1
+						? `${connectedKeys.length} connections`
+						: "Connection"}
+				</p>
+				<div className="flex flex-col">
+					{connectedKeys.map((k) => (
+						<div
+							key={k.keyId}
+							className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5"
 						>
-							Connected
-						</span>
-						{plugin.keyStart && (
 							<span
 								className={cn(
 									dmSans125ClassName(),
-									"text-[12px] text-[#737373] font-mono",
+									"min-w-0 flex-1 truncate font-mono text-[12px] text-[#A1A1AA]",
 								)}
 							>
-								{plugin.keyStart}…
+								{k.keyStart ? `${k.keyStart}…` : "API key"}
 							</span>
-						)}
-					</div>
+							<DisconnectButton onConfirm={() => onRevoke(k.keyId)} />
+						</div>
+					))}
 				</div>
-				<button
-					type="button"
-					onClick={() => onRevoke(plugin.keyId)}
-					className="text-[#737373] hover:text-red-400 transition-colors"
-				>
-					<Trash2 className="size-4" />
-				</button>
-			</div>
-		</div>
+			</PopoverContent>
+		</Popover>
 	)
 }
 
-function PluginCard({
+function PluginRow({
 	plugin,
 	pluginId,
-	isConnected,
-	isCurrentlyConnecting,
-	connectingPlugin,
+	connectedKeys,
 	needsProUpgrade,
+	isConnecting,
+	actionsDisabled,
 	onConnect,
 	onUpgrade,
+	onRevoke,
 }: {
 	plugin: PluginInfo
 	pluginId: string
-	isConnected: boolean
-	isCurrentlyConnecting: boolean
-	connectingPlugin: string | null
+	connectedKeys: ConnectedPlugin[]
 	needsProUpgrade: boolean
+	isConnecting: boolean
+	actionsDisabled: boolean
 	onConnect: (id: string) => void
 	onUpgrade: () => void
+	onRevoke: (keyId: string) => void
 }) {
+	const isConnected = connectedKeys.length > 0
 	return (
-		<div
-			className={cn(
-				"bg-[#0D121A] rounded-[12px] p-4 flex flex-col gap-3 border",
-				isConnected
-					? "border-[#4BA0FA]/30"
-					: needsProUpgrade
-						? "border-[rgba(82,89,102,0.12)]"
-						: "border-[rgba(82,89,102,0.2)]",
-			)}
-		>
-			<div className="flex items-start gap-3">
-				<div
+		<div className="flex items-center gap-3.5 border-b border-white/[0.06] py-4 last:border-b-0">
+			<PluginIconBox
+				src={plugin.icon}
+				alt={plugin.name}
+				dimmed={needsProUpgrade && !isConnected}
+			/>
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-2">
+					{isConnected && (
+						<span className="size-1.5 shrink-0 rounded-full bg-[#00AC3F]" />
+					)}
+					<span
+						className={cn(
+							dmSans125ClassName(),
+							"truncate text-[14px] font-medium text-[#FAFAFA]",
+						)}
+					>
+						{plugin.name}
+					</span>
+					{!isConnected && needsProUpgrade && <ProChip />}
+				</div>
+				<p
 					className={cn(
-						"flex size-10 shrink-0 items-center justify-center rounded-lg border border-[#1E293B] bg-[#080B0F]",
-						needsProUpgrade && "opacity-50",
+						dmSans125ClassName(),
+						"mt-0.5 truncate text-[13px] text-[#A1A1AA]",
 					)}
 				>
-					<Image
-						alt={plugin.name}
-						className="size-6"
-						height={24}
-						src={plugin.icon}
-						width={24}
-					/>
-				</div>
-				<div className="flex-1">
-					<div className="flex items-center gap-2 flex-wrap">
-						<span
-							className={cn(
-								dmSans125ClassName(),
-								"font-medium text-[14px]",
-								needsProUpgrade ? "text-[#737373]" : "text-[#FAFAFA]",
-							)}
-						>
-							{plugin.name}
-						</span>
-						{isConnected && (
-							<span className="flex items-center gap-1 text-[10px] text-[#00AC3F] border border-[#00AC3F]/30 rounded-full px-1.5 py-0.5">
-								<CheckCircle className="size-2.5" /> Connected
-							</span>
-						)}
-						{needsProUpgrade && (
-							<span className="text-[10px] font-bold text-[#00171A] bg-[#4BA0FA] px-1.5 py-0.5 rounded-[3px]">
-								PRO
-							</span>
-						)}
-					</div>
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"text-[12px] mt-0.5",
-							needsProUpgrade ? "text-[#4B5563]" : "text-[#737373]",
-						)}
-					>
-						{plugin.description}
-					</p>
-				</div>
+					{plugin.tagline}
+				</p>
 			</div>
-
-			<ul className={cn("space-y-1.5", needsProUpgrade && "opacity-40")}>
-				{plugin.features.map((feature) => (
-					<li key={feature} className="flex items-start gap-2">
-						<ArrowRight className="mt-0.5 size-3 shrink-0 text-[#4BA0FA]" />
-						<span
-							className={cn(dmSans125ClassName(), "text-[12px] text-[#8B8B8B]")}
-						>
-							{feature}
-						</span>
-					</li>
-				))}
-			</ul>
-
-			<div className="mt-auto flex flex-col gap-2">
+			<div className="flex shrink-0 items-center gap-4">
+				{plugin.docsUrl && <DocsLink href={plugin.docsUrl} />}
 				{isConnected ? (
-					<button
-						type="button"
-						disabled
-						className={cn(
-							"w-full flex items-center justify-center gap-2 rounded-full h-9 px-4 text-[12px] font-medium",
-							"bg-[#080B0F] text-[#737373] border border-[#1E293B] opacity-60",
-							dmSans125ClassName(),
-						)}
-					>
-						<CheckCircle className="size-3.5" /> Already Connected
-					</button>
+					<ConnectedPill connectedKeys={connectedKeys} onRevoke={onRevoke} />
 				) : needsProUpgrade ? (
-					<button
-						type="button"
-						onClick={onUpgrade}
-						className={cn(
-							"w-full flex items-center justify-center gap-2 rounded-full h-9 px-4 text-[12px] font-medium",
-							"bg-[#080B0F] text-[#FAFAFA] border border-[#1E293B] hover:border-[#4BA0FA]/40 transition-colors cursor-pointer",
-							dmSans125ClassName(),
-						)}
-					>
-						Upgrade for this plugin
-					</button>
+					<PillButton onClick={onUpgrade}>
+						<Zap className="size-3.5 text-[#4BA0FA]" /> Upgrade
+					</PillButton>
 				) : (
-					<button
-						type="button"
+					<PillButton
 						onClick={() => onConnect(pluginId)}
-						disabled={!!connectingPlugin}
-						className={cn(
-							"w-full flex items-center justify-center gap-2 rounded-full h-9 px-4 text-[12px] font-medium",
-							"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white transition-colors cursor-pointer",
-							"disabled:opacity-50 disabled:cursor-not-allowed",
-							dmSans125ClassName(),
-						)}
+						disabled={actionsDisabled}
 					>
-						{isCurrentlyConnecting ? (
+						{isConnecting ? (
 							<>
 								<Loader className="size-3.5 animate-spin" /> Connecting…
 							</>
 						) : (
-							"Connect Plugin"
+							"Connect"
 						)}
-					</button>
+					</PillButton>
 				)}
-				<div className="flex gap-2">
-					{plugin.docsUrl && (
-						<a
-							href={plugin.docsUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={cn(
-								"flex-1 flex items-center justify-center gap-1 text-[11px] text-[#737373] hover:text-white transition-colors",
-								dmSans125ClassName(),
-							)}
-						>
-							<BookOpen className="size-3" /> Docs
-						</a>
-					)}
-					{plugin.repoUrl && (
-						<a
-							href={plugin.repoUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={cn(
-								"flex-1 flex items-center justify-center gap-1 text-[11px] text-[#737373] hover:text-white transition-colors",
-								dmSans125ClassName(),
-							)}
-						>
-							<ExternalLink className="size-3" /> GitHub
-						</a>
-					)}
-				</div>
 			</div>
 		</div>
+	)
+}
+
+type TierFilter = "all" | "pro" | "free"
+
+const TIER_FILTERS: { value: TierFilter; label: string }[] = [
+	{ value: "all", label: "All" },
+	{ value: "pro", label: "Pro" },
+	{ value: "free", label: "Free" },
+]
+
+function TierFilterToggle({
+	value,
+	onChange,
+}: {
+	value: TierFilter
+	onChange: (value: TierFilter) => void
+}) {
+	return (
+		<div className="flex shrink-0 items-center gap-0.5 rounded-full bg-[#0D121A] p-0.5 shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.5)]">
+			{TIER_FILTERS.map((filter) => (
+				<button
+					key={filter.value}
+					type="button"
+					onClick={() => onChange(filter.value)}
+					className={cn(
+						dmSans125ClassName(),
+						"rounded-full px-3 h-7 text-[12px] font-medium transition-colors",
+						value === filter.value
+							? "bg-white/[0.10] text-[#FAFAFA]"
+							: "text-[#A1A1AA] hover:text-[#FAFAFA]",
+					)}
+				>
+					{filter.label}
+				</button>
+			))}
+		</div>
+	)
+}
+
+function CopyButton({ text, label }: { text: string; label?: string }) {
+	const [copied, setCopied] = useState(false)
+	return (
+		<button
+			type="button"
+			aria-label={`Copy ${label ?? "to clipboard"}`}
+			onClick={async () => {
+				try {
+					await navigator.clipboard.writeText(text)
+					setCopied(true)
+					setTimeout(() => setCopied(false), 2000)
+					toast.success(label ? `${label} copied!` : "Copied!")
+				} catch {
+					toast.error("Failed to copy")
+				}
+			}}
+			className={cn(
+				"flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80",
+				INSET,
+			)}
+		>
+			{copied ? (
+				<Check className="size-3.5 text-[#4BA0FA]" />
+			) : (
+				<Copy className="size-3.5 text-[#737373]" />
+			)}
+		</button>
+	)
+}
+
+function CodeBlock({
+	code,
+	copyLabel = "Command",
+	secret,
+}: {
+	code: string
+	copyLabel?: string
+	secret?: boolean
+}) {
+	return (
+		<div className="group flex min-w-0 items-center gap-2 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] px-3 py-2.5">
+			<pre
+				className={cn(
+					"scrollbar-none min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-[12px] leading-[1.6] text-[#E4E4E7] transition-[filter] duration-150",
+					secret &&
+						"select-none blur-[5px] group-focus-within:select-text group-focus-within:blur-none group-hover:select-text group-hover:blur-none",
+				)}
+			>
+				{code}
+			</pre>
+			<CopyButton text={code} label={copyLabel} />
+		</div>
+	)
+}
+
+function InstallSteps({
+	steps,
+	apiKey,
+}: {
+	steps: InstallStep[]
+	apiKey: string
+}) {
+	return (
+		<ol className="flex min-w-0 flex-col gap-4">
+			{steps.map((step, i) => (
+				<li key={step.title} className="flex min-w-0 gap-3">
+					<div className="flex flex-col items-center gap-1.5">
+						<span
+							className={cn(
+								"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
+								INSET,
+							)}
+						>
+							{i + 1}
+						</span>
+						{i < steps.length - 1 && (
+							<span className="w-px flex-1 bg-white/[0.14]" />
+						)}
+					</div>
+					<div className="min-w-0 flex-1 space-y-2 pb-1">
+						<div className="space-y-0.5">
+							<div className="flex items-center gap-2">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[13px] font-medium text-[#FAFAFA]",
+									)}
+								>
+									{step.title}
+								</p>
+								{step.optional && (
+									<span
+										className={cn(
+											dmSans125ClassName(),
+											"shrink-0 rounded-[4px] bg-white/[0.08] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#A1A1AA]",
+										)}
+									>
+										Optional
+									</span>
+								)}
+							</div>
+							{step.description && (
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[12px] leading-relaxed text-[#A1A1AA]",
+									)}
+								>
+									{step.description}
+								</p>
+							)}
+						</div>
+						{step.code && (
+							<CodeBlock
+								code={apiKey ? step.code.replace("sm_...", apiKey) : step.code}
+								copyLabel={step.copyLabel}
+								secret={step.secret}
+							/>
+						)}
+					</div>
+				</li>
+			))}
+		</ol>
 	)
 }
 
@@ -379,12 +600,17 @@ export function PluginsDetail() {
 	const { org } = useAuth()
 	const autumn = useCustomer()
 	const queryClient = useQueryClient()
+	const [tierFilter, setTierFilter] = useState<TierFilter>("all")
 	const [connectingPlugin, setConnectingPlugin] = useState<string | null>(null)
-	const [newKey, setNewKey] = useState<{ open: boolean; key: string }>({
+	const [newKey, setNewKey] = useState<{
+		open: boolean
+		key: string
+		pluginId: string | null
+	}>({
 		open: false,
 		key: "",
+		pluginId: null,
 	})
-	const [keyCopied, setKeyCopied] = useState(false)
 
 	const hasProProduct = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 
@@ -432,7 +658,6 @@ export function PluginsDetail() {
 						keyId: key.id,
 						pluginId: metadata.sm_client,
 						createdAt: key.createdAt.toISOString(),
-						lastUsed: key.lastRequest?.toISOString() ?? null,
 						keyStart: key.start ?? null,
 					})
 				}
@@ -442,7 +667,7 @@ export function PluginsDetail() {
 	}, [apiKeys])
 
 	const connectedPluginIds = useMemo(
-		() => connectedPlugins.map((p) => p.pluginId),
+		() => new Set(connectedPlugins.map((p) => p.pluginId)),
 		[connectedPlugins],
 	)
 
@@ -477,9 +702,8 @@ export function PluginsDetail() {
 			setConnectingPlugin(null)
 			queryClient.invalidateQueries({ queryKey: ["api-keys", org?.id] })
 		},
-		onSuccess: (data) => {
-			setNewKey({ open: true, key: data.key })
-			toast.success("Plugin connected!")
+		onSuccess: (data, pluginId) => {
+			setNewKey({ open: true, key: data.key, pluginId })
 		},
 	})
 
@@ -510,91 +734,98 @@ export function PluginsDetail() {
 		}
 	}
 
-	const handleCopyKey = async () => {
-		try {
-			await navigator.clipboard.writeText(newKey.key)
-			setKeyCopied(true)
-			setTimeout(() => setKeyCopied(false), 2000)
-			toast.success("API key copied!")
-		} catch {
-			toast.error("Failed to copy")
-		}
-	}
-
 	const isLoading = autumn.isLoading
 	const availablePlugins = pluginsData?.plugins ?? Object.keys(PLUGIN_CATALOG)
 
-	const allCatalogPluginIds = useMemo(
+	const catalogRows = useMemo(
 		() => availablePlugins.filter((id) => PLUGIN_CATALOG[id]),
 		[availablePlugins],
 	)
+
+	const visibleRows = useMemo(() => {
+		const filtered = catalogRows.filter((id) => {
+			if (tierFilter === "free") return isFreeTierPlugin(id)
+			if (tierFilter === "pro") return !isFreeTierPlugin(id)
+			return true
+		})
+		// Connected plugins float to the top (stable within each group).
+		return [...filtered].sort(
+			(a, b) =>
+				Number(connectedPluginIds.has(b)) - Number(connectedPluginIds.has(a)),
+		)
+	}, [catalogRows, tierFilter, connectedPluginIds])
+
+	const dialogPlugin = newKey.pluginId
+		? PLUGIN_CATALOG[newKey.pluginId]
+		: undefined
+
+	const pluginSteps = dialogPlugin?.installSteps ?? []
+	// If a step already embeds the key (an `export …="sm_…"` line), don't also
+	// show the bare key in its own step — that's the repetition to avoid.
+	// Otherwise (wizard-style installs) lead with a copy-the-key step.
+	const stepsEmbedKey = pluginSteps.some((s) => s.code?.includes("sm_..."))
+	const setupSteps: InstallStep[] = stepsEmbedKey
+		? pluginSteps
+		: [
+				{
+					title: "Copy your API key",
+					description:
+						"You won't be able to see it again — store it somewhere safe.",
+					code: newKey.key,
+					copyLabel: "API key",
+					secret: true,
+				},
+				...pluginSteps,
+			]
 
 	return (
 		<>
 			<div
 				className={cn(
-					"bg-[#14161A] rounded-[14px] p-6 relative overflow-hidden",
+					"relative overflow-hidden rounded-[14px] bg-[#14161A] p-6",
 					"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 				)}
 			>
-				{!hasProProduct && !isLoading && (
-					<ProUpgradeNudge onUpgrade={handleUpgrade} />
-				)}
-
-				{connectedPlugins.length > 0 && (
-					<div className="flex flex-col gap-3 mb-6">
-						<span
-							className={cn(
-								dmSans125ClassName(),
-								"font-semibold text-[16px] text-[#FAFAFA]",
-							)}
-						>
-							Connected
-						</span>
-						{connectedPlugins.map((plugin) => (
-							<ConnectedPluginRow
-								key={plugin.id}
-								plugin={plugin}
-								info={PLUGIN_CATALOG[plugin.pluginId]}
-								onRevoke={handleRevoke}
-							/>
-						))}
-					</div>
-				)}
-
 				<div className="flex flex-col gap-3">
-					<span
-						className={cn(
-							dmSans125ClassName(),
-							"font-semibold text-[16px] text-[#FAFAFA]",
+					<div className="flex items-center justify-between gap-3">
+						<SectionHeader>Plugins</SectionHeader>
+						{catalogRows.length > 0 && (
+							<TierFilterToggle value={tierFilter} onChange={setTierFilter} />
 						)}
-					>
-						{connectedPlugins.length > 0
-							? "Add more plugins"
-							: "Available plugins"}
-					</span>
-					<div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-						{allCatalogPluginIds.map((pluginId) => {
+					</div>
+					<div className="flex flex-col">
+						{visibleRows.map((pluginId) => {
 							const plugin = PLUGIN_CATALOG[pluginId]
 							if (!plugin) return null
-							const isConnected = connectedPluginIds.includes(pluginId)
-							const isCurrentlyConnecting = connectingPlugin === pluginId
 							const needsProUpgrade =
 								!isLoading && !hasProProduct && !isFreeTierPlugin(pluginId)
 							return (
-								<PluginCard
+								<PluginRow
 									key={pluginId}
 									plugin={plugin}
 									pluginId={pluginId}
-									isConnected={isConnected}
-									isCurrentlyConnecting={isCurrentlyConnecting}
-									connectingPlugin={connectingPlugin}
+									connectedKeys={connectedPlugins.filter(
+										(p) => p.pluginId === pluginId,
+									)}
 									needsProUpgrade={needsProUpgrade}
+									isConnecting={connectingPlugin === pluginId}
+									actionsDisabled={!!connectingPlugin}
 									onConnect={(id) => createPluginKeyMutation.mutate(id)}
 									onUpgrade={handleUpgrade}
+									onRevoke={handleRevoke}
 								/>
 							)
 						})}
+						{visibleRows.length === 0 && (
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"py-6 text-center text-[13px] text-[#A1A1AA]",
+								)}
+							>
+								No plugins in this category.
+							</p>
+						)}
 					</div>
 				</div>
 			</div>
@@ -602,65 +833,105 @@ export function PluginsDetail() {
 			<Dialog
 				open={newKey.open}
 				onOpenChange={(open) =>
-					setNewKey({ open, key: open ? newKey.key : "" })
+					setNewKey((s) => ({
+						open,
+						key: open ? s.key : "",
+						pluginId: open ? s.pluginId : null,
+					}))
 				}
 			>
-				<DialogPortal>
-					<DialogContent className="bg-[#14161A] border border-white/10 text-[#FAFAFA] md:max-w-md z-100">
-						<DialogHeader>
-							<DialogTitle
+				<DialogContent
+					showCloseButton={false}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset",
+					}}
+					className={cn(
+						dmSans125ClassName(),
+						"flex max-h-[88dvh] flex-col gap-3 overflow-hidden border border-white/[0.12] bg-[#1B1F24] p-0 px-3 pt-3 pb-4 rounded-2xl md:px-4 sm:max-w-[560px] sm:rounded-[22px]",
+					)}
+				>
+					<DialogTitle className="sr-only">
+						Set up {dialogPlugin?.name ?? "your plugin"}
+					</DialogTitle>
+
+					<div className="flex shrink-0 items-center gap-3">
+						{dialogPlugin && (
+							<PluginIconBox src={dialogPlugin.icon} alt={dialogPlugin.name} />
+						)}
+						<div className="min-w-0 flex-1">
+							<p
 								className={cn(
 									dmSans125ClassName(),
-									"text-[#FAFAFA] text-lg font-semibold",
+									"truncate text-[16px] font-semibold leading-tight text-[#FAFAFA]",
 								)}
 							>
-								Plugin Connected
-							</DialogTitle>
-						</DialogHeader>
-						<div className="space-y-4">
-							<p className={cn(dmSans125ClassName(), "text-sm text-[#737373]")}>
-								Save your API key now: you won't be able to see it again.
+								Set up {dialogPlugin?.name ?? "your plugin"}
 							</p>
-							<div className="flex items-center gap-2">
-								<input
-									type="text"
-									value={newKey.key}
-									readOnly
-									className={cn(
-										"flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono",
-										dmSans125ClassName(),
-									)}
-								/>
-								<button
-									type="button"
-									onClick={handleCopyKey}
-									className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
-								>
-									{keyCopied ? (
-										<Check className="size-4 text-[#4BA0FA]" />
-									) : (
-										<Copy className="size-4" />
-									)}
-								</button>
-							</div>
-							<button
-								type="button"
-								onClick={() => {
-									handleCopyKey()
-									setNewKey({ open: false, key: "" })
-								}}
+							<p
 								className={cn(
-									"w-full flex items-center justify-center gap-2",
-									"bg-[#4BA0FA] hover:bg-[#4BA0FA]/90 text-white",
-									"rounded-lg h-11 px-4 font-medium text-sm transition-colors",
 									dmSans125ClassName(),
+									"mt-0.5 truncate text-[12px] text-[#A1A1AA]",
 								)}
 							>
-								<Copy className="size-4" /> Copy & Close
-							</button>
+								Copy your key and run these steps to finish.
+							</p>
 						</div>
-					</DialogContent>
-				</DialogPortal>
+						<div className="flex shrink-0 items-center gap-2">
+							{dialogPlugin?.docsUrl && (
+								<a
+									href={dialogPlugin.docsUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={cn(
+										dmSans125ClassName(),
+										"flex h-7 items-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+										INSET,
+									)}
+								>
+									<BookOpen className="size-3.5" /> Docs
+								</a>
+							)}
+							<DialogPrimitive.Close
+								type="button"
+								aria-label="Close"
+								className={cn(
+									"flex size-7 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80 focus:outline-none",
+									INSET,
+								)}
+							>
+								<X className="size-4 text-[#737373]" />
+							</DialogPrimitive.Close>
+						</div>
+					</div>
+
+					<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+						<div
+							className={cn(
+								"min-w-0 rounded-[14px] bg-[#14161A] p-4 sm:p-5",
+								INSET,
+							)}
+						>
+							<InstallSteps steps={setupSteps} apiKey={newKey.key} />
+						</div>
+					</div>
+
+					<div className="flex shrink-0 items-center justify-end">
+						<button
+							type="button"
+							onClick={() =>
+								setNewKey({ open: false, key: "", pluginId: null })
+							}
+							className={cn(
+								dmSans125ClassName(),
+								"flex h-9 items-center gap-1.5 rounded-full bg-[#0D121A] px-5 text-[13px] font-medium text-[#FAFAFA] transition-opacity hover:opacity-80",
+								INSET,
+							)}
+						>
+							<Check className="size-3.5 text-[#4BA0FA]" /> Done
+						</button>
+					</div>
+				</DialogContent>
 			</Dialog>
 		</>
 	)

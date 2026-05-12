@@ -188,14 +188,21 @@ function formatOrgRole(role: string): string {
 }
 
 export default function Account() {
-	const { user, org, setActiveOrg, clearActiveOrg } = useAuth()
+	const {
+		user,
+		org,
+		organizations: allOrgs,
+		setActiveOrg,
+		clearActiveOrg,
+	} = useAuth()
 	const autumn = useCustomer()
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [emailConfirm, setEmailConfirm] = useState("")
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [isClosingAccount, setIsClosingAccount] = useState(false)
 	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
-	const { data: allOrgs } = authClient.useListOrganizations()
+	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
 	const { data: memberships, isPending: membershipsPending } =
 		useAccountMemberships()
 
@@ -363,10 +370,19 @@ export default function Account() {
 								>
 									Organization
 								</p>
-								<Popover>
+								<Popover
+									open={orgMenuOpen && canSwitchOrg}
+									onOpenChange={(open) => {
+										if (canSwitchOrg) setOrgMenuOpen(open)
+									}}
+								>
 									<PopoverTrigger
+										disabled={!canSwitchOrg}
 										className={cn(
-											"flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-90",
+											"flex items-center gap-2 transition-opacity",
+											canSwitchOrg
+												? "cursor-pointer hover:opacity-90"
+												: "cursor-default",
 											dmSans125ClassName(),
 										)}
 									>
@@ -378,14 +394,16 @@ export default function Account() {
 										>
 											{org?.name ?? "Personal"}
 										</span>
-										<ChevronDown className="size-4 text-[#737373]" />
+										{canSwitchOrg && (
+											<ChevronDown className="size-4 text-[#737373]" />
+										)}
 									</PopoverTrigger>
-									{allOrgs && allOrgs.length > 1 && (
+									{canSwitchOrg && (
 										<PopoverContent
 											align="start"
 											className="w-72 bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
 										>
-											{allOrgs.map((organization) => {
+											{allOrgs?.map((organization) => {
 												const isCurrent = organization.id === org?.id
 												const isSwitching = switchingOrgId === organization.id
 												return (
