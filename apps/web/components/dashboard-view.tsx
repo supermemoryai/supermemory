@@ -972,7 +972,7 @@ export function DashboardView({
 			return response.data as DocumentsResponse
 		},
 		staleTime: 60 * 1000,
-		enabled: !!user,
+		enabled: !!user && !!org?.id,
 	})
 
 	const { data: connections = [] } = useQuery({
