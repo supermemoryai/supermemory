@@ -105,6 +105,9 @@ export function AddDocument({
 
 	// Form data state for button click handling
 	const [noteContent, setNoteContent] = useState("")
+	const [noteContentType, setNoteContentType] = useState<"note" | "link">(
+		"note",
+	)
 	const [linkData, setLinkData] = useState<LinkData>({
 		url: "",
 		title: "",
@@ -129,19 +132,28 @@ export function AddDocument({
 	useEffect(() => {
 		if (!isOpen) {
 			setFileData({ items: [], title: "", description: "" })
+			setNoteContentType("note")
 		}
 	}, [isOpen])
 
 	// Submit handlers
 	const handleNoteSubmit = useCallback(
-		(content: string) => {
+		(content: string, contentType: "note" | "link") => {
 			if (!content.trim()) {
 				toast.error("Please enter some content")
 				return
 			}
-			noteMutation.mutate({ content, project: localSelectedProject })
+			if (contentType === "link") {
+				const normalizedUrl = normalizeUrl(content.trim())
+				linkMutation.mutate({
+					url: normalizedUrl,
+					project: localSelectedProject,
+				})
+			} else {
+				noteMutation.mutate({ content, project: localSelectedProject })
+			}
 		},
-		[noteMutation, localSelectedProject],
+		[noteMutation, linkMutation, localSelectedProject],
 	)
 
 	const handleLinkSubmit = useCallback(
@@ -215,6 +227,12 @@ export function AddDocument({
 		setNoteContent(content)
 	}, [])
 
+	const handleNoteRequestSubmit = useCallback(() => {
+		// This will be called by Cmd+Enter from the editor
+		// For now it just does the note submit; Task 3 will expand this for files
+		handleNoteSubmit(noteContent, noteContentType)
+	}, [handleNoteSubmit, noteContent, noteContentType])
+
 	const handleLinkDataChange = useCallback((data: LinkData) => {
 		setLinkData(data)
 	}, [])
@@ -226,7 +244,7 @@ export function AddDocument({
 	const handleButtonClick = () => {
 		switch (activeTab) {
 			case "note":
-				handleNoteSubmit(noteContent)
+				handleNoteSubmit(noteContent, noteContentType)
 				break
 			case "link":
 				handleLinkSubmit(linkData)
@@ -311,6 +329,8 @@ export function AddDocument({
 						<NoteContent
 							onSubmit={handleNoteSubmit}
 							onContentChange={handleNoteContentChange}
+							onContentTypeChange={setNoteContentType}
+							onRequestSubmit={handleNoteRequestSubmit}
 							isSubmitting={noteMutation.isPending}
 							isOpen={isOpen}
 						/>
@@ -389,7 +409,13 @@ export function AddDocument({
 									</>
 								) : (
 									<>
-										+ Add {activeTab}{" "}
+										{activeTab === "note"
+											? noteContentType === "link"
+												? "Save link"
+												: "Save note"
+											: activeTab === "link"
+												? "Save link"
+												: `+ Add ${activeTab}`}{" "}
 										{!isMobile && (
 											<span
 												className={cn(

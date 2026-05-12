@@ -2,10 +2,35 @@
 
 import { useState, useEffect } from "react"
 import { TextEditor } from "../text-editor"
+import { isValidUrl } from "@/lib/url-helpers"
+
+function detectContentType(plainText: string): "note" | "link" {
+	const trimmed = plainText.trim()
+	if (!trimmed) return "note"
+	// Must be a single token (no whitespace)
+	if (/\s/.test(trimmed)) return "note"
+	// Try as-is first (has protocol)
+	if (
+		trimmed.startsWith("http://") ||
+		trimmed.startsWith("https://") ||
+		trimmed.startsWith("HTTP://") ||
+		trimmed.startsWith("HTTPS://")
+	) {
+		if (isValidUrl(trimmed)) return "link"
+		return "note"
+	}
+	// Protocol-less: require a dot to avoid classifying single words as links
+	if (!trimmed.includes(".")) return "note"
+	const withProtocol = `https://${trimmed}`
+	if (isValidUrl(withProtocol)) return "link"
+	return "note"
+}
 
 interface NoteContentProps {
-	onSubmit?: (content: string) => void
+	onSubmit?: (content: string, contentType: "note" | "link") => void
 	onContentChange?: (content: string) => void
+	onContentTypeChange?: (type: "note" | "link") => void
+	onRequestSubmit?: () => void
 	isSubmitting?: boolean
 	isOpen?: boolean
 }
@@ -13,16 +38,24 @@ interface NoteContentProps {
 export function NoteContent({
 	onSubmit,
 	onContentChange,
+	onContentTypeChange,
+	onRequestSubmit,
 	isSubmitting,
 	isOpen,
 }: NoteContentProps) {
 	const [content, setContent] = useState("")
+	const [plainText, setPlainText] = useState("")
 
 	const canSubmit = content.trim().length > 0 && !isSubmitting
 
 	const handleSubmit = () => {
 		if (canSubmit && onSubmit) {
-			onSubmit(content)
+			const type = detectContentType(plainText)
+			if (type === "link") {
+				onSubmit(plainText.trim(), "link")
+			} else {
+				onSubmit(content, "note")
+			}
 		}
 	}
 
@@ -35,6 +68,7 @@ export function NoteContent({
 	useEffect(() => {
 		if (!isOpen) {
 			setContent("")
+			setPlainText("")
 			onContentChange?.("")
 		}
 	}, [isOpen, onContentChange])
@@ -44,7 +78,12 @@ export function NoteContent({
 			<TextEditor
 				content={undefined}
 				onContentChange={handleContentChange}
-				onSubmit={handleSubmit}
+				onPlainTextChange={(text) => {
+					setPlainText(text)
+					const type = detectContentType(text)
+					onContentTypeChange?.(type)
+				}}
+				onSubmit={onRequestSubmit ?? handleSubmit}
 				debounceMs={0}
 			/>
 		</div>

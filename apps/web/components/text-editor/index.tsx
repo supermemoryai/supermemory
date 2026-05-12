@@ -16,11 +16,13 @@ const extensions = [...defaultExtensions, slashCommand, Markdown]
 export function TextEditor({
 	content: initialContent,
 	onContentChange,
+	onPlainTextChange,
 	onSubmit,
 	debounceMs = 500,
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
+	onPlainTextChange?: (text: string) => void
 	onSubmit: () => void
 	debounceMs?: number
 }) {
@@ -38,6 +40,8 @@ export function TextEditor({
 		const json = editor.getJSON()
 		const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
 		onContentChange?.(markdown)
+		const plainText = editor.getText()
+		onPlainTextChange?.(plainText)
 	}, debounceMs)
 
 	const editor = useEditor({
@@ -55,6 +59,8 @@ export function TextEditor({
 				const json = editor.getJSON()
 				const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
 				onContentChange?.(markdown)
+				const plainText = editor.getText()
+				onPlainTextChange?.(plainText)
 				return
 			}
 			debouncedUpdates(editor)
