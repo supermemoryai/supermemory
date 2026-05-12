@@ -190,7 +190,11 @@ export function AddDocument({
 		}
 	}, [isOpen])
 
-	// Seed file queue from global drag-and-drop (only once per modal open)
+	// Seed file queue from global drag-and-drop (only once per modal open).
+	// We construct FileQueueItem objects directly instead of going through
+	// FileContent's addFiles (which does duplicate detection via fileQueueKey)
+	// because this only runs once on a freshly cleared queue, so duplicates
+	// are impossible.
 	const initialFilesConsumed = useRef(false)
 	useEffect(() => {
 		if (!isOpen) {

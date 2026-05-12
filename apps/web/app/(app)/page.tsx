@@ -390,14 +390,14 @@ export default function NewPage() {
 
 	const handleGlobalDragEnter = useCallback((e: React.DragEvent) => {
 		e.preventDefault()
+		if (!e.dataTransfer.types.includes("Files")) return
 		globalDragCounter.current++
-		if (e.dataTransfer.types.includes("Files")) {
-			setIsGlobalDragging(true)
-		}
+		setIsGlobalDragging(true)
 	}, [])
 
 	const handleGlobalDragLeave = useCallback((e: React.DragEvent) => {
 		e.preventDefault()
+		if (!e.dataTransfer.types.includes("Files")) return
 		globalDragCounter.current--
 		if (globalDragCounter.current === 0) {
 			setIsGlobalDragging(false)
@@ -405,11 +405,13 @@ export default function NewPage() {
 	}, [])
 
 	const handleGlobalDragOver = useCallback((e: React.DragEvent) => {
+		if (!e.dataTransfer.types.includes("Files")) return
 		e.preventDefault()
 	}, [])
 
 	const handleGlobalDrop = useCallback(
 		(e: React.DragEvent) => {
+			if (!e.dataTransfer.types.includes("Files")) return
 			e.preventDefault()
 			globalDragCounter.current = 0
 			setIsGlobalDragging(false)
@@ -421,7 +423,7 @@ export default function NewPage() {
 					toast.error(
 						files.length === 1
 							? "This file type is not supported"
-							: `${files.length} files are not supported`,
+							: `None of the ${files.length} files are supported`,
 					)
 				}
 				return
@@ -595,6 +597,7 @@ export default function NewPage() {
 
 	return (
 		<HotkeysProvider>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: global file drag-and-drop zone requires event handlers on a div */}
 			<div
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
