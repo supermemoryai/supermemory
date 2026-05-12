@@ -12,6 +12,32 @@ import { Suspense, useState } from "react"
 const API_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
+// Phase 1 is one coarse grant — every approved client gets all of these.
+const DATA_CAPABILITIES = [
+	"Read and search your saved memories",
+	"Add new memories and delete existing ones",
+	"See your spaces (container tags) and create new ones",
+] as const
+
+function shortClientId(id: string): string {
+	return id.length > 12 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id
+}
+
+// `offline_access` (refresh token) is intentionally not surfaced — it's bundled,
+// not a separate choice, and the MCP exchange hands out a long-lived key anyway.
+function accountAccessLabels(scopes: string[]): string[] {
+	const labels: string[] = []
+	const wantsName = scopes.includes("profile")
+	const wantsEmail = scopes.includes("email")
+	if (wantsName && wantsEmail) labels.push("See your name and email address")
+	else if (wantsName) labels.push("See your name and profile info")
+	else if (wantsEmail) labels.push("See your email address")
+	for (const s of scopes)
+		if (!["openid", "profile", "email", "offline_access"].includes(s))
+			labels.push(s)
+	return labels
+}
+
 function OAuthConsentContent() {
 	const params = useSearchParams()
 	const { data: session } = useSession()
@@ -28,6 +54,7 @@ function OAuthConsentContent() {
 	const canSwitchOrg = (organizations?.length ?? 0) > 1
 	const clientId = params.get("client_id") ?? ""
 	const scopes = (params.get("scope") ?? "").split(/\s+/).filter(Boolean)
+	const accountAccess = accountAccessLabels(scopes)
 	// A valid consent page is reached only via /oauth2/authorize, which appends a
 	// signed (`sig`) + short-lived (`exp`) query. Without that it can't succeed.
 	const expSeconds = Number(params.get("exp"))
@@ -219,34 +246,40 @@ function OAuthConsentContent() {
 							Authorize access
 						</h2>
 						<p className="mt-1 text-[13px] text-[#737373]">
-							An application is requesting access to your Supermemory account.
+							An application wants to connect to your Supermemory account.
 						</p>
 					</div>
 
-					{clientId && (
-						<p className="text-center text-[12px] text-[#8B8B8B]">
-							Client ID:{" "}
-							<code className="break-all text-[#FAFAFA]">{clientId}</code>
+					<div className="rounded-[12px] bg-[#0D121A] p-4">
+						<p className="text-[11px] text-[#737373] uppercase tracking-[0.06em]">
+							It will be able to
 						</p>
-					)}
-
-					{scopes.length > 0 && (
-						<div>
-							<p className="mb-1.5 text-[12px] text-[#737373]">
-								Requested permissions
-							</p>
-							<ul className="space-y-1">
-								{scopes.map((s) => (
-									<li
-										key={s}
-										className="rounded-md bg-[#0D121A] px-2.5 py-1.5 text-[13px] text-[#8B8B8B]"
-									>
-										{s}
-									</li>
-								))}
-							</ul>
-						</div>
-					)}
+						<ul className="mt-2.5 space-y-2">
+							{DATA_CAPABILITIES.map((p) => (
+								<li key={p} className="flex items-start gap-2.5">
+									<Check className="mt-px size-4 shrink-0 text-[#4BA0FA]" />
+									<span className="text-[14px] text-[#E8E8E8] leading-snug">
+										{p}
+									</span>
+								</li>
+							))}
+						</ul>
+						{accountAccess.length > 0 && (
+							<>
+								<div className="my-3 h-px bg-white/5" />
+								<ul className="space-y-1.5">
+									{accountAccess.map((p) => (
+										<li key={p} className="flex items-start gap-2.5">
+											<Check className="mt-px size-3.5 shrink-0 text-[#5C6470]" />
+											<span className="text-[12px] text-[#8B8B8B] leading-snug">
+												{p}
+											</span>
+										</li>
+									))}
+								</ul>
+							</>
+						)}
+					</div>
 
 					{error && <p className="text-[13px] text-red-400">{error}</p>}
 
@@ -288,6 +321,12 @@ function OAuthConsentContent() {
 							<div className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
 						</button>
 					</div>
+
+					{clientId && (
+						<p className="text-center text-[11px] text-[#5C5C5C]">
+							App ID · <code>{shortClientId(clientId)}</code>
+						</p>
+					)}
 				</div>
 			</div>
 		</div>
