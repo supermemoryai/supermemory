@@ -300,7 +300,7 @@ const PLUGIN_STATIC = [
 // Plugin catalog for tool usage display - maps plugin IDs to display names and icons
 const PLUGIN_DISPLAY_CATALOG: Record<
 	string,
-	{ name: string; icon: string; type: "Plugin" }
+	{ name: string; icon: string | null; type: "Plugin" }
 > = {
 	claude_code: {
 		name: "Claude Code",
@@ -324,7 +324,7 @@ const PLUGIN_DISPLAY_CATALOG: Record<
 	},
 	codex: {
 		name: "OpenAI Codex",
-		icon: "/images/plugins/codex.svg",
+		icon: null,
 		type: "Plugin",
 	},
 }
@@ -340,6 +340,8 @@ interface ToolUsageItem {
 	connectedAt: Date | null
 	lastDocumentTitle: string | null
 	lastDocumentId: string | null
+	lastDocumentPreview: string | null
+	lastDocument: DocumentWithMemories | null
 }
 
 type ToolUsageApiKey = {
@@ -356,6 +358,76 @@ function toValidDate(value: string | Date | null | undefined): Date | null {
 	return Number.isNaN(date.getTime()) ? null : date
 }
 
+function compactText(value: string): string {
+	return value.replace(/\s+/g, " ").trim()
+}
+
+function getDocumentText(document: DocumentWithMemories): string {
+	return typeof document.content === "string" ? document.content : ""
+}
+
+function getPluginClientFromDocument(
+	document: DocumentWithMemories,
+): string | null {
+	const metadata =
+		document.metadata && typeof document.metadata === "object"
+			? document.metadata
+			: {}
+	const metadataClient =
+		typeof metadata.sm_client === "string"
+			? metadata.sm_client
+			: typeof metadata.sm_internal_plugin_client === "string"
+				? metadata.sm_internal_plugin_client
+				: typeof metadata.sm_internal_mcp_client_name === "string"
+					? metadata.sm_internal_mcp_client_name
+					: null
+	if (metadataClient) return metadataClient.toLowerCase()
+
+	const content = getDocumentText(document)
+	const title = document.title ?? ""
+	if (
+		/\[Session\s+[^\]]+\]/i.test(content) ||
+		/\[SAVE:[^\]]+\]/i.test(content)
+	) {
+		return "codex"
+	}
+	if (/\bCodex\b/i.test(title)) return "codex"
+
+	return null
+}
+
+function getDocumentPreview(document: DocumentWithMemories): string | null {
+	const content = getDocumentText(document)
+	if (!content) return document.title?.trim() || null
+
+	const transcriptTurns = Array.from(
+		content.matchAll(
+			/\d+\.\s+\[(user|assistant)\]\s*([\s\S]*?)(?=\d+\.\s+\[(?:user|assistant|tool|system)\]|---|\[\/?[A-Za-z]|$)/gi,
+		),
+	)
+		.slice(0, 2)
+		.map((match) => {
+			const role = match[1] === "assistant" ? "Assistant" : "You"
+			const text = compactText(match[2] ?? "")
+			return text ? `${role}: ${text}` : null
+		})
+		.filter(Boolean)
+
+	if (transcriptTurns.length > 0) return transcriptTurns.join(" · ")
+
+	const cleaned = compactText(
+		content
+			.replace(/\[Session\s+[^\]]+\]/gi, "")
+			.replace(/\[SAVE:[^\]]+\]/gi, "")
+			.replace(/\[\/SAVE\]/gi, ""),
+	)
+	return cleaned || document.title?.trim() || null
+}
+
+function getToolDocumentTitle(document: DocumentWithMemories): string {
+	return document.title?.trim() || "Recent conversation"
+}
+
 // Parse API keys to extract tool usage data
 function parseToolUsage(
 	apiKeys: ToolUsageApiKey[],
@@ -365,10 +437,15 @@ function parseToolUsage(
 	let latestMcpClientName: string | null = null
 	let latestMcpDocumentAt: Date | null = null
 
-	// Track latest document per plugin client
 	const latestDocPerPlugin = new Map<
 		string,
-		{ title: string; id: string; at: Date }
+		{
+			title: string
+			id: string
+			at: Date
+			preview: string | null
+			document: DocumentWithMemories
+		}
 	>()
 
 	for (const key of apiKeys) {
@@ -409,6 +486,8 @@ function parseToolUsage(
 					connectedAt: toValidDate(key.createdAt),
 					lastDocumentTitle: null,
 					lastDocumentId: null,
+					lastDocumentPreview: null,
+					lastDocument: null,
 				})
 			}
 		}
@@ -437,6 +516,8 @@ function parseToolUsage(
 					connectedAt: toValidDate(key.createdAt),
 					lastDocumentTitle: null,
 					lastDocumentId: null,
+					lastDocumentPreview: null,
+					lastDocument: null,
 				})
 			}
 		}
@@ -449,15 +530,18 @@ function parseToolUsage(
 			typeof metadata.sm_internal_mcp_client_name === "string"
 				? metadata.sm_internal_mcp_client_name
 				: null
+		const pluginClient = getPluginClientFromDocument(doc)
 		const isMcpDocument =
 			doc.source === "mcp" ||
 			metadata.sm_internal_event_from === "mcp" ||
 			!!clientName
+		const isPluginDocument = !!pluginClient && pluginClient !== "mcp"
 
-		if (!isMcpDocument) continue
+		if (!isMcpDocument && !isPluginDocument) continue
 
 		const createdAt = toValidDate(doc.createdAt)
 		if (
+			isMcpDocument &&
 			clientName &&
 			clientName !== "unknown" &&
 			(!latestMcpDocumentAt ||
@@ -467,37 +551,43 @@ function parseToolUsage(
 			latestMcpDocumentAt = createdAt
 		}
 
-		const existingItem = toolMap.get("mcp")
-		const existingLastUsed = existingItem?.lastUsedAt
-		if (
-			!existingItem ||
-			(createdAt &&
-				(!existingLastUsed || createdAt.getTime() > existingLastUsed.getTime()))
-		) {
-			toolMap.set("mcp", {
-				id: "mcp",
-				name:
-					clientName && clientName !== "unknown"
-						? clientName
-						: "Supermemory MCP",
-				type: "MCP",
-				icon: null,
-				lastUsedAt: createdAt,
-				hasBeenUsed: true,
-				connectedAt: toolMap.get("mcp")?.connectedAt ?? null,
-				lastDocumentTitle: doc.title?.trim() || null,
-				lastDocumentId: doc.id ?? null,
-			})
+		if (isMcpDocument) {
+			const existingItem = toolMap.get("mcp")
+			const existingLastUsed = existingItem?.lastUsedAt
+			if (
+				!existingItem ||
+				(createdAt &&
+					(!existingLastUsed ||
+						createdAt.getTime() > existingLastUsed.getTime()))
+			) {
+				toolMap.set("mcp", {
+					id: "mcp",
+					name:
+						clientName && clientName !== "unknown"
+							? clientName
+							: "Supermemory MCP",
+					type: "MCP",
+					icon: null,
+					lastUsedAt: createdAt,
+					hasBeenUsed: true,
+					connectedAt: toolMap.get("mcp")?.connectedAt ?? null,
+					lastDocumentTitle: doc.title?.trim() || null,
+					lastDocumentId: doc.id ?? null,
+					lastDocumentPreview: getDocumentPreview(doc),
+					lastDocument: doc,
+				})
+			}
 		}
 
-		// Also track latest doc per plugin client name for plugin items
-		if (clientName && clientName !== "unknown" && createdAt && doc.id) {
-			const existing = latestDocPerPlugin.get(clientName)
+		if (pluginClient && createdAt && doc.id) {
+			const existing = latestDocPerPlugin.get(pluginClient)
 			if (!existing || createdAt.getTime() > existing.at.getTime()) {
-				latestDocPerPlugin.set(clientName, {
-					title: doc.title?.trim() || "Untitled",
+				latestDocPerPlugin.set(pluginClient, {
+					title: getToolDocumentTitle(doc),
 					id: doc.id,
 					at: createdAt,
+					preview: getDocumentPreview(doc),
+					document: doc,
 				})
 			}
 		}
@@ -516,11 +606,13 @@ function parseToolUsage(
 	// Attach latest document info to plugin items where available from MCP documents
 	for (const [, item] of toolMap) {
 		if (item.type === "Plugin" && !item.lastDocumentTitle) {
-			// Try to find matching documents by plugin name
-			const docInfo = latestDocPerPlugin.get(item.name)
+			const pluginId = item.id.replace(/^plugin_/, "")
+			const docInfo = latestDocPerPlugin.get(pluginId)
 			if (docInfo) {
 				item.lastDocumentTitle = docInfo.title
 				item.lastDocumentId = docInfo.id
+				item.lastDocumentPreview = docInfo.preview
+				item.lastDocument = docInfo.document
 			}
 		}
 	}
@@ -577,10 +669,12 @@ function RecentToolUsageCard({
 	items,
 	onOpenPlugins,
 	onNavigateToMemories,
+	onOpenToolDocument,
 }: {
 	items: ToolUsageItem[]
 	onOpenPlugins: () => void
 	onNavigateToMemories: () => void
+	onOpenToolDocument: (document: DocumentWithMemories) => void
 }) {
 	// Show at most 3 items
 	const displayItems = items.slice(0, 3)
@@ -634,10 +728,13 @@ function RecentToolUsageCard({
 							<button
 								type="button"
 								onClick={() => {
-									// Navigate to memories tab to show relevant documents
+									if (item.lastDocument) {
+										onOpenToolDocument(item.lastDocument)
+										return
+									}
 									onNavigateToMemories()
 								}}
-								className="group w-full flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover transition-all cursor-pointer"
+								className="group w-full flex items-start gap-2.5 rounded-lg border border-transparent px-2.5 py-2.5 hover:border-[#22314A] hover:bg-surface-hover/80 transition-all cursor-pointer"
 							>
 								{/* Icon with status indicator */}
 								<div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-card ring-1 ring-surface-border group-hover:ring-[#3A4A63] transition-colors">
@@ -688,12 +785,11 @@ function RecentToolUsageCard({
 											{item.type}
 										</span>
 									</div>
-									{/* Last document / memory preview */}
-									{item.lastDocumentTitle && (
-										<p className="text-[10px] text-fg-muted leading-tight mt-0.5 truncate italic">
-											"{item.lastDocumentTitle}"
-										</p>
-									)}
+									<p className="mt-1 text-[10px] text-fg-muted leading-snug line-clamp-2">
+										{item.lastDocumentPreview ??
+											item.lastDocumentTitle ??
+											"Open the latest saved context from this tool."}
+									</p>
 									<div className="flex items-center gap-1.5 mt-1 flex-wrap">
 										{/* Last used */}
 										<span className="inline-flex items-center gap-0.5">
@@ -1061,6 +1157,7 @@ export function DashboardView({
 	onNavigateToMemories,
 	onNavigateToGraph,
 	onOpenDocument,
+	onOpenToolDocument,
 	onHighlightsChat,
 	onHighlightsShowRelated,
 	onResetHighlights,
@@ -1077,6 +1174,7 @@ export function DashboardView({
 	onNavigateToMemories: () => void
 	onNavigateToGraph: () => void
 	onOpenDocument: (document: DocumentWithMemories) => void
+	onOpenToolDocument: (document: DocumentWithMemories) => void
 	onHighlightsChat: (seed: string) => void
 	onHighlightsShowRelated: (query: string) => void
 	onResetHighlights: () => void
@@ -1149,11 +1247,11 @@ export function DashboardView({
 			}
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user && !!org?.id,
+		enabled: !!user,
 	})
 
 	const { data: recentMcpDocumentsData } = useQuery({
-		queryKey: ["dashboard-mcp-documents", org?.id, effectiveContainerTags],
+		queryKey: ["dashboard-tool-documents", org?.id],
 		queryFn: async (): Promise<DocumentsResponse> => {
 			const response = await $fetch("@post/documents/documents", {
 				body: {
@@ -1161,7 +1259,6 @@ export function DashboardView({
 					limit: 50,
 					sort: "createdAt",
 					order: "desc",
-					containerTags: effectiveContainerTags,
 				},
 				disableValidation: true,
 			})
@@ -1169,7 +1266,7 @@ export function DashboardView({
 			return response.data as DocumentsResponse
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: !!user && !!org?.id,
+		enabled: !!user,
 	})
 
 	const toolUsageItems = useMemo(
@@ -1415,6 +1512,7 @@ export function DashboardView({
 										items={toolUsageItems}
 										onOpenPlugins={onOpenPlugins}
 										onNavigateToMemories={onNavigateToMemories}
+										onOpenToolDocument={onOpenToolDocument}
 									/>
 								</div>
 							</div>
@@ -1428,6 +1526,7 @@ export function DashboardView({
 									items={toolUsageItems}
 									onOpenPlugins={onOpenPlugins}
 									onNavigateToMemories={onNavigateToMemories}
+									onOpenToolDocument={onOpenToolDocument}
 								/>
 							</div>
 						</>
@@ -1462,6 +1561,7 @@ export function DashboardView({
 										items={toolUsageItems}
 										onOpenPlugins={onOpenPlugins}
 										onNavigateToMemories={onNavigateToMemories}
+										onOpenToolDocument={onOpenToolDocument}
 									/>
 								</div>
 							</div>
@@ -1474,6 +1574,7 @@ export function DashboardView({
 									items={toolUsageItems}
 									onOpenPlugins={onOpenPlugins}
 									onNavigateToMemories={onNavigateToMemories}
+									onOpenToolDocument={onOpenToolDocument}
 								/>
 							</div>
 						</>
