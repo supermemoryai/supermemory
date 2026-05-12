@@ -9,9 +9,11 @@ import { useCustomer } from "autumn-js/react"
 import {
 	Check,
 	ChevronDown,
-	Clock,
 	FolderOpen,
+	History,
 	Loader,
+	Loader2,
+	Play,
 	Trash2,
 	Zap,
 } from "lucide-react"
@@ -30,6 +32,11 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
+import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
+import { SyncHistorySheet } from "@/components/settings/sync-history-sheet"
+import { useTriggerSync } from "@/hooks/use-trigger-sync"
+import { formatRelativeTime } from "@/components/settings/sync-utils"
+import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type GDriveSyncScope = "scoped" | "full"
 
@@ -71,17 +78,20 @@ const CONNECTORS: Record<
 	},
 } as const
 
-function formatRelativeTime(date: string | null | undefined): string {
-	if (!date) return "Never"
-	const d = new Date(date)
-	const diffMs = Date.now() - d.getTime()
-	const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-	const diffDays = Math.floor(diffHours / 24)
-	if (diffHours < 1) return "Just now"
-	if (diffHours < 24) return `${diffHours}h ago`
-	if (diffDays === 1) return "Yesterday"
-	if (diffDays < 7) return `${diffDays} days ago`
-	return d.toLocaleDateString()
+/** Extract typed metadata from a connection, with runtime validation. */
+function getConnectionMeta(connection: Connection) {
+	const m = connection.metadata as Record<string, unknown> | undefined
+	return {
+		syncInProgress: m?.syncInProgress === true,
+		lastSyncedAt:
+			typeof m?.lastSyncedAt === "number" ? m.lastSyncedAt : undefined,
+		documentCount: typeof m?.documentCount === "number" ? m.documentCount : 0,
+	}
+}
+
+/** Check if a connection's auth token has expired. */
+function isConnectionExpired(connection: Connection): boolean {
+	return !!connection.expiresAt && new Date(connection.expiresAt) <= new Date()
 }
 
 function ConnectionRow({
@@ -89,18 +99,24 @@ function ConnectionRow({
 	onDelete,
 	isDeleting,
 	projects,
+	onTriggerSync,
+	isSyncing,
+	onViewHistory,
 }: {
 	connection: Connection
 	onDelete: () => void
 	isDeleting: boolean
 	projects: Project[]
+	onTriggerSync: () => void
+	isSyncing: boolean
+	onViewHistory: () => void
 }) {
 	const config = CONNECTORS[connection.provider as ConnectorProvider]
 	if (!config) return null
 
 	const Icon = config.icon
-	const isConnected =
-		!connection.expiresAt || new Date(connection.expiresAt) > new Date()
+	const meta = getConnectionMeta(connection)
+	const expired = isConnectionExpired(connection)
 
 	const getProjectName = (tag: string): string => {
 		if (tag === DEFAULT_PROJECT_ID) return "Default"
@@ -110,12 +126,8 @@ function ConnectionRow({
 		)
 	}
 
-	const documentCount = (connection.metadata?.documentCount as number) ?? 0
-	const containerTags = (
-		connection as Connection & { containerTags?: string[] }
-	).containerTags
-	const projectName = containerTags?.[0]
-		? getProjectName(containerTags[0])
+	const projectName = connection.containerTags?.[0]
+		? getProjectName(connection.containerTags[0])
 		: null
 
 	return (
@@ -138,23 +150,11 @@ function ConnectionRow({
 							>
 								{config.title}
 							</span>
-							<div className="flex items-center gap-2">
-								<div
-									className={cn(
-										"size-[7px] rounded-full",
-										isConnected ? "bg-[#00AC3F]" : "bg-[#737373]",
-									)}
-								/>
-								<span
-									className={cn(
-										dmSans125ClassName(),
-										"text-[14px]",
-										isConnected ? "text-[#00AC3F]" : "text-[#737373]",
-									)}
-								>
-									{isConnected ? "Connected" : "Disconnected"}
-								</span>
-							</div>
+							<SyncStatusBadge
+								syncInProgress={meta.syncInProgress}
+								lastSyncedAt={meta.lastSyncedAt}
+								isExpired={expired}
+							/>
 						</div>
 						<span
 							className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
@@ -162,14 +162,59 @@ function ConnectionRow({
 							{connection.email || "Unknown"}
 						</span>
 					</div>
-					<button
-						type="button"
-						onClick={onDelete}
-						disabled={isDeleting}
-						className="text-[#737373] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						<Trash2 className="size-[22px]" />
-					</button>
+					<div className="flex items-center gap-0.5">
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								onTriggerSync()
+							}}
+							disabled={isSyncing || expired}
+							className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label={
+								expired
+									? "Connection expired"
+									: isSyncing
+										? "Sync in progress"
+										: "Sync now"
+							}
+							title={
+								expired
+									? "Reconnect to sync"
+									: isSyncing
+										? "Sync in progress"
+										: "Sync now"
+							}
+						>
+							{isSyncing ? (
+								<Loader2 className="size-[18px] animate-spin" />
+							) : (
+								<Play className="size-[18px]" />
+							)}
+						</button>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								onViewHistory()
+							}}
+							className="text-[#737373] hover:text-[#FAFAFA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label="Sync history"
+							title="Sync history"
+						>
+							<History className="size-[18px]" />
+						</button>
+						<button
+							type="button"
+							onClick={onDelete}
+							disabled={isDeleting}
+							className="text-[#737373] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label="Delete connection"
+							title="Remove connection"
+						>
+							<Trash2 className="size-[18px]" />
+						</button>
+					</div>
 				</div>
 				<div className="flex items-center gap-3 pt-2.5 border-t border-[rgba(82,89,102,0.12)]">
 					<div className="flex items-center gap-2 flex-1 flex-wrap">
@@ -186,17 +231,11 @@ function ConnectionRow({
 								</span>
 							</div>
 						)}
-						<div className="flex items-center gap-1">
-							<Clock className="size-3 text-[#4B5563]" />
-							<span
-								className={cn(
-									dmSans125ClassName(),
-									"text-[12px] text-[#737373]",
-								)}
-							>
-								{formatRelativeTime(connection.createdAt)}
-							</span>
-						</div>
+						<span
+							className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
+						>
+							Last synced: {formatRelativeTime(meta.lastSyncedAt)}
+						</span>
 					</div>
 					<div className="flex items-baseline gap-1 shrink-0">
 						<span
@@ -205,7 +244,7 @@ function ConnectionRow({
 								"text-[14px] font-semibold text-[#FAFAFA]",
 							)}
 						>
-							{documentCount}
+							{meta.documentCount}
 						</span>
 						<span
 							className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
@@ -233,6 +272,11 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		useState<GDriveSyncScope>("scoped")
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [removeDialog, setRemoveDialog] = useState<{
+		open: boolean
+		connection: Connection | null
+	}>({ open: false, connection: null })
+	const triggerSync = useTriggerSync()
+	const [syncHistorySheet, setSyncHistorySheet] = useState<{
 		open: boolean
 		connection: Connection | null
 	}>({ open: false, connection: null })
@@ -282,7 +326,13 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
-		refetchInterval: 60 * 1000,
+		refetchInterval: (query) => {
+			const conns = query.state.data as Connection[] | undefined
+			if (conns?.some((c) => getConnectionMeta(c).syncInProgress)) {
+				return 5000
+			}
+			return 60 * 1000
+		},
 		refetchIntervalInBackground: true,
 	})
 
@@ -644,6 +694,21 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 								projects={projects}
 								onDelete={() => setRemoveDialog({ open: true, connection })}
 								isDeleting={deleteConnectionMutation.isPending}
+								onTriggerSync={() =>
+									triggerSync.mutate({
+										connectionId: connection.id,
+										provider: connection.provider as ImportProvider,
+										containerTags: connection.containerTags,
+									})
+								}
+								isSyncing={
+									(triggerSync.isPending &&
+										triggerSync.variables?.connectionId === connection.id) ||
+									getConnectionMeta(connection).syncInProgress
+								}
+								onViewHistory={() =>
+									setSyncHistorySheet({ open: true, connection })
+								}
 							/>
 						))}
 					</div>
@@ -733,6 +798,13 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					}
 				}}
 				isDeleting={deleteConnectionMutation.isPending}
+			/>
+			<SyncHistorySheet
+				open={syncHistorySheet.open}
+				onOpenChange={(open) => {
+					if (!open) setSyncHistorySheet({ open: false, connection: null })
+				}}
+				connection={syncHistorySheet.connection}
 			/>
 		</div>
 	)
