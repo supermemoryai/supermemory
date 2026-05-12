@@ -9,7 +9,9 @@ import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import {
+	Activity,
 	ArrowRight,
+	Clock,
 	ExternalLink,
 	FileText,
 	Lightbulb,
@@ -298,32 +300,37 @@ const PLUGIN_STATIC = [
 // Plugin catalog for tool usage display - maps plugin IDs to display names and icons
 const PLUGIN_DISPLAY_CATALOG: Record<
 	string,
-	{ name: string; icon: string; type: "Plugin" }
+	{ name: string; icon: string; type: "Plugin"; description: string }
 > = {
 	claude_code: {
 		name: "Claude Code",
 		icon: "/images/plugins/claude-code.svg",
 		type: "Plugin",
+		description: "Persistent memory across coding sessions",
 	},
 	opencode: {
 		name: "OpenCode",
 		icon: "/images/plugins/opencode.svg",
 		type: "Plugin",
+		description: "Context that carries forward automatically",
 	},
 	openclaw: {
 		name: "OpenClaw",
 		icon: "/images/plugins/openclaw.svg",
 		type: "Plugin",
+		description: "Cross-channel memory for messaging",
 	},
 	hermes: {
 		name: "Hermes",
 		icon: "/images/plugins/hermes.svg",
 		type: "Plugin",
+		description: "Persistent conversation memory",
 	},
 	codex: {
 		name: "OpenAI Codex",
 		icon: "/images/plugins/codex.svg",
 		type: "Plugin",
+		description: "AI-powered code generation with memory",
 	},
 }
 
@@ -335,6 +342,8 @@ interface ToolUsageItem {
 	icon: string | null
 	lastUsedAt: Date | null
 	hasBeenUsed: boolean
+	connectedAt: Date | null
+	description: string | null
 }
 
 type ToolUsageApiKey = {
@@ -395,6 +404,8 @@ function parseToolUsage(
 					icon: catalog?.icon ?? null,
 					lastUsedAt: lastUsed,
 					hasBeenUsed: !!key.lastRequest,
+					connectedAt: toValidDate(key.createdAt),
+					description: catalog?.description ?? null,
 				})
 			}
 		}
@@ -420,6 +431,8 @@ function parseToolUsage(
 					icon: null,
 					lastUsedAt: lastUsed,
 					hasBeenUsed: !!key.lastRequest,
+					connectedAt: toValidDate(key.createdAt),
+					description: "Query your saved knowledge from any AI client",
 				})
 			}
 		}
@@ -467,6 +480,8 @@ function parseToolUsage(
 				icon: null,
 				lastUsedAt: createdAt,
 				hasBeenUsed: true,
+				connectedAt: toolMap.get("mcp")?.connectedAt ?? null,
+				description: "Query your saved knowledge from any AI client",
 			})
 		}
 	}
@@ -500,13 +515,33 @@ function formatToolUsageTime(date: Date | null, hasBeenUsed: boolean): string {
 	if (!hasBeenUsed) return "Never used"
 	if (!date) return "Connected"
 	const diffMs = Date.now() - date.getTime()
+	const diffMins = Math.floor(diffMs / (1000 * 60))
 	const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
 	const diffDays = Math.floor(diffHours / 24)
-	if (diffHours < 1) return "Just now"
+	if (diffMins < 1) return "Just now"
+	if (diffMins < 60) return `${diffMins}m ago`
 	if (diffHours < 24) return `${diffHours}h ago`
 	if (diffDays === 1) return "Yesterday"
 	if (diffDays < 7) return `${diffDays}d ago`
 	return date.toLocaleDateString()
+}
+
+// Format absolute time for tooltip display
+function formatAbsoluteTime(date: Date | null): string {
+	if (!date) return ""
+	return date.toLocaleString(undefined, {
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+	})
+}
+
+// Check if item was active recently (within last hour)
+function isRecentlyActive(date: Date | null): boolean {
+	if (!date) return false
+	return Date.now() - date.getTime() < 60 * 60 * 1000
 }
 
 function RecentToolUsageCard({
@@ -548,66 +583,155 @@ function RecentToolUsageCard({
 	return (
 		<div
 			className={cn(
-				"bg-surface-card/60 backdrop-blur-md rounded-xl px-3 py-2 flex flex-col gap-0.5 shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
+				"bg-surface-card/60 backdrop-blur-md rounded-xl px-2.5 py-2 flex flex-col gap-0 shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
 				dmSansClassName(),
 			)}
 		>
-			<ul>
-				{displayItems.map((item) => (
-					<li key={item.id}>
-						<button
-							type="button"
-							onClick={() => {
-								if (item.type === "Plugin") {
-									onOpenPlugins()
-								} else {
-									// Open MCP settings
-									onOpenIntegrations("mcp" as IntegrationParamValue)
-								}
+			<ul className="flex flex-col gap-0.5">
+				{displayItems.map((item, index) => {
+					const recentlyActive = isRecentlyActive(item.lastUsedAt)
+					const isMostRecent = index === 0 && item.hasBeenUsed
+
+					return (
+						<motion.li
+							key={item.id}
+							initial={{ opacity: 0, y: 6 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{
+								duration: 0.25,
+								delay: index * 0.06,
+								ease: [0.4, 0, 0.2, 1],
 							}}
-							className="group w-full flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-surface-hover transition-colors cursor-pointer"
 						>
-							{/* Icon */}
-							<div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border group-hover:ring-[#3A4A63] transition-colors">
-								{item.icon ? (
-									<Image
-										src={item.icon}
-										alt={item.name}
-										width={16}
-										height={16}
-										className="size-4"
-									/>
-								) : item.type === "MCP" ? (
-									<MCPIcon className="size-4" />
-								) : (
-									<Plug className="size-4 text-fg-subtle" />
-								)}
-							</div>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<button
+										type="button"
+										onClick={() => {
+											if (item.type === "Plugin") {
+												onOpenPlugins()
+											} else {
+												onOpenIntegrations("mcp" as IntegrationParamValue)
+											}
+										}}
+										className={cn(
+											"group w-full flex items-start gap-2.5 rounded-lg px-2 py-2 transition-all cursor-pointer",
+											isMostRecent
+												? "bg-[#4BA0FA]/[0.04] hover:bg-[#4BA0FA]/[0.08] border-l-2 border-l-[#4BA0FA]/40"
+												: "hover:bg-surface-hover border-l-2 border-l-transparent",
+										)}
+									>
+										{/* Icon with status indicator */}
+										<div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-card ring-1 ring-surface-border group-hover:ring-[#3A4A63] transition-colors">
+											{item.icon ? (
+												<Image
+													src={item.icon}
+													alt={item.name}
+													width={18}
+													height={18}
+													className="size-[18px]"
+												/>
+											) : item.type === "MCP" ? (
+												<MCPIcon className="size-[18px]" />
+											) : (
+												<Plug className="size-[18px] text-fg-subtle" />
+											)}
+											{/* Activity status dot */}
+											<span
+												className={cn(
+													"absolute -top-0.5 -right-0.5 size-2 rounded-full ring-2 ring-[#0D1117]",
+													item.hasBeenUsed
+														? recentlyActive
+															? "bg-[#00C853]"
+															: "bg-[#4BA0FA]"
+														: "bg-[#3A4455]",
+												)}
+											>
+												{recentlyActive && (
+													<span className="absolute inset-0 rounded-full bg-[#00C853] animate-ping opacity-60" />
+												)}
+											</span>
+										</div>
 
-							{/* Name and type */}
-							<div className="flex-1 min-w-0 text-left">
-								<p className="text-[12px] text-fg-secondary group-hover:text-white transition-colors leading-tight truncate">
-									{item.name}
-								</p>
-								<p className="text-[10px] text-fg-faint leading-tight mt-0.5">
-									{item.type}
-								</p>
-							</div>
+										{/* Name, description, and metadata */}
+										<div className="flex-1 min-w-0 text-left">
+											<div className="flex items-center gap-1.5">
+												<p className="text-[12px] font-medium text-fg-secondary group-hover:text-white transition-colors leading-tight truncate">
+													{item.name}
+												</p>
+												<span className={cn(
+													"shrink-0 inline-flex items-center rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider",
+													item.type === "MCP"
+														? "bg-[#D4A853]/10 text-[#D4A853]/80"
+														: "bg-[#4BA0FA]/10 text-[#4BA0FA]/80",
+												)}>
+													{item.type}
+												</span>
+											</div>
+											{item.description && (
+												<p className="text-[10px] text-fg-faint leading-tight mt-0.5 truncate">
+													{item.description}
+												</p>
+											)}
+											<div className="flex items-center gap-2 mt-1">
+												{/* Last used time with icon */}
+												<span className="inline-flex items-center gap-0.5">
+													{item.hasBeenUsed ? (
+														<Activity className="size-2.5 text-fg-faint shrink-0" />
+													) : (
+														<Clock className="size-2.5 text-fg-faint shrink-0" />
+													)}
+													<span
+														className={cn(
+															"text-[9px] transition-colors",
+															item.hasBeenUsed
+																? recentlyActive
+																	? "text-[#00C853]/80"
+																	: "text-fg-muted group-hover:text-fg-secondary"
+																: "text-fg-faint",
+														)}
+													>
+														{formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)}
+													</span>
+												</span>
+												{/* Connected since */}
+												{item.connectedAt && (
+													<>
+														<span className="text-[#2A3040]">·</span>
+														<span className="text-[9px] text-fg-faint">
+															Since {item.connectedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+														</span>
+													</>
+												)}
+											</div>
+										</div>
 
-							{/* Last used */}
-							<span
-								className={cn(
-									"shrink-0 text-[10px] transition-colors",
-									item.hasBeenUsed
-										? "text-fg-muted group-hover:text-fg-secondary"
-										: "text-fg-faint",
-								)}
-							>
-								{formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)}
-							</span>
-						</button>
-					</li>
-				))}
+										{/* Arrow indicator */}
+										<ArrowRight className="size-3 shrink-0 text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity self-center" />
+									</button>
+								</TooltipTrigger>
+								<TooltipContent side="left" className={dmSansClassName()}>
+									<div className="text-[11px] space-y-0.5">
+										<p className="font-medium">{item.name}</p>
+										{item.hasBeenUsed && item.lastUsedAt && (
+											<p className="text-fg-muted">
+												Last used: {formatAbsoluteTime(item.lastUsedAt)}
+											</p>
+										)}
+										{item.connectedAt && (
+											<p className="text-fg-faint">
+												Connected: {formatAbsoluteTime(item.connectedAt)}
+											</p>
+										)}
+										{!item.hasBeenUsed && (
+											<p className="text-fg-faint">Not yet used</p>
+										)}
+									</div>
+								</TooltipContent>
+							</Tooltip>
+						</motion.li>
+					)
+				})}
 			</ul>
 		</div>
 	)
