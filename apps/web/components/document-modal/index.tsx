@@ -23,6 +23,8 @@ import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import type { UseMutationResult } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useIsMobile } from "@hooks/use-mobile"
+import { parsePluginDocument } from "@/lib/plugin-document"
+import { PluginDetails } from "./plugin-details"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -168,6 +170,10 @@ export function DocumentModal({
 			initialEditorString: content ?? "",
 		}
 	}, [_document?.content])
+	const pluginDocument = useMemo(
+		() => parsePluginDocument(_document),
+		[_document],
+	)
 
 	const [draftContentString, setDraftContentString] =
 		useState(initialEditorString)
@@ -298,6 +304,7 @@ export function DocumentModal({
 						<DocumentContent
 							document={_document}
 							textEditorProps={textEditorProps}
+							pluginDocument={pluginDocument}
 						/>
 					</div>
 					<div
@@ -307,10 +314,11 @@ export function DocumentModal({
 							dmSansClassName(),
 						)}
 					>
-						{_document?.summary && (
+						{pluginDocument && <PluginDetails parsed={pluginDocument} />}
+						{_document && (_document.summary || pluginDocument?.summary) && (
 							<DocumentSummary
 								memoryEntries={_document.memoryEntries}
-								summary={_document.summary}
+								summary={pluginDocument?.summary ?? _document.summary}
 								createdAt={_document.createdAt}
 							/>
 						)}

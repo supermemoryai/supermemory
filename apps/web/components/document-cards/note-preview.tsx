@@ -5,11 +5,18 @@ import type { z } from "zod"
 import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { DocumentIcon } from "@/components/document-icon"
+import { parsePluginDocument } from "@/lib/plugin-document"
+import { PluginPreview } from "./plugin-preview"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
 
 export function NotePreview({ document }: { document: DocumentWithMemories }) {
+	const pluginDocument = parsePluginDocument(document)
+	if (pluginDocument) {
+		return <PluginPreview parsed={pluginDocument} />
+	}
+
 	return (
 		<div className="bg-[#0B1017] p-3 rounded-[18px] space-y-2">
 			<div className="flex items-center gap-1">
