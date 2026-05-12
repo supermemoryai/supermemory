@@ -33,7 +33,7 @@ interface FileContentProps {
 	isOpen?: boolean
 }
 
-function isAcceptedFile(file: File): boolean {
+export function isAcceptedFile(file: File): boolean {
 	const name = file.name.toLowerCase()
 	const ext = name.includes(".") ? name.slice(name.lastIndexOf(".")) : ""
 	const allowedExt = new Set([
@@ -53,7 +53,7 @@ function isAcceptedFile(file: File): boolean {
 	return false
 }
 
-function fileQueueKey(file: File): string {
+export function fileQueueKey(file: File): string {
 	return `${file.name}:${file.size}:${file.lastModified}`
 }
 

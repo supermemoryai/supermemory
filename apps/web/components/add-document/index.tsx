@@ -10,7 +10,7 @@ import { Button } from "@ui/components/button"
 import { ConnectContent } from "./connections"
 import { NoteContent } from "./note"
 import { LinkContent, type LinkData } from "./link"
-import { FileContent, type FileData } from "./file"
+import { FileContent, type FileData, type FileQueueItem, fileQueueKey } from "./file"
 import { useProject } from "@/stores"
 import { toast } from "sonner"
 import { useDocumentMutations } from "../../hooks/use-document-mutations"
@@ -121,8 +121,16 @@ export function AddDocument({
 	const fileDataRef = useRef(fileData)
 	fileDataRef.current = fileData
 
+	const [noteDroppedFiles, setNoteDroppedFiles] = useState<FileQueueItem[]>([])
+
+	const skipMutationCloseRef = useRef(false)
+
 	const { noteMutation, linkMutation, fileMutation } = useDocumentMutations({
-		onClose,
+		onClose: () => {
+			if (!skipMutationCloseRef.current) {
+				onClose()
+			}
+		},
 	})
 
 	useEffect(() => {
@@ -133,6 +141,7 @@ export function AddDocument({
 		if (!isOpen) {
 			setFileData({ items: [], title: "", description: "" })
 			setNoteContentType("note")
+			setNoteDroppedFiles([])
 		}
 	}, [isOpen])
 
@@ -222,16 +231,88 @@ export function AddDocument({
 		[fileMutation, localSelectedProject],
 	)
 
+	const handleNoteFilesDropped = useCallback((files: File[]) => {
+		setNoteDroppedFiles((prev) => {
+			const existingKeys = new Set(prev.map((i) => fileQueueKey(i.file)))
+			let duplicateCount = 0
+			const toAdd: FileQueueItem[] = []
+			for (const file of files) {
+				const key = fileQueueKey(file)
+				if (existingKeys.has(key)) {
+					duplicateCount++
+					continue
+				}
+				existingKeys.add(key)
+				toAdd.push({ id: crypto.randomUUID(), file, status: "pending" })
+			}
+			if (duplicateCount > 0) {
+				toast.message(
+					duplicateCount === 1
+						? "Skipped duplicate file"
+						: `Skipped ${duplicateCount} duplicate files`,
+				)
+			}
+			if (toAdd.length === 0) return prev
+			return [...prev, ...toAdd]
+		})
+	}, [])
+
+	const handleRemoveNoteFile = useCallback((id: string) => {
+		setNoteDroppedFiles((prev) => prev.filter((f) => f.id !== id))
+	}, [])
+
+	const handleNoteFileSubmit = useCallback(async () => {
+		const pending = noteDroppedFiles.filter((i) => i.status === "pending")
+		if (pending.length === 0) return
+
+		setNoteDroppedFiles((prev) =>
+			prev.map((i) =>
+				i.status === "pending"
+					? { ...i, status: "uploading" as const }
+					: i,
+			),
+		)
+
+		try {
+			const result = await fileMutation.mutateAsync({
+				fileEntries: pending.map((i) => ({ id: i.id, file: i.file })),
+				project: localSelectedProject,
+			})
+			setNoteDroppedFiles((prev) =>
+				prev.map((i) => {
+					if (i.status !== "uploading") return i
+					const fail = result.failures.find((f) => f.id === i.id)
+					if (fail) {
+						return {
+							...i,
+							status: "error" as const,
+							errorMessage: fail.message,
+						}
+					}
+					return { ...i, status: "success" as const }
+				}),
+			)
+			return result
+		} catch {
+			setNoteDroppedFiles((prev) =>
+				prev.map((i) =>
+					i.status === "uploading"
+						? {
+								...i,
+								status: "error" as const,
+								errorMessage: "Upload failed",
+							}
+						: i,
+				),
+			)
+			throw new Error("File upload failed")
+		}
+	}, [noteDroppedFiles, fileMutation, localSelectedProject])
+
 	// Data change handlers
 	const handleNoteContentChange = useCallback((content: string) => {
 		setNoteContent(content)
 	}, [])
-
-	const handleNoteRequestSubmit = useCallback(() => {
-		// This will be called by Cmd+Enter from the editor
-		// For now it just does the note submit; Task 3 will expand this for files
-		handleNoteSubmit(noteContent, noteContentType)
-	}, [handleNoteSubmit, noteContent, noteContentType])
 
 	const handleLinkDataChange = useCallback((data: LinkData) => {
 		setLinkData(data)
@@ -241,11 +322,47 @@ export function AddDocument({
 		setFileData(data)
 	}, [])
 
-	const handleButtonClick = () => {
+	const handleButtonClick = useCallback(async () => {
 		switch (activeTab) {
-			case "note":
-				handleNoteSubmit(noteContent, noteContentType)
+			case "note": {
+				const hasPendingFiles = noteDroppedFiles.some(
+					(i) => i.status === "pending",
+				)
+				const hasText = noteContent.trim().length > 0
+
+				if (hasText && hasPendingFiles) {
+					// Save all: text + files
+					skipMutationCloseRef.current = true
+					try {
+						const textPromise =
+							noteContentType === "link"
+								? linkMutation.mutateAsync({
+										url: normalizeUrl(noteContent.trim()),
+										project: localSelectedProject,
+									})
+								: noteMutation.mutateAsync({
+										content: noteContent,
+										project: localSelectedProject,
+									})
+						const filePromise = handleNoteFileSubmit()
+						await Promise.all([textPromise, filePromise])
+						onClose()
+					} catch {
+						// At least one failed — modal stays open
+					} finally {
+						skipMutationCloseRef.current = false
+					}
+				} else if (hasPendingFiles) {
+					void handleNoteFileSubmit().catch(() => {
+						/* errors handled in handleNoteFileSubmit */
+					})
+				} else if (hasText) {
+					handleNoteSubmit(noteContent, noteContentType)
+				} else {
+					toast.error("Please enter some content or drop a file")
+				}
 				break
+			}
 			case "link":
 				handleLinkSubmit(linkData)
 				break
@@ -253,7 +370,12 @@ export function AddDocument({
 				void handleFileSubmit(fileData)
 				break
 		}
-	}
+	}, [activeTab, noteDroppedFiles, noteContent, noteContentType, linkMutation, noteMutation, localSelectedProject, handleNoteFileSubmit, onClose, handleNoteSubmit, handleLinkSubmit, linkData, handleFileSubmit, fileData])
+
+	const handleNoteRequestSubmit = useCallback(() => {
+		// Called by Cmd+Enter from the editor — uses same logic as CTA button
+		void handleButtonClick()
+	}, [handleButtonClick])
 
 	const isSubmitting =
 		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
@@ -331,8 +453,17 @@ export function AddDocument({
 							onContentChange={handleNoteContentChange}
 							onContentTypeChange={setNoteContentType}
 							onRequestSubmit={handleNoteRequestSubmit}
-							isSubmitting={noteMutation.isPending}
+							isSubmitting={noteMutation.isPending || linkMutation.isPending || fileMutation.isPending}
 							isOpen={isOpen}
+							onFilesDropped={handleNoteFilesDropped}
+							onRemoveFile={handleRemoveNoteFile}
+							droppedFiles={noteDroppedFiles.map((f) => ({
+								id: f.id,
+								name: f.file.name,
+								size: f.file.size,
+								status: f.status,
+								errorMessage: f.errorMessage,
+							}))}
 						/>
 					)}
 					{activeTab === "link" && (
@@ -396,7 +527,7 @@ export function AddDocument({
 						{activeTab !== "connect" && (
 							<Button
 								variant="insideOut"
-								onClick={handleButtonClick}
+								onClick={() => void handleButtonClick()}
 								disabled={
 									activeTab === "file" ? fileTabSubmitDisabled : isSubmitting
 								}
@@ -409,13 +540,30 @@ export function AddDocument({
 									</>
 								) : (
 									<>
-										{activeTab === "note"
-											? noteContentType === "link"
-												? "Save link"
-												: "Save note"
-											: activeTab === "link"
-												? "Save link"
-												: `+ Add ${activeTab}`}{" "}
+										{(() => {
+											if (activeTab === "note") {
+												const noteHasPendingFiles = noteDroppedFiles.some(
+													(i) => i.status === "pending",
+												)
+												const noteHasText = noteContent.trim().length > 0
+												if (noteHasText && noteHasPendingFiles) {
+													return "Save all"
+												}
+												if (noteHasPendingFiles) {
+													const pendingCount = noteDroppedFiles.filter(
+														(i) => i.status === "pending",
+													).length
+													return pendingCount === 1
+														? "Save file"
+														: `Save ${pendingCount} files`
+												}
+												return noteContentType === "link"
+													? "Save link"
+													: "Save note"
+											}
+											if (activeTab === "link") return "Save link"
+											return `+ Add ${activeTab}`
+										})()}{" "}
 										{!isMobile && (
 											<span
 												className={cn(
