@@ -14,9 +14,7 @@ import { FileContent, type FileData } from "./file"
 import { useProject } from "@/stores"
 import { toast } from "sonner"
 import { useDocumentMutations } from "../../hooks/use-document-mutations"
-import { useCustomer } from "autumn-js/react"
-import { useTokenUsage } from "@/hooks/use-token-usage"
-import { formatUsageNumber } from "@/lib/billing-utils"
+import { normalizeUrl } from "@/lib/url-helpers"
 import { SpaceSelector } from "../space-selector"
 import { useIsMobile } from "@hooks/use-mobile"
 import { addDocumentParam } from "@/lib/search-params"
@@ -124,16 +122,6 @@ export function AddDocument({
 		onClose,
 	})
 
-	const autumn = useCustomer()
-	const {
-		tokensUsed,
-		searchesUsed,
-		planUsagePct,
-		hasPaidPlan,
-		isLoading: isLoadingUsage,
-	} = useTokenUsage(autumn)
-	const [isUpgrading, setIsUpgrading] = useState(false)
-
 	useEffect(() => {
 		setLocalSelectedProject(globalSelectedProject)
 	}, [globalSelectedProject])
@@ -158,11 +146,12 @@ export function AddDocument({
 
 	const handleLinkSubmit = useCallback(
 		(data: LinkData) => {
-			if (!data.url.trim()) {
+			const normalizedUrl = normalizeUrl(data.url.trim())
+			if (!normalizedUrl || normalizedUrl === "https://") {
 				toast.error("Please enter a URL")
 				return
 			}
-			linkMutation.mutate({ url: data.url, project: localSelectedProject })
+			linkMutation.mutate({ url: normalizedUrl, project: localSelectedProject })
 		},
 		[linkMutation, localSelectedProject],
 	)
@@ -309,161 +298,6 @@ export function AddDocument({
 						/>
 					))}
 				</div>
-
-				{isMobile && (
-					<div className="mt-3 flex flex-col gap-2">
-						<div className="flex justify-between items-center">
-							<span
-								className={cn(
-									"text-[#FAFAFA] text-sm font-medium",
-									dmSansClassName(),
-								)}
-							>
-								Plan usage
-							</span>
-							<span
-								className={cn(
-									"text-sm font-medium tabular-nums",
-									hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]",
-									dmSansClassName(),
-								)}
-							>
-								{isLoadingUsage
-									? "…"
-									: `${planUsagePct < 1 && planUsagePct > 0 ? "< 1" : Math.round(planUsagePct)}% used`}
-							</span>
-						</div>
-						<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-							<div
-								className="h-full rounded-[40px]"
-								style={{
-									width: `${planUsagePct}%`,
-									background:
-										planUsagePct > 80
-											? "#ef4444"
-											: hasPaidPlan
-												? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
-												: "#0054AD",
-								}}
-								title={`${formatUsageNumber(tokensUsed)} tokens · ${formatUsageNumber(searchesUsed)} queries`}
-							/>
-						</div>
-						{!isLoadingUsage && (
-							<p
-								className={cn(
-									"text-xs text-[#737373] tabular-nums",
-									dmSansClassName(),
-								)}
-							>
-								{formatUsageNumber(tokensUsed)} tokens ·{" "}
-								{formatUsageNumber(searchesUsed)} queries
-							</p>
-						)}
-					</div>
-				)}
-
-				{!isMobile && (
-					<div data-testid="usage-counter" className="flex flex-col gap-3 mr-4">
-						<div className="flex flex-col gap-2">
-							<div className="flex justify-between items-center">
-								<span
-									className={cn(
-										"text-[#FAFAFA] text-sm font-medium",
-										dmSansClassName(),
-									)}
-								>
-									Plan usage
-								</span>
-								<span
-									className={cn(
-										"text-sm font-medium tabular-nums",
-										hasPaidPlan ? "text-[#4BA0FA]" : "text-[#737373]",
-										dmSansClassName(),
-									)}
-								>
-									{isLoadingUsage
-										? "…"
-										: `${planUsagePct < 1 && planUsagePct > 0 ? "< 1" : Math.round(planUsagePct)}% used`}
-								</span>
-							</div>
-							<div className="h-2 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-								<div
-									className="h-full rounded-[40px]"
-									style={{
-										width: `${planUsagePct}%`,
-										background:
-											planUsagePct > 80
-												? "#ef4444"
-												: hasPaidPlan
-													? "linear-gradient(to right, #4BA0FA 80%, #002757 100%)"
-													: "#0054AD",
-									}}
-									title={`${formatUsageNumber(tokensUsed)} tokens · ${formatUsageNumber(searchesUsed)} queries`}
-								/>
-							</div>
-							{!isLoadingUsage && (
-								<p
-									className={cn(
-										"text-xs text-[#737373] tabular-nums",
-										dmSansClassName(),
-									)}
-								>
-									{formatUsageNumber(tokensUsed)} tokens ·{" "}
-									{formatUsageNumber(searchesUsed)} queries
-								</p>
-							)}
-						</div>
-
-						{!hasPaidPlan && (
-							<button
-								type="button"
-								onClick={async () => {
-									setIsUpgrading(true)
-									try {
-										const result = await autumn.attach({
-											planId: "api_pro",
-											successUrl: `${window.location.origin}/settings#account`,
-										})
-										if (result?.paymentUrl) {
-											window.open(result.paymentUrl, "_self")
-											return
-										}
-										autumn.refetch?.()
-									} catch (error) {
-										console.error(error)
-										toast.error("Failed to start checkout. Please try again.")
-									} finally {
-										setIsUpgrading(false)
-									}
-								}}
-								disabled={isUpgrading}
-								className={cn(
-									"relative w-full h-9 rounded-[10px] flex items-center justify-center",
-									"text-[#FAFAFA] font-medium text-[13px]",
-									"disabled:opacity-60 disabled:cursor-not-allowed",
-									"cursor-pointer transition-opacity hover:opacity-90",
-									dmSansClassName(),
-								)}
-								style={{
-									background:
-										"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
-									boxShadow:
-										"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
-								}}
-							>
-								{isUpgrading ? (
-									<>
-										<Loader2 className="size-3 animate-spin mr-1.5" />
-										Upgrading…
-									</>
-								) : (
-									"Upgrade to Pro"
-								)}
-								<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
-							</button>
-						)}
-					</div>
-				)}
 			</div>
 
 			<div
