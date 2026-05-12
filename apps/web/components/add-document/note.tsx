@@ -137,6 +137,7 @@ export function NoteContent({
 
 	return (
 		<div className="flex h-full flex-col">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop zone requires event handlers on a div */}
 			<div
 				className="relative flex min-h-[45dvh] w-full flex-1 overflow-y-auto rounded-[14px] bg-[#10151C] p-3 shadow-inside-out ring-1 ring-[#202A36] md:mb-4! md:bg-[#14161A] md:p-4 md:ring-0"
 				onDragEnter={handleDragEnter}
