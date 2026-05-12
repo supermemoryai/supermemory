@@ -243,14 +243,14 @@ const PROFESSION_LABELS: {
 	value: Exclude<Profession, "default">
 	label: string
 }[] = [
-	{ value: "developer", label: "Developer" },
-	{ value: "research", label: "Researcher" },
-	{ value: "finance", label: "Finance" },
-	{ value: "design", label: "Designer" },
-	{ value: "legal", label: "Legal" },
-	{ value: "marketing", label: "Marketing" },
-	{ value: "medical", label: "Medical" },
-]
+		{ value: "developer", label: "Developer" },
+		{ value: "research", label: "Researcher" },
+		{ value: "finance", label: "Finance" },
+		{ value: "design", label: "Designer" },
+		{ value: "legal", label: "Legal" },
+		{ value: "marketing", label: "Marketing" },
+		{ value: "medical", label: "Medical" },
+	]
 
 // Static plugin metadata — shared between PluginPromoCard and RecommendedPluginsCard
 const PLUGIN_STATIC = [
@@ -772,7 +772,7 @@ function RecommendedPluginsCard({
 		return PLUGIN_STATIC.map((p) => ({
 			...p,
 			connected: connected[p.id] ?? false,
-			onClick: onClicks[p.id]!,
+			onClick: onClicks[p.id] ?? (() => { }),
 		}))
 	}, [hasMcp, connectedProviders, onOpenPlugins, onOpenIntegrations])
 
@@ -944,7 +944,7 @@ function PluginPromoCard({
 		return PLUGIN_STATIC.map((p) => ({
 			...p,
 			connected: connected[p.id] ?? false,
-			onClick: onClicks[p.id]!,
+			onClick: onClicks[p.id] ?? (() => { }),
 		})).filter((p) => !p.connected)
 	}, [hasMcp, connectedProviders, onOpenPlugins, onOpenIntegrations])
 
