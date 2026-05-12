@@ -243,14 +243,14 @@ const PROFESSION_LABELS: {
 	value: Exclude<Profession, "default">
 	label: string
 }[] = [
-		{ value: "developer", label: "Developer" },
-		{ value: "research", label: "Researcher" },
-		{ value: "finance", label: "Finance" },
-		{ value: "design", label: "Designer" },
-		{ value: "legal", label: "Legal" },
-		{ value: "marketing", label: "Marketing" },
-		{ value: "medical", label: "Medical" },
-	]
+	{ value: "developer", label: "Developer" },
+	{ value: "research", label: "Researcher" },
+	{ value: "finance", label: "Finance" },
+	{ value: "design", label: "Designer" },
+	{ value: "legal", label: "Legal" },
+	{ value: "marketing", label: "Marketing" },
+	{ value: "medical", label: "Medical" },
+]
 
 // Static plugin metadata — shared between PluginPromoCard and RecommendedPluginsCard
 const PLUGIN_STATIC = [
@@ -366,7 +366,10 @@ function parseToolUsage(
 	let latestMcpDocumentAt: Date | null = null
 
 	// Track latest document per plugin client
-	const latestDocPerPlugin = new Map<string, { title: string; id: string; at: Date }>()
+	const latestDocPerPlugin = new Map<
+		string,
+		{ title: string; id: string; at: Date }
+	>()
 
 	for (const key of apiKeys) {
 		let meta: Record<string, unknown> = {}
@@ -674,12 +677,14 @@ function RecentToolUsageCard({
 										<p className="text-[12px] font-medium text-fg-secondary group-hover:text-white transition-colors leading-tight truncate">
 											{item.name}
 										</p>
-										<span className={cn(
-											"shrink-0 inline-flex items-center rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider",
-											item.type === "MCP"
-												? "bg-[#D4A853]/10 text-[#D4A853]/80"
-												: "bg-[#4BA0FA]/10 text-[#4BA0FA]/80",
-										)}>
+										<span
+											className={cn(
+												"shrink-0 inline-flex items-center rounded-full px-1.5 py-px text-[8px] font-semibold uppercase tracking-wider",
+												item.type === "MCP"
+													? "bg-[#D4A853]/10 text-[#D4A853]/80"
+													: "bg-[#4BA0FA]/10 text-[#4BA0FA]/80",
+											)}
+										>
 											{item.type}
 										</span>
 									</div>
@@ -705,8 +710,10 @@ function RecentToolUsageCard({
 											>
 												{item.hasBeenUsed && item.lastUsedAt
 													? `${formatToolUsageTime(item.lastUsedAt, true)} · ${formatAbsoluteTime(item.lastUsedAt)}`
-													: formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)
-												}
+													: formatToolUsageTime(
+															item.lastUsedAt,
+															item.hasBeenUsed,
+														)}
 											</span>
 										</span>
 										{/* Connected since */}
@@ -716,7 +723,11 @@ function RecentToolUsageCard({
 												<span className="inline-flex items-center gap-0.5">
 													<Clock className="size-2.5 text-fg-faint shrink-0" />
 													<span className="text-[9px] text-fg-faint">
-														Since {item.connectedAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+														Since{" "}
+														{item.connectedAt.toLocaleDateString(undefined, {
+															month: "short",
+															day: "numeric",
+														})}
 													</span>
 												</span>
 											</>
@@ -772,7 +783,7 @@ function RecommendedPluginsCard({
 		return PLUGIN_STATIC.map((p) => ({
 			...p,
 			connected: connected[p.id] ?? false,
-			onClick: onClicks[p.id] ?? (() => { }),
+			onClick: onClicks[p.id] ?? (() => {}),
 		}))
 	}, [hasMcp, connectedProviders, onOpenPlugins, onOpenIntegrations])
 
@@ -944,7 +955,7 @@ function PluginPromoCard({
 		return PLUGIN_STATIC.map((p) => ({
 			...p,
 			connected: connected[p.id] ?? false,
-			onClick: onClicks[p.id] ?? (() => { }),
+			onClick: onClicks[p.id] ?? (() => {}),
 		})).filter((p) => !p.connected)
 	}, [hasMcp, connectedProviders, onOpenPlugins, onOpenIntegrations])
 
