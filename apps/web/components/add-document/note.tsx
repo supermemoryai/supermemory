@@ -18,13 +18,9 @@ function detectContentType(plainText: string): "note" | "link" {
 	if (!trimmed) return "note"
 	// Must be a single token (no whitespace)
 	if (/\s/.test(trimmed)) return "note"
-	// Try as-is first (has protocol)
-	if (
-		trimmed.startsWith("http://") ||
-		trimmed.startsWith("https://") ||
-		trimmed.startsWith("HTTP://") ||
-		trimmed.startsWith("HTTPS://")
-	) {
+	// Try as-is first (has protocol — case-insensitive check)
+	const lower = trimmed.toLowerCase()
+	if (lower.startsWith("http://") || lower.startsWith("https://")) {
 		if (isValidUrl(trimmed)) return "link"
 		return "note"
 	}
@@ -38,12 +34,14 @@ function detectContentType(plainText: string): "note" | "link" {
 interface NoteContentProps {
 	onSubmit?: (content: string, contentType: "note" | "link") => void
 	onContentChange?: (content: string) => void
+	onPlainTextChange?: (text: string) => void
 	onContentTypeChange?: (type: "note" | "link") => void
 	onRequestSubmit?: () => void
 	isSubmitting?: boolean
 	isOpen?: boolean
 	onFilesDropped?: (files: File[]) => void
 	onRemoveFile?: (id: string) => void
+	onRetryFile?: (id: string) => void
 	droppedFiles?: {
 		id: string
 		name: string
@@ -56,12 +54,14 @@ interface NoteContentProps {
 export function NoteContent({
 	onSubmit,
 	onContentChange,
+	onPlainTextChange,
 	onContentTypeChange,
 	onRequestSubmit,
 	isSubmitting,
 	isOpen,
 	onFilesDropped,
 	onRemoveFile,
+	onRetryFile,
 	droppedFiles,
 }: NoteContentProps) {
 	const [content, setContent] = useState("")
@@ -150,6 +150,7 @@ export function NoteContent({
 					onContentChange={handleContentChange}
 					onPlainTextChange={(text) => {
 						setPlainText(text)
+						onPlainTextChange?.(text)
 						const type = detectContentType(text)
 						onContentTypeChange?.(type)
 					}}
@@ -177,15 +178,16 @@ export function NoteContent({
 							<span className="text-[#737373]">
 								{(file.size / 1024 / 1024).toFixed(1)}MB
 							</span>
-							{file.status === "pending" && onRemoveFile && (
-								<button
-									type="button"
-									onClick={() => onRemoveFile(file.id)}
-									className="ml-0.5 text-[#737373] hover:text-white"
-								>
-									<XIcon className="size-3" />
-								</button>
-							)}
+							{(file.status === "pending" || file.status === "error") &&
+								onRemoveFile && (
+									<button
+										type="button"
+										onClick={() => onRemoveFile(file.id)}
+										className="ml-0.5 text-[#737373] hover:text-white"
+									>
+										<XIcon className="size-3" />
+									</button>
+								)}
 							{file.status === "uploading" && (
 								<Loader2 className="size-3 animate-spin text-[#4BA0FA]" />
 							)}
@@ -193,9 +195,20 @@ export function NoteContent({
 								<CheckIcon className="size-3 text-green-500" />
 							)}
 							{file.status === "error" && (
-								<span className="text-red-400" title={file.errorMessage}>
-									<AlertCircleIcon className="size-3" />
-								</span>
+								<>
+									<span className="text-red-400" title={file.errorMessage}>
+										<AlertCircleIcon className="size-3" />
+									</span>
+									{onRetryFile && (
+										<button
+											type="button"
+											onClick={() => onRetryFile(file.id)}
+											className="ml-0.5 text-xs text-[#4BA0FA] hover:underline"
+										>
+											Retry
+										</button>
+									)}
+								</>
 							)}
 						</div>
 					))}

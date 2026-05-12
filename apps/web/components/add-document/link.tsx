@@ -4,12 +4,10 @@ import { useState, useEffect } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { useHotkeys } from "react-hotkeys-hook"
+import { normalizeUrl } from "@/lib/url-helpers"
 
 export interface LinkData {
 	url: string
-	title: string
-	description: string
-	image?: string
 }
 
 interface LinkContentProps {
@@ -31,20 +29,13 @@ export function LinkContent({
 
 	const handleSubmit = () => {
 		if (canSubmit && onSubmit) {
-			let normalizedUrl = url.trim()
-			if (
-				!normalizedUrl.startsWith("http://") &&
-				!normalizedUrl.startsWith("https://")
-			) {
-				normalizedUrl = `https://${normalizedUrl}`
-			}
-			onSubmit({ url: normalizedUrl, title: "", description: "" })
+			onSubmit({ url: normalizeUrl(url.trim()) })
 		}
 	}
 
 	const handleUrlChange = (newUrl: string) => {
 		setUrl(newUrl)
-		onDataChange?.({ url: newUrl, title: "", description: "" })
+		onDataChange?.({ url: newUrl })
 	}
 
 	useHotkeys("mod+enter", handleSubmit, {
@@ -56,7 +47,7 @@ export function LinkContent({
 	useEffect(() => {
 		if (!isOpen) {
 			setUrl("")
-			onDataChange?.({ url: "", title: "", description: "" })
+			onDataChange?.({ url: "" })
 		}
 	}, [isOpen, onDataChange])
 

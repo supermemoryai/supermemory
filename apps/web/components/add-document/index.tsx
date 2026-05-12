@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useQueryState } from "nuqs"
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { cn } from "@lib/utils"
@@ -10,7 +10,12 @@ import { Button } from "@ui/components/button"
 import { ConnectContent } from "./connections"
 import { NoteContent } from "./note"
 import { LinkContent, type LinkData } from "./link"
-import { FileContent, type FileData, type FileQueueItem, fileQueueKey } from "./file"
+import {
+	FileContent,
+	type FileData,
+	type FileQueueItem,
+	fileQueueKey,
+} from "./file"
 import { useProject } from "@/stores"
 import { toast } from "sonner"
 import { useDocumentMutations } from "../../hooks/use-document-mutations"
@@ -31,17 +36,22 @@ export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 	const hasUnsavedContentRef = useRef<() => boolean>(() => false)
 	const isSubmittingRef = useRef(false)
 
-	const handleCloseRequest = useCallback(() => {
+	const confirmThenClose = useCallback(() => {
 		if (isSubmittingRef.current) return // Block close during submission
 		if (hasUnsavedContentRef.current()) {
-			const confirmed = window.confirm("You have unsaved content. Are you sure you want to close?")
+			const confirmed = window.confirm(
+				"You have unsaved content. Are you sure you want to close?",
+			)
 			if (!confirmed) return
 		}
 		onClose()
 	}, [onClose])
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && handleCloseRequest()}>
+		<Dialog
+			open={isOpen}
+			onOpenChange={(open: boolean) => !open && confirmThenClose()}
+		>
 			<DialogContent
 				className={cn(
 					"border-none bg-[#1B1F24] flex flex-col",
@@ -60,6 +70,7 @@ export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 				<div className="min-h-0 flex-1 overflow-hidden">
 					<AddDocument
 						onClose={onClose}
+						onRequestClose={confirmThenClose}
 						isOpen={isOpen}
 						hasUnsavedContentRef={hasUnsavedContentRef}
 						isSubmittingRef={isSubmittingRef}
@@ -100,11 +111,13 @@ const tabs = [
 
 export function AddDocument({
 	onClose,
+	onRequestClose,
 	isOpen,
 	hasUnsavedContentRef,
 	isSubmittingRef,
 }: {
 	onClose: () => void
+	onRequestClose?: () => void
 	isOpen?: boolean
 	hasUnsavedContentRef?: React.MutableRefObject<() => boolean>
 	isSubmittingRef?: React.MutableRefObject<boolean>
@@ -125,13 +138,12 @@ export function AddDocument({
 
 	// Form data state for button click handling
 	const [noteContent, setNoteContent] = useState("")
+	const [notePlainText, setNotePlainText] = useState("")
 	const [noteContentType, setNoteContentType] = useState<"note" | "link">(
 		"note",
 	)
 	const [linkData, setLinkData] = useState<LinkData>({
 		url: "",
-		title: "",
-		description: "",
 	})
 	const [fileData, setFileData] = useState<FileData>({
 		items: [],
@@ -143,6 +155,10 @@ export function AddDocument({
 
 	const [noteDroppedFiles, setNoteDroppedFiles] = useState<FileQueueItem[]>([])
 
+	// When submitting both text and files simultaneously, the first mutation to
+	// complete would trigger onClose and dismiss the modal before the second
+	// finishes. This ref gates the onClose callback so the combined submission
+	// in handleButtonClick can await both promises and close the modal itself.
 	const skipMutationCloseRef = useRef(false)
 
 	const { noteMutation, linkMutation, fileMutation } = useDocumentMutations({
@@ -160,6 +176,7 @@ export function AddDocument({
 	useEffect(() => {
 		if (!isOpen) {
 			setFileData({ items: [], title: "", description: "" })
+			setNotePlainText("")
 			setNoteContentType("note")
 			setNoteDroppedFiles([])
 		}
@@ -173,7 +190,9 @@ export function AddDocument({
 				return
 			}
 			if (contentType === "link") {
-				const normalizedUrl = normalizeUrl(content.trim())
+				// Use plain text for URL — markdown serialization may wrap URLs
+				// in link syntax like [url](url) which would corrupt the value.
+				const normalizedUrl = normalizeUrl(notePlainText.trim())
 				linkMutation.mutate({
 					url: normalizedUrl,
 					project: localSelectedProject,
@@ -182,7 +201,7 @@ export function AddDocument({
 				noteMutation.mutate({ content, project: localSelectedProject })
 			}
 		},
-		[noteMutation, linkMutation, localSelectedProject],
+		[noteMutation, linkMutation, localSelectedProject, notePlainText],
 	)
 
 	const handleLinkSubmit = useCallback(
@@ -281,15 +300,23 @@ export function AddDocument({
 		setNoteDroppedFiles((prev) => prev.filter((f) => f.id !== id))
 	}, [])
 
+	const handleRetryNoteFile = useCallback((id: string) => {
+		setNoteDroppedFiles((prev) =>
+			prev.map((f) =>
+				f.id === id
+					? { ...f, status: "pending" as const, errorMessage: undefined }
+					: f,
+			),
+		)
+	}, [])
+
 	const handleNoteFileSubmit = useCallback(async () => {
 		const pending = noteDroppedFiles.filter((i) => i.status === "pending")
 		if (pending.length === 0) return
 
 		setNoteDroppedFiles((prev) =>
 			prev.map((i) =>
-				i.status === "pending"
-					? { ...i, status: "uploading" as const }
-					: i,
+				i.status === "pending" ? { ...i, status: "uploading" as const } : i,
 			),
 		)
 
@@ -334,6 +361,10 @@ export function AddDocument({
 		setNoteContent(content)
 	}, [])
 
+	const handleNotePlainTextChange = useCallback((text: string) => {
+		setNotePlainText(text)
+	}, [])
+
 	const handleLinkDataChange = useCallback((data: LinkData) => {
 		setLinkData(data)
 	}, [])
@@ -354,10 +385,12 @@ export function AddDocument({
 					// Save all: text + files
 					skipMutationCloseRef.current = true
 					try {
+						// Use plain text for link URLs — markdown may wrap them in
+						// link syntax like [url](url) which would corrupt the value.
 						const textPromise =
 							noteContentType === "link"
 								? linkMutation.mutateAsync({
-										url: normalizeUrl(noteContent.trim()),
+										url: normalizeUrl(notePlainText.trim()),
 										project: localSelectedProject,
 									})
 								: noteMutation.mutateAsync({
@@ -365,8 +398,13 @@ export function AddDocument({
 										project: localSelectedProject,
 									})
 						const filePromise = handleNoteFileSubmit()
-						await Promise.all([textPromise, filePromise])
-						onClose()
+						const [, fileResult] = await Promise.all([textPromise, filePromise])
+						// Only close if all file uploads succeeded; partial failures
+						// should keep the modal open so users can retry or remove items.
+						const hasFileFailures = fileResult && fileResult.failures.length > 0
+						if (!hasFileFailures) {
+							onClose()
+						}
 					} catch {
 						// At least one failed — modal stays open
 					} finally {
@@ -390,7 +428,23 @@ export function AddDocument({
 				void handleFileSubmit(fileData)
 				break
 		}
-	}, [activeTab, noteDroppedFiles, noteContent, noteContentType, linkMutation, noteMutation, localSelectedProject, handleNoteFileSubmit, onClose, handleNoteSubmit, handleLinkSubmit, linkData, handleFileSubmit, fileData])
+	}, [
+		activeTab,
+		noteDroppedFiles,
+		noteContent,
+		notePlainText,
+		noteContentType,
+		linkMutation,
+		noteMutation,
+		localSelectedProject,
+		handleNoteFileSubmit,
+		onClose,
+		handleNoteSubmit,
+		handleLinkSubmit,
+		linkData,
+		handleFileSubmit,
+		fileData,
+	])
 
 	const handleNoteRequestSubmit = useCallback(() => {
 		// Called by Cmd+Enter from the editor — uses same logic as CTA button
@@ -420,14 +474,30 @@ export function AddDocument({
 		}
 	}, [isSubmitting, isSubmittingRef])
 
-	const handleClose = useCallback(() => {
-		if (isSubmitting) return
-		if (hasUnsavedContent()) {
-			const confirmed = window.confirm("You have unsaved content. Are you sure you want to close?")
-			if (!confirmed) return
+	// Delegate to the parent's confirmation-aware close when available (modal
+	// context), otherwise fall back to closing directly (standalone usage).
+	const handleClose = onRequestClose ?? onClose
+
+	const ctaLabel = useMemo(() => {
+		if (activeTab === "note") {
+			const noteHasPendingFiles = noteDroppedFiles.some(
+				(i) => i.status === "pending",
+			)
+			const noteHasText = noteContent.trim().length > 0
+			if (noteHasText && noteHasPendingFiles) {
+				return "Save all"
+			}
+			if (noteHasPendingFiles) {
+				const pendingCount = noteDroppedFiles.filter(
+					(i) => i.status === "pending",
+				).length
+				return pendingCount === 1 ? "Save file" : `Save ${pendingCount} files`
+			}
+			return noteContentType === "link" ? "Save link" : "Save note"
 		}
-		onClose()
-	}, [isSubmitting, hasUnsavedContent, onClose])
+		if (activeTab === "link") return "Save link"
+		return `+ Add ${activeTab}`
+	}, [activeTab, noteDroppedFiles, noteContent, noteContentType])
 
 	const fileTabHasPending = fileData.items.some((i) => i.status === "pending")
 	const fileTabSubmitDisabled =
@@ -500,12 +570,18 @@ export function AddDocument({
 						<NoteContent
 							onSubmit={handleNoteSubmit}
 							onContentChange={handleNoteContentChange}
+							onPlainTextChange={handleNotePlainTextChange}
 							onContentTypeChange={setNoteContentType}
 							onRequestSubmit={handleNoteRequestSubmit}
-							isSubmitting={noteMutation.isPending || linkMutation.isPending || fileMutation.isPending}
+							isSubmitting={
+								noteMutation.isPending ||
+								linkMutation.isPending ||
+								fileMutation.isPending
+							}
 							isOpen={isOpen}
 							onFilesDropped={handleNoteFilesDropped}
 							onRemoveFile={handleRemoveNoteFile}
+							onRetryFile={handleRetryNoteFile}
 							droppedFiles={noteDroppedFiles.map((f) => ({
 								id: f.id,
 								name: f.file.name,
@@ -589,30 +665,7 @@ export function AddDocument({
 									</>
 								) : (
 									<>
-										{(() => {
-											if (activeTab === "note") {
-												const noteHasPendingFiles = noteDroppedFiles.some(
-													(i) => i.status === "pending",
-												)
-												const noteHasText = noteContent.trim().length > 0
-												if (noteHasText && noteHasPendingFiles) {
-													return "Save all"
-												}
-												if (noteHasPendingFiles) {
-													const pendingCount = noteDroppedFiles.filter(
-														(i) => i.status === "pending",
-													).length
-													return pendingCount === 1
-														? "Save file"
-														: `Save ${pendingCount} files`
-												}
-												return noteContentType === "link"
-													? "Save link"
-													: "Save note"
-											}
-											if (activeTab === "link") return "Save link"
-											return `+ Add ${activeTab}`
-										})()}{" "}
+										{ctaLabel}{" "}
 										{!isMobile && (
 											<span
 												className={cn(
