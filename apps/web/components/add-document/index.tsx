@@ -28,9 +28,20 @@ interface AddDocumentModalProps {
 
 export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 	const isMobile = useIsMobile()
+	const hasUnsavedContentRef = useRef<() => boolean>(() => false)
+	const isSubmittingRef = useRef(false)
+
+	const handleCloseRequest = useCallback(() => {
+		if (isSubmittingRef.current) return // Block close during submission
+		if (hasUnsavedContentRef.current()) {
+			const confirmed = window.confirm("You have unsaved content. Are you sure you want to close?")
+			if (!confirmed) return
+		}
+		onClose()
+	}, [onClose])
 
 	return (
-		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
+		<Dialog open={isOpen} onOpenChange={(open: boolean) => !open && handleCloseRequest()}>
 			<DialogContent
 				className={cn(
 					"border-none bg-[#1B1F24] flex flex-col",
@@ -47,7 +58,12 @@ export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 			>
 				<DialogTitle className="sr-only">Add Document</DialogTitle>
 				<div className="min-h-0 flex-1 overflow-hidden">
-					<AddDocument onClose={onClose} isOpen={isOpen} />
+					<AddDocument
+						onClose={onClose}
+						isOpen={isOpen}
+						hasUnsavedContentRef={hasUnsavedContentRef}
+						isSubmittingRef={isSubmittingRef}
+					/>
 				</div>
 			</DialogContent>
 		</Dialog>
@@ -85,9 +101,13 @@ const tabs = [
 export function AddDocument({
 	onClose,
 	isOpen,
+	hasUnsavedContentRef,
+	isSubmittingRef,
 }: {
 	onClose: () => void
 	isOpen?: boolean
+	hasUnsavedContentRef?: React.MutableRefObject<() => boolean>
+	isSubmittingRef?: React.MutableRefObject<boolean>
 }) {
 	const isMobile = useIsMobile()
 	const [addParam, setAddParam] = useQueryState("add", addDocumentParam)
@@ -380,6 +400,35 @@ export function AddDocument({
 	const isSubmitting =
 		noteMutation.isPending || linkMutation.isPending || fileMutation.isPending
 
+	const hasUnsavedContent = useCallback((): boolean => {
+		if (noteContent.trim().length > 0) return true
+		if (noteDroppedFiles.length > 0) return true
+		if (linkData.url.trim().length > 0) return true
+		if (fileData.items.length > 0) return true
+		return false
+	}, [noteContent, noteDroppedFiles, linkData, fileData])
+
+	useEffect(() => {
+		if (hasUnsavedContentRef) {
+			hasUnsavedContentRef.current = hasUnsavedContent
+		}
+	}, [hasUnsavedContent, hasUnsavedContentRef])
+
+	useEffect(() => {
+		if (isSubmittingRef) {
+			isSubmittingRef.current = isSubmitting
+		}
+	}, [isSubmitting, isSubmittingRef])
+
+	const handleClose = useCallback(() => {
+		if (isSubmitting) return
+		if (hasUnsavedContent()) {
+			const confirmed = window.confirm("You have unsaved content. Are you sure you want to close?")
+			if (!confirmed) return
+		}
+		onClose()
+	}, [isSubmitting, hasUnsavedContent, onClose])
+
 	const fileTabHasPending = fileData.items.some((i) => i.status === "pending")
 	const fileTabSubmitDisabled =
 		activeTab === "file" && (!fileTabHasPending || isSubmitting)
@@ -411,7 +460,7 @@ export function AddDocument({
 						</div>
 						<button
 							type="button"
-							onClick={onClose}
+							onClick={handleClose}
 							disabled={isSubmitting}
 							className="flex size-9 items-center justify-center rounded-full border border-[#1F2937] bg-[#0D121A] text-[#8B8B8B] transition-colors hover:text-white disabled:opacity-50"
 							aria-label="Close add memory"
@@ -515,7 +564,7 @@ export function AddDocument({
 					>
 						<Button
 							variant="ghost"
-							onClick={onClose}
+							onClick={handleClose}
 							disabled={isSubmitting}
 							className={cn(
 								"cursor-pointer rounded-full text-[#737373]",
