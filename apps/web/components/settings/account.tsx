@@ -197,6 +197,8 @@ export default function Account() {
 	} = useAuth()
 	const autumn = useCustomer()
 	const [isUpgrading, setIsUpgrading] = useState(false)
+	const [isCancelling, setIsCancelling] = useState(false)
+	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 	const [emailConfirm, setEmailConfirm] = useState("")
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [isClosingAccount, setIsClosingAccount] = useState(false)
@@ -284,6 +286,33 @@ export default function Account() {
 			toast.error("Failed to start checkout. Please try again.")
 		} finally {
 			setIsUpgrading(false)
+		}
+	}
+
+	// Enterprise is contract-based — direct those users to the portal/sales.
+	const cancellablePlanId =
+		currentPlan === "pro" || currentPlan === "scale"
+			? (`api_${currentPlan}` as const)
+			: null
+
+	const handleCancelSubscription = async () => {
+		if (!cancellablePlanId) return
+		setIsCancelling(true)
+		try {
+			await autumn.updateSubscription({
+				planId: cancellablePlanId,
+				cancelAction: "cancel_end_of_cycle",
+			})
+			autumn.refetch?.()
+			setIsCancelDialogOpen(false)
+			toast.success(
+				`Subscription cancelled. ${planDisplayNames[currentPlan]} features remain active until the end of your billing period.`,
+			)
+		} catch (error) {
+			console.error(error)
+			toast.error("Failed to cancel subscription. Please try again.")
+		} finally {
+			setIsCancelling(false)
 		}
 	}
 
@@ -546,25 +575,141 @@ export default function Account() {
 									</p>
 								</div>
 
-								<button
-									type="button"
-									onClick={() => {
-										autumn.openCustomerPortal?.({
-											returnUrl: "https://app.supermemory.ai/settings#account",
-										})
-									}}
-									className={cn(
-										"relative w-full h-11 rounded-full flex items-center justify-center gap-2",
-										"bg-[#0D121A] border border-[rgba(115,115,115,0.2)]",
-										"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
-										"cursor-pointer transition-opacity hover:opacity-90",
-										dmSans125ClassName(),
+								<div className="flex flex-col sm:flex-row gap-3">
+									<button
+										type="button"
+										onClick={() => {
+											autumn.openCustomerPortal?.({
+												returnUrl:
+													"https://app.supermemory.ai/settings#account",
+											})
+										}}
+										className={cn(
+											"relative flex-1 h-11 rounded-full flex items-center justify-center gap-2",
+											"bg-[#0D121A] border border-[rgba(115,115,115,0.2)]",
+											"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
+											"cursor-pointer transition-opacity hover:opacity-90",
+											dmSans125ClassName(),
+										)}
+									>
+										<Settings className="size-4" />
+										Manage billing
+										<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]" />
+									</button>
+									{cancellablePlanId && (
+										<Dialog
+											open={isCancelDialogOpen}
+											onOpenChange={setIsCancelDialogOpen}
+										>
+											<DialogTrigger asChild>
+												<button
+													type="button"
+													className={cn(
+														"relative flex-1 h-11 rounded-full flex items-center justify-center gap-2",
+														"bg-[#290F0A] text-[#C73B1B]",
+														"font-medium text-[14px] tracking-[-0.14px]",
+														"cursor-pointer transition-opacity hover:opacity-90",
+														dmSans125ClassName(),
+													)}
+												>
+													Cancel subscription
+													<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
+												</button>
+											</DialogTrigger>
+											<DialogContent
+												showCloseButton={false}
+												className={cn(
+													"bg-[#1B1F24] rounded-[22px] p-4",
+													"shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]",
+													"min-w-xl",
+												)}
+											>
+												<div className="flex flex-col gap-4">
+													<div className="flex items-start gap-4">
+														<div className="flex flex-1 flex-col gap-3 pl-1">
+															<p
+																className={cn(
+																	dmSans125ClassName(),
+																	"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+																)}
+															>
+																Cancel {planDisplayNames[currentPlan]}{" "}
+																subscription?
+															</p>
+															<p
+																className={cn(
+																	dmSans125ClassName(),
+																	"text-[13px] tracking-[-0.13px] text-[#A3A3A3] leading-snug",
+																)}
+															>
+																You&apos;ll keep Pro features until the end of
+																your current billing period
+																{daysRemaining !== null
+																	? ` (${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining)`
+																	: ""}
+																. After that, your account will switch to the
+																Free plan.
+															</p>
+														</div>
+														<DialogClose asChild>
+															<button
+																type="button"
+																className={cn(
+																	"relative size-7 rounded-full bg-[#0D121A] border border-[#73737333]",
+																	"flex items-center justify-center shrink-0",
+																	"cursor-pointer transition-opacity hover:opacity-80",
+																)}
+															>
+																<X className="size-4 text-[#737373]" />
+																<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.313px_1.313px_3.938px_rgba(0,0,0,0.7)]" />
+															</button>
+														</DialogClose>
+													</div>
+
+													<div className="flex items-center justify-end gap-5">
+														<DialogClose asChild>
+															<button
+																type="button"
+																className={cn(
+																	dmSans125ClassName(),
+																	"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
+																	"cursor-pointer transition-opacity hover:opacity-80",
+																)}
+															>
+																Keep plan
+															</button>
+														</DialogClose>
+														<button
+															type="button"
+															onClick={() => void handleCancelSubscription()}
+															disabled={isCancelling}
+															className={cn(
+																"relative flex items-center gap-1.5 px-4 py-2 rounded-full",
+																"bg-[#290F0A] text-[#C73B1B]",
+																"font-normal text-[14px] tracking-[-0.14px]",
+																"cursor-pointer transition-opacity",
+																"disabled:opacity-40 disabled:cursor-not-allowed",
+																!isCancelling && "hover:opacity-90",
+																dmSans125ClassName(),
+															)}
+														>
+															{isCancelling && (
+																<LoaderIcon className="size-[18px] animate-spin" />
+															)}
+															<span>
+																{isCancelling
+																	? "Cancelling…"
+																	: "Cancel subscription"}
+															</span>
+															<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
+														</button>
+													</div>
+												</div>
+												<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
+											</DialogContent>
+										</Dialog>
 									)}
-								>
-									<Settings className="size-4" />
-									Manage billing
-									<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]" />
-								</button>
+								</div>
 							</>
 						) : (
 							<>
