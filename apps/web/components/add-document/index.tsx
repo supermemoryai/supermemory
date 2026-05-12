@@ -29,9 +29,14 @@ type TabType = "note" | "link" | "file" | "connect"
 interface AddDocumentModalProps {
 	isOpen: boolean
 	onClose: () => void
+	initialFiles?: File[]
 }
 
-export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
+export function AddDocumentModal({
+	isOpen,
+	onClose,
+	initialFiles,
+}: AddDocumentModalProps) {
 	const isMobile = useIsMobile()
 	const hasUnsavedContentRef = useRef<() => boolean>(() => false)
 	const isSubmittingRef = useRef(false)
@@ -74,6 +79,7 @@ export function AddDocumentModal({ isOpen, onClose }: AddDocumentModalProps) {
 						isOpen={isOpen}
 						hasUnsavedContentRef={hasUnsavedContentRef}
 						isSubmittingRef={isSubmittingRef}
+						initialFiles={initialFiles}
 					/>
 				</div>
 			</DialogContent>
@@ -115,12 +121,14 @@ export function AddDocument({
 	isOpen,
 	hasUnsavedContentRef,
 	isSubmittingRef,
+	initialFiles,
 }: {
 	onClose: () => void
 	onRequestClose?: () => void
 	isOpen?: boolean
 	hasUnsavedContentRef?: React.MutableRefObject<() => boolean>
 	isSubmittingRef?: React.MutableRefObject<boolean>
+	initialFiles?: File[]
 }) {
 	const isMobile = useIsMobile()
 	const [addParam, setAddParam] = useQueryState("add", addDocumentParam)
@@ -181,6 +189,27 @@ export function AddDocument({
 			setNoteDroppedFiles([])
 		}
 	}, [isOpen])
+
+	// Seed file queue from global drag-and-drop (only once per modal open)
+	const initialFilesConsumed = useRef(false)
+	useEffect(() => {
+		if (!isOpen) {
+			initialFilesConsumed.current = false
+			return
+		}
+		if (initialFilesConsumed.current) return
+		if (!initialFiles || initialFiles.length === 0) return
+		initialFilesConsumed.current = true
+		const items: FileQueueItem[] = initialFiles.map((file) => ({
+			id: crypto.randomUUID(),
+			file,
+			status: "pending" as const,
+		}))
+		setFileData((prev) => ({
+			...prev,
+			items: [...prev.items, ...items],
+		}))
+	}, [isOpen, initialFiles])
 
 	// Submit handlers
 	const handleNoteSubmit = useCallback(

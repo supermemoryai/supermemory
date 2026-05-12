@@ -24,6 +24,7 @@ import { RaycastDetail } from "@/components/integrations/raycast-detail"
 import { PluginsDetail } from "@/components/integrations/plugins-detail"
 import { AnimatedGradientBackground } from "@/components/animated-gradient-background"
 import { AddDocumentModal } from "@/components/add-document"
+import { isAcceptedFile } from "@/components/add-document/file"
 import { DocumentModal } from "@/components/document-modal"
 import { DocumentsCommandPalette } from "@/components/documents-command-palette"
 import { FullscreenNoteModal } from "@/components/fullscreen-note-modal"
@@ -49,6 +50,7 @@ import type { z } from "zod"
 import { useViewMode } from "@/lib/view-mode-context"
 import type { MemoryOfDay } from "@/components/dashboard-view"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { FileTextIcon } from "lucide-react"
 import { cn } from "@lib/utils"
 import {
 	addDocumentParam,
@@ -381,6 +383,64 @@ export default function NewPage() {
 		enabled: !!user,
 	})
 
+	// Global file drag-and-drop: dropping files anywhere on the page opens the Add Memory modal
+	const [globalDroppedFiles, setGlobalDroppedFiles] = useState<File[]>([])
+	const [isGlobalDragging, setIsGlobalDragging] = useState(false)
+	const globalDragCounter = useRef(0)
+
+	const handleGlobalDragEnter = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+		globalDragCounter.current++
+		if (e.dataTransfer.types.includes("Files")) {
+			setIsGlobalDragging(true)
+		}
+	}, [])
+
+	const handleGlobalDragLeave = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+		globalDragCounter.current--
+		if (globalDragCounter.current === 0) {
+			setIsGlobalDragging(false)
+		}
+	}, [])
+
+	const handleGlobalDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault()
+	}, [])
+
+	const handleGlobalDrop = useCallback(
+		(e: React.DragEvent) => {
+			e.preventDefault()
+			globalDragCounter.current = 0
+			setIsGlobalDragging(false)
+			if (addDoc !== null) return // Modal already open, let it handle its own drops
+			const files = Array.from(e.dataTransfer.files)
+			const accepted = files.filter(isAcceptedFile)
+			if (accepted.length === 0) {
+				if (files.length > 0) {
+					toast.error(
+						files.length === 1
+							? "This file type is not supported"
+							: `${files.length} files are not supported`,
+					)
+				}
+				return
+			}
+			const rejected = files.length - accepted.length
+			if (rejected > 0) {
+				toast.error(
+					rejected === 1
+						? "One file type is not supported"
+						: `${rejected} files are not supported`,
+				)
+			}
+			setGlobalDroppedFiles(accepted)
+			analytics.addDocumentModalOpened()
+			setAddDoc("file")
+		},
+		[addDoc, setAddDoc],
+	)
+
 	useHotkeys("c", () => {
 		analytics.addDocumentModalOpened()
 		setAddDoc("note")
@@ -540,7 +600,24 @@ export default function NewPage() {
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
 					isGraphMode && "h-dvh overflow-hidden",
 				)}
+				onDragEnter={handleGlobalDragEnter}
+				onDragLeave={handleGlobalDragLeave}
+				onDragOver={handleGlobalDragOver}
+				onDrop={handleGlobalDrop}
 			>
+				{isGlobalDragging && addDoc === null && (
+					<div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+						<div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[#4BA0FA] bg-[#4BA0FA]/10 px-12 py-10">
+							<FileTextIcon className="size-10 text-[#4BA0FA]" />
+							<p className="text-lg font-medium text-white">
+								Drop files to add as memories
+							</p>
+							<p className="text-sm text-[#737373]">
+								PDFs, images, documents, and more
+							</p>
+						</div>
+					</div>
+				)}
 				{showNovaBackdrop && (
 					<>
 						<AnimatedGradientBackground
@@ -719,7 +796,11 @@ export default function NewPage() {
 
 				<AddDocumentModal
 					isOpen={addDoc !== null}
-					onClose={() => setAddDoc(null)}
+					onClose={() => {
+						setAddDoc(null)
+						setGlobalDroppedFiles([])
+					}}
+					initialFiles={globalDroppedFiles}
 				/>
 				<DocumentsCommandPalette
 					open={isSearchOpen}
