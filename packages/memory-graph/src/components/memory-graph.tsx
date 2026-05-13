@@ -277,11 +277,7 @@ export function MemoryGraph({
 	// Navigation
 	const handleAutoFit = useCallback(() => {
 		if (nodes.length === 0 || !viewportRef.current) return
-		viewportRef.current.fitToNodes(
-			nodes,
-			containerSize.width,
-			graphFitHeight,
-		)
+		viewportRef.current.fitToNodes(nodes, containerSize.width, graphFitHeight)
 	}, [nodes, containerSize.width, graphFitHeight])
 
 	const handleCenter = useCallback(() => {
