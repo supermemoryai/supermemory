@@ -6,6 +6,7 @@ import { cn } from "@lib/utils"
 import { LogoFull } from "@ui/assets/Logo"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { Building2, Check, ChevronDown, LoaderIcon } from "lucide-react"
+import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
 
@@ -18,6 +19,26 @@ const DATA_CAPABILITIES = [
 	"Add new memories and delete existing ones",
 	"See your spaces (container tags) and create new ones",
 ] as const
+
+// Mirrors mono/packages/lib/plugins.ts; kept in sync manually.
+const KNOWN_OAUTH_CLIENTS: Record<string, { name: string; icon: string }> = {
+	"supermemory-claude-code": {
+		name: "Claude Code",
+		icon: "/images/plugins/claude-code.svg",
+	},
+	"supermemory-opencode": {
+		name: "OpenCode",
+		icon: "/images/plugins/opencode.svg",
+	},
+	"supermemory-openclaw": {
+		name: "OpenClaw",
+		icon: "/images/plugins/openclaw.svg",
+	},
+	"supermemory-codex": {
+		name: "OpenAI Codex",
+		icon: "/images/plugins/codex.svg",
+	},
+}
 
 function shortClientId(id: string): string {
 	return id.length > 12 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id
@@ -53,6 +74,9 @@ function OAuthConsentContent() {
 		organizations?.find((o) => o.id === activeOrgId)?.name ?? null
 	const canSwitchOrg = (organizations?.length ?? 0) > 1
 	const clientId = params.get("client_id") ?? ""
+	const knownClient = clientId ? KNOWN_OAUTH_CLIENTS[clientId] : undefined
+	const requesterName = knownClient?.name ?? "An application"
+	const requesterIcon = knownClient?.icon ?? null
 	const scopes = (params.get("scope") ?? "").split(/\s+/).filter(Boolean)
 	const accountAccess = accountAccessLabels(scopes)
 	// A valid consent page is reached only via /oauth2/authorize, which appends a
@@ -241,13 +265,28 @@ function OAuthConsentContent() {
 						<div className="h-px bg-[#1E293B]" />
 					</div>
 
-					<div className="text-center">
-						<h2 className="font-semibold text-[18px] text-[#FAFAFA]">
-							Authorize access
-						</h2>
-						<p className="mt-1 text-[13px] text-[#737373]">
-							An application wants to connect to your Supermemory account.
-						</p>
+					<div className="flex flex-col items-center gap-3 text-center">
+						{requesterIcon ? (
+							<div className="flex size-12 items-center justify-center rounded-[12px] border border-white/5 bg-[#080B0F]">
+								<Image
+									alt={requesterName}
+									className="size-7"
+									height={28}
+									src={requesterIcon}
+									width={28}
+								/>
+							</div>
+						) : null}
+						<div>
+							<h2 className="font-semibold text-[18px] text-[#FAFAFA]">
+								Connect {requesterName}
+							</h2>
+							<p className="mt-1 text-[13px] text-[#737373]">
+								{knownClient
+									? `${requesterName} wants to connect to your Supermemory account.`
+									: "An application wants to connect to your Supermemory account."}
+							</p>
+						</div>
 					</div>
 
 					<div className="rounded-[12px] bg-[#0D121A] p-4">
