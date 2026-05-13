@@ -324,7 +324,7 @@ const PLUGIN_DISPLAY_CATALOG: Record<
 	},
 	codex: {
 		name: "OpenAI Codex",
-		icon: null,
+		icon: "/mcp-supported-tools/codex.png",
 		type: "Plugin",
 	},
 }
@@ -665,7 +665,7 @@ function isRecentlyActive(date: Date | null): boolean {
 	return Date.now() - date.getTime() < 60 * 60 * 1000
 }
 
-function RecentToolUsageCard({
+function _RecentToolUsageCard({
 	items,
 	onOpenPlugins,
 	onNavigateToMemories,
@@ -836,6 +836,61 @@ function RecentToolUsageCard({
 				})}
 			</ul>
 		</div>
+	)
+}
+
+function ToolUsageRecentRow({
+	item,
+	onOpenPlugins,
+	onOpenToolDocument,
+}: {
+	item: ToolUsageItem
+	onOpenPlugins: () => void
+	onOpenToolDocument: (document: DocumentWithMemories) => void
+}) {
+	return (
+		<li>
+			<button
+				type="button"
+				onClick={() => {
+					if (item.lastDocument) {
+						onOpenToolDocument(item.lastDocument)
+						return
+					}
+					onOpenPlugins()
+				}}
+				className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-surface-hover"
+			>
+				<div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border group-hover:bg-[#182333] transition-colors">
+					{item.icon ? (
+						<Image
+							src={item.icon}
+							alt={item.name}
+							width={14}
+							height={14}
+							className="size-3.5"
+						/>
+					) : item.type === "MCP" ? (
+						<MCPIcon className="size-3.5" />
+					) : (
+						<Plug className="size-3.5 text-fg-subtle" />
+					)}
+				</div>
+				<div className="min-w-0 flex-1">
+					<div className="flex min-w-0 items-center gap-2">
+						<span className="min-w-0 flex-1 truncate text-sm text-fg-muted group-hover:text-white transition-colors">
+							{item.name}
+						</span>
+						<span className="shrink-0 text-[10px] text-fg-faint">
+							{formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)}
+						</span>
+					</div>
+					<p className="mt-0.5 truncate text-[11px] text-fg-subtle">
+						{item.lastDocumentTitle ?? "No saved memory yet"}
+					</p>
+				</div>
+			</button>
+		</li>
 	)
 }
 
@@ -1154,7 +1209,7 @@ export function DashboardView({
 	onOpenSearch,
 	onOpenIntegrations,
 	onOpenPlugins,
-	onNavigateToMemories,
+	onNavigateToMemories: _onNavigateToMemories,
 	onNavigateToGraph,
 	onOpenDocument,
 	onOpenToolDocument,
@@ -1285,6 +1340,9 @@ export function DashboardView({
 	} = usePersonalization()
 
 	const recents = recentsData?.documents ?? []
+	const recentToolUsageItems = toolUsageItems
+		.filter((item) => item.type === "Plugin")
+		.slice(0, 3)
 	const totalMemories = recentsData?.pagination?.totalItems ?? 0
 	const hasMcp = mcpData?.previousLogin ?? false
 	const connectedProviders = new Set(connections.map((c) => c.provider))
@@ -1439,17 +1497,17 @@ export function DashboardView({
 					</p>
 				</motion.section>
 
-				{/* Recently saved + Suggested for you + Pick up where you left off */}
+				{/* Recently saved + Suggested for you */}
 				<motion.section
 					{...fadeUp}
 					transition={{ ...fadeUp.transition, delay: 0.15 }}
 					className="space-y-2"
 				>
-					{recents.length > 0 ? (
+					{recents.length > 0 || recentToolUsageItems.length > 0 ? (
 						<>
 							{/* Shared header row — all labels aligned */}
 							<div className="flex gap-4">
-								<div className="flex-[3] min-w-0">
+								<div className="flex-[4] min-w-0">
 									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 										Recently saved
 									</p>
@@ -1459,16 +1517,11 @@ export function DashboardView({
 										Suggested for you
 									</p>
 								</div>
-								<div className="flex-[2] min-w-0 hidden lg:block">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Pick up where you left off
-									</p>
-								</div>
 							</div>
 
 							{/* Content row */}
 							<div className="flex gap-4 items-start">
-								<ul className="flex-[3] min-w-0 space-y-0.5">
+								<ul className="flex-[4] min-w-0 space-y-0.5">
 									{recents.map((doc) => {
 										const isLink = !!doc.url
 										return (
@@ -1493,6 +1546,14 @@ export function DashboardView({
 											</li>
 										)
 									})}
+									{recentToolUsageItems.map((item) => (
+										<ToolUsageRecentRow
+											key={item.id}
+											item={item}
+											onOpenPlugins={onOpenPlugins}
+											onOpenToolDocument={onOpenToolDocument}
+										/>
+									))}
 								</ul>
 
 								<div className="flex-[2] min-w-0 hidden sm:block">
@@ -1505,29 +1566,6 @@ export function DashboardView({
 										onOpenIntegrations={onOpenIntegrations}
 									/>
 								</div>
-
-								{/* Pick up where you left off - desktop only */}
-								<div className="flex-[2] min-w-0 hidden lg:block">
-									<RecentToolUsageCard
-										items={toolUsageItems}
-										onOpenPlugins={onOpenPlugins}
-										onNavigateToMemories={onNavigateToMemories}
-										onOpenToolDocument={onOpenToolDocument}
-									/>
-								</div>
-							</div>
-
-							{/* Mobile/tablet: Show pick up where you left off below */}
-							<div className="block lg:hidden mt-4 space-y-2">
-								<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-									Pick up where you left off
-								</p>
-								<RecentToolUsageCard
-									items={toolUsageItems}
-									onOpenPlugins={onOpenPlugins}
-									onNavigateToMemories={onNavigateToMemories}
-									onOpenToolDocument={onOpenToolDocument}
-								/>
 							</div>
 						</>
 					) : (
@@ -1537,11 +1575,6 @@ export function DashboardView({
 								<div className="flex-1 min-w-0">
 									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 										Suggested for you
-									</p>
-								</div>
-								<div className="flex-1 min-w-0 hidden sm:block">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Pick up where you left off
 									</p>
 								</div>
 							</div>
@@ -1556,26 +1589,6 @@ export function DashboardView({
 										onOpenIntegrations={onOpenIntegrations}
 									/>
 								</div>
-								<div className="flex-1 min-w-0 max-w-sm hidden sm:block">
-									<RecentToolUsageCard
-										items={toolUsageItems}
-										onOpenPlugins={onOpenPlugins}
-										onNavigateToMemories={onNavigateToMemories}
-										onOpenToolDocument={onOpenToolDocument}
-									/>
-								</div>
-							</div>
-							{/* Mobile: Show tool usage below */}
-							<div className="block sm:hidden mt-4 space-y-2">
-								<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-									Pick up where you left off
-								</p>
-								<RecentToolUsageCard
-									items={toolUsageItems}
-									onOpenPlugins={onOpenPlugins}
-									onNavigateToMemories={onNavigateToMemories}
-									onOpenToolDocument={onOpenToolDocument}
-								/>
 							</div>
 						</>
 					)}
