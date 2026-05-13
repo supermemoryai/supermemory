@@ -12,6 +12,14 @@ import { Suspense, useState } from "react"
 const API_URL =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
+// Mirror of the OAuth plugins in mono's packages/lib/plugins.ts (oauthClientId → display name).
+const OAUTH_PLUGIN_NAMES: Record<string, string> = {
+	"supermemory-claude-code": "Claude Code",
+	"supermemory-opencode": "OpenCode",
+	"supermemory-openclaw": "OpenClaw",
+	"supermemory-codex": "OpenAI Codex",
+}
+
 // Phase 1 is one coarse grant — every approved client gets all of these.
 const DATA_CAPABILITIES = [
 	"Read and search your saved memories",
@@ -53,6 +61,8 @@ function OAuthConsentContent() {
 		organizations?.find((o) => o.id === activeOrgId)?.name ?? null
 	const canSwitchOrg = (organizations?.length ?? 0) > 1
 	const clientId = params.get("client_id") ?? ""
+	const pluginName = clientId ? (OAUTH_PLUGIN_NAMES[clientId] ?? null) : null
+	const appLabel = pluginName ?? "An application"
 	const scopes = (params.get("scope") ?? "").split(/\s+/).filter(Boolean)
 	const accountAccess = accountAccessLabels(scopes)
 	// A valid consent page is reached only via /oauth2/authorize, which appends a
@@ -60,6 +70,7 @@ function OAuthConsentContent() {
 	const expSeconds = Number(params.get("exp"))
 	const requestExpired = expSeconds > 0 && expSeconds * 1000 < Date.now()
 	const invalidRequest = !params.get("sig") || requestExpired
+	const busy = submitting !== null || switchingOrgId !== null
 
 	async function changeOrg(orgId: string) {
 		if (!orgId || orgId === activeOrgId) return
@@ -166,6 +177,66 @@ function OAuthConsentContent() {
 		)
 	}
 
+	const workspacePicker =
+		canSwitchOrg && session?.user ? (
+			<Popover open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
+				<PopoverTrigger
+					disabled={busy}
+					className={cn(
+						"flex items-center gap-1.5 rounded-[8px] border border-[#1E293B] bg-[#0D121A] px-2.5 py-1.5 text-[13px] text-[#FAFAFA] transition-colors hover:bg-[#1E293B] disabled:cursor-not-allowed disabled:opacity-60",
+						dmSans125ClassName(),
+					)}
+				>
+					<Building2 className="size-3.5 shrink-0 text-[#737373]" />
+					<span className="max-w-[180px] truncate">
+						{activeOrgName ?? "Select workspace"}
+					</span>
+					<ChevronDown className="size-3.5 shrink-0 text-[#737373]" />
+				</PopoverTrigger>
+				<PopoverContent
+					align="end"
+					className="w-max min-w-[12rem] max-w-[18rem] rounded-[12px] border-white/10 bg-[#1B1F24] p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+				>
+					{organizations?.map((o) => {
+						const isCurrent = o.id === activeOrgId
+						const isSwitching = switchingOrgId === o.id
+						return (
+							<button
+								key={o.id}
+								type="button"
+								disabled={isCurrent || switchingOrgId !== null}
+								onClick={() => changeOrg(o.id)}
+								className={cn(
+									"flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left transition-colors",
+									isCurrent ? "bg-white/5" : "cursor-pointer hover:bg-white/5",
+									"disabled:cursor-default",
+									dmSans125ClassName(),
+								)}
+							>
+								<Building2 className="size-4 shrink-0 text-[#737373]" />
+								<div className="flex min-w-0 flex-1 items-center gap-2">
+									<p className="truncate text-[13px] text-[#FAFAFA] tracking-[-0.14px]">
+										{o.name}
+									</p>
+									{isCurrent && (
+										<Check className="size-4 shrink-0 text-[#4BA0FA]" />
+									)}
+									{isSwitching && (
+										<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
+									)}
+								</div>
+							</button>
+						)
+					})}
+				</PopoverContent>
+			</Popover>
+		) : activeOrgName ? (
+			<span className="flex items-center gap-1.5 text-[13px] text-[#FAFAFA]">
+				<Building2 className="size-3.5 shrink-0 text-[#737373]" />
+				<span className="max-w-[200px] truncate">{activeOrgName}</span>
+			</span>
+		) : null
+
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-background p-4">
 			<div className="w-full max-w-[520px] rounded-[14px] bg-[#14161A] p-6 shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]">
@@ -174,68 +245,9 @@ function OAuthConsentContent() {
 						<div className="flex items-center justify-between gap-3">
 							<LogoFull className="h-6 w-auto shrink-0 text-[#FAFAFA]" />
 							{session?.user && (
-								<div className="flex min-w-0 flex-col items-end">
-									<p className="truncate text-[12px] text-[#FAFAFA]">
-										{session.user.email}
-									</p>
-									{canSwitchOrg ? (
-										<Popover open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
-											<PopoverTrigger
-												className={cn(
-													"flex max-w-[200px] items-center gap-1 text-[11px] text-[#737373] transition-colors hover:text-[#FAFAFA]",
-													dmSans125ClassName(),
-												)}
-											>
-												<span className="truncate">
-													{activeOrgName ?? "Select organization"}
-												</span>
-												<ChevronDown className="size-3 shrink-0" />
-											</PopoverTrigger>
-											<PopoverContent
-												align="end"
-												className="w-max min-w-[12rem] max-w-[18rem] rounded-[12px] border-white/10 bg-[#1B1F24] p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
-											>
-												{organizations?.map((o) => {
-													const isCurrent = o.id === activeOrgId
-													const isSwitching = switchingOrgId === o.id
-													return (
-														<button
-															key={o.id}
-															type="button"
-															disabled={isCurrent || isSwitching}
-															onClick={() => changeOrg(o.id)}
-															className={cn(
-																"flex w-full items-center gap-3 rounded-[8px] px-3 py-2 text-left transition-colors",
-																isCurrent
-																	? "bg-white/5"
-																	: "cursor-pointer hover:bg-white/5",
-																"disabled:cursor-default",
-																dmSans125ClassName(),
-															)}
-														>
-															<Building2 className="size-4 shrink-0 text-[#737373]" />
-															<div className="flex min-w-0 flex-1 items-center gap-2">
-																<p className="truncate text-[13px] text-[#FAFAFA] tracking-[-0.14px]">
-																	{o.name}
-																</p>
-																{isCurrent && (
-																	<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-																)}
-																{isSwitching && (
-																	<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
-																)}
-															</div>
-														</button>
-													)
-												})}
-											</PopoverContent>
-										</Popover>
-									) : activeOrgName ? (
-										<p className="truncate text-[11px] text-[#737373]">
-											{activeOrgName}
-										</p>
-									) : null}
-								</div>
+								<p className="min-w-0 truncate text-[12px] text-[#737373]">
+									{session.user.email}
+								</p>
 							)}
 						</div>
 						<div className="h-px bg-[#1E293B]" />
@@ -243,10 +255,10 @@ function OAuthConsentContent() {
 
 					<div className="text-center">
 						<h2 className="font-semibold text-[18px] text-[#FAFAFA]">
-							Authorize access
+							{pluginName ? `Connect ${pluginName}` : "Authorize access"}
 						</h2>
 						<p className="mt-1 text-[13px] text-[#737373]">
-							An application wants to connect to your Supermemory account.
+							{appLabel} wants to connect to your Supermemory account.
 						</p>
 					</div>
 
@@ -281,13 +293,22 @@ function OAuthConsentContent() {
 						)}
 					</div>
 
+					{workspacePicker && (
+						<div className="flex items-center justify-between gap-3 rounded-[12px] bg-[#0D121A] px-4 py-3">
+							<span className="text-[13px] text-[#737373]">
+								{pluginName ? `Connect ${pluginName} to` : "Connect to"}
+							</span>
+							{workspacePicker}
+						</div>
+					)}
+
 					{error && <p className="text-[13px] text-red-400">{error}</p>}
 
 					<div className="flex gap-2">
 						<button
 							type="button"
 							onClick={() => submit(false)}
-							disabled={submitting !== null}
+							disabled={busy}
 							className={cn(
 								"flex h-11 flex-1 items-center justify-center rounded-[10px]",
 								"border border-[#1E293B] bg-[#0D121A] text-[#FAFAFA]",
@@ -302,7 +323,7 @@ function OAuthConsentContent() {
 						<button
 							type="button"
 							onClick={() => submit(true)}
-							disabled={submitting !== null}
+							disabled={busy}
 							className={cn(
 								"relative flex h-11 flex-1 items-center justify-center rounded-[10px]",
 								"font-medium text-[14px] text-[#FAFAFA] tracking-[-0.14px]",
@@ -322,7 +343,7 @@ function OAuthConsentContent() {
 						</button>
 					</div>
 
-					{clientId && (
+					{clientId && !pluginName && (
 						<p className="text-center text-[11px] text-[#5C5C5C]">
 							App ID · <code>{shortClientId(clientId)}</code>
 						</p>
