@@ -689,15 +689,12 @@ function ToolUsageRecentRow({
 				<div className="min-w-0 flex-1">
 					<div className="flex min-w-0 items-center gap-2">
 						<span className="min-w-0 flex-1 truncate text-sm text-fg-muted group-hover:text-white transition-colors">
-							{item.name}
+							{item.lastDocumentTitle ?? "No saved memory yet"}
 						</span>
 						<span className="shrink-0 text-[10px] text-fg-faint">
 							{formatToolUsageTime(item.lastUsedAt, item.hasBeenUsed)}
 						</span>
 					</div>
-					<p className="mt-0.5 truncate text-[11px] text-fg-subtle">
-						{item.lastDocumentTitle ?? "No saved memory yet"}
-					</p>
 					{item.lastDocumentPreview ? (
 						<p className="mt-0 max-h-0 overflow-hidden text-[11px] leading-snug text-fg-subtle opacity-0 transition-all duration-200 line-clamp-2 group-hover:mt-1 group-hover:max-h-9 group-hover:opacity-100">
 							{item.lastDocumentPreview}
