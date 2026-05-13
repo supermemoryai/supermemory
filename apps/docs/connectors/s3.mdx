@@ -4,7 +4,7 @@ description: "Connect Amazon S3 or S3-compatible storage to sync files into your
 icon: "aws"
 ---
 
-Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2) to sync files into your Supermemory knowledge base.
+Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris) to sync files into your Supermemory knowledge base.
 
 <Note>
 The S3 connector requires a **Scale Plan** or higher. You can also create S3 connections directly from the [Supermemory Console](https://console.supermemory.ai).
@@ -79,7 +79,7 @@ The S3 connector requires a **Scale Plan** or higher. You can also create S3 con
 
 ## S3-Compatible Services
 
-Use a custom `endpoint` to connect to S3-compatible storage:
+Use a custom `endpoint` to connect to S3-compatible storage. These services don't use AWS-style regions, but `region` is still required for request signing — set it to `auto` (or any non-empty value) and the service will ignore it.
 
 ```typescript
 // MinIO
@@ -87,16 +87,19 @@ const connection = await client.connections.create('s3', {
   accessKeyId: 'minio-key',
   secretAccessKey: 'minio-secret',
   bucket: 'my-bucket',
-  region: 'us-east-1',
+  region: 'auto',
   endpoint: 'https://minio.example.com',
   containerTags: ['minio-sync']
 });
 
 // DigitalOcean Spaces
-endpoint: 'https://nyc3.digitaloceanspaces.com'
+endpoint: 'https://nyc3.digitaloceanspaces.com'  // region: 'auto'
 
 // Cloudflare R2
-endpoint: 'https://ACCOUNT_ID.r2.cloudflarestorage.com'
+endpoint: 'https://ACCOUNT_ID.r2.cloudflarestorage.com'  // region: 'auto'
+
+// Tigris
+endpoint: 'https://fly.storage.tigris.dev'  // region: 'auto'
 ```
 
 ## Prefix Filtering
