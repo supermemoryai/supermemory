@@ -8,6 +8,7 @@ interface NavigationControlsProps {
 	onAutoFit: () => void
 	nodes: GraphNode[]
 	className?: string
+	compact?: boolean
 	zoomLevel: number
 	colors: GraphThemeColors
 }
@@ -87,6 +88,7 @@ export const NavigationControls = memo<NavigationControlsProps>(
 		onAutoFit,
 		nodes,
 		className = "",
+		compact = false,
 		zoomLevel,
 		colors,
 	}) => {
@@ -94,8 +96,12 @@ export const NavigationControls = memo<NavigationControlsProps>(
 
 		const containerStyle: React.CSSProperties = {
 			display: "flex",
-			flexDirection: "column",
-			gap: 4,
+			flexDirection: compact ? "row" : "column",
+			alignItems: compact ? "center" : "stretch",
+			gap: compact ? 6 : 4,
+			maxWidth: compact ? "calc(100vw - 32px)" : undefined,
+			overflowX: compact ? "auto" : undefined,
+			overflowY: "hidden",
 		}
 
 		const labelStyle: React.CSSProperties = {
@@ -147,12 +153,12 @@ export const NavigationControls = memo<NavigationControlsProps>(
 			<div className={className} style={containerStyle}>
 				<NavBtn onClick={onAutoFit} colors={colors}>
 					<span style={labelStyle}>Fit</span>
-					<KeyBadge keys="Z" colors={colors} />
+					{!compact && <KeyBadge keys="Z" colors={colors} />}
 				</NavBtn>
 
 				<NavBtn onClick={onCenter} colors={colors}>
 					<span style={labelStyle}>Center</span>
-					<KeyBadge keys="C" colors={colors} />
+					{!compact && <KeyBadge keys="C" colors={colors} />}
 				</NavBtn>
 
 				<div style={zoomRowStyle}>

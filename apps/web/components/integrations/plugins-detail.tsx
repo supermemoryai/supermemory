@@ -238,8 +238,8 @@ function PillButton({
 			disabled={disabled}
 			className={cn(
 				dmSans125ClassName(),
-				"relative flex h-9 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-5",
-				"text-[14px] font-medium text-[#FAFAFA]",
+				"relative flex h-8 min-w-[94px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 sm:h-9 sm:min-w-[116px] sm:px-5",
+				"text-[12px] font-medium text-[#FAFAFA] sm:text-[14px]",
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 				"cursor-pointer transition-opacity hover:opacity-80",
 				"disabled:cursor-not-allowed disabled:opacity-50",
@@ -253,15 +253,17 @@ function PillButton({
 function DocsLink({ href }: { href: string }) {
 	return (
 		<a
+			aria-label="Open plugin docs"
 			href={href}
 			target="_blank"
 			rel="noopener noreferrer"
 			className={cn(
 				dmSans125ClassName(),
-				"flex shrink-0 items-center gap-1 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+				"flex size-8 shrink-0 items-center justify-center gap-1 rounded-full text-[12px] text-[#A1A1AA] transition-colors hover:text-white sm:h-auto sm:w-auto sm:justify-start sm:rounded-none",
 			)}
 		>
-			<BookOpen className="size-3.5" /> Docs
+			<BookOpen className="size-3.5" />{" "}
+			<span className="hidden sm:inline">Docs</span>
 		</a>
 	)
 }
@@ -304,7 +306,7 @@ function ConnectedPill({
 					type="button"
 					className={cn(
 						dmSans125ClassName(),
-						"flex h-9 min-w-[116px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#0D121A] px-4 text-[13px] font-medium text-[#00AC3F]",
+						"flex h-8 min-w-[104px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] font-medium text-[#00AC3F] sm:h-9 sm:min-w-[116px] sm:gap-2 sm:px-4 sm:text-[13px]",
 						"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80",
 					)}
 				>
@@ -376,21 +378,21 @@ function PluginRow({
 }) {
 	const isConnected = connectedKeys.length > 0
 	return (
-		<div className="flex items-center gap-3.5 border-b border-white/[0.06] py-4 last:border-b-0">
+		<div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2.5 border-b border-white/[0.06] py-4 last:border-b-0 sm:flex sm:items-center sm:gap-3.5">
 			<PluginIconBox
 				src={plugin.icon}
 				alt={plugin.name}
 				dimmed={needsProUpgrade && !isConnected}
 			/>
 			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
+				<div className="flex min-w-0 items-center gap-2">
 					{isConnected && (
 						<span className="size-1.5 shrink-0 rounded-full bg-[#00AC3F]" />
 					)}
 					<span
 						className={cn(
 							dmSans125ClassName(),
-							"truncate text-[14px] font-medium text-[#FAFAFA]",
+							"min-w-0 truncate text-[14px] font-medium text-[#FAFAFA]",
 						)}
 					>
 						{plugin.name}
@@ -400,13 +402,13 @@ function PluginRow({
 				<p
 					className={cn(
 						dmSans125ClassName(),
-						"mt-0.5 truncate text-[13px] text-[#A1A1AA]",
+						"mt-0.5 line-clamp-2 text-[12px] leading-snug text-[#A1A1AA] sm:truncate sm:text-[13px]",
 					)}
 				>
 					{plugin.tagline}
 				</p>
 			</div>
-			<div className="flex shrink-0 items-center gap-4">
+			<div className="col-start-2 flex min-w-0 shrink-0 items-center gap-2 sm:col-start-auto sm:gap-4">
 				{plugin.docsUrl && <DocsLink href={plugin.docsUrl} />}
 				{isConnected ? (
 					<ConnectedPill connectedKeys={connectedKeys} onRevoke={onRevoke} />
@@ -782,7 +784,7 @@ export function PluginsDetail() {
 		<>
 			<div
 				className={cn(
-					"relative overflow-hidden rounded-[14px] bg-[#14161A] p-6",
+					"relative overflow-hidden rounded-[14px] bg-[#14161A] p-4 sm:p-6",
 					"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 				)}
 			>

@@ -34,7 +34,7 @@ export function XBookmarksDetailView({ onBack }: XBookmarksDetailViewProps) {
 	}
 
 	return (
-		<div className="flex flex-col flex-1 w-full p-8">
+		<div className="flex flex-col flex-1 w-full p-5 sm:p-8">
 			<div className="mx-auto w-full max-w-3xl flex flex-col flex-1">
 				<div className="mb-6">
 					<Button
@@ -63,13 +63,13 @@ export function XBookmarksDetailView({ onBack }: XBookmarksDetailViewProps) {
 							need, right when you need it.
 						</p>
 
-						<div className="grid grid-cols-3 gap-4 mb-6 max-w-5xl w-full">
+						<div className="grid w-full max-w-5xl grid-cols-1 gap-3 mb-6 sm:grid-cols-3 sm:gap-4">
 							{steps.map((step) => (
 								<div
 									key={step.number}
-									className="flex flex-col items-center text-center bg-[#080B0F] p-3 rounded-[10px]"
+									className="flex items-center gap-3 rounded-[10px] bg-[#080B0F] p-3 sm:flex-col sm:items-center sm:gap-0 sm:text-center"
 								>
-									<div className="rounded-2xl p-6 mb-3 w-full aspect-4/4 flex items-center justify-center relative overflow-hidden">
+									<div className="relative flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl sm:mb-3 sm:h-auto sm:w-full sm:aspect-square">
 										<Image
 											src={step.image}
 											alt={`Step ${step.number}`}
@@ -78,15 +78,15 @@ export function XBookmarksDetailView({ onBack }: XBookmarksDetailViewProps) {
 											unoptimized
 										/>
 									</div>
-									<div className="flex flex-col items-start justify-start">
-										<div className="mb-2">
+									<div className="flex min-w-0 flex-col items-start justify-start">
+										<div className="mb-1 sm:mb-2">
 											<span className="text-white text-sm font-medium">
 												Step {step.number}
 											</span>
 										</div>
 										<p
 											className={cn(
-												"text-[#8B8B8B] text-sm text-start",
+												"text-[#8B8B8B] text-sm text-start leading-snug",
 												dmSansClassName(),
 											)}
 										>

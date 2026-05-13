@@ -258,13 +258,14 @@ const SocialButton = ({
 	<button
 		type="button"
 		onClick={onClick}
-		className="size-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
+		className="size-8 shrink-0 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
 		style={{
 			background: "#0D121A",
 			border: "0.875px solid rgba(115, 115, 115, 0.2)",
 			boxShadow: "inset 1.3125px 1.3125px 3.9375px rgba(0, 0, 0, 0.7)",
 		}}
 		title={label}
+		aria-label={label}
 	>
 		{icon}
 	</button>
@@ -387,7 +388,7 @@ export function ShareModal({
 		<Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
 				className={cn(
-					"w-[90%]! max-w-[706px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-4 rounded-[22px]",
+					"w-[calc(100vw-20px)]! max-w-[706px]! max-h-[min(92dvh,720px)] overflow-y-auto border-none bg-[#1B1F24] flex flex-col p-3 sm:p-4 gap-3 sm:gap-4 rounded-[20px] sm:rounded-[22px]",
 					dmSansClassName(),
 				)}
 				style={{
@@ -396,13 +397,14 @@ export function ShareModal({
 				}}
 				showCloseButton={false}
 			>
-				<div className="flex flex-col gap-3">
+				<div className="flex flex-col gap-3 min-w-0">
 					{/* Header */}
-					<div className="flex justify-between items-center px-2">
-						<DialogHeader className="flex-1">
+					<div className="grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-2 px-1 sm:px-2">
+						<div aria-hidden />
+						<DialogHeader className="min-w-0">
 							<DialogTitle
 								className={cn(
-									"font-semibold text-[#fafafa] text-base text-center",
+									"font-semibold text-[#fafafa] text-sm sm:text-base text-center leading-tight text-balance",
 									dmSans125ClassName(),
 								)}
 							>
@@ -411,7 +413,7 @@ export function ShareModal({
 						</DialogHeader>
 						<DialogPrimitive.Close
 							onClick={handleClose}
-							className="bg-[#0D121A] size-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+							className="bg-[#0D121A] size-7 justify-self-end flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
 							style={{
 								boxShadow:
 									"0 0.711px 2.842px 0 rgba(0, 0, 0, 0.25), 0.178px 0.178px 0.178px 0 rgba(255, 255, 255, 0.10) inset",
@@ -425,7 +427,7 @@ export function ShareModal({
 					{/* Preview area */}
 					<div
 						ref={previewRef}
-						className="relative w-full aspect-[674/505] rounded-[14px] overflow-hidden"
+						className="relative w-full aspect-[674/505] max-h-[48dvh] rounded-[14px] overflow-hidden"
 						style={{
 							boxShadow: "inset 2.42px 2.42px 4.26316px rgba(11, 15, 21, 0.7)",
 						}}
@@ -462,9 +464,9 @@ export function ShareModal({
 					</div>
 
 					{/* Bottom controls */}
-					<div className="flex justify-between items-center">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 						{/* Theme selectors */}
-						<div className="flex items-center gap-2">
+						<div className="flex items-center justify-center gap-2 sm:justify-start">
 							<ThemeButton
 								theme="gradient"
 								isSelected={selectedTheme === "gradient"}
@@ -483,12 +485,12 @@ export function ShareModal({
 						</div>
 
 						{/* Action buttons */}
-						<div className="flex items-center gap-2">
+						<div className="grid w-full grid-cols-[minmax(0,1fr)_2rem_2rem_2rem_2rem] items-center gap-2 sm:flex sm:w-auto">
 							<Button
 								onClick={handleCopySnapshot}
 								disabled={isCopying}
 								className={cn(
-									"h-8 px-3 rounded-full text-sm font-normal gap-1.5",
+									"h-8 min-w-0 justify-center px-3 rounded-full text-sm font-normal gap-1.5",
 									dmSansClassName(),
 								)}
 								style={{
@@ -500,11 +502,11 @@ export function ShareModal({
 								{copied ? (
 									<>
 										<Check className="size-4 text-green-500" />
-										<span className="text-green-500">Copied!</span>
+										<span className="truncate text-green-500">Copied!</span>
 									</>
 								) : (
 									<>
-										<span className="text-white">Copy snapshot</span>
+										<span className="truncate text-white">Copy snapshot</span>
 										<Copy className="size-4 text-[#737373]" />
 									</>
 								)}
