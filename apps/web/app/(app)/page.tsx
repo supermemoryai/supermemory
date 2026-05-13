@@ -415,6 +415,7 @@ export default function NewPage() {
 			void setViewMode("list")
 		},
 		[handleOpenDocument, setSelectedProject, setViewMode],
+	)
 
 	// Separate from handleOpenDocument because the graph view only has a document ID,
 	// not the full document object. The modal will fetch the document via the docId
