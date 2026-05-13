@@ -184,6 +184,7 @@
 							"integrations/agent-framework",
 							"integrations/mastra",
 							"integrations/voltagent",
+							"integrations/convex",
 							"integrations/langchain",
 							"integrations/crewai",
 							"integrations/agno",

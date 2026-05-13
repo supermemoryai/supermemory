@@ -297,9 +297,15 @@ export function SpaceSelector({
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent
-					align="start"
+					align={compact ? "end" : "start"}
+					alignOffset={0}
+					sideOffset={compact ? 8 : 4}
+					collisionPadding={compact ? 16 : 8}
 					className={cn(
-						"min-w-[200px] max-w-[min(calc(100vw-1.5rem),20rem)] overflow-hidden p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+						"min-w-[200px] overflow-hidden p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+						compact
+							? "w-[min(calc(100vw-3rem),18rem)]"
+							: "max-w-[min(calc(100vw-2rem),20rem)]",
 						dmSansClassName(),
 						contentClassName,
 					)}
@@ -472,7 +478,7 @@ export function SpaceSelector({
 								</DialogDescription>
 							</div>
 							<DialogPrimitive.Close
-								className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+								className="bg-[#0D121A] size-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
 								style={{
 									boxShadow:
 										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
@@ -505,14 +511,14 @@ export function SpaceSelector({
 							>
 								<div
 									className={cn(
-										"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+										"size-4 rounded-full border-2 flex items-center justify-center shrink-0",
 										deleteDialog.action === "move"
 											? "border-blue-500"
 											: "border-[#737373]",
 									)}
 								>
 									{deleteDialog.action === "move" && (
-										<div className="w-2 h-2 rounded-full bg-blue-500" />
+										<div className="size-2 rounded-full bg-blue-500" />
 									)}
 								</div>
 								<span className="text-[#fafafa] text-sm font-medium">
@@ -602,14 +608,14 @@ export function SpaceSelector({
 							>
 								<div
 									className={cn(
-										"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+										"size-4 rounded-full border-2 flex items-center justify-center shrink-0",
 										deleteDialog.action === "delete"
 											? "border-red-500"
 											: "border-[#737373]",
 									)}
 								>
 									{deleteDialog.action === "delete" && (
-										<div className="w-2 h-2 rounded-full bg-red-500" />
+										<div className="size-2 rounded-full bg-red-500" />
 									)}
 								</div>
 								<span className="text-[#fafafa] text-sm font-medium">

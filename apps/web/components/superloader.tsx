@@ -36,7 +36,7 @@ const strokeVariants: Variants = {
 export function SuperLoader({
 	size = 42,
 	colorClassName = "text-sky-400",
-	label = "Loading...",
+	label = "Loading…",
 	className = "",
 }: NovaPathLoaderProps) {
 	const prefersReducedMotion = useReducedMotion()
@@ -56,7 +56,7 @@ export function SuperLoader({
 				height={size * 0.5}
 				className={`shrink-0 ${colorClassName}`}
 			>
-				<title>Loading...</title>
+				<title>Loading…</title>
 				{/* Right path */}
 				<motion.path
 					d={PATH_RIGHT}

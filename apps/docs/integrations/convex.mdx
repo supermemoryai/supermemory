@@ -1,0 +1,208 @@
+---
+title: "Convex"
+sidebarTitle: "Convex"
+description: "Add persistent memory to Convex apps with Supermemory"
+icon: "database"
+---
+
+Convex apps don't have built-in memory for AI. Supermemory fixes that. You get a memory layer that stores conversations, builds user profiles, and gives your AI context about who it's talking to.
+
+## What you can do
+
+- Store user interactions and retrieve them in future sessions
+- Build automatic user profiles from conversations
+- Search memories to give your AI relevant context
+- Keep everything in your Convex database for full visibility
+
+## Setup
+
+Install the packages:
+
+```bash
+npm install supermemory convex
+```
+
+For the AI chat example, also install the AI SDK packages:
+
+```bash
+npm install @supermemory/tools @ai-sdk/openai ai
+```
+
+Set up your environment variable in Convex:
+
+```bash
+npx convex env set SUPERMEMORY_API_KEY your-supermemory-api-key
+```
+
+<Note>Get your Supermemory API key from [console.supermemory.ai](https://console.supermemory.ai).</Note>
+
+## Basic integration
+
+Create simple helper functions for each Supermemory operation:
+
+```typescript
+// convex/memory.ts
+import { action } from "./_generated/server";
+import { v } from "convex/values";
+import Supermemory from "supermemory";
+
+const memory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+// Get user profile and relevant memories
+export const getProfile = action({
+  args: { userId: v.string(), query: v.optional(v.string()) },
+  handler: async (ctx, { userId, query }) => {
+    return await memory.profile({
+      containerTag: userId,
+      q: query,
+    });
+  },
+});
+
+// Add a memory
+export const addMemory = action({
+  args: { userId: v.string(), content: v.string() },
+  handler: async (ctx, { userId, content }) => {
+    return await memory.add({
+      content,
+      containerTag: userId,
+    });
+  },
+});
+
+// Search memories
+export const searchMemories = action({
+  args: { userId: v.string(), query: v.string(), limit: v.optional(v.number()) },
+  handler: async (ctx, { userId, query, limit }) => {
+    return await memory.search.memories({
+      q: query,
+      containerTag: userId,
+      searchMode: "hybrid",
+      limit: limit ?? 10,
+    });
+  },
+});
+```
+
+---
+
+## Example: AI chat with memory
+
+A chat endpoint using the Supermemory AI SDK middleware. It automatically injects context and saves memories.
+
+```typescript
+// convex/chat.ts
+import { action } from "./_generated/server";
+import { v } from "convex/values";
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { withSupermemory } from "@supermemory/tools/ai-sdk";
+
+export const chat = action({
+  args: { userId: v.string(), message: v.string() },
+  handler: async (ctx, { userId, message }) => {
+    // Wrap the model - automatically injects context and saves memories
+    const model = withSupermemory(openai("gpt-4o-mini"), {
+      containerTag: userId,
+      customId: `convex-chat-${userId}`,
+      mode: "full",
+      addMemory: "always",
+    });
+
+    const { text } = await generateText({
+      model,
+      system: "You are a helpful assistant.",
+      prompt: message,
+    });
+
+    return text;
+  },
+});
+```
+
+---
+
+## Storing memories in Convex tables
+
+Keep a local copy of memories in your Convex database for full visibility:
+
+```typescript
+// convex/schema.ts
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  memories: defineTable({
+    userId: v.string(),
+    content: v.string(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+});
+```
+
+```typescript
+// convex/memory.ts
+import { action, mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
+import { v } from "convex/values";
+import Supermemory from "supermemory";
+
+const memory = new Supermemory({ apiKey: process.env.SUPERMEMORY_API_KEY });
+
+// Store in Convex
+export const storeMemory = mutation({
+  args: { userId: v.string(), content: v.string() },
+  handler: async (ctx, { userId, content }) => {
+    return await ctx.db.insert("memories", {
+      userId,
+      content,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// Add memory to both Supermemory and Convex
+export const addMemory = action({
+  args: { userId: v.string(), content: v.string() },
+  handler: async (ctx, { userId, content }) => {
+    // Add to Supermemory
+    await memory.add({ content, containerTag: userId });
+    
+    // Store in Convex
+    // Note: in production, handle partial failures — if the Convex mutation
+    // fails after the Supermemory write succeeds, the two stores will be out of sync.
+    await ctx.runMutation(api.memory.storeMemory, { userId, content });
+  },
+});
+
+// List memories from Convex
+export const listMemories = query({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db
+      .query("memories")
+      .withIndex("by_user", q => q.eq("userId", userId))
+      .order("desc")
+      .take(50);
+  },
+});
+```
+
+---
+
+## Related docs
+
+<CardGroup cols={2}>
+  <Card title="User profiles" icon="user" href="/user-profiles">
+    How automatic profiling works
+  </Card>
+  <Card title="Search" icon="search" href="/search">
+    Filtering and search modes
+  </Card>
+  <Card title="Vercel AI SDK" icon="triangle" href="/integrations/ai-sdk">
+    Memory middleware for Next.js
+  </Card>
+  <Card title="LangChain" icon="link" href="/integrations/langchain">
+    Memory for LangChain apps
+  </Card>
+</CardGroup>

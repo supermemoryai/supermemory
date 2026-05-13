@@ -65,6 +65,14 @@
 	scrollbar-color: var(--sm-scrollbar-thumb) transparent;
 }
 
+.scrollbar-none {
+	scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+	display: none;
+}
+
 .sm-tweet-theme .react-tweet-theme {
 	--tweet-container-margin: 0px;
 	font-size: inherit !important;

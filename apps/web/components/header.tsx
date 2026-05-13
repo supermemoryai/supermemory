@@ -62,6 +62,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		user?.displayUsername ||
 		(isRestoring ? localStorageUsername : "") ||
 		user?.name ||
+		user?.email?.split("@")[0] ||
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 	return (
@@ -71,7 +72,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="-ml-2 flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+							className="flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none md:-ml-2"
 						>
 							<Logo className="h-6 md:h-7" />
 							{!isMobile && userName && (
@@ -101,7 +102,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 						>
 							<Link href="/">
-								<Home className="h-4 w-4 text-[#737373]" />
+								<Home className="size-4 text-[#737373]" />
 								Home
 							</Link>
 						</DropdownMenuItem>
@@ -114,7 +115,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								target="_blank"
 								rel="noreferrer"
 							>
-								<Code2 className="h-4 w-4 text-[#737373]" />
+								<Code2 className="size-4 text-[#737373]" />
 								Developer console
 							</a>
 						</DropdownMenuItem>
@@ -123,7 +124,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 						>
 							<a href="https://supermemory.ai" target="_blank" rel="noreferrer">
-								<ExternalLink className="h-4 w-4 text-[#737373]" />
+								<ExternalLink className="size-4 text-[#737373]" />
 								supermemory.ai
 							</a>
 						</DropdownMenuItem>
@@ -148,7 +149,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								aria-current={viewMode === "dashboard" ? "page" : undefined}
 								onClick={() => void setViewMode("dashboard")}
 								className={cn(
-									"flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
+									"flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
 									viewMode === "dashboard"
 										? "border-[#2261CA33] bg-[#00173C] text-white"
 										: "border-[#161F2C] bg-muted text-muted-foreground hover:bg-white/5",
@@ -236,7 +237,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								aria-current={viewMode === "chat" ? "page" : undefined}
 								onClick={() => void setViewMode("chat")}
 								className={cn(
-									"flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
+									"flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border transition-colors",
 									viewMode === "chat"
 										? "border-[#2261CA33] bg-[#00173C] text-white"
 										: "border-[#161F2C] bg-muted text-muted-foreground hover:bg-white/5",
@@ -286,49 +287,49 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									onClick={onAddMemory}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<Plus className="h-4 w-4 text-[#737373]" />
+									<Plus className="size-4 text-[#737373]" />
 									Add memory
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("dashboard")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<Home className="h-4 w-4 text-[#737373]" />
+									<Home className="size-4 text-[#737373]" />
 									Home
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => setViewMode("integrations")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<Sun className="h-4 w-4 text-[#737373]" />
+									<Sun className="size-4 text-[#737373]" />
 									Integrations
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("graph")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<GraphIcon className="h-4 w-4 text-[#737373]" />
+									<GraphIcon className="size-4 text-[#737373]" />
 									Graph
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => onOpenSearch?.()}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<SearchIcon className="h-4 w-4 text-[#737373]" />
+									<SearchIcon className="size-4 text-[#737373]" />
 									Search
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("list")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<LayoutGrid className="h-4 w-4 text-[#737373]" />
+									<LayoutGrid className="size-4 text-[#737373]" />
 									Memories
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("chat")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<MessageCircleIcon className="h-4 w-4 text-[#737373]" />
+									<MessageCircleIcon className="size-4 text-[#737373]" />
 									Chat with Nova
 								</DropdownMenuItem>
 								<DropdownMenuSeparator className="bg-[#2E3033]" />
@@ -336,14 +337,14 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									onClick={handleFeedback}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<LifeBuoy className="h-4 w-4 text-[#737373]" />
+									<LifeBuoy className="size-4 text-[#737373]" />
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => router.push("/settings")}
 									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
 								>
-									<Settings className="h-4 w-4 text-[#737373]" />
+									<Settings className="size-4 text-[#737373]" />
 									Settings
 								</DropdownMenuItem>
 							</DropdownMenuContent>

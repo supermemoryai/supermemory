@@ -78,7 +78,7 @@ const GRADIENT_TOP_WIDTH_MAX = 1440
 function gradientTopPositionForWidth(width: number) {
 	const minW = 320
 	const pctWide = 15
-	const pctNarrow = 70
+	const pctNarrow = 55
 	const w = Math.min(GRADIENT_TOP_WIDTH_MAX, Math.max(minW, width))
 	const t = (w - minW) / (GRADIENT_TOP_WIDTH_MAX - minW)
 	const eased = t * t
@@ -415,6 +415,17 @@ export default function NewPage() {
 			void setViewMode("list")
 		},
 		[handleOpenDocument, setSelectedProject, setViewMode],
+
+	// Separate from handleOpenDocument because the graph view only has a document ID,
+	// not the full document object. The modal will fetch the document via the docId
+	// query param, so there may be a brief loading state (unlike handleOpenDocument
+	// which pre-populates via setSelectedDocument).
+	const handleOpenDocumentById = useCallback(
+		(documentId: string) => {
+			analytics.documentModalOpened({ document_id: documentId })
+			setDocId(documentId)
+		},
+		[setDocId],
 	)
 
 	const handleQuickNoteSave = useCallback(
@@ -530,12 +541,11 @@ export default function NewPage() {
 	const gradientTopPosition = gradientTopPositionForWidth(viewportWidth)
 
 	const isChatView = viewMode === "chat"
-	const isGraphMode = viewMode === "graph" && !isMobile
-	const isMemoriesDesktop = viewMode === "list" && !isMobile
-	const isHomeDesktop = viewMode === "dashboard" && !isMobile
-	const showNovaBackdrop = isGraphMode || isMemoriesDesktop || isHomeDesktop
+	const showNovaBackdrop =
+		viewMode === "graph" || viewMode === "list" || viewMode === "dashboard"
 	const isDashboardShell =
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
+	const isGraphMode = viewMode === "graph"
 
 	return (
 		<HotkeysProvider>
@@ -644,9 +654,9 @@ export default function NewPage() {
 									<XBookmarksDetailView
 										onBack={() => void setViewMode("integrations")}
 									/>
-								) : viewMode === "graph" && !isMobile ? (
+								) : viewMode === "graph" ? (
 									<div className="min-h-0 min-w-0 flex-1">
-										<GraphLayoutView />
+										<GraphLayoutView onOpenDocument={handleOpenDocumentById} />
 									</div>
 								) : viewMode === "list" ? (
 									<div
@@ -689,20 +699,7 @@ export default function NewPage() {
 								) : (
 									<DashboardView
 										spaceLabel={dashboardSpaceLabel}
-										headerNotice={
-											viewMode === "graph" && isMobile ? (
-												<div
-													id="graph-mobile-notice"
-													className="rounded-lg border border-[#2261CA33] bg-[#041127] px-3 py-2.5 text-sm text-[#8B8B8B]"
-												>
-													<span className="font-medium text-white">
-														Graph view is available on desktop.
-													</span>{" "}
-													Use a larger screen for the full graph, or keep
-													working from this home view.
-												</div>
-											) : undefined
-										}
+										headerNotice={undefined}
 										highlights={highlightsData?.highlights ?? []}
 										isLoadingHighlights={isLoadingHighlights}
 										onAddMemory={handleAddMemory}
@@ -728,12 +725,7 @@ export default function NewPage() {
 				</AnimatePresence>
 
 				{isDashboardShell && (
-					<div
-						className={cn(
-							"pointer-events-none fixed inset-x-0 z-30 bg-gradient-to-t from-black via-black/40 to-transparent pt-12",
-							isMobile ? "bottom-[4.5rem]" : "bottom-0",
-						)}
-					>
+					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black via-black/40 to-transparent pt-12">
 						<div className="pointer-events-auto">
 							<HomeChatComposer onStartChat={handleHomeChatStart} />
 						</div>

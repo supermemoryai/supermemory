@@ -187,7 +187,7 @@ function TimelineCard({
 					type={doc.type}
 					source={doc.source ?? undefined}
 					url={doc.url ?? undefined}
-					className="w-3.5 h-3.5 shrink-0 opacity-60"
+					className="size-3.5 shrink-0 opacity-60"
 				/>
 				<span className="text-[10px] text-white/40 uppercase tracking-widest">
 					{typeLabel}
@@ -280,14 +280,14 @@ function GroupCard({
 						type={firstDoc.type}
 						source={firstDoc.source ?? undefined}
 						url={firstDoc.url ?? undefined}
-						className="w-3.5 h-3.5 shrink-0 opacity-60"
+						className="size-3.5 shrink-0 opacity-60"
 					/>
 					<span className="text-[13px] text-white/75 font-medium whitespace-nowrap shrink-0">
 						{countLabel}
 					</span>
 					{preview && (
 						<span className="text-[12px] text-white/35 truncate">
-							— {preview}
+							· {preview}
 						</span>
 					)}
 					{totalMemories > 0 && (
@@ -308,7 +308,7 @@ function GroupCard({
 
 				<ChevronDownIcon
 					className={cn(
-						"w-3.5 h-3.5 text-white/20 shrink-0 transition-transform duration-200",
+						"size-3.5 text-white/20 shrink-0 transition-transform duration-200",
 						isExpanded && "rotate-180",
 					)}
 				/>

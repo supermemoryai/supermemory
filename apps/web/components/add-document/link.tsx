@@ -173,7 +173,7 @@ export function LinkContent({
 						{isPreviewLoading ? (
 							<>
 								<Loader2 className="size-4 animate-spin mr-2" />
-								Loading...
+								Loading…
 							</>
 						) : (
 							"Preview Link"
@@ -216,7 +216,7 @@ export function LinkContent({
 							<img
 								src={image}
 								alt={title || "Link preview"}
-								className="w-full h-full object-cover"
+								className="size-full object-cover"
 								onError={(e) => {
 									e.currentTarget.style.display = "none"
 									e.currentTarget.parentElement?.classList.add("opacity-50")
@@ -228,7 +228,7 @@ export function LinkContent({
 						</div>
 					) : (
 						<div className="w-full max-w-md aspect-4/2 bg-[#0F1217] opacity-50 rounded-xl flex items-center justify-center">
-							<ImageIcon className="w-8 h-8 text-[#737373]" />
+							<ImageIcon className="size-8 text-[#737373]" />
 						</div>
 					)}
 				</div>

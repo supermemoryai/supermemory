@@ -230,7 +230,7 @@ async function getRelatedMemoriesForClaude(actionSource: string) {
 			) as HTMLElement
 
 			if (textareaElement) {
-				textareaElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${response.data}</div>`
+				textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
 				console.log(
 					"Text element dataset:",
 					textareaElement.dataset.supermemories,
@@ -442,7 +442,7 @@ function updateClaudeIconFeedback(
 					'div[contenteditable="true"]',
 				) as HTMLElement
 				if (textareaElement) {
-					textareaElement.dataset.supermemories = `<div>Supermemories of user (only for the reference): ${updatedMemories}</div>`
+					textareaElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${updatedMemories}`
 				}
 
 				content
@@ -520,7 +520,7 @@ function setupClaudePromptCapture() {
 			contentEditableDiv &&
 			!promptContent.includes("Supermemories of user")
 		) {
-			contentEditableDiv.innerHTML = `${contentEditableDiv.innerHTML} ${storedMemories}`
+			contentEditableDiv.appendChild(document.createTextNode(storedMemories))
 			promptContent =
 				contentEditableDiv.textContent || contentEditableDiv.innerText || ""
 		}

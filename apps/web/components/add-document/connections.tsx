@@ -9,9 +9,11 @@ import { useCustomer } from "autumn-js/react"
 import {
 	Check,
 	ChevronDown,
-	Clock,
 	FolderOpen,
+	History,
 	Loader,
+	Loader2,
+	Play,
 	Trash2,
 	Zap,
 } from "lucide-react"
@@ -30,6 +32,11 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
+import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
+import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
+import { useTriggerSync } from "@/hooks/use-trigger-sync"
+import { formatRelativeTime } from "@/components/settings/sync-utils"
+import type { ImportProvider } from "@/components/settings/sync-utils"
 
 type GDriveSyncScope = "scoped" | "full"
 
@@ -71,17 +78,20 @@ const CONNECTORS: Record<
 	},
 } as const
 
-function formatRelativeTime(date: string | null | undefined): string {
-	if (!date) return "Never"
-	const d = new Date(date)
-	const diffMs = Date.now() - d.getTime()
-	const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-	const diffDays = Math.floor(diffHours / 24)
-	if (diffHours < 1) return "Just now"
-	if (diffHours < 24) return `${diffHours}h ago`
-	if (diffDays === 1) return "Yesterday"
-	if (diffDays < 7) return `${diffDays} days ago`
-	return d.toLocaleDateString()
+/** Extract typed metadata from a connection, with runtime validation. */
+function getConnectionMeta(connection: Connection) {
+	const m = connection.metadata as Record<string, unknown> | undefined
+	return {
+		syncInProgress: m?.syncInProgress === true,
+		lastSyncedAt:
+			typeof m?.lastSyncedAt === "number" ? m.lastSyncedAt : undefined,
+		documentCount: typeof m?.documentCount === "number" ? m.documentCount : 0,
+	}
+}
+
+/** Check if a connection's auth token has expired. */
+function isConnectionExpired(connection: Connection): boolean {
+	return !!connection.expiresAt && new Date(connection.expiresAt) <= new Date()
 }
 
 function ConnectionRow({
@@ -89,18 +99,23 @@ function ConnectionRow({
 	onDelete,
 	isDeleting,
 	projects,
+	onTriggerSync,
+	isSyncing,
 }: {
 	connection: Connection
 	onDelete: () => void
 	isDeleting: boolean
 	projects: Project[]
+	onTriggerSync: () => void
+	isSyncing: boolean
 }) {
+	const [historyOpen, setHistoryOpen] = useState(false)
 	const config = CONNECTORS[connection.provider as ConnectorProvider]
 	if (!config) return null
 
 	const Icon = config.icon
-	const isConnected =
-		!connection.expiresAt || new Date(connection.expiresAt) > new Date()
+	const meta = getConnectionMeta(connection)
+	const expired = isConnectionExpired(connection)
 
 	const getProjectName = (tag: string): string => {
 		if (tag === DEFAULT_PROJECT_ID) return "Default"
@@ -110,12 +125,8 @@ function ConnectionRow({
 		)
 	}
 
-	const documentCount = (connection.metadata?.documentCount as number) ?? 0
-	const containerTags = (
-		connection as Connection & { containerTags?: string[] }
-	).containerTags
-	const projectName = containerTags?.[0]
-		? getProjectName(containerTags[0])
+	const projectName = connection.containerTags?.[0]
+		? getProjectName(connection.containerTags[0])
 		: null
 
 	return (
@@ -138,23 +149,11 @@ function ConnectionRow({
 							>
 								{config.title}
 							</span>
-							<div className="flex items-center gap-2">
-								<div
-									className={cn(
-										"size-[7px] rounded-full",
-										isConnected ? "bg-[#00AC3F]" : "bg-[#737373]",
-									)}
-								/>
-								<span
-									className={cn(
-										dmSans125ClassName(),
-										"text-[14px]",
-										isConnected ? "text-[#00AC3F]" : "text-[#737373]",
-									)}
-								>
-									{isConnected ? "Connected" : "Disconnected"}
-								</span>
-							</div>
+							<SyncStatusBadge
+								syncInProgress={meta.syncInProgress}
+								lastSyncedAt={meta.lastSyncedAt}
+								isExpired={expired}
+							/>
 						</div>
 						<span
 							className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
@@ -162,14 +161,71 @@ function ConnectionRow({
 							{connection.email || "Unknown"}
 						</span>
 					</div>
-					<button
-						type="button"
-						onClick={onDelete}
-						disabled={isDeleting}
-						className="text-[#737373] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						<Trash2 className="size-[22px]" />
-					</button>
+					<div className="flex items-center gap-0.5">
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								onTriggerSync()
+							}}
+							disabled={isSyncing || expired}
+							className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label={
+								expired
+									? "Connection expired"
+									: isSyncing
+										? "Sync in progress"
+										: "Sync now"
+							}
+							title={
+								expired
+									? "Reconnect to sync"
+									: isSyncing
+										? "Sync in progress"
+										: "Sync now"
+							}
+						>
+							{isSyncing ? (
+								<Loader2 className="size-[18px] animate-spin" />
+							) : (
+								<Play className="size-[18px]" />
+							)}
+						</button>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								setHistoryOpen((v) => !v)
+							}}
+							aria-label="Sync history"
+							aria-expanded={historyOpen}
+							title={historyOpen ? "Hide sync history" : "Sync history"}
+							className={cn(
+								"transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5 flex items-center gap-0.5",
+								historyOpen
+									? "text-[#FAFAFA] bg-white/5"
+									: "text-[#737373] hover:text-[#FAFAFA]",
+							)}
+						>
+							<History className="size-[18px]" />
+							<ChevronDown
+								className={cn(
+									"size-3 transition-transform",
+									historyOpen && "rotate-180",
+								)}
+							/>
+						</button>
+						<button
+							type="button"
+							onClick={onDelete}
+							disabled={isDeleting}
+							className="text-[#737373] hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+							aria-label="Delete connection"
+							title="Remove connection"
+						>
+							<Trash2 className="size-[18px]" />
+						</button>
+					</div>
 				</div>
 				<div className="flex items-center gap-3 pt-2.5 border-t border-[rgba(82,89,102,0.12)]">
 					<div className="flex items-center gap-2 flex-1 flex-wrap">
@@ -186,17 +242,11 @@ function ConnectionRow({
 								</span>
 							</div>
 						)}
-						<div className="flex items-center gap-1">
-							<Clock className="size-3 text-[#4B5563]" />
-							<span
-								className={cn(
-									dmSans125ClassName(),
-									"text-[12px] text-[#737373]",
-								)}
-							>
-								{formatRelativeTime(connection.createdAt)}
-							</span>
-						</div>
+						<span
+							className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
+						>
+							Last synced: {formatRelativeTime(meta.lastSyncedAt)}
+						</span>
 					</div>
 					<div className="flex items-baseline gap-1 shrink-0">
 						<span
@@ -205,7 +255,7 @@ function ConnectionRow({
 								"text-[14px] font-semibold text-[#FAFAFA]",
 							)}
 						>
-							{documentCount}
+							{meta.documentCount}
 						</span>
 						<span
 							className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
@@ -214,6 +264,15 @@ function ConnectionRow({
 						</span>
 					</div>
 				</div>
+
+				{historyOpen && (
+					<div className="border-t border-[rgba(82,89,102,0.12)] pt-3">
+						<SyncHistoryPanel
+							connectionId={connection.id}
+							isOpen={historyOpen}
+						/>
+					</div>
+				)}
 			</div>
 		</div>
 	)
@@ -226,7 +285,7 @@ interface ConnectContentProps {
 export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const queryClient = useQueryClient()
 	const autumn = useCustomer()
-	const isProUser = hasActivePlan(autumn.customer?.products, "api_pro")
+	const isProUser = hasActivePlan(autumn.data?.subscriptions, "api_pro")
 	const [connectingProvider, setConnectingProvider] =
 		useState<ConnectorProvider | null>(null)
 	const [gdriveSyncScope, setGdriveSyncScope] =
@@ -236,6 +295,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		open: boolean
 		connection: Connection | null
 	}>({ open: false, connection: null })
+	const triggerSync = useTriggerSync()
 
 	const projects = (queryClient.getQueryData<Project[]>(["projects"]) ||
 		[]) as Project[]
@@ -243,20 +303,26 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	const handleUpgrade = async () => {
 		setIsUpgrading(true)
 		try {
-			await autumn.attach({
-				productId: "api_pro",
+			const result = await autumn.attach({
+				planId: "api_pro",
 				successUrl: window.location.href,
 			})
+			if (result?.paymentUrl) {
+				window.open(result.paymentUrl, "_self")
+				return
+			}
+			autumn.refetch?.()
 		} catch (error) {
 			console.error("Upgrade error:", error)
 			toast.error("Failed to start upgrade process")
+		} finally {
 			setIsUpgrading(false)
 		}
 	}
 
-	const connectionsFeature = autumn.customer?.features?.connections
-	const connectionsUsed = connectionsFeature?.usage ?? 0
-	const connectionsLimit = connectionsFeature?.included_usage ?? 10
+	const connectionsBalance = autumn.data?.balances?.connections
+	const connectionsUsed = connectionsBalance?.usage ?? 0
+	const connectionsLimit = connectionsBalance?.granted ?? 10
 	const canAddConnection = connectionsUsed < connectionsLimit
 
 	// Fetch connections
@@ -276,7 +342,13 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			return response.data as Connection[]
 		},
 		staleTime: 30 * 1000,
-		refetchInterval: 60 * 1000,
+		refetchInterval: (query) => {
+			const conns = query.state.data as Connection[] | undefined
+			if (conns?.some((c) => getConnectionMeta(c).syncInProgress)) {
+				return 5000
+			}
+			return 60 * 1000
+		},
 		refetchIntervalInBackground: true,
 	})
 
@@ -409,7 +481,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 								className="bg-[#14161A] rounded-[12px] px-4 py-3 flex items-center justify-between gap-3"
 							>
 								<div className="flex items-center gap-3 flex-1">
-									<Icon className="w-6 h-6 text-[#737373]" />
+									<Icon className="size-6 text-[#737373]" />
 									<div className="space-y-[6px] flex-1">
 										<p className="text-[16px] font-medium">{config.title}</p>
 										<p className="text-[16px] text-[#737373]">
@@ -431,7 +503,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 h-8 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 											>
 												{isConnecting ? (
-													<Loader className="h-4 w-4 animate-spin" />
+													<Loader className="size-4 animate-spin" />
 												) : (
 													"Connect"
 												)}
@@ -443,7 +515,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 														type="button"
 														className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 px-1.5 h-8 flex items-center transition-colors"
 													>
-														<ChevronDown className="w-3 h-3" />
+														<ChevronDown className="size-3" />
 													</button>
 												</DropdownMenuTrigger>
 												<DropdownMenuContent align="end" className="w-40">
@@ -463,7 +535,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 														>
 															{label}
 															{gdriveSyncScope === scope && (
-																<Check className="w-3 h-3 text-[#4BA0FA]" />
+																<Check className="size-3 text-[#4BA0FA]" />
 															)}
 														</DropdownMenuItem>
 													))}
@@ -483,7 +555,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 											className="bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 text-[14px] font-medium px-3 py-1.5 h-8"
 										>
 											{isConnecting ? (
-												<Loader className="h-4 w-4 animate-spin" />
+												<Loader className="size-4 animate-spin" />
 											) : (
 												"Connect"
 											)}
@@ -524,7 +596,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									className="flex items-center gap-1.5 bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium rounded-full h-8 px-3 transition-colors shrink-0"
 								>
 									{isAnyConnecting ? (
-										<Loader className="h-3.5 w-3.5 animate-spin" />
+										<Loader className="size-3.5 animate-spin" />
 									) : (
 										<>
 											<span>+ Add a connection</span>
@@ -638,6 +710,18 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 								projects={projects}
 								onDelete={() => setRemoveDialog({ open: true, connection })}
 								isDeleting={deleteConnectionMutation.isPending}
+								onTriggerSync={() =>
+									triggerSync.mutate({
+										connectionId: connection.id,
+										provider: connection.provider as ImportProvider,
+										containerTags: connection.containerTags,
+									})
+								}
+								isSyncing={
+									(triggerSync.isPending &&
+										triggerSync.variables?.connectionId === connection.id) ||
+									getConnectionMeta(connection).syncInProgress
+								}
 							/>
 						))}
 					</div>
@@ -650,14 +734,14 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 					id="no-active-connections"
 					className="bg-[#14161A] shadow-inside-out rounded-[12px] px-4 py-6 h-full mb-4 flex flex-col justify-center items-center"
 				>
-					<Zap className="w-6 h-6 text-[#737373] mb-3" />
+					<Zap className="size-6 text-[#737373] mb-3" />
 					{!isProUser ? (
 						<>
 							<p className="text-[14px] text-[#737373] mb-4 text-center">
 								{isUpgrading || autumn.isLoading ? (
 									<span className="inline-flex items-center gap-2">
-										<Loader className="h-4 w-4 animate-spin" />
-										Upgrading...
+										<Loader className="size-4 animate-spin" />
+										Upgrading…
 									</span>
 								) : (
 									<>
@@ -676,19 +760,19 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 							</p>
 							<div className="space-y-2 text-[14px]">
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>Unlimited memories</span>
 								</div>
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>10 connections</span>
 								</div>
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>Advanced search</span>
 								</div>
 								<div className="flex items-center gap-2">
-									<Check className="w-4 h-4 text-[#4BA0FA]" />
+									<Check className="size-4 text-[#4BA0FA]" />
 									<span>Priority support</span>
 								</div>
 							</div>

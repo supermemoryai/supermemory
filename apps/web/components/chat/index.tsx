@@ -69,12 +69,12 @@ function ChatEmptyStatePlaceholder({
 			id="chat-empty-state"
 			className="flex flex-col items-center justify-center h-full"
 		>
-			<div className="relative w-32 h-32">
-				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16" />
-				<LogoBgGradient className="w-full h-full" />
+			<div className="relative size-32">
+				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-16" />
+				<LogoBgGradient className="size-full" />
 			</div>
 			<div className="gap-3 flex flex-col items-center justify-center">
-				<p>Ask me anything about your memories...</p>
+				<p>Ask me anything about your memories…</p>
 				<div
 					className={cn(
 						dmSansClassName(),
@@ -187,6 +187,7 @@ export function ChatSidebar({
 		null,
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
+	const isScrolledToBottomRef = useRef(true)
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
@@ -296,6 +297,7 @@ export function ChatSidebar({
 		const { scrollTop, scrollHeight, clientHeight } = container
 		const distanceFromBottom = scrollHeight - scrollTop - clientHeight
 		const isAtBottom = distanceFromBottom <= 20
+		isScrolledToBottomRef.current = isAtBottom
 		setIsScrolledToBottom(isAtBottom)
 	}, [])
 
@@ -303,6 +305,7 @@ export function ChatSidebar({
 		if (messagesContainerRef.current) {
 			messagesContainerRef.current.scrollTop =
 				messagesContainerRef.current.scrollHeight
+			isScrolledToBottomRef.current = true
 			setIsScrolledToBottom(true)
 		}
 	}, [])
@@ -399,6 +402,12 @@ export function ChatSidebar({
 		}
 	}, [selectedProject])
 
+	useEffect(() => {
+		if (!isHistoryOpen) return
+		fetchThreads()
+		analytics.chatHistoryViewed?.()
+	}, [isHistoryOpen, fetchThreads])
+
 	const loadThread = useCallback(
 		async (id: string) => {
 			try {
@@ -441,12 +450,14 @@ export function ChatSidebar({
 
 	// Auto-restore thread from URL on mount (e.g. reload or direct link)
 	const didAutoLoadRef = useRef(false)
+	const initialThreadIdRef = useRef(threadId)
 	useEffect(() => {
 		if (didAutoLoadRef.current) return
-		if (!threadId) return
+		const initialThreadId = initialThreadIdRef.current
+		if (!initialThreadId) return
 		didAutoLoadRef.current = true
-		loadThread(threadId)
-	}, [threadId, loadThread])
+		loadThread(initialThreadId)
+	}, [loadThread])
 
 	const deleteThread = useCallback(
 		async (threadId: string) => {
@@ -553,6 +564,46 @@ export function ChatSidebar({
 		checkIfScrolledToBottom()
 	}, [messages, checkIfScrolledToBottom])
 
+	useEffect(() => {
+		const isStreaming = status === "streaming"
+		const lastMessage = messages[messages.length - 1]
+		const isLastMessageFromAssistant = lastMessage?.role === "assistant"
+
+		if (
+			isStreaming &&
+			isLastMessageFromAssistant &&
+			isScrolledToBottomRef.current
+		) {
+			scrollToBottom()
+		}
+	}, [status, messages, scrollToBottom])
+
+	useEffect(() => {
+		const container = messagesContainerRef.current
+		if (!container) return
+
+		const isStreaming = status === "streaming"
+		if (!isStreaming) return
+
+		const mutationObserver = new MutationObserver(() => {
+			if (isScrolledToBottomRef.current) {
+				requestAnimationFrame(() => {
+					scrollToBottom()
+				})
+			}
+		})
+
+		mutationObserver.observe(container, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+		})
+
+		return () => {
+			mutationObserver.disconnect()
+		}
+	}, [status, scrollToBottom])
+
 	// Add scroll event listener to track scroll position
 	useEffect(() => {
 		const container = messagesContainerRef.current
@@ -596,10 +647,7 @@ export function ChatSidebar({
 			open={isHistoryOpen}
 			onOpenChange={(open) => {
 				setIsHistoryOpen(open)
-				if (open) {
-					fetchThreads()
-					analytics.chatHistoryViewed?.()
-				} else {
+				if (!open) {
 					setConfirmingDeleteId(null)
 				}
 			}}
@@ -622,7 +670,7 @@ export function ChatSidebar({
 					<div className="py-4">
 						{isLoadingThreads ? (
 							<div className="flex items-center justify-center py-8">
-								<SuperLoader label="Loading..." />
+								<SuperLoader label="Loading…" />
 							</div>
 						) : threads.length === 0 ? (
 							<div className="py-8 text-center text-sm text-[#737373]">
@@ -659,7 +707,7 @@ export function ChatSidebar({
 															e.stopPropagation()
 															deleteThread(thread.id)
 														}}
-														className="h-7 w-7 bg-red-500 text-white hover:bg-red-600"
+														className="size-7 bg-red-500 text-white hover:bg-red-600"
 													>
 														<Check className="size-3" />
 													</Button>
@@ -671,7 +719,7 @@ export function ChatSidebar({
 															e.stopPropagation()
 															setConfirmingDeleteId(null)
 														}}
-														className="h-7 w-7"
+														className="size-7"
 													>
 														<XIcon className="size-3 text-[#737373]" />
 													</Button>
@@ -685,7 +733,7 @@ export function ChatSidebar({
 														e.stopPropagation()
 														setConfirmingDeleteId(thread.id)
 													}}
-													className="ml-2 h-7 w-7"
+													className="ml-2 size-7"
 												>
 													<Trash2 className="size-3 text-[#737373]" />
 												</Button>
@@ -883,7 +931,7 @@ export function ChatSidebar({
 					))}
 					{(status === "submitted" || status === "streaming") && (
 						<div className="flex gap-2">
-							<SuperLoader label="Thinking..." />
+							<SuperLoader label="Thinking…" />
 						</div>
 					)}
 				</div>
@@ -965,10 +1013,10 @@ export function ChatSidebar({
 					isResponding={status === "submitted" || status === "streaming"}
 					activeStatus={
 						status === "submitted"
-							? "Thinking..."
+							? "Thinking…"
 							: status === "streaming"
-								? "Structuring response..."
-								: "Waiting for input..."
+								? "Structuring response…"
+								: "Waiting for input…"
 					}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={

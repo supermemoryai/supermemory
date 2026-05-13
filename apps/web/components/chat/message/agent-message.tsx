@@ -165,11 +165,9 @@ function BashToolDisplay({ part }: { part: ToolCallDisplayPart }) {
 									: "text-white/70",
 					)}
 				>
-					{cmd ?? "..."}
+					{cmd ?? "…"}
 				</span>
-				{isLoading && (
-					<span className="text-white/30 shrink-0">running...</span>
-				)}
+				{isLoading && <span className="text-white/30 shrink-0">running…</span>}
 				{isDone && !hasOutput && (
 					<span className="text-white/30 shrink-0">done</span>
 				)}
@@ -261,7 +259,7 @@ function ToolCallDisplay({ part }: { part: ToolCallDisplayPart }) {
 				>
 					{label}
 				</span>
-				{isLoading && <span className="text-white/40 ml-auto">running...</span>}
+				{isLoading && <span className="text-white/40 ml-auto">running…</span>}
 				{isDone && <span className="text-white/40 ml-auto">done</span>}
 				{isError && <span className="text-red-400/60 ml-auto">error</span>}
 				{expanded ? (

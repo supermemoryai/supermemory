@@ -9,7 +9,6 @@ import {
 } from "@/hooks/use-account-settings"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import { useTokenUsage } from "@/hooks/use-token-usage"
-import { formatUsageNumber, tokensToCredits } from "@/lib/billing-utils"
 import {
 	Dialog,
 	DialogContent,
@@ -57,36 +56,123 @@ function SettingsCard({ children }: { children: React.ReactNode }) {
 	)
 }
 
-function PlanFeatureRow({
-	icon,
-	text,
-	variant = "muted",
+function PlanComparisonCard({
+	name,
+	price,
+	period,
+	description,
+	credits,
+	features,
+	highlight,
 }: {
-	icon: "check" | "x"
-	text: string
-	variant?: "muted" | "highlight"
+	name: string
+	price: string
+	period: string
+	description: string
+	credits: string
+	features: string[]
+	highlight: boolean
 }) {
 	return (
-		<div className="flex items-center gap-2">
-			{icon === "check" ? (
-				<Check
-					className={cn(
-						"size-4 shrink-0",
-						variant === "highlight" ? "text-[#4BA0FA]" : "text-[#737373]",
-					)}
-				/>
-			) : (
-				<X className="size-4 shrink-0 text-[#737373]" />
+		<div
+			className={cn(
+				"relative flex flex-col gap-3 p-4 rounded-[10px] overflow-hidden",
+				highlight
+					? "bg-[#1B1F24] border border-[#4BA0FA]/30 shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]"
+					: "border border-white/10",
 			)}
-			<span
+		>
+			<div className="flex items-center justify-between">
+				<p
+					className={cn(
+						dmSans125ClassName(),
+						"font-mono uppercase tracking-[0.12em] text-[10px]",
+						highlight ? "text-[#4BA0FA]" : "text-[#737373]",
+					)}
+				>
+					{name}
+				</p>
+				{highlight && (
+					<span className="bg-[#4BA0FA] text-[#00171A] text-[10px] font-bold tracking-[0.36px] px-1.5 py-0.5 rounded-[3px]">
+						RECOMMENDED
+					</span>
+				)}
+			</div>
+
+			<div className="flex items-baseline gap-1">
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"font-bold text-[28px] leading-none text-[#FAFAFA] tabular-nums",
+					)}
+				>
+					{price}
+				</span>
+				{period && (
+					<span
+						className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
+					>
+						{period}
+					</span>
+				)}
+			</div>
+
+			<p
 				className={cn(
 					dmSans125ClassName(),
-					"text-[14px] tracking-[-0.14px]",
-					variant === "highlight" ? "text-white" : "text-[#737373]",
+					"text-[12px] tracking-[-0.12px] text-[#A3A3A3] leading-snug",
 				)}
 			>
-				{text}
-			</span>
+				{description}
+			</p>
+
+			<div
+				className={cn(
+					"flex items-center gap-2 rounded-lg px-3 py-2",
+					highlight ? "bg-[#4BA0FA]/10" : "bg-white/5",
+				)}
+			>
+				<div className="min-w-0">
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"font-semibold text-[12px] tabular-nums leading-none",
+							highlight ? "text-[#4BA0FA]" : "text-[#A3A3A3]",
+						)}
+					>
+						{credits}
+					</p>
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"mt-1 text-[10px] leading-none",
+							highlight ? "text-[#4BA0FA]/70" : "text-[#737373]",
+						)}
+					>
+						of usage included
+					</p>
+				</div>
+			</div>
+
+			<ul className="flex flex-col gap-2">
+				{features.map((text) => (
+					<li
+						key={text}
+						className={cn(
+							dmSans125ClassName(),
+							"flex items-start gap-2 text-[12px] tracking-[-0.12px] leading-snug text-[#A3A3A3]",
+						)}
+					>
+						<Check
+							className={cn(
+								"mt-0.5 size-3 shrink-0",
+								highlight ? "text-[#4BA0FA]" : "text-[#737373]",
+							)}
+						/>
+						<span>{text}</span>
+					</li>
+				))}
+			</ul>
 		</div>
 	)
 }
@@ -102,15 +188,23 @@ function formatOrgRole(role: string): string {
 }
 
 export default function Account() {
-	const { user, org, setActiveOrg, clearActiveOrg } = useAuth()
+	const {
+		user,
+		org,
+		organizations: allOrgs,
+		setActiveOrg,
+		clearActiveOrg,
+	} = useAuth()
 	const autumn = useCustomer()
 	const [isUpgrading, setIsUpgrading] = useState(false)
+	const [isCancelling, setIsCancelling] = useState(false)
+	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 	const [emailConfirm, setEmailConfirm] = useState("")
-	const [notifyWhenDeleted, setNotifyWhenDeleted] = useState(false)
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [isClosingAccount, setIsClosingAccount] = useState(false)
 	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
-	const { data: allOrgs } = authClient.useListOrganizations()
+	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
 	const { data: memberships, isPending: membershipsPending } =
 		useAccountMemberships()
 
@@ -152,17 +246,20 @@ export default function Account() {
 	}
 
 	const {
-		tokensUsed,
-		tokensLimit,
-		tokensPercent,
-		searchesUsed,
-		searchesLimit,
-		searchesPercent,
+		usdIncluded,
+		usdSpent,
+		planUsagePct,
 		currentPlan,
 		hasPaidPlan,
 		isLoading: isCheckingStatus,
 		daysRemaining,
 	} = useTokenUsage(autumn)
+
+	const formatUsd = (n: number) =>
+		n.toLocaleString(undefined, {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		})
 
 	const planDisplayNames: Record<string, string> = {
 		free: "Free",
@@ -175,14 +272,47 @@ export default function Account() {
 	const handleUpgrade = async () => {
 		setIsUpgrading(true)
 		try {
-			await autumn.attach({
-				productId: "api_pro",
-				successUrl: "https://app.supermemory.ai/settings#account",
+			const result = await autumn.attach({
+				planId: "api_pro",
+				successUrl: `${window.location.origin}/settings#account`,
 			})
-			window.location.reload()
+			if (result?.paymentUrl) {
+				window.open(result.paymentUrl, "_self")
+				return
+			}
+			autumn.refetch?.()
 		} catch (error) {
 			console.error(error)
+			toast.error("Failed to start checkout. Please try again.")
+		} finally {
 			setIsUpgrading(false)
+		}
+	}
+
+	// Enterprise is contract-based — direct those users to the portal/sales.
+	const cancellablePlanId =
+		currentPlan === "pro" || currentPlan === "scale"
+			? (`api_${currentPlan}` as const)
+			: null
+
+	const handleCancelSubscription = async () => {
+		if (!cancellablePlanId) return
+		setIsCancelling(true)
+		try {
+			await autumn.updateSubscription({
+				planId: cancellablePlanId,
+				cancelAction: "cancel_end_of_cycle",
+			})
+			autumn.refetch?.()
+			setIsCancelDialogOpen(false)
+			toast.success(
+				`Subscription cancelled. ${planDisplayNames[currentPlan]} features remain active until the end of your billing period.`,
+			)
+		} catch (error) {
+			console.error(error)
+			toast.error("Failed to cancel subscription. Please try again.")
+		} finally {
+			setIsCancelling(false)
 		}
 	}
 
@@ -192,7 +322,6 @@ export default function Account() {
 		try {
 			await deleteUserAccount.mutateAsync({
 				confirmation: user.email,
-				notifyOnComplete: notifyWhenDeleted,
 			})
 			clearActiveOrg()
 			try {
@@ -203,7 +332,6 @@ export default function Account() {
 			}
 			setIsDeleteDialogOpen(false)
 			setEmailConfirm("")
-			setNotifyWhenDeleted(false)
 			window.location.assign("/login/new")
 		} catch (e) {
 			const msg = e instanceof Error ? e.message : "Something went wrong"
@@ -271,10 +399,19 @@ export default function Account() {
 								>
 									Organization
 								</p>
-								<Popover>
+								<Popover
+									open={orgMenuOpen && canSwitchOrg}
+									onOpenChange={(open) => {
+										if (canSwitchOrg) setOrgMenuOpen(open)
+									}}
+								>
 									<PopoverTrigger
+										disabled={!canSwitchOrg}
 										className={cn(
-											"flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-90",
+											"flex items-center gap-2 transition-opacity",
+											canSwitchOrg
+												? "cursor-pointer hover:opacity-90"
+												: "cursor-default",
 											dmSans125ClassName(),
 										)}
 									>
@@ -286,14 +423,16 @@ export default function Account() {
 										>
 											{org?.name ?? "Personal"}
 										</span>
-										<ChevronDown className="size-4 text-[#737373]" />
+										{canSwitchOrg && (
+											<ChevronDown className="size-4 text-[#737373]" />
+										)}
 									</PopoverTrigger>
-									{allOrgs && allOrgs.length > 1 && (
+									{canSwitchOrg && (
 										<PopoverContent
 											align="start"
 											className="w-72 bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
 										>
-											{allOrgs.map((organization) => {
+											{allOrgs?.map((organization) => {
 												const isCurrent = organization.id === org?.id
 												const isSwitching = switchingOrgId === organization.id
 												return (
@@ -388,7 +527,7 @@ export default function Account() {
 									</p>
 								</div>
 
-								{/* Credits Usage Progress */}
+								{/* Plan usage (unified) */}
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center justify-between">
 										<p
@@ -397,166 +536,179 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											Credits Used
+											Plan usage
 										</p>
 										<span
 											className={cn(
 												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
+												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA] tabular-nums",
 											)}
 										>
-											{tokensToCredits(tokensUsed)} /{" "}
-											{tokensToCredits(tokensLimit)}
+											{planUsagePct < 1 && planUsagePct > 0
+												? "< 1"
+												: Math.round(planUsagePct)}
+											% used
 										</span>
 									</div>
 									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 										<div
 											className="h-full rounded-[40px]"
 											style={{
-												width: `${tokensPercent}%`,
+												width: `${planUsagePct}%`,
 												background:
-													tokensPercent > 80
+													planUsagePct > 80
 														? "#ef4444"
 														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
 											}}
+											title={`$${formatUsd(usdSpent)} of $${formatUsd(usdIncluded)} used`}
 										/>
 									</div>
-								</div>
-
-								{/* Search Queries Progress */}
-								<div className="flex flex-col gap-3">
-									<div className="flex items-center justify-between">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Search Queries
-										</p>
-										<span
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA]",
-											)}
-										>
-											{formatUsageNumber(searchesUsed)} /{" "}
-											{formatUsageNumber(searchesLimit)}
-										</span>
-									</div>
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-										<div
-											className="h-full rounded-[40px]"
-											style={{
-												width: `${searchesPercent}%`,
-												background:
-													searchesPercent > 80
-														? "#ef4444"
-														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
-											}}
-										/>
-									</div>
-								</div>
-
-								{/* Days remaining indicator */}
-								{daysRemaining !== null && (
 									<p
 										className={cn(
 											dmSans125ClassName(),
-											"text-sm text-[#737373]",
+											"text-sm tracking-[-0.14px] text-[#737373] tabular-nums",
 										)}
 									>
-										Resets in {daysRemaining} day
-										{daysRemaining !== 1 ? "s" : ""}
+										{daysRemaining !== null
+											? `Resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
+											: ""}
 									</p>
-								)}
+								</div>
 
-								<button
-									type="button"
-									onClick={() => {
-										autumn.openBillingPortal?.()
-									}}
-									className={cn(
-										"relative w-full h-11 rounded-full flex items-center justify-center gap-2",
-										"bg-[#0D121A] border border-[rgba(115,115,115,0.2)]",
-										"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
-										"cursor-pointer transition-opacity hover:opacity-90",
-										dmSans125ClassName(),
-									)}
-								>
-									<Settings className="size-4" />
-									Manage billing
-									<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]" />
-								</button>
-
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-									{/* Free plan card */}
-									<div className="flex flex-col gap-4 p-4 rounded-[10px] border border-white/10 overflow-hidden">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Free plan
-										</p>
-										<div className="flex flex-col gap-2">
-											<PlanFeatureRow
-												icon="check"
-												text="10 credits / 1M tokens"
-											/>
-											<PlanFeatureRow icon="check" text="10K search queries" />
-											<PlanFeatureRow icon="x" text="No connections" />
-											<PlanFeatureRow icon="check" text="Basic support" />
-										</div>
-									</div>
-
-									{/* Current plan card - highlighted */}
-									<div
+								<div className="flex flex-col sm:flex-row gap-3">
+									<button
+										type="button"
+										onClick={() => {
+											autumn.openCustomerPortal?.({
+												returnUrl:
+													"https://app.supermemory.ai/settings#account",
+											})
+										}}
 										className={cn(
-											"flex flex-col gap-4 p-4 rounded-[10px]",
-											"bg-[#1B1F24]",
-											"shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]",
-											"relative overflow-hidden",
+											"relative flex-1 h-11 rounded-full flex items-center justify-center gap-2",
+											"bg-[#0D121A] border border-[rgba(115,115,115,0.2)]",
+											"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
+											"cursor-pointer transition-opacity hover:opacity-90",
+											dmSans125ClassName(),
 										)}
 									>
-										<div className="flex items-center justify-between">
-											<p
+										<Settings className="size-4" />
+										Manage billing
+										<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]" />
+									</button>
+									{cancellablePlanId && (
+										<Dialog
+											open={isCancelDialogOpen}
+											onOpenChange={setIsCancelDialogOpen}
+										>
+											<DialogTrigger asChild>
+												<button
+													type="button"
+													className={cn(
+														"relative flex-1 h-11 rounded-full flex items-center justify-center gap-2",
+														"bg-[#290F0A] text-[#C73B1B]",
+														"font-medium text-[14px] tracking-[-0.14px]",
+														"cursor-pointer transition-opacity hover:opacity-90",
+														dmSans125ClassName(),
+													)}
+												>
+													Cancel subscription
+													<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
+												</button>
+											</DialogTrigger>
+											<DialogContent
+												showCloseButton={false}
 												className={cn(
-													dmSans125ClassName(),
-													"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+													"bg-[#1B1F24] rounded-[22px] p-4",
+													"shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]",
+													"min-w-xl",
 												)}
 											>
-												{planDisplayNames[currentPlan]} plan
-											</p>
-											<span className="bg-[#4BA0FA] text-[#00171A] text-[12px] font-bold tracking-[0.36px] px-1 py-[3px] rounded-[3px] h-[18px] flex items-center justify-center">
-												ACTIVE
-											</span>
-										</div>
-										<div className="flex flex-col gap-2">
-											<PlanFeatureRow
-												icon="check"
-												text="30 credits / 3M tokens"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="100K search queries"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="10 connections"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="Priority support"
-												variant="highlight"
-											/>
-										</div>
-										<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
-									</div>
+												<div className="flex flex-col gap-4">
+													<div className="flex items-start gap-4">
+														<div className="flex flex-1 flex-col gap-3 pl-1">
+															<p
+																className={cn(
+																	dmSans125ClassName(),
+																	"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+																)}
+															>
+																Cancel {planDisplayNames[currentPlan]}{" "}
+																subscription?
+															</p>
+															<p
+																className={cn(
+																	dmSans125ClassName(),
+																	"text-[13px] tracking-[-0.13px] text-[#A3A3A3] leading-snug",
+																)}
+															>
+																You&apos;ll keep Pro features until the end of
+																your current billing period
+																{daysRemaining !== null
+																	? ` (${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining)`
+																	: ""}
+																. After that, your account will switch to the
+																Free plan.
+															</p>
+														</div>
+														<DialogClose asChild>
+															<button
+																type="button"
+																className={cn(
+																	"relative size-7 rounded-full bg-[#0D121A] border border-[#73737333]",
+																	"flex items-center justify-center shrink-0",
+																	"cursor-pointer transition-opacity hover:opacity-80",
+																)}
+															>
+																<X className="size-4 text-[#737373]" />
+																<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.313px_1.313px_3.938px_rgba(0,0,0,0.7)]" />
+															</button>
+														</DialogClose>
+													</div>
+
+													<div className="flex items-center justify-end gap-5">
+														<DialogClose asChild>
+															<button
+																type="button"
+																className={cn(
+																	dmSans125ClassName(),
+																	"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
+																	"cursor-pointer transition-opacity hover:opacity-80",
+																)}
+															>
+																Keep plan
+															</button>
+														</DialogClose>
+														<button
+															type="button"
+															onClick={() => void handleCancelSubscription()}
+															disabled={isCancelling}
+															className={cn(
+																"relative flex items-center gap-1.5 px-4 py-2 rounded-full",
+																"bg-[#290F0A] text-[#C73B1B]",
+																"font-normal text-[14px] tracking-[-0.14px]",
+																"cursor-pointer transition-opacity",
+																"disabled:opacity-40 disabled:cursor-not-allowed",
+																!isCancelling && "hover:opacity-90",
+																dmSans125ClassName(),
+															)}
+														>
+															{isCancelling && (
+																<LoaderIcon className="size-[18px] animate-spin" />
+															)}
+															<span>
+																{isCancelling
+																	? "Cancelling…"
+																	: "Cancel subscription"}
+															</span>
+															<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
+														</button>
+													</div>
+												</div>
+												<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
+											</DialogContent>
+										</Dialog>
+									)}
 								</div>
 							</>
 						) : (
@@ -580,7 +732,7 @@ export default function Account() {
 									</p>
 								</div>
 
-								{/* Credits Usage Progress */}
+								{/* Plan usage (unified) */}
 								<div className="flex flex-col gap-3">
 									<div className="flex items-center justify-between">
 										<p
@@ -589,74 +741,41 @@ export default function Account() {
 												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											Credits Used
+											Plan usage
 										</p>
 										<p
 											className={cn(
 												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
+												"font-medium text-[16px] tracking-[-0.16px] text-[#737373] tabular-nums",
 											)}
 										>
-											{tokensToCredits(tokensUsed)} /{" "}
-											{tokensToCredits(tokensLimit)}
+											{planUsagePct < 1 && planUsagePct > 0
+												? "< 1"
+												: Math.round(planUsagePct)}
+											% used
 										</p>
 									</div>
 									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
 										<div
 											className="h-full rounded-[40px] transition-all"
 											style={{
-												width: `${tokensPercent}%`,
-												background: tokensPercent > 80 ? "#ef4444" : "#0054AD",
+												width: `${planUsagePct}%`,
+												background: planUsagePct > 80 ? "#ef4444" : "#0054AD",
 											}}
+											title={`$${formatUsd(usdSpent)} of $${formatUsd(usdIncluded)} used`}
 										/>
 									</div>
-								</div>
-
-								{/* Search Queries Progress */}
-								<div className="flex flex-col gap-3">
-									<div className="flex items-center justify-between">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Search Queries
-										</p>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#737373]",
-											)}
-										>
-											{formatUsageNumber(searchesUsed)} /{" "}
-											{formatUsageNumber(searchesLimit)}
-										</p>
-									</div>
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-										<div
-											className="h-full rounded-[40px] transition-all"
-											style={{
-												width: `${searchesPercent}%`,
-												background:
-													searchesPercent > 80 ? "#ef4444" : "#0054AD",
-											}}
-										/>
-									</div>
-								</div>
-
-								{/* Days remaining indicator */}
-								{daysRemaining !== null && (
 									<p
 										className={cn(
 											dmSans125ClassName(),
-											"text-sm text-[#737373]",
+											"text-sm tracking-[-0.14px] text-[#737373] tabular-nums",
 										)}
 									>
-										Resets in {daysRemaining} day
-										{daysRemaining !== 1 ? "s" : ""}
+										{daysRemaining !== null
+											? `Resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
+											: ""}
 									</p>
-								)}
+								</div>
 
 								<button
 									type="button"
@@ -680,7 +799,7 @@ export default function Account() {
 									{isUpgrading || isCheckingStatus || autumn.isLoading ? (
 										<>
 											<LoaderIcon className="size-4 animate-spin mr-2" />
-											Upgrading...
+											Upgrading…
 										</>
 									) : (
 										"Upgrade to Pro - $19/month"
@@ -690,75 +809,32 @@ export default function Account() {
 								</button>
 
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-									{/* Free plan card */}
-									<div className="flex flex-col gap-4 p-4 rounded-[10px] border border-white/10">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Free plan
-										</p>
-										<div className="flex flex-col gap-2">
-											<PlanFeatureRow
-												icon="check"
-												text="10 credits / 1M tokens"
-											/>
-											<PlanFeatureRow icon="check" text="10K search queries" />
-											<PlanFeatureRow icon="x" text="No connections" />
-											<PlanFeatureRow icon="check" text="Basic support" />
-										</div>
-									</div>
-
-									{/* Pro plan card */}
-									<div
-										className={cn(
-											"flex flex-col gap-4 p-4 rounded-[10px]",
-											"bg-[#1B1F24] border border-white/10",
-											"shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]",
-											"relative overflow-hidden",
-										)}
-									>
-										{/* Header with badge */}
-										<div className="flex items-center justify-between">
-											<p
-												className={cn(
-													dmSans125ClassName(),
-													"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-												)}
-											>
-												Pro plan
-											</p>
-											<span className="bg-[#4BA0FA] text-[#00171A] text-[12px] font-bold tracking-[0.36px] px-1 py-0.5 rounded-[3px]">
-												RECOMMENDED
-											</span>
-										</div>
-										<div className="flex flex-col gap-2">
-											<PlanFeatureRow
-												icon="check"
-												text="30 credits / 3M tokens"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="100K search queries"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="10 connections"
-												variant="highlight"
-											/>
-											<PlanFeatureRow
-												icon="check"
-												text="Priority support"
-												variant="highlight"
-											/>
-										</div>
-										{/* Inset highlight */}
-										<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
-									</div>
+									<PlanComparisonCard
+										name="Free"
+										price="$0"
+										period=""
+										description="Try the API with no commitment"
+										credits="$5"
+										features={[
+											"Pay-as-you-go after $5 runs out",
+											"Full search & memory API access",
+											"Email support",
+										]}
+										highlight={false}
+									/>
+									<PlanComparisonCard
+										name="Pro"
+										price="$19"
+										period="/mo"
+										description="For developers building with AI memory"
+										credits="$20"
+										features={[
+											"Auto top-up when balance runs low",
+											"All plugins (Claude Code, Cursor, Hermes…)",
+											"Priority support",
+										]}
+										highlight={true}
+									/>
 								</div>
 							</>
 						)}
@@ -785,7 +861,6 @@ export default function Account() {
 								setIsDeleteDialogOpen(open)
 								if (!open) {
 									setEmailConfirm("")
-									setNotifyWhenDeleted(false)
 								}
 							}}
 						>
@@ -993,26 +1068,6 @@ export default function Account() {
 												/>
 												<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0px_0px_0px_1px_rgba(43,49,67,0.08),inset_0px_1px_1px_rgba(0,0,0,0.08),inset_0px_2px_4px_rgba(0,0,0,0.02)]" />
 											</div>
-											<label
-												className={cn(
-													"flex cursor-pointer items-start gap-3 pl-2 pt-2",
-													dmSans125ClassName(),
-													"text-[13px] tracking-[-0.13px] text-[#A3A3A3]",
-												)}
-											>
-												<input
-													type="checkbox"
-													checked={notifyWhenDeleted}
-													onChange={(e) =>
-														setNotifyWhenDeleted(e.target.checked)
-													}
-													className="mt-0.5 size-4 shrink-0 rounded border-onboarding bg-[#14161A]"
-												/>
-												<span>
-													Email me when my account and data have been fully
-													removed.
-												</span>
-											</label>
 										</div>
 									</div>
 

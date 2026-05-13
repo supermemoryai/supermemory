@@ -67,7 +67,7 @@ export function TextEditorContent({
 							{isSaving ? (
 								<>
 									<Loader2 className="size-4 animate-spin mr-1" />
-									Saving...
+									Saving…
 								</>
 							) : (
 								<>

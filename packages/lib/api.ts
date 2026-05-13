@@ -125,6 +125,41 @@ export const apiSchema = createSchema({
 		}),
 	},
 
+	"@get/connections/:connectionId/sync-runs": {
+		output: z.array(
+			z.object({
+				id: z.string(),
+				connectionId: z.string(),
+				status: z.enum(["running", "completed", "failed"]),
+				triggerType: z.enum(["event", "cron", "manual"]),
+				startedAt: z.string(),
+				completedAt: z.string().nullable(),
+				itemsProcessed: z.number(),
+				itemsFailed: z.number(),
+				error: z.string().nullable(),
+			}),
+		),
+		params: z.object({ connectionId: z.string() }),
+	},
+
+	"@post/connections/:provider/import": {
+		input: z.object({
+			containerTags: z.array(z.string()).optional(),
+		}),
+		output: z.unknown(),
+		params: z.object({
+			provider: z.enum([
+				"google-drive",
+				"notion",
+				"onedrive",
+				"gmail",
+				"github",
+				"web-crawler",
+				"s3",
+			]),
+		}),
+	},
+
 	// Settings operations
 	"@get/settings": {
 		output: z.object({ settings: z.object({}).passthrough() }),
@@ -253,6 +288,12 @@ export const apiSchema = createSchema({
 export const $fetch = createFetch({
 	baseURL: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"}/v3`,
 	credentials: "include",
+	headers: { "X-App-Source": "nova" },
+	onRequest: (context: { headers: Headers }) => {
+		if (!context.headers.has("X-App-Source")) {
+			context.headers.set("X-App-Source", "nova")
+		}
+	},
 	retry: {
 		attempts: 3,
 		delay: 100,

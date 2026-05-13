@@ -60,7 +60,7 @@ export function YoutubeVideo({ url }: YoutubeVideoProps) {
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center h-full text-gray-400">
-				Loading video...
+				Loading video…
 			</div>
 		)
 	}
@@ -81,7 +81,7 @@ export function YoutubeVideo({ url }: YoutubeVideoProps) {
 					title="YouTube video player"
 					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 					allowFullScreen
-					className="w-full h-full rounded-lg shadow-lg"
+					className="size-full rounded-lg shadow-lg"
 				/>
 			</div>
 		</div>

@@ -87,7 +87,7 @@ export function RemoveConnectionDialog({
 						</DialogTitle>
 						<DialogPrimitive.Close
 							disabled={isDeleting}
-							className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+							className="bg-[#0D121A] size-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
 							style={{
 								boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
 							}}
@@ -152,7 +152,7 @@ export function RemoveConnectionDialog({
 							{isDeleting ? (
 								<>
 									<Loader2 className="size-4 animate-spin" />
-									Disconnecting...
+									Disconnecting…
 								</>
 							) : alsoDelete ? (
 								`Disconnect and delete ${memoryNoun}`

@@ -73,9 +73,9 @@ export function NotionPreview({
 				</div>
 				{/* Decorative dots mimicking Notion's block handles */}
 				<div className="flex gap-[3px]">
-					<div className="w-[3px] h-[3px] rounded-full bg-[#333]" />
-					<div className="w-[3px] h-[3px] rounded-full bg-[#333]" />
-					<div className="w-[3px] h-[3px] rounded-full bg-[#333]" />
+					<div className="size-[3px] rounded-full bg-[#333]" />
+					<div className="size-[3px] rounded-full bg-[#333]" />
+					<div className="size-[3px] rounded-full bg-[#333]" />
 				</div>
 			</div>
 
@@ -118,7 +118,7 @@ export function NotionPreview({
 									<div key={i} className="flex items-start gap-1.5">
 										<div
 											className={cn(
-												"mt-[2px] w-[10px] h-[10px] rounded-[2px] border shrink-0",
+												"mt-[2px] size-[10px] rounded-[2px] border shrink-0",
 												block.checked
 													? "bg-[#2F81F7] border-[#2F81F7]"
 													: "border-[#3B3B3B] bg-transparent",
@@ -127,7 +127,7 @@ export function NotionPreview({
 											{block.checked && (
 												<svg
 													viewBox="0 0 10 10"
-													className="w-full h-full text-white"
+													className="size-full text-white"
 													aria-label="Checked"
 													role="img"
 												>
@@ -159,7 +159,7 @@ export function NotionPreview({
 							if (block.type === "bullet") {
 								return (
 									<div key={i} className="flex items-start gap-1.5">
-										<div className="mt-[5px] w-[4px] h-[4px] rounded-full bg-[#555] shrink-0" />
+										<div className="mt-[5px] size-[4px] rounded-full bg-[#555] shrink-0" />
 										<p className="text-[11px] text-[#737373] line-clamp-1 leading-[140%]">
 											{block.text}
 										</p>

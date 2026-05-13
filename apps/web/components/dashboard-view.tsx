@@ -1055,7 +1055,7 @@ function MemoryOfDayCard({ data }: { data: MemoryOfDay }) {
 			type="button"
 			onClick={() => router.push(href)}
 			className={cn(
-				"group w-full h-full text-left bg-surface-card/60 backdrop-blur-md rounded-[18px] p-3 flex flex-col justify-between transition-colors cursor-pointer shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
+				"group size-full text-left bg-surface-card/60 backdrop-blur-md rounded-[18px] p-3 flex flex-col justify-between transition-colors cursor-pointer shadow-[0_12px_40px_rgba(0,0,0,0.22)]",
 				dmSansClassName(),
 			)}
 		>
@@ -1355,7 +1355,7 @@ export function DashboardView({
 	return (
 		<div
 			className={cn(
-				"min-h-0 flex-1 overflow-y-auto p-4 pt-2! pb-32 md:p-6 md:pb-36 md:pr-0",
+				"min-h-0 flex-1 overflow-y-auto p-4 pt-2! pb-20 md:p-6 md:pb-36 md:pr-0",
 				dmSansClassName(),
 			)}
 		>
@@ -1531,7 +1531,7 @@ export function DashboardView({
 													onClick={() => onOpenDocument(doc)}
 													className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-surface-hover"
 												>
-													<div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border group-hover:bg-[#182333] transition-colors">
+													<div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border group-hover:bg-[#182333] transition-colors">
 														{isLink ? (
 															<ExternalLink className="size-3 text-fg-subtle" />
 														) : (

@@ -351,7 +351,7 @@ export function ConnectAIModal({
 					{/* Step 1: Client Selection */}
 					<div className="space-y-4">
 						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold bg-accent text-accent-foreground">
+							<div className="size-8 rounded-full flex items-center justify-center text-sm font-semibold bg-accent text-accent-foreground">
 								1
 							</div>
 							<h3 className="text-sm font-medium">Select Your AI Client</h3>
@@ -373,7 +373,7 @@ export function ConnectAIModal({
 									type="button"
 								>
 									<div className="flex items-center gap-1">
-										<div className="w-8 h-8 flex items-center justify-center">
+										<div className="size-8 flex items-center justify-center">
 											<Image
 												alt={clientName}
 												className="rounded object-contain"
@@ -499,7 +499,7 @@ export function ConnectAIModal({
 														href={getCursorDeeplink()}
 														onClick={() => {
 															analytics.mcpInstallCmdCopied()
-															toast.success("Opening Cursor installer...")
+															toast.success("Opening Cursor installer…")
 														}}
 													>
 														<img
@@ -673,7 +673,7 @@ export function ConnectAIModal({
 													</p>
 													{createMcpApiKeyMutation.isPending ? (
 														<div className="flex items-center justify-center p-8">
-															<Loader2 className="h-6 w-6 animate-spin text-primary" />
+															<Loader2 className="size-6 animate-spin text-primary" />
 														</div>
 													) : (
 														<>
@@ -684,7 +684,7 @@ export function ConnectAIModal({
 																	</code>
 																</pre>
 																<Button
-																	className="absolute top-2 right-2 h-8 w-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
+																	className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
 																	onClick={() =>
 																		copyManualSnippet(remoteSnippet)
 																	}
@@ -722,7 +722,7 @@ export function ConnectAIModal({
 														</code>
 													</pre>
 													<Button
-														className="absolute top-2 right-2 h-8 w-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
+														className="absolute top-2 right-2 size-8 cursor-pointer p-0 bg-muted/80 hover:bg-muted"
 														onClick={() => copyManualSnippet(manual.snippet)}
 														size="icon"
 														variant="ghost"
@@ -788,21 +788,21 @@ export function ConnectAIModal({
 							<div className="flex items-center gap-2 text-xs">
 								{isCheckingConnection ? (
 									<>
-										<Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-										<span className="text-muted-foreground">Checking...</span>
+										<Loader2 className="size-3 animate-spin text-muted-foreground" />
+										<span className="text-muted-foreground">Checking…</span>
 									</>
 								) : connectionStatus?.previousLogin ? (
 									<>
-										<div className="w-2 h-2 rounded-full bg-green-500" />
+										<div className="size-2 rounded-full bg-green-500" />
 										<span className="text-green-600 font-medium">
 											Connected
 										</span>
 									</>
 								) : (
 									<>
-										<div className="w-2 h-2 rounded-full bg-yellow-500" />
+										<div className="size-2 rounded-full bg-yellow-500" />
 										<span className="text-yellow-600 font-medium">
-											Waiting for connection...
+											Waiting for connection…
 										</span>
 									</>
 								)}
@@ -828,7 +828,7 @@ export function ConnectAIModal({
 								}
 								variant="outline"
 							>
-								<ExternalLink className="w-2 h-2 mr-2" />
+								<ExternalLink className="size-2 mr-2" />
 								Learn More
 							</Button>
 
@@ -919,8 +919,8 @@ export function ConnectAIModal({
 									>
 										{migrateMCPMutation.isPending ? (
 											<>
-												<Loader2 className="h-4 w-4 animate-spin mr-2" />
-												Migrating...
+												<Loader2 className="size-4 animate-spin mr-2" />
+												Migrating…
 											</>
 										) : (
 											"Migrate"

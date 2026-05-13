@@ -37,7 +37,7 @@ export function TweetContent({
 						className="flex items-center gap-1.5 text-sm text-blue-400 hover:underline mt-4"
 					>
 						View on X
-						<ExternalLinkIcon className="w-3.5 h-3.5" />
+						<ExternalLinkIcon className="size-3.5" />
 					</a>
 				)}
 			</div>
@@ -55,7 +55,7 @@ export function TweetContent({
 					className="flex items-center gap-1.5 text-sm text-blue-400 hover:underline"
 				>
 					View on X
-					<ExternalLinkIcon className="w-3.5 h-3.5" />
+					<ExternalLinkIcon className="size-3.5" />
 				</a>
 			)}
 		</div>
