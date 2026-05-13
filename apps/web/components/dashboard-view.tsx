@@ -397,6 +397,10 @@ function getPluginClientFromDocument(
 }
 
 function getDocumentPreview(document: DocumentWithMemories): string | null {
+	const summary =
+		typeof document.summary === "string" ? compactText(document.summary) : ""
+	if (summary) return summary
+
 	const content = getDocumentText(document)
 	if (!content) return document.title?.trim() || null
 
@@ -859,7 +863,7 @@ function ToolUsageRecentRow({
 					}
 					onOpenPlugins()
 				}}
-				className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-surface-hover"
+				className="group flex w-full items-start gap-3 rounded-lg px-2.5 py-2 text-left transition-all hover:bg-surface-hover hover:py-2.5"
 			>
 				<div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-card ring-1 ring-surface-border group-hover:bg-[#182333] transition-colors">
 					{item.icon ? (
@@ -888,6 +892,11 @@ function ToolUsageRecentRow({
 					<p className="mt-0.5 truncate text-[11px] text-fg-subtle">
 						{item.lastDocumentTitle ?? "No saved memory yet"}
 					</p>
+					{item.lastDocumentPreview ? (
+						<p className="mt-0 max-h-0 overflow-hidden text-[11px] leading-snug text-fg-subtle opacity-0 transition-all duration-200 line-clamp-2 group-hover:mt-1 group-hover:max-h-9 group-hover:opacity-100">
+							{item.lastDocumentPreview}
+						</p>
+					) : null}
 				</div>
 			</button>
 		</li>
@@ -1509,7 +1518,7 @@ export function DashboardView({
 							<div className="flex gap-4">
 								<div className="flex-[4] min-w-0">
 									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Recently saved
+										Recents
 									</p>
 								</div>
 								<div className="flex-[2] min-w-0 hidden sm:block">
@@ -1522,6 +1531,14 @@ export function DashboardView({
 							{/* Content row */}
 							<div className="flex gap-4 items-start">
 								<ul className="flex-[4] min-w-0 space-y-0.5">
+									{recentToolUsageItems.map((item) => (
+										<ToolUsageRecentRow
+											key={item.id}
+											item={item}
+											onOpenPlugins={onOpenPlugins}
+											onOpenToolDocument={onOpenToolDocument}
+										/>
+									))}
 									{recents.map((doc) => {
 										const isLink = !!doc.url
 										return (
@@ -1546,14 +1563,6 @@ export function DashboardView({
 											</li>
 										)
 									})}
-									{recentToolUsageItems.map((item) => (
-										<ToolUsageRecentRow
-											key={item.id}
-											item={item}
-											onOpenPlugins={onOpenPlugins}
-											onOpenToolDocument={onOpenToolDocument}
-										/>
-									))}
 								</ul>
 
 								<div className="flex-[2] min-w-0 hidden sm:block">
