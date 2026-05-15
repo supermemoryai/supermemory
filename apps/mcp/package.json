@@ -6,7 +6,7 @@
   "scripts": {
     "build:ui": "vite build",
     "dev": "portless",
-    "dev:app": "vite build && wrangler dev --port ${PORT:-8788}",
+    "dev:app": "vite build && wrangler dev --port ${PORT:-8788} ${PORTLESS_URL:+--var API_URL:${PORTLESS_URL/mcp./api.} --var MCP_URL:${PORTLESS_URL}}",
     "deploy": "vite build && wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
