@@ -51,12 +51,19 @@ const cards: IntegrationCardDef[] = [
 		id: "plugins",
 		title: "Plugins",
 		description:
-			"Hermes on every plan; Claude Code, OpenCode, OpenClaw, and more with Pro",
+			"Hermes on every plan; Claude Code, Codex, OpenCode, OpenClaw, and more with Pro",
 		icon: (
 			<div className="flex items-center -space-x-1.5">
 				<Image
 					src="/images/plugins/claude-code.svg"
 					alt="Claude Code"
+					width={24}
+					height={24}
+					className="size-6 rounded"
+				/>
+				<Image
+					src="/images/plugins/codex.png"
+					alt="Codex"
 					width={24}
 					height={24}
 					className="size-6 rounded"
