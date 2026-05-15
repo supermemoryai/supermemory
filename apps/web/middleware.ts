@@ -8,7 +8,14 @@ export default async function proxy(request: Request) {
 	console.debug("[PROXY] Path:", url.pathname)
 	console.debug("[PROXY] Method:", request.method)
 
-	const sessionCookie = getSessionCookie(request)
+	const isDevHost =
+		url.hostname === "localhost" ||
+		url.hostname.includes(".localhost") ||
+		url.hostname.includes(".dev.supermemory.ai")
+
+	const sessionCookie = isDevHost
+		? getSessionCookie(request, { cookiePrefix: "better-auth-dev" })
+		: getSessionCookie(request)
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
 	// Always allow access to login and waitlist pages
@@ -71,6 +78,6 @@ export default async function proxy(request: Request) {
 
 export const config = {
 	matcher: [
-		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
+		"/((?!_next/static|_next/image|images|icon.png|manifest.webmanifest|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
 	],
 }

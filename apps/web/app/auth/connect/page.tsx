@@ -101,6 +101,17 @@ const PLUGIN_INFO: Record<string, PluginInfo> = {
 		],
 		icon: "/images/plugins/codex.svg",
 	},
+	codex: {
+		name: "OpenAI Codex",
+		description:
+			"Memory layer for Codex. Keeps coding context, preferences, and decisions available across sessions.",
+		features: [
+			"Auto-recalls relevant context before prompts",
+			"Captures useful coding decisions from sessions",
+			"Supports project and custom memory containers",
+		],
+		icon: "/images/plugins/opencode.svg",
+	},
 }
 
 function getPluginName(client: string): string {

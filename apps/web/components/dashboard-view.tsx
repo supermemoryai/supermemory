@@ -364,22 +364,66 @@ function getDocumentText(document: DocumentWithMemories): string {
 	return typeof document.content === "string" ? document.content : ""
 }
 
+function toMetadataRecord(value: unknown): Record<string, unknown> | null {
+	if (!value) return null
+	if (typeof value === "object" && !Array.isArray(value)) {
+		return value as Record<string, unknown>
+	}
+	if (typeof value !== "string") return null
+
+	try {
+		const parsed = JSON.parse(value)
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+			? (parsed as Record<string, unknown>)
+			: null
+	} catch {
+		return null
+	}
+}
+
+function getDocumentMetadataRecords(
+	document: DocumentWithMemories,
+): Record<string, unknown>[] {
+	const records = [toMetadataRecord(document.metadata)]
+
+	for (const entry of document.memoryEntries ?? []) {
+		records.push(
+			toMetadataRecord(entry.metadata),
+			toMetadataRecord(entry.sourceMetadata),
+		)
+	}
+
+	return records.filter((record): record is Record<string, unknown> => !!record)
+}
+
+function hasClaudeCodeContainer(document: DocumentWithMemories): boolean {
+	const containerTags =
+		(document as { containerTags?: string[] }).containerTags ?? []
+	if (containerTags.some((tag) => tag.startsWith("claudecode_"))) return true
+
+	return (document.memoryEntries ?? []).some((entry) =>
+		entry.spaceContainerTag?.startsWith("claudecode_"),
+	)
+}
+
 function getPluginClientFromDocument(
 	document: DocumentWithMemories,
 ): string | null {
-	const metadata =
-		document.metadata && typeof document.metadata === "object"
-			? document.metadata
-			: {}
-	const metadataClient =
-		typeof metadata.sm_client === "string"
-			? metadata.sm_client
-			: typeof metadata.sm_internal_plugin_client === "string"
-				? metadata.sm_internal_plugin_client
-				: typeof metadata.sm_internal_mcp_client_name === "string"
-					? metadata.sm_internal_mcp_client_name
-					: null
-	if (metadataClient) return metadataClient.toLowerCase()
+	for (const metadata of getDocumentMetadataRecords(document)) {
+		const metadataClient =
+			typeof metadata.sm_client === "string"
+				? metadata.sm_client
+				: typeof metadata.sm_internal_plugin_client === "string"
+					? metadata.sm_internal_plugin_client
+					: typeof metadata.sm_internal_mcp_client_name === "string"
+						? metadata.sm_internal_mcp_client_name
+						: null
+		if (metadataClient) return metadataClient.toLowerCase()
+
+		if (metadata.sm_source === "claude-code-plugin") return "claude_code"
+	}
+
+	if (hasClaudeCodeContainer(document)) return "claude_code"
 
 	const content = getDocumentText(document)
 	const title = document.title ?? ""
@@ -526,16 +570,17 @@ function parseToolUsage(
 	}
 
 	for (const doc of recentMcpDocuments) {
-		const metadata =
-			doc.metadata && typeof doc.metadata === "object" ? doc.metadata : {}
+		const metadataRecords = getDocumentMetadataRecords(doc)
 		const clientName =
-			typeof metadata.sm_internal_mcp_client_name === "string"
-				? metadata.sm_internal_mcp_client_name
-				: null
+			metadataRecords
+				.map((record) => record.sm_internal_mcp_client_name)
+				.find((value): value is string => typeof value === "string") ?? null
 		const pluginClient = getPluginClientFromDocument(doc)
 		const isMcpDocument =
 			doc.source === "mcp" ||
-			metadata.sm_internal_event_from === "mcp" ||
+			metadataRecords.some(
+				(record) => record.sm_internal_event_from === "mcp",
+			) ||
 			!!clientName
 		const isPluginDocument = !!pluginClient && pluginClient !== "mcp"
 
