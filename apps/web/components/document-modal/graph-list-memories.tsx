@@ -2,6 +2,7 @@ import { useState } from "react"
 import { cn } from "@lib/utils"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@ui/components/tabs"
 import { MemoryGraph } from "../memory-graph"
+import { useProject } from "@/stores"
 
 export interface MemoryEntry {
 	id: string
@@ -172,6 +173,7 @@ export function GraphListMemories({
 	memoryEntries: MemoryEntry[]
 	documentId?: string
 }) {
+	const { effectiveContainerTags } = useProject()
 	const [expandedMemories, setExpandedMemories] = useState<Set<string>>(
 		new Set(),
 	)
@@ -263,7 +265,10 @@ export function GraphListMemories({
 				<TabsContent value="graph" className="flex-1 min-h-0 mt-3">
 					<div className="size-full rounded-lg overflow-hidden">
 						<MemoryGraph
+							containerTags={effectiveContainerTags}
 							documentIds={documentId ? [documentId] : undefined}
+							highlightDocumentIds={documentId ? [documentId] : undefined}
+							highlightsVisible
 							variant="consumer"
 							maxNodes={50}
 						/>
