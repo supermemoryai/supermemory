@@ -519,7 +519,6 @@ export function AddDocument({
 								setLocalSelectedProject(projects[0] ?? localSelectedProject)
 							}
 							variant="insideOut"
-							singleSelect
 						/>
 					)}
 					<div

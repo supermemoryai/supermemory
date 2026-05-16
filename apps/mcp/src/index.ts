@@ -8,6 +8,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status"
 type Bindings = {
 	MCP_SERVER: DurableObjectNamespace
 	API_URL?: string
+	MCP_URL?: string
 	POSTHOG_API_KEY?: string
 }
 
@@ -22,6 +23,14 @@ type Props = {
 const app = new Hono<{ Bindings: Bindings }>()
 
 const DEFAULT_API_URL = "https://api.supermemory.ai"
+const DEFAULT_MCP_URL = "https://mcp.supermemory.ai"
+
+const mcpBaseUrl = (c: Context<{ Bindings: Bindings }>) => {
+	if (c.env.MCP_URL) return c.env.MCP_URL.replace(/\/$/, "")
+	const host = c.req.header("x-forwarded-host") || c.req.header("host")
+	const proto = c.req.header("x-forwarded-proto") || "https"
+	return host ? `${proto}://${host}` : DEFAULT_MCP_URL
+}
 
 // CORS
 app.use(
@@ -57,21 +66,18 @@ app.get("/", (c) => {
 })
 
 // MCP clients use this to discover the authorization server
-app.get("/.well-known/oauth-protected-resource", (c) => {
+const protectedResourceHandler = (c: Context<{ Bindings: Bindings }>) => {
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
-
-	const host = c.req.header("x-forwarded-host") || c.req.header("host")
-	const proto = c.req.header("x-forwarded-proto") || "https"
-	const resourceUrl = host ? `${proto}://${host}` : "https://mcp.supermemory.ai"
-
 	return c.json({
-		resource: resourceUrl,
+		resource: `${mcpBaseUrl(c)}/mcp`,
 		authorization_servers: [apiUrl],
 		scopes_supported: ["openid", "profile", "email", "offline_access"],
 		bearer_methods_supported: ["header"],
 		resource_documentation: "https://docs.supermemory.ai/mcp",
 	})
-})
+}
+app.get("/.well-known/oauth-protected-resource", protectedResourceHandler)
+app.get("/.well-known/oauth-protected-resource/mcp", protectedResourceHandler)
 
 // Proxy endpoint for MCP clients that don't follow the spec correctly
 // Some clients look for oauth-authorization-server on the MCP server domain
@@ -116,11 +122,7 @@ const handleMcpRequest = async (c: Context<{ Bindings: Bindings }>) => {
 	const containerTag = c.req.header("x-sm-project")
 	const apiUrl = c.env.API_URL || DEFAULT_API_URL
 
-	const reqHost = c.req.header("x-forwarded-host") || c.req.header("host") || ""
-	const reqProto = c.req.header("x-forwarded-proto") || "https"
-	const resourceMetadataUrl = reqHost
-		? `${reqProto}://${reqHost}/.well-known/oauth-protected-resource`
-		: "/.well-known/oauth-protected-resource"
+	const resourceMetadataUrl = `${mcpBaseUrl(c)}/.well-known/oauth-protected-resource/mcp`
 
 	if (!token) {
 		return new Response("Unauthorized", {

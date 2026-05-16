@@ -159,6 +159,9 @@ export default function NewPage() {
 	const [fullscreenInitialContent, setFullscreenInitialContent] = useState("")
 	const [queuedChatSeed, setQueuedChatSeed] = useState<string | null>(null)
 	const [queuedChatModel, setQueuedChatModel] = useState<ModelId | null>(null)
+	const [queuedHighlightContent, setQueuedHighlightContent] = useState<
+		string | null
+	>(null)
 	const [queuedMessageSource, setQueuedMessageSource] = useState<
 		"highlight" | "home"
 	>("highlight")
@@ -481,8 +484,9 @@ export default function NewPage() {
 	)
 
 	const handleHighlightsChat = useCallback(
-		(seed: string) => {
-			setQueuedChatSeed(seed)
+		(highlightContent: string, userReply: string) => {
+			setQueuedHighlightContent(highlightContent)
+			setQueuedChatSeed(userReply)
 			setQueuedChatModel(null)
 			setQueuedMessageSource("highlight")
 			void setViewMode("chat")
@@ -492,6 +496,7 @@ export default function NewPage() {
 
 	const handleHomeChatStart = useCallback(
 		(message: string, model: ModelId) => {
+			setQueuedHighlightContent(null)
 			setQueuedChatSeed(message)
 			setQueuedChatModel(model)
 			setQueuedMessageSource("home")
@@ -503,6 +508,7 @@ export default function NewPage() {
 	const consumeQueuedChat = useCallback(() => {
 		setQueuedChatSeed(null)
 		setQueuedChatModel(null)
+		setQueuedHighlightContent(null)
 		setQueuedMessageSource("highlight")
 	}, [])
 
@@ -613,6 +619,7 @@ export default function NewPage() {
 												if (!open) void setViewMode("dashboard")
 											}}
 											queuedMessage={queuedChatSeed}
+											queuedHighlightContent={queuedHighlightContent}
 											onConsumeQueuedMessage={consumeQueuedChat}
 											queuedMessageSource={queuedMessageSource}
 											initialSelectedModel={queuedChatModel}

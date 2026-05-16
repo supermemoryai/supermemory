@@ -8,162 +8,19 @@ import { hasActivePlan } from "@lib/queries"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import {
-	BookOpen,
-	Check,
-	ChevronDown,
-	Copy,
-	Loader,
-	X,
-	Zap,
-} from "lucide-react"
+import { BookOpen, Check, ChevronDown, Loader, X, Zap } from "lucide-react"
 import Image from "next/image"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
-
-/** Recessed "inside-out" inset shadow used across Supermemory surfaces. */
-const INSET =
-	"shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
-
-/** Match `FREE_TIER_PLUGIN_IDS` in mono `packages/lib/plugins.ts`. */
-const FREE_TIER_PLUGIN_IDS = ["hermes", "codex"]
-function isFreeTierPlugin(pluginId: string): boolean {
-	return FREE_TIER_PLUGIN_IDS.includes(pluginId)
-}
-
-interface InstallStep {
-	title: string
-	description?: string
-	code?: string
-	copyLabel?: string
-	optional?: boolean
-	/** Blur the code block until hovered/focused (e.g. it contains the key). */
-	secret?: boolean
-}
-
-interface PluginInfo {
-	id: string
-	name: string
-	tagline: string
-	icon: string
-	docsUrl?: string
-	/** Steps shown after a key is minted. The literal `sm_...` is replaced
-	 *  with the freshly generated key when rendered. */
-	installSteps?: InstallStep[]
-}
-
-const PLUGIN_CATALOG: Record<string, PluginInfo> = {
-	claude_code: {
-		id: "claude_code",
-		name: "Claude Code",
-		tagline: "Remembers your conventions, decisions, and project context",
-		icon: "/images/plugins/claude-code.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/claude-code",
-		installSteps: [
-			{
-				title: "Save your API key",
-				description:
-					"Add this to your shell profile so Claude Code can authenticate. This key is shown only once — save it now.",
-				code: 'export SUPERMEMORY_CC_API_KEY="sm_..."',
-				copyLabel: "API key",
-				secret: true,
-			},
-			{
-				title: "Install the plugin",
-				description: "Run these commands inside a Claude Code session:",
-				code: "/plugin marketplace add supermemoryai/claude-supermemory\n/plugin install claude-supermemory",
-			},
-		],
-	},
-	codex: {
-		id: "codex",
-		name: "Codex",
-		tagline: "Persistent memory for the Codex CLI — free on every plan",
-		icon: "/images/plugins/codex.png",
-		docsUrl: "https://docs.supermemory.ai/integrations/codex",
-		installSteps: [
-			{
-				title: "Save your API key",
-				description:
-					"Add this to your shell profile. This key is shown only once — save it now.",
-				code: 'export SUPERMEMORY_CODEX_API_KEY="sm_..."',
-				copyLabel: "API key",
-				secret: true,
-			},
-			{
-				title: "Install the hooks",
-				description: "Run this to wire Supermemory into Codex CLI:",
-				code: "npx codex-supermemory@latest install",
-			},
-		],
-	},
-	opencode: {
-		id: "opencode",
-		name: "OpenCode",
-		tagline: "Long-term memory for your OpenCode sessions",
-		icon: "/images/plugins/opencode.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/opencode",
-		installSteps: [
-			{
-				title: "Save your API key",
-				description:
-					"Add this to your shell profile. This key is shown only once — save it now.",
-				code: 'export SUPERMEMORY_API_KEY="sm_..."',
-				copyLabel: "API key",
-				secret: true,
-			},
-			{
-				title: "Install the plugin",
-				description: "Use --no-tui for non-interactive environments.",
-				code: "bunx opencode-supermemory@latest install",
-			},
-			{
-				title: "Verify your config",
-				description:
-					"Ensure ~/.config/opencode/opencode.jsonc includes the plugin:",
-				code: '{\n  "plugin": ["opencode-supermemory"]\n}',
-				optional: true,
-			},
-		],
-	},
-	openclaw: {
-		id: "openclaw",
-		name: "OpenClaw",
-		tagline: "Cross-platform memory across Telegram, Discord, Slack",
-		icon: "/images/plugins/openclaw.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/openclaw",
-		installSteps: [
-			{
-				title: "Install the plugin",
-				description: "Run this in your OpenClaw project:",
-				code: "openclaw plugins install @supermemory/openclaw-supermemory",
-			},
-			{
-				title: "Configure Supermemory",
-				description:
-					"Run the setup command and paste your API key when prompted:",
-				code: "openclaw supermemory setup",
-			},
-		],
-	},
-	hermes: {
-		id: "hermes",
-		name: "Hermes",
-		tagline: "Persistent memory for the Hermes agent — free on every plan",
-		icon: "/images/plugins/hermes.svg",
-		docsUrl: "https://docs.supermemory.ai/integrations/hermes",
-		installSteps: [
-			{
-				title: "Run Hermes memory setup",
-				description:
-					"On the machine where Hermes is deployed, start the memory wizard, choose Supermemory as the provider, and paste your API key when prompted:",
-				code: "hermes memory setup",
-			},
-		],
-	},
-}
+import {
+	PLUGIN_CATALOG,
+	isFreeTierPlugin,
+	type InstallStep,
+	type PluginInfo,
+} from "@/lib/plugin-catalog"
+import { INSET, InstallSteps, PillButton } from "./install-steps"
 
 interface ConnectedPlugin {
 	id: string
@@ -222,46 +79,20 @@ function ProChip() {
 	)
 }
 
-function PillButton({
-	children,
-	onClick,
-	disabled,
-}: {
-	children: ReactNode
-	onClick?: () => void
-	disabled?: boolean
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={disabled}
-			className={cn(
-				dmSans125ClassName(),
-				"relative flex h-9 min-w-[116px] shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-5",
-				"text-[14px] font-medium text-[#FAFAFA]",
-				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
-				"cursor-pointer transition-opacity hover:opacity-80",
-				"disabled:cursor-not-allowed disabled:opacity-50",
-			)}
-		>
-			{children}
-		</button>
-	)
-}
-
 function DocsLink({ href }: { href: string }) {
 	return (
 		<a
+			aria-label="Open plugin docs"
 			href={href}
 			target="_blank"
 			rel="noopener noreferrer"
 			className={cn(
 				dmSans125ClassName(),
-				"flex shrink-0 items-center gap-1 text-[12px] text-[#A1A1AA] transition-colors hover:text-white",
+				"flex size-8 shrink-0 items-center justify-center gap-1 rounded-full text-[12px] text-[#A1A1AA] transition-colors hover:text-white sm:h-auto sm:w-auto sm:justify-start sm:rounded-none",
 			)}
 		>
-			<BookOpen className="size-3.5" /> Docs
+			<BookOpen className="size-3.5" />{" "}
+			<span className="hidden sm:inline">Docs</span>
 		</a>
 	)
 }
@@ -304,7 +135,7 @@ function ConnectedPill({
 					type="button"
 					className={cn(
 						dmSans125ClassName(),
-						"flex h-9 min-w-[116px] shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#0D121A] px-4 text-[13px] font-medium text-[#00AC3F]",
+						"flex h-8 min-w-[104px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#0D121A] px-3 text-[12px] font-medium text-[#00AC3F] sm:h-9 sm:min-w-[116px] sm:gap-2 sm:px-4 sm:text-[13px]",
 						"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80",
 					)}
 				>
@@ -376,21 +207,21 @@ function PluginRow({
 }) {
 	const isConnected = connectedKeys.length > 0
 	return (
-		<div className="flex items-center gap-3.5 border-b border-white/[0.06] py-4 last:border-b-0">
+		<div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2.5 border-b border-white/[0.06] py-4 last:border-b-0 sm:flex sm:items-center sm:gap-3.5">
 			<PluginIconBox
 				src={plugin.icon}
 				alt={plugin.name}
 				dimmed={needsProUpgrade && !isConnected}
 			/>
 			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
+				<div className="flex min-w-0 items-center gap-2">
 					{isConnected && (
 						<span className="size-1.5 shrink-0 rounded-full bg-[#00AC3F]" />
 					)}
 					<span
 						className={cn(
 							dmSans125ClassName(),
-							"truncate text-[14px] font-medium text-[#FAFAFA]",
+							"min-w-0 truncate text-[14px] font-medium text-[#FAFAFA]",
 						)}
 					>
 						{plugin.name}
@@ -400,13 +231,13 @@ function PluginRow({
 				<p
 					className={cn(
 						dmSans125ClassName(),
-						"mt-0.5 truncate text-[13px] text-[#A1A1AA]",
+						"mt-0.5 line-clamp-2 text-[12px] leading-snug text-[#A1A1AA] sm:truncate sm:text-[13px]",
 					)}
 				>
 					{plugin.tagline}
 				</p>
 			</div>
-			<div className="flex shrink-0 items-center gap-4">
+			<div className="col-start-2 flex min-w-0 shrink-0 items-center gap-2 sm:col-start-auto sm:gap-4">
 				{plugin.docsUrl && <DocsLink href={plugin.docsUrl} />}
 				{isConnected ? (
 					<ConnectedPill connectedKeys={connectedKeys} onRevoke={onRevoke} />
@@ -467,132 +298,6 @@ function TierFilterToggle({
 				</button>
 			))}
 		</div>
-	)
-}
-
-function CopyButton({ text, label }: { text: string; label?: string }) {
-	const [copied, setCopied] = useState(false)
-	return (
-		<button
-			type="button"
-			aria-label={`Copy ${label ?? "to clipboard"}`}
-			onClick={async () => {
-				try {
-					await navigator.clipboard.writeText(text)
-					setCopied(true)
-					setTimeout(() => setCopied(false), 2000)
-					toast.success(label ? `${label} copied!` : "Copied!")
-				} catch {
-					toast.error("Failed to copy")
-				}
-			}}
-			className={cn(
-				"flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80",
-				INSET,
-			)}
-		>
-			{copied ? (
-				<Check className="size-3.5 text-[#4BA0FA]" />
-			) : (
-				<Copy className="size-3.5 text-[#737373]" />
-			)}
-		</button>
-	)
-}
-
-function CodeBlock({
-	code,
-	copyLabel = "Command",
-	secret,
-}: {
-	code: string
-	copyLabel?: string
-	secret?: boolean
-}) {
-	return (
-		<div className="group flex min-w-0 items-center gap-2 rounded-[10px] border border-white/[0.07] bg-[#0B0E13] px-3 py-2.5">
-			<pre
-				className={cn(
-					"scrollbar-none min-w-0 flex-1 overflow-x-auto whitespace-pre font-mono text-[12px] leading-[1.6] text-[#E4E4E7] transition-[filter] duration-150",
-					secret &&
-						"select-none blur-[5px] group-focus-within:select-text group-focus-within:blur-none group-hover:select-text group-hover:blur-none",
-				)}
-			>
-				{code}
-			</pre>
-			<CopyButton text={code} label={copyLabel} />
-		</div>
-	)
-}
-
-function InstallSteps({
-	steps,
-	apiKey,
-}: {
-	steps: InstallStep[]
-	apiKey: string
-}) {
-	return (
-		<ol className="flex min-w-0 flex-col gap-4">
-			{steps.map((step, i) => (
-				<li key={step.title} className="flex min-w-0 gap-3">
-					<div className="flex flex-col items-center gap-1.5">
-						<span
-							className={cn(
-								"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
-								INSET,
-							)}
-						>
-							{i + 1}
-						</span>
-						{i < steps.length - 1 && (
-							<span className="w-px flex-1 bg-white/[0.14]" />
-						)}
-					</div>
-					<div className="min-w-0 flex-1 space-y-2 pb-1">
-						<div className="space-y-0.5">
-							<div className="flex items-center gap-2">
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[13px] font-medium text-[#FAFAFA]",
-									)}
-								>
-									{step.title}
-								</p>
-								{step.optional && (
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"shrink-0 rounded-[4px] bg-white/[0.08] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#A1A1AA]",
-										)}
-									>
-										Optional
-									</span>
-								)}
-							</div>
-							{step.description && (
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[12px] leading-relaxed text-[#A1A1AA]",
-									)}
-								>
-									{step.description}
-								</p>
-							)}
-						</div>
-						{step.code && (
-							<CodeBlock
-								code={apiKey ? step.code.replace("sm_...", apiKey) : step.code}
-								copyLabel={step.copyLabel}
-								secret={step.secret}
-							/>
-						)}
-					</div>
-				</li>
-			))}
-		</ol>
 	)
 }
 
@@ -782,7 +487,7 @@ export function PluginsDetail() {
 		<>
 			<div
 				className={cn(
-					"relative overflow-hidden rounded-[14px] bg-[#14161A] p-6",
+					"relative overflow-hidden rounded-[14px] bg-[#14161A] p-4 sm:p-6",
 					"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 				)}
 			>

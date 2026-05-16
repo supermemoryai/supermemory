@@ -1087,7 +1087,7 @@ export function DashboardView({
 	onNavigateToGraph: () => void
 	onOpenDocument: (document: DocumentWithMemories) => void
 	onOpenToolDocument: (document: DocumentWithMemories) => void
-	onHighlightsChat: (seed: string) => void
+	onHighlightsChat: (highlightContent: string, userReply: string) => void
 	onHighlightsShowRelated: (query: string) => void
 	onResetHighlights: () => void
 	memoryOfDay: MemoryOfDay | null

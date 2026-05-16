@@ -19,6 +19,11 @@ import { WebsitePreview } from "./document-cards/website-preview"
 import { GoogleDocsPreview } from "./document-cards/google-docs-preview"
 import { FilePreview } from "./document-cards/file-preview"
 import { NotePreview } from "./document-cards/note-preview"
+import {
+	claudeCodeTokenBadge,
+	parsePluginDocument,
+	type ParsedPluginDocument,
+} from "@/lib/plugin-document"
 import { YoutubePreview } from "./document-cards/youtube-preview"
 import { getAbsoluteUrl, isYouTubeUrl, useYouTubeChannelName } from "./utils"
 import { SyncLogoIcon } from "@ui/assets/icons"
@@ -199,7 +204,7 @@ interface QuickNoteProps {
 
 interface HighlightsProps {
 	items: HighlightItem[]
-	onChat: (seed: string) => void
+	onChat: (highlightContent: string, userReply: string) => void
 	onShowRelated: (query: string) => void
 	isLoading: boolean
 }
@@ -923,6 +928,10 @@ const DocumentCard = memo(
 	}) => {
 		const canSelect =
 			!isTemporaryId(document.id) && !isTemporaryId(document.customId)
+		const pluginDocument = useMemo(
+			() => parsePluginDocument(document),
+			[document],
+		)
 		const [rotation, setRotation] = useState({ rotateX: 0, rotateY: 0 })
 		const cardRef = useRef<HTMLButtonElement>(null)
 		const [ogData, setOgData] = useState<OgData | null>(null)
@@ -1054,7 +1063,11 @@ const DocumentCard = memo(
 					{isSelectionMode && isSelected && (
 						<div className="absolute inset-0 bg-[rgba(75,160,250,0.25)] rounded-[22px] z-1 pointer-events-none" />
 					)}
-					<ContentPreview document={document} ogData={ogData} />
+					<ContentPreview
+						document={document}
+						ogData={ogData}
+						parsed={pluginDocument}
+					/>
 					{!(
 						document.type === "image" ||
 						document.type === "notion_doc" ||
@@ -1129,11 +1142,20 @@ const DocumentCard = memo(
 										"text-[11px] text-[#737373] line-clamp-1",
 									)}
 								>
-									{new Date(document.createdAt).toLocaleDateString("en-US", {
-										month: "short",
-										day: "numeric",
-										year: "numeric",
-									})}
+									{(() => {
+										const badge =
+											pluginDocument?.kind === "claude-code-doc"
+												? claudeCodeTokenBadge(document)
+												: null
+										const date = new Date(
+											document.createdAt,
+										).toLocaleDateString("en-US", {
+											month: "short",
+											day: "numeric",
+											year: "numeric",
+										})
+										return badge ? `${badge} · ${date}` : date
+									})()}
 								</p>
 							</div>
 						</div>
@@ -1149,9 +1171,11 @@ DocumentCard.displayName = "DocumentCard"
 function ContentPreview({
 	document,
 	ogData,
+	parsed,
 }: {
 	document: DocumentWithMemories
 	ogData?: OgData | null
+	parsed?: ParsedPluginDocument | null
 }) {
 	if (
 		document.url?.includes("https://docs.googleapis.com/v1/documents") ||
@@ -1175,11 +1199,11 @@ function ContentPreview({
 		document.url?.includes("x.com/") ||
 		document.url?.includes("twitter.com/")
 	) {
-		return <NotePreview document={document} />
+		return <NotePreview document={document} parsed={parsed} />
 	}
 
 	if (document.source === "mcp") {
-		return <McpPreview document={document} />
+		return <McpPreview document={document} parsed={parsed} />
 	}
 
 	if (isYouTubeUrl(document.url)) {
@@ -1204,5 +1228,5 @@ function ContentPreview({
 	}
 
 	// Default to Note
-	return <NotePreview document={document} />
+	return <NotePreview document={document} parsed={parsed} />
 }

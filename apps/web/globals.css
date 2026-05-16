@@ -14,7 +14,15 @@
 	--color-surface-base: #0b1119;
 	--color-surface-card: #101822;
 	--color-surface-hover: #131b28;
+	--color-surface-skeleton: #1a2030;
 	--color-surface-border: #263348;
+
+	--color-pill-bg: #0d121a;
+	--color-pill-bg-active: #00173c;
+	--color-pill-border: #161f2c;
+	--color-pill-border-active: #2261ca33;
+
+	--color-brand-accent: #4ba0fa;
 
 	--animate-file-upload-grow: file-upload-grow 6s cubic-bezier(0.22, 1, 0.36, 1)
 		forwards;

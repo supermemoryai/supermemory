@@ -12,6 +12,8 @@ import { WebPageContent } from "./web-page"
 import { TextEditorContent } from "./text-editor-content"
 import { GoogleDocViewer } from "./google-doc"
 import type { TextEditorProps } from "./text-editor-content"
+import type { ParsedPluginDocument } from "@/lib/plugin-document"
+import { PluginContent } from "./plugin-content"
 
 export type { TextEditorProps }
 
@@ -33,6 +35,7 @@ type DocumentWithMemories = DocumentsResponse["documents"][0]
 interface DocumentContentProps {
 	document: DocumentWithMemories | null
 	textEditorProps: TextEditorProps
+	pluginDocument?: ParsedPluginDocument | null
 }
 
 type ContentType =
@@ -73,10 +76,15 @@ function getContentType(document: DocumentWithMemories | null): ContentType {
 export function DocumentContent({
 	document,
 	textEditorProps,
+	pluginDocument,
 }: DocumentContentProps) {
 	const contentType = getContentType(document)
 
-	if (!document || !contentType) return null
+	if (!document) return null
+	if (pluginDocument) {
+		return <PluginContent parsed={pluginDocument} />
+	}
+	if (!contentType) return null
 
 	switch (contentType) {
 		case "image":

@@ -1,10 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
+import Image from "next/image"
+import { useQuery } from "@tanstack/react-query"
 import { cn } from "@lib/utils"
+import { $fetch } from "@lib/api"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
-import { ChevronDown, Plus, Trash2, XIcon, Loader2, Layers } from "lucide-react"
+import { XIcon, Loader2 } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
 import { AddSpaceModal } from "./add-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
@@ -12,13 +15,6 @@ import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { motion } from "motion/react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@ui/components/dropdown-menu"
 import {
 	Dialog,
 	DialogContent,
@@ -33,50 +29,79 @@ import {
 	SelectValue,
 } from "@repo/ui/components/select"
 import { Button } from "@repo/ui/components/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 import { analytics } from "@/lib/analytics"
 import {
 	compareSpacesUserFirst,
 	spaceSelectorDisplayName,
 } from "@/lib/ingest-auto-space"
+import { detectPluginSpace, pluginInitial } from "@/lib/plugin-space"
+import { usePluginSpaceMeta } from "@/hooks/use-plugin-space-meta"
 
 export interface SpaceSelectorProps {
 	selectedProjects: string[]
 	onValueChange: (containerTags: string[]) => void
 	variant?: "default" | "insideOut"
-	showChevron?: boolean
 	triggerClassName?: string
-	contentClassName?: string
 	showNewSpace?: boolean
 	enableDelete?: boolean
 	compact?: boolean
-	singleSelect?: boolean
 }
 
 const triggerVariants = {
 	default:
 		"h-10 min-h-10 shrink-0 rounded-full border border-[#161F2C] bg-muted px-3 gap-2 " +
-		"hover:bg-white/5 " +
-		"data-[state=open]:border-[#2261CA33] data-[state=open]:bg-[#00173C]/35 " +
+		"hover:bg-white/5 hover:border-[#2261CA33] " +
 		"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2261CA33]/35",
 	insideOut:
 		"h-10 min-h-10 gap-2 px-3 rounded-full bg-[#0D121A] shadow-inside-out hover:bg-[#121820]",
+}
+
+const RECENTS_KEY = "nova:space-selector:recents"
+const RECENTS_MAX = 10
+
+function readRecents(): string[] {
+	if (typeof window === "undefined") return []
+	try {
+		const raw = window.localStorage.getItem(RECENTS_KEY)
+		if (!raw) return []
+		const parsed = JSON.parse(raw)
+		return Array.isArray(parsed)
+			? parsed.filter((x) => typeof x === "string")
+			: []
+	} catch {
+		return []
+	}
+}
+
+function writeRecents(tags: string[]) {
+	if (typeof window === "undefined") return
+	try {
+		window.localStorage.setItem(RECENTS_KEY, JSON.stringify(tags))
+	} catch {
+		// ignore
+	}
+}
+
+function formatCount(n: number): string {
+	if (n < 1000) return String(n)
+	if (n < 10_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`
+	if (n < 1_000_000) return `${Math.floor(n / 1000)}k`
+	return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`
 }
 
 export function SpaceSelector({
 	selectedProjects,
 	onValueChange,
 	variant = "default",
-	showChevron = false,
 	triggerClassName,
-	contentClassName,
 	showNewSpace = true,
 	enableDelete = false,
 	compact = false,
-	singleSelect = false,
 }: SpaceSelectorProps) {
-	const [isOpen, setIsOpen] = useState(false)
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 	const [showSelectSpacesModal, setShowSelectSpacesModal] = useState(false)
+	const [recents, setRecents] = useState<string[]>([])
 	const [deleteDialog, setDeleteDialog] = useState<{
 		open: boolean
 		project: { id: string; name: string; containerTag: string } | null
@@ -90,90 +115,114 @@ export function SpaceSelector({
 	})
 
 	const { deleteProjectMutation } = useProjectMutations()
-
 	const { allProjects, isLoading } = useContainerTags()
 
-	const sortedOtherSpaces = useMemo(
+	useEffect(() => {
+		setRecents(readRecents())
+	}, [])
+
+	const activeTag = selectedProjects[0] ?? DEFAULT_PROJECT_ID
+	const { data: spaceCountData } = useQuery({
+		queryKey: ["space-selector-count", activeTag],
+		queryFn: async (): Promise<number> => {
+			const response = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 1,
+					sort: "createdAt",
+					order: "desc",
+					containerTags: [activeTag],
+				},
+				disableValidation: true,
+			})
+			if (response.error) return 0
+			const data = response.data as {
+				pagination?: { totalItems?: number }
+			} | null
+			return data?.pagination?.totalItems ?? 0
+		},
+		staleTime: 30 * 1000,
+		enabled: !!activeTag,
+	})
+
+	const pluginTags = useMemo(
 		() =>
 			allProjects
 				.filter(
-					(p: ContainerTagListType) => p.containerTag !== DEFAULT_PROJECT_ID,
+					(p: ContainerTagListType) => !!detectPluginSpace(p.containerTag),
 				)
-				.sort(compareSpacesUserFirst),
+				.map((p: ContainerTagListType) => p.containerTag),
 		[allProjects],
 	)
+	const pluginMetaMap = usePluginSpaceMeta(pluginTags)
 
-	const displayInfo = useMemo(() => {
-		if (selectedProjects.length === 1) {
-			const containerTag = selectedProjects[0] ?? ""
-			if (containerTag === DEFAULT_PROJECT_ID) {
-				return { name: "My Space", emoji: "📁", isMultiple: false }
-			}
-			const found = allProjects.find(
-				(p: ContainerTagListType) => p.containerTag === containerTag,
-			)
-			return {
-				name: spaceSelectorDisplayName(found, containerTag),
-				emoji: found?.emoji || "📁",
-				isMultiple: false,
-			}
+	const displayInfo = useMemo<{
+		name: string
+		emoji: string | null
+		plugin: ReturnType<typeof detectPluginSpace>
+	}>(() => {
+		const containerTag = selectedProjects[0] ?? ""
+		if (!containerTag || containerTag === DEFAULT_PROJECT_ID) {
+			return { name: "My Space", emoji: "📁", plugin: null }
 		}
-
-		if (selectedProjects.length > 1) {
-			return {
-				name: `${selectedProjects.length} spaces`,
-				emoji: null,
-				isMultiple: true,
-			}
+		const found = allProjects.find(
+			(p: ContainerTagListType) => p.containerTag === containerTag,
+		)
+		const plugin = detectPluginSpace(containerTag)
+		const projectName = pluginMetaMap.get(containerTag)?.projectName
+		const idForLabel = projectName || plugin?.projectId
+		return {
+			name: plugin
+				? idForLabel
+					? `${plugin.label} · ${idForLabel}`
+					: plugin.label
+				: spaceSelectorDisplayName(found, containerTag),
+			emoji: found?.emoji || "📁",
+			plugin,
 		}
+	}, [allProjects, selectedProjects, pluginMetaMap])
 
-		return { name: "My Space", emoji: "📁", isMultiple: false }
-	}, [allProjects, selectedProjects])
-
-	const handleSelectSingleSpace = (containerTag: string) => {
-		analytics.spaceSwitched({ space_id: containerTag })
-		onValueChange([containerTag])
-		setIsOpen(false)
-	}
-
-	const handleOpenSelectSpaces = () => {
-		setIsOpen(false)
-		setShowSelectSpacesModal(true)
-	}
-
-	const handleSelectSpacesApply = (selected: string[]) => {
-		if (selected.length > 0) {
-			analytics.spaceSwitched({
-				space_id:
-					selected.length === 1 ? (selected[0] ?? "unknown") : "multiple",
-			})
-		}
-		onValueChange(selected)
-		setShowSelectSpacesModal(false)
-	}
-
-	const handleNewSpace = () => {
-		setIsOpen(false)
-		setShowCreateDialog(true)
-	}
-
-	const handleDeleteClick = (
-		e: React.MouseEvent,
-		project: { id: string; name: string; containerTag: string },
-	) => {
-		e.stopPropagation()
-		e.preventDefault()
-		setDeleteDialog({
-			open: true,
-			project,
-			action: "move",
-			targetProjectId: "",
+	const pushRecent = useCallback((tag: string) => {
+		setRecents((prev) => {
+			const next = [tag, ...prev.filter((t) => t !== tag)].slice(0, RECENTS_MAX)
+			writeRecents(next)
+			return next
 		})
-	}
+	}, [])
+
+	const handleSelectSpacesApply = useCallback(
+		(selected: string[]) => {
+			const next = selected.slice(0, 1)
+			if (next[0]) {
+				analytics.spaceSwitched({ space_id: next[0] })
+				pushRecent(next[0])
+			}
+			onValueChange(next)
+			setShowSelectSpacesModal(false)
+		},
+		[onValueChange, pushRecent],
+	)
+
+	const handleNewSpace = useCallback(() => {
+		setShowSelectSpacesModal(false)
+		setShowCreateDialog(true)
+	}, [])
+
+	const handleDeleteRequest = useCallback(
+		(project: { id: string; name: string; containerTag: string }) => {
+			setShowSelectSpacesModal(false)
+			setDeleteDialog({
+				open: true,
+				project,
+				action: "move",
+				targetProjectId: "",
+			})
+		},
+		[],
+	)
 
 	const handleDeleteConfirm = () => {
 		if (!deleteDialog.project) return
-
 		deleteProjectMutation.mutate(
 			{
 				projectId: deleteDialog.project.id,
@@ -191,7 +240,6 @@ export function SpaceSelector({
 						action: "move",
 						targetProjectId: "",
 					})
-					setIsOpen(false)
 				},
 			},
 		)
@@ -212,36 +260,31 @@ export function SpaceSelector({
 				p.id !== deleteDialog.project?.id &&
 				p.containerTag !== deleteDialog.project?.containerTag,
 		)
-
 		const defaultProject = allProjects.find(
 			(p: ContainerTagListType) => p.containerTag === DEFAULT_PROJECT_ID,
 		)
-
 		const isDefaultProjectBeingDeleted =
 			deleteDialog.project?.containerTag === DEFAULT_PROJECT_ID
-
 		if (defaultProject && !isDefaultProjectBeingDeleted) {
 			const defaultProjectIncluded = filtered.some(
 				(p: ContainerTagListType) => p.containerTag === DEFAULT_PROJECT_ID,
 			)
-			if (!defaultProjectIncluded) {
-				return [defaultProject, ...filtered]
-			}
+			if (!defaultProjectIncluded) return [defaultProject, ...filtered]
 		}
-
-		return filtered
+		return filtered.sort(compareSpacesUserFirst)
 	}, [allProjects, deleteDialog.project])
 
 	return (
 		<>
-			<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-				<DropdownMenuTrigger asChild>
+			<Tooltip>
+				<TooltipTrigger asChild>
 					<button
 						type="button"
+						onClick={() => setShowSelectSpacesModal(true)}
 						aria-label={
 							isLoading
 								? "Loading spaces"
-								: `Space: ${displayInfo.name}. Open menu to switch.`
+								: `Space: ${displayInfo.name}. Open selector.`
 						}
 						className={cn(
 							"flex min-w-0 max-w-full items-center cursor-pointer transition-colors",
@@ -251,15 +294,30 @@ export function SpaceSelector({
 							triggerClassName,
 						)}
 					>
-						{displayInfo.isMultiple ? (
-							<Layers
-								className={cn(
-									"shrink-0",
-									variant === "insideOut" ? "text-white" : "text-[#737373]",
-									compact ? "size-3.5" : "size-4",
-								)}
-								aria-hidden
-							/>
+						{displayInfo.plugin ? (
+							displayInfo.plugin.iconSrc ? (
+								<Image
+									src={displayInfo.plugin.iconSrc}
+									alt=""
+									width={16}
+									height={16}
+									className={cn(
+										"shrink-0 rounded-[3px]",
+										compact ? "size-3.5" : "size-4",
+									)}
+									aria-hidden
+								/>
+							) : (
+								<span
+									className={cn(
+										"shrink-0 flex items-center justify-center rounded-[3px] bg-[#1E232B] text-[#FAFAFA] text-[10px] font-semibold uppercase",
+										compact ? "size-3.5" : "size-4",
+									)}
+									aria-hidden
+								>
+									{pluginInitial(displayInfo.plugin.label)}
+								</span>
+							)
 						) : (
 							<span
 								className="shrink-0 text-sm font-bold tracking-[-0.98px]"
@@ -279,147 +337,30 @@ export function SpaceSelector({
 								{isLoading ? "…" : displayInfo.name}
 							</span>
 						)}
+						{!compact && spaceCountData !== undefined && spaceCountData > 0 && (
+							<span className="shrink-0 text-[11px] text-[#737373] tabular-nums">
+								· {formatCount(spaceCountData)}
+							</span>
+						)}
 						{compact && (
 							<span className="sr-only">
 								{isLoading ? "Loading" : displayInfo.name}
 							</span>
 						)}
-						{showChevron && (
-							<ChevronDown
-								className={cn(
-									"shrink-0 opacity-90",
-									variant === "insideOut" ? "text-white/80" : "text-[#737373]",
-									compact ? "size-3.5" : "size-4",
-								)}
-								aria-hidden
-							/>
-						)}
 					</button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					align={compact ? "end" : "start"}
-					alignOffset={0}
-					sideOffset={compact ? 8 : 4}
-					collisionPadding={compact ? 16 : 8}
-					className={cn(
-						"min-w-[200px] overflow-hidden p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
-						compact
-							? "w-[min(calc(100vw-3rem),18rem)]"
-							: "max-w-[min(calc(100vw-2rem),20rem)]",
-						dmSansClassName(),
-						contentClassName,
-					)}
-					style={{
-						background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
-					}}
-				>
-					<div className="flex min-w-0 max-w-full flex-col gap-2">
-						<div className="shrink-0 px-3 py-1">
-							<span className="text-[10px] uppercase tracking-wider text-[#737373] font-medium">
-								My Spaces
-							</span>
-						</div>
-
-						<div
-							className={cn(
-								"flex min-h-0 max-h-[min(40vh,18rem)] min-w-0 flex-col overflow-y-auto overflow-x-hidden overscroll-contain",
-								"scrollbar-thin pr-0.5",
-							)}
-						>
-							<DropdownMenuItem
-								onClick={() => handleSelectSingleSpace(DEFAULT_PROJECT_ID)}
-								className={cn(
-									"flex min-w-0 max-w-full items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium",
-									selectedProjects.length === 1 &&
-										selectedProjects[0] === DEFAULT_PROJECT_ID
-										? "bg-[#293952]/40"
-										: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
-								)}
-							>
-								<span className="font-bold tracking-[-0.98px]">📁</span>
-								<span className="min-w-0 flex-1 truncate">My Space</span>
-							</DropdownMenuItem>
-
-							{sortedOtherSpaces.map((project: ContainerTagListType) => (
-								<DropdownMenuItem
-									key={project.id}
-									onClick={() => handleSelectSingleSpace(project.containerTag)}
-									className={cn(
-										"flex min-w-0 max-w-full items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer text-white text-sm font-medium group",
-										selectedProjects.length === 1 &&
-											selectedProjects[0] === project.containerTag
-											? "bg-[#293952]/40"
-											: "opacity-60 hover:opacity-100 hover:bg-[#293952]/40",
-									)}
-								>
-									<span className="shrink-0 font-bold tracking-[-0.98px]">
-										{project.emoji || "📁"}
-									</span>
-									<span
-										className="min-w-0 flex-1 truncate"
-										title={project.name ?? project.containerTag}
-									>
-										{spaceSelectorDisplayName(project, project.containerTag)}
-									</span>
-									{enableDelete && (
-										<button
-											type="button"
-											onClick={(e) =>
-												handleDeleteClick(e, {
-													id: project.id,
-													name: project.name,
-													containerTag: project.containerTag,
-												})
-											}
-											className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-red-500/20"
-										>
-											<Trash2 className="size-3.5 text-red-500" />
-										</button>
-									)}
-								</DropdownMenuItem>
-							))}
-						</div>
-
-						<DropdownMenuSeparator className="shrink-0 bg-[#2E3033]" />
-
-						<button
-							type="button"
-							onClick={handleOpenSelectSpaces}
-							className={cn(
-								"flex min-w-0 w-full max-w-full shrink-0 items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors",
-							)}
-							style={{
-								background: "linear-gradient(180deg, #0D121A 0%, #000000 100%)",
-							}}
-						>
-							<Layers className="size-4" />
-							<span>Select Space{!singleSelect && "s"}</span>
-						</button>
-
-						{showNewSpace && (
-							<button
-								type="button"
-								onClick={handleNewSpace}
-								className={cn(
-									"flex min-w-0 w-full max-w-full shrink-0 items-center justify-center gap-2 px-3 py-2 rounded-md cursor-pointer text-white text-sm font-medium border border-[#161F2C] hover:bg-[#0D121A]/80 transition-colors",
-								)}
-								style={{
-									background:
-										"linear-gradient(180deg, #0D121A 0%, #000000 100%)",
-								}}
-							>
-								<Plus className="size-4" />
-								<span>New Space</span>
-							</button>
-						)}
-					</div>
-				</DropdownMenuContent>
-			</DropdownMenu>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" className={dmSansClassName()}>
+					Switch space
+				</TooltipContent>
+			</Tooltip>
 
 			<AddSpaceModal
 				isOpen={showCreateDialog}
 				onClose={() => setShowCreateDialog(false)}
-				onCreated={(containerTag) => onValueChange([containerTag])}
+				onCreated={(containerTag) => {
+					pushRecent(containerTag)
+					onValueChange([containerTag])
+				}}
 			/>
 
 			<SelectSpacesModal
@@ -428,7 +369,11 @@ export function SpaceSelector({
 				selectedProjects={selectedProjects}
 				onApply={handleSelectSpacesApply}
 				projects={allProjects}
-				singleSelect={singleSelect}
+				recents={recents}
+				showNewSpace={showNewSpace}
+				onNewSpace={handleNewSpace}
+				enableDelete={enableDelete}
+				onDeleteRequest={handleDeleteRequest}
 			/>
 
 			<Dialog
@@ -456,10 +401,7 @@ export function SpaceSelector({
 					showCloseButton={false}
 				>
 					<div className="flex flex-col gap-4">
-						<div
-							id="delete-dialog-header"
-							className="flex justify-between items-start gap-4"
-						>
+						<div className="flex justify-between items-start gap-4">
 							<div className="pl-1 space-y-1 flex-1">
 								<DialogTitle
 									className={cn(
@@ -478,7 +420,7 @@ export function SpaceSelector({
 								</DialogDescription>
 							</div>
 							<DialogPrimitive.Close
-								className="bg-[#0D121A] size-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+								className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
 								style={{
 									boxShadow:
 										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
@@ -489,9 +431,8 @@ export function SpaceSelector({
 							</DialogPrimitive.Close>
 						</div>
 
-						<div id="delete-dialog-content" className="space-y-3">
+						<div className="space-y-3">
 							<button
-								id="move-option"
 								type="button"
 								onClick={() =>
 									setDeleteDialog((prev) => ({ ...prev, action: "move" }))
@@ -499,26 +440,20 @@ export function SpaceSelector({
 								className={cn(
 									"flex items-center gap-3 p-3 rounded-[12px] cursor-pointer transition-colors w-full text-left",
 									deleteDialog.action === "move"
-										? "bg-[#14161A] border border-[rgba(82,89,102,0.3)]"
-										: "bg-[#14161A]/50 border border-transparent hover:border-[rgba(82,89,102,0.2)]",
+										? "bg-[#14161A] shadow-inside-out"
+										: "bg-[#14161A]/50 hover:bg-[#14161A]/70",
 								)}
-								style={{
-									boxShadow:
-										deleteDialog.action === "move"
-											? "0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08)"
-											: "none",
-								}}
 							>
 								<div
 									className={cn(
-										"size-4 rounded-full border-2 flex items-center justify-center shrink-0",
+										"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
 										deleteDialog.action === "move"
-											? "border-blue-500"
+											? "border-[#4BA0FA]"
 											: "border-[#737373]",
 									)}
 								>
 									{deleteDialog.action === "move" && (
-										<div className="size-2 rounded-full bg-blue-500" />
+										<div className="w-2 h-2 rounded-full bg-[#4BA0FA]" />
 									)}
 								</div>
 								<span className="text-[#fafafa] text-sm font-medium">
@@ -544,13 +479,9 @@ export function SpaceSelector({
 									>
 										<SelectTrigger
 											className={cn(
-												"bg-[#14161A] border border-[rgba(82,89,102,0.2)] rounded-[12px] text-[#fafafa] text-[14px] h-[45px]",
+												"bg-[#14161A] shadow-inside-out rounded-[12px] text-[#fafafa] text-[14px] h-[45px]",
 												dmSansClassName(),
 											)}
-											style={{
-												boxShadow:
-													"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08), inset 0px 2px 4px 0px rgba(0,0,0,0.02)",
-											}}
 										>
 											<SelectValue placeholder="Select target space" />
 										</SelectTrigger>
@@ -559,28 +490,58 @@ export function SpaceSelector({
 												"bg-[#14161A] border border-[rgba(82,89,102,0.2)] rounded-[12px]",
 												dmSansClassName(),
 											)}
-											style={{
-												boxShadow:
-													"0px 1px 2px 0px rgba(0,43,87,0.1), inset 0px 0px 0px 1px rgba(43,49,67,0.08)",
-											}}
 										>
 											{availableTargetProjects.map(
-												(p: ContainerTagListType) => (
-													<SelectItem
-														key={p.id}
-														value={p.id}
-														className="text-[#fafafa] hover:bg-[#1B1F24] cursor-pointer rounded-md"
-													>
-														<span className="flex items-center gap-2 min-w-0">
-															<span>{p.emoji || "📁"}</span>
-															<span className="truncate">
-																{p.containerTag === DEFAULT_PROJECT_ID
-																	? "My Space"
-																	: spaceSelectorDisplayName(p, p.containerTag)}
+												(p: ContainerTagListType) => {
+													const plugin = detectPluginSpace(p.containerTag)
+													return (
+														<SelectItem
+															key={p.id}
+															value={p.id}
+															className="text-[#fafafa] hover:bg-[#1B1F24] cursor-pointer rounded-md"
+														>
+															<span className="flex items-center gap-2 min-w-0">
+																{plugin ? (
+																	plugin.iconSrc ? (
+																		<Image
+																			src={plugin.iconSrc}
+																			alt=""
+																			width={16}
+																			height={16}
+																			className="shrink-0 rounded-[3px]"
+																			aria-hidden
+																		/>
+																	) : (
+																		<span
+																			className="shrink-0 flex items-center justify-center w-4 h-4 rounded-[3px] bg-[#1E232B] text-[#FAFAFA] text-[10px] font-semibold uppercase"
+																			aria-hidden
+																		>
+																			{pluginInitial(plugin.label)}
+																		</span>
+																	)
+																) : (
+																	<span>{p.emoji || "📁"}</span>
+																)}
+																<span className="truncate">
+																	{p.containerTag === DEFAULT_PROJECT_ID ? (
+																		"My Space"
+																	) : plugin ? (
+																		<>
+																			{plugin.label}
+																			{plugin.projectId && (
+																				<span className="ml-1.5 text-[11px] text-[#737373]">
+																					· {plugin.projectId}
+																				</span>
+																			)}
+																		</>
+																	) : (
+																		spaceSelectorDisplayName(p, p.containerTag)
+																	)}
+																</span>
 															</span>
-														</span>
-													</SelectItem>
-												),
+														</SelectItem>
+													)
+												},
 											)}
 										</SelectContent>
 									</Select>
@@ -588,7 +549,6 @@ export function SpaceSelector({
 							)}
 
 							<button
-								id="delete-option"
 								type="button"
 								onClick={() =>
 									setDeleteDialog((prev) => ({ ...prev, action: "delete" }))
@@ -596,26 +556,20 @@ export function SpaceSelector({
 								className={cn(
 									"flex items-center gap-3 p-3 rounded-[12px] cursor-pointer transition-colors w-full text-left",
 									deleteDialog.action === "delete"
-										? "bg-[#14161A] border border-[rgba(220,38,38,0.3)]"
-										: "bg-[#14161A]/50 border border-transparent hover:border-[rgba(82,89,102,0.2)]",
+										? "bg-[#14161A] shadow-inside-out"
+										: "bg-[#14161A]/50 hover:bg-[#14161A]/70",
 								)}
-								style={{
-									boxShadow:
-										deleteDialog.action === "delete"
-											? "0px 1px 2px 0px rgba(87,0,0,0.1), inset 0px 0px 0px 1px rgba(67,43,43,0.08), inset 0px 1px 1px 0px rgba(0,0,0,0.08)"
-											: "none",
-								}}
 							>
 								<div
 									className={cn(
-										"size-4 rounded-full border-2 flex items-center justify-center shrink-0",
+										"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
 										deleteDialog.action === "delete"
 											? "border-red-500"
 											: "border-[#737373]",
 									)}
 								>
 									{deleteDialog.action === "delete" && (
-										<div className="size-2 rounded-full bg-red-500" />
+										<div className="w-2 h-2 rounded-full bg-red-500" />
 									)}
 								</div>
 								<span className="text-[#fafafa] text-sm font-medium">
@@ -634,10 +588,7 @@ export function SpaceSelector({
 							)}
 						</div>
 
-						<div
-							id="delete-dialog-footer"
-							className="flex items-center justify-end gap-[22px]"
-						>
+						<div className="flex items-center justify-end gap-[22px]">
 							<button
 								type="button"
 								onClick={handleDeleteCancel}

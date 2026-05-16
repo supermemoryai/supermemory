@@ -14,6 +14,7 @@ import {
 	MessageCircleIcon,
 	LifeBuoy,
 	LayoutGrid,
+	ChevronRight,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -131,12 +132,17 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					</DropdownMenuContent>
 				</DropdownMenu>
 				{!isMobile && (
-					<SpaceSelector
-						selectedProjects={selectedProjects}
-						onValueChange={setSelectedProjects}
-						showChevron
-						enableDelete
-					/>
+					<>
+						<ChevronRight
+							className="size-4 shrink-0 text-[#3F4853]"
+							aria-hidden
+						/>
+						<SpaceSelector
+							selectedProjects={selectedProjects}
+							onValueChange={setSelectedProjects}
+							enableDelete
+						/>
+					</>
 				)}
 			</div>
 			{!isMobile && (
@@ -259,7 +265,6 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 						<SpaceSelector
 							selectedProjects={selectedProjects}
 							onValueChange={setSelectedProjects}
-							showChevron
 							enableDelete
 							compact
 						/>

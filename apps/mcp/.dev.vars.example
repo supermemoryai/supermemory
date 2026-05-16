@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `wrangler dev`. Optional when running via `bun run dev`
+# (portless) — that injects API_URL and MCP_URL automatically.
+
+API_URL=
+MCP_URL=
+
+#(optional)
+POSTHOG_API_KEY=

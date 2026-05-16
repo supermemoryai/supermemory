@@ -79,6 +79,10 @@ export function MemoryGraph({
 		containerSize.height,
 		colors,
 	)
+	const isCompactViewport = containerSize.width > 0 && containerSize.width < 640
+	const graphFitHeight = isCompactViewport
+		? Math.max(containerSize.height - 170, 240)
+		: containerSize.height
 
 	// Rebuild version chain index during render (not in an effect) so that
 	// the chain data is up-to-date when getChain() is called in useMemo below.
@@ -127,7 +131,8 @@ export function MemoryGraph({
 		}
 	}, [])
 
-	// Auto-fit when data first loads
+	// Auto-fit when data first loads. Mobile needs a few passes because the
+	// force simulation can move nodes after the first layout frame.
 	const hasAutoFittedRef = useRef(false)
 	useEffect(() => {
 		if (
@@ -136,21 +141,46 @@ export function MemoryGraph({
 			viewportRef.current &&
 			containerSize.width > 0
 		) {
-			const timer = setTimeout(() => {
-				viewportRef.current?.fitToNodes(
-					nodes,
-					containerSize.width,
-					containerSize.height,
-				)
-				hasAutoFittedRef.current = true
-			}, 100)
-			return () => clearTimeout(timer)
+			const fitDelays = isCompactViewport ? [100, 450, 900] : [100]
+			const timers = fitDelays.map((delay, index) =>
+				setTimeout(() => {
+					viewportRef.current?.fitToNodes(
+						nodes,
+						containerSize.width,
+						graphFitHeight,
+					)
+					if (index === fitDelays.length - 1) {
+						hasAutoFittedRef.current = true
+					}
+				}, delay),
+			)
+			return () => {
+				for (const timer of timers) clearTimeout(timer)
+			}
 		}
-	}, [nodes, containerSize.width, containerSize.height])
+	}, [nodes, containerSize.width, graphFitHeight, isCompactViewport])
+
+	useEffect(() => {
+		if (!isCompactViewport || nodes.length === 0 || !viewportRef.current) return
+		const timer = setTimeout(() => {
+			viewportRef.current?.fitToNodes(
+				nodes,
+				containerSize.width,
+				graphFitHeight,
+			)
+		}, 120)
+		return () => clearTimeout(timer)
+	}, [isCompactViewport, nodes, containerSize.width, graphFitHeight])
 
 	useEffect(() => {
 		if (nodes.length === 0) hasAutoFittedRef.current = false
 	}, [nodes.length])
+
+	useEffect(() => {
+		if (isCompactViewport) {
+			hasAutoFittedRef.current = false
+		}
+	}, [isCompactViewport])
 
 	// Container resize observer
 	useEffect(() => {
@@ -190,7 +220,6 @@ export function MemoryGraph({
 	const loadMoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const loadMoreRef = useRef({ hasMore, isLoadingMore, onLoadMore })
 	loadMoreRef.current = { hasMore, isLoadingMore, onLoadMore }
-
 	const handleViewportChange = useCallback(
 		(zoom: number, popoverVisible: boolean) => {
 			setZoomDisplay(Math.round(zoom * 100))
@@ -248,12 +277,8 @@ export function MemoryGraph({
 	// Navigation
 	const handleAutoFit = useCallback(() => {
 		if (nodes.length === 0 || !viewportRef.current) return
-		viewportRef.current.fitToNodes(
-			nodes,
-			containerSize.width,
-			containerSize.height,
-		)
-	}, [nodes, containerSize.width, containerSize.height])
+		viewportRef.current.fitToNodes(nodes, containerSize.width, graphFitHeight)
+	}, [nodes, containerSize.width, graphFitHeight])
 
 	const handleCenter = useCallback(() => {
 		if (nodes.length === 0 || !viewportRef.current) return
@@ -267,21 +292,21 @@ export function MemoryGraph({
 			sx / nodes.length,
 			sy / nodes.length,
 			containerSize.width,
-			containerSize.height,
+			graphFitHeight,
 		)
-	}, [nodes, containerSize.width, containerSize.height])
+	}, [nodes, containerSize.width, graphFitHeight])
 
 	const handleZoomIn = useCallback(() => {
 		const vp = viewportRef.current
 		if (!vp) return
-		vp.zoomTo(vp.zoom * 1.3, containerSize.width / 2, containerSize.height / 2)
-	}, [containerSize.width, containerSize.height])
+		vp.zoomTo(vp.zoom * 1.3, containerSize.width / 2, graphFitHeight / 2)
+	}, [containerSize.width, graphFitHeight])
 
 	const handleZoomOut = useCallback(() => {
 		const vp = viewportRef.current
 		if (!vp) return
-		vp.zoomTo(vp.zoom / 1.3, containerSize.width / 2, containerSize.height / 2)
-	}, [containerSize.width, containerSize.height])
+		vp.zoomTo(vp.zoom / 1.3, containerSize.width / 2, graphFitHeight / 2)
+	}, [containerSize.width, graphFitHeight])
 
 	// Wrap onOpenDocument to dismiss the popover before opening the modal.
 	// Without this, the popover (z-index: 100) stays mounted on top of the
@@ -619,7 +644,7 @@ export function MemoryGraph({
 
 	const navControlsStyle: React.CSSProperties = {
 		position: "absolute",
-		bottom: 72,
+		bottom: isCompactViewport ? 148 : 72,
 		left: 16,
 		zIndex: 15,
 	}
@@ -683,6 +708,7 @@ export function MemoryGraph({
 						<div style={navControlsStyle}>
 							<NavigationControls
 								nodes={nodes}
+								compact={isCompactViewport}
 								onAutoFit={handleAutoFit}
 								onCenter={handleCenter}
 								onZoomIn={handleZoomIn}

@@ -199,6 +199,7 @@ Upload PDFs, images, and documents directly.
 | `customId` | string | **Recommended.** Your ID for the content (conversation ID, doc ID). Enables updates and deduplication |
 | `containerTag` | string | Group by user/project. Required for user profiles |
 | `metadata` | object | Key-value pairs for filtering (strings, numbers, booleans) |
+| `filterByMetadata` | object | Filter which existing memories are used as context during ingestion. See [Filtered Writes](#filtered-writes) |
 | `entityContext` | string | Context for memory extraction on this container tag. Max 1500 chars. See [Customization](/concepts/customization#entity-context) |
 
 <AccordionGroup>
@@ -273,6 +274,83 @@ Upload PDFs, images, and documents directly.
     - Combines with org-level filter prompts
   </Accordion>
 </AccordionGroup>
+
+---
+
+## Filtered Writes
+
+By default, when you add content, Supermemory uses **all** existing memories in the space as context for generating new memories. With **filtered writes**, you can scope this context to only memories from documents matching specific metadata.
+
+This is useful when you have many documents in a space but want new memories to build on top of a specific subset — for example, only memories from a particular source, category, or user.
+
+<Note>
+The metadata itself is still written to the document, but the memories will only be built on top of what's already there matching the filter.
+</Note>
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    await client.add({
+      content: "New research findings on transformer architectures...",
+      containerTag: "user_123",
+      metadata: { category: "ml", source: "arxiv" },
+      filterByMetadata: { category: "ml" }
+    });
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    client.add(
+        content="New research findings on transformer architectures...",
+        container_tag="user_123",
+        metadata={"category": "ml", "source": "arxiv"},
+        filter_by_metadata={"category": "ml"}
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.supermemory.ai/v3/documents" \
+      -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "content": "New research findings on transformer architectures...",
+        "containerTag": "user_123",
+        "metadata": {"category": "ml", "source": "arxiv"},
+        "filterByMetadata": {"category": "ml"}
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### How it works
+
+When `filterByMetadata` is provided:
+- **Profile memories** (static context) are filtered to only those from documents matching the metadata
+- **Similar memories** used as context during ingestion are filtered the same way
+- The new document's own metadata is written normally — the filter only affects which **existing** memories are used as context
+
+### `filterByMetadata` parameter
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `filterByMetadata` | `Record<string, string \| number \| boolean \| string[]>` | Key-value pairs to filter existing memories by their source document metadata |
+
+- **Scalar values** (string, number, boolean) match exactly
+- **Array values** match if **any** value in the array matches (OR logic)
+- **Multiple keys** are combined with AND logic
+
+```typescript
+// Match documents where category is "ml" AND source is either "arxiv" or "pubmed"
+await client.add({
+  content: "...",
+  containerTag: "user_123",
+  filterByMetadata: {
+    category: "ml",
+    source: ["arxiv", "pubmed"]
+  }
+});
+```
 
 ---
 

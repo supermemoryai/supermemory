@@ -47,6 +47,7 @@ export default function RootLayout({
 					defaultTheme="dark"
 					enableSystem={false}
 					disableTransitionOnChange
+					forcedTheme="dark"
 				>
 					<AutumnProvider
 						backendUrl={

@@ -146,6 +146,7 @@ export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen,
 	queuedMessage,
+	queuedHighlightContent,
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
 	initialSelectedModel = null,
@@ -155,6 +156,7 @@ export function ChatSidebar({
 	isChatOpen: boolean
 	setIsChatOpen: (open: boolean) => void
 	queuedMessage?: string | null
+	queuedHighlightContent?: string | null
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
 	initialSelectedModel?: ModelId | null
@@ -189,6 +191,10 @@ export function ChatSidebar({
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const isScrolledToBottomRef = useRef(true)
 	const sentQueuedMessageRef = useRef<string | null>(null)
+	const pendingHighlightReplyRef = useRef<string | null>(null)
+	const awaitingHighlightInjectionRef = useRef(false)
+	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
+	const targetHighlightChatIdRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const { allProjects } = useContainerTags()
 	const selectedProjectRef = useRef(selectedProject)
@@ -526,14 +532,48 @@ export function ChatSidebar({
 				return
 			}
 			sentQueuedMessageRef.current = queuedMessage
-			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatMessageSent({ source: queuedMessageSource })
-			sendMessage({ text: queuedMessage })
+
+			if (queuedHighlightContent) {
+				// Start a fresh thread for highlight-based chats to avoid overwriting existing conversations
+				const newChatId = generateId()
+				chatIdRef.current = newChatId
+				setThreadId(null)
+				setFallbackChatId(newChatId)
+
+				// Store the highlight message and user reply in refs.
+				// We cannot call setMessages here because setFallbackChatId above triggers
+				// useChat to recreate its internal Chat object (new id → new Chat), which
+				// resets messages to []. Instead, pendingHighlightMessageRef is read by a
+				// separate useEffect that fires after currentChatId has settled, ensuring
+				// setMessages is called on the correct, freshly-created Chat instance.
+				// targetHighlightChatIdRef ensures we only call setMessages once the new
+				// Chat instance (with id=newChatId) is active, not the old one.
+				pendingHighlightReplyRef.current = queuedMessage
+				awaitingHighlightInjectionRef.current = true
+				targetHighlightChatIdRef.current = newChatId
+				pendingHighlightMessageRef.current = [
+					{
+						id: generateId(),
+						role: "assistant" as const,
+						parts: [
+							{
+								type: "text" as const,
+								text: `Here is a highlight from your memories:\n\n${queuedHighlightContent}`,
+							},
+						],
+					},
+				]
+			} else {
+				if (!threadId) setThreadId(fallbackChatId)
+				sendMessage({ text: queuedMessage })
+			}
 			onConsumeQueuedMessage?.()
 		}
 	}, [
 		isChatOpen,
 		queuedMessage,
+		queuedHighlightContent,
 		queuedMessageSource,
 		initialSelectedModel,
 		selectedModel,
@@ -544,6 +584,41 @@ export function ChatSidebar({
 		setThreadId,
 		threadId,
 	])
+
+	// Inject the pending highlight assistant message once the new Chat instance is ready.
+	// This effect must run AFTER the currentChatId change has been committed and useChat
+	// has recreated its internal Chat object, so that setMessages targets the correct instance.
+	// We gate on currentChatId === targetHighlightChatIdRef to ensure we call setMessages
+	// only when useChat's internal Chat has the new id (not the old one from before setFallbackChatId).
+	useEffect(() => {
+		if (
+			awaitingHighlightInjectionRef.current &&
+			pendingHighlightMessageRef.current &&
+			targetHighlightChatIdRef.current &&
+			currentChatId === targetHighlightChatIdRef.current
+		) {
+			const msgs = pendingHighlightMessageRef.current
+			pendingHighlightMessageRef.current = null
+			targetHighlightChatIdRef.current = null
+			setMessages(msgs)
+		}
+	}, [currentChatId, setMessages])
+
+	// Send pending highlight reply once the injected assistant message is committed
+	useEffect(() => {
+		if (
+			awaitingHighlightInjectionRef.current &&
+			pendingHighlightReplyRef.current &&
+			messages.length >= 1 &&
+			messages[0]?.role === "assistant" &&
+			status === "ready"
+		) {
+			awaitingHighlightInjectionRef.current = false
+			const reply = pendingHighlightReplyRef.current
+			pendingHighlightReplyRef.current = null
+			sendMessage({ text: reply })
+		}
+	}, [messages, sendMessage, status])
 
 	// Reset the sent message ref when queued message is consumed
 	useEffect(() => {
