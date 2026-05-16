@@ -800,23 +800,27 @@ export function DashboardView({
 					className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
 				>
 					{/* Quick actions */}
-					<div className="flex items-center gap-0.5 -mx-2.5">
+					<div className="grid grid-cols-3 gap-1 [&>span]:hidden sm:-mx-2.5 sm:flex sm:items-center sm:gap-0.5 sm:[&>span]:inline">
 						<button
 							type="button"
 							onClick={() => onAddMemory("link")}
-							className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer"
+							className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-none text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer sm:gap-1.5 sm:px-2.5 sm:text-sm sm:leading-tight"
 						>
 							<Link2 className="size-3.5 shrink-0" />
-							{personalizedCopy.saveLink}
+							<span className="min-w-0 truncate whitespace-nowrap text-center sm:text-left">
+								{personalizedCopy.saveLink}
+							</span>
 						</button>
 						<span className="text-[#3A4455] select-none">·</span>
 						<button
 							type="button"
 							onClick={() => onAddMemory("note")}
-							className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer"
+							className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-none text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer sm:gap-1.5 sm:px-2.5 sm:text-sm sm:leading-tight"
 						>
 							<FileText className="size-3.5 shrink-0" />
-							{personalizedCopy.writeNote}
+							<span className="min-w-0 truncate whitespace-nowrap text-center sm:text-left">
+								{personalizedCopy.writeNote}
+							</span>
 						</button>
 						<span className="text-[#3A4455] select-none">·</span>
 						<button
@@ -825,10 +829,12 @@ export function DashboardView({
 								analytics.searchOpened({ source: "header" })
 								onOpenSearch()
 							}}
-							className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer"
+							className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-none text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer sm:gap-1.5 sm:px-2.5 sm:text-sm sm:leading-tight"
 						>
 							<SearchIcon className="size-3.5 shrink-0" />
-							Search
+							<span className="min-w-0 truncate whitespace-nowrap text-center sm:text-left">
+								Search
+							</span>
 						</button>
 					</div>
 

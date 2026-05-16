@@ -464,7 +464,7 @@ export function SelectSpacesModal({
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
 				className={cn(
-					"w-[92%]! max-w-[720px]! border-none bg-[#1B1F24] flex flex-col p-0 gap-0 rounded-[22px] overflow-hidden",
+					"w-[calc(100vw-1rem)]! max-w-[720px]! max-h-[calc(100dvh-1rem)] border-none bg-[#1B1F24] flex flex-col p-0 gap-0 rounded-[22px] overflow-hidden sm:w-[92vw]!",
 					dmSansClassName(),
 				)}
 				style={{
@@ -498,9 +498,9 @@ export function SelectSpacesModal({
 					</DialogPrimitive.Close>
 				</div>
 
-				<div className="mt-4 flex min-h-[420px] gap-3 px-4 pb-4">
-					<div className="w-[200px] shrink-0 overflow-y-auto scrollbar-thin pr-1">
-						<div className="flex flex-col gap-1">
+				<div className="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-4 pb-4 sm:min-h-[420px] sm:flex-row sm:gap-3">
+					<div className="w-full shrink-0 overflow-y-auto scrollbar-thin sm:w-[200px] sm:pr-1">
+						<div className="grid grid-cols-2 gap-1 sm:flex sm:flex-col">
 							{categories.map((category) => {
 								const isActive = activeCategory === category.id
 								return (
@@ -509,7 +509,7 @@ export function SelectSpacesModal({
 										type="button"
 										onClick={() => setActiveCategory(category.id)}
 										className={cn(
-											"flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0",
+											"flex min-w-0 items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0 sm:w-full",
 											isActive
 												? "bg-[#14161A] shadow-inside-out text-[#fafafa]"
 												: "text-[#A1A1AA] hover:bg-[#14161A]/50 hover:text-[#fafafa]",
@@ -563,7 +563,7 @@ export function SelectSpacesModal({
 
 							{discoverCategories.length > 0 && (
 								<>
-									<div className="mt-2 px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+									<div className="col-span-2 mt-3 px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.08em] text-[#737373] sm:mt-2 sm:px-3 sm:pt-2 sm:pb-1">
 										Discover
 									</div>
 									{discoverCategories.map((category) => {
@@ -574,7 +574,7 @@ export function SelectSpacesModal({
 												type="button"
 												onClick={() => setActiveCategory(category.id)}
 												className={cn(
-													"flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0",
+													"flex min-w-0 items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0 sm:w-full",
 													isActive
 														? "bg-[#14161A] shadow-inside-out text-[#fafafa] opacity-100"
 														: "opacity-55 hover:opacity-100 hover:bg-[#14161A]/50 text-[#A1A1AA] hover:text-[#fafafa]",
@@ -612,7 +612,7 @@ export function SelectSpacesModal({
 						</div>
 					</div>
 
-					<div className="flex-1 flex flex-col min-w-0 gap-3">
+					<div className="flex min-h-0 flex-1 flex-col gap-3">
 						{activeCategory.startsWith("discover:") ? (
 							<DiscoverPanel
 								catalogId={activeCategory.slice("discover:".length)}
@@ -649,7 +649,7 @@ export function SelectSpacesModal({
 									/>
 								</div>
 
-								<div className="flex-1 overflow-y-auto scrollbar-thin max-h-[360px] pr-1">
+								<div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin pr-1 sm:max-h-[360px]">
 									{filteredProjects.length === 0 ? (
 										<p className="text-center text-[#737373] text-sm py-8">
 											No spaces found
@@ -740,7 +740,7 @@ function DiscoverPanel({
 	const isConnected = !!newKey
 
 	return (
-		<div className="flex-1 overflow-y-auto scrollbar-thin pr-1 flex flex-col gap-4">
+		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
 			<div className="flex items-start gap-3">
 				<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#1E293B] bg-[#080B0F]">
 					<Image
