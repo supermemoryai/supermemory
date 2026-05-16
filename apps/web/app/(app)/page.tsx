@@ -106,7 +106,7 @@ export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { user, session } = useAuth()
 
-	const { selectedProject, selectedProjects } = useProject()
+	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
 	const { allProjects } = useContainerTags()
 	const dashboardSpaceLabel = useMemo(
@@ -403,6 +403,21 @@ export default function NewPage() {
 			}
 		},
 		[setDocId],
+	)
+
+	const handleOpenToolDocument = useCallback(
+		(document: DocumentWithMemories) => {
+			const documentSpace =
+				(document as { containerTags?: string[] }).containerTags?.[0] ??
+				document.memoryEntries.find((entry) => entry.spaceContainerTag)
+					?.spaceContainerTag
+			if (documentSpace) {
+				setSelectedProject(documentSpace)
+			}
+			handleOpenDocument(document)
+			void setViewMode("list")
+		},
+		[handleOpenDocument, setSelectedProject, setViewMode],
 	)
 
 	// Separate from handleOpenDocument because the graph view only has a document ID,
@@ -705,6 +720,7 @@ export default function NewPage() {
 										onNavigateToMemories={() => void setViewMode("list")}
 										onNavigateToGraph={() => void setViewMode("graph")}
 										onOpenDocument={handleOpenDocument}
+										onOpenToolDocument={handleOpenToolDocument}
 										onHighlightsChat={handleHighlightsChat}
 										onHighlightsShowRelated={handleHighlightsShowRelated}
 										onResetHighlights={handleResetHighlights}
