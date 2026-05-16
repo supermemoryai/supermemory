@@ -52,6 +52,26 @@ const fadeUp = {
 
 const CYCLE_INTERVAL_MS = 8_000
 
+const defaultHomeHeadline = (name: string) => `Welcome back, ${name}`
+
+const HOME_HEADLINES: ReadonlyArray<(name: string) => string> = [
+	defaultHomeHeadline,
+	(name: string) => `Good to see you, ${name}`,
+	(name: string) => `${name}, what should we remember next?`,
+	(name: string) => `${name}, your saved context is ready.`,
+	(name: string) => `${name}, pick up where you left off.`,
+	(name: string) => `${name}, search, save, or ask anything here.`,
+	(name: string) => `${name}, this space is ready for your next thought.`,
+	(name: string) => `${name}, keep the useful bits here.`,
+	(name: string) => `${name}, future you will thank you for saving this.`,
+	(name: string) => `${name}, your notes, links, and context live here.`,
+	(name: string) => `${name}, add something small. Find it later.`,
+	(name: string) => `${name}, turn passing context into lasting memory.`,
+	(name: string) => `${name}, everything worth remembering can live here.`,
+	(name: string) => `${name}, ask a question, save a link, or write a note.`,
+	(name: string) => `${name}, build your searchable working memory.`,
+]
+
 const PLUGIN_TAGLINES: Record<Profession, Partial<Record<string, string>>> = {
 	developer: {
 		mcp: "Ask Claude about your saved docs and specs from any IDE",
@@ -688,6 +708,20 @@ export function DashboardView({
 	const totalMemories = recentsData?.pagination?.totalItems ?? 0
 	const hasMcp = mcpData?.previousLogin ?? false
 	const connectedProviders = new Set(connections.map((c) => c.provider))
+	const firstName = useMemo(() => {
+		const displayName =
+			user?.name?.trim() || user?.email?.split("@")[0] || "there"
+		return displayName.split(/\s+/)[0] || "there"
+	}, [user?.email, user?.name])
+	const [headlineIndex, setHeadlineIndex] = useState(0)
+
+	useEffect(() => {
+		setHeadlineIndex(Math.floor(Math.random() * HOME_HEADLINES.length))
+	}, [])
+
+	const homeHeadline = (HOME_HEADLINES[headlineIndex] ?? defaultHomeHeadline)(
+		firstName,
+	)
 
 	const tip = useMemo(() => {
 		const tips = TIPS[profession]
@@ -714,8 +748,11 @@ export function DashboardView({
 						<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 							Home
 						</p>
-						<h1 className="text-xl font-medium tracking-tight text-white md:text-2xl">
-							{spaceLabel}
+						<h1
+							className="max-w-2xl text-xl font-medium tracking-tight text-white md:text-2xl"
+							title={spaceLabel}
+						>
+							{homeHeadline}
 						</h1>
 					</div>
 					{totalMemories > 0 && (
