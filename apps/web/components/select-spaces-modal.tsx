@@ -746,10 +746,11 @@ export function SelectSpacesModal({
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
 				className={cn(
-					"w-[calc(100vw-1rem)]! max-w-[720px]! max-h-[calc(100dvh-1rem)] border-none bg-[#1B1F24] flex flex-col p-0 gap-0 rounded-[22px] overflow-hidden sm:w-[92vw]!",
+					"w-[calc(100vw-1rem)]! max-w-[720px]! max-h-[calc(100dvh-1rem)] min-w-0 border-none bg-[#1B1F24] flex flex-col p-0 gap-0 rounded-[22px] overflow-hidden sm:w-[92vw]!",
 					dmSansClassName(),
 				)}
 				style={{
+					display: "flex",
 					boxShadow:
 						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 				}}
@@ -802,7 +803,7 @@ export function SelectSpacesModal({
 				</div>
 
 				<div className="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-4 pb-4 sm:min-h-[420px] sm:flex-row sm:gap-3">
-					<div className="w-full shrink-0 overflow-y-auto scrollbar-thin sm:w-[200px] sm:pr-1">
+					<div className="w-full shrink-0 overflow-x-hidden overflow-y-auto scrollbar-thin sm:w-[200px] sm:pr-1">
 						<div className="grid grid-cols-2 gap-1 sm:flex sm:flex-col">
 							{categories.map((category) => {
 								const isActive = activeCategory === category.id
@@ -915,7 +916,7 @@ export function SelectSpacesModal({
 						</div>
 					</div>
 
-					<div className="flex min-h-0 flex-1 flex-col gap-3">
+					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
 						{activeCategory.startsWith("discover:") ? (
 							<DiscoverPanel
 								catalogId={activeDiscoverId ?? ""}
@@ -945,7 +946,7 @@ export function SelectSpacesModal({
 									/>
 								</div>
 
-								<div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin pr-1 sm:max-h-[360px]">
+								<div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin pr-1 sm:max-h-[360px]">
 									{filteredProjects.length === 0 ? (
 										<p className="text-center text-[#737373] text-sm py-8">
 											No spaces found
