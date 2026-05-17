@@ -776,6 +776,9 @@ export function ChatSidebar({
 
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
+	const isResponding = status === "submitted" || status === "streaming"
+	const showInputStatusStrip =
+		!isStackedInput || isResponding || messages.length > 0
 
 	const chatHistorySheet = (
 		<Sheet
@@ -1127,14 +1130,20 @@ export function ChatSidebar({
 				</div>
 			)}
 
-			<div className="shrink-0">
+			<div
+				className={cn(
+					"shrink-0",
+					isStackedInput &&
+						"px-4 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6",
+				)}
+			>
 				<ChatInput
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
 					onSend={handleSend}
 					onStop={stop}
 					onKeyDown={handleKeyDown}
-					isResponding={status === "submitted" || status === "streaming"}
+					isResponding={isResponding}
 					activeStatus={
 						status === "submitted"
 							? "Thinking…"
@@ -1142,6 +1151,7 @@ export function ChatSidebar({
 								? "Structuring response…"
 								: "Waiting for input…"
 					}
+					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
 						messages.length > 0 ? <ChainOfThought messages={messages} /> : null

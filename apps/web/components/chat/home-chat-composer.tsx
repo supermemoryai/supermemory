@@ -38,7 +38,7 @@ export function HomeChatComposer({
 
 	return (
 		<div className={cn(className)}>
-			<div className="mx-auto w-full max-w-[720px] px-4 pt-1 pb-3 md:pb-4">
+			<div className="mx-auto w-full max-w-[720px] px-4 pt-1 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6">
 				<ChatInput
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
