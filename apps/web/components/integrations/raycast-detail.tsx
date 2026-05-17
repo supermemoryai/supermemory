@@ -7,17 +7,11 @@ import { authClient } from "@lib/auth"
 import { useAuth } from "@lib/auth-context"
 import { generateId } from "@lib/generate-id"
 import { RAYCAST_EXTENSION_URL } from "@lib/constants"
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogPortal,
-} from "@ui/components/dialog"
 import { useMutation } from "@tanstack/react-query"
-import { Check, Copy, Download, Key, Loader } from "lucide-react"
-import { useId, useState } from "react"
+import { Download, Key, Loader } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
+import { RaycastSetupModal } from "./raycast-setup-modal"
 
 function PillButton({
 	children,
@@ -52,19 +46,6 @@ export function RaycastDetail() {
 	const { org } = useAuth()
 	const [showModal, setShowModal] = useState(false)
 	const [apiKey, setApiKey] = useState("")
-	const [copied, setCopied] = useState(false)
-	const apiKeyId = useId()
-
-	const handleCopy = async (key: string) => {
-		try {
-			await navigator.clipboard.writeText(key)
-			setCopied(true)
-			setTimeout(() => setCopied(false), 2000)
-			toast.success("API key copied to clipboard!")
-		} catch {
-			toast.error("Failed to copy API key")
-		}
-	}
 
 	const createKeyMutation = useMutation({
 		mutationFn: async () => {
@@ -74,13 +55,14 @@ export function RaycastDetail() {
 				name: `raycast-${generateId().slice(0, 8)}`,
 				prefix: `sm_${org.id}_`,
 			})
-			return res.key
+			if (res.error)
+				throw new Error(res.error.message ?? "Failed to create API key")
+			if (!res.data?.key) throw new Error("API key missing from response")
+			return res.data.key
 		},
 		onSuccess: (key) => {
 			setApiKey(key)
 			setShowModal(true)
-			setCopied(false)
-			handleCopy(key)
 		},
 		onError: (error) => {
 			toast.error("Failed to create API key", {
@@ -146,111 +128,14 @@ export function RaycastDetail() {
 				</div>
 			</div>
 
-			<Dialog
+			<RaycastSetupModal
 				open={showModal}
-				onOpenChange={(open: boolean) => {
+				onOpenChange={(open) => {
 					setShowModal(open)
-					if (!open) {
-						setApiKey("")
-						setCopied(false)
-					}
+					if (!open) setApiKey("")
 				}}
-			>
-				<DialogPortal>
-					<DialogContent className="bg-[#14161A] border border-white/10 text-[#FAFAFA] md:max-w-md z-100">
-						<DialogHeader>
-							<DialogTitle
-								className={cn(
-									dmSans125ClassName(),
-									"text-[#FAFAFA] text-lg font-semibold",
-								)}
-							>
-								Setup Raycast Extension
-							</DialogTitle>
-						</DialogHeader>
-						<div className="space-y-4">
-							<div className="space-y-2">
-								<label
-									htmlFor={apiKeyId}
-									className={cn(
-										dmSans125ClassName(),
-										"text-sm font-medium text-[#737373]",
-									)}
-								>
-									Your Raycast API Key
-								</label>
-								<div className="flex items-center gap-2">
-									<input
-										id={apiKeyId}
-										type="text"
-										value={apiKey}
-										readOnly
-										className={cn(
-											"flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono",
-											dmSans125ClassName(),
-										)}
-									/>
-									<button
-										type="button"
-										onClick={() => handleCopy(apiKey)}
-										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
-									>
-										{copied ? (
-											<Check className="size-4 text-[#4BA0FA]" />
-										) : (
-											<Copy className="size-4" />
-										)}
-									</button>
-								</div>
-							</div>
-							<div className="space-y-3">
-								<h4
-									className={cn(
-										dmSans125ClassName(),
-										"text-sm font-medium text-[#737373]",
-									)}
-								>
-									Follow these steps:
-								</h4>
-								<div className="space-y-2">
-									{[
-										"Install the Raycast extension from the Raycast Store",
-										"Open Raycast preferences and paste your API key",
-										'Use "Add Memory" or "Search Memories" commands!',
-									].map((text, i) => (
-										<div key={text} className="flex items-start gap-3">
-											<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
-												{i + 1}
-											</div>
-											<p
-												className={cn(
-													dmSans125ClassName(),
-													"text-sm text-[#737373]",
-												)}
-											>
-												{text}
-											</p>
-										</div>
-									))}
-								</div>
-							</div>
-							<button
-								type="button"
-								onClick={() => window.open(RAYCAST_EXTENSION_URL, "_blank")}
-								className={cn(
-									"w-full flex items-center justify-center gap-2",
-									"bg-[#FF6363] hover:bg-[#FF6363]/90 text-white",
-									"rounded-lg h-11 px-4 font-medium text-sm transition-colors",
-									dmSans125ClassName(),
-								)}
-							>
-								<RaycastIcon className="size-4" />
-								Install Extension
-							</button>
-						</div>
-					</DialogContent>
-				</DialogPortal>
-			</Dialog>
+				apiKey={apiKey}
+			/>
 		</>
 	)
 }
