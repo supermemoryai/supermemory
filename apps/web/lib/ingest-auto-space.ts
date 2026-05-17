@@ -1,6 +1,8 @@
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { ContainerTagListType } from "@lib/types"
 
+export const OWN_CONVERSATIONS_SPACE_NAME = "Your conversations"
+
 /**
  * Spaces auto-created on first ingest use `name === \`Space ${containerTag}\``
  * (mono `apps/api/src/routes/memories/handler-effect.ts`). Those are noisy in the
@@ -24,10 +26,22 @@ export function compareSpacesUserFirst(
 	)
 }
 
+export function isOwnConversationSpace(
+	p: Pick<ContainerTagListType, "containerTag"> | undefined,
+	currentUserId?: string | null,
+): boolean {
+	return !!currentUserId && p?.containerTag === currentUserId
+}
+
 export function spaceSelectorDisplayName(
 	p: Pick<ContainerTagListType, "name" | "containerTag"> | undefined,
 	fallback: string,
+	options?: { currentUserId?: string | null },
 ): string {
+	const containerTag = p?.containerTag ?? fallback
+	if (containerTag === options?.currentUserId) {
+		return OWN_CONVERSATIONS_SPACE_NAME
+	}
 	if (!p) return fallback
 	const name = p.name ?? p.containerTag
 	const long = name.length > 44

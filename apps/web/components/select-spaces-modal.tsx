@@ -29,6 +29,7 @@ import { useAuth } from "@lib/auth-context"
 import type { ContainerTagListType } from "@lib/types"
 import {
 	compareSpacesUserFirst,
+	isOwnConversationSpace,
 	spaceSelectorDisplayName,
 } from "@/lib/ingest-auto-space"
 import {
@@ -225,7 +226,7 @@ export function SelectSpacesModal({
 		setLastBulkDeleteTag(null)
 	}, [activeDiscoverId])
 
-	const { org } = useAuth()
+	const { org, user } = useAuth()
 	const queryClient = useQueryClient()
 	const [connectingPluginId, setConnectingPluginId] = useState<string | null>(
 		null,
@@ -455,15 +456,19 @@ export function SelectSpacesModal({
 		return byCategory.filter((p) => {
 			const plugin = detectPluginSpace(p.containerTag)
 			const projectName = pluginMetaMap.get(p.containerTag)?.projectName
+			const displayName = spaceSelectorDisplayName(p, p.containerTag, {
+				currentUserId: user?.id,
+			})
 			return (
 				p.containerTag.toLowerCase().includes(query) ||
 				(p.name ?? "").toLowerCase().includes(query) ||
+				displayName.toLowerCase().includes(query) ||
 				(plugin?.label.toLowerCase().includes(query) ?? false) ||
 				(plugin?.projectId?.toLowerCase().includes(query) ?? false) ||
 				(projectName?.toLowerCase().includes(query) ?? false)
 			)
 		})
-	}, [allSpaces, activeCategory, searchQuery, pluginMetaMap])
+	}, [allSpaces, activeCategory, searchQuery, pluginMetaMap, user?.id])
 
 	const recentProjects = useMemo<ContainerTagListType[]>(() => {
 		if (!recents?.length) return []
@@ -551,10 +556,12 @@ export function SelectSpacesModal({
 				)
 				.map((project) => ({
 					id: project.id,
-					name: project.name ?? project.containerTag,
+					name: spaceSelectorDisplayName(project, project.containerTag, {
+						currentUserId: user?.id,
+					}),
 					containerTag: project.containerTag,
 				})),
-		[allSpaces, bulkDeleteTags],
+		[allSpaces, bulkDeleteTags, user?.id],
 	)
 
 	const bulkDeleteCount = bulkDeleteProjects.length
@@ -567,8 +574,16 @@ export function SelectSpacesModal({
 				project.containerTag,
 			)?.projectName
 			const pluginIdLabel = pluginProjectName || plugin?.projectId
+			const displayName = spaceSelectorDisplayName(
+				project,
+				project.containerTag,
+				{
+					currentUserId: user?.id,
+				},
+			)
 			const isDefault = project.containerTag === DEFAULT_PROJECT_ID
-			const canEdit = !isDefault && !plugin
+			const isOwnSpace = isOwnConversationSpace(project, user?.id)
+			const canEdit = !isDefault && !plugin && !isOwnSpace
 			const canBulkDelete = enableDelete && !isDefault
 			const isEditing = editingProject?.containerTag === project.containerTag
 			const isBulkDeleteSelected = bulkDeleteTags.has(project.containerTag)
@@ -697,7 +712,7 @@ export function SelectSpacesModal({
 							)}
 							<span
 								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
-								title={project.containerTag}
+								title={plugin ? project.containerTag : displayName}
 							>
 								{plugin ? (
 									<>
@@ -709,7 +724,7 @@ export function SelectSpacesModal({
 										)}
 									</>
 								) : (
-									spaceSelectorDisplayName(project, project.containerTag)
+									displayName
 								)}
 							</span>
 						</button>
@@ -738,7 +753,7 @@ export function SelectSpacesModal({
 									e.stopPropagation()
 									onDeleteRequest({
 										id: project.id,
-										name: project.name ?? project.containerTag,
+										name: displayName,
 										containerTag: project.containerTag,
 									})
 								}}
@@ -766,6 +781,7 @@ export function SelectSpacesModal({
 			startEditing,
 			toggleBulkDeleteTag,
 			updateProjectMutation.isPending,
+			user?.id,
 		],
 	)
 

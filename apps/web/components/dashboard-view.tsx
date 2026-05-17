@@ -723,10 +723,16 @@ export function DashboardView({
 		firstName,
 	)
 
+	const [tipIndex, setTipIndex] = useState(0)
+
+	useEffect(() => {
+		setTipIndex(Math.floor(Math.random() * TIPS[profession].length))
+	}, [profession])
+
 	const tip = useMemo(() => {
 		const tips = TIPS[profession]
-		return tips[Math.floor(Math.random() * tips.length)]
-	}, [profession])
+		return tips[tipIndex % tips.length] ?? tips[0]
+	}, [profession, tipIndex])
 
 	return (
 		<div

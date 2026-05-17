@@ -31,6 +31,7 @@ import {
 } from "@repo/ui/components/select"
 import { Button } from "@repo/ui/components/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
+import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 import {
 	compareSpacesUserFirst,
@@ -135,6 +136,7 @@ export function SpaceSelector({
 	const { deleteProjectMutation, deleteProjectsMutation } =
 		useProjectMutations()
 	const { allProjects, isLoading } = useContainerTags()
+	const { user } = useAuth()
 
 	useEffect(() => {
 		setRecents(readRecents())
@@ -199,12 +201,14 @@ export function SpaceSelector({
 				? idForLabel
 					? `${plugin.label} · ${idForLabel}`
 					: plugin.label
-				: spaceSelectorDisplayName(found, containerTag),
+				: spaceSelectorDisplayName(found, containerTag, {
+						currentUserId: user?.id,
+					}),
 			emoji: found?.emoji || "📁",
 			plugin,
 			isAuto: false,
 		}
-	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto])
+	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto, user?.id])
 
 	const pushRecent = useCallback((tag: string) => {
 		setRecents((prev) => {
@@ -615,7 +619,13 @@ export function SpaceSelector({
 																			)}
 																		</>
 																	) : (
-																		spaceSelectorDisplayName(p, p.containerTag)
+																		spaceSelectorDisplayName(
+																			p,
+																			p.containerTag,
+																			{
+																				currentUserId: user?.id,
+																			},
+																		)
 																	)}
 																</span>
 															</span>
