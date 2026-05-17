@@ -5,6 +5,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useProject } from "@/stores"
 import type { ContainerTagListType, Project } from "@lib/types"
+import { DEFAULT_PROJECT_ID } from "@lib/constants"
+
+type ProjectDeleteTarget = {
+	id: string
+	containerTag: string
+	name?: string
+}
 
 export function useProjectMutations() {
 	const queryClient = useQueryClient()
@@ -45,16 +52,21 @@ export function useProjectMutations() {
 	const deleteProjectMutation = useMutation({
 		mutationFn: async ({
 			projectId,
+			containerTag,
 			action,
 			targetProjectId,
 		}: {
 			projectId: string
+			containerTag: string
 			action: "move" | "delete"
 			targetProjectId?: string
 		}) => {
-			const response = await $fetch(`@delete/projects/${projectId}`, {
-				body: { action, targetProjectId },
-			})
+			const response =
+				action === "delete"
+					? await $fetch(`@delete/container-tags/${containerTag}`)
+					: await $fetch(`@delete/projects/${projectId}`, {
+							body: { action, targetProjectId },
+						})
 
 			if (response.error) {
 				throw new Error(response.error?.message || "Failed to delete project")
@@ -68,7 +80,10 @@ export function useProjectMutations() {
 			const allTags =
 				queryClient.getQueryData<ContainerTagListType[]>(["container-tags"]) ||
 				[]
-			const deletedProject = allTags.find((p) => p.id === variables.projectId)
+			const deletedProject =
+				variables.action === "delete"
+					? { containerTag: variables.containerTag }
+					: allTags.find((p) => p.id === variables.projectId)
 
 			if (
 				deletedProject?.containerTag &&
@@ -84,6 +99,81 @@ export function useProjectMutations() {
 		},
 		onError: (error) => {
 			toast.error("Failed to delete project", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+	})
+
+	const deleteProjectsMutation = useMutation({
+		mutationFn: async ({ projects }: { projects: ProjectDeleteTarget[] }) => {
+			const results = await Promise.allSettled(
+				projects.map(async (project) => {
+					const response = await $fetch(
+						`@delete/container-tags/${project.containerTag}`,
+					)
+
+					if (response.error) {
+						throw new Error(
+							response.error?.message || `Failed to delete ${project.name}`,
+						)
+					}
+
+					return {
+						project,
+						data: response.data,
+					}
+				}),
+			)
+
+			return {
+				successful: results
+					.filter((result) => result.status === "fulfilled")
+					.map((result) => result.value),
+				failed: results
+					.filter((result) => result.status === "rejected")
+					.map((result) => result.reason),
+			}
+		},
+		onSuccess: (result, variables) => {
+			const deletedTags = new Set(
+				result.successful.map(({ project }) => project.containerTag),
+			)
+
+			if (selectedProjects.some((tag) => deletedTags.has(tag))) {
+				const remainingSelected = selectedProjects.filter(
+					(tag) => !deletedTags.has(tag),
+				)
+				setSelectedProjects(
+					remainingSelected.length > 0
+						? remainingSelected
+						: [DEFAULT_PROJECT_ID],
+				)
+			}
+
+			queryClient.invalidateQueries({ queryKey: ["projects"] })
+			queryClient.invalidateQueries({ queryKey: ["container-tags"] })
+
+			if (result.failed.length > 0) {
+				toast.error(
+					`Deleted ${result.successful.length} of ${variables.projects.length} spaces`,
+					{
+						description:
+							result.failed[0] instanceof Error
+								? result.failed[0].message
+								: "Some spaces could not be deleted.",
+					},
+				)
+				return
+			}
+
+			toast.success(
+				variables.projects.length === 1
+					? "Space deleted successfully"
+					: `${variables.projects.length} spaces deleted successfully`,
+			)
+		},
+		onError: (error) => {
+			toast.error("Failed to delete spaces", {
 				description: error instanceof Error ? error.message : "Unknown error",
 			})
 		},
@@ -192,6 +282,7 @@ export function useProjectMutations() {
 	return {
 		createProjectMutation,
 		deleteProjectMutation,
+		deleteProjectsMutation,
 		updateProjectMutation,
 		switchProject,
 	}

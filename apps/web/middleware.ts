@@ -71,6 +71,6 @@ export default async function proxy(request: Request) {
 
 export const config = {
 	matcher: [
-		"/((?!_next/static|_next/image|images|icon.png|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
+		"/((?!_next/static|_next/image|images|icon.png|favicon.ico|favicon-16x16.png|favicon-32x32.png|apple-touch-icon.png|android-chrome-192x192.png|android-chrome-512x512.png|manifest.webmanifest|site.webmanifest|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
 	],
 }
