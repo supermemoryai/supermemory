@@ -363,7 +363,7 @@ export default function NewPage() {
 			new Date().toISOString().slice(0, 10),
 		],
 		queryFn: async (): Promise<MemoryOfDay | null> => {
-			const cacheKey = `memory-of-day:${user?.id}:${new Date().toISOString().slice(0, 10)}`
+			const cacheKey = `memory-of-day:v2:${user?.id}:${new Date().toISOString().slice(0, 10)}`
 			try {
 				const stored = localStorage.getItem(cacheKey)
 				if (stored) return JSON.parse(stored) as MemoryOfDay
