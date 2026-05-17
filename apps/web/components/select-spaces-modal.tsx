@@ -19,6 +19,7 @@ import {
 	Loader,
 	Pencil,
 	Check,
+	Sparkles,
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -43,6 +44,7 @@ import {
 } from "@/lib/plugin-catalog"
 import { InstallSteps, PillButton } from "./integrations/install-steps"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
+import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -52,6 +54,7 @@ interface SelectSpacesModalProps {
 	projects: ContainerTagListType[]
 	recents?: string[]
 	showNewSpace?: boolean
+	includeAuto?: boolean
 	onNewSpace?: () => void
 	enableDelete?: boolean
 	onDeleteRequest?: (project: {
@@ -90,6 +93,7 @@ export function SelectSpacesModal({
 	projects,
 	recents,
 	showNewSpace = false,
+	includeAuto = false,
 	onNewSpace,
 	enableDelete = false,
 	onDeleteRequest,
@@ -198,6 +202,7 @@ export function SelectSpacesModal({
 
 	const defaultCategory = useMemo<CategoryId>(() => {
 		if (!currentSelection) return "all"
+		if (currentSelection === AUTO_CHAT_SPACE_ID) return "all"
 		const plugin = detectPluginSpace(currentSelection)
 		if (plugin) return `plugin:${plugin.pluginId}`
 		return "my"
@@ -380,6 +385,15 @@ export function SelectSpacesModal({
 		[onApply],
 	)
 
+	const handleSelectAuto = useCallback(() => {
+		setEditingProject(null)
+		setIsBulkDeleteMode(false)
+		setBulkDeleteTags(new Set())
+		setLastBulkDeleteTag(null)
+		onApply([AUTO_CHAT_SPACE_ID])
+		setSearchQuery("")
+	}, [onApply])
+
 	const handleBulkModeToggle = useCallback(() => {
 		setEditingProject(null)
 		setBulkDeleteTags(new Set())
@@ -477,6 +491,19 @@ export function SelectSpacesModal({
 				: filteredProjects,
 		[filteredProjects, recentSet],
 	)
+
+	const showAutoRow = useMemo(() => {
+		if (!includeAuto) return false
+		if (isBulkDeleteMode) return false
+		if (activeCategory !== "all" && activeCategory !== "my") return false
+		const query = searchQuery.trim().toLowerCase()
+		if (!query) return true
+		return (
+			"auto".includes(query) ||
+			"let nova choose the right spaces".includes(query) ||
+			"discover spaces".includes(query)
+		)
+	}, [includeAuto, isBulkDeleteMode, activeCategory, searchQuery])
 
 	const visibleBulkDeleteTags = useMemo(
 		() =>
@@ -742,6 +769,48 @@ export function SelectSpacesModal({
 		],
 	)
 
+	const renderAutoRow = useCallback(() => {
+		const isSelected = currentSelection === AUTO_CHAT_SPACE_ID
+		return (
+			<div
+				key={AUTO_CHAT_SPACE_ID}
+				className={cn(
+					"group flex min-w-0 max-w-full items-center gap-3 w-full px-3 py-2.5 rounded-[12px] transition-colors",
+					isSelected
+						? "bg-[#14161A] shadow-inside-out"
+						: "hover:bg-[#14161A]/50",
+				)}
+			>
+				<div
+					className={cn(
+						"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+						isSelected ? "border-[#4BA0FA]" : "border-[#737373]",
+					)}
+				>
+					{isSelected && <div className="w-2 h-2 rounded-full bg-[#4BA0FA]" />}
+				</div>
+				<button
+					type="button"
+					onClick={handleSelectAuto}
+					className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0"
+				>
+					<span
+						className="shrink-0 flex h-5 w-5 items-center justify-center rounded-[6px] bg-[#071B3A] text-[#4BA0FA]"
+						aria-hidden
+					>
+						<Sparkles className="size-3.5" />
+					</span>
+					<span className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium">
+						Auto
+						<span className="ml-1.5 text-[12px] text-[#737373]">
+							· Nova chooses spaces
+						</span>
+					</span>
+				</button>
+			</div>
+		)
+	}, [currentSelection, handleSelectAuto])
+
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
@@ -953,6 +1022,15 @@ export function SelectSpacesModal({
 										</p>
 									) : (
 										<div className="flex flex-col gap-1">
+											{showAutoRow && (
+												<>
+													<div className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+														Mode
+													</div>
+													{renderAutoRow()}
+													<div className="my-1.5 h-px bg-[rgba(82,89,102,0.18)]" />
+												</>
+											)}
 											{recentProjects.length > 0 && (
 												<>
 													<div className="flex items-center gap-1.5 px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">

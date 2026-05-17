@@ -1,41 +1,33 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
-import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import { useProject } from "@/stores"
-import { useContainerTags } from "@/hooks/use-container-tags"
-import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import type { ModelId } from "@/lib/models"
+import { SpaceSelector } from "@/components/space-selector"
 
 export function HomeChatComposer({
 	onStartChat,
 	className,
 }: {
-	onStartChat: (message: string, model: ModelId) => void
+	onStartChat: (message: string, model: ModelId, projectId: string) => void
 	className?: string
 }) {
 	const [input, setInput] = useState("")
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
 	const { selectedProject } = useProject()
-	const { allProjects } = useContainerTags()
-	const chatSpaceLabel = useMemo(
-		() =>
-			getChatSpaceDisplayLabel({
-				selectedProject,
-				allProjects,
-			}),
-		[selectedProject, allProjects],
-	)
+	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
+		selectedProject,
+	])
 
 	const send = useCallback(() => {
 		const t = input.trim()
 		if (!t) return
-		onStartChat(t, selectedModel)
+		onStartChat(t, selectedModel, chatSpaceProjects[0] ?? selectedProject)
 		setInput("")
-	}, [input, onStartChat, selectedModel])
+	}, [chatSpaceProjects, input, onStartChat, selectedModel, selectedProject])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -62,17 +54,13 @@ export function HomeChatComposer({
 								onModelChange={setSelectedModel}
 								minimal
 							/>
-							<div
-								className={cn(
-									"inline-flex max-w-[min(160px,35vw)] min-w-0 shrink items-center rounded-full bg-fg-primary/5 px-3 py-1.5",
-									dmSansClassName(),
-								)}
-								title={chatSpaceLabel}
-							>
-								<span className="truncate text-sm text-fg-primary">
-									{chatSpaceLabel}
-								</span>
-							</div>
+							<SpaceSelector
+								selectedProjects={chatSpaceProjects}
+								onValueChange={setChatSpaceProjects}
+								variant="insideOut"
+								includeAuto
+								triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
+							/>
 						</>
 					}
 				/>
