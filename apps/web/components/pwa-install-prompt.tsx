@@ -1,14 +1,19 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, type ReactNode } from "react"
+import Image from "next/image"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
-import { XIcon, Brain, Sparkles, Globe } from "lucide-react"
-import { GradientLogo } from "@ui/assets/Logo"
-import { AnimatePresence, motion } from "motion/react"
+import { XIcon, Check } from "lucide-react"
+import { Drawer, DrawerContent, DrawerTitle } from "@ui/components/drawer"
+import { Button } from "@ui/components/button"
 
 const PWA_DISMISS_KEY = "pwa-install-dismissed"
-const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000
+
+const INSET =
+	"shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+const CARD_INSET = "shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
 
 type DeviceInfo = {
 	isIOS: boolean
@@ -17,7 +22,6 @@ type DeviceInfo = {
 	isChrome: boolean
 }
 
-/** In-memory fallback when localStorage is unavailable */
 let memoryDismissed = false
 
 function getDeviceInfo(): DeviceInfo {
@@ -28,13 +32,9 @@ function getDeviceInfo(): DeviceInfo {
 		/iPad|iPhone|iPod/.test(ua) ||
 		(/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
 	const isAndroid = /Android/.test(ua)
-
-	// Safari: contains "Safari" but not "CriOS", "FxiOS", "Chrome", "Edg", etc.
 	const isSafari =
 		/Safari/.test(ua) && !/CriOS|FxiOS|Chrome|Chromium|Edg|OPR|Opera/.test(ua)
-	// Chrome on Android: contains "Chrome" but not "Edg", "OPR", "Opera"
 	const isChrome = /Chrome/.test(ua) && !/Edg|OPR|Opera/.test(ua)
-
 	return { isIOS, isAndroid, isSafari, isChrome }
 }
 
@@ -62,11 +62,108 @@ function isDismissed() {
 	}
 }
 
-const FEATURES = [
-	{ icon: Brain, label: "AI-powered memory" },
-	{ icon: Sparkles, label: "Chat with Nova" },
-	{ icon: Globe, label: "Access anywhere" },
+const BENEFITS = [
+	"Instant launch",
+	"Full-screen mode",
+	"Native-app feel",
+	"Stays signed in",
 ]
+
+type Step = {
+	title: string
+	description: ReactNode
+}
+
+function buildSteps(device: DeviceInfo): Step[] {
+	if (device.isIOS) {
+		if (device.isSafari) {
+			return [
+				{
+					title: "Open the share menu",
+					description: (
+						<>
+							Tap the share icon{" "}
+							<ShareIcon className="inline-block size-3.5 align-text-bottom mx-0.5 text-[#4BA0FA]" />{" "}
+							at the bottom of Safari.
+						</>
+					),
+				},
+				{
+					title: "Add to Home Screen",
+					description:
+						"Scroll down in the share sheet and tap Add to Home Screen.",
+				},
+				{
+					title: "Confirm",
+					description: "Tap Add in the top right to install.",
+				},
+			]
+		}
+		return [
+			{
+				title: "Open this page in Safari",
+				description:
+					"The install flow only works inside Safari on iPhone and iPad.",
+			},
+			{
+				title: "Open the share menu",
+				description: (
+					<>
+						Tap the share icon{" "}
+						<ShareIcon className="inline-block size-3.5 align-text-bottom mx-0.5 text-[#4BA0FA]" />{" "}
+						at the bottom.
+					</>
+				),
+			},
+			{
+				title: "Add to Home Screen",
+				description: "Choose Add to Home Screen and confirm.",
+			},
+		]
+	}
+	if (device.isChrome) {
+		return [
+			{
+				title: "Open the Chrome menu",
+				description: (
+					<>
+						Tap the menu icon{" "}
+						<MoreVertIcon className="inline-block size-3.5 align-text-bottom mx-0.5 text-[#4BA0FA]" />{" "}
+						in the top right.
+					</>
+				),
+			},
+			{
+				title: "Add to Home screen",
+				description: "Tap Add to Home screen from the menu.",
+			},
+			{
+				title: "Confirm",
+				description: "Tap Install to finish.",
+			},
+		]
+	}
+	return [
+		{
+			title: "Open this page in Chrome",
+			description: "Install works best from Chrome on Android.",
+		},
+		{
+			title: "Open the Chrome menu",
+			description: (
+				<>
+					Tap the menu icon{" "}
+					<MoreVertIcon className="inline-block size-3.5 align-text-bottom mx-0.5 text-[#4BA0FA]" />{" "}
+					in the top right.
+				</>
+			),
+		},
+		{
+			title: "Add to Home screen",
+			description: "Choose Add to Home screen and confirm.",
+		},
+	]
+}
 
 export function PWAInstallPrompt() {
 	const [show, setShow] = useState(false)
@@ -78,13 +175,11 @@ export function PWAInstallPrompt() {
 	})
 	const [nativePrompt, setNativePrompt] =
 		useState<BeforeInstallPromptEvent | null>(null)
-	const panelRef = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
 		const info = getDeviceInfo()
 		setDevice(info)
 
-		// Listen for the native install prompt (Chromium browsers on Android)
 		const handleBeforeInstall = (e: Event) => {
 			e.preventDefault()
 			setNativePrompt(e as BeforeInstallPromptEvent)
@@ -92,14 +187,12 @@ export function PWAInstallPrompt() {
 		window.addEventListener("beforeinstallprompt", handleBeforeInstall)
 
 		const isMobile = info.isIOS || info.isAndroid
+		let timer: ReturnType<typeof setTimeout> | undefined
 		if (isMobile && !isStandalone() && !isDismissed()) {
-			const timer = setTimeout(() => setShow(true), 1500)
-			return () => {
-				clearTimeout(timer)
-				window.removeEventListener("beforeinstallprompt", handleBeforeInstall)
-			}
+			timer = setTimeout(() => setShow(true), 1500)
 		}
 		return () => {
+			if (timer) clearTimeout(timer)
 			window.removeEventListener("beforeinstallprompt", handleBeforeInstall)
 		}
 	}, [])
@@ -112,258 +205,156 @@ export function PWAInstallPrompt() {
 		} catch {}
 	}, [])
 
-	// Escape key handler
-	useEffect(() => {
-		if (!show) return
-		const handler = (e: KeyboardEvent) => {
-			if (e.key === "Escape") dismiss()
-		}
-		document.addEventListener("keydown", handler)
-		return () => document.removeEventListener("keydown", handler)
-	}, [show, dismiss])
-
-	// Focus the panel when shown for accessibility
-	useEffect(() => {
-		if (show && panelRef.current) {
-			panelRef.current.focus()
-		}
-	}, [show])
-
 	const handleInstall = useCallback(async () => {
 		if (nativePrompt) {
 			nativePrompt.prompt()
-			const { outcome } = await nativePrompt.userChoice
-			if (outcome === "accepted") {
-				setShow(false)
-			}
+			await nativePrompt.userChoice
 			setNativePrompt(null)
 		}
 		dismiss()
 	}, [nativePrompt, dismiss])
 
-	/**
-	 * Determine which instructions to show:
-	 * - iOS + Safari → standard iOS steps
-	 * - iOS + non-Safari → "open in Safari" hint
-	 * - Android + Chrome (with native prompt) → trigger native install
-	 * - Android + Chrome (no native prompt) → manual Chrome steps
-	 * - Android + non-Chrome → "open in Chrome" hint
-	 */
-	const renderSteps = () => {
-		if (device.isIOS) {
-			if (device.isSafari) return <IOSSteps />
-			return <IOSNonSafariSteps />
-		}
-		// Android
-		if (device.isChrome) return <AndroidSteps />
-		return <AndroidNonChromeSteps />
-	}
+	const canNativeInstall = !!nativePrompt && device.isAndroid && device.isChrome
+	const steps = buildSteps(device)
 
 	return (
-		<AnimatePresence>
-			{show && (
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					transition={{ duration: 0.2 }}
-					className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-					onClick={dismiss}
+		<Drawer open={show} onOpenChange={(open) => !open && dismiss()}>
+			<DrawerContent
+				className={cn(
+					"flex flex-col gap-0 border-none bg-[#1B1F24] p-0",
+					"max-h-[92svh] overflow-hidden",
+					"[&>div:first-child]:bg-[#3A4252] [&>div:first-child]:h-1 [&>div:first-child]:w-9 [&>div:first-child]:mt-2.5 [&>div:first-child]:mb-1",
+					dmSansClassName(),
+				)}
+			>
+				<DrawerTitle className="sr-only">Install Supermemory</DrawerTitle>
+
+				<div
+					className={cn(
+						"flex flex-col gap-4 px-4 pt-3",
+						"pb-[max(1rem,env(safe-area-inset-bottom))]",
+					)}
 				>
-					<motion.div
-						ref={panelRef}
-						initial={{ y: "100%" }}
-						animate={{ y: 0 }}
-						exit={{ y: "100%" }}
-						transition={{ type: "spring", damping: 28, stiffness: 300 }}
-						onClick={(e) => e.stopPropagation()}
-						role="dialog"
-						aria-modal="true"
-						aria-labelledby="pwa-install-title"
-						tabIndex={-1}
+					<div className="flex items-start justify-between gap-3">
+						<div className="flex items-center gap-3 min-w-0">
+							<Image
+								src="/android-chrome-512x512.png"
+								alt=""
+								width={48}
+								height={48}
+								className="size-12 shrink-0"
+								priority
+							/>
+							<div className="min-w-0">
+								<h2
+									className={cn(
+										"text-[17px] font-semibold text-[#FAFAFA] leading-tight",
+										dmSans125ClassName(),
+									)}
+								>
+									Install Supermemory
+								</h2>
+								<p
+									className={cn(
+										"text-[13px] text-[#737373] leading-snug mt-0.5",
+										dmSans125ClassName(),
+									)}
+								>
+									Your memories, one tap away.
+								</p>
+							</div>
+						</div>
+						<button
+							type="button"
+							onClick={dismiss}
+							aria-label="Dismiss install prompt"
+							className={cn(
+								"size-7 shrink-0 flex items-center justify-center rounded-full bg-[#0D121A] transition-opacity hover:opacity-80",
+								INSET,
+							)}
+						>
+							<XIcon className="size-3.5 text-[#737373]" />
+						</button>
+					</div>
+
+					<div
 						className={cn(
-							"w-full max-w-lg bg-[#1B1F24] rounded-t-[22px] p-6 pb-8 flex flex-col gap-5 outline-none",
-							dmSansClassName(),
+							"rounded-[14px] bg-[#14161A] p-5 flex flex-col gap-5",
+							CARD_INSET,
 						)}
-						style={{
-							boxShadow:
-								"0 -4px 24px 0 rgba(0, 0, 0, 0.4), 0.5px 0.5px 0.5px 0 rgba(255, 255, 255, 0.08) inset",
-						}}
 					>
-						{/* Header */}
-						<div className="flex items-start justify-between">
-							<div className="flex items-center gap-3">
-								<div className="size-12 rounded-[12px] bg-[#0D121A] flex items-center justify-center border border-[rgba(115,115,115,0.15)]">
-									<GradientLogo className="size-7" />
-								</div>
-								<div>
-									<h2
-										id="pwa-install-title"
+						<div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
+							{BENEFITS.map((text) => (
+								<div key={text} className="flex items-start gap-2">
+									<Check className="size-4 shrink-0 text-[#4BA0FA] mt-0.5" />
+									<span
 										className={cn(
-											"text-[18px] font-semibold text-[#fafafa]",
+											"text-[13px] text-[#E4E4E7] leading-snug",
 											dmSans125ClassName(),
 										)}
 									>
-										Supermemory
-									</h2>
-									<p className="text-[14px] text-[#737373] font-medium">
-										Your memories, wherever you are
-									</p>
-								</div>
-							</div>
-							<button
-								type="button"
-								onClick={dismiss}
-								className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] shrink-0"
-								style={{
-									boxShadow:
-										"0 0.711px 2.842px 0 rgba(0, 0, 0, 0.25), 0.178px 0.178px 0.178px 0 rgba(255, 255, 255, 0.10) inset",
-								}}
-							>
-								<XIcon className="size-4 text-[#737373]" />
-								<span className="sr-only">Close</span>
-							</button>
-						</div>
-
-						{/* Feature pills */}
-						<div className="flex gap-2">
-							{FEATURES.map((f) => (
-								<div
-									key={f.label}
-									className="flex-1 flex flex-col items-center gap-2 py-3 px-2 rounded-[12px] bg-[#0D121A] border border-[rgba(115,115,115,0.1)]"
-								>
-									<f.icon className="size-5 text-[#4BA0FA]" />
-									<span className="text-[12px] text-[#d0dae7] font-medium text-center leading-tight">
-										{f.label}
+										{text}
 									</span>
 								</div>
 							))}
 						</div>
 
-						{/* Install steps */}
-						<div className="flex flex-col gap-3">
-							<p
-								className={cn(
-									"text-[15px] font-semibold text-[#fafafa]",
-									dmSans125ClassName(),
-								)}
-							>
-								Install for a better experience
-							</p>
-							{renderSteps()}
-						</div>
+						<div className="h-px bg-white/[0.06]" />
 
-						{/* Action */}
-						<div className="flex flex-col gap-2 mt-1">
-							<button
-								type="button"
-								onClick={
-									nativePrompt && device.isAndroid && device.isChrome
-										? handleInstall
-										: dismiss
-								}
-								className={cn(
-									"w-full py-3 rounded-[12px] bg-[#2261CA] text-white text-[15px] font-semibold transition-colors hover:bg-[#1a4fa0]",
-									dmSansClassName(),
-								)}
-							>
-								{nativePrompt && device.isAndroid && device.isChrome
-									? "Install now"
-									: "Got it"}
-							</button>
-						</div>
-					</motion.div>
-				</motion.div>
-			)}
-		</AnimatePresence>
-	)
-}
+						<ol className="flex min-w-0 flex-col">
+							{steps.map((step, i) => (
+								<li key={step.title} className="flex min-w-0 gap-3">
+									<div className="flex flex-col items-center">
+										<span
+											className={cn(
+												"flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold text-[#4BA0FA]",
+												INSET,
+											)}
+										>
+											{i + 1}
+										</span>
+										{i < steps.length - 1 && (
+											<span className="w-px flex-1 bg-white/[0.10] my-1" />
+										)}
+									</div>
+									<div
+										className={cn(
+											"min-w-0 flex-1 space-y-0.5",
+											i < steps.length - 1 ? "pb-4" : "",
+										)}
+									>
+										<p
+											className={cn(
+												"text-[13px] font-semibold text-[#FAFAFA] leading-tight",
+												dmSans125ClassName(),
+											)}
+										>
+											{step.title}
+										</p>
+										<p
+											className={cn(
+												"text-[12px] leading-relaxed text-[#A1A1AA]",
+												dmSans125ClassName(),
+											)}
+										>
+											{step.description}
+										</p>
+									</div>
+								</li>
+							))}
+						</ol>
+					</div>
 
-function StepRow({
-	step,
-	children,
-}: {
-	step: number
-	children: React.ReactNode
-}) {
-	return (
-		<div className="flex items-center gap-3">
-			<span className="size-7 shrink-0 rounded-full bg-[#0D121A] border border-[rgba(115,115,115,0.15)] flex items-center justify-center text-[13px] font-semibold text-[#4BA0FA]">
-				{step}
-			</span>
-			<span className="text-[14px] text-[#d0dae7]">{children}</span>
-		</div>
-	)
-}
-
-function IOSSteps() {
-	return (
-		<div className="flex flex-col gap-3">
-			<StepRow step={1}>
-				Tap the share button{" "}
-				<ShareIcon className="inline-block size-4 align-text-bottom mx-0.5 text-[#4BA0FA]" />{" "}
-				in Safari
-			</StepRow>
-			<StepRow step={2}>
-				Scroll down and tap{" "}
-				<strong className="text-[#fafafa]">Add to Home Screen</strong>
-			</StepRow>
-			<StepRow step={3}>
-				Tap <strong className="text-[#fafafa]">Add</strong> to install
-			</StepRow>
-		</div>
-	)
-}
-
-function IOSNonSafariSteps() {
-	return (
-		<div className="flex flex-col gap-3">
-			<StepRow step={1}>
-				Open this page in <strong className="text-[#fafafa]">Safari</strong>
-			</StepRow>
-			<StepRow step={2}>
-				Tap the share button{" "}
-				<ShareIcon className="inline-block size-4 align-text-bottom mx-0.5 text-[#4BA0FA]" />
-			</StepRow>
-			<StepRow step={3}>
-				Tap <strong className="text-[#fafafa]">Add to Home Screen</strong>
-			</StepRow>
-		</div>
-	)
-}
-
-function AndroidSteps() {
-	return (
-		<div className="flex flex-col gap-3">
-			<StepRow step={1}>
-				Tap the menu button{" "}
-				<MoreVertIcon className="inline-block size-4 align-text-bottom mx-0.5 text-[#4BA0FA]" />{" "}
-				in Chrome
-			</StepRow>
-			<StepRow step={2}>
-				Tap <strong className="text-[#fafafa]">Add to Home screen</strong>
-			</StepRow>
-			<StepRow step={3}>
-				Tap <strong className="text-[#fafafa]">Install</strong> to confirm
-			</StepRow>
-		</div>
-	)
-}
-
-function AndroidNonChromeSteps() {
-	return (
-		<div className="flex flex-col gap-3">
-			<StepRow step={1}>
-				Open this page in <strong className="text-[#fafafa]">Chrome</strong>
-			</StepRow>
-			<StepRow step={2}>
-				Tap the menu button{" "}
-				<MoreVertIcon className="inline-block size-4 align-text-bottom mx-0.5 text-[#4BA0FA]" />
-			</StepRow>
-			<StepRow step={3}>
-				Tap <strong className="text-[#fafafa]">Add to Home screen</strong>
-			</StepRow>
-		</div>
+					<Button
+						variant="insideOut"
+						onClick={canNativeInstall ? handleInstall : dismiss}
+						className={cn("h-12 w-full px-5 text-[15px]", dmSansClassName())}
+					>
+						{canNativeInstall ? "Install now" : "Got it"}
+					</Button>
+				</div>
+			</DrawerContent>
+		</Drawer>
 	)
 }
 
@@ -403,10 +394,6 @@ function MoreVertIcon({ className }: { className?: string }) {
 	)
 }
 
-/**
- * Type for the `beforeinstallprompt` event (not yet in TS lib).
- * @see https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent
- */
 interface BeforeInstallPromptEvent extends Event {
 	prompt(): Promise<void>
 	userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
