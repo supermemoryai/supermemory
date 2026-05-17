@@ -22,7 +22,6 @@ import {
 	ChevronDownIcon,
 	HistoryIcon,
 	Plus,
-	SearchIcon,
 	SquarePenIcon,
 	Trash2,
 	XIcon,
@@ -33,11 +32,11 @@ import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
 import { getNovaChatErrorCopy } from "@/lib/chat-stream-error"
-import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import { modelNames, type ModelId } from "@/lib/models"
+import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
@@ -49,50 +48,78 @@ import { analytics } from "@/lib/analytics"
 import { generateId } from "@lib/generate-id"
 import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
+import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 
-const DEFAULT_SUGGESTIONS = [
-	"Show me all content related to Supermemory.",
-	"Summarize the key ideas from My Gita.",
-	"Which memories connect design and AI?",
-	"What are the main themes across my memories?",
+const DEFAULT_CHAT_PROMPTS = [
+	"What do you know about me?",
+	"What have I been working on lately?",
+	"What themes keep showing up in my memories?",
 ]
+
+const chatEmptyCardClass = cn(
+	"flex min-h-[76px] flex-col justify-between rounded-lg border border-[#2B3038] bg-[#14161A]/95 p-3 text-left md:min-h-[88px]",
+	"shadow-[0_18px_50px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)]",
+	"transition-colors hover:border-[#3374FF]/55 hover:bg-[#1A1F26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3374FF]/70",
+)
 
 function ChatEmptyStatePlaceholder({
 	onSuggestionClick,
-	suggestions = DEFAULT_SUGGESTIONS,
+	suggestions = DEFAULT_CHAT_PROMPTS,
 }: {
 	onSuggestionClick: (suggestion: string) => void
 	suggestions?: string[]
 }) {
+	const promptCards = suggestions.slice(0, 3)
+
 	return (
 		<div
 			id="chat-empty-state"
-			className="flex flex-col items-center justify-center h-full"
+			className="relative flex min-h-full items-center justify-center overflow-hidden px-0 py-6 md:px-3"
 		>
-			<div className="relative size-32">
-				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-16" />
-				<LogoBgGradient className="size-full" />
-			</div>
-			<div className="gap-3 flex flex-col items-center justify-center">
-				<p>Ask me anything about your memories…</p>
-				<div
+			<div
+				className="pointer-events-none absolute inset-x-[-1rem] inset-y-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.28)_1px,transparent_1px)] bg-size-[32px_32px] opacity-80 mask-[radial-gradient(ellipse_at_center,black_52%,transparent_100%)]"
+				aria-hidden
+			/>
+			<div
+				className="pointer-events-none absolute inset-x-[-1rem] bottom-0 h-2/3 bg-[radial-gradient(ellipse_at_bottom,rgba(20,65,255,0.42),transparent_68%)]"
+				aria-hidden
+			/>
+			<div className="relative z-10 flex w-full max-w-xl flex-col items-center text-center">
+				<NovaOrb size={52} className="mb-3 blur-[1.5px]!" />
+				<h2
 					className={cn(
+						"mb-1 max-w-[420px] text-[24px] font-medium leading-[1.12] tracking-normal text-white md:text-[30px]",
 						dmSansClassName(),
-						"flex flex-col gap-2 justify-center items-center",
 					)}
 				>
-					{suggestions.map((suggestion) => (
-						<Button
+					Nova knows you.
+				</h2>
+				<p
+					className={cn(
+						"mb-4 max-w-[420px] text-[14px] leading-5 text-[#8B8B8B] md:text-[15px]",
+						dmSansClassName(),
+					)}
+				>
+					<span className="text-[#FAFAFA]">
+						Your personal memories are all here.
+					</span>{" "}
+					Chat with supermemory and ask about...
+				</p>
+				<div className="mb-3 grid w-full grid-cols-1 gap-2.5 sm:grid-cols-3">
+					{promptCards.map((suggestion, index) => (
+						<button
 							key={suggestion}
-							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit max-w-[400px] py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
+							type="button"
 							onClick={() => onSuggestionClick(suggestion)}
+							className={chatEmptyCardClass}
 						>
-							<SearchIcon className="size-4 text-[#267BF1] shrink-0" />
-							<span className="text-[#267BF1] text-[12px] truncate">
+							<span className="flex size-5 items-center justify-center rounded-full border border-[#3374FF]/35 bg-[#071B3A] text-[11px] font-medium text-[#4BA0FA]">
+								{index + 1}
+							</span>
+							<span className="mt-2 line-clamp-3 text-[13px] font-medium leading-[18px] text-white md:text-[14px] md:leading-5">
 								{suggestion}
 							</span>
-						</Button>
+						</button>
 					))}
 				</div>
 			</div>
@@ -150,6 +177,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
 	initialSelectedModel = null,
+	initialChatProject = null,
 	emptyStateSuggestions,
 	layout = "sidebar",
 }: {
@@ -160,6 +188,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
 	initialSelectedModel?: ModelId | null
+	initialChatProject?: string | null
 	emptyStateSuggestions?: string[]
 	layout?: "sidebar" | "page"
 }) {
@@ -196,16 +225,22 @@ export function ChatSidebar({
 	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
 	const targetHighlightChatIdRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
+	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
+		initialChatProject ?? selectedProject,
+	])
+	const chatProject = chatSpaceProjects[0] ?? selectedProject
 	const { allProjects } = useContainerTags()
-	const selectedProjectRef = useRef(selectedProject)
-	selectedProjectRef.current = selectedProject
+	const selectedProjectRef = useRef(chatProject)
+	selectedProjectRef.current = chatProject
 	const chatSpaceLabel = useMemo(
 		() =>
-			getChatSpaceDisplayLabel({
-				selectedProject,
-				allProjects,
-			}),
-		[selectedProject, allProjects],
+			chatProject === AUTO_CHAT_SPACE_ID
+				? "Auto"
+				: getChatSpaceDisplayLabel({
+						selectedProject: chatProject,
+						allProjects,
+					}),
+		[chatProject, allProjects],
 	)
 	const { viewMode } = useViewMode()
 	const { user: _user } = useAuth()
@@ -232,6 +267,12 @@ export function ChatSidebar({
 						metadata: {
 							chatId: chatIdRef.current,
 							projectId: selectedProjectRef.current,
+							spaceMode:
+								selectedProjectRef.current === AUTO_CHAT_SPACE_ID
+									? "auto"
+									: "manual",
+							enableSpaceDiscovery:
+								selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
 							model: selectedModelRef.current,
 						},
 					},
@@ -326,6 +367,25 @@ export function ChatSidebar({
 		scrollToBottom()
 	}
 
+	const handleSuggestedQuestion = useCallback(
+		(suggestion: string) => {
+			if (status === "submitted" || status === "streaming") return
+			if (!threadId) setThreadId(fallbackChatId)
+			analytics.chatSuggestedQuestionClicked()
+			analytics.chatMessageSent({ source: "suggested" })
+			sendMessage({ text: suggestion })
+			scrollToBottom()
+		},
+		[
+			fallbackChatId,
+			sendMessage,
+			setThreadId,
+			status,
+			threadId,
+			scrollToBottom,
+		],
+	)
+
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault()
@@ -394,7 +454,7 @@ export function ChatSidebar({
 		setIsLoadingThreads(true)
 		try {
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${selectedProject}`,
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${chatProject}`,
 				{ credentials: "include" },
 			)
 			if (response.ok) {
@@ -406,7 +466,7 @@ export function ChatSidebar({
 		} finally {
 			setIsLoadingThreads(false)
 		}
-	}, [selectedProject])
+	}, [chatProject])
 
 	useEffect(() => {
 		if (!isHistoryOpen) return
@@ -908,20 +968,13 @@ export function ChatSidebar({
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
 								/>
-								<div
-									className={cn(
-										"inline-flex h-10 max-w-[min(192px,42vw)] shrink min-w-0 items-center rounded-full border border-[#73737333] bg-[#0D121A] px-3",
-										dmSansClassName(),
-									)}
-									style={{
-										boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-									}}
-									title={chatSpaceLabel}
-								>
-									<span className="truncate text-sm text-white">
-										{chatSpaceLabel}
-									</span>
-								</div>
+								<SpaceSelector
+									selectedProjects={chatSpaceProjects}
+									onValueChange={setChatSpaceProjects}
+									variant="insideOut"
+									includeAuto
+									triggerClassName="h-10 min-h-10 max-w-[min(192px,42vw)] border border-[#73737333] bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset]"
+								/>
 							</>
 						)}
 					</div>
@@ -948,11 +1001,7 @@ export function ChatSidebar({
 				)}
 				{messages.length === 0 && (
 					<ChatEmptyStatePlaceholder
-						onSuggestionClick={(suggestion) => {
-							analytics.chatSuggestedQuestionClicked()
-							analytics.chatMessageSent({ source: "suggested" })
-							sendMessage({ text: suggestion })
-						}}
+						onSuggestionClick={handleSuggestedQuestion}
 						suggestions={emptyStateSuggestions}
 					/>
 				)}
@@ -1105,17 +1154,13 @@ export function ChatSidebar({
 									onModelChange={handleModelChange}
 									minimal
 								/>
-								<div
-									className={cn(
-										"inline-flex max-w-[min(160px,35vw)] shrink min-w-0 items-center rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5",
-										dmSansClassName(),
-									)}
-									title={chatSpaceLabel}
-								>
-									<span className="truncate text-sm text-[#FAFAFA]">
-										{chatSpaceLabel}
-									</span>
-								</div>
+								<SpaceSelector
+									selectedProjects={chatSpaceProjects}
+									onValueChange={setChatSpaceProjects}
+									variant="insideOut"
+									includeAuto
+									triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
+								/>
 							</>
 						) : undefined
 					}
@@ -1165,7 +1210,12 @@ export function ChatSidebar({
 			{chatHistorySheet}
 			{isPageDesktop ? (
 				<div className="flex h-full min-h-0 w-full flex-1 flex-row">
-					<ChatGraphContextRail messages={messages} />
+					<ChatGraphContextRail
+						messages={messages}
+						containerTags={
+							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
+						}
+					/>
 					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[720px] shrink-0 basis-[min(720px,50vw)] flex-col">
 						{pageDesktopToolbarRow}
 						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[720px] flex-1 flex-col">

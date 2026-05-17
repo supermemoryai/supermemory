@@ -329,7 +329,7 @@ export class SupermemoryClient {
 	async getDocuments(
 		containerTags?: string[],
 		page = 1,
-		limit = 200,
+		limit = 10,
 	): Promise<DocumentsApiResponse> {
 		try {
 			const response = await fetch(`${this.apiUrl}/v3/documents/documents`, {

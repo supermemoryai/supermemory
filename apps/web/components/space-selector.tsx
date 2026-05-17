@@ -7,8 +7,9 @@ import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
-import { XIcon, Loader2 } from "lucide-react"
+import { ChevronDownIcon, Sparkles, XIcon, Loader2 } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
+import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { AddSpaceModal } from "./add-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
@@ -46,6 +47,7 @@ export interface SpaceSelectorProps {
 	showNewSpace?: boolean
 	enableDelete?: boolean
 	compact?: boolean
+	includeAuto?: boolean
 }
 
 const triggerVariants = {
@@ -98,6 +100,7 @@ export function SpaceSelector({
 	showNewSpace = true,
 	enableDelete = false,
 	compact = false,
+	includeAuto = false,
 }: SpaceSelectorProps) {
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 	const [showSelectSpacesModal, setShowSelectSpacesModal] = useState(false)
@@ -142,7 +145,7 @@ export function SpaceSelector({
 			return data?.pagination?.totalItems ?? 0
 		},
 		staleTime: 30 * 1000,
-		enabled: !!activeTag,
+		enabled: !!activeTag && activeTag !== AUTO_CHAT_SPACE_ID,
 	})
 
 	const pluginTags = useMemo(
@@ -160,10 +163,14 @@ export function SpaceSelector({
 		name: string
 		emoji: string | null
 		plugin: ReturnType<typeof detectPluginSpace>
+		isAuto: boolean
 	}>(() => {
 		const containerTag = selectedProjects[0] ?? ""
+		if (includeAuto && containerTag === AUTO_CHAT_SPACE_ID) {
+			return { name: "Auto", emoji: null, plugin: null, isAuto: true }
+		}
 		if (!containerTag || containerTag === DEFAULT_PROJECT_ID) {
-			return { name: "My Space", emoji: "📁", plugin: null }
+			return { name: "My Space", emoji: "📁", plugin: null, isAuto: false }
 		}
 		const found = allProjects.find(
 			(p: ContainerTagListType) => p.containerTag === containerTag,
@@ -179,8 +186,9 @@ export function SpaceSelector({
 				: spaceSelectorDisplayName(found, containerTag),
 			emoji: found?.emoji || "📁",
 			plugin,
+			isAuto: false,
 		}
-	}, [allProjects, selectedProjects, pluginMetaMap])
+	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto])
 
 	const pushRecent = useCallback((tag: string) => {
 		setRecents((prev) => {
@@ -196,7 +204,7 @@ export function SpaceSelector({
 			const selectedTag = next[0]
 			setShowSelectSpacesModal(false)
 			onValueChange(next)
-			if (selectedTag) {
+			if (selectedTag && selectedTag !== AUTO_CHAT_SPACE_ID) {
 				queueMicrotask(() => {
 					analytics.spaceSwitched({ space_id: selectedTag })
 					pushRecent(selectedTag)
@@ -297,7 +305,9 @@ export function SpaceSelector({
 							triggerClassName,
 						)}
 					>
-						{displayInfo.plugin ? (
+						{displayInfo.isAuto ? (
+							<Sparkles className="size-3.5 shrink-0 text-[#4BA0FA]" />
+						) : displayInfo.plugin ? (
 							displayInfo.plugin.iconSrc ? (
 								<Image
 									src={displayInfo.plugin.iconSrc}
@@ -345,6 +355,12 @@ export function SpaceSelector({
 								· {formatCount(spaceCountData)}
 							</span>
 						)}
+						{!compact && (
+							<ChevronDownIcon
+								className="size-3.5 shrink-0 text-[#737373]"
+								aria-hidden
+							/>
+						)}
 						{compact && (
 							<span className="sr-only">
 								{isLoading ? "Loading" : displayInfo.name}
@@ -374,6 +390,7 @@ export function SpaceSelector({
 				projects={allProjects}
 				recents={recents}
 				showNewSpace={showNewSpace}
+				includeAuto={includeAuto}
 				onNewSpace={handleNewSpace}
 				enableDelete={enableDelete}
 				onDeleteRequest={handleDeleteRequest}

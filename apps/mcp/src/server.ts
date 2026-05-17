@@ -318,7 +318,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						? [effectiveContainerTag]
 						: undefined
 
-					const result = await client.getDocuments(containerTags, 1, 200)
+					const result = await client.getDocuments(containerTags, 1, 10)
 
 					const memoryCount = result.documents.reduce(
 						(sum, d) => sum + d.memoryEntries.length,
@@ -366,7 +366,7 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				inputSchema: z.object({
 					containerTag: z.string().optional(),
 					page: z.number().optional().default(1),
-					limit: z.number().optional().default(200),
+					limit: z.number().optional().default(10),
 				}),
 				_meta: {
 					ui: {

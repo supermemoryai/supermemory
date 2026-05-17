@@ -159,6 +159,9 @@ export default function NewPage() {
 	const [fullscreenInitialContent, setFullscreenInitialContent] = useState("")
 	const [queuedChatSeed, setQueuedChatSeed] = useState<string | null>(null)
 	const [queuedChatModel, setQueuedChatModel] = useState<ModelId | null>(null)
+	const [queuedChatProject, setQueuedChatProject] = useState<string | null>(
+		null,
+	)
 	const [queuedHighlightContent, setQueuedHighlightContent] = useState<
 		string | null
 	>(null)
@@ -473,6 +476,7 @@ export default function NewPage() {
 			setQueuedHighlightContent(highlightContent)
 			setQueuedChatSeed(userReply)
 			setQueuedChatModel(null)
+			setQueuedChatProject(null)
 			setQueuedMessageSource("highlight")
 			void setViewMode("chat")
 		},
@@ -480,10 +484,11 @@ export default function NewPage() {
 	)
 
 	const handleHomeChatStart = useCallback(
-		(message: string, model: ModelId) => {
+		(message: string, model: ModelId, projectId: string) => {
 			setQueuedHighlightContent(null)
 			setQueuedChatSeed(message)
 			setQueuedChatModel(model)
+			setQueuedChatProject(projectId)
 			setQueuedMessageSource("home")
 			void setViewMode("chat")
 		},
@@ -493,6 +498,7 @@ export default function NewPage() {
 	const consumeQueuedChat = useCallback(() => {
 		setQueuedChatSeed(null)
 		setQueuedChatModel(null)
+		setQueuedChatProject(null)
 		setQueuedHighlightContent(null)
 		setQueuedMessageSource("highlight")
 	}, [])
@@ -608,7 +614,7 @@ export default function NewPage() {
 											onConsumeQueuedMessage={consumeQueuedChat}
 											queuedMessageSource={queuedMessageSource}
 											initialSelectedModel={queuedChatModel}
-											emptyStateSuggestions={highlightsData?.questions}
+											initialChatProject={queuedChatProject}
 										/>
 									</div>
 								) : viewMode === "integrations" ? (
