@@ -46,6 +46,7 @@ import {
 import { InstallSteps, PillButton } from "./integrations/install-steps"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
+import NovaOrb from "@/components/nova/nova-orb"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -705,6 +706,8 @@ export function SelectSpacesModal({
 										{pluginInitial(plugin.label)}
 									</span>
 								)
+							) : isOwnSpace ? (
+								<NovaOrb size={20} className="shrink-0 blur-[0.55px]!" />
 							) : (
 								<span className="shrink-0 text-lg">
 									{project.emoji || "📁"}

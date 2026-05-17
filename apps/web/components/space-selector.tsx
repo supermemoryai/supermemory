@@ -35,10 +35,12 @@ import { useAuth } from "@lib/auth-context"
 import { analytics } from "@/lib/analytics"
 import {
 	compareSpacesUserFirst,
+	isOwnConversationSpace,
 	spaceSelectorDisplayName,
 } from "@/lib/ingest-auto-space"
 import { detectPluginSpace, pluginInitial } from "@/lib/plugin-space"
 import { usePluginSpaceMeta } from "@/hooks/use-plugin-space-meta"
+import NovaOrb from "@/components/nova/nova-orb"
 
 export interface SpaceSelectorProps {
 	selectedProjects: string[]
@@ -182,18 +184,32 @@ export function SpaceSelector({
 		emoji: string | null
 		plugin: ReturnType<typeof detectPluginSpace>
 		isAuto: boolean
+		isOwnSpace: boolean
 	}>(() => {
 		const containerTag = selectedProjects[0] ?? ""
 		if (includeAuto && containerTag === AUTO_CHAT_SPACE_ID) {
-			return { name: "Auto", emoji: null, plugin: null, isAuto: true }
+			return {
+				name: "Auto",
+				emoji: null,
+				plugin: null,
+				isAuto: true,
+				isOwnSpace: false,
+			}
 		}
 		if (!containerTag || containerTag === DEFAULT_PROJECT_ID) {
-			return { name: "My Space", emoji: "📁", plugin: null, isAuto: false }
+			return {
+				name: "My Space",
+				emoji: "📁",
+				plugin: null,
+				isAuto: false,
+				isOwnSpace: false,
+			}
 		}
 		const found = allProjects.find(
 			(p: ContainerTagListType) => p.containerTag === containerTag,
 		)
 		const plugin = detectPluginSpace(containerTag)
+		const isOwnSpace = isOwnConversationSpace({ containerTag }, user?.id)
 		const projectName = pluginMetaMap.get(containerTag)?.projectName
 		const idForLabel = projectName || plugin?.projectId
 		return {
@@ -207,6 +223,7 @@ export function SpaceSelector({
 			emoji: found?.emoji || "📁",
 			plugin,
 			isAuto: false,
+			isOwnSpace,
 		}
 	}, [allProjects, selectedProjects, pluginMetaMap, includeAuto, user?.id])
 
@@ -370,6 +387,11 @@ export function SpaceSelector({
 					>
 						{displayInfo.isAuto ? (
 							<Sparkles className="size-3.5 shrink-0 text-[#4BA0FA]" />
+						) : displayInfo.isOwnSpace ? (
+							<NovaOrb
+								size={compact ? 14 : 16}
+								className="shrink-0 blur-[0.45px]!"
+							/>
 						) : displayInfo.plugin ? (
 							displayInfo.plugin.iconSrc ? (
 								<Image
@@ -578,6 +600,7 @@ export function SpaceSelector({
 											{availableTargetProjects.map(
 												(p: ContainerTagListType) => {
 													const plugin = detectPluginSpace(p.containerTag)
+													const isOwnSpace = isOwnConversationSpace(p, user?.id)
 													return (
 														<SelectItem
 															key={p.id}
@@ -603,6 +626,11 @@ export function SpaceSelector({
 																			{pluginInitial(plugin.label)}
 																		</span>
 																	)
+																) : isOwnSpace ? (
+																	<NovaOrb
+																		size={16}
+																		className="shrink-0 blur-[0.45px]!"
+																	/>
 																) : (
 																	<span>{p.emoji || "📁"}</span>
 																)}

@@ -1,7 +1,7 @@
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { ContainerTagListType } from "@lib/types"
 
-export const OWN_CONVERSATIONS_SPACE_NAME = "Your conversations"
+export const OWN_CHAT_SPACE_NAME = "Nova chats"
 
 /**
  * Spaces auto-created on first ingest use `name === \`Space ${containerTag}\``
@@ -40,7 +40,7 @@ export function spaceSelectorDisplayName(
 ): string {
 	const containerTag = p?.containerTag ?? fallback
 	if (containerTag === options?.currentUserId) {
-		return OWN_CONVERSATIONS_SPACE_NAME
+		return OWN_CHAT_SPACE_NAME
 	}
 	if (!p) return fallback
 	const name = p.name ?? p.containerTag
