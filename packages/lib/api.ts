@@ -261,6 +261,17 @@ export const apiSchema = createSchema({
 			containerTag: z.string(),
 		}),
 	},
+	"@delete/container-tags/:containerTag": {
+		output: z.object({
+			success: z.boolean(),
+			containerTag: z.string(),
+			deletedDocumentsCount: z.number(),
+			deletedMemoriesCount: z.number(),
+		}),
+		params: z.object({
+			containerTag: z.string(),
+		}),
+	},
 	"@post/projects": {
 		input: CreateProjectSchema,
 		output: ProjectSchema,

@@ -7,7 +7,7 @@ import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
-import { XIcon, Loader2 } from "lucide-react"
+import { XIcon, Loader2, Trash2 } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
 import { AddSpaceModal } from "./add-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
@@ -60,6 +60,12 @@ const triggerVariants = {
 const RECENTS_KEY = "nova:space-selector:recents"
 const RECENTS_MAX = 10
 
+type DeleteProjectTarget = {
+	id: string
+	name: string
+	containerTag: string
+}
+
 function readRecents(): string[] {
 	if (typeof window === "undefined") return []
 	try {
@@ -104,7 +110,7 @@ export function SpaceSelector({
 	const [recents, setRecents] = useState<string[]>([])
 	const [deleteDialog, setDeleteDialog] = useState<{
 		open: boolean
-		project: { id: string; name: string; containerTag: string } | null
+		project: DeleteProjectTarget | null
 		action: "move" | "delete"
 		targetProjectId: string
 	}>({
@@ -113,8 +119,18 @@ export function SpaceSelector({
 		action: "move",
 		targetProjectId: "",
 	})
+	const [bulkDeleteDialog, setBulkDeleteDialog] = useState<{
+		open: boolean
+		projects: DeleteProjectTarget[]
+		confirmation: string
+	}>({
+		open: false,
+		projects: [],
+		confirmation: "",
+	})
 
-	const { deleteProjectMutation } = useProjectMutations()
+	const { deleteProjectMutation, deleteProjectsMutation } =
+		useProjectMutations()
 	const { allProjects, isLoading } = useContainerTags()
 
 	useEffect(() => {
@@ -211,14 +227,24 @@ export function SpaceSelector({
 		setShowCreateDialog(true)
 	}, [])
 
-	const handleDeleteRequest = useCallback(
-		(project: { id: string; name: string; containerTag: string }) => {
+	const handleDeleteRequest = useCallback((project: DeleteProjectTarget) => {
+		setShowSelectSpacesModal(false)
+		setDeleteDialog({
+			open: true,
+			project,
+			action: "move",
+			targetProjectId: "",
+		})
+	}, [])
+
+	const handleBulkDeleteRequest = useCallback(
+		(projects: DeleteProjectTarget[]) => {
+			if (projects.length === 0) return
 			setShowSelectSpacesModal(false)
-			setDeleteDialog({
+			setBulkDeleteDialog({
 				open: true,
-				project,
-				action: "move",
-				targetProjectId: "",
+				projects,
+				confirmation: "",
 			})
 		},
 		[],
@@ -229,6 +255,7 @@ export function SpaceSelector({
 		deleteProjectMutation.mutate(
 			{
 				projectId: deleteDialog.project.id,
+				containerTag: deleteDialog.project.containerTag,
 				action: deleteDialog.action,
 				targetProjectId:
 					deleteDialog.action === "move"
@@ -255,6 +282,38 @@ export function SpaceSelector({
 			action: "move",
 			targetProjectId: "",
 		})
+	}
+
+	const handleBulkDeleteCancel = () => {
+		setBulkDeleteDialog({
+			open: false,
+			projects: [],
+			confirmation: "",
+		})
+	}
+
+	const handleBulkDeleteConfirm = () => {
+		if (
+			bulkDeleteDialog.confirmation !== "DELETE" ||
+			bulkDeleteDialog.projects.length === 0
+		) {
+			return
+		}
+
+		deleteProjectsMutation.mutate(
+			{
+				projects: bulkDeleteDialog.projects,
+			},
+			{
+				onSettled: () => {
+					setBulkDeleteDialog({
+						open: false,
+						projects: [],
+						confirmation: "",
+					})
+				},
+			},
+		)
 	}
 
 	const availableTargetProjects = useMemo(() => {
@@ -377,6 +436,7 @@ export function SpaceSelector({
 				onNewSpace={handleNewSpace}
 				enableDelete={enableDelete}
 				onDeleteRequest={handleDeleteRequest}
+				onBulkDeleteRequest={handleBulkDeleteRequest}
 			/>
 
 			<Dialog
@@ -628,6 +688,129 @@ export function SpaceSelector({
 									"Move & Delete"
 								) : (
 									"Delete Everything"
+								)}
+							</Button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog
+				open={bulkDeleteDialog.open}
+				onOpenChange={(open: boolean) => {
+					if (!open) handleBulkDeleteCancel()
+				}}
+			>
+				<DialogContent
+					className={cn(
+						"w-[90%]! max-w-[520px]! border-none bg-[#1B1F24] flex flex-col p-4 gap-4 rounded-[22px]",
+						dmSansClassName(),
+					)}
+					style={{
+						boxShadow:
+							"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+					}}
+					showCloseButton={false}
+				>
+					<div className="flex flex-col gap-4">
+						<div className="flex justify-between items-start gap-4">
+							<div className="pl-1 space-y-1 flex-1">
+								<DialogTitle
+									className={cn(
+										"font-semibold text-[#fafafa]",
+										dmSans125ClassName(),
+									)}
+								>
+									Delete {bulkDeleteDialog.projects.length}{" "}
+									{bulkDeleteDialog.projects.length === 1 ? "space" : "spaces"}?
+								</DialogTitle>
+								<DialogDescription className="text-[#737373] font-medium text-[15px] leading-[1.4]">
+									This permanently deletes the selected container tags and every
+									document and memory inside them. This cannot be undone.
+								</DialogDescription>
+							</div>
+							<DialogPrimitive.Close
+								className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+								style={{
+									boxShadow:
+										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+								}}
+							>
+								<XIcon stroke="#737373" />
+								<span className="sr-only">Close</span>
+							</DialogPrimitive.Close>
+						</div>
+
+						<div className="rounded-[12px] bg-[#14161A] p-3 shadow-inside-out">
+							<div className="max-h-36 space-y-1 overflow-y-auto pr-1 scrollbar-thin">
+								{bulkDeleteDialog.projects.slice(0, 8).map((project) => (
+									<div
+										key={project.containerTag}
+										className="flex min-w-0 items-center gap-2 text-[13px] text-[#fafafa]"
+									>
+										<Trash2 className="size-3.5 shrink-0 text-red-400" />
+										<span className="truncate">{project.name}</span>
+									</div>
+								))}
+								{bulkDeleteDialog.projects.length > 8 && (
+									<p className="text-[12px] text-[#737373]">
+										+{bulkDeleteDialog.projects.length - 8} more
+									</p>
+								)}
+							</div>
+						</div>
+
+						<label className="space-y-2">
+							<span className="block text-[13px] font-medium text-[#FAFAFA]">
+								Type DELETE to confirm
+							</span>
+							<input
+								type="text"
+								value={bulkDeleteDialog.confirmation}
+								onChange={(e) =>
+									setBulkDeleteDialog((prev) => ({
+										...prev,
+										confirmation: e.target.value,
+									}))
+								}
+								className={cn(
+									"w-full rounded-[12px] border border-[rgba(82,89,102,0.35)] bg-[#0D121A] px-3 py-2.5 text-sm font-medium text-[#fafafa] shadow-inside-out placeholder:text-[#737373] focus:outline-none focus:ring-1 focus:ring-red-400/40",
+									dmSansClassName(),
+								)}
+								placeholder="DELETE"
+								autoComplete="off"
+							/>
+						</label>
+
+						<div className="flex items-center justify-end gap-[22px]">
+							<button
+								type="button"
+								onClick={handleBulkDeleteCancel}
+								disabled={deleteProjectsMutation.isPending}
+								className={cn(
+									"text-[#737373] font-medium text-[14px] cursor-pointer transition-colors hover:text-[#999]",
+									dmSansClassName(),
+								)}
+							>
+								Cancel
+							</button>
+							<Button
+								variant="insideOut"
+								onClick={handleBulkDeleteConfirm}
+								disabled={
+									deleteProjectsMutation.isPending ||
+									bulkDeleteDialog.confirmation !== "DELETE" ||
+									bulkDeleteDialog.projects.length === 0
+								}
+								className="rounded-full bg-red-600 px-4 py-[10px] hover:bg-red-700 border-red-700"
+							>
+								{deleteProjectsMutation.isPending ? (
+									<>
+										<Loader2 className="size-4 animate-spin mr-2" />
+										Deleting...
+									</>
+								) : (
+									"Delete permanently"
 								)}
 							</Button>
 						</div>
