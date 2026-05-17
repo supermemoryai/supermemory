@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import { XIcon, Brain, Sparkles, Globe } from "lucide-react"
@@ -10,14 +10,32 @@ import { AnimatePresence, motion } from "motion/react"
 const PWA_DISMISS_KEY = "pwa-install-dismissed"
 const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
-function getDeviceInfo() {
-	if (typeof window === "undefined") return { isIOS: false, isAndroid: false }
+type DeviceInfo = {
+	isIOS: boolean
+	isAndroid: boolean
+	isSafari: boolean
+	isChrome: boolean
+}
+
+/** In-memory fallback when localStorage is unavailable */
+let memoryDismissed = false
+
+function getDeviceInfo(): DeviceInfo {
+	if (typeof window === "undefined")
+		return { isIOS: false, isAndroid: false, isSafari: false, isChrome: false }
 	const ua = navigator.userAgent
 	const isIOS =
 		/iPad|iPhone|iPod/.test(ua) ||
-		(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+		(/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
 	const isAndroid = /Android/.test(ua)
-	return { isIOS, isAndroid }
+
+	// Safari: contains "Safari" but not "CriOS", "FxiOS", "Chrome", "Edg", etc.
+	const isSafari =
+		/Safari/.test(ua) && !/CriOS|FxiOS|Chrome|Chromium|Edg|OPR|Opera/.test(ua)
+	// Chrome on Android: contains "Chrome" but not "Edg", "OPR", "Opera"
+	const isChrome = /Chrome/.test(ua) && !/Edg|OPR|Opera/.test(ua)
+
+	return { isIOS, isAndroid, isSafari, isChrome }
 }
 
 function isStandalone() {
@@ -31,6 +49,7 @@ function isStandalone() {
 
 function isDismissed() {
 	if (typeof window === "undefined") return true
+	if (memoryDismissed) return true
 	try {
 		const dismissed = localStorage.getItem(PWA_DISMISS_KEY)
 		if (!dismissed) return false
@@ -51,27 +70,94 @@ const FEATURES = [
 
 export function PWAInstallPrompt() {
 	const [show, setShow] = useState(false)
-	const [device, setDevice] = useState<{ isIOS: boolean; isAndroid: boolean }>({
+	const [device, setDevice] = useState<DeviceInfo>({
 		isIOS: false,
 		isAndroid: false,
+		isSafari: false,
+		isChrome: false,
 	})
+	const [nativePrompt, setNativePrompt] =
+		useState<BeforeInstallPromptEvent | null>(null)
+	const panelRef = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
 		const info = getDeviceInfo()
 		setDevice(info)
+
+		// Listen for the native install prompt (Chromium browsers on Android)
+		const handleBeforeInstall = (e: Event) => {
+			e.preventDefault()
+			setNativePrompt(e as BeforeInstallPromptEvent)
+		}
+		window.addEventListener("beforeinstallprompt", handleBeforeInstall)
+
 		const isMobile = info.isIOS || info.isAndroid
 		if (isMobile && !isStandalone() && !isDismissed()) {
 			const timer = setTimeout(() => setShow(true), 1500)
-			return () => clearTimeout(timer)
+			return () => {
+				clearTimeout(timer)
+				window.removeEventListener("beforeinstallprompt", handleBeforeInstall)
+			}
+		}
+		return () => {
+			window.removeEventListener("beforeinstallprompt", handleBeforeInstall)
 		}
 	}, [])
 
 	const dismiss = useCallback(() => {
 		setShow(false)
+		memoryDismissed = true
 		try {
 			localStorage.setItem(PWA_DISMISS_KEY, Date.now().toString())
 		} catch {}
 	}, [])
+
+	// Escape key handler
+	useEffect(() => {
+		if (!show) return
+		const handler = (e: KeyboardEvent) => {
+			if (e.key === "Escape") dismiss()
+		}
+		document.addEventListener("keydown", handler)
+		return () => document.removeEventListener("keydown", handler)
+	}, [show, dismiss])
+
+	// Focus the panel when shown for accessibility
+	useEffect(() => {
+		if (show && panelRef.current) {
+			panelRef.current.focus()
+		}
+	}, [show])
+
+	const handleInstall = useCallback(async () => {
+		if (nativePrompt) {
+			nativePrompt.prompt()
+			const { outcome } = await nativePrompt.userChoice
+			if (outcome === "accepted") {
+				setShow(false)
+			}
+			setNativePrompt(null)
+		}
+		dismiss()
+	}, [nativePrompt, dismiss])
+
+	/**
+	 * Determine which instructions to show:
+	 * - iOS + Safari → standard iOS steps
+	 * - iOS + non-Safari → "open in Safari" hint
+	 * - Android + Chrome (with native prompt) → trigger native install
+	 * - Android + Chrome (no native prompt) → manual Chrome steps
+	 * - Android + non-Chrome → "open in Chrome" hint
+	 */
+	const renderSteps = () => {
+		if (device.isIOS) {
+			if (device.isSafari) return <IOSSteps />
+			return <IOSNonSafariSteps />
+		}
+		// Android
+		if (device.isChrome) return <AndroidSteps />
+		return <AndroidNonChromeSteps />
+	}
 
 	return (
 		<AnimatePresence>
@@ -85,13 +171,18 @@ export function PWAInstallPrompt() {
 					onClick={dismiss}
 				>
 					<motion.div
+						ref={panelRef}
 						initial={{ y: "100%" }}
 						animate={{ y: 0 }}
 						exit={{ y: "100%" }}
 						transition={{ type: "spring", damping: 28, stiffness: 300 }}
 						onClick={(e) => e.stopPropagation()}
+						role="dialog"
+						aria-modal="true"
+						aria-labelledby="pwa-install-title"
+						tabIndex={-1}
 						className={cn(
-							"w-full max-w-lg bg-[#1B1F24] rounded-t-[22px] p-6 pb-8 flex flex-col gap-5",
+							"w-full max-w-lg bg-[#1B1F24] rounded-t-[22px] p-6 pb-8 flex flex-col gap-5 outline-none",
 							dmSansClassName(),
 						)}
 						style={{
@@ -107,6 +198,7 @@ export function PWAInstallPrompt() {
 								</div>
 								<div>
 									<h2
+										id="pwa-install-title"
 										className={cn(
 											"text-[18px] font-semibold text-[#fafafa]",
 											dmSans125ClassName(),
@@ -158,30 +250,26 @@ export function PWAInstallPrompt() {
 							>
 								Install for a better experience
 							</p>
-							{device.isIOS ? <IOSSteps /> : <AndroidSteps />}
+							{renderSteps()}
 						</div>
 
-						{/* Actions */}
+						{/* Action */}
 						<div className="flex flex-col gap-2 mt-1">
 							<button
 								type="button"
-								onClick={dismiss}
+								onClick={
+									nativePrompt && device.isAndroid && device.isChrome
+										? handleInstall
+										: dismiss
+								}
 								className={cn(
 									"w-full py-3 rounded-[12px] bg-[#2261CA] text-white text-[15px] font-semibold transition-colors hover:bg-[#1a4fa0]",
 									dmSansClassName(),
 								)}
 							>
-								Got it
-							</button>
-							<button
-								type="button"
-								onClick={dismiss}
-								className={cn(
-									"w-full py-2 text-[14px] text-[#737373] font-medium transition-colors hover:text-[#fafafa]",
-									dmSansClassName(),
-								)}
-							>
-								Not now
+								{nativePrompt && device.isAndroid && device.isChrome
+									? "Install now"
+									: "Got it"}
 							</button>
 						</div>
 					</motion.div>
@@ -227,6 +315,23 @@ function IOSSteps() {
 	)
 }
 
+function IOSNonSafariSteps() {
+	return (
+		<div className="flex flex-col gap-3">
+			<StepRow step={1}>
+				Open this page in <strong className="text-[#fafafa]">Safari</strong>
+			</StepRow>
+			<StepRow step={2}>
+				Tap the share button{" "}
+				<ShareIcon className="inline-block size-4 align-text-bottom mx-0.5 text-[#4BA0FA]" />
+			</StepRow>
+			<StepRow step={3}>
+				Tap <strong className="text-[#fafafa]">Add to Home Screen</strong>
+			</StepRow>
+		</div>
+	)
+}
+
 function AndroidSteps() {
 	return (
 		<div className="flex flex-col gap-3">
@@ -240,6 +345,23 @@ function AndroidSteps() {
 			</StepRow>
 			<StepRow step={3}>
 				Tap <strong className="text-[#fafafa]">Install</strong> to confirm
+			</StepRow>
+		</div>
+	)
+}
+
+function AndroidNonChromeSteps() {
+	return (
+		<div className="flex flex-col gap-3">
+			<StepRow step={1}>
+				Open this page in <strong className="text-[#fafafa]">Chrome</strong>
+			</StepRow>
+			<StepRow step={2}>
+				Tap the menu button{" "}
+				<MoreVertIcon className="inline-block size-4 align-text-bottom mx-0.5 text-[#4BA0FA]" />
+			</StepRow>
+			<StepRow step={3}>
+				Tap <strong className="text-[#fafafa]">Add to Home screen</strong>
 			</StepRow>
 		</div>
 	)
@@ -279,4 +401,19 @@ function MoreVertIcon({ className }: { className?: string }) {
 			<circle cx="12" cy="19" r="2" />
 		</svg>
 	)
+}
+
+/**
+ * Type for the `beforeinstallprompt` event (not yet in TS lib).
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent
+ */
+interface BeforeInstallPromptEvent extends Event {
+	prompt(): Promise<void>
+	userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
+}
+
+declare global {
+	interface WindowEventMap {
+		beforeinstallprompt: BeforeInstallPromptEvent
+	}
 }
