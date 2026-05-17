@@ -1,13 +1,13 @@
-import { cn } from "@lib/utils";
-import { Input } from "@ui/components/input";
-import { Label1Regular } from "@ui/text/label/label-1-regular";
+import { cn } from "@lib/utils"
+import { Input } from "@ui/components/input"
+import { Label1Regular } from "@ui/text/label/label-1-regular"
 
 interface LabeledInputProps extends React.ComponentProps<"div"> {
-	label?: string;
-	inputType: string;
-	inputPlaceholder: string;
-	error?: string | null;
-	inputProps?: React.ComponentProps<typeof Input>;
+	label?: string
+	inputType: string
+	inputPlaceholder: string
+	error?: string | null
+	inputProps?: React.ComponentProps<typeof Input>
 }
 
 export function LabeledInput({
@@ -47,5 +47,5 @@ export function LabeledInput({
 				</p>
 			)}
 		</div>
-	);
+	)
 }

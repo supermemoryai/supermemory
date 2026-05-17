@@ -77,7 +77,7 @@ export function SyncStatusBadge({
 						"font-medium text-[13px] tracking-[-0.13px] text-[#EF4444]",
 					)}
 				>
-					Disconnected
+					Needs reauth
 				</span>
 			)}
 			{status === "idle" && (

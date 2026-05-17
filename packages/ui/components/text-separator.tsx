@@ -1,7 +1,7 @@
-import { cn } from "@lib/utils";
+import { cn } from "@lib/utils"
 
 interface TextSeparatorProps extends React.ComponentProps<"div"> {
-	text: string;
+	text: string
 }
 
 export function TextSeparator({
@@ -18,5 +18,5 @@ export function TextSeparator({
 				{text}
 			</span>
 		</div>
-	);
+	)
 }

@@ -139,7 +139,7 @@ export function ChatLaunchFab({
 			className={cn(
 				"flex items-start justify-start pointer-events-none",
 				isMobile
-					? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
+					? "fixed bottom-safe-5 right-0 left-0 z-50 justify-center items-center pl-safe pr-safe"
 					: "fixed z-20 top-24 right-4 md:right-6",
 				dmSansClassName(),
 			)}
@@ -793,7 +793,7 @@ export function ChatSidebar({
 			<SheetContent
 				side="right"
 				className={cn(
-					"flex h-full max-h-dvh w-full flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 text-white sm:max-w-md",
+					"flex h-full max-h-dvh w-[min(100%,92vw)] flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 pb-safe text-white sm:max-w-md",
 					"[&>button]:text-[#FAFAFA]",
 					dmSansClassName(),
 				)}
@@ -1185,10 +1185,10 @@ export function ChatSidebar({
 			className={cn(
 				"relative flex flex-col backdrop-blur-md",
 				isMobile
-					? "fixed inset-0 z-50 m-0 h-dvh w-full rounded-none"
+					? "fixed inset-0 z-50 m-0 h-dvh w-full rounded-none pb-safe"
 					: isPageDesktop
 						? "flex h-full min-h-0 w-full min-w-0 flex-1 flex-col basis-0 rounded-none border-x-0"
-						: "m-4 mt-2 w-[450px] rounded-2xl",
+						: "m-4 mt-2 w-[min(450px,calc(100vw-2rem))] md:w-[380px] lg:w-[450px] rounded-2xl",
 				dmSansClassName(),
 			)}
 			style={
@@ -1226,9 +1226,9 @@ export function ChatSidebar({
 							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
 						}
 					/>
-					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[720px] shrink-0 basis-[min(720px,50vw)] flex-col">
+					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
 						{pageDesktopToolbarRow}
-						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[720px] flex-1 flex-col">
+						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] flex-1 flex-col px-3 sm:px-4 md:px-0">
 							{shell}
 						</div>
 					</div>

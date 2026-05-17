@@ -34,6 +34,7 @@ import {
 import { RemoveConnectionDialog } from "@/components/remove-connection-dialog"
 import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
 import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
+import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
@@ -89,11 +90,6 @@ function getConnectionMeta(connection: Connection) {
 	}
 }
 
-/** Check if a connection's auth token has expired. */
-function isConnectionExpired(connection: Connection): boolean {
-	return !!connection.expiresAt && new Date(connection.expiresAt) <= new Date()
-}
-
 function ConnectionRow({
 	connection,
 	onDelete,
@@ -101,6 +97,8 @@ function ConnectionRow({
 	projects,
 	onTriggerSync,
 	isSyncing,
+	onReconnect,
+	isReconnecting,
 }: {
 	connection: Connection
 	onDelete: () => void
@@ -108,14 +106,17 @@ function ConnectionRow({
 	projects: Project[]
 	onTriggerSync: () => void
 	isSyncing: boolean
+	onReconnect: () => void
+	isReconnecting: boolean
 }) {
 	const [historyOpen, setHistoryOpen] = useState(false)
 	const config = CONNECTORS[connection.provider as ConnectorProvider]
+	const { needsReauth } = useConnectionHealth(connection.id)
 	if (!config) return null
 
 	const Icon = config.icon
 	const meta = getConnectionMeta(connection)
-	const expired = isConnectionExpired(connection)
+	const expired = needsReauth
 
 	const getProjectName = (tag: string): string => {
 		if (tag === DEFAULT_PROJECT_ID) return "Default"
@@ -137,14 +138,14 @@ function ConnectionRow({
 			)}
 		>
 			<div className="flex flex-col gap-3">
-				<div className="flex items-center gap-4">
+				<div className="flex items-center gap-3">
 					<Icon className="size-6 shrink-0" />
-					<div className="flex-1 flex flex-col gap-1">
-						<div className="flex items-center gap-3">
+					<div className="min-w-0 flex-1 flex flex-col gap-1">
+						<div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
 							<span
 								className={cn(
 									dmSans125ClassName(),
-									"font-medium text-[16px] text-[#FAFAFA]",
+									"truncate font-medium text-[16px] text-[#FAFAFA]",
 								)}
 							>
 								{config.title}
@@ -156,41 +157,54 @@ function ConnectionRow({
 							/>
 						</div>
 						<span
-							className={cn(dmSans125ClassName(), "text-[14px] text-[#737373]")}
+							className={cn(
+								dmSans125ClassName(),
+								"truncate text-[14px] text-[#737373]",
+							)}
 						>
 							{connection.email || "Unknown"}
 						</span>
 					</div>
-					<div className="flex items-center gap-0.5">
-						<button
-							type="button"
-							onClick={(e) => {
-								e.stopPropagation()
-								onTriggerSync()
-							}}
-							disabled={isSyncing || expired}
-							className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
-							aria-label={
-								expired
-									? "Connection expired"
-									: isSyncing
-										? "Sync in progress"
-										: "Sync now"
-							}
-							title={
-								expired
-									? "Reconnect to sync"
-									: isSyncing
-										? "Sync in progress"
-										: "Sync now"
-							}
-						>
-							{isSyncing ? (
-								<Loader2 className="size-[18px] animate-spin" />
-							) : (
-								<Play className="size-[18px]" />
-							)}
-						</button>
+					<div className="flex shrink-0 items-center gap-0.5">
+						{expired ? (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation()
+									onReconnect()
+								}}
+								disabled={isReconnecting}
+								className={cn(
+									dmSans125ClassName(),
+									"flex items-center gap-1.5 rounded-full bg-[#EF4444]/15 px-3 py-1.5 text-[12px] font-medium text-[#EF4444] transition-colors hover:bg-[#EF4444]/25 disabled:opacity-60 disabled:cursor-not-allowed",
+								)}
+								aria-label="Reconnect"
+							>
+								{isReconnecting ? (
+									<Loader2 className="size-[14px] animate-spin" />
+								) : (
+									"Reconnect"
+								)}
+							</button>
+						) : (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation()
+									onTriggerSync()
+								}}
+								disabled={isSyncing}
+								className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+								aria-label={isSyncing ? "Sync in progress" : "Sync now"}
+								title={isSyncing ? "Sync in progress" : "Sync now"}
+							>
+								{isSyncing ? (
+									<Loader2 className="size-[18px] animate-spin" />
+								) : (
+									<Play className="size-[18px]" />
+								)}
+							</button>
+						)}
 						<button
 							type="button"
 							onClick={(e) => {
@@ -411,6 +425,42 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		},
 	})
 
+	const reconnectMutation = useMutation({
+		mutationFn: async ({
+			connectionId: _connectionId,
+			provider,
+			containerTags,
+		}: {
+			connectionId: string
+			provider: ConnectorProvider
+			containerTags: string[] | undefined
+		}) => {
+			const response = await $fetch("@post/connections/:provider", {
+				params: { provider },
+				body: {
+					redirectUrl: window.location.href,
+					containerTags: containerTags ?? [selectedProject],
+				},
+			})
+			if ("data" in response && response.data && !("error" in response.data)) {
+				return response.data
+			}
+			throw new Error(response.error?.message || "Failed to reconnect")
+		},
+		onSuccess: (data) => {
+			if (data?.authLink) {
+				window.location.href = data.authLink
+				return
+			}
+			toast.error("Reconnect link missing — try again.")
+		},
+		onError: (error) => {
+			toast.error("Failed to reconnect", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+	})
+
 	const deleteConnectionMutation = useMutation({
 		mutationFn: async ({
 			connectionId,
@@ -454,7 +504,7 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 		connectingProvider !== null || addConnectionMutation.isPending
 
 	return (
-		<div className="h-full flex flex-col pt-4 space-y-4">
+		<div className="h-full flex flex-col pt-0 space-y-4 md:pt-4">
 			{/* Top header — only when empty; once connected, the Add CTA moves into the list header below */}
 			{!hasConnections && (
 				<div className="flex items-center justify-between px-2">
@@ -571,13 +621,16 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			{/* Connected list - rich rows with status / project / last sync / doc count */}
 			{hasConnections && (
 				<div className="flex flex-col gap-3">
-					<div className="flex items-center justify-between gap-3 px-1">
-						<div className="flex flex-col gap-0.5">
+					<div className="flex items-center justify-between gap-2 px-1">
+						<div className="flex min-w-0 flex-col gap-0.5">
 							<div className="flex items-center gap-2">
-								<p className="text-[16px] font-semibold">
-									Connected to Supermemory
+								<p className="truncate text-[16px] font-semibold">
+									<span className="hidden sm:inline">
+										Connected to Supermemory
+									</span>
+									<span className="sm:hidden">Connections</span>
 								</p>
-								<span className="bg-[#4BA0FA] text-black text-[10px] font-bold px-1 py-[2px] rounded-[3px]">
+								<span className="shrink-0 bg-[#4BA0FA] text-black text-[10px] font-bold px-1 py-[2px] rounded-[3px]">
 									PRO
 								</span>
 							</div>
@@ -593,13 +646,16 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 								<button
 									type="button"
 									disabled={!isProUser || isAnyConnecting}
-									className="flex items-center gap-1.5 bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium rounded-full h-8 px-3 transition-colors shrink-0"
+									className="flex shrink-0 items-center gap-1.5 bg-[#4BA0FA] text-black hover:bg-[#4BA0FA]/90 disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-medium rounded-full h-8 px-3 transition-colors"
 								>
 									{isAnyConnecting ? (
 										<Loader className="size-3.5 animate-spin" />
 									) : (
 										<>
-											<span>+ Add a connection</span>
+											<span className="hidden sm:inline">
+												+ Add a connection
+											</span>
+											<span className="sm:hidden">+ Add</span>
 											<ChevronDown className="size-3" />
 										</>
 									)}
@@ -721,6 +777,17 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 									(triggerSync.isPending &&
 										triggerSync.variables?.connectionId === connection.id) ||
 									getConnectionMeta(connection).syncInProgress
+								}
+								onReconnect={() => {
+									reconnectMutation.mutate({
+										connectionId: connection.id,
+										provider: connection.provider as ConnectorProvider,
+										containerTags: connection.containerTags,
+									})
+								}}
+								isReconnecting={
+									reconnectMutation.isPending &&
+									reconnectMutation.variables?.connectionId === connection.id
 								}
 							/>
 						))}

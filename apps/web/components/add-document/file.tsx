@@ -187,7 +187,12 @@ export function FileContent({
 	const hasItems = data.items.length > 0
 
 	return (
-		<div className={cn("h-full flex flex-col gap-6 pt-4", dmSansClassName())}>
+		<div
+			className={cn(
+				"h-full flex flex-col gap-6 pt-0 md:pt-4",
+				dmSansClassName(),
+			)}
+		>
 			<div className="flex flex-col gap-2">
 				<p className="text-[16px] font-medium pl-2">
 					Upload files (images, PDF, documents, sheets, markdown)

@@ -2,8 +2,8 @@ export const Logo = ({
 	className,
 	id,
 }: {
-	className?: string;
-	id?: string;
+	className?: string
+	id?: string
 }) => {
 	return (
 		<svg
@@ -19,15 +19,15 @@ export const Logo = ({
 				fill="#ffffff"
 			/>
 		</svg>
-	);
-};
+	)
+}
 
 export const LogoFull = ({
 	className,
 	id,
 }: {
-	className?: string;
-	id?: string;
+	className?: string
+	id?: string
 }) => {
 	return (
 		<svg
@@ -47,8 +47,8 @@ export const LogoFull = ({
 				</clipPath>
 			</defs>
 		</svg>
-	);
-};
+	)
+}
 
 export const GradientLogo = ({ className = "" }: { className?: string }) => {
 	return (
@@ -106,8 +106,8 @@ export const GradientLogo = ({ className = "" }: { className?: string }) => {
 				</clipPath>
 			</defs>
 		</svg>
-	);
-};
+	)
+}
 
 export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 	return (
@@ -311,5 +311,5 @@ export const LogoBgGradient = ({ className = "" }: { className?: string }) => {
 				</filter>
 			</defs>
 		</svg>
-	);
-};
+	)
+}

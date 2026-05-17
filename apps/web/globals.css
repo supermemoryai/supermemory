@@ -81,6 +81,44 @@
 	display: none;
 }
 
+.pb-safe {
+	padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+	padding-top: max(0px, env(safe-area-inset-top));
+}
+
+.pl-safe {
+	padding-left: max(0px, env(safe-area-inset-left));
+}
+
+.pr-safe {
+	padding-right: max(0px, env(safe-area-inset-right));
+}
+
+.bottom-safe-5 {
+	bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+/* hide scrollbar but keep edge-fade affordance for horizontal nav */
+.scroll-fade-x {
+	-webkit-mask-image: linear-gradient(
+		to right,
+		transparent 0,
+		#000 12px,
+		#000 calc(100% - 12px),
+		transparent 100%
+	);
+	mask-image: linear-gradient(
+		to right,
+		transparent 0,
+		#000 12px,
+		#000 calc(100% - 12px),
+		transparent 100%
+	);
+}
+
 .sm-tweet-theme .react-tweet-theme {
 	--tweet-container-margin: 0px;
 	font-size: inherit !important;

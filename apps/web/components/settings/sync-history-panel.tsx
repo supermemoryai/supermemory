@@ -259,7 +259,9 @@ export function SyncHistoryPanel({
 			{hasRuns && (
 				<>
 					<SummaryStats runs={syncRuns} />
-					<Timeline runs={syncRuns} />
+					<div className="max-h-[260px] overflow-y-auto scrollbar-thin pr-1 -mr-1">
+						<Timeline runs={syncRuns} />
+					</div>
 				</>
 			)}
 		</div>

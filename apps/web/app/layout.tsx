@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Space_Grotesk } from "next/font/google"
 import "../globals.css"
 import "@ui/globals.css"
@@ -32,6 +32,12 @@ export const metadata: Metadata = {
 	},
 	manifest: "/manifest.webmanifest",
 	title: "supermemory app",
+}
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover",
 }
 
 export default function RootLayout({
