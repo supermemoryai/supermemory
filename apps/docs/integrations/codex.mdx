@@ -5,10 +5,6 @@ description: "codex-supermemory — persistent memory for OpenAI Codex CLI"
 icon: "terminal"
 ---
 
-<Warning>
-This integration requires the **Supermemory Pro plan**. [Upgrade here](https://console.supermemory.ai/billing).
-</Warning>
-
 [codex-supermemory](https://github.com/supermemoryai/codex-supermemory) wires Supermemory into the [OpenAI Codex CLI](https://github.com/openai/codex) via hooks and skills. Your agent gets **two layers of memory**:
 
 - **Implicit** (hooks) — automatically recalls context before each prompt and captures conversations after each session.
@@ -63,12 +59,21 @@ Once installed, the plugin runs automatically on every Codex session:
 
 ### Memory Scopes
 
-Memories are tagged with two container tags per session:
+Memories are tagged with two container tags per session, auto-derived from your environment:
 
-| Tag | Format | Description |
-|-----|--------|-------------|
-| User | `codex_user_{sha256}` | Memories shared across all your projects |
-| Project | `codex_project_{sha256}` | Memories scoped to the current working directory |
+| Tag | Derived from | Description |
+|-----|-------------|-------------|
+| User | `git config user.email` (hashed) | Memories shared across all your projects |
+| Project | Current working directory (hashed) | Memories scoped to the current repo |
+
+Tags are generated automatically — no configuration needed. You can override them in `~/.codex/supermemory.json` if needed:
+
+```json
+{
+  "userContainerTag": "my-custom-user-tag",
+  "projectContainerTag": "my-custom-project-tag"
+}
+```
 
 ## Explicit Memory Skills
 
