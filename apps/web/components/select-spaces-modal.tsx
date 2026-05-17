@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { Dialog, DialogContent } from "@repo/ui/components/dialog"
@@ -17,6 +17,8 @@ import {
 	ArrowRight,
 	BookOpen,
 	Loader,
+	Pencil,
+	Check,
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -40,6 +42,7 @@ import {
 	type PluginInfo,
 } from "@/lib/plugin-catalog"
 import { InstallSteps, PillButton } from "./integrations/install-steps"
+import { useProjectMutations } from "@/hooks/use-project-mutations"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -85,6 +88,14 @@ export function SelectSpacesModal({
 	onDeleteRequest,
 }: SelectSpacesModalProps) {
 	const [searchQuery, setSearchQuery] = useState("")
+	const [editingProject, setEditingProject] = useState<{
+		id: string
+		containerTag: string
+		originalName: string
+		name: string
+	} | null>(null)
+	const editInputRef = useRef<HTMLInputElement | null>(null)
+	const editingContainerTag = editingProject?.containerTag
 	const currentSelection = selectedProjects[0] ?? ""
 
 	const pluginTags = useMemo(
@@ -181,6 +192,9 @@ export function SelectSpacesModal({
 
 	const [activeCategory, setActiveCategory] =
 		useState<CategoryId>(defaultCategory)
+	const activeDiscoverId = activeCategory.startsWith("discover:")
+		? activeCategory.slice("discover:".length)
+		: null
 
 	useEffect(() => {
 		if (isOpen) setActiveCategory(defaultCategory)
@@ -195,6 +209,7 @@ export function SelectSpacesModal({
 		pluginId: string
 		key: string
 	} | null>(null)
+	const { updateProjectMutation } = useProjectMutations()
 
 	const { data: availablePluginsData } = useQuery({
 		queryKey: ["plugins"],
@@ -208,17 +223,17 @@ export function SelectSpacesModal({
 			return (await res.json()) as { plugins: string[] }
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: isOpen,
+		enabled: isOpen && !!activeDiscoverId,
 	})
 
 	const { data: apiKeys = [] } = useQuery({
 		queryKey: ["api-keys", org?.id],
-		enabled: isOpen && !!org?.id,
+		enabled: isOpen && !!activeDiscoverId && !!org?.id,
 		queryFn: async () => {
 			if (!org?.id) return []
-			const data = await authClient.apiKey.list({
+			const data = (await authClient.apiKey.list({
 				fetchOptions: { query: { metadata: { organizationId: org.id } } },
-			})
+			})) as unknown as { metadata?: Record<string, unknown> | null }[]
 			return data.filter((key) => key.metadata?.organizationId === org.id)
 		},
 	})
@@ -303,20 +318,80 @@ export function SelectSpacesModal({
 	useEffect(() => {
 		if (!isOpen) {
 			setNewKey(null)
+			setEditingProject(null)
 		}
 	}, [isOpen])
 
-	const handleOpenChange = (open: boolean) => {
-		if (!open) {
-			onClose()
-			setSearchQuery("")
-		}
-	}
+	useEffect(() => {
+		if (!editingContainerTag) return
+		const frame = requestAnimationFrame(() => {
+			editInputRef.current?.focus()
+			editInputRef.current?.select()
+		})
+		return () => cancelAnimationFrame(frame)
+	}, [editingContainerTag])
 
-	const handleSelect = (containerTag: string) => {
-		onApply([containerTag])
-		setSearchQuery("")
-	}
+	const handleOpenChange = useCallback(
+		(open: boolean) => {
+			if (!open) {
+				onClose()
+				setSearchQuery("")
+				setEditingProject(null)
+			}
+		},
+		[onClose],
+	)
+
+	const handleSelect = useCallback(
+		(containerTag: string) => {
+			setEditingProject(null)
+			onApply([containerTag])
+			setSearchQuery("")
+		},
+		[onApply],
+	)
+
+	const startEditing = useCallback((project: ContainerTagListType) => {
+		const name = project.name ?? project.containerTag
+		setEditingProject({
+			id: project.id,
+			containerTag: project.containerTag,
+			originalName: name,
+			name,
+		})
+	}, [])
+
+	const cancelEditing = useCallback(() => {
+		setEditingProject(null)
+	}, [])
+
+	const saveEditing = useCallback(() => {
+		if (!editingProject) return
+		const nextName = editingProject.name.trim()
+		const currentName = editingProject.originalName.trim()
+		if (!nextName || nextName === currentName) return
+
+		updateProjectMutation.mutate(
+			{ containerTag: editingProject.containerTag, name: nextName },
+			{
+				onSuccess: () => setEditingProject(null),
+			},
+		)
+	}, [editingProject, updateProjectMutation])
+
+	const handleEditKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLInputElement>) => {
+			if (e.key === "Enter") {
+				e.preventDefault()
+				saveEditing()
+			}
+			if (e.key === "Escape") {
+				e.preventDefault()
+				cancelEditing()
+			}
+		},
+		[cancelEditing, saveEditing],
+	)
 
 	const filteredProjects = useMemo(() => {
 		const byCategory = allSpaces.filter((p) => {
@@ -367,28 +442,31 @@ export function SelectSpacesModal({
 		[filteredProjects, recentSet],
 	)
 
-	const renderRow = (project: ContainerTagListType) => {
-		const isSelected = currentSelection === project.containerTag
-		const plugin = detectPluginSpace(project.containerTag)
-		const pluginProjectName = pluginMetaMap.get(
-			project.containerTag,
-		)?.projectName
-		const pluginIdLabel = pluginProjectName || plugin?.projectId
-		const isDefault = project.containerTag === DEFAULT_PROJECT_ID
-		return (
-			<div
-				key={project.containerTag}
-				className={cn(
-					"group flex min-w-0 max-w-full items-center gap-3 w-full px-3 py-2.5 rounded-[12px] transition-colors",
-					isSelected
-						? "bg-[#14161A] shadow-inside-out"
-						: "hover:bg-[#14161A]/50",
-				)}
-			>
-				<button
-					type="button"
-					onClick={() => handleSelect(project.containerTag)}
-					className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0"
+	const renderRow = useCallback(
+		(project: ContainerTagListType) => {
+			const isSelected = currentSelection === project.containerTag
+			const plugin = detectPluginSpace(project.containerTag)
+			const pluginProjectName = pluginMetaMap.get(
+				project.containerTag,
+			)?.projectName
+			const pluginIdLabel = pluginProjectName || plugin?.projectId
+			const isDefault = project.containerTag === DEFAULT_PROJECT_ID
+			const canEdit = !isDefault && !plugin
+			const isEditing = editingProject?.containerTag === project.containerTag
+			const trimmedEditName = editingProject?.name.trim() ?? ""
+			const isSaveDisabled =
+				!trimmedEditName ||
+				trimmedEditName === editingProject?.originalName.trim() ||
+				updateProjectMutation.isPending
+			return (
+				<div
+					key={project.containerTag}
+					className={cn(
+						"group flex min-w-0 max-w-full items-center gap-3 w-full px-3 py-2.5 rounded-[12px] transition-colors",
+						isSelected
+							? "bg-[#14161A] shadow-inside-out"
+							: "hover:bg-[#14161A]/50",
+					)}
 				>
 					<div
 						className={cn(
@@ -400,65 +478,139 @@ export function SelectSpacesModal({
 							<div className="w-2 h-2 rounded-full bg-[#4BA0FA]" />
 						)}
 					</div>
-					{plugin ? (
-						plugin.iconSrc ? (
-							<Image
-								src={plugin.iconSrc}
-								alt=""
-								width={20}
-								height={20}
-								className="shrink-0 rounded-[4px]"
-								aria-hidden
-							/>
-						) : (
-							<span
-								className="shrink-0 flex items-center justify-center w-5 h-5 rounded-[4px] bg-[#1E232B] text-[#FAFAFA] text-[11px] font-semibold uppercase"
-								aria-hidden
-							>
-								{pluginInitial(plugin.label)}
-							</span>
-						)
-					) : (
-						<span className="shrink-0 text-lg">{project.emoji || "📁"}</span>
-					)}
-					<span
-						className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
-						title={project.containerTag}
-					>
-						{plugin ? (
-							<>
-								{plugin.label}
-								{pluginIdLabel && (
-									<span className="ml-1.5 text-[12px] text-[#737373]">
-										· {pluginIdLabel}
-									</span>
+					{isEditing ? (
+						<div className="flex min-w-0 flex-1 items-center gap-2">
+							<span className="shrink-0 text-lg">{project.emoji || "📁"}</span>
+							<input
+								type="text"
+								value={editingProject.name}
+								ref={editInputRef}
+								onChange={(e) =>
+									setEditingProject((prev) =>
+										prev ? { ...prev, name: e.target.value } : prev,
+									)
+								}
+								onKeyDown={handleEditKeyDown}
+								className={cn(
+									"min-w-0 flex-1 rounded-[9px] border border-[rgba(82,89,102,0.35)] bg-[#0D121A] px-2.5 py-1.5 text-sm font-medium text-[#fafafa] shadow-inside-out placeholder:text-[#737373] focus:outline-none focus:ring-1 focus:ring-[rgba(75,160,250,0.45)]",
+									dmSansClassName(),
 								)}
-							</>
-						) : (
-							spaceSelectorDisplayName(project, project.containerTag)
-						)}
-					</span>
-				</button>
-				{enableDelete && !isDefault && onDeleteRequest && (
-					<button
-						type="button"
-						onClick={(e) => {
-							e.stopPropagation()
-							onDeleteRequest({
-								id: project.id,
-								name: project.name,
-								containerTag: project.containerTag,
-							})
-						}}
-						aria-label="Delete space"
-						className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-red-500/15 cursor-pointer focus:outline-none"
-					>
-						<Trash2 className="size-3.5 text-red-400" />
-					</button>
-				)}
-			</div>
-		)
-	}
+								aria-label="Space name"
+							/>
+							<button
+								type="button"
+								onClick={saveEditing}
+								disabled={isSaveDisabled}
+								aria-label="Save space name"
+								className="shrink-0 rounded-full p-1.5 text-[#4BA0FA] transition-colors hover:bg-[#4BA0FA]/15 disabled:cursor-not-allowed disabled:opacity-35"
+							>
+								<Check className="size-3.5" />
+							</button>
+							<button
+								type="button"
+								onClick={cancelEditing}
+								disabled={updateProjectMutation.isPending}
+								aria-label="Cancel editing space name"
+								className="shrink-0 rounded-full p-1.5 text-[#737373] transition-colors hover:bg-[#737373]/15 hover:text-[#fafafa] disabled:cursor-not-allowed disabled:opacity-35"
+							>
+								<XIcon className="size-3.5" />
+							</button>
+						</div>
+					) : (
+						<button
+							type="button"
+							onClick={() => handleSelect(project.containerTag)}
+							className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0"
+						>
+							{plugin ? (
+								plugin.iconSrc ? (
+									<Image
+										src={plugin.iconSrc}
+										alt=""
+										width={20}
+										height={20}
+										className="shrink-0 rounded-[4px]"
+										aria-hidden
+									/>
+								) : (
+									<span
+										className="shrink-0 flex items-center justify-center w-5 h-5 rounded-[4px] bg-[#1E232B] text-[#FAFAFA] text-[11px] font-semibold uppercase"
+										aria-hidden
+									>
+										{pluginInitial(plugin.label)}
+									</span>
+								)
+							) : (
+								<span className="shrink-0 text-lg">
+									{project.emoji || "📁"}
+								</span>
+							)}
+							<span
+								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
+								title={project.containerTag}
+							>
+								{plugin ? (
+									<>
+										{plugin.label}
+										{pluginIdLabel && (
+											<span className="ml-1.5 text-[12px] text-[#737373]">
+												· {pluginIdLabel}
+											</span>
+										)}
+									</>
+								) : (
+									spaceSelectorDisplayName(project, project.containerTag)
+								)}
+							</span>
+						</button>
+					)}
+					{canEdit && !isEditing && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								startEditing(project)
+							}}
+							aria-label="Rename space"
+							className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity p-1.5 rounded-full text-[#737373] hover:bg-[#737373]/15 hover:text-[#fafafa] cursor-pointer focus:outline-none"
+						>
+							<Pencil className="size-3.5" />
+						</button>
+					)}
+					{enableDelete && !isDefault && !isEditing && onDeleteRequest && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								onDeleteRequest({
+									id: project.id,
+									name: project.name,
+									containerTag: project.containerTag,
+								})
+							}}
+							aria-label="Delete space"
+							className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-red-500/15 cursor-pointer focus:outline-none"
+						>
+							<Trash2 className="size-3.5 text-red-400" />
+						</button>
+					)}
+				</div>
+			)
+		},
+		[
+			cancelEditing,
+			currentSelection,
+			editingProject,
+			enableDelete,
+			handleEditKeyDown,
+			handleSelect,
+			onDeleteRequest,
+			pluginMetaMap,
+			saveEditing,
+			startEditing,
+			updateProjectMutation.isPending,
+		],
+	)
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -615,21 +767,14 @@ export function SelectSpacesModal({
 					<div className="flex-1 flex flex-col min-w-0 gap-3">
 						{activeCategory.startsWith("discover:") ? (
 							<DiscoverPanel
-								catalogId={activeCategory.slice("discover:".length)}
-								isConnecting={
-									connectingPluginId ===
-									activeCategory.slice("discover:".length)
-								}
+								catalogId={activeDiscoverId ?? ""}
+								isConnecting={connectingPluginId === activeDiscoverId}
 								newKey={
-									newKey?.pluginId === activeCategory.slice("discover:".length)
-										? newKey.key
-										: null
+									newKey?.pluginId === activeDiscoverId ? newKey.key : null
 								}
-								onConnect={() =>
-									connectMutation.mutate(
-										activeCategory.slice("discover:".length),
-									)
-								}
+								onConnect={() => {
+									if (activeDiscoverId) connectMutation.mutate(activeDiscoverId)
+								}}
 								onDismissKey={() => setNewKey(null)}
 							/>
 						) : (

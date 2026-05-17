@@ -193,12 +193,15 @@ export function SpaceSelector({
 	const handleSelectSpacesApply = useCallback(
 		(selected: string[]) => {
 			const next = selected.slice(0, 1)
-			if (next[0]) {
-				analytics.spaceSwitched({ space_id: next[0] })
-				pushRecent(next[0])
-			}
-			onValueChange(next)
+			const selectedTag = next[0]
 			setShowSelectSpacesModal(false)
+			onValueChange(next)
+			if (selectedTag) {
+				queueMicrotask(() => {
+					analytics.spaceSwitched({ space_id: selectedTag })
+					pushRecent(selectedTag)
+				})
+			}
 		},
 		[onValueChange, pushRecent],
 	)

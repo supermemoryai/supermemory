@@ -7,6 +7,7 @@ import {
 	BulkDeleteMemoriesResponseSchema,
 	BulkDeleteMemoriesSchema,
 	ConnectionResponseSchema,
+	ContainerTagSettingsUpdateSchema,
 	CreateProjectSchema,
 	DeleteProjectResponseSchema,
 	DeleteProjectSchema,
@@ -25,6 +26,7 @@ import {
 	SearchResponseSchema,
 	type SearchResult,
 	SettingsRequestSchema,
+	UpdateContainerTagSettingsRequestSchema,
 } from "../validation/api"
 
 // Settings response schema - this is custom to console (not in shared validation)
@@ -251,6 +253,13 @@ export const apiSchema = createSchema({
 	},
 	"@get/container-tags/list": {
 		output: ListContainerTagsResponseSchema,
+	},
+	"@patch/container-tags/:containerTag": {
+		input: UpdateContainerTagSettingsRequestSchema,
+		output: ContainerTagSettingsUpdateSchema,
+		params: z.object({
+			containerTag: z.string(),
+		}),
 	},
 	"@post/projects": {
 		input: CreateProjectSchema,
