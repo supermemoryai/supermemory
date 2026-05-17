@@ -50,19 +50,149 @@ import { generateId } from "@lib/generate-id"
 import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
 
+// ---------------------------------------------------------------------------
+// Suggestions: constants, types, pure helpers, and hook
+//
+// The chat empty state previously hardcoded content-specific prompts like
+// "Summarize the key ideas from My Gita" which a new user won't own. This
+// module replaces them with prompts derived from the user's actual memories,
+// falling back gracefully when the user has none or the fetch fails.
+//
+// The pure helpers and the hook below are intentionally decoupled from the
+// sidebar UI so they can be reused when the chat interface is refactored.
+// ---------------------------------------------------------------------------
+
+/** Generic fallback - never content-specific so it works for any user. */
 const DEFAULT_SUGGESTIONS = [
-	"Show me all content related to Supermemory.",
-	"Summarize the key ideas from My Gita.",
-	"Which memories connect design and AI?",
 	"What are the main themes across my memories?",
+	"Summarize the most important things I've saved.",
+	"Which memories are most relevant to each other?",
+	"What topics appear most often in my memories?",
 ]
+
+/** Shown when the user has zero memories. Onboarding-oriented. */
+const ONBOARDING_SUGGESTIONS = [
+	"How do I add my first memory?",
+	"What kinds of content can I save here?",
+	"How does search work across my memories?",
+	"What can you help me do once I've added memories?",
+]
+
+/** Minimal shape - only the fields the suggestion logic actually reads. */
+type Memory = {
+	id: string
+	title?: string
+	content?: string
+}
+
+/** Extract a short readable label from a memory, or null if none is usable. */
+function extractMemoryLabel(memory: Memory): string | null {
+	if (memory.title?.trim()) return memory.title.trim()
+	if (memory.content?.trim()) {
+		const excerpt = memory.content.trim().split(/[.\n]/)[0]?.trim() ?? ""
+		if (excerpt.length > 4) return excerpt.slice(0, 60)
+	}
+	return null
+}
+
+/**
+ * Produce 4 contextual suggestions from the user's memories.
+ * Pure function, deterministic, safe to unit-test in isolation.
+ */
+export function deriveSuggestionsFromMemories(memories: Memory[]): string[] {
+	const labels = memories
+		.map(extractMemoryLabel)
+		.filter((l): l is string => l !== null)
+		.filter(
+			(label, i, arr) =>
+				arr.findIndex((l) => l.toLowerCase() === label.toLowerCase()) === i,
+		)
+		.slice(0, 6)
+
+	if (labels.length === 0) return DEFAULT_SUGGESTIONS
+
+	const t = (i: number) => labels[i % labels.length]
+
+	return [
+		`What are the key ideas in "${t(0)}"?`,
+		labels.length >= 2
+			? `How does "${t(0)}" connect to "${t(1)}"?`
+			: `Summarize everything I've saved about ${t(0)}`,
+		labels.length >= 3
+			? `What patterns appear across "${t(1)}" and "${t(2)}"?`
+			: `What can you find related to ${t(0)} in my memories?`,
+		labels.length >= 4
+			? `Compare the main themes in "${t(2)}" and "${t(3)}"`
+			: `What questions should I be asking about ${t(0)}?`,
+	]
+}
+
+/**
+ * Fetch the user's memories for the current project and derive prompt
+ * suggestions from them. Fallback chain:
+ *   derived prompts -> ONBOARDING_SUGGESTIONS (0 memories) -> DEFAULT_SUGGESTIONS (error)
+ */
+function useDynamicSuggestions(selectedProject: string | null): {
+	suggestions: string[]
+	isLoading: boolean
+} {
+	const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS)
+	const [isLoading, setIsLoading] = useState(true)
+
+	useEffect(() => {
+		let cancelled = false
+		const backendUrl =
+			process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+
+		async function load() {
+			setIsLoading(true)
+			try {
+				const body: Record<string, unknown> = { limit: 20 }
+				if (selectedProject) body.containerTags = [selectedProject]
+
+				const res = await fetch(`${backendUrl}/v3/documents/documents`, {
+					method: "POST",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(body),
+				})
+				if (!res.ok || cancelled) return
+
+				const data = await res.json()
+				const memories: Memory[] = data.documents ?? []
+				if (cancelled) return
+
+				setSuggestions(
+					memories.length === 0
+						? ONBOARDING_SUGGESTIONS
+						: deriveSuggestionsFromMemories(memories),
+				)
+			} catch {
+				if (!cancelled) setSuggestions(DEFAULT_SUGGESTIONS)
+			} finally {
+				if (!cancelled) setIsLoading(false)
+			}
+		}
+
+		load()
+		return () => {
+			cancelled = true
+		}
+	}, [selectedProject])
+
+	return { suggestions, isLoading }
+}
+
+// ---------------------------------------------------------------------------
 
 function ChatEmptyStatePlaceholder({
 	onSuggestionClick,
 	suggestions = DEFAULT_SUGGESTIONS,
+	isLoadingSuggestions = false,
 }: {
 	onSuggestionClick: (suggestion: string) => void
 	suggestions?: string[]
+	isLoadingSuggestions?: boolean
 }) {
 	return (
 		<div
@@ -81,19 +211,26 @@ function ChatEmptyStatePlaceholder({
 						"flex flex-col gap-2 justify-center items-center",
 					)}
 				>
-					{suggestions.map((suggestion) => (
-						<Button
-							key={suggestion}
-							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit max-w-[400px] py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
-							onClick={() => onSuggestionClick(suggestion)}
-						>
-							<SearchIcon className="size-4 text-[#267BF1] shrink-0" />
-							<span className="text-[#267BF1] text-[12px] truncate">
-								{suggestion}
-							</span>
-						</Button>
-					))}
+					{isLoadingSuggestions
+						? Array.from({ length: 4 }).map((_, i) => (
+								<div
+									key={i}
+									className="h-10 w-[300px] animate-pulse rounded-full border border-[#2261CA33] bg-[#041127]"
+								/>
+							))
+						: suggestions.map((suggestion) => (
+								<Button
+									key={suggestion}
+									variant="default"
+									className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit max-w-[400px] py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
+									onClick={() => onSuggestionClick(suggestion)}
+								>
+									<SearchIcon className="size-4 text-[#267BF1] shrink-0" />
+									<span className="text-[#267BF1] text-[12px] truncate">
+										{suggestion}
+									</span>
+								</Button>
+							))}
 				</div>
 			</div>
 		</div>
@@ -239,6 +376,12 @@ export function ChatSidebar({
 			}),
 		[chatApiBase],
 	)
+
+	// Derive suggestions from the user's actual memories.
+	// The parent-supplied `emptyStateSuggestions` always wins if provided.
+	const { suggestions: dynamicSuggestions, isLoading: isSuggestionsLoading } =
+		useDynamicSuggestions(selectedProject)
+
 	const [pendingThreadLoad, setPendingThreadLoad] = useState<{
 		id: string
 		messages: UIMessage[]
@@ -953,7 +1096,10 @@ export function ChatSidebar({
 							analytics.chatMessageSent({ source: "suggested" })
 							sendMessage({ text: suggestion })
 						}}
-						suggestions={emptyStateSuggestions}
+						suggestions={emptyStateSuggestions ?? dynamicSuggestions}
+						isLoadingSuggestions={
+							!emptyStateSuggestions && isSuggestionsLoading
+						}
 					/>
 				)}
 				<div
