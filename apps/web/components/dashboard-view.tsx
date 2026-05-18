@@ -655,7 +655,7 @@ export function DashboardView({
 	const { user } = useAuth()
 	const { effectiveContainerTags } = useProject()
 	const _router = useRouter()
-	const { data: recentsData } = useQuery({
+	const { data: recentsData, isPending: isRecentsLoading } = useQuery({
 		queryKey: ["dashboard-recents", effectiveContainerTags],
 		queryFn: async (): Promise<DocumentsResponse> => {
 			const response = await $fetch("@post/documents/documents", {
@@ -894,25 +894,43 @@ export function DashboardView({
 					transition={{ ...fadeUp.transition, delay: 0.15 }}
 					className="space-y-2"
 				>
-					{recents.length > 0 ? (
-						<>
-							{/* Shared header row — both labels aligned */}
-							<div className="flex gap-4">
-								<div className="flex-[3] min-w-0">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Recently saved
-									</p>
-								</div>
-								<div className="flex-[2] min-w-0 hidden sm:block">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Suggested for you
-									</p>
-								</div>
-							</div>
+					<div className="flex gap-4">
+						<div className="flex-[3] min-w-0">
+							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+								Recently saved
+							</p>
+						</div>
+						<div className="flex-[2] min-w-0 hidden sm:block">
+							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+								Suggested for you
+							</p>
+						</div>
+					</div>
 
-							{/* Content row */}
-							<div className="flex gap-4 items-start">
-								<ul className="flex-[3] min-w-0 space-y-0.5">
+					<div className="flex gap-4 items-start">
+						<div className="flex-[3] min-w-0">
+							{isRecentsLoading ? (
+								<ul
+									className="space-y-0.5"
+									aria-busy="true"
+									aria-label="Loading recently saved"
+								>
+									{[
+										"recent-skeleton-1",
+										"recent-skeleton-2",
+										"recent-skeleton-3",
+									].map((skeletonKey) => (
+										<li
+											key={skeletonKey}
+											className="flex items-center gap-3 rounded-lg px-2.5 py-2"
+										>
+											<div className="size-6 shrink-0 rounded-md bg-surface-skeleton animate-pulse" />
+											<div className="h-3.5 min-w-0 flex-1 rounded bg-surface-skeleton animate-pulse" />
+										</li>
+									))}
+								</ul>
+							) : recents.length > 0 ? (
+								<ul className="space-y-0.5">
 									{recents.map((doc) => {
 										const isLink = !!doc.url
 										return (
@@ -938,22 +956,27 @@ export function DashboardView({
 										)
 									})}
 								</ul>
+							) : (
+								<p className="px-2.5 py-2 text-sm text-fg-subtle">
+									No recently saved
+								</p>
+							)}
+						</div>
 
-								<div className="flex-[2] min-w-0 hidden sm:block">
-									<RecommendedPluginsCard
-										profession={profession}
-										setProfession={setProfession}
-										connectedProviders={connectedProviders}
-										hasMcp={hasMcp}
-										onOpenPlugins={onOpenPlugins}
-										onOpenIntegrations={onOpenIntegrations}
-									/>
-								</div>
-							</div>
-						</>
-					) : (
-						/* No recents yet — show suggestions full-width */
-						<>
+						<div className="flex-[2] min-w-0 hidden sm:block">
+							<RecommendedPluginsCard
+								profession={profession}
+								setProfession={setProfession}
+								connectedProviders={connectedProviders}
+								hasMcp={hasMcp}
+								onOpenPlugins={onOpenPlugins}
+								onOpenIntegrations={onOpenIntegrations}
+							/>
+						</div>
+					</div>
+
+					{(isRecentsLoading || recents.length === 0) && (
+						<div className="space-y-2 sm:hidden">
 							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 								Suggested for you
 							</p>
@@ -967,7 +990,7 @@ export function DashboardView({
 									onOpenIntegrations={onOpenIntegrations}
 								/>
 							</div>
-						</>
+						</div>
 					)}
 				</motion.section>
 			</div>

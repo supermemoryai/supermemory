@@ -4,6 +4,30 @@ import { calculateUsagePercent, getDaysRemaining } from "@/lib/billing-utils"
 
 export type PlanType = "free" | "pro" | "scale" | "enterprise"
 
+export const PLAN_DISPLAY_NAMES: Record<PlanType, string> = {
+	free: "Free",
+	pro: "Pro",
+	scale: "Scale",
+	enterprise: "Enterprise",
+}
+
+/** Higher rank sorts first in org lists (enterprise at top). */
+export const PLAN_RANK: Record<PlanType, number> = {
+	free: 0,
+	pro: 1,
+	scale: 2,
+	enterprise: 3,
+}
+
+export function normalizePlanType(raw: unknown): PlanType {
+	if (typeof raw !== "string" || !raw.trim()) return "free"
+	const normalized = raw.toLowerCase().replace(/^api_/, "")
+	if (normalized === "enterprise") return "enterprise"
+	if (normalized === "scale") return "scale"
+	if (normalized === "pro") return "pro"
+	return "free"
+}
+
 const TOKEN_METER_IDS = [
 	"sm_tokens_text",
 	"sm_tokens_rich",

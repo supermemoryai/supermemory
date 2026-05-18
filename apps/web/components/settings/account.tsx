@@ -8,7 +8,13 @@ import {
 	useDeleteUserAccount,
 } from "@/hooks/use-account-settings"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import { useTokenUsage } from "@/hooks/use-token-usage"
+import {
+	normalizePlanType,
+	PLAN_DISPLAY_NAMES,
+	PLAN_RANK,
+	useTokenUsage,
+	type PlanType,
+} from "@/hooks/use-token-usage"
 import {
 	Dialog,
 	DialogContent,
@@ -187,6 +193,43 @@ function formatOrgRole(role: string): string {
 		: "Member"
 }
 
+/** Matches ACTIVE / RECOMMENDED pills in billing settings. */
+const orgPlanBadgeBase = cn(
+	dmSans125ClassName(),
+	"inline-flex h-[18px] min-w-[42px] shrink-0 items-center justify-center rounded-[3px] px-1.5 text-[10px] uppercase",
+)
+
+const ORG_PLAN_BADGE_STYLES: Record<PlanType, string> = {
+	free: "bg-[#2E353D] font-mono font-medium tracking-[0.12em] text-[#A3A3A3]",
+	pro: "bg-[#4BA0FA] font-bold tracking-[0.36px] text-[#00171A]",
+	scale: "bg-[#0054AD] font-bold tracking-[0.36px] text-[#FAFAFA]",
+	enterprise: "bg-[#FAFAFA] font-bold tracking-[0.36px] text-[#0D121A]",
+}
+
+function OrgPlanBadge({ plan }: { plan: PlanType }) {
+	return (
+		<span className={cn(orgPlanBadgeBase, ORG_PLAN_BADGE_STYLES[plan])}>
+			{PLAN_DISPLAY_NAMES[plan]}
+		</span>
+	)
+}
+
+function resolveOrgPlan(
+	orgId: string,
+	organization: { metadata?: unknown },
+	isCurrent: boolean,
+	currentPlan: PlanType,
+	membershipPlanByOrgId: Map<string, PlanType>,
+): PlanType {
+	if (isCurrent) return currentPlan
+
+	const fromMembership = membershipPlanByOrgId.get(orgId)
+	if (fromMembership) return fromMembership
+
+	const metadata = organization.metadata as Record<string, unknown> | null
+	return normalizePlanType(metadata?.plan ?? metadata?.subscriptionPlan)
+}
+
 export default function Account() {
 	const {
 		user,
@@ -261,12 +304,40 @@ export default function Account() {
 			maximumFractionDigits: 2,
 		})
 
-	const planDisplayNames: Record<string, string> = {
-		free: "Free",
-		pro: "Pro",
-		scale: "Scale",
-		enterprise: "Enterprise",
-	}
+	const planDisplayNames = PLAN_DISPLAY_NAMES
+
+	const membershipPlanByOrgId = useMemo(() => {
+		const map = new Map<string, PlanType>()
+		for (const membership of memberships ?? []) {
+			if (membership.plan) {
+				map.set(membership.orgId, normalizePlanType(membership.plan))
+			}
+		}
+		return map
+	}, [memberships])
+
+	const sortedOrgsForMenu = useMemo(() => {
+		if (!allOrgs?.length) return []
+		return [...allOrgs].sort((a, b) => {
+			const planA = resolveOrgPlan(
+				a.id,
+				a,
+				a.id === org?.id,
+				currentPlan,
+				membershipPlanByOrgId,
+			)
+			const planB = resolveOrgPlan(
+				b.id,
+				b,
+				b.id === org?.id,
+				currentPlan,
+				membershipPlanByOrgId,
+			)
+			const rankDiff = PLAN_RANK[planB] - PLAN_RANK[planA]
+			if (rankDiff !== 0) return rankDiff
+			return a.name.localeCompare(b.name)
+		})
+	}, [allOrgs, org?.id, currentPlan, membershipPlanByOrgId])
 
 	// Handlers
 	const handleUpgrade = async () => {
@@ -430,11 +501,18 @@ export default function Account() {
 									{canSwitchOrg && (
 										<PopoverContent
 											align="start"
-											className="w-72 bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+											className="w-80 max-h-80 overflow-y-auto bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
 										>
-											{allOrgs?.map((organization) => {
+											{sortedOrgsForMenu.map((organization) => {
 												const isCurrent = organization.id === org?.id
 												const isSwitching = switchingOrgId === organization.id
+												const plan = resolveOrgPlan(
+													organization.id,
+													organization,
+													isCurrent,
+													currentPlan,
+													membershipPlanByOrgId,
+												)
 												return (
 													<button
 														key={organization.id}
@@ -456,17 +534,17 @@ export default function Account() {
 														)}
 													>
 														<Building2 className="size-4 text-[#737373] shrink-0" />
-														<div className="flex-1 min-w-0 flex items-center gap-2">
-															<p className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] truncate">
-																{organization.name}
-															</p>
-															{isCurrent && (
-																<Check className="size-4 text-[#4BA0FA] shrink-0" />
-															)}
-															{isSwitching && (
-																<LoaderIcon className="size-4 text-[#4BA0FA] shrink-0 animate-spin" />
-															)}
-														</div>
+														<p className="min-w-0 flex-1 truncate text-[14px] tracking-[-0.14px] text-[#FAFAFA]">
+															{organization.name}
+														</p>
+														{isSwitching ? (
+															<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
+														) : isCurrent ? (
+															<Check className="size-4 shrink-0 text-[#4BA0FA]" />
+														) : (
+															<span className="size-4 shrink-0" aria-hidden />
+														)}
+														<OrgPlanBadge plan={plan} />
 													</button>
 												)
 											})}

@@ -10,6 +10,7 @@ export type AccountMembership = {
 	slug: string
 	role: string
 	memberCount: number
+	plan?: string
 }
 
 export function useAccountMemberships() {
