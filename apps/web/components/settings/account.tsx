@@ -7,9 +7,9 @@ import {
 	useAccountMemberships,
 	useDeleteUserAccount,
 } from "@/hooks/use-account-settings"
+import { useOrgSummaries } from "@/hooks/use-org-summaries"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import {
-	normalizePlanType,
 	PLAN_DISPLAY_NAMES,
 	PLAN_RANK,
 	useTokenUsage,
@@ -216,18 +216,14 @@ function OrgPlanBadge({ plan }: { plan: PlanType }) {
 
 function resolveOrgPlan(
 	orgId: string,
-	organization: { metadata?: unknown },
 	isCurrent: boolean,
 	currentPlan: PlanType,
-	membershipPlanByOrgId: Map<string, PlanType>,
+	planByOrgId: Map<string, PlanType>,
 ): PlanType {
+	const fromSummary = planByOrgId.get(orgId)
+	if (fromSummary) return fromSummary
 	if (isCurrent) return currentPlan
-
-	const fromMembership = membershipPlanByOrgId.get(orgId)
-	if (fromMembership) return fromMembership
-
-	const metadata = organization.metadata as Record<string, unknown> | null
-	return normalizePlanType(metadata?.plan ?? metadata?.subscriptionPlan)
+	return "free"
 }
 
 export default function Account() {
@@ -250,6 +246,7 @@ export default function Account() {
 	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
 	const { data: memberships, isPending: membershipsPending } =
 		useAccountMemberships()
+	const { data: orgSummaries } = useOrgSummaries()
 
 	const sortedMemberships = useMemo(() => {
 		if (!memberships?.length) return []
@@ -306,38 +303,34 @@ export default function Account() {
 
 	const planDisplayNames = PLAN_DISPLAY_NAMES
 
-	const membershipPlanByOrgId = useMemo(() => {
+	const planByOrgId = useMemo(() => {
 		const map = new Map<string, PlanType>()
-		for (const membership of memberships ?? []) {
-			if (membership.plan) {
-				map.set(membership.orgId, normalizePlanType(membership.plan))
-			}
+		for (const summary of orgSummaries ?? []) {
+			map.set(summary.orgId, summary.plan)
 		}
 		return map
-	}, [memberships])
+	}, [orgSummaries])
 
 	const sortedOrgsForMenu = useMemo(() => {
 		if (!allOrgs?.length) return []
 		return [...allOrgs].sort((a, b) => {
 			const planA = resolveOrgPlan(
 				a.id,
-				a,
 				a.id === org?.id,
 				currentPlan,
-				membershipPlanByOrgId,
+				planByOrgId,
 			)
 			const planB = resolveOrgPlan(
 				b.id,
-				b,
 				b.id === org?.id,
 				currentPlan,
-				membershipPlanByOrgId,
+				planByOrgId,
 			)
 			const rankDiff = PLAN_RANK[planB] - PLAN_RANK[planA]
 			if (rankDiff !== 0) return rankDiff
 			return a.name.localeCompare(b.name)
 		})
-	}, [allOrgs, org?.id, currentPlan, membershipPlanByOrgId])
+	}, [allOrgs, org?.id, currentPlan, planByOrgId])
 
 	// Handlers
 	const handleUpgrade = async () => {
@@ -508,10 +501,9 @@ export default function Account() {
 												const isSwitching = switchingOrgId === organization.id
 												const plan = resolveOrgPlan(
 													organization.id,
-													organization,
 													isCurrent,
 													currentPlan,
-													membershipPlanByOrgId,
+													planByOrgId,
 												)
 												return (
 													<button

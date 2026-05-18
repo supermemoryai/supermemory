@@ -19,7 +19,6 @@ import {
 	Loader,
 	Pencil,
 	Check,
-	Sparkles,
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -47,6 +46,7 @@ import { InstallSteps, PillButton } from "./integrations/install-steps"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import NovaOrb from "@/components/nova/nova-orb"
+import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -813,12 +813,7 @@ export function SelectSpacesModal({
 					onClick={handleSelectAuto}
 					className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0"
 				>
-					<span
-						className="shrink-0 flex h-5 w-5 items-center justify-center rounded-[6px] bg-[#071B3A] text-[#4BA0FA]"
-						aria-hidden
-					>
-						<Sparkles className="size-3.5" />
-					</span>
+					<AutoSpaceIcon size={20} />
 					<span className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium">
 						Auto
 						<span className="ml-1.5 text-[12px] text-[#737373]">

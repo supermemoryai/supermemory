@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { $fetch } from "@lib/api"
 import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
 import { motion } from "motion/react"
@@ -49,83 +51,7 @@ import { generateId } from "@lib/generate-id"
 import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
-
-const DEFAULT_CHAT_PROMPTS = [
-	"What do you know about me?",
-	"What have I been working on lately?",
-	"What themes keep showing up in my memories?",
-]
-
-const chatEmptyCardClass = cn(
-	"flex min-h-[76px] flex-col justify-between rounded-lg border border-[#2B3038] bg-[#14161A]/95 p-3 text-left md:min-h-[88px]",
-	"shadow-[0_18px_50px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)]",
-	"transition-colors hover:border-[#3374FF]/55 hover:bg-[#1A1F26] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3374FF]/70",
-)
-
-function ChatEmptyStatePlaceholder({
-	onSuggestionClick,
-	suggestions = DEFAULT_CHAT_PROMPTS,
-}: {
-	onSuggestionClick: (suggestion: string) => void
-	suggestions?: string[]
-}) {
-	const promptCards = suggestions.slice(0, 3)
-
-	return (
-		<div
-			id="chat-empty-state"
-			className="relative flex min-h-full items-center justify-center overflow-hidden px-0 py-6 md:px-3"
-		>
-			<div
-				className="pointer-events-none absolute inset-x-[-1rem] inset-y-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.28)_1px,transparent_1px)] bg-size-[32px_32px] opacity-80 mask-[radial-gradient(ellipse_at_center,black_52%,transparent_100%)]"
-				aria-hidden
-			/>
-			<div
-				className="pointer-events-none absolute inset-x-[-1rem] bottom-0 h-2/3 bg-[radial-gradient(ellipse_at_bottom,rgba(20,65,255,0.42),transparent_68%)]"
-				aria-hidden
-			/>
-			<div className="relative z-10 flex w-full max-w-xl flex-col items-center text-center">
-				<NovaOrb size={52} className="mb-3 blur-[1.5px]!" />
-				<h2
-					className={cn(
-						"mb-1 max-w-[420px] text-[24px] font-medium leading-[1.12] tracking-normal text-white md:text-[30px]",
-						dmSansClassName(),
-					)}
-				>
-					Nova knows you.
-				</h2>
-				<p
-					className={cn(
-						"mb-4 max-w-[420px] text-[14px] leading-5 text-[#8B8B8B] md:text-[15px]",
-						dmSansClassName(),
-					)}
-				>
-					<span className="text-[#FAFAFA]">
-						Your personal memories are all here.
-					</span>{" "}
-					Chat with supermemory and ask about...
-				</p>
-				<div className="mb-3 grid w-full grid-cols-1 gap-2.5 sm:grid-cols-3">
-					{promptCards.map((suggestion, index) => (
-						<button
-							key={suggestion}
-							type="button"
-							onClick={() => onSuggestionClick(suggestion)}
-							className={chatEmptyCardClass}
-						>
-							<span className="flex size-5 items-center justify-center rounded-full border border-[#3374FF]/35 bg-[#071B3A] text-[11px] font-medium text-[#4BA0FA]">
-								{index + 1}
-							</span>
-							<span className="mt-2 line-clamp-3 text-[13px] font-medium leading-[18px] text-white md:text-[14px] md:leading-5">
-								{suggestion}
-							</span>
-						</button>
-					))}
-				</div>
-			</div>
-		</div>
-	)
-}
+import { ChatEmptyStatePlaceholder } from "./chat-empty-state"
 
 export function ChatLaunchFab({
 	onOpen,
@@ -243,6 +169,43 @@ export function ChatSidebar({
 					}),
 		[chatProject, allProjects],
 	)
+	const isAutoChatSpace = chatProject === AUTO_CHAT_SPACE_ID
+	const { data: chatSpaceMemoryCount } = useQuery({
+		queryKey: ["chat-empty-space-count", chatProject],
+		queryFn: async (): Promise<number> => {
+			const response = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 1,
+					sort: "createdAt",
+					order: "desc",
+					containerTags: [chatProject],
+				},
+				disableValidation: true,
+			})
+			if (response.error) return 0
+			const data = response.data as {
+				pagination?: { totalItems?: number }
+			} | null
+			return data?.pagination?.totalItems ?? 0
+		},
+		staleTime: 30 * 1000,
+		enabled: !!chatProject && !isAutoChatSpace,
+	})
+	const emptyStateSubtitle = useMemo(() => {
+		if (isAutoChatSpace) {
+			return "Picks the best space for each question"
+		}
+		if (chatSpaceMemoryCount === undefined) {
+			return `Grounded in ${chatSpaceLabel}`
+		}
+		if (chatSpaceMemoryCount === 0) {
+			return `Nothing in ${chatSpaceLabel} yet`
+		}
+		const countLabel = chatSpaceMemoryCount.toLocaleString()
+		const memoryWord = chatSpaceMemoryCount === 1 ? "memory" : "memories"
+		return `${countLabel} ${memoryWord} in ${chatSpaceLabel}`
+	}, [isAutoChatSpace, chatSpaceLabel, chatSpaceMemoryCount])
 	const { viewMode } = useViewMode()
 	const { user: _user } = useAuth()
 	const [threadId, setThreadId] = useQueryState("thread", threadParam)
@@ -1011,6 +974,7 @@ export function ChatSidebar({
 					<ChatEmptyStatePlaceholder
 						onSuggestionClick={handleSuggestedQuestion}
 						suggestions={emptyStateSuggestions}
+						subtitle={emptyStateSubtitle}
 					/>
 				)}
 				<div
@@ -1246,3 +1210,4 @@ export function ChatSidebar({
 }
 
 export { HomeChatComposer } from "./home-chat-composer"
+export { ChatEmptyStatePlaceholder } from "./chat-empty-state"

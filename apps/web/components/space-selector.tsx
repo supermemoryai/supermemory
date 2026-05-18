@@ -7,7 +7,7 @@ import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { DEFAULT_PROJECT_ID } from "@lib/constants"
-import { ChevronDownIcon, Sparkles, XIcon, Loader2, Trash2 } from "lucide-react"
+import { ChevronDownIcon, XIcon, Loader2, Trash2 } from "lucide-react"
 import type { ContainerTagListType } from "@lib/types"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { AddSpaceModal } from "./add-space-modal"
@@ -41,6 +41,7 @@ import {
 import { detectPluginSpace, pluginInitial } from "@/lib/plugin-space"
 import { usePluginSpaceMeta } from "@/hooks/use-plugin-space-meta"
 import NovaOrb from "@/components/nova/nova-orb"
+import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
 
 export interface SpaceSelectorProps {
 	selectedProjects: string[]
@@ -386,7 +387,7 @@ export function SpaceSelector({
 						)}
 					>
 						{displayInfo.isAuto ? (
-							<Sparkles className="size-3.5 shrink-0 text-[#4BA0FA]" />
+							<AutoSpaceIcon size={compact ? 16 : 18} />
 						) : displayInfo.isOwnSpace ? (
 							<NovaOrb
 								size={compact ? 14 : 16}
