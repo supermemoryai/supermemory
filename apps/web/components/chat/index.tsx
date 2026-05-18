@@ -219,6 +219,7 @@ export function ChatSidebar({
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const isScrolledToBottomRef = useRef(true)
+	const userJustSentRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const pendingHighlightReplyRef = useRef<string | null>(null)
 	const awaitingHighlightInjectionRef = useRef(false)
@@ -364,6 +365,7 @@ export function ChatSidebar({
 		analytics.chatMessageSent({ source: "typed" })
 		sendMessage({ text: input })
 		setInput("")
+		userJustSentRef.current = true
 		scrollToBottom()
 	}
 
@@ -374,6 +376,7 @@ export function ChatSidebar({
 			analytics.chatSuggestedQuestionClicked()
 			analytics.chatMessageSent({ source: "suggested" })
 			sendMessage({ text: suggestion })
+			userJustSentRef.current = true
 			scrollToBottom()
 		},
 		[
@@ -691,13 +694,11 @@ export function ChatSidebar({
 	useEffect(() => {
 		const lastMessage = messages[messages.length - 1]
 		if (lastMessage?.role === "user" && messagesContainerRef.current) {
-			messagesContainerRef.current.scrollTop =
-				messagesContainerRef.current.scrollHeight
-			setIsScrolledToBottom(true)
+			scrollToBottom()
+		} else {
+			checkIfScrolledToBottom()
 		}
-		// Always check scroll position when messages change
-		checkIfScrolledToBottom()
-	}, [messages, checkIfScrolledToBottom])
+	}, [messages, checkIfScrolledToBottom, scrollToBottom])
 
 	useEffect(() => {
 		const isStreaming = status === "streaming"
@@ -707,7 +708,7 @@ export function ChatSidebar({
 		if (
 			isStreaming &&
 			isLastMessageFromAssistant &&
-			isScrolledToBottomRef.current
+			(isScrolledToBottomRef.current || userJustSentRef.current)
 		) {
 			scrollToBottom()
 		}
@@ -717,11 +718,14 @@ export function ChatSidebar({
 		const container = messagesContainerRef.current
 		if (!container) return
 
-		const isStreaming = status === "streaming"
-		if (!isStreaming) return
+		const isStreaming = status === "streaming" || status === "submitted"
+		if (!isStreaming) {
+			userJustSentRef.current = false
+			return
+		}
 
 		const mutationObserver = new MutationObserver(() => {
-			if (isScrolledToBottomRef.current) {
+			if (isScrolledToBottomRef.current || userJustSentRef.current) {
 				requestAnimationFrame(() => {
 					scrollToBottom()
 				})
@@ -747,16 +751,17 @@ export function ChatSidebar({
 		const handleScroll = () => {
 			requestAnimationFrame(() => {
 				checkIfScrolledToBottom()
+				if (!isScrolledToBottomRef.current) {
+					userJustSentRef.current = false
+				}
 			})
 		}
 
 		container.addEventListener("scroll", handleScroll, { passive: true })
-		// Initial check with a small delay to ensure DOM is ready
 		setTimeout(() => {
 			checkIfScrolledToBottom()
 		}, 100)
 
-		// Also observe resize to detect content height changes
 		const resizeObserver = new ResizeObserver(() => {
 			requestAnimationFrame(() => {
 				checkIfScrolledToBottom()

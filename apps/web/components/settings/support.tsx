@@ -32,7 +32,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 		<p
 			className={cn(
 				dmSans125ClassName(),
-				"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA] px-2",
+				"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA] px-1 sm:px-2",
 			)}
 		>
 			{children}
@@ -44,7 +44,7 @@ function SupportCard({ children }: { children: React.ReactNode }) {
 	return (
 		<div
 			className={cn(
-				"relative bg-[#14161A] rounded-[14px] p-6 w-full overflow-hidden",
+				"relative bg-[#14161A] rounded-[14px] p-4 sm:p-6 w-full overflow-hidden",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
 			)}
 		>
@@ -69,7 +69,7 @@ function PillButton({
 			className={cn(
 				"relative flex items-center justify-center gap-2",
 				"bg-[#0D121A]",
-				"rounded-full h-11 px-4 flex-1",
+				"rounded-full py-3 sm:py-2.5 px-4 flex-1",
 				"cursor-pointer transition-opacity hover:opacity-80",
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 				dmSans125ClassName(),
@@ -128,7 +128,7 @@ export default function Support() {
 								reach us.
 							</p>
 						</div>
-						<div className="flex flex-col sm:flex-row gap-4">
+						<div className="flex flex-col sm:flex-row gap-2.5 sm:gap-4">
 							<PillButton onClick={handleMessageOnX}>
 								<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
 									Message us on X
