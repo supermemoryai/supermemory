@@ -214,7 +214,20 @@ export function PWAInstallPrompt() {
 		dismiss()
 	}, [nativePrompt, dismiss])
 
+	const openShareMenu = useCallback(async () => {
+		try {
+			if (typeof navigator !== "undefined" && "share" in navigator) {
+				await navigator.share({
+					title: "Supermemory",
+					url: window.location.href,
+				})
+			}
+		} catch {}
+		dismiss()
+	}, [dismiss])
+
 	const canNativeInstall = !!nativePrompt && device.isAndroid && device.isChrome
+	const canShare = typeof navigator !== "undefined" && "share" in navigator
 	const steps = buildSteps(device)
 
 	return (
@@ -347,10 +360,20 @@ export function PWAInstallPrompt() {
 
 					<Button
 						variant="insideOut"
-						onClick={canNativeInstall ? handleInstall : dismiss}
+						onClick={
+							canNativeInstall
+								? handleInstall
+								: canShare
+									? openShareMenu
+									: dismiss
+						}
 						className={cn("h-12 w-full px-5 text-[15px]", dmSansClassName())}
 					>
-						{canNativeInstall ? "Install now" : "Got it"}
+						{canNativeInstall
+							? "Install now"
+							: canShare
+								? "Add to Home Screen"
+								: "Got it"}
 					</Button>
 				</div>
 			</DrawerContent>
