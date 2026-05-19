@@ -46,7 +46,6 @@ export const GraphLayoutView = memo(function GraphLayoutView({
 					maxNodes={undefined}
 					canvasRef={canvasRef}
 					onOpenDocument={onOpenDocument}
-					autoFetchAll
 				/>
 			</div>
 

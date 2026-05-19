@@ -1,7 +1,7 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { $fetch } from "@lib/api"
 import type {
 	GraphApiDocument,
@@ -15,7 +15,6 @@ interface UseGraphApiOptions {
 	containerTags?: string[]
 	documentIds?: string[]
 	enabled?: boolean
-	autoFetchAll?: boolean
 }
 
 interface ApiMemoryEntry {
@@ -109,12 +108,7 @@ function toGraphDocument(
 }
 
 export function useGraphApi(options: UseGraphApiOptions = {}) {
-	const {
-		containerTags,
-		documentIds,
-		enabled = true,
-		autoFetchAll = false,
-	} = options
+	const { containerTags, documentIds, enabled = true } = options
 	const filteredDocumentIds = documentIds?.filter(Boolean)
 	const hasDocumentIds =
 		filteredDocumentIds != null && filteredDocumentIds.length > 0
@@ -168,19 +162,6 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 		staleTime: 5 * 60 * 1000,
 		enabled,
 	})
-
-	useEffect(() => {
-		if (!autoFetchAll || !enabled) return
-		if (!hasNextPage || isPending || isFetchingNextPage) return
-		fetchNextPage()
-	}, [
-		autoFetchAll,
-		enabled,
-		hasNextPage,
-		isPending,
-		isFetchingNextPage,
-		fetchNextPage,
-	])
 
 	const documents = useMemo(() => {
 		if (!data?.pages) return []
