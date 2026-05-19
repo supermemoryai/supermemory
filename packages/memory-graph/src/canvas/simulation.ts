@@ -1,5 +1,5 @@
 import * as d3 from "d3-force"
-import type { GraphEdge, GraphNode } from "../types"
+import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
 import { FORCE_CONFIG } from "../constants"
 
 export class ForceSimulation {
@@ -27,7 +27,7 @@ export class ForceSimulation {
 					.id((d) => d.id)
 					.distance((link) =>
 						link.edgeType === "derives"
-							? FORCE_CONFIG.docMemoryDistance
+							? getDocMemoryDistance(link)
 							: FORCE_CONFIG.linkDistance,
 					)
 					.strength((link) => {
@@ -85,6 +85,10 @@ export class ForceSimulation {
 		this.sim?.alphaTarget(0)
 	}
 
+	stop(): void {
+		this.sim?.alpha(0).alphaTarget(0).stop()
+	}
+
 	isActive(): boolean {
 		return (this.sim?.alpha() ?? 0) > FORCE_CONFIG.alphaMin
 	}
@@ -95,4 +99,25 @@ export class ForceSimulation {
 			this.sim = null
 		}
 	}
+}
+
+function getDocMemoryDistance(link: GraphEdge): number {
+	const source = resolveNode(link.source)
+	const target = resolveNode(link.target)
+	const docNode =
+		source?.type === "document"
+			? source
+			: target?.type === "document"
+				? target
+				: null
+	const memoryCount =
+		docNode != null ? (docNode.data as DocumentNodeData).memories.length : 1
+	const distance =
+		FORCE_CONFIG.docMemoryDistance +
+		Math.sqrt(Math.max(1, memoryCount)) * FORCE_CONFIG.docMemoryDistanceScale
+	return Math.min(FORCE_CONFIG.docMemoryDistanceMax, distance)
+}
+
+function resolveNode(endpoint: string | GraphNode): GraphNode | null {
+	return typeof endpoint === "string" ? null : endpoint
 }
