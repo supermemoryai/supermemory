@@ -16,11 +16,7 @@ function Welcome() {
 			<main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-6 sm:px-10">
 				<header className="flex items-center justify-between border-b border-white/10 pb-5">
 					<div className="flex items-center gap-2">
-						<img
-							alt=""
-							className="size-8 rounded-[4px]"
-							src="./icon-48.png"
-						/>
+						<img alt="" className="size-8 rounded-[4px]" src="./icon-48.png" />
 						<img
 							alt="supermemory"
 							className="h-6 w-auto"
