@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { dmSansClassName } from "@/lib/fonts"
@@ -23,6 +23,18 @@ export default function ChatModelSelector({
 	const [internalModel, setInternalModel] =
 		useState<ModelId>("claude-sonnet-4.6")
 	const [isOpen, setIsOpen] = useState(false)
+	const containerRef = useRef<HTMLDivElement>(null)
+
+	useEffect(() => {
+		if (!isOpen) return
+		const handleClickOutside = (e: MouseEvent) => {
+			if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+				setIsOpen(false)
+			}
+		}
+		document.addEventListener("mousedown", handleClickOutside)
+		return () => document.removeEventListener("mousedown", handleClickOutside)
+	}, [isOpen])
 
 	const selectedModel = selectedModelProp ?? internalModel
 	const currentModelData = modelNames[selectedModel]
@@ -73,19 +85,10 @@ export default function ChatModelSelector({
 	)
 
 	return (
-		<div className="relative flex min-w-0 shrink items-center gap-2">
+		<div ref={containerRef} className="relative flex min-w-0 shrink items-center gap-2">
 			{trigger}
 
 			{isOpen && (
-				<>
-					<button
-						type="button"
-						className="fixed inset-0 z-40"
-						onClick={() => setIsOpen(false)}
-						onKeyDown={(e) => e.key === "Escape" && setIsOpen(false)}
-						aria-label="Close model selector"
-					/>
-
 					<div className="absolute bottom-full left-0 mb-2 w-64 bg-surface-card backdrop-blur-xl border border-surface-border rounded-lg shadow-xl z-50 overflow-hidden">
 						<div className="p-2 space-y-1">
 							{models.map((model) => {
@@ -119,7 +122,6 @@ export default function ChatModelSelector({
 							})}
 						</div>
 					</div>
-				</>
 			)}
 		</div>
 	)
