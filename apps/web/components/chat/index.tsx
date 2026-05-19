@@ -952,100 +952,101 @@ export function ChatSidebar({
 					{chatToolbarActions}
 				</div>
 			) : null}
-			<div
-				ref={messagesContainerRef}
-				className={cn(
-					"relative flex-1 overflow-y-auto scrollbar-thin",
-					isPageDesktop && "min-h-0",
-					"px-4",
-					dmSansClassName(),
-				)}
-			>
-				{isInputExpanded && (
-					<div
-						className={cn(
-							"absolute inset-0 z-10! pointer-events-none",
-							isPageDesktop ? "rounded-none" : "rounded-2xl",
-						)}
-						style={{ backgroundColor: "#000000E5" }}
-					/>
-				)}
-				{messages.length === 0 && (
-					<ChatEmptyStatePlaceholder
-						onSuggestionClick={handleSuggestedQuestion}
-						suggestions={emptyStateSuggestions}
-						subtitle={emptyStateSubtitle}
-					/>
-				)}
+			<div className="relative flex-1 min-h-0">
 				<div
-					className={
-						messages.length > 0
-							? cn(
-									"flex flex-col space-y-3 min-h-full justify-end",
-									isPageDesktop ? "pt-2" : "pt-14",
-								)
-							: ""
-					}
-				>
-					{messages.map((message, index) => (
-						// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
-						<div
-							key={message.id}
-							className={cn(
-								"flex gap-2 w-full",
-								message.role === "user" ? "justify-end" : "justify-start",
-							)}
-							onMouseEnter={() =>
-								message.role === "assistant" && setHoveredMessageId(message.id)
-							}
-							onMouseLeave={() =>
-								message.role === "assistant" && setHoveredMessageId(null)
-							}
-						>
-							{message.role === "user" ? (
-								<UserMessage
-									message={message}
-									copiedMessageId={copiedMessageId}
-									onCopy={handleCopyMessage}
-								/>
-							) : (
-								<AgentMessage
-									message={message}
-									index={index}
-									messagesLength={messages.length}
-									hoveredMessageId={hoveredMessageId}
-									copiedMessageId={copiedMessageId}
-									messageFeedback={messageFeedback}
-									expandedMemories={expandedMemories}
-									onCopy={handleCopyMessage}
-									onLike={handleLikeMessage}
-									onDislike={handleDislikeMessage}
-									onToggleMemories={handleToggleMemories}
-								/>
-							)}
-						</div>
-					))}
-					{(status === "submitted" || status === "streaming") && (
-						<div className="flex gap-2">
-							<SuperLoader label="Thinking…" />
-						</div>
+					ref={messagesContainerRef}
+					className={cn(
+						"relative h-full overflow-y-auto scrollbar-thin",
+						"px-4",
+						dmSansClassName(),
 					)}
-				</div>
-			</div>
-
-			{!isScrolledToBottom && messages.length > 0 && (
-				<div className="absolute bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
-					<button
-						type="button"
-						className="cursor-pointer pointer-events-auto"
-						onClick={scrollToBottom}
+				>
+					{isInputExpanded && (
+						<div
+							className={cn(
+								"absolute inset-0 z-10! pointer-events-none",
+								isPageDesktop ? "rounded-none" : "rounded-2xl",
+							)}
+							style={{ backgroundColor: "#000000E5" }}
+						/>
+					)}
+					{messages.length === 0 && (
+						<ChatEmptyStatePlaceholder
+							onSuggestionClick={handleSuggestedQuestion}
+							suggestions={emptyStateSuggestions}
+							subtitle={emptyStateSubtitle}
+						/>
+					)}
+					<div
+						className={
+							messages.length > 0
+								? cn(
+										"flex flex-col space-y-3 min-h-full justify-end",
+										isPageDesktop ? "pt-2" : "pt-14",
+									)
+								: ""
+						}
 					>
-						<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
-							<ChevronDownIcon className="size-4 text-white" />
-						</div>
-					</button>
+						{messages.map((message, index) => (
+							// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
+							<div
+								key={message.id}
+								className={cn(
+									"flex gap-2 w-full",
+									message.role === "user" ? "justify-end" : "justify-start",
+								)}
+								onMouseEnter={() =>
+									message.role === "assistant" && setHoveredMessageId(message.id)
+								}
+								onMouseLeave={() =>
+									message.role === "assistant" && setHoveredMessageId(null)
+								}
+							>
+								{message.role === "user" ? (
+									<UserMessage
+										message={message}
+										copiedMessageId={copiedMessageId}
+										onCopy={handleCopyMessage}
+									/>
+								) : (
+									<AgentMessage
+										message={message}
+										index={index}
+										messagesLength={messages.length}
+										hoveredMessageId={hoveredMessageId}
+										copiedMessageId={copiedMessageId}
+										messageFeedback={messageFeedback}
+										expandedMemories={expandedMemories}
+										onCopy={handleCopyMessage}
+										onLike={handleLikeMessage}
+										onDislike={handleDislikeMessage}
+										onToggleMemories={handleToggleMemories}
+									/>
+								)}
+							</div>
+						))}
+						{(status === "submitted" || status === "streaming") && (
+							<div className="flex gap-2">
+								<SuperLoader label="Thinking…" />
+							</div>
+						)}
+					</div>
 				</div>
-			)}
+
+				{!isScrolledToBottom && messages.length > 0 && (
+					<div className="absolute bottom-3 left-0 right-0 flex justify-center z-50 pointer-events-none">
+						<button
+							type="button"
+							className="cursor-pointer pointer-events-auto"
+							onClick={scrollToBottom}
+						>
+							<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
+								<ChevronDownIcon className="size-4 text-white" />
+							</div>
+						</button>
+					</div>
+				)}
+			</div>
 
 			{chatStreamError && (
 				<div
@@ -1103,7 +1104,7 @@ export function ChatSidebar({
 				className={cn(
 					"shrink-0",
 					isStackedInput &&
-						"px-4 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6",
+						"pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6",
 				)}
 			>
 				<ChatInput
