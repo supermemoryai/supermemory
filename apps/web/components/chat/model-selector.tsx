@@ -28,7 +28,10 @@ export default function ChatModelSelector({
 	useEffect(() => {
 		if (!isOpen) return
 		const handleClickOutside = (e: MouseEvent) => {
-			if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(e.target as Node)
+			) {
 				setIsOpen(false)
 			}
 		}
@@ -85,43 +88,44 @@ export default function ChatModelSelector({
 	)
 
 	return (
-		<div ref={containerRef} className="relative flex min-w-0 shrink items-center gap-2">
+		<div
+			ref={containerRef}
+			className="relative flex min-w-0 shrink items-center gap-2"
+		>
 			{trigger}
 
 			{isOpen && (
-					<div className="absolute bottom-full left-0 mb-2 w-64 bg-surface-card backdrop-blur-xl border border-surface-border rounded-lg shadow-xl z-50 overflow-hidden">
-						<div className="p-2 space-y-1">
-							{models.map((model) => {
-								const modelData = modelNames[model.id]
-								return (
-									<button
-										key={model.id}
-										type="button"
-										className={cn(
-											"flex flex-col items-start p-2 px-3 rounded-md transition-colors cursor-pointer w-full text-left",
-											selectedModel === model.id
-												? "bg-[#293952]/60"
-												: "hover:bg-[#293952]/40",
-										)}
-										onClick={() => handleModelSelect(model.id)}
-										onKeyDown={(e) =>
-											e.key === "Enter" && handleModelSelect(model.id)
-										}
-									>
-										<div className="text-sm font-medium text-white">
-											{modelData.name}{" "}
-											<span className="text-fg-subtle">
-												{modelData.version}
-											</span>
-										</div>
-										<div className="text-xs text-fg-muted truncate w-full">
-											{model.description}
-										</div>
-									</button>
-								)
-							})}
-						</div>
+				<div className="absolute bottom-full left-0 mb-2 w-64 bg-surface-card backdrop-blur-xl border border-surface-border rounded-lg shadow-xl z-50 overflow-hidden">
+					<div className="p-2 space-y-1">
+						{models.map((model) => {
+							const modelData = modelNames[model.id]
+							return (
+								<button
+									key={model.id}
+									type="button"
+									className={cn(
+										"flex flex-col items-start p-2 px-3 rounded-md transition-colors cursor-pointer w-full text-left",
+										selectedModel === model.id
+											? "bg-[#293952]/60"
+											: "hover:bg-[#293952]/40",
+									)}
+									onClick={() => handleModelSelect(model.id)}
+									onKeyDown={(e) =>
+										e.key === "Enter" && handleModelSelect(model.id)
+									}
+								>
+									<div className="text-sm font-medium text-white">
+										{modelData.name}{" "}
+										<span className="text-fg-subtle">{modelData.version}</span>
+									</div>
+									<div className="text-xs text-fg-muted truncate w-full">
+										{model.description}
+									</div>
+								</button>
+							)
+						})}
 					</div>
+				</div>
 			)}
 		</div>
 	)
