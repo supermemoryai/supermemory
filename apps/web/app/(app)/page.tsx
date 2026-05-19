@@ -554,20 +554,17 @@ export default function NewPage() {
 				)}
 			>
 				{showNovaBackdrop && (
-					<>
+					<div className="pointer-events-none fixed inset-0 z-0">
 						<AnimatedGradientBackground
 							animateFromBottom={false}
 							topPosition={gradientTopPosition}
 						/>
-						<div
-							className="pointer-events-none absolute inset-0 z-0 bg-[#05080D]/50"
-							aria-hidden
-						/>
+						<div className="absolute inset-0 bg-[#05080D]/50" aria-hidden />
 						<div
 							id="graph-dotted-grid"
-							className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+							className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
 						/>
-					</>
+					</div>
 				)}
 				{!session && viewMode === "mcp" ? (
 					<PublicHeader />
