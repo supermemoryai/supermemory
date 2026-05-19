@@ -307,8 +307,8 @@ export function ChatSidebar({
 				id: pendingThreadLoad.id,
 				messageCount: pendingThreadLoad.messages.length,
 				lastMessageId:
-					pendingThreadLoad.messages[pendingThreadLoad.messages.length - 1]?.id ??
-					null,
+					pendingThreadLoad.messages[pendingThreadLoad.messages.length - 1]
+						?.id ?? null,
 			})
 			setPendingThreadLoad(null)
 		}

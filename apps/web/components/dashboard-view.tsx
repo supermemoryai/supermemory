@@ -369,7 +369,7 @@ function RecommendedPluginsCard({
 		return PLUGIN_STATIC.map((p) => ({
 			...p,
 			connected: connected[p.id] ?? false,
-			onClick: onClicks[p.id]!,
+			onClick: onClicks[p.id] ?? (() => {}),
 		}))
 	}, [hasMcp, connectedProviders, onOpenPlugins, onOpenIntegrations])
 
@@ -537,7 +537,7 @@ function PluginPromoCard({
 		return PLUGIN_STATIC.map((p) => ({
 			...p,
 			connected: connected[p.id] ?? false,
-			onClick: onClicks[p.id]!,
+			onClick: onClicks[p.id] ?? (() => {}),
 		})).filter((p) => !p.connected)
 	}, [hasMcp, connectedProviders, onOpenPlugins, onOpenIntegrations])
 
@@ -640,7 +640,7 @@ export function DashboardView({
 	onOpenSearch,
 	onOpenIntegrations,
 	onOpenPlugins,
-	onNavigateToMemories,
+	onNavigateToMemories: _onNavigateToMemories,
 	onNavigateToGraph,
 	onOpenDocument,
 	onHighlightsChat,
