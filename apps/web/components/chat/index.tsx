@@ -996,7 +996,8 @@ export function ChatSidebar({
 									message.role === "user" ? "justify-end" : "justify-start",
 								)}
 								onMouseEnter={() =>
-									message.role === "assistant" && setHoveredMessageId(message.id)
+									message.role === "assistant" &&
+									setHoveredMessageId(message.id)
 								}
 								onMouseLeave={() =>
 									message.role === "assistant" && setHoveredMessageId(null)

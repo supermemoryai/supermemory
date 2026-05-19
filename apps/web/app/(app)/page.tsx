@@ -559,10 +559,7 @@ export default function NewPage() {
 							animateFromBottom={false}
 							topPosition={gradientTopPosition}
 						/>
-						<div
-							className="absolute inset-0 bg-[#05080D]/50"
-							aria-hidden
-						/>
+						<div className="absolute inset-0 bg-[#05080D]/50" aria-hidden />
 						<div
 							id="graph-dotted-grid"
 							className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
