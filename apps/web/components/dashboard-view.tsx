@@ -268,6 +268,22 @@ const PROFESSION_LABELS: {
 	{ value: "medical", label: "Medical" },
 ]
 
+function getChangeProfessionPrompt(profession: Profession): string {
+	const prompts: Record<Exclude<Profession, "default">, string> = {
+		developer: "Not a developer?",
+		research: "Not a researcher?",
+		finance: "Not in finance?",
+		design: "Not a designer?",
+		legal: "Not in the legal field?",
+		marketing: "Not in marketing?",
+		medical: "Not in healthcare?",
+	}
+	if (profession === "default") {
+		return "Not your role?"
+	}
+	return prompts[profession] ?? "Not your role?"
+}
+
 // Static plugin metadata — shared between PluginPromoCard and RecommendedPluginsCard
 const PLUGIN_STATIC = [
 	{
@@ -446,11 +462,7 @@ function RecommendedPluginsCard({
 						onClick={() => setIsEditing(true)}
 						className="text-left px-2 pb-1 text-[10px] text-fg-faint hover:text-fg-muted transition-colors cursor-pointer"
 					>
-						Not a{" "}
-						{PROFESSION_LABELS.find(
-							(p) => p.value === profession,
-						)?.label.toLowerCase()}
-						? Change →
+						{getChangeProfessionPrompt(profession)} Change role →
 					</button>
 				</>
 			)}

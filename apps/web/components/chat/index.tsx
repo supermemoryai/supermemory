@@ -248,6 +248,11 @@ export function ChatSidebar({
 		id: string
 		messages: UIMessage[]
 	} | null>(null)
+	const [loadedThreadScrollTarget, setLoadedThreadScrollTarget] = useState<{
+		id: string
+		messageCount: number
+		lastMessageId: string | null
+	} | null>(null)
 
 	// Adjust chat height based on scroll position (desktop only, grid mode only)
 	useEffect(() => {
@@ -298,6 +303,13 @@ export function ChatSidebar({
 	useEffect(() => {
 		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
 			setMessages(pendingThreadLoad.messages)
+			setLoadedThreadScrollTarget({
+				id: pendingThreadLoad.id,
+				messageCount: pendingThreadLoad.messages.length,
+				lastMessageId:
+					pendingThreadLoad.messages[pendingThreadLoad.messages.length - 1]?.id ??
+					null,
+			})
 			setPendingThreadLoad(null)
 		}
 	}, [currentChatId, pendingThreadLoad, setMessages])
@@ -653,15 +665,39 @@ export function ChatSidebar({
 		}
 	}, [queuedMessage])
 
-	// Scroll to bottom when a new user message is added
+	// Scroll to bottom when a new user message is added or a thread is loaded
 	useEffect(() => {
+		const lastMessageId = messages[messages.length - 1]?.id ?? null
+		const loadedThreadIsRendered =
+			loadedThreadScrollTarget &&
+			currentChatId === loadedThreadScrollTarget.id &&
+			messages.length === loadedThreadScrollTarget.messageCount &&
+			lastMessageId === loadedThreadScrollTarget.lastMessageId
+
+		if (loadedThreadIsRendered) {
+			// Trigger the same scroll behavior as the button after loaded messages render.
+			scrollToBottom()
+			setTimeout(scrollToBottom, 50)
+			setTimeout(scrollToBottom, 150)
+			setTimeout(() => {
+				scrollToBottom()
+				setLoadedThreadScrollTarget(null)
+			}, 300)
+			return
+		}
 		const lastMessage = messages[messages.length - 1]
 		if (lastMessage?.role === "user" && messagesContainerRef.current) {
 			scrollToBottom()
 		} else {
 			checkIfScrolledToBottom()
 		}
-	}, [messages, checkIfScrolledToBottom, scrollToBottom])
+	}, [
+		currentChatId,
+		loadedThreadScrollTarget,
+		messages,
+		checkIfScrolledToBottom,
+		scrollToBottom,
+	])
 
 	useEffect(() => {
 		const isStreaming = status === "streaming"
