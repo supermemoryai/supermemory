@@ -13,18 +13,37 @@ import {
 	createChatGPTInputBarElement,
 	DOMUtils,
 } from "../../utils/ui-components"
+import {
+	acceptMemorySuggestion,
+	clearMemorySuggestion,
+	hasAcceptedSupermemoryContext,
+	setMemoryMarkerStatus,
+	showLoadingSuggestion,
+	showMarkerPopover,
+	showMemorySuggestion,
+	syncAcceptedSupermemoryState,
+} from "./memory-suggestion"
 
 let chatGPTDebounceTimeout: NodeJS.Timeout | null = null
 let chatGPTRouteObserver: MutationObserver | null = null
 let chatGPTUrlCheckInterval: NodeJS.Timeout | null = null
 let chatGPTObserverThrottle: NodeJS.Timeout | null = null
+const CHATGPT_DEBUG = true
+const CHATGPT_LOG_PREFIX = "[supermemory:chatgpt]"
 
 export function initializeChatGPT() {
+	debugChatGPT("initializeChatGPT called", {
+		host: window.location.hostname,
+		href: window.location.href,
+	})
+
 	if (!DOMUtils.isOnDomain(DOMAINS.CHATGPT)) {
+		debugChatGPT("not on ChatGPT domain, skipping")
 		return
 	}
 
 	if (document.body.hasAttribute("data-chatgpt-initialized")) {
+		debugChatGPT("already initialized")
 		return
 	}
 
@@ -39,6 +58,18 @@ export function initializeChatGPT() {
 	setupChatGPTRouteChangeDetection()
 
 	document.body.setAttribute("data-chatgpt-initialized", "true")
+	debugChatGPT("initialized listeners")
+}
+
+function debugChatGPT(message: string, data?: unknown) {
+	if (!CHATGPT_DEBUG) return
+
+	if (data === undefined) {
+		console.log(CHATGPT_LOG_PREFIX, message)
+		return
+	}
+
+	console.log(CHATGPT_LOG_PREFIX, message, data)
 }
 
 function setupChatGPTRouteChangeDetection() {
@@ -58,7 +89,7 @@ function setupChatGPTRouteChangeDetection() {
 	const checkForRouteChange = () => {
 		if (window.location.href !== currentUrl) {
 			currentUrl = window.location.href
-			console.log("ChatGPT route changed, re-adding supermemory elements")
+			debugChatGPT("route changed, re-adding supermemory elements", currentUrl)
 			setTimeout(() => {
 				addSupermemoryButtonToMemoriesDialog()
 				addSaveChatGPTElementBeforeComposerBtn()
@@ -83,8 +114,10 @@ function setupChatGPTRouteChangeDetection() {
 						if (
 							element.querySelector?.("#prompt-textarea") ||
 							element.querySelector?.("button.composer-btn") ||
+							element.querySelector?.("button") ||
 							element.querySelector?.('[role="dialog"]') ||
 							element.matches?.("#prompt-textarea") ||
+							element.matches?.("button") ||
 							element.id === "prompt-textarea"
 						) {
 							shouldRecheck = true
@@ -98,6 +131,7 @@ function setupChatGPTRouteChangeDetection() {
 			chatGPTObserverThrottle = setTimeout(() => {
 				try {
 					chatGPTObserverThrottle = null
+					debugChatGPT("DOM changed near composer, rechecking UI")
 					addSupermemoryButtonToMemoriesDialog()
 					addSaveChatGPTElementBeforeComposerBtn()
 					setupChatGPTAutoFetch()
@@ -124,6 +158,8 @@ function setupChatGPTRouteChangeDetection() {
 
 async function getRelatedMemoriesForChatGPT(actionSource: string) {
 	try {
+		const isAutoSearch =
+			actionSource === POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED
 		const userQuery =
 			document.getElementById("prompt-textarea")?.textContent || ""
 
@@ -138,7 +174,15 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 			return
 		}
 
-		updateChatGPTIconFeedback("Searching memories...", iconElement)
+		if (isAutoSearch) {
+			const promptElement = document.getElementById("prompt-textarea")
+			if (promptElement) {
+				showLoadingSuggestion("chatgpt", promptElement)
+			}
+			setMemoryMarkerStatus(iconElement, "searching")
+		} else {
+			updateChatGPTIconFeedback("Searching memories...", iconElement)
+		}
 
 		const timeoutPromise = new Promise((_, reject) =>
 			setTimeout(
@@ -159,24 +203,40 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 		if (response?.success && response?.data) {
 			const promptElement = document.getElementById("prompt-textarea")
 			if (promptElement) {
-				promptElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${response.data}`
+				const memoryText = showMemorySuggestion(
+					"chatgpt",
+					promptElement,
+					response.data,
+				)
 				console.log(
 					"Prompt element dataset:",
-					promptElement.dataset.supermemories,
+					memoryText,
 				)
 
-				iconElement.dataset.memoriesData = response.data
+				iconElement.dataset.memoriesData = String(response.data)
 
-				updateChatGPTIconFeedback("Included Memories", iconElement)
+				if (isAutoSearch) {
+					setMemoryMarkerStatus(iconElement, "found")
+				} else {
+					updateChatGPTIconFeedback("Included Memories", iconElement)
+				}
 			} else {
 				console.warn(
 					"ChatGPT prompt element not found after successful memory fetch",
 				)
-				updateChatGPTIconFeedback("Memories found", iconElement)
+				if (isAutoSearch) {
+					setMemoryMarkerStatus(iconElement, "found")
+				} else {
+					updateChatGPTIconFeedback("Memories found", iconElement)
+				}
 			}
 		} else {
 			console.warn("No memories found or API response invalid")
-			updateChatGPTIconFeedback("No memories found", iconElement)
+			if (isAutoSearch) {
+				setMemoryMarkerStatus(iconElement, "none")
+			} else {
+				updateChatGPTIconFeedback("No memories found", iconElement)
+			}
 		}
 	} catch (error) {
 		console.error("Error getting related memories:", error)
@@ -185,7 +245,13 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 				'[id*="sm-chatgpt-input-bar-element-before-composer"]',
 			)[0] as HTMLElement
 			if (icon) {
-				updateChatGPTIconFeedback("Error fetching memories", icon)
+				if (
+					actionSource === POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_AUTO_SEARCHED
+				) {
+					setMemoryMarkerStatus(icon, "error")
+				} else {
+					updateChatGPTIconFeedback("Error fetching memories", icon)
+				}
 			}
 		} catch (feedbackError) {
 			console.error("Failed to update error feedback:", feedbackError)
@@ -300,6 +366,29 @@ function updateChatGPTIconFeedback(
 	iconElement: HTMLElement,
 	resetAfter = 0,
 ) {
+	const memories = iconElement.dataset.memoriesData
+	const fallbackReset =
+		resetAfter || (message === "Included Memories" ? 0 : 2200)
+
+	if (message === "Included Memories" || message === "Memories found") {
+		setMemoryMarkerStatus(iconElement, "found")
+		showMarkerPopover(iconElement, "Included Memories", memories)
+		return
+	}
+
+	if (message.toLowerCase().includes("searching")) {
+		setMemoryMarkerStatus(iconElement, "searching")
+		showMarkerPopover(iconElement, message)
+		return
+	}
+
+	setMemoryMarkerStatus(
+		iconElement,
+		message.toLowerCase().includes("error") ? "error" : "none",
+	)
+	showMarkerPopover(iconElement, message, undefined, fallbackReset)
+	return
+
 	if (!iconElement.dataset.originalHtml) {
 		iconElement.dataset.originalHtml = iconElement.innerHTML
 	}
@@ -515,57 +604,218 @@ function updateChatGPTIconFeedback(
 }
 
 function addSaveChatGPTElementBeforeComposerBtn() {
-	const composerButtons = document.querySelectorAll("button.composer-btn")
+	const promptInput = getChatGPTPromptInput()
+	if (!promptInput) {
+		debugChatGPT("prompt input not found", getChatGPTDomSnapshot())
+		return
+	}
 
-	composerButtons.forEach((button) => {
-		if (button.hasAttribute("data-supermemory-icon-added-before")) {
-			return
-		}
+	const composer = findChatGPTComposerRoot(promptInput)
+	if (!composer?.querySelector) {
+		debugChatGPT("composer root not found", describeElement(promptInput))
+		return
+	}
 
-		const parent = button.parentElement
-		if (!parent) return
+	const existingMarkers = Array.from(
+		document.querySelectorAll(
+			`[id*="${ELEMENT_IDS.CHATGPT_INPUT_BAR_ELEMENT}-before-composer"]`,
+		),
+	)
+	if (existingMarkers.length > 1) {
+		debugChatGPT("removed duplicate markers", existingMarkers.length)
+		existingMarkers.forEach((marker) => marker.remove())
+	} else if (existingMarkers.length === 1) {
+		debugChatGPT("marker already exists")
+		return
+	}
 
-		const parentSiblings = parent.parentElement?.children
-		if (!parentSiblings) return
-
-		let hasSpeechButtonSibling = false
-		for (const sibling of parentSiblings) {
-			if (
-				sibling.getAttribute("data-testid") ===
-				"composer-speech-button-container"
-			) {
-				hasSpeechButtonSibling = true
-				break
-			}
-		}
-
-		if (!hasSpeechButtonSibling) return
-
-		const grandParent = parent.parentElement
-		if (!grandParent) return
-
-		const existingIcon = grandParent.querySelector(
-			`#${ELEMENT_IDS.CHATGPT_INPUT_BAR_ELEMENT}-before-composer`,
-		)
-		if (existingIcon) {
-			button.setAttribute("data-supermemory-icon-added-before", "true")
-			return
-		}
-
-		const saveChatGPTElement = createChatGPTInputBarElement(async () => {
-			await getRelatedMemoriesForChatGPT(
-				POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_SEARCHED,
-			)
-		})
-
-		saveChatGPTElement.id = `${ELEMENT_IDS.CHATGPT_INPUT_BAR_ELEMENT}-before-composer-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
-
-		button.setAttribute("data-supermemory-icon-added-before", "true")
-
-		grandParent.insertBefore(saveChatGPTElement, parent)
-
-		setupChatGPTAutoFetch()
+	const buttons = findChatGPTComposerButtons(promptInput, composer)
+	debugChatGPT("candidate ChatGPT buttons", {
+		input: describeElement(promptInput),
+		composer: describeElement(composer),
+		buttons: buttons.map((button) => ({
+			label: buttonLabel(button),
+			element: describeElement(button),
+		})),
 	})
+
+	const micButton = buttons.find((button) => isChatGPTMicButton(button))
+	const voiceButton = buttons.find((button) => isChatGPTVoiceButton(button))
+	const sendButton = buttons.find((button) => isChatGPTSendButton(button))
+	const anchorButton = micButton || voiceButton || sendButton || buttons[buttons.length - 1]
+	const anchorSlot = findChatGPTButtonSlot(anchorButton, composer)
+	const speechContainer = composer.querySelector(
+		'[data-testid="composer-speech-button-container"]',
+	) as HTMLElement | null
+	const targetContainer =
+		anchorSlot?.parentElement ||
+		speechContainer?.parentElement ||
+		promptInput.parentElement
+
+	if (!targetContainer) {
+		debugChatGPT("could not find insertion target", {
+			anchor: anchorButton ? describeElement(anchorButton) : null,
+			input: describeElement(promptInput),
+		})
+		return
+	}
+
+	const saveChatGPTElement = createChatGPTInputBarElement(async () => {
+		await getRelatedMemoriesForChatGPT(
+			POSTHOG_EVENT_KEY.CHATGPT_CHAT_MEMORIES_SEARCHED,
+		)
+	})
+
+	saveChatGPTElement.id = `${ELEMENT_IDS.CHATGPT_INPUT_BAR_ELEMENT}-before-composer-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
+
+	if (anchorSlot?.parentElement === targetContainer) {
+		targetContainer.insertBefore(saveChatGPTElement, anchorSlot)
+		debugChatGPT("inserted marker before anchor button", {
+			anchorLabel: anchorButton ? buttonLabel(anchorButton) : null,
+			anchorSlot: describeElement(anchorSlot),
+			target: describeElement(targetContainer),
+		})
+	} else {
+		targetContainer.appendChild(saveChatGPTElement)
+		debugChatGPT("inserted marker into fallback target", {
+			target: describeElement(targetContainer),
+		})
+	}
+
+	setupChatGPTAutoFetch()
+}
+
+function getChatGPTPromptInput(): HTMLElement | null {
+	return document.querySelector(
+		'#prompt-textarea, [data-testid="prompt-textarea"], div[contenteditable="true"]',
+	) as HTMLElement | null
+}
+
+function findChatGPTComposerRoot(input: HTMLElement): HTMLElement {
+	const form = input.closest("form") as HTMLElement | null
+	if (form) return form
+
+	let current: HTMLElement | null = input
+	for (let depth = 0; current && depth < 8; depth += 1) {
+		if (current.querySelectorAll("button").length >= 2) {
+			return current
+		}
+		current = current.parentElement
+	}
+
+	return input.parentElement || document.body
+}
+
+function findChatGPTComposerButtons(
+	input: HTMLElement,
+	composer: HTMLElement,
+): HTMLButtonElement[] {
+	const composerButtons = Array.from(composer.querySelectorAll("button"))
+	if (composerButtons.length > 0) {
+		return composerButtons
+	}
+
+	const inputRect = input.getBoundingClientRect()
+	const allButtons = Array.from(document.querySelectorAll("button"))
+
+	return allButtons.filter((button) => {
+		const rect = button.getBoundingClientRect()
+		const verticallyNear =
+			Math.abs(rect.top + rect.height / 2 - (inputRect.top + inputRect.height / 2)) <
+			120
+		const horizontallyNear =
+			rect.left > inputRect.left - 80 && rect.left < inputRect.right + 260
+
+		return verticallyNear && horizontallyNear
+	})
+}
+
+function buttonLabel(button: HTMLButtonElement): string {
+	return [
+		button.id,
+		button.getAttribute("aria-label"),
+		button.getAttribute("title"),
+		button.getAttribute("data-testid"),
+		button.getAttribute("data-test-id"),
+		button.textContent,
+	]
+		.filter(Boolean)
+		.join(" ")
+}
+
+function isChatGPTMicButton(button: HTMLButtonElement): boolean {
+	return /mic|microphone|dictate/i.test(buttonLabel(button))
+}
+
+function isChatGPTVoiceButton(button: HTMLButtonElement): boolean {
+	return /voice|audio|speech/i.test(buttonLabel(button))
+}
+
+function isChatGPTSendButton(button: HTMLButtonElement): boolean {
+	const label = buttonLabel(button)
+	return /composer-submit-button|send|submit/i.test(label)
+}
+
+function findChatGPTButtonSlot(
+	button: HTMLButtonElement | undefined,
+	composer: HTMLElement,
+): HTMLElement | null {
+	if (!button) return null
+
+	let current: HTMLElement | null = button
+	while (current?.parentElement && current.parentElement !== composer) {
+		const parent: HTMLElement = current.parentElement
+		const parentStyle = window.getComputedStyle(parent)
+		const hasSiblingControls = parent.children.length > 1
+		const isRow =
+			parentStyle.display.includes("flex") &&
+			parentStyle.flexDirection !== "column"
+
+		if (hasSiblingControls && isRow) {
+			return current
+		}
+
+		current = parent
+	}
+
+	return current || button
+}
+
+function describeElement(element: Element | null): string | null {
+	if (!element) return null
+
+	const parts = [element.tagName.toLowerCase()]
+	if (element.id) parts.push(`#${element.id}`)
+	if (element.className && typeof element.className === "string") {
+		parts.push(
+			`.${element.className
+				.trim()
+				.split(/\s+/)
+				.slice(0, 4)
+				.join(".")}`,
+		)
+	}
+
+	for (const attr of ["aria-label", "data-testid", "data-test-id", "role"]) {
+		const value = element.getAttribute(attr)
+		if (value) parts.push(`[${attr}="${value}"]`)
+	}
+
+	return parts.join("")
+}
+
+function getChatGPTDomSnapshot() {
+	return {
+		promptTextareas: document.querySelectorAll("#prompt-textarea").length,
+		contenteditables: document.querySelectorAll('[contenteditable="true"]')
+			.length,
+		textareas: document.querySelectorAll("textarea").length,
+		buttons: document.querySelectorAll("button").length,
+		composerButtons: document.querySelectorAll("button.composer-btn").length,
+		speechContainers: document.querySelectorAll(
+			'[data-testid="composer-speech-button-container"]',
+		).length,
+	}
 }
 
 async function setupChatGPTAutoFetch() {
@@ -586,12 +836,27 @@ async function setupChatGPTAutoFetch() {
 	promptTextarea.setAttribute("data-supermemory-auto-fetch", "true")
 
 	const handleInput = () => {
+		const content = promptTextarea.textContent?.trim() || ""
+		syncAcceptedSupermemoryState(promptTextarea)
+
+		if (content.length === 0) {
+			clearMemorySuggestion("chatgpt", promptTextarea)
+			document
+				.querySelectorAll('[id*="sm-chatgpt-input-bar-element-before-composer"]')
+				.forEach((icon) => {
+					setMemoryMarkerStatus(icon as HTMLElement, "neutral")
+				})
+		}
+
 		if (chatGPTDebounceTimeout) {
 			clearTimeout(chatGPTDebounceTimeout)
 		}
 
 		chatGPTDebounceTimeout = setTimeout(async () => {
-			const content = promptTextarea.textContent?.trim() || ""
+			if (hasAcceptedSupermemoryContext(promptTextarea)) {
+				clearMemorySuggestion("chatgpt", promptTextarea)
+				return
+			}
 
 			if (content.length > 2) {
 				await getRelatedMemoriesForChatGPT(
@@ -604,6 +869,7 @@ async function setupChatGPTAutoFetch() {
 
 				icons.forEach((icon) => {
 					const iconElement = icon as HTMLElement
+					setMemoryMarkerStatus(iconElement, "neutral")
 					if (iconElement.dataset.originalHtml) {
 						iconElement.innerHTML = iconElement.dataset.originalHtml
 						delete iconElement.dataset.originalHtml
@@ -612,7 +878,7 @@ async function setupChatGPTAutoFetch() {
 				})
 
 				if (promptTextarea.dataset.supermemories) {
-					delete promptTextarea.dataset.supermemories
+					clearMemorySuggestion("chatgpt", promptTextarea)
 				}
 			}
 		}, UI_CONFIG.AUTO_SEARCH_DEBOUNCE_DELAY)
@@ -638,16 +904,6 @@ function setupChatGPTPromptCapture() {
 
 		let promptContent = ""
 		if (promptTextarea) {
-			promptContent = promptTextarea.textContent || ""
-		}
-
-		const storedMemories = promptTextarea?.dataset.supermemories
-		if (
-			storedMemories &&
-			promptTextarea &&
-			!promptContent.includes("Supermemories of user")
-		) {
-			promptTextarea.appendChild(document.createTextNode(storedMemories))
 			promptContent = promptTextarea.textContent || ""
 		}
 
@@ -682,7 +938,7 @@ function setupChatGPTPromptCapture() {
 		})
 
 		if (promptTextarea?.dataset.supermemories) {
-			delete promptTextarea.dataset.supermemories
+			clearMemorySuggestion("chatgpt", promptTextarea)
 		}
 	}
 
@@ -704,6 +960,18 @@ function setupChatGPTPromptCapture() {
 		"keydown",
 		async (event) => {
 			const target = event.target as HTMLElement
+
+			if (
+				(target.id === "prompt-textarea" ||
+					target.closest("#prompt-textarea")) &&
+				acceptMemorySuggestion(
+					event,
+					"chatgpt",
+					document.getElementById("prompt-textarea"),
+				)
+			) {
+				return
+			}
 
 			if (
 				target.id === "prompt-textarea" &&
