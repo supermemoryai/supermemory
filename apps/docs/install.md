@@ -46,7 +46,10 @@ export SUPERMEMORY_API_KEY="sm_..."
 // PATCH https://api.supermemory.ai/v3/settings
 fetch('https://api.supermemory.ai/v3/settings', {
   method: 'PATCH',
-  headers: { 'x-supermemory-api-key': process.env.SUPERMEMORY_API_KEY },
+  headers: {
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
   body: JSON.stringify({
     shouldLLMFilter: true,
     filterPrompt: `This is a [your app description]. containerTag is [userId/orgId]. We store [what data].`
@@ -210,17 +213,20 @@ client.add(content=f"user: {user_message}\\nassistant: {response}", container_ta
 ```bash
 # Add memory
 curl -X POST https://api.supermemory.ai/v3/documents \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"content": "conversation", "containerTag": "userId"}'
 
 # Get profile
 curl -X POST https://api.supermemory.ai/v4/profile \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"containerTag": "userId", "q": "search query"}'
 
 # Search
 curl -X POST https://api.supermemory.ai/v4/search \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"q": "query", "containerTag": "userId", "searchMode": "hybrid"}'
 ```
 
@@ -234,7 +240,10 @@ formData.append('containerTag', userId)
 
 await fetch('https://api.supermemory.ai/v3/documents/file', {
   method: 'POST',
-  headers: { 'x-supermemory-api-key': process.env.SUPERMEMORY_API_KEY },
+  headers: {
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
   body: formData
 })
 
@@ -282,17 +291,20 @@ await client.search({
 ```bash
 # 1. Configure settings
 curl -X PATCH https://api.supermemory.ai/v3/settings \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"shouldLLMFilter": true, "filterPrompt": "..."}'
 
 # 2. Add test memory
 curl -X POST https://api.supermemory.ai/v3/documents \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"content": "Test", "containerTag": "test_user"}'
 
 # 3. Get profile
 curl -X POST https://api.supermemory.ai/v4/profile \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"containerTag": "test_user"}'
 ```
 
