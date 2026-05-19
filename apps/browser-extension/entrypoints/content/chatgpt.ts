@@ -208,10 +208,7 @@ async function getRelatedMemoriesForChatGPT(actionSource: string) {
 					promptElement,
 					response.data,
 				)
-				console.log(
-					"Prompt element dataset:",
-					memoryText,
-				)
+				console.log("Prompt element dataset:", memoryText)
 
 				iconElement.dataset.memoriesData = String(response.data)
 
@@ -387,220 +384,6 @@ function updateChatGPTIconFeedback(
 		message.toLowerCase().includes("error") ? "error" : "none",
 	)
 	showMarkerPopover(iconElement, message, undefined, fallbackReset)
-	return
-
-	if (!iconElement.dataset.originalHtml) {
-		iconElement.dataset.originalHtml = iconElement.innerHTML
-	}
-
-	const feedbackDiv = document.createElement("div")
-	feedbackDiv.style.cssText = `
-		display: flex; 
-		align-items: center; 
-		gap: 6px; 
-		padding: 4px 8px; 
-		background: #513EA9; 
-		border-radius: 12px; 
-		color: white; 
-		font-size: 12px; 
-		font-weight: 500;
-		cursor: ${message === "Included Memories" ? "pointer" : "default"};
-		position: relative;
-	`
-
-	feedbackDiv.innerHTML = `
-		<span>✓</span>
-		<span>${message}</span>
-	`
-
-	if (message === "Included Memories" && iconElement.dataset.memoriesData) {
-		const popup = document.createElement("div")
-		popup.style.cssText = `
-			position: fixed;
-			bottom: 80px;
-			left: 50%;
-			transform: translateX(-50%);
-			background: #1a1a1a;
-			color: white;
-			padding: 0;
-			border-radius: 12px;
-			font-size: 13px;
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-			max-width: 500px;
-			max-height: 400px;
-			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-			z-index: 999999;
-			display: none;
-			border: 1px solid #333;
-		`
-
-		const header = document.createElement("div")
-		header.style.cssText = `
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding: 8px;
-			border-bottom: 1px solid #333;
-			opacity: 0.8;
-		`
-		header.innerHTML = `
-			<span style="font-weight: 600; color: #fff;">Included Memories</span>
-		`
-
-		const content = document.createElement("div")
-		content.style.cssText = `
-			padding: 0;
-			max-height: 300px;
-			overflow-y: auto;
-		`
-
-		const memoriesText = iconElement.dataset.memoriesData || ""
-		console.log("Memories text:", memoriesText)
-		const individualMemories = memoriesText
-			.split(/[,\n]/)
-			.map((memory) => memory.trim())
-			.filter((memory) => memory.length > 0 && memory !== ",")
-		console.log("Individual memories:", individualMemories)
-
-		individualMemories.forEach((memory, index) => {
-			const memoryItem = document.createElement("div")
-			memoryItem.style.cssText = `
-				display: flex;
-				align-items: center;
-				gap: 6px;
-				padding: 10px;
-				font-size: 13px;
-				line-height: 1.4;
-			`
-
-			const memoryText = document.createElement("div")
-			memoryText.style.cssText = `
-				flex: 1;
-				color: #e5e5e5;
-			`
-			memoryText.textContent = memory.trim()
-
-			const removeBtn = document.createElement("button")
-			removeBtn.style.cssText = `
-				background: transparent;
-				color: #9ca3af;
-				border: none;
-				padding: 4px;
-				border-radius: 4px;
-				cursor: pointer;
-				flex-shrink: 0;
-				height: fit-content;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-			`
-			removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`
-			removeBtn.dataset.memoryIndex = index.toString()
-
-			removeBtn.addEventListener("mouseenter", () => {
-				removeBtn.style.color = "#ef4444"
-			})
-			removeBtn.addEventListener("mouseleave", () => {
-				removeBtn.style.color = "#9ca3af"
-			})
-
-			memoryItem.appendChild(memoryText)
-			memoryItem.appendChild(removeBtn)
-			content.appendChild(memoryItem)
-		})
-
-		popup.appendChild(header)
-		popup.appendChild(content)
-		document.body.appendChild(popup)
-
-		feedbackDiv.addEventListener("mouseenter", () => {
-			const textSpan = feedbackDiv.querySelector("span:last-child")
-			if (textSpan) {
-				textSpan.textContent = "Click to see memories"
-			}
-		})
-
-		feedbackDiv.addEventListener("mouseleave", () => {
-			const textSpan = feedbackDiv.querySelector("span:last-child")
-			if (textSpan) {
-				textSpan.textContent = "Included Memories"
-			}
-		})
-
-		feedbackDiv.addEventListener("click", (e) => {
-			e.stopPropagation()
-			popup.style.display = "block"
-		})
-
-		document.addEventListener("click", (e) => {
-			if (!popup.contains(e.target as Node)) {
-				popup.style.display = "none"
-			}
-		})
-
-		content.querySelectorAll("button[data-memory-index]").forEach((button) => {
-			const htmlButton = button as HTMLButtonElement
-			htmlButton.addEventListener("click", () => {
-				const index = Number.parseInt(htmlButton.dataset.memoryIndex || "0", 10)
-				const memoryItem = htmlButton.parentElement
-
-				if (memoryItem) {
-					content.removeChild(memoryItem)
-				}
-
-				const currentMemories = (iconElement.dataset.memoriesData || "")
-					.split(/[,\n]/)
-					.map((memory) => memory.trim())
-					.filter((memory) => memory.length > 0 && memory !== ",")
-				currentMemories.splice(index, 1)
-
-				const updatedMemories = currentMemories.join(" ,")
-
-				iconElement.dataset.memoriesData = updatedMemories
-
-				const promptElement = document.getElementById("prompt-textarea")
-				if (promptElement) {
-					promptElement.dataset.supermemories = `\n\nSupermemories of user (only for the reference): ${updatedMemories}`
-				}
-
-				content
-					.querySelectorAll("button[data-memory-index]")
-					.forEach((btn, newIndex) => {
-						const htmlBtn = btn as HTMLButtonElement
-						htmlBtn.dataset.memoryIndex = newIndex.toString()
-					})
-
-				if (currentMemories.length <= 1) {
-					if (promptElement?.dataset.supermemories) {
-						delete promptElement.dataset.supermemories
-						delete iconElement.dataset.memoriesData
-						iconElement.innerHTML = iconElement.dataset.originalHtml || ""
-						delete iconElement.dataset.originalHtml
-					}
-					popup.style.display = "none"
-					if (document.body.contains(popup)) {
-						document.body.removeChild(popup)
-					}
-				}
-			})
-		})
-
-		setTimeout(() => {
-			if (document.body.contains(popup)) {
-				document.body.removeChild(popup)
-			}
-		}, 300000)
-	}
-
-	iconElement.innerHTML = ""
-	iconElement.appendChild(feedbackDiv)
-
-	if (resetAfter > 0) {
-		setTimeout(() => {
-			iconElement.innerHTML = iconElement.dataset.originalHtml || ""
-			delete iconElement.dataset.originalHtml
-		}, resetAfter)
-	}
 }
 
 function addSaveChatGPTElementBeforeComposerBtn() {
@@ -623,7 +406,9 @@ function addSaveChatGPTElementBeforeComposerBtn() {
 	)
 	if (existingMarkers.length > 1) {
 		debugChatGPT("removed duplicate markers", existingMarkers.length)
-		existingMarkers.forEach((marker) => marker.remove())
+		for (const marker of existingMarkers) {
+			marker.remove()
+		}
 	} else if (existingMarkers.length === 1) {
 		debugChatGPT("marker already exists")
 		return
@@ -642,7 +427,8 @@ function addSaveChatGPTElementBeforeComposerBtn() {
 	const micButton = buttons.find((button) => isChatGPTMicButton(button))
 	const voiceButton = buttons.find((button) => isChatGPTVoiceButton(button))
 	const sendButton = buttons.find((button) => isChatGPTSendButton(button))
-	const anchorButton = micButton || voiceButton || sendButton || buttons[buttons.length - 1]
+	const anchorButton =
+		micButton || voiceButton || sendButton || buttons[buttons.length - 1]
 	const anchorSlot = findChatGPTButtonSlot(anchorButton, composer)
 	const speechContainer = composer.querySelector(
 		'[data-testid="composer-speech-button-container"]',
@@ -721,8 +507,9 @@ function findChatGPTComposerButtons(
 	return allButtons.filter((button) => {
 		const rect = button.getBoundingClientRect()
 		const verticallyNear =
-			Math.abs(rect.top + rect.height / 2 - (inputRect.top + inputRect.height / 2)) <
-			120
+			Math.abs(
+				rect.top + rect.height / 2 - (inputRect.top + inputRect.height / 2),
+			) < 120
 		const horizontallyNear =
 			rect.left > inputRect.left - 80 && rect.left < inputRect.right + 260
 
@@ -788,11 +575,7 @@ function describeElement(element: Element | null): string | null {
 	if (element.id) parts.push(`#${element.id}`)
 	if (element.className && typeof element.className === "string") {
 		parts.push(
-			`.${element.className
-				.trim()
-				.split(/\s+/)
-				.slice(0, 4)
-				.join(".")}`,
+			`.${element.className.trim().split(/\s+/).slice(0, 4).join(".")}`,
 		)
 	}
 
@@ -842,7 +625,9 @@ async function setupChatGPTAutoFetch() {
 		if (content.length === 0) {
 			clearMemorySuggestion("chatgpt", promptTextarea)
 			document
-				.querySelectorAll('[id*="sm-chatgpt-input-bar-element-before-composer"]')
+				.querySelectorAll(
+					'[id*="sm-chatgpt-input-bar-element-before-composer"]',
+				)
 				.forEach((icon) => {
 					setMemoryMarkerStatus(icon as HTMLElement, "neutral")
 				})

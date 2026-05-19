@@ -160,11 +160,15 @@ function addSupermemoryIconToGeminiInput() {
 	}
 
 	const existingMarkers = Array.from(
-		document.querySelectorAll(`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`),
+		document.querySelectorAll(
+			`[id*="${ELEMENT_IDS.GEMINI_INPUT_BAR_ELEMENT}"]`,
+		),
 	)
 	if (existingMarkers.length > 1) {
 		debugGemini("removed duplicate markers", existingMarkers.length)
-		existingMarkers.forEach((marker) => marker.remove())
+		for (const marker of existingMarkers) {
+			marker.remove()
+		}
 	} else if (existingMarkers.length === 1) {
 		debugGemini("marker already exists")
 		return
@@ -180,9 +184,7 @@ function addSupermemoryIconToGeminiInput() {
 		})),
 	})
 
-	const micButton = buttons.find((button) =>
-		isGeminiMicButton(button),
-	)
+	const micButton = buttons.find((button) => isGeminiMicButton(button))
 	const sendButton = buttons.find((button) => isGeminiSendButton(button))
 	const anchorButton = micButton || sendButton || buttons[buttons.length - 1]
 	const anchorSlot = findGeminiButtonSlot(anchorButton, composer)
@@ -259,8 +261,9 @@ function findGeminiComposerButtons(
 	return allButtons.filter((button) => {
 		const rect = button.getBoundingClientRect()
 		const verticallyNear =
-			Math.abs(rect.top + rect.height / 2 - (inputRect.top + inputRect.height / 2)) <
-			120
+			Math.abs(
+				rect.top + rect.height / 2 - (inputRect.top + inputRect.height / 2),
+			) < 120
 		const horizontallyNear =
 			rect.left > inputRect.left - 80 && rect.left < inputRect.right + 240
 
@@ -328,11 +331,7 @@ function describeElement(element: Element | null): string | null {
 	if (element.id) parts.push(`#${element.id}`)
 	if (element.className && typeof element.className === "string") {
 		parts.push(
-			`.${element.className
-				.trim()
-				.split(/\s+/)
-				.slice(0, 4)
-				.join(".")}`,
+			`.${element.className.trim().split(/\s+/).slice(0, 4).join(".")}`,
 		)
 	}
 
@@ -364,7 +363,7 @@ function getInputText(input: GeminiInput | null): string {
 	return input.innerText || input.textContent || ""
 }
 
-function appendStoredMemories(input: GeminiInput, storedMemories: string) {
+function _appendStoredMemories(input: GeminiInput, storedMemories: string) {
 	if (input instanceof HTMLTextAreaElement) {
 		const promptContent = input.value || ""
 		input.value = `${promptContent}${storedMemories}`
@@ -510,7 +509,7 @@ function setupGeminiPromptCapture() {
 		}
 
 		const input = getGeminiPromptInput()
-		let promptContent = getInputText(input)
+		const promptContent = getInputText(input)
 		debugGemini("capture input state", {
 			hasInput: !!input,
 			promptLength: promptContent.length,
@@ -541,9 +540,7 @@ function setupGeminiPromptCapture() {
 
 		icons.forEach((icon) => {
 			const iconElement = icon as HTMLElement
-			iconElement
-				.querySelector("[data-supermemory-status-badge]")
-				?.remove()
+			iconElement.querySelector("[data-supermemory-status-badge]")?.remove()
 			delete iconElement.dataset.supermemoryStatus
 			delete iconElement.dataset.memoriesData
 			if (iconElement.dataset.originalHtml) {
@@ -659,9 +656,7 @@ async function setupGeminiAutoFetch() {
 
 				icons.forEach((icon) => {
 					const iconElement = icon as HTMLElement
-					iconElement
-						.querySelector("[data-supermemory-status-badge]")
-						?.remove()
+					iconElement.querySelector("[data-supermemory-status-badge]")?.remove()
 					delete iconElement.dataset.supermemoryStatus
 					delete iconElement.dataset.memoriesData
 					if (iconElement.dataset.originalHtml) {

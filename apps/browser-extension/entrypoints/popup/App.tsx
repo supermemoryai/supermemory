@@ -442,7 +442,9 @@ function App() {
 			throw new Error(response?.error || "Failed to save current page")
 		} catch (error) {
 			console.error("Failed to save current page:", error)
-			setSaveError(error instanceof Error ? error.message : "Could not save page")
+			setSaveError(
+				error instanceof Error ? error.message : "Could not save page",
+			)
 
 			try {
 				const tabs = await chrome.tabs.query({

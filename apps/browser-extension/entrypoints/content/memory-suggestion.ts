@@ -71,7 +71,10 @@ export function showMemorySuggestion(
 	return suggestionText
 }
 
-export function showLoadingSuggestion(platform: string, input: SuggestionInput) {
+export function showLoadingSuggestion(
+	platform: string,
+	input: SuggestionInput,
+) {
 	removeMemorySuggestion(platform)
 
 	const anchor = getSuggestionAnchor(input)
@@ -134,9 +137,12 @@ function createSuggestionContainer(
 }
 
 export function removeMemorySuggestion(platform: string) {
-	document
-		.querySelectorAll(`[${SUGGESTION_ATTR}="${platform}"]`)
-		.forEach((element) => element.remove())
+	const elements = document.querySelectorAll(
+		`[${SUGGESTION_ATTR}="${platform}"]`,
+	)
+	for (const element of elements) {
+		element.remove()
+	}
 }
 
 export function acceptMemorySuggestion(
@@ -160,7 +166,9 @@ export function acceptMemorySuggestion(
 	return true
 }
 
-export function hasAcceptedSupermemoryContext(input: SuggestionInput | null): boolean {
+export function hasAcceptedSupermemoryContext(
+	input: SuggestionInput | null,
+): boolean {
 	if (!input) return false
 	const text =
 		input instanceof HTMLTextAreaElement
@@ -178,7 +186,10 @@ export function syncAcceptedSupermemoryState(input: SuggestionInput | null) {
 	}
 }
 
-export function clearMemorySuggestion(platform: string, input: SuggestionInput | null) {
+export function clearMemorySuggestion(
+	platform: string,
+	input: SuggestionInput | null,
+) {
 	removeMemorySuggestion(platform)
 	if (input?.dataset.supermemories) {
 		delete input.dataset.supermemories
@@ -194,9 +205,7 @@ export function setMemoryMarkerStatus(
 ) {
 	if (!iconElement) return
 
-	iconElement
-		.querySelector("[data-supermemory-status-badge]")
-		?.remove()
+	iconElement.querySelector("[data-supermemory-status-badge]")?.remove()
 
 	if (status === "neutral" || status === "none") {
 		delete iconElement.dataset.supermemoryStatus
@@ -227,9 +236,7 @@ export function showMarkerPopover(
 	memories?: string,
 	resetAfter = 0,
 ) {
-	iconElement
-		.querySelector("[data-supermemory-marker-popover]")
-		?.remove()
+	iconElement.querySelector("[data-supermemory-marker-popover]")?.remove()
 	ensureSuggestionAnimationStyle()
 
 	const popover = document.createElement("div")

@@ -77,12 +77,11 @@ export async function saveMemory(
 		if (response?.success) {
 			DOMUtils.showToast("success")
 			return response
-		} else {
-			DOMUtils.showToast("error")
-			return {
-				success: false,
-				error: response?.error || "Failed to save memory",
-			}
+		}
+		DOMUtils.showToast("error")
+		return {
+			success: false,
+			error: response?.error || "Failed to save memory",
 		}
 	} catch (error) {
 		console.error("Error saving memory:", error)
