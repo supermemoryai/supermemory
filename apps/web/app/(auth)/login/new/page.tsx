@@ -17,6 +17,7 @@ import { motion } from "motion/react"
 import { dmSansClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { Logo } from "@ui/assets/Logo"
+import { resolveAuthRedirectUrl } from "@/lib/url-helpers"
 
 function isMcpOAuthAuthorizeContext(sp: Pick<URLSearchParams, "get">): boolean {
 	return sp.get("response_type") === "code" && Boolean(sp.get("client_id"))
@@ -113,9 +114,25 @@ export default function LoginPage() {
 		if (sessionPending) return
 		if (!sessionData?.session) return
 		const sp = new URLSearchParams(oauthQueryForResume)
-		if (!isMcpOAuthAuthorizeContext(sp)) return
-		window.location.assign(buildMcpAuthorizeResumeUrl(sp))
-	}, [sessionPending, sessionData?.session, oauthQueryForResume])
+		if (isMcpOAuthAuthorizeContext(sp)) {
+			window.location.assign(buildMcpAuthorizeResumeUrl(sp))
+			return
+		}
+		const redirectUrl = params.get("redirect")
+		if (redirectUrl) {
+			window.location.assign(
+				resolveAuthRedirectUrl(redirectUrl, window.location.origin).toString(),
+			)
+			return
+		}
+		router.replace("/")
+	}, [
+		sessionPending,
+		sessionData?.session,
+		oauthQueryForResume,
+		params,
+		router,
+	])
 
 	// Get redirect URL from query params
 	const redirectUrl = params.get("redirect")
@@ -128,17 +145,7 @@ export default function LoginPage() {
 			return buildMcpAuthorizeResumeUrl(params)
 		}
 
-		let finalUrl: URL
-
-		if (redirectUrl) {
-			try {
-				finalUrl = new URL(redirectUrl, origin)
-			} catch {
-				finalUrl = new URL(origin)
-			}
-		} else {
-			finalUrl = new URL(origin)
-		}
+		const finalUrl = resolveAuthRedirectUrl(redirectUrl, origin)
 
 		finalUrl.searchParams.set("extension-auth-success", "true")
 		return finalUrl.toString()
