@@ -514,9 +514,13 @@ export default function NewPage() {
 
 	const handleOpenIntegrations = useCallback(
 		(integration?: IntegrationParamValue) => {
+			if (integration === "notion" || integration === "google-drive") {
+				void setAddDoc("connect")
+				return
+			}
 			void setViewMode(integration ?? "integrations")
 		},
-		[setViewMode],
+		[setViewMode, setAddDoc],
 	)
 
 	const handleOpenPlugins = useCallback(() => {
