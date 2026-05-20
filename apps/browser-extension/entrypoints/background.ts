@@ -31,10 +31,15 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 function normalizePlatform(value?: string): string | undefined {
 	if (!value) return undefined
-	return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+	return value
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "_")
+		.replace(/^_+|_+$/g, "")
 }
 
-function inferPlatformFromActionSource(actionSource: string): string | undefined {
+function inferPlatformFromActionSource(
+	actionSource: string,
+): string | undefined {
 	const source = actionSource.toLowerCase()
 	if (source.includes("chatgpt")) return "chatgpt"
 	if (source.includes("claude")) return "claude"
@@ -146,9 +151,10 @@ export default defineBackground(() => {
 				content = data?.url || ""
 			}
 
-			const platform = normalizePlatform(data.sourcePlatform)
-				|| inferPlatformFromUrl(data.url)
-				|| inferPlatformFromActionSource(actionSource)
+			const platform =
+				normalizePlatform(data.sourcePlatform) ||
+				inferPlatformFromUrl(data.url) ||
+				inferPlatformFromActionSource(actionSource)
 			const platformLabel = platform
 				? data.sourcePlatformLabel || PLATFORM_LABELS[platform] || platform
 				: undefined
