@@ -523,7 +523,7 @@ function setupGeminiPromptCapture() {
 					data: {
 						prompt: promptContent,
 						platform: "gemini",
-						source,
+						source: window.location.href,
 					},
 				})
 				debugGemini("capture response", response)

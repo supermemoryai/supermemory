@@ -90,6 +90,32 @@ type OgData = {
 	image?: string
 }
 
+const EXTENSION_PLATFORM_LABELS: Record<string, string> = {
+	chatgpt: "ChatGPT",
+	claude: "Claude",
+	gemini: "Gemini",
+	t3: "T3 Chat",
+	twitter: "X / Twitter",
+}
+
+function getExtensionSourceLabel(document: DocumentWithMemories): string | null {
+	const metadata = document.metadata
+	if (!metadata || typeof metadata !== "object") return null
+
+	const label = metadata.sm_origin_platform_label
+	if (typeof label === "string" && label.trim()) {
+		return label.trim()
+	}
+
+	const platform = metadata.sm_origin_platform
+	if (typeof platform === "string" && platform.trim()) {
+		const normalized = platform.trim().toLowerCase()
+		return EXTENSION_PLATFORM_LABELS[normalized] || platform.trim()
+	}
+
+	return null
+}
+
 const ogCache = new Map<string, OgData>()
 const ogInflight = new Map<string, Promise<OgData | null>>()
 const ogFailures = new Map<string, number>()
@@ -1147,6 +1173,7 @@ const DocumentCard = memo(
 											pluginDocument?.kind === "claude-code-doc"
 												? claudeCodeTokenBadge(document)
 												: null
+										const sourceLabel = getExtensionSourceLabel(document)
 										const date = new Date(
 											document.createdAt,
 										).toLocaleDateString("en-US", {
@@ -1154,7 +1181,7 @@ const DocumentCard = memo(
 											day: "numeric",
 											year: "numeric",
 										})
-										return badge ? `${badge} · ${date}` : date
+										return [sourceLabel, badge, date].filter(Boolean).join(" - ")
 									})()}
 								</p>
 							</div>
