@@ -16,8 +16,10 @@ export class ViewportState {
 	private targetPanY: number | null = null
 	private readonly panLerp = 0.12
 
-	private static readonly MIN_ZOOM = 0.1
+	private static readonly DEFAULT_MIN_ZOOM = 0.1
+	private static readonly ABSOLUTE_MIN_ZOOM = 0.005
 	private static readonly MAX_ZOOM = 5.0
+	private minZoom = ViewportState.DEFAULT_MIN_ZOOM
 
 	constructor(initialPanX = 0, initialPanY = 0, initialZoom = 0.5) {
 		this.panX = initialPanX
@@ -54,22 +56,14 @@ export class ViewportState {
 
 	zoomImmediate(delta: number, anchorX: number, anchorY: number): void {
 		const world = this.screenToWorld(anchorX, anchorY)
-		this.zoom = clamp(
-			this.zoom * delta,
-			ViewportState.MIN_ZOOM,
-			ViewportState.MAX_ZOOM,
-		)
+		this.zoom = clamp(this.zoom * delta, this.minZoom, ViewportState.MAX_ZOOM)
 		this.targetZoom = this.zoom
 		this.panX = anchorX - world.x * this.zoom
 		this.panY = anchorY - world.y * this.zoom
 	}
 
 	zoomTo(target: number, anchorX: number, anchorY: number): void {
-		this.targetZoom = clamp(
-			target,
-			ViewportState.MIN_ZOOM,
-			ViewportState.MAX_ZOOM,
-		)
+		this.targetZoom = clamp(target, this.minZoom, ViewportState.MAX_ZOOM)
 		this.zoomAnchorX = anchorX
 		this.zoomAnchorY = anchorY
 	}
@@ -79,36 +73,38 @@ export class ViewportState {
 		width: number,
 		height: number,
 	): void {
-		if (nodes.length === 0) return
+		const fit = computeFit(nodes, width, height)
+		if (!fit) return
 
-		let minX = Number.POSITIVE_INFINITY
-		let maxX = Number.NEGATIVE_INFINITY
-		let minY = Number.POSITIVE_INFINITY
-		let maxY = Number.NEGATIVE_INFINITY
+		const { cx, cy, fitZoom } = fit
 
-		for (const n of nodes) {
-			minX = Math.min(minX, n.x - n.size)
-			maxX = Math.max(maxX, n.x + n.size)
-			minY = Math.min(minY, n.y - n.size)
-			maxY = Math.max(maxY, n.y + n.size)
-		}
-
-		const pad = 0.1
-		const cw = (maxX - minX) * (1 + pad * 2)
-		const ch = (maxY - minY) * (1 + pad * 2)
-		const cx = (minX + maxX) / 2
-		const cy = (minY + maxY) / 2
-
-		const fitZoom = Math.min(width / cw, height / ch, 1)
-		this.targetZoom = clamp(
-			fitZoom,
-			ViewportState.MIN_ZOOM,
-			ViewportState.MAX_ZOOM,
-		)
+		this.targetZoom = clamp(fitZoom, this.minZoom, ViewportState.MAX_ZOOM)
 		this.zoomAnchorX = width / 2
 		this.zoomAnchorY = height / 2
 		this.targetPanX = width / 2 - cx * this.targetZoom
 		this.targetPanY = height / 2 - cy * this.targetZoom
+	}
+
+	setMinZoomForNodes(
+		nodes: Array<{ x: number; y: number; size: number }>,
+		width: number,
+		height: number,
+	): void {
+		const fit = computeFit(nodes, width, height)
+		const nextMinZoom = fit
+			? Math.min(ViewportState.DEFAULT_MIN_ZOOM, fit.fitZoom)
+			: ViewportState.DEFAULT_MIN_ZOOM
+		this.minZoom = clamp(
+			nextMinZoom,
+			ViewportState.ABSOLUTE_MIN_ZOOM,
+			ViewportState.DEFAULT_MIN_ZOOM,
+		)
+		this.zoom = clamp(this.zoom, this.minZoom, ViewportState.MAX_ZOOM)
+		this.targetZoom = clamp(
+			this.targetZoom,
+			this.minZoom,
+			ViewportState.MAX_ZOOM,
+		)
 	}
 
 	centerOn(
@@ -160,6 +156,38 @@ export class ViewportState {
 		}
 
 		return moving
+	}
+}
+
+function computeFit(
+	nodes: Array<{ x: number; y: number; size: number }>,
+	width: number,
+	height: number,
+): { cx: number; cy: number; fitZoom: number } | null {
+	if (nodes.length === 0 || width <= 0 || height <= 0) return null
+
+	let minX = Number.POSITIVE_INFINITY
+	let maxX = Number.NEGATIVE_INFINITY
+	let minY = Number.POSITIVE_INFINITY
+	let maxY = Number.NEGATIVE_INFINITY
+
+	for (const n of nodes) {
+		minX = Math.min(minX, n.x - n.size)
+		maxX = Math.max(maxX, n.x + n.size)
+		minY = Math.min(minY, n.y - n.size)
+		maxY = Math.max(maxY, n.y + n.size)
+	}
+
+	const pad = 0.1
+	const cw = Math.max((maxX - minX) * (1 + pad * 2), 1)
+	const ch = Math.max((maxY - minY) * (1 + pad * 2), 1)
+	const cx = (minX + maxX) / 2
+	const cy = (minY + maxY) / 2
+
+	return {
+		cx,
+		cy,
+		fitZoom: Math.min(width / cw, height / ch, 1),
 	}
 }
 

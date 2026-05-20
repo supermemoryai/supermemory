@@ -67,6 +67,27 @@ describe("VersionChainIndex", () => {
 		expect(chain).not.toBeNull()
 		expect(chain!.length).toBe(3)
 		expect(chain!.map((e) => e.id)).toEqual(["m1", "m2", "m3"])
+		expect(chain?.map((e) => e.version)).toEqual([1, 2, 3])
+	})
+
+	it("infers display versions when backend repeats v1 across an update chain", () => {
+		const idx = new VersionChainIndex()
+		const doc = makeDoc("d1", [
+			makeMem({ id: "m1", version: 1, isLatest: false }),
+			makeMem({
+				id: "m2",
+				parentMemoryId: "m1",
+				rootMemoryId: "m1",
+				version: 1,
+				memoryRelations: { m1: "updates" },
+			}),
+		])
+		idx.rebuild([doc])
+
+		const chain = idx.getChain("m2")
+		expect(chain).not.toBeNull()
+		expect(chain?.map((e) => e.id)).toEqual(["m1", "m2"])
+		expect(chain?.map((e) => e.version)).toEqual([1, 2])
 	})
 
 	it("getChain from middle element returns full chain (backward + forward)", () => {

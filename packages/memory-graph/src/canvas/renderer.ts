@@ -17,6 +17,9 @@ export interface RenderState {
 
 // Module-level reusable batch map – cleared each frame instead of reallocating
 const edgeBatches = new Map<string, PreparedEdge[]>()
+const RELATION_LOD_ZOOM = 0.5
+const RELATION_LOD_MAX_BACKGROUND_EDGES = 260
+const RELATION_LOD_DENSE_COUNT = 180
 
 function nodeMatchesDocumentHighlights(
 	node: GraphNode,
@@ -31,12 +34,20 @@ function nodeMatchesDocumentHighlights(
 function groupByColor<T extends { color: string }>(
 	items: T[],
 ): Map<string, T[]> {
+	return groupByComputedColor(items, (item) => item.color)
+}
+
+function groupByComputedColor<T>(
+	items: T[],
+	getColor: (item: T) => string,
+): Map<string, T[]> {
 	const map = new Map<string, T[]>()
 	for (const item of items) {
-		let batch = map.get(item.color)
+		const color = getColor(item)
+		let batch = map.get(color)
 		if (!batch) {
 			batch = []
-			map.set(item.color, batch)
+			map.set(color, batch)
 		}
 		batch.push(item)
 	}
@@ -70,9 +81,92 @@ function edgeStyle(
 	if (edge.edgeType === "derives")
 		return { color: colors.edgeDerives, width: 1.2, opacity: 0.4 }
 	if (edge.edgeType === "updates")
-		return { color: colors.edgeUpdates, width: 2, opacity: 0.7 }
+		return { color: colors.edgeUpdates, width: 1.45, opacity: 0.48 }
 	// "extends" and any unknown edge types
-	return { color: colors.edgeExtends, width: 1.5, opacity: 0.55 }
+	return { color: colors.edgeExtends, width: 0.8, opacity: 0.16 }
+}
+
+export function getRelationEdgeStride(
+	relationEdgeCount: number,
+	zoom: number,
+): number {
+	if (
+		zoom >= RELATION_LOD_ZOOM ||
+		relationEdgeCount <= RELATION_LOD_MAX_BACKGROUND_EDGES
+	) {
+		return 1
+	}
+	return Math.ceil(relationEdgeCount / RELATION_LOD_MAX_BACKGROUND_EDGES)
+}
+
+export function shouldDrawRelationEdge(
+	edgeId: string,
+	edgeType: string,
+	stride: number,
+): boolean {
+	if (edgeType === "derives" || stride <= 1) return true
+	return hashString(edgeId) % stride === 0
+}
+
+function applyRelationLevelOfDetail(
+	style: { color: string; width: number; opacity: number },
+	edgeType: string,
+	relationEdgeCount: number,
+	zoom: number,
+	hasFocus: boolean,
+	hasActiveHover: boolean,
+) {
+	if (edgeType === "derives") return { style, glow: true }
+	if (hasFocus || hasActiveHover) {
+		const isUpdate = edgeType === "updates"
+		const minOpacity = hasActiveHover ? 0.9 : 0.76
+		const minWidth = hasActiveHover ? 2.35 : 1.8
+		return {
+			style: isUpdate
+				? {
+						...style,
+						width: Math.max(style.width, minWidth),
+						opacity: Math.max(style.opacity, minOpacity),
+					}
+				: style,
+			glow: isUpdate,
+		}
+	}
+	if (
+		zoom >= RELATION_LOD_ZOOM ||
+		relationEdgeCount <= RELATION_LOD_DENSE_COUNT
+	) {
+		return { style, glow: edgeType === "updates" }
+	}
+
+	const densityFactor = Math.min(
+		1,
+		RELATION_LOD_DENSE_COUNT / relationEdgeCount,
+	)
+	const zoomFactor = clampNumber(zoom / RELATION_LOD_ZOOM, 0.25, 1)
+	const opacityFactor = clampNumber(densityFactor * zoomFactor, 0.06, 0.24)
+	const widthFactor = clampNumber(zoomFactor * 0.65, 0.22, 0.7)
+
+	return {
+		style: {
+			...style,
+			width: Math.max(0.45, style.width * widthFactor),
+			opacity: style.opacity * opacityFactor,
+		},
+		glow: false,
+	}
+}
+
+function hashString(value: string): number {
+	let hash = 0
+	for (let i = 0; i < value.length; i++) {
+		hash = (Math.imul(31, hash) + value.charCodeAt(i)) | 0
+	}
+	return hash >>> 0
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+	return value < min ? min : value > max ? max : value
 }
 
 function batchKey(style: {
@@ -92,6 +186,7 @@ interface PreparedEdge {
 	style: { color: string; width: number; opacity: number }
 	edgeType: string
 	arrowSize: number
+	glow: boolean
 }
 
 function drawEdges(
@@ -106,13 +201,33 @@ function drawEdges(
 ): void {
 	const margin = 100
 	const hasDim = state.selectedNodeId !== null && state.dimProgress > 0
+	const relationEdgeCount = edges.reduce(
+		(count, edge) => count + (edge.edgeType === "derives" ? 0 : 1),
+		0,
+	)
+	const relationStride = getRelationEdgeStride(relationEdgeCount, viewport.zoom)
 
 	const prepared: PreparedEdge[] = []
 
 	for (const edge of edges) {
-		// Zoom-based edge culling for extends edges at very low zoom
-		if (edge.edgeType === "extends") {
-			if (viewport.zoom < 0.08) continue
+		const edgeType = edge.edgeType ?? "derives"
+		const srcId = typeof edge.source === "string" ? edge.source : edge.source.id
+		const tgtId = typeof edge.target === "string" ? edge.target : edge.target.id
+		const hoverConnected =
+			state.hoveredNodeId != null &&
+			(srcId === state.hoveredNodeId || tgtId === state.hoveredNodeId)
+		const selectedConnected =
+			state.selectedNodeId != null &&
+			(srcId === state.selectedNodeId || tgtId === state.selectedNodeId)
+		const activeConnected = hoverConnected || selectedConnected
+		const shouldAlwaysDrawActiveUpdate =
+			edgeType === "updates" && activeConnected
+		if (
+			!shouldAlwaysDrawActiveUpdate &&
+			!hasDim &&
+			!shouldDrawRelationEdge(edge.id, edgeType, relationStride)
+		) {
+			continue
 		}
 
 		const src =
@@ -121,7 +236,7 @@ function drawEdges(
 			typeof edge.target === "string" ? nodeMap.get(edge.target) : edge.target
 		if (!src || !tgt) continue
 
-		if (edge.edgeType === "derives") {
+		if (edgeType === "derives") {
 			const mem = src.type === "memory" ? src : tgt
 			if (mem.size * viewport.zoom < 3) continue
 		}
@@ -149,13 +264,25 @@ function drawEdges(
 
 		let connected = true
 		if (hasDim) {
-			const srcId =
-				typeof edge.source === "string" ? edge.source : edge.source.id
-			const tgtId =
-				typeof edge.target === "string" ? edge.target : edge.target.id
-			connected =
-				srcId === state.selectedNodeId || tgtId === state.selectedNodeId
+			connected = selectedConnected
 		}
+		if (
+			!shouldAlwaysDrawActiveUpdate &&
+			hasDim &&
+			!connected &&
+			!shouldDrawRelationEdge(edge.id, edgeType, relationStride)
+		) {
+			continue
+		}
+
+		const { style, glow } = applyRelationLevelOfDetail(
+			edgeStyle(edge, colors),
+			edgeType,
+			relationEdgeCount,
+			viewport.zoom,
+			hasDim && connected,
+			edgeType === "updates" && hoverConnected,
+		)
 
 		prepared.push({
 			startX: s.x + ux * sr,
@@ -163,10 +290,16 @@ function drawEdges(
 			endX: t.x - ux * tr,
 			endY: t.y - uy * tr,
 			connected,
-			style: edgeStyle(edge, colors),
-			edgeType: edge.edgeType ?? "derives",
+			style,
+			edgeType,
 			arrowSize:
-				edge.edgeType === "updates" ? Math.max(6, 8 * viewport.zoom) : 0,
+				edgeType === "updates"
+					? Math.max(
+							shouldAlwaysDrawActiveUpdate ? 8 : 6,
+							(shouldAlwaysDrawActiveUpdate ? 11 : 8) * viewport.zoom,
+						)
+					: 0,
+			glow,
 		})
 	}
 
@@ -174,7 +307,7 @@ function drawEdges(
 	edgeBatches.clear()
 	for (const e of prepared) {
 		const dimKey = hasDim ? (e.connected ? "|c" : "|d") : ""
-		const key = `${e.edgeType}|${batchKey(e.style)}${dimKey}`
+		const key = `${e.edgeType}|${batchKey(e.style)}|${e.glow ? "g" : "f"}${dimKey}`
 		let batch = edgeBatches.get(key)
 		if (!batch) {
 			batch = []
@@ -190,8 +323,9 @@ function drawEdges(
 		const isDimmed = key.endsWith("|d")
 		const batchEdgeType = first.edgeType
 
-		// Draw glow pass behind all edge types for luminous aesthetic
-		if (!isDimmed) {
+		// Draw glow pass behind structural/revision edges. Cross-cluster
+		// extends edges stay flat so dense graphs do not become a mesh.
+		if (!isDimmed && first.glow && batchEdgeType !== "extends") {
 			const glowAlpha =
 				batchEdgeType === "updates"
 					? first.style.opacity * 0.4
@@ -204,7 +338,6 @@ function drawEdges(
 			ctx.globalAlpha = glowAlpha
 			ctx.strokeStyle = first.style.color
 			ctx.lineWidth = glowWidth
-			if (batchEdgeType === "extends") ctx.setLineDash([6, 4])
 			ctx.beginPath()
 			for (const e of batch) {
 				ctx.moveTo(e.startX, e.startY)
@@ -221,17 +354,12 @@ function drawEdges(
 		ctx.strokeStyle = first.style.color
 		ctx.lineWidth = first.style.width
 
-		// Extends edges use dashed lines
-		if (batchEdgeType === "extends") ctx.setLineDash([6, 4])
-
 		ctx.beginPath()
 		for (const e of batch) {
 			ctx.moveTo(e.startX, e.startY)
 			ctx.lineTo(e.endX, e.endY)
 		}
 		ctx.stroke()
-
-		if (batchEdgeType === "extends") ctx.setLineDash([])
 
 		// Arrowheads for updates edges
 		if (batchEdgeType === "updates") {
@@ -286,7 +414,10 @@ function drawNodes(
 		y: number
 		r: number
 		color: string
+		fillColor: string
+		haloColor: string
 		dimmed: boolean
+		updateChain: boolean
 	}[] = []
 	const docDots: { x: number; y: number; s: number }[] = []
 
@@ -323,7 +454,10 @@ function drawNodes(
 					y: screen.y,
 					r: Math.max(2, screenSize * 0.45),
 					color: node.borderColor || colors.memStrokeDefault,
+					fillColor: getMemoryNodeFillColor(node, colors, false),
+					haloColor: node.clusterColor || node.borderColor || colors.glowColor,
 					dimmed: md.isLatest === false,
+					updateChain: isMemoryInUpdateChain(md),
 				})
 			}
 			continue
@@ -403,7 +537,10 @@ function drawNodes(
 		if (normalDots.length > 0) {
 			// Subtle glow behind memory dots for luminous effect
 			ctx.globalAlpha = dimAlpha * hlBatchMult * 0.25
-			for (const [color, batch] of groupByColor(normalDots)) {
+			for (const [color, batch] of groupByComputedColor(
+				normalDots,
+				(d) => d.haloColor,
+			)) {
 				ctx.fillStyle = color
 				ctx.beginPath()
 				for (const d of batch) {
@@ -415,13 +552,18 @@ function drawNodes(
 
 			// Filled dot
 			ctx.globalAlpha = dimAlpha * hlBatchMult
-			ctx.fillStyle = colors.memFill
-			ctx.beginPath()
-			for (const d of normalDots) {
-				ctx.moveTo(d.x + d.r, d.y)
-				ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+			for (const [fillColor, batch] of groupByComputedColor(
+				normalDots,
+				(d) => d.fillColor,
+			)) {
+				ctx.fillStyle = fillColor
+				ctx.beginPath()
+				for (const d of batch) {
+					ctx.moveTo(d.x + d.r, d.y)
+					ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+				}
+				ctx.fill()
 			}
-			ctx.fill()
 
 			// Colored border
 			ctx.lineWidth = 1.5
@@ -434,18 +576,37 @@ function drawNodes(
 				}
 				ctx.stroke()
 			}
+
+			const updateDots = normalDots.filter((d) => d.updateChain)
+			if (updateDots.length > 0) {
+				ctx.globalAlpha = dimAlpha * hlBatchMult * 0.85
+				ctx.strokeStyle = colors.edgeUpdates
+				ctx.lineWidth = 1.2
+				ctx.beginPath()
+				for (const d of updateDots) {
+					const r = d.r * 1.65
+					ctx.moveTo(d.x + r, d.y)
+					ctx.arc(d.x, d.y, r, 0, Math.PI * 2)
+				}
+				ctx.stroke()
+			}
 		}
 
 		// Draw dimmed (superseded) memory dots at reduced opacity
 		if (dimmedDots.length > 0) {
 			ctx.globalAlpha = dimAlpha * hlBatchMult * 0.5
-			ctx.fillStyle = colors.memFill
-			ctx.beginPath()
-			for (const d of dimmedDots) {
-				ctx.moveTo(d.x + d.r, d.y)
-				ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+			for (const [fillColor, batch] of groupByComputedColor(
+				dimmedDots,
+				(d) => d.fillColor,
+			)) {
+				ctx.fillStyle = fillColor
+				ctx.beginPath()
+				for (const d of batch) {
+					ctx.moveTo(d.x + d.r, d.y)
+					ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+				}
+				ctx.fill()
 			}
-			ctx.fill()
 
 			ctx.lineWidth = 1
 			for (const [color, batch] of groupByColor(dimmedDots)) {
@@ -454,6 +615,20 @@ function drawNodes(
 				for (const d of batch) {
 					ctx.moveTo(d.x + d.r, d.y)
 					ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+				}
+				ctx.stroke()
+			}
+
+			const updateDots = dimmedDots.filter((d) => d.updateChain)
+			if (updateDots.length > 0) {
+				ctx.globalAlpha = dimAlpha * hlBatchMult * 0.55
+				ctx.strokeStyle = colors.edgeUpdates
+				ctx.lineWidth = 1
+				ctx.beginPath()
+				for (const d of updateDots) {
+					const r = d.r * 1.65
+					ctx.moveTo(d.x + r, d.y)
+					ctx.arc(d.x, d.y, r, 0, Math.PI * 2)
 				}
 				ctx.stroke()
 			}
@@ -476,11 +651,12 @@ function drawDocumentNode(
 ): void {
 	const half = size * 0.5
 	const cornerR = 8 * (size / 50)
+	const clusterColor = node.clusterColor ?? colors.docStroke
 
 	// Drop shadow for selected/hovered nodes
 	if (isSelected || isHovered) {
 		ctx.save()
-		ctx.shadowColor = colors.accent
+		ctx.shadowColor = isSelected ? colors.accent : clusterColor
 		ctx.shadowBlur = isSelected ? 16 : 10
 		ctx.shadowOffsetX = 0
 		ctx.shadowOffsetY = 0
@@ -493,12 +669,16 @@ function drawDocumentNode(
 		sx + half,
 		sy + half,
 	)
-	grad.addColorStop(0, colors.docFill)
-	grad.addColorStop(1, lightenColor(colors.docFill, 0.08))
+	grad.addColorStop(0, mixHexColors(colors.docFill, clusterColor, 0.1))
+	grad.addColorStop(1, mixHexColors(colors.docFill, clusterColor, 0.22))
 	ctx.fillStyle = grad
 
 	ctx.strokeStyle =
-		isSelected || isHighlighted || isHovered ? colors.accent : colors.docStroke
+		isSelected || isHighlighted
+			? colors.accent
+			: isHovered
+				? clusterColor
+				: node.borderColor || clusterColor
 	ctx.lineWidth = isSelected || isHighlighted ? 2.5 : isHovered ? 1.5 : 1
 	roundRect(ctx, sx - half, sy - half, size, size, cornerR)
 	ctx.fill()
@@ -511,14 +691,14 @@ function drawDocumentNode(
 	const innerSize = size * 0.72
 	const innerHalf = innerSize * 0.5
 	const innerR = 6 * (size / 50)
-	ctx.fillStyle = colors.docInnerFill
+	ctx.fillStyle = mixHexColors(colors.docInnerFill, clusterColor, 0.08)
 	roundRect(ctx, sx - innerHalf, sy - innerHalf, innerSize, innerSize, innerR)
 	ctx.fill()
 
 	const iconSize = size * 0.35
 	const docType =
 		node.type === "document" ? (node.data as DocumentNodeData).type : "text"
-	drawDocIcon(ctx, sx, sy, iconSize, docType || "text", colors.iconColor)
+	drawDocIcon(ctx, sx, sy, iconSize, docType || "text", clusterColor)
 }
 
 function drawMemoryNode(
@@ -535,13 +715,14 @@ function drawMemoryNode(
 	const memData = node.data as MemoryNodeData
 	const isSuperseded = memData.isLatest === false
 	const isForgotten = memData.isForgotten
+	const isUpdateChain = isMemoryInUpdateChain(memData)
 	const radius = size * 0.5
 
 	// Dim superseded (non-latest) memory nodes with strikethrough effect
 	if (isSuperseded && !isSelected && !isHovered) {
 		const prevAlpha = ctx.globalAlpha
 		ctx.globalAlpha = prevAlpha * 0.5
-		ctx.fillStyle = colors.memFill
+		ctx.fillStyle = getMemoryNodeFillColor(node, colors, false)
 		drawHexagon(ctx, sx, sy, radius)
 		ctx.fill()
 		ctx.strokeStyle = node.borderColor || colors.memStrokeDefault
@@ -559,6 +740,8 @@ function drawMemoryNode(
 		ctx.lineWidth = 1.5
 		ctx.stroke()
 
+		drawUpdateMarker(ctx, sx, sy, radius, colors, 0.85)
+
 		ctx.globalAlpha = prevAlpha
 		return
 	}
@@ -573,7 +756,7 @@ function drawMemoryNode(
 		ctx.shadowOffsetY = 0
 	}
 
-	ctx.fillStyle = isHovered ? colors.memFillHover : colors.memFill
+	ctx.fillStyle = getMemoryNodeFillColor(node, colors, isHovered)
 	drawHexagon(ctx, sx, sy, radius)
 	ctx.fill()
 
@@ -581,6 +764,17 @@ function drawMemoryNode(
 	ctx.strokeStyle = isSelected ? colors.accent : borderColor
 	ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1.5
 	ctx.stroke()
+
+	if (isUpdateChain) {
+		drawUpdateMarker(
+			ctx,
+			sx,
+			sy,
+			radius,
+			colors,
+			isSelected || isHovered ? 1 : 0.86,
+		)
+	}
 
 	if (isSelected || isHovered) {
 		ctx.restore()
@@ -602,6 +796,60 @@ function drawMemoryNode(
 		ctx.stroke()
 		ctx.restore()
 	}
+}
+
+function isMemoryInUpdateChain(memData: MemoryNodeData): boolean {
+	if (memData.isLatest === false || memData.parentMemoryId) return true
+	if (!memData.memoryRelations) return false
+	return Object.values(memData.memoryRelations).some(
+		(relation) => relation === "updates",
+	)
+}
+
+function drawUpdateMarker(
+	ctx: CanvasRenderingContext2D,
+	sx: number,
+	sy: number,
+	radius: number,
+	colors: GraphThemeColors,
+	alpha: number,
+) {
+	const markerR = Math.max(3.5, radius * 0.22)
+	const cx = sx + radius * 0.48
+	const cy = sy - radius * 0.48
+
+	ctx.save()
+	ctx.globalAlpha *= alpha
+	ctx.fillStyle = colors.popoverBg
+	ctx.strokeStyle = colors.edgeUpdates
+	ctx.lineWidth = Math.max(1.2, radius * 0.08)
+	ctx.beginPath()
+	ctx.arc(cx, cy, markerR, 0, Math.PI * 2)
+	ctx.fill()
+	ctx.stroke()
+
+	ctx.strokeStyle = colors.edgeUpdates
+	ctx.lineCap = "round"
+	ctx.lineJoin = "round"
+	ctx.lineWidth = Math.max(1.2, radius * 0.07)
+	ctx.beginPath()
+	ctx.moveTo(cx - markerR * 0.45, cy)
+	ctx.lineTo(cx + markerR * 0.12, cy)
+	ctx.lineTo(cx - markerR * 0.06, cy - markerR * 0.2)
+	ctx.moveTo(cx + markerR * 0.12, cy)
+	ctx.lineTo(cx - markerR * 0.06, cy + markerR * 0.2)
+	ctx.stroke()
+	ctx.restore()
+}
+
+function getMemoryNodeFillColor(
+	node: GraphNode,
+	colors: GraphThemeColors,
+	isHovered: boolean,
+): string {
+	const base = isHovered ? colors.memFillHover : colors.memFill
+	if (!node.clusterColor) return base
+	return mixHexColors(base, node.clusterColor, isHovered ? 0.42 : 0.32)
 }
 
 function drawGlow(
@@ -677,4 +925,34 @@ export function lightenColor(hex: string, amount: number): string {
 	const result = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
 	_lightenCache = { input: hex, amount, result }
 	return result
+}
+
+export function mixHexColors(
+	base: string,
+	overlay: string,
+	amount: number,
+): string {
+	const baseRgb = parseHexColor(base)
+	const overlayRgb = parseHexColor(overlay)
+	if (!baseRgb || !overlayRgb) return base
+
+	const t = clampNumber(amount, 0, 1)
+	const r = Math.round(baseRgb.r + (overlayRgb.r - baseRgb.r) * t)
+	const g = Math.round(baseRgb.g + (overlayRgb.g - baseRgb.g) * t)
+	const b = Math.round(baseRgb.b + (overlayRgb.b - baseRgb.b) * t)
+	return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+function parseHexColor(hex: string) {
+	const raw = hex.startsWith("#") ? hex.slice(1) : hex
+	if (!/^[0-9a-fA-F]{6}$/.test(raw)) return null
+	return {
+		r: Number.parseInt(raw.slice(0, 2), 16),
+		g: Number.parseInt(raw.slice(2, 4), 16),
+		b: Number.parseInt(raw.slice(4, 6), 16),
+	}
+}
+
+function toHex(value: number): string {
+	return value.toString(16).padStart(2, "0")
 }

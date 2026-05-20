@@ -90,21 +90,26 @@ export function MemoryGraph({
 	// that makes this a no-op on re-renders where limitedDocuments hasn't changed.
 	chainIndex.current.rebuild(limitedDocuments)
 
-	// Smart simulation re-init: track node ID set, only init() when IDs change
-	const prevSimIdsRef = useRef<string>("")
+	// Initial loads get a full force settle. Append-only pagination keeps
+	// existing coordinates stable and renders new nodes in nearby open areas.
+	const prevSimIdsRef = useRef<Set<string>>(new Set())
 	useEffect(() => {
 		if (nodes.length === 0) {
 			simulationRef.current?.destroy()
 			simulationRef.current = null
 			setSimulation(null)
-			prevSimIdsRef.current = ""
+			prevSimIdsRef.current = new Set()
 			return
 		}
 
-		const idKey = nodes
-			.map((n) => n.id)
-			.sort()
-			.join(",")
+		const currentIds = new Set(nodes.map((n) => n.id))
+		const previousIds = prevSimIdsRef.current
+		const hasPreviousIds = previousIds.size > 0
+		const idsChanged =
+			currentIds.size !== previousIds.size ||
+			[...currentIds].some((id) => !previousIds.has(id))
+		const isAppendOnly =
+			hasPreviousIds && [...previousIds].every((id) => currentIds.has(id))
 
 		if (!simulationRef.current) {
 			const sim = new ForceSimulation()
@@ -112,12 +117,14 @@ export function MemoryGraph({
 			setSimulation(sim)
 		}
 
-		if (idKey !== prevSimIdsRef.current) {
-			// IDs changed - full re-init
-			prevSimIdsRef.current = idKey
+		if (!hasPreviousIds || (idsChanged && !isAppendOnly)) {
+			prevSimIdsRef.current = currentIds
 			simulationRef.current.init(nodes, edges)
+		} else if (idsChanged && isAppendOnly) {
+			prevSimIdsRef.current = currentIds
+			simulationRef.current.update(nodes, edges)
+			simulationRef.current.stop()
 		} else {
-			// Only metadata changed - update existing simulation
 			simulationRef.current.update(nodes, edges)
 		}
 	}, [nodes, edges])
@@ -130,6 +137,14 @@ export function MemoryGraph({
 			setSimulation(null)
 		}
 	}, [])
+
+	useEffect(() => {
+		viewportRef.current?.setMinZoomForNodes(
+			nodes,
+			containerSize.width,
+			graphFitHeight,
+		)
+	}, [nodes, containerSize.width, graphFitHeight])
 
 	// Auto-fit when data first loads. Mobile needs a few passes because the
 	// force simulation can move nodes after the first layout frame.
@@ -721,6 +736,7 @@ export function MemoryGraph({
 					<Legend
 						colors={colors}
 						edges={edges}
+						hoveredNode={hoveredNode}
 						isLoading={isLoading}
 						nodes={nodes}
 					/>

@@ -4,15 +4,7 @@ const SUPERMEMORY_API_BASE_URL = "https://api.supermemory.ai"
 
 export async function POST(request: Request) {
 	try {
-		const body = await request.json()
-		const {
-			apiKey,
-			page = 1,
-			limit = 500,
-			sort = "createdAt",
-			order = "desc",
-			containerTags,
-		} = body
+		const { apiKey } = await request.json()
 
 		if (!apiKey) {
 			return NextResponse.json(
@@ -21,26 +13,16 @@ export async function POST(request: Request) {
 			)
 		}
 
-		const graphUrl = new URL(
-			"/v3/documents/documents",
+		const containerTagsUrl = new URL(
+			"/v3/container-tags/list",
 			SUPERMEMORY_API_BASE_URL,
 		)
 
-		const response = await fetch(graphUrl, {
-			method: "POST",
+		const response = await fetch(containerTagsUrl, {
+			method: "GET",
 			headers: {
-				"Content-Type": "application/json",
 				Authorization: `Bearer ${apiKey}`,
 			},
-			body: JSON.stringify({
-				page,
-				limit,
-				sort,
-				order,
-				...(Array.isArray(containerTags) && containerTags.length > 0
-					? { containerTags }
-					: {}),
-			}),
 		})
 
 		if (!response.ok) {
@@ -54,9 +36,9 @@ export async function POST(request: Request) {
 		const data = await response.json()
 		return NextResponse.json(data)
 	} catch (error) {
-		console.error("Graph API error:", error)
+		console.error("Container tags API error:", error)
 		return NextResponse.json(
-			{ error: "Failed to fetch documents" },
+			{ error: "Failed to fetch container tags" },
 			{ status: 500 },
 		)
 	}

@@ -80,9 +80,15 @@ export class VersionChainIndex {
 		// A single-entry chain (standalone v1 with no children) is not useful
 		if (all.length <= 1) return null
 
-		const chain: ChainEntry[] = all.map((m) => ({
+		const shouldInferVersions = all.some((m, index) => {
+			if (!Number.isFinite(m.version) || m.version < 1) return true
+			const previous = all[index - 1]
+			return previous != null && m.version <= previous.version
+		})
+
+		const chain: ChainEntry[] = all.map((m, index) => ({
 			id: m.id,
-			version: m.version,
+			version: shouldInferVersions ? index + 1 : m.version,
 			memory: m.memory,
 			isForgotten: m.isForgotten,
 			isLatest: m.isLatest,
