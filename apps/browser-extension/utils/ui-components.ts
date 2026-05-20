@@ -117,7 +117,7 @@ export function createToast(state: ToastState): HTMLElement {
 			break
 
 		case "success": {
-			const iconUrl = browser.runtime.getURL("/icon-16.png")
+			const iconUrl = browser.runtime.getURL("/new_logo.png")
 			icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
 			textElement.textContent = "Added to Memory"
 			break
@@ -184,7 +184,7 @@ export function createTwitterImportButton(onClick: () => void): HTMLElement {
 	font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/new_logo.png")
 
 	button.style.backgroundImage = `url("${iconUrl}")`
 	button.style.backgroundRepeat = "no-repeat"
@@ -232,7 +232,7 @@ export function createSaveTweetElement(onClick: () => void): HTMLElement {
     z-index: 1000;
   `
 
-	const iconFileName = "/icon-16.png"
+	const iconFileName = "/new_logo.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Save to Memory" style="border-radius: 4px;" />
@@ -286,7 +286,7 @@ export function createConnectedIndicator(onClick: () => void): HTMLElement {
     flex-shrink: 0;
   `
 
-	const iconFileName = "/icon-16.png"
+	const iconFileName = "/new_logo.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="" style="border-radius: 5px; display: block;" />
@@ -370,7 +370,7 @@ export function createT3InputBarElement(onClick: () => void): HTMLElement {
     background: transparent;
   `
 
-	const iconFileName = "/icon-16.png"
+	const iconFileName = "/new_logo.png"
 	const iconUrl = browser.runtime.getURL(iconFileName)
 	iconButton.innerHTML = `
     <img src="${iconUrl}" width="20" height="20" alt="Get Related Memories from supermemory" style="border-radius: 4px;" />
@@ -443,7 +443,7 @@ export function createProjectSelectionModal(
 		margin-bottom: 20px;
 	`
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/new_logo.png")
 	header.innerHTML = `
 	<div style="display: flex; flex-direction: column; gap: 8px;">
 	    <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #ffffff; display: flex; align-items: center; gap: 8px;">
@@ -712,7 +712,7 @@ export const DOMUtils = {
 
 			if (icon && text) {
 				if (state === "success") {
-					const iconUrl = browser.runtime.getURL("/icon-16.png")
+					const iconUrl = browser.runtime.getURL("/new_logo.png")
 					icon.innerHTML = `<img src="${iconUrl}" width="20" height="20" alt="Success" style="border-radius: 2px;" />`
 					icon.style.animation = ""
 					text.textContent = "Added to Memory"

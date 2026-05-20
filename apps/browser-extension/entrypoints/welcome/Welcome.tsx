@@ -16,12 +16,10 @@ function Welcome() {
 			<main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-6 sm:px-10">
 				<header className="flex items-center justify-between border-b border-white/10 pb-5">
 					<div className="flex items-center gap-2">
-						<img alt="" className="size-8 rounded-[4px]" src="./icon-48.png" />
-						<img
-							alt="supermemory"
-							className="h-6 w-auto"
-							src="./logo-fullmark.svg"
-						/>
+						<img alt="" className="size-8 rounded-[4px]" src="./new_logo.png" />
+						<span className="text-lg font-semibold leading-none text-white">
+							supermemory
+						</span>
 					</div>
 					<span className="rounded-full border border-[#369BFD]/25 bg-[#369BFD]/10 px-3 py-1 text-xs font-medium text-[#9FCBFF]">
 						Chrome extension

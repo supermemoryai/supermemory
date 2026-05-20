@@ -281,7 +281,7 @@ function addSupermemoryButtonToMemoriesDialog() {
 	supermemoryButton.id = "supermemory-save-button"
 	supermemoryButton.className = "btn relative btn-primary-outline mr-2"
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/new_logo.png")
 
 	supermemoryButton.innerHTML = `
         <div class="flex items-center justify-center gap-2">
