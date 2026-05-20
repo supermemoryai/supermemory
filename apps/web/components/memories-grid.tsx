@@ -98,7 +98,9 @@ const EXTENSION_PLATFORM_LABELS: Record<string, string> = {
 	twitter: "X / Twitter",
 }
 
-function getExtensionSourceLabel(document: DocumentWithMemories): string | null {
+function getExtensionSourceLabel(
+	document: DocumentWithMemories,
+): string | null {
 	const metadata = document.metadata
 	if (!metadata || typeof metadata !== "object") return null
 
@@ -1181,7 +1183,9 @@ const DocumentCard = memo(
 											day: "numeric",
 											year: "numeric",
 										})
-										return [sourceLabel, badge, date].filter(Boolean).join(" - ")
+										return [sourceLabel, badge, date]
+											.filter(Boolean)
+											.join(" - ")
 									})()}
 								</p>
 							</div>
