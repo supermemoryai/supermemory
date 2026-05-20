@@ -8,7 +8,6 @@ import { useState, useEffect, useRef } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import Account from "@/components/settings/account"
-import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
 import Support from "@/components/settings/support"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -16,13 +15,13 @@ import { useRouter } from "next/navigation"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { analytics } from "@/lib/analytics"
-import { LogOut, RotateCcw, Trash2, Sun, LoaderIcon } from "lucide-react"
+import { LogOut, RotateCcw, Trash2, LoaderIcon } from "lucide-react"
 import { authClient } from "@lib/auth"
 import { Dialog, DialogContent, DialogClose } from "@ui/components/dialog"
 import { useResetOrganization } from "@/hooks/use-reset-organization"
 import { useDeleteUserAccount } from "@/hooks/use-account-settings"
 
-const TABS = ["account", "integrations", "connections", "support"] as const
+const TABS = ["account", "connections", "support"] as const
 type SettingsTab = (typeof TABS)[number]
 
 type NavItem = {
@@ -64,15 +63,9 @@ const NAV_ITEMS: NavItem[] = [
 		),
 	},
 	{
-		id: "integrations",
-		label: "Integrations",
-		description: "Save, sync and search memories across tools",
-		icon: <Sun className="size-5" />,
-	},
-	{
 		id: "connections",
-		label: "Connections & MCP",
-		description: "Sync with Google Drive, Notion, OneDrive and MCP client",
+		label: "Integrations & MCP",
+		description: "Manage connections, plugins and clients",
 		icon: (
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -433,7 +426,6 @@ export default function SettingsPage() {
 							}
 						>
 							{activeTab === "account" && <Account />}
-							{activeTab === "integrations" && <Integrations />}
 							{activeTab === "connections" && <ConnectionsMCP />}
 							{activeTab === "support" && <Support />}
 						</ErrorBoundary>
