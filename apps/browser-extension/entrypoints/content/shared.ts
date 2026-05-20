@@ -1,9 +1,12 @@
 import { MESSAGE_TYPES } from "../../utils/constants"
 import { bearerToken, userData } from "../../utils/storage"
+import type { APIResponse } from "../../utils/types"
 import { DOMUtils } from "../../utils/ui-components"
 import { default as TurndownService } from "turndown"
 
-export async function saveMemory() {
+export async function saveMemory(
+	actionSource = "content_script",
+): Promise<APIResponse> {
 	try {
 		DOMUtils.showToast("loading")
 
@@ -64,21 +67,29 @@ export async function saveMemory() {
 			data.markdown = markdown
 		}
 
-		const response = await browser.runtime.sendMessage({
+		const response = (await browser.runtime.sendMessage({
 			action: MESSAGE_TYPES.SAVE_MEMORY,
 			data,
-			actionSource: "context_menu",
-		})
+			actionSource,
+		})) as APIResponse
 
-		console.log("Response from enxtension:", response)
-		if (response.success) {
+		console.log("Response from extension:", response)
+		if (response?.success) {
 			DOMUtils.showToast("success")
-		} else {
-			DOMUtils.showToast("error")
+			return response
+		}
+		DOMUtils.showToast("error")
+		return {
+			success: false,
+			error: response?.error || "Failed to save memory",
 		}
 	} catch (error) {
 		console.error("Error saving memory:", error)
 		DOMUtils.showToast("error")
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "Unknown error",
+		}
 	}
 }
 
@@ -90,7 +101,7 @@ export function setupGlobalKeyboardShortcut() {
 			event.key === "m"
 		) {
 			event.preventDefault()
-			await saveMemory()
+			await saveMemory("keyboard_shortcut")
 		}
 	})
 }

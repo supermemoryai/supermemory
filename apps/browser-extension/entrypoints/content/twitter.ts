@@ -253,7 +253,7 @@ async function showOnboardingToast() {
 	header.style.cssText =
 		"display: flex; align-items: flex-start; gap: 12px; position: relative;"
 
-	const iconUrl = browser.runtime.getURL("/icon-16.png")
+	const iconUrl = browser.runtime.getURL("/new_logo.png")
 	const icon = document.createElement("img")
 	icon.src = iconUrl
 	icon.alt = "Supermemory"
@@ -512,7 +512,7 @@ function showOrUpdateImportProgressToast(message: string, isComplete = false) {
 			animation: smSlideInUp 0.3s ease-out;
 		`
 
-		const iconUrl = browser.runtime.getURL("/icon-16.png")
+		const iconUrl = browser.runtime.getURL("/new_logo.png")
 		const icon = document.createElement("img")
 		icon.src = iconUrl
 		icon.alt = "Supermemory"
