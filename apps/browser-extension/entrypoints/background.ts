@@ -21,6 +21,45 @@ import type {
 	MemoryPayload,
 } from "../utils/types"
 
+const PLATFORM_LABELS: Record<string, string> = {
+	chatgpt: "ChatGPT",
+	claude: "Claude",
+	gemini: "Gemini",
+	t3: "T3 Chat",
+	twitter: "X / Twitter",
+}
+
+function normalizePlatform(value?: string): string | undefined {
+	if (!value) return undefined
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
+}
+
+function inferPlatformFromActionSource(actionSource: string): string | undefined {
+	const source = actionSource.toLowerCase()
+	if (source.includes("chatgpt")) return "chatgpt"
+	if (source.includes("claude")) return "claude"
+	if (source.includes("gemini")) return "gemini"
+	if (source.includes("t3")) return "t3"
+	if (source.includes("twitter") || source.includes("x_")) return "twitter"
+	return undefined
+}
+
+function inferPlatformFromUrl(url?: string): string | undefined {
+	if (!url) return undefined
+	try {
+		const hostname = new URL(url).hostname
+		if (hostname === "chatgpt.com" || hostname === "chat.openai.com") {
+			return "chatgpt"
+		}
+		if (hostname === "claude.ai") return "claude"
+		if (hostname === "gemini.google.com") return "gemini"
+		if (hostname === "t3.chat") return "t3"
+		if (hostname === "x.com" || hostname === "twitter.com") return "twitter"
+	} catch {
+		return undefined
+	}
+}
+
 export default defineBackground(() => {
 	let twitterImporter: TwitterImporter | null = null
 
@@ -107,9 +146,30 @@ export default defineBackground(() => {
 				content = data?.url || ""
 			}
 
+			const platform = normalizePlatform(data.sourcePlatform)
+				|| inferPlatformFromUrl(data.url)
+				|| inferPlatformFromActionSource(actionSource)
+			const platformLabel = platform
+				? data.sourcePlatformLabel || PLATFORM_LABELS[platform] || platform
+				: undefined
+
 			const metadata: MemoryPayload["metadata"] = {
 				sm_source: "consumer",
+				sm_origin: "browser_extension",
+				sm_origin_action: actionSource,
 				website_url: data.url,
+			}
+
+			if (platform) {
+				metadata.sm_origin_platform = platform
+			}
+
+			if (platformLabel) {
+				metadata.sm_origin_platform_label = platformLabel
+			}
+
+			if (data.sourceSurface) {
+				metadata.sm_origin_surface = data.sourceSurface
 			}
 
 			if (data.ogImage) {
@@ -252,6 +312,9 @@ export default defineBackground(() => {
 
 						const memoryData: MemoryData = {
 							content: messageData.prompt,
+							url: messageData.source,
+							sourcePlatform: messageData.platform,
+							sourceSurface: "prompt_capture",
 						}
 
 						const result = await saveMemoryToSupermemory(

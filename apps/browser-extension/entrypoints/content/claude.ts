@@ -749,7 +749,7 @@ function setupClaudePromptCapture() {
 					data: {
 						prompt: promptContent,
 						platform: "claude",
-						source: source,
+						source: window.location.href,
 					},
 				})
 			} catch (error) {

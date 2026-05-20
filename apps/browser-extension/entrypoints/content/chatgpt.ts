@@ -341,6 +341,9 @@ async function saveMemoriesToSupermemory() {
 			action: MESSAGE_TYPES.SAVE_MEMORY,
 			data: {
 				html: combinedContent,
+				sourcePlatform: "chatgpt",
+				sourceSurface: "memories_dialog",
+				url: window.location.href,
 			},
 			actionSource: "chatgpt_memories_dialog",
 		})
@@ -701,7 +704,7 @@ function setupChatGPTPromptCapture() {
 					data: {
 						prompt: promptContent,
 						platform: "chatgpt",
-						source: source,
+						source: window.location.href,
 					},
 				})
 			} catch (error) {

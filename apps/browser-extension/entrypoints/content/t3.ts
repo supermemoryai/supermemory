@@ -546,7 +546,7 @@ function setupT3PromptCapture() {
 					data: {
 						prompt: promptContent,
 						platform: "t3",
-						source: source,
+						source: window.location.href,
 					},
 				})
 			} catch (error) {
