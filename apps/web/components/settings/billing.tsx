@@ -2,11 +2,7 @@
 
 import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
-import {
-	PLAN_DISPLAY_NAMES,
-	useTokenUsage,
-	type PlanType,
-} from "@/hooks/use-token-usage"
+import { PLAN_DISPLAY_NAMES, useTokenUsage } from "@/hooks/use-token-usage"
 import {
 	Dialog,
 	DialogContent,

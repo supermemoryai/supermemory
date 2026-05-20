@@ -106,12 +106,7 @@ function resolveOrgPlan(
 }
 
 export default function Account() {
-	const {
-		user,
-		org,
-		organizations: allOrgs,
-		setActiveOrg,
-	} = useAuth()
+	const { user, org, organizations: allOrgs, setActiveOrg } = useAuth()
 	const autumn = useCustomer()
 	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
 	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
@@ -348,9 +343,7 @@ export default function Account() {
 										rolePriority(a.role.toLowerCase()) -
 										rolePriority(b.role.toLowerCase())
 									if (diff !== 0) return diff
-									return (a.user?.name ?? "").localeCompare(
-										b.user?.name ?? "",
-									)
+									return (a.user?.name ?? "").localeCompare(b.user?.name ?? "")
 								})
 								.map((m, idx) => {
 									const isYou = m.userId === user?.id
@@ -437,7 +430,6 @@ export default function Account() {
 					)}
 				</SettingsCard>
 			</section>
-
 		</div>
 	)
 }

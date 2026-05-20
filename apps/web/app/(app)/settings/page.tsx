@@ -358,10 +358,7 @@ export default function SettingsPage() {
 												type="button"
 												disabled={isCurrent || isSwitching}
 												onClick={() =>
-													handleOrgSwitch(
-														organization.slug,
-														organization.id,
-													)
+													handleOrgSwitch(organization.slug, organization.id)
 												}
 												className={cn(
 													"w-full flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors",
@@ -410,8 +407,7 @@ export default function SettingsPage() {
 								dmSansClassName(),
 							)}
 						>
-
-						{!isMobile && <SectionLabel>Organisation</SectionLabel>}
+							{!isMobile && <SectionLabel>Organisation</SectionLabel>}
 
 							{NAV_ITEMS.map((item) => {
 								const isActive = activeTab === item.id
@@ -523,7 +519,9 @@ export default function SettingsPage() {
 										className="w-full flex items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[#A37A2E] hover:text-[#C7991B] hover:bg-[#1A1200]/60 transition-colors cursor-pointer"
 									>
 										<RotateCcw className="size-[16px] shrink-0" />
-										<span className="font-medium text-[13.5px]">Reset data</span>
+										<span className="font-medium text-[13.5px]">
+											Reset data
+										</span>
 									</button>
 
 									<div className="my-1 h-px bg-white/[0.06]" />
