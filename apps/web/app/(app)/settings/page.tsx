@@ -2,12 +2,12 @@
 import { Logo } from "@ui/assets/Logo"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { useAuth } from "@lib/auth-context"
-import { motion } from "motion/react"
 import NovaOrb from "@/components/nova/nova-orb"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName, dmSans125ClassName } from "@/lib/fonts"
 import Account from "@/components/settings/account"
+import Billing from "@/components/settings/billing"
 import Integrations from "@/components/settings/integrations"
 import ConnectionsMCP from "@/components/settings/connections-mcp"
 import Support from "@/components/settings/support"
@@ -16,13 +16,42 @@ import { useRouter } from "next/navigation"
 import { useIsMobile } from "@hooks/use-mobile"
 import { useLocalStorageUsername } from "@hooks/use-local-storage-username"
 import { analytics } from "@/lib/analytics"
-import { LogOut, RotateCcw, Trash2, Sun, LoaderIcon } from "lucide-react"
+import {
+	LogOut,
+	RotateCcw,
+	Trash2,
+	Sun,
+	LoaderIcon,
+	User as UserIcon,
+	Zap,
+	HelpCircle,
+	CreditCard,
+	ShieldAlert,
+	ChevronRight,
+	ChevronsUpDown,
+	Check,
+	Building2,
+} from "lucide-react"
 import { authClient } from "@lib/auth"
 import { Dialog, DialogContent, DialogClose } from "@ui/components/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { useResetOrganization } from "@/hooks/use-reset-organization"
 import { useDeleteUserAccount } from "@/hooks/use-account-settings"
+import { useCustomer } from "autumn-js/react"
+import { useOrgSummaries } from "@/hooks/use-org-summaries"
+import {
+	PLAN_DISPLAY_NAMES,
+	useTokenUsage,
+	type PlanType,
+} from "@/hooks/use-token-usage"
 
-const TABS = ["account", "integrations", "connections", "support"] as const
+const TABS = [
+	"account",
+	"billing",
+	"integrations",
+	"connections",
+	"support",
+] as const
 type SettingsTab = (typeof TABS)[number]
 
 type NavItem = {
@@ -32,133 +61,38 @@ type NavItem = {
 	icon: React.ReactNode
 }
 
-type DangerItem = {
-	id: "logout" | "reset" | "delete"
-	label: string
-	description: string
-	icon: React.ReactNode
-	color: "neutral" | "amber" | "red"
-}
-
 const NAV_ITEMS: NavItem[] = [
 	{
 		id: "account",
-		label: "Account & Billing",
-		description: "Manage your profile, plan, usage and payments",
-		icon: (
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="20"
-				height="20"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				aria-hidden="true"
-			>
-				<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-				<circle cx="12" cy="7" r="4" />
-			</svg>
-		),
+		label: "Account",
+		description: "Your profile and organization",
+		icon: <UserIcon className="size-[18px]" />,
+	},
+	{
+		id: "billing",
+		label: "Billing",
+		description: "Plan, usage and payments",
+		icon: <CreditCard className="size-[18px]" />,
 	},
 	{
 		id: "integrations",
 		label: "Integrations",
-		description: "Save, sync and search memories across tools",
-		icon: <Sun className="size-5" />,
+		description: "Save, sync and search across tools",
+		icon: <Sun className="size-[18px]" />,
 	},
 	{
 		id: "connections",
 		label: "Connections & MCP",
-		description: "Sync with Google Drive, Notion, OneDrive and MCP client",
-		icon: (
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="20"
-				height="20"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				aria-hidden="true"
-			>
-				<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-			</svg>
-		),
+		description: "Drive, Notion, OneDrive, MCP",
+		icon: <Zap className="size-[18px]" />,
 	},
 	{
 		id: "support",
 		label: "Support & Help",
-		description: "Find answers or share feedback. We're here to help.",
-		icon: (
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="20"
-				height="20"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				strokeWidth="2"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-				aria-hidden="true"
-			>
-				<circle cx="12" cy="12" r="10" />
-				<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-				<path d="M12 17h.01" />
-			</svg>
-		),
+		description: "Get help or share feedback",
+		icon: <HelpCircle className="size-[18px]" />,
 	},
 ]
-
-const DANGER_ITEMS: DangerItem[] = [
-	{
-		id: "logout",
-		label: "Log out",
-		description: "Sign out of your account on this device",
-		icon: <LogOut className="size-5" />,
-		color: "neutral",
-	},
-	{
-		id: "reset",
-		label: "Reset data",
-		description: "Erase all memories, connections and spaces",
-		icon: <RotateCcw className="size-5" />,
-		color: "amber",
-	},
-	{
-		id: "delete",
-		label: "Delete account",
-		description: "Permanently delete your account and all data",
-		icon: <Trash2 className="size-5" />,
-		color: "red",
-	},
-]
-
-const DANGER_COLORS: Record<
-	DangerItem["color"],
-	{ idle: string; hover: string; icon: string }
-> = {
-	neutral: {
-		idle: "text-white/50",
-		hover: "hover:text-white",
-		icon: "text-white/40",
-	},
-	amber: {
-		idle: "text-[#7A6030]",
-		hover: "hover:text-[#C7991B]",
-		icon: "text-[#7A6030]",
-	},
-	red: {
-		idle: "text-[#6B2A2A]",
-		hover: "hover:text-[#C73B1B]",
-		icon: "text-[#6B2A2A]",
-	},
-}
 
 function parseHashToTab(hash: string): SettingsTab {
 	const cleaned = hash.replace("#", "").toLowerCase()
@@ -167,30 +101,75 @@ function parseHashToTab(hash: string): SettingsTab {
 		: "account"
 }
 
-export function UserSupermemory({ name }: { name: string }) {
+const ORG_PLAN_BADGE_STYLES: Record<PlanType, string> = {
+	free: "bg-[#2E353D] font-mono font-medium tracking-[0.12em] text-[#A3A3A3]",
+	pro: "bg-[#4BA0FA] font-bold tracking-[0.36px] text-[#00171A]",
+	scale: "bg-[#0054AD] font-bold tracking-[0.36px] text-[#FAFAFA]",
+	enterprise: "bg-[#FAFAFA] font-bold tracking-[0.36px] text-[#0D121A]",
+}
+
+function OrgPlanBadge({ plan }: { plan: PlanType }) {
 	return (
-		<motion.div
-			className="absolute inset-0 top-[-40px] flex items-center justify-center z-10"
-			initial={{ opacity: 0, y: 0 }}
-			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0, y: 0 }}
-			transition={{ duration: 1, ease: "easeOut" }}
+		<span
+			className={cn(
+				dmSans125ClassName(),
+				"inline-flex h-[18px] min-w-[42px] shrink-0 items-center justify-center rounded-[3px] px-1.5 text-[10px] uppercase",
+				ORG_PLAN_BADGE_STYLES[plan],
+			)}
 		>
-			<Logo className="h-7 text-white" />
-			<div className="flex flex-col items-start justify-center ml-4 space-y-1">
-				<p className="text-white text-[15px] font-medium leading-none">
-					{name.split(" ")[0]}'s
-				</p>
-				<p className="text-white font-bold text-xl leading-none -mt-2">
-					supermemory
-				</p>
+			{PLAN_DISPLAY_NAMES[plan]}
+		</span>
+	)
+}
+
+function resolveOrgPlan(
+	orgId: string,
+	isCurrent: boolean,
+	currentPlan: PlanType,
+	planByOrgId: Map<string, PlanType>,
+): PlanType {
+	const fromSummary = planByOrgId.get(orgId)
+	if (fromSummary) return fromSummary
+	if (isCurrent) return currentPlan
+	return "free"
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+	return (
+		<div className="px-3 pt-3 pb-1.5 text-[10.5px] font-semibold tracking-[0.14em] text-white/30 uppercase">
+			{children}
+		</div>
+	)
+}
+
+function IdentityCard({ displayName }: { displayName: string }) {
+	const firstName = displayName?.split(" ")[0] || ""
+
+	return (
+		<div className="relative flex items-center justify-center h-[140px]">
+			<NovaOrb size={150} className="blur-[3px]!" />
+			<div className="absolute inset-0 flex items-center justify-center z-10">
+				<Logo className="h-7 shrink-0 text-white" />
+				<div
+					className={cn(
+						"flex flex-col items-start justify-center ml-3.5",
+						dmSansClassName(),
+					)}
+				>
+					<p className="text-white text-[14px] font-medium leading-none">
+						{firstName ? `${firstName}'s` : "Your"}
+					</p>
+					<p className="text-white font-bold text-[20px] leading-none mt-1">
+						supermemory
+					</p>
+				</div>
 			</div>
-		</motion.div>
+		</div>
 	)
 }
 
 export default function SettingsPage() {
-	const { user, org } = useAuth()
+	const { user, org, organizations, setActiveOrg } = useAuth()
 	const [activeTab, setActiveTab] = useState<SettingsTab>("account")
 	const hasInitialized = useRef(false)
 	const router = useRouter()
@@ -204,6 +183,40 @@ export default function SettingsPage() {
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 	const [deleteEmailConfirm, setDeleteEmailConfirm] = useState("")
 	const deleteUserAccount = useDeleteUserAccount()
+
+	const [dangerMenuOpen, setDangerMenuOpen] = useState(false)
+	const [orgSwitcherOpen, setOrgSwitcherOpen] = useState(false)
+	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
+	const canSwitchOrg = (organizations?.length ?? 0) > 1
+
+	const autumn = useCustomer()
+	const { currentPlan } = useTokenUsage(autumn)
+	const { data: orgSummaries } = useOrgSummaries()
+	const planByOrgId = useMemo(() => {
+		const map = new Map<string, PlanType>()
+		for (const summary of orgSummaries ?? []) {
+			map.set(summary.orgId, summary.plan)
+		}
+		return map
+	}, [orgSummaries])
+	const activeOrgPlan = org?.id
+		? resolveOrgPlan(org.id, true, currentPlan, planByOrgId)
+		: currentPlan
+
+	const handleOrgSwitch = async (orgSlug: string, orgId: string) => {
+		if (orgId === org?.id) {
+			setOrgSwitcherOpen(false)
+			return
+		}
+		setSwitchingOrgId(orgId)
+		try {
+			await setActiveOrg(orgSlug)
+			window.location.reload()
+		} catch (error) {
+			console.error("Failed to switch organization:", error)
+			setSwitchingOrgId(null)
+		}
+	}
 
 	const handleLogout = async () => {
 		await authClient.signOut()
@@ -233,7 +246,6 @@ export default function SettingsPage() {
 		setActiveTab(tab)
 		analytics.settingsTabChanged({ tab })
 
-		// If no hash or invalid hash, push #account
 		if (!hash || !TABS.includes(hash.replace("#", "") as SettingsTab)) {
 			window.history.pushState(null, "", "#account")
 		}
@@ -256,13 +268,10 @@ export default function SettingsPage() {
 		user?.name ||
 		user?.email?.split("@")[0] ||
 		""
-	const headerPossessive = headerDisplayName
-		? `${headerDisplayName.split(" ")[0]}'s`
-		: "Your"
 
 	return (
-		<div className="h-screen flex flex-col overflow-hidden">
-			<header className="relative z-20 flex justify-between items-center gap-3 px-4 md:px-6 py-3 shrink-0">
+		<div className="h-screen flex flex-col overflow-hidden bg-[#08090C]">
+			<header className="relative z-20 flex justify-between items-center gap-3 px-4 md:px-8 py-3 shrink-0">
 				<nav
 					className={cn(
 						"flex items-center gap-2 sm:gap-3 min-w-0 text-sm",
@@ -279,144 +288,266 @@ export default function SettingsPage() {
 						)}
 					>
 						<Logo className="h-7 shrink-0" />
-						{headerDisplayName ? (
-							<div className="flex flex-col items-start justify-center ml-2 min-w-0">
-								<p className="text-[#8B8B8B] text-[11px] leading-tight">
-									{headerPossessive}
-								</p>
-								<p className="text-white font-bold text-xl leading-none -mt-1">
-									supermemory
-								</p>
-							</div>
-						) : (
-							<span className="ml-2 font-medium text-white/90">
-								supermemory
-							</span>
-						)}
+						<span className="ml-2 font-semibold text-white/90 tracking-tight">
+							supermemory
+						</span>
 					</button>
-					<span className="text-white/35 shrink-0" aria-hidden>
+					<span className="text-white/30 shrink-0" aria-hidden>
 						/
 					</span>
-					<span className="text-white/50 font-medium shrink-0">Settings</span>
+					<span className="text-white/55 font-medium shrink-0">Settings</span>
 				</nav>
-				<UserProfileMenu />
-			</header>
-			<main className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
-				<div className="flex flex-col md:flex-row md:justify-center gap-4 md:gap-8 lg:gap-12 px-4 md:px-6 pt-4 pb-6 md:h-full">
-					<div className="md:flex md:h-full md:min-h-0 md:w-auto md:max-w-[380px] md:flex-col md:overflow-hidden shrink-0">
-						{!isMobile && (
-							<motion.div
-								animate={{
-									scale: 1,
-									padding: 28,
-									paddingTop: 0,
-								}}
-								transition={{
-									duration: 0.8,
-									ease: "easeOut",
-									delay: 0.2,
-								}}
-								className="relative flex items-center justify-center"
+				<div className="flex items-center gap-2 sm:gap-3 shrink-0">
+					{!isMobile && (
+						<Popover
+							open={orgSwitcherOpen && canSwitchOrg}
+							onOpenChange={(open) => {
+								if (canSwitchOrg) setOrgSwitcherOpen(open)
+							}}
+						>
+							<PopoverTrigger asChild>
+								<button
+									type="button"
+									disabled={!canSwitchOrg}
+									className={cn(
+										"group flex items-center gap-2 rounded-full pl-1.5 pr-2.5 py-1.5 transition-colors",
+										"bg-white/[0.03] border border-white/[0.06]",
+										canSwitchOrg
+											? "cursor-pointer hover:bg-white/[0.06]"
+											: "cursor-default",
+										dmSansClassName(),
+									)}
+								>
+									<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-white/55">
+										<Building2 className="size-[13px]" />
+									</span>
+									<span className="max-w-[160px] text-left text-[13px] font-medium text-white truncate leading-none">
+										{org?.name ?? "Personal"}
+									</span>
+									<OrgPlanBadge plan={activeOrgPlan} />
+									{canSwitchOrg && (
+										<ChevronsUpDown className="size-3.5 shrink-0 text-white/40" />
+									)}
+								</button>
+							</PopoverTrigger>
+							<PopoverContent
+								align="end"
+								side="bottom"
+								sideOffset={8}
+								className={cn(
+									"w-[260px] max-h-80 overflow-y-auto p-1.5",
+									"bg-[#14161A] border-white/10 rounded-[14px]",
+									"shadow-[0px_8px_28px_rgba(0,0,0,0.5)]",
+									dmSansClassName(),
+								)}
 							>
-								<NovaOrb size={140} className="blur-[3px]!" />
-								<UserSupermemory name={headerDisplayName} />
-							</motion.div>
+								{[...(organizations ?? [])]
+									.sort((a, b) => a.name.localeCompare(b.name))
+									.map((organization) => {
+										const isCurrent = organization.id === org?.id
+										const isSwitching = switchingOrgId === organization.id
+										const plan = resolveOrgPlan(
+											organization.id,
+											isCurrent,
+											currentPlan,
+											planByOrgId,
+										)
+										return (
+											<button
+												key={organization.id}
+												type="button"
+												disabled={isCurrent || isSwitching}
+												onClick={() =>
+													handleOrgSwitch(
+														organization.slug,
+														organization.id,
+													)
+												}
+												className={cn(
+													"w-full flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors",
+													isCurrent
+														? "bg-white/5"
+														: "hover:bg-white/5 cursor-pointer",
+													"disabled:cursor-default",
+												)}
+											>
+												<Building2 className="size-4 shrink-0 text-white/40" />
+												<span className="min-w-0 flex-1 truncate text-[13.5px] text-white">
+													{organization.name}
+												</span>
+												{isSwitching ? (
+													<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
+												) : isCurrent ? (
+													<Check className="size-4 shrink-0 text-[#4BA0FA]" />
+												) : null}
+												<OrgPlanBadge plan={plan} />
+											</button>
+										)
+									})}
+							</PopoverContent>
+						</Popover>
+					)}
+					<UserProfileMenu />
+				</div>
+			</header>
+
+			<main className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
+				<div className="flex flex-col md:flex-row gap-4 md:gap-6 lg:gap-10 px-4 md:px-8 pt-5 md:pt-7 pb-6 md:h-full md:w-full md:max-w-[1240px] md:mx-auto">
+					{/* Left rail */}
+					<aside className="md:flex md:h-full md:min-h-0 md:w-[280px] md:flex-col shrink-0">
+						{!isMobile && (
+							<div className="mb-4">
+								<IdentityCard displayName={headerDisplayName} />
+							</div>
 						)}
+
 						<nav
 							className={cn(
 								"flex",
 								isMobile
 									? "flex-row gap-2 overflow-x-auto pb-2 scrollbar-thin"
-									: "min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+									: "min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
 								dmSansClassName(),
 							)}
 						>
-							{NAV_ITEMS.map((item) => (
-								<button
-									key={item.id}
-									type="button"
-									onClick={() => {
-										window.location.hash = item.id
-										setActiveTab(item.id)
-										analytics.settingsTabChanged({ tab: item.id })
-									}}
-									className={cn(
-										"rounded-xl transition-colors flex items-start gap-3 shrink-0",
-										isMobile ? "px-3 py-2 text-sm" : "text-left px-3 py-2.5",
-										activeTab === item.id
-											? "bg-[#14161A] text-white shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
-											: "text-white/60 hover:text-white hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-									)}
-								>
-									<span className={cn("shrink-0", !isMobile && "mt-0.5")}>
-										{item.icon}
-									</span>
-									{isMobile ? (
-										<span className="font-medium whitespace-nowrap">
-											{item.label}
-										</span>
-									) : (
-										<div className="flex flex-col gap-0.5">
-											<span className="font-medium">{item.label}</span>
-											<span className="text-xs leading-snug text-white/50">
-												{item.description}
-											</span>
-										</div>
-									)}
-								</button>
-							))}
 
-							{/* Divider */}
-							{!isMobile && <div className="my-0.5 h-px bg-[#0F1621]" />}
+						{!isMobile && <SectionLabel>Organisation</SectionLabel>}
 
-							{DANGER_ITEMS.map((item) => {
-								const colors = DANGER_COLORS[item.color]
-								const handleClick = () => {
-									if (item.id === "logout") handleLogout()
-									else if (item.id === "reset") setIsResetDialogOpen(true)
-									else if (item.id === "delete") setIsDeleteDialogOpen(true)
-								}
+							{NAV_ITEMS.map((item) => {
+								const isActive = activeTab === item.id
 								return (
 									<button
 										key={item.id}
 										type="button"
-										onClick={handleClick}
+										onClick={() => {
+											window.location.hash = item.id
+											setActiveTab(item.id)
+											analytics.settingsTabChanged({ tab: item.id })
+										}}
 										className={cn(
-											"rounded-xl transition-colors flex items-start gap-3 shrink-0 group",
-											isMobile ? "px-3 py-2 text-sm" : "text-left px-3 py-2.5",
-											"hover:bg-[#14161A] hover:shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-											colors.idle,
-											colors.hover,
+											"relative rounded-xl transition-colors flex items-center gap-3 shrink-0 group",
+											isMobile
+												? "px-3 py-2 text-sm border border-white/[0.06]"
+												: "text-left px-3 py-2",
+											isActive
+												? "bg-[#14161A] text-white shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]"
+												: "text-white/60 hover:text-white hover:bg-white/[0.025]",
 										)}
 									>
+										{!isMobile && (
+											<span
+												aria-hidden
+												className={cn(
+													"absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all",
+													isActive
+														? "h-5 bg-[#4BA0FA]"
+														: "h-0 bg-transparent group-hover:h-3 group-hover:bg-white/20",
+												)}
+											/>
+										)}
 										<span
 											className={cn(
-												"shrink-0",
-												!isMobile && "mt-0.5",
-												colors.icon,
-												`group-hover:${colors.hover.replace("hover:", "")}`,
+												"shrink-0 transition-colors",
+												isActive ? "text-white" : "text-white/45",
 											)}
 										>
 											{item.icon}
 										</span>
-										{isMobile ? (
-											<span className="font-medium whitespace-nowrap">
-												{item.label}
-											</span>
-										) : (
-											<div className="flex flex-col gap-0.5">
-												<span className="font-medium">{item.label}</span>
-												<span className="text-xs leading-snug opacity-60">
-													{item.description}
-												</span>
-											</div>
-										)}
+										<span className="font-medium text-[14px] whitespace-nowrap">
+											{item.label}
+										</span>
 									</button>
 								)
 							})}
+
+							{!isMobile && <div className="flex-1" />}
+
+							<button
+								type="button"
+								onClick={handleLogout}
+								className={cn(
+									"group rounded-xl transition-colors flex items-center gap-3 shrink-0 cursor-pointer text-white/60 hover:text-white hover:bg-white/[0.025]",
+									isMobile
+										? "px-3 py-2 text-sm border border-white/[0.06]"
+										: "text-left px-3 py-2",
+								)}
+							>
+								<LogOut className="size-[18px] shrink-0 text-white/45" />
+								<span className="font-medium text-[14px] whitespace-nowrap">
+									Log out
+								</span>
+							</button>
+
+							<Popover open={dangerMenuOpen} onOpenChange={setDangerMenuOpen}>
+								<PopoverTrigger asChild>
+									<button
+										type="button"
+										className={cn(
+											"group rounded-xl transition-colors flex items-center gap-3 shrink-0 cursor-pointer",
+											isMobile
+												? "px-3 py-2 text-sm border border-[#3A211C]"
+												: "text-left px-3 py-2.5 mt-1",
+											dangerMenuOpen
+												? "bg-[#1A0F0C] text-[#C73B1B]"
+												: "text-[#8A5247] hover:text-[#C73B1B] hover:bg-[#1A0F0C]/60",
+										)}
+									>
+										<ShieldAlert className="size-[18px] shrink-0" />
+										<span className="font-medium text-[14px] whitespace-nowrap">
+											Danger zone
+										</span>
+										<ChevronRight
+											className={cn(
+												"size-4 ml-auto shrink-0 transition-transform opacity-60",
+												dangerMenuOpen ? "-rotate-90" : "rotate-0",
+											)}
+										/>
+									</button>
+								</PopoverTrigger>
+								<PopoverContent
+									align="start"
+									side="top"
+									sideOffset={8}
+									className={cn(
+										"w-[var(--radix-popover-trigger-width)] min-w-[248px] p-1.5 bg-[#14161A] border-white/10 rounded-[14px]",
+										"shadow-[0px_8px_28px_rgba(0,0,0,0.5)]",
+										dmSansClassName(),
+									)}
+								>
+									<button
+										type="button"
+										onClick={() => {
+											setDangerMenuOpen(false)
+											setIsResetDialogOpen(true)
+										}}
+										className="w-full flex items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[#A37A2E] hover:text-[#C7991B] hover:bg-[#1A1200]/60 transition-colors cursor-pointer"
+									>
+										<RotateCcw className="size-[16px] shrink-0" />
+										<span className="font-medium text-[13.5px]">Reset data</span>
+									</button>
+
+									<div className="my-1 h-px bg-white/[0.06]" />
+
+									<button
+										type="button"
+										onClick={() => {
+											setDangerMenuOpen(false)
+											setIsDeleteDialogOpen(true)
+										}}
+										className="w-full flex items-center gap-3 rounded-[10px] px-3 py-2 text-left text-[#C73B1B] hover:bg-[#290F0A]/60 transition-colors cursor-pointer"
+									>
+										<Trash2 className="size-[16px] shrink-0" />
+										<span className="font-semibold text-[13.5px]">
+											Delete account
+										</span>
+									</button>
+								</PopoverContent>
+							</Popover>
 						</nav>
-					</div>
-					<div className="flex-1 flex flex-col gap-4 md:overflow-y-auto md:max-w-2xl [scrollbar-gutter:stable] md:pr-[17px]">
+					</aside>
+
+					{/* Content */}
+					<section className="flex-1 min-w-0 flex flex-col md:overflow-y-auto md:max-w-4xl [scrollbar-gutter:stable] md:pr-2">
 						<ErrorBoundary
 							key={activeTab}
 							fallback={
@@ -433,11 +564,12 @@ export default function SettingsPage() {
 							}
 						>
 							{activeTab === "account" && <Account />}
+							{activeTab === "billing" && <Billing />}
 							{activeTab === "integrations" && <Integrations />}
 							{activeTab === "connections" && <ConnectionsMCP />}
 							{activeTab === "support" && <Support />}
 						</ErrorBoundary>
-					</div>
+					</section>
 				</div>
 			</main>
 

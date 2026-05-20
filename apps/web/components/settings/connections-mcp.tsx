@@ -559,7 +559,7 @@ export default function ConnectionsMCP() {
 	const isLoading = autumn.isLoading
 
 	return (
-		<div className="flex flex-col gap-8 pt-4 w-full">
+		<div className="flex flex-col gap-8 w-full">
 			{/* Supermemory Connections Section */}
 			<div className="flex flex-col gap-4">
 				<SectionTitle badge={<ProBadge />}>

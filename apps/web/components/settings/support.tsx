@@ -103,7 +103,7 @@ export default function Support() {
 	}
 
 	return (
-		<div className="flex flex-col gap-8 pt-4 w-full">
+		<div className="flex flex-col gap-8 w-full">
 			{/* Support & Help Section */}
 			<section className="flex flex-col gap-4">
 				<SectionTitle>Support &amp; Help</SectionTitle>
