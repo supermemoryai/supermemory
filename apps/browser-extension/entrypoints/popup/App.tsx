@@ -332,7 +332,7 @@ function App() {
 						>
 							<img
 								alt="supermemory"
-								src="./icon-48.png"
+								src="./new_logo.png"
 								className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[29px] h-[29px]"
 							/>
 						</div>
@@ -340,11 +340,9 @@ function App() {
 							<span className="text-[11px] font-medium text-[#737373] leading-normal">
 								Your
 							</span>
-							<img
-								alt="supermemory"
-								src="./logo-fullmark.svg"
-								className="h-[14.5px] w-auto"
-							/>
+							<span className="text-[15px] font-semibold leading-none text-white">
+								supermemory
+							</span>
 						</div>
 					</div>
 				</div>
@@ -398,7 +396,7 @@ function App() {
 					>
 						<img
 							alt="supermemory"
-							src="./icon-48.png"
+							src="./new_logo.png"
 							className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[29px] h-[29px]"
 						/>
 					</div>
@@ -412,11 +410,9 @@ function App() {
 								return name.endsWith("s") ? `${name}'` : `${name}'s`
 							})()}
 						</span>
-						<img
-							alt="supermemory"
-							src="./logo-fullmark.svg"
-							className="h-[14.5px] w-auto"
-						/>
+						<span className="text-[15px] font-semibold leading-none text-white">
+							supermemory
+						</span>
 					</div>
 				</div>
 				{userSignedIn && (
