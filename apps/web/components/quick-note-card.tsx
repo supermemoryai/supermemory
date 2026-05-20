@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useCallback, useState } from "react"
+import { useRef, useCallback, useEffect, useState } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Maximize2, Plus, Loader2 } from "lucide-react"
@@ -50,32 +50,77 @@ export function QuickNoteCard({
 	const handleBlurCapture = useCallback(
 		(e: React.FocusEvent<HTMLDivElement>) => {
 			if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
-			setIsExpanded(draftRef.current.trim().length > 0)
+			setIsExpanded(false)
 		},
 		[],
 	)
 
+	const handleBackdropPointerDown = useCallback(() => {
+		const activeElement = document.activeElement
+		if (activeElement instanceof HTMLElement) {
+			activeElement.blur()
+		}
+		setIsExpanded(false)
+	}, [])
+
+	useEffect(() => {
+		if (!isExpanded) return
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "Escape") return
+			const activeElement = document.activeElement
+			if (activeElement instanceof HTMLElement) {
+				activeElement.blur()
+			}
+			setIsExpanded(false)
+		}
+
+		window.addEventListener("keydown", handleKeyDown)
+		return () => window.removeEventListener("keydown", handleKeyDown)
+	}, [isExpanded])
+
 	const canSave = draft.trim().length > 0 && !isSaving
+	const hasDraft = draft.trim().length > 0
 	const editorHeight =
-		isExpanded || draft.trim() ? "min-h-[188px]" : "min-h-[120px]"
+		isExpanded || hasDraft
+			? "min-h-[min(58dvh,520px)] sm:min-h-[min(54vh,560px)]"
+			: "min-h-[120px]"
 
 	return (
-		<div
-			className="bg-[#1B1F24] rounded-[22px] p-1"
-			style={{
-				boxShadow:
-					"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-			}}
-		>
+		<>
+			{isExpanded && (
+				<div
+					className="fixed inset-0 z-[60] bg-[#05080D]/45 backdrop-blur-[10px]"
+					onPointerDown={handleBackdropPointerDown}
+					aria-hidden
+				/>
+			)}
 			<div
-				id="quick-note-inner"
-				className="bg-[#0B1017] rounded-[18px] p-3 relative"
-				onFocusCapture={() => setIsExpanded(true)}
-				onBlurCapture={handleBlurCapture}
+				className={cn(
+					"relative rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform] duration-200",
+					isExpanded && "z-[70] scale-[1.01]",
+				)}
 				style={{
-					boxShadow: "inset 1.421px 1.421px 4.263px 0 rgba(11, 15, 21, 0.4)",
+					boxShadow: isExpanded
+						? "0 24px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.08), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset"
+						: "0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 				}}
 			>
+				<div
+					id="quick-note-inner"
+					className={cn(
+						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3 transition-[min-height] duration-200",
+						editorHeight,
+						isExpanded &&
+							"fixed inset-x-3 top-[calc(env(safe-area-inset-top)+72px)] z-[71] max-h-[calc(100dvh-96px)] sm:static sm:inset-auto",
+					)}
+					onFocusCapture={() => setIsExpanded(true)}
+					onBlurCapture={handleBlurCapture}
+					style={{
+						boxShadow:
+							"inset 1.421px 1.421px 4.263px 0 rgba(11, 15, 21, 0.4)",
+					}}
+				>
 				<button
 					type="button"
 					onClick={handleMaximizeClick}
@@ -88,9 +133,8 @@ export function QuickNoteCard({
 				<div
 					className={cn(
 						dmSansClassName(),
-						"w-full pr-5 text-white transition-[min-height] duration-200 disabled:opacity-50",
+						"min-h-0 w-full flex-1 overflow-y-auto pr-5 text-white disabled:opacity-50",
 						"[&_.ProseMirror]:text-[12px] [&_.ProseMirror]:leading-normal [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#737373]",
-						editorHeight,
 					)}
 					aria-disabled={isSaving}
 				>
@@ -105,7 +149,7 @@ export function QuickNoteCard({
 
 				<div
 					id="quick-note-action-bar"
-					className="bg-[#1B1F24] rounded-[8px] px-2 py-1.5 flex items-center justify-center gap-8 w-full"
+					className="mt-3 flex w-full items-center justify-center gap-8 rounded-[8px] bg-[#1B1F24] px-2 py-1.5"
 					style={{
 						boxShadow:
 							"0 4px 20px 0 rgba(0, 0, 0, 0.25), inset 1px 1px 1px 0 rgba(255, 255, 255, 0.1)",
@@ -168,5 +212,6 @@ export function QuickNoteCard({
 				</div>
 			</div>
 		</div>
+		</>
 	)
 }
