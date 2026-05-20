@@ -18,11 +18,13 @@ export function TextEditor({
 	onContentChange,
 	onSubmit,
 	debounceMs = 500,
+	editable = true,
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
 	onSubmit: () => void
 	debounceMs?: number
+	editable?: boolean
 }) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const editorRef = useRef<Editor | null>(null)
@@ -44,6 +46,7 @@ export function TextEditor({
 		extensions,
 		content: initialContent,
 		contentType: "markdown",
+		editable,
 		immediatelyRender: true,
 		onCreate: ({ editor }) => {
 			editorRef.current = editor
@@ -86,11 +89,20 @@ export function TextEditor({
 	})
 
 	useEffect(() => {
-		if (editor && initialContent) {
+		if (editor && initialContent !== undefined) {
+			const json = editor.getJSON()
+			const currentContent =
+				editor.storage.markdown?.manager?.serialize(json) ?? ""
+			if (currentContent === initialContent) return
+
 			hasUserEditedRef.current = false
 			editor.commands.setContent(initialContent, { contentType: "markdown" })
 		}
 	}, [editor, initialContent])
+
+	useEffect(() => {
+		editor?.setEditable(editable)
+	}, [editor, editable])
 
 	const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
 		const target = e.target as HTMLElement

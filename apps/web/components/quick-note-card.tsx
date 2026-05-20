@@ -1,11 +1,12 @@
 "use client"
 
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, useState } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Maximize2, Plus, Loader2 } from "lucide-react"
 import { useProject } from "@/stores"
 import { useQuickNoteDraft } from "@/stores/quick-note-draft"
+import { TextEditor } from "./text-editor"
 
 interface QuickNoteCardProps {
 	onSave: (content: string) => void
@@ -18,28 +19,23 @@ export function QuickNoteCard({
 	onMaximize,
 	isSaving = false,
 }: QuickNoteCardProps) {
-	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const [isExpanded, setIsExpanded] = useState(false)
 	const { selectedProject } = useProject()
 	const { draft, setDraft } = useQuickNoteDraft(selectedProject)
+	const draftRef = useRef(draft)
+	draftRef.current = draft
 
-	const handleChange = useCallback(
-		(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-			setDraft(e.target.value)
-		},
+	const handleContentChange = useCallback(
+		(content: string) => setDraft(content),
 		[setDraft],
 	)
 
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-			if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-				e.preventDefault()
-				if (draft.trim() && !isSaving) {
-					onSave(draft)
-				}
-			}
-		},
-		[draft, isSaving, onSave],
-	)
+	const handleEditorSubmit = useCallback(() => {
+		const currentDraft = draftRef.current
+		if (currentDraft.trim() && !isSaving) {
+			onSave(currentDraft)
+		}
+	}, [isSaving, onSave])
 
 	const handleSaveClick = useCallback(() => {
 		if (draft.trim() && !isSaving) {
@@ -51,7 +47,17 @@ export function QuickNoteCard({
 		onMaximize(draft)
 	}, [draft, onMaximize])
 
+	const handleBlurCapture = useCallback(
+		(e: React.FocusEvent<HTMLDivElement>) => {
+			if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
+			setIsExpanded(draftRef.current.trim().length > 0)
+		},
+		[],
+	)
+
 	const canSave = draft.trim().length > 0 && !isSaving
+	const editorHeight =
+		isExpanded || draft.trim() ? "min-h-[188px]" : "min-h-[120px]"
 
 	return (
 		<div
@@ -64,6 +70,8 @@ export function QuickNoteCard({
 			<div
 				id="quick-note-inner"
 				className="bg-[#0B1017] rounded-[18px] p-3 relative"
+				onFocusCapture={() => setIsExpanded(true)}
+				onBlurCapture={handleBlurCapture}
 				style={{
 					boxShadow: "inset 1.421px 1.421px 4.263px 0 rgba(11, 15, 21, 0.4)",
 				}}
@@ -77,18 +85,23 @@ export function QuickNoteCard({
 					<Maximize2 className="size-[14px]" />
 				</button>
 
-				<textarea
-					ref={textareaRef}
-					value={draft}
-					onChange={handleChange}
-					onKeyDown={handleKeyDown}
-					placeholder="Start writing..."
-					disabled={isSaving}
+				<div
 					className={cn(
 						dmSansClassName(),
-						"w-full h-[120px] bg-transparent resize-none outline-none text-[12px] leading-normal text-white placeholder:text-[#737373] pr-5 disabled:opacity-50",
+						"w-full pr-5 text-white transition-[min-height] duration-200 disabled:opacity-50",
+						"[&_.ProseMirror]:text-[12px] [&_.ProseMirror]:leading-normal [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#737373]",
+						editorHeight,
 					)}
-				/>
+					aria-disabled={isSaving}
+				>
+					<TextEditor
+						content={draft}
+						onContentChange={handleContentChange}
+						onSubmit={handleEditorSubmit}
+						debounceMs={0}
+						editable={!isSaving}
+					/>
+				</div>
 
 				<div
 					id="quick-note-action-bar"
