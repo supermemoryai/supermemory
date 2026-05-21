@@ -542,13 +542,13 @@ export function MemoriesGrid({
 			{!isEmpty && !isSelectionMode && (
 				<div
 					id="filter-pills"
-					className="mb-3 flex flex-col gap-2 pr-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+					className="flex items-center justify-between gap-4 mb-3 pr-2"
 				>
-					<div className="scrollbar-none -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+					<div className="flex flex-wrap items-center gap-1.5">
 						<Button
 							className={cn(
 								dmSansClassName(),
-								"h-auto shrink-0 rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs hover:bg-[#00173C] hover:border-[#2261CA33]",
+								"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 								selectedCategories.length === 0 &&
 									"bg-[#00173C] border-[#2261CA33]",
 							)}
@@ -566,7 +566,7 @@ export function MemoriesGrid({
 								key={facet.category}
 								className={cn(
 									dmSansClassName(),
-									"h-auto shrink-0 rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs hover:bg-[#00173C] hover:border-[#2261CA33]",
+									"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 									selectedCategoriesSet.has(facet.category) &&
 										"bg-[#00173C] border-[#2261CA33]",
 								)}
@@ -577,7 +577,7 @@ export function MemoriesGrid({
 							</Button>
 						))}
 					</div>
-					<div className="flex shrink-0 items-center justify-end gap-2">
+					<div className="flex items-center gap-2 shrink-0">
 						{/* View mode toggle — segmented control */}
 						<div
 							role="tablist"
