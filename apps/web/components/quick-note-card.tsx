@@ -98,8 +98,9 @@ export function QuickNoteCard({
 			)}
 			<div
 				className={cn(
-					"relative w-full rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform,width] duration-200",
-					isExpanded && "z-[70] w-[min(calc(100vw-1.5rem),640px)] scale-[1.01]",
+					"relative w-full rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform] duration-200",
+					isExpanded &&
+						"fixed left-1/2 top-[calc(env(safe-area-inset-top)+72px)] z-[70] w-[min(calc(100vw-1.5rem),640px)] max-h-[calc(100dvh-96px)] -translate-x-1/2 scale-[1.01] sm:left-[max(1rem,calc((100vw-640px)/2))] sm:translate-x-0",
 				)}
 				style={{
 					boxShadow: isExpanded
@@ -110,9 +111,7 @@ export function QuickNoteCard({
 				<div
 					id="quick-note-inner"
 					className={cn(
-						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3",
-						isExpanded &&
-							"fixed inset-x-3 top-[calc(env(safe-area-inset-top)+72px)] z-[71] max-h-[calc(100dvh-96px)] sm:static sm:inset-auto",
+						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3 transition-[height,width] duration-200",
 					)}
 					onFocusCapture={() => setIsExpanded(true)}
 					onBlurCapture={handleBlurCapture}
@@ -132,12 +131,20 @@ export function QuickNoteCard({
 					<div
 						className={cn(
 							dmSansClassName(),
-							"w-full flex-1 overflow-y-auto pr-5 text-white disabled:opacity-50",
-							"[&_.ProseMirror]:text-[12px] [&_.ProseMirror]:leading-normal [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#737373]",
+							"relative w-full flex-1 overflow-y-auto pr-5 text-white disabled:opacity-50",
+							"[&_.ProseMirror]:text-[12px] [&_.ProseMirror]:leading-normal [&_.ProseMirror_p.is-editor-empty:first-child::before]:hidden [&_.ProseMirror_.is-empty::before]:hidden",
 							editorHeight,
 						)}
 						aria-disabled={isSaving}
 					>
+						{!hasDraft && (
+							<div
+								className="pointer-events-none absolute left-0 top-0 text-[12px] leading-normal text-[#737373]"
+								aria-hidden
+							>
+								Write, paste anything or type &quot;/&quot; for commands...
+							</div>
+						)}
 						<TextEditor
 							content={draft}
 							onContentChange={handleContentChange}
