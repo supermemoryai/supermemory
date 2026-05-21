@@ -1,0 +1,10 @@
+{
+	"id": "supermemory",
+	"name": "Supermemory",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Sync your Obsidian vault to Supermemory for AI-powered search and memory extraction.",
+	"author": "Supermemory",
+	"authorUrl": "https://supermemory.ai",
+	"isDesktopOnly": false
+}
