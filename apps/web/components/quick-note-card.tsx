@@ -99,7 +99,7 @@ export function QuickNoteCard({
 			<div
 				className={cn(
 					"relative w-full rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform,width] duration-200",
-					isExpanded && "z-[70] w-[min(calc(100vw-1.5rem),640px)] scale-[1.01]",
+					isExpanded && "z-[70] w-[min(calc(100vw-1.5rem),640px)] sm:w-full scale-[1.01]",
 				)}
 				style={{
 					boxShadow: isExpanded
