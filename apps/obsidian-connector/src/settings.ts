@@ -16,28 +16,16 @@ export class SupermemorySettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("API Key")
 			.setDesc("Your Supermemory API key. Get one at supermemory.ai/api-keys")
-			.addText((text) =>
+			.addText((text) => {
+				text.inputEl.type = "password"
 				text
 					.setPlaceholder("sm_...")
 					.setValue(this.plugin.settings.apiKey)
 					.onChange(async (value) => {
 						this.plugin.settings.apiKey = value.trim()
 						await this.plugin.saveSettings()
-					}),
-			)
-
-		new Setting(containerEl)
-			.setName("API Base URL")
-			.setDesc("Only change this if you self-host Supermemory.")
-			.addText((text) =>
-				text
-					.setPlaceholder("https://api.supermemory.ai")
-					.setValue(this.plugin.settings.apiBaseUrl)
-					.onChange(async (value) => {
-						this.plugin.settings.apiBaseUrl = value.trim()
-						await this.plugin.saveSettings()
-					}),
-			)
+					})
+			})
 
 		new Setting(containerEl)
 			.setName("Container tag")
@@ -48,47 +36,6 @@ export class SupermemorySettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.containerTag)
 					.onChange(async (value) => {
 						this.plugin.settings.containerTag = value.trim()
-						await this.plugin.saveSettings()
-					}),
-			)
-
-		new Setting(containerEl)
-			.setName("Vault display name")
-			.setDesc(
-				"How this vault appears in Supermemory. Defaults to the vault folder name.",
-			)
-			.addText((text) =>
-				text
-					.setPlaceholder(this.app.vault.getName())
-					.setValue(this.plugin.settings.vaultName)
-					.onChange(async (value) => {
-						this.plugin.settings.vaultName = value.trim()
-						await this.plugin.saveSettings()
-					}),
-			)
-
-		new Setting(containerEl)
-			.setName("Sync on file save")
-			.setDesc("Push changes to Supermemory whenever you save a note.")
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.syncOnSave)
-					.onChange(async (value) => {
-						this.plugin.settings.syncOnSave = value
-						await this.plugin.saveSettings()
-					}),
-			)
-
-		new Setting(containerEl)
-			.setName("Sync on startup")
-			.setDesc(
-				"Reconcile any changes made while Obsidian was closed.",
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.syncOnStartup)
-					.onChange(async (value) => {
-						this.plugin.settings.syncOnStartup = value
 						await this.plugin.saveSettings()
 					}),
 			)
