@@ -1,5 +1,6 @@
-import { type App, Notice, TFile, parseFrontMatterEntry, parseFrontMatterTags } from "obsidian"
+import { type App, Notice, TFile, parseFrontMatterTags } from "obsidian"
 import { pushDeletions, pushNotes, type NotePayload } from "./api"
+import type { SupermemorySettings } from "./types"
 
 const BATCH_SIZE = 50
 const DEBOUNCE_MS = 3000
@@ -12,13 +13,41 @@ interface SyncState {
 export class SyncEngine {
 	private app: App
 	private connectionId: string
+	private settings: SupermemorySettings
 	private state: SyncState = { syncing: false, lastFullSync: 0 }
 	private pendingChanges: Map<string, "upsert" | "delete"> = new Map()
 	private debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-	constructor(app: App, connectionId: string) {
+	constructor(app: App, connectionId: string, settings: SupermemorySettings) {
 		this.app = app
 		this.connectionId = connectionId
+		this.settings = settings
+	}
+
+	updateSettings(settings: SupermemorySettings) {
+		this.settings = settings
+	}
+
+	private shouldSync(file: TFile): boolean {
+		if (file.extension !== "md") return false
+
+		const mode = this.settings.syncMode
+		if (mode === "all") return true
+
+		if (mode === "folders") {
+			const folders = this.settings.includedFolders
+				.split(",")
+				.map((f) => f.trim().replace(/^\/+|\/+$/g, ""))
+				.filter((f) => f.length > 0)
+			if (folders.length === 0) return false
+			return folders.some(
+				(folder) =>
+					file.path === `${folder}.md` ||
+					file.path.startsWith(`${folder}/`),
+			)
+		}
+
+		return false
 	}
 
 	async fullSync(): Promise<{ queued: number; failed: number }> {
@@ -32,7 +61,9 @@ export class SyncEngine {
 		let totalFailed = 0
 
 		try {
-			const files = this.app.vault.getMarkdownFiles()
+			const files = this.app.vault
+				.getMarkdownFiles()
+				.filter((f) => this.shouldSync(f))
 			const batches = this.chunk(files, BATCH_SIZE)
 
 			for (const batch of batches) {
@@ -60,13 +91,16 @@ export class SyncEngine {
 	}
 
 	onFileChange(file: TFile) {
-		if (!(file instanceof TFile) || file.extension !== "md") return
+		if (!(file instanceof TFile) || !this.shouldSync(file)) return
 		this.pendingChanges.set(file.path, "upsert")
 		this.schedulePush()
 	}
 
 	onFileDelete(file: TFile) {
 		if (!(file instanceof TFile) || file.extension !== "md") return
+		// Always allow deletes through (file may have been previously synced
+		// before its folder was excluded). The server safely no-ops on unknown
+		// customIds.
 		this.pendingChanges.set(file.path, "delete")
 		this.schedulePush()
 	}
@@ -74,7 +108,9 @@ export class SyncEngine {
 	onFileRename(file: TFile, oldPath: string) {
 		if (!(file instanceof TFile) || file.extension !== "md") return
 		this.pendingChanges.set(oldPath, "delete")
-		this.pendingChanges.set(file.path, "upsert")
+		if (this.shouldSync(file)) {
+			this.pendingChanges.set(file.path, "upsert")
+		}
 		this.schedulePush()
 	}
 

@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian"
 import type SupermemoryPlugin from "./main"
+import type { SyncMode } from "./types"
 
 export class SupermemorySettingTab extends PluginSettingTab {
 	plugin: SupermemoryPlugin
@@ -39,5 +40,37 @@ export class SupermemorySettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings()
 					}),
 			)
+
+		new Setting(containerEl)
+			.setName("Sync mode")
+			.setDesc("Which notes in your vault to sync to Supermemory.")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("all", "Entire vault")
+					.addOption("folders", "Only selected folders")
+					.setValue(this.plugin.settings.syncMode)
+					.onChange(async (value) => {
+						this.plugin.settings.syncMode = value as SyncMode
+						await this.plugin.saveSettings()
+						this.display()
+					}),
+			)
+
+		if (this.plugin.settings.syncMode === "folders") {
+			new Setting(containerEl)
+				.setName("Folders to sync")
+				.setDesc(
+					"Comma-separated folder paths (e.g. Projects, Daily). Subfolders are included.",
+				)
+				.addText((text) =>
+					text
+						.setPlaceholder("Projects, Daily")
+						.setValue(this.plugin.settings.includedFolders)
+						.onChange(async (value) => {
+							this.plugin.settings.includedFolders = value
+							await this.plugin.saveSettings()
+						}),
+				)
+		}
 	}
 }

@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS: SupermemorySettings = {
 	connectionId: "",
 	syncOnSave: true,
 	syncOnStartup: true,
+	syncMode: "all",
+	includedFolders: "",
 }
 
 export default class SupermemoryPlugin extends Plugin {
@@ -101,7 +103,9 @@ export default class SupermemoryPlugin extends Plugin {
 		if (!connectionId) return
 
 		if (!this.syncEngine) {
-			this.syncEngine = new SyncEngine(this.app, connectionId)
+			this.syncEngine = new SyncEngine(this.app, connectionId, this.settings)
+		} else {
+			this.syncEngine.updateSettings(this.settings)
 		}
 
 		await this.syncEngine.fullSync()
@@ -118,5 +122,6 @@ export default class SupermemoryPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings)
 		configure(this.settings)
+		this.syncEngine?.updateSettings(this.settings)
 	}
 }
