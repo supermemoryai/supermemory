@@ -5,7 +5,7 @@
   "portless": { "name": "app.dev.supermemory", "script": "dev:app" },
   "scripts": {
     "dev": "portless",
-    "dev:app": "next dev --port ${PORT:-3000}",
+    "dev:app": "next dev --port $PORT",
     "build": "next build",
     "start": "next start",
     "lint": "biome check --write",
