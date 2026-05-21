@@ -20,9 +20,11 @@ export function NoteContent({
 	const [content, setContent] = useState(initialContent ?? "")
 	const [seededContent] = useState(initialContent || undefined)
 
-	const handleSubmit = (submittedContent = content) => {
-		if (submittedContent.trim() && !isSubmitting && onSubmit) {
-			onSubmit(submittedContent)
+	const canSubmit = content.trim().length > 0 && !isSubmitting
+
+	const handleSubmit = () => {
+		if (canSubmit && onSubmit) {
+			onSubmit(content)
 		}
 	}
 

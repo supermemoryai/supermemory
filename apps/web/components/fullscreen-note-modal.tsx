@@ -52,15 +52,12 @@ export function FullscreenNoteModal({
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
 
-	const handleSave = useCallback(
-		(submittedContent?: string) => {
-			const currentContent = submittedContent ?? contentRef.current
-			if (currentContent.trim() && !isSaving) {
-				onSave(currentContent)
-			}
-		},
-		[isSaving, onSave],
-	)
+	const handleSave = useCallback(() => {
+		const currentContent = contentRef.current
+		if (currentContent.trim() && !isSaving) {
+			onSave(currentContent)
+		}
+	}, [isSaving, onSave])
 
 	const handleContentChange = useCallback(
 		(newContent: string) => {
@@ -168,7 +165,7 @@ export function FullscreenNoteModal({
 				>
 					<button
 						type="button"
-						onClick={() => handleSave()}
+						onClick={handleSave}
 						disabled={!canSave}
 						className={cn(
 							"bg-[#1B1F24] rounded-[8px] px-4 py-2.5 flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
