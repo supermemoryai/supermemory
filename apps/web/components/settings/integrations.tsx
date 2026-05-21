@@ -30,6 +30,7 @@ import {
 	AppleShortcutsIcon,
 	RaycastIcon,
 } from "@/components/integration-icons"
+import { RaycastSetupModal } from "@/components/integrations/raycast-setup-modal"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -128,20 +129,13 @@ export default function Integrations() {
 	// Raycast state
 	const [showRaycastApiKeyModal, setShowRaycastApiKeyModal] = useState(false)
 	const [raycastApiKey, setRaycastApiKey] = useState<string>("")
-	const [raycastCopied, setRaycastCopied] = useState(false)
 	const [hasTriggeredRaycast, setHasTriggeredRaycast] = useState(false)
-	const raycastApiKeyId = useId()
 
-	const handleCopyApiKey = async (key: string, isRaycast = false) => {
+	const handleCopyApiKey = async (key: string) => {
 		try {
 			await navigator.clipboard.writeText(key)
-			if (isRaycast) {
-				setRaycastCopied(true)
-				setTimeout(() => setRaycastCopied(false), 2000)
-			} else {
-				setCopied(true)
-				setTimeout(() => setCopied(false), 2000)
-			}
+			setCopied(true)
+			setTimeout(() => setCopied(false), 2000)
 			toast.success("API key copied to clipboard!")
 		} catch {
 			toast.error("Failed to copy API key")
@@ -187,13 +181,14 @@ export default function Integrations() {
 				name: `raycast-${generateId().slice(0, 8)}`,
 				prefix: `sm_${org.id}_`,
 			})
-			return res.key
+			if (res.error)
+				throw new Error(res.error.message ?? "Failed to create API key")
+			if (!res.data?.key) throw new Error("API key missing from response")
+			return res.data.key
 		},
 		onSuccess: (key) => {
 			setRaycastApiKey(key)
 			setShowRaycastApiKeyModal(true)
-			setRaycastCopied(false)
-			handleCopyApiKey(key, true)
 		},
 		onError: (error) => {
 			toast.error("Failed to create Raycast API key", {
@@ -260,14 +255,11 @@ export default function Integrations() {
 
 	const handleRaycastDialogClose = (open: boolean) => {
 		setShowRaycastApiKeyModal(open)
-		if (!open) {
-			setRaycastApiKey("")
-			setRaycastCopied(false)
-		}
+		if (!open) setRaycastApiKey("")
 	}
 
 	return (
-		<div className="flex flex-col gap-4 pt-4 w-full">
+		<div className="flex flex-col gap-4 w-full">
 			<SectionTitle>Integrations</SectionTitle>
 
 			<IntegrationCard id="chrome-extension-card">
@@ -564,134 +556,11 @@ export default function Integrations() {
 				</DialogPortal>
 			</Dialog>
 
-			<Dialog
+			<RaycastSetupModal
 				open={showRaycastApiKeyModal}
 				onOpenChange={handleRaycastDialogClose}
-			>
-				<DialogPortal>
-					<DialogContent
-						id="raycast-api-key-modal"
-						className="bg-[#14161A] border border-white/10 text-[#FAFAFA] md:max-w-md z-100"
-					>
-						<DialogHeader>
-							<DialogTitle
-								className={cn(
-									dmSans125ClassName(),
-									"text-[#FAFAFA] text-lg font-semibold",
-								)}
-							>
-								Setup Raycast Extension
-							</DialogTitle>
-						</DialogHeader>
-
-						<div className="space-y-4">
-							<div id="raycast-api-key-section" className="space-y-2">
-								<label
-									htmlFor={raycastApiKeyId}
-									className={cn(
-										dmSans125ClassName(),
-										"text-sm font-medium text-[#737373]",
-									)}
-								>
-									Your Raycast API Key
-								</label>
-								<div className="flex items-center gap-2">
-									<input
-										id={raycastApiKeyId}
-										type="text"
-										value={raycastApiKey}
-										readOnly
-										className={cn(
-											"flex-1 bg-[#0D121A] border border-white/10 rounded-lg px-3 py-2 text-sm text-[#FAFAFA] font-mono",
-											dmSans125ClassName(),
-										)}
-									/>
-									<button
-										type="button"
-										onClick={() => handleCopyApiKey(raycastApiKey, true)}
-										className="p-2 rounded-lg bg-[#0D121A] border border-white/10 text-[#737373] hover:text-[#FAFAFA] transition-colors"
-									>
-										{raycastCopied ? (
-											<Check className="size-4 text-[#4BA0FA]" />
-										) : (
-											<Copy className="size-4" />
-										)}
-									</button>
-								</div>
-							</div>
-
-							<div id="raycast-steps" className="space-y-3">
-								<h4
-									className={cn(
-										dmSans125ClassName(),
-										"text-sm font-medium text-[#737373]",
-									)}
-								>
-									Follow these steps:
-								</h4>
-								<div className="space-y-2">
-									<div className="flex items-start gap-3">
-										<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
-											1
-										</div>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"text-sm text-[#737373]",
-											)}
-										>
-											Install the Raycast extension from the Raycast Store
-										</p>
-									</div>
-									<div className="flex items-start gap-3">
-										<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
-											2
-										</div>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"text-sm text-[#737373]",
-											)}
-										>
-											Open Raycast preferences and paste your API key
-										</p>
-									</div>
-									<div className="flex items-start gap-3">
-										<div className="shrink-0 size-6 bg-[#FF6363]/20 text-[#FF6363] rounded-full flex items-center justify-center text-xs font-medium">
-											3
-										</div>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"text-sm text-[#737373]",
-											)}
-										>
-											Use "Add Memory" or "Search Memories" commands!
-										</p>
-									</div>
-								</div>
-							</div>
-
-							<div className="flex gap-2 pt-2">
-								<button
-									type="button"
-									onClick={handleRaycastInstall}
-									className={cn(
-										"flex-1 flex items-center justify-center gap-2",
-										"bg-[#FF6363] hover:bg-[#FF6363]/90 text-white",
-										"rounded-lg h-11 px-4 font-medium text-sm",
-										"transition-colors",
-										dmSans125ClassName(),
-									)}
-								>
-									<RaycastIcon className="size-4" />
-									Install Extension
-								</button>
-							</div>
-						</div>
-					</DialogContent>
-				</DialogPortal>
-			</Dialog>
+				apiKey={raycastApiKey}
+			/>
 		</div>
 	)
 }

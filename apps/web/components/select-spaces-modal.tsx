@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { Dialog, DialogContent } from "@repo/ui/components/dialog"
@@ -17,6 +17,8 @@ import {
 	ArrowRight,
 	BookOpen,
 	Loader,
+	Pencil,
+	Check,
 } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -26,6 +28,7 @@ import { useAuth } from "@lib/auth-context"
 import type { ContainerTagListType } from "@lib/types"
 import {
 	compareSpacesUserFirst,
+	isOwnConversationSpace,
 	spaceSelectorDisplayName,
 } from "@/lib/ingest-auto-space"
 import {
@@ -40,6 +43,10 @@ import {
 	type PluginInfo,
 } from "@/lib/plugin-catalog"
 import { InstallSteps, PillButton } from "./integrations/install-steps"
+import { useProjectMutations } from "@/hooks/use-project-mutations"
+import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
+import NovaOrb from "@/components/nova/nova-orb"
+import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -49,6 +56,7 @@ interface SelectSpacesModalProps {
 	projects: ContainerTagListType[]
 	recents?: string[]
 	showNewSpace?: boolean
+	includeAuto?: boolean
 	onNewSpace?: () => void
 	enableDelete?: boolean
 	onDeleteRequest?: (project: {
@@ -56,6 +64,13 @@ interface SelectSpacesModalProps {
 		name: string
 		containerTag: string
 	}) => void
+	onBulkDeleteRequest?: (
+		projects: {
+			id: string
+			name: string
+			containerTag: string
+		}[],
+	) => void
 }
 
 type CategoryId =
@@ -80,11 +95,26 @@ export function SelectSpacesModal({
 	projects,
 	recents,
 	showNewSpace = false,
+	includeAuto = false,
 	onNewSpace,
 	enableDelete = false,
 	onDeleteRequest,
+	onBulkDeleteRequest,
 }: SelectSpacesModalProps) {
 	const [searchQuery, setSearchQuery] = useState("")
+	const [isBulkDeleteMode, setIsBulkDeleteMode] = useState(false)
+	const [bulkDeleteTags, setBulkDeleteTags] = useState<Set<string>>(new Set())
+	const [lastBulkDeleteTag, setLastBulkDeleteTag] = useState<string | null>(
+		null,
+	)
+	const [editingProject, setEditingProject] = useState<{
+		id: string
+		containerTag: string
+		originalName: string
+		name: string
+	} | null>(null)
+	const editInputRef = useRef<HTMLInputElement | null>(null)
+	const editingContainerTag = editingProject?.containerTag
 	const currentSelection = selectedProjects[0] ?? ""
 
 	const pluginTags = useMemo(
@@ -174,6 +204,7 @@ export function SelectSpacesModal({
 
 	const defaultCategory = useMemo<CategoryId>(() => {
 		if (!currentSelection) return "all"
+		if (currentSelection === AUTO_CHAT_SPACE_ID) return "all"
 		const plugin = detectPluginSpace(currentSelection)
 		if (plugin) return `plugin:${plugin.pluginId}`
 		return "my"
@@ -181,12 +212,22 @@ export function SelectSpacesModal({
 
 	const [activeCategory, setActiveCategory] =
 		useState<CategoryId>(defaultCategory)
+	const activeDiscoverId = activeCategory.startsWith("discover:")
+		? activeCategory.slice("discover:".length)
+		: null
 
 	useEffect(() => {
 		if (isOpen) setActiveCategory(defaultCategory)
 	}, [isOpen, defaultCategory])
 
-	const { org } = useAuth()
+	useEffect(() => {
+		if (!activeDiscoverId) return
+		setIsBulkDeleteMode(false)
+		setBulkDeleteTags(new Set())
+		setLastBulkDeleteTag(null)
+	}, [activeDiscoverId])
+
+	const { org, user } = useAuth()
 	const queryClient = useQueryClient()
 	const [connectingPluginId, setConnectingPluginId] = useState<string | null>(
 		null,
@@ -195,6 +236,7 @@ export function SelectSpacesModal({
 		pluginId: string
 		key: string
 	} | null>(null)
+	const { updateProjectMutation } = useProjectMutations()
 
 	const { data: availablePluginsData } = useQuery({
 		queryKey: ["plugins"],
@@ -208,17 +250,17 @@ export function SelectSpacesModal({
 			return (await res.json()) as { plugins: string[] }
 		},
 		staleTime: 5 * 60 * 1000,
-		enabled: isOpen,
+		enabled: isOpen && !!activeDiscoverId,
 	})
 
 	const { data: apiKeys = [] } = useQuery({
 		queryKey: ["api-keys", org?.id],
-		enabled: isOpen && !!org?.id,
+		enabled: isOpen && !!activeDiscoverId && !!org?.id,
 		queryFn: async () => {
 			if (!org?.id) return []
-			const data = await authClient.apiKey.list({
+			const data = (await authClient.apiKey.list({
 				fetchOptions: { query: { metadata: { organizationId: org.id } } },
-			})
+			})) as unknown as { metadata?: Record<string, unknown> | null }[]
 			return data.filter((key) => key.metadata?.organizationId === org.id)
 		},
 	})
@@ -303,20 +345,105 @@ export function SelectSpacesModal({
 	useEffect(() => {
 		if (!isOpen) {
 			setNewKey(null)
+			setEditingProject(null)
+			setIsBulkDeleteMode(false)
+			setBulkDeleteTags(new Set())
+			setLastBulkDeleteTag(null)
 		}
 	}, [isOpen])
 
-	const handleOpenChange = (open: boolean) => {
-		if (!open) {
-			onClose()
-			setSearchQuery("")
-		}
-	}
+	useEffect(() => {
+		if (!editingContainerTag) return
+		const frame = requestAnimationFrame(() => {
+			editInputRef.current?.focus()
+			editInputRef.current?.select()
+		})
+		return () => cancelAnimationFrame(frame)
+	}, [editingContainerTag])
 
-	const handleSelect = (containerTag: string) => {
-		onApply([containerTag])
+	const handleOpenChange = useCallback(
+		(open: boolean) => {
+			if (!open) {
+				onClose()
+				setSearchQuery("")
+				setEditingProject(null)
+				setIsBulkDeleteMode(false)
+				setBulkDeleteTags(new Set())
+				setLastBulkDeleteTag(null)
+			}
+		},
+		[onClose],
+	)
+
+	const handleSelect = useCallback(
+		(containerTag: string) => {
+			setEditingProject(null)
+			setIsBulkDeleteMode(false)
+			setBulkDeleteTags(new Set())
+			setLastBulkDeleteTag(null)
+			onApply([containerTag])
+			setSearchQuery("")
+		},
+		[onApply],
+	)
+
+	const handleSelectAuto = useCallback(() => {
+		setEditingProject(null)
+		setIsBulkDeleteMode(false)
+		setBulkDeleteTags(new Set())
+		setLastBulkDeleteTag(null)
+		onApply([AUTO_CHAT_SPACE_ID])
 		setSearchQuery("")
-	}
+	}, [onApply])
+
+	const handleBulkModeToggle = useCallback(() => {
+		setEditingProject(null)
+		setBulkDeleteTags(new Set())
+		setLastBulkDeleteTag(null)
+		setIsBulkDeleteMode((prev) => !prev)
+	}, [])
+
+	const startEditing = useCallback((project: ContainerTagListType) => {
+		const name = project.name ?? project.containerTag
+		setEditingProject({
+			id: project.id,
+			containerTag: project.containerTag,
+			originalName: name,
+			name,
+		})
+	}, [])
+
+	const cancelEditing = useCallback(() => {
+		setEditingProject(null)
+	}, [])
+
+	const saveEditing = useCallback(() => {
+		if (!editingProject) return
+		const nextName = editingProject.name.trim()
+		const currentName = editingProject.originalName.trim()
+		if (!nextName || nextName === currentName) return
+
+		updateProjectMutation.mutate(
+			{ containerTag: editingProject.containerTag, name: nextName },
+			{
+				onSuccess: () => setEditingProject(null),
+			},
+		)
+	}, [editingProject, updateProjectMutation])
+
+	const handleEditKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLInputElement>) => {
+			if (e.key === "Enter") {
+				e.preventDefault()
+				saveEditing()
+			}
+			if (e.key === "Escape") {
+				e.preventDefault()
+				cancelEditing()
+			}
+		},
+		[cancelEditing, saveEditing],
+	)
 
 	const filteredProjects = useMemo(() => {
 		const byCategory = allSpaces.filter((p) => {
@@ -330,15 +457,19 @@ export function SelectSpacesModal({
 		return byCategory.filter((p) => {
 			const plugin = detectPluginSpace(p.containerTag)
 			const projectName = pluginMetaMap.get(p.containerTag)?.projectName
+			const displayName = spaceSelectorDisplayName(p, p.containerTag, {
+				currentUserId: user?.id,
+			})
 			return (
 				p.containerTag.toLowerCase().includes(query) ||
 				(p.name ?? "").toLowerCase().includes(query) ||
+				displayName.toLowerCase().includes(query) ||
 				(plugin?.label.toLowerCase().includes(query) ?? false) ||
 				(plugin?.projectId?.toLowerCase().includes(query) ?? false) ||
 				(projectName?.toLowerCase().includes(query) ?? false)
 			)
 		})
-	}, [allSpaces, activeCategory, searchQuery, pluginMetaMap])
+	}, [allSpaces, activeCategory, searchQuery, pluginMetaMap, user?.id])
 
 	const recentProjects = useMemo<ContainerTagListType[]>(() => {
 		if (!recents?.length) return []
@@ -367,17 +498,301 @@ export function SelectSpacesModal({
 		[filteredProjects, recentSet],
 	)
 
-	const renderRow = (project: ContainerTagListType) => {
-		const isSelected = currentSelection === project.containerTag
-		const plugin = detectPluginSpace(project.containerTag)
-		const pluginProjectName = pluginMetaMap.get(
-			project.containerTag,
-		)?.projectName
-		const pluginIdLabel = pluginProjectName || plugin?.projectId
-		const isDefault = project.containerTag === DEFAULT_PROJECT_ID
+	const showAutoRow = useMemo(() => {
+		if (!includeAuto) return false
+		if (isBulkDeleteMode) return false
+		if (activeCategory !== "all" && activeCategory !== "my") return false
+		const query = searchQuery.trim().toLowerCase()
+		if (!query) return true
+		return (
+			"auto".includes(query) ||
+			"let nova choose the right spaces".includes(query) ||
+			"discover spaces".includes(query)
+		)
+	}, [includeAuto, isBulkDeleteMode, activeCategory, searchQuery])
+
+	const visibleBulkDeleteTags = useMemo(
+		() =>
+			[...recentProjects, ...mainList]
+				.filter((project) => project.containerTag !== DEFAULT_PROJECT_ID)
+				.map((project) => project.containerTag),
+		[recentProjects, mainList],
+	)
+
+	const toggleBulkDeleteTag = useCallback(
+		(containerTag: string, shiftKey = false) => {
+			setBulkDeleteTags((prev) => {
+				const next = new Set(prev)
+				const currentIndex = visibleBulkDeleteTags.indexOf(containerTag)
+				const anchorIndex = lastBulkDeleteTag
+					? visibleBulkDeleteTags.indexOf(lastBulkDeleteTag)
+					: -1
+
+				if (shiftKey && currentIndex !== -1 && anchorIndex !== -1) {
+					const start = Math.min(anchorIndex, currentIndex)
+					const end = Math.max(anchorIndex, currentIndex)
+					for (const tag of visibleBulkDeleteTags.slice(start, end + 1)) {
+						next.add(tag)
+					}
+				} else if (next.has(containerTag)) {
+					next.delete(containerTag)
+				} else {
+					next.add(containerTag)
+				}
+
+				return next
+			})
+			setLastBulkDeleteTag(containerTag)
+		},
+		[lastBulkDeleteTag, visibleBulkDeleteTags],
+	)
+
+	const bulkDeleteProjects = useMemo(
+		() =>
+			allSpaces
+				.filter(
+					(project) =>
+						project.containerTag !== DEFAULT_PROJECT_ID &&
+						bulkDeleteTags.has(project.containerTag),
+				)
+				.map((project) => ({
+					id: project.id,
+					name: spaceSelectorDisplayName(project, project.containerTag, {
+						currentUserId: user?.id,
+					}),
+					containerTag: project.containerTag,
+				})),
+		[allSpaces, bulkDeleteTags, user?.id],
+	)
+
+	const bulkDeleteCount = bulkDeleteProjects.length
+
+	const renderRow = useCallback(
+		(project: ContainerTagListType) => {
+			const isSelected = currentSelection === project.containerTag
+			const plugin = detectPluginSpace(project.containerTag)
+			const pluginProjectName = pluginMetaMap.get(
+				project.containerTag,
+			)?.projectName
+			const pluginIdLabel = pluginProjectName || plugin?.projectId
+			const displayName = spaceSelectorDisplayName(
+				project,
+				project.containerTag,
+				{
+					currentUserId: user?.id,
+				},
+			)
+			const isDefault = project.containerTag === DEFAULT_PROJECT_ID
+			const isOwnSpace = isOwnConversationSpace(project, user?.id)
+			const canEdit = !isDefault && !plugin && !isOwnSpace
+			const canBulkDelete = enableDelete && !isDefault
+			const isEditing = editingProject?.containerTag === project.containerTag
+			const isBulkDeleteSelected = bulkDeleteTags.has(project.containerTag)
+			const trimmedEditName = editingProject?.name.trim() ?? ""
+			const isSaveDisabled =
+				!trimmedEditName ||
+				trimmedEditName === editingProject?.originalName.trim() ||
+				updateProjectMutation.isPending
+			const handleRowAction = (
+				e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+			) => {
+				if (isEditing) return
+				if (isBulkDeleteMode) {
+					if (canBulkDelete) {
+						toggleBulkDeleteTag(project.containerTag, e.shiftKey)
+					}
+					return
+				}
+				handleSelect(project.containerTag)
+			}
+			return (
+				<div
+					key={project.containerTag}
+					className={cn(
+						"group flex min-w-0 max-w-full items-center gap-3 w-full px-3 py-2.5 rounded-[12px] transition-colors",
+						(isBulkDeleteMode ? isBulkDeleteSelected : isSelected)
+							? "bg-[#14161A] shadow-inside-out"
+							: "hover:bg-[#14161A]/50",
+						isBulkDeleteMode &&
+							!canBulkDelete &&
+							"cursor-not-allowed opacity-45",
+					)}
+				>
+					<button
+						type="button"
+						onClick={handleRowAction}
+						disabled={isBulkDeleteMode && !canBulkDelete}
+						aria-label={
+							isBulkDeleteMode ? "Select space for deletion" : "Select space"
+						}
+						aria-pressed={isBulkDeleteMode ? isBulkDeleteSelected : isSelected}
+						className={cn(
+							"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed",
+							isBulkDeleteMode
+								? isBulkDeleteSelected
+									? "border-red-400 bg-red-400/10"
+									: "border-[#737373]"
+								: isSelected
+									? "border-[#4BA0FA]"
+									: "border-[#737373]",
+						)}
+					>
+						{isBulkDeleteMode ? (
+							isBulkDeleteSelected && <Check className="size-3 text-red-300" />
+						) : isSelected ? (
+							<div className="w-2 h-2 rounded-full bg-[#4BA0FA]" />
+						) : null}
+					</button>
+					{isEditing ? (
+						<div className="flex min-w-0 flex-1 items-center gap-2">
+							<span className="shrink-0 text-lg">{project.emoji || "📁"}</span>
+							<input
+								type="text"
+								value={editingProject.name}
+								ref={editInputRef}
+								onChange={(e) =>
+									setEditingProject((prev) =>
+										prev ? { ...prev, name: e.target.value } : prev,
+									)
+								}
+								onKeyDown={handleEditKeyDown}
+								className={cn(
+									"min-w-0 flex-1 rounded-[9px] border border-[rgba(82,89,102,0.35)] bg-[#0D121A] px-2.5 py-1.5 text-sm font-medium text-[#fafafa] shadow-inside-out placeholder:text-[#737373] focus:outline-none focus:ring-1 focus:ring-[rgba(75,160,250,0.45)]",
+									dmSansClassName(),
+								)}
+								aria-label="Space name"
+							/>
+							<button
+								type="button"
+								onClick={saveEditing}
+								disabled={isSaveDisabled}
+								aria-label="Save space name"
+								className="shrink-0 rounded-full p-1.5 text-[#4BA0FA] transition-colors hover:bg-[#4BA0FA]/15 disabled:cursor-not-allowed disabled:opacity-35"
+							>
+								<Check className="size-3.5" />
+							</button>
+							<button
+								type="button"
+								onClick={cancelEditing}
+								disabled={updateProjectMutation.isPending}
+								aria-label="Cancel editing space name"
+								className="shrink-0 rounded-full p-1.5 text-[#737373] transition-colors hover:bg-[#737373]/15 hover:text-[#fafafa] disabled:cursor-not-allowed disabled:opacity-35"
+							>
+								<XIcon className="size-3.5" />
+							</button>
+						</div>
+					) : (
+						<button
+							type="button"
+							onClick={handleRowAction}
+							disabled={isBulkDeleteMode && !canBulkDelete}
+							className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0 disabled:cursor-not-allowed"
+						>
+							{plugin ? (
+								plugin.iconSrc ? (
+									<Image
+										src={plugin.iconSrc}
+										alt=""
+										width={20}
+										height={20}
+										className="shrink-0 rounded-[4px]"
+										aria-hidden
+									/>
+								) : (
+									<span
+										className="shrink-0 flex items-center justify-center w-5 h-5 rounded-[4px] bg-[#1E232B] text-[#FAFAFA] text-[11px] font-semibold uppercase"
+										aria-hidden
+									>
+										{pluginInitial(plugin.label)}
+									</span>
+								)
+							) : isOwnSpace ? (
+								<NovaOrb size={20} className="shrink-0 blur-[0.55px]!" />
+							) : (
+								<span className="shrink-0 text-lg">
+									{project.emoji || "📁"}
+								</span>
+							)}
+							<span
+								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
+								title={plugin ? project.containerTag : displayName}
+							>
+								{plugin ? (
+									<>
+										{plugin.label}
+										{pluginIdLabel && (
+											<span className="ml-1.5 text-[12px] text-[#737373]">
+												· {pluginIdLabel}
+											</span>
+										)}
+									</>
+								) : (
+									displayName
+								)}
+							</span>
+						</button>
+					)}
+					{canEdit && !isEditing && !isBulkDeleteMode && (
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation()
+								startEditing(project)
+							}}
+							aria-label="Rename space"
+							className="shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity p-1.5 rounded-full text-[#737373] hover:bg-[#737373]/15 hover:text-[#fafafa] cursor-pointer focus:outline-none"
+						>
+							<Pencil className="size-3.5" />
+						</button>
+					)}
+					{enableDelete &&
+						!isDefault &&
+						!isEditing &&
+						!isBulkDeleteMode &&
+						onDeleteRequest && (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation()
+									onDeleteRequest({
+										id: project.id,
+										name: displayName,
+										containerTag: project.containerTag,
+									})
+								}}
+								aria-label="Delete space"
+								className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-red-500/15 cursor-pointer focus:outline-none"
+							>
+								<Trash2 className="size-3.5 text-red-400" />
+							</button>
+						)}
+				</div>
+			)
+		},
+		[
+			cancelEditing,
+			bulkDeleteTags,
+			currentSelection,
+			editingProject,
+			enableDelete,
+			handleEditKeyDown,
+			handleSelect,
+			isBulkDeleteMode,
+			onDeleteRequest,
+			pluginMetaMap,
+			saveEditing,
+			startEditing,
+			toggleBulkDeleteTag,
+			updateProjectMutation.isPending,
+			user?.id,
+		],
+	)
+
+	const renderAutoRow = useCallback(() => {
+		const isSelected = currentSelection === AUTO_CHAT_SPACE_ID
 		return (
 			<div
-				key={project.containerTag}
+				key={AUTO_CHAT_SPACE_ID}
 				className={cn(
 					"group flex min-w-0 max-w-full items-center gap-3 w-full px-3 py-2.5 rounded-[12px] transition-colors",
 					isSelected
@@ -385,89 +800,40 @@ export function SelectSpacesModal({
 						: "hover:bg-[#14161A]/50",
 				)}
 			>
+				<div
+					className={cn(
+						"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+						isSelected ? "border-[#4BA0FA]" : "border-[#737373]",
+					)}
+				>
+					{isSelected && <div className="w-2 h-2 rounded-full bg-[#4BA0FA]" />}
+				</div>
 				<button
 					type="button"
-					onClick={() => handleSelect(project.containerTag)}
+					onClick={handleSelectAuto}
 					className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer focus:outline-none focus:ring-0"
 				>
-					<div
-						className={cn(
-							"w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-							isSelected ? "border-[#4BA0FA]" : "border-[#737373]",
-						)}
-					>
-						{isSelected && (
-							<div className="w-2 h-2 rounded-full bg-[#4BA0FA]" />
-						)}
-					</div>
-					{plugin ? (
-						plugin.iconSrc ? (
-							<Image
-								src={plugin.iconSrc}
-								alt=""
-								width={20}
-								height={20}
-								className="shrink-0 rounded-[4px]"
-								aria-hidden
-							/>
-						) : (
-							<span
-								className="shrink-0 flex items-center justify-center w-5 h-5 rounded-[4px] bg-[#1E232B] text-[#FAFAFA] text-[11px] font-semibold uppercase"
-								aria-hidden
-							>
-								{pluginInitial(plugin.label)}
-							</span>
-						)
-					) : (
-						<span className="shrink-0 text-lg">{project.emoji || "📁"}</span>
-					)}
-					<span
-						className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
-						title={project.containerTag}
-					>
-						{plugin ? (
-							<>
-								{plugin.label}
-								{pluginIdLabel && (
-									<span className="ml-1.5 text-[12px] text-[#737373]">
-										· {pluginIdLabel}
-									</span>
-								)}
-							</>
-						) : (
-							spaceSelectorDisplayName(project, project.containerTag)
-						)}
+					<AutoSpaceIcon size={20} />
+					<span className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium">
+						Auto
+						<span className="ml-1.5 text-[12px] text-[#737373]">
+							· Nova chooses spaces
+						</span>
 					</span>
 				</button>
-				{enableDelete && !isDefault && onDeleteRequest && (
-					<button
-						type="button"
-						onClick={(e) => {
-							e.stopPropagation()
-							onDeleteRequest({
-								id: project.id,
-								name: project.name,
-								containerTag: project.containerTag,
-							})
-						}}
-						aria-label="Delete space"
-						className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-red-500/15 cursor-pointer focus:outline-none"
-					>
-						<Trash2 className="size-3.5 text-red-400" />
-					</button>
-				)}
 			</div>
 		)
-	}
+	}, [currentSelection, handleSelectAuto])
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
 				className={cn(
-					"w-[92%]! max-w-[720px]! border-none bg-[#1B1F24] flex flex-col p-0 gap-0 rounded-[22px] overflow-hidden",
+					"w-[calc(100vw-1rem)]! max-w-[720px]! max-h-[calc(100dvh-1rem)] min-w-0 border-none bg-[#1B1F24] flex flex-col p-0 gap-0 rounded-[22px] overflow-hidden sm:w-[92vw]!",
 					dmSansClassName(),
 				)}
 				style={{
+					display: "flex",
 					boxShadow:
 						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 				}}
@@ -484,23 +850,44 @@ export function SelectSpacesModal({
 							Select Space
 						</p>
 						<p className="text-[#737373] font-medium text-[14px] leading-[1.35]">
-							Filter your memories by space
+							{isBulkDeleteMode
+								? "Choose spaces to permanently delete"
+								: "Filter your memories by space"}
 						</p>
 					</div>
-					<DialogPrimitive.Close
-						className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
-						style={{
-							boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
-						}}
-					>
-						<XIcon stroke="#737373" />
-						<span className="sr-only">Close</span>
-					</DialogPrimitive.Close>
+					<div className="flex shrink-0 items-center gap-2">
+						{enableDelete && onBulkDeleteRequest && !activeDiscoverId && (
+							<button
+								type="button"
+								onClick={handleBulkModeToggle}
+								className={cn(
+									"flex h-7 items-center gap-1.5 rounded-full bg-[#0D121A] px-2.5 text-[12px] font-medium transition-colors hover:bg-[#121820] focus:outline-none",
+									isBulkDeleteMode ? "text-[#fafafa]" : "text-[#737373]",
+								)}
+								style={{
+									boxShadow:
+										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+								}}
+							>
+								<Trash2 className="size-3.5" />
+								{isBulkDeleteMode ? "Cancel" : "Bulk delete"}
+							</button>
+						)}
+						<DialogPrimitive.Close
+							className="bg-[#0D121A] w-7 h-7 flex items-center justify-center focus:ring-ring rounded-full transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border border-[rgba(115,115,115,0.2)] shrink-0"
+							style={{
+								boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+							}}
+						>
+							<XIcon stroke="#737373" />
+							<span className="sr-only">Close</span>
+						</DialogPrimitive.Close>
+					</div>
 				</div>
 
-				<div className="mt-4 flex min-h-[420px] gap-3 px-4 pb-4">
-					<div className="w-[200px] shrink-0 overflow-y-auto scrollbar-thin pr-1">
-						<div className="flex flex-col gap-1">
+				<div className="mt-4 flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-4 pb-4 sm:min-h-[420px] sm:flex-row sm:gap-3">
+					<div className="w-full shrink-0 overflow-x-hidden overflow-y-auto scrollbar-thin sm:w-[200px] sm:pr-1">
+						<div className="grid grid-cols-2 gap-1 sm:flex sm:flex-col">
 							{categories.map((category) => {
 								const isActive = activeCategory === category.id
 								return (
@@ -509,7 +896,7 @@ export function SelectSpacesModal({
 										type="button"
 										onClick={() => setActiveCategory(category.id)}
 										className={cn(
-											"flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0",
+											"flex min-w-0 items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0 sm:w-full",
 											isActive
 												? "bg-[#14161A] shadow-inside-out text-[#fafafa]"
 												: "text-[#A1A1AA] hover:bg-[#14161A]/50 hover:text-[#fafafa]",
@@ -563,7 +950,7 @@ export function SelectSpacesModal({
 
 							{discoverCategories.length > 0 && (
 								<>
-									<div className="mt-2 px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+									<div className="col-span-2 mt-3 px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.08em] text-[#737373] sm:mt-2 sm:px-3 sm:pt-2 sm:pb-1">
 										Discover
 									</div>
 									{discoverCategories.map((category) => {
@@ -574,7 +961,7 @@ export function SelectSpacesModal({
 												type="button"
 												onClick={() => setActiveCategory(category.id)}
 												className={cn(
-													"flex items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0",
+													"flex min-w-0 items-center gap-2.5 px-3 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus:ring-0 sm:w-full",
 													isActive
 														? "bg-[#14161A] shadow-inside-out text-[#fafafa] opacity-100"
 														: "opacity-55 hover:opacity-100 hover:bg-[#14161A]/50 text-[#A1A1AA] hover:text-[#fafafa]",
@@ -612,24 +999,17 @@ export function SelectSpacesModal({
 						</div>
 					</div>
 
-					<div className="flex-1 flex flex-col min-w-0 gap-3">
+					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
 						{activeCategory.startsWith("discover:") ? (
 							<DiscoverPanel
-								catalogId={activeCategory.slice("discover:".length)}
-								isConnecting={
-									connectingPluginId ===
-									activeCategory.slice("discover:".length)
-								}
+								catalogId={activeDiscoverId ?? ""}
+								isConnecting={connectingPluginId === activeDiscoverId}
 								newKey={
-									newKey?.pluginId === activeCategory.slice("discover:".length)
-										? newKey.key
-										: null
+									newKey?.pluginId === activeDiscoverId ? newKey.key : null
 								}
-								onConnect={() =>
-									connectMutation.mutate(
-										activeCategory.slice("discover:".length),
-									)
-								}
+								onConnect={() => {
+									if (activeDiscoverId) connectMutation.mutate(activeDiscoverId)
+								}}
 								onDismissKey={() => setNewKey(null)}
 							/>
 						) : (
@@ -649,13 +1029,22 @@ export function SelectSpacesModal({
 									/>
 								</div>
 
-								<div className="flex-1 overflow-y-auto scrollbar-thin max-h-[360px] pr-1">
+								<div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin pr-1 sm:max-h-[360px]">
 									{filteredProjects.length === 0 ? (
 										<p className="text-center text-[#737373] text-sm py-8">
 											No spaces found
 										</p>
 									) : (
 										<div className="flex flex-col gap-1">
+											{showAutoRow && (
+												<>
+													<div className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+														Mode
+													</div>
+													{renderAutoRow()}
+													<div className="my-1.5 h-px bg-[rgba(82,89,102,0.18)]" />
+												</>
+											)}
 											{recentProjects.length > 0 && (
 												<>
 													<div className="flex items-center gap-1.5 px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
@@ -678,21 +1067,67 @@ export function SelectSpacesModal({
 					</div>
 				</div>
 
-				{showNewSpace &&
-					onNewSpace &&
-					!activeCategory.startsWith("discover:") && (
-						<div className="flex items-center justify-end border-t border-[rgba(82,89,102,0.18)] px-4 py-3">
-							<button
-								type="button"
-								onClick={onNewSpace}
-								className={cn(
-									"flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium text-[#fafafa] bg-[#14161A] shadow-inside-out hover:bg-[#121820] transition-colors cursor-pointer focus:outline-none focus:ring-0",
-									dmSansClassName(),
-								)}
-							>
-								<Plus className="size-4" />
-								New space
-							</button>
+				{!activeCategory.startsWith("discover:") &&
+					(isBulkDeleteMode || (showNewSpace && onNewSpace)) && (
+						<div className="flex items-center justify-between gap-3 border-t border-[rgba(82,89,102,0.18)] px-4 py-3">
+							{isBulkDeleteMode ? (
+								<>
+									<p className="min-w-0 text-[13px] font-medium text-[#737373]">
+										{bulkDeleteCount === 0
+											? "No spaces selected"
+											: `${bulkDeleteCount} ${
+													bulkDeleteCount === 1 ? "space" : "spaces"
+												} selected`}
+									</p>
+									<div className="flex shrink-0 items-center gap-2">
+										<button
+											type="button"
+											onClick={handleBulkModeToggle}
+											className={cn(
+												"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
+												dmSansClassName(),
+											)}
+										>
+											Cancel
+										</button>
+										<button
+											type="button"
+											disabled={bulkDeleteCount === 0}
+											onClick={() => {
+												if (bulkDeleteCount === 0) return
+												onBulkDeleteRequest?.(bulkDeleteProjects)
+												setIsBulkDeleteMode(false)
+												setBulkDeleteTags(new Set())
+												setLastBulkDeleteTag(null)
+											}}
+											className={cn(
+												"flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40",
+												dmSansClassName(),
+											)}
+										>
+											<Trash2 className="size-4" />
+											Delete selected
+										</button>
+									</div>
+								</>
+							) : (
+								<>
+									<span />
+									{showNewSpace && onNewSpace && (
+										<button
+											type="button"
+											onClick={onNewSpace}
+											className={cn(
+												"flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium text-[#fafafa] bg-[#14161A] shadow-inside-out hover:bg-[#121820] transition-colors cursor-pointer focus:outline-none focus:ring-0",
+												dmSansClassName(),
+											)}
+										>
+											<Plus className="size-4" />
+											New space
+										</button>
+									)}
+								</>
+							)}
 						</div>
 					)}
 			</DialogContent>
@@ -740,7 +1175,7 @@ function DiscoverPanel({
 	const isConnected = !!newKey
 
 	return (
-		<div className="flex-1 overflow-y-auto scrollbar-thin pr-1 flex flex-col gap-4">
+		<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto scrollbar-thin pr-1">
 			<div className="flex items-start gap-3">
 				<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-[#1E293B] bg-[#080B0F]">
 					<Image

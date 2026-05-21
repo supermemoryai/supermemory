@@ -29,6 +29,7 @@ export function MemoryGraph({
 	error: externalError = null,
 	variant = "console",
 	containerTags,
+	documentIds,
 	maxNodes,
 	canvasRef,
 	...rest
@@ -57,6 +58,7 @@ export function MemoryGraph({
 		totalCount,
 	} = useGraphApi({
 		containerTags,
+		documentIds,
 		enabled: containerSize.width > 0 && containerSize.height > 0,
 	})
 

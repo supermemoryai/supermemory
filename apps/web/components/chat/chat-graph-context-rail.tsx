@@ -11,12 +11,18 @@ import { dmSansClassName } from "@/lib/fonts"
 
 export function ChatGraphContextRail({
 	messages,
+	containerTags,
 	className,
 }: {
 	messages: UIMessage[]
+	containerTags?: string[] | null
 	className?: string
 }) {
 	const { effectiveContainerTags } = useProject()
+	const graphContainerTags =
+		containerTags === undefined
+			? effectiveContainerTags
+			: (containerTags ?? undefined)
 	const highlightIds = useMemo(
 		() => extractHighlightDocumentIdsFromMessages(messages),
 		[messages],
@@ -45,7 +51,7 @@ export function ChatGraphContextRail({
 			<div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-r from-transparent to-[#05080D]" />
 			<div className="relative z-[2] min-h-0 flex-1 pt-10">
 				<MemoryGraph
-					containerTags={effectiveContainerTags}
+					containerTags={graphContainerTags}
 					variant="consumer"
 					highlightDocumentIds={highlightIds}
 					highlightsVisible={highlightIds.length > 0}

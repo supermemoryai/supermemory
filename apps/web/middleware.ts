@@ -1,21 +1,22 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { NextResponse } from "next/server"
+import { getPublicRequestUrl } from "@/lib/url-helpers"
+
+function getAuthSessionCookie(request: Request): string | null {
+	return (
+		getSessionCookie(request) ??
+		getSessionCookie(request, { cookiePrefix: "better-auth-dev" })
+	)
+}
 
 export default async function proxy(request: Request) {
 	console.debug("[PROXY] === PROXY START ===")
-	const url = new URL(request.url)
+	const url = getPublicRequestUrl(request)
 
 	console.debug("[PROXY] Path:", url.pathname)
 	console.debug("[PROXY] Method:", request.method)
 
-	const isDevHost =
-		url.hostname === "localhost" ||
-		url.hostname.includes(".localhost") ||
-		url.hostname.includes(".dev.supermemory.ai")
-
-	const sessionCookie = isDevHost
-		? getSessionCookie(request, { cookiePrefix: "better-auth-dev" })
-		: getSessionCookie(request)
+	const sessionCookie = getAuthSessionCookie(request)
 	console.debug("[PROXY] Session cookie exists:", !!sessionCookie)
 
 	// Always allow access to login and waitlist pages
@@ -47,9 +48,9 @@ export default async function proxy(request: Request) {
 		console.debug(
 			"[PROXY] No session cookie and not on public path, redirecting to /login",
 		)
-		const url = new URL("/login", request.url)
-		url.searchParams.set("redirect", request.url)
-		return NextResponse.redirect(url)
+		const loginUrl = new URL("/login", url.origin)
+		loginUrl.searchParams.set("redirect", url.toString())
+		return NextResponse.redirect(loginUrl)
 	}
 
 	// TEMPORARILY DISABLED: Waitlist check
@@ -78,6 +79,6 @@ export default async function proxy(request: Request) {
 
 export const config = {
 	matcher: [
-		"/((?!_next/static|_next/image|images|icon.png|manifest.webmanifest|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
+		"/((?!_next/static|_next/image|images|icon.png|favicon.ico|favicon-16x16.png|favicon-32x32.png|apple-touch-icon.png|android-chrome-192x192.png|android-chrome-512x512.png|manifest.webmanifest|site.webmanifest|monitoring|opengraph-image.png|bg-rectangle.png|onboarding|ingest|login|api/emails|mcp-supported-tools|mcp-icon.svg).*)",
 	],
 }

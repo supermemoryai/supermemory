@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Space_Grotesk } from "next/font/google"
 import "../globals.css"
 import "@ui/globals.css"
@@ -20,7 +20,24 @@ const font = Space_Grotesk({
 export const metadata: Metadata = {
 	metadataBase: new URL("https://app.supermemory.ai"),
 	description: "Your memories, wherever you are",
+	icons: {
+		icon: [
+			{ url: "/favicon.ico", sizes: "any" },
+			{ url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+			{ url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+		],
+		apple: [
+			{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+		],
+	},
+	manifest: "/manifest.webmanifest",
 	title: "supermemory app",
+}
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover",
 }
 
 export default function RootLayout({

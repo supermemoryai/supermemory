@@ -20,6 +20,7 @@ interface LinkContentProps {
 	onDataChange?: (data: LinkData) => void
 	isSubmitting?: boolean
 	isOpen?: boolean
+	initialData?: LinkData
 }
 
 export function LinkContent({
@@ -27,11 +28,12 @@ export function LinkContent({
 	onDataChange,
 	isSubmitting,
 	isOpen,
+	initialData,
 }: LinkContentProps) {
-	const [url, setUrl] = useState("")
-	const [title, setTitle] = useState("")
-	const [description, setDescription] = useState("")
-	const [image, setImage] = useState<string | undefined>(undefined)
+	const [url, setUrl] = useState(initialData?.url ?? "")
+	const [title, setTitle] = useState(initialData?.title ?? "")
+	const [description, setDescription] = useState(initialData?.description ?? "")
+	const [image, setImage] = useState<string | undefined>(initialData?.image)
 	const [isPreviewLoading, setIsPreviewLoading] = useState(false)
 
 	const canSubmit = url.trim().length > 0 && !isSubmitting
@@ -148,7 +150,12 @@ export function LinkContent({
 	}, [isOpen, onDataChange])
 
 	return (
-		<div className={cn("flex flex-col space-y-4 pt-4 mb-4", dmSansClassName())}>
+		<div
+			className={cn(
+				"flex flex-col space-y-4 pt-0 mb-4 md:pt-4",
+				dmSansClassName(),
+			)}
+		>
 			<div>
 				<p
 					className={cn("text-[16px] font-medium pl-2 pb-2", dmSansClassName())}

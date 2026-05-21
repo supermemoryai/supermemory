@@ -54,6 +54,26 @@ const fadeUp = {
 
 const CYCLE_INTERVAL_MS = 8_000
 
+const defaultHomeHeadline = (name: string) => `Welcome back, ${name}`
+
+const HOME_HEADLINES: ReadonlyArray<(name: string) => string> = [
+	defaultHomeHeadline,
+	(name: string) => `Good to see you, ${name}`,
+	(name: string) => `${name}, what should we remember next?`,
+	(name: string) => `${name}, your saved context is ready.`,
+	(name: string) => `${name}, pick up where you left off.`,
+	(name: string) => `${name}, search, save, or ask anything here.`,
+	(name: string) => `${name}, this space is ready for your next thought.`,
+	(name: string) => `${name}, keep the useful bits here.`,
+	(name: string) => `${name}, future you will thank you for saving this.`,
+	(name: string) => `${name}, your notes, links, and context live here.`,
+	(name: string) => `${name}, add something small. Find it later.`,
+	(name: string) => `${name}, turn passing context into lasting memory.`,
+	(name: string) => `${name}, everything worth remembering can live here.`,
+	(name: string) => `${name}, ask a question, save a link, or write a note.`,
+	(name: string) => `${name}, build your searchable working memory.`,
+]
+
 const PLUGIN_TAGLINES: Record<Profession, Partial<Record<string, string>>> = {
 	developer: {
 		mcp: "Ask Claude about your saved docs and specs from any IDE",
@@ -121,108 +141,108 @@ export type MemoryOfDay = {
 
 const TIPS: Record<Profession, string[]> = {
 	developer: [
-		"Use ⌘K to search code snippets and docs by intent, not just keywords",
+		"Use âŒ˜K to search code snippets and docs by intent, not just keywords",
 		"Connect Claude MCP to query your saved knowledge from any IDE",
-		"Save GitHub repos and READMEs — ask questions across all of them",
+		"Save GitHub repos and READMEs â€” ask questions across all of them",
 		"Use 'Related' on highlights to find connected technical concepts",
-		"Save a Stack Overflow answer once — find it again by what it does",
+		"Save a Stack Overflow answer once â€” find it again by what it does",
 		"Drop in your last 3 PRs and ask Supermemory for the review patterns",
 		"Save your team's RFCs and surface the ones touching your work",
-		"Save error messages with their fixes — search by symptom next time",
-		"Save framework docs once — semantic search beats Cmd+F across pages",
+		"Save error messages with their fixes â€” search by symptom next time",
+		"Save framework docs once â€” semantic search beats Cmd+F across pages",
 		"Connect Notion to make your engineering specs instantly findable",
 		"Save the docs for libraries you keep forgetting and grep them by intent",
 		"Use Daily Brief to resurface the design doc you skimmed last week",
-		"Save changelogs as you skim — pull breaking changes back later",
-		"Save a debugging session as a note — find it again by the symptom",
+		"Save changelogs as you skim â€” pull breaking changes back later",
+		"Save a debugging session as a note â€” find it again by the symptom",
 	],
 	research: [
 		"Save papers and ask questions across your entire reading list",
 		"Use 'Related' on highlights to surface connected research",
 		"Connect Notion to index your notes alongside your papers",
 		"Semantic search means you can ask questions, not just search titles",
-		"Save a paper once — Supermemory finds it later by what it argued",
+		"Save a paper once â€” Supermemory finds it later by what it argued",
 		"Drop in 5 papers on a topic and ask for the consensus and disagreements",
-		"Save citations as you read — pull them back out by claim",
+		"Save citations as you read â€” pull them back out by claim",
 		"Connect Google Drive to make your dataset notes searchable",
 		"Use Daily Brief to resurface a finding you almost forgot",
-		"Save a methodology note once — find it next time you need that protocol",
-		"Save preprints alongside your reading list — ask what's new since last week",
-		"Save quotes with their source — find them later by the idea",
+		"Save a methodology note once â€” find it next time you need that protocol",
+		"Save preprints alongside your reading list â€” ask what's new since last week",
+		"Save quotes with their source â€” find them later by the idea",
 	],
 	finance: [
 		"Save articles and ask follow-up questions across your research",
 		"Connect Notion to keep your investment thesis searchable",
-		"Use ⌘K to find specific data points across all your saves",
+		"Use âŒ˜K to find specific data points across all your saves",
 		"Daily Brief surfaces connections you may have missed",
-		"Save earnings call transcripts once — pull guidance back by ticker or theme",
-		"Save a thesis once — find it months later by the conviction, not the filename",
+		"Save earnings call transcripts once â€” pull guidance back by ticker or theme",
+		"Save a thesis once â€” find it months later by the conviction, not the filename",
 		"Drop in three sell-side reports and ask for the disagreements",
-		"Save market commentary daily — surface the calls that aged well",
+		"Save market commentary daily â€” surface the calls that aged well",
 		"Connect Google Drive to query your models without opening them",
-		"Save a chart with a note — find it again by what it showed",
-		"Save analyst takes — pull them back when the thesis matters again",
+		"Save a chart with a note â€” find it again by what it showed",
+		"Save analyst takes â€” pull them back when the thesis matters again",
 	],
 	design: [
-		"Save inspiration and search by concept — 'minimalist UI' finds the right ones",
-		"Use ⌘K to rediscover references by meaning, not filename",
+		"Save inspiration and search by concept â€” 'minimalist UI' finds the right ones",
+		"Use âŒ˜K to rediscover references by meaning, not filename",
 		"Connect Notion to make your briefs and moodboards searchable",
 		"Chrome extension saves any page in one click while you browse",
-		"Save a screenshot with a note — find it later by what it taught you",
+		"Save a screenshot with a note â€” find it later by what it taught you",
 		"Drop in 10 onboarding flows and ask Supermemory for the common patterns",
-		"Save your design crits — find the feedback on a specific decision later",
-		"Save a brand guideline once — search it by intent, not page number",
+		"Save your design crits â€” find the feedback on a specific decision later",
+		"Save a brand guideline once â€” search it by intent, not page number",
 		"Connect Google Drive to index your Figma exports and briefs",
 		"Use Daily Brief to resurface a reference that fits today's work",
-		"Save references by mood — pull them back when the brief calls for it",
+		"Save references by mood â€” pull them back when the brief calls for it",
 	],
 	legal: [
 		"Save documents and search across them semantically in seconds",
 		"Connect Notion to index your memos and case notes together",
 		"Use Daily Brief to resurface relevant precedents automatically",
 		"Google Drive sync keeps your contracts indexed and queryable",
-		"Save a clause once — find it next time by what it does, not where it lives",
-		"Save case law as you read — pull precedents back by argument",
+		"Save a clause once â€” find it next time by what it does, not where it lives",
+		"Save case law as you read â€” pull precedents back by argument",
 		"Drop in three contracts and ask for the diffs in indemnity language",
-		"Save regulator updates — surface the ones touching your matter",
-		"Save a memo once — search by issue, not by file name",
-		"Save deposition notes — find specific testimony by claim later",
+		"Save regulator updates â€” surface the ones touching your matter",
+		"Save a memo once â€” search by issue, not by file name",
+		"Save deposition notes â€” find specific testimony by claim later",
 	],
 	marketing: [
-		"Save campaigns and resources — ask what worked across all of them",
+		"Save campaigns and resources â€” ask what worked across all of them",
 		"Chrome extension captures competitor pages in one click",
 		"Use 'Related' to find similar campaigns in your archive",
 		"Connect Notion to make your campaign briefs instantly searchable",
-		"Save a competitor's landing page — surface their positioning later by claim",
+		"Save a competitor's landing page â€” surface their positioning later by claim",
 		"Drop in five launch retros and ask for the patterns that drove growth",
 		"Save ad references and find them by mood, not by URL",
-		"Save your weekly metrics notes — pull trends back by quarter",
+		"Save your weekly metrics notes â€” pull trends back by quarter",
 		"Use Daily Brief to resurface a positioning note from last campaign",
-		"Save creative briefs — find similar ones when starting a new one",
+		"Save creative briefs â€” find similar ones when starting a new one",
 	],
 	medical: [
 		"Save studies and query across your entire reading list",
 		"Connect Notion to keep clinical notes alongside research",
-		"Use ⌘K to find specific findings across hundreds of papers",
+		"Use âŒ˜K to find specific findings across hundreds of papers",
 		"Daily Brief surfaces relevant research from your saves automatically",
-		"Save a guideline once — pull it back by clinical scenario",
+		"Save a guideline once â€” pull it back by clinical scenario",
 		"Drop in three trials and ask Supermemory for the methodological diffs",
-		"Save case reports — surface them later by symptom or finding",
+		"Save case reports â€” surface them later by symptom or finding",
 		"Connect Google Drive to index protocols across your team",
-		"Save teaching points from rounds — find them by topic next month",
-		"Save differentials as notes — pull them back when the presentation repeats",
+		"Save teaching points from rounds â€” find them by topic next month",
+		"Save differentials as notes â€” pull them back when the presentation repeats",
 	],
 	default: [
-		"Use ⌘K to search by meaning — ask questions, not just keywords",
+		"Use âŒ˜K to search by meaning â€” ask questions, not just keywords",
 		"Daily Brief surfaces insights from your saves each morning",
 		"Chrome extension saves any page in one click while you browse",
 		"Connect integrations to make all your knowledge searchable here",
-		"Save a page once — find it later by what it said, not its title",
-		"Save the thing you'd normally bookmark — find it again by intent",
+		"Save a page once â€” find it later by what it said, not its title",
+		"Save the thing you'd normally bookmark â€” find it again by intent",
 		"Drop in 10 articles on a topic and ask for the through-line",
-		"Save an idea — Supermemory connects it to your earlier ones",
+		"Save an idea â€” Supermemory connects it to your earlier ones",
 		"Use Daily Brief to resurface something useful you forgot you saved",
-		"Save a thread you liked — pull it back later by what it was about",
+		"Save a thread you liked â€” pull it back later by what it was about",
 	],
 }
 
@@ -250,7 +270,7 @@ const PROFESSION_LABELS: {
 	{ value: "medical", label: "Medical" },
 ]
 
-// Static plugin metadata — shared between PluginPromoCard and RecommendedPluginsCard
+// Static plugin metadata â€” shared between PluginPromoCard and RecommendedPluginsCard
 const PLUGIN_STATIC = [
 	{
 		id: "mcp",
@@ -265,7 +285,7 @@ const PLUGIN_STATIC = [
 		name: "Chrome Extension",
 		Icon: ChromeIcon,
 		accentColor: "#4BA0FA",
-		tagline: "Save any page in one click — findable by meaning, forever",
+		tagline: "Save any page in one click â€” findable by meaning, forever",
 		cta: "Install",
 	},
 	{
@@ -290,7 +310,7 @@ const PLUGIN_STATIC = [
 		Icon: GoogleDrive,
 		accentColor: "#4BA0FA",
 		tagline:
-			"Index your Drive files — ask questions across docs, slides, sheets",
+			"Index your Drive files â€” ask questions across docs, slides, sheets",
 		cta: "Connect",
 	},
 ] as const
@@ -459,7 +479,7 @@ function getDocumentPreview(document: DocumentWithMemories): string | null {
 		})
 		.filter(Boolean)
 
-	if (transcriptTurns.length > 0) return transcriptTurns.join(" · ")
+	if (transcriptTurns.length > 0) return transcriptTurns.join(" Â· ")
 
 	const cleaned = compactText(
 		content
@@ -778,8 +798,8 @@ function RecommendedPluginsCard({
 				window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer"),
 			raycast: () =>
 				window.open(RAYCAST_EXTENSION_URL, "_blank", "noopener,noreferrer"),
-			notion: () => onOpenIntegrations("connections"),
-			"google-drive": () => onOpenIntegrations("connections"),
+			notion: () => onOpenIntegrations("notion"),
+			"google-drive": () => onOpenIntegrations("google-drive"),
 		}
 		const connected: Record<string, boolean> = {
 			mcp: hasMcp,
@@ -850,7 +870,7 @@ function RecommendedPluginsCard({
 			) : suggestions.length === 0 ? (
 				<div className="flex items-center justify-center py-4">
 					<p className="text-[11px] text-fg-subtle text-center">
-						You're all set ✓
+						You're all set âœ“
 					</p>
 				</div>
 			) : (
@@ -873,7 +893,7 @@ function RecommendedPluginsCard({
 										</p>
 									</div>
 									<span className="shrink-0 text-[10px] font-medium text-[#5EA8FF] group-hover:text-[#8BC6FF] transition-colors">
-										{plugin.cta} →
+										{plugin.cta} â†’
 									</span>
 								</button>
 							</li>
@@ -888,7 +908,7 @@ function RecommendedPluginsCard({
 						{PROFESSION_LABELS.find(
 							(p) => p.value === profession,
 						)?.label.toLowerCase()}
-						? Change →
+						? Change â†’
 					</button>
 				</>
 			)}
@@ -926,7 +946,7 @@ function MemoryOfDayCard({ data }: { data: MemoryOfDay }) {
 			</div>
 
 			<span className="text-[10px] text-fg-faint group-hover:text-fg-muted transition-colors">
-				View memories →
+				View memories â†’
 			</span>
 		</button>
 	)
@@ -950,8 +970,8 @@ function PluginPromoCard({
 				window.open(CHROME_EXTENSION_URL, "_blank", "noopener,noreferrer"),
 			raycast: () =>
 				window.open(RAYCAST_EXTENSION_URL, "_blank", "noopener,noreferrer"),
-			notion: () => onOpenIntegrations("connections"),
-			"google-drive": () => onOpenIntegrations("connections"),
+			notion: () => onOpenIntegrations("notion"),
+			"google-drive": () => onOpenIntegrations("google-drive"),
 		}
 		const connected: Record<string, boolean> = {
 			mcp: hasMcp,
@@ -1095,7 +1115,7 @@ export function DashboardView({
 	const { user, org } = useAuth()
 	const { effectiveContainerTags } = useProject()
 	const _router = useRouter()
-	const { data: recentsData } = useQuery({
+	const { data: recentsData, isPending: isRecentsLoading } = useQuery({
 		queryKey: ["dashboard-recents", effectiveContainerTags],
 		queryFn: async (): Promise<DocumentsResponse> => {
 			const response = await $fetch("@post/documents/documents", {
@@ -1203,11 +1223,31 @@ export function DashboardView({
 	const totalMemories = recentsData?.pagination?.totalItems ?? 0
 	const hasMcp = mcpData?.previousLogin ?? false
 	const connectedProviders = new Set(connections.map((c) => c.provider))
+	const firstName = useMemo(() => {
+		const displayName =
+			user?.name?.trim() || user?.email?.split("@")[0] || "there"
+		return displayName.split(/\s+/)[0] || "there"
+	}, [user?.email, user?.name])
+	const [headlineIndex, setHeadlineIndex] = useState(0)
+
+	useEffect(() => {
+		setHeadlineIndex(Math.floor(Math.random() * HOME_HEADLINES.length))
+	}, [])
+
+	const homeHeadline = (HOME_HEADLINES[headlineIndex] ?? defaultHomeHeadline)(
+		firstName,
+	)
+
+	const [tipIndex, setTipIndex] = useState(0)
+
+	useEffect(() => {
+		setTipIndex(Math.floor(Math.random() * TIPS[profession].length))
+	}, [profession])
 
 	const tip = useMemo(() => {
 		const tips = TIPS[profession]
-		return tips[Math.floor(Math.random() * tips.length)]
-	}, [profession])
+		return tips[tipIndex % tips.length] ?? tips[0]
+	}, [profession, tipIndex])
 
 	return (
 		<div
@@ -1229,8 +1269,11 @@ export function DashboardView({
 						<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
 							Home
 						</p>
-						<h1 className="text-xl font-medium tracking-tight text-white md:text-2xl">
-							{spaceLabel}
+						<h1
+							className="max-w-2xl text-xl font-medium tracking-tight text-white md:text-2xl"
+							title={spaceLabel}
+						>
+							{homeHeadline}
 						</h1>
 					</div>
 					{totalMemories > 0 && (
@@ -1258,7 +1301,7 @@ export function DashboardView({
 					)}
 				</motion.header>
 
-				{/* Daily Brief — hero */}
+				{/* Daily Brief â€” hero */}
 				<motion.section
 					{...fadeUp}
 					transition={{ ...fadeUp.transition, delay: 0.05 }}
@@ -1308,42 +1351,48 @@ export function DashboardView({
 					</div>
 				</motion.section>
 
-				{/* Actions + connection status — single unified row */}
+				{/* Actions + connection status â€” single unified row */}
 				<motion.section
 					{...fadeUp}
 					transition={{ ...fadeUp.transition, delay: 0.1 }}
 					className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
 				>
 					{/* Quick actions */}
-					<div className="flex items-center gap-0.5 -mx-2.5">
+					<div className="grid grid-cols-3 gap-1 [&>span]:hidden sm:-mx-2.5 sm:flex sm:items-center sm:gap-0.5 sm:[&>span]:inline">
 						<button
 							type="button"
 							onClick={() => onAddMemory("link")}
-							className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer"
+							className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-none text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer sm:gap-1.5 sm:px-2.5 sm:text-sm sm:leading-tight"
 						>
 							<Link2 className="size-3.5 shrink-0" />
-							{personalizedCopy.saveLink}
+							<span className="min-w-0 truncate whitespace-nowrap text-center sm:text-left">
+								{personalizedCopy.saveLink}
+							</span>
 						</button>
-						<span className="text-[#3A4455] select-none">·</span>
+						<span className="text-[#3A4455] select-none">Â·</span>
 						<button
 							type="button"
 							onClick={() => onAddMemory("note")}
-							className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer"
+							className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-none text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer sm:gap-1.5 sm:px-2.5 sm:text-sm sm:leading-tight"
 						>
 							<FileText className="size-3.5 shrink-0" />
-							{personalizedCopy.writeNote}
+							<span className="min-w-0 truncate whitespace-nowrap text-center sm:text-left">
+								{personalizedCopy.writeNote}
+							</span>
 						</button>
-						<span className="text-[#3A4455] select-none">·</span>
+						<span className="text-[#3A4455] select-none">Â·</span>
 						<button
 							type="button"
 							onClick={() => {
 								analytics.searchOpened({ source: "header" })
 								onOpenSearch()
 							}}
-							className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer"
+							className="flex min-w-0 items-center justify-center gap-1 rounded-lg px-1 py-1.5 text-[11px] leading-none text-fg-subtle hover:bg-surface-hover hover:text-white transition-colors cursor-pointer sm:gap-1.5 sm:px-2.5 sm:text-sm sm:leading-tight"
 						>
 							<SearchIcon className="size-3.5 shrink-0" />
-							Search
+							<span className="min-w-0 truncate whitespace-nowrap text-center sm:text-left">
+								Search
+							</span>
 						</button>
 					</div>
 
@@ -1360,25 +1409,43 @@ export function DashboardView({
 					transition={{ ...fadeUp.transition, delay: 0.15 }}
 					className="space-y-2"
 				>
-					{recents.length > 0 || recentToolUsageItems.length > 0 ? (
-						<>
-							{/* Shared header row — all labels aligned */}
-							<div className="flex gap-4">
-								<div className="flex-[4] min-w-0">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Recents
-									</p>
-								</div>
-								<div className="flex-[2] min-w-0 hidden sm:block">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Suggested for you
-									</p>
-								</div>
-							</div>
+					<div className="flex gap-4">
+						<div className="flex-[4] min-w-0">
+							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+								Recents
+							</p>
+						</div>
+						<div className="flex-[2] min-w-0 hidden sm:block">
+							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+								Suggested for you
+							</p>
+						</div>
+					</div>
 
-							{/* Content row */}
-							<div className="flex gap-4 items-start">
-								<ul className="flex-[4] min-w-0 space-y-0.5">
+					<div className="flex gap-4 items-start">
+						<div className="flex-[4] min-w-0">
+							{isRecentsLoading ? (
+								<ul
+									className="space-y-0.5"
+									aria-busy="true"
+									aria-label="Loading recently saved"
+								>
+									{[
+										"recent-skeleton-1",
+										"recent-skeleton-2",
+										"recent-skeleton-3",
+									].map((skeletonKey) => (
+										<li
+											key={skeletonKey}
+											className="flex items-center gap-3 rounded-lg px-2.5 py-2"
+										>
+											<div className="size-6 shrink-0 rounded-md bg-surface-skeleton animate-pulse" />
+											<div className="h-3.5 min-w-0 flex-1 rounded bg-surface-skeleton animate-pulse" />
+										</li>
+									))}
+								</ul>
+							) : recents.length > 0 || recentToolUsageItems.length > 0 ? (
+								<ul className="space-y-0.5">
 									{recentToolUsageItems.map((item) => (
 										<ToolUsageRecentRow
 											key={item.id}
@@ -1412,42 +1479,41 @@ export function DashboardView({
 										)
 									})}
 								</ul>
+							) : (
+								<p className="px-2.5 py-2 text-sm text-fg-subtle">
+									No recently saved
+								</p>
+							)}
+						</div>
 
-								<div className="flex-[2] min-w-0 hidden sm:block">
-									<RecommendedPluginsCard
-										profession={profession}
-										setProfession={setProfession}
-										connectedProviders={connectedProviders}
-										hasMcp={hasMcp}
-										onOpenPlugins={onOpenPlugins}
-										onOpenIntegrations={onOpenIntegrations}
-									/>
-								</div>
+						<div className="flex-[2] min-w-0 hidden sm:block">
+							<RecommendedPluginsCard
+								profession={profession}
+								setProfession={setProfession}
+								connectedProviders={connectedProviders}
+								hasMcp={hasMcp}
+								onOpenPlugins={onOpenPlugins}
+								onOpenIntegrations={onOpenIntegrations}
+							/>
+						</div>
+					</div>
+
+					{(isRecentsLoading || recents.length === 0) && (
+						<div className="space-y-2 sm:hidden">
+							<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
+								Suggested for you
+							</p>
+							<div className="max-w-sm">
+								<RecommendedPluginsCard
+									profession={profession}
+									setProfession={setProfession}
+									connectedProviders={connectedProviders}
+									hasMcp={hasMcp}
+									onOpenPlugins={onOpenPlugins}
+									onOpenIntegrations={onOpenIntegrations}
+								/>
 							</div>
-						</>
-					) : (
-						/* No recents yet — show suggestions and tool usage */
-						<>
-							<div className="flex gap-4">
-								<div className="flex-1 min-w-0">
-									<p className="text-[10px] font-medium uppercase tracking-[0.12em] text-fg-faint">
-										Suggested for you
-									</p>
-								</div>
-							</div>
-							<div className="flex gap-4 items-start">
-								<div className="flex-1 min-w-0 max-w-sm">
-									<RecommendedPluginsCard
-										profession={profession}
-										setProfession={setProfession}
-										connectedProviders={connectedProviders}
-										hasMcp={hasMcp}
-										onOpenPlugins={onOpenPlugins}
-										onOpenIntegrations={onOpenIntegrations}
-									/>
-								</div>
-							</div>
-						</>
+						</div>
 					)}
 				</motion.section>
 			</div>

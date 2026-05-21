@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { TextEditor } from "../text-editor"
 
 interface NoteContentProps {
@@ -8,15 +8,17 @@ interface NoteContentProps {
 	onContentChange?: (content: string) => void
 	isSubmitting?: boolean
 	isOpen?: boolean
+	initialContent?: string
 }
 
 export function NoteContent({
 	onSubmit,
 	onContentChange,
 	isSubmitting,
-	isOpen,
+	initialContent,
 }: NoteContentProps) {
-	const [content, setContent] = useState("")
+	const [content, setContent] = useState(initialContent ?? "")
+	const [seededContent] = useState(initialContent || undefined)
 
 	const canSubmit = content.trim().length > 0 && !isSubmitting
 
@@ -31,18 +33,10 @@ export function NoteContent({
 		onContentChange?.(newContent)
 	}
 
-	// Reset content when modal closes
-	useEffect(() => {
-		if (!isOpen) {
-			setContent("")
-			onContentChange?.("")
-		}
-	}, [isOpen, onContentChange])
-
 	return (
 		<div className="flex h-full min-h-[45dvh] w-full flex-1 overflow-y-auto rounded-[14px] bg-[#10151C] p-3 shadow-inside-out ring-1 ring-[#202A36] md:mb-4! md:bg-[#14161A] md:p-4 md:ring-0">
 			<TextEditor
-				content={undefined}
+				content={seededContent}
 				onContentChange={handleContentChange}
 				onSubmit={handleSubmit}
 				debounceMs={0}

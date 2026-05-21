@@ -1,11 +1,11 @@
-import { cn } from "@lib/utils";
-import { Button } from "@ui/components/button";
+import { cn } from "@lib/utils"
+import { Button } from "@ui/components/button"
 
 export type ExternalAuthButtonProps = React.ComponentProps<"button"> &
 	React.ComponentProps<typeof Button> & {
-		authProvider: string;
-		authIcon: React.ReactNode;
-	};
+		authProvider: string
+		authIcon: React.ReactNode
+	}
 
 export function ExternalAuthButton({
 	authProvider,
@@ -34,5 +34,5 @@ export function ExternalAuthButton({
 				Continue with {authProvider}
 			</span>
 		</Button>
-	);
+	)
 }

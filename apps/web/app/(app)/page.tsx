@@ -159,6 +159,9 @@ export default function NewPage() {
 	const [fullscreenInitialContent, setFullscreenInitialContent] = useState("")
 	const [queuedChatSeed, setQueuedChatSeed] = useState<string | null>(null)
 	const [queuedChatModel, setQueuedChatModel] = useState<ModelId | null>(null)
+	const [queuedChatProject, setQueuedChatProject] = useState<string | null>(
+		null,
+	)
 	const [queuedHighlightContent, setQueuedHighlightContent] = useState<
 		string | null
 	>(null)
@@ -360,7 +363,7 @@ export default function NewPage() {
 			new Date().toISOString().slice(0, 10),
 		],
 		queryFn: async (): Promise<MemoryOfDay | null> => {
-			const cacheKey = `memory-of-day:${user?.id}:${new Date().toISOString().slice(0, 10)}`
+			const cacheKey = `memory-of-day:v2:${user?.id}:${new Date().toISOString().slice(0, 10)}`
 			try {
 				const stored = localStorage.getItem(cacheKey)
 				if (stored) return JSON.parse(stored) as MemoryOfDay
@@ -488,6 +491,7 @@ export default function NewPage() {
 			setQueuedHighlightContent(highlightContent)
 			setQueuedChatSeed(userReply)
 			setQueuedChatModel(null)
+			setQueuedChatProject(null)
 			setQueuedMessageSource("highlight")
 			void setViewMode("chat")
 		},
@@ -495,10 +499,11 @@ export default function NewPage() {
 	)
 
 	const handleHomeChatStart = useCallback(
-		(message: string, model: ModelId) => {
+		(message: string, model: ModelId, projectId: string) => {
 			setQueuedHighlightContent(null)
 			setQueuedChatSeed(message)
 			setQueuedChatModel(model)
+			setQueuedChatProject(projectId)
 			setQueuedMessageSource("home")
 			void setViewMode("chat")
 		},
@@ -508,6 +513,7 @@ export default function NewPage() {
 	const consumeQueuedChat = useCallback(() => {
 		setQueuedChatSeed(null)
 		setQueuedChatModel(null)
+		setQueuedChatProject(null)
 		setQueuedHighlightContent(null)
 		setQueuedMessageSource("highlight")
 	}, [])
@@ -523,9 +529,13 @@ export default function NewPage() {
 
 	const handleOpenIntegrations = useCallback(
 		(integration?: IntegrationParamValue) => {
+			if (integration === "notion" || integration === "google-drive") {
+				void setAddDoc("connect")
+				return
+			}
 			void setViewMode(integration ?? "integrations")
 		},
-		[setViewMode],
+		[setViewMode, setAddDoc],
 	)
 
 	const handleOpenPlugins = useCallback(() => {
@@ -563,20 +573,17 @@ export default function NewPage() {
 				)}
 			>
 				{showNovaBackdrop && (
-					<>
+					<div className="pointer-events-none fixed inset-0 z-0">
 						<AnimatedGradientBackground
 							animateFromBottom={false}
 							topPosition={gradientTopPosition}
 						/>
-						<div
-							className="pointer-events-none absolute inset-0 z-0 bg-[#05080D]/50"
-							aria-hidden
-						/>
+						<div className="absolute inset-0 bg-[#05080D]/50" aria-hidden />
 						<div
 							id="graph-dotted-grid"
-							className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+							className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
 						/>
-					</>
+					</div>
 				)}
 				{!session && viewMode === "mcp" ? (
 					<PublicHeader />
@@ -623,7 +630,7 @@ export default function NewPage() {
 											onConsumeQueuedMessage={consumeQueuedChat}
 											queuedMessageSource={queuedMessageSource}
 											initialSelectedModel={queuedChatModel}
-											emptyStateSuggestions={highlightsData?.questions}
+											initialChatProject={queuedChatProject}
 										/>
 									</div>
 								) : viewMode === "integrations" ? (

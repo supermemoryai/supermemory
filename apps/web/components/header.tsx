@@ -173,7 +173,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 						role="tablist"
 						aria-label="Content"
 						aria-orientation="horizontal"
-						className="text-muted-foreground z-10! inline-flex h-10 w-fit min-w-0 max-w-full items-center justify-center gap-0.5 overflow-x-auto rounded-full border border-[#161F2C] bg-muted p-1 [scrollbar-width:thin]"
+						className="text-muted-foreground z-10! inline-flex h-10 w-fit min-w-0 max-w-full items-center justify-center gap-0.5 overflow-x-auto snap-x snap-mandatory scroll-fade-x rounded-full border border-[#161F2C] bg-muted p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 					>
 						{(
 							[
@@ -210,7 +210,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								}
 								onClick={() => void setViewMode(mode)}
 								className={cn(
-									"inline-flex h-[calc(100%-1px)] min-h-0 cursor-pointer items-center justify-center gap-1 rounded-full border border-transparent px-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:gap-1.5 sm:px-3 sm:text-sm",
+									"inline-flex h-[calc(100%-1px)] min-h-0 cursor-pointer snap-start items-center justify-center gap-1 rounded-full border border-transparent px-2.5 text-xs font-medium whitespace-nowrap transition-colors sm:gap-1.5 sm:px-3 sm:text-sm",
 									(
 										mode === "integrations"
 											? [

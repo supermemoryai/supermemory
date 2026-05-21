@@ -31,6 +31,7 @@ import { DEFAULT_PROJECT_ID } from "@lib/constants"
 import type { Project } from "@lib/types"
 import { SyncStatusBadge } from "@/components/settings/sync-status-badge"
 import { SyncHistoryPanel } from "@/components/settings/sync-history-panel"
+import { useConnectionHealth } from "@/hooks/use-connection-health"
 import { useTriggerSync } from "@/hooks/use-trigger-sync"
 import { formatRelativeTime } from "@/components/settings/sync-utils"
 import type { ImportProvider } from "@/components/settings/sync-utils"
@@ -46,11 +47,6 @@ function getConnectionMeta(connection: Connection) {
 			typeof m?.lastSyncedAt === "number" ? m.lastSyncedAt : undefined,
 		documentCount: typeof m?.documentCount === "number" ? m.documentCount : 0,
 	}
-}
-
-/** Check if a connection's auth token has expired. */
-function isConnectionExpired(connection: Connection): boolean {
-	return !!connection.expiresAt && new Date(connection.expiresAt) <= new Date()
 }
 
 const CONNECTORS = {
@@ -166,6 +162,8 @@ function ConnectionRow({
 	projects,
 	onTriggerSync,
 	isSyncing,
+	onReconnect,
+	isReconnecting,
 }: {
 	connection: Connection
 	onDelete: () => void
@@ -174,14 +172,17 @@ function ConnectionRow({
 	projects: Project[]
 	onTriggerSync: () => void
 	isSyncing: boolean
+	onReconnect: () => void
+	isReconnecting: boolean
 }) {
 	const [historyOpen, setHistoryOpen] = useState(false)
 	const config = CONNECTORS[connection.provider as ConnectorProvider]
+	const { needsReauth } = useConnectionHealth(connection.id)
 	if (!config) return null
 
 	const Icon = config.icon
 	const meta = getConnectionMeta(connection)
-	const expired = isConnectionExpired(connection)
+	const expired = needsReauth
 
 	const getProjectDisplayName = (containerTag: string): string => {
 		if (containerTag === DEFAULT_PROJECT_ID) return "Default Project"
@@ -234,35 +235,45 @@ function ConnectionRow({
 						</span>
 					</div>
 					<div className="flex items-center gap-0.5">
-						<button
-							type="button"
-							onClick={(e) => {
-								e.stopPropagation()
-								onTriggerSync()
-							}}
-							disabled={isSyncing || disabled || expired}
-							className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
-							aria-label={
-								expired
-									? "Connection expired"
-									: isSyncing
-										? "Sync in progress"
-										: "Sync now"
-							}
-							title={
-								expired
-									? "Reconnect to sync"
-									: isSyncing
-										? "Sync in progress"
-										: "Sync now"
-							}
-						>
-							{isSyncing ? (
-								<Loader2 className="size-[18px] animate-spin" />
-							) : (
-								<Play className="size-[18px]" />
-							)}
-						</button>
+						{expired ? (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation()
+									onReconnect()
+								}}
+								disabled={isReconnecting || disabled}
+								className={cn(
+									dmSans125ClassName(),
+									"flex items-center gap-1.5 rounded-full bg-[#EF4444]/15 px-3 py-1.5 text-[12px] font-medium text-[#EF4444] transition-colors hover:bg-[#EF4444]/25 disabled:opacity-60 disabled:cursor-not-allowed",
+								)}
+								aria-label="Reconnect"
+							>
+								{isReconnecting ? (
+									<Loader2 className="size-[14px] animate-spin" />
+								) : (
+									"Reconnect"
+								)}
+							</button>
+						) : (
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation()
+									onTriggerSync()
+								}}
+								disabled={isSyncing || disabled}
+								className="text-[#737373] hover:text-[#4BA0FA] transition-colors disabled:opacity-50 disabled:cursor-not-allowed p-1.5 rounded-lg hover:bg-white/5"
+								aria-label={isSyncing ? "Sync in progress" : "Sync now"}
+								title={isSyncing ? "Sync in progress" : "Sync now"}
+							>
+								{isSyncing ? (
+									<Loader2 className="size-[18px] animate-spin" />
+								) : (
+									<Play className="size-[18px]" />
+								)}
+							</button>
+						)}
 						<button
 							type="button"
 							onClick={(e) => {
@@ -461,6 +472,42 @@ export default function ConnectionsMCP() {
 		}
 	}, [connectionsError])
 
+	const reconnectMutation = useMutation({
+		mutationFn: async ({
+			connectionId: _connectionId,
+			provider,
+			containerTags,
+		}: {
+			connectionId: string
+			provider: ConnectorProvider
+			containerTags: string[] | undefined
+		}) => {
+			const response = await $fetch("@post/connections/:provider", {
+				params: { provider },
+				body: {
+					redirectUrl: window.location.href,
+					containerTags: containerTags ?? [],
+				},
+			})
+			if ("data" in response && response.data && !("error" in response.data)) {
+				return response.data
+			}
+			throw new Error(response.error?.message || "Failed to reconnect")
+		},
+		onSuccess: (data) => {
+			if (data?.authLink) {
+				window.location.href = data.authLink
+				return
+			}
+			toast.error("Reconnect link missing — try again.")
+		},
+		onError: (error) => {
+			toast.error("Failed to reconnect", {
+				description: error instanceof Error ? error.message : "Unknown error",
+			})
+		},
+	})
+
 	const deleteConnectionMutation = useMutation({
 		mutationFn: async ({
 			connectionId,
@@ -512,7 +559,7 @@ export default function ConnectionsMCP() {
 	const isLoading = autumn.isLoading
 
 	return (
-		<div className="flex flex-col gap-8 pt-4 w-full">
+		<div className="flex flex-col gap-8 w-full">
 			{/* Supermemory Connections Section */}
 			<div className="flex flex-col gap-4">
 				<SectionTitle badge={<ProBadge />}>
@@ -579,6 +626,18 @@ export default function ConnectionsMCP() {
 												triggerSync.variables?.connectionId ===
 													connection.id) ||
 											getConnectionMeta(connection).syncInProgress
+										}
+										onReconnect={() => {
+											reconnectMutation.mutate({
+												connectionId: connection.id,
+												provider: connection.provider as ConnectorProvider,
+												containerTags: connection.containerTags,
+											})
+										}}
+										isReconnecting={
+											reconnectMutation.isPending &&
+											reconnectMutation.variables?.connectionId ===
+												connection.id
 										}
 									/>
 								))

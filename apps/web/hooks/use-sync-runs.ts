@@ -34,7 +34,6 @@ export function useSyncRuns(connectionId: string) {
 		},
 		enabled: !!connectionId,
 		staleTime: 30 * 1000,
-		refetchOnMount: "always",
 		refetchInterval: (query) => {
 			const runs = query.state.data as SyncRun[] | undefined
 			if (runs?.some((r) => r.status === "running")) {

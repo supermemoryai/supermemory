@@ -103,7 +103,7 @@ export function DocumentContent({
 			return <TextEditorContent {...textEditorProps} />
 
 		case "pdf":
-			return <PdfViewer url={document.url} />
+			return <PdfViewer url={document.url} documentId={document.id} />
 
 		case "notion":
 			return <NotionDoc content={document.content ?? ""} />

@@ -1280,6 +1280,51 @@ export const CreateProjectSchema = z
 		description: "Request body for creating a new project",
 	})
 
+export const ContainerTagSettingsUpdateSchema = z
+	.object({
+		containerTag: z.string().openapi({
+			description: "The container tag identifier",
+			example: "sm_project_default",
+		}),
+		name: z.string().nullable().openapi({
+			description: "Display name for this container tag",
+			example: "Research Notes",
+		}),
+		entityContext: z.string().nullable().openapi({
+			description: "Custom context prompt for this container tag",
+			example: "This project contains research papers about machine learning.",
+		}),
+		memoryFilesystemPaths: z.array(z.string()).nullable(),
+		updatedAt: z.string().datetime().openapi({
+			description: "Last update timestamp",
+			format: "datetime",
+		}),
+	})
+	.openapi({
+		description: "Response after updating container tag settings",
+	})
+
+export const UpdateContainerTagSettingsRequestSchema = z
+	.object({
+		name: z.string().trim().min(1).max(100).optional().openapi({
+			description:
+				"Display name for this container tag. This does not change the container tag identifier.",
+			example: "Research Notes",
+			minLength: 1,
+			maxLength: 100,
+		}),
+		entityContext: z.string().max(1500).nullable().optional().openapi({
+			description:
+				"Custom context prompt for this container tag. Used to provide additional context when processing documents in this container. Maximum 1500 characters.",
+			example: "This project contains research papers about machine learning.",
+			maxLength: 1500,
+		}),
+		memoryFilesystemPaths: z.array(z.string()).nullable().optional(),
+	})
+	.openapi({
+		description: "Request body for updating container tag settings",
+	})
+
 export const ListProjectsResponseSchema = z
 	.object({
 		projects: z.array(ProjectSchema).openapi({

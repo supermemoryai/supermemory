@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { $fetch } from "@lib/api"
 import { useQueryState } from "nuqs"
 import type { UIMessage } from "@ai-sdk/react"
 import { motion } from "motion/react"
@@ -22,7 +24,6 @@ import {
 	ChevronDownIcon,
 	HistoryIcon,
 	Plus,
-	SearchIcon,
 	SquarePenIcon,
 	Trash2,
 	XIcon,
@@ -33,11 +34,11 @@ import { dmSansClassName } from "@/lib/fonts"
 import ChatInput from "./input"
 import ChatModelSelector from "./model-selector"
 import { getNovaChatErrorCopy } from "@/lib/chat-stream-error"
-import { GradientLogo, LogoBgGradient } from "@ui/assets/Logo"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
 import { modelNames, type ModelId } from "@/lib/models"
+import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
 import { AgentMessage } from "./message/agent-message"
@@ -49,56 +50,8 @@ import { analytics } from "@/lib/analytics"
 import { generateId } from "@lib/generate-id"
 import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
-
-const DEFAULT_SUGGESTIONS = [
-	"Show me all content related to Supermemory.",
-	"Summarize the key ideas from My Gita.",
-	"Which memories connect design and AI?",
-	"What are the main themes across my memories?",
-]
-
-function ChatEmptyStatePlaceholder({
-	onSuggestionClick,
-	suggestions = DEFAULT_SUGGESTIONS,
-}: {
-	onSuggestionClick: (suggestion: string) => void
-	suggestions?: string[]
-}) {
-	return (
-		<div
-			id="chat-empty-state"
-			className="flex flex-col items-center justify-center h-full"
-		>
-			<div className="relative size-32">
-				<GradientLogo className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-16" />
-				<LogoBgGradient className="size-full" />
-			</div>
-			<div className="gap-3 flex flex-col items-center justify-center">
-				<p>Ask me anything about your memories…</p>
-				<div
-					className={cn(
-						dmSansClassName(),
-						"flex flex-col gap-2 justify-center items-center",
-					)}
-				>
-					{suggestions.map((suggestion) => (
-						<Button
-							key={suggestion}
-							variant="default"
-							className="rounded-full text-base gap-1 h-10! border-[#2261CA33] bg-[#041127] border w-fit max-w-[400px] py-[4px] pl-[8px] pr-[12px] hover:bg-[#0A1A3A] hover:[&_span]:text-white hover:[&_svg]:text-white transition-colors cursor-pointer"
-							onClick={() => onSuggestionClick(suggestion)}
-						>
-							<SearchIcon className="size-4 text-[#267BF1] shrink-0" />
-							<span className="text-[#267BF1] text-[12px] truncate">
-								{suggestion}
-							</span>
-						</Button>
-					))}
-				</div>
-			</div>
-		</div>
-	)
-}
+import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
+import { ChatEmptyStatePlaceholder } from "./chat-empty-state"
 
 export function ChatLaunchFab({
 	onOpen,
@@ -112,7 +65,7 @@ export function ChatLaunchFab({
 			className={cn(
 				"flex items-start justify-start pointer-events-none",
 				isMobile
-					? "fixed bottom-5 right-0 left-0 z-50 justify-center items-center"
+					? "fixed bottom-safe-5 right-0 left-0 z-50 justify-center items-center pl-safe pr-safe"
 					: "fixed z-20 top-24 right-4 md:right-6",
 				dmSansClassName(),
 			)}
@@ -150,6 +103,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
 	initialSelectedModel = null,
+	initialChatProject = null,
 	emptyStateSuggestions,
 	layout = "sidebar",
 }: {
@@ -160,6 +114,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
 	initialSelectedModel?: ModelId | null
+	initialChatProject?: string | null
 	emptyStateSuggestions?: string[]
 	layout?: "sidebar" | "page"
 }) {
@@ -190,23 +145,67 @@ export function ChatSidebar({
 	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const isScrolledToBottomRef = useRef(true)
+	const userJustSentRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
 	const pendingHighlightReplyRef = useRef<string | null>(null)
 	const awaitingHighlightInjectionRef = useRef(false)
 	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
 	const targetHighlightChatIdRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
+	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
+		initialChatProject ?? selectedProject,
+	])
+	const chatProject = chatSpaceProjects[0] ?? selectedProject
 	const { allProjects } = useContainerTags()
-	const selectedProjectRef = useRef(selectedProject)
-	selectedProjectRef.current = selectedProject
+	const selectedProjectRef = useRef(chatProject)
+	selectedProjectRef.current = chatProject
 	const chatSpaceLabel = useMemo(
 		() =>
-			getChatSpaceDisplayLabel({
-				selectedProject,
-				allProjects,
-			}),
-		[selectedProject, allProjects],
+			chatProject === AUTO_CHAT_SPACE_ID
+				? "Auto"
+				: getChatSpaceDisplayLabel({
+						selectedProject: chatProject,
+						allProjects,
+					}),
+		[chatProject, allProjects],
 	)
+	const isAutoChatSpace = chatProject === AUTO_CHAT_SPACE_ID
+	const { data: chatSpaceMemoryCount } = useQuery({
+		queryKey: ["chat-empty-space-count", chatProject],
+		queryFn: async (): Promise<number> => {
+			const response = await $fetch("@post/documents/documents", {
+				body: {
+					page: 1,
+					limit: 1,
+					sort: "createdAt",
+					order: "desc",
+					containerTags: [chatProject],
+				},
+				disableValidation: true,
+			})
+			if (response.error) return 0
+			const data = response.data as {
+				pagination?: { totalItems?: number }
+			} | null
+			return data?.pagination?.totalItems ?? 0
+		},
+		staleTime: 30 * 1000,
+		enabled: !!chatProject && !isAutoChatSpace,
+	})
+	const emptyStateSubtitle = useMemo(() => {
+		if (isAutoChatSpace) {
+			return "Picks the best space for each question"
+		}
+		if (chatSpaceMemoryCount === undefined) {
+			return `Grounded in ${chatSpaceLabel}`
+		}
+		if (chatSpaceMemoryCount === 0) {
+			return `Nothing in ${chatSpaceLabel} yet`
+		}
+		const countLabel = chatSpaceMemoryCount.toLocaleString()
+		const memoryWord = chatSpaceMemoryCount === 1 ? "memory" : "memories"
+		return `${countLabel} ${memoryWord} in ${chatSpaceLabel}`
+	}, [isAutoChatSpace, chatSpaceLabel, chatSpaceMemoryCount])
 	const { viewMode } = useViewMode()
 	const { user: _user } = useAuth()
 	const [threadId, setThreadId] = useQueryState("thread", threadParam)
@@ -232,6 +231,12 @@ export function ChatSidebar({
 						metadata: {
 							chatId: chatIdRef.current,
 							projectId: selectedProjectRef.current,
+							spaceMode:
+								selectedProjectRef.current === AUTO_CHAT_SPACE_ID
+									? "auto"
+									: "manual",
+							enableSpaceDiscovery:
+								selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
 							model: selectedModelRef.current,
 						},
 					},
@@ -323,8 +328,29 @@ export function ChatSidebar({
 		analytics.chatMessageSent({ source: "typed" })
 		sendMessage({ text: input })
 		setInput("")
+		userJustSentRef.current = true
 		scrollToBottom()
 	}
+
+	const handleSuggestedQuestion = useCallback(
+		(suggestion: string) => {
+			if (status === "submitted" || status === "streaming") return
+			if (!threadId) setThreadId(fallbackChatId)
+			analytics.chatSuggestedQuestionClicked()
+			analytics.chatMessageSent({ source: "suggested" })
+			sendMessage({ text: suggestion })
+			userJustSentRef.current = true
+			scrollToBottom()
+		},
+		[
+			fallbackChatId,
+			sendMessage,
+			setThreadId,
+			status,
+			threadId,
+			scrollToBottom,
+		],
+	)
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -394,7 +420,7 @@ export function ChatSidebar({
 		setIsLoadingThreads(true)
 		try {
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${selectedProject}`,
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/threads?projectId=${chatProject}`,
 				{ credentials: "include" },
 			)
 			if (response.ok) {
@@ -406,7 +432,7 @@ export function ChatSidebar({
 		} finally {
 			setIsLoadingThreads(false)
 		}
-	}, [selectedProject])
+	}, [chatProject])
 
 	useEffect(() => {
 		if (!isHistoryOpen) return
@@ -631,13 +657,11 @@ export function ChatSidebar({
 	useEffect(() => {
 		const lastMessage = messages[messages.length - 1]
 		if (lastMessage?.role === "user" && messagesContainerRef.current) {
-			messagesContainerRef.current.scrollTop =
-				messagesContainerRef.current.scrollHeight
-			setIsScrolledToBottom(true)
+			scrollToBottom()
+		} else {
+			checkIfScrolledToBottom()
 		}
-		// Always check scroll position when messages change
-		checkIfScrolledToBottom()
-	}, [messages, checkIfScrolledToBottom])
+	}, [messages, checkIfScrolledToBottom, scrollToBottom])
 
 	useEffect(() => {
 		const isStreaming = status === "streaming"
@@ -647,7 +671,7 @@ export function ChatSidebar({
 		if (
 			isStreaming &&
 			isLastMessageFromAssistant &&
-			isScrolledToBottomRef.current
+			(isScrolledToBottomRef.current || userJustSentRef.current)
 		) {
 			scrollToBottom()
 		}
@@ -657,11 +681,14 @@ export function ChatSidebar({
 		const container = messagesContainerRef.current
 		if (!container) return
 
-		const isStreaming = status === "streaming"
-		if (!isStreaming) return
+		const isStreaming = status === "streaming" || status === "submitted"
+		if (!isStreaming) {
+			userJustSentRef.current = false
+			return
+		}
 
 		const mutationObserver = new MutationObserver(() => {
-			if (isScrolledToBottomRef.current) {
+			if (isScrolledToBottomRef.current || userJustSentRef.current) {
 				requestAnimationFrame(() => {
 					scrollToBottom()
 				})
@@ -687,16 +714,17 @@ export function ChatSidebar({
 		const handleScroll = () => {
 			requestAnimationFrame(() => {
 				checkIfScrolledToBottom()
+				if (!isScrolledToBottomRef.current) {
+					userJustSentRef.current = false
+				}
 			})
 		}
 
 		container.addEventListener("scroll", handleScroll, { passive: true })
-		// Initial check with a small delay to ensure DOM is ready
 		setTimeout(() => {
 			checkIfScrolledToBottom()
 		}, 100)
 
-		// Also observe resize to detect content height changes
 		const resizeObserver = new ResizeObserver(() => {
 			requestAnimationFrame(() => {
 				checkIfScrolledToBottom()
@@ -716,6 +744,9 @@ export function ChatSidebar({
 
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
+	const isResponding = status === "submitted" || status === "streaming"
+	const showInputStatusStrip =
+		!isStackedInput || isResponding || messages.length > 0
 
 	const chatHistorySheet = (
 		<Sheet
@@ -730,7 +761,7 @@ export function ChatSidebar({
 			<SheetContent
 				side="right"
 				className={cn(
-					"flex h-full max-h-dvh w-full flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 text-white sm:max-w-md",
+					"flex h-full max-h-dvh w-[min(100%,92vw)] flex-col gap-0 overflow-hidden border-[#17181AB2] bg-[#0A0E14] p-0 pb-safe text-white sm:max-w-md",
 					"[&>button]:text-[#FAFAFA]",
 					dmSansClassName(),
 				)}
@@ -908,123 +939,115 @@ export function ChatSidebar({
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
 								/>
-								<div
-									className={cn(
-										"inline-flex h-10 max-w-[min(192px,42vw)] shrink min-w-0 items-center rounded-full border border-[#73737333] bg-[#0D121A] px-3",
-										dmSansClassName(),
-									)}
-									style={{
-										boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-									}}
-									title={chatSpaceLabel}
-								>
-									<span className="truncate text-sm text-white">
-										{chatSpaceLabel}
-									</span>
-								</div>
+								<SpaceSelector
+									selectedProjects={chatSpaceProjects}
+									onValueChange={setChatSpaceProjects}
+									variant="insideOut"
+									includeAuto
+									triggerClassName="h-10 min-h-10 max-w-[min(192px,42vw)] border border-[#73737333] bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset]"
+								/>
 							</>
 						)}
 					</div>
 					{chatToolbarActions}
 				</div>
 			) : null}
-			<div
-				ref={messagesContainerRef}
-				className={cn(
-					"relative flex-1 overflow-y-auto scrollbar-thin",
-					isPageDesktop && "min-h-0",
-					"px-4",
-					dmSansClassName(),
-				)}
-			>
-				{isInputExpanded && (
-					<div
-						className={cn(
-							"absolute inset-0 z-10! pointer-events-none",
-							isPageDesktop ? "rounded-none" : "rounded-2xl",
-						)}
-						style={{ backgroundColor: "#000000E5" }}
-					/>
-				)}
-				{messages.length === 0 && (
-					<ChatEmptyStatePlaceholder
-						onSuggestionClick={(suggestion) => {
-							analytics.chatSuggestedQuestionClicked()
-							analytics.chatMessageSent({ source: "suggested" })
-							sendMessage({ text: suggestion })
-						}}
-						suggestions={emptyStateSuggestions}
-					/>
-				)}
+			<div className="relative flex-1 min-h-0">
 				<div
-					className={
-						messages.length > 0
-							? cn(
-									"flex flex-col space-y-3 min-h-full justify-end",
-									isPageDesktop ? "pt-2" : "pt-14",
-								)
-							: ""
-					}
-				>
-					{messages.map((message, index) => (
-						// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
-						<div
-							key={message.id}
-							className={cn(
-								"flex gap-2 w-full",
-								message.role === "user" ? "justify-end" : "justify-start",
-							)}
-							onMouseEnter={() =>
-								message.role === "assistant" && setHoveredMessageId(message.id)
-							}
-							onMouseLeave={() =>
-								message.role === "assistant" && setHoveredMessageId(null)
-							}
-						>
-							{message.role === "user" ? (
-								<UserMessage
-									message={message}
-									copiedMessageId={copiedMessageId}
-									onCopy={handleCopyMessage}
-								/>
-							) : (
-								<AgentMessage
-									message={message}
-									index={index}
-									messagesLength={messages.length}
-									hoveredMessageId={hoveredMessageId}
-									copiedMessageId={copiedMessageId}
-									messageFeedback={messageFeedback}
-									expandedMemories={expandedMemories}
-									onCopy={handleCopyMessage}
-									onLike={handleLikeMessage}
-									onDislike={handleDislikeMessage}
-									onToggleMemories={handleToggleMemories}
-								/>
-							)}
-						</div>
-					))}
-					{(status === "submitted" || status === "streaming") && (
-						<div className="flex gap-2">
-							<SuperLoader label="Thinking…" />
-						</div>
+					ref={messagesContainerRef}
+					className={cn(
+						"relative h-full overflow-y-auto scrollbar-thin",
+						"px-4",
+						dmSansClassName(),
 					)}
-				</div>
-			</div>
-
-			{!isScrolledToBottom && messages.length > 0 && (
-				<div className="absolute bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
-					<button
-						type="button"
-						className="cursor-pointer pointer-events-auto"
-						onClick={scrollToBottom}
+				>
+					{isInputExpanded && (
+						<div
+							className={cn(
+								"absolute inset-0 z-10! pointer-events-none",
+								isPageDesktop ? "rounded-none" : "rounded-2xl",
+							)}
+							style={{ backgroundColor: "#000000E5" }}
+						/>
+					)}
+					{messages.length === 0 && (
+						<ChatEmptyStatePlaceholder
+							onSuggestionClick={handleSuggestedQuestion}
+							suggestions={emptyStateSuggestions}
+							subtitle={emptyStateSubtitle}
+						/>
+					)}
+					<div
+						className={
+							messages.length > 0
+								? cn(
+										"flex flex-col space-y-3 min-h-full justify-end",
+										isPageDesktop ? "pt-2" : "pt-14",
+									)
+								: ""
+						}
 					>
-						<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
-							<ChevronDownIcon className="size-4 text-white" />
-						</div>
-					</button>
+						{messages.map((message, index) => (
+							// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
+							<div
+								key={message.id}
+								className={cn(
+									"flex gap-2 w-full",
+									message.role === "user" ? "justify-end" : "justify-start",
+								)}
+								onMouseEnter={() =>
+									message.role === "assistant" &&
+									setHoveredMessageId(message.id)
+								}
+								onMouseLeave={() =>
+									message.role === "assistant" && setHoveredMessageId(null)
+								}
+							>
+								{message.role === "user" ? (
+									<UserMessage
+										message={message}
+										copiedMessageId={copiedMessageId}
+										onCopy={handleCopyMessage}
+									/>
+								) : (
+									<AgentMessage
+										message={message}
+										index={index}
+										messagesLength={messages.length}
+										hoveredMessageId={hoveredMessageId}
+										copiedMessageId={copiedMessageId}
+										messageFeedback={messageFeedback}
+										expandedMemories={expandedMemories}
+										onCopy={handleCopyMessage}
+										onLike={handleLikeMessage}
+										onDislike={handleDislikeMessage}
+										onToggleMemories={handleToggleMemories}
+									/>
+								)}
+							</div>
+						))}
+						{(status === "submitted" || status === "streaming") && (
+							<div className="flex gap-2">
+								<SuperLoader label="Thinking…" />
+							</div>
+						)}
+					</div>
 				</div>
-			)}
+
+				{!isScrolledToBottom && messages.length > 0 && (
+					<div className="absolute bottom-3 left-0 right-0 flex justify-center z-50 pointer-events-none">
+						<button
+							type="button"
+							className="cursor-pointer pointer-events-auto"
+							onClick={scrollToBottom}
+						>
+							<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
+								<ChevronDownIcon className="size-4 text-white" />
+							</div>
+						</button>
+					</div>
+				)}
+			</div>
 
 			{chatStreamError && (
 				<div
@@ -1078,14 +1101,20 @@ export function ChatSidebar({
 				</div>
 			)}
 
-			<div className="shrink-0">
+			<div
+				className={cn(
+					"shrink-0",
+					isStackedInput &&
+						"pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6",
+				)}
+			>
 				<ChatInput
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
 					onSend={handleSend}
 					onStop={stop}
 					onKeyDown={handleKeyDown}
-					isResponding={status === "submitted" || status === "streaming"}
+					isResponding={isResponding}
 					activeStatus={
 						status === "submitted"
 							? "Thinking…"
@@ -1093,6 +1122,7 @@ export function ChatSidebar({
 								? "Structuring response…"
 								: "Waiting for input…"
 					}
+					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
 						messages.length > 0 ? <ChainOfThought messages={messages} /> : null
@@ -1105,17 +1135,13 @@ export function ChatSidebar({
 									onModelChange={handleModelChange}
 									minimal
 								/>
-								<div
-									className={cn(
-										"inline-flex max-w-[min(160px,35vw)] shrink min-w-0 items-center rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5",
-										dmSansClassName(),
-									)}
-									title={chatSpaceLabel}
-								>
-									<span className="truncate text-sm text-[#FAFAFA]">
-										{chatSpaceLabel}
-									</span>
-								</div>
+								<SpaceSelector
+									selectedProjects={chatSpaceProjects}
+									onValueChange={setChatSpaceProjects}
+									variant="insideOut"
+									includeAuto
+									triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
+								/>
 							</>
 						) : undefined
 					}
@@ -1130,10 +1156,10 @@ export function ChatSidebar({
 			className={cn(
 				"relative flex flex-col backdrop-blur-md",
 				isMobile
-					? "fixed inset-0 z-50 m-0 h-dvh w-full rounded-none"
+					? "fixed inset-0 z-50 m-0 h-dvh w-full rounded-none pb-safe"
 					: isPageDesktop
 						? "flex h-full min-h-0 w-full min-w-0 flex-1 flex-col basis-0 rounded-none border-x-0"
-						: "m-4 mt-2 w-[450px] rounded-2xl",
+						: "m-4 mt-2 w-[min(450px,calc(100vw-2rem))] md:w-[380px] lg:w-[450px] rounded-2xl",
 				dmSansClassName(),
 			)}
 			style={
@@ -1165,10 +1191,15 @@ export function ChatSidebar({
 			{chatHistorySheet}
 			{isPageDesktop ? (
 				<div className="flex h-full min-h-0 w-full flex-1 flex-row">
-					<ChatGraphContextRail messages={messages} />
-					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[720px] shrink-0 basis-[min(720px,50vw)] flex-col">
+					<ChatGraphContextRail
+						messages={messages}
+						containerTags={
+							chatProject === AUTO_CHAT_SPACE_ID ? null : [chatProject]
+						}
+					/>
+					<div className="flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] shrink-0 basis-[min(720px,50vw)] flex-col">
 						{pageDesktopToolbarRow}
-						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[720px] flex-1 flex-col">
+						<div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-[min(720px,100%)] flex-1 flex-col px-3 sm:px-4 md:px-0">
 							{shell}
 						</div>
 					</div>
@@ -1181,3 +1212,4 @@ export function ChatSidebar({
 }
 
 export { HomeChatComposer } from "./home-chat-composer"
+export { ChatEmptyStatePlaceholder } from "./chat-empty-state"

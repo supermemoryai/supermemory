@@ -4,7 +4,7 @@ import { ChevronUpIcon } from "lucide-react"
 import NovaOrb from "@/components/nova/nova-orb"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
-import { type ReactNode, useRef, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { motion } from "motion/react"
 import { SendButton, StopButton } from "./actions"
 
@@ -40,6 +40,13 @@ export default function ChatInput({
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+	useEffect(() => {
+		if (!showStatusStrip && isExpanded) {
+			setIsExpanded(false)
+			onExpandedChange?.(false)
+		}
+	}, [isExpanded, onExpandedChange, showStatusStrip])
 
 	const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
 		onChange(e)
@@ -82,7 +89,7 @@ export default function ChatInput({
 						className={cn(
 							"absolute bottom-full left-0 right-0 overflow-hidden transition-all duration-300 ease-out bg-[#000B1B]",
 							isExpanded
-								? "max-h-[60vh] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
+								? "max-h-[min(60dvh,420px)] opacity-100 overflow-y-auto pt-1.5 pb-2 rounded-t-xl px-4"
 								: "max-h-0 opacity-0",
 						)}
 						style={{

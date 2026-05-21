@@ -213,6 +213,7 @@
 							"integrations/openclaw",
 							"integrations/claude-code",
 							"integrations/opencode",
+							"integrations/codex",
 							"integrations/hermes"
 						]
 					}

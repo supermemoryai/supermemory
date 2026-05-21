@@ -260,4 +260,17 @@
 		font-size: 14px;
 		letter-spacing: var(--tracking-normal);
 	}
+
+	@media (max-width: 767px) {
+		input:not([type="button"]):not([type="checkbox"]):not([type="color"]):not(
+				[type="file"]
+			):not([type="hidden"]):not([type="image"]):not([type="radio"]):not(
+				[type="range"]
+			):not([type="reset"]):not([type="submit"]),
+		textarea,
+		select,
+		[contenteditable]:not([contenteditable="false"]) {
+			font-size: 16px !important;
+		}
+	}
 }

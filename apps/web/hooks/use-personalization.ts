@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { $fetch } from "@lib/api"
-import type { SearchResult } from "@repo/lib/api"
+import type { SearchResult } from "@repo/validation/api"
 
 const CACHE_KEY = "sm_profession_v1"
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -235,6 +235,15 @@ function pickCopy(p: Profession): PersonalizedCopy {
 	}
 }
 
+function defaultCopy(p: Profession): PersonalizedCopy {
+	const pool = COPY_POOLS[p]
+	return {
+		saveLink: pool.saveLink[0] ?? "",
+		writeNote: pool.writeNote[0] ?? "",
+		chatPlaceholder: pool.chatPlaceholder[0] ?? "",
+	}
+}
+
 const sessionCopyCache: Partial<Record<Profession, PersonalizedCopy>> = {}
 
 function getSessionCopy(p: Profession): PersonalizedCopy {
@@ -398,7 +407,7 @@ export function usePersonalization(): {
 	setProfession: (p: Profession) => void
 } {
 	const [copy, setCopy] = useState<PersonalizedCopy>(() =>
-		getSessionCopy("default"),
+		defaultCopy("default"),
 	)
 	const [profession, setProfessionState] = useState<Profession>("default")
 
@@ -410,8 +419,9 @@ export function usePersonalization(): {
 			)
 		} catch {}
 		// Re-pick on explicit change so the user sees fresh copy for the new identity
-		sessionCopyCache[p] = pickCopy(p)
-		setCopy(sessionCopyCache[p]!)
+		const freshCopy = pickCopy(p)
+		sessionCopyCache[p] = freshCopy
+		setCopy(freshCopy)
 		setProfessionState(p)
 	}, [])
 
