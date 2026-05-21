@@ -13,6 +13,7 @@ import {
 	MicrosoftOneNote,
 	OneDrive,
 	NotionDoc,
+	Obsidian,
 	PDF,
 } from "@ui/assets/icons"
 import { Globe, FileText, Image } from "lucide-react"
@@ -50,6 +51,8 @@ const BRAND_COLORS: Record<string, string> = {
 	microsoft_onenote: "#7719AA",
 	onenote: "#7719AA",
 	onedrive: "#0078D4",
+	obsidian: "#7C3AED",
+	obsidian_note: "#7C3AED",
 	pdf: "#FF7673",
 	text: "#FAFAFA",
 	note: "#FAFAFA",
@@ -255,6 +258,10 @@ export function DocumentIcon({
 				</span>
 			)
 
+		case "obsidian":
+		case "obsidian_note":
+			return <Obsidian className={iconClassName} />
+
 		case "pdf":
 			return <PDF className={iconClassName} />
 
@@ -316,6 +323,9 @@ export function getDocumentTypeLabel(type: string | null | undefined): string {
 			return "OneNote"
 		case "onedrive":
 			return "OneDrive"
+		case "obsidian":
+		case "obsidian_note":
+			return "Obsidian"
 		case "pdf":
 			return "PDF"
 		case "youtube":

@@ -4,7 +4,7 @@ import { $fetch } from "@lib/api"
 import { hasActivePlan } from "@lib/queries"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Notion, Obsidian, OneDrive } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
@@ -48,7 +48,7 @@ const GDRIVE_SCOPE_LABELS: Record<GDriveSyncScope, string> = {
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive"
+type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "obsidian"
 
 const CONNECTORS: Record<
 	ConnectorProvider,
@@ -76,6 +76,12 @@ const CONNECTORS: Record<
 		description: "Access your Microsoft Office documents",
 		documentLabel: "documents",
 		icon: OneDrive,
+	},
+	obsidian: {
+		title: "Obsidian",
+		description: "Sync your Obsidian vault via the community plugin",
+		documentLabel: "notes",
+		icon: Obsidian,
 	},
 } as const
 
@@ -394,7 +400,9 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			}
 
 			const response = await $fetch("@post/connections/:provider", {
-				params: { provider },
+				params: {
+					provider: provider as Exclude<ConnectorProvider, "obsidian">,
+				},
 				body: {
 					redirectUrl: window.location.href,
 					containerTags: [selectedProject],
@@ -436,7 +444,9 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 			containerTags: string[] | undefined
 		}) => {
 			const response = await $fetch("@post/connections/:provider", {
-				params: { provider },
+				params: {
+					provider: provider as Exclude<ConnectorProvider, "obsidian">,
+				},
 				body: {
 					redirectUrl: window.location.href,
 					containerTags: containerTags ?? [selectedProject],
@@ -491,6 +501,12 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 	})
 
 	const handleConnect = (provider: ConnectorProvider) => {
+		if (provider === "obsidian") {
+			toast.info(
+				"Install the Supermemory plugin in Obsidian → Settings → Community plugins → Browse → search 'Supermemory'. Once installed, paste your API key into the plugin settings.",
+			)
+			return
+		}
 		setConnectingProvider(provider)
 		addConnectionMutation.mutate({
 			provider,

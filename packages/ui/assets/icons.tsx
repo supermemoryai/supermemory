@@ -1,3 +1,22 @@
+export const Obsidian = ({ className }: { className?: string }) => (
+	<svg
+		className={className}
+		viewBox="0 0 64 64"
+		xmlns="http://www.w3.org/2000/svg"
+	>
+		<title>Obsidian</title>
+		<defs>
+			<linearGradient id="obsidian-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+				<stop offset="0%" stopColor="#a78bfa" />
+				<stop offset="100%" stopColor="#6d28d9" />
+			</linearGradient>
+		</defs>
+		<path d="M32 4 L52 18 L44 56 L20 56 L12 18 Z" fill="url(#obsidian-grad)" />
+		<path d="M32 4 L52 18 L36 24 Z" fill="#ffffff" fillOpacity="0.18" />
+		<path d="M20 56 L36 24 L44 56 Z" fill="#000000" fillOpacity="0.15" />
+	</svg>
+)
+
 export const OneDrive = ({ className }: { className?: string }) => (
 	<svg
 		className={className}
