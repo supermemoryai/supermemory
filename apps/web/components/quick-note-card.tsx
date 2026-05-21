@@ -82,8 +82,10 @@ export function QuickNoteCard({
 	const canSave = draft.trim().length > 0 && !isSaving
 	const hasDraft = draft.trim().length > 0
 	const editorHeight =
-		isExpanded || hasDraft
+		isExpanded
 			? "min-h-[min(58dvh,520px)] sm:min-h-[min(54vh,560px)]"
+			: hasDraft
+				? "min-h-[188px]"
 			: "min-h-[120px]"
 
 	return (
@@ -97,8 +99,9 @@ export function QuickNoteCard({
 			)}
 			<div
 				className={cn(
-					"relative rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform] duration-200",
-					isExpanded && "z-[70] scale-[1.01]",
+					"relative w-full rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform,width] duration-200",
+					isExpanded &&
+						"z-[70] w-[min(calc(100vw-1.5rem),640px)] scale-[1.01]",
 				)}
 				style={{
 					boxShadow: isExpanded
@@ -109,8 +112,7 @@ export function QuickNoteCard({
 				<div
 					id="quick-note-inner"
 					className={cn(
-						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3 transition-[min-height] duration-200",
-						editorHeight,
+						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3",
 						isExpanded &&
 							"fixed inset-x-3 top-[calc(env(safe-area-inset-top)+72px)] z-[71] max-h-[calc(100dvh-96px)] sm:static sm:inset-auto",
 					)}
@@ -133,8 +135,9 @@ export function QuickNoteCard({
 				<div
 					className={cn(
 						dmSansClassName(),
-						"min-h-0 w-full flex-1 overflow-y-auto pr-5 text-white disabled:opacity-50",
+						"w-full overflow-y-auto pr-5 text-white transition-[min-height] duration-200 disabled:opacity-50",
 						"[&_.ProseMirror]:text-[12px] [&_.ProseMirror]:leading-normal [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-[#737373]",
+						editorHeight,
 					)}
 					aria-disabled={isSaving}
 				>
