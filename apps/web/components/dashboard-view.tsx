@@ -141,108 +141,108 @@ export type MemoryOfDay = {
 
 const TIPS: Record<Profession, string[]> = {
 	developer: [
-		"Use âŒ˜K to search code snippets and docs by intent, not just keywords",
+		"Use ⌘K to search code snippets and docs by intent, not just keywords",
 		"Connect Claude MCP to query your saved knowledge from any IDE",
-		"Save GitHub repos and READMEs â€” ask questions across all of them",
+		"Save GitHub repos and READMEs — ask questions across all of them",
 		"Use 'Related' on highlights to find connected technical concepts",
-		"Save a Stack Overflow answer once â€” find it again by what it does",
+		"Save a Stack Overflow answer once — find it again by what it does",
 		"Drop in your last 3 PRs and ask Supermemory for the review patterns",
 		"Save your team's RFCs and surface the ones touching your work",
-		"Save error messages with their fixes â€” search by symptom next time",
-		"Save framework docs once â€” semantic search beats Cmd+F across pages",
+		"Save error messages with their fixes — search by symptom next time",
+		"Save framework docs once — semantic search beats Cmd+F across pages",
 		"Connect Notion to make your engineering specs instantly findable",
 		"Save the docs for libraries you keep forgetting and grep them by intent",
 		"Use Daily Brief to resurface the design doc you skimmed last week",
-		"Save changelogs as you skim â€” pull breaking changes back later",
-		"Save a debugging session as a note â€” find it again by the symptom",
+		"Save changelogs as you skim — pull breaking changes back later",
+		"Save a debugging session as a note — find it again by the symptom",
 	],
 	research: [
 		"Save papers and ask questions across your entire reading list",
 		"Use 'Related' on highlights to surface connected research",
 		"Connect Notion to index your notes alongside your papers",
 		"Semantic search means you can ask questions, not just search titles",
-		"Save a paper once â€” Supermemory finds it later by what it argued",
+		"Save a paper once — Supermemory finds it later by what it argued",
 		"Drop in 5 papers on a topic and ask for the consensus and disagreements",
-		"Save citations as you read â€” pull them back out by claim",
+		"Save citations as you read — pull them back out by claim",
 		"Connect Google Drive to make your dataset notes searchable",
 		"Use Daily Brief to resurface a finding you almost forgot",
-		"Save a methodology note once â€” find it next time you need that protocol",
-		"Save preprints alongside your reading list â€” ask what's new since last week",
-		"Save quotes with their source â€” find them later by the idea",
+		"Save a methodology note once — find it next time you need that protocol",
+		"Save preprints alongside your reading list — ask what's new since last week",
+		"Save quotes with their source — find them later by the idea",
 	],
 	finance: [
 		"Save articles and ask follow-up questions across your research",
 		"Connect Notion to keep your investment thesis searchable",
-		"Use âŒ˜K to find specific data points across all your saves",
+		"Use ⌘K to find specific data points across all your saves",
 		"Daily Brief surfaces connections you may have missed",
-		"Save earnings call transcripts once â€” pull guidance back by ticker or theme",
-		"Save a thesis once â€” find it months later by the conviction, not the filename",
+		"Save earnings call transcripts once — pull guidance back by ticker or theme",
+		"Save a thesis once — find it months later by the conviction, not the filename",
 		"Drop in three sell-side reports and ask for the disagreements",
-		"Save market commentary daily â€” surface the calls that aged well",
+		"Save market commentary daily — surface the calls that aged well",
 		"Connect Google Drive to query your models without opening them",
-		"Save a chart with a note â€” find it again by what it showed",
-		"Save analyst takes â€” pull them back when the thesis matters again",
+		"Save a chart with a note — find it again by what it showed",
+		"Save analyst takes — pull them back when the thesis matters again",
 	],
 	design: [
-		"Save inspiration and search by concept â€” 'minimalist UI' finds the right ones",
-		"Use âŒ˜K to rediscover references by meaning, not filename",
+		"Save inspiration and search by concept — 'minimalist UI' finds the right ones",
+		"Use ⌘K to rediscover references by meaning, not filename",
 		"Connect Notion to make your briefs and moodboards searchable",
 		"Chrome extension saves any page in one click while you browse",
-		"Save a screenshot with a note â€” find it later by what it taught you",
+		"Save a screenshot with a note — find it later by what it taught you",
 		"Drop in 10 onboarding flows and ask Supermemory for the common patterns",
-		"Save your design crits â€” find the feedback on a specific decision later",
-		"Save a brand guideline once â€” search it by intent, not page number",
+		"Save your design crits — find the feedback on a specific decision later",
+		"Save a brand guideline once — search it by intent, not page number",
 		"Connect Google Drive to index your Figma exports and briefs",
 		"Use Daily Brief to resurface a reference that fits today's work",
-		"Save references by mood â€” pull them back when the brief calls for it",
+		"Save references by mood — pull them back when the brief calls for it",
 	],
 	legal: [
 		"Save documents and search across them semantically in seconds",
 		"Connect Notion to index your memos and case notes together",
 		"Use Daily Brief to resurface relevant precedents automatically",
 		"Google Drive sync keeps your contracts indexed and queryable",
-		"Save a clause once â€” find it next time by what it does, not where it lives",
-		"Save case law as you read â€” pull precedents back by argument",
+		"Save a clause once — find it next time by what it does, not where it lives",
+		"Save case law as you read — pull precedents back by argument",
 		"Drop in three contracts and ask for the diffs in indemnity language",
-		"Save regulator updates â€” surface the ones touching your matter",
-		"Save a memo once â€” search by issue, not by file name",
-		"Save deposition notes â€” find specific testimony by claim later",
+		"Save regulator updates — surface the ones touching your matter",
+		"Save a memo once — search by issue, not by file name",
+		"Save deposition notes — find specific testimony by claim later",
 	],
 	marketing: [
-		"Save campaigns and resources â€” ask what worked across all of them",
+		"Save campaigns and resources — ask what worked across all of them",
 		"Chrome extension captures competitor pages in one click",
 		"Use 'Related' to find similar campaigns in your archive",
 		"Connect Notion to make your campaign briefs instantly searchable",
-		"Save a competitor's landing page â€” surface their positioning later by claim",
+		"Save a competitor's landing page — surface their positioning later by claim",
 		"Drop in five launch retros and ask for the patterns that drove growth",
 		"Save ad references and find them by mood, not by URL",
-		"Save your weekly metrics notes â€” pull trends back by quarter",
+		"Save your weekly metrics notes — pull trends back by quarter",
 		"Use Daily Brief to resurface a positioning note from last campaign",
-		"Save creative briefs â€” find similar ones when starting a new one",
+		"Save creative briefs — find similar ones when starting a new one",
 	],
 	medical: [
 		"Save studies and query across your entire reading list",
 		"Connect Notion to keep clinical notes alongside research",
-		"Use âŒ˜K to find specific findings across hundreds of papers",
+		"Use ⌘K to find specific findings across hundreds of papers",
 		"Daily Brief surfaces relevant research from your saves automatically",
-		"Save a guideline once â€” pull it back by clinical scenario",
+		"Save a guideline once — pull it back by clinical scenario",
 		"Drop in three trials and ask Supermemory for the methodological diffs",
-		"Save case reports â€” surface them later by symptom or finding",
+		"Save case reports — surface them later by symptom or finding",
 		"Connect Google Drive to index protocols across your team",
-		"Save teaching points from rounds â€” find them by topic next month",
-		"Save differentials as notes â€” pull them back when the presentation repeats",
+		"Save teaching points from rounds — find them by topic next month",
+		"Save differentials as notes — pull them back when the presentation repeats",
 	],
 	default: [
-		"Use âŒ˜K to search by meaning â€” ask questions, not just keywords",
+		"Use ⌘K to search by meaning — ask questions, not just keywords",
 		"Daily Brief surfaces insights from your saves each morning",
 		"Chrome extension saves any page in one click while you browse",
 		"Connect integrations to make all your knowledge searchable here",
-		"Save a page once â€” find it later by what it said, not its title",
-		"Save the thing you'd normally bookmark â€” find it again by intent",
+		"Save a page once — find it later by what it said, not its title",
+		"Save the thing you'd normally bookmark — find it again by intent",
 		"Drop in 10 articles on a topic and ask for the through-line",
-		"Save an idea â€” Supermemory connects it to your earlier ones",
+		"Save an idea — Supermemory connects it to your earlier ones",
 		"Use Daily Brief to resurface something useful you forgot you saved",
-		"Save a thread you liked â€” pull it back later by what it was about",
+		"Save a thread you liked — pull it back later by what it was about",
 	],
 }
 
@@ -270,7 +270,7 @@ const PROFESSION_LABELS: {
 	{ value: "medical", label: "Medical" },
 ]
 
-// Static plugin metadata â€” shared between PluginPromoCard and RecommendedPluginsCard
+// Static plugin metadata — shared between PluginPromoCard and RecommendedPluginsCard
 const PLUGIN_STATIC = [
 	{
 		id: "mcp",
@@ -285,7 +285,7 @@ const PLUGIN_STATIC = [
 		name: "Chrome Extension",
 		Icon: ChromeIcon,
 		accentColor: "#4BA0FA",
-		tagline: "Save any page in one click â€” findable by meaning, forever",
+		tagline: "Save any page in one click — findable by meaning, forever",
 		cta: "Install",
 	},
 	{
@@ -310,7 +310,7 @@ const PLUGIN_STATIC = [
 		Icon: GoogleDrive,
 		accentColor: "#4BA0FA",
 		tagline:
-			"Index your Drive files â€” ask questions across docs, slides, sheets",
+			"Index your Drive files — ask questions across docs, slides, sheets",
 		cta: "Connect",
 	},
 ] as const
@@ -479,7 +479,7 @@ function getDocumentPreview(document: DocumentWithMemories): string | null {
 		})
 		.filter(Boolean)
 
-	if (transcriptTurns.length > 0) return transcriptTurns.join(" Â· ")
+	if (transcriptTurns.length > 0) return transcriptTurns.join(" · ")
 
 	const cleaned = compactText(
 		content
@@ -870,7 +870,7 @@ function RecommendedPluginsCard({
 			) : suggestions.length === 0 ? (
 				<div className="flex items-center justify-center py-4">
 					<p className="text-[11px] text-fg-subtle text-center">
-						You're all set âœ“
+						You're all set ✓
 					</p>
 				</div>
 			) : (
@@ -893,7 +893,7 @@ function RecommendedPluginsCard({
 										</p>
 									</div>
 									<span className="shrink-0 text-[10px] font-medium text-[#5EA8FF] group-hover:text-[#8BC6FF] transition-colors">
-										{plugin.cta} â†’
+										{plugin.cta} →
 									</span>
 								</button>
 							</li>
@@ -908,7 +908,7 @@ function RecommendedPluginsCard({
 						{PROFESSION_LABELS.find(
 							(p) => p.value === profession,
 						)?.label.toLowerCase()}
-						? Change â†’
+						? Change →
 					</button>
 				</>
 			)}
@@ -946,7 +946,7 @@ function MemoryOfDayCard({ data }: { data: MemoryOfDay }) {
 			</div>
 
 			<span className="text-[10px] text-fg-faint group-hover:text-fg-muted transition-colors">
-				View memories â†’
+				View memories →
 			</span>
 		</button>
 	)
@@ -1301,7 +1301,7 @@ export function DashboardView({
 					)}
 				</motion.header>
 
-				{/* Daily Brief â€” hero */}
+				{/* Daily Brief — hero */}
 				<motion.section
 					{...fadeUp}
 					transition={{ ...fadeUp.transition, delay: 0.05 }}
@@ -1351,7 +1351,7 @@ export function DashboardView({
 					</div>
 				</motion.section>
 
-				{/* Actions + connection status â€” single unified row */}
+				{/* Actions + connection status — single unified row */}
 				<motion.section
 					{...fadeUp}
 					transition={{ ...fadeUp.transition, delay: 0.1 }}
@@ -1369,7 +1369,7 @@ export function DashboardView({
 								{personalizedCopy.saveLink}
 							</span>
 						</button>
-						<span className="text-[#3A4455] select-none">Â·</span>
+						<span className="text-[#3A4455] select-none">·</span>
 						<button
 							type="button"
 							onClick={() => onAddMemory("note")}
@@ -1380,7 +1380,7 @@ export function DashboardView({
 								{personalizedCopy.writeNote}
 							</span>
 						</button>
-						<span className="text-[#3A4455] select-none">Â·</span>
+						<span className="text-[#3A4455] select-none">·</span>
 						<button
 							type="button"
 							onClick={() => {
