@@ -236,15 +236,20 @@ export function DocumentModal({
 		draftContentString !== initialEditorString &&
 		draftContentString !== lastSavedContent
 
-	const handleSave = useCallback(() => {
-		if (!_document?.id) return
-		updateMutation.mutate(
-			{ documentId: _document.id, content: draftContentString },
-			{
-				onSuccess: (_data, variables) => setLastSavedContent(variables.content),
-			},
-		)
-	}, [_document?.id, draftContentString, updateMutation])
+	const handleSave = useCallback(
+		(submittedContent?: string) => {
+			if (!_document?.id) return
+			const content = submittedContent ?? draftContentString
+			updateMutation.mutate(
+				{ documentId: _document.id, content },
+				{
+					onSuccess: (_data, variables) =>
+						setLastSavedContent(variables.content),
+				},
+			)
+		},
+		[_document?.id, draftContentString, updateMutation],
+	)
 
 	const textEditorProps = useMemo(
 		() => ({

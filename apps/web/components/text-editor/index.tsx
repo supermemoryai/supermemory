@@ -13,21 +13,30 @@ import { cn } from "@lib/utils"
 
 const extensions = [...defaultExtensions, slashCommand, Markdown]
 
+function getEditorMarkdown(editor: Editor) {
+	const json = editor.getJSON()
+	return editor.storage.markdown?.manager?.serialize(json) ?? ""
+}
+
 export function TextEditor({
 	content: initialContent,
 	onContentChange,
 	onSubmit,
 	debounceMs = 500,
+	editable = true,
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
-	onSubmit: () => void
+	onSubmit: (content: string) => void
 	debounceMs?: number
+	editable?: boolean
 }) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const editorRef = useRef<Editor | null>(null)
 	const onSubmitRef = useRef(onSubmit)
 	const hasUserEditedRef = useRef(false)
+	const lastAppliedContentRef = useRef(initialContent)
+	const lastEmittedContentRef = useRef<string | undefined>(undefined)
 
 	useEffect(() => {
 		onSubmitRef.current = onSubmit
@@ -35,8 +44,8 @@ export function TextEditor({
 
 	const debouncedUpdates = useDebouncedCallback((editor: Editor) => {
 		if (!hasUserEditedRef.current) return
-		const json = editor.getJSON()
-		const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
+		const markdown = getEditorMarkdown(editor)
+		lastEmittedContentRef.current = markdown
 		onContentChange?.(markdown)
 	}, debounceMs)
 
@@ -44,6 +53,7 @@ export function TextEditor({
 		extensions,
 		content: initialContent,
 		contentType: "markdown",
+		editable,
 		immediatelyRender: true,
 		onCreate: ({ editor }) => {
 			editorRef.current = editor
@@ -52,8 +62,8 @@ export function TextEditor({
 			editorRef.current = editor
 			if (!hasUserEditedRef.current) return
 			if (debounceMs === 0) {
-				const json = editor.getJSON()
-				const markdown = editor.storage.markdown?.manager?.serialize(json) ?? ""
+				const markdown = getEditorMarkdown(editor)
+				lastEmittedContentRef.current = markdown
 				onContentChange?.(markdown)
 				return
 			}
@@ -64,7 +74,10 @@ export function TextEditor({
 				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
 					event.preventDefault()
 					debouncedUpdates.flush()
-					onSubmitRef.current?.()
+					const currentEditor = editorRef.current
+					const markdown = currentEditor ? getEditorMarkdown(currentEditor) : ""
+					lastEmittedContentRef.current = markdown
+					onSubmitRef.current?.(markdown)
 					return true
 				}
 				hasUserEditedRef.current = true
@@ -86,11 +99,28 @@ export function TextEditor({
 	})
 
 	useEffect(() => {
-		if (editor && initialContent) {
-			hasUserEditedRef.current = false
-			editor.commands.setContent(initialContent, { contentType: "markdown" })
+		if (!editor || initialContent === undefined) return
+		if (initialContent === lastAppliedContentRef.current) return
+
+		if (initialContent === lastEmittedContentRef.current) {
+			lastAppliedContentRef.current = initialContent
+			return
 		}
+
+		const currentContent = getEditorMarkdown(editor)
+		if (currentContent === initialContent) {
+			lastAppliedContentRef.current = initialContent
+			return
+		}
+
+		hasUserEditedRef.current = false
+		lastAppliedContentRef.current = initialContent
+		editor.commands.setContent(initialContent, { contentType: "markdown" })
 	}, [editor, initialContent])
+
+	useEffect(() => {
+		editor?.setEditable(editable)
+	}, [editor, editable])
 
 	const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
 		const target = e.target as HTMLElement
