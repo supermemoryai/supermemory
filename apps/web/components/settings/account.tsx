@@ -27,7 +27,7 @@ import {
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
 import { useCustomer } from "autumn-js/react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import {
 	Check,
 	LoaderIcon,
@@ -188,11 +188,36 @@ export default function Account() {
 
 	const { currentPlan } = useTokenUsage(autumn)
 
+	const activeMemberRoleQuery = useQuery({
+		queryKey: ["organization", org?.id, "active-member-role"],
+		queryFn: async () => {
+			if (!org?.id) return null
+			const result = await authClient.organization.getActiveMemberRole({
+				query: { organizationId: org.id },
+			})
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to load team role")
+			}
+			return result.data?.role ?? null
+		},
+		enabled: !!org?.id,
+		retry: false,
+	})
+
 	const currentMember = useMemo(
 		() => org?.members?.find((member) => member.userId === user?.id) ?? null,
 		[org?.members, user?.id],
 	)
-	const currentRole = currentMember?.role?.toLowerCase() ?? "member"
+	const isSingleMemberPersonalOrg =
+		(org?.members?.length ?? 0) <= 1 &&
+		(!org?.members?.[0]?.userId || org.members[0].userId === user?.id)
+	const currentRole = isSingleMemberPersonalOrg
+		? "owner"
+		: (
+				activeMemberRoleQuery.data ??
+				currentMember?.role ??
+				"member"
+			).toLowerCase()
 	const canManageTeam = currentRole === "owner" || currentRole === "admin"
 	const isOwner = currentRole === "owner"
 
