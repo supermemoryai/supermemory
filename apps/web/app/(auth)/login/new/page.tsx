@@ -38,7 +38,7 @@ function AnimatedGradientBackground() {
 	return (
 		<div className="fixed inset-0 z-0 overflow-hidden bg-[#030912]">
 			<motion.div
-				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-bottom bg-no-repeat"
+				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-0.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{
 					y: 0,
@@ -54,7 +54,7 @@ function AnimatedGradientBackground() {
 				}}
 			/>
 			<motion.div
-				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[150%_auto] bg-bottom bg-no-repeat"
+				className="absolute top-0 left-0 right-0 bottom-0 bg-[url('/onboarding/bg-gradient-1.png')] bg-size-[150%_auto] bg-top bg-no-repeat"
 				initial={{ y: "100%" }}
 				animate={{
 					y: 0,
