@@ -47,14 +47,6 @@ export function QuickNoteCard({
 		onMaximize(draft)
 	}, [draft, onMaximize])
 
-	const handleBlurCapture = useCallback(
-		(e: React.FocusEvent<HTMLDivElement>) => {
-			if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
-			setIsExpanded(false)
-		},
-		[],
-	)
-
 	const handleBackdropPointerDown = useCallback(() => {
 		const activeElement = document.activeElement
 		if (activeElement instanceof HTMLElement) {
@@ -114,7 +106,6 @@ export function QuickNoteCard({
 						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3 transition-[height,width] duration-200",
 					)}
 					onFocusCapture={() => setIsExpanded(true)}
-					onBlurCapture={handleBlurCapture}
 					style={{
 						boxShadow: "inset 1.421px 1.421px 4.263px 0 rgba(11, 15, 21, 0.4)",
 					}}
