@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Maximize2, Plus, Loader2 } from "lucide-react"
@@ -20,6 +20,12 @@ export function QuickNoteCard({
 	isSaving = false,
 }: QuickNoteCardProps) {
 	const [isExpanded, setIsExpanded] = useState(false)
+	const [popoutFrame, setPopoutFrame] = useState<{
+		left: number
+		top: number
+		width: number
+	} | null>(null)
+	const cardRef = useRef<HTMLDivElement>(null)
 	const { selectedProject } = useProject()
 	const { draft, setDraft } = useQuickNoteDraft(selectedProject)
 
@@ -53,6 +59,19 @@ export function QuickNoteCard({
 			activeElement.blur()
 		}
 		setIsExpanded(false)
+		setPopoutFrame(null)
+	}, [])
+
+	const handleFocusCapture = useCallback(() => {
+		const frame = cardRef.current?.getBoundingClientRect()
+		if (frame) {
+			const viewportPadding = 12
+			const left = Math.max(viewportPadding, frame.left)
+			const top = Math.max(viewportPadding, frame.top)
+			const width = Math.min(640, window.innerWidth - left - viewportPadding)
+			setPopoutFrame({ left, top, width })
+		}
+		setIsExpanded(true)
 	}, [])
 
 	useEffect(() => {
@@ -65,6 +84,7 @@ export function QuickNoteCard({
 				activeElement.blur()
 			}
 			setIsExpanded(false)
+			setPopoutFrame(null)
 		}
 
 		window.addEventListener("keydown", handleKeyDown)
@@ -89,15 +109,22 @@ export function QuickNoteCard({
 				/>
 			)}
 			<div
+				ref={cardRef}
 				className={cn(
 					"relative w-full rounded-[22px] bg-[#1B1F24] p-1 transition-[box-shadow,transform] duration-200",
-					isExpanded &&
-						"fixed left-1/2 top-[calc(env(safe-area-inset-top)+72px)] z-[70] w-[min(calc(100vw-1.5rem),640px)] max-h-[calc(100dvh-96px)] -translate-x-1/2 scale-[1.01] sm:left-[max(1rem,calc((100vw-640px)/2))] sm:translate-x-0",
+					isExpanded && "fixed z-[70] max-h-[calc(100dvh-24px)] scale-[1.01]",
 				)}
 				style={{
 					boxShadow: isExpanded
 						? "0 24px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.08), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset"
 						: "0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+					...(isExpanded && popoutFrame
+						? {
+								left: popoutFrame.left,
+								top: popoutFrame.top,
+								width: popoutFrame.width,
+							}
+						: {}),
 				}}
 			>
 				<div
@@ -105,7 +132,7 @@ export function QuickNoteCard({
 					className={cn(
 						"relative flex flex-col rounded-[18px] bg-[#0B1017] p-3 transition-[height,width] duration-200",
 					)}
-					onFocusCapture={() => setIsExpanded(true)}
+					onFocusCapture={handleFocusCapture}
 					style={{
 						boxShadow: "inset 1.421px 1.421px 4.263px 0 rgba(11, 15, 21, 0.4)",
 					}}
