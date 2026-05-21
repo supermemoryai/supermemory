@@ -1,6 +1,7 @@
-import { Notice, Plugin } from "obsidian"
+import { Notice, Plugin, type TAbstractFile, TFile } from "obsidian"
 import { configure, createConnection } from "./api"
 import { SupermemorySettingTab } from "./settings"
+import { SyncEngine } from "./sync"
 import type { SupermemorySettings } from "./types"
 
 const DEFAULT_SETTINGS: SupermemorySettings = {
@@ -15,6 +16,7 @@ const DEFAULT_SETTINGS: SupermemorySettings = {
 
 export default class SupermemoryPlugin extends Plugin {
 	settings: SupermemorySettings = DEFAULT_SETTINGS
+	private syncEngine: SyncEngine | null = null
 
 	async onload() {
 		await this.loadSettings()
@@ -31,6 +33,37 @@ export default class SupermemoryPlugin extends Plugin {
 			name: "Sync vault now",
 			callback: () => this.syncVault(),
 		})
+
+		if (this.settings.syncOnSave) {
+			this.registerVaultEvents()
+		}
+
+		if (this.settings.syncOnStartup && this.settings.apiKey) {
+			this.app.workspace.onLayoutReady(() => this.syncVault())
+		}
+	}
+
+	private registerVaultEvents() {
+		this.registerEvent(
+			this.app.vault.on("modify", (file: TAbstractFile) => {
+				if (file instanceof TFile) this.syncEngine?.onFileChange(file)
+			}),
+		)
+		this.registerEvent(
+			this.app.vault.on("create", (file: TAbstractFile) => {
+				if (file instanceof TFile) this.syncEngine?.onFileChange(file)
+			}),
+		)
+		this.registerEvent(
+			this.app.vault.on("delete", (file: TAbstractFile) => {
+				if (file instanceof TFile) this.syncEngine?.onFileDelete(file)
+			}),
+		)
+		this.registerEvent(
+			this.app.vault.on("rename", (file: TAbstractFile, oldPath: string) => {
+				if (file instanceof TFile) this.syncEngine?.onFileRename(file, oldPath)
+			}),
+		)
 	}
 
 	async ensureConnection(): Promise<string | null> {
@@ -66,7 +99,12 @@ export default class SupermemoryPlugin extends Plugin {
 	private async syncVault() {
 		const connectionId = await this.ensureConnection()
 		if (!connectionId) return
-		new Notice("Supermemory: sync starting...")
+
+		if (!this.syncEngine) {
+			this.syncEngine = new SyncEngine(this.app, connectionId)
+		}
+
+		await this.syncEngine.fullSync()
 	}
 
 	async loadSettings() {
