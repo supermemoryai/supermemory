@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { Maximize2, Plus, Loader2 } from "lucide-react"
@@ -22,20 +22,20 @@ export function QuickNoteCard({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const { selectedProject } = useProject()
 	const { draft, setDraft } = useQuickNoteDraft(selectedProject)
-	const draftRef = useRef(draft)
-	draftRef.current = draft
 
 	const handleContentChange = useCallback(
 		(content: string) => setDraft(content),
 		[setDraft],
 	)
 
-	const handleEditorSubmit = useCallback(() => {
-		const currentDraft = draftRef.current
-		if (currentDraft.trim() && !isSaving) {
-			onSave(currentDraft)
-		}
-	}, [isSaving, onSave])
+	const handleEditorSubmit = useCallback(
+		(content: string) => {
+			if (content.trim() && !isSaving) {
+				onSave(content)
+			}
+		},
+		[isSaving, onSave],
+	)
 
 	const handleSaveClick = useCallback(() => {
 		if (draft.trim() && !isSaving) {

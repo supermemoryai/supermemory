@@ -14,7 +14,7 @@ export interface TextEditorProps {
 	hasUnsavedChanges: boolean
 	isSaving: boolean
 	onContentChange: (content: string) => void
-	onSave: () => void
+	onSave: (content?: string) => void
 	onReset: () => void
 }
 
@@ -60,7 +60,7 @@ export function TextEditorContent({
 						<Button
 							variant="insideOut"
 							size="sm"
-							onClick={onSave}
+							onClick={() => onSave()}
 							disabled={isSaving}
 							className="hover:text-white rounded-full px-4"
 						>
