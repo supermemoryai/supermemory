@@ -51,8 +51,8 @@
     "./ai-sdk": "./dist/ai-sdk.js",
     "./claude-memory": "./dist/claude-memory.js",
     "./mastra": "./dist/mastra.js",
-    "./openai\\index": "./dist/openai\\index.js",
-    "./voltagent\\index": "./dist/voltagent\\index.js",
+    "./openai": "./dist/openai/index.js",
+    "./voltagent": "./dist/voltagent/index.js",
     "./package.json": "./package.json"
   },
   "repository": {
