@@ -12,7 +12,7 @@ import {
 	ChevronDown,
 	History,
 	Loader2,
-	Play,
+	RefreshCw,
 	Plus,
 	Trash2,
 	Zap,
@@ -270,7 +270,7 @@ function ConnectionRow({
 								{isSyncing ? (
 									<Loader2 className="size-[18px] animate-spin" />
 								) : (
-									<Play className="size-[18px]" />
+									<RefreshCw className="size-[18px]" />
 								)}
 							</button>
 						)}
