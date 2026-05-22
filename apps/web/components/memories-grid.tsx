@@ -394,11 +394,14 @@ export function MemoriesGrid({
 		return items
 	}, [documents, isMobile, hasQuickNote, isSelectionMode, selectedDocumentIds])
 
-	// Stable key for Masonry based on document IDs, not item values
+	// Reset Masonry when the actual rendered item set changes. Masonic caches
+	// positions by index, so mobile removing the quick note must remount it.
 	const masonryKey = useMemo(() => {
-		const docIds = documents.map((d) => d.id).join(",")
-		return `masonry-${documents.length}-${docIds}-${isChatOpen}-${hasQuickNote}`
-	}, [documents, isChatOpen, hasQuickNote])
+		const itemIds = masonryItems.map((item) => item.id).join(",")
+		return `masonry-${isMobile ? "mobile" : "desktop"}-${masonryItems.length}-${itemIds}-${isChatOpen}`
+	}, [masonryItems, isChatOpen, isMobile])
+
+	const getMasonryItemKey = useCallback((item: MasonryItem) => item.id, [])
 
 	const isLoadingMore = isFetchingNextPage
 
@@ -542,9 +545,9 @@ export function MemoriesGrid({
 			{!isEmpty && !isSelectionMode && (
 				<div
 					id="filter-pills"
-					className="flex items-center justify-between gap-4 mb-3 pr-2"
+					className="mb-3 flex flex-col gap-2 pr-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
 				>
-					<div className="flex flex-wrap items-center gap-1.5">
+					<div className="order-2 flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:order-1">
 						<Button
 							className={cn(
 								dmSansClassName(),
@@ -577,7 +580,7 @@ export function MemoriesGrid({
 							</Button>
 						))}
 					</div>
-					<div className="flex items-center gap-2 shrink-0">
+					<div className="order-1 flex shrink-0 items-center gap-2 self-end sm:order-2 sm:self-start">
 						{/* View mode toggle — segmented control */}
 						<div
 							role="tablist"
@@ -781,6 +784,7 @@ export function MemoriesGrid({
 							key={masonryKey}
 							items={masonryItems}
 							render={renderMasonryItem}
+							itemKey={getMasonryItemKey}
 							columnGutter={0}
 							rowGutter={0}
 							columnWidth={260}
