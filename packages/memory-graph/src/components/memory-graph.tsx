@@ -644,7 +644,7 @@ export function MemoryGraph({
 
 	const bottomLeftStackStyle: React.CSSProperties = {
 		position: "absolute",
-		bottom: 16,
+		bottom: isCompactViewport ? 132 : 16,
 		left: 16,
 		zIndex: 20,
 		display: "flex",
