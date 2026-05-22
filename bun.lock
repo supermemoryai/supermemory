@@ -125,7 +125,7 @@
         "typescript": "^5",
       },
     },
-    "apps/obsidian-plugin": {
+    "apps/obsidian-connector": {
       "name": "@repo/obsidian-plugin",
       "version": "0.1.0",
       "dependencies": {
@@ -1474,7 +1474,7 @@
 
     "@repo/lib": ["@repo/lib@workspace:packages/lib"],
 
-    "@repo/obsidian-plugin": ["@repo/obsidian-plugin@workspace:apps/obsidian-plugin"],
+    "@repo/obsidian-plugin": ["@repo/obsidian-plugin@workspace:apps/obsidian-connector"],
 
     "@repo/ui": ["@repo/ui@workspace:packages/ui"],
 
