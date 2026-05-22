@@ -143,6 +143,9 @@ export function ChatSidebar({
 	const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
 		null,
 	)
+	const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
+		"idle",
+	)
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const isScrolledToBottomRef = useRef(true)
 	const userJustSentRef = useRef(false)
@@ -427,6 +430,39 @@ export function ChatSidebar({
 		setFallbackChatId(newChatId)
 		setInput("")
 	}, [setThreadId, setMessages])
+
+	// Reset saveState to idle when a new assistant message arrives
+	const lastMessageRole = messages.at(-1)?.role
+	useEffect(() => {
+		if (lastMessageRole === "assistant") {
+			setSaveState("idle")
+		}
+	}, [messages.length, lastMessageRole])
+
+	const handleSaveToSpace = useCallback(async () => {
+		if (saveState !== "idle" || messages.length === 0) return
+		setSaveState("saving")
+		try {
+			const response = await fetch(
+				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/save-as-document`,
+				{
+					method: "POST",
+					credentials: "include",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						chatId: currentChatId,
+						projectId: chatProject,
+						messages,
+					}),
+				},
+			)
+			if (!response.ok) throw new Error("Save failed")
+			setSaveState("saved")
+		} catch (error) {
+			console.error("Failed to save chat:", error)
+			setSaveState("idle")
+		}
+	}, [saveState, messages, currentChatId, chatProject])
 
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
@@ -905,6 +941,20 @@ export function ChatSidebar({
 
 	const chatToolbarActions = (
 		<div className="flex shrink-0 items-center gap-2">
+			{messages.length > 0 && !isAutoChatSpace && (
+				<button
+					type="button"
+					disabled={saveState === "saving"}
+					onClick={handleSaveToSpace}
+					className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+				>
+					{saveState === "saving"
+						? "Saving..."
+						: saveState === "saved"
+							? "Saved to space"
+							: `Save to ${chatSpaceLabel}`}
+				</button>
+			)}
 			<button
 				type="button"
 				onClick={() => setIsHistoryOpen(true)}
