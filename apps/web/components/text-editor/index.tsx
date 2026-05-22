@@ -18,11 +18,13 @@ export function TextEditor({
 	onContentChange,
 	onSubmit,
 	debounceMs = 500,
+	autoFocus = false,
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
 	onSubmit: () => void
 	debounceMs?: number
+	autoFocus?: boolean
 }) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const editorRef = useRef<Editor | null>(null)
@@ -91,6 +93,16 @@ export function TextEditor({
 			editor.commands.setContent(initialContent, { contentType: "markdown" })
 		}
 	}, [editor, initialContent])
+
+	useEffect(() => {
+		if (!editor || !autoFocus) return
+
+		const id = window.setTimeout(() => {
+			editor.commands.focus("end")
+		}, 0)
+
+		return () => window.clearTimeout(id)
+	}, [editor, autoFocus])
 
 	const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
 		const target = e.target as HTMLElement
