@@ -146,6 +146,9 @@ export const analytics = {
 	chatThreadDeleted: (props: { thread_id: string }) =>
 		safeCapture("chat_thread_deleted", props),
 
+	chatSavedToSpace: (props: { chat_id: string; project_id: string }) =>
+		safeCapture("chat_saved_to_space", props),
+
 	modelChanged: (props: { model: string }) =>
 		safeCapture("model_changed", props),
 

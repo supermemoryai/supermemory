@@ -146,6 +146,8 @@ export function ChatSidebar({
 	const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">(
 		"idle",
 	)
+	const saveStateRef = useRef<"idle" | "saving" | "saved">("idle")
+	saveStateRef.current = saveState
 	const messagesContainerRef = useRef<HTMLDivElement>(null)
 	const isScrolledToBottomRef = useRef(true)
 	const userJustSentRef = useRef(false)
@@ -429,22 +431,27 @@ export function ChatSidebar({
 		setThreadId(null)
 		setFallbackChatId(newChatId)
 		setInput("")
+		setSaveState("idle")
 	}, [setThreadId, setMessages])
 
 	// Reset saveState to idle when a new assistant message arrives
-	const lastMessageRole = messages.at(-1)?.role
 	useEffect(() => {
-		if (lastMessageRole === "assistant") {
+		if (messages.at(-1)?.role === "assistant") {
 			setSaveState("idle")
 		}
-	}, [messages.length, lastMessageRole])
+	}, [messages])
+
+	// Reset saveState when the active space changes so saved state doesn't carry over
+	useEffect(() => {
+		setSaveState("idle")
+	}, [chatProject])
 
 	const handleSaveToSpace = useCallback(async () => {
-		if (saveState !== "idle" || messages.length === 0) return
+		if (saveStateRef.current !== "idle" || messages.length === 0) return
 		setSaveState("saving")
 		try {
 			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/save-as-document`,
+				`${chatApiBase}/chat/save-as-document`,
 				{
 					method: "POST",
 					credentials: "include",
@@ -458,11 +465,12 @@ export function ChatSidebar({
 			)
 			if (!response.ok) throw new Error("Save failed")
 			setSaveState("saved")
+			analytics.chatSavedToSpace({ chat_id: currentChatId, project_id: chatProject })
 		} catch (error) {
 			console.error("Failed to save chat:", error)
 			setSaveState("idle")
 		}
-	}, [saveState, messages, currentChatId, chatProject])
+	}, [chatApiBase, messages, currentChatId, chatProject])
 
 	const fetchThreads = useCallback(async () => {
 		setIsLoadingThreads(true)
@@ -944,7 +952,7 @@ export function ChatSidebar({
 			{messages.length > 0 && !isAutoChatSpace && (
 				<button
 					type="button"
-					disabled={saveState === "saving"}
+					disabled={saveState === "saving" || isResponding}
 					onClick={handleSaveToSpace}
 					className="text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
 				>
