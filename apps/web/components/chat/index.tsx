@@ -442,6 +442,7 @@ export function ChatSidebar({
 	}, [messages])
 
 	// Reset saveState when the active space changes so saved state doesn't carry over
+	// biome-ignore lint/correctness/useExhaustiveDependencies: chatProject triggers the reset but isn't used inside the effect body
 	useEffect(() => {
 		setSaveState("idle")
 	}, [chatProject])
@@ -450,22 +451,22 @@ export function ChatSidebar({
 		if (saveStateRef.current !== "idle" || messages.length === 0) return
 		setSaveState("saving")
 		try {
-			const response = await fetch(
-				`${chatApiBase}/chat/save-as-document`,
-				{
-					method: "POST",
-					credentials: "include",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						chatId: currentChatId,
-						projectId: chatProject,
-						messages,
-					}),
-				},
-			)
+			const response = await fetch(`${chatApiBase}/chat/save-as-document`, {
+				method: "POST",
+				credentials: "include",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					chatId: currentChatId,
+					projectId: chatProject,
+					messages,
+				}),
+			})
 			if (!response.ok) throw new Error("Save failed")
 			setSaveState("saved")
-			analytics.chatSavedToSpace({ chat_id: currentChatId, project_id: chatProject })
+			analytics.chatSavedToSpace({
+				chat_id: currentChatId,
+				project_id: chatProject,
+			})
 		} catch (error) {
 			console.error("Failed to save chat:", error)
 			setSaveState("idle")
