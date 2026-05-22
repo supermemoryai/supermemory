@@ -26,6 +26,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@ui/components/dialog"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
@@ -38,6 +44,7 @@ import {
 	Mail,
 	MoreHorizontal,
 	UserMinus,
+	ShieldCheck,
 	X,
 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -97,6 +104,27 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 type InviteRole = "admin" | "member"
+
+const INVITE_PERMISSION_OPTIONS: Record<
+	InviteRole,
+	{ title: string; description: string; permissions: string[] }
+> = {
+	member: {
+		title: "Member access",
+		description: "Use the organization workspace with standard access.",
+		permissions: ["Read organization access", "Use shared memories"],
+	},
+	admin: {
+		title: "Admin access",
+		description: "Manage teammates and organization-level team settings.",
+		permissions: [
+			"Invite and cancel invitations",
+			"Change member roles",
+			"Remove members",
+			"Update organization settings",
+		],
+	},
+}
 
 function getErrorMessage(error: unknown, fallback: string) {
 	if (error instanceof Error && error.message) return error.message
@@ -169,6 +197,7 @@ export default function Account() {
 	const autumn = useCustomer()
 	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
 	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 	const [inviteEmail, setInviteEmail] = useState("")
 	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
 	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
@@ -244,6 +273,8 @@ export default function Account() {
 		},
 		onSuccess: async (invitation) => {
 			setInviteEmail("")
+			setInviteRole("member")
+			setInviteDialogOpen(false)
 			await refetchActiveOrg()
 			toast.success("Invitation sent", {
 				description: invitation?.email
@@ -549,60 +580,43 @@ export default function Account() {
 				<SettingsCard>
 					<div className="flex flex-col gap-5">
 						{canManageTeam ? (
-							<form
-								onSubmit={handleInviteSubmit}
-								className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_132px_auto]"
-							>
-								<label className="sr-only" htmlFor="team-invite-email">
-									Email address
-								</label>
-								<div className="relative min-w-0">
-									<Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#737373]" />
-									<input
-										id="team-invite-email"
-										type="email"
-										value={inviteEmail}
-										onChange={(event) => setInviteEmail(event.target.value)}
-										placeholder="teammate@company.com"
-										autoComplete="email"
-										className={cn(
-											dmSans125ClassName(),
-											"h-10 w-full rounded-[10px] border border-white/[0.08] bg-[#0D0F14] pl-9 pr-3 text-[14px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none transition-colors focus:border-[#4BA0FA]/50",
-										)}
-									/>
+							<div className="flex flex-col gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3 md:flex-row md:items-center md:justify-between">
+								<div className="flex min-w-0 items-center gap-3">
+									<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
+										<UserPlus className="size-4 text-[#737373]" />
+									</div>
+									<div className="min-w-0">
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA]",
+											)}
+										>
+											Invite teammate
+										</p>
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"text-[12px] tracking-[-0.12px] text-[#737373]",
+											)}
+										>
+											Choose role and permission preset before sending.
+										</p>
+									</div>
 								</div>
-								<Select
-									value={inviteRole}
-									onValueChange={(value) => setInviteRole(value as InviteRole)}
-								>
-									<SelectTrigger className="h-10 rounded-[10px] border-white/[0.08] bg-[#0D0F14] text-[#FAFAFA]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="member">Member</SelectItem>
-										<SelectItem value="admin">Admin</SelectItem>
-									</SelectContent>
-								</Select>
 								<button
-									type="submit"
-									disabled={
-										!inviteEmail.trim() ||
-										!org?.id ||
-										inviteMemberMutation.isPending
-									}
+									type="button"
+									onClick={() => setInviteDialogOpen(true)}
+									disabled={!org?.id}
 									className={cn(
 										dmSans125ClassName(),
 										"inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-[#4BA0FA] px-4 text-[14px] font-semibold text-[#00171A] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
 									)}
 								>
-									{inviteMemberMutation.isPending ? (
-										<LoaderIcon className="size-4 animate-spin" />
-									) : (
-										<UserPlus className="size-4" />
-									)}
-									Invite
+									<UserPlus className="size-4" />
+									Invite member
 								</button>
-							</form>
+							</div>
 						) : (
 							<div className="flex items-center gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3">
 								<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
@@ -830,6 +844,200 @@ export default function Account() {
 					</div>
 				</SettingsCard>
 			</section>
+
+			<Dialog
+				open={inviteDialogOpen}
+				onOpenChange={(open) => {
+					setInviteDialogOpen(open)
+					if (!open && !inviteMemberMutation.isPending) {
+						setInviteEmail("")
+						setInviteRole("member")
+					}
+				}}
+			>
+				<DialogContent className="sm:max-w-lg bg-[#14161A] border-white/10 text-[#FAFAFA]">
+					<DialogHeader>
+						<DialogTitle
+							className={cn(
+								dmSans125ClassName(),
+								"text-[20px] font-semibold tracking-[-0.2px]",
+							)}
+						>
+							Invite teammate
+						</DialogTitle>
+					</DialogHeader>
+					<form onSubmit={handleInviteSubmit} className="flex flex-col gap-5">
+						<div className="flex flex-col gap-2">
+							<label
+								htmlFor="team-invite-email"
+								className={cn(
+									dmSans125ClassName(),
+									"text-[13px] font-medium text-[#A3A3A3]",
+								)}
+							>
+								Email address
+							</label>
+							<div className="relative min-w-0">
+								<Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#737373]" />
+								<input
+									id="team-invite-email"
+									type="email"
+									value={inviteEmail}
+									onChange={(event) => setInviteEmail(event.target.value)}
+									placeholder="teammate@company.com"
+									autoComplete="email"
+									className={cn(
+										dmSans125ClassName(),
+										"h-10 w-full rounded-[10px] border border-white/[0.08] bg-[#0D0F14] pl-9 pr-3 text-[14px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none transition-colors focus:border-[#4BA0FA]/50",
+									)}
+								/>
+							</div>
+						</div>
+
+						<div className="flex flex-col gap-2">
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[13px] font-medium text-[#A3A3A3]",
+								)}
+							>
+								Role
+							</p>
+							<div className="grid grid-cols-2 gap-2">
+								{(["member", "admin"] as const).map((role) => {
+									const selected = inviteRole === role
+									return (
+										<button
+											key={role}
+											type="button"
+											onClick={() => setInviteRole(role)}
+											className={cn(
+												dmSans125ClassName(),
+												"rounded-[10px] border px-3 py-2 text-left transition-colors",
+												selected
+													? "border-[#4BA0FA]/60 bg-[#4BA0FA]/10 text-[#FAFAFA]"
+													: "border-white/[0.08] bg-[#0D0F14] text-[#A3A3A3] hover:bg-white/[0.04]",
+											)}
+										>
+											<span className="block text-[14px] font-semibold">
+												{formatRole(role)}
+											</span>
+											<span className="block text-[12px] text-[#737373]">
+												{INVITE_PERMISSION_OPTIONS[role].description}
+											</span>
+										</button>
+									)
+								})}
+							</div>
+						</div>
+
+						<div className="flex flex-col gap-2">
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[13px] font-medium text-[#A3A3A3]",
+								)}
+							>
+								Permissions
+							</p>
+							<div className="grid grid-cols-1 gap-2">
+								{(["member", "admin"] as const).map((role) => {
+									const option = INVITE_PERMISSION_OPTIONS[role]
+									const selected = inviteRole === role
+									return (
+										<button
+											key={role}
+											type="button"
+											onClick={() => setInviteRole(role)}
+											className={cn(
+												"flex items-start gap-3 rounded-[10px] border p-3 text-left transition-colors",
+												selected
+													? "border-[#4BA0FA]/60 bg-[#4BA0FA]/10"
+													: "border-white/[0.08] bg-[#0D0F14] hover:bg-white/[0.04]",
+											)}
+										>
+											<div
+												className={cn(
+													"mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
+													selected
+														? "bg-[#4BA0FA]/15 text-[#4BA0FA]"
+														: "bg-white/[0.04] text-[#737373]",
+												)}
+											>
+												<ShieldCheck className="size-4" />
+											</div>
+											<div className="min-w-0 flex-1">
+												<p
+													className={cn(
+														dmSans125ClassName(),
+														"text-[14px] font-semibold tracking-[-0.14px] text-[#FAFAFA]",
+													)}
+												>
+													{option.title}
+												</p>
+												<ul className="mt-1 flex flex-col gap-0.5">
+													{option.permissions.map((permission) => (
+														<li
+															key={permission}
+															className={cn(
+																dmSans125ClassName(),
+																"text-[12px] tracking-[-0.12px] text-[#737373]",
+															)}
+														>
+															{permission}
+														</li>
+													))}
+												</ul>
+											</div>
+											<span
+												className={cn(
+													"mt-1 size-3 rounded-full border",
+													selected
+														? "border-[#4BA0FA] bg-[#4BA0FA]"
+														: "border-white/20",
+												)}
+												aria-hidden
+											/>
+										</button>
+									)
+								})}
+							</div>
+						</div>
+
+						<div className="flex justify-end gap-2">
+							<button
+								type="button"
+								onClick={() => setInviteDialogOpen(false)}
+								className={cn(
+									dmSans125ClassName(),
+									"h-10 rounded-[10px] border border-white/[0.08] px-4 text-[14px] font-medium text-[#A3A3A3] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
+								)}
+							>
+								Cancel
+							</button>
+							<button
+								type="submit"
+								disabled={
+									!inviteEmail.trim() ||
+									!org?.id ||
+									inviteMemberMutation.isPending
+								}
+								className={cn(
+									dmSans125ClassName(),
+									"inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-[#4BA0FA] px-4 text-[14px] font-semibold text-[#00171A] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
+								)}
+							>
+								{inviteMemberMutation.isPending ? (
+									<LoaderIcon className="size-4 animate-spin" />
+								) : (
+									<UserPlus className="size-4" />
+								)}
+								Send invite
+							</button>
+						</div>
+					</form>
+				</DialogContent>
+			</Dialog>
 		</div>
 	)
 }
