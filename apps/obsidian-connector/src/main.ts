@@ -16,13 +16,28 @@ const DEFAULT_SETTINGS: SupermemorySettings = {
 	includedFolders: "",
 }
 
+function formatTimeAgo(ms: number): string {
+	const seconds = Math.floor((Date.now() - ms) / 1000)
+	if (seconds < 60) return "just now"
+	const minutes = Math.floor(seconds / 60)
+	if (minutes < 60) return `${minutes}m ago`
+	const hours = Math.floor(minutes / 60)
+	return `${hours}h ago`
+}
+
 export default class SupermemoryPlugin extends Plugin {
 	settings: SupermemorySettings = DEFAULT_SETTINGS
 	private syncEngine: SyncEngine | null = null
+	private statusBarEl: HTMLElement | null = null
+	private lastSyncTime: number | null = null
+	private lastSyncCount = 0
 
 	async onload() {
 		await this.loadSettings()
 		configure(this.settings)
+
+		this.statusBarEl = this.addStatusBarItem()
+		this.updateStatusBar()
 
 		this.addSettingTab(new SupermemorySettingTab(this.app, this))
 
@@ -42,6 +57,27 @@ export default class SupermemoryPlugin extends Plugin {
 
 		if (this.settings.syncOnStartup && this.settings.apiKey) {
 			this.app.workspace.onLayoutReady(() => this.syncVault())
+		}
+	}
+
+	private updateStatusBar(syncing?: { current: number; total: number }) {
+		if (!this.statusBarEl) return
+
+		if (syncing) {
+			this.statusBarEl.setText(
+				`Supermemory: syncing ${syncing.current}/${syncing.total}...`,
+			)
+			return
+		}
+
+		if (this.lastSyncTime) {
+			this.statusBarEl.setText(
+				`Supermemory: synced ${formatTimeAgo(this.lastSyncTime)} · ${this.lastSyncCount} notes`,
+			)
+		} else if (!this.settings.apiKey) {
+			this.statusBarEl.setText("Supermemory: no API key")
+		} else {
+			this.statusBarEl.setText("Supermemory: ready")
 		}
 	}
 
@@ -108,7 +144,16 @@ export default class SupermemoryPlugin extends Plugin {
 			this.syncEngine.updateSettings(this.settings)
 		}
 
-		await this.syncEngine.fullSync()
+		const files = this.app.vault.getMarkdownFiles()
+		this.updateStatusBar({ current: 0, total: files.length })
+
+		const result = await this.syncEngine.fullSync((current, total) => {
+			this.updateStatusBar({ current, total })
+		})
+
+		this.lastSyncTime = Date.now()
+		this.lastSyncCount = result.queued
+		this.updateStatusBar()
 	}
 
 	async loadSettings() {
@@ -123,5 +168,6 @@ export default class SupermemoryPlugin extends Plugin {
 		await this.saveData(this.settings)
 		configure(this.settings)
 		this.syncEngine?.updateSettings(this.settings)
+		this.updateStatusBar()
 	}
 }

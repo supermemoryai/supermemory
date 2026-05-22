@@ -50,7 +50,9 @@ export class SyncEngine {
 		return false
 	}
 
-	async fullSync(): Promise<{ queued: number; failed: number }> {
+	async fullSync(
+		onProgress?: (current: number, total: number) => void,
+	): Promise<{ queued: number; failed: number }> {
 		if (this.state.syncing) {
 			new Notice("Supermemory: sync already in progress.")
 			return { queued: 0, failed: 0 }
@@ -65,6 +67,7 @@ export class SyncEngine {
 				.getMarkdownFiles()
 				.filter((f) => this.shouldSync(f))
 			const batches = this.chunk(files, BATCH_SIZE)
+			let processed = 0
 
 			for (const batch of batches) {
 				const notes = await Promise.all(batch.map((f) => this.fileToPayload(f)))
@@ -77,6 +80,9 @@ export class SyncEngine {
 				} catch {
 					totalFailed += valid.length
 				}
+
+				processed += batch.length
+				onProgress?.(processed, files.length)
 			}
 
 			this.state.lastFullSync = Date.now()
