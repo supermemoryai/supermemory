@@ -4,14 +4,12 @@ import { useEditor, EditorContent } from "@tiptap/react"
 import { BubbleMenu } from "@tiptap/react/menus"
 import type { Editor } from "@tiptap/core"
 import { Markdown } from "@tiptap/markdown"
-import { useRef, useEffect, useCallback } from "react"
-import { defaultExtensions } from "./extensions"
+import { useRef, useEffect, useCallback, useMemo } from "react"
+import { createDefaultExtensions } from "./extensions"
 import { slashCommand } from "./suggestions"
 import { Bold, Italic, Code } from "lucide-react"
 import { useDebouncedCallback } from "use-debounce"
 import { cn } from "@lib/utils"
-
-const extensions = [...defaultExtensions, slashCommand, Markdown]
 
 export function TextEditor({
 	content: initialContent,
@@ -19,17 +17,23 @@ export function TextEditor({
 	onSubmit,
 	debounceMs = 500,
 	autoFocus = false,
+	placeholder,
 }: {
 	content: string | undefined
 	onContentChange: (content: string) => void
 	onSubmit: () => void
 	debounceMs?: number
 	autoFocus?: boolean
+	placeholder?: string
 }) {
 	const containerRef = useRef<HTMLDivElement>(null)
 	const editorRef = useRef<Editor | null>(null)
 	const onSubmitRef = useRef(onSubmit)
 	const hasUserEditedRef = useRef(false)
+	const extensions = useMemo(
+		() => [...createDefaultExtensions(placeholder), slashCommand, Markdown],
+		[placeholder],
+	)
 
 	useEffect(() => {
 		onSubmitRef.current = onSubmit

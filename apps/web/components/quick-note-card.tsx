@@ -188,15 +188,7 @@ export function QuickNoteCard({
 						className="w-full h-[120px] cursor-text text-left disabled:cursor-not-allowed disabled:opacity-50"
 						aria-label="Expand quick note"
 					>
-						<span className="flex h-full flex-col gap-3 pr-5">
-							<span
-								className={cn(
-									dmSansClassName(),
-									"text-[10px] font-semibold uppercase tracking-[0.18em] text-[#FF5B2E]",
-								)}
-							>
-								New quick note
-							</span>
+						<span className="flex h-full flex-col pr-5">
 							<span
 								className={cn(
 									dmSansClassName(),
@@ -204,7 +196,7 @@ export function QuickNoteCard({
 									!previewText && "text-[#737373]",
 								)}
 							>
-								{previewText ?? "Type / for shortcuts"}
+								{previewText ?? "Start writing..."}
 							</span>
 						</span>
 					</button>
@@ -318,16 +310,7 @@ export function QuickNoteCard({
 												"inset 1.421px 1.421px 4.263px 0 rgba(11, 15, 21, 0.4)",
 										}}
 									>
-										<header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#202A36]/70 px-5 py-4 md:px-7">
-											<p
-												className={cn(
-													dmSansClassName(),
-													"text-[11px] font-semibold uppercase tracking-[0.2em] text-[#FF5B2E]",
-												)}
-											>
-												New quick note
-											</p>
-
+										<header className="flex shrink-0 justify-end border-b border-[#202A36]/70 px-5 py-4 md:px-7">
 											<div className="flex items-center gap-2">
 												<button
 													type="button"
@@ -355,6 +338,7 @@ export function QuickNoteCard({
 												onSubmit={handleSaveClick}
 												debounceMs={0}
 												autoFocus
+												placeholder="Start writing..."
 											/>
 										</div>
 

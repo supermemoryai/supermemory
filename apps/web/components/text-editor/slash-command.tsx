@@ -111,7 +111,7 @@ function CommandMenu({
 	if (!mounted) return null
 
 	return createPortal(
-		<div ref={refs.setFloating} style={floatingStyles} className="z-50">
+		<div ref={refs.setFloating} style={floatingStyles} className="z-[120]">
 			<CommandList
 				items={items}
 				command={command}
