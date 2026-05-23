@@ -138,7 +138,9 @@ type DocumentSpaceCandidate = {
 	memoryEntries?: Array<{ spaceContainerTag?: string | null }> | null
 }
 
-function catalogIdForPluginSpace(pluginId: PluginSpaceInfo["pluginId"]): string {
+function catalogIdForPluginSpace(
+	pluginId: PluginSpaceInfo["pluginId"],
+): string {
 	return pluginId.replace(/-/g, "_")
 }
 
