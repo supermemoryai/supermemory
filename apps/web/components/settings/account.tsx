@@ -108,7 +108,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 type InviteRole = "admin" | "member"
 
-
 function getErrorMessage(error: unknown, fallback: string) {
 	if (error instanceof Error && error.message) return error.message
 	if (
@@ -183,8 +182,12 @@ export default function Account() {
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 	const [inviteEmail, setInviteEmail] = useState("")
 	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
-	const [inviteAccessType, setInviteAccessType] = useState<"full" | "restricted">("full")
-	const [inviteAssignments, setInviteAssignments] = useState<{ containerTag: string; permission: "read" | "write" }[]>([])
+	const [inviteAccessType, setInviteAccessType] = useState<
+		"full" | "restricted"
+	>("full")
+	const [inviteAssignments, setInviteAssignments] = useState<
+		{ containerTag: string; permission: "read" | "write" }[]
+	>([])
 	const [tagQuery, setTagQuery] = useState("")
 	const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
 	const tagInputRef = useRef<HTMLInputElement>(null)
@@ -193,13 +196,18 @@ export default function Account() {
 
 	const selectedTagSet = new Set(inviteAssignments.map((a) => a.containerTag))
 	const filteredTags = useMemo(() => {
-		const available = (allContainerTags ?? []).map((t) => t.containerTag).filter((t) => !selectedTagSet.has(t))
+		const available = (allContainerTags ?? [])
+			.map((t) => t.containerTag)
+			.filter((t) => !selectedTagSet.has(t))
 		if (!tagQuery) return available
-		return available.filter((t) => t.toLowerCase().includes(tagQuery.toLowerCase()))
+		return available.filter((t) =>
+			t.toLowerCase().includes(tagQuery.toLowerCase()),
+		)
 	}, [allContainerTags, selectedTagSet, tagQuery])
 
 	const showAccessType = inviteRole === "member"
-	const showTagPicker = inviteRole === "member" && inviteAccessType === "restricted"
+	const showTagPicker =
+		inviteRole === "member" && inviteAccessType === "restricted"
 	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
 	const { data: orgSummaries } = useOrgSummaries()
 
@@ -268,14 +276,20 @@ export default function Account() {
 			if (!org?.id) throw new Error("No active organization")
 			const email = inviteEmail.trim().toLowerCase()
 			if (!email) throw new Error("Enter an email address")
-			const isRestricted = inviteRole === "member" && inviteAccessType === "restricted"
+			const isRestricted =
+				inviteRole === "member" && inviteAccessType === "restricted"
 			const result = await authClient.organization.inviteMember({
 				email,
 				role: inviteRole,
 				organizationId: org.id,
 				resend: true,
 				...(isRestricted && inviteAssignments.length > 0
-					? { data: { accessType: "restricted", containerTags: inviteAssignments } }
+					? {
+							data: {
+								accessType: "restricted",
+								containerTags: inviteAssignments,
+							},
+						}
 					: {}),
 			})
 			if (result.error) {
@@ -997,169 +1011,201 @@ export default function Account() {
 							{/* Container tag picker (only for Restricted) */}
 							{showTagPicker && (
 								<div className="flex flex-col gap-2">
-											<p
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[13px] font-medium text-[#FAFAFA]",
+										)}
+									>
+										Spaces
+									</p>
+
+									<Popover
+										open={
+											tagDropdownOpen &&
+											(filteredTags.length > 0 ||
+												(tagQuery.trim().length > 0 &&
+													!selectedTagSet.has(tagQuery.trim())))
+										}
+										onOpenChange={setTagDropdownOpen}
+									>
+										<PopoverAnchor asChild>
+											<div
+												ref={tagAnchorRef}
 												className={cn(
-													dmSans125ClassName(),
-													"text-[13px] font-medium text-[#FAFAFA]",
+													"relative flex items-center w-full h-10",
+													"rounded-[10px] border border-white/[0.06] bg-white/[0.02]",
+													"transition-colors focus-within:border-[#2261CA33]",
 												)}
 											>
-												Spaces
-											</p>
-
-											<Popover
-												open={tagDropdownOpen && (filteredTags.length > 0 || (tagQuery.trim().length > 0 && !selectedTagSet.has(tagQuery.trim())))}
-												onOpenChange={setTagDropdownOpen}
-											>
-												<PopoverAnchor asChild>
-													<div
-														ref={tagAnchorRef}
-														className={cn(
-															"relative flex items-center w-full h-10",
-															"rounded-[10px] border border-white/[0.06] bg-white/[0.02]",
-															"transition-colors focus-within:border-[#2261CA33]",
-														)}
-													>
-														<input
-															ref={tagInputRef}
-															type="text"
-															value={tagQuery}
-															onChange={(e) => {
-																setTagQuery(e.target.value)
-																if (!tagDropdownOpen) setTagDropdownOpen(true)
-															}}
-															onClick={() => setTagDropdownOpen(true)}
-															onFocus={() => setTagDropdownOpen(true)}
-															placeholder="Search or create spaces..."
-															className={cn(
-																dmSans125ClassName(),
-																"h-full w-full bg-transparent pl-3 pr-8 text-[13px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none",
-															)}
-														/>
-														<ChevronDown
-															className={cn(
-																"absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-[#525D6E] pointer-events-none transition-transform",
-																tagDropdownOpen && "rotate-180",
-															)}
-														/>
-													</div>
-												</PopoverAnchor>
-												<PopoverContent
-													align="start"
-													sideOffset={4}
-													className="w-[var(--radix-popover-trigger-width)] p-1 max-h-[200px] overflow-y-auto bg-[#1B1F24] border border-white/[0.08] rounded-[10px] shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
-													onOpenAutoFocus={(e) => e.preventDefault()}
-													onPointerDownOutside={(e) => {
-														if (tagAnchorRef.current?.contains(e.target as Node)) {
-															e.preventDefault()
-														}
+												<input
+													ref={tagInputRef}
+													type="text"
+													value={tagQuery}
+													onChange={(e) => {
+														setTagQuery(e.target.value)
+														if (!tagDropdownOpen) setTagDropdownOpen(true)
 													}}
-												>
-													{filteredTags.map((tag) => (
-														<button
-															key={tag}
-															type="button"
-															onClick={() => {
-																if (!selectedTagSet.has(tag)) {
-																	setInviteAssignments([...inviteAssignments, { containerTag: tag, permission: "read" }])
-																}
-																setTagQuery("")
-																setTagDropdownOpen(false)
-															}}
-															onMouseDown={(e) => e.preventDefault()}
-															className={cn(
-																dmSans125ClassName(),
-																"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#FAFAFA] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
-															)}
-														>
-															<Tag className="size-3.5 text-[#525D6E]" />
-															{tag}
-														</button>
-													))}
-													{tagQuery.trim().length > 0 && !selectedTagSet.has(tagQuery.trim()) && !(allContainerTags ?? []).some((t) => t.containerTag.toLowerCase() === tagQuery.trim().toLowerCase()) && (
-														<button
-															type="button"
-															onClick={() => {
-																const sanitized = tagQuery.trim()
-																if (!selectedTagSet.has(sanitized)) {
-																	setInviteAssignments([...inviteAssignments, { containerTag: sanitized, permission: "read" }])
-																}
-																setTagQuery("")
-																setTagDropdownOpen(false)
-															}}
-															onMouseDown={(e) => e.preventDefault()}
-															className={cn(
-																dmSans125ClassName(),
-																"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#8FC8FF] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
-															)}
-														>
-															<Plus className="size-3.5" />
-															Create &ldquo;{tagQuery.trim()}&rdquo;
-														</button>
-													)}
-												</PopoverContent>
-											</Popover>
-
-											{/* Selected tags */}
-											{inviteAssignments.length > 0 && (
-												<div className="flex flex-col rounded-[10px] border border-white/[0.06] overflow-hidden">
-													{inviteAssignments.map((a) => (
-														<div
-															key={a.containerTag}
-															className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] last:border-0 bg-white/[0.015]"
-														>
-															<button
-																type="button"
-																onClick={() => setInviteAssignments(inviteAssignments.filter((t) => t.containerTag !== a.containerTag))}
-																className="text-[#525D6E] hover:text-[#C73B1B] transition-colors shrink-0"
-															>
-																<X className="size-3.5" />
-															</button>
-															<span
-																className={cn(
-																	dmSans125ClassName(),
-																	"text-[13px] text-[#FAFAFA] truncate min-w-0 flex-1",
-																)}
-															>
-																{a.containerTag}
-															</span>
-															<div className="grid grid-cols-2 gap-1 shrink-0">
-																{(["read", "write"] as const).map((perm) => {
-																	const active = a.permission === perm
-																	return (
-																		<button
-																			key={perm}
-																			type="button"
-																			onClick={() =>
-																				setInviteAssignments(inviteAssignments.map((t) => t.containerTag === a.containerTag ? { ...t, permission: perm } : t))
-																			}
-																			className={cn(
-																				dmSans125ClassName(),
-																				"h-7 px-3 rounded-[8px] border text-[12px] font-medium transition-colors cursor-pointer capitalize",
-																				active
-																					? "border-[#2261CA33] bg-[#00173C] text-white"
-																					: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
-																			)}
-																		>
-																			{perm}
-																		</button>
-																	)
-																})}
-															</div>
-														</div>
-													))}
-												</div>
-											)}
-
-											{inviteAssignments.length === 0 && (
-												<p
+													onClick={() => setTagDropdownOpen(true)}
+													onFocus={() => setTagDropdownOpen(true)}
+													placeholder="Search or create spaces..."
 													className={cn(
 														dmSans125ClassName(),
-														"text-[12px] text-[#525D6E]",
+														"h-full w-full bg-transparent pl-3 pr-8 text-[13px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none",
+													)}
+												/>
+												<ChevronDown
+													className={cn(
+														"absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-[#525D6E] pointer-events-none transition-transform",
+														tagDropdownOpen && "rotate-180",
+													)}
+												/>
+											</div>
+										</PopoverAnchor>
+										<PopoverContent
+											align="start"
+											sideOffset={4}
+											className="w-[var(--radix-popover-trigger-width)] p-1 max-h-[200px] overflow-y-auto bg-[#1B1F24] border border-white/[0.08] rounded-[10px] shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+											onOpenAutoFocus={(e) => e.preventDefault()}
+											onPointerDownOutside={(e) => {
+												if (tagAnchorRef.current?.contains(e.target as Node)) {
+													e.preventDefault()
+												}
+											}}
+										>
+											{filteredTags.map((tag) => (
+												<button
+													key={tag}
+													type="button"
+													onClick={() => {
+														if (!selectedTagSet.has(tag)) {
+															setInviteAssignments([
+																...inviteAssignments,
+																{ containerTag: tag, permission: "read" },
+															])
+														}
+														setTagQuery("")
+														setTagDropdownOpen(false)
+													}}
+													onMouseDown={(e) => e.preventDefault()}
+													className={cn(
+														dmSans125ClassName(),
+														"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#FAFAFA] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
 													)}
 												>
-													Select at least one space
-												</p>
+													<Tag className="size-3.5 text-[#525D6E]" />
+													{tag}
+												</button>
+											))}
+											{tagQuery.trim().length > 0 &&
+												!selectedTagSet.has(tagQuery.trim()) &&
+												!(allContainerTags ?? []).some(
+													(t) =>
+														t.containerTag.toLowerCase() ===
+														tagQuery.trim().toLowerCase(),
+												) && (
+													<button
+														type="button"
+														onClick={() => {
+															const sanitized = tagQuery.trim()
+															if (!selectedTagSet.has(sanitized)) {
+																setInviteAssignments([
+																	...inviteAssignments,
+																	{
+																		containerTag: sanitized,
+																		permission: "read",
+																	},
+																])
+															}
+															setTagQuery("")
+															setTagDropdownOpen(false)
+														}}
+														onMouseDown={(e) => e.preventDefault()}
+														className={cn(
+															dmSans125ClassName(),
+															"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#8FC8FF] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
+														)}
+													>
+														<Plus className="size-3.5" />
+														Create &ldquo;{tagQuery.trim()}&rdquo;
+													</button>
+												)}
+										</PopoverContent>
+									</Popover>
+
+									{/* Selected tags */}
+									{inviteAssignments.length > 0 && (
+										<div className="flex flex-col rounded-[10px] border border-white/[0.06] overflow-hidden">
+											{inviteAssignments.map((a) => (
+												<div
+													key={a.containerTag}
+													className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] last:border-0 bg-white/[0.015]"
+												>
+													<button
+														type="button"
+														onClick={() =>
+															setInviteAssignments(
+																inviteAssignments.filter(
+																	(t) => t.containerTag !== a.containerTag,
+																),
+															)
+														}
+														className="text-[#525D6E] hover:text-[#C73B1B] transition-colors shrink-0"
+													>
+														<X className="size-3.5" />
+													</button>
+													<span
+														className={cn(
+															dmSans125ClassName(),
+															"text-[13px] text-[#FAFAFA] truncate min-w-0 flex-1",
+														)}
+													>
+														{a.containerTag}
+													</span>
+													<div className="grid grid-cols-2 gap-1 shrink-0">
+														{(["read", "write"] as const).map((perm) => {
+															const active = a.permission === perm
+															return (
+																<button
+																	key={perm}
+																	type="button"
+																	onClick={() =>
+																		setInviteAssignments(
+																			inviteAssignments.map((t) =>
+																				t.containerTag === a.containerTag
+																					? { ...t, permission: perm }
+																					: t,
+																			),
+																		)
+																	}
+																	className={cn(
+																		dmSans125ClassName(),
+																		"h-7 px-3 rounded-[8px] border text-[12px] font-medium transition-colors cursor-pointer capitalize",
+																		active
+																			? "border-[#2261CA33] bg-[#00173C] text-white"
+																			: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
+																	)}
+																>
+																	{perm}
+																</button>
+															)
+														})}
+													</div>
+												</div>
+											))}
+										</div>
+									)}
+
+									{inviteAssignments.length === 0 && (
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"text-[12px] text-[#525D6E]",
 											)}
+										>
+											Select at least one space
+										</p>
+									)}
 								</div>
 							)}
 						</div>
