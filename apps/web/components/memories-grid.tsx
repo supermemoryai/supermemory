@@ -775,6 +775,9 @@ export function MemoriesGrid({
 							hasNextPage={hasNextPage}
 							isFetchingNextPage={isFetchingNextPage}
 							onLoadMore={loadMoreDocuments}
+							isSelectionMode={isSelectionMode}
+							selectedDocumentIds={selectedDocumentIds}
+							onToggleSelection={onToggleSelection}
 						/>
 					) : (
 						<Masonry
