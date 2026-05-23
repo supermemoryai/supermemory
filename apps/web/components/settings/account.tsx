@@ -44,11 +44,14 @@ import {
 	Mail,
 	MoreHorizontal,
 	UserMinus,
-	ShieldCheck,
 	X,
+	Tag,
+	Plus,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { useContainerTags } from "@/hooks/use-container-tags"
+import { PopoverAnchor } from "@ui/components/popover"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -105,26 +108,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 type InviteRole = "admin" | "member"
 
-const INVITE_PERMISSION_OPTIONS: Record<
-	InviteRole,
-	{ title: string; description: string; permissions: string[] }
-> = {
-	member: {
-		title: "Member access",
-		description: "Use the organization workspace with standard access.",
-		permissions: ["Read organization access", "Use shared memories"],
-	},
-	admin: {
-		title: "Admin access",
-		description: "Manage teammates and organization-level team settings.",
-		permissions: [
-			"Invite and cancel invitations",
-			"Change member roles",
-			"Remove members",
-			"Update organization settings",
-		],
-	},
-}
 
 function getErrorMessage(error: unknown, fallback: string) {
 	if (error instanceof Error && error.message) return error.message
@@ -200,6 +183,23 @@ export default function Account() {
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 	const [inviteEmail, setInviteEmail] = useState("")
 	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
+	const [inviteAccessType, setInviteAccessType] = useState<"full" | "restricted">("full")
+	const [inviteAssignments, setInviteAssignments] = useState<{ containerTag: string; permission: "read" | "write" }[]>([])
+	const [tagQuery, setTagQuery] = useState("")
+	const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
+	const tagInputRef = useRef<HTMLInputElement>(null)
+	const tagAnchorRef = useRef<HTMLDivElement>(null)
+	const { allProjects: allContainerTags } = useContainerTags()
+
+	const selectedTagSet = new Set(inviteAssignments.map((a) => a.containerTag))
+	const filteredTags = useMemo(() => {
+		const available = (allContainerTags ?? []).map((t) => t.containerTag).filter((t) => !selectedTagSet.has(t))
+		if (!tagQuery) return available
+		return available.filter((t) => t.toLowerCase().includes(tagQuery.toLowerCase()))
+	}, [allContainerTags, selectedTagSet, tagQuery])
+
+	const showAccessType = inviteRole === "member"
+	const showTagPicker = inviteRole === "member" && inviteAccessType === "restricted"
 	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
 	const { data: orgSummaries } = useOrgSummaries()
 
@@ -255,16 +255,28 @@ export default function Account() {
 		[org?.invitations],
 	)
 
+	const resetInviteForm = () => {
+		setInviteEmail("")
+		setInviteRole("member")
+		setInviteAccessType("full")
+		setInviteAssignments([])
+		setTagQuery("")
+	}
+
 	const inviteMemberMutation = useMutation({
 		mutationFn: async () => {
 			if (!org?.id) throw new Error("No active organization")
 			const email = inviteEmail.trim().toLowerCase()
 			if (!email) throw new Error("Enter an email address")
+			const isRestricted = inviteRole === "member" && inviteAccessType === "restricted"
 			const result = await authClient.organization.inviteMember({
 				email,
 				role: inviteRole,
 				organizationId: org.id,
 				resend: true,
+				...(isRestricted && inviteAssignments.length > 0
+					? { data: { accessType: "restricted", containerTags: inviteAssignments } }
+					: {}),
 			})
 			if (result.error) {
 				throw new Error(result.error.message ?? "Failed to invite teammate")
@@ -272,8 +284,7 @@ export default function Account() {
 			return result.data
 		},
 		onSuccess: async (invitation) => {
-			setInviteEmail("")
-			setInviteRole("member")
+			resetInviteForm()
 			setInviteDialogOpen(false)
 			await refetchActiveOrg()
 			toast.success("Invitation sent", {
@@ -610,10 +621,10 @@ export default function Account() {
 									disabled={!org?.id}
 									className={cn(
 										dmSans125ClassName(),
-										"inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-[#4BA0FA] px-4 text-[14px] font-semibold text-[#00171A] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
+										"inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-[#2261CA33] bg-[#00173C] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#002654] disabled:cursor-not-allowed disabled:opacity-45",
 									)}
 								>
-									<UserPlus className="size-4" />
+									<UserPlus className="size-3.5" />
 									Invite member
 								</button>
 							</div>
@@ -850,167 +861,316 @@ export default function Account() {
 				onOpenChange={(open) => {
 					setInviteDialogOpen(open)
 					if (!open && !inviteMemberMutation.isPending) {
-						setInviteEmail("")
-						setInviteRole("member")
+						resetInviteForm()
 					}
 				}}
 			>
-				<DialogContent className="sm:max-w-lg bg-[#14161A] border-white/10 text-[#FAFAFA]">
-					<DialogHeader>
-						<DialogTitle
-							className={cn(
-								dmSans125ClassName(),
-								"text-[20px] font-semibold tracking-[-0.2px]",
-							)}
-						>
-							Invite teammate
-						</DialogTitle>
-					</DialogHeader>
-					<form onSubmit={handleInviteSubmit} className="flex flex-col gap-5">
-						<div className="flex flex-col gap-2">
-							<label
-								htmlFor="team-invite-email"
+				<DialogContent className="sm:max-w-[480px] bg-[#0D0F14] border-white/[0.06] text-[#FAFAFA] p-0 gap-0 overflow-hidden">
+					<div className="px-6 pt-6 pb-4">
+						<DialogHeader>
+							<DialogTitle
 								className={cn(
 									dmSans125ClassName(),
-									"text-[13px] font-medium text-[#A3A3A3]",
+									"text-[18px] font-semibold tracking-[-0.18px]",
 								)}
 							>
-								Email address
-							</label>
-							<div className="relative min-w-0">
-								<Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#737373]" />
-								<input
-									id="team-invite-email"
-									type="email"
-									value={inviteEmail}
-									onChange={(event) => setInviteEmail(event.target.value)}
-									placeholder="teammate@company.com"
-									autoComplete="email"
+								Invite teammate
+							</DialogTitle>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[13px] tracking-[-0.13px] text-[#737373] mt-1",
+								)}
+							>
+								Send an invitation to join your organization.
+							</p>
+						</DialogHeader>
+					</div>
+
+					<form onSubmit={handleInviteSubmit} className="flex flex-col">
+						<div className="flex flex-col gap-5 px-6">
+							{/* Email */}
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="team-invite-email"
 									className={cn(
 										dmSans125ClassName(),
-										"h-10 w-full rounded-[10px] border border-white/[0.08] bg-[#0D0F14] pl-9 pr-3 text-[14px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none transition-colors focus:border-[#4BA0FA]/50",
+										"text-[13px] font-medium text-[#FAFAFA]",
 									)}
-								/>
+								>
+									Email
+								</label>
+								<div className="relative min-w-0">
+									<Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#525D6E]" />
+									<input
+										id="team-invite-email"
+										type="email"
+										value={inviteEmail}
+										onChange={(event) => setInviteEmail(event.target.value)}
+										placeholder="colleague@company.com"
+										autoComplete="email"
+										className={cn(
+											dmSans125ClassName(),
+											"h-10 w-full rounded-[10px] border border-white/[0.06] bg-white/[0.02] pl-9 pr-3 text-[14px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none transition-colors focus:border-[#2261CA33]",
+										)}
+									/>
+								</div>
 							</div>
-						</div>
 
-						<div className="flex flex-col gap-2">
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[13px] font-medium text-[#A3A3A3]",
-								)}
-							>
-								Role
-							</p>
-							<div className="grid grid-cols-2 gap-2">
-								{(["member", "admin"] as const).map((role) => {
-									const selected = inviteRole === role
-									return (
-										<button
-											key={role}
-											type="button"
-											onClick={() => setInviteRole(role)}
-											className={cn(
-												dmSans125ClassName(),
-												"rounded-[10px] border px-3 py-2 text-left transition-colors",
-												selected
-													? "border-[#4BA0FA]/60 bg-[#4BA0FA]/10 text-[#FAFAFA]"
-													: "border-white/[0.08] bg-[#0D0F14] text-[#A3A3A3] hover:bg-white/[0.04]",
-											)}
-										>
-											<span className="block text-[14px] font-semibold">
-												{formatRole(role)}
-											</span>
-											<span className="block text-[12px] text-[#737373]">
-												{INVITE_PERMISSION_OPTIONS[role].description}
-											</span>
-										</button>
-									)
-								})}
-							</div>
-						</div>
-
-						<div className="flex flex-col gap-2">
-							<p
-								className={cn(
-									dmSans125ClassName(),
-									"text-[13px] font-medium text-[#A3A3A3]",
-								)}
-							>
-								Permissions
-							</p>
-							<div className="grid grid-cols-1 gap-2">
-								{(["member", "admin"] as const).map((role) => {
-									const option = INVITE_PERMISSION_OPTIONS[role]
-									const selected = inviteRole === role
-									return (
-										<button
-											key={role}
-											type="button"
-											onClick={() => setInviteRole(role)}
-											className={cn(
-												"flex items-start gap-3 rounded-[10px] border p-3 text-left transition-colors",
-												selected
-													? "border-[#4BA0FA]/60 bg-[#4BA0FA]/10"
-													: "border-white/[0.08] bg-[#0D0F14] hover:bg-white/[0.04]",
-											)}
-										>
-											<div
+							{/* Role chips */}
+							<div className="flex flex-col gap-1.5">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[13px] font-medium text-[#FAFAFA]",
+									)}
+								>
+									Role
+								</p>
+								<div className="grid grid-cols-2 gap-2">
+									{(["member", "admin"] as const).map((role) => {
+										const selected = inviteRole === role
+										return (
+											<button
+												key={role}
+												type="button"
+												onClick={() => {
+													setInviteRole(role)
+													if (role === "admin") {
+														setInviteAccessType("full")
+														setInviteAssignments([])
+													}
+												}}
 												className={cn(
-													"mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
+													dmSans125ClassName(),
+													"flex items-center justify-center h-9 rounded-[10px] border text-[13px] font-medium transition-colors cursor-pointer",
 													selected
-														? "bg-[#4BA0FA]/15 text-[#4BA0FA]"
-														: "bg-white/[0.04] text-[#737373]",
+														? "border-[#2261CA33] bg-[#00173C] text-white"
+														: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
 												)}
 											>
-												<ShieldCheck className="size-4" />
-											</div>
-											<div className="min-w-0 flex-1">
+												{formatRole(role)}
+											</button>
+										)
+									})}
+								</div>
+							</div>
+
+							{/* Access type (only for Member) */}
+							{showAccessType && (
+								<div className="flex flex-col gap-1.5">
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[13px] font-medium text-[#FAFAFA]",
+										)}
+									>
+										Access
+									</p>
+									<div className="grid grid-cols-2 gap-2">
+										{(["full", "restricted"] as const).map((type) => {
+											const selected = inviteAccessType === type
+											return (
+												<button
+													key={type}
+													type="button"
+													onClick={() => {
+														setInviteAccessType(type)
+														if (type === "full") setInviteAssignments([])
+													}}
+													className={cn(
+														dmSans125ClassName(),
+														"flex items-center justify-center h-9 rounded-[10px] border text-[13px] font-medium transition-colors cursor-pointer",
+														selected
+															? "border-[#2261CA33] bg-[#00173C] text-white"
+															: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
+													)}
+												>
+													{type === "full" ? "Full Access" : "Restricted"}
+												</button>
+											)
+										})}
+									</div>
+								</div>
+							)}
+
+							{/* Container tag picker (only for Restricted) */}
+							{showTagPicker && (
+								<div className="flex flex-col gap-2">
+											<p
+												className={cn(
+													dmSans125ClassName(),
+													"text-[13px] font-medium text-[#FAFAFA]",
+												)}
+											>
+												Spaces
+											</p>
+
+											<Popover
+												open={tagDropdownOpen && (filteredTags.length > 0 || (tagQuery.trim().length > 0 && !selectedTagSet.has(tagQuery.trim())))}
+												onOpenChange={setTagDropdownOpen}
+											>
+												<PopoverAnchor asChild>
+													<div
+														ref={tagAnchorRef}
+														className={cn(
+															"relative flex items-center w-full h-10",
+															"rounded-[10px] border border-white/[0.06] bg-white/[0.02]",
+															"transition-colors focus-within:border-[#2261CA33]",
+														)}
+													>
+														<input
+															ref={tagInputRef}
+															type="text"
+															value={tagQuery}
+															onChange={(e) => {
+																setTagQuery(e.target.value)
+																if (!tagDropdownOpen) setTagDropdownOpen(true)
+															}}
+															onClick={() => setTagDropdownOpen(true)}
+															onFocus={() => setTagDropdownOpen(true)}
+															placeholder="Search or create spaces..."
+															className={cn(
+																dmSans125ClassName(),
+																"h-full w-full bg-transparent pl-3 pr-8 text-[13px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none",
+															)}
+														/>
+														<ChevronDown
+															className={cn(
+																"absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-[#525D6E] pointer-events-none transition-transform",
+																tagDropdownOpen && "rotate-180",
+															)}
+														/>
+													</div>
+												</PopoverAnchor>
+												<PopoverContent
+													align="start"
+													sideOffset={4}
+													className="w-[var(--radix-popover-trigger-width)] p-1 max-h-[200px] overflow-y-auto bg-[#1B1F24] border border-white/[0.08] rounded-[10px] shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+													onOpenAutoFocus={(e) => e.preventDefault()}
+													onPointerDownOutside={(e) => {
+														if (tagAnchorRef.current?.contains(e.target as Node)) {
+															e.preventDefault()
+														}
+													}}
+												>
+													{filteredTags.map((tag) => (
+														<button
+															key={tag}
+															type="button"
+															onClick={() => {
+																if (!selectedTagSet.has(tag)) {
+																	setInviteAssignments([...inviteAssignments, { containerTag: tag, permission: "read" }])
+																}
+																setTagQuery("")
+																setTagDropdownOpen(false)
+															}}
+															onMouseDown={(e) => e.preventDefault()}
+															className={cn(
+																dmSans125ClassName(),
+																"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#FAFAFA] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
+															)}
+														>
+															<Tag className="size-3.5 text-[#525D6E]" />
+															{tag}
+														</button>
+													))}
+													{tagQuery.trim().length > 0 && !selectedTagSet.has(tagQuery.trim()) && !(allContainerTags ?? []).some((t) => t.containerTag.toLowerCase() === tagQuery.trim().toLowerCase()) && (
+														<button
+															type="button"
+															onClick={() => {
+																const sanitized = tagQuery.trim()
+																if (!selectedTagSet.has(sanitized)) {
+																	setInviteAssignments([...inviteAssignments, { containerTag: sanitized, permission: "read" }])
+																}
+																setTagQuery("")
+																setTagDropdownOpen(false)
+															}}
+															onMouseDown={(e) => e.preventDefault()}
+															className={cn(
+																dmSans125ClassName(),
+																"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#8FC8FF] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
+															)}
+														>
+															<Plus className="size-3.5" />
+															Create &ldquo;{tagQuery.trim()}&rdquo;
+														</button>
+													)}
+												</PopoverContent>
+											</Popover>
+
+											{/* Selected tags */}
+											{inviteAssignments.length > 0 && (
+												<div className="flex flex-col rounded-[10px] border border-white/[0.06] overflow-hidden">
+													{inviteAssignments.map((a) => (
+														<div
+															key={a.containerTag}
+															className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] last:border-0 bg-white/[0.015]"
+														>
+															<button
+																type="button"
+																onClick={() => setInviteAssignments(inviteAssignments.filter((t) => t.containerTag !== a.containerTag))}
+																className="text-[#525D6E] hover:text-[#C73B1B] transition-colors shrink-0"
+															>
+																<X className="size-3.5" />
+															</button>
+															<span
+																className={cn(
+																	dmSans125ClassName(),
+																	"text-[13px] text-[#FAFAFA] truncate min-w-0 flex-1",
+																)}
+															>
+																{a.containerTag}
+															</span>
+															<div className="grid grid-cols-2 gap-1 shrink-0">
+																{(["read", "write"] as const).map((perm) => {
+																	const active = a.permission === perm
+																	return (
+																		<button
+																			key={perm}
+																			type="button"
+																			onClick={() =>
+																				setInviteAssignments(inviteAssignments.map((t) => t.containerTag === a.containerTag ? { ...t, permission: perm } : t))
+																			}
+																			className={cn(
+																				dmSans125ClassName(),
+																				"h-7 px-3 rounded-[8px] border text-[12px] font-medium transition-colors cursor-pointer capitalize",
+																				active
+																					? "border-[#2261CA33] bg-[#00173C] text-white"
+																					: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
+																			)}
+																		>
+																			{perm}
+																		</button>
+																	)
+																})}
+															</div>
+														</div>
+													))}
+												</div>
+											)}
+
+											{inviteAssignments.length === 0 && (
 												<p
 													className={cn(
 														dmSans125ClassName(),
-														"text-[14px] font-semibold tracking-[-0.14px] text-[#FAFAFA]",
+														"text-[12px] text-[#525D6E]",
 													)}
 												>
-													{option.title}
+													Select at least one space
 												</p>
-												<ul className="mt-1 flex flex-col gap-0.5">
-													{option.permissions.map((permission) => (
-														<li
-															key={permission}
-															className={cn(
-																dmSans125ClassName(),
-																"text-[12px] tracking-[-0.12px] text-[#737373]",
-															)}
-														>
-															{permission}
-														</li>
-													))}
-												</ul>
-											</div>
-											<span
-												className={cn(
-													"mt-1 size-3 rounded-full border",
-													selected
-														? "border-[#4BA0FA] bg-[#4BA0FA]"
-														: "border-white/20",
-												)}
-												aria-hidden
-											/>
-										</button>
-									)
-								})}
-							</div>
+											)}
+								</div>
+							)}
 						</div>
 
-						<div className="flex justify-end gap-2">
+						<div className="flex justify-end gap-2 px-6 py-4 mt-5 border-t border-white/[0.06]">
 							<button
 								type="button"
 								onClick={() => setInviteDialogOpen(false)}
 								className={cn(
 									dmSans125ClassName(),
-									"h-10 rounded-[10px] border border-white/[0.08] px-4 text-[14px] font-medium text-[#A3A3A3] transition-colors hover:bg-white/[0.04] hover:text-[#FAFAFA]",
+									"h-9 rounded-[10px] border border-[#161F2C] bg-[#0D121A] px-4 text-[13px] font-medium text-[#737373] transition-colors hover:bg-[#00173C] hover:border-[#2261CA33] hover:text-white",
 								)}
 							>
 								Cancel
@@ -1020,11 +1180,12 @@ export default function Account() {
 								disabled={
 									!inviteEmail.trim() ||
 									!org?.id ||
-									inviteMemberMutation.isPending
+									inviteMemberMutation.isPending ||
+									(showTagPicker && inviteAssignments.length === 0)
 								}
 								className={cn(
 									dmSans125ClassName(),
-									"inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-[#4BA0FA] px-4 text-[14px] font-semibold text-[#00171A] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45",
+									"inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-[#2261CA33] bg-[#00173C] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#002654] disabled:cursor-not-allowed disabled:opacity-45",
 								)}
 							>
 								{inviteMemberMutation.isPending ? (
