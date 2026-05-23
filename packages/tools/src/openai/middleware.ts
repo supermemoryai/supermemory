@@ -11,6 +11,20 @@ const normalizeBaseUrl = (url?: string): string => {
 	return url.endsWith("/") ? url.slice(0, -1) : url
 }
 
+/**
+ * Symbol used to stash the real (un-wrapped) SDK method on the wrapper function
+ * so that subsequent calls to `createOpenAIMiddleware` on the same client always
+ * capture the original SDK implementation rather than a previously-installed
+ * wrapper. Without this guard, calling the function twice on the same shared
+ * `OpenAI` instance would double-wrap the method: every completion would
+ * inject memories twice and could surface memories from a different user's
+ * container tag (cross-tenant leakage in multi-request server usage).
+ */
+const ORIGINAL_CREATE_SYM = Symbol("supermemory.originalCreate")
+const ORIGINAL_RESPONSES_CREATE_SYM = Symbol(
+	"supermemory.originalResponsesCreate",
+)
+
 export interface OpenAIMiddlewareOptions {
 	/** Container tag/identifier for memory search (e.g., user ID, project ID). Required. */
 	containerTag: string
@@ -430,8 +444,24 @@ export function createOpenAIMiddleware(
 	const mode = options?.mode ?? "profile"
 	const addMemory = options?.addMemory ?? "always"
 
-	const originalCreate = openaiClient.chat.completions.create
-	const originalResponsesCreate = openaiClient.responses?.create
+	// Unwrap any previously-installed Supermemory wrapper so we always call the
+	// real SDK method. This makes the function safe to call multiple times on
+	// the same shared `openai` instance (e.g. per-request in a server) without
+	// double-wrapping.
+	const currentCreate = openaiClient.chat.completions.create as typeof openaiClient.chat.completions.create & {
+		[ORIGINAL_CREATE_SYM]?: typeof openaiClient.chat.completions.create
+	}
+	const originalCreate =
+		currentCreate[ORIGINAL_CREATE_SYM] ?? currentCreate
+
+	const currentResponsesCreate = openaiClient.responses?.create as
+		| (typeof openaiClient.responses.create & {
+				[ORIGINAL_RESPONSES_CREATE_SYM]?: typeof openaiClient.responses.create
+		  })
+		| undefined
+	const originalResponsesCreate =
+		currentResponsesCreate?.[ORIGINAL_RESPONSES_CREATE_SYM] ??
+		currentResponsesCreate
 
 	/**
 	 * Searches for memories and formats them for injection into API calls.
@@ -635,11 +665,25 @@ export function createOpenAIMiddleware(
 		})
 	}
 
+	// Stamp the original SDK method on the wrapper so future calls to
+	// `createOpenAIMiddleware` on the same client can unwrap it (see above).
+	;(
+		createWithMemory as typeof originalCreate & {
+			[ORIGINAL_CREATE_SYM]?: typeof originalCreate
+		}
+	)[ORIGINAL_CREATE_SYM] = originalCreate
+
 	openaiClient.chat.completions.create =
 		createWithMemory as typeof originalCreate
 
 	// Wrap Responses API if available
 	if (originalResponsesCreate) {
+		;(
+			createResponsesWithMemory as typeof originalResponsesCreate & {
+				[ORIGINAL_RESPONSES_CREATE_SYM]?: typeof originalResponsesCreate
+			}
+		)[ORIGINAL_RESPONSES_CREATE_SYM] = originalResponsesCreate
+
 		openaiClient.responses.create =
 			createResponsesWithMemory as typeof originalResponsesCreate
 	}
