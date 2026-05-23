@@ -39,6 +39,7 @@ import {
 	usePersonalization,
 	type Profession,
 } from "@/hooks/use-personalization"
+import { normalizePluginClientId } from "@/lib/plugin-catalog"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -438,7 +439,7 @@ function getPluginClientFromDocument(
 					: typeof metadata.sm_internal_mcp_client_name === "string"
 						? metadata.sm_internal_mcp_client_name
 						: null
-		if (metadataClient) return metadataClient.toLowerCase()
+		if (metadataClient) return normalizePluginClientId(metadataClient)
 
 		if (metadata.sm_source === "claude-code-plugin") return "claude_code"
 	}
@@ -529,8 +530,9 @@ function parseToolUsage(
 
 		// Plugin keys
 		if (smType === "plugin_auth" && smClient) {
-			const catalog = PLUGIN_DISPLAY_CATALOG[smClient]
-			const existingItem = toolMap.get(`plugin_${smClient}`)
+			const normalizedClient = normalizePluginClientId(smClient)
+			const catalog = PLUGIN_DISPLAY_CATALOG[normalizedClient]
+			const existingItem = toolMap.get(`plugin_${normalizedClient}`)
 			const lastUsed =
 				toValidDate(key.lastRequest) ?? toValidDate(key.createdAt)
 			const existingLastUsed = existingItem?.lastUsedAt
@@ -542,8 +544,8 @@ function parseToolUsage(
 					(!existingLastUsed ||
 						lastUsed.getTime() > existingLastUsed.getTime()))
 			) {
-				toolMap.set(`plugin_${smClient}`, {
-					id: `plugin_${smClient}`,
+				toolMap.set(`plugin_${normalizedClient}`, {
+					id: `plugin_${normalizedClient}`,
 					name: catalog?.name ?? smClient,
 					type: "Plugin",
 					icon: catalog?.icon ?? null,
@@ -721,15 +723,20 @@ function ToolUsageRecentRow({
 }: {
 	item: ToolUsageItem
 	onOpenPlugins: () => void
-	onOpenToolDocument: (document: DocumentWithMemories) => void
+	onOpenToolDocument: (
+		document: DocumentWithMemories,
+		pluginClientId: string,
+	) => void
 }) {
+	const pluginClientId = item.id.replace(/^plugin_/, "")
+
 	return (
 		<li>
 			<button
 				type="button"
 				onClick={() => {
 					if (item.lastDocument) {
-						onOpenToolDocument(item.lastDocument)
+						onOpenToolDocument(item.lastDocument, pluginClientId)
 						return
 					}
 					onOpenPlugins()
@@ -1106,7 +1113,10 @@ export function DashboardView({
 	onNavigateToMemories: () => void
 	onNavigateToGraph: () => void
 	onOpenDocument: (document: DocumentWithMemories) => void
-	onOpenToolDocument: (document: DocumentWithMemories) => void
+	onOpenToolDocument: (
+		document: DocumentWithMemories,
+		pluginClientId: string,
+	) => void
 	onHighlightsChat: (highlightContent: string, userReply: string) => void
 	onHighlightsShowRelated: (query: string) => void
 	onResetHighlights: () => void
@@ -1218,7 +1228,12 @@ export function DashboardView({
 
 	const recents = recentsData?.documents ?? []
 	const recentToolUsageItems = toolUsageItems
-		.filter((item) => item.type === "Plugin")
+		.filter((item) => item.type === "Plugin" && item.lastDocument)
+		.sort((a, b) => {
+			const aTime = toValidDate(a.lastDocument?.createdAt)?.getTime() ?? 0
+			const bTime = toValidDate(b.lastDocument?.createdAt)?.getTime() ?? 0
+			return bTime - aTime
+		})
 		.slice(0, 3)
 	const totalMemories = recentsData?.pagination?.totalItems ?? 0
 	const hasMcp = mcpData?.previousLogin ?? false

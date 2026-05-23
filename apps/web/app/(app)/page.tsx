@@ -60,6 +60,7 @@ import {
 	type IntegrationParamValue,
 } from "@/lib/search-params"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
+import { getToolDocumentSpace } from "@/lib/plugin-space"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -409,11 +410,8 @@ export default function NewPage() {
 	)
 
 	const handleOpenToolDocument = useCallback(
-		(document: DocumentWithMemories) => {
-			const documentSpace =
-				(document as { containerTags?: string[] }).containerTags?.[0] ??
-				document.memoryEntries.find((entry) => entry.spaceContainerTag)
-					?.spaceContainerTag
+		(document: DocumentWithMemories, pluginClientId: string) => {
+			const documentSpace = getToolDocumentSpace(document, pluginClientId)
 			if (documentSpace) {
 				setSelectedProject(documentSpace)
 			}
