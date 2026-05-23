@@ -69,7 +69,7 @@ export default defineBackground(() => {
 	let twitterImporter: TwitterImporter | null = null
 
 	browser.runtime.onInstalled.addListener(async (details) => {
-		if (details.reason === "install") {
+		if (details.reason === "install" || details.reason === "update") {
 			await trackEvent("extension_installed", {
 				reason: details.reason,
 				version: browser.runtime.getManifest().version,
