@@ -64,18 +64,6 @@ export function QuickNoteCard({
 		[setDraft],
 	)
 
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent<HTMLDivElement>) => {
-			if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-				e.preventDefault()
-				if (draft.trim() && !isSaving) {
-					onSave(draft)
-				}
-			}
-		},
-		[draft, isSaving, onSave],
-	)
-
 	const handleExpand = useCallback(() => {
 		const rect = cardRef.current?.getBoundingClientRect()
 		if (!rect) return
@@ -301,7 +289,6 @@ export function QuickNoteCard({
 										boxShadow:
 											"0 28px 80px rgba(0, 0, 0, 0.55), 0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
 									}}
-									onKeyDown={handleKeyDown}
 								>
 									<div
 										className="flex size-full flex-col rounded-[18px] bg-[#0B1017]"
