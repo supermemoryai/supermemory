@@ -642,11 +642,15 @@ export function MemoryGraph({
 		justifyContent: "center",
 	}
 
-	const navControlsStyle: React.CSSProperties = {
+	const bottomLeftStackStyle: React.CSSProperties = {
 		position: "absolute",
-		bottom: isCompactViewport ? 148 : 72,
+		bottom: 16,
 		left: 16,
-		zIndex: 15,
+		zIndex: 20,
+		display: "flex",
+		flexDirection: "column",
+		alignItems: "flex-start",
+		gap: 8,
 	}
 
 	return (
@@ -703,28 +707,26 @@ export function MemoryGraph({
 					/>
 				)}
 
-				<div>
-					{containerSize.width > 0 && (
-						<div style={navControlsStyle}>
-							<NavigationControls
-								nodes={nodes}
-								compact={isCompactViewport}
-								onAutoFit={handleAutoFit}
-								onCenter={handleCenter}
-								onZoomIn={handleZoomIn}
-								onZoomOut={handleZoomOut}
-								zoomLevel={zoomDisplay}
-								colors={colors}
-							/>
-						</div>
-					)}
-					<Legend
-						colors={colors}
-						edges={edges}
-						isLoading={isLoading}
-						nodes={nodes}
-					/>
-				</div>
+				{containerSize.width > 0 && (
+					<div style={bottomLeftStackStyle}>
+						<NavigationControls
+							nodes={nodes}
+							compact={isCompactViewport}
+							onAutoFit={handleAutoFit}
+							onCenter={handleCenter}
+							onZoomIn={handleZoomIn}
+							onZoomOut={handleZoomOut}
+							zoomLevel={zoomDisplay}
+							colors={colors}
+						/>
+						<Legend
+							colors={colors}
+							edges={edges}
+							isLoading={isLoading}
+							nodes={nodes}
+						/>
+					</div>
+				)}
 			</div>
 		</div>
 	)

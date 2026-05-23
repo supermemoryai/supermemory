@@ -90,7 +90,7 @@ export default function ChatModelSelector({
 	return (
 		<div
 			ref={containerRef}
-			className="relative flex min-w-0 shrink items-center gap-2"
+			className="relative z-10 flex min-w-0 shrink items-center gap-2"
 		>
 			{trigger}
 
