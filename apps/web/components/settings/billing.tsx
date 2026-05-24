@@ -4,35 +4,41 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { calculateUsagePercent } from "@/lib/billing-utils"
 import { PLAN_DISPLAY_NAMES, useTokenUsage } from "@/hooks/use-token-usage"
 import { cn } from "@lib/utils"
+import { useAuth } from "@lib/auth-context"
 import {
 	Dialog,
 	DialogClose,
 	DialogContent,
 	DialogTrigger,
 } from "@ui/components/dialog"
-import { useQueryClient } from "@tanstack/react-query"
-import { useCustomer, useListPlans } from "autumn-js/react"
+import { Coins as PhosphorCoins } from "@phosphor-icons/react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useCustomer } from "autumn-js/react"
 import {
-	Check,
 	CreditCard,
 	ExternalLink,
 	LoaderIcon,
+	Plus,
 	ReceiptText,
 	Settings,
 	X,
 	Zap,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { type ComponentType, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 const API_BASE =
 	process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
 
 const CREDIT_FEATURE_ID = "usd_credits"
-const FALLBACK_TOP_UP_PLAN_ID = "api_topup"
-const TOP_UP_AMOUNTS = [10, 25, 50] as const
+const TOP_UP_PLAN_ID = "credits_topup"
+const TOP_UP_AMOUNTS = [10, 25, 50, 100] as const
 const AUTO_TOP_UP_THRESHOLDS = [2, 5, 10] as const
 const AUTO_TOP_UP_AMOUNTS = [10, 25, 50] as const
+const ConsoleCoinsIcon = PhosphorCoins as unknown as ComponentType<{
+	className?: string
+	weight?: "light"
+}>
 
 type BillingInvoice = {
 	planIds?: string[]
@@ -44,18 +50,25 @@ type BillingInvoice = {
 	hostedInvoiceUrl?: string | null
 }
 
-type BillingAutoTopup = {
+type AutoTopupConfig = {
 	featureId: string
 	enabled: boolean
 	threshold: number
 	quantity: number
-	invoiceMode?: boolean
-	purchaseLimit?: {
+	purchaseLimit: {
 		interval: "hour" | "day" | "week" | "month"
-		intervalCount?: number
+		intervalCount: number
 		limit: number
-	}
+	} | null
 }
+
+type AutoTopupsResponse =
+	| {
+			ok: true
+			hasPaymentMethod: boolean
+			autoTopup: AutoTopupConfig | null
+	  }
+	| { ok: false; reason: string; message?: string }
 
 function SectionTitle({
 	children,
@@ -133,8 +146,14 @@ function FieldSelect({
 	onChange: (value: number) => void
 	disabled?: boolean
 }) {
+	const cols = values.length <= 3 ? "grid-cols-3" : "grid-cols-4"
 	return (
-		<div className="grid grid-cols-3 gap-1 rounded-[10px] border border-white/10 bg-[#0D121A] p-1">
+		<div
+			className={cn(
+				"grid gap-1 rounded-[10px] border border-white/10 bg-[#0D121A] p-1",
+				cols,
+			)}
+		>
 			{values.map((item) => (
 				<button
 					key={item}
@@ -197,42 +216,37 @@ function getStatusTone(status: string): "active" | "muted" | "warning" {
 	return "warning"
 }
 
-function findTopUpPlanId(
-	plans: Array<{
-		id: string
-		name?: string
-		description?: string | null
-		addOn?: boolean
-	}>,
-) {
-	const knownPlan = [
-		"api_topup",
-		"api_top_up",
-		"api_credit_topup",
-		"api_credits_topup",
-		"api_usage_topup",
-	].find((id) => plans.some((plan) => plan.id === id))
-
-	if (knownPlan) return knownPlan
-
-	const discovered = plans.find((plan) => {
-		const label = `${plan.id} ${plan.name ?? ""} ${plan.description ?? ""}`
-		return plan.addOn && /top.?up|credit|usage/i.test(label)
-	})
-
-	return discovered?.id ?? FALLBACK_TOP_UP_PLAN_ID
+function getInvoiceProductLabel(productId: string | undefined): string {
+	if (!productId) return "Billing invoice"
+	if (productId === TOP_UP_PLAN_ID || productId === "api_topup")
+		return "Credits top-up"
+	const planMap: Record<string, string> = {
+		api_free: "Free",
+		api_pro: "Pro",
+		api_scale: "Scale",
+		api_enterprise: "Enterprise",
+		memory_free: "Free",
+		memory_starter: "Pro",
+		memory_growth: "Scale",
+		memory_enterprise: "Enterprise",
+	}
+	if (planMap[productId]) return planMap[productId]
+	return productId
+		.split("_")
+		.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+		.join(" ")
 }
 
 export default function Billing() {
 	const queryClient = useQueryClient()
-	const autumn = useCustomer({ expand: ["invoices", "payment_method"] })
-	const plansQuery = useListPlans({
-		queryOptions: { staleTime: 5 * 60 * 1000 },
-	})
+	const { user, org } = useAuth()
+	const autumn = useCustomer({ expand: ["payment_method"] })
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
 	const [topUpAmount, setTopUpAmount] = useState<number>(25)
+	const [customTopUpAmount, setCustomTopUpAmount] = useState("")
 	const [topUpPendingAmount, setTopUpPendingAmount] = useState<number | null>(
 		null,
 	)
@@ -240,6 +254,12 @@ export default function Billing() {
 	const [autoTopUpThreshold, setAutoTopUpThreshold] = useState<number>(5)
 	const [autoTopUpAmount, setAutoTopUpAmount] = useState<number>(25)
 	const [isSavingAutoTopUp, setIsSavingAutoTopUp] = useState(false)
+
+	const currentMember = org?.members?.find(
+		(m: { userId: string }) => m.userId === user?.id,
+	)
+	const userRole = (currentMember?.role ?? "member") as string
+	const isAdmin = userRole === "owner" || userRole === "admin"
 
 	const {
 		usdIncluded,
@@ -259,41 +279,80 @@ export default function Billing() {
 		? calculateUsagePercent(creditGranted - creditRemaining, creditGranted)
 		: planUsagePct
 
+	// --- Invoices via dedicated billing API (matches console) ---
+	const invoicesQuery = useQuery({
+		queryKey: ["billing", org?.id ?? "", "invoices"],
+		queryFn: async () => {
+			const res = await fetch(`${API_BASE}/v3/auth/billing/invoices`, {
+				credentials: "include",
+				headers: { "X-App-Source": "nova" },
+			})
+			if (!res.ok) return []
+			const data = (await res.json()) as { invoices?: BillingInvoice[] }
+			return data.invoices ?? []
+		},
+		enabled: Boolean(org?.id),
+		staleTime: 60_000,
+	})
 	const invoices = useMemo(() => {
-		return ([...(autumn.data?.invoices ?? [])] as BillingInvoice[])
-			.sort((a, b) => b.createdAt - a.createdAt)
-			.slice(0, 8)
-	}, [autumn.data?.invoices])
+		return [...(invoicesQuery.data ?? [])].sort((a, b) => b.createdAt - a.createdAt)
+	}, [invoicesQuery.data])
 
-	const topUpPlanId = useMemo(
-		() => findTopUpPlanId(plansQuery.data ?? []),
-		[plansQuery.data],
-	)
+	// --- Auto top-ups via dedicated billing API (matches console) ---
+	const autoTopupsQuery = useQuery({
+		queryKey: ["billing", org?.id ?? "", "auto-topups"],
+		queryFn: async () => {
+			const res = await fetch(`${API_BASE}/v3/auth/billing/auto-topups`, {
+				credentials: "include",
+				headers: { "X-App-Source": "nova" },
+			})
+			if (!res.ok) return null
+			return (await res.json()) as AutoTopupsResponse
+		},
+		enabled: Boolean(org?.id),
+		staleTime: 20_000,
+	})
 
-	const activeAutoTopUp = useMemo(() => {
-		const autoTopups = (autumn.data?.billingControls?.autoTopups ??
-			[]) as BillingAutoTopup[]
-		return autoTopups.find(
-			(item: BillingAutoTopup) => item.featureId === CREDIT_FEATURE_ID,
-		)
-	}, [autumn.data?.billingControls?.autoTopups])
+	const autoTopupData =
+		autoTopupsQuery.data && "ok" in autoTopupsQuery.data && autoTopupsQuery.data.ok
+			? autoTopupsQuery.data
+			: null
+	const hasPaymentMethod = Boolean(autoTopupData?.hasPaymentMethod)
+	const activeAutoTopUp = autoTopupData?.autoTopup ?? null
+	const selectedTopUpAmount = customTopUpAmount
+		? Number.parseFloat(customTopUpAmount) || 0
+		: topUpAmount
 
 	useEffect(() => {
-		if (!activeAutoTopUp) return
+		if (!autoTopupData) return
+		if (!activeAutoTopUp) {
+			setAutoTopUpEnabled(false)
+			return
+		}
 		setAutoTopUpEnabled(activeAutoTopUp.enabled)
 		setAutoTopUpThreshold(activeAutoTopUp.threshold)
 		setAutoTopUpAmount(activeAutoTopUp.quantity)
-	}, [activeAutoTopUp])
+	}, [activeAutoTopUp, autoTopupData])
+
+	useEffect(() => {
+		if (!hasPaymentMethod && !activeAutoTopUp?.enabled) {
+			setAutoTopUpEnabled(false)
+		}
+	}, [activeAutoTopUp?.enabled, hasPaymentMethod])
 
 	const planDisplayNames = PLAN_DISPLAY_NAMES
 
 	const handleUpgrade = async () => {
 		setIsUpgrading(true)
 		try {
-			await autumn.attach({
+			const result = await autumn.attach({
 				planId: "api_pro",
 				successUrl: `${window.location.origin}/settings#billing`,
 			})
+			if ((result as { paymentUrl?: string })?.paymentUrl) {
+				window.location.href = (result as { paymentUrl: string }).paymentUrl
+				return
+			}
 			autumn.refetch?.()
 		} catch (error) {
 			console.error(error)
@@ -330,10 +389,18 @@ export default function Billing() {
 	}
 
 	const handleTopUp = async (amount: number) => {
+		if (!isAdmin) {
+			toast.error("Only owners/admins can purchase credits.")
+			return
+		}
+		if (!hasPaidPlan) {
+			toast.error("Upgrade to a paid plan before purchasing credits.")
+			return
+		}
 		setTopUpPendingAmount(amount)
 		try {
-			await autumn.attach({
-				planId: topUpPlanId,
+			const result = await autumn.attach({
+				planId: TOP_UP_PLAN_ID,
 				featureQuantities: [{ featureId: CREDIT_FEATURE_ID, quantity: amount }],
 				successUrl: `${window.location.origin}/settings#billing`,
 				metadata: {
@@ -341,6 +408,10 @@ export default function Billing() {
 					amount: String(amount),
 				},
 			})
+			if ((result as { paymentUrl?: string })?.paymentUrl) {
+				window.location.href = (result as { paymentUrl: string }).paymentUrl
+				return
+			}
 			autumn.refetch?.()
 			toast.success(`${formatUsd(amount)} credit top-up added.`)
 		} catch (error) {
@@ -351,42 +422,50 @@ export default function Billing() {
 		}
 	}
 
-	const handleSaveAutoTopUp = async () => {
-		setIsSavingAutoTopUp(true)
-		const existingAutoTopups = (autumn.data?.billingControls?.autoTopups ??
-			[]) as BillingAutoTopup[]
-		const nextAutoTopups = [
-			...existingAutoTopups.filter(
-				(item: BillingAutoTopup) => item.featureId !== CREDIT_FEATURE_ID,
-			),
-			{
-				featureId: CREDIT_FEATURE_ID,
-				enabled: autoTopUpEnabled,
-				threshold: autoTopUpThreshold,
-				quantity: autoTopUpAmount,
-				purchaseLimit: {
-					interval: "month",
-					intervalCount: 1,
-					limit: 10,
-				},
-			},
-		]
+	const handleAutoReloadToggle = (next: boolean) => {
+		if (next && !hasPaymentMethod) {
+			toast.error(
+				"Add a payment method under Manage Billing before enabling auto reload.",
+			)
+			return
+		}
+		setAutoTopUpEnabled(next)
+	}
 
+	const handleSaveAutoTopUp = async () => {
+		if (!isAdmin) {
+			toast.error("Only owners/admins can change auto top-up settings.")
+			return
+		}
+		if (autoTopUpEnabled && !hasPaymentMethod) {
+			toast.error(
+				"Add a payment method under Manage Billing before enabling auto top-up.",
+			)
+			return
+		}
+		setIsSavingAutoTopUp(true)
 		try {
-			const response = await fetch(`${API_BASE}/api/autumn/updateCustomer`, {
-				method: "POST",
-				credentials: "include",
-				headers: {
-					"Content-Type": "application/json",
-					"X-App-Source": "nova",
-				},
-				body: JSON.stringify({
-					billingControls: {
-						...autumn.data?.billingControls,
-						autoTopups: nextAutoTopups,
+			const response = await fetch(
+				`${API_BASE}/v3/auth/billing/auto-topups`,
+				{
+					method: "POST",
+					credentials: "include",
+					headers: {
+						"Content-Type": "application/json",
+						"X-App-Source": "nova",
 					},
-				}),
-			})
+					body: JSON.stringify({
+						enabled: autoTopUpEnabled,
+						threshold: autoTopUpThreshold,
+						quantity: autoTopUpAmount,
+						purchaseLimit: {
+							interval: "month" as const,
+							intervalCount: 1,
+							limit: 10,
+						},
+					}),
+				},
+			)
 
 			if (!response.ok) {
 				const body = (await response.json().catch(() => ({}))) as {
@@ -395,10 +474,13 @@ export default function Billing() {
 				throw new Error(body.message ?? "Failed to update auto top-up")
 			}
 
+			await queryClient.invalidateQueries({
+				queryKey: ["billing", org?.id ?? "", "auto-topups"],
+			})
 			await queryClient.invalidateQueries({ queryKey: ["autumn"] })
 			autumn.refetch?.()
 			toast.success(
-				autoTopUpEnabled ? "Auto top-up updated." : "Auto top-up disabled.",
+				autoTopUpEnabled ? "Auto top-up settings saved." : "Auto top-up disabled.",
 			)
 		} catch (error) {
 			console.error(error)
@@ -618,189 +700,354 @@ export default function Billing() {
 			</section>
 
 			<section className="flex flex-col gap-4">
-				<SectionTitle
-					aside={
-						activeAutoTopUp?.enabled ? (
-							<Pill tone="active">Auto top-up on</Pill>
-						) : (
-							<Pill>Auto top-up off</Pill>
-						)
-					}
-				>
-					Credits
-				</SectionTitle>
-				<div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-					<SettingsCard>
-						<div className="flex h-full flex-col gap-4">
-							<div className="flex items-start justify-between gap-4">
-								<div>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"text-[13px] font-medium text-[#A3A3A3]",
-										)}
-									>
-										Available balance
-									</p>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"mt-1 text-[28px] font-bold leading-none tracking-[-0.3px] text-[#FAFAFA]",
-										)}
-									>
-										{formatUsd(creditRemaining)}
-									</p>
-								</div>
-								<div className="flex size-9 items-center justify-center rounded-[10px] bg-[#0D121A] text-[#4BA0FA]">
-									<CreditCard className="size-4" />
-								</div>
-							</div>
+				<SectionTitle>Credits</SectionTitle>
 
-							<div className="flex flex-col gap-2">
-								<div className="flex items-center justify-between text-[12px]">
-									<span className="text-[#737373]">Credits used</span>
-									<span className="font-medium tabular-nums text-[#A3A3A3]">
-										{Math.round(creditUsagePct)}%
+					<SettingsCard>
+						<div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+							<div className="min-w-0 flex-1">
+								<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+									Usage this period
+								</p>
+								<div className="mt-4 flex items-baseline gap-1 text-[13px] text-[#A3A3A3]">
+									<span className="font-semibold text-[#FAFAFA]">
+										{planUsagePct < 1 && planUsagePct > 0
+											? "< 1"
+											: Math.round(planUsagePct)}
+										%
+									</span>
+									<span>of monthly usage</span>
+									<span className="text-[#737373]">
+										{daysRemaining !== null
+											? `· resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
+											: "· resets with your billing cycle"}
 									</span>
 								</div>
-								<div className="h-1.5 overflow-hidden rounded-full bg-[#2E353D]">
+								<div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-[#2E353D]">
 									<div
 										className="h-full rounded-full bg-[#4BA0FA]"
-										style={{ width: `${creditUsagePct}%` }}
+										style={{ width: `${planUsagePct}%` }}
 									/>
 								</div>
+								<p className="mt-3 text-[12px] text-[#737373]">
+									{planUsagePct > 0
+										? `${formatUsd(usdSpent)} used this period`
+										: "No usage yet this period"}
+								</p>
 							</div>
 
-							<div className="mt-auto flex flex-col gap-3">
-								<FieldSelect
-									value={topUpAmount}
-									values={TOP_UP_AMOUNTS}
-									prefix="$"
-									onChange={setTopUpAmount}
-									disabled={topUpPendingAmount !== null}
-								/>
-								<button
-									type="button"
-									onClick={() => void handleTopUp(topUpAmount)}
-									disabled={topUpPendingAmount !== null}
-									className={cn(
-										dmSans125ClassName(),
-										"inline-flex h-10 items-center justify-center gap-2 rounded-[10px] bg-[#0D121A] text-[14px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-60",
-									)}
+							<div className="flex shrink-0 flex-col gap-2 sm:min-w-[170px]">
+								<Dialog
+									open={isCreditsDialogOpen}
+									onOpenChange={setIsCreditsDialogOpen}
 								>
-									{topUpPendingAmount !== null ? (
-										<LoaderIcon className="size-4 animate-spin" />
-									) : (
-										<Zap className="size-4 text-[#4BA0FA]" />
-									)}
-									Add {formatUsd(topUpAmount)}
-								</button>
-							</div>
-						</div>
-					</SettingsCard>
+									<DialogTrigger asChild>
+										<button
+											type="button"
+											className={cn(
+												dmSans125ClassName(),
+												"inline-flex h-9 items-center justify-center gap-2 rounded-[9px] bg-[#0054AD] px-3 text-[13px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9]",
+											)}
+										>
+											<Plus className="size-3.5" />
+											Buy credits
+										</button>
+									</DialogTrigger>
+									<DialogContent
+										showCloseButton={false}
+										className="w-[min(560px,calc(100vw-32px))] rounded-[18px] border border-[#1C2B3E] bg-[#0B0D12] p-6 shadow-[0px_18px_70px_rgba(0,0,0,0.72)]"
+									>
+										<div className="flex items-start justify-between gap-4">
+											<div>
+												<p
+													className={cn(
+														dmSans125ClassName(),
+														"text-[22px] font-semibold tracking-[-0.22px] text-[#FAFAFA]",
+													)}
+												>
+													Buy Credits
+												</p>
+												<p
+													className={cn(
+														dmSans125ClassName(),
+														"mt-2 text-[15px] text-[#A3A3A3]",
+													)}
+												>
+													Add USD to your balance for metered usage.
+												</p>
+											</div>
+											<DialogClose asChild>
+												<button
+													type="button"
+													className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0D121A] text-[#737373] transition-colors hover:text-[#FAFAFA]"
+												>
+													<X className="size-5" />
+												</button>
+											</DialogClose>
+										</div>
 
-					<SettingsCard>
-						<div className="flex flex-col gap-4">
-							<div className="flex items-start justify-between gap-4">
-								<div>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"text-[15px] font-semibold tracking-[-0.15px] text-[#FAFAFA]",
-										)}
-									>
-										Auto top-up
-									</p>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"mt-1 text-[13px] leading-relaxed text-[#A3A3A3]",
-										)}
-									>
-										Add credits automatically when the workspace balance gets
-										low.
-									</p>
-								</div>
+										<div className="mt-8 flex flex-col gap-5">
+											<div className="flex flex-col gap-3">
+												<p
+													className={cn(
+														dmSans125ClassName(),
+														"text-[16px] font-semibold text-[#FAFAFA]",
+													)}
+												>
+													Choose an amount
+												</p>
+												<FieldSelect
+													value={topUpAmount}
+													values={TOP_UP_AMOUNTS}
+													prefix="$"
+													onChange={(value) => {
+														setTopUpAmount(value)
+														setCustomTopUpAmount("")
+													}}
+													disabled={topUpPendingAmount !== null}
+												/>
+												<div className="flex flex-col gap-2">
+													<label className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+														Custom amount (USD)
+													</label>
+													<input
+														inputMode="decimal"
+														min={1}
+														onChange={(event) =>
+															setCustomTopUpAmount(event.target.value)
+														}
+														placeholder="e.g. 75"
+														type="number"
+														value={customTopUpAmount}
+														className="h-11 rounded-[10px] border border-white/10 bg-[#080B10] px-3 text-[14px] text-[#FAFAFA] outline-none placeholder:text-[#737373] focus:border-[#0054AD]"
+													/>
+												</div>
+											</div>
+
+											<div className="h-px bg-white/[0.06]" />
+
+											<div className="flex flex-col gap-4">
+												<div className="flex items-center justify-between">
+													<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+														Auto reload
+													</p>
+													<span className="text-[12px] text-[#737373]">
+														{autoTopUpEnabled ? "on" : "off"}
+													</span>
+												</div>
+
+												<div className="flex items-center justify-between gap-4">
+													<p
+														className={cn(
+															dmSans125ClassName(),
+															"text-[16px] text-[#FAFAFA]",
+														)}
+													>
+														Auto reload is{" "}
+														{autoTopUpEnabled ? "enabled" : "disabled"}
+													</p>
+													<button
+														type="button"
+														disabled={
+															isSavingAutoTopUp ||
+															!isAdmin ||
+															(!hasPaymentMethod && !activeAutoTopUp?.enabled)
+														}
+														onClick={() =>
+															handleAutoReloadToggle(!autoTopUpEnabled)
+														}
+														className={cn(
+															dmSans125ClassName(),
+															"inline-flex h-9 min-w-[96px] items-center justify-center rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-45",
+														)}
+													>
+														{autoTopUpEnabled ? "Disable" : "Enable"}
+													</button>
+												</div>
+
+												{!hasPaymentMethod && !activeAutoTopUp?.enabled ? (
+													<p className="text-[13px] text-[#737373]">
+														Save a card in Manage Billing to enable automatic
+														reloads.
+													</p>
+												) : null}
+
+												<div
+													className={cn(
+														"grid gap-3 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3 transition-[filter,opacity] sm:grid-cols-2",
+														!autoTopUpEnabled &&
+															"pointer-events-none select-none opacity-45 blur-[3px]",
+													)}
+												>
+													<div className="flex flex-col gap-2">
+														<label className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+															Threshold (USD)
+														</label>
+														<input
+															disabled={!autoTopUpEnabled || isSavingAutoTopUp}
+															inputMode="decimal"
+															min={0}
+															onChange={(event) => {
+																const value = Number.parseFloat(
+																	event.target.value,
+																)
+																setAutoTopUpThreshold(
+																	Number.isFinite(value) ? value : 0,
+																)
+															}}
+															type="number"
+															value={
+																Number.isFinite(autoTopUpThreshold)
+																	? autoTopUpThreshold
+																	: ""
+															}
+															className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
+														/>
+													</div>
+													<div className="flex flex-col gap-2">
+														<label className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+															Reload amount (USD)
+														</label>
+														<input
+															disabled={!autoTopUpEnabled || isSavingAutoTopUp}
+															inputMode="decimal"
+															min={0.01}
+															onChange={(event) => {
+																const value = Number.parseFloat(
+																	event.target.value,
+																)
+																setAutoTopUpAmount(
+																	Number.isFinite(value) ? value : 0,
+																)
+															}}
+															type="number"
+															value={
+																Number.isFinite(autoTopUpAmount)
+																	? autoTopUpAmount
+																	: ""
+															}
+															className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
+														/>
+													</div>
+													<div className="sm:col-span-2">
+														<button
+															type="button"
+															onClick={() => void handleSaveAutoTopUp()}
+															disabled={isSavingAutoTopUp || !isAdmin}
+															className={cn(
+																dmSans125ClassName(),
+																"inline-flex h-9 w-full items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-[#080B10] text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-60",
+															)}
+														>
+															{isSavingAutoTopUp ? (
+																<LoaderIcon className="size-3.5 animate-spin" />
+															) : null}
+															Save threshold &amp; reload amount
+														</button>
+													</div>
+												</div>
+											</div>
+
+											<button
+												type="button"
+												onClick={() => void handleTopUp(selectedTopUpAmount)}
+												disabled={
+													topUpPendingAmount !== null ||
+													!isAdmin ||
+													selectedTopUpAmount <= 0
+												}
+												className={cn(
+													dmSans125ClassName(),
+													"inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-bold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
+												)}
+											>
+												{topUpPendingAmount !== null ? (
+													<LoaderIcon className="size-4 animate-spin" />
+												) : null}
+												Buy {formatUsd(selectedTopUpAmount)} in credits
+											</button>
+
+											{!isAdmin ? (
+												<p className="text-center text-[11px] text-[#737373]">
+													Only owners/admins can purchase credits.
+												</p>
+											) : null}
+										</div>
+									</DialogContent>
+								</Dialog>
 								<button
 									type="button"
-									onClick={() => setAutoTopUpEnabled((enabled) => !enabled)}
-									className={cn(
-										"relative h-6 w-11 rounded-full border transition-colors",
-										autoTopUpEnabled
-											? "border-[#4BA0FA]/40 bg-[#0E2C4E]"
-											: "border-white/10 bg-[#0D121A]",
-									)}
-									aria-pressed={autoTopUpEnabled}
+									onClick={() => setIsCreditsDialogOpen(true)}
+									disabled={!isAdmin}
+									className="inline-flex h-8 items-center justify-center gap-2 rounded-[8px] text-[12px] font-medium text-[#A3A3A3] transition-colors hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
 								>
 									<span
-										className={cn(
-											"absolute top-1/2 size-4 -translate-y-1/2 rounded-full transition-transform",
-											autoTopUpEnabled
-												? "translate-x-[22px] bg-[#4BA0FA]"
-												: "translate-x-1 bg-[#737373]",
-										)}
+										className="size-1.5 rounded-full"
+										style={{
+											backgroundColor: autoTopUpEnabled
+												? "#4BA0FA"
+												: "#737373",
+										}}
 									/>
-								</button>
-							</div>
-
-							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-								<div className="flex flex-col gap-2">
-									<p className="text-[12px] font-medium text-[#737373]">
-										Trigger below
-									</p>
-									<FieldSelect
-										value={autoTopUpThreshold}
-										values={AUTO_TOP_UP_THRESHOLDS}
-										prefix="$"
-										onChange={setAutoTopUpThreshold}
-										disabled={!autoTopUpEnabled || isSavingAutoTopUp}
-									/>
-								</div>
-								<div className="flex flex-col gap-2">
-									<p className="text-[12px] font-medium text-[#737373]">
-										Add each time
-									</p>
-									<FieldSelect
-										value={autoTopUpAmount}
-										values={AUTO_TOP_UP_AMOUNTS}
-										prefix="$"
-										onChange={setAutoTopUpAmount}
-										disabled={!autoTopUpEnabled || isSavingAutoTopUp}
-									/>
-								</div>
-							</div>
-
-							<div className="flex flex-col gap-3 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3 sm:flex-row sm:items-center sm:justify-between">
-								<div className="flex items-start gap-2">
-									<Check className="mt-0.5 size-3.5 shrink-0 text-[#4BA0FA]" />
-									<p className="text-[12px] leading-relaxed text-[#A3A3A3]">
-										Limit: up to 10 automatic top-ups per month.
-									</p>
-								</div>
-								<button
-									type="button"
-									onClick={() => void handleSaveAutoTopUp()}
-									disabled={isSavingAutoTopUp}
-									className={cn(
-										dmSans125ClassName(),
-										"inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-[8px] bg-[#1C2B3E] px-3 text-[13px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#24384F] disabled:cursor-not-allowed disabled:opacity-60",
-									)}
-								>
-									{isSavingAutoTopUp ? (
-										<LoaderIcon className="size-3.5 animate-spin" />
-									) : null}
-									Save
+									Auto reload: {autoTopUpEnabled ? "on" : "off"}
 								</button>
 							</div>
 						</div>
 					</SettingsCard>
-				</div>
-			</section>
+
+				{hasPaidPlan ? (
+					<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
+						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div className="flex min-w-0 items-start gap-3">
+								<ConsoleCoinsIcon
+									className="mt-1 size-4 shrink-0 text-[#4BA0FA]"
+									weight="light"
+								/>
+								<div className="min-w-0">
+									<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+										Top-up credits{" "}
+										<span className="font-normal normal-case tracking-normal text-[#A3A3A3]">
+											(optional)
+										</span>
+									</p>
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"mt-2 text-[14px] font-semibold text-[#FAFAFA]",
+										)}
+									>
+										{creditRemaining > 0
+											? `${formatUsd(creditRemaining)} available`
+											: "No top-up credits yet"}
+									</p>
+									<p className="mt-2 text-[12px] leading-snug text-[#737373]">
+										Optional add-on that{" "}
+										<span className="font-semibold text-[#A3A3A3]">
+											rolls over
+										</span>{" "}
+										month-to-month, separate from your monthly usage above.
+									</p>
+								</div>
+							</div>
+							<button
+								type="button"
+								onClick={() => setIsCreditsDialogOpen(true)}
+								className={cn(
+									dmSans125ClassName(),
+									"inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24]",
+								)}
+							>
+								<Plus className="size-3.5" />
+								{creditRemaining > 0 ? "Add more" : "Add credits"}
+							</button>
+						</div>
+					</SettingsCard>
+					) : null}
+				</section>
 
 			<section className="flex flex-col gap-4">
 				<SectionTitle>Invoice history</SectionTitle>
 				<SettingsCard className="p-0">
-					{autumn.isLoading ? (
+					{invoicesQuery.isLoading ? (
 						<div className="flex h-28 items-center justify-center gap-3 text-[#737373]">
 							<LoaderIcon className="size-4 animate-spin" />
 							<span className={cn(dmSans125ClassName(), "text-[13px]")}>
@@ -823,6 +1070,11 @@ export default function Billing() {
 						<div className="divide-y divide-white/[0.06]">
 							{invoices.map((invoice) => {
 								const date = formatDate(normalizeTimestamp(invoice.createdAt))
+								const label = invoice.planIds?.length
+									? invoice.planIds
+											.map((id) => getInvoiceProductLabel(id))
+											.join(", ")
+									: "Billing invoice"
 								return (
 									<div
 										key={invoice.stripeId}
@@ -835,9 +1087,7 @@ export default function Billing() {
 													"truncate text-[13px] font-medium text-[#FAFAFA]",
 												)}
 											>
-												{invoice.planIds?.length
-													? invoice.planIds.join(", ")
-													: "Billing invoice"}
+												{label}
 											</p>
 											<p className="mt-0.5 truncate text-[12px] text-[#737373]">
 												{invoice.stripeId}
