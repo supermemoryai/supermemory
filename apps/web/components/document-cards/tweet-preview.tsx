@@ -122,7 +122,9 @@ function parseTweetData(data: Tweet | string): Tweet | null {
 	if (typeof data !== "string") return data
 	try {
 		const parsed = JSON.parse(data)
-		return parsed && typeof parsed === "object" ? (parsed as Tweet) : null
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+			? (parsed as Tweet)
+			: null
 	} catch {
 		return null
 	}
