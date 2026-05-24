@@ -26,12 +26,8 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@ui/components/dropdown-menu"
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@ui/components/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
@@ -590,59 +586,37 @@ export default function Account() {
 							their access.
 						</p>
 					</div>
-					{(org?.members?.length ?? 0) > 0 && (
-						<span
-							className={cn(
-								dmSans125ClassName(),
-								"text-[13px] tracking-[-0.13px] text-[#737373] tabular-nums pr-1",
-							)}
-						>
-							{org?.members?.length}{" "}
-							{org?.members?.length === 1 ? "member" : "members"}
-						</span>
-					)}
+					<div className="flex items-center gap-3">
+						{(org?.members?.length ?? 0) > 0 && (
+							<span
+								className={cn(
+									dmSans125ClassName(),
+									"text-[13px] tracking-[-0.13px] text-[#737373] tabular-nums",
+								)}
+							>
+								{org?.members?.length}{" "}
+								{org?.members?.length === 1 ? "member" : "members"}
+							</span>
+						)}
+						{canManageTeam && (
+							<button
+								type="button"
+								onClick={() => setInviteDialogOpen(true)}
+								disabled={!org?.id}
+								className={cn(
+									dmSans125ClassName(),
+									"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820] disabled:cursor-not-allowed disabled:opacity-45",
+								)}
+							>
+								<UserPlus className="size-3.5" />
+								Invite member
+							</button>
+						)}
+					</div>
 				</div>
 				<SettingsCard>
 					<div className="flex flex-col gap-5">
-						{canManageTeam ? (
-							<div className="flex flex-col gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3 md:flex-row md:items-center md:justify-between">
-								<div className="flex min-w-0 items-center gap-3">
-									<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
-										<UserPlus className="size-4 text-[#737373]" />
-									</div>
-									<div className="min-w-0">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA]",
-											)}
-										>
-											Invite teammate
-										</p>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"text-[12px] tracking-[-0.12px] text-[#737373]",
-											)}
-										>
-											Choose role and permission preset before sending.
-										</p>
-									</div>
-								</div>
-								<button
-									type="button"
-									onClick={() => setInviteDialogOpen(true)}
-									disabled={!org?.id}
-									className={cn(
-										dmSans125ClassName(),
-										"inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-[#2261CA33] bg-[#00173C] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#002654] disabled:cursor-not-allowed disabled:opacity-45",
-									)}
-								>
-									<UserPlus className="size-3.5" />
-									Invite member
-								</button>
-							</div>
-						) : (
+						{!canManageTeam && (
 							<div className="flex items-center gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3">
 								<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
 									<Users className="size-4 text-[#737373]" />
@@ -879,13 +853,16 @@ export default function Account() {
 					}
 				}}
 			>
-				<DialogContent className="sm:max-w-[480px] bg-[#0D0F14] border-white/[0.06] text-[#FAFAFA] p-0 gap-0 overflow-hidden">
-					<div className="px-6 pt-6 pb-4">
-						<DialogHeader>
+				<DialogContent
+					showCloseButton={false}
+					className="sm:max-w-[480px] border-none bg-[#1B1F24] p-0 gap-0 rounded-[22px] overflow-hidden"
+				>
+					<div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4">
+						<div className="flex flex-col gap-1">
 							<DialogTitle
 								className={cn(
 									dmSans125ClassName(),
-									"text-[18px] font-semibold tracking-[-0.18px]",
+									"text-[18px] font-semibold tracking-[-0.18px] text-[#FAFAFA]",
 								)}
 							>
 								Invite teammate
@@ -893,12 +870,21 @@ export default function Account() {
 							<p
 								className={cn(
 									dmSans125ClassName(),
-									"text-[13px] tracking-[-0.13px] text-[#737373] mt-1",
+									"text-[13px] tracking-[-0.13px] text-[#737373]",
 								)}
 							>
 								Send an invitation to join your organization.
 							</p>
-						</DialogHeader>
+						</div>
+						<DialogPrimitive.Close
+							className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] bg-[#0D121A] transition-opacity hover:opacity-100 focus:outline-hidden"
+							style={{
+								boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+							}}
+						>
+							<X className="size-4" stroke="#737373" />
+							<span className="sr-only">Close</span>
+						</DialogPrimitive.Close>
 					</div>
 
 					<form onSubmit={handleInviteSubmit} className="flex flex-col">
@@ -931,7 +917,7 @@ export default function Account() {
 								</div>
 							</div>
 
-							{/* Role chips */}
+							{/* Role */}
 							<div className="flex flex-col gap-1.5">
 								<p
 									className={cn(
@@ -941,33 +927,25 @@ export default function Account() {
 								>
 									Role
 								</p>
-								<div className="grid grid-cols-2 gap-2">
-									{(["member", "admin"] as const).map((role) => {
-										const selected = inviteRole === role
-										return (
-											<button
-												key={role}
-												type="button"
-												onClick={() => {
-													setInviteRole(role)
-													if (role === "admin") {
-														setInviteAccessType("full")
-														setInviteAssignments([])
-													}
-												}}
-												className={cn(
-													dmSans125ClassName(),
-													"flex items-center justify-center h-9 rounded-[10px] border text-[13px] font-medium transition-colors cursor-pointer",
-													selected
-														? "border-[#2261CA33] bg-[#00173C] text-white"
-														: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
-												)}
-											>
-												{formatRole(role)}
-											</button>
-										)
-									})}
-								</div>
+								<Select
+									value={inviteRole}
+									onValueChange={(value) => {
+										const role = value as InviteRole
+										setInviteRole(role)
+										if (role === "admin") {
+											setInviteAccessType("full")
+											setInviteAssignments([])
+										}
+									}}
+								>
+									<SelectTrigger className="h-9 w-full rounded-[10px] border-white/[0.08] bg-[#0D0F14] text-[#FAFAFA]">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="member">Member</SelectItem>
+										<SelectItem value="admin">Admin</SelectItem>
+									</SelectContent>
+								</Select>
 							</div>
 
 							{/* Access type (only for Member) */}
@@ -996,8 +974,8 @@ export default function Account() {
 														dmSans125ClassName(),
 														"flex items-center justify-center h-9 rounded-[10px] border text-[13px] font-medium transition-colors cursor-pointer",
 														selected
-															? "border-[#2261CA33] bg-[#00173C] text-white"
-															: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
+															? "border-white/10 bg-[#14161A] text-[#FAFAFA] shadow-inside-out"
+															: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#14161A] hover:text-[#FAFAFA]",
 													)}
 												>
 													{type === "full" ? "Full Access" : "Restricted"}
@@ -1182,8 +1160,8 @@ export default function Account() {
 																		dmSans125ClassName(),
 																		"h-7 px-3 rounded-[8px] border text-[12px] font-medium transition-colors cursor-pointer capitalize",
 																		active
-																			? "border-[#2261CA33] bg-[#00173C] text-white"
-																			: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#00173C] hover:border-[#2261CA33]",
+																			? "border-white/10 bg-[#14161A] text-[#FAFAFA] shadow-inside-out"
+																			: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#14161A] hover:text-[#FAFAFA]",
 																	)}
 																>
 																	{perm}
@@ -1210,13 +1188,13 @@ export default function Account() {
 							)}
 						</div>
 
-						<div className="flex justify-end gap-2 px-6 py-4 mt-5 border-t border-white/[0.06]">
+						<div className="flex justify-end gap-2 px-6 py-4 mt-5">
 							<button
 								type="button"
 								onClick={() => setInviteDialogOpen(false)}
 								className={cn(
 									dmSans125ClassName(),
-									"h-9 rounded-[10px] border border-[#161F2C] bg-[#0D121A] px-4 text-[13px] font-medium text-[#737373] transition-colors hover:bg-[#00173C] hover:border-[#2261CA33] hover:text-white",
+									"h-9 rounded-full border border-[#161F2C] bg-[#0D121A] px-4 text-[13px] font-medium text-[#737373] transition-colors hover:bg-[#14161A] hover:text-white",
 								)}
 							>
 								Cancel
@@ -1231,7 +1209,7 @@ export default function Account() {
 								}
 								className={cn(
 									dmSans125ClassName(),
-									"inline-flex h-9 items-center justify-center gap-2 rounded-[10px] border border-[#2261CA33] bg-[#00173C] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#002654] disabled:cursor-not-allowed disabled:opacity-45",
+									"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820] disabled:cursor-not-allowed disabled:opacity-45",
 								)}
 							>
 								{inviteMemberMutation.isPending ? (
