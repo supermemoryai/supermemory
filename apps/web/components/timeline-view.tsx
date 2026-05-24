@@ -226,10 +226,11 @@ function TimelineCard({
 			className={cn(
 				"relative w-full text-left px-3 py-3 cursor-pointer transition-colors sm:px-4",
 				indent
-					? "bg-[#121820]/95 hover:bg-[#17202A]"
+					? "bg-[#121820] hover:bg-[#17202A]"
 					: "rounded-xl border border-[#252B35] bg-[#1B1F24] hover:bg-[#21262D] sm:rounded-2xl",
 				indent && !isLast && "border-b border-[#252B35]/70",
-				isSelectionMode && canSelect && "pl-10",
+				indent && isLast && "rounded-b-xl sm:rounded-b-2xl",
+				isSelectionMode && canSelect && "pl-14 sm:pl-16",
 				isSelectionMode && isSelected && "border-[#369BFD]/70 bg-[#00173C]/45",
 				dmSansClassName(),
 			)}
@@ -237,7 +238,7 @@ function TimelineCard({
 			aria-pressed={isSelectionMode ? isSelected : undefined}
 		>
 			{isSelectionMode && canSelect && (
-				<span className="absolute left-4 top-4">
+				<span className="absolute left-5 top-4 z-10">
 					<SelectionBox isSelected={isSelected} />
 				</span>
 			)}
@@ -350,20 +351,27 @@ function GroupCard({
 	}
 
 	return (
-		<div>
+		<div
+			className={cn(
+				"overflow-hidden rounded-xl border border-[#252B35] bg-[#1B1F24] sm:rounded-2xl",
+				isSelectionMode &&
+					(isGroupSelected || isGroupPartial) &&
+					"border-[#369BFD]/70 bg-[#00173C]/45",
+			)}
+		>
 			<div
 				className={cn(
-					"flex w-full items-stretch rounded-xl border border-[#252B35] bg-[#1B1F24] transition-colors hover:bg-[#21262D] sm:rounded-2xl",
-					isExpanded && "rounded-b-none border-b-transparent",
+					"flex w-full items-stretch transition-colors hover:bg-[#21262D]",
+					isExpanded && "border-b border-[#252B35]",
 					isSelectionMode &&
 						(isGroupSelected || isGroupPartial) &&
-						"border-[#369BFD]/70 bg-[#00173C]/45",
+						"bg-[#00173C]/45",
 				)}
 			>
 				{isSelectionMode && selectableDocs.length > 0 && (
 					<button
 						type="button"
-						className="flex shrink-0 items-start px-4 py-4 cursor-pointer"
+						className="flex w-14 shrink-0 cursor-pointer items-start justify-center py-4 sm:w-16"
 						onClick={handleGroupSelect}
 						aria-label={isGroupSelected ? "Deselect group" : "Select group"}
 						aria-pressed={isGroupSelected}
@@ -380,7 +388,7 @@ function GroupCard({
 					className={cn(
 						"flex min-w-0 flex-1 cursor-pointer items-start justify-between gap-2 py-3 pr-3 text-left sm:items-center sm:gap-3 sm:pr-4",
 						isSelectionMode && selectableDocs.length > 0
-							? "pl-0"
+							? "pl-1"
 							: "pl-3 sm:pl-4",
 						dmSansClassName(),
 					)}
@@ -431,7 +439,7 @@ function GroupCard({
 				{isExpanded && (
 					<motion.div
 						id={`group-${expandKey}`}
-						className="overflow-hidden rounded-b-2xl border border-t-0 border-[#252B35] bg-[#121820]/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+						className="overflow-hidden bg-[#121820] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
 						initial={{ height: 0, opacity: 0, y: -4 }}
 						animate={{ height: "auto", opacity: 1, y: 0 }}
 						exit={{ height: 0, opacity: 0, y: -3 }}
