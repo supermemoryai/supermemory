@@ -11,6 +11,15 @@ interface ExaApiResponse {
 
 export async function POST(request: Request) {
 	try {
+		const exaApiKey = process.env.EXA_API_KEY
+		if (!exaApiKey) {
+			console.error("EXA_API_KEY is not configured")
+			return Response.json(
+				{ error: "Content extraction service is not configured" },
+				{ status: 500 },
+			)
+		}
+
 		const { urls } = await request.json()
 
 		if (!Array.isArray(urls) || urls.length === 0) {
@@ -30,7 +39,7 @@ export async function POST(request: Request) {
 		const response = await fetch("https://api.exa.ai/contents", {
 			method: "POST",
 			headers: {
-				"x-api-key": process.env.EXA_API_KEY ?? "",
+				"x-api-key": exaApiKey,
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({
