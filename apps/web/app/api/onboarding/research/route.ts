@@ -7,6 +7,16 @@ interface ResearchRequest {
 	email?: string
 }
 
+function isXHost(hostname: string): boolean {
+	const host = hostname.toLowerCase()
+	return (
+		host === "x.com" ||
+		host === "twitter.com" ||
+		host.endsWith(".x.com") ||
+		host.endsWith(".twitter.com")
+	)
+}
+
 function extractHandle(input: string): string {
 	const trimmed = input.trim()
 	if (!trimmed) return ""
@@ -21,9 +31,13 @@ function extractHandle(input: string): string {
 					? handle
 					: `https://${handle}`,
 			)
-			handle = parsed.pathname.split("/").filter(Boolean)[0] ?? ""
+			handle = isXHost(parsed.hostname)
+				? (parsed.pathname.split("/").filter(Boolean)[0] ?? "")
+				: ""
 		} catch {
-			handle = handle.match(/(?:x\.com|twitter\.com)\/([^/\s?#]+)/i)?.[1] ?? ""
+			handle =
+				handle.match(/(?:^|[./])(?:x\.com|twitter\.com)\/([^/\s?#]+)/i)?.[1] ??
+				""
 		}
 	}
 
