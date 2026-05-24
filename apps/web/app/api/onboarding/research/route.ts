@@ -23,8 +23,7 @@ function extractHandle(input: string): string {
 			)
 			handle = parsed.pathname.split("/").filter(Boolean)[0] ?? ""
 		} catch {
-			handle =
-				handle.match(/(?:x\.com|twitter\.com)\/([^/\s?#]+)/i)?.[1] ?? ""
+			handle = handle.match(/(?:x\.com|twitter\.com)\/([^/\s?#]+)/i)?.[1] ?? ""
 		}
 	}
 
