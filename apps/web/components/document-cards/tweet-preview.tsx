@@ -117,14 +117,26 @@ function CustomTweetMedia({
 	)
 }
 
+function parseTweetData(data: Tweet | string): Tweet | null {
+	if (!data) return null
+	if (typeof data !== "string") return data
+	try {
+		const parsed = JSON.parse(data)
+		return parsed && typeof parsed === "object" ? (parsed as Tweet) : null
+	} catch {
+		return null
+	}
+}
+
 export function TweetPreview({
 	data,
 	noBgColor,
 }: {
-	data: Tweet
+	data: Tweet | string
 	noBgColor?: boolean
 }) {
-	const parsedTweet = typeof data === "string" ? JSON.parse(data) : data
+	const parsedTweet = parseTweetData(data)
+	if (!parsedTweet) return null
 	const tweet = enrichTweet(parsedTweet)
 
 	return (
