@@ -9,14 +9,19 @@ interface ExaApiResponse {
 	results: ExaContentResult[]
 }
 
+const exaApiKey = process.env.EXA_API_KEY
+if (!exaApiKey) {
+	console.error(
+		"EXA_API_KEY is not configured; /api/onboarding/extract-content will return 503",
+	)
+}
+
 export async function POST(request: Request) {
 	try {
-		const exaApiKey = process.env.EXA_API_KEY
 		if (!exaApiKey) {
-			console.error("EXA_API_KEY is not configured")
 			return Response.json(
-				{ error: "Content extraction service is not configured" },
-				{ status: 500 },
+				{ error: "Content extraction is unavailable" },
+				{ status: 503 },
 			)
 		}
 
