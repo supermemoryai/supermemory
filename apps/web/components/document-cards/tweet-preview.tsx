@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useMemo } from "react"
 import type { Tweet } from "react-tweet/api"
 import { TweetBody, enrichTweet, TweetSkeleton } from "react-tweet"
 import { cn } from "@lib/utils"
@@ -117,17 +117,41 @@ function CustomTweetMedia({
 	)
 }
 
+function isTweetLike(value: unknown): value is Tweet {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		!Array.isArray(value) &&
+		"user" in value
+	)
+}
+
 function parseTweetData(data: Tweet | string): Tweet | null {
 	if (!data) return null
-	if (typeof data !== "string") return data
+	if (typeof data !== "string") return isTweetLike(data) ? data : null
 	try {
-		const parsed = JSON.parse(data)
-		return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-			? (parsed as Tweet)
-			: null
-	} catch {
+		const parsed: unknown = JSON.parse(data)
+		if (isTweetLike(parsed)) return parsed
+		console.warn("TweetPreview: parsed value did not match Tweet shape")
+		return null
+	} catch (error) {
+		console.warn("TweetPreview: failed to parse tweet data", error)
 		return null
 	}
+}
+
+function TweetPreviewFallback({ noBgColor }: { noBgColor?: boolean }) {
+	return (
+		<div
+			className={cn(
+				"w-full min-w-0 text-center text-[13px] text-[#737373]",
+				noBgColor ? "bg-transparent py-4" : "bg-black rounded-[18px] p-4",
+				dmSansClassName(),
+			)}
+		>
+			Tweet preview unavailable
+		</div>
+	)
 }
 
 export function TweetPreview({
@@ -137,8 +161,8 @@ export function TweetPreview({
 	data: Tweet | string
 	noBgColor?: boolean
 }) {
-	const parsedTweet = parseTweetData(data)
-	if (!parsedTweet) return null
+	const parsedTweet = useMemo(() => parseTweetData(data), [data])
+	if (!parsedTweet) return <TweetPreviewFallback noBgColor={noBgColor} />
 	const tweet = enrichTweet(parsedTweet)
 
 	return (
