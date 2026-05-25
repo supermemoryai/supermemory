@@ -11,6 +11,7 @@ import {
 import { AnimatePresence, motion } from "motion/react"
 import { useQueryState } from "nuqs"
 import { Header, PublicHeader } from "@/components/header"
+import { MobileBottomNav } from "@/components/bottom-nav"
 import { ChatSidebar, HomeChatComposer } from "@/components/chat"
 import { DashboardView } from "@/components/dashboard-view"
 import { MemoriesGrid } from "@/components/memories-grid"
@@ -561,6 +562,7 @@ export default function NewPage() {
 	const isDashboardShell =
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
+	const showBottomNav = isMobile && !isChatView && !!session
 
 	return (
 		<HotkeysProvider>
@@ -568,6 +570,9 @@ export default function NewPage() {
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
 					isGraphMode && "h-dvh overflow-hidden",
+					showBottomNav &&
+						!isGraphMode &&
+						"pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
 				)}
 			>
 				{showNovaBackdrop && (
@@ -737,12 +742,35 @@ export default function NewPage() {
 					</motion.main>
 				</AnimatePresence>
 
+				{isDashboardShell && showBottomNav && (
+					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-64 bg-gradient-to-t from-[#05080D] via-[#05080D]/95 to-transparent" />
+				)}
 				{isDashboardShell && (
-					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black via-black/40 to-transparent pt-12">
+					<div
+						className={cn(
+							"pointer-events-none fixed inset-x-0 z-30",
+							showBottomNav
+								? "bottom-[4.25rem]"
+								: "bottom-0 bg-gradient-to-t from-black via-black/40 to-transparent pt-12",
+						)}
+					>
 						<div className="pointer-events-auto">
 							<HomeChatComposer onStartChat={handleHomeChatStart} />
 						</div>
 					</div>
+				)}
+
+				{showBottomNav && (
+					<MobileBottomNav
+						onAddMemory={() => {
+							analytics.addDocumentModalOpened()
+							setAddDoc("note")
+						}}
+						onOpenSearch={() => {
+							analytics.searchOpened({ source: "header" })
+							setIsSearchOpen(true)
+						}}
+					/>
 				)}
 
 				<AddDocumentModal

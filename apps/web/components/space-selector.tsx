@@ -12,6 +12,7 @@ import type { ContainerTagListType } from "@lib/types"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { AddSpaceModal } from "./add-space-modal"
 import { SelectSpacesModal } from "./select-spaces-modal"
+import { SpaceGlyph } from "./space-glyph"
 import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { motion } from "motion/react"
@@ -418,40 +419,26 @@ export function SpaceSelector({
 								</span>
 							)
 						) : (
-							<span
-								className="shrink-0 text-sm font-bold tracking-[-0.98px]"
-								aria-hidden
-							>
-								{displayInfo.emoji}
-							</span>
+							<SpaceGlyph emoji={displayInfo.emoji} size={compact ? 16 : 18} />
 						)}
-						{!compact && (
-							<span
-								className={cn(
-									"min-w-0 truncate text-sm font-medium text-white",
-									"max-w-[10rem] md:max-w-[15rem]",
-								)}
-								title={isLoading ? undefined : displayInfo.name}
-							>
-								{isLoading ? "…" : displayInfo.name}
-							</span>
-						)}
+						<span
+							className={cn(
+								"min-w-0 truncate text-sm font-medium text-white",
+								compact ? "max-w-[7rem]" : "max-w-[10rem] md:max-w-[15rem]",
+							)}
+							title={isLoading ? undefined : displayInfo.name}
+						>
+							{isLoading ? "…" : displayInfo.name}
+						</span>
 						{!compact && spaceCountData !== undefined && spaceCountData > 0 && (
 							<span className="shrink-0 text-[11px] text-[#737373] tabular-nums">
 								· {formatCount(spaceCountData)}
 							</span>
 						)}
-						{!compact && (
-							<ChevronDownIcon
-								className="size-3.5 shrink-0 text-[#737373]"
-								aria-hidden
-							/>
-						)}
-						{compact && (
-							<span className="sr-only">
-								{isLoading ? "Loading" : displayInfo.name}
-							</span>
-						)}
+						<ChevronDownIcon
+							className="size-3.5 shrink-0 text-[#737373]"
+							aria-hidden
+						/>
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" className={dmSansClassName()}>
@@ -633,7 +620,7 @@ export function SpaceSelector({
 																		className="shrink-0 blur-[0.45px]!"
 																	/>
 																) : (
-																	<span>{p.emoji || "📁"}</span>
+																	<SpaceGlyph emoji={p.emoji} size={16} />
 																)}
 																<span className="truncate">
 																	{p.containerTag === DEFAULT_PROJECT_ID ? (
