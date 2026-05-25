@@ -4,7 +4,6 @@ import {
 	Home,
 	LayoutGrid,
 	Plus,
-	MessageCircleIcon,
 	MoreHorizontal,
 	SearchIcon,
 	Sun,
@@ -25,6 +24,7 @@ import {
 } from "@ui/components/dropdown-menu"
 import { useViewMode, type ViewMode } from "@/lib/view-mode-context"
 import { feedbackParam } from "@/lib/search-params"
+import NovaOrb from "@/components/nova/nova-orb"
 
 const INTEGRATION_VIEWS: ViewMode[] = [
 	"integrations",
@@ -75,17 +75,20 @@ export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
 				/>
 				<button
 					type="button"
-					aria-label="Add memory"
-					onClick={onAddMemory}
-					className="flex size-11 shrink-0 items-center justify-center self-center rounded-full text-white outline-none transition-colors hover:bg-white/5"
+					aria-label="Open chat"
+					onClick={() => void setViewMode("chat")}
+					className="group relative flex size-11 shrink-0 items-center justify-center self-center rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-[#4BA0FA]/50"
 				>
-					<Plus className="size-7" strokeWidth={2.25} />
+					<NovaOrb
+						size={42}
+						className="pointer-events-none blur-[1px]! transition-transform group-hover:scale-105"
+					/>
 				</button>
 				<NavTab
-					label="Chat"
-					icon={MessageCircleIcon}
-					active={isChat}
-					onClick={() => void setViewMode("chat")}
+					label="Add"
+					icon={Plus}
+					active={false}
+					onClick={() => onAddMemory?.()}
 				/>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

@@ -425,7 +425,7 @@ export default function Account() {
 				<SettingsCard>
 					<div className="flex flex-col gap-6">
 						{/* Avatar + Name/Email */}
-						<div className="flex items-center gap-4">
+						<div className="flex min-w-0 items-center gap-4">
 							<div className="relative size-16 rounded-full bg-linear-to-b from-[#0D121A] to-black overflow-hidden shrink-0">
 								<Avatar className="size-full">
 									<AvatarImage
@@ -438,11 +438,11 @@ export default function Account() {
 									</AvatarFallback>
 								</Avatar>
 							</div>
-							<div className="flex flex-col gap-1.5">
+							<div className="flex min-w-0 flex-col gap-1.5">
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
+										"truncate font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
 									)}
 								>
 									{user?.name ?? "—"}
@@ -450,7 +450,7 @@ export default function Account() {
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+										"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 									)}
 								>
 									{user?.email ?? "—"}
@@ -458,8 +458,8 @@ export default function Account() {
 							</div>
 						</div>
 
-						<div className="flex gap-4">
-							<div className="flex-1 flex flex-col gap-2">
+						<div className="flex flex-col gap-4 sm:flex-row">
+							<div className="flex min-w-0 flex-1 flex-col gap-2">
 								<p
 									className={cn(
 										dmSans125ClassName(),
@@ -477,7 +477,7 @@ export default function Account() {
 									<PopoverTrigger
 										disabled={!canSwitchOrg}
 										className={cn(
-											"flex items-center gap-2 transition-opacity",
+											"flex min-w-0 max-w-full items-center gap-2 transition-opacity",
 											canSwitchOrg
 												? "cursor-pointer hover:opacity-90"
 												: "cursor-default",
@@ -487,13 +487,13 @@ export default function Account() {
 										<span
 											className={cn(
 												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+												"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
 											{org?.name ?? "Personal"}
 										</span>
 										{canSwitchOrg && (
-											<ChevronDown className="size-4 text-[#737373]" />
+											<ChevronDown className="size-4 shrink-0 text-[#737373]" />
 										)}
 									</PopoverTrigger>
 									{canSwitchOrg && (
@@ -549,7 +549,7 @@ export default function Account() {
 									)}
 								</Popover>
 							</div>
-							<div className="flex-1 flex flex-col gap-2">
+							<div className="flex min-w-0 flex-1 flex-col gap-2">
 								<p
 									className={cn(
 										dmSans125ClassName(),
