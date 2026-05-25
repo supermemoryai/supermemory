@@ -60,6 +60,7 @@ import {
 	type IntegrationParamValue,
 } from "@/lib/search-params"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
+import { getToolDocumentSpace } from "@/lib/plugin-space"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -106,7 +107,7 @@ export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { user, session } = useAuth()
 
-	const { selectedProject, selectedProjects } = useProject()
+	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
 	const { allProjects } = useContainerTags()
 	const dashboardSpaceLabel = useMemo(
@@ -406,6 +407,18 @@ export default function NewPage() {
 			}
 		},
 		[setDocId],
+	)
+
+	const handleOpenToolDocument = useCallback(
+		(document: DocumentWithMemories, pluginClientId: string) => {
+			const documentSpace = getToolDocumentSpace(document, pluginClientId)
+			if (documentSpace) {
+				setSelectedProject(documentSpace)
+			}
+			handleOpenDocument(document)
+			void setViewMode("list")
+		},
+		[handleOpenDocument, setSelectedProject, setViewMode],
 	)
 
 	// Separate from handleOpenDocument because the graph view only has a document ID,
@@ -712,6 +725,7 @@ export default function NewPage() {
 										onNavigateToMemories={() => void setViewMode("list")}
 										onNavigateToGraph={() => void setViewMode("graph")}
 										onOpenDocument={handleOpenDocument}
+										onOpenToolDocument={handleOpenToolDocument}
 										onHighlightsChat={handleHighlightsChat}
 										onHighlightsShowRelated={handleHighlightsShowRelated}
 										onResetHighlights={handleResetHighlights}

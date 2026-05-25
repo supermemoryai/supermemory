@@ -1,3 +1,5 @@
+import { normalizePluginClientId } from "@/lib/plugin-catalog"
+
 export type PluginSpaceInfo = {
 	pluginId: "claude-code" | "openclaw" | "opencode" | "codex" | "amp"
 	label: string
@@ -129,6 +131,48 @@ export function detectPluginSource(
 		formatLabel,
 		type,
 	}
+}
+
+type DocumentSpaceCandidate = {
+	containerTags?: string[]
+	memoryEntries?: Array<{ spaceContainerTag?: string | null }> | null
+}
+
+function catalogIdForPluginSpace(
+	pluginId: PluginSpaceInfo["pluginId"],
+): string {
+	return pluginId.replace(/-/g, "_")
+}
+
+/** Resolve the best container tag for a tool/plugin document. */
+export function getToolDocumentSpace(
+	document: DocumentSpaceCandidate,
+	pluginClientId?: string | null,
+): string | null {
+	const containerTags = document.containerTags ?? []
+	const memorySpaceTags = (document.memoryEntries ?? [])
+		.map((entry) => entry.spaceContainerTag)
+		.filter((tag): tag is string => !!tag)
+	const allTags = [...containerTags, ...memorySpaceTags]
+
+	if (pluginClientId) {
+		const normalizedClient = normalizePluginClientId(pluginClientId)
+		for (const tag of allTags) {
+			const pluginSpace = detectPluginSpace(tag)
+			if (
+				pluginSpace &&
+				catalogIdForPluginSpace(pluginSpace.pluginId) === normalizedClient
+			) {
+				return tag
+			}
+		}
+	}
+
+	for (const tag of allTags) {
+		if (detectPluginSpace(tag)) return tag
+	}
+
+	return allTags[0] ?? null
 }
 
 export function detectPluginSpace(
