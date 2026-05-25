@@ -840,7 +840,10 @@ export function ConnectAIModal({
 								Migrate from v1
 							</Button>
 						</div>
-						<Button className="w-full sm:w-auto" onClick={() => setIsOpen(false)}>
+						<Button
+							className="w-full sm:w-auto"
+							onClick={() => setIsOpen(false)}
+						>
 							Done
 						</Button>
 					</div>

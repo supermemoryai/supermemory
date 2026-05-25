@@ -49,7 +49,6 @@ export function MobileBottomNav({ onAddMemory, onOpenSearch }: BottomNavProps) {
 
 	const isHome = viewMode === "dashboard"
 	const isMemories = viewMode === "list" || viewMode === "graph"
-	const isChat = viewMode === "chat"
 	const isMore = INTEGRATION_VIEWS.includes(viewMode)
 
 	return (
