@@ -2,10 +2,7 @@
   "name": "@repo/web",
   "version": "0.1.0",
   "private": true,
-  "portless": {
-    "name": "app.dev.supermemory",
-    "script": "dev:app"
-  },
+  "portless": { "name": "app.dev.supermemory", "script": "dev:app" },
   "scripts": {
     "dev": "portless",
     "dev:app": "next dev --port ${PORT:-3000}",
