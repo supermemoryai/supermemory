@@ -581,11 +581,11 @@ export default function ConnectionsMCP() {
 							!hasProProduct && !isLoading && "opacity-30 pointer-events-none",
 						)}
 					>
-						<div className="flex items-center justify-between">
+						<div className="flex items-center justify-between gap-3">
 							<span
 								className={cn(
 									dmSans125ClassName(),
-									"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+									"min-w-0 flex-1 truncate font-semibold text-[15px] tracking-[-0.16px] text-[#FAFAFA] sm:text-[16px]",
 								)}
 							>
 								Connected to Supermemory
@@ -593,7 +593,7 @@ export default function ConnectionsMCP() {
 							<span
 								className={cn(
 									dmSans125ClassName(),
-									"font-semibold text-[16px] tracking-[-0.16px] text-[#737373]",
+									"shrink-0 whitespace-nowrap text-right font-semibold text-[13px] tracking-[-0.16px] text-[#737373] sm:text-[16px]",
 								)}
 							>
 								{connections.length}/{connectionsLimit} connections used
