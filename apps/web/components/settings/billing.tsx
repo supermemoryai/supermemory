@@ -994,7 +994,7 @@ export default function Billing() {
 					</div>
 				</SettingsCard>
 
-			{hasPaidPlan ? (
+				{hasPaidPlan ? (
 					<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 							<div className="flex min-w-0 items-start gap-3">
