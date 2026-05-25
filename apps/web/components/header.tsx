@@ -76,12 +76,12 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							className="flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none md:-ml-2"
 						>
 							<Logo className="h-6 md:h-7" />
-							{!isMobile && userName && (
+							{userName && (
 								<div className="ml-1.5 flex flex-col items-start justify-center sm:ml-2">
 									<p className="text-[10px] leading-tight text-[#6B6B6B] sm:text-[11px]">
 										{userName}
 									</p>
-									<p className="-mt-0.5 text-base leading-none font-medium text-white/90 sm:text-lg">
+									<p className="-mt-0.5 text-sm leading-none font-medium text-white/90 sm:text-lg">
 										supermemory
 									</p>
 								</div>

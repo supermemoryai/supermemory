@@ -767,7 +767,7 @@ export function DashboardView({
 							Home
 						</p>
 						<h1
-							className="max-w-2xl text-xl font-medium tracking-tight text-white md:text-2xl"
+							className="max-w-2xl text-lg font-medium leading-snug tracking-tight text-white md:text-2xl md:leading-tight"
 							title={spaceLabel}
 						>
 							{homeHeadline}
@@ -779,7 +779,7 @@ export function DashboardView({
 								<button
 									type="button"
 									onClick={onNavigateToGraph}
-									className="group relative shrink-0 w-[140px] h-[56px] rounded-xl overflow-hidden border border-surface-border hover:border-[#3A4A63] transition-all bg-surface-card hover:scale-[1.02]"
+									className="group relative hidden h-[56px] w-[140px] shrink-0 overflow-hidden rounded-xl border border-surface-border bg-surface-card transition-all hover:scale-[1.02] hover:border-[#3A4A63] md:block"
 									aria-label="Open graph view"
 								>
 									<StaticGraphPreview

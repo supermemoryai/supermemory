@@ -547,11 +547,11 @@ export function MemoriesGrid({
 					id="filter-pills"
 					className="mb-3 flex flex-col gap-2 pr-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
 				>
-					<div className="order-2 flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:order-1">
+					<div className="order-2 flex w-full min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:order-1 sm:flex-wrap sm:overflow-visible">
 						<Button
 							className={cn(
 								dmSansClassName(),
-								"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+								"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 								selectedCategories.length === 0 &&
 									"bg-[#00173C] border-[#2261CA33]",
 							)}
@@ -569,7 +569,7 @@ export function MemoriesGrid({
 								key={facet.category}
 								className={cn(
 									dmSansClassName(),
-									"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+									"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 									selectedCategoriesSet.has(facet.category) &&
 										"bg-[#00173C] border-[#2261CA33]",
 								)}
@@ -580,7 +580,7 @@ export function MemoriesGrid({
 							</Button>
 						))}
 					</div>
-					<div className="order-1 flex shrink-0 items-center gap-2 self-end sm:order-2 sm:self-start">
+					<div className="order-1 flex w-full items-center justify-between gap-2 sm:order-2 sm:w-auto sm:justify-start sm:self-start">
 						{/* View mode toggle — segmented control */}
 						<div
 							role="tablist"

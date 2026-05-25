@@ -13,6 +13,7 @@ import {
 	X,
 } from "lucide-react"
 import { Logo } from "@ui/assets/Logo"
+import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
 import { analytics } from "@/lib/analytics"
 
 export type HighlightFormat = "paragraph" | "bullets" | "quote" | "one_liner"
@@ -213,7 +214,37 @@ export function HighlightsCard({
 						</span>
 					</div>
 				</div>
-				<Info className="size-[14px] text-fg-subtle" />
+				<Popover>
+					<PopoverTrigger asChild>
+						<button
+							type="button"
+							aria-label="About the Daily Brief"
+							className="shrink-0 rounded-full p-0.5 text-fg-subtle transition-colors hover:text-fg-primary focus-visible:outline-none"
+						>
+							<Info className="size-[14px]" />
+						</button>
+					</PopoverTrigger>
+					<PopoverContent
+						align="end"
+						side="bottom"
+						className={cn(
+							"w-64 rounded-xl border border-[#263348]/60 p-3 shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+							dmSansClassName(),
+						)}
+						style={{
+							background: "linear-gradient(180deg, #101822 0%, #0A0E14 100%)",
+						}}
+					>
+						<p className="mb-1 text-[12px] font-semibold text-fg-primary">
+							Daily Brief
+						</p>
+						<p className="text-[12px] leading-relaxed text-fg-subtle">
+							AI-generated highlights and questions drawn from your memories. It
+							refreshes automatically every few hours — tap the refresh icon to
+							update it now.
+						</p>
+					</PopoverContent>
+				</Popover>
 			</div>
 
 			<div id="highlights-body" className="flex flex-col gap-1.5">

@@ -4,7 +4,9 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Image from "next/image"
 import { dmSans125ClassName, dmSansClassName } from "@/lib/fonts"
 import { Dialog, DialogContent } from "@repo/ui/components/dialog"
+import { Drawer, DrawerContent, DrawerTitle } from "@repo/ui/components/drawer"
 import { cn } from "@lib/utils"
+import { useIsMobile } from "@hooks/use-mobile"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
 	XIcon,
@@ -47,6 +49,7 @@ import { useProjectMutations } from "@/hooks/use-project-mutations"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import NovaOrb from "@/components/nova/nova-orb"
 import { AutoSpaceIcon } from "@/components/nova/auto-space-icon"
+import { SpaceGlyph } from "./space-glyph"
 
 interface SelectSpacesModalProps {
 	isOpen: boolean
@@ -116,6 +119,7 @@ export function SelectSpacesModal({
 	const editInputRef = useRef<HTMLInputElement | null>(null)
 	const editingContainerTag = editingProject?.containerTag
 	const currentSelection = selectedProjects[0] ?? ""
+	const isMobile = useIsMobile()
 
 	const pluginTags = useMemo(
 		() =>
@@ -645,7 +649,11 @@ export function SelectSpacesModal({
 					</button>
 					{isEditing ? (
 						<div className="flex min-w-0 flex-1 items-center gap-2">
-							<span className="shrink-0 text-lg">{project.emoji || "📁"}</span>
+							<SpaceGlyph
+								emoji={project.emoji}
+								size={18}
+								className="shrink-0"
+							/>
 							<input
 								type="text"
 								value={editingProject.name}
@@ -709,9 +717,11 @@ export function SelectSpacesModal({
 							) : isOwnSpace ? (
 								<NovaOrb size={20} className="shrink-0 blur-[0.55px]!" />
 							) : (
-								<span className="shrink-0 text-lg">
-									{project.emoji || "📁"}
-								</span>
+								<SpaceGlyph
+									emoji={project.emoji}
+									size={20}
+									className="shrink-0"
+								/>
 							)}
 							<span
 								className="min-w-0 flex-1 truncate text-[#fafafa] text-sm font-medium"
@@ -825,6 +835,283 @@ export function SelectSpacesModal({
 		)
 	}, [currentSelection, handleSelectAuto])
 
+	const renderCategoryChip = (
+		category: {
+			id: string
+			label: string
+			count?: number
+			iconSrc?: string
+			emoji?: string
+		},
+		isDiscover: boolean,
+	) => {
+		const isActive = activeCategory === category.id
+		return (
+			<button
+				key={category.id}
+				type="button"
+				onClick={() => setActiveCategory(category.id)}
+				className={cn(
+					"flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 transition-colors",
+					isActive
+						? "border-[#2261CA33] bg-[#00173C] text-[#fafafa]"
+						: "border-[#161F2C] bg-[#0D121A] text-[#A1A1AA]",
+					isDiscover && !isActive && "opacity-60",
+				)}
+			>
+				<span className="flex size-[18px] shrink-0 items-center justify-center">
+					{category.id === "all" ? (
+						<LayoutGrid
+							className={cn(
+								"size-4",
+								isActive ? "text-[#fafafa]" : "text-[#737373]",
+							)}
+						/>
+					) : category.iconSrc ? (
+						<Image
+							src={category.iconSrc}
+							alt=""
+							width={18}
+							height={18}
+							className="rounded-[3px]"
+							aria-hidden
+						/>
+					) : category.emoji ? (
+						<SpaceGlyph emoji={category.emoji} size={16} />
+					) : category.id.startsWith("plugin:") ? (
+						<span
+							className="flex h-[18px] w-[18px] items-center justify-center rounded-[3px] bg-[#1E232B] text-[10px] font-semibold uppercase text-[#FAFAFA]"
+							aria-hidden
+						>
+							{pluginInitial(category.label)}
+						</span>
+					) : (
+						<FolderIcon
+							className={cn(
+								"size-4",
+								isActive ? "text-[#fafafa]" : "text-[#737373]",
+							)}
+						/>
+					)}
+				</span>
+				<span className="text-[13px] font-medium">{category.label}</span>
+				{isDiscover ? (
+					<ArrowRight className="size-3.5 text-[#737373]" />
+				) : (
+					<span className="text-[11px] tabular-nums text-[#737373]">
+						{category.count}
+					</span>
+				)}
+			</button>
+		)
+	}
+
+	const rightPanelContent = activeCategory.startsWith("discover:") ? (
+		<DiscoverPanel
+			catalogId={activeDiscoverId ?? ""}
+			isConnecting={connectingPluginId === activeDiscoverId}
+			newKey={newKey?.pluginId === activeDiscoverId ? newKey.key : null}
+			onConnect={() => {
+				if (activeDiscoverId) connectMutation.mutate(activeDiscoverId)
+			}}
+			onDismissKey={() => setNewKey(null)}
+		/>
+	) : (
+		<>
+			<div className="relative shrink-0">
+				<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#737373]" />
+				<input
+					type="text"
+					value={searchQuery}
+					onChange={(e) => setSearchQuery(e.target.value)}
+					placeholder="Search spaces..."
+					className={cn(
+						"w-full rounded-[12px] bg-[#14161A] py-2.5 pl-10 pr-4 text-[14px] text-[#fafafa] shadow-inside-out placeholder:text-[#737373] focus:outline-none",
+						dmSansClassName(),
+					)}
+				/>
+			</div>
+			<div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin pr-1">
+				{filteredProjects.length === 0 ? (
+					<p className="py-8 text-center text-sm text-[#737373]">
+						No spaces found
+					</p>
+				) : (
+					<div className="flex flex-col gap-1">
+						{showAutoRow && (
+							<>
+								<div className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+									Mode
+								</div>
+								{renderAutoRow()}
+								<div className="my-1.5 h-px bg-[rgba(82,89,102,0.18)]" />
+							</>
+						)}
+						{recentProjects.length > 0 && (
+							<>
+								<div className="flex items-center gap-1.5 px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+									<Clock className="size-3" />
+									Recently used
+								</div>
+								{recentProjects.map(renderRow)}
+								<div className="my-1.5 h-px bg-[rgba(82,89,102,0.18)]" />
+								<div className="px-3 pt-0.5 pb-0.5 text-[10px] uppercase tracking-[0.08em] text-[#737373]">
+									All spaces
+								</div>
+							</>
+						)}
+						{mainList.map(renderRow)}
+					</div>
+				)}
+			</div>
+		</>
+	)
+
+	const footerContent = !activeCategory.startsWith("discover:") &&
+		(isBulkDeleteMode || (showNewSpace && onNewSpace)) && (
+			<div className="flex shrink-0 items-center justify-between gap-3 border-t border-[rgba(82,89,102,0.18)] px-4 py-3">
+				{isBulkDeleteMode ? (
+					<>
+						<p className="min-w-0 text-[13px] font-medium text-[#737373]">
+							{bulkDeleteCount === 0
+								? "No spaces selected"
+								: `${bulkDeleteCount} ${
+										bulkDeleteCount === 1 ? "space" : "spaces"
+									} selected`}
+						</p>
+						<div className="flex shrink-0 items-center gap-2">
+							<button
+								type="button"
+								onClick={handleBulkModeToggle}
+								className={cn(
+									"px-3 py-2 text-[13px] font-medium text-[#737373] transition-colors hover:text-[#fafafa]",
+									dmSansClassName(),
+								)}
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								disabled={bulkDeleteCount === 0}
+								onClick={() => {
+									if (bulkDeleteCount === 0) return
+									onBulkDeleteRequest?.(bulkDeleteProjects)
+									setIsBulkDeleteMode(false)
+									setBulkDeleteTags(new Set())
+									setLastBulkDeleteTag(null)
+								}}
+								className={cn(
+									"flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40",
+									dmSansClassName(),
+								)}
+							>
+								<Trash2 className="size-4" />
+								Delete selected
+							</button>
+						</div>
+					</>
+				) : (
+					<>
+						<span />
+						{showNewSpace && onNewSpace && (
+							<button
+								type="button"
+								onClick={onNewSpace}
+								className={cn(
+									"flex items-center gap-2 rounded-full bg-[#14161A] px-4 py-2 text-[13px] font-medium text-[#fafafa] shadow-inside-out transition-colors hover:bg-[#121820] focus:outline-none focus:ring-0",
+									dmSansClassName(),
+								)}
+							>
+								<Plus className="size-4" />
+								New space
+							</button>
+						)}
+					</>
+				)}
+			</div>
+		)
+
+	if (isMobile) {
+		return (
+			<Drawer open={isOpen} onOpenChange={handleOpenChange}>
+				<DrawerContent
+					className={cn(
+						"flex h-[85dvh] flex-col gap-0 overflow-hidden border-none bg-[#1B1F24] p-0",
+						dmSansClassName(),
+					)}
+				>
+					<DrawerTitle className="sr-only">Select Space</DrawerTitle>
+					<div className="flex shrink-0 items-start justify-between gap-3 px-4 pt-1">
+						<div className="space-y-1">
+							<p
+								className={cn(
+									"font-semibold text-[#fafafa]",
+									dmSans125ClassName(),
+								)}
+							>
+								Select Space
+							</p>
+							<p className="text-[13px] font-medium leading-[1.35] text-[#737373]">
+								{isBulkDeleteMode
+									? "Choose spaces to permanently delete"
+									: "Filter your memories by space"}
+							</p>
+						</div>
+						<div className="flex shrink-0 items-center gap-2">
+							{enableDelete && onBulkDeleteRequest && !activeDiscoverId && (
+								<button
+									type="button"
+									onClick={handleBulkModeToggle}
+									className={cn(
+										"flex h-8 items-center gap-1.5 rounded-full bg-[#0D121A] px-2.5 text-[12px] font-medium transition-colors",
+										isBulkDeleteMode ? "text-[#fafafa]" : "text-[#737373]",
+									)}
+									style={{
+										boxShadow:
+											"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+									}}
+								>
+									<Trash2 className="size-3.5" />
+									{isBulkDeleteMode ? "Cancel" : "Bulk delete"}
+								</button>
+							)}
+							<button
+								type="button"
+								onClick={() => handleOpenChange(false)}
+								aria-label="Close"
+								className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] bg-[#0D121A]"
+								style={{
+									boxShadow:
+										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+								}}
+							>
+								<XIcon stroke="#737373" className="size-4" />
+							</button>
+						</div>
+					</div>
+
+					<div className="mt-3 flex shrink-0 gap-1.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+						{categories.map((category) => renderCategoryChip(category, false))}
+						{discoverCategories.length > 0 && (
+							<>
+								<div className="mx-0.5 my-1 w-px shrink-0 bg-[rgba(82,89,102,0.25)]" />
+								{discoverCategories.map((category) =>
+									renderCategoryChip(category, true),
+								)}
+							</>
+						)}
+					</div>
+
+					<div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-4 pb-2">
+						{rightPanelContent}
+					</div>
+
+					{footerContent}
+				</DrawerContent>
+			</Drawer>
+		)
+	}
+
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
@@ -921,7 +1208,7 @@ export function SelectSpacesModal({
 													aria-hidden
 												/>
 											) : category.emoji ? (
-												<span className="text-base">{category.emoji}</span>
+												<SpaceGlyph emoji={category.emoji} size={16} />
 											) : category.id.startsWith("plugin:") ? (
 												<span
 													className="w-[18px] h-[18px] flex items-center justify-center rounded-[3px] bg-[#1E232B] text-[#FAFAFA] text-[10px] font-semibold uppercase"
