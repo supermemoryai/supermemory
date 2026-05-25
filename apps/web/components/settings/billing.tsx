@@ -10,10 +10,10 @@ import {
 	DialogContent,
 	DialogTrigger,
 } from "@ui/components/dialog"
-import { Coins as PhosphorCoins } from "@phosphor-icons/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import {
+	Coins,
 	ExternalLink,
 	LoaderIcon,
 	Plus,
@@ -21,7 +21,7 @@ import {
 	Settings,
 	X,
 } from "lucide-react"
-import { type ComponentType, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 const API_BASE =
@@ -30,10 +30,6 @@ const API_BASE =
 const CREDIT_FEATURE_ID = "usd_credits"
 const TOP_UP_PLAN_ID = "credits_topup"
 const TOP_UP_AMOUNTS = [10, 25, 50, 100] as const
-const ConsoleCoinsIcon = PhosphorCoins as unknown as ComponentType<{
-	className?: string
-	weight?: "light"
-}>
 
 type BillingInvoice = {
 	planIds?: string[]
@@ -998,14 +994,11 @@ export default function Billing() {
 					</div>
 				</SettingsCard>
 
-				{hasPaidPlan ? (
+				{true || hasPaidPlan ? (
 					<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
 						<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 							<div className="flex min-w-0 items-start gap-3">
-								<ConsoleCoinsIcon
-									className="mt-1 size-4 shrink-0 text-[#4BA0FA]"
-									weight="light"
-								/>
+								<Coins className="mt-1 size-4 shrink-0 text-[#4BA0FA]" />
 								<div className="min-w-0">
 									<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
 										Top-up credits{" "}
