@@ -394,11 +394,14 @@ export function MemoriesGrid({
 		return items
 	}, [documents, isMobile, hasQuickNote, isSelectionMode, selectedDocumentIds])
 
-	// Stable key for Masonry based on document IDs, not item values
+	// Reset Masonry when the actual rendered item set changes. Masonic caches
+	// positions by index, so mobile removing the quick note must remount it.
 	const masonryKey = useMemo(() => {
-		const docIds = documents.map((d) => d.id).join(",")
-		return `masonry-${documents.length}-${docIds}-${isChatOpen}-${hasQuickNote}`
-	}, [documents, isChatOpen, hasQuickNote])
+		const itemIds = masonryItems.map((item) => item.id).join(",")
+		return `masonry-${isMobile ? "mobile" : "desktop"}-${masonryItems.length}-${itemIds}-${isChatOpen}`
+	}, [masonryItems, isChatOpen, isMobile])
+
+	const getMasonryItemKey = useCallback((item: MasonryItem) => item.id, [])
 
 	const isLoadingMore = isFetchingNextPage
 
@@ -542,9 +545,9 @@ export function MemoriesGrid({
 			{!isEmpty && !isSelectionMode && (
 				<div
 					id="filter-pills"
-					className="flex items-center justify-between gap-4 mb-3 pr-2"
+					className="mb-3 flex flex-col gap-2 pr-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
 				>
-					<div className="flex flex-wrap items-center gap-1.5">
+					<div className="order-2 flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:order-1">
 						<Button
 							className={cn(
 								dmSansClassName(),
@@ -577,7 +580,7 @@ export function MemoriesGrid({
 							</Button>
 						))}
 					</div>
-					<div className="flex items-center gap-2 shrink-0">
+					<div className="order-1 flex shrink-0 items-center gap-2 self-end sm:order-2 sm:self-start">
 						{/* View mode toggle — segmented control */}
 						<div
 							role="tablist"
@@ -638,27 +641,29 @@ export function MemoriesGrid({
 					id="selection-toolbar"
 					className={cn(
 						dmSansClassName(),
-						"flex items-center justify-between gap-3 mb-3 mr-2 px-3 py-2 rounded-full border border-[#2261CA33] bg-[#00173C]/40",
+						"flex items-center justify-between gap-1.5 mb-3 mr-2 px-2.5 py-2 rounded-full border border-[#2261CA33] bg-[#00173C]/40 sm:gap-3 sm:px-3",
 					)}
 				>
-					<div className="flex items-center gap-2 min-w-0">
+					<div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
 						<span className="flex items-center gap-1.5 text-xs text-[#FAFAFA] font-medium shrink-0">
 							<span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#369BFD] text-[#0B0F14] text-[11px] font-semibold">
 								{selectedDocumentIds.size}
 							</span>
-							{selectedDocumentIds.size === 1 ? "selected" : "selected"}
+							<span className="hidden sm:inline">
+								{selectedDocumentIds.size === 1 ? "selected" : "selected"}
+							</span>
 						</span>
 						{selectedDocumentIds.size === 0 && (
-							<span className="text-xs text-[#737373] truncate">
+							<span className="hidden truncate text-xs text-[#737373] sm:inline">
 								Tap documents to select
 							</span>
 						)}
 					</div>
-					<div className="flex items-center gap-1 shrink-0">
+					<div className="flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
 						<button
 							type="button"
 							className={cn(
-								"text-xs px-2.5 h-7 rounded-full transition-colors cursor-pointer",
+								"h-7 rounded-full px-2 text-xs transition-colors cursor-pointer sm:px-2.5",
 								allVisibleSelected
 									? "text-[#737373] hover:text-white"
 									: "text-[#FAFAFA] hover:bg-white/5",
@@ -672,7 +677,7 @@ export function MemoriesGrid({
 						<button
 							type="button"
 							className={cn(
-								"flex items-center gap-1 text-xs px-3 h-7 rounded-full transition-colors cursor-pointer",
+								"flex h-7 items-center gap-1 rounded-full px-2 text-xs transition-colors cursor-pointer sm:px-3",
 								selectedDocumentIds.size === 0 || isBulkDeleting
 									? "text-[#737373]/60 cursor-not-allowed"
 									: "text-red-400 hover:text-red-300 hover:bg-red-500/10",
@@ -692,7 +697,7 @@ export function MemoriesGrid({
 						<button
 							type="button"
 							aria-label="Exit selection mode"
-							className="flex items-center gap-1 text-xs px-3 h-7 rounded-full text-[#737373] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+							className="flex h-7 items-center gap-1 rounded-full px-2 text-xs text-[#737373] transition-colors hover:text-white hover:bg-white/5 cursor-pointer sm:px-3"
 							onClick={onClearSelection}
 						>
 							<XIcon className="size-3" />
@@ -775,12 +780,16 @@ export function MemoriesGrid({
 							hasNextPage={hasNextPage}
 							isFetchingNextPage={isFetchingNextPage}
 							onLoadMore={loadMoreDocuments}
+							isSelectionMode={isSelectionMode}
+							selectedDocumentIds={selectedDocumentIds}
+							onToggleSelection={onToggleSelection}
 						/>
 					) : (
 						<Masonry
 							key={masonryKey}
 							items={masonryItems}
 							render={renderMasonryItem}
+							itemKey={getMasonryItemKey}
 							columnGutter={0}
 							rowGutter={0}
 							columnWidth={260}
