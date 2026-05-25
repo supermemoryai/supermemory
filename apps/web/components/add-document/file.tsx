@@ -242,12 +242,12 @@ export function FileContent({
 			{hasItems ? (
 				<ul
 					id="file-upload-queue"
-					className="flex flex-col gap-2 max-h-[220px] overflow-y-auto scrollbar-thin pr-1"
+					className="flex flex-col gap-2 max-h-[360px] overflow-y-auto scrollbar-thin pr-1"
 				>
 					{data.items.map((item) => (
 						<li
 							key={item.id}
-							className="relative overflow-hidden rounded-[12px] bg-[#14161A] shadow-inside-out text-sm"
+							className="relative shrink-0 overflow-hidden rounded-[12px] bg-[#14161A] shadow-inside-out text-sm"
 						>
 							{item.status === "uploading" ? (
 								<div
