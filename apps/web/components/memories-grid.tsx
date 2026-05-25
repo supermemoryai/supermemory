@@ -6,6 +6,7 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"
 import { useQueryState } from "nuqs"
+import { AnimatePresence } from "motion/react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
@@ -55,10 +56,13 @@ import {
 	LayoutGrid,
 	Loader,
 	Trash2Icon,
+	UserRound,
 	XIcon,
 } from "lucide-react"
 import { useProcessingDocuments } from "@/hooks/use-processing-documents"
 import { TimelineView } from "./timeline-view"
+import { SpaceProfilePanel } from "@/components/space-profile-panel"
+import { SpaceProfileModal } from "@/components/space-profile-modal"
 
 // Document category type
 type DocumentCategory =
@@ -249,6 +253,7 @@ export function MemoriesGrid({
 	emptyStateProps,
 }: MemoriesGridProps) {
 	const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+	const [profileOpen, setProfileOpen] = useState(false)
 	const [localViewMode, setLocalViewMode] = useState<"grid" | "timeline">(
 		() => {
 			if (typeof window === "undefined") return "grid"
@@ -259,7 +264,7 @@ export function MemoriesGrid({
 		},
 	)
 	const { user, isSessionPending } = useAuth()
-	const { effectiveContainerTags } = useProject()
+	const { effectiveContainerTags, selectedProject } = useProject()
 	const processingStatusMap = useProcessingDocuments()
 	const isMobile = useIsMobile()
 	const [selectedCategories, setSelectedCategories] = useQueryState(
@@ -346,6 +351,14 @@ export function MemoriesGrid({
 		setLocalViewMode(mode)
 		localStorage.setItem("memories-view-mode", mode)
 	}, [])
+
+	const handleToggleProfile = useCallback(() => {
+		if (isMobile) {
+			setProfileOpen(true)
+			return
+		}
+		setProfileOpen((open) => !open)
+	}, [isMobile])
 
 	const handleCategoryToggle = useCallback(
 		(category: DocumentCategory) => {
@@ -541,7 +554,7 @@ export function MemoriesGrid({
 		documents.every((d) => d.id && selectedDocumentIds.has(d.id))
 
 	return (
-		<div className="relative">
+		<div className="relative flex h-full min-h-0 flex-col">
 			{!isEmpty && !isSelectionMode && (
 				<div
 					id="filter-pills"
@@ -619,6 +632,20 @@ export function MemoriesGrid({
 							>
 								<AlignLeft className="size-3.5" />
 								Timeline
+							</button>
+							<button
+								type="button"
+								aria-pressed={profileOpen}
+								className={cn(
+									"inline-flex h-full items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-medium cursor-pointer transition-colors",
+									profileOpen
+										? "border-[#2261CA33] bg-[#00173C] text-white"
+										: "border-transparent text-[#737373] hover:bg-white/5",
+								)}
+								onClick={handleToggleProfile}
+							>
+								<UserRound className="size-3.5" />
+								Profile
 							</button>
 						</div>
 						{onEnterSelectionMode && (
@@ -749,64 +776,78 @@ export function MemoriesGrid({
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{error ? (
-				<div className="h-full flex items-center justify-center p-4">
-					<div className="text-center text-muted-foreground">
-						Error loading documents: {error.message}
-					</div>
-				</div>
-			) : isPending ? (
-				<MemoriesGridLoading />
-			) : showNovaEmptyState ? (
-				<NovaEmptyState
-					onAddMemory={emptyStateProps.onAddMemory}
-					onOpenIntegrations={emptyStateProps.onOpenIntegrations}
-					isAllSpaces={emptyStateProps.isAllSpaces}
-					spaceName={emptyStateProps.spaceName}
-					onSwitchToAllSpaces={emptyStateProps.onSwitchToAllSpaces}
-				/>
-			) : isEmpty ? (
-				<div className="h-full flex items-center justify-center p-4">
-					<div className="text-center text-muted-foreground">
-						No memories found
-					</div>
-				</div>
-			) : (
-				<div className="h-full overflow-auto scrollbar-thin">
-					{localViewMode === "timeline" ? (
-						<TimelineView
-							documents={documents}
-							onOpenDocument={onOpenDocument}
-							hasNextPage={hasNextPage}
-							isFetchingNextPage={isFetchingNextPage}
-							onLoadMore={loadMoreDocuments}
-							isSelectionMode={isSelectionMode}
-							selectedDocumentIds={selectedDocumentIds}
-							onToggleSelection={onToggleSelection}
-						/>
-					) : (
-						<Masonry
-							key={masonryKey}
-							items={masonryItems}
-							render={renderMasonryItem}
-							itemKey={getMasonryItemKey}
-							columnGutter={0}
-							rowGutter={0}
-							columnWidth={260}
-							maxColumnCount={isMobile ? 1 : undefined}
-							itemHeightEstimate={200}
-							overscanBy={3}
-							onRender={maybeLoadMore}
-						/>
-					)}
-
-					{isLoadingMore && localViewMode === "grid" && (
-						<div className="py-10 flex items-center justify-center">
-							<Loader className="size-10 animate-spin text-sky-400" />
+			<div className="min-h-0 flex-1">
+				{error ? (
+					<div className="h-full flex items-center justify-center p-4">
+						<div className="text-center text-muted-foreground">
+							Error loading documents: {error.message}
 						</div>
-					)}
-				</div>
-			)}
+					</div>
+				) : isPending ? (
+					<MemoriesGridLoading />
+				) : showNovaEmptyState ? (
+					<NovaEmptyState
+						onAddMemory={emptyStateProps.onAddMemory}
+						onOpenIntegrations={emptyStateProps.onOpenIntegrations}
+						isAllSpaces={emptyStateProps.isAllSpaces}
+						spaceName={emptyStateProps.spaceName}
+						onSwitchToAllSpaces={emptyStateProps.onSwitchToAllSpaces}
+					/>
+				) : isEmpty ? (
+					<div className="h-full flex items-center justify-center p-4">
+						<div className="text-center text-muted-foreground">
+							No memories found
+						</div>
+					</div>
+				) : (
+					<div className="flex h-full min-h-0 gap-4">
+						<div className="min-w-0 flex-1 overflow-auto scrollbar-thin">
+							{localViewMode === "timeline" ? (
+								<TimelineView
+									documents={documents}
+									onOpenDocument={onOpenDocument}
+									hasNextPage={hasNextPage}
+									isFetchingNextPage={isFetchingNextPage}
+									onLoadMore={loadMoreDocuments}
+									isSelectionMode={isSelectionMode}
+									selectedDocumentIds={selectedDocumentIds}
+									onToggleSelection={onToggleSelection}
+								/>
+							) : (
+								<Masonry
+									key={masonryKey}
+									items={masonryItems}
+									render={renderMasonryItem}
+									itemKey={getMasonryItemKey}
+									columnGutter={0}
+									rowGutter={0}
+									columnWidth={260}
+									maxColumnCount={isMobile ? 1 : undefined}
+									itemHeightEstimate={200}
+									overscanBy={3}
+									onRender={maybeLoadMore}
+								/>
+							)}
+
+							{isLoadingMore && localViewMode === "grid" && (
+								<div className="py-10 flex items-center justify-center">
+									<Loader className="size-10 animate-spin text-sky-400" />
+								</div>
+							)}
+						</div>
+						<AnimatePresence initial={false}>
+							{profileOpen && !isMobile && (
+								<SpaceProfilePanel containerTag={selectedProject} isOpen />
+							)}
+						</AnimatePresence>
+					</div>
+				)}
+			</div>
+			<SpaceProfileModal
+				containerTag={selectedProject}
+				open={profileOpen && isMobile}
+				onOpenChange={setProfileOpen}
+			/>
 		</div>
 	)
 }
