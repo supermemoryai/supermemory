@@ -53,6 +53,7 @@ export interface SpaceSelectorProps {
 	enableDelete?: boolean
 	compact?: boolean
 	includeAuto?: boolean
+	hideCount?: boolean
 }
 
 const triggerVariants = {
@@ -112,6 +113,7 @@ export function SpaceSelector({
 	enableDelete = false,
 	compact = false,
 	includeAuto = false,
+	hideCount = false,
 }: SpaceSelectorProps) {
 	const [showCreateDialog, setShowCreateDialog] = useState(false)
 	const [showSelectSpacesModal, setShowSelectSpacesModal] = useState(false)
@@ -430,11 +432,14 @@ export function SpaceSelector({
 						>
 							{isLoading ? "…" : displayInfo.name}
 						</span>
-						{!compact && spaceCountData !== undefined && spaceCountData > 0 && (
-							<span className="shrink-0 text-[11px] text-[#737373] tabular-nums">
-								· {formatCount(spaceCountData)}
-							</span>
-						)}
+						{!compact &&
+							!hideCount &&
+							spaceCountData !== undefined &&
+							spaceCountData > 0 && (
+								<span className="shrink-0 text-[11px] text-[#737373] tabular-nums">
+									· {formatCount(spaceCountData)}
+								</span>
+							)}
 						<ChevronDownIcon
 							className="size-3.5 shrink-0 text-[#737373]"
 							aria-hidden

@@ -5,9 +5,9 @@ import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
 import { useOrgSummaries } from "@/hooks/use-org-summaries"
+import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
 import {
-	PLAN_DISPLAY_NAMES,
 	PLAN_RANK,
 	useTokenUsage,
 	type PlanType,
@@ -76,25 +76,6 @@ function SettingsCard({ children }: { children: React.ReactNode }) {
 }
 
 /** Matches ACTIVE / RECOMMENDED pills in billing settings. */
-const orgPlanBadgeBase = cn(
-	dmSans125ClassName(),
-	"inline-flex h-[18px] min-w-[42px] shrink-0 items-center justify-center rounded-[3px] px-1.5 text-[10px] uppercase",
-)
-
-const ORG_PLAN_BADGE_STYLES: Record<PlanType, string> = {
-	free: "bg-[#2E353D] font-mono font-medium tracking-[0.12em] text-[#A3A3A3]",
-	pro: "bg-[#4BA0FA] font-bold tracking-[0.36px] text-[#00171A]",
-	scale: "bg-[#0054AD] font-bold tracking-[0.36px] text-[#FAFAFA]",
-	enterprise: "bg-[#FAFAFA] font-bold tracking-[0.36px] text-[#0D121A]",
-}
-
-function OrgPlanBadge({ plan }: { plan: PlanType }) {
-	return (
-		<span className={cn(orgPlanBadgeBase, ORG_PLAN_BADGE_STYLES[plan])}>
-			{PLAN_DISPLAY_NAMES[plan]}
-		</span>
-	)
-}
 
 const ROLE_LABELS: Record<string, string> = {
 	owner: "Owner",
@@ -150,18 +131,6 @@ function isPendingInvitation(invitation: {
 	}
 	if (!invitation.expiresAt) return true
 	return new Date(invitation.expiresAt).getTime() > Date.now()
-}
-
-function resolveOrgPlan(
-	orgId: string,
-	isCurrent: boolean,
-	currentPlan: PlanType,
-	planByOrgId: Map<string, PlanType>,
-): PlanType {
-	const fromSummary = planByOrgId.get(orgId)
-	if (fromSummary) return fromSummary
-	if (isCurrent) return currentPlan
-	return "free"
 }
 
 export default function Account() {

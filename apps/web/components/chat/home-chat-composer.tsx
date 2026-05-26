@@ -59,6 +59,7 @@ export function HomeChatComposer({
 								onValueChange={setChatSpaceProjects}
 								variant="insideOut"
 								includeAuto
+								hideCount
 								triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
 							/>
 						</>

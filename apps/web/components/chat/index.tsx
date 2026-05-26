@@ -980,6 +980,7 @@ export function ChatSidebar({
 									onValueChange={setChatSpaceProjects}
 									variant="insideOut"
 									includeAuto
+									hideCount
 									triggerClassName="h-10 min-h-10 max-w-[min(192px,42vw)] border border-[#73737333] bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset]"
 								/>
 							</>
@@ -1176,6 +1177,7 @@ export function ChatSidebar({
 									onValueChange={setChatSpaceProjects}
 									variant="insideOut"
 									includeAuto
+									hideCount
 									triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
 								/>
 							</>
