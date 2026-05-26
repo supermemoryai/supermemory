@@ -55,10 +55,17 @@ import {
 	CheckIcon,
 	LayoutGrid,
 	Loader,
+	MoreHorizontal,
 	Trash2Icon,
 	UserRound,
 	XIcon,
 } from "lucide-react"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@ui/components/dropdown-menu"
 import { useProcessingDocuments } from "@/hooks/use-processing-documents"
 import { TimelineView } from "./timeline-view"
 import { SpaceProfilePanel } from "@/components/space-profile-panel"
@@ -633,32 +640,53 @@ export function MemoriesGrid({
 								<AlignLeft className="size-3.5" />
 								Timeline
 							</button>
-							<button
-								type="button"
-								aria-pressed={profileOpen}
-								className={cn(
-									"inline-flex h-full items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-medium cursor-pointer transition-colors",
-									profileOpen
-										? "border-[#2261CA33] bg-[#00173C] text-white"
-										: "border-transparent text-[#737373] hover:bg-white/5",
-								)}
-								onClick={handleToggleProfile}
-							>
-								<UserRound className="size-3.5" />
-								Profile
-							</button>
 						</div>
-						{onEnterSelectionMode && (
-							<button
-								type="button"
-								aria-label="Select documents"
-								title="Select documents"
-								className="size-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] hover:border-[#2261CA33] transition-colors cursor-pointer"
-								onClick={onEnterSelectionMode}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									aria-label="More memory actions"
+									className={cn(
+										dmSansClassName(),
+										"inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 text-xs font-medium transition-colors cursor-pointer",
+										profileOpen
+											? "border-[#2261CA33] bg-[#00173C] text-white"
+											: "text-[#737373] hover:bg-white/5",
+									)}
+								>
+									<MoreHorizontal className="size-3.5" />
+									More
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className={cn(
+									"min-w-[180px] rounded-xl border border-[#2E3033] p-1.5 shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+									dmSansClassName(),
+								)}
+								style={{
+									background:
+										"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+								}}
 							>
-								<BoxSelect className="size-4 text-[#737373]" />
-							</button>
-						)}
+								{onEnterSelectionMode && (
+									<DropdownMenuItem
+										onSelect={onEnterSelectionMode}
+										className="gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-[#293952]/40"
+									>
+										<BoxSelect className="size-4 text-[#737373]" />
+										Select memories
+									</DropdownMenuItem>
+								)}
+								<DropdownMenuItem
+									onSelect={handleToggleProfile}
+									className="gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-[#293952]/40"
+								>
+									<UserRound className="size-4 text-[#737373]" />
+									Space profile
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
 			)}
@@ -837,7 +865,11 @@ export function MemoriesGrid({
 						</div>
 						<AnimatePresence initial={false}>
 							{profileOpen && !isMobile && (
-								<SpaceProfilePanel containerTag={selectedProject} isOpen />
+								<SpaceProfilePanel
+									containerTag={selectedProject}
+									isOpen
+									onClose={() => setProfileOpen(false)}
+								/>
 							)}
 						</AnimatePresence>
 					</div>

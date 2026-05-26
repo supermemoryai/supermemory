@@ -15,6 +15,9 @@ type ContextTemplate = {
 	prompt: string
 }
 
+const SURFACE_SHADOW =
+	"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset"
+
 const CONTEXT_TEMPLATES: ContextTemplate[] = [
 	{
 		id: "personal-general",
@@ -100,12 +103,14 @@ function PillButton({
 			disabled={disabled}
 			className={cn(
 				dmSansClassName(),
-				"inline-flex h-9 items-center justify-center gap-2 rounded-[9px] border px-3 text-[13px] font-medium transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+				"inline-flex h-9 items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition-opacity cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+				"bg-[#0D121A] text-[#FAFAFA] hover:opacity-80",
+				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 				variant === "primary"
-					? "border-transparent bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]"
+					? "border-transparent"
 					: variant === "danger"
-						? "border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/15"
-						: "border-[#161F2C] bg-[#0D121A] text-[#FAFAFA] hover:bg-[#00173C] hover:border-[#2261CA33]",
+						? "border-transparent"
+						: "border-transparent",
 			)}
 		>
 			{children}
@@ -224,7 +229,7 @@ export function OrgContext() {
 					</div>
 
 					{enabled && !isManaging && savedPrompt && (
-						<div className="rounded-[12px] border border-[#161F2C] bg-[#0D121A] p-4">
+						<div className="rounded-[12px] border border-white/[0.08] bg-[#0D121A] p-4">
 							<p className="line-clamp-6 whitespace-pre-wrap text-[13px] leading-relaxed text-[#A3A3A3]">
 								{savedPrompt}
 							</p>
@@ -245,54 +250,56 @@ export function OrgContext() {
 					)}
 
 					{enabled && isManaging && (
-						<div className="flex flex-col gap-4">
-							<label className="flex flex-col gap-2">
-								<span className="text-[13px] font-medium text-[#FAFAFA]">
-									What should Nova focus on?
-								</span>
-								<textarea
-									value={prompt}
-									onChange={(event) => setPrompt(event.target.value)}
-									placeholder="Describe what Nova should extract, skip, and prioritize when turning your content into memories..."
-									className={cn(
-										dmSansClassName(),
-										"min-h-[180px] w-full resize-y rounded-[12px] border border-[#161F2C] bg-[#0D121A] p-4 text-[13px] leading-relaxed text-[#FAFAFA] placeholder:text-[#525966] focus:outline-none focus:ring-1 focus:ring-[#2261CA66]",
-									)}
-									maxLength={750}
-								/>
-								<span className="self-end text-[11px] text-[#737373]">
-									{prompt.length}/750
-								</span>
-							</label>
+						<div className="overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#1B1F24]">
+							<div className="flex flex-col gap-4 p-4">
+								<label className="flex flex-col gap-2">
+									<span className="text-[13px] font-medium text-[#FAFAFA]">
+										What should Nova focus on?
+									</span>
+									<textarea
+										value={prompt}
+										onChange={(event) => setPrompt(event.target.value)}
+										placeholder="Describe what Nova should extract, skip, and prioritize when turning your content into memories..."
+										className={cn(
+											dmSansClassName(),
+											"min-h-[180px] w-full resize-y rounded-[14px] border border-white/[0.08] bg-[#0D121A] p-4 text-[13px] leading-relaxed text-[#FAFAFA] placeholder:text-[#525966] focus:border-white/[0.14] focus:outline-none",
+										)}
+										maxLength={750}
+									/>
+									<span className="self-end text-[11px] text-[#737373]">
+										{prompt.length}/750
+									</span>
+								</label>
 
-							<div className="grid gap-3 md:grid-cols-2">
-								{CONTEXT_TEMPLATES.map((template) => {
-									const isSelected = selectedTemplateId === template.id
-									return (
-										<button
-											key={template.id}
-											type="button"
-											onClick={() => setPrompt(template.prompt)}
-											className={cn(
-												"rounded-[10px] border p-3 text-left transition-colors cursor-pointer",
-												"bg-[#0D121A] hover:bg-[#121A24]",
-												isSelected
-													? "border-[#1C2B3E] bg-[#1C2B3E]"
-													: "border-white/10",
-											)}
-										>
-											<p className="text-[14px] font-medium text-[#FAFAFA]">
-												{template.label}
-											</p>
-											<p className="mt-1 text-[12px] leading-snug text-[#737373]">
-												{template.description}
-											</p>
-										</button>
-									)
-								})}
+								<div className="grid gap-3 md:grid-cols-2">
+									{CONTEXT_TEMPLATES.map((template) => {
+										const isSelected = selectedTemplateId === template.id
+										return (
+											<button
+												key={template.id}
+												type="button"
+												onClick={() => setPrompt(template.prompt)}
+												className={cn(
+													"rounded-[14px] border p-4 text-left transition-colors cursor-pointer",
+													"bg-[#14161A] hover:bg-[#121820]",
+													isSelected
+														? "border-white/[0.16] bg-[#171B22]"
+														: "border-white/[0.08]",
+												)}
+											>
+												<p className="text-[14px] font-medium text-[#FAFAFA]">
+													{template.label}
+												</p>
+												<p className="mt-1 text-[12px] leading-snug text-[#737373]">
+													{template.description}
+												</p>
+											</button>
+										)
+									})}
+								</div>
 							</div>
 
-							<div className="flex justify-end gap-2">
+							<div className="flex justify-end gap-2 border-t border-white/[0.08] bg-[#171B22] px-4 py-3">
 								<PillButton onClick={handleCancel}>CANCEL</PillButton>
 								<PillButton
 									onClick={handleSave}
@@ -318,8 +325,11 @@ export function OrgContext() {
 			>
 				<DialogContent
 					showCloseButton={false}
+					style={{
+						boxShadow: SURFACE_SHADOW,
+					}}
 					className={cn(
-						"sm:max-w-[440px] border-none bg-[#1B1F24] p-0 gap-0 rounded-[22px] overflow-hidden",
+						"sm:max-w-[440px] border border-white/[0.12] bg-[#1B1F24] p-0 gap-0 rounded-[22px] overflow-hidden",
 						dmSansClassName(),
 					)}
 				>
@@ -347,13 +357,7 @@ export function OrgContext() {
 										: "Nova will stop using this guidance for new content, and the saved context will be cleared."}
 								</p>
 							</div>
-							<DialogPrimitive.Close
-								className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] bg-[#0D121A] text-[#737373] transition-opacity hover:opacity-100 focus:outline-hidden cursor-pointer"
-								style={{
-									boxShadow:
-										"inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
-								}}
-							>
+							<DialogPrimitive.Close className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#0D121A] text-[#737373] shadow-inside-out transition-opacity hover:opacity-80 focus:outline-hidden cursor-pointer">
 								<X className="size-4" />
 								<span className="sr-only">Close</span>
 							</DialogPrimitive.Close>
