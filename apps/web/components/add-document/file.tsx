@@ -194,9 +194,12 @@ export function FileContent({
 			)}
 		>
 			<div className="flex flex-col gap-2">
-				<p className="text-[16px] font-medium pl-2">
-					Upload files (images, PDF, documents, sheets, markdown)
-				</p>
+				<div className="flex flex-col gap-0.5 pl-2">
+					<p className="text-[16px] font-medium">Upload files</p>
+					<p className="text-[#737373] text-xs">
+						Images, PDF, documents, sheets, markdown
+					</p>
+				</div>
 				<label
 					onDragOver={handleDragOver}
 					onDragLeave={handleDragLeave}
