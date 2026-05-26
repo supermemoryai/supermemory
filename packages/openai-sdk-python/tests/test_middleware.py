@@ -318,6 +318,65 @@ class TestMemoryInjection:
                 assert "User prefers Python" in system_message["content"]
 
 
+    @pytest.mark.asyncio
+    async def test_empty_memories_do_not_modify_messages(
+        self, mock_async_openai_client, mock_openai_response
+    ):
+        """No system prompt should be injected when the memory lookup returns nothing.
+
+        Previously, ``add_system_prompt`` would still modify messages even when
+        ``memories`` resolved to an empty string: it appended `` \\n `` (whitespace) to
+        any existing system prompt, or prepended a new ``{"role": "system", "content": ""}``
+        message when none existed.  Both outcomes pollute the conversation context with
+        meaningless tokens and can confuse the downstream model.
+        """
+        original_create = AsyncMock(return_value=mock_openai_response)
+        mock_async_openai_client.chat.completions.create = original_create
+
+        empty_response = {
+            "profile": {"static": [], "dynamic": []},
+            "searchResults": {"results": []},
+        }
+
+        with patch.dict(os.environ, {"SUPERMEMORY_API_KEY": "test-key"}):
+            with patch("supermemory_openai.middleware.supermemory_profile_search") as mock_search:
+                mock_search.return_value = Mock()
+                mock_search.return_value.profile = empty_response["profile"]
+                mock_search.return_value.search_results = empty_response["searchResults"]
+
+                wrapped_client = with_supermemory(
+                    mock_async_openai_client,
+                    OpenAIMiddlewareOptions(
+                        container_tag="user-123", custom_id="test-conv", mode="full"
+                    ),
+                )
+
+                # Case 1: no pre-existing system prompt — no system message should be prepended
+                user_only_messages = [{"role": "user", "content": "Hello"}]
+                await wrapped_client.chat.completions.create(
+                    model="gpt-4", messages=user_only_messages
+                )
+                sent_messages = original_create.call_args[1]["messages"]
+                assert sent_messages == user_only_messages, (
+                    "An empty-memory response must not prepend a blank system message"
+                )
+
+                original_create.reset_mock()
+
+                # Case 2: existing system prompt — it must not be modified
+                with_system = [
+                    {"role": "system", "content": "You are helpful."},
+                    {"role": "user", "content": "Hello"},
+                ]
+                await wrapped_client.chat.completions.create(
+                    model="gpt-4", messages=with_system
+                )
+                sent_messages = original_create.call_args[1]["messages"]
+                assert sent_messages[0]["content"] == "You are helpful.", (
+                    "An empty-memory response must not append whitespace to the existing system prompt"
+                )
+
+
 class TestMemoryStorage:
     """Test memory storage functionality."""
 
