@@ -458,23 +458,23 @@ export function AddDocument({
 				)}
 			>
 				{isMobile && (
-						<div className="mb-3 flex h-10 w-full shrink-0 items-center overflow-hidden rounded-full border border-[#1F2937] bg-[#0D121A] p-1">
-							{tabs.map((tab) => (
-								<TabButton
-									key={tab.id}
-									active={activeTab === tab.id}
-									onClick={() => setActiveTab(tab.id)}
-									icon={tab.icon}
-									title={tab.title}
-									compactLabel={tab.compactLabel}
-									description={tab.description}
-									isPro={tab.isPro}
-									compact
-								/>
-							))}
-						</div>
-					)}
-					<div className="min-h-0 flex-1 overflow-auto scrollbar-thin">
+					<div className="mb-3 flex h-10 w-full shrink-0 items-center overflow-hidden rounded-full border border-[#1F2937] bg-[#0D121A] p-1">
+						{tabs.map((tab) => (
+							<TabButton
+								key={tab.id}
+								active={activeTab === tab.id}
+								onClick={() => setActiveTab(tab.id)}
+								icon={tab.icon}
+								title={tab.title}
+								compactLabel={tab.compactLabel}
+								description={tab.description}
+								isPro={tab.isPro}
+								compact
+							/>
+						))}
+					</div>
+				)}
+				<div className="min-h-0 flex-1 overflow-auto scrollbar-thin">
 					{activeTab === "note" && (
 						<NoteContent
 							onSubmit={handleNoteSubmit}
