@@ -118,6 +118,7 @@ class SupermemoryPipecatService(FrameProcessor):
         self._messages_sent_count: int = 0
         self._last_query: Optional[str] = None
         self._audio_frames_detected: bool = False
+        self._background_tasks: set = set()  # Prevent GC of fire-and-forget tasks
 
     async def _retrieve_memories(self, query: str) -> Dict[str, Any]:
         """Retrieve relevant memories from Supermemory.
@@ -308,7 +309,9 @@ class SupermemoryPipecatService(FrameProcessor):
                 unsent_messages = storable_messages[self._messages_sent_count :]
 
                 if unsent_messages:
-                    asyncio.create_task(self._store_messages(unsent_messages))
+                    task = asyncio.create_task(self._store_messages(unsent_messages))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._background_tasks.discard)
                     self._messages_sent_count = len(storable_messages)
 
                 if messages is not None:
@@ -327,3 +330,4 @@ class SupermemoryPipecatService(FrameProcessor):
         self._messages_sent_count = 0
         self._last_query = None
         self._audio_frames_detected = False
+        self._background_tasks.clear()
