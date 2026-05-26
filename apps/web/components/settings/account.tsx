@@ -48,6 +48,7 @@ import { useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { PopoverAnchor } from "@ui/components/popover"
+import { OrgContext } from "@/components/settings/org-context"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -540,6 +541,8 @@ export default function Account() {
 					</div>
 				</SettingsCard>
 			</section>
+
+			<OrgContext />
 
 			<section id="team-members" className="flex flex-col gap-4">
 				<div className="flex flex-wrap items-center justify-between gap-3 px-2">
