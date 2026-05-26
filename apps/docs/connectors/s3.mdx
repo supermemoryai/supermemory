@@ -4,7 +4,7 @@ description: "Connect Amazon S3 or S3-compatible storage to sync files into your
 icon: "aws"
 ---
 
-Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2) to sync files into your Supermemory knowledge base.
+Connect Amazon S3 buckets or S3-compatible storage services (MinIO, DigitalOcean Spaces, Cloudflare R2, Tigris) to sync files into your Supermemory knowledge base.
 
 <Note>
 The S3 connector requires a **Scale Plan** or higher. You can also create S3 connections directly from the [Supermemory Console](https://console.supermemory.ai).
@@ -78,7 +78,7 @@ For S3, provider-specific connection fields are passed inside the top-level `met
 | `accessKeyId` | `metadata.accessKeyId` | Yes | AWS access key ID or S3-compatible service key |
 | `secretAccessKey` | `metadata.secretAccessKey` | Yes | AWS secret access key |
 | `bucket` | `metadata.bucket` | Yes | S3 bucket name |
-| `region` | `metadata.region` | Yes | AWS region (e.g., `us-east-1`). Use `auto` for Cloudflare R2. |
+| `region` | `metadata.region` | Yes | AWS region (e.g., `us-east-1`). Use `auto` for S3-compatible providers that don't expose AWS-style regions (MinIO, R2, Tigris). |
 | `endpoint` | `metadata.endpoint` | No | Custom endpoint for S3-compatible services |
 | `prefix` | `metadata.prefix` | No | Key prefix filter (e.g., `documents/`) |
 | `containerTagRegex` | `metadata.containerTagRegex` | No | Regex to extract container tags from file paths |
@@ -91,7 +91,7 @@ In the Python SDK, use `container_tags` for the top-level option, but keep S3 me
 
 ## S3-Compatible Services
 
-Use `metadata.endpoint` to connect to S3-compatible storage:
+Use `metadata.endpoint` to connect to S3-compatible storage. These services don't use AWS-style regions, so set `metadata.region` to `auto` — the value is still required for request signing but the service ignores it.
 
 ```typescript
 // MinIO
@@ -100,7 +100,7 @@ const connection = await client.connections.create('s3', {
     accessKeyId: 'minio-key',
     secretAccessKey: 'minio-secret',
     bucket: 'my-bucket',
-    region: 'us-east-1',
+    region: 'auto',
     endpoint: 'https://minio.example.com'
   },
   containerTags: ['minio-sync']
@@ -113,6 +113,7 @@ Common S3-compatible endpoint values:
 |---------|----------------------|-------------------|
 | DigitalOcean Spaces | `https://nyc3.digitaloceanspaces.com` | `nyc3` |
 | Cloudflare R2 | `https://<account-id>.r2.cloudflarestorage.com` | `auto` |
+| Tigris | `https://t3.storage.dev` | `auto` |
 
 Cloudflare R2 example:
 
