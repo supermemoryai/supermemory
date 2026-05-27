@@ -198,7 +198,7 @@ export default function Account() {
 	useEffect(() => {
 		setOrgNameDraft(org?.name ?? "")
 		setIsEditingOrgName(false)
-	}, [org?.id, org?.name])
+	}, [org?.name])
 
 	const activeMemberRoleQuery = useQuery({
 		queryKey: ["organization", org?.id, "active-member-role"],
@@ -378,9 +378,7 @@ export default function Account() {
 			toast.success("Organization name updated")
 		},
 		onError: (error) => {
-			toast.error(
-				getErrorMessage(error, "Failed to update organization name"),
-			)
+			toast.error(getErrorMessage(error, "Failed to update organization name"))
 		},
 	})
 
@@ -497,7 +495,6 @@ export default function Account() {
 											value={orgNameDraft}
 											onChange={(event) => setOrgNameDraft(event.target.value)}
 											disabled={updateOrgNameMutation.isPending}
-											autoFocus
 											maxLength={80}
 											className={cn(
 												dmSans125ClassName(),
@@ -567,7 +564,8 @@ export default function Account() {
 												>
 													{sortedOrgsForMenu.map((organization) => {
 														const isCurrent = organization.id === org?.id
-														const isSwitching = switchingOrgId === organization.id
+														const isSwitching =
+															switchingOrgId === organization.id
 														const plan = resolveOrgPlan(
 															organization.id,
 															isCurrent,
@@ -603,7 +601,10 @@ export default function Account() {
 																) : isCurrent ? (
 																	<Check className="size-4 shrink-0 text-[#4BA0FA]" />
 																) : (
-																	<span className="size-4 shrink-0" aria-hidden />
+																	<span
+																		className="size-4 shrink-0"
+																		aria-hidden
+																	/>
 																)}
 																<OrgPlanBadge plan={plan} />
 															</button>
