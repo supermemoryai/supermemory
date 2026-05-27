@@ -13,7 +13,7 @@ const STORAGE_KEY = "sm_next_app_research_cta_dismissed_v1"
 
 const BOOK_CALL_HREF = "https://cal.com/supermemory/growth"
 
-const LOBBYSIDE_WIDGET_ID = "e385c52f-4dd3-4fb2-81eb-da3a78059014"
+const LOBBYSIDE_ORG_ID = "5dfee8af-5b94-4ea4-8140-c31cf9e3ece5"
 
 function ResearchCtaHeroGraphic({
 	avatarUrl,
@@ -86,7 +86,7 @@ export function NextAppResearchCta() {
 	const pathname = usePathname()
 	const [mounted, setMounted] = useState(false)
 	const [dismissed, setDismissed] = useState(false)
-	const widget = useLobbyside(LOBBYSIDE_WIDGET_ID)
+	const widget = useLobbyside({ orgId: LOBBYSIDE_ORG_ID })
 	const { user, org } = useAuth()
 
 	useEffect(() => {
