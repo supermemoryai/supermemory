@@ -438,35 +438,25 @@ export default function Account() {
 								>
 									Organization
 								</p>
-								<Popover
-									open={orgMenuOpen && canSwitchOrg}
-									onOpenChange={(open) => {
-										if (canSwitchOrg) setOrgMenuOpen(open)
-									}}
-								>
-									<PopoverTrigger
-										disabled={!canSwitchOrg}
-										className={cn(
-											"flex min-w-0 max-w-full items-center gap-2 transition-opacity",
-											canSwitchOrg
-												? "cursor-pointer hover:opacity-90"
-												: "cursor-default",
-											dmSans125ClassName(),
-										)}
-									>
-										<span
+								{canSwitchOrg ? (
+									<Popover open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
+										<PopoverTrigger
 											className={cn(
+												"flex min-w-0 max-w-full items-center gap-2 transition-opacity",
+												"cursor-pointer hover:opacity-90",
 												dmSans125ClassName(),
-												"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
-											{org?.name ?? "Personal"}
-										</span>
-										{canSwitchOrg && (
+											<span
+												className={cn(
+													dmSans125ClassName(),
+													"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+												)}
+											>
+												{org?.name ?? "Personal"}
+											</span>
 											<ChevronDown className="size-4 shrink-0 text-[#737373]" />
-										)}
-									</PopoverTrigger>
-									{canSwitchOrg && (
+										</PopoverTrigger>
 										<PopoverContent
 											align="start"
 											className="w-80 max-h-80 overflow-y-auto bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
@@ -516,8 +506,17 @@ export default function Account() {
 												)
 											})}
 										</PopoverContent>
-									)}
-								</Popover>
+									</Popover>
+								) : (
+									<span
+										className={cn(
+											dmSans125ClassName(),
+											"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+										)}
+									>
+										{org?.name ?? "Personal"}
+									</span>
+								)}
 							</div>
 							<div className="flex min-w-0 flex-1 flex-col gap-2">
 								<p
@@ -1178,6 +1177,13 @@ export default function Account() {
 									!org?.id ||
 									inviteMemberMutation.isPending ||
 									(showTagPicker && inviteAssignments.length === 0)
+								}
+								title={
+									showTagPicker && inviteAssignments.length === 0
+										? "Select at least one space for restricted access"
+										: !inviteEmail.trim()
+											? "Enter an email address to send an invite"
+											: undefined
 								}
 								className={cn(
 									dmSans125ClassName(),

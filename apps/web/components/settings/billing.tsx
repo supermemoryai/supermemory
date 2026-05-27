@@ -674,6 +674,11 @@ export default function Billing() {
 								type="button"
 								onClick={handleUpgrade}
 								disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
+								title={
+									autumn.isLoading && !isUpgrading && !isCheckingStatus
+										? "Loading billing details…"
+										: undefined
+								}
 								className={cn(
 									dmSans125ClassName(),
 									"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",

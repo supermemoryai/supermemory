@@ -32,6 +32,7 @@ interface HighlightsCardProps {
 	onChat: (highlightContent: string, userReply: string) => void
 	onShowRelated: (query: string) => void
 	isLoading?: boolean
+	onAddMemory?: () => void
 }
 
 function renderContent(content: string, format: HighlightFormat) {
@@ -69,6 +70,7 @@ export function HighlightsCard({
 	onChat,
 	onShowRelated,
 	isLoading = false,
+	onAddMemory,
 }: HighlightsCardProps) {
 	const [activeIndex, setActiveIndex] = useState(0)
 	const [isReplyOpen, setIsReplyOpen] = useState(false)
@@ -186,10 +188,19 @@ export function HighlightsCard({
 						</div>
 					</div>
 				</div>
-				<div className="flex-1 flex items-center justify-center">
+				<div className="flex-1 flex flex-col items-center justify-center gap-3">
 					<p className="text-[11px] text-fg-muted text-center">
 						Add some documents to see highlights here
 					</p>
+					{onAddMemory ? (
+						<button
+							type="button"
+							onClick={onAddMemory}
+							className="text-[11px] font-medium text-brand-accent hover:text-brand-accent/80 transition-colors cursor-pointer"
+						>
+							Add memory →
+						</button>
+					) : null}
 				</div>
 			</div>
 		)

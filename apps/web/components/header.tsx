@@ -508,7 +508,7 @@ export function PublicHeader() {
 						Sign in
 					</button>
 				</Link>
-				<Link href="/login/new">
+				<Link href="/login">
 					<button
 						type="button"
 						className={cn(

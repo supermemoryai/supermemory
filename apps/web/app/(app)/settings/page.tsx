@@ -298,92 +298,99 @@ export default function SettingsPage() {
 					<span className="text-white/55 font-medium shrink-0">Settings</span>
 				</nav>
 				<div className="flex items-center gap-2 sm:gap-3 shrink-0">
-					{!isMobile && (
-						<Popover
-							open={orgSwitcherOpen && canSwitchOrg}
-							onOpenChange={(open) => {
-								if (canSwitchOrg) setOrgSwitcherOpen(open)
-							}}
-						>
-							<PopoverTrigger asChild>
-								<button
-									type="button"
-									disabled={!canSwitchOrg}
+					{!isMobile &&
+						(canSwitchOrg ? (
+							<Popover open={orgSwitcherOpen} onOpenChange={setOrgSwitcherOpen}>
+								<PopoverTrigger asChild>
+									<button
+										type="button"
+										className={cn(
+											"group flex items-center gap-2 rounded-full pl-1.5 pr-2.5 py-1.5 transition-colors",
+											"bg-white/[0.03] border border-white/[0.06]",
+											"cursor-pointer hover:bg-white/[0.06]",
+											dmSansClassName(),
+										)}
+									>
+										<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-white/55">
+											<Building2 className="size-[13px]" />
+										</span>
+										<span className="max-w-[160px] text-left text-[13px] font-medium text-white truncate leading-none">
+											{org?.name ?? "Personal"}
+										</span>
+										<OrgPlanBadge plan={activeOrgPlan} />
+										<ChevronsUpDown className="size-3.5 shrink-0 text-white/40" />
+									</button>
+								</PopoverTrigger>
+								<PopoverContent
+									align="end"
+									side="bottom"
+									sideOffset={8}
 									className={cn(
-										"group flex items-center gap-2 rounded-full pl-1.5 pr-2.5 py-1.5 transition-colors",
-										"bg-white/[0.03] border border-white/[0.06]",
-										canSwitchOrg
-											? "cursor-pointer hover:bg-white/[0.06]"
-											: "cursor-default",
+										"w-[260px] max-h-80 overflow-y-auto p-1.5",
+										"bg-[#14161A] border-white/10 rounded-[14px]",
+										"shadow-[0px_8px_28px_rgba(0,0,0,0.5)]",
 										dmSansClassName(),
 									)}
 								>
-									<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-white/55">
-										<Building2 className="size-[13px]" />
-									</span>
-									<span className="max-w-[160px] text-left text-[13px] font-medium text-white truncate leading-none">
-										{org?.name ?? "Personal"}
-									</span>
-									<OrgPlanBadge plan={activeOrgPlan} />
-									{canSwitchOrg && (
-										<ChevronsUpDown className="size-3.5 shrink-0 text-white/40" />
-									)}
-								</button>
-							</PopoverTrigger>
-							<PopoverContent
-								align="end"
-								side="bottom"
-								sideOffset={8}
+									{[...(organizations ?? [])]
+										.sort((a, b) => a.name.localeCompare(b.name))
+										.map((organization) => {
+											const isCurrent = organization.id === org?.id
+											const isSwitching = switchingOrgId === organization.id
+											const plan = resolveOrgPlan(
+												organization.id,
+												isCurrent,
+												currentPlan,
+												planByOrgId,
+											)
+											return (
+												<button
+													key={organization.id}
+													type="button"
+													disabled={isCurrent || isSwitching}
+													onClick={() =>
+														handleOrgSwitch(organization.slug, organization.id)
+													}
+													className={cn(
+														"w-full flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors",
+														isCurrent
+															? "bg-white/5"
+															: "hover:bg-white/5 cursor-pointer",
+														"disabled:cursor-default",
+													)}
+												>
+													<Building2 className="size-4 shrink-0 text-white/40" />
+													<span className="min-w-0 flex-1 truncate text-[13.5px] text-white">
+														{organization.name}
+													</span>
+													{isSwitching ? (
+														<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
+													) : isCurrent ? (
+														<Check className="size-4 shrink-0 text-[#4BA0FA]" />
+													) : null}
+													<OrgPlanBadge plan={plan} />
+												</button>
+											)
+										})}
+								</PopoverContent>
+							</Popover>
+						) : (
+							<div
 								className={cn(
-									"w-[260px] max-h-80 overflow-y-auto p-1.5",
-									"bg-[#14161A] border-white/10 rounded-[14px]",
-									"shadow-[0px_8px_28px_rgba(0,0,0,0.5)]",
+									"flex items-center gap-2 rounded-full pl-1.5 pr-2.5 py-1.5",
+									"bg-white/[0.03] border border-white/[0.06]",
 									dmSansClassName(),
 								)}
 							>
-								{[...(organizations ?? [])]
-									.sort((a, b) => a.name.localeCompare(b.name))
-									.map((organization) => {
-										const isCurrent = organization.id === org?.id
-										const isSwitching = switchingOrgId === organization.id
-										const plan = resolveOrgPlan(
-											organization.id,
-											isCurrent,
-											currentPlan,
-											planByOrgId,
-										)
-										return (
-											<button
-												key={organization.id}
-												type="button"
-												disabled={isCurrent || isSwitching}
-												onClick={() =>
-													handleOrgSwitch(organization.slug, organization.id)
-												}
-												className={cn(
-													"w-full flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors",
-													isCurrent
-														? "bg-white/5"
-														: "hover:bg-white/5 cursor-pointer",
-													"disabled:cursor-default",
-												)}
-											>
-												<Building2 className="size-4 shrink-0 text-white/40" />
-												<span className="min-w-0 flex-1 truncate text-[13.5px] text-white">
-													{organization.name}
-												</span>
-												{isSwitching ? (
-													<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
-												) : isCurrent ? (
-													<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-												) : null}
-												<OrgPlanBadge plan={plan} />
-											</button>
-										)
-									})}
-							</PopoverContent>
-						</Popover>
-					)}
+								<span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white/[0.05] text-white/55">
+									<Building2 className="size-[13px]" />
+								</span>
+								<span className="max-w-[160px] text-left text-[13px] font-medium text-white truncate leading-none">
+									{org?.name ?? "Personal"}
+								</span>
+								<OrgPlanBadge plan={activeOrgPlan} />
+							</div>
+						))}
 					<UserProfileMenu />
 				</div>
 			</header>
@@ -639,6 +646,11 @@ export default function SettingsPage() {
 											resetConfirmation !== confirmText ||
 											resetOrganization.isPending
 										}
+										title={
+											!confirmText || resetConfirmation !== confirmText
+												? `Type "${confirmText || "your name"}" exactly to enable`
+												: undefined
+										}
 										onClick={() =>
 											resetOrganization.mutate(
 												{ confirmation: confirmText },
@@ -718,6 +730,11 @@ export default function SettingsPage() {
 								disabled={
 									deleteEmailConfirm !== user?.email ||
 									deleteUserAccount.isPending
+								}
+								title={
+									deleteEmailConfirm !== user?.email
+										? `Type ${user?.email ?? "your email"} exactly to confirm`
+										: undefined
 								}
 								onClick={handleDeleteAccount}
 								className="relative flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-opacity bg-[#290F0A] text-[#C73B1B] disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"

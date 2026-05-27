@@ -48,7 +48,7 @@ export function UserProfileMenu({
 			} catch {
 				// still navigate if the request fails (offline, etc.)
 			}
-			router.push("/login/new")
+			router.push("/login")
 		})()
 	}
 

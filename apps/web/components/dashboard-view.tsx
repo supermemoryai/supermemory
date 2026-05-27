@@ -1361,6 +1361,7 @@ export function DashboardView({
 								onChat={onHighlightsChat}
 								onShowRelated={onHighlightsShowRelated}
 								isLoading={isLoadingHighlights}
+								onAddMemory={() => onAddMemory("note")}
 							/>
 						</div>
 						<div className="flex-[2] hidden sm:block min-w-0">
