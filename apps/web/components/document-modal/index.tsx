@@ -280,111 +280,107 @@ export function DocumentModal({
 					{_document?.title} - Document
 				</DialogTitle>
 			)}
-				<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
-					<div className="flex-1 min-w-0">
-						<Title
-							title={_document?.title}
-							documentType={_document?.type ?? "text"}
-							url={_document?.url}
-							pluginIconSrc={pluginDocument?.pluginIconSrc}
-						/>
-					</div>
-					<div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-						{pluginDocument?.kind === "claude-code-doc" &&
-							_document?.customId && (
-								<CopySessionIdButton sessionId={_document.customId} />
-							)}
-						<DeleteButton
-							documentId={_document?.id}
-							customId={_document?.customId}
-							deleteMutation={deleteMutation}
-						/>
-						{_document?.url && (
-							<a
-								href={getDocumentSourceUrl(_document)}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={cn(
-									"flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
-									isMobile ? "size-7 justify-center" : "px-3 py-2",
-								)}
-							>
-								{!isMobile && (
-									<span className="line-clamp-1">Visit source</span>
-								)}
-								<ArrowUpRightIcon className="size-4 text-[#737373]" />
-							</a>
-						)}
-						{isMobile ? (
-							<button
-								className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
-								type="button"
-								tabIndex={-1}
-								onClick={onClose}
-							>
-								<XIcon stroke="#737373" />
-								<span className="sr-only">Close</span>
-							</button>
-						) : (
-							<DialogPrimitive.Close
-								className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
-								data-slot="dialog-close"
-								type="button"
-								tabIndex={-1}
-							>
-								<XIcon stroke="#737373" />
-								<span className="sr-only">Close</span>
-							</DialogPrimitive.Close>
-						)}
-					</div>
+			<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
+				<div className="flex-1 min-w-0">
+					<Title
+						title={_document?.title}
+						documentType={_document?.type ?? "text"}
+						url={_document?.url}
+						pluginIconSrc={pluginDocument?.pluginIconSrc}
+					/>
 				</div>
+				<div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+					{pluginDocument?.kind === "claude-code-doc" &&
+						_document?.customId && (
+							<CopySessionIdButton sessionId={_document.customId} />
+						)}
+					<DeleteButton
+						documentId={_document?.id}
+						customId={_document?.customId}
+						deleteMutation={deleteMutation}
+					/>
+					{_document?.url && (
+						<a
+							href={getDocumentSourceUrl(_document)}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={cn(
+								"flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
+								isMobile ? "size-7 justify-center" : "px-3 py-2",
+							)}
+						>
+							{!isMobile && <span className="line-clamp-1">Visit source</span>}
+							<ArrowUpRightIcon className="size-4 text-[#737373]" />
+						</a>
+					)}
+					{isMobile ? (
+						<button
+							className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+							type="button"
+							tabIndex={-1}
+							onClick={onClose}
+						>
+							<XIcon stroke="#737373" />
+							<span className="sr-only">Close</span>
+						</button>
+					) : (
+						<DialogPrimitive.Close
+							className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+							data-slot="dialog-close"
+							type="button"
+							tabIndex={-1}
+						>
+							<XIcon stroke="#737373" />
+							<span className="sr-only">Close</span>
+						</DialogPrimitive.Close>
+					)}
+				</div>
+			</div>
+			<div
+				className={cn(
+					"flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 min-h-0",
+					isMobile ? "overflow-y-auto pb-1" : "overflow-hidden",
+				)}
+			>
 				<div
+					id="document-preview"
 					className={cn(
-						"flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 min-h-0",
-						isMobile ? "overflow-y-auto pb-1" : "overflow-hidden",
+						"bg-[#14161A] rounded-[14px] overflow-hidden flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative",
 					)}
 				>
-					<div
-						id="document-preview"
-						className={cn(
-							"bg-[#14161A] rounded-[14px] overflow-hidden flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative",
-						)}
-					>
-						<DocumentContent
-							document={_document}
-							textEditorProps={textEditorProps}
-							pluginDocument={pluginDocument}
-						/>
-					</div>
-					<div
-						id="document-memories-summary"
-						className={cn(
-							"gap-3 flex flex-col overflow-hidden",
-							dmSansClassName(),
-						)}
-					>
-						{pluginDocument &&
-							pluginDocument.kind !== "claude-code-doc" &&
-							pluginDocument.kind !== "openclaw-session" && (
-								<PluginDetails parsed={pluginDocument} />
-							)}
-						{_document && (_document.summary || pluginDocument?.summary) && (
-							<DocumentSummary
-								memoryEntries={_document.memoryEntries}
-								summary={
-									(pluginDocument?.summary ?? _document.summary) as string
-								}
-								createdAt={_document.createdAt}
-							/>
-						)}
-						{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
-							<GraphListMemories
-								memoryEntries={_document.memoryEntries as MemoryEntry[]}
-								documentId={_document.id}
-							/>
-						)}
-					</div>
+					<DocumentContent
+						document={_document}
+						textEditorProps={textEditorProps}
+						pluginDocument={pluginDocument}
+					/>
 				</div>
+				<div
+					id="document-memories-summary"
+					className={cn(
+						"gap-3 flex flex-col overflow-hidden",
+						dmSansClassName(),
+					)}
+				>
+					{pluginDocument &&
+						pluginDocument.kind !== "claude-code-doc" &&
+						pluginDocument.kind !== "openclaw-session" && (
+							<PluginDetails parsed={pluginDocument} />
+						)}
+					{_document && (_document.summary || pluginDocument?.summary) && (
+						<DocumentSummary
+							memoryEntries={_document.memoryEntries}
+							summary={(pluginDocument?.summary ?? _document.summary) as string}
+							createdAt={_document.createdAt}
+						/>
+					)}
+					{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
+						<GraphListMemories
+							memoryEntries={_document.memoryEntries as MemoryEntry[]}
+							documentId={_document.id}
+						/>
+					)}
+				</div>
+			</div>
 		</>
 	)
 
