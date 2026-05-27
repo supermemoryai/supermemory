@@ -1,6 +1,7 @@
 "use client"
 
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
+import { Drawer, DrawerContent, DrawerTitle } from "@repo/ui/components/drawer"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import {
 	ArrowUpRightIcon,
@@ -268,25 +269,17 @@ export function DocumentModal({
 		],
 	)
 
-	return (
-		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-			<DialogContent
-				className={cn(
-					"p-0 border-none bg-[#1B1F24] flex flex-col px-3 md:px-4 pt-3 pb-4 gap-3",
-					isMobile
-						? "w-[calc(100vw-1rem)]! h-[calc(100dvh-1rem)]! max-w-none! max-h-none! rounded-xl"
-						: "w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! rounded-[22px]",
-					dmSansClassName(),
-				)}
-				style={{
-					boxShadow:
-						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-				}}
-				showCloseButton={false}
-			>
+	const modalContent = (
+		<>
+			{isMobile ? (
+				<DrawerTitle className="sr-only">
+					{_document?.title} - Document
+				</DrawerTitle>
+			) : (
 				<DialogTitle className="sr-only">
 					{_document?.title} - Document
 				</DialogTitle>
+			)}
 				<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
 					<div className="flex-1 min-w-0">
 						<Title
@@ -322,18 +315,35 @@ export function DocumentModal({
 								<ArrowUpRightIcon className="size-4 text-[#737373]" />
 							</a>
 						)}
-						<DialogPrimitive.Close
-							className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
-							data-slot="dialog-close"
-							type="button"
-							tabIndex={-1}
-						>
-							<XIcon stroke="#737373" />
-							<span className="sr-only">Close</span>
-						</DialogPrimitive.Close>
+						{isMobile ? (
+							<button
+								className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+								type="button"
+								tabIndex={-1}
+								onClick={onClose}
+							>
+								<XIcon stroke="#737373" />
+								<span className="sr-only">Close</span>
+							</button>
+						) : (
+							<DialogPrimitive.Close
+								className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+								data-slot="dialog-close"
+								type="button"
+								tabIndex={-1}
+							>
+								<XIcon stroke="#737373" />
+								<span className="sr-only">Close</span>
+							</DialogPrimitive.Close>
+						)}
 					</div>
 				</div>
-				<div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 overflow-hidden min-h-0">
+				<div
+					className={cn(
+						"flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 min-h-0",
+						isMobile ? "overflow-y-auto pb-1" : "overflow-hidden",
+					)}
+				>
 					<div
 						id="document-preview"
 						className={cn(
@@ -375,6 +385,51 @@ export function DocumentModal({
 						)}
 					</div>
 				</div>
+		</>
+	)
+
+	if (isMobile) {
+		return (
+			<Drawer
+				open={isOpen}
+				onOpenChange={(open: boolean) => !open && onClose()}
+				shouldScaleBackground
+			>
+				<DrawerContent
+					className={cn(
+						"flex flex-col gap-0 border-none bg-[#1B1F24] p-0",
+						"h-[88svh] max-h-[88svh] overflow-hidden rounded-t-[22px]",
+						"[&>div:first-child]:bg-[#3A4252] [&>div:first-child]:h-1 [&>div:first-child]:w-9 [&>div:first-child]:mt-2.5 [&>div:first-child]:mb-1",
+						dmSansClassName(),
+					)}
+					style={{
+						boxShadow:
+							"0 -12px 40px rgba(0, 0, 0, 0.45), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+					}}
+				>
+					<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-3 pt-2 pb-4">
+						{modalContent}
+					</div>
+				</DrawerContent>
+			</Drawer>
+		)
+	}
+
+	return (
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+			<DialogContent
+				className={cn(
+					"p-0 border-none bg-[#1B1F24] flex flex-col px-3 md:px-4 pt-3 pb-4 gap-3",
+					"w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! rounded-[22px]",
+					dmSansClassName(),
+				)}
+				style={{
+					boxShadow:
+						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+				}}
+				showCloseButton={false}
+			>
+				{modalContent}
 			</DialogContent>
 		</Dialog>
 	)
