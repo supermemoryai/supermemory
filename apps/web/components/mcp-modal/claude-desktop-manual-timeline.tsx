@@ -69,52 +69,76 @@ export function ClaudeDesktopManualTimeline({
 }: ClaudeDesktopManualTimelineProps) {
 	const isDetail = variant === "detail"
 
-	const textMuted = isDetail ? "text-[#B0B0B0]" : "text-muted-foreground"
-	const border = isDetail ? "border-[#3D434D]" : "border-border"
-	const spine = isDetail ? "bg-[#7C8C9E]" : "bg-muted-foreground/40"
+	const textMuted = isDetail ? "text-[#A1A1AA]" : "text-muted-foreground"
+	const border = isDetail ? "border-white/[0.07]" : "border-border"
+	const spine = isDetail ? "bg-white/[0.14]" : "bg-muted-foreground/40"
 	const circleBorder = isDetail
-		? "border-[#9CA8B8]"
+		? "border-white/[0.12]"
 		: "border-muted-foreground/50"
-	const circleBg = isDetail ? "bg-[#080B0F]" : "bg-background"
-	const codeBg = isDetail ? "bg-[#050608]" : "bg-muted"
-	const imgBorder = isDetail ? "border-[#3D434D]" : "border-border"
-	const screenshotBed = isDetail ? "bg-[#2A2D35]" : "bg-muted"
+	const circleBg = isDetail ? "bg-[#0D121A]" : "bg-background"
+	const codeBg = isDetail ? "bg-[#0B0E13]" : "bg-muted"
+	const imgBorder = isDetail ? "border-white/[0.07]" : "border-border"
+	const screenshotBed = isDetail ? "bg-[#0B0E13]" : "bg-muted"
 
 	return (
 		<div
 			className={cn(
 				"space-y-0",
 				isDetail
-					? "rounded-2xl border border-[#3D434D] bg-[#080B0F] p-5 sm:p-6"
+					? ""
 					: "rounded-xl border border-border bg-muted/50 p-4 sm:p-5",
 			)}
 		>
 			<div className="relative">
 				<div
 					className={cn(
-						"absolute top-4.5 bottom-4.5 left-4.5 w-0.5 rounded-full",
+						isDetail
+							? "absolute top-3 bottom-3 left-[10.5px] w-px"
+							: "absolute top-4.5 bottom-4.5 left-4.5 w-0.5 rounded-full",
 						spine,
 					)}
 					aria-hidden
 				/>
 
-				<ol className="relative m-0 list-none space-y-10">
+				<ol className="relative m-0 list-none space-y-7">
 					{STEPS.map((item) => (
 						<li className="relative flex gap-4 sm:gap-5" key={item.step}>
-							<div className="relative z-1 flex w-9 shrink-0 justify-center pt-0.5">
-								<div
-									className={cn(
-										"flex size-9 items-center justify-center rounded-full border-2 text-sm font-semibold tabular-nums shadow-sm",
-										circleBorder,
-										circleBg,
-										isDetail ? "text-[#FAFAFA]" : "text-foreground",
-									)}
-								>
-									{item.step}
-								</div>
+							<div
+								className={cn(
+									"relative z-1 flex shrink-0 justify-center pt-0.5",
+									isDetail ? "w-[22px]" : "w-9",
+								)}
+							>
+								{isDetail ? (
+									<div
+										className={cn(
+											"flex size-[22px] items-center justify-center rounded-full bg-[#0D121A] text-[11px] font-semibold tabular-nums text-[#4BA0FA]",
+											"shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
+										)}
+									>
+										{item.step}
+									</div>
+								) : (
+									<div
+										className={cn(
+											"flex size-9 items-center justify-center rounded-full border-2 text-sm font-semibold tabular-nums shadow-sm",
+											circleBorder,
+											circleBg,
+											"text-foreground",
+										)}
+									>
+										{item.step}
+									</div>
+								)}
 							</div>
 							<div className="min-w-0 flex-1 space-y-3">
-								<p className={cn("text-sm leading-relaxed", textMuted)}>
+								<p
+									className={cn(
+										isDetail
+											? "text-[13px] leading-relaxed text-[#A1A1AA]"
+											: cn("text-sm leading-relaxed", textMuted),
+									)}
+								>
 									{item.body}
 								</p>
 
@@ -123,14 +147,14 @@ export function ClaudeDesktopManualTimeline({
 										<div className="relative">
 											<pre
 												className={cn(
-													"max-w-full overflow-x-auto rounded-lg border p-4 pr-12 text-xs",
+													"max-w-full overflow-x-auto rounded-[10px] border p-4 pr-12 text-xs",
 													border,
 													codeBg,
 												)}
 											>
 												<code
 													className={cn(
-														"block font-mono whitespace-pre-wrap break-all text-emerald-400",
+														"block font-mono whitespace-pre-wrap break-all text-[#E4E4E7]",
 														dmMonoClassName(),
 													)}
 												>
@@ -139,13 +163,13 @@ export function ClaudeDesktopManualTimeline({
 											</pre>
 											<button
 												type="button"
-												className="absolute top-2 right-2 flex size-8 cursor-pointer items-center justify-center rounded-md border border-[#3D434D] bg-[#121820] hover:bg-[#1a2230]"
+												className="absolute top-2 right-2 flex size-7 cursor-pointer items-center justify-center rounded-full bg-[#0D121A] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.6)] transition-opacity hover:opacity-80"
 												onClick={onCopySnippet}
 											>
 												{snippetCopied ? (
-													<span className="text-xs text-emerald-500">✓</span>
+													<CheckIcon className="size-3.5 text-[#4BA0FA]" />
 												) : (
-													<CopyIcon className="size-3.5 text-[#8B8B8B] hover:text-white" />
+													<CopyIcon className="size-3.5 text-[#737373]" />
 												)}
 											</button>
 										</div>
