@@ -7,14 +7,19 @@ interface ResearchRequest {
 	email?: string
 }
 
+const ALLOWED_X_HOSTS: ReadonlySet<string> = new Set([
+	"x.com",
+	"www.x.com",
+	"twitter.com",
+	"www.twitter.com",
+	"mobile.twitter.com",
+])
+
+const X_URL_FALLBACK_REGEX =
+	/^(?:https?:\/\/)?(?:x\.com|www\.x\.com|twitter\.com|www\.twitter\.com|mobile\.twitter\.com)\/([^/\s?#]+)/i
+
 function isXHost(hostname: string): boolean {
-	const host = hostname.toLowerCase()
-	return (
-		host === "x.com" ||
-		host === "twitter.com" ||
-		host.endsWith(".x.com") ||
-		host.endsWith(".twitter.com")
-	)
+	return ALLOWED_X_HOSTS.has(hostname.toLowerCase())
 }
 
 function extractHandle(input: string): string {
@@ -35,9 +40,7 @@ function extractHandle(input: string): string {
 				? (parsed.pathname.split("/").filter(Boolean)[0] ?? "")
 				: ""
 		} catch {
-			handle =
-				handle.match(/(?:^|[./])(?:x\.com|twitter\.com)\/([^/\s?#]+)/i)?.[1] ??
-				""
+			handle = handle.match(X_URL_FALLBACK_REGEX)?.[1] ?? ""
 		}
 	}
 
