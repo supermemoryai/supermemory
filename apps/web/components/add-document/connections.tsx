@@ -4,7 +4,7 @@ import { $fetch } from "@lib/api"
 import { hasActivePlan } from "@lib/queries"
 import type { ConnectionResponseSchema } from "@repo/validation/api"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Notion, OneDrive, Slack } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
@@ -48,7 +48,7 @@ const GDRIVE_SCOPE_LABELS: Record<GDriveSyncScope, string> = {
 
 type Connection = z.infer<typeof ConnectionResponseSchema>
 
-type ConnectorProvider = "google-drive" | "notion" | "onedrive"
+type ConnectorProvider = "google-drive" | "notion" | "onedrive" | "slack"
 
 const CONNECTORS: Record<
 	ConnectorProvider,
@@ -76,6 +76,12 @@ const CONNECTORS: Record<
 		description: "Access your Microsoft Office documents",
 		documentLabel: "documents",
 		icon: OneDrive,
+	},
+	slack: {
+		title: "Slack",
+		description: "Sync messages and threads from selected channels",
+		documentLabel: "channels",
+		icon: Slack,
 	},
 } as const
 
@@ -750,6 +756,23 @@ export function ConnectContent({ selectedProject }: ConnectContentProps) {
 												</span>
 												<span className="text-[11px] text-[#737373] leading-tight">
 													Office documents
+												</span>
+											</div>
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											onClick={() => {
+												setConnectingProvider("slack")
+												addConnectionMutation.mutate({ provider: "slack" })
+											}}
+											className="flex items-start gap-2.5 px-3 py-2.5 rounded-md cursor-pointer text-white opacity-60 hover:opacity-100 hover:bg-[#293952]/40 focus:bg-[#293952]/40 focus:opacity-100"
+										>
+											<Slack className="size-5 mt-0.5 shrink-0" />
+											<div className="flex flex-col gap-0.5 min-w-0">
+												<span className="text-[14px] font-medium text-[#FAFAFA] leading-tight">
+													Slack
+												</span>
+												<span className="text-[11px] text-[#737373] leading-tight">
+													Messages & threads
 												</span>
 											</div>
 										</DropdownMenuItem>
