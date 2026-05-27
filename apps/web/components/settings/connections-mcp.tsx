@@ -4,7 +4,7 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { $fetch } from "@lib/api"
 import { hasActivePlan } from "@lib/queries"
-import { GoogleDrive, Notion, OneDrive } from "@ui/assets/icons"
+import { GoogleDrive, Notion, OneDrive, Slack } from "@ui/assets/icons"
 import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -67,6 +67,12 @@ const CONNECTORS = {
 		description: "Access your Microsoft Office documents",
 		icon: OneDrive,
 		documentLabel: "documents",
+	},
+	slack: {
+		title: "Slack",
+		description: "Sync messages and threads from selected channels",
+		icon: Slack,
+		documentLabel: "channels",
 	},
 } as const
 
