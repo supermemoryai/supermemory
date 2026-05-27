@@ -118,12 +118,30 @@ function CustomTweetMedia({
 }
 
 function isTweetLike(value: unknown): value is Tweet {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		!Array.isArray(value) &&
-		"user" in value
-	)
+	if (typeof value !== "object" || value === null || Array.isArray(value)) {
+		return false
+	}
+	const candidate = value as Record<string, unknown>
+	const user = candidate.user
+	if (
+		typeof user !== "object" ||
+		user === null ||
+		Array.isArray(user) ||
+		typeof (user as { screen_name?: unknown }).screen_name !== "string"
+	) {
+		return false
+	}
+	if (typeof candidate.text !== "string") return false
+	if (!Array.isArray(candidate.display_text_range)) return false
+	const entities = candidate.entities
+	if (
+		typeof entities !== "object" ||
+		entities === null ||
+		Array.isArray(entities)
+	) {
+		return false
+	}
+	return true
 }
 
 function parseTweetData(data: Tweet | string): Tweet | null {
