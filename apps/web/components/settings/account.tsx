@@ -4,15 +4,8 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
 import { authClient } from "@lib/auth"
-import { useOrgSummaries } from "@/hooks/use-org-summaries"
-import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import {
-	PLAN_RANK,
-	useTokenUsage,
-	type PlanType,
-} from "@/hooks/use-token-usage"
-import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
+import { Popover, PopoverContent } from "@ui/components/popover"
 import {
 	Select,
 	SelectContent,
@@ -28,23 +21,21 @@ import {
 } from "@ui/components/dropdown-menu"
 import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { useCustomer } from "autumn-js/react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
-	Check,
 	LoaderIcon,
 	ChevronDown,
-	Building2,
 	Users,
 	UserPlus,
 	Mail,
 	MoreHorizontal,
 	UserMinus,
 	X,
+	Pencil,
 	Tag,
 	Plus,
 } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { PopoverAnchor } from "@ui/components/popover"
@@ -135,16 +126,7 @@ function isPendingInvitation(invitation: {
 }
 
 export default function Account() {
-	const {
-		user,
-		org,
-		organizations: allOrgs,
-		setActiveOrg,
-		refetchActiveOrg,
-	} = useAuth()
-	const autumn = useCustomer()
-	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
-	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
+	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 	const [inviteEmail, setInviteEmail] = useState("")
 	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
@@ -156,6 +138,8 @@ export default function Account() {
 	>([])
 	const [tagQuery, setTagQuery] = useState("")
 	const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
+	const [isEditingOrgName, setIsEditingOrgName] = useState(false)
+	const [orgNameDraft, setOrgNameDraft] = useState("")
 	const tagInputRef = useRef<HTMLInputElement>(null)
 	const tagAnchorRef = useRef<HTMLDivElement>(null)
 	const { allProjects: allContainerTags } = useContainerTags()
@@ -174,28 +158,17 @@ export default function Account() {
 	const showAccessType = inviteRole === "member"
 	const showTagPicker =
 		inviteRole === "member" && inviteAccessType === "restricted"
-	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
-	const { data: orgSummaries } = useOrgSummaries()
 
-	const handleOrgSwitch = async (orgSlug: string, orgId: string) => {
-		if (orgId === org?.id) return
-		setSwitchingOrgId(orgId)
-		try {
-			await setActiveOrg(orgSlug)
-			window.location.reload()
-		} catch (error) {
-			console.error("Failed to switch organization:", error)
-			setSwitchingOrgId(null)
-		}
-	}
-
-	const { currentPlan } = useTokenUsage(autumn)
+	useEffect(() => {
+		setOrgNameDraft(org?.name ?? "")
+		setIsEditingOrgName(false)
+	}, [org?.name])
 
 	const activeMemberRoleQuery = useQuery({
 		queryKey: ["organization", org?.id, "active-member-role"],
 		queryFn: async () => {
 			if (!org?.id) return null
-			const result = await authClient.organization.getActiveMemberRole({
+			const result = await authClient.organization.getActiveMember({
 				query: { organizationId: org.id },
 			})
 			if (result.error) {
@@ -346,40 +319,50 @@ export default function Account() {
 		},
 	})
 
+	const updateOrgNameMutation = useMutation({
+		mutationFn: async (name: string) => {
+			if (!org?.id) throw new Error("No active organization")
+			const trimmed = name.trim()
+			if (!trimmed) throw new Error("Enter an organization name")
+			const result = await authClient.organization.update({
+				organizationId: org.id,
+				data: { name: trimmed },
+			})
+			if (result.error) {
+				throw new Error(
+					result.error.message ?? "Failed to update organization name",
+				)
+			}
+			return trimmed
+		},
+		onSuccess: async (name) => {
+			setOrgNameDraft(name)
+			setIsEditingOrgName(false)
+			await Promise.all([refetchActiveOrg(), refetchOrganizations()])
+			toast.success("Organization name updated")
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to update organization name"))
+		},
+	})
+
 	const handleInviteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		if (!canManageTeam || inviteMemberMutation.isPending) return
 		inviteMemberMutation.mutate()
 	}
 
-	const planByOrgId = useMemo(() => {
-		const map = new Map<string, PlanType>()
-		for (const summary of orgSummaries ?? []) {
-			map.set(summary.orgId, summary.plan)
+	const handleOrgNameSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
+		if (!canManageTeam || updateOrgNameMutation.isPending) return
+		const trimmed = orgNameDraft.trim()
+		if (!trimmed || trimmed === org?.name) {
+			setOrgNameDraft(org?.name ?? "")
+			setIsEditingOrgName(false)
+			return
 		}
-		return map
-	}, [orgSummaries])
-
-	const sortedOrgsForMenu = useMemo(() => {
-		if (!allOrgs?.length) return []
-		return [...allOrgs].sort((a, b) => {
-			const planA = resolveOrgPlan(
-				a.id,
-				a.id === org?.id,
-				currentPlan,
-				planByOrgId,
-			)
-			const planB = resolveOrgPlan(
-				b.id,
-				b.id === org?.id,
-				currentPlan,
-				planByOrgId,
-			)
-			const rankDiff = PLAN_RANK[planB] - PLAN_RANK[planA]
-			if (rankDiff !== 0) return rankDiff
-			return a.name.localeCompare(b.name)
-		})
-	}, [allOrgs, org?.id, currentPlan, planByOrgId])
+		updateOrgNameMutation.mutate(trimmed)
+	}
 
 	const memberSince = user?.createdAt
 		? new Date(user.createdAt).toLocaleDateString("en-US", {
@@ -438,84 +421,84 @@ export default function Account() {
 								>
 									Organization
 								</p>
-								{canSwitchOrg ? (
-									<Popover open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
-										<PopoverTrigger
+								{isEditingOrgName ? (
+									<form
+										onSubmit={handleOrgNameSubmit}
+										className="flex min-w-0 max-w-full items-center gap-1.5 sm:max-w-[360px]"
+									>
+										<input
+											value={orgNameDraft}
+											onChange={(event) => setOrgNameDraft(event.target.value)}
+											disabled={updateOrgNameMutation.isPending}
+											maxLength={80}
 											className={cn(
-												"flex min-w-0 max-w-full items-center gap-2 transition-opacity",
-												"cursor-pointer hover:opacity-90",
 												dmSans125ClassName(),
+												"h-9 min-w-0 flex-1 rounded-[9px] border border-white/10 bg-black/30 px-3 text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA] outline-none transition-colors placeholder:text-[#525252] focus:border-[#4BA0FA]/60",
 											)}
-										>
-											<span
+											placeholder="Organization name"
+										/>
+										<div className="flex shrink-0 items-center gap-1">
+											<button
+												type="submit"
+												disabled={
+													updateOrgNameMutation.isPending ||
+													!orgNameDraft.trim() ||
+													orgNameDraft.trim() === org?.name
+												}
 												className={cn(
 													dmSans125ClassName(),
-													"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+													"inline-flex h-8 items-center justify-center gap-1 rounded-full border border-transparent bg-[#0D121A] px-2.5 text-[11px] font-semibold text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50",
 												)}
 											>
-												{org?.name ?? "Personal"}
-											</span>
-											<ChevronDown className="size-4 shrink-0 text-[#737373]" />
-										</PopoverTrigger>
-										<PopoverContent
-											align="start"
-											className="w-80 max-h-80 overflow-y-auto bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
-										>
-											{sortedOrgsForMenu.map((organization) => {
-												const isCurrent = organization.id === org?.id
-												const isSwitching = switchingOrgId === organization.id
-												const plan = resolveOrgPlan(
-													organization.id,
-													isCurrent,
-													currentPlan,
-													planByOrgId,
-												)
-												return (
-													<button
-														key={organization.id}
-														type="button"
-														disabled={isCurrent || isSwitching}
-														onClick={() =>
-															handleOrgSwitch(
-																organization.slug,
-																organization.id,
-															)
-														}
-														className={cn(
-															"w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-left transition-colors",
-															isCurrent
-																? "bg-white/5"
-																: "hover:bg-white/5 cursor-pointer",
-															"disabled:opacity-60 disabled:cursor-default",
-															dmSans125ClassName(),
-														)}
-													>
-														<Building2 className="size-4 text-[#737373] shrink-0" />
-														<p className="min-w-0 flex-1 truncate text-[14px] tracking-[-0.14px] text-[#FAFAFA]">
-															{organization.name}
-														</p>
-														{isSwitching ? (
-															<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
-														) : isCurrent ? (
-															<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-														) : (
-															<span className="size-4 shrink-0" aria-hidden />
-														)}
-														<OrgPlanBadge plan={plan} />
-													</button>
-												)
-											})}
-										</PopoverContent>
-									</Popover>
+												{updateOrgNameMutation.isPending ? (
+													<LoaderIcon className="size-3 animate-spin" />
+												) : null}
+												Save
+											</button>
+											<button
+												type="button"
+												disabled={updateOrgNameMutation.isPending}
+												aria-label="Cancel organization name edit"
+												title="Cancel"
+												onClick={() => {
+													setOrgNameDraft(org?.name ?? "")
+													setIsEditingOrgName(false)
+												}}
+												className={cn(
+													"inline-flex size-8 items-center justify-center rounded-full bg-[#0D121A] text-[#737373] shadow-inside-out transition-colors hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50",
+												)}
+											>
+												<X className="size-3.5" />
+											</button>
+										</div>
+									</form>
 								) : (
-									<span
-										className={cn(
-											dmSans125ClassName(),
-											"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-										)}
-									>
-										{org?.name ?? "Personal"}
-									</span>
+									<div className="flex min-w-0 max-w-full items-center gap-2">
+										<span
+											className={cn(
+												dmSans125ClassName(),
+												"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+											)}
+										>
+											{org?.name ?? "Personal"}
+										</span>
+										{canManageTeam ? (
+											<button
+												type="button"
+												aria-label="Edit organization name"
+												title="Edit organization name"
+												onClick={() => {
+													setOrgNameDraft(org?.name ?? "")
+													setIsEditingOrgName(true)
+												}}
+												className={cn(
+													"inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[#FAFAFA] transition-colors hover:bg-white/5",
+												)}
+											>
+												<Pencil className="size-3.5" />
+											</button>
+										) : null}
+									</div>
 								)}
 							</div>
 							<div className="flex min-w-0 flex-1 flex-col gap-2">
