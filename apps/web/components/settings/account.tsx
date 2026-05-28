@@ -126,12 +126,7 @@ function isPendingInvitation(invitation: {
 }
 
 export default function Account() {
-	const {
-		user,
-		org,
-		refetchActiveOrg,
-		refetchOrganizations,
-	} = useAuth()
+	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
 	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 	const [inviteEmail, setInviteEmail] = useState("")
 	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
