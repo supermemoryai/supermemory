@@ -167,7 +167,7 @@ export default function Account() {
 	useEffect(() => {
 		setOrgNameDraft(org?.name ?? "")
 		setIsEditingOrgName(false)
-	}, [org?.id, org?.name])
+	}, [org?.name])
 
 	const activeMemberRoleQuery = useQuery({
 		queryKey: ["organization", org?.id, "active-member-role"],
@@ -347,9 +347,7 @@ export default function Account() {
 			toast.success("Organization name updated")
 		},
 		onError: (error) => {
-			toast.error(
-				getErrorMessage(error, "Failed to update organization name"),
-			)
+			toast.error(getErrorMessage(error, "Failed to update organization name"))
 		},
 	})
 
@@ -437,7 +435,6 @@ export default function Account() {
 											value={orgNameDraft}
 											onChange={(event) => setOrgNameDraft(event.target.value)}
 											disabled={updateOrgNameMutation.isPending}
-											autoFocus
 											maxLength={80}
 											className={cn(
 												dmSans125ClassName(),
@@ -482,14 +479,89 @@ export default function Account() {
 									</form>
 								) : (
 									<div className="flex min-w-0 max-w-full items-center gap-2">
-										<span
-											className={cn(
-												dmSans125ClassName(),
-												"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											{org?.name ?? "Personal"}
-										</span>
+										{canSwitchOrg ? (
+											<Popover open={orgMenuOpen} onOpenChange={setOrgMenuOpen}>
+												<PopoverTrigger
+													className={cn(
+														"flex min-w-0 max-w-full items-center gap-2 transition-opacity",
+														"cursor-pointer hover:opacity-90",
+														dmSans125ClassName(),
+													)}
+												>
+													<span
+														className={cn(
+															dmSans125ClassName(),
+															"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+														)}
+													>
+														{org?.name ?? "Personal"}
+													</span>
+													<ChevronDown className="size-4 shrink-0 text-[#737373]" />
+												</PopoverTrigger>
+												<PopoverContent
+													align="start"
+													className="w-80 max-h-80 overflow-y-auto bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+												>
+													{sortedOrgsForMenu.map((organization) => {
+														const isCurrent = organization.id === org?.id
+														const isSwitching =
+															switchingOrgId === organization.id
+														const plan = resolveOrgPlan(
+															organization.id,
+															isCurrent,
+															currentPlan,
+															planByOrgId,
+														)
+														return (
+															<button
+																key={organization.id}
+																type="button"
+																disabled={isCurrent || isSwitching}
+																onClick={() =>
+																	handleOrgSwitch(
+																		organization.slug,
+																		organization.id,
+																	)
+																}
+																className={cn(
+																	"w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-left transition-colors",
+																	isCurrent
+																		? "bg-white/5"
+																		: "hover:bg-white/5 cursor-pointer",
+																	"disabled:opacity-60 disabled:cursor-default",
+																	dmSans125ClassName(),
+																)}
+															>
+																<Building2 className="size-4 text-[#737373] shrink-0" />
+																<p className="min-w-0 flex-1 truncate text-[14px] tracking-[-0.14px] text-[#FAFAFA]">
+																	{organization.name}
+																</p>
+																{isSwitching ? (
+																	<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
+																) : isCurrent ? (
+																	<Check className="size-4 shrink-0 text-[#4BA0FA]" />
+																) : (
+																	<span
+																		className="size-4 shrink-0"
+																		aria-hidden
+																	/>
+																)}
+																<OrgPlanBadge plan={plan} />
+															</button>
+														)
+													})}
+												</PopoverContent>
+											</Popover>
+										) : (
+											<span
+												className={cn(
+													dmSans125ClassName(),
+													"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+												)}
+											>
+												{org?.name ?? "Personal"}
+											</span>
+										)}
 										{canManageTeam ? (
 											<button
 												type="button"
