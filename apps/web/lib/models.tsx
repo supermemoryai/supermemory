@@ -17,11 +17,33 @@ export const models = [
 ] as const
 
 export type ModelId = (typeof models)[number]["id"]
+export type ReasoningEffort = "instant" | "thinking"
 
 export const modelNames: Record<ModelId, { name: string; version: string }> = {
 	"gpt-5.1": { name: "GPT", version: "5.1" },
 	"claude-sonnet-4.6": { name: "Claude", version: "4.6" },
 	"gemini-2.5-pro": { name: "Gemini", version: "3 Pro" },
+}
+
+export const reasoningOptions: Array<{
+	id: ReasoningEffort
+	label: string
+	description: string
+}> = [
+	{
+		id: "instant",
+		label: "Instant",
+		description: "Faster answers for everyday prompts",
+	},
+	{
+		id: "thinking",
+		label: "Thinking",
+		description: "Deeper reasoning for harder questions",
+	},
+]
+
+export function getDefaultReasoningEffort(_model: ModelId): ReasoningEffort {
+	return "instant"
 }
 
 interface ModelIconProps {

@@ -37,7 +37,12 @@ import { getNovaChatErrorCopy } from "@/lib/chat-stream-error"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
-import { modelNames, type ModelId } from "@/lib/models"
+import {
+	getDefaultReasoningEffort,
+	modelNames,
+	type ModelId,
+	type ReasoningEffort,
+} from "@/lib/models"
 import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
@@ -52,6 +57,7 @@ import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { ChatEmptyStatePlaceholder } from "./chat-empty-state"
+import { ReasoningSelector } from "./reasoning-selector"
 
 export function ChatLaunchFab({
 	onOpen,
@@ -103,6 +109,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
 	initialSelectedModel = null,
+	initialReasoningEffort = null,
 	initialChatProject = null,
 	emptyStateSuggestions,
 	layout = "sidebar",
@@ -114,6 +121,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
 	initialSelectedModel?: ModelId | null
+	initialReasoningEffort?: ReasoningEffort | null
 	initialChatProject?: string | null
 	emptyStateSuggestions?: string[]
 	layout?: "sidebar" | "page"
@@ -124,8 +132,14 @@ export function ChatSidebar({
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
 		initialSelectedModel ?? "claude-sonnet-4.6",
 	)
+	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
+		initialReasoningEffort ??
+			getDefaultReasoningEffort(initialSelectedModel ?? "claude-sonnet-4.6"),
+	)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
+	const reasoningEffortRef = useRef(reasoningEffort)
+	reasoningEffortRef.current = reasoningEffort
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -147,6 +161,13 @@ export function ChatSidebar({
 	const isScrolledToBottomRef = useRef(true)
 	const userJustSentRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
+	const truncateFromMessageIdRef = useRef<string | null>(null)
+	const pendingRegenerationRef = useRef<{
+		text: string
+	} | null>(null)
+	const [regenerationBaseLength, setRegenerationBaseLength] = useState<
+		number | null
+	>(null)
 	const pendingHighlightReplyRef = useRef<string | null>(null)
 	const awaitingHighlightInjectionRef = useRef(false)
 	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
@@ -238,6 +259,8 @@ export function ChatSidebar({
 							enableSpaceDiscovery:
 								selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
 							model: selectedModelRef.current,
+							reasoningEffort: reasoningEffortRef.current,
+							truncateFromMessageId: truncateFromMessageIdRef.current,
 						},
 					},
 				}),
@@ -295,6 +318,7 @@ export function ChatSidebar({
 	const handleModelChange = useCallback(
 		(modelId: ModelId) => {
 			setSelectedModel(modelId)
+			setReasoningEffort(getDefaultReasoningEffort(modelId))
 			clearError()
 		},
 		[clearError],
@@ -336,6 +360,7 @@ export function ChatSidebar({
 	const handleSend = () => {
 		if (!input.trim() || status === "submitted" || status === "streaming")
 			return
+		truncateFromMessageIdRef.current = null
 		if (!threadId) setThreadId(fallbackChatId)
 		analytics.chatMessageSent({ source: "typed" })
 		sendMessage({ text: input })
@@ -347,6 +372,7 @@ export function ChatSidebar({
 	const handleSuggestedQuestion = useCallback(
 		(suggestion: string) => {
 			if (status === "submitted" || status === "streaming") return
+			truncateFromMessageIdRef.current = null
 			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatSuggestedQuestionClicked()
 			analytics.chatMessageSent({ source: "suggested" })
@@ -363,6 +389,57 @@ export function ChatSidebar({
 			scrollToBottom,
 		],
 	)
+
+	const handleRegenerateFromUserMessage = useCallback(
+		(
+			messageId: string,
+			text: string,
+			model: ModelId,
+			nextReasoningEffort: ReasoningEffort,
+		) => {
+			const trimmed = text.trim()
+			if (!trimmed || status === "submitted" || status === "streaming") return
+			const messageIndex = messages.findIndex(
+				(message) => message.id === messageId,
+			)
+			if (messageIndex === -1) return
+
+			truncateFromMessageIdRef.current = messageId
+			selectedModelRef.current = model
+			reasoningEffortRef.current = nextReasoningEffort
+			setSelectedModel(model)
+			setReasoningEffort(nextReasoningEffort)
+			clearError()
+			pendingRegenerationRef.current = {
+				text: trimmed,
+			}
+			setRegenerationBaseLength(messageIndex)
+			setMessages(messages.slice(0, messageIndex))
+			userJustSentRef.current = true
+			scrollToBottom()
+		},
+		[clearError, messages, scrollToBottom, setMessages, status],
+	)
+
+	useEffect(() => {
+		const pending = pendingRegenerationRef.current
+		if (
+			!pending ||
+			regenerationBaseLength === null ||
+			messages.length !== regenerationBaseLength ||
+			status !== "ready"
+		) {
+			return
+		}
+
+		pendingRegenerationRef.current = null
+		setRegenerationBaseLength(null)
+		analytics.chatMessageSent({ source: "typed" })
+		sendMessage({ text: pending.text })
+		window.setTimeout(() => {
+			truncateFromMessageIdRef.current = null
+		}, 0)
+	}, [messages.length, regenerationBaseLength, sendMessage, status])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey) {
@@ -569,10 +646,18 @@ export function ChatSidebar({
 				setSelectedModel(initialSelectedModel)
 				return
 			}
+			if (
+				initialReasoningEffort &&
+				reasoningEffort !== initialReasoningEffort
+			) {
+				setReasoningEffort(initialReasoningEffort)
+				return
+			}
 			sentQueuedMessageRef.current = queuedMessage
 			analytics.chatMessageSent({ source: queuedMessageSource })
 
 			if (queuedHighlightContent) {
+				truncateFromMessageIdRef.current = null
 				// Start a fresh thread for highlight-based chats to avoid overwriting existing conversations
 				const newChatId = generateId()
 				chatIdRef.current = newChatId
@@ -603,6 +688,7 @@ export function ChatSidebar({
 					},
 				]
 			} else {
+				truncateFromMessageIdRef.current = null
 				if (!threadId) setThreadId(fallbackChatId)
 				sendMessage({ text: queuedMessage })
 			}
@@ -614,7 +700,9 @@ export function ChatSidebar({
 		queuedHighlightContent,
 		queuedMessageSource,
 		initialSelectedModel,
+		initialReasoningEffort,
 		selectedModel,
+		reasoningEffort,
 		status,
 		sendMessage,
 		onConsumeQueuedMessage,
@@ -654,6 +742,7 @@ export function ChatSidebar({
 			awaitingHighlightInjectionRef.current = false
 			const reply = pendingHighlightReplyRef.current
 			pendingHighlightReplyRef.current = null
+			truncateFromMessageIdRef.current = null
 			sendMessage({ text: reply })
 		}
 	}, [messages, sendMessage, status])
@@ -975,6 +1064,10 @@ export function ChatSidebar({
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
 								/>
+								<ReasoningSelector
+									value={reasoningEffort}
+									onChange={setReasoningEffort}
+								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
 									onValueChange={setChatSpaceProjects}
@@ -1044,7 +1137,10 @@ export function ChatSidebar({
 									<UserMessage
 										message={message}
 										copiedMessageId={copiedMessageId}
+										selectedModel={selectedModel}
+										reasoningEffort={reasoningEffort}
 										onCopy={handleCopyMessage}
+										onRegenerate={handleRegenerateFromUserMessage}
 									/>
 								) : (
 									<AgentMessage
@@ -1171,6 +1267,10 @@ export function ChatSidebar({
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
 									minimal
+								/>
+								<ReasoningSelector
+									value={reasoningEffort}
+									onChange={setReasoningEffort}
 								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
