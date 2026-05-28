@@ -153,7 +153,7 @@ export function ChatSidebar({
 	const targetHighlightChatIdRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
-		initialChatProject ?? selectedProject,
+		initialChatProject ?? AUTO_CHAT_SPACE_ID,
 	])
 	const chatProject = chatSpaceProjects[0] ?? selectedProject
 	const { allProjects } = useContainerTags()
