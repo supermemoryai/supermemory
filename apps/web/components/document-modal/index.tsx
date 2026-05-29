@@ -315,7 +315,9 @@ export function DocumentModal({
 				<GraphListMemories
 					memoryEntries={_document.memoryEntries as MemoryEntry[]}
 					documentId={_document.id}
-					className={isMobile ? "h-auto min-h-[420px] flex-1 shrink" : undefined}
+					className={
+						isMobile ? "h-auto min-h-[420px] flex-1 shrink" : undefined
+					}
 				/>
 			)}
 		</div>
