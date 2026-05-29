@@ -27,6 +27,7 @@ export const FORCE_CONFIG = {
 	velocityDecay: 0.45,
 	alphaTarget: 0.3,
 	preSettleTicks: 150,
+	densePreSettleTicks: 12,
 }
 
 export const GRAPH_SETTINGS = {

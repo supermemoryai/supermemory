@@ -2,6 +2,8 @@ import * as d3 from "d3-force"
 import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
 import { FORCE_CONFIG } from "../constants"
 
+const DENSE_GRAPH_STATIC_THRESHOLD = 6000
+
 export class ForceSimulation {
 	private sim: d3.Simulation<GraphNode, GraphEdge> | null = null
 
@@ -61,8 +63,17 @@ export class ForceSimulation {
 
 			this.sim.stop()
 			this.sim.alpha(1)
-			for (let i = 0; i < FORCE_CONFIG.preSettleTicks; i++) this.sim.tick()
-			this.sim.alphaTarget(0).restart()
+			const preSettleTicks =
+				nodes.length > DENSE_GRAPH_STATIC_THRESHOLD
+					? FORCE_CONFIG.densePreSettleTicks
+					: FORCE_CONFIG.preSettleTicks
+			for (let i = 0; i < preSettleTicks; i++) this.sim.tick()
+
+			if (nodes.length > DENSE_GRAPH_STATIC_THRESHOLD) {
+				this.stop()
+			} else {
+				this.sim.alphaTarget(0).restart()
+			}
 		} catch (e) {
 			console.error("ForceSimulation.init failed:", e)
 			this.destroy()

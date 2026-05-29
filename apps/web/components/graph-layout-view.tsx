@@ -13,7 +13,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { ShareModal } from "./share-modal"
 import { shareParam } from "@/lib/search-params"
 
-const GRAPH_MAX_NODES = 3000
+const GRAPH_MAX_NODES = 15000
 
 export const GraphLayoutView = memo(function GraphLayoutView({
 	onOpenDocument,
