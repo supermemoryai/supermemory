@@ -292,18 +292,22 @@ export function getNodeBounds(nodes: GraphNode[]) {
 	}
 }
 
+type NodeBounds = NonNullable<ReturnType<typeof getNodeBounds>>
+
 export function getAppendPosition(
 	existingNodes: GraphNode[],
 	appendIndex: number,
 	canvasWidth: number,
 	canvasHeight: number,
+	baseBounds?: NodeBounds | null,
+	spatialGrid?: Map<string, GraphNode[]>,
 ) {
-	const bounds = getNodeBounds(existingNodes)
+	const bounds = baseBounds ?? getNodeBounds(existingNodes)
 	if (!bounds) {
 		return { x: canvasWidth / 2, y: canvasHeight / 2 }
 	}
 
-	const spatialGrid = buildAppendSpatialGrid(existingNodes)
+	const candidateGrid = spatialGrid ?? buildAppendSpatialGrid(existingNodes)
 	const boundsWidth = bounds.maxX - bounds.minX
 	const boundsHeight = bounds.maxY - bounds.minY
 	const baseRadiusX = boundsWidth / 2 + APPEND_CLUSTER_RADIUS + APPEND_AREA_GAP
@@ -323,7 +327,7 @@ export function getAppendPosition(
 				y: bounds.centerY + Math.sin(angle) * radiusY,
 			}
 
-			if (isAppendCandidateOpen(candidate, spatialGrid)) {
+			if (isAppendCandidateOpen(candidate, candidateGrid)) {
 				return candidate
 			}
 		}
@@ -366,18 +370,25 @@ function isAppendCandidateOpen(
 function buildAppendSpatialGrid(nodes: GraphNode[]): Map<string, GraphNode[]> {
 	const grid = new Map<string, GraphNode[]>()
 	for (const node of nodes) {
-		const key = getAppendSpatialKey(
-			getAppendSpatialCell(node.x),
-			getAppendSpatialCell(node.y),
-		)
-		const bucket = grid.get(key)
-		if (bucket) {
-			bucket.push(node)
-		} else {
-			grid.set(key, [node])
-		}
+		addAppendSpatialNode(grid, node)
 	}
 	return grid
+}
+
+function addAppendSpatialNode(
+	grid: Map<string, GraphNode[]>,
+	node: GraphNode,
+): void {
+	const key = getAppendSpatialKey(
+		getAppendSpatialCell(node.x),
+		getAppendSpatialCell(node.y),
+	)
+	const bucket = grid.get(key)
+	if (bucket) {
+		bucket.push(node)
+	} else {
+		grid.set(key, [node])
+	}
 }
 
 function getAppendSpatialCell(value: number): number {
@@ -472,6 +483,14 @@ export function useGraphData(
 		const appendPlacementNodes = Array.from(previousCache.values()).filter(
 			(node) => currentIds.has(node.id),
 		)
+		const shouldAppendNewNodes = appendPlacementNodes.length > 0
+		const appendBaseBounds = shouldAppendNewNodes
+			? getNodeBounds(appendPlacementNodes)
+			: null
+		const appendSpatialGrid =
+			shouldAppendNewNodes && appendBaseBounds
+				? buildAppendSpatialGrid(appendPlacementNodes)
+				: null
 		let appendIndex = 0
 		const clusterAssignments = computeClusterAssignments(documents)
 
@@ -519,12 +538,14 @@ export function useGraphData(
 				}
 			} else {
 				const appendPosition =
-					appendPlacementNodes.length > 0
+					shouldAppendNewNodes && appendBaseBounds && appendSpatialGrid
 						? getAppendPosition(
 								appendPlacementNodes,
 								appendIndex++,
 								canvasWidth,
 								canvasHeight,
+								appendBaseBounds,
+								appendSpatialGrid,
 							)
 						: null
 
@@ -541,7 +562,10 @@ export function useGraphData(
 					isHovered: false,
 					isDragging: false,
 				}
-				appendPlacementNodes.push(docNode)
+				if (appendSpatialGrid) {
+					appendPlacementNodes.push(docNode)
+					addAppendSpatialNode(appendSpatialGrid, docNode)
+				}
 			}
 			nextCache.set(doc.id, docNode)
 			result.push(docNode)
@@ -583,7 +607,10 @@ export function useGraphData(
 						isHovered: false,
 						isDragging: false,
 					}
-					appendPlacementNodes.push(memNode)
+					if (appendSpatialGrid) {
+						appendPlacementNodes.push(memNode)
+						addAppendSpatialNode(appendSpatialGrid, memNode)
+					}
 				}
 				nextCache.set(mem.id, memNode)
 				result.push(memNode)

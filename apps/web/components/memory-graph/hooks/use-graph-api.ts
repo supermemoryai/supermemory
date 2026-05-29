@@ -1,7 +1,7 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { $fetch } from "@lib/api"
 import type {
 	GraphApiDocument,
@@ -15,6 +15,7 @@ interface UseGraphApiOptions {
 	containerTags?: string[]
 	documentIds?: string[]
 	enabled?: boolean
+	maxNodes?: number
 }
 
 interface ApiMemoryEntry {
@@ -57,6 +58,13 @@ interface ApiDocumentsResponse {
 		totalItems: number
 		totalPages: number
 	}
+}
+
+function getGraphNodeCount(documents: ApiDocument[]): number {
+	return documents.reduce(
+		(total, doc) => total + 1 + (doc.memoryEntries?.length ?? 0),
+		0,
+	)
 }
 
 function toGraphMemory(mem: ApiMemoryEntry): GraphApiMemory {
@@ -108,7 +116,7 @@ function toGraphDocument(
 }
 
 export function useGraphApi(options: UseGraphApiOptions = {}) {
-	const { containerTags, documentIds, enabled = true } = options
+	const { containerTags, documentIds, enabled = true, maxNodes } = options
 	const filteredDocumentIds = documentIds?.filter(Boolean)
 	const hasDocumentIds =
 		filteredDocumentIds != null && filteredDocumentIds.length > 0
@@ -126,6 +134,7 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 			containerTags,
 			[],
 			filteredDocumentIds,
+			maxNodes,
 		],
 		initialPageParam: 1,
 		queryFn: async ({ pageParam }) => {
@@ -155,13 +164,45 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 
 			return response.data as unknown as ApiDocumentsResponse
 		},
-		getNextPageParam: (lastPage) => {
+		getNextPageParam: (lastPage, allPages) => {
+			if (hasDocumentIds) return undefined
+			if (maxNodes != null) {
+				const loadedNodes = allPages.reduce(
+					(total, page) => total + getGraphNodeCount(page.documents ?? []),
+					0,
+				)
+				if (loadedNodes >= maxNodes) return undefined
+			}
+
 			const { currentPage, totalPages } = lastPage.pagination
 			return currentPage < totalPages ? currentPage + 1 : undefined
 		},
 		staleTime: 5 * 60 * 1000,
 		enabled,
 	})
+
+	const loadedNodeCount = useMemo(() => {
+		if (!data?.pages) return 0
+		return data.pages.reduce(
+			(total, page) => total + getGraphNodeCount(page.documents ?? []),
+			0,
+		)
+	}, [data])
+
+	useEffect(() => {
+		if (!enabled || hasDocumentIds || maxNodes == null) return
+		if (!hasNextPage || isFetchingNextPage || loadedNodeCount >= maxNodes)
+			return
+		fetchNextPage()
+	}, [
+		enabled,
+		hasDocumentIds,
+		hasNextPage,
+		isFetchingNextPage,
+		loadedNodeCount,
+		maxNodes,
+		fetchNextPage,
+	])
 
 	const documents = useMemo(() => {
 		if (!data?.pages) return []

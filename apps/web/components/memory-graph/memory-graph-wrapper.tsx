@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
 import { MemoryGraph as MemoryGraphBase } from "@supermemory/memory-graph"
 import type { GraphThemeColors } from "@supermemory/memory-graph"
 import { useGraphApi } from "./hooks/use-graph-api"
@@ -34,20 +33,6 @@ export function MemoryGraph({
 	canvasRef,
 	...rest
 }: MemoryGraphWrapperProps) {
-	const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
-	const containerRef = useRef<HTMLDivElement>(null)
-
-	useEffect(() => {
-		const el = containerRef.current
-		if (!el) return
-		const ro = new ResizeObserver(() => {
-			setContainerSize({ width: el.clientWidth, height: el.clientHeight })
-		})
-		ro.observe(el)
-		setContainerSize({ width: el.clientWidth, height: el.clientHeight })
-		return () => ro.disconnect()
-	}, [])
-
 	const {
 		documents,
 		isLoading: apiIsLoading,
@@ -59,11 +44,11 @@ export function MemoryGraph({
 	} = useGraphApi({
 		containerTags,
 		documentIds,
-		enabled: containerSize.width > 0 && containerSize.height > 0,
+		maxNodes,
 	})
 
 	return (
-		<div ref={containerRef} className="size-full [&>div]:!bg-none">
+		<div className="absolute inset-0 [&>div]:!h-full [&>div]:!bg-none">
 			<MemoryGraphBase
 				documents={documents}
 				isLoading={externalIsLoading || apiIsLoading}
