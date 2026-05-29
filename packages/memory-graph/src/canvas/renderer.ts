@@ -1,4 +1,5 @@
 import type {
+	ClusterNodeData,
 	DocumentNodeData,
 	GraphEdge,
 	GraphNode,
@@ -28,6 +29,11 @@ function nodeMatchesDocumentHighlights(
 ): boolean {
 	if (highlightIds.size === 0) return false
 	if (node.type === "document") return highlightIds.has(node.id)
+	if (node.type === "cluster") {
+		return (node.data as ClusterNodeData).sampleDocumentIds.some((id) =>
+			highlightIds.has(id),
+		)
+	}
 	return highlightIds.has((node.data as MemoryNodeData).documentId)
 }
 
@@ -438,7 +444,7 @@ function drawNodes(
 			highlightFocus && !isSelected && !isHovered && !isHighlighted
 
 		if (screenSize < 8 && !isSelected && !isHovered && !isHighlighted) {
-			if (node.type === "document") {
+			if (node.type === "document" || node.type === "cluster") {
 				docDots.push({ x: screen.x, y: screen.y, s: Math.max(3, screenSize) })
 			} else {
 				const md = node.data as MemoryNodeData
@@ -465,7 +471,19 @@ function drawNodes(
 		}
 		ctx.globalAlpha = alpha
 
-		if (node.type === "document") {
+		if (node.type === "cluster") {
+			drawClusterNode(
+				ctx,
+				screen.x,
+				screen.y,
+				screenSize,
+				node,
+				isSelected,
+				isHovered,
+				isHighlighted,
+				colors,
+			)
+		} else if (node.type === "document") {
 			drawDocumentNode(
 				ctx,
 				screen.x,
@@ -629,6 +647,82 @@ function drawNodes(
 	}
 
 	ctx.globalAlpha = 1
+}
+
+function drawClusterNode(
+	ctx: CanvasRenderingContext2D,
+	sx: number,
+	sy: number,
+	size: number,
+	node: GraphNode,
+	isSelected: boolean,
+	isHovered: boolean,
+	isHighlighted: boolean,
+	colors: GraphThemeColors,
+): void {
+	const data = node.data as ClusterNodeData
+	const radius = size * 0.5
+	const clusterColor = node.clusterColor ?? colors.accent
+
+	if (isSelected || isHovered) {
+		ctx.save()
+		ctx.shadowColor = isSelected ? colors.accent : clusterColor
+		ctx.shadowBlur = isSelected ? 24 : 16
+		ctx.shadowOffsetX = 0
+		ctx.shadowOffsetY = 0
+	}
+
+	const gradient = ctx.createRadialGradient(
+		sx - radius * 0.25,
+		sy - radius * 0.3,
+		radius * 0.1,
+		sx,
+		sy,
+		radius,
+	)
+	gradient.addColorStop(
+		0,
+		mixHexColors(colors.memFillHover, clusterColor, 0.36),
+	)
+	gradient.addColorStop(0.62, mixHexColors(colors.docFill, clusterColor, 0.24))
+	gradient.addColorStop(1, mixHexColors(colors.bg, clusterColor, 0.58))
+	ctx.fillStyle = gradient
+	ctx.beginPath()
+	ctx.arc(sx, sy, radius, 0, Math.PI * 2)
+	ctx.fill()
+
+	ctx.strokeStyle = isSelected || isHighlighted ? colors.accent : clusterColor
+	ctx.lineWidth = isSelected || isHighlighted ? 3 : isHovered ? 2.5 : 1.8
+	ctx.stroke()
+
+	ctx.globalAlpha *= 0.45
+	ctx.strokeStyle = clusterColor
+	ctx.lineWidth = Math.max(1, size * 0.018)
+	for (const scale of [0.68, 0.44]) {
+		ctx.beginPath()
+		ctx.arc(sx, sy, radius * scale, 0, Math.PI * 2)
+		ctx.stroke()
+	}
+	ctx.globalAlpha /= 0.45
+
+	if (isSelected || isHovered) {
+		ctx.restore()
+	}
+
+	if (size >= 58) {
+		const count = data.documentCount.toLocaleString()
+		const label = data.memoryCount.toLocaleString()
+		ctx.save()
+		ctx.textAlign = "center"
+		ctx.textBaseline = "middle"
+		ctx.fillStyle = colors.textPrimary
+		ctx.font = `600 ${Math.max(12, Math.min(18, size * 0.18))}px system-ui, sans-serif`
+		ctx.fillText(count, sx, sy - Math.max(5, size * 0.07))
+		ctx.fillStyle = colors.textSecondary
+		ctx.font = `500 ${Math.max(9, Math.min(12, size * 0.11))}px system-ui, sans-serif`
+		ctx.fillText(`${label} mem`, sx, sy + Math.max(9, size * 0.1))
+		ctx.restore()
+	}
 }
 
 function drawDocumentNode(
@@ -850,7 +944,7 @@ function drawGlow(
 	sx: number,
 	sy: number,
 	size: number,
-	nodeType: "document" | "memory",
+	nodeType: "document" | "memory" | "cluster",
 	colors: GraphThemeColors,
 	isHoverOnly = false,
 ): void {
@@ -866,6 +960,9 @@ function drawGlow(
 		const half = glowSize * 0.5
 		const r = 8 * (glowSize / 50)
 		roundRect(ctx, sx - half, sy - half, glowSize, glowSize, r)
+	} else if (nodeType === "cluster") {
+		ctx.beginPath()
+		ctx.arc(sx, sy, size * 0.5 * scale, 0, Math.PI * 2)
 	} else {
 		drawHexagon(ctx, sx, sy, size * 0.5 * scale)
 	}

@@ -75,10 +75,10 @@ export interface MemoryNodeData {
 
 export interface GraphNode {
 	id: string
-	type: "document" | "memory"
+	type: "document" | "memory" | "cluster"
 	x: number
 	y: number
-	data: DocumentNodeData | MemoryNodeData
+	data: DocumentNodeData | MemoryNodeData | ClusterNodeData
 	size: number
 	borderColor: string
 	clusterKey?: string | null
@@ -90,6 +90,18 @@ export interface GraphNode {
 	vy?: number
 	fx?: number | null
 	fy?: number | null
+}
+
+export interface ClusterNodeData {
+	id: string
+	title: string
+	summary: string
+	clusterKey: string
+	documentCount: number
+	memoryCount: number
+	nodeCount: number
+	sampleDocumentIds: string[]
+	sampleMemoryIds: string[]
 }
 
 export interface GraphEdge {

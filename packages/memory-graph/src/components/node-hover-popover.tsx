@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ChainEntry } from "../canvas/version-chain"
 import type {
+	ClusterNodeData,
 	DocumentNodeData,
 	GraphNode,
 	GraphThemeColors,
@@ -323,6 +324,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 		const TOTAL_W = CARD_W + 12 + SHORTCUTS_W
 
 		const isMemory = node.type === "memory"
+		const isCluster = node.type === "cluster"
 		const data = node.data
 		const hasChain = Boolean(versionChain && versionChain.length > 1)
 
@@ -399,18 +401,27 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 		}, [screenX, screenY, nodeRadius, containerBounds, TOTAL_W, TOTAL_H])
 
 		const content = useMemo(() => {
+			if (isCluster) {
+				const cd = data as ClusterNodeData
+				return cd.summary || cd.title
+			}
 			if (isMemory) {
 				const md = data as MemoryNodeData
 				return md.memory || md.content || ""
 			}
 			const dd = data as DocumentNodeData
 			return dd.summary || dd.title || ""
-		}, [isMemory, data])
+		}, [isCluster, isMemory, data])
 
-		const docData = !isMemory ? (data as DocumentNodeData) : null
+		const docData = node.type === "document" ? (data as DocumentNodeData) : null
+		const clusterData = isCluster ? (data as ClusterNodeData) : null
 
 		// For document nodes, node.id IS the document ID
-		const documentId = isMemory ? (data as MemoryNodeData).documentId : node.id
+		const documentId = isCluster
+			? null
+			: isMemory
+				? (data as MemoryNodeData).documentId
+				: node.id
 
 		const overlayStyle: React.CSSProperties = {
 			pointerEvents: "none",
@@ -578,7 +589,26 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 						)}
 
 						<div style={footerStyle}>
-							{memoryMeta ? (
+							{clusterData ? (
+								<>
+									<span
+										style={{
+											fontSize: 12,
+											color: colors.popoverTextSecondary,
+										}}
+									>
+										{clusterData.documentCount} documents
+									</span>
+									<span
+										style={{
+											fontSize: 12,
+											color: colors.popoverTextSecondary,
+										}}
+									>
+										{clusterData.memoryCount} memories
+									</span>
+								</>
+							) : memoryMeta ? (
 								<span
 									style={{
 										fontSize: 12,
@@ -620,7 +650,9 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 						</div>
 
 						<div style={idRowStyle}>
-							{isMemory ? (
+							{isCluster ? (
+								<CopyableId colors={colors} label="Cluster" value={node.id} />
+							) : isMemory ? (
 								<CopyableId colors={colors} label="Memory" value={node.id} />
 							) : (
 								<CopyableId colors={colors} label="Document" value={node.id} />
@@ -645,7 +677,7 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 								onClick={onNavigateUp}
 							/>
 						)}
-						{(isMemory ? hasChain : true) && (
+						{(isMemory ? hasChain : !isCluster) && (
 							<NavButton
 								colors={colors}
 								icon="↓"
@@ -656,13 +688,25 @@ export const NodeHoverPopover = memo<NodeHoverPopoverProps>(
 						<NavButton
 							colors={colors}
 							icon="→"
-							label={isMemory ? "Next memory" : "Next document"}
+							label={
+								isCluster
+									? "Next cluster"
+									: isMemory
+										? "Next memory"
+										: "Next document"
+							}
 							onClick={onNavigateNext}
 						/>
 						<NavButton
 							colors={colors}
 							icon="←"
-							label={isMemory ? "Prev memory" : "Prev document"}
+							label={
+								isCluster
+									? "Prev cluster"
+									: isMemory
+										? "Prev memory"
+										: "Prev document"
+							}
 							onClick={onNavigatePrev}
 						/>
 					</div>

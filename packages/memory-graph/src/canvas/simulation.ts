@@ -50,11 +50,12 @@ export class ForceSimulation {
 				"collide",
 				d3
 					.forceCollide<GraphNode>()
-					.radius((d) =>
-						d.type === "document"
-							? FORCE_CONFIG.collisionRadius.document
-							: FORCE_CONFIG.collisionRadius.memory,
-					)
+					.radius((d) => {
+						if (d.type === "document")
+							return FORCE_CONFIG.collisionRadius.document
+						if (d.type === "cluster") return d.size * 0.62
+						return FORCE_CONFIG.collisionRadius.memory
+					})
 					.strength(FORCE_CONFIG.collisionStrength),
 			)
 
