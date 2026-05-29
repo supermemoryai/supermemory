@@ -94,7 +94,7 @@ function PillButton({
 	children: React.ReactNode
 	onClick: () => void
 	disabled?: boolean
-	variant?: "default" | "danger" | "primary"
+	variant?: "default" | "ghost" | "primary"
 }) {
 	return (
 		<button
@@ -103,14 +103,10 @@ function PillButton({
 			disabled={disabled}
 			className={cn(
 				dmSansClassName(),
-				"inline-flex h-9 items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition-opacity cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
-				"bg-[#0D121A] text-[#FAFAFA] hover:opacity-80",
-				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
-				variant === "primary"
-					? "border-transparent"
-					: variant === "danger"
-						? "border-transparent"
-						: "border-transparent",
+				"inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold transition-[color,opacity] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+				variant === "ghost"
+					? "px-3 font-medium text-[#737373] hover:bg-white/[0.04] hover:text-[#A3A3A3]"
+					: "border border-transparent bg-[#0D121A] text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] hover:opacity-80",
 			)}
 		>
 			{children}
@@ -212,7 +208,7 @@ export function OrgContext() {
 							<PillButton
 								onClick={() => setConfirmDialog(enabled ? "disable" : "enable")}
 								disabled={!settingsReady || updateSettings.isPending}
-								variant={enabled ? "danger" : "primary"}
+								variant={enabled ? "ghost" : "primary"}
 							>
 								{enabled ? "DISABLE" : "ENABLE"}
 							</PillButton>
@@ -300,7 +296,9 @@ export function OrgContext() {
 							</div>
 
 							<div className="flex justify-end gap-2 border-t border-white/[0.08] bg-[#171B22] px-4 py-3">
-								<PillButton onClick={handleCancel}>CANCEL</PillButton>
+								<PillButton onClick={handleCancel} variant="ghost">
+									CANCEL
+								</PillButton>
 								<PillButton
 									onClick={handleSave}
 									disabled={!dirty || updateSettings.isPending}
@@ -363,13 +361,16 @@ export function OrgContext() {
 							</DialogPrimitive.Close>
 						</div>
 						<div className="flex justify-end gap-2">
-							<PillButton onClick={() => setConfirmDialog(null)}>
+							<PillButton
+								onClick={() => setConfirmDialog(null)}
+								variant="ghost"
+							>
 								CANCEL
 							</PillButton>
 							<PillButton
 								onClick={handleConfirmToggle}
 								disabled={updateSettings.isPending}
-								variant={confirmDialog === "disable" ? "danger" : "primary"}
+								variant="primary"
 							>
 								{updateSettings.isPending && (
 									<LoaderIcon className="size-3.5 animate-spin" />
