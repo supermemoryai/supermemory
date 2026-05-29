@@ -937,7 +937,7 @@ export default function Billing() {
 					</DialogContent>
 				</Dialog>
 
-			{true || hasPaidPlan ? (
+			{hasPaidPlan ? (
 				<section className="flex flex-col gap-4">
 					<SectionTitle>Credits</SectionTitle>
 					<SettingsCard className="border border-dashed border-white/10 bg-[#14161A]/70">
