@@ -876,17 +876,8 @@ export default function Billing() {
 			</section>
 
 			<section id="billing-plans" className="flex flex-col gap-4">
-				<div className="flex flex-col gap-1 px-2">
+				<div className="px-2">
 					<SectionTitle>Plans</SectionTitle>
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"text-[13px] leading-relaxed text-[#A3A3A3]",
-						)}
-					>
-						All plans include usage-metered access. Top-ups roll over with paid
-						plans.
-					</p>
 				</div>
 				<div className="grid gap-4 md:grid-cols-2">
 					{PLAN_CARDS.map((plan) => (
