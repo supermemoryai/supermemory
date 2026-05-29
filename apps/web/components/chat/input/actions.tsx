@@ -1,5 +1,6 @@
 import { cn } from "@lib/utils"
 import { SquareIcon } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 
 export function SendButton({
 	onClick,
@@ -8,7 +9,7 @@ export function SendButton({
 	onClick: () => void
 	disabled: boolean
 }) {
-	return (
+	const button = (
 		<button
 			type="button"
 			onClick={onClick}
@@ -35,6 +36,19 @@ export function SendButton({
 			</svg>
 		</button>
 	)
+
+	if (disabled) {
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span className="inline-flex">{button}</span>
+				</TooltipTrigger>
+				<TooltipContent side="top">Type a message to send</TooltipContent>
+			</Tooltip>
+		)
+	}
+
+	return button
 }
 
 export function StopButton({ onClick }: { onClick: () => void }) {

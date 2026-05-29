@@ -153,7 +153,7 @@ export function ChatSidebar({
 	const targetHighlightChatIdRef = useRef<string | null>(null)
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
-		initialChatProject ?? selectedProject,
+		initialChatProject ?? AUTO_CHAT_SPACE_ID,
 	])
 	const chatProject = chatSpaceProjects[0] ?? selectedProject
 	const { allProjects } = useContainerTags()
@@ -248,6 +248,11 @@ export function ChatSidebar({
 		id: string
 		messages: UIMessage[]
 	} | null>(null)
+	const [loadedThreadScrollTarget, setLoadedThreadScrollTarget] = useState<{
+		id: string
+		messageCount: number
+		lastMessageId: string | null
+	} | null>(null)
 
 	// Adjust chat height based on scroll position (desktop only, grid mode only)
 	useEffect(() => {
@@ -298,6 +303,13 @@ export function ChatSidebar({
 	useEffect(() => {
 		if (pendingThreadLoad && currentChatId === pendingThreadLoad.id) {
 			setMessages(pendingThreadLoad.messages)
+			setLoadedThreadScrollTarget({
+				id: pendingThreadLoad.id,
+				messageCount: pendingThreadLoad.messages.length,
+				lastMessageId:
+					pendingThreadLoad.messages[pendingThreadLoad.messages.length - 1]
+						?.id ?? null,
+			})
 			setPendingThreadLoad(null)
 		}
 	}, [currentChatId, pendingThreadLoad, setMessages])
@@ -653,15 +665,39 @@ export function ChatSidebar({
 		}
 	}, [queuedMessage])
 
-	// Scroll to bottom when a new user message is added
+	// Scroll to bottom when a new user message is added or a thread is loaded
 	useEffect(() => {
+		const lastMessageId = messages[messages.length - 1]?.id ?? null
+		const loadedThreadIsRendered =
+			loadedThreadScrollTarget &&
+			currentChatId === loadedThreadScrollTarget.id &&
+			messages.length === loadedThreadScrollTarget.messageCount &&
+			lastMessageId === loadedThreadScrollTarget.lastMessageId
+
+		if (loadedThreadIsRendered) {
+			// Trigger the same scroll behavior as the button after loaded messages render.
+			scrollToBottom()
+			setTimeout(scrollToBottom, 50)
+			setTimeout(scrollToBottom, 150)
+			setTimeout(() => {
+				scrollToBottom()
+				setLoadedThreadScrollTarget(null)
+			}, 300)
+			return
+		}
 		const lastMessage = messages[messages.length - 1]
 		if (lastMessage?.role === "user" && messagesContainerRef.current) {
 			scrollToBottom()
 		} else {
 			checkIfScrolledToBottom()
 		}
-	}, [messages, checkIfScrolledToBottom, scrollToBottom])
+	}, [
+		currentChatId,
+		loadedThreadScrollTarget,
+		messages,
+		checkIfScrolledToBottom,
+		scrollToBottom,
+	])
 
 	useEffect(() => {
 		const isStreaming = status === "streaming"
@@ -944,6 +980,7 @@ export function ChatSidebar({
 									onValueChange={setChatSpaceProjects}
 									variant="insideOut"
 									includeAuto
+									hideCount
 									triggerClassName="h-10 min-h-10 max-w-[min(192px,42vw)] border border-[#73737333] bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset]"
 								/>
 							</>
@@ -952,100 +989,102 @@ export function ChatSidebar({
 					{chatToolbarActions}
 				</div>
 			) : null}
-			<div
-				ref={messagesContainerRef}
-				className={cn(
-					"relative flex-1 overflow-y-auto scrollbar-thin",
-					isPageDesktop && "min-h-0",
-					"px-4",
-					dmSansClassName(),
-				)}
-			>
-				{isInputExpanded && (
-					<div
-						className={cn(
-							"absolute inset-0 z-10! pointer-events-none",
-							isPageDesktop ? "rounded-none" : "rounded-2xl",
-						)}
-						style={{ backgroundColor: "#000000E5" }}
-					/>
-				)}
-				{messages.length === 0 && (
-					<ChatEmptyStatePlaceholder
-						onSuggestionClick={handleSuggestedQuestion}
-						suggestions={emptyStateSuggestions}
-						subtitle={emptyStateSubtitle}
-					/>
-				)}
+			<div className="relative flex-1 min-h-0">
 				<div
-					className={
-						messages.length > 0
-							? cn(
-									"flex flex-col space-y-3 min-h-full justify-end",
-									isPageDesktop ? "pt-2" : "pt-14",
-								)
-							: ""
-					}
-				>
-					{messages.map((message, index) => (
-						// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
-						<div
-							key={message.id}
-							className={cn(
-								"flex gap-2 w-full",
-								message.role === "user" ? "justify-end" : "justify-start",
-							)}
-							onMouseEnter={() =>
-								message.role === "assistant" && setHoveredMessageId(message.id)
-							}
-							onMouseLeave={() =>
-								message.role === "assistant" && setHoveredMessageId(null)
-							}
-						>
-							{message.role === "user" ? (
-								<UserMessage
-									message={message}
-									copiedMessageId={copiedMessageId}
-									onCopy={handleCopyMessage}
-								/>
-							) : (
-								<AgentMessage
-									message={message}
-									index={index}
-									messagesLength={messages.length}
-									hoveredMessageId={hoveredMessageId}
-									copiedMessageId={copiedMessageId}
-									messageFeedback={messageFeedback}
-									expandedMemories={expandedMemories}
-									onCopy={handleCopyMessage}
-									onLike={handleLikeMessage}
-									onDislike={handleDislikeMessage}
-									onToggleMemories={handleToggleMemories}
-								/>
-							)}
-						</div>
-					))}
-					{(status === "submitted" || status === "streaming") && (
-						<div className="flex gap-2">
-							<SuperLoader label="Thinking…" />
-						</div>
+					ref={messagesContainerRef}
+					className={cn(
+						"relative h-full overflow-y-auto scrollbar-thin",
+						"px-4",
+						dmSansClassName(),
 					)}
-				</div>
-			</div>
-
-			{!isScrolledToBottom && messages.length > 0 && (
-				<div className="absolute bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
-					<button
-						type="button"
-						className="cursor-pointer pointer-events-auto"
-						onClick={scrollToBottom}
+				>
+					{isInputExpanded && (
+						<div
+							className={cn(
+								"absolute inset-0 z-10! pointer-events-none",
+								isPageDesktop ? "rounded-none" : "rounded-2xl",
+							)}
+							style={{ backgroundColor: "#000000E5" }}
+						/>
+					)}
+					{messages.length === 0 && (
+						<ChatEmptyStatePlaceholder
+							onSuggestionClick={handleSuggestedQuestion}
+							suggestions={emptyStateSuggestions}
+							subtitle={emptyStateSubtitle}
+						/>
+					)}
+					<div
+						className={
+							messages.length > 0
+								? cn(
+										"flex flex-col space-y-3 min-h-full justify-end",
+										isPageDesktop ? "pt-2" : "pt-14",
+									)
+								: ""
+						}
 					>
-						<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
-							<ChevronDownIcon className="size-4 text-white" />
-						</div>
-					</button>
+						{messages.map((message, index) => (
+							// biome-ignore lint/a11y/noStaticElementInteractions: Hover detection for message actions
+							<div
+								key={message.id}
+								className={cn(
+									"flex gap-2 w-full",
+									message.role === "user" ? "justify-end" : "justify-start",
+								)}
+								onMouseEnter={() =>
+									message.role === "assistant" &&
+									setHoveredMessageId(message.id)
+								}
+								onMouseLeave={() =>
+									message.role === "assistant" && setHoveredMessageId(null)
+								}
+							>
+								{message.role === "user" ? (
+									<UserMessage
+										message={message}
+										copiedMessageId={copiedMessageId}
+										onCopy={handleCopyMessage}
+									/>
+								) : (
+									<AgentMessage
+										message={message}
+										index={index}
+										messagesLength={messages.length}
+										hoveredMessageId={hoveredMessageId}
+										copiedMessageId={copiedMessageId}
+										messageFeedback={messageFeedback}
+										expandedMemories={expandedMemories}
+										onCopy={handleCopyMessage}
+										onLike={handleLikeMessage}
+										onDislike={handleDislikeMessage}
+										onToggleMemories={handleToggleMemories}
+									/>
+								)}
+							</div>
+						))}
+						{(status === "submitted" || status === "streaming") && (
+							<div className="flex gap-2">
+								<SuperLoader label="Thinking…" />
+							</div>
+						)}
+					</div>
 				</div>
-			)}
+
+				{!isScrolledToBottom && messages.length > 0 && (
+					<div className="absolute bottom-3 left-0 right-0 flex justify-center z-50 pointer-events-none">
+						<button
+							type="button"
+							className="cursor-pointer pointer-events-auto"
+							onClick={scrollToBottom}
+						>
+							<div className="rounded-full p-2 bg-[#0D121A] shadow-[1.5px_1.5px_4.5px_0_rgba(0,0,0,0.70)_inset] hover:bg-[#0F1620] transition-colors">
+								<ChevronDownIcon className="size-4 text-white" />
+							</div>
+						</button>
+					</div>
+				)}
+			</div>
 
 			{chatStreamError && (
 				<div
@@ -1103,7 +1142,7 @@ export function ChatSidebar({
 				className={cn(
 					"shrink-0",
 					isStackedInput &&
-						"px-4 pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6",
+						"pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+1rem))] md:pb-6",
 				)}
 			>
 				<ChatInput
@@ -1138,6 +1177,7 @@ export function ChatSidebar({
 									onValueChange={setChatSpaceProjects}
 									variant="insideOut"
 									includeAuto
+									hideCount
 									triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
 								/>
 							</>

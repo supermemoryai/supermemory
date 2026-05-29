@@ -39,14 +39,39 @@ import { FeedbackModal } from "./feedback-modal"
 import { useViewMode } from "@/lib/view-mode-context"
 import { useQueryState } from "nuqs"
 import { feedbackParam } from "@/lib/search-params"
+import { useCustomer } from "autumn-js/react"
+import { useTokenUsage } from "@/hooks/use-token-usage"
+import { useOrgSummaries } from "@/hooks/use-org-summaries"
+import { OrgPlanBadge, resolveOrgPlan } from "@/components/org-plan-badge"
 
 interface HeaderProps {
 	onAddMemory?: () => void
 	onOpenSearch?: () => void
 }
 
+const brainItemClass = (active: boolean) =>
+	cn(
+		"gap-2.5 rounded-lg px-2 py-1.5 text-sm font-medium cursor-pointer transition-colors",
+		"hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white",
+		active ? "bg-white/[0.06] text-white" : "text-white/85",
+	)
+
+const brainTileClass = (active: boolean) =>
+	cn(
+		"flex size-7 shrink-0 items-center justify-center rounded-lg border text-[11px] font-semibold",
+		active
+			? "border-[#2261CA66] bg-[#0B2A57] text-[#7EB0FF]"
+			: "border-white/[0.08] bg-white/[0.04] text-white/70",
+	)
+
 export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
-	const { user, isRestoring } = useAuth()
+	const { user, isRestoring, org, organizations, setActiveOrg } = useAuth()
+	const autumn = useCustomer()
+	const { currentPlan } = useTokenUsage(autumn)
+	const { data: orgSummaries } = useOrgSummaries()
+	const planByOrgId = new Map(
+		(orgSummaries ?? []).map((s) => [s.orgId, s.plan] as const),
+	)
 	const { selectedProjects, setSelectedProjects } = useProject()
 	const router = useRouter()
 	const isMobile = useIsMobile()
@@ -66,6 +91,14 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		user?.email?.split("@")[0] ||
 		""
 	const userName = displayName ? `${displayName.split(" ")[0]}'s` : "My"
+	const orgLabel = org?.name.replace(/\s*organizations?\s*$/i, "").trim()
+	const topLabel = orgLabel || userName
+	const hasOrgs = (organizations?.length ?? 0) > 0
+
+	const selectOrg = (slug: string, isActive: boolean) => {
+		if (isActive) return
+		void setActiveOrg(slug).then(() => window.location.reload())
+	}
 	return (
 		<div className="relative z-10 flex shrink-0 items-center justify-between gap-1.5 p-2.5 md:gap-2 md:p-3">
 			<div className="z-10! flex min-w-0 shrink items-center justify-center gap-1.5 md:gap-3">
@@ -73,34 +106,65 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none md:-ml-2"
+							className="relative flex shrink-0 cursor-pointer items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-white/5 outline-none focus-visible:outline-none md:-ml-2 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']"
 						>
-							<Logo className="h-6 md:h-7" />
-							{!isMobile && userName && (
-								<div className="ml-1.5 flex flex-col items-start justify-center sm:ml-2">
-									<p className="text-[10px] leading-tight text-[#6B6B6B] sm:text-[11px]">
-										{userName}
-									</p>
-									<p className="-mt-0.5 text-base leading-none font-medium text-white/90 sm:text-lg">
-										supermemory
-									</p>
-								</div>
-							)}
+							<Logo className="h-6" />
+							<div className="ml-1.5 flex flex-col items-start justify-center sm:ml-2">
+								<p className="max-w-[16ch] truncate text-[10px] leading-tight text-[#6B6B6B] sm:text-[11px]">
+									{topLabel}
+								</p>
+								<p className="-mt-0.5 text-sm leading-none font-medium text-white/90 sm:text-lg">
+									supermemory
+								</p>
+							</div>
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
 						align="start"
+						alignOffset={12}
 						className={cn(
-							"min-w-[200px] p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+							"min-w-[244px] p-1.5 rounded-xl border border-white/[0.08] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
 							dmSansClassName(),
 						)}
 						style={{
 							background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 						}}
 					>
+						{hasOrgs && (
+							<>
+								<p className="px-2 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5B6675]">
+									Switch brain
+								</p>
+								<div className="flex max-h-[40vh] flex-col gap-0.5 overflow-y-auto overscroll-contain">
+									{organizations?.map((o) => {
+										const active = org?.id === o.id
+										const plan = resolveOrgPlan(
+											o.id,
+											active,
+											currentPlan,
+											planByOrgId,
+										)
+										return (
+											<DropdownMenuItem
+												key={o.id}
+												onClick={() => selectOrg(o.slug, active)}
+												className={cn(brainItemClass(active))}
+											>
+												<span className={cn(brainTileClass(active))}>
+													{o.name?.trim().charAt(0).toUpperCase() || "?"}
+												</span>
+												<span className="flex-1 truncate">{o.name}</span>
+												<OrgPlanBadge plan={plan} />
+											</DropdownMenuItem>
+										)
+									})}
+								</div>
+								<DropdownMenuSeparator className="mx-1 my-1.5 bg-white/[0.06]" />
+							</>
+						)}
 						<DropdownMenuItem
 							asChild
-							className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+							className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 						>
 							<Link href="/">
 								<Home className="size-4 text-[#737373]" />
@@ -109,7 +173,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							asChild
-							className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+							className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 						>
 							<a
 								href="https://console.supermemory.ai"
@@ -122,7 +186,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							asChild
-							className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+							className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 						>
 							<a href="https://supermemory.ai" target="_blank" rel="noreferrer">
 								<ExternalLink className="size-4 text-[#737373]" />
@@ -290,49 +354,49 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							>
 								<DropdownMenuItem
 									onClick={onAddMemory}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<Plus className="size-4 text-[#737373]" />
 									Add memory
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("dashboard")}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<Home className="size-4 text-[#737373]" />
 									Home
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => setViewMode("integrations")}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<Sun className="size-4 text-[#737373]" />
 									Integrations
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("graph")}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<GraphIcon className="size-4 text-[#737373]" />
 									Graph
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => onOpenSearch?.()}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<SearchIcon className="size-4 text-[#737373]" />
 									Search
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("list")}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<LayoutGrid className="size-4 text-[#737373]" />
 									Memories
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => void setViewMode("chat")}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<MessageCircleIcon className="size-4 text-[#737373]" />
 									Chat with Nova
@@ -340,14 +404,14 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								<DropdownMenuSeparator className="bg-[#2E3033]" />
 								<DropdownMenuItem
 									onClick={handleFeedback}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<LifeBuoy className="size-4 text-[#737373]" />
 									Feedback
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onClick={() => router.push("/settings")}
-									className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<Settings className="size-4 text-[#737373]" />
 									Settings
@@ -444,7 +508,7 @@ export function PublicHeader() {
 						Sign in
 					</button>
 				</Link>
-				<Link href="/login/new">
+				<Link href="/login">
 					<button
 						type="button"
 						className={cn(

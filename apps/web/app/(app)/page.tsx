@@ -11,6 +11,7 @@ import {
 import { AnimatePresence, motion } from "motion/react"
 import { useQueryState } from "nuqs"
 import { Header, PublicHeader } from "@/components/header"
+import { MobileBottomNav } from "@/components/bottom-nav"
 import { ChatSidebar, HomeChatComposer } from "@/components/chat"
 import { DashboardView } from "@/components/dashboard-view"
 import { MemoriesGrid } from "@/components/memories-grid"
@@ -60,6 +61,7 @@ import {
 	type IntegrationParamValue,
 } from "@/lib/search-params"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
+import { getToolDocumentSpace } from "@/lib/plugin-space"
 
 type DocumentsResponse = z.infer<typeof DocumentsWithMemoriesResponseSchema>
 type DocumentWithMemories = DocumentsResponse["documents"][0]
@@ -106,7 +108,7 @@ export default function NewPage() {
 	const isMobile = useIsMobile()
 	const { user, session } = useAuth()
 
-	const { selectedProject, selectedProjects } = useProject()
+	const { selectedProject, selectedProjects, setSelectedProject } = useProject()
 	const selectedProjectTag = selectedProjects[0]
 	const { allProjects } = useContainerTags()
 	const dashboardSpaceLabel = useMemo(
@@ -408,6 +410,18 @@ export default function NewPage() {
 		[setDocId],
 	)
 
+	const handleOpenToolDocument = useCallback(
+		(document: DocumentWithMemories, pluginClientId: string) => {
+			const documentSpace = getToolDocumentSpace(document, pluginClientId)
+			if (documentSpace) {
+				setSelectedProject(documentSpace)
+			}
+			handleOpenDocument(document)
+			void setViewMode("list")
+		},
+		[handleOpenDocument, setSelectedProject, setViewMode],
+	)
+
 	// Separate from handleOpenDocument because the graph view only has a document ID,
 	// not the full document object. The modal will fetch the document via the docId
 	// query param, so there may be a brief loading state (unlike handleOpenDocument
@@ -514,9 +528,13 @@ export default function NewPage() {
 
 	const handleOpenIntegrations = useCallback(
 		(integration?: IntegrationParamValue) => {
+			if (integration === "notion" || integration === "google-drive") {
+				void setAddDoc("connect")
+				return
+			}
 			void setViewMode(integration ?? "integrations")
 		},
-		[setViewMode],
+		[setViewMode, setAddDoc],
 	)
 
 	const handleOpenPlugins = useCallback(() => {
@@ -544,6 +562,7 @@ export default function NewPage() {
 	const isDashboardShell =
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
+	const showBottomNav = isMobile && !isChatView && !!session
 
 	return (
 		<HotkeysProvider>
@@ -551,23 +570,23 @@ export default function NewPage() {
 				className={cn(
 					"relative flex min-h-dvh flex-col bg-[#05080D]",
 					isGraphMode && "h-dvh overflow-hidden",
+					showBottomNav &&
+						!isGraphMode &&
+						"pb-[calc(5.5rem+env(safe-area-inset-bottom))]",
 				)}
 			>
 				{showNovaBackdrop && (
-					<>
+					<div className="pointer-events-none fixed inset-0 z-0">
 						<AnimatedGradientBackground
 							animateFromBottom={false}
 							topPosition={gradientTopPosition}
 						/>
-						<div
-							className="pointer-events-none absolute inset-0 z-0 bg-[#05080D]/50"
-							aria-hidden
-						/>
+						<div className="absolute inset-0 bg-[#05080D]/50" aria-hidden />
 						<div
 							id="graph-dotted-grid"
-							className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
+							className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(105,167,240,0.25)_1px,transparent_1px)] bg-size-[32px_32px] mask-[radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"
 						/>
-					</>
+					</div>
 				)}
 				{!session && viewMode === "mcp" ? (
 					<PublicHeader />
@@ -711,6 +730,7 @@ export default function NewPage() {
 										onNavigateToMemories={() => void setViewMode("list")}
 										onNavigateToGraph={() => void setViewMode("graph")}
 										onOpenDocument={handleOpenDocument}
+										onOpenToolDocument={handleOpenToolDocument}
 										onHighlightsChat={handleHighlightsChat}
 										onHighlightsShowRelated={handleHighlightsShowRelated}
 										onResetHighlights={handleResetHighlights}
@@ -722,12 +742,35 @@ export default function NewPage() {
 					</motion.main>
 				</AnimatePresence>
 
+				{isDashboardShell && showBottomNav && (
+					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 h-64 bg-gradient-to-t from-[#05080D] via-[#05080D]/95 to-transparent" />
+				)}
 				{isDashboardShell && (
-					<div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black via-black/40 to-transparent pt-12">
+					<div
+						className={cn(
+							"pointer-events-none fixed inset-x-0 z-30",
+							showBottomNav
+								? "bottom-[4.25rem]"
+								: "bottom-0 bg-gradient-to-t from-black via-black/40 to-transparent pt-12",
+						)}
+					>
 						<div className="pointer-events-auto">
 							<HomeChatComposer onStartChat={handleHomeChatStart} />
 						</div>
 					</div>
+				)}
+
+				{showBottomNav && (
+					<MobileBottomNav
+						onAddMemory={() => {
+							analytics.addDocumentModalOpened()
+							setAddDoc("note")
+						}}
+						onOpenSearch={() => {
+							analytics.searchOpened({ source: "header" })
+							setIsSearchOpen(true)
+						}}
+					/>
 				)}
 
 				<AddDocumentModal

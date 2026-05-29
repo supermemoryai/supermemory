@@ -8,8 +8,9 @@ export default function SettingsIntegrationsPage() {
 	const searchParams = useSearchParams()
 
 	useEffect(() => {
-		const qs = searchParams.toString()
-		router.replace(`/settings${qs ? `?${qs}` : ""}#integrations`)
+		const params = new URLSearchParams(searchParams.toString())
+		params.set("view", "integrations")
+		router.replace(`/?${params.toString()}`)
 	}, [router, searchParams])
 
 	return null

@@ -338,8 +338,8 @@ export function ConnectAIModal({
 	return (
 		<Dialog onOpenChange={setIsOpen} open={isOpen}>
 			<DialogTrigger asChild>{children}</DialogTrigger>
-			<DialogContent className="sm:max-w-4xl">
-				<DialogHeader>
+			<DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-y-auto overflow-x-hidden p-4 sm:max-w-4xl sm:p-6">
+				<DialogHeader className="pr-7 sm:pr-0">
 					<DialogTitle>Connect supermemory to Your AI</DialogTitle>
 					<DialogDescription>
 						Enable your AI assistant to create, search, and access your memories
@@ -347,9 +347,9 @@ export function ConnectAIModal({
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-6">
+				<div className="min-w-0 space-y-6">
 					{/* Step 1: Client Selection */}
-					<div className="space-y-4">
+					<div className="min-w-0 space-y-4">
 						<div className="flex items-center gap-3">
 							<div className="size-8 rounded-full flex items-center justify-center text-sm font-semibold bg-accent text-accent-foreground">
 								1
@@ -357,14 +357,15 @@ export function ConnectAIModal({
 							<h3 className="text-sm font-medium">Select Your AI Client</h3>
 						</div>
 
-						<div className="space-x-2 space-y-2">
+						<div className="flex min-w-0 flex-wrap gap-2">
 							{Object.entries(clients).map(([key, clientName]) => (
 								<button
-									className={`pr-3 pl-1 rounded-full border cursor-pointer transition-all ${
+									className={cn(
+										"max-w-full rounded-full border py-0.5 pr-3 pl-1 cursor-pointer transition-all",
 										selectedClient === key
 											? "border-primary bg-primary/10"
-											: "border-border hover:border-border/60 hover:bg-muted/50"
-									}`}
+											: "border-border hover:border-border/60 hover:bg-muted/50",
+									)}
 									key={key}
 									onClick={() => {
 										setSelectedClient(key as keyof typeof clients)
@@ -372,8 +373,8 @@ export function ConnectAIModal({
 									}}
 									type="button"
 								>
-									<div className="flex items-center gap-1">
-										<div className="size-8 flex items-center justify-center">
+									<div className="flex min-w-0 items-center gap-1">
+										<div className="size-7 shrink-0 flex items-center justify-center sm:size-8">
 											<Image
 												alt={clientName}
 												className="rounded object-contain"
@@ -403,7 +404,7 @@ export function ConnectAIModal({
 												width={20}
 											/>
 										</div>
-										<span className="text-sm font-medium text-foreground/80">
+										<span className="truncate text-sm font-medium text-foreground/80">
 											{clientName}
 										</span>
 									</div>
@@ -413,7 +414,7 @@ export function ConnectAIModal({
 					</div>
 
 					{selectedClient && (
-						<div className="space-y-4">
+						<div className="min-w-0 space-y-4">
 							<div className="flex items-center gap-3">
 								<div className="flex size-8 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
 									2
@@ -424,13 +425,13 @@ export function ConnectAIModal({
 								<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 									{clientSetup && mcpClientSetupShowsTabs(clientSetup) ? (
 										<div
-											className="flex w-full max-w-md flex-row gap-1 rounded-full border border-border bg-muted/50 p-1 sm:w-auto sm:min-w-[280px]"
+											className="flex w-full min-w-0 max-w-full flex-row gap-1 rounded-full border border-border bg-muted/50 p-1 sm:w-auto sm:min-w-[280px]"
 											role="tablist"
 											aria-label="Setup method"
 										>
 											<button
 												className={cn(
-													"min-h-9 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium transition-all",
+													"min-h-9 flex-1 rounded-full px-2 py-2 text-center text-xs font-medium transition-all sm:px-3",
 													effectiveSetupTab === "manual"
 														? "border border-border bg-background text-foreground shadow-sm"
 														: "text-muted-foreground hover:text-foreground",
@@ -444,7 +445,7 @@ export function ConnectAIModal({
 											</button>
 											<button
 												className={cn(
-													"min-h-9 flex-1 rounded-full px-3 py-2 text-center text-xs font-medium transition-all",
+													"min-h-9 flex-1 rounded-full px-2 py-2 text-center text-xs font-medium transition-all sm:px-3",
 													effectiveSetupTab === "oneClick"
 														? "border border-border bg-background text-foreground shadow-sm"
 														: "text-muted-foreground hover:text-foreground",
@@ -461,7 +462,7 @@ export function ConnectAIModal({
 									{selectedClient !== "mcp-url" && (
 										<div
 											className={cn(
-												"flex justify-end",
+												"flex justify-start sm:justify-end",
 												!(
 													clientSetup && mcpClientSetupShowsTabs(clientSetup)
 												) && "w-full sm:justify-start",
@@ -523,9 +524,9 @@ export function ConnectAIModal({
 													Paste this URL into clients that support remote MCP
 													over HTTPS (OAuth).
 												</p>
-												<div className="relative max-w-xl">
+												<div className="relative max-w-full sm:max-w-xl">
 													<Input
-														className="w-full pr-10 font-mono text-xs"
+														className="w-full min-w-0 pr-10 font-mono text-xs"
 														readOnly
 														value={CHATGPT_REMOTE_MCP_URL}
 													/>
@@ -552,7 +553,7 @@ export function ConnectAIModal({
 														Optional: scope installs to a project. Then copy and
 														run the command in your terminal.
 													</p>
-													<div className="max-w-md">
+													<div className="max-w-full sm:max-w-md">
 														<Select
 															disabled={isLoadingProjects}
 															onValueChange={setSelectedProject}
@@ -586,7 +587,7 @@ export function ConnectAIModal({
 													</div>
 													<div className="relative max-w-full">
 														<Input
-															className="w-full pr-10 font-mono text-xs"
+															className="w-full min-w-0 pr-10 font-mono text-xs"
 															readOnly
 															value={generateInstallCommand()}
 														/>
@@ -622,9 +623,9 @@ export function ConnectAIModal({
 														</li>
 														<li>Complete OAuth in ChatGPT.</li>
 													</ol>
-													<div className="relative max-w-xl">
+													<div className="relative max-w-full sm:max-w-xl">
 														<Input
-															className="w-full pr-10 font-mono text-xs"
+															className="w-full min-w-0 pr-10 font-mono text-xs"
 															readOnly
 															value={CHATGPT_REMOTE_MCP_URL}
 														/>
@@ -677,8 +678,8 @@ export function ConnectAIModal({
 														</div>
 													) : (
 														<>
-															<div className="relative max-w-full">
-																<pre className="max-h-80 overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-4 pr-12 text-xs">
+															<div className="relative min-w-0 max-w-full">
+																<pre className="max-h-80 max-w-full overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-3 pr-12 text-xs sm:p-4">
 																	<code className="block font-mono whitespace-pre-wrap break-all">
 																		{remoteSnippet}
 																	</code>
@@ -715,8 +716,8 @@ export function ConnectAIModal({
 													Merge the snippet with your existing config. Restart
 													the client and sign in with OAuth when prompted.
 												</p>
-												<div className="relative max-w-full">
-													<pre className="max-h-80 overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-4 pr-12 text-xs">
+												<div className="relative min-w-0 max-w-full">
+													<pre className="max-h-80 max-w-full overflow-x-auto overflow-y-auto rounded-lg border border-border bg-muted p-3 pr-12 text-xs sm:p-4">
 														<code className="block font-mono whitespace-pre-wrap break-all">
 															{manual.snippet}
 														</code>
@@ -782,8 +783,8 @@ export function ConnectAIModal({
 						</div>
 					</div>
 
-					<div className="bg-muted/50 rounded-lg p-4 border border-border">
-						<div className="flex items-center justify-between mb-3">
+					<div className="rounded-lg border border-border bg-muted/50 p-4">
+						<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
 							<h3 className="text-sm font-medium">Connection Status</h3>
 							<div className="flex items-center gap-2 text-xs">
 								{isCheckingConnection ? (
@@ -817,8 +818,8 @@ export function ConnectAIModal({
 						</ul>
 					</div>
 
-					<div className="flex justify-between items-center pt-4">
-						<div className="flex items-center gap-4">
+					<div className="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex flex-wrap items-center gap-2 sm:gap-4">
 							<Button
 								onClick={() =>
 									window.open(
@@ -839,7 +840,12 @@ export function ConnectAIModal({
 								Migrate from v1
 							</Button>
 						</div>
-						<Button onClick={() => setIsOpen(false)}>Done</Button>
+						<Button
+							className="w-full sm:w-auto"
+							onClick={() => setIsOpen(false)}
+						>
+							Done
+						</Button>
 					</div>
 				</div>
 			</DialogContent>

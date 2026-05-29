@@ -310,11 +310,7 @@ export const Legend = memo(function Legend({
 	const updateNodeCount = nodes.filter(isUpdateMemoryNode).length
 
 	const outerStyle: React.CSSProperties = {
-		position: "absolute",
-		zIndex: 20,
 		overflow: "hidden",
-		bottom: 16,
-		left: 16,
 		width: 214,
 	}
 

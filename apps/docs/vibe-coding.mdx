@@ -52,6 +52,39 @@ You are integrating Supermemory into my application. Supermemory provides user m
 
 Note: You can always reference the documentation by using the **SearchSupermemoryDocs MCP** or running a web search tool for content on **supermemory.ai/docs**.
 
+CANONICAL API SURFACE (use these, nothing else):
+
+- Auth header: `Authorization: Bearer $SUPERMEMORY_API_KEY` — the only supported auth header
+- Write content:     POST https://api.supermemory.ai/v3/documents
+- Search:            POST https://api.supermemory.ai/v4/search
+- Profile + search:  POST https://api.supermemory.ai/v4/profile
+- Settings:          PATCH https://api.supermemory.ai/v3/settings
+- Scoping:           `containerTag` (singular string) in the JSON body — never in a header
+- SDK:               `client.documents.add()`, `client.search.memories()`, `client.profile()`
+
+DO NOT USE — these are deprecated, undocumented, or fabricated by previous AI codegen:
+
+- Endpoints:  /v1/anything, /v3/memories, /v3/search   (use /v3/documents and /v4/search)
+- Headers:    x-supermemory-api-key, x-api-key, x-sm-user-id, x-sm-project,
+              x-project-id, X-Workspace-Id   (always use Authorization: Bearer)
+- Body keys:  containerTags (plural array), userId, spaces, schema, container,
+              tags (top-level), filter (singular)   (use containerTag + filters)
+- SDK calls:  client.search.execute, client.documents.add (use client.add),
+              client.documents.deleteBulk, client.documents.batch_add,
+              client.memories.updateMemory (the real method is client.memories.update)
+- Kwargs:     chunk_threshold (use `threshold`), sort, order, include_content,
+              include_full_docs, timeout (as an SDK kwarg)
+
+NOTE on memory mutation: `client.memories.update`, `client.memories.delete`, and
+`client.memories.forget` ARE real and supported — but most apps don't need them.
+Memories are auto-extracted from documents. Only reach for these if you're exposing
+a "manage my memories" UI to end users or agents.
+- Mixing:     `rerank` and `rewriteQuery` are valid on /v4/search ONLY — never on /v3/search
+
+SCOPING IS LOAD-BEARING. Every write and every search MUST include `containerTag`.
+If you omit it, every user's data collapses into the API key's default bucket — this
+is the single most common bug in AI-generated Supermemory integrations.
+
 STEP 1: ASK ME THESE QUESTIONS
 
 1. What are you building?
@@ -91,29 +124,34 @@ export SUPERMEMORY_API_KEY="sm_..."
 
 STEP 3: CONFIGURE SETTINGS (DO THIS FIRST)
 
-typescript
+```typescript
 // PATCH https://api.supermemory.ai/v3/settings
 fetch('https://api.supermemory.ai/v3/settings', {
   method: 'PATCH',
-  headers: { 'x-supermemory-api-key': process.env.SUPERMEMORY_API_KEY },
+  headers: {
+    'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
   body: JSON.stringify({
     shouldLLMFilter: true,
     filterPrompt: `This is a [your app description]. containerTag is [userId/orgId]. We store [what data].`
   })
 })
+```
 
 STEP 4: CONTAINER TAG STRATEGY
 
 Based on their data model answer:
 
 USER-ONLY APP:
-typescript
-
+```typescript
+containerTag: userId  // Each user's memories are isolated
+```
 
 ORG-ONLY APP:
-typescript
+```typescript
 containerTag: orgId  // Org members share memories
-
+```
 
 BOTH (ask which):
 - Option A: `containerTag: \`\${userId}-\${orgId}\``
@@ -126,7 +164,7 @@ Based on their integration choice:
 
 --- VERCEL AI SDK ---
 
-typescript
+```typescript
 import { streamText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { supermemoryTools } from '@supermemory/tools/ai-sdk'
@@ -136,7 +174,7 @@ const result = await streamText({
   model: anthropic('claude-3-5-sonnet-20241022'),
   prompt: userMessage,
   tools: supermemoryTools(process.env.SUPERMEMORY_API_KEY, {
-    containerTags: [userId]
+    containerTag: userId  // singular string — never an array
   })
 })
 // Agent gets searchMemories, addMemory, fetchMemory tools
@@ -153,11 +191,12 @@ const result = await generateText({
   messages: [{ role: 'user', content: userMessage }]
 })
 // Profile is automatically injected into context
+```
 
 
 --- DIRECT SDK (WITH PROFILES) ---
 
-typescript
+```typescript
 import Supermemory from 'supermemory'
 
 const client = new Supermemory()
@@ -187,7 +226,7 @@ await client.add({
   content: `user: ${userMessage}\nassistant: ${response}`,
   containerTag: userId
 })
-
+```
 
 --- DIRECT SDK (NO PROFILES) ---
 
@@ -218,9 +257,11 @@ await client.add({
   content: `user: ${userMessage}\nassistant: ${response}`,
   containerTag: userId
 })
+```
 
 --- PYTHON VERSION ---
-python
+
+```python
 from supermemory import Supermemory
 
 client = Supermemory()
@@ -238,28 +279,33 @@ Dynamic: {chr(10).join(profile_data.profile.dynamic)}
 
 # Store conversation
 client.add(content=f"user: {user_message}\\nassistant: {response}", container_tag=user_id)
+```
 
 --- DIRECT API ---
 
-bash
+```bash
 # Add memory
 curl -X POST https://api.supermemory.ai/v3/documents \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"content": "conversation", "containerTag": "userId"}'
 
 # Get profile
 curl -X POST https://api.supermemory.ai/v4/profile \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"containerTag": "userId", "q": "search query"}'
 
 # Search
 curl -X POST https://api.supermemory.ai/v4/search \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"q": "query", "containerTag": "userId", "searchMode": "hybrid"}'
+```
 
 STEP 6: FILE UPLOADS (if they need it)
 
-typescript
+```typescript
 // Files are automatically extracted (PDFs, images with OCR, videos with transcription)
 const formData = new FormData()
 formData.append('file', fileBlob)
@@ -267,28 +313,29 @@ formData.append('containerTag', userId)
 
 await fetch('https://api.supermemory.ai/v3/documents/file', {
   method: 'POST',
-  headers: { 'x-supermemory-api-key': process.env.SUPERMEMORY_API_KEY },
+  headers: { 'Authorization': `Bearer ${process.env.SUPERMEMORY_API_KEY}` },
   body: formData
 })
 
 // Processing is async - check status before assuming searchable
 // GET /v3/documents/{documentId}
-
+```
 
 STEP 7: SEARCH MODES
 
-typescript
+```typescript
 // HYBRID (recommended) - searches memories + document chunks
 searchMode: 'hybrid'
 
 // MEMORIES ONLY - just extracted memories, no original text
 searchMode: 'memories'
-
+```
 
 STEP 8: METADATA FILTERS (if they need secondary filtering)
 
-typescript
-await client.search({
+```typescript
+// Always against /v4/search — rerank/rewriteQuery/filters are v4-only
+await client.search.memories({
   q: query,
   containerTag: userId,
   filters: {
@@ -298,6 +345,7 @@ await client.search({
     ]
   }
 })
+```
 
 KEY POINTS:
 
@@ -311,21 +359,25 @@ KEY POINTS:
 
 TESTING:
 
-bash
+```bash
 # 1. Configure settings
 curl -X PATCH https://api.supermemory.ai/v3/settings \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"shouldLLMFilter": true, "filterPrompt": "..."}'
 
 # 2. Add test memory
 curl -X POST https://api.supermemory.ai/v3/documents \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"content": "Test", "containerTag": "test_user"}'
 
 # 3. Get profile
 curl -X POST https://api.supermemory.ai/v4/profile \
-  -H "x-supermemory-api-key: $SUPERMEMORY_API_KEY" \
+  -H "Authorization: Bearer $SUPERMEMORY_API_KEY" \
+  -H "Content-Type: application/json" \
   -d '{"containerTag": "test_user"}'
+```
 
 
 NOW:

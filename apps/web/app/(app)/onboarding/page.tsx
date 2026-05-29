@@ -555,6 +555,7 @@ export default function OnboardingPage() {
 	const fileRef = useRef<HTMLInputElement>(null)
 	const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 	const skippingRef = useRef(false)
+	const [isSkipping, setIsSkipping] = useState(false)
 	const [spotlightCategory, setSpotlightCategory] =
 		useState<SpotlightCategoryId>("productivity")
 
@@ -617,6 +618,7 @@ export default function OnboardingPage() {
 	const handleSkip = useCallback(async () => {
 		if (skippingRef.current) return
 		skippingRef.current = true
+		setIsSkipping(true)
 		try {
 			await ensureOrg()
 			const pendingPath = consumePendingConnectUrl()
@@ -624,6 +626,7 @@ export default function OnboardingPage() {
 		} catch (err) {
 			console.error(err)
 			skippingRef.current = false
+			setIsSkipping(false)
 		}
 	}, [ensureOrg, router])
 
@@ -798,9 +801,22 @@ export default function OnboardingPage() {
 				<button
 					type="button"
 					onClick={handleSkip}
-					className="text-[#525966] text-sm hover:text-white transition-colors cursor-pointer"
+					disabled={isSkipping}
+					className={cn(
+						"text-sm transition-colors cursor-pointer flex items-center gap-1.5",
+						isSkipping
+							? "text-[#525966] cursor-not-allowed"
+							: "text-[#525966] hover:text-white",
+					)}
 				>
-					Skip for now →
+					{isSkipping ? (
+						<>
+							<Loader2 className="size-3.5 animate-spin" />
+							Skipping…
+						</>
+					) : (
+						"Skip for now →"
+					)}
 				</button>
 			</div>
 
@@ -870,34 +886,36 @@ export default function OnboardingPage() {
 									/>
 
 									<AnimatePresence>
-										{isCheckingAccount && (
+										{hasDetectedAccount && detected !== "resume" && (
 											<motion.span
 												initial={{ opacity: 0, scale: 0.8 }}
 												animate={{ opacity: 1, scale: 1 }}
 												exit={{ opacity: 0, scale: 0.8 }}
 												transition={{ duration: 0.15 }}
-												className="absolute right-3 flex items-center pointer-events-none"
+												className="absolute right-1 flex size-8 items-center justify-center"
 											>
-												<Loader2 className="size-4 animate-spin text-[#6BB0FF]" />
+												{isCheckingAccount ? (
+													<Loader2 className="size-4 animate-spin text-[#6BB0FF]" />
+												) : canSubmit ? (
+													<motion.button
+														type="button"
+														initial={{ opacity: 0, scale: 0.8 }}
+														animate={{ opacity: 1, scale: 1 }}
+														onClick={() =>
+															handleSubmit(detected as "x" | "linkedin")
+														}
+														className="rounded-xl size-8 flex items-center justify-center border-[0.5px] border-[#161F2C] hover:scale-[0.95] active:scale-[0.95] transition-transform cursor-pointer"
+														style={{
+															background:
+																"linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
+														}}
+													>
+														<SubmitArrow />
+													</motion.button>
+												) : null}
 											</motion.span>
 										)}
 									</AnimatePresence>
-
-									{canSubmit && (
-										<motion.button
-											type="button"
-											initial={{ opacity: 0, scale: 0.8 }}
-											animate={{ opacity: 1, scale: 1 }}
-											onClick={() => handleSubmit(detected as "x" | "linkedin")}
-											className="absolute right-1 rounded-xl size-8 flex items-center justify-center border-[0.5px] border-[#161F2C] hover:scale-[0.95] active:scale-[0.95] transition-transform cursor-pointer"
-											style={{
-												background:
-													"linear-gradient(180deg, #0D121A -26.14%, #000 100%)",
-											}}
-										>
-											<SubmitArrow />
-										</motion.button>
-									)}
 								</div>
 
 								<AnimatePresence>
@@ -928,9 +946,6 @@ export default function OnboardingPage() {
 											)}
 											{currentAccountLookup?.status === "error" && (
 												<AlertCircle className="size-3.5 shrink-0" />
-											)}
-											{isCheckingAccount && (
-												<Loader2 className="size-3.5 shrink-0 animate-spin" />
 											)}
 											<span>
 												{currentAccountLookup?.message ??

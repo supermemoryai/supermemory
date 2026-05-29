@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
 import { analytics } from "@/lib/analytics"
 import { consumePendingConnectUrl } from "@/lib/constants"
+import { cn } from "@lib/utils"
 
 export function InitialHeader({
 	showUserSupermemory,
@@ -28,10 +29,10 @@ export function InitialHeader({
 	}
 
 	return (
-		<div className="flex p-6 justify-between items-center">
-			<div className="flex items-center z-10!">
-				<Logo className="h-7" />
-				{showUserSupermemory && (
+		<div className="flex items-center justify-between p-4 sm:p-6">
+			<div className="flex items-center z-10! min-w-0">
+				<Logo className="h-6 sm:h-7 shrink-0" />
+				{showUserSupermemory ? (
 					<div className="flex flex-col items-start justify-center ml-2">
 						<p className="text-[#8B8B8B] text-[11px] leading-tight">
 							{userName}
@@ -40,9 +41,13 @@ export function InitialHeader({
 							supermemory
 						</p>
 					</div>
+				) : (
+					<p className="ml-2 truncate text-xl leading-none font-semibold text-white/90">
+						supermemory
+					</p>
 				)}
 			</div>
-			<div className="flex items-center gap-3 z-10!">
+			<div className="flex items-center gap-2 sm:gap-3 z-10! shrink-0">
 				{showSkipOnboarding && !isLoading && (
 					<button
 						type="button"
@@ -54,10 +59,21 @@ export function InitialHeader({
 				)}
 				<Button
 					variant="newDefault"
-					className="rounded-2xl text-base gap-1 h-11!"
+					className={cn(
+						"rounded-xl sm:rounded-2xl gap-1 h-9 sm:h-11 px-3 sm:px-4 text-sm sm:text-base",
+					)}
 					size="lg"
+					onClick={() =>
+						window.open(
+							"https://console.supermemory.ai",
+							"_blank",
+							"noopener,noreferrer",
+						)
+					}
 				>
-					Memory API <span className="text-xs mt-[4px]">↗</span>
+					<span className="sm:hidden">API</span>
+					<span className="hidden sm:inline">Memory API</span>{" "}
+					<span className="text-xs mt-[4px]">↗</span>
 				</Button>
 			</div>
 		</div>

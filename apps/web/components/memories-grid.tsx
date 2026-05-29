@@ -6,6 +6,7 @@ import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { useCallback, memo, useMemo, useState, useRef, useEffect } from "react"
 import { useQueryState } from "nuqs"
+import { AnimatePresence } from "motion/react"
 import type { z } from "zod"
 import { Masonry, useInfiniteLoader } from "masonic"
 import { dmSansClassName } from "@/lib/fonts"
@@ -54,11 +55,21 @@ import {
 	CheckIcon,
 	LayoutGrid,
 	Loader,
+	MoreHorizontal,
 	Trash2Icon,
+	UserRound,
 	XIcon,
 } from "lucide-react"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@ui/components/dropdown-menu"
 import { useProcessingDocuments } from "@/hooks/use-processing-documents"
 import { TimelineView } from "./timeline-view"
+import { SpaceProfilePanel } from "@/components/space-profile-panel"
+import { SpaceProfileModal } from "@/components/space-profile-modal"
 
 // Document category type
 type DocumentCategory =
@@ -249,6 +260,7 @@ export function MemoriesGrid({
 	emptyStateProps,
 }: MemoriesGridProps) {
 	const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+	const [profileOpen, setProfileOpen] = useState(false)
 	const [localViewMode, setLocalViewMode] = useState<"grid" | "timeline">(
 		() => {
 			if (typeof window === "undefined") return "grid"
@@ -259,7 +271,7 @@ export function MemoriesGrid({
 		},
 	)
 	const { user, isSessionPending } = useAuth()
-	const { effectiveContainerTags } = useProject()
+	const { effectiveContainerTags, selectedProject } = useProject()
 	const processingStatusMap = useProcessingDocuments()
 	const isMobile = useIsMobile()
 	const [selectedCategories, setSelectedCategories] = useQueryState(
@@ -347,6 +359,14 @@ export function MemoriesGrid({
 		localStorage.setItem("memories-view-mode", mode)
 	}, [])
 
+	const handleToggleProfile = useCallback(() => {
+		if (isMobile) {
+			setProfileOpen(true)
+			return
+		}
+		setProfileOpen((open) => !open)
+	}, [isMobile])
+
 	const handleCategoryToggle = useCallback(
 		(category: DocumentCategory) => {
 			setSelectedCategories((prev) => {
@@ -394,11 +414,14 @@ export function MemoriesGrid({
 		return items
 	}, [documents, isMobile, hasQuickNote, isSelectionMode, selectedDocumentIds])
 
-	// Stable key for Masonry based on document IDs, not item values
+	// Reset Masonry when the actual rendered item set changes. Masonic caches
+	// positions by index, so mobile removing the quick note must remount it.
 	const masonryKey = useMemo(() => {
-		const docIds = documents.map((d) => d.id).join(",")
-		return `masonry-${documents.length}-${docIds}-${isChatOpen}-${hasQuickNote}`
-	}, [documents, isChatOpen, hasQuickNote])
+		const itemIds = masonryItems.map((item) => item.id).join(",")
+		return `masonry-${isMobile ? "mobile" : "desktop"}-${masonryItems.length}-${itemIds}-${isChatOpen}`
+	}, [masonryItems, isChatOpen, isMobile])
+
+	const getMasonryItemKey = useCallback((item: MasonryItem) => item.id, [])
 
 	const isLoadingMore = isFetchingNextPage
 
@@ -538,17 +561,17 @@ export function MemoriesGrid({
 		documents.every((d) => d.id && selectedDocumentIds.has(d.id))
 
 	return (
-		<div className="relative">
+		<div className="relative flex h-full min-h-0 flex-col">
 			{!isEmpty && !isSelectionMode && (
 				<div
 					id="filter-pills"
-					className="flex items-center justify-between gap-4 mb-3 pr-2"
+					className="mb-3 flex flex-col gap-2 pr-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
 				>
-					<div className="flex flex-wrap items-center gap-1.5">
+					<div className="order-2 flex w-full min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:order-1 sm:flex-wrap sm:overflow-visible">
 						<Button
 							className={cn(
 								dmSansClassName(),
-								"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+								"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 								selectedCategories.length === 0 &&
 									"bg-[#00173C] border-[#2261CA33]",
 							)}
@@ -566,7 +589,7 @@ export function MemoriesGrid({
 								key={facet.category}
 								className={cn(
 									dmSansClassName(),
-									"rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
+									"shrink-0 whitespace-nowrap rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 py-1 text-xs h-auto hover:bg-[#00173C] hover:border-[#2261CA33]",
 									selectedCategoriesSet.has(facet.category) &&
 										"bg-[#00173C] border-[#2261CA33]",
 								)}
@@ -577,7 +600,7 @@ export function MemoriesGrid({
 							</Button>
 						))}
 					</div>
-					<div className="flex items-center gap-2 shrink-0">
+					<div className="order-1 flex w-full items-center justify-between gap-2 sm:order-2 sm:w-auto sm:justify-start sm:self-start">
 						{/* View mode toggle — segmented control */}
 						<div
 							role="tablist"
@@ -618,17 +641,52 @@ export function MemoriesGrid({
 								Timeline
 							</button>
 						</div>
-						{onEnterSelectionMode && (
-							<button
-								type="button"
-								aria-label="Select documents"
-								title="Select documents"
-								className="size-8 flex items-center justify-center rounded-full border border-[#161F2C] bg-[#0D121A] hover:bg-[#00173C] hover:border-[#2261CA33] transition-colors cursor-pointer"
-								onClick={onEnterSelectionMode}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									aria-label="More memory actions"
+									className={cn(
+										dmSansClassName(),
+										"inline-flex h-8 items-center justify-center gap-1.5 rounded-full border border-[#161F2C] bg-[#0D121A] px-2.5 text-xs font-medium transition-colors cursor-pointer",
+										profileOpen
+											? "border-[#2261CA33] bg-[#00173C] text-white"
+											: "text-[#737373] hover:bg-white/5",
+									)}
+								>
+									<MoreHorizontal className="size-3.5" />
+									More
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className={cn(
+									"min-w-[180px] rounded-xl border border-[#2E3033] p-1.5 shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+									dmSansClassName(),
+								)}
+								style={{
+									background:
+										"linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
+								}}
 							>
-								<BoxSelect className="size-4 text-[#737373]" />
-							</button>
-						)}
+								{onEnterSelectionMode && (
+									<DropdownMenuItem
+										onSelect={onEnterSelectionMode}
+										className="gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-[#293952]/40"
+									>
+										<BoxSelect className="size-4 text-[#737373]" />
+										Select memories
+									</DropdownMenuItem>
+								)}
+								<DropdownMenuItem
+									onSelect={handleToggleProfile}
+									className="gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white cursor-pointer hover:bg-[#293952]/40"
+								>
+									<UserRound className="size-4 text-[#737373]" />
+									Space profile
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				</div>
 			)}
@@ -638,27 +696,29 @@ export function MemoriesGrid({
 					id="selection-toolbar"
 					className={cn(
 						dmSansClassName(),
-						"flex items-center justify-between gap-3 mb-3 mr-2 px-3 py-2 rounded-full border border-[#2261CA33] bg-[#00173C]/40",
+						"flex items-center justify-between gap-1.5 mb-3 mr-2 px-2.5 py-2 rounded-full border border-[#2261CA33] bg-[#00173C]/40 sm:gap-3 sm:px-3",
 					)}
 				>
-					<div className="flex items-center gap-2 min-w-0">
+					<div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
 						<span className="flex items-center gap-1.5 text-xs text-[#FAFAFA] font-medium shrink-0">
 							<span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#369BFD] text-[#0B0F14] text-[11px] font-semibold">
 								{selectedDocumentIds.size}
 							</span>
-							{selectedDocumentIds.size === 1 ? "selected" : "selected"}
+							<span className="hidden sm:inline">
+								{selectedDocumentIds.size === 1 ? "selected" : "selected"}
+							</span>
 						</span>
 						{selectedDocumentIds.size === 0 && (
-							<span className="text-xs text-[#737373] truncate">
+							<span className="hidden truncate text-xs text-[#737373] sm:inline">
 								Tap documents to select
 							</span>
 						)}
 					</div>
-					<div className="flex items-center gap-1 shrink-0">
+					<div className="flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
 						<button
 							type="button"
 							className={cn(
-								"text-xs px-2.5 h-7 rounded-full transition-colors cursor-pointer",
+								"h-7 rounded-full px-2 text-xs transition-colors cursor-pointer sm:px-2.5",
 								allVisibleSelected
 									? "text-[#737373] hover:text-white"
 									: "text-[#FAFAFA] hover:bg-white/5",
@@ -672,7 +732,7 @@ export function MemoriesGrid({
 						<button
 							type="button"
 							className={cn(
-								"flex items-center gap-1 text-xs px-3 h-7 rounded-full transition-colors cursor-pointer",
+								"flex h-7 items-center gap-1 rounded-full px-2 text-xs transition-colors cursor-pointer sm:px-3",
 								selectedDocumentIds.size === 0 || isBulkDeleting
 									? "text-[#737373]/60 cursor-not-allowed"
 									: "text-red-400 hover:text-red-300 hover:bg-red-500/10",
@@ -692,7 +752,7 @@ export function MemoriesGrid({
 						<button
 							type="button"
 							aria-label="Exit selection mode"
-							className="flex items-center gap-1 text-xs px-3 h-7 rounded-full text-[#737373] hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+							className="flex h-7 items-center gap-1 rounded-full px-2 text-xs text-[#737373] transition-colors hover:text-white hover:bg-white/5 cursor-pointer sm:px-3"
 							onClick={onClearSelection}
 						>
 							<XIcon className="size-3" />
@@ -744,60 +804,82 @@ export function MemoriesGrid({
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{error ? (
-				<div className="h-full flex items-center justify-center p-4">
-					<div className="text-center text-muted-foreground">
-						Error loading documents: {error.message}
-					</div>
-				</div>
-			) : isPending ? (
-				<MemoriesGridLoading />
-			) : showNovaEmptyState ? (
-				<NovaEmptyState
-					onAddMemory={emptyStateProps.onAddMemory}
-					onOpenIntegrations={emptyStateProps.onOpenIntegrations}
-					isAllSpaces={emptyStateProps.isAllSpaces}
-					spaceName={emptyStateProps.spaceName}
-					onSwitchToAllSpaces={emptyStateProps.onSwitchToAllSpaces}
-				/>
-			) : isEmpty ? (
-				<div className="h-full flex items-center justify-center p-4">
-					<div className="text-center text-muted-foreground">
-						No memories found
-					</div>
-				</div>
-			) : (
-				<div className="h-full overflow-auto scrollbar-thin">
-					{localViewMode === "timeline" ? (
-						<TimelineView
-							documents={documents}
-							onOpenDocument={onOpenDocument}
-							hasNextPage={hasNextPage}
-							isFetchingNextPage={isFetchingNextPage}
-							onLoadMore={loadMoreDocuments}
-						/>
-					) : (
-						<Masonry
-							key={masonryKey}
-							items={masonryItems}
-							render={renderMasonryItem}
-							columnGutter={0}
-							rowGutter={0}
-							columnWidth={260}
-							maxColumnCount={isMobile ? 1 : undefined}
-							itemHeightEstimate={200}
-							overscanBy={3}
-							onRender={maybeLoadMore}
-						/>
-					)}
-
-					{isLoadingMore && localViewMode === "grid" && (
-						<div className="py-10 flex items-center justify-center">
-							<Loader className="size-10 animate-spin text-sky-400" />
+			<div className="min-h-0 flex-1">
+				{error ? (
+					<div className="h-full flex items-center justify-center p-4">
+						<div className="text-center text-muted-foreground">
+							Error loading documents: {error.message}
 						</div>
-					)}
-				</div>
-			)}
+					</div>
+				) : isPending ? (
+					<MemoriesGridLoading />
+				) : showNovaEmptyState ? (
+					<NovaEmptyState
+						onAddMemory={emptyStateProps.onAddMemory}
+						onOpenIntegrations={emptyStateProps.onOpenIntegrations}
+						isAllSpaces={emptyStateProps.isAllSpaces}
+						spaceName={emptyStateProps.spaceName}
+						onSwitchToAllSpaces={emptyStateProps.onSwitchToAllSpaces}
+					/>
+				) : isEmpty ? (
+					<div className="h-full flex items-center justify-center p-4">
+						<div className="text-center text-muted-foreground">
+							No memories found
+						</div>
+					</div>
+				) : (
+					<div className="flex h-full min-h-0 gap-4">
+						<div className="min-w-0 flex-1 overflow-auto scrollbar-thin">
+							{localViewMode === "timeline" ? (
+								<TimelineView
+									documents={documents}
+									onOpenDocument={onOpenDocument}
+									hasNextPage={hasNextPage}
+									isFetchingNextPage={isFetchingNextPage}
+									onLoadMore={loadMoreDocuments}
+									isSelectionMode={isSelectionMode}
+									selectedDocumentIds={selectedDocumentIds}
+									onToggleSelection={onToggleSelection}
+								/>
+							) : (
+								<Masonry
+									key={masonryKey}
+									items={masonryItems}
+									render={renderMasonryItem}
+									itemKey={getMasonryItemKey}
+									columnGutter={0}
+									rowGutter={0}
+									columnWidth={260}
+									maxColumnCount={isMobile ? 1 : undefined}
+									itemHeightEstimate={200}
+									overscanBy={3}
+									onRender={maybeLoadMore}
+								/>
+							)}
+
+							{isLoadingMore && localViewMode === "grid" && (
+								<div className="py-10 flex items-center justify-center">
+									<Loader className="size-10 animate-spin text-sky-400" />
+								</div>
+							)}
+						</div>
+						<AnimatePresence initial={false}>
+							{profileOpen && !isMobile && (
+								<SpaceProfilePanel
+									containerTag={selectedProject}
+									isOpen
+									onClose={() => setProfileOpen(false)}
+								/>
+							)}
+						</AnimatePresence>
+					</div>
+				)}
+			</div>
+			<SpaceProfileModal
+				containerTag={selectedProject}
+				open={profileOpen && isMobile}
+				onOpenChange={setProfileOpen}
+			/>
 		</div>
 	)
 }

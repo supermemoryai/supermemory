@@ -259,7 +259,7 @@ export default function Integrations() {
 	}
 
 	return (
-		<div className="flex flex-col gap-4 pt-4 w-full">
+		<div className="flex flex-col gap-4 w-full">
 			<SectionTitle>Integrations</SectionTitle>
 
 			<IntegrationCard id="chrome-extension-card">

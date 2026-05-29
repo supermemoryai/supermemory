@@ -147,3 +147,9 @@ const SPACE_TO_CATALOG_ID: Record<string, string> = {
 export function spacePluginIdToCatalogId(spacePluginId: string): string | null {
 	return SPACE_TO_CATALOG_ID[spacePluginId] ?? null
 }
+
+/** Normalize plugin client ids from API keys, metadata, and space ids. */
+export function normalizePluginClientId(client: string): string {
+	const trimmed = client.trim().toLowerCase()
+	return spacePluginIdToCatalogId(trimmed) ?? trimmed.replace(/-/g, "_")
+}

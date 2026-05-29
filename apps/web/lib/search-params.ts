@@ -42,7 +42,8 @@ export type ViewParamValue = (typeof viewLiterals)[number]
 export const viewParam =
 	parseAsStringLiteral(viewLiterals).withDefault("dashboard")
 
-// Kept for backwards compat with components that pass integration hints
+// Kept for backwards compat with components that pass integration hints.
+// "notion"/"google-drive" are connection providers, not view modes — they open the connect modal.
 export type IntegrationParamValue =
 	| "mcp"
 	| "plugins"
@@ -51,6 +52,8 @@ export type IntegrationParamValue =
 	| "shortcuts"
 	| "raycast"
 	| "import"
+	| "notion"
+	| "google-drive"
 export const categoriesParam = parseAsArrayOf(parseAsString, ",").withDefault(
 	[],
 )

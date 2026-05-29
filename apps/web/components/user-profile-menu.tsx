@@ -48,7 +48,7 @@ export function UserProfileMenu({
 			} catch {
 				// still navigate if the request fails (offline, etc.)
 			}
-			router.push("/login/new")
+			router.push("/login")
 		})()
 	}
 
@@ -125,28 +125,28 @@ export function UserProfileMenu({
 			<DropdownMenuContent
 				align="end"
 				className={cn(
-					"min-w-[220px] p-1.5 rounded-xl border border-[#2E3033] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
+					"min-w-[240px] p-1.5 rounded-xl border border-white/[0.08] shadow-[0px_1.5px_20px_0px_rgba(0,0,0,0.65)]",
 					dmSansClassName(),
 				)}
 				style={{
 					background: "linear-gradient(180deg, #0A0E14 0%, #05070A 100%)",
 				}}
 			>
-				<div id="user-info" className="px-3 py-2.5">
+				<div id="user-info" className="px-2.5 py-2">
 					<p className="text-white text-sm font-medium truncate">{user.name}</p>
 					<p className="text-[#737373] text-xs truncate">{user.email}</p>
 				</div>
-				<DropdownMenuSeparator className="bg-[#2E3033]" />
+				<DropdownMenuSeparator className="mx-1 my-1.5 bg-white/[0.06]" />
 				<DropdownMenuItem
 					onClick={() => router.push("/settings")}
-					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 				>
 					<Settings className="size-4 text-[#737373]" />
 					Settings
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={handleTryOnboarding}
-					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 				>
 					<RotateCcw className="size-4 text-[#737373]" />
 					Try onboarding
@@ -154,16 +154,16 @@ export function UserProfileMenu({
 				{onOpenFeedback ? (
 					<DropdownMenuItem
 						onClick={onOpenFeedback}
-						className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+						className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 					>
 						<LifeBuoy className="size-4 text-[#737373]" />
 						Feedback
 					</DropdownMenuItem>
 				) : null}
-				<DropdownMenuSeparator className="bg-[#2E3033]" />
+				<DropdownMenuSeparator className="mx-1 my-1.5 bg-white/[0.06]" />
 				<DropdownMenuItem
 					asChild
-					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 				>
 					<a href="mailto:support@supermemory.com">
 						<HelpCircle className="size-4 text-[#737373]" />
@@ -172,7 +172,7 @@ export function UserProfileMenu({
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					asChild
-					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 				>
 					<a
 						href="https://supermemory.link/discord"
@@ -190,10 +190,10 @@ export function UserProfileMenu({
 						Discord
 					</a>
 				</DropdownMenuItem>
-				<DropdownMenuSeparator className="bg-[#2E3033]" />
+				<DropdownMenuSeparator className="mx-1 my-1.5 bg-white/[0.06]" />
 				<DropdownMenuItem
 					onClick={handleSignOut}
-					className="px-3 py-2.5 rounded-md hover:bg-[#293952]/40 cursor-pointer text-white text-sm font-medium gap-2"
+					className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 				>
 					<LogOut className="size-4 text-[#737373]" />
 					Logout

@@ -1,7 +1,7 @@
 "use client"
 
 import { Document, Page, pdfjs } from "react-pdf"
-import { useCallback, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
 
@@ -13,9 +13,25 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 
 interface PdfViewerProps {
 	url: string | null | undefined
+	documentId?: string | null
 }
 
-export function PdfViewer({ url }: PdfViewerProps) {
+export function PdfViewer({ url, documentId }: PdfViewerProps) {
+	const fileSource = useMemo(() => {
+		if (!url) return null
+		try {
+			if (new URL(url).hostname === "www.googleapis.com" && documentId) {
+				const base =
+					process.env.NEXT_PUBLIC_BACKEND_URL ?? "https://api.supermemory.ai"
+				return {
+					url: `${base}/v3/drive-proxy/${documentId}`,
+					withCredentials: true,
+				}
+			}
+		} catch {}
+		return url
+	}, [url, documentId])
+
 	const [numPages, setNumPages] = useState<number | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -70,7 +86,7 @@ export function PdfViewer({ url }: PdfViewerProps) {
 				<Document
 					key={retryKey}
 					file={
-						url ||
+						fileSource ||
 						"https://corsproxy.io/?" +
 							encodeURIComponent("http://www.pdf995.com/samples/pdf.pdf")
 					}

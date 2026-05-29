@@ -3,38 +3,43 @@
 import { dmSans125ClassName } from "@/lib/fonts"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
-import {
-	useAccountMemberships,
-	useDeleteUserAccount,
-} from "@/hooks/use-account-settings"
-import { useOrgSummaries } from "@/hooks/use-org-summaries"
-import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
-import {
-	PLAN_DISPLAY_NAMES,
-	PLAN_RANK,
-	useTokenUsage,
-	type PlanType,
-} from "@/hooks/use-token-usage"
-import {
-	Dialog,
-	DialogContent,
-	DialogTrigger,
-	DialogClose,
-} from "@ui/components/dialog"
 import { authClient } from "@lib/auth"
-import { Popover, PopoverContent, PopoverTrigger } from "@ui/components/popover"
-import { useCustomer } from "autumn-js/react"
+import { Avatar, AvatarFallback, AvatarImage } from "@ui/components/avatar"
+import { Popover, PopoverContent } from "@ui/components/popover"
 import {
-	Check,
-	X,
-	Trash2,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@ui/components/select"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@ui/components/dropdown-menu"
+import { Dialog, DialogContent, DialogTitle } from "@ui/components/dialog"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import {
 	LoaderIcon,
-	Settings,
 	ChevronDown,
-	Building2,
+	Users,
+	UserPlus,
+	Mail,
+	MoreHorizontal,
+	UserMinus,
+	X,
+	Pencil,
+	Tag,
+	Plus,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
+import { useContainerTags } from "@/hooks/use-container-tags"
+import { PopoverAnchor } from "@ui/components/popover"
+import { OrgContext } from "@/components/settings/org-context"
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
@@ -62,350 +67,303 @@ function SettingsCard({ children }: { children: React.ReactNode }) {
 	)
 }
 
-function PlanComparisonCard({
-	name,
-	price,
-	period,
-	description,
-	credits,
-	features,
-	highlight,
-}: {
-	name: string
-	price: string
-	period: string
-	description: string
-	credits: string
-	features: string[]
-	highlight: boolean
-}) {
+/** Matches ACTIVE / RECOMMENDED pills in billing settings. */
+
+const ROLE_LABELS: Record<string, string> = {
+	owner: "Owner",
+	admin: "Admin",
+	member: "Member",
+}
+
+type InviteRole = "admin" | "member"
+
+function getErrorMessage(error: unknown, fallback: string) {
+	if (error instanceof Error && error.message) return error.message
+	if (
+		error &&
+		typeof error === "object" &&
+		"message" in error &&
+		typeof error.message === "string"
+	) {
+		return error.message
+	}
+	return fallback
+}
+
+function formatRole(role: string): string {
+	const r = role?.toLowerCase() ?? ""
+	if (ROLE_LABELS[r]) return ROLE_LABELS[r]
+	return r ? r.charAt(0).toUpperCase() + r.slice(1) : "Member"
+}
+
+function RolePill({ role }: { role: string }) {
+	const r = role?.toLowerCase() ?? ""
+	const isOwner = r === "owner"
 	return (
-		<div
+		<span
 			className={cn(
-				"relative flex flex-col gap-3 p-4 rounded-[10px] overflow-hidden",
-				highlight
-					? "bg-[#1B1F24] border border-[#4BA0FA]/30 shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]"
-					: "border border-white/10",
+				dmSans125ClassName(),
+				"inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium tracking-[0.02em]",
+				isOwner
+					? "bg-[#4BA0FA]/10 text-[#4BA0FA]"
+					: "bg-white/5 text-[#A3A3A3]",
 			)}
 		>
-			<div className="flex items-center justify-between">
-				<p
-					className={cn(
-						dmSans125ClassName(),
-						"font-mono uppercase tracking-[0.12em] text-[10px]",
-						highlight ? "text-[#4BA0FA]" : "text-[#737373]",
-					)}
-				>
-					{name}
-				</p>
-				{highlight && (
-					<span className="bg-[#4BA0FA] text-[#00171A] text-[10px] font-bold tracking-[0.36px] px-1.5 py-0.5 rounded-[3px]">
-						RECOMMENDED
-					</span>
-				)}
-			</div>
-
-			<div className="flex items-baseline gap-1">
-				<span
-					className={cn(
-						dmSans125ClassName(),
-						"font-bold text-[28px] leading-none text-[#FAFAFA] tabular-nums",
-					)}
-				>
-					{price}
-				</span>
-				{period && (
-					<span
-						className={cn(dmSans125ClassName(), "text-[12px] text-[#737373]")}
-					>
-						{period}
-					</span>
-				)}
-			</div>
-
-			<p
-				className={cn(
-					dmSans125ClassName(),
-					"text-[12px] tracking-[-0.12px] text-[#A3A3A3] leading-snug",
-				)}
-			>
-				{description}
-			</p>
-
-			<div
-				className={cn(
-					"flex items-center gap-2 rounded-lg px-3 py-2",
-					highlight ? "bg-[#4BA0FA]/10" : "bg-white/5",
-				)}
-			>
-				<div className="min-w-0">
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"font-semibold text-[12px] tabular-nums leading-none",
-							highlight ? "text-[#4BA0FA]" : "text-[#A3A3A3]",
-						)}
-					>
-						{credits}
-					</p>
-					<p
-						className={cn(
-							dmSans125ClassName(),
-							"mt-1 text-[10px] leading-none",
-							highlight ? "text-[#4BA0FA]/70" : "text-[#737373]",
-						)}
-					>
-						of usage included
-					</p>
-				</div>
-			</div>
-
-			<ul className="flex flex-col gap-2">
-				{features.map((text) => (
-					<li
-						key={text}
-						className={cn(
-							dmSans125ClassName(),
-							"flex items-start gap-2 text-[12px] tracking-[-0.12px] leading-snug text-[#A3A3A3]",
-						)}
-					>
-						<Check
-							className={cn(
-								"mt-0.5 size-3 shrink-0",
-								highlight ? "text-[#4BA0FA]" : "text-[#737373]",
-							)}
-						/>
-						<span>{text}</span>
-					</li>
-				))}
-			</ul>
-		</div>
-	)
-}
-
-function formatOrgRole(role: string): string {
-	const r = role.toLowerCase()
-	if (r === "owner") return "Owner"
-	if (r === "admin") return "Admin"
-	if (r === "member") return "Member"
-	return role
-		? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
-		: "Member"
-}
-
-/** Matches ACTIVE / RECOMMENDED pills in billing settings. */
-const orgPlanBadgeBase = cn(
-	dmSans125ClassName(),
-	"inline-flex h-[18px] min-w-[42px] shrink-0 items-center justify-center rounded-[3px] px-1.5 text-[10px] uppercase",
-)
-
-const ORG_PLAN_BADGE_STYLES: Record<PlanType, string> = {
-	free: "bg-[#2E353D] font-mono font-medium tracking-[0.12em] text-[#A3A3A3]",
-	pro: "bg-[#4BA0FA] font-bold tracking-[0.36px] text-[#00171A]",
-	scale: "bg-[#0054AD] font-bold tracking-[0.36px] text-[#FAFAFA]",
-	enterprise: "bg-[#FAFAFA] font-bold tracking-[0.36px] text-[#0D121A]",
-}
-
-function OrgPlanBadge({ plan }: { plan: PlanType }) {
-	return (
-		<span className={cn(orgPlanBadgeBase, ORG_PLAN_BADGE_STYLES[plan])}>
-			{PLAN_DISPLAY_NAMES[plan]}
+			{formatRole(role)}
 		</span>
 	)
 }
 
-function resolveOrgPlan(
-	orgId: string,
-	isCurrent: boolean,
-	currentPlan: PlanType,
-	planByOrgId: Map<string, PlanType>,
-): PlanType {
-	const fromSummary = planByOrgId.get(orgId)
-	if (fromSummary) return fromSummary
-	if (isCurrent) return currentPlan
-	return "free"
+function isPendingInvitation(invitation: {
+	status?: string
+	expiresAt?: Date | string
+}) {
+	if (invitation.status && invitation.status.toLowerCase() !== "pending") {
+		return false
+	}
+	if (!invitation.expiresAt) return true
+	return new Date(invitation.expiresAt).getTime() > Date.now()
 }
 
 export default function Account() {
-	const {
-		user,
-		org,
-		organizations: allOrgs,
-		setActiveOrg,
-		clearActiveOrg,
-	} = useAuth()
-	const autumn = useCustomer()
-	const [isUpgrading, setIsUpgrading] = useState(false)
-	const [isCancelling, setIsCancelling] = useState(false)
-	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-	const [emailConfirm, setEmailConfirm] = useState("")
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-	const [isClosingAccount, setIsClosingAccount] = useState(false)
-	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null)
-	const [orgMenuOpen, setOrgMenuOpen] = useState(false)
-	const canSwitchOrg = (allOrgs?.length ?? 0) > 1
-	const { data: memberships, isPending: membershipsPending } =
-		useAccountMemberships()
-	const { data: orgSummaries } = useOrgSummaries()
+	const { user, org, refetchActiveOrg, refetchOrganizations } = useAuth()
+	const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+	const [inviteEmail, setInviteEmail] = useState("")
+	const [inviteRole, setInviteRole] = useState<InviteRole>("member")
+	const [inviteAccessType, setInviteAccessType] = useState<
+		"full" | "restricted"
+	>("full")
+	const [inviteAssignments, setInviteAssignments] = useState<
+		{ containerTag: string; permission: "read" | "write" }[]
+	>([])
+	const [tagQuery, setTagQuery] = useState("")
+	const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
+	const [isEditingOrgName, setIsEditingOrgName] = useState(false)
+	const [orgNameDraft, setOrgNameDraft] = useState("")
+	const tagInputRef = useRef<HTMLInputElement>(null)
+	const tagAnchorRef = useRef<HTMLDivElement>(null)
+	const { allProjects: allContainerTags } = useContainerTags()
 
-	const sortedMemberships = useMemo(() => {
-		if (!memberships?.length) return []
-		return [...memberships].sort((a, b) => a.name.localeCompare(b.name))
-	}, [memberships])
+	const selectedTagSet = new Set(inviteAssignments.map((a) => a.containerTag))
+	const filteredTags = useMemo(() => {
+		const available = (allContainerTags ?? [])
+			.map((t) => t.containerTag)
+			.filter((t) => !selectedTagSet.has(t))
+		if (!tagQuery) return available
+		return available.filter((t) =>
+			t.toLowerCase().includes(tagQuery.toLowerCase()),
+		)
+	}, [allContainerTags, selectedTagSet, tagQuery])
 
-	const ownedOrgs = useMemo(
-		() => memberships?.filter((m) => m.role === "owner") ?? [],
-		[memberships],
+	const showAccessType = inviteRole === "member"
+	const showTagPicker =
+		inviteRole === "member" && inviteAccessType === "restricted"
+
+	useEffect(() => {
+		setOrgNameDraft(org?.name ?? "")
+		setIsEditingOrgName(false)
+	}, [org?.name])
+
+	const activeMemberRoleQuery = useQuery({
+		queryKey: ["organization", org?.id, "active-member-role"],
+		queryFn: async () => {
+			if (!org?.id) return null
+			const result = await authClient.organization.getActiveMember({
+				query: { organizationId: org.id },
+			})
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to load team role")
+			}
+			return result.data?.role ?? null
+		},
+		enabled: !!org?.id,
+		retry: false,
+	})
+
+	const currentMember = useMemo(
+		() => org?.members?.find((member) => member.userId === user?.id) ?? null,
+		[org?.members, user?.id],
+	)
+	const isSingleMemberPersonalOrg =
+		(org?.members?.length ?? 0) <= 1 &&
+		(!org?.members?.[0]?.userId || org.members[0].userId === user?.id)
+	const currentRole = isSingleMemberPersonalOrg
+		? "owner"
+		: (
+				activeMemberRoleQuery.data ??
+				currentMember?.role ??
+				"member"
+			).toLowerCase()
+	const canManageTeam = currentRole === "owner" || currentRole === "admin"
+	const isOwner = currentRole === "owner"
+
+	const pendingInvitations = useMemo(
+		() => (org?.invitations ?? []).filter(isPendingInvitation),
+		[org?.invitations],
 	)
 
-	const hasOwnedOrgWithTeammates = useMemo(
-		() => ownedOrgs.some((m) => m.memberCount > 1),
-		[ownedOrgs],
-	)
-
-	const showMembershipsOverview =
-		!membershipsPending &&
-		(sortedMemberships.length > 1 || hasOwnedOrgWithTeammates)
-
-	const deleteUserAccount = useDeleteUserAccount()
-
-	const emailMatches = user?.email
-		? emailConfirm.trim().toLowerCase() === user.email.trim().toLowerCase()
-		: false
-
-	const handleOrgSwitch = async (orgSlug: string, orgId: string) => {
-		if (orgId === org?.id) return
-		setSwitchingOrgId(orgId)
-		try {
-			await setActiveOrg(orgSlug)
-			window.location.reload()
-		} catch (error) {
-			console.error("Failed to switch organization:", error)
-			setSwitchingOrgId(null)
-		}
+	const resetInviteForm = () => {
+		setInviteEmail("")
+		setInviteRole("member")
+		setInviteAccessType("full")
+		setInviteAssignments([])
+		setTagQuery("")
 	}
 
-	const {
-		usdIncluded,
-		usdSpent,
-		planUsagePct,
-		currentPlan,
-		hasPaidPlan,
-		isLoading: isCheckingStatus,
-		daysRemaining,
-	} = useTokenUsage(autumn)
-
-	const formatUsd = (n: number) =>
-		n.toLocaleString(undefined, {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2,
-		})
-
-	const planDisplayNames = PLAN_DISPLAY_NAMES
-
-	const planByOrgId = useMemo(() => {
-		const map = new Map<string, PlanType>()
-		for (const summary of orgSummaries ?? []) {
-			map.set(summary.orgId, summary.plan)
-		}
-		return map
-	}, [orgSummaries])
-
-	const sortedOrgsForMenu = useMemo(() => {
-		if (!allOrgs?.length) return []
-		return [...allOrgs].sort((a, b) => {
-			const planA = resolveOrgPlan(
-				a.id,
-				a.id === org?.id,
-				currentPlan,
-				planByOrgId,
-			)
-			const planB = resolveOrgPlan(
-				b.id,
-				b.id === org?.id,
-				currentPlan,
-				planByOrgId,
-			)
-			const rankDiff = PLAN_RANK[planB] - PLAN_RANK[planA]
-			if (rankDiff !== 0) return rankDiff
-			return a.name.localeCompare(b.name)
-		})
-	}, [allOrgs, org?.id, currentPlan, planByOrgId])
-
-	// Handlers
-	const handleUpgrade = async () => {
-		setIsUpgrading(true)
-		try {
-			const result = await autumn.attach({
-				planId: "api_pro",
-				successUrl: `${window.location.origin}/settings#account`,
+	const inviteMemberMutation = useMutation({
+		mutationFn: async () => {
+			if (!org?.id) throw new Error("No active organization")
+			const email = inviteEmail.trim().toLowerCase()
+			if (!email) throw new Error("Enter an email address")
+			const isRestricted =
+				inviteRole === "member" && inviteAccessType === "restricted"
+			const result = await authClient.organization.inviteMember({
+				email,
+				role: inviteRole,
+				organizationId: org.id,
+				resend: true,
+				...(isRestricted && inviteAssignments.length > 0
+					? {
+							data: {
+								accessType: "restricted",
+								containerTags: inviteAssignments,
+							},
+						}
+					: {}),
 			})
-			if (result?.paymentUrl) {
-				window.open(result.paymentUrl, "_self")
-				return
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to invite teammate")
 			}
-			autumn.refetch?.()
-		} catch (error) {
-			console.error(error)
-			toast.error("Failed to start checkout. Please try again.")
-		} finally {
-			setIsUpgrading(false)
-		}
-	}
-
-	// Enterprise is contract-based — direct those users to the portal/sales.
-	const cancellablePlanId =
-		currentPlan === "pro" || currentPlan === "scale"
-			? (`api_${currentPlan}` as const)
-			: null
-
-	const handleCancelSubscription = async () => {
-		if (!cancellablePlanId) return
-		setIsCancelling(true)
-		try {
-			await autumn.updateSubscription({
-				planId: cancellablePlanId,
-				cancelAction: "cancel_end_of_cycle",
+			return result.data
+		},
+		onSuccess: async (invitation) => {
+			resetInviteForm()
+			setInviteDialogOpen(false)
+			await refetchActiveOrg()
+			toast.success("Invitation sent", {
+				description: invitation?.email
+					? `${invitation.email} can now join ${org?.name ?? "your organization"}.`
+					: undefined,
 			})
-			autumn.refetch?.()
-			setIsCancelDialogOpen(false)
-			toast.success(
-				`Subscription cancelled. ${planDisplayNames[currentPlan]} features remain active until the end of your billing period.`,
-			)
-		} catch (error) {
-			console.error(error)
-			toast.error("Failed to cancel subscription. Please try again.")
-		} finally {
-			setIsCancelling(false)
-		}
-	}
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to invite teammate"))
+		},
+	})
 
-	const handleDeleteAccount = async () => {
-		if (!user?.email || !emailMatches || membershipsPending) return
-		setIsClosingAccount(true)
-		try {
-			await deleteUserAccount.mutateAsync({
-				confirmation: user.email,
+	const updateMemberRoleMutation = useMutation({
+		mutationFn: async ({
+			memberId,
+			role,
+		}: {
+			memberId: string
+			role: InviteRole
+		}) => {
+			if (!org?.id) throw new Error("No active organization")
+			const result = await authClient.organization.updateMemberRole({
+				memberId,
+				role,
+				organizationId: org.id,
 			})
-			clearActiveOrg()
-			try {
-				await authClient.signOut()
-			} catch {
-				window.location.assign("/login/new")
-				return
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to update role")
 			}
-			setIsDeleteDialogOpen(false)
-			setEmailConfirm("")
-			window.location.assign("/login/new")
-		} catch (e) {
-			const msg = e instanceof Error ? e.message : "Something went wrong"
-			toast.error(msg)
-		} finally {
-			setIsClosingAccount(false)
-		}
+			return result.data
+		},
+		onSuccess: async () => {
+			await refetchActiveOrg()
+			toast.success("Role updated")
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to update role"))
+		},
+	})
+
+	const removeMemberMutation = useMutation({
+		mutationFn: async (memberIdOrEmail: string) => {
+			if (!org?.id) throw new Error("No active organization")
+			const result = await authClient.organization.removeMember({
+				memberIdOrEmail,
+				organizationId: org.id,
+			})
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to remove member")
+			}
+			return result.data
+		},
+		onSuccess: async () => {
+			await refetchActiveOrg()
+			toast.success("Member removed")
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to remove member"))
+		},
+	})
+
+	const cancelInvitationMutation = useMutation({
+		mutationFn: async (invitationId: string) => {
+			const result = await authClient.organization.cancelInvitation({
+				invitationId,
+			})
+			if (result.error) {
+				throw new Error(result.error.message ?? "Failed to cancel invitation")
+			}
+			return result.data
+		},
+		onSuccess: async () => {
+			await refetchActiveOrg()
+			toast.success("Invitation canceled")
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to cancel invitation"))
+		},
+	})
+
+	const updateOrgNameMutation = useMutation({
+		mutationFn: async (name: string) => {
+			if (!org?.id) throw new Error("No active organization")
+			const trimmed = name.trim()
+			if (!trimmed) throw new Error("Enter an organization name")
+			const result = await authClient.organization.update({
+				organizationId: org.id,
+				data: { name: trimmed },
+			})
+			if (result.error) {
+				throw new Error(
+					result.error.message ?? "Failed to update organization name",
+				)
+			}
+			return trimmed
+		},
+		onSuccess: async (name) => {
+			setOrgNameDraft(name)
+			setIsEditingOrgName(false)
+			await Promise.all([refetchActiveOrg(), refetchOrganizations()])
+			toast.success("Organization name updated")
+		},
+		onError: (error) => {
+			toast.error(getErrorMessage(error, "Failed to update organization name"))
+		},
+	})
+
+	const handleInviteSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
+		if (!canManageTeam || inviteMemberMutation.isPending) return
+		inviteMemberMutation.mutate()
 	}
 
-	// Format member since date
+	const handleOrgNameSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
+		if (!canManageTeam || updateOrgNameMutation.isPending) return
+		const trimmed = orgNameDraft.trim()
+		if (!trimmed || trimmed === org?.name) {
+			setOrgNameDraft(org?.name ?? "")
+			setIsEditingOrgName(false)
+			return
+		}
+		updateOrgNameMutation.mutate(trimmed)
+	}
+
 	const memberSince = user?.createdAt
 		? new Date(user.createdAt).toLocaleDateString("en-US", {
 				month: "short",
@@ -414,13 +372,13 @@ export default function Account() {
 		: "—"
 
 	return (
-		<div className="flex flex-col gap-8 pt-4 w-full ">
+		<div className="flex flex-col gap-8 w-full">
 			<section id="profile-details" className="flex flex-col gap-4">
 				<SectionTitle>Profile Details</SectionTitle>
 				<SettingsCard>
 					<div className="flex flex-col gap-6">
 						{/* Avatar + Name/Email */}
-						<div className="flex items-center gap-4">
+						<div className="flex min-w-0 items-center gap-4">
 							<div className="relative size-16 rounded-full bg-linear-to-b from-[#0D121A] to-black overflow-hidden shrink-0">
 								<Avatar className="size-full">
 									<AvatarImage
@@ -433,11 +391,11 @@ export default function Account() {
 									</AvatarFallback>
 								</Avatar>
 							</div>
-							<div className="flex flex-col gap-1.5">
+							<div className="flex min-w-0 flex-col gap-1.5">
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
+										"truncate font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
 									)}
 								>
 									{user?.name ?? "—"}
@@ -445,7 +403,7 @@ export default function Account() {
 								<p
 									className={cn(
 										dmSans125ClassName(),
-										"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+										"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 									)}
 								>
 									{user?.email ?? "—"}
@@ -453,8 +411,8 @@ export default function Account() {
 							</div>
 						</div>
 
-						<div className="flex gap-4">
-							<div className="flex-1 flex flex-col gap-2">
+						<div className="flex flex-col gap-4 sm:flex-row">
+							<div className="flex min-w-0 flex-1 flex-col gap-2">
 								<p
 									className={cn(
 										dmSans125ClassName(),
@@ -463,88 +421,87 @@ export default function Account() {
 								>
 									Organization
 								</p>
-								<Popover
-									open={orgMenuOpen && canSwitchOrg}
-									onOpenChange={(open) => {
-										if (canSwitchOrg) setOrgMenuOpen(open)
-									}}
-								>
-									<PopoverTrigger
-										disabled={!canSwitchOrg}
-										className={cn(
-											"flex items-center gap-2 transition-opacity",
-											canSwitchOrg
-												? "cursor-pointer hover:opacity-90"
-												: "cursor-default",
-											dmSans125ClassName(),
-										)}
+								{isEditingOrgName ? (
+									<form
+										onSubmit={handleOrgNameSubmit}
+										className="flex min-w-0 max-w-full items-center gap-1.5 sm:max-w-[360px]"
 									>
+										<input
+											value={orgNameDraft}
+											onChange={(event) => setOrgNameDraft(event.target.value)}
+											disabled={updateOrgNameMutation.isPending}
+											maxLength={80}
+											className={cn(
+												dmSans125ClassName(),
+												"h-9 min-w-0 flex-1 rounded-[9px] border border-white/10 bg-black/30 px-3 text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA] outline-none transition-colors placeholder:text-[#525252] focus:border-[#4BA0FA]/60",
+											)}
+											placeholder="Organization name"
+										/>
+										<div className="flex shrink-0 items-center gap-1">
+											<button
+												type="submit"
+												disabled={
+													updateOrgNameMutation.isPending ||
+													!orgNameDraft.trim() ||
+													orgNameDraft.trim() === org?.name
+												}
+												className={cn(
+													dmSans125ClassName(),
+													"inline-flex h-8 items-center justify-center gap-1 rounded-full border border-transparent bg-[#0D121A] px-2.5 text-[11px] font-semibold text-[#FAFAFA] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)] transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50",
+												)}
+											>
+												{updateOrgNameMutation.isPending ? (
+													<LoaderIcon className="size-3 animate-spin" />
+												) : null}
+												Save
+											</button>
+											<button
+												type="button"
+												disabled={updateOrgNameMutation.isPending}
+												aria-label="Cancel organization name edit"
+												title="Cancel"
+												onClick={() => {
+													setOrgNameDraft(org?.name ?? "")
+													setIsEditingOrgName(false)
+												}}
+												className={cn(
+													"inline-flex size-8 items-center justify-center rounded-full bg-[#0D121A] text-[#737373] shadow-inside-out transition-colors hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50",
+												)}
+											>
+												<X className="size-3.5" />
+											</button>
+										</div>
+									</form>
+								) : (
+									<div className="flex min-w-0 max-w-full items-center gap-2">
 										<span
 											className={cn(
 												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+												"truncate font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
 											)}
 										>
 											{org?.name ?? "Personal"}
 										</span>
-										{canSwitchOrg && (
-											<ChevronDown className="size-4 text-[#737373]" />
-										)}
-									</PopoverTrigger>
-									{canSwitchOrg && (
-										<PopoverContent
-											align="start"
-											className="w-80 max-h-80 overflow-y-auto bg-[#1B1F24] rounded-[12px] border-white/10 p-1.5 shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
-										>
-											{sortedOrgsForMenu.map((organization) => {
-												const isCurrent = organization.id === org?.id
-												const isSwitching = switchingOrgId === organization.id
-												const plan = resolveOrgPlan(
-													organization.id,
-													isCurrent,
-													currentPlan,
-													planByOrgId,
-												)
-												return (
-													<button
-														key={organization.id}
-														type="button"
-														disabled={isCurrent || isSwitching}
-														onClick={() =>
-															handleOrgSwitch(
-																organization.slug,
-																organization.id,
-															)
-														}
-														className={cn(
-															"w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-left transition-colors",
-															isCurrent
-																? "bg-white/5"
-																: "hover:bg-white/5 cursor-pointer",
-															"disabled:opacity-60 disabled:cursor-default",
-															dmSans125ClassName(),
-														)}
-													>
-														<Building2 className="size-4 text-[#737373] shrink-0" />
-														<p className="min-w-0 flex-1 truncate text-[14px] tracking-[-0.14px] text-[#FAFAFA]">
-															{organization.name}
-														</p>
-														{isSwitching ? (
-															<LoaderIcon className="size-4 shrink-0 animate-spin text-[#4BA0FA]" />
-														) : isCurrent ? (
-															<Check className="size-4 shrink-0 text-[#4BA0FA]" />
-														) : (
-															<span className="size-4 shrink-0" aria-hidden />
-														)}
-														<OrgPlanBadge plan={plan} />
-													</button>
-												)
-											})}
-										</PopoverContent>
-									)}
-								</Popover>
+										{canManageTeam ? (
+											<button
+												type="button"
+												aria-label="Edit organization name"
+												title="Edit organization name"
+												onClick={() => {
+													setOrgNameDraft(org?.name ?? "")
+													setIsEditingOrgName(true)
+												}}
+												className={cn(
+													"inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[#FAFAFA] transition-colors hover:bg-white/5",
+												)}
+											>
+												<Pencil className="size-3.5" />
+											</button>
+										) : null}
+									</div>
+								)}
 							</div>
-							<div className="flex-1 flex flex-col gap-2">
+							<div className="flex min-w-0 flex-1 flex-col gap-2">
 								<p
 									className={cn(
 										dmSans125ClassName(),
@@ -567,411 +524,96 @@ export default function Account() {
 				</SettingsCard>
 			</section>
 
-			<section id="billing-subscription" className="flex flex-col gap-4">
-				<SectionTitle>Billing &amp; Subscription</SectionTitle>
-				<SettingsCard>
-					<div className="flex flex-col gap-6">
-						{hasPaidPlan ? (
-							<>
-								<div className="flex flex-col gap-1.5">
-									<div className="flex items-center gap-4">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
-											)}
-										>
-											{planDisplayNames[currentPlan]} plan
-										</p>
-										<span className="bg-[#4BA0FA] text-[#00171A] text-[12px] font-bold tracking-[0.36px] px-1 py-[3px] rounded-[3px] h-[18px] flex items-center justify-center">
-											ACTIVE
-										</span>
-									</div>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-										)}
-									>
-										Expanded memory with connections and more
-									</p>
-								</div>
+			<OrgContext />
 
-								{/* Plan usage (unified) */}
-								<div className="flex flex-col gap-3">
-									<div className="flex items-center justify-between">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Plan usage
-										</p>
-										<span
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#4BA0FA] tabular-nums",
-											)}
-										>
-											{planUsagePct < 1 && planUsagePct > 0
-												? "< 1"
-												: Math.round(planUsagePct)}
-											% used
-										</span>
-									</div>
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-										<div
-											className="h-full rounded-[40px]"
-											style={{
-												width: `${planUsagePct}%`,
-												background:
-													planUsagePct > 80
-														? "#ef4444"
-														: "linear-gradient(to right, #4BA0FA 80%, #002757 100%)",
-											}}
-											title={`$${formatUsd(usdSpent)} of $${formatUsd(usdIncluded)} used`}
-										/>
-									</div>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"text-sm tracking-[-0.14px] text-[#737373] tabular-nums",
-										)}
-									>
-										{daysRemaining !== null
-											? `Resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
-											: ""}
-									</p>
-								</div>
-
-								<div className="flex flex-col sm:flex-row gap-3">
-									<button
-										type="button"
-										onClick={() => {
-											autumn.openCustomerPortal?.({
-												returnUrl:
-													"https://app.supermemory.ai/settings#account",
-											})
-										}}
-										className={cn(
-											"relative flex-1 h-11 rounded-full flex items-center justify-center gap-2",
-											"bg-[#0D121A] border border-[rgba(115,115,115,0.2)]",
-											"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
-											"cursor-pointer transition-opacity hover:opacity-90",
-											dmSans125ClassName(),
-										)}
-									>
-										<Settings className="size-4" />
-										Manage billing
-										<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]" />
-									</button>
-									{cancellablePlanId && (
-										<Dialog
-											open={isCancelDialogOpen}
-											onOpenChange={setIsCancelDialogOpen}
-										>
-											<DialogTrigger asChild>
-												<button
-													type="button"
-													className={cn(
-														"relative flex-1 h-11 rounded-full flex items-center justify-center gap-2",
-														"bg-[#290F0A] text-[#C73B1B]",
-														"font-medium text-[14px] tracking-[-0.14px]",
-														"cursor-pointer transition-opacity hover:opacity-90",
-														dmSans125ClassName(),
-													)}
-												>
-													Cancel subscription
-													<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
-												</button>
-											</DialogTrigger>
-											<DialogContent
-												showCloseButton={false}
-												className={cn(
-													"bg-[#1B1F24] rounded-[22px] p-4",
-													"shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]",
-													"min-w-xl",
-												)}
-											>
-												<div className="flex flex-col gap-4">
-													<div className="flex items-start gap-4">
-														<div className="flex flex-1 flex-col gap-3 pl-1">
-															<p
-																className={cn(
-																	dmSans125ClassName(),
-																	"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-																)}
-															>
-																Cancel {planDisplayNames[currentPlan]}{" "}
-																subscription?
-															</p>
-															<p
-																className={cn(
-																	dmSans125ClassName(),
-																	"text-[13px] tracking-[-0.13px] text-[#A3A3A3] leading-snug",
-																)}
-															>
-																You&apos;ll keep Pro features until the end of
-																your current billing period
-																{daysRemaining !== null
-																	? ` (${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining)`
-																	: ""}
-																. After that, your account will switch to the
-																Free plan.
-															</p>
-														</div>
-														<DialogClose asChild>
-															<button
-																type="button"
-																className={cn(
-																	"relative size-7 rounded-full bg-[#0D121A] border border-[#73737333]",
-																	"flex items-center justify-center shrink-0",
-																	"cursor-pointer transition-opacity hover:opacity-80",
-																)}
-															>
-																<X className="size-4 text-[#737373]" />
-																<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.313px_1.313px_3.938px_rgba(0,0,0,0.7)]" />
-															</button>
-														</DialogClose>
-													</div>
-
-													<div className="flex items-center justify-end gap-5">
-														<DialogClose asChild>
-															<button
-																type="button"
-																className={cn(
-																	dmSans125ClassName(),
-																	"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
-																	"cursor-pointer transition-opacity hover:opacity-80",
-																)}
-															>
-																Keep plan
-															</button>
-														</DialogClose>
-														<button
-															type="button"
-															onClick={() => void handleCancelSubscription()}
-															disabled={isCancelling}
-															className={cn(
-																"relative flex items-center gap-1.5 px-4 py-2 rounded-full",
-																"bg-[#290F0A] text-[#C73B1B]",
-																"font-normal text-[14px] tracking-[-0.14px]",
-																"cursor-pointer transition-opacity",
-																"disabled:opacity-40 disabled:cursor-not-allowed",
-																!isCancelling && "hover:opacity-90",
-																dmSans125ClassName(),
-															)}
-														>
-															{isCancelling && (
-																<LoaderIcon className="size-[18px] animate-spin" />
-															)}
-															<span>
-																{isCancelling
-																	? "Cancelling…"
-																	: "Cancel subscription"}
-															</span>
-															<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
-														</button>
-													</div>
-												</div>
-												<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
-											</DialogContent>
-										</Dialog>
-									)}
-								</div>
-							</>
-						) : (
-							<>
-								<div className="flex flex-col gap-1.5">
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"font-semibold text-[20px] tracking-[-0.2px] text-[#FAFAFA]",
-										)}
-									>
-										Free Plan
-									</p>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-										)}
-									>
-										You are on basic plan
-									</p>
-								</div>
-
-								{/* Plan usage (unified) */}
-								<div className="flex flex-col gap-3">
-									<div className="flex items-center justify-between">
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
-											)}
-										>
-											Plan usage
-										</p>
-										<p
-											className={cn(
-												dmSans125ClassName(),
-												"font-medium text-[16px] tracking-[-0.16px] text-[#737373] tabular-nums",
-											)}
-										>
-											{planUsagePct < 1 && planUsagePct > 0
-												? "< 1"
-												: Math.round(planUsagePct)}
-											% used
-										</p>
-									</div>
-									<div className="h-3 w-full rounded-[40px] bg-[#2E353D] p-px overflow-hidden">
-										<div
-											className="h-full rounded-[40px] transition-all"
-											style={{
-												width: `${planUsagePct}%`,
-												background: planUsagePct > 80 ? "#ef4444" : "#0054AD",
-											}}
-											title={`$${formatUsd(usdSpent)} of $${formatUsd(usdIncluded)} used`}
-										/>
-									</div>
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"text-sm tracking-[-0.14px] text-[#737373] tabular-nums",
-										)}
-									>
-										{daysRemaining !== null
-											? `Resets in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
-											: ""}
-									</p>
-								</div>
-
-								<button
-									type="button"
-									onClick={handleUpgrade}
-									disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
-									className={cn(
-										"relative w-full h-11 rounded-[10px] flex items-center justify-center",
-										"text-[#FAFAFA] font-medium text-[14px] tracking-[-0.14px]",
-										"shadow-[0px_2px_10px_rgba(5,1,0,0.2)]",
-										"disabled:opacity-60 disabled:cursor-not-allowed",
-										"cursor-pointer transition-opacity hover:opacity-90",
-										dmSans125ClassName(),
-									)}
-									style={{
-										background:
-											"linear-gradient(182.37deg, #0ff0d2 -91.53%, #5bd3fb -67.8%, #1e0ff0 95.17%)",
-										boxShadow:
-											"1px 1px 2px 0px #1A88FF inset, 0 2px 10px 0 rgba(5, 1, 0, 0.20)",
-									}}
-								>
-									{isUpgrading || isCheckingStatus || autumn.isLoading ? (
-										<>
-											<LoaderIcon className="size-4 animate-spin mr-2" />
-											Upgrading…
-										</>
-									) : (
-										"Upgrade to Pro - $19/month"
-									)}
-									{/* Inset blue stroke */}
-									<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1px_1px_2px_1px_#1A88FF]" />
-								</button>
-
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-									<PlanComparisonCard
-										name="Free"
-										price="$0"
-										period=""
-										description="Try the API with no commitment"
-										credits="$5"
-										features={[
-											"Pay-as-you-go after $5 runs out",
-											"Full search & memory API access",
-											"Email support",
-										]}
-										highlight={false}
-									/>
-									<PlanComparisonCard
-										name="Pro"
-										price="$19"
-										period="/mo"
-										description="For developers building with AI memory"
-										credits="$20"
-										features={[
-											"Auto top-up when balance runs low",
-											"All plugins (Claude Code, Cursor, Hermes…)",
-											"Priority support",
-										]}
-										highlight={true}
-									/>
-								</div>
-							</>
-						)}
-					</div>
-				</SettingsCard>
-			</section>
-
-			<section id="delete-account" className="flex flex-col gap-4">
-				<SectionTitle>Delete Account</SectionTitle>
-				<SettingsCard>
-					<div className="flex items-center justify-between gap-4">
+			<section id="team-members" className="flex flex-col gap-4">
+				<div className="flex flex-wrap items-center justify-between gap-3 px-2">
+					<div className="flex flex-col gap-1">
+						<SectionTitle>Team members</SectionTitle>
 						<p
 							className={cn(
 								dmSans125ClassName(),
-								"font-medium text-[16px] tracking-[-0.16px] text-[#FAFAFA] max-w-[350px]",
+								"text-[13px] tracking-[-0.13px] text-[#737373] px-2",
 							)}
 						>
-							Permanently delete all your data and cancel any active
-							subscriptions
+							Invite people into {org?.name ?? "your organization"} and manage
+							their access.
 						</p>
-						<Dialog
-							open={isDeleteDialogOpen}
-							onOpenChange={(open) => {
-								setIsDeleteDialogOpen(open)
-								if (!open) {
-									setEmailConfirm("")
-								}
-							}}
-						>
-							<DialogTrigger asChild>
-								<button
-									type="button"
-									className={cn(
-										"relative flex items-center gap-1.5 px-4 py-2 rounded-full",
-										"bg-[#290F0A] text-[#C73B1B]",
-										"font-normal text-[14px] tracking-[-0.14px]",
-										"cursor-pointer transition-opacity hover:opacity-90",
-										"shrink-0",
-										dmSans125ClassName(),
-									)}
-								>
-									<Trash2 className="size-[18px]" />
-									<span>Delete</span>
-									{/* Inset shadow */}
-									<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
-								</button>
-							</DialogTrigger>
-							<DialogContent
-								showCloseButton={false}
+					</div>
+					<div className="flex items-center gap-3">
+						{(org?.members?.length ?? 0) > 0 && (
+							<span
 								className={cn(
-									"bg-[#1B1F24] rounded-[22px] p-4",
-									"shadow-[0px_2.842px_14.211px_rgba(0,0,0,0.25)]",
-									"min-w-xl",
+									dmSans125ClassName(),
+									"text-[13px] tracking-[-0.13px] text-[#737373] tabular-nums",
 								)}
 							>
-								<div className="flex flex-col gap-4">
-									{/* Header */}
-									<div className="flex flex-col gap-6">
-										<div className="flex items-start gap-4">
-											<div className="flex flex-1 flex-col gap-3 pl-1">
+								{org?.members?.length}{" "}
+								{org?.members?.length === 1 ? "member" : "members"}
+							</span>
+						)}
+						{canManageTeam && (
+							<button
+								type="button"
+								onClick={() => setInviteDialogOpen(true)}
+								disabled={!org?.id}
+								className={cn(
+									dmSans125ClassName(),
+									"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820] disabled:cursor-not-allowed disabled:opacity-45",
+								)}
+							>
+								<UserPlus className="size-3.5" />
+								Invite member
+							</button>
+						)}
+					</div>
+				</div>
+				<SettingsCard>
+					<div className="flex flex-col gap-5">
+						{!canManageTeam && (
+							<div className="flex items-center gap-3 rounded-[12px] border border-white/[0.06] bg-white/[0.02] p-3">
+								<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
+									<Users className="size-4 text-[#737373]" />
+								</div>
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[13px] tracking-[-0.13px] text-[#737373]",
+									)}
+								>
+									Only organization owners and admins can invite teammates or
+									change roles.
+								</p>
+							</div>
+						)}
+
+						{pendingInvitations.length > 0 && (
+							<div className="flex flex-col gap-2">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[11px] uppercase tracking-[0.12em] text-[#737373] font-mono",
+									)}
+								>
+									Pending invitations
+								</p>
+								<ul className="flex flex-col rounded-[12px] border border-white/[0.05] overflow-hidden">
+									{pendingInvitations.map((invitation) => (
+										<li
+											key={invitation.id}
+											className="flex items-center gap-3 px-3 py-2.5 border-t border-white/[0.04] first:border-t-0 bg-white/[0.015]"
+										>
+											<div className="size-9 rounded-full bg-[#0D121A] flex items-center justify-center shrink-0">
+												<Mail className="size-4 text-[#737373]" />
+											</div>
+											<div className="min-w-0 flex-1">
 												<p
 													className={cn(
 														dmSans125ClassName(),
-														"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+														"truncate text-[14px] font-medium tracking-[-0.14px] text-[#FAFAFA]",
 													)}
 												>
-													Delete account?
+													{invitation.email}
 												</p>
 												<p
 													className={cn(
@@ -979,218 +621,569 @@ export default function Account() {
 														"text-[12px] tracking-[-0.12px] text-[#737373]",
 													)}
 												>
-													This cannot be undone.
+													Invited as {formatRole(invitation.role)}
 												</p>
-												{hasOwnedOrgWithTeammates && (
-													<p
-														className={cn(
-															dmSans125ClassName(),
-															"text-[13px] font-medium tracking-[-0.13px] text-[#C73B1B] leading-[1.35]",
-														)}
-													>
-														You own at least one organization that still has
-														other members. Those organizations will be deleted
-														for everyone when you confirm.
-													</p>
-												)}
-												<details className="group rounded-lg border border-white/10 bg-[#14161A]/80 px-3 py-2">
-													<summary
-														className={cn(
-															dmSans125ClassName(),
-															"flex cursor-pointer list-none items-center justify-between gap-2 text-[12px] font-normal tracking-[-0.12px] text-[#A3A3A3] [&::-webkit-details-marker]:hidden",
-														)}
-													>
-														What happens next?
-														<ChevronDown className="size-3.5 shrink-0 text-[#737373] group-open:rotate-180" />
-													</summary>
-													<div
-														className={cn(
-															dmSans125ClassName(),
-															"mt-2 space-y-2 border-t border-white/10 pt-2 text-[12px] tracking-[-0.12px] text-[#737373] leading-snug",
-														)}
-													>
-														<p>
-															Your account is locked immediately; data removal
-															runs in the background.
-														</p>
-														<ul className="list-disc space-y-1.5 pl-4 marker:text-onboarding">
-															<li>
-																Removes memories, conversations, and settings;
-																cancels active subscriptions.
-															</li>
-															<li>
-																Orgs where you&apos;re only a member:
-																you&apos;re removed; the org continues.
-															</li>
-															<li>Orgs you own: deleted for all members.</li>
-														</ul>
-													</div>
-												</details>
 											</div>
-											<DialogClose asChild>
-												<button
-													type="button"
-													className={cn(
-														"relative size-7 rounded-full bg-[#0D121A] border border-[#73737333]",
-														"flex items-center justify-center shrink-0",
-														"cursor-pointer transition-opacity hover:opacity-80",
-													)}
-												>
-													<X className="size-4 text-[#737373]" />
-													<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.313px_1.313px_3.938px_rgba(0,0,0,0.7)]" />
-												</button>
-											</DialogClose>
-										</div>
-
-										{showMembershipsOverview && (
-											<div className="flex flex-col gap-2 pl-1">
-												<p
-													className={cn(
-														dmSans125ClassName(),
-														"font-semibold text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
-													)}
-												>
-													Your organizations
-												</p>
-												<div className="flex max-h-[min(220px,40vh)] flex-col gap-1.5 overflow-y-auto pr-1">
-													{sortedMemberships.map((m) => (
-														<div
-															className={cn(
-																"flex items-center justify-between gap-3 rounded-[10px]",
-																"border border-white/10 bg-[#14161A]/80 px-3 py-2.5",
-															)}
-															key={m.orgId}
-														>
-															<div className="min-w-0 flex-1">
-																<p
-																	className={cn(
-																		dmSans125ClassName(),
-																		"truncate text-[13px] font-medium tracking-[-0.13px] text-[#FAFAFA]",
-																	)}
-																>
-																	{m.name}
-																</p>
-																{m.slug ? (
-																	<p
-																		className={cn(
-																			dmSans125ClassName(),
-																			"truncate text-[11px] tracking-[-0.11px] text-[#737373]",
-																		)}
-																	>
-																		{m.slug}
-																	</p>
-																) : null}
-															</div>
-															<div className="flex shrink-0 flex-col items-end gap-0.5">
-																<span
-																	className={cn(
-																		dmSans125ClassName(),
-																		"rounded-md bg-white/5 px-2 py-0.5 text-[11px] font-medium tracking-[0.02em] text-[#A3A3A3]",
-																	)}
-																>
-																	{formatOrgRole(m.role)}
-																</span>
-																<span
-																	className={cn(
-																		dmSans125ClassName(),
-																		"tabular-nums text-[10px] tracking-[-0.1px] text-[#737373]",
-																	)}
-																>
-																	{m.memberCount} member
-																	{m.memberCount === 1 ? "" : "s"}
-																</span>
-															</div>
-														</div>
-													))}
+											{canManageTeam && (
+												<div className="flex shrink-0 items-center gap-1">
+													<button
+														type="button"
+														disabled={cancelInvitationMutation.isPending}
+														onClick={() =>
+															cancelInvitationMutation.mutate(invitation.id)
+														}
+														className="flex size-8 items-center justify-center rounded-[8px] text-[#8A5247] hover:bg-[#1A0F0C]/60 hover:text-[#C73B1B] disabled:opacity-50"
+														aria-label={`Cancel invitation for ${invitation.email}`}
+														title="Cancel invitation"
+													>
+														<X className="size-4" />
+													</button>
 												</div>
-											</div>
-										)}
+											)}
+										</li>
+									))}
+								</ul>
+							</div>
+						)}
 
-										{/* Confirmation input */}
-										<div className="flex flex-col gap-4">
-											<p
+						{org?.members && org.members.length > 0 ? (
+							<ul className="flex flex-col">
+								{[...org.members]
+									.sort((a, b) => {
+										const rolePriority = (r: string) =>
+											r === "owner" ? 0 : r === "admin" ? 1 : 2
+										const diff =
+											rolePriority(a.role.toLowerCase()) -
+											rolePriority(b.role.toLowerCase())
+										if (diff !== 0) return diff
+										return (a.user?.name ?? "").localeCompare(
+											b.user?.name ?? "",
+										)
+									})
+									.map((m, idx) => {
+										const isYou = m.userId === user?.id
+										const memberRole = m.role.toLowerCase()
+										const name = m.user?.name ?? m.user?.email ?? "Unknown"
+										const canEditMember =
+											canManageTeam && !isYou && memberRole !== "owner"
+										return (
+											<li
+												key={m.id}
 												className={cn(
-													dmSans125ClassName(),
-													"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA] pl-2",
+													"flex items-center gap-3 py-2.5",
+													idx > 0 && "border-t border-white/[0.04]",
 												)}
 											>
-												Type your account email to confirm:
-											</p>
-											<div
-												className={cn(
-													"relative bg-[#14161A] border border-[#52596614] rounded-[12px]",
-													"shadow-[0px_1px_2px_rgba(0,43,87,0.1)]",
-												)}
-											>
-												<input
-													type="text"
-													autoComplete="off"
-													value={emailConfirm}
-													onChange={(e) => setEmailConfirm(e.target.value)}
-													placeholder={user?.email ?? "you@example.com"}
-													className={cn(
-														"w-full px-4 py-3 bg-transparent",
-														"text-[#FAFAFA] placeholder:text-[#737373]",
-														"text-[14px] tracking-[-0.14px]",
-														"outline-none",
-														dmSans125ClassName(),
+												<Avatar className="size-9 shrink-0 bg-[#0D121A]">
+													<AvatarImage
+														src={m.user?.image ?? ""}
+														alt={name}
+														className="object-cover"
+													/>
+													<AvatarFallback className="bg-transparent text-white text-[13px] font-medium">
+														{(name.charAt(0) || "U").toUpperCase()}
+													</AvatarFallback>
+												</Avatar>
+												<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+													<div className="flex items-center gap-2 min-w-0">
+														<span
+															className={cn(
+																dmSans125ClassName(),
+																"font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA] truncate",
+															)}
+														>
+															{name}
+														</span>
+														{isYou && (
+															<span
+																className={cn(
+																	dmSans125ClassName(),
+																	"text-[10.5px] uppercase tracking-[0.1em] text-[#737373] font-mono",
+																)}
+															>
+																You
+															</span>
+														)}
+													</div>
+													{m.user?.email && (
+														<span
+															className={cn(
+																dmSans125ClassName(),
+																"text-[12px] tracking-[-0.12px] text-[#737373] truncate",
+															)}
+														>
+															{m.user.email}
+														</span>
 													)}
-												/>
-												<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0px_0px_0px_1px_rgba(43,49,67,0.08),inset_0px_1px_1px_rgba(0,0,0,0.08),inset_0px_2px_4px_rgba(0,0,0,0.02)]" />
-											</div>
-										</div>
-									</div>
-
-									{/* Footer */}
-									<div className="flex items-center justify-end gap-5">
-										<DialogClose asChild>
-											<button
-												type="button"
-												className={cn(
-													dmSans125ClassName(),
-													"font-medium text-[14px] tracking-[-0.14px] text-[#737373]",
-													"cursor-pointer transition-opacity hover:opacity-80",
+												</div>
+												{canEditMember ? (
+													<Select
+														value={memberRole}
+														onValueChange={(value) => {
+															if (value === memberRole) return
+															updateMemberRoleMutation.mutate({
+																memberId: m.id,
+																role: value as InviteRole,
+															})
+														}}
+													>
+														<SelectTrigger className="h-8 w-[112px] rounded-[8px] border-white/[0.08] bg-[#0D0F14] text-[#FAFAFA]">
+															<SelectValue />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="member">Member</SelectItem>
+															<SelectItem value="admin">Admin</SelectItem>
+														</SelectContent>
+													</Select>
+												) : (
+													<RolePill role={m.role} />
 												)}
-											>
-												Cancel
-											</button>
-										</DialogClose>
-										<button
-											type="button"
-											onClick={() => void handleDeleteAccount()}
-											disabled={
-												!emailMatches || isClosingAccount || membershipsPending
-											}
-											className={cn(
-												"relative flex items-center gap-1.5 pl-4 pr-[18px] py-2 rounded-full",
-												"bg-[#290F0A] text-[#C73B1B]",
-												"font-normal text-[14px] tracking-[-0.14px]",
-												"cursor-pointer transition-opacity",
-												"disabled:opacity-40 disabled:cursor-not-allowed",
-												emailMatches &&
-													!isClosingAccount &&
-													!membershipsPending &&
-													"hover:opacity-90",
-												dmSans125ClassName(),
-											)}
-										>
-											{isClosingAccount ? (
-												<LoaderIcon className="size-[18px] animate-spin" />
-											) : (
-												<Trash2 className="size-[18px]" />
-											)}
-											<span>{isClosingAccount ? "Deleting…" : "Delete"}</span>
-											<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.4)]" />
-										</button>
-									</div>
+												{canEditMember && (
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<button
+																type="button"
+																className="flex size-8 shrink-0 items-center justify-center rounded-[8px] text-[#737373] hover:bg-white/[0.05] hover:text-[#FAFAFA]"
+																aria-label={`Team actions for ${name}`}
+															>
+																<MoreHorizontal className="size-4" />
+															</button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end" className="w-44">
+															<DropdownMenuItem
+																className="text-[#C73B1B] focus:text-[#C73B1B]"
+																onSelect={() =>
+																	removeMemberMutation.mutate(m.id)
+																}
+																disabled={
+																	removeMemberMutation.isPending || !isOwner
+																}
+															>
+																<UserMinus className="size-4" />
+																Remove member
+															</DropdownMenuItem>
+														</DropdownMenuContent>
+													</DropdownMenu>
+												)}
+											</li>
+										)
+									})}
+							</ul>
+						) : (
+							<div className="flex items-center gap-3 py-2">
+								<div className="size-9 rounded-full bg-white/[0.04] flex items-center justify-center shrink-0">
+									<Users className="size-4 text-[#737373]" />
 								</div>
-								{/* Modal inset highlight */}
-								<div className="absolute inset-0 pointer-events-none rounded-[inherit] shadow-[inset_0.711px_0.711px_0.711px_rgba(255,255,255,0.1)]" />
-							</DialogContent>
-						</Dialog>
+								<div className="flex flex-col">
+									<span
+										className={cn(
+											dmSans125ClassName(),
+											"font-medium text-[14px] tracking-[-0.14px] text-[#FAFAFA]",
+										)}
+									>
+										Just you for now
+									</span>
+									<span
+										className={cn(
+											dmSans125ClassName(),
+											"text-[12px] tracking-[-0.12px] text-[#737373]",
+										)}
+									>
+										Invite teammates to start collaborating.
+									</span>
+								</div>
+							</div>
+						)}
 					</div>
 				</SettingsCard>
 			</section>
+
+			<Dialog
+				open={inviteDialogOpen}
+				onOpenChange={(open) => {
+					setInviteDialogOpen(open)
+					if (!open && !inviteMemberMutation.isPending) {
+						resetInviteForm()
+					}
+				}}
+			>
+				<DialogContent
+					showCloseButton={false}
+					className="sm:max-w-[480px] border-none bg-[#1B1F24] p-0 gap-0 rounded-[22px] overflow-hidden"
+				>
+					<div className="flex items-start justify-between gap-3 px-6 pt-6 pb-4">
+						<div className="flex flex-col gap-1">
+							<DialogTitle
+								className={cn(
+									dmSans125ClassName(),
+									"text-[18px] font-semibold tracking-[-0.18px] text-[#FAFAFA]",
+								)}
+							>
+								Invite teammate
+							</DialogTitle>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[13px] tracking-[-0.13px] text-[#737373]",
+								)}
+							>
+								Send an invitation to join your organization.
+							</p>
+						</div>
+						<DialogPrimitive.Close
+							className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[rgba(115,115,115,0.2)] bg-[#0D121A] transition-opacity hover:opacity-100 focus:outline-hidden"
+							style={{
+								boxShadow: "inset 1.313px 1.313px 3.938px 0px rgba(0,0,0,0.7)",
+							}}
+						>
+							<X className="size-4" stroke="#737373" />
+							<span className="sr-only">Close</span>
+						</DialogPrimitive.Close>
+					</div>
+
+					<form onSubmit={handleInviteSubmit} className="flex flex-col">
+						<div className="flex flex-col gap-5 px-6">
+							{/* Email */}
+							<div className="flex flex-col gap-1.5">
+								<label
+									htmlFor="team-invite-email"
+									className={cn(
+										dmSans125ClassName(),
+										"text-[13px] font-medium text-[#FAFAFA]",
+									)}
+								>
+									Email
+								</label>
+								<div className="relative min-w-0">
+									<Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#525D6E]" />
+									<input
+										id="team-invite-email"
+										type="email"
+										value={inviteEmail}
+										onChange={(event) => setInviteEmail(event.target.value)}
+										placeholder="colleague@company.com"
+										autoComplete="email"
+										className={cn(
+											dmSans125ClassName(),
+											"h-10 w-full rounded-[10px] border border-white/[0.06] bg-white/[0.02] pl-9 pr-3 text-[14px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none transition-colors focus:border-[#2261CA33]",
+										)}
+									/>
+								</div>
+							</div>
+
+							{/* Role */}
+							<div className="flex flex-col gap-1.5">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[13px] font-medium text-[#FAFAFA]",
+									)}
+								>
+									Role
+								</p>
+								<Select
+									value={inviteRole}
+									onValueChange={(value) => {
+										const role = value as InviteRole
+										setInviteRole(role)
+										if (role === "admin") {
+											setInviteAccessType("full")
+											setInviteAssignments([])
+										}
+									}}
+								>
+									<SelectTrigger className="h-9 w-full rounded-[10px] border-white/[0.08] bg-[#0D0F14] text-[#FAFAFA]">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="member">Member</SelectItem>
+										<SelectItem value="admin">Admin</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							{/* Access type (only for Member) */}
+							{showAccessType && (
+								<div className="flex flex-col gap-1.5">
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[13px] font-medium text-[#FAFAFA]",
+										)}
+									>
+										Access
+									</p>
+									<div className="grid grid-cols-2 gap-2">
+										{(["full", "restricted"] as const).map((type) => {
+											const selected = inviteAccessType === type
+											return (
+												<button
+													key={type}
+													type="button"
+													onClick={() => {
+														setInviteAccessType(type)
+														if (type === "full") setInviteAssignments([])
+													}}
+													className={cn(
+														dmSans125ClassName(),
+														"flex items-center justify-center h-9 rounded-[10px] border text-[13px] font-medium transition-colors cursor-pointer",
+														selected
+															? "border-white/10 bg-[#14161A] text-[#FAFAFA] shadow-inside-out"
+															: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#14161A] hover:text-[#FAFAFA]",
+													)}
+												>
+													{type === "full" ? "Full Access" : "Restricted"}
+												</button>
+											)
+										})}
+									</div>
+								</div>
+							)}
+
+							{/* Container tag picker (only for Restricted) */}
+							{showTagPicker && (
+								<div className="flex flex-col gap-2">
+									<p
+										className={cn(
+											dmSans125ClassName(),
+											"text-[13px] font-medium text-[#FAFAFA]",
+										)}
+									>
+										Spaces
+									</p>
+
+									<Popover
+										open={
+											tagDropdownOpen &&
+											(filteredTags.length > 0 ||
+												(tagQuery.trim().length > 0 &&
+													!selectedTagSet.has(tagQuery.trim())))
+										}
+										onOpenChange={setTagDropdownOpen}
+									>
+										<PopoverAnchor asChild>
+											<div
+												ref={tagAnchorRef}
+												className={cn(
+													"relative flex items-center w-full h-10",
+													"rounded-[10px] border border-white/[0.06] bg-white/[0.02]",
+													"transition-colors focus-within:border-[#2261CA33]",
+												)}
+											>
+												<input
+													ref={tagInputRef}
+													type="text"
+													value={tagQuery}
+													onChange={(e) => {
+														setTagQuery(e.target.value)
+														if (!tagDropdownOpen) setTagDropdownOpen(true)
+													}}
+													onClick={() => setTagDropdownOpen(true)}
+													onFocus={() => setTagDropdownOpen(true)}
+													placeholder="Search or create spaces..."
+													className={cn(
+														dmSans125ClassName(),
+														"h-full w-full bg-transparent pl-3 pr-8 text-[13px] text-[#FAFAFA] placeholder:text-[#525D6E] outline-none",
+													)}
+												/>
+												<ChevronDown
+													className={cn(
+														"absolute right-3 top-1/2 -translate-y-1/2 size-3.5 text-[#525D6E] pointer-events-none transition-transform",
+														tagDropdownOpen && "rotate-180",
+													)}
+												/>
+											</div>
+										</PopoverAnchor>
+										<PopoverContent
+											align="start"
+											sideOffset={4}
+											className="w-[var(--radix-popover-trigger-width)] p-1 max-h-[200px] overflow-y-auto bg-[#1B1F24] border border-white/[0.08] rounded-[10px] shadow-[0px_4px_16px_rgba(0,0,0,0.4)]"
+											onOpenAutoFocus={(e) => e.preventDefault()}
+											onPointerDownOutside={(e) => {
+												if (tagAnchorRef.current?.contains(e.target as Node)) {
+													e.preventDefault()
+												}
+											}}
+										>
+											{filteredTags.map((tag) => (
+												<button
+													key={tag}
+													type="button"
+													onClick={() => {
+														if (!selectedTagSet.has(tag)) {
+															setInviteAssignments([
+																...inviteAssignments,
+																{ containerTag: tag, permission: "read" },
+															])
+														}
+														setTagQuery("")
+														setTagDropdownOpen(false)
+													}}
+													onMouseDown={(e) => e.preventDefault()}
+													className={cn(
+														dmSans125ClassName(),
+														"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#FAFAFA] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
+													)}
+												>
+													<Tag className="size-3.5 text-[#525D6E]" />
+													{tag}
+												</button>
+											))}
+											{tagQuery.trim().length > 0 &&
+												!selectedTagSet.has(tagQuery.trim()) &&
+												!(allContainerTags ?? []).some(
+													(t) =>
+														t.containerTag.toLowerCase() ===
+														tagQuery.trim().toLowerCase(),
+												) && (
+													<button
+														type="button"
+														onClick={() => {
+															const sanitized = tagQuery.trim()
+															if (!selectedTagSet.has(sanitized)) {
+																setInviteAssignments([
+																	...inviteAssignments,
+																	{
+																		containerTag: sanitized,
+																		permission: "read",
+																	},
+																])
+															}
+															setTagQuery("")
+															setTagDropdownOpen(false)
+														}}
+														onMouseDown={(e) => e.preventDefault()}
+														className={cn(
+															dmSans125ClassName(),
+															"flex items-center gap-2 w-full h-8 px-3 text-[13px] text-[#8FC8FF] rounded-[8px] cursor-pointer hover:bg-white/[0.06]",
+														)}
+													>
+														<Plus className="size-3.5" />
+														Create &ldquo;{tagQuery.trim()}&rdquo;
+													</button>
+												)}
+										</PopoverContent>
+									</Popover>
+
+									{/* Selected tags */}
+									{inviteAssignments.length > 0 && (
+										<div className="flex flex-col rounded-[10px] border border-white/[0.06] overflow-hidden">
+											{inviteAssignments.map((a) => (
+												<div
+													key={a.containerTag}
+													className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] last:border-0 bg-white/[0.015]"
+												>
+													<button
+														type="button"
+														onClick={() =>
+															setInviteAssignments(
+																inviteAssignments.filter(
+																	(t) => t.containerTag !== a.containerTag,
+																),
+															)
+														}
+														className="text-[#525D6E] hover:text-[#C73B1B] transition-colors shrink-0"
+													>
+														<X className="size-3.5" />
+													</button>
+													<span
+														className={cn(
+															dmSans125ClassName(),
+															"text-[13px] text-[#FAFAFA] truncate min-w-0 flex-1",
+														)}
+													>
+														{a.containerTag}
+													</span>
+													<div className="grid grid-cols-2 gap-1 shrink-0">
+														{(["read", "write"] as const).map((perm) => {
+															const active = a.permission === perm
+															return (
+																<button
+																	key={perm}
+																	type="button"
+																	onClick={() =>
+																		setInviteAssignments(
+																			inviteAssignments.map((t) =>
+																				t.containerTag === a.containerTag
+																					? { ...t, permission: perm }
+																					: t,
+																			),
+																		)
+																	}
+																	className={cn(
+																		dmSans125ClassName(),
+																		"h-7 px-3 rounded-[8px] border text-[12px] font-medium transition-colors cursor-pointer capitalize",
+																		active
+																			? "border-white/10 bg-[#14161A] text-[#FAFAFA] shadow-inside-out"
+																			: "border-[#161F2C] bg-[#0D121A] text-[#737373] hover:bg-[#14161A] hover:text-[#FAFAFA]",
+																	)}
+																>
+																	{perm}
+																</button>
+															)
+														})}
+													</div>
+												</div>
+											))}
+										</div>
+									)}
+
+									{inviteAssignments.length === 0 && (
+										<p
+											className={cn(
+												dmSans125ClassName(),
+												"text-[12px] text-[#525D6E]",
+											)}
+										>
+											Select at least one space
+										</p>
+									)}
+								</div>
+							)}
+						</div>
+
+						<div className="flex justify-end gap-2 px-6 py-4 mt-5">
+							<button
+								type="button"
+								onClick={() => setInviteDialogOpen(false)}
+								className={cn(
+									dmSans125ClassName(),
+									"h-9 rounded-full border border-[#161F2C] bg-[#0D121A] px-4 text-[13px] font-medium text-[#737373] transition-colors hover:bg-[#14161A] hover:text-white",
+								)}
+							>
+								Cancel
+							</button>
+							<button
+								type="submit"
+								disabled={
+									!inviteEmail.trim() ||
+									!org?.id ||
+									inviteMemberMutation.isPending ||
+									(showTagPicker && inviteAssignments.length === 0)
+								}
+								title={
+									showTagPicker && inviteAssignments.length === 0
+										? "Select at least one space for restricted access"
+										: !inviteEmail.trim()
+											? "Enter an email address to send an invite"
+											: undefined
+								}
+								className={cn(
+									dmSans125ClassName(),
+									"inline-flex h-9 items-center justify-center gap-2 rounded-full bg-[#14161A] px-4 text-[13px] font-semibold text-[#FAFAFA] shadow-inside-out transition-colors hover:bg-[#121820] disabled:cursor-not-allowed disabled:opacity-45",
+								)}
+							>
+								{inviteMemberMutation.isPending ? (
+									<LoaderIcon className="size-4 animate-spin" />
+								) : (
+									<UserPlus className="size-4" />
+								)}
+								Send invite
+							</button>
+						</div>
+					</form>
+				</DialogContent>
+			</Dialog>
 		</div>
 	)
 }

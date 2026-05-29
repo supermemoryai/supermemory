@@ -3,6 +3,18 @@
 import { useEffect } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@lib/auth-context"
+import { Loader2 } from "lucide-react"
+
+function WorkspaceLoadingShell() {
+	return (
+		<div className="flex min-h-dvh items-center justify-center bg-[#05080D]">
+			<Loader2
+				className="size-6 animate-spin text-white/40"
+				aria-label="Loading workspace"
+			/>
+		</div>
+	)
+}
 
 export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname()
@@ -11,6 +23,7 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 	const { session, organizations, isRestoring } = useAuth()
 
 	const isMcpPublicPage = searchParams.get("view") === "mcp"
+	const isOnboarding = pathname.startsWith("/onboarding")
 
 	useEffect(() => {
 		if (isMcpPublicPage) return
@@ -23,9 +36,30 @@ export function EnsureWorkspace({ children }: { children: React.ReactNode }) {
 		}
 		if (organizations === null) return
 		if (organizations.length > 0) return
-		if (pathname.startsWith("/onboarding")) return
+		if (isOnboarding) return
 		router.replace("/onboarding")
-	}, [session, organizations, isRestoring, pathname, router, isMcpPublicPage])
+	}, [
+		session,
+		organizations,
+		isRestoring,
+		isOnboarding,
+		router,
+		isMcpPublicPage,
+	])
+
+	const showLoading =
+		!isMcpPublicPage &&
+		(isRestoring ||
+			(!session && !isRestoring) ||
+			(session && organizations === null) ||
+			(session &&
+				organizations !== null &&
+				organizations.length === 0 &&
+				!isOnboarding))
+
+	if (showLoading) {
+		return <WorkspaceLoadingShell />
+	}
 
 	return children
 }

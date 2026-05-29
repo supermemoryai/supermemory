@@ -1,3 +1,47 @@
+const PROXY_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+
+/** Reconstruct the browser-facing URL when running behind portless (or similar). */
+export function getPublicRequestUrl(request: Request): URL {
+	const internal = new URL(request.url)
+	const forwardedHost = request.headers
+		.get("x-forwarded-host")
+		?.split(",")[0]
+		?.trim()
+	if (forwardedHost) {
+		const proto = request.headers.get("x-forwarded-proto") || "https"
+		return new URL(
+			`${proto}://${forwardedHost}${internal.pathname}${internal.search}`,
+		)
+	}
+	const portlessUrl = process.env.PORTLESS_URL
+	if (portlessUrl) {
+		try {
+			const base = new URL(portlessUrl)
+			return new URL(`${base.origin}${internal.pathname}${internal.search}`)
+		} catch {}
+	}
+	return internal
+}
+
+/** Map portless proxy localhost redirects back to the current public origin. */
+export function resolveAuthRedirectUrl(
+	redirectUrl: string | null,
+	origin: string,
+): URL {
+	const fallback = new URL(origin)
+	if (!redirectUrl) return fallback
+	try {
+		const target = new URL(redirectUrl)
+		if (PROXY_LOCAL_HOSTS.has(target.hostname)) {
+			return new URL(`${target.pathname}${target.search}`, origin)
+		}
+		if (target.origin === origin) return target
+		return fallback
+	} catch {
+		return fallback
+	}
+}
+
 /**
  * Validates if a string is a valid URL.
  */

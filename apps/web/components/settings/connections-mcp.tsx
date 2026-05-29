@@ -12,7 +12,7 @@ import {
 	ChevronDown,
 	History,
 	Loader2,
-	Play,
+	RefreshCw,
 	Plus,
 	Trash2,
 	Zap,
@@ -270,7 +270,7 @@ function ConnectionRow({
 								{isSyncing ? (
 									<Loader2 className="size-[18px] animate-spin" />
 								) : (
-									<Play className="size-[18px]" />
+									<RefreshCw className="size-[18px]" />
 								)}
 							</button>
 						)}
@@ -559,7 +559,7 @@ export default function ConnectionsMCP() {
 	const isLoading = autumn.isLoading
 
 	return (
-		<div className="flex flex-col gap-8 pt-4 w-full">
+		<div className="flex flex-col gap-8 w-full">
 			{/* Supermemory Connections Section */}
 			<div className="flex flex-col gap-4">
 				<SectionTitle badge={<ProBadge />}>
@@ -581,11 +581,11 @@ export default function ConnectionsMCP() {
 							!hasProProduct && !isLoading && "opacity-30 pointer-events-none",
 						)}
 					>
-						<div className="flex items-center justify-between">
+						<div className="flex items-center justify-between gap-3">
 							<span
 								className={cn(
 									dmSans125ClassName(),
-									"font-semibold text-[16px] tracking-[-0.16px] text-[#FAFAFA]",
+									"min-w-0 flex-1 truncate font-semibold text-[15px] tracking-[-0.16px] text-[#FAFAFA] sm:text-[16px]",
 								)}
 							>
 								Connected to Supermemory
@@ -593,7 +593,7 @@ export default function ConnectionsMCP() {
 							<span
 								className={cn(
 									dmSans125ClassName(),
-									"font-semibold text-[16px] tracking-[-0.16px] text-[#737373]",
+									"shrink-0 whitespace-nowrap text-right font-semibold text-[13px] tracking-[-0.16px] text-[#737373] sm:text-[16px]",
 								)}
 							>
 								{connections.length}/{connectionsLimit} connections used

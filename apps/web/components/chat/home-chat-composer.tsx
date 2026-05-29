@@ -7,6 +7,7 @@ import { useProject } from "@/stores"
 import { cn } from "@lib/utils"
 import type { ModelId } from "@/lib/models"
 import { SpaceSelector } from "@/components/space-selector"
+import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 
 export function HomeChatComposer({
 	onStartChat,
@@ -19,7 +20,7 @@ export function HomeChatComposer({
 	const [selectedModel, setSelectedModel] = useState<ModelId>("gemini-2.5-pro")
 	const { selectedProject } = useProject()
 	const [chatSpaceProjects, setChatSpaceProjects] = useState<string[]>([
-		selectedProject,
+		AUTO_CHAT_SPACE_ID,
 	])
 
 	const send = useCallback(() => {
@@ -59,6 +60,7 @@ export function HomeChatComposer({
 								onValueChange={setChatSpaceProjects}
 								variant="insideOut"
 								includeAuto
+								hideCount
 								triggerClassName="h-auto min-h-0 max-w-[min(160px,35vw)] rounded-full border border-[#161F2C] bg-[#000000] px-3 py-1.5 shadow-none hover:bg-[#05080D]"
 							/>
 						</>

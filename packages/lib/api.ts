@@ -164,7 +164,7 @@ export const apiSchema = createSchema({
 
 	// Settings operations
 	"@get/settings": {
-		output: z.object({ settings: z.object({}).passthrough() }),
+		output: z.object({}).passthrough(),
 	},
 	"@patch/settings": {
 		input: SettingsRequestSchema,
@@ -253,6 +253,17 @@ export const apiSchema = createSchema({
 	},
 	"@get/container-tags/list": {
 		output: ListContainerTagsResponseSchema,
+	},
+	"@get/container-tags/:containerTag/profile": {
+		output: z.object({
+			profile: z.object({
+				static: z.array(z.string()).optional(),
+				dynamic: z.array(z.string()).optional(),
+			}),
+		}),
+		params: z.object({
+			containerTag: z.string(),
+		}),
 	},
 	"@patch/container-tags/:containerTag": {
 		input: UpdateContainerTagSettingsRequestSchema,

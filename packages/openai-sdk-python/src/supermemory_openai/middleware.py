@@ -193,6 +193,9 @@ async def add_system_prompt(
             },
         )
 
+    if not memories:
+        return messages
+
     if system_prompt_exists:
         logger.debug("Added memories to existing system prompt")
         return [

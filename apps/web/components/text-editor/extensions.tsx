@@ -6,9 +6,13 @@ import TaskList from "@tiptap/extension-task-list"
 import TaskItem from "@tiptap/extension-task-item"
 import { cx } from "class-variance-authority"
 
-const placeholder = Placeholder.configure({
-	placeholder: 'Write, paste anything or type "/" for commands...',
-})
+const DEFAULT_PLACEHOLDER = 'Write, paste anything or type "/" for commands...'
+
+function createPlaceholder(placeholderText = DEFAULT_PLACEHOLDER) {
+	return Placeholder.configure({
+		placeholder: placeholderText,
+	})
+}
 
 const taskList = TaskList.configure({
 	HTMLAttributes: {
@@ -82,11 +86,15 @@ const starterKit = StarterKit.configure({
 	gapcursor: false,
 })
 
-export const defaultExtensions = [
-	starterKit,
-	placeholder,
-	link,
-	image,
-	taskList,
-	taskItem,
-]
+export function createDefaultExtensions(placeholderText?: string) {
+	return [
+		starterKit,
+		createPlaceholder(placeholderText),
+		link,
+		image,
+		taskList,
+		taskItem,
+	]
+}
+
+export const defaultExtensions = createDefaultExtensions()
