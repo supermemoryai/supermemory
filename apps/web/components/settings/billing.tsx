@@ -13,6 +13,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import {
+	Check,
 	Coins,
 	ExternalLink,
 	LoaderIcon,
@@ -30,6 +31,8 @@ const API_BASE =
 const CREDIT_FEATURE_ID = "usd_credits"
 const TOP_UP_PLAN_ID = "credits_topup"
 const TOP_UP_AMOUNTS = [10, 25, 50, 100] as const
+const PLAN_CARD_ACTION_CLASS =
+	"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 
 type BillingInvoice = {
 	planIds?: string[]
@@ -60,6 +63,45 @@ type AutoTopupsResponse =
 			autoTopup: AutoTopupConfig | null
 	  }
 	| { ok: false; reason: string; message?: string }
+
+type PlanCardDefinition = {
+	id: "free" | "pro"
+	name: string
+	price: string
+	period: string
+	credits: string
+	description: string
+	features: string[]
+}
+
+const PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "free",
+		name: "Free",
+		price: "$0",
+		period: "",
+		credits: "$5",
+		description: "Try supermemory with no commitment",
+		features: [
+			"Pay-as-you-go after $5 runs out",
+			"Full search and memory access",
+			"Email support",
+		],
+	},
+	{
+		id: "pro",
+		name: "Pro",
+		price: "$19",
+		period: "/mo",
+		credits: "$20",
+		description: "For people building with AI memory",
+		features: [
+			"Auto top-up when balance runs low",
+			"All plugins (Claude Code, Cursor, Hermes...)",
+			"Priority support",
+		],
+	},
+]
 
 function SectionTitle({
 	children,
@@ -99,6 +141,81 @@ function SettingsCard({
 			)}
 		>
 			{children}
+		</div>
+	)
+}
+
+function PlanCard({
+	action,
+	isCurrent,
+	plan,
+}: {
+	action: React.ReactNode
+	isCurrent: boolean
+	plan: PlanCardDefinition
+}) {
+	return (
+		<div
+			className={cn(
+				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				isCurrent
+					? "border-[#2261CA33] bg-[#17202B]"
+					: "border-white/[0.08] bg-[#14161A]",
+			)}
+		>
+			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+				{plan.name}
+			</p>
+
+			<div className="mt-3 flex items-baseline gap-1">
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"text-[34px] font-bold leading-none tracking-[-0.34px] text-[#FAFAFA] tabular-nums",
+					)}
+				>
+					{plan.price}
+				</span>
+				{plan.period ? (
+					<span className="text-[13px] text-[#737373]">{plan.period}</span>
+				) : null}
+			</div>
+
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"mt-2 text-[13px] leading-snug text-[#A3A3A3]",
+				)}
+			>
+				{plan.description}
+			</p>
+
+			<div className="mt-5 flex items-center gap-2 rounded-[8px] bg-white/[0.04] px-3 py-2.5 text-[#A3A3A3]">
+				<Coins className="size-3.5 shrink-0 text-[#737373]" />
+				<div className="min-w-0">
+					<p className="text-[12px] font-semibold leading-none text-[#C8D0DA] tabular-nums">
+						{plan.credits}
+					</p>
+					<p className="mt-0.5 text-[10px] leading-none text-[#737373]">
+						of usage included
+					</p>
+				</div>
+			</div>
+
+			<ul className="mt-5 mb-6 flex flex-1 flex-col gap-3">
+				{plan.features.map((feature) => (
+					<li
+						className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
+						key={feature}
+					>
+						<Check className="mt-0.5 size-3.5 shrink-0 text-[#737373]" />
+						<span>{feature}</span>
+					</li>
+				))}
+			</ul>
+
+			{action}
 		</div>
 	)
 }
@@ -490,6 +607,74 @@ export default function Billing() {
 		})
 	}
 
+	const getPlanCardAction = (plan: PlanCardDefinition) => {
+		if (plan.id === "free") {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					{hasPaidPlan ? "Included with current plan" : "Your current plan"}
+				</button>
+			)
+		}
+
+		if (currentPlan === "pro") {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					Your current plan
+				</button>
+			)
+		}
+
+		if (currentPlan === "scale" || currentPlan === "enterprise") {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					Included with {planDisplayNames[currentPlan]}
+				</button>
+			)
+		}
+
+		return (
+			<button
+				type="button"
+				onClick={handleUpgrade}
+				disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
+				className={cn(
+					dmSans125ClassName(),
+					PLAN_CARD_ACTION_CLASS,
+					"bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]",
+				)}
+			>
+				{isUpgrading || isCheckingStatus || autumn.isLoading ? (
+					<LoaderIcon className="size-4 animate-spin" />
+				) : null}
+				Upgrade to Pro
+			</button>
+		)
+	}
+
 	return (
 		<div className="flex w-full flex-col gap-7">
 			<section id="billing-subscription" className="flex flex-col gap-4">
@@ -692,6 +877,31 @@ export default function Billing() {
 						) : null}
 					</div>
 				</SettingsCard>
+			</section>
+
+			<section id="billing-plans" className="flex flex-col gap-4">
+				<div className="flex flex-col gap-1 px-2">
+					<SectionTitle>Plans</SectionTitle>
+					<p
+						className={cn(
+							dmSans125ClassName(),
+							"text-[13px] leading-relaxed text-[#A3A3A3]",
+						)}
+					>
+						All plans include usage-metered access. Top-ups roll over with paid
+						plans.
+					</p>
+				</div>
+				<div className="grid gap-4 md:grid-cols-2">
+					{PLAN_CARDS.map((plan) => (
+						<PlanCard
+							action={getPlanCardAction(plan)}
+							isCurrent={currentPlan === plan.id}
+							key={plan.id}
+							plan={plan}
+						/>
+					))}
+				</div>
 			</section>
 
 			<section className="flex flex-col gap-4">

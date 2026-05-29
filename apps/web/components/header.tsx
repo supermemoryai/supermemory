@@ -15,6 +15,7 @@ import {
 	LifeBuoy,
 	LayoutGrid,
 	ChevronRight,
+	Zap,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -353,6 +354,15 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								}}
 							>
 								<DropdownMenuItem
+									asChild
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
+								>
+									<a href="https://app.supermemory.ai/settings#billing">
+										<Zap className="size-4 text-[#4BA0FA]" />
+										Upgrade
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem
 									onClick={onAddMemory}
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
@@ -421,6 +431,30 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					</>
 				) : (
 					<>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									asChild
+									className={cn(
+										"rounded-full! h-9! min-h-9 shrink-0 border-transparent bg-[#4BA0FA] text-[#00171A] hover:bg-[#4BA0FA]/90",
+										"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+										"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-semibold",
+										dmSansClassName(),
+									)}
+								>
+									<a
+										href="https://app.supermemory.ai/settings#billing"
+										aria-label="Upgrade"
+									>
+										<Zap className="size-3.5 shrink-0 lg:size-4" />
+										<span className="max-lg:sr-only">Upgrade</span>
+									</a>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Upgrade
+							</TooltipContent>
+						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
