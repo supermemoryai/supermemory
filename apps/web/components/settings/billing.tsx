@@ -876,9 +876,7 @@ export default function Billing() {
 			</section>
 
 			<section id="billing-plans" className="flex flex-col gap-4">
-				<div className="px-2">
-					<SectionTitle>Plans</SectionTitle>
-				</div>
+				<SectionTitle>Plans</SectionTitle>
 				<div className="grid gap-4 md:grid-cols-2">
 					{PLAN_CARDS.map((plan) => (
 						<PlanCard
