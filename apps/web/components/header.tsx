@@ -20,6 +20,7 @@ import {
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
+import { getBillingSettingsUrl } from "@/lib/url-helpers"
 import { GraphIcon, IntegrationsIcon } from "@/components/integration-icons"
 import {
 	DropdownMenu,
@@ -81,6 +82,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		feedbackParam,
 	)
 	const { viewMode, setViewMode } = useViewMode()
+	const billingSettingsUrl = getBillingSettingsUrl()
 
 	const handleFeedback = () => setFeedbackOpen(true)
 
@@ -357,7 +359,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									asChild
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
-									<a href="https://app.supermemory.ai/settings#billing">
+									<a href={billingSettingsUrl}>
 										<Zap className="size-4 text-[#4BA0FA]" />
 										Upgrade
 									</a>
@@ -443,10 +445,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 										dmSansClassName(),
 									)}
 								>
-									<a
-										href="https://app.supermemory.ai/settings#billing"
-										aria-label="Upgrade"
-									>
+									<a href={billingSettingsUrl} aria-label="Upgrade">
 										<Zap className="size-3.5 shrink-0 lg:size-4" />
 										<span className="max-lg:sr-only">Upgrade</span>
 									</a>
