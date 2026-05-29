@@ -697,245 +697,226 @@ export default function Billing() {
 				</SettingsCard>
 			</section>
 
-			<Dialog
-				open={isCreditsDialogOpen}
-				onOpenChange={setIsCreditsDialogOpen}
-			>
-					<DialogContent
-						showCloseButton={false}
-						style={{ boxShadow: SURFACE_SHADOW }}
-						className="w-[min(560px,calc(100vw-32px))] rounded-[22px] border border-white/[0.12] bg-[#1B1F24] p-6"
-					>
-						<div className="flex items-start justify-between gap-4">
-							<div>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[22px] font-semibold tracking-[-0.22px] text-[#FAFAFA]",
-									)}
-								>
-									Buy Credits
-								</p>
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"mt-2 text-[15px] text-[#A3A3A3]",
-									)}
-								>
-									Add USD to your balance for metered usage.
-								</p>
-							</div>
-							<DialogClose asChild>
-								<button
-									type="button"
-									className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0D121A] text-[#737373] transition-colors hover:text-[#FAFAFA]"
-								>
-									<X className="size-5" />
-								</button>
-							</DialogClose>
-						</div>
-
-						<div className="mt-8 flex flex-col gap-5">
-							<div className="flex flex-col gap-3">
-								<p
-									className={cn(
-										dmSans125ClassName(),
-										"text-[16px] font-semibold text-[#FAFAFA]",
-									)}
-								>
-									Choose an amount
-								</p>
-								<FieldSelect
-									value={topUpAmount}
-									values={TOP_UP_AMOUNTS}
-									prefix="$"
-									onChange={(value) => {
-										setTopUpAmount(value)
-										setCustomTopUpAmount("")
-									}}
-									disabled={topUpPendingAmount !== null}
-								/>
-								<div className="flex flex-col gap-2">
-									<label
-										htmlFor="custom-topup-amount"
-										className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
-									>
-										Custom amount (USD)
-									</label>
-									<input
-										id="custom-topup-amount"
-										inputMode="decimal"
-										min={1}
-										onChange={(event) =>
-											setCustomTopUpAmount(event.target.value)
-										}
-										placeholder="e.g. 75"
-										type="number"
-										value={customTopUpAmount}
-										className="h-11 rounded-[10px] border border-white/10 bg-[#080B10] px-3 text-[14px] text-[#FAFAFA] outline-none placeholder:text-[#737373] focus:border-[#0054AD]"
-									/>
-								</div>
-							</div>
-
-							<div className="h-px bg-white/[0.06]" />
-
-							<div className="flex flex-col gap-4">
-								<div className="flex items-center justify-between">
-									<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
-										Auto reload
-									</p>
-									<span className="text-[12px] text-[#737373]">
-										{autoTopUpEnabled ? "on" : "off"}
-									</span>
-								</div>
-
-								<div className="flex items-center justify-between gap-4">
-									<p
-										className={cn(
-											dmSans125ClassName(),
-											"text-[16px] text-[#FAFAFA]",
-										)}
-									>
-										Auto reload is{" "}
-										{autoTopUpEnabled ? "enabled" : "disabled"}
-									</p>
-									<button
-										type="button"
-										disabled={
-											isSavingAutoTopUp ||
-											!isAdmin ||
-											(!hasPaymentMethod && !activeAutoTopUp?.enabled)
-										}
-										onClick={() =>
-											handleAutoReloadToggle(!autoTopUpEnabled)
-										}
-										className={cn(
-											dmSans125ClassName(),
-											"inline-flex h-9 min-w-[96px] items-center justify-center rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-45",
-										)}
-									>
-										{autoTopUpEnabled ? "Disable" : "Enable"}
-									</button>
-								</div>
-
-								{!hasPaymentMethod && !activeAutoTopUp?.enabled ? (
-									<p className="text-[13px] text-[#737373]">
-										Save a card in Manage Billing to enable automatic
-										reloads.
-									</p>
-								) : null}
-
-								<div
-									className={cn(
-										"grid gap-3 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3 transition-[filter,opacity] sm:grid-cols-2",
-										!autoTopUpEnabled &&
-											"pointer-events-none select-none opacity-45 blur-[3px]",
-									)}
-								>
-									<div className="flex flex-col gap-2">
-										<label
-											htmlFor="auto-topup-threshold"
-											className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
-										>
-											Threshold (USD)
-										</label>
-										<input
-											id="auto-topup-threshold"
-											disabled={!autoTopUpEnabled || isSavingAutoTopUp}
-											inputMode="decimal"
-											min={0}
-											onChange={(event) => {
-												const value = Number.parseFloat(
-													event.target.value,
-												)
-												setAutoTopUpThreshold(
-													Number.isFinite(value) ? value : 0,
-												)
-											}}
-											type="number"
-											value={
-												Number.isFinite(autoTopUpThreshold)
-													? autoTopUpThreshold
-													: ""
-											}
-											className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
-										/>
-									</div>
-									<div className="flex flex-col gap-2">
-										<label
-											htmlFor="auto-topup-amount"
-											className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
-										>
-											Reload amount (USD)
-										</label>
-										<input
-											id="auto-topup-amount"
-											disabled={!autoTopUpEnabled || isSavingAutoTopUp}
-											inputMode="decimal"
-											min={0.01}
-											onChange={(event) => {
-												const value = Number.parseFloat(
-													event.target.value,
-												)
-												setAutoTopUpAmount(
-													Number.isFinite(value) ? value : 0,
-												)
-											}}
-											type="number"
-											value={
-												Number.isFinite(autoTopUpAmount)
-													? autoTopUpAmount
-													: ""
-											}
-											className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
-										/>
-									</div>
-									<div className="sm:col-span-2">
-										<button
-											type="button"
-											onClick={() => void handleSaveAutoTopUp()}
-											disabled={isSavingAutoTopUp || !isAdmin}
-											className={cn(
-												dmSans125ClassName(),
-												"inline-flex h-9 w-full items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-[#080B10] text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-60",
-											)}
-										>
-											{isSavingAutoTopUp ? (
-												<LoaderIcon className="size-3.5 animate-spin" />
-											) : null}
-											Save threshold &amp; reload amount
-										</button>
-									</div>
-								</div>
-							</div>
-
-							<button
-								type="button"
-								onClick={() => void handleTopUp(selectedTopUpAmount)}
-								disabled={
-									topUpPendingAmount !== null ||
-									!isAdmin ||
-									selectedTopUpAmount <= 0
-								}
+			<Dialog open={isCreditsDialogOpen} onOpenChange={setIsCreditsDialogOpen}>
+				<DialogContent
+					showCloseButton={false}
+					style={{ boxShadow: SURFACE_SHADOW }}
+					className="w-[min(560px,calc(100vw-32px))] rounded-[22px] border border-white/[0.12] bg-[#1B1F24] p-6"
+				>
+					<div className="flex items-start justify-between gap-4">
+						<div>
+							<p
 								className={cn(
 									dmSans125ClassName(),
-									"inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-bold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
+									"text-[22px] font-semibold tracking-[-0.22px] text-[#FAFAFA]",
 								)}
 							>
-								{topUpPendingAmount !== null ? (
-									<LoaderIcon className="size-4 animate-spin" />
-								) : null}
-								Buy {formatUsd(selectedTopUpAmount)} in credits
+								Buy Credits
+							</p>
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"mt-2 text-[15px] text-[#A3A3A3]",
+								)}
+							>
+								Add USD to your balance for metered usage.
+							</p>
+						</div>
+						<DialogClose asChild>
+							<button
+								type="button"
+								className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0D121A] text-[#737373] transition-colors hover:text-[#FAFAFA]"
+							>
+								<X className="size-5" />
 							</button>
+						</DialogClose>
+					</div>
 
-							{!isAdmin ? (
-								<p className="text-center text-[11px] text-[#737373]">
-									Only owners/admins can purchase credits.
+					<div className="mt-8 flex flex-col gap-5">
+						<div className="flex flex-col gap-3">
+							<p
+								className={cn(
+									dmSans125ClassName(),
+									"text-[16px] font-semibold text-[#FAFAFA]",
+								)}
+							>
+								Choose an amount
+							</p>
+							<FieldSelect
+								value={topUpAmount}
+								values={TOP_UP_AMOUNTS}
+								prefix="$"
+								onChange={(value) => {
+									setTopUpAmount(value)
+									setCustomTopUpAmount("")
+								}}
+								disabled={topUpPendingAmount !== null}
+							/>
+							<div className="flex flex-col gap-2">
+								<label
+									htmlFor="custom-topup-amount"
+									className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
+								>
+									Custom amount (USD)
+								</label>
+								<input
+									id="custom-topup-amount"
+									inputMode="decimal"
+									min={1}
+									onChange={(event) => setCustomTopUpAmount(event.target.value)}
+									placeholder="e.g. 75"
+									type="number"
+									value={customTopUpAmount}
+									className="h-11 rounded-[10px] border border-white/10 bg-[#080B10] px-3 text-[14px] text-[#FAFAFA] outline-none placeholder:text-[#737373] focus:border-[#0054AD]"
+								/>
+							</div>
+						</div>
+
+						<div className="h-px bg-white/[0.06]" />
+
+						<div className="flex flex-col gap-4">
+							<div className="flex items-center justify-between">
+								<p className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]">
+									Auto reload
+								</p>
+								<span className="text-[12px] text-[#737373]">
+									{autoTopUpEnabled ? "on" : "off"}
+								</span>
+							</div>
+
+							<div className="flex items-center justify-between gap-4">
+								<p
+									className={cn(
+										dmSans125ClassName(),
+										"text-[16px] text-[#FAFAFA]",
+									)}
+								>
+									Auto reload is {autoTopUpEnabled ? "enabled" : "disabled"}
+								</p>
+								<button
+									type="button"
+									disabled={
+										isSavingAutoTopUp ||
+										!isAdmin ||
+										(!hasPaymentMethod && !activeAutoTopUp?.enabled)
+									}
+									onClick={() => handleAutoReloadToggle(!autoTopUpEnabled)}
+									className={cn(
+										dmSans125ClassName(),
+										"inline-flex h-9 min-w-[96px] items-center justify-center rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-45",
+									)}
+								>
+									{autoTopUpEnabled ? "Disable" : "Enable"}
+								</button>
+							</div>
+
+							{!hasPaymentMethod && !activeAutoTopUp?.enabled ? (
+								<p className="text-[13px] text-[#737373]">
+									Save a card in Manage Billing to enable automatic reloads.
 								</p>
 							) : null}
+
+							<div
+								className={cn(
+									"grid gap-3 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3 transition-[filter,opacity] sm:grid-cols-2",
+									!autoTopUpEnabled &&
+										"pointer-events-none select-none opacity-45 blur-[3px]",
+								)}
+							>
+								<div className="flex flex-col gap-2">
+									<label
+										htmlFor="auto-topup-threshold"
+										className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
+									>
+										Threshold (USD)
+									</label>
+									<input
+										id="auto-topup-threshold"
+										disabled={!autoTopUpEnabled || isSavingAutoTopUp}
+										inputMode="decimal"
+										min={0}
+										onChange={(event) => {
+											const value = Number.parseFloat(event.target.value)
+											setAutoTopUpThreshold(Number.isFinite(value) ? value : 0)
+										}}
+										type="number"
+										value={
+											Number.isFinite(autoTopUpThreshold)
+												? autoTopUpThreshold
+												: ""
+										}
+										className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
+									/>
+								</div>
+								<div className="flex flex-col gap-2">
+									<label
+										htmlFor="auto-topup-amount"
+										className="text-[11px] font-bold uppercase tracking-[0.5px] text-[#737373]"
+									>
+										Reload amount (USD)
+									</label>
+									<input
+										id="auto-topup-amount"
+										disabled={!autoTopUpEnabled || isSavingAutoTopUp}
+										inputMode="decimal"
+										min={0.01}
+										onChange={(event) => {
+											const value = Number.parseFloat(event.target.value)
+											setAutoTopUpAmount(Number.isFinite(value) ? value : 0)
+										}}
+										type="number"
+										value={
+											Number.isFinite(autoTopUpAmount) ? autoTopUpAmount : ""
+										}
+										className="h-10 rounded-[8px] border border-white/10 bg-[#080B10] px-3 text-[13px] text-[#FAFAFA] outline-none focus:border-[#0054AD] disabled:opacity-60"
+									/>
+								</div>
+								<div className="sm:col-span-2">
+									<button
+										type="button"
+										onClick={() => void handleSaveAutoTopUp()}
+										disabled={isSavingAutoTopUp || !isAdmin}
+										className={cn(
+											dmSans125ClassName(),
+											"inline-flex h-9 w-full items-center justify-center gap-2 rounded-[8px] border border-white/10 bg-[#080B10] text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#121A24] disabled:cursor-not-allowed disabled:opacity-60",
+										)}
+									>
+										{isSavingAutoTopUp ? (
+											<LoaderIcon className="size-3.5 animate-spin" />
+										) : null}
+										Save threshold &amp; reload amount
+									</button>
+								</div>
+							</div>
 						</div>
-					</DialogContent>
-				</Dialog>
+
+						<button
+							type="button"
+							onClick={() => void handleTopUp(selectedTopUpAmount)}
+							disabled={
+								topUpPendingAmount !== null ||
+								!isAdmin ||
+								selectedTopUpAmount <= 0
+							}
+							className={cn(
+								dmSans125ClassName(),
+								"inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-bold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
+							)}
+						>
+							{topUpPendingAmount !== null ? (
+								<LoaderIcon className="size-4 animate-spin" />
+							) : null}
+							Buy {formatUsd(selectedTopUpAmount)} in credits
+						</button>
+
+						{!isAdmin ? (
+							<p className="text-center text-[11px] text-[#737373]">
+								Only owners/admins can purchase credits.
+							</p>
+						) : null}
+					</div>
+				</DialogContent>
+			</Dialog>
 
 			{hasPaidPlan ? (
 				<section className="flex flex-col gap-4">
