@@ -90,6 +90,7 @@ export const UserMessage = memo(function UserMessage({
 								selectedModel={editModel}
 								onModelChange={handleEditModelChange}
 								minimal
+								dropdownDirection="down"
 							/>
 							<ReasoningSelector
 								value={editReasoningEffort}

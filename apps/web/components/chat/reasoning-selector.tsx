@@ -1,7 +1,13 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { BrainIcon, CheckIcon, MoreHorizontalIcon, ZapIcon } from "lucide-react"
+import {
+	BrainIcon,
+	CheckIcon,
+	ChevronDownIcon,
+	MoreHorizontalIcon,
+	ZapIcon,
+} from "lucide-react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import { reasoningOptions, type ReasoningEffort } from "@/lib/models"
@@ -25,6 +31,7 @@ export function ReasoningSelector({
 	const containerRef = useRef<HTMLDivElement>(null)
 	const selected = reasoningOptions.find((option) => option.id === value)
 	const SelectedIcon = value === "thinking" ? BrainIcon : ZapIcon
+	const selectedLabel = selected?.label ?? "Reasoning"
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -48,7 +55,10 @@ export function ReasoningSelector({
 	return (
 		<div
 			ref={containerRef}
-			className="relative z-10 flex shrink-0 items-center"
+			className={cn(
+				"relative flex shrink-0 items-center",
+				isOpen ? "z-[100]" : "z-10",
+			)}
 		>
 			<button
 				type="button"
@@ -58,18 +68,22 @@ export function ReasoningSelector({
 					"cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50",
 					variant === "icon"
 						? "rounded p-1.5 hover:bg-white/10"
-						: "flex items-center gap-1 rounded-full bg-fg-primary/5 px-2.5 py-1 text-[13px] hover:bg-fg-primary/10",
+						: "flex size-9 items-center justify-center gap-1.5 rounded-full border border-white/15 bg-black px-0 py-1.5 text-[13px] text-white hover:border-white/30 hover:bg-white/5 sm:size-auto sm:justify-start sm:px-2.5",
 					dmSansClassName(),
 				)}
-				title="Reasoning"
-				aria-label="Reasoning"
+				title={`Reasoning: ${selectedLabel}`}
+				aria-label={`Reasoning: ${selectedLabel}`}
+				aria-expanded={isOpen}
 			>
 				{variant === "icon" ? (
 					<MoreHorizontalIcon className="size-3.5 text-white/50 hover:text-white/80" />
 				) : (
 					<>
-						<SelectedIcon className="size-3 shrink-0 text-fg-subtle" />
-						<span className="text-fg-primary">{selected?.label}</span>
+						<SelectedIcon className="size-3.5 shrink-0 text-white/65" />
+						<span className="hidden text-white sm:inline">
+							{selected?.label}
+						</span>
+						<ChevronDownIcon className="hidden size-3.5 shrink-0 text-white/55 sm:block" />
 					</>
 				)}
 			</button>
@@ -77,16 +91,11 @@ export function ReasoningSelector({
 			{isOpen && (
 				<div
 					className={cn(
-						"absolute left-0 z-50 w-44 overflow-hidden rounded-lg border border-surface-border bg-surface-card shadow-xl backdrop-blur-xl",
+						"absolute left-0 z-[100] w-[min(14rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/15 bg-black p-1 shadow-[0_18px_48px_rgba(0,0,0,0.55)]",
 						dropdownDirection === "up" ? "bottom-full mb-2" : "top-full mt-2",
 					)}
 				>
-					<div className="border-b border-surface-border px-3 py-1.5">
-						<span className="text-[11px] font-medium text-fg-muted">
-							Reasoning effort
-						</span>
-					</div>
-					<div className="p-1">
+					<div className="space-y-1">
 						{reasoningOptions.map((option) => {
 							const Icon = option.id === "thinking" ? BrainIcon : ZapIcon
 							const isSelected = option.id === value
@@ -96,16 +105,30 @@ export function ReasoningSelector({
 									type="button"
 									onClick={() => handleSelect(option.id)}
 									className={cn(
-										"flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors",
-										isSelected ? "bg-[#293952]/60" : "hover:bg-[#293952]/40",
+										"flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors",
+										isSelected
+											? "bg-[#E6E6E6] text-[#101010]"
+											: "text-white hover:bg-white/10",
 									)}
 								>
-									<Icon className="size-3 shrink-0 text-white/60" />
-									<span className="flex-1 text-[13px] font-medium text-white">
-										{option.label}
-									</span>
+									<Icon
+										className={cn(
+											"size-4 shrink-0",
+											isSelected ? "text-[#101010]/70" : "text-white/65",
+										)}
+									/>
+									<div className="min-w-0 flex-1">
+										<div
+											className={cn(
+												"text-[15px] font-medium",
+												isSelected ? "text-[#101010]" : "text-white",
+											)}
+										>
+											{option.label}
+										</div>
+									</div>
 									{isSelected && (
-										<CheckIcon className="size-3 shrink-0 text-[#E052A0]" />
+										<CheckIcon className="size-4 shrink-0 text-[#101010]/70" />
 									)}
 								</button>
 							)

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { cn } from "@lib/utils"
 import { Button } from "@ui/components/button"
 import { dmSansClassName } from "@/lib/fonts"
-import { ChevronDownIcon } from "lucide-react"
+import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { models, type ModelId, modelNames } from "@/lib/models"
 import { analytics } from "@/lib/analytics"
 
@@ -13,12 +13,14 @@ interface ChatModelSelectorProps {
 	onModelChange?: (model: ModelId) => void
 	/** Compact pill matching inline send control. */
 	minimal?: boolean
+	dropdownDirection?: "up" | "down"
 }
 
 export default function ChatModelSelector({
 	selectedModel: selectedModelProp,
 	onModelChange,
 	minimal = false,
+	dropdownDirection = "up",
 }: ChatModelSelectorProps = {}) {
 	const [internalModel, setInternalModel] =
 		useState<ModelId>("claude-sonnet-4.6")
@@ -41,6 +43,7 @@ export default function ChatModelSelector({
 
 	const selectedModel = selectedModelProp ?? internalModel
 	const currentModelData = modelNames[selectedModel]
+	const selectedModelLabel = `${currentModelData.name} ${currentModelData.version}`
 
 	const handleModelSelect = (modelId: ModelId) => {
 		if (onModelChange) {
@@ -56,71 +59,102 @@ export default function ChatModelSelector({
 		<button
 			type="button"
 			className={cn(
-				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-full bg-fg-primary/5 px-3 py-1.5 text-sm transition-colors hover:bg-fg-primary/10",
+				"flex max-w-[min(100%,220px)] min-w-0 shrink cursor-pointer items-center gap-1.5 rounded-full border border-white/15 bg-black px-3 py-1.5 text-sm text-white transition-colors hover:border-white/30 hover:bg-white/5",
 				dmSansClassName(),
 			)}
 			onClick={() => setIsOpen(!isOpen)}
+			aria-expanded={isOpen}
+			aria-label={`Model: ${selectedModelLabel}`}
 		>
-			<p className="min-w-0 truncate text-left text-fg-primary">
+			<p className="min-w-0 truncate text-left text-white">
 				{currentModelData.name}{" "}
-				<span className="text-fg-subtle">{currentModelData.version}</span>
+				<span className="text-white/55">{currentModelData.version}</span>
 			</p>
-			<ChevronDownIcon className="size-3.5 shrink-0 text-fg-subtle" />
+			<ChevronDownIcon className="size-3.5 shrink-0 text-white/55" />
 		</button>
 	) : (
 		<Button
 			variant="headers"
 			className={cn(
-				"h-10! max-w-[min(100%,220px)] shrink gap-1 rounded-full border-[#73737333] bg-surface-base text-base",
+				"h-10! max-w-[min(100%,220px)] shrink gap-1.5 rounded-full border-white/15 bg-black text-base text-white shadow-none transition-colors hover:border-white/30 hover:bg-white/5",
 				dmSansClassName(),
 			)}
-			style={{
-				boxShadow: "1.5px 1.5px 4.5px 0 rgba(0, 0, 0, 0.70) inset",
-			}}
 			onClick={() => setIsOpen(!isOpen)}
+			aria-expanded={isOpen}
+			aria-label={`Model: ${selectedModelLabel}`}
 		>
 			<p className="truncate text-sm">
 				{currentModelData.name}{" "}
-				<span className="text-[#737373]">{currentModelData.version}</span>
+				<span className="text-white/55">{currentModelData.version}</span>
 			</p>
-			<ChevronDownIcon className="size-4 text-[#737373]" />
+			<ChevronDownIcon className="size-4 text-white/55" />
 		</Button>
 	)
 
 	return (
 		<div
 			ref={containerRef}
-			className="relative z-10 flex min-w-0 shrink items-center gap-2"
+			className={cn(
+				"relative flex min-w-0 shrink items-center gap-2",
+				isOpen ? "z-[100]" : "z-10",
+			)}
 		>
 			{trigger}
 
 			{isOpen && (
-				<div className="absolute bottom-full left-0 mb-2 w-64 bg-surface-card backdrop-blur-xl border border-surface-border rounded-lg shadow-xl z-50 overflow-hidden">
-					<div className="p-2 space-y-1">
+				<div
+					className={cn(
+						"absolute left-0 z-[100] w-[min(18rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-white/15 bg-black p-1 shadow-[0_18px_48px_rgba(0,0,0,0.55)]",
+						dropdownDirection === "up" ? "bottom-full mb-2" : "top-full mt-2",
+					)}
+				>
+					<div className="space-y-1">
 						{models.map((model) => {
 							const modelData = modelNames[model.id]
+							const isSelected = selectedModel === model.id
 							return (
 								<button
 									key={model.id}
 									type="button"
 									className={cn(
-										"flex flex-col items-start p-2 px-3 rounded-md transition-colors cursor-pointer w-full text-left",
-										selectedModel === model.id
-											? "bg-[#293952]/60"
-											: "hover:bg-[#293952]/40",
+										"flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+										isSelected
+											? "bg-[#E6E6E6] text-[#101010]"
+											: "text-white hover:bg-white/10",
 									)}
 									onClick={() => handleModelSelect(model.id)}
 									onKeyDown={(e) =>
 										e.key === "Enter" && handleModelSelect(model.id)
 									}
 								>
-									<div className="text-sm font-medium text-white">
-										{modelData.name}{" "}
-										<span className="text-fg-subtle">{modelData.version}</span>
+									<div className="min-w-0 flex-1">
+										<div
+											className={cn(
+												"truncate text-[15px] font-medium",
+												isSelected ? "text-[#101010]" : "text-white",
+											)}
+										>
+											{modelData.name}{" "}
+											<span
+												className={cn(
+													isSelected ? "text-[#101010]/60" : "text-white/55",
+												)}
+											>
+												{modelData.version}
+											</span>
+										</div>
+										<div
+											className={cn(
+												"mt-0.5 truncate text-xs",
+												isSelected ? "text-[#101010]/60" : "text-white/45",
+											)}
+										>
+											{model.description}
+										</div>
 									</div>
-									<div className="text-xs text-fg-muted truncate w-full">
-										{model.description}
-									</div>
+									{isSelected && (
+										<CheckIcon className="size-4 shrink-0 text-[#101010]/70" />
+									)}
 								</button>
 							)
 						})}

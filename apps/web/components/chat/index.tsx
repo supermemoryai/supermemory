@@ -165,6 +165,10 @@ export function ChatSidebar({
 	const pendingRegenerationRef = useRef<{
 		text: string
 	} | null>(null)
+	const pendingSendSettingsRef = useRef<{
+		model: ModelId
+		reasoningEffort: ReasoningEffort
+	} | null>(null)
 	const [regenerationBaseLength, setRegenerationBaseLength] = useState<
 		number | null
 	>(null)
@@ -246,24 +250,30 @@ export function ChatSidebar({
 			new DefaultChatTransport({
 				api: `${chatApiBase}/chat`,
 				credentials: "include",
-				prepareSendMessagesRequest: ({ messages }) => ({
-					body: {
-						messages,
-						metadata: {
-							chatId: chatIdRef.current,
-							projectId: selectedProjectRef.current,
-							spaceMode:
-								selectedProjectRef.current === AUTO_CHAT_SPACE_ID
-									? "auto"
-									: "manual",
-							enableSpaceDiscovery:
-								selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
-							model: selectedModelRef.current,
-							reasoningEffort: reasoningEffortRef.current,
-							truncateFromMessageId: truncateFromMessageIdRef.current,
+				prepareSendMessagesRequest: ({ messages }) => {
+					const sendSettings = pendingSendSettingsRef.current
+					pendingSendSettingsRef.current = null
+
+					return {
+						body: {
+							messages,
+							metadata: {
+								chatId: chatIdRef.current,
+								projectId: selectedProjectRef.current,
+								spaceMode:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID
+										? "auto"
+										: "manual",
+								enableSpaceDiscovery:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
+								model: sendSettings?.model ?? selectedModelRef.current,
+								reasoningEffort:
+									sendSettings?.reasoningEffort ?? reasoningEffortRef.current,
+								truncateFromMessageId: truncateFromMessageIdRef.current,
+							},
 						},
-					},
-				}),
+					}
+				},
 			}),
 		[chatApiBase],
 	)
@@ -405,10 +415,10 @@ export function ChatSidebar({
 			if (messageIndex === -1) return
 
 			truncateFromMessageIdRef.current = messageId
-			selectedModelRef.current = model
-			reasoningEffortRef.current = nextReasoningEffort
-			setSelectedModel(model)
-			setReasoningEffort(nextReasoningEffort)
+			pendingSendSettingsRef.current = {
+				model,
+				reasoningEffort: nextReasoningEffort,
+			}
 			clearError()
 			pendingRegenerationRef.current = {
 				text: trimmed,
