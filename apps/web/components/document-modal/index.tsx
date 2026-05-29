@@ -3,6 +3,7 @@
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
 import { Drawer, DrawerContent, DrawerTitle } from "@repo/ui/components/drawer"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/tabs"
 import {
 	ArrowUpRightIcon,
 	XIcon,
@@ -269,6 +270,57 @@ export function DocumentModal({
 		],
 	)
 
+	const hasPluginInsights =
+		pluginDocument &&
+		pluginDocument.kind !== "claude-code-doc" &&
+		pluginDocument.kind !== "openclaw-session"
+	const hasDocumentInsights = Boolean(
+		hasPluginInsights ||
+			_document?.summary ||
+			pluginDocument?.summary ||
+			(_document?.memoryEntries && _document.memoryEntries.length > 0),
+	)
+
+	const documentPreview = (
+		<div
+			id="document-preview"
+			className="bg-[#14161A] rounded-[14px] overflow-hidden flex min-h-0 flex-1 flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative"
+		>
+			<DocumentContent
+				document={_document}
+				textEditorProps={textEditorProps}
+				pluginDocument={pluginDocument}
+			/>
+		</div>
+	)
+
+	const documentInsights = (
+		<div
+			id="document-memories-summary"
+			className={cn(
+				"gap-3 flex flex-col overflow-hidden",
+				isMobile && "min-h-0 flex-1",
+				dmSansClassName(),
+			)}
+		>
+			{hasPluginInsights && <PluginDetails parsed={pluginDocument} />}
+			{_document && (_document.summary || pluginDocument?.summary) && (
+				<DocumentSummary
+					memoryEntries={_document.memoryEntries}
+					summary={(pluginDocument?.summary ?? _document.summary) as string}
+					createdAt={_document.createdAt}
+				/>
+			)}
+			{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
+				<GraphListMemories
+					memoryEntries={_document.memoryEntries as MemoryEntry[]}
+					documentId={_document.id}
+					className={isMobile ? "h-auto min-h-[420px] flex-1 shrink" : undefined}
+				/>
+			)}
+		</div>
+	)
+
 	const modalContent = (
 		<>
 			{isMobile ? (
@@ -336,51 +388,43 @@ export function DocumentModal({
 					)}
 				</div>
 			</div>
-			<div
-				className={cn(
-					"flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 min-h-0",
-					isMobile ? "overflow-y-auto pb-1" : "overflow-hidden",
-				)}
-			>
-				<div
-					id="document-preview"
-					className={cn(
-						"bg-[#14161A] rounded-[14px] overflow-hidden flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative",
-					)}
+			{isMobile && hasDocumentInsights ? (
+				<Tabs
+					defaultValue="content"
+					className="flex min-h-0 flex-1 flex-col pt-1.5"
 				>
-					<DocumentContent
-						document={_document}
-						textEditorProps={textEditorProps}
-						pluginDocument={pluginDocument}
-					/>
+					<TabsList className="grid h-11 w-full grid-cols-2 rounded-full border border-[#263142] bg-[#0A1019] p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.04),0_1px_3px_rgba(0,0,0,0.35)]">
+						<TabsTrigger
+							value="content"
+							className="rounded-full text-[15px] font-medium text-[#8E99AA] transition-colors data-[state=active]:bg-[#0B2B60]! data-[state=active]:text-[#F8FAFC] data-[state=active]:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_1px_4px_rgba(54,155,253,0.18)]"
+						>
+							Content
+						</TabsTrigger>
+						<TabsTrigger
+							value="insights"
+							className="rounded-full text-[15px] font-medium text-[#8E99AA] transition-colors data-[state=active]:bg-[#0B2B60]! data-[state=active]:text-[#F8FAFC] data-[state=active]:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_1px_4px_rgba(54,155,253,0.18)]"
+						>
+							Insights
+						</TabsTrigger>
+					</TabsList>
+					<TabsContent value="content" className="mt-4 flex min-h-0 flex-1">
+						{documentPreview}
+					</TabsContent>
+					<TabsContent
+						value="insights"
+						className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pb-1 scrollbar-thin"
+					>
+						{documentInsights}
+					</TabsContent>
+				</Tabs>
+			) : isMobile ? (
+				<div className="flex min-h-0 flex-1 pt-1.5">{documentPreview}</div>
+			) : (
+				<div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 min-h-0 overflow-hidden">
+					{documentPreview}
+					{documentInsights}
 				</div>
-				<div
-					id="document-memories-summary"
-					className={cn(
-						"gap-3 flex flex-col overflow-hidden",
-						dmSansClassName(),
-					)}
-				>
-					{pluginDocument &&
-						pluginDocument.kind !== "claude-code-doc" &&
-						pluginDocument.kind !== "openclaw-session" && (
-							<PluginDetails parsed={pluginDocument} />
-						)}
-					{_document && (_document.summary || pluginDocument?.summary) && (
-						<DocumentSummary
-							memoryEntries={_document.memoryEntries}
-							summary={(pluginDocument?.summary ?? _document.summary) as string}
-							createdAt={_document.createdAt}
-						/>
-					)}
-					{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
-						<GraphListMemories
-							memoryEntries={_document.memoryEntries as MemoryEntry[]}
-							documentId={_document.id}
-						/>
-					)}
-				</div>
-			</div>
+			)}
 		</>
 	)
 
