@@ -147,11 +147,9 @@ function SettingsCard({
 
 function PlanCard({
 	action,
-	isCurrent,
 	plan,
 }: {
 	action: React.ReactNode
-	isCurrent: boolean
 	plan: PlanCardDefinition
 }) {
 	return (
@@ -159,9 +157,7 @@ function PlanCard({
 			className={cn(
 				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-				isCurrent
-					? "border-[#2261CA33] bg-[#17202B]"
-					: "border-white/[0.08] bg-[#14161A]",
+				"border-white/[0.08] bg-[#14161A]",
 			)}
 		>
 			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
@@ -896,7 +892,6 @@ export default function Billing() {
 					{PLAN_CARDS.map((plan) => (
 						<PlanCard
 							action={getPlanCardAction(plan)}
-							isCurrent={currentPlan === plan.id}
 							key={plan.id}
 							plan={plan}
 						/>

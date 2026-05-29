@@ -435,10 +435,11 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 							<TooltipTrigger asChild>
 								<Button
 									asChild
+									variant="headers"
 									className={cn(
-										"rounded-full! h-9! min-h-9 shrink-0 border-transparent bg-[#4BA0FA] text-[#00171A] hover:bg-[#4BA0FA]/90",
+										"rounded-full! h-9! min-h-9 shrink-0",
 										"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
-										"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-semibold",
+										"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-medium",
 										dmSansClassName(),
 									)}
 								>
