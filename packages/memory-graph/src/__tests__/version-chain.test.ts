@@ -90,6 +90,31 @@ describe("VersionChainIndex", () => {
 		expect(chain?.map((e) => e.version)).toEqual([1, 2])
 	})
 
+	it("only infers broken version entries and preserves valid backend versions", () => {
+		const idx = new VersionChainIndex()
+		const doc = makeDoc("d1", [
+			makeMem({ id: "m1", version: 1 }),
+			makeMem({
+				id: "m2",
+				parentMemoryId: "m1",
+				rootMemoryId: "m1",
+				version: 5,
+			}),
+			makeMem({
+				id: "m3",
+				parentMemoryId: "m2",
+				rootMemoryId: "m1",
+				version: 5,
+			}),
+		])
+		idx.rebuild([doc])
+
+		const chain = idx.getChain("m3")
+		expect(chain).not.toBeNull()
+		expect(chain?.map((e) => e.id)).toEqual(["m1", "m2", "m3"])
+		expect(chain?.map((e) => e.version)).toEqual([1, 5, 6])
+	})
+
 	it("getChain from middle element returns full chain (backward + forward)", () => {
 		const idx = new VersionChainIndex()
 		const doc = makeDoc("d1", [

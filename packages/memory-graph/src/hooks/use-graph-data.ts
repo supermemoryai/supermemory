@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import type {
 	DocumentNodeData,
 	GraphApiDocument,
@@ -8,6 +8,7 @@ import type {
 	GraphThemeColors,
 	MemoryNodeData,
 } from "../types"
+import { hashString } from "../utils/hash"
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
@@ -18,6 +19,7 @@ const APPEND_CLUSTER_RADIUS = MEMORY_ORBIT_BASE + 180
 const APPEND_AREA_GAP = 160
 const APPEND_CANDIDATES_PER_RING = 18
 const APPEND_MAX_RINGS = 8
+const APPEND_SPATIAL_CELL_SIZE = APPEND_CLUSTER_RADIUS + APPEND_AREA_GAP + 120
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 const CLUSTER_COLORS = [
 	"#58C7E8",
@@ -255,25 +257,13 @@ function connect(map: Map<string, Set<string>>, a: string, b: string) {
 	map.get(b)?.add(a)
 }
 
-function hashString(value: string): number {
-	let hash = 0
-	for (let i = 0; i < value.length; i++) {
-		hash = (Math.imul(31, hash) + value.charCodeAt(i)) | 0
-	}
-	return hash >>> 0
-}
-
 /**
  * Simple deterministic hash of a string to a number in [0, 1).
  * Used for initial node placement so the force simulation has a
  * deterministic starting layout.
  */
 function hashToUnit(str: string): number {
-	let h = 0
-	for (let i = 0; i < str.length; i++) {
-		h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
-	}
-	return ((h >>> 0) % 10000) / 10000
+	return (hashString(str) % 10000) / 10000
 }
 
 export function getNodeBounds(nodes: GraphNode[]) {
@@ -313,6 +303,7 @@ export function getAppendPosition(
 		return { x: canvasWidth / 2, y: canvasHeight / 2 }
 	}
 
+	const spatialGrid = buildAppendSpatialGrid(existingNodes)
 	const boundsWidth = bounds.maxX - bounds.minX
 	const boundsHeight = bounds.maxY - bounds.minY
 	const baseRadiusX = boundsWidth / 2 + APPEND_CLUSTER_RADIUS + APPEND_AREA_GAP
@@ -332,7 +323,7 @@ export function getAppendPosition(
 				y: bounds.centerY + Math.sin(angle) * radiusY,
 			}
 
-			if (isAppendCandidateOpen(candidate, existingNodes)) {
+			if (isAppendCandidateOpen(candidate, spatialGrid)) {
 				return candidate
 			}
 		}
@@ -349,18 +340,52 @@ export function getAppendPosition(
 
 function isAppendCandidateOpen(
 	candidate: { x: number; y: number },
-	existingNodes: GraphNode[],
+	spatialGrid: Map<string, GraphNode[]>,
 ) {
-	for (const node of existingNodes) {
-		const minDistance = APPEND_CLUSTER_RADIUS + node.size / 2 + APPEND_AREA_GAP
-		const dx = candidate.x - node.x
-		if (Math.abs(dx) > minDistance) continue
-		const dy = candidate.y - node.y
-		if (Math.abs(dy) > minDistance) continue
-		if (dx * dx + dy * dy < minDistance * minDistance) return false
+	const cellX = getAppendSpatialCell(candidate.x)
+	const cellY = getAppendSpatialCell(candidate.y)
+	for (let x = cellX - 1; x <= cellX + 1; x++) {
+		for (let y = cellY - 1; y <= cellY + 1; y++) {
+			const nodes = spatialGrid.get(getAppendSpatialKey(x, y))
+			if (!nodes) continue
+			for (const node of nodes) {
+				const minDistance =
+					APPEND_CLUSTER_RADIUS + node.size / 2 + APPEND_AREA_GAP
+				const dx = candidate.x - node.x
+				if (Math.abs(dx) > minDistance) continue
+				const dy = candidate.y - node.y
+				if (Math.abs(dy) > minDistance) continue
+				if (dx * dx + dy * dy < minDistance * minDistance) return false
+			}
+		}
 	}
 
 	return true
+}
+
+function buildAppendSpatialGrid(nodes: GraphNode[]): Map<string, GraphNode[]> {
+	const grid = new Map<string, GraphNode[]>()
+	for (const node of nodes) {
+		const key = getAppendSpatialKey(
+			getAppendSpatialCell(node.x),
+			getAppendSpatialCell(node.y),
+		)
+		const bucket = grid.get(key)
+		if (bucket) {
+			bucket.push(node)
+		} else {
+			grid.set(key, [node])
+		}
+	}
+	return grid
+}
+
+function getAppendSpatialCell(value: number): number {
+	return Math.floor(value / APPEND_SPATIAL_CELL_SIZE)
+}
+
+function getAppendSpatialKey(x: number, y: number): string {
+	return `${x}:${y}`
 }
 
 /**
@@ -428,10 +453,12 @@ export function useGraphData(
 ) {
 	const nodeCache = useRef<Map<string, GraphNode>>(new Map())
 
-	const nodes = useMemo(() => {
+	const graphData = useMemo<{
+		nodes: GraphNode[]
+		cache: Map<string, GraphNode>
+	}>(() => {
 		if (!documents || documents.length === 0) {
-			nodeCache.current.clear()
-			return []
+			return { nodes: [], cache: new Map<string, GraphNode>() }
 		}
 
 		const currentIds = new Set<string>()
@@ -440,11 +467,11 @@ export function useGraphData(
 			for (const mem of doc.memories) currentIds.add(mem.id)
 		}
 
-		for (const [id] of nodeCache.current.entries()) {
-			if (!currentIds.has(id)) nodeCache.current.delete(id)
-		}
-
-		const appendPlacementNodes = Array.from(nodeCache.current.values())
+		const previousCache = nodeCache.current
+		const nextCache = new Map<string, GraphNode>()
+		const appendPlacementNodes = Array.from(previousCache.values()).filter(
+			(node) => currentIds.has(node.id),
+		)
 		let appendIndex = 0
 		const clusterAssignments = computeClusterAssignments(documents)
 
@@ -469,7 +496,7 @@ export function useGraphData(
 			const initialX = cx + Math.cos(angle) * radius
 			const initialY = cy + Math.sin(angle) * radius
 
-			let docNode = nodeCache.current.get(doc.id)
+			const previousDocNode = previousCache.get(doc.id)
 			const docData: DocumentNodeData = {
 				id: doc.id,
 				title: doc.title,
@@ -480,12 +507,16 @@ export function useGraphData(
 				memories: doc.memories,
 			}
 
-			if (docNode) {
-				docNode.data = docData
-				docNode.borderColor = docCluster.color
-				docNode.clusterKey = docCluster.key
-				docNode.clusterColor = docCluster.color
-				docNode.isDragging = draggingNodeId === doc.id
+			let docNode: GraphNode
+			if (previousDocNode) {
+				docNode = {
+					...previousDocNode,
+					data: docData,
+					borderColor: docCluster.color,
+					clusterKey: docCluster.key,
+					clusterColor: docCluster.color,
+					isDragging: draggingNodeId === doc.id,
+				}
 			} else {
 				const appendPosition =
 					appendPlacementNodes.length > 0
@@ -510,36 +541,35 @@ export function useGraphData(
 					isHovered: false,
 					isDragging: false,
 				}
-				nodeCache.current.set(doc.id, docNode)
 				appendPlacementNodes.push(docNode)
 			}
+			nextCache.set(doc.id, docNode)
 			result.push(docNode)
 
 			const memCount = doc.memories.length
 			for (let i = 0; i < memCount; i++) {
 				const mem = doc.memories[i]
 				if (!mem) continue
-				let memNode = nodeCache.current.get(mem.id)
+				const previousMemNode = previousCache.get(mem.id)
 				const memData: MemoryNodeData = {
 					...mem,
 					documentId: doc.id,
 					content: mem.memory,
 				}
+				const cluster = clusterAssignments.get(mem.id)
 
-				if (memNode) {
-					memNode.data = memData
-					const cluster = clusterAssignments.get(mem.id)
-					memNode.borderColor = getMemoryNodeBorderColor(
-						mem,
-						colors,
-						cluster?.color,
-					)
-					memNode.clusterKey = cluster?.key ?? null
-					memNode.clusterColor = cluster?.color ?? null
-					memNode.isDragging = draggingNodeId === mem.id
+				let memNode: GraphNode
+				if (previousMemNode) {
+					memNode = {
+						...previousMemNode,
+						data: memData,
+						borderColor: getMemoryNodeBorderColor(mem, colors, cluster?.color),
+						clusterKey: cluster?.key ?? null,
+						clusterColor: cluster?.color ?? null,
+						isDragging: draggingNodeId === mem.id,
+					}
 				} else {
 					const memOffset = getMemoryOrbitOffset(i, memCount, mem.id)
-					const cluster = clusterAssignments.get(mem.id)
 					memNode = {
 						id: mem.id,
 						type: "memory",
@@ -553,17 +583,21 @@ export function useGraphData(
 						isHovered: false,
 						isDragging: false,
 					}
-					nodeCache.current.set(mem.id, memNode)
 					appendPlacementNodes.push(memNode)
 				}
+				nextCache.set(mem.id, memNode)
 				result.push(memNode)
 			}
 		}
 
-		return result
+		return { nodes: result, cache: nextCache }
 	}, [documents, canvasWidth, canvasHeight, draggingNodeId, colors])
+
+	useEffect(() => {
+		nodeCache.current = graphData.cache
+	}, [graphData.cache])
 
 	const edges = useMemo(() => computeEdges(documents), [documents])
 
-	return { nodes, edges }
+	return { nodes: graphData.nodes, edges }
 }

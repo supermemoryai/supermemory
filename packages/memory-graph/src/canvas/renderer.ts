@@ -7,6 +7,7 @@ import type {
 } from "../types"
 import type { ViewportState } from "./viewport"
 import { drawDocIcon, roundRect } from "./document-icons"
+import { hashString } from "../utils/hash"
 
 export interface RenderState {
 	selectedNodeId: string | null
@@ -155,14 +156,6 @@ function applyRelationLevelOfDetail(
 		},
 		glow: false,
 	}
-}
-
-function hashString(value: string): number {
-	let hash = 0
-	for (let i = 0; i < value.length; i++) {
-		hash = (Math.imul(31, hash) + value.charCodeAt(i)) | 0
-	}
-	return hash >>> 0
 }
 
 function clampNumber(value: number, min: number, max: number): number {
