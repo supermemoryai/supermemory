@@ -849,28 +849,6 @@ export default function Billing() {
 									: "Usage resets with your billing cycle"}
 							</p>
 						</div>
-
-						{!hasPaidPlan ? (
-							<button
-								type="button"
-								onClick={handleUpgrade}
-								disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
-								title={
-									autumn.isLoading && !isUpgrading && !isCheckingStatus
-										? "Loading billing details…"
-										: undefined
-								}
-								className={cn(
-									dmSans125ClassName(),
-									"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
-								)}
-							>
-								{isUpgrading || isCheckingStatus || autumn.isLoading ? (
-									<LoaderIcon className="size-4 animate-spin" />
-								) : null}
-								Upgrade to Pro - $19/month
-							</button>
-						) : null}
 					</div>
 				</SettingsCard>
 			</section>
