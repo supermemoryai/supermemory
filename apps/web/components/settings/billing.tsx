@@ -15,7 +15,6 @@ import { useCustomer } from "autumn-js/react"
 import {
 	Check,
 	Coins,
-	ArrowRight,
 	ExternalLink,
 	LoaderIcon,
 	Plus,
@@ -964,17 +963,17 @@ export default function Billing() {
 						))}
 					</div>
 				) : (
-					<div className="flex justify-center pt-1">
+					<div className="flex justify-end px-2 pt-1">
 						<button
 							type="button"
 							onClick={() => setShowOtherPlans(true)}
 							className={cn(
 								dmSans125ClassName(),
-								"inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] px-4 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:border-[#0B65C9]/60 hover:bg-[#061B38] hover:text-[#FAFAFA]",
+								"inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[#A3A3A3] underline underline-offset-4 transition-colors hover:text-[#FAFAFA]",
 							)}
 						>
-							See other plans
-							<ArrowRight className="size-3.5" />
+							Other plans
+							<span aria-hidden="true">-&gt;</span>
 						</button>
 					</div>
 				)}
