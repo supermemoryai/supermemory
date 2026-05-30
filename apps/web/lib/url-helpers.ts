@@ -1,4 +1,22 @@
 const PROXY_LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"])
+const DEV_APP_ORIGIN = "https://app.dev.supermemory.ai"
+const PROD_APP_ORIGIN = "https://app.supermemory.ai"
+
+export function getAppOriginForCurrentEnvironment(hostname?: string): string {
+	const currentHostname =
+		hostname ?? (typeof window !== "undefined" ? window.location.hostname : "")
+	const normalized = currentHostname.toLowerCase()
+	const isLocalOrDev =
+		process.env.NODE_ENV !== "production" ||
+		PROXY_LOCAL_HOSTS.has(normalized) ||
+		normalized.includes("app.dev.supermemory")
+
+	return isLocalOrDev ? DEV_APP_ORIGIN : PROD_APP_ORIGIN
+}
+
+export function getBillingSettingsUrl(hostname?: string): string {
+	return `${getAppOriginForCurrentEnvironment(hostname)}/settings#billing`
+}
 
 /** Reconstruct the browser-facing URL when running behind portless (or similar). */
 export function getPublicRequestUrl(request: Request): URL {

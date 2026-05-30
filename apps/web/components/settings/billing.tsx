@@ -13,6 +13,9 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import {
+	Check,
+	ChevronLeft,
+	ChevronRight,
 	Coins,
 	ExternalLink,
 	LoaderIcon,
@@ -30,6 +33,8 @@ const API_BASE =
 const CREDIT_FEATURE_ID = "usd_credits"
 const TOP_UP_PLAN_ID = "credits_topup"
 const TOP_UP_AMOUNTS = [10, 25, 50, 100] as const
+const PLAN_CARD_ACTION_CLASS =
+	"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] text-[14px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
 
 const SURFACE_SHADOW =
 	"0 2.842px 14.211px 0 rgba(0,0,0,0.25), 0.711px 0.711px 0.711px 0 rgba(255,255,255,0.10) inset"
@@ -63,6 +68,91 @@ type AutoTopupsResponse =
 			autoTopup: AutoTopupConfig | null
 	  }
 	| { ok: false; reason: string; message?: string }
+
+type PlanCardDefinition = {
+	id: "free" | "pro" | "scale" | "enterprise"
+	name: string
+	price: string
+	period: string
+	credits: string
+	productId: "api_free" | "api_pro" | "api_scale" | "api_enterprise"
+	description: string
+	includesFrom?: string
+	features: string[]
+	isContactSales?: boolean
+}
+
+const PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "free",
+		name: "Free",
+		price: "$0",
+		period: "",
+		credits: "$5",
+		productId: "api_free",
+		description: "Try supermemory with no commitment",
+		features: [
+			"Pay-as-you-go after $5 runs out",
+			"Full search and memory access",
+			"Email support",
+		],
+	},
+	{
+		id: "pro",
+		name: "Pro",
+		price: "$19",
+		period: "/mo",
+		credits: "$20",
+		productId: "api_pro",
+		description: "For people building with AI memory",
+		features: [
+			"Auto top-up when balance runs low",
+			"All plugins (Claude Code, Cursor, Hermes...)",
+			"Priority support",
+		],
+	},
+]
+
+const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "scale",
+		name: "Scale",
+		price: "$399",
+		period: "/mo",
+		credits: "$600",
+		productId: "api_scale",
+		description: "For teams and production workloads",
+		includesFrom: "Pro",
+		features: [
+			"Auto top-up & spend caps",
+			"Gmail, S3 & Web Crawler connectors",
+			"Dedicated support",
+		],
+	},
+	{
+		id: "enterprise",
+		name: "Enterprise",
+		price: "Custom",
+		period: "",
+		credits: "Unlimited",
+		productId: "api_enterprise",
+		description: "Custom deployments with dedicated engineering",
+		includesFrom: "Scale",
+		features: [
+			"Custom metering & billing",
+			"Custom integrations & SSO",
+			"Forward-deployed engineer",
+		],
+		isContactSales: true,
+	},
+]
+
+const PLAN_RANK: Record<PlanCardDefinition["id"], number> = {
+	free: 0,
+	pro: 1,
+	scale: 2,
+	enterprise: 3,
+}
 
 function SectionTitle({
 	children,
@@ -102,6 +192,95 @@ function SettingsCard({
 			)}
 		>
 			{children}
+		</div>
+	)
+}
+
+function PlanCard({
+	action,
+	plan,
+}: {
+	action: React.ReactNode
+	plan: PlanCardDefinition
+}) {
+	return (
+		<div
+			className={cn(
+				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
+				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
+				"border-white/[0.08] bg-[#14161A]",
+			)}
+		>
+			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+				{plan.name}
+			</p>
+
+			<div className="mt-3 flex items-baseline gap-1">
+				<span
+					className={cn(
+						dmSans125ClassName(),
+						"text-[34px] font-bold leading-none tracking-[-0.34px] text-[#FAFAFA] tabular-nums",
+					)}
+				>
+					{plan.price}
+				</span>
+				{plan.period ? (
+					<span className="text-[13px] text-[#737373]">{plan.period}</span>
+				) : null}
+			</div>
+
+			<p
+				className={cn(
+					dmSans125ClassName(),
+					"mt-2 text-[13px] leading-snug text-[#A3A3A3]",
+				)}
+			>
+				{plan.description}
+			</p>
+
+			{plan.isContactSales ? null : (
+				<div className="mt-5 flex items-center gap-2 rounded-[8px] bg-white/[0.04] px-3 py-2.5 text-[#A3A3A3]">
+					<Coins className="size-3.5 shrink-0 text-[#737373]" />
+					<div className="min-w-0">
+						<p className="text-[12px] font-semibold leading-none text-[#C8D0DA] tabular-nums">
+							{plan.credits}
+						</p>
+						<p className="mt-0.5 text-[10px] leading-none text-[#737373]">
+							of usage included
+						</p>
+					</div>
+				</div>
+			)}
+
+			{plan.includesFrom ? (
+				<div className="mt-5 flex items-center gap-3">
+					<div className="h-px flex-1 bg-white/[0.08]" />
+					<span className="whitespace-nowrap text-[10px] text-[#737373]">
+						Everything in {plan.includesFrom}, plus
+					</span>
+					<div className="h-px flex-1 bg-white/[0.08]" />
+				</div>
+			) : null}
+
+			<ul
+				className={cn(
+					"mb-6 flex flex-1 flex-col gap-3",
+					plan.includesFrom ? "mt-5" : "mt-5",
+					plan.isContactSales && !plan.includesFrom && "mt-7",
+				)}
+			>
+				{plan.features.map((feature) => (
+					<li
+						className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
+						key={feature}
+					>
+						<Check className="mt-0.5 size-3.5 shrink-0 text-[#737373]" />
+						<span>{feature}</span>
+					</li>
+				))}
+			</ul>
+
+			{action}
 		</div>
 	)
 }
@@ -239,6 +418,8 @@ export default function Billing() {
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
+	const [isPlanCarouselActive, setIsPlanCarouselActive] = useState(false)
+	const [planPage, setPlanPage] = useState<0 | 1>(0)
 	const [topUpAmount, setTopUpAmount] = useState<number>(25)
 	const [customTopUpAmount, setCustomTopUpAmount] = useState("")
 	const [topUpPendingAmount, setTopUpPendingAmount] = useState<number | null>(
@@ -336,11 +517,11 @@ export default function Billing() {
 
 	const planDisplayNames = PLAN_DISPLAY_NAMES
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_scale") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: `${window.location.origin}/settings#billing`,
 			})
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
@@ -491,6 +672,97 @@ export default function Billing() {
 		autumn.openCustomerPortal?.({
 			returnUrl: `${window.location.origin}/settings#billing`,
 		})
+	}
+
+	const getPlanCardAction = (plan: PlanCardDefinition) => {
+		const disabled = isUpgrading || isCheckingStatus || autumn.isLoading
+		const isCurrentPlan = plan.id === currentPlan
+		const isIncludedPlan = PLAN_RANK[currentPlan] > PLAN_RANK[plan.id]
+
+		if (plan.id === "free") {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					{hasPaidPlan ? "Included with current plan" : "Your current plan"}
+				</button>
+			)
+		}
+
+		if (isCurrentPlan) {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					Your current plan
+				</button>
+			)
+		}
+
+		if (isIncludedPlan) {
+			return (
+				<button
+					type="button"
+					disabled
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.04] bg-white/[0.02] text-[#737373]",
+					)}
+				>
+					Included with {planDisplayNames[currentPlan]}
+				</button>
+			)
+		}
+
+		if (plan.isContactSales) {
+			return (
+				<a
+					href="mailto:support@supermemory.com?subject=Enterprise%20plan"
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.08] bg-transparent text-[#FAFAFA] hover:bg-white/[0.04]",
+					)}
+				>
+					Contact sales
+				</a>
+			)
+		}
+
+		const checkoutPlanId =
+			plan.productId === "api_pro" || plan.productId === "api_scale"
+				? plan.productId
+				: null
+		if (!checkoutPlanId) return null
+
+		return (
+			<button
+				type="button"
+				onClick={() => handleUpgrade(checkoutPlanId)}
+				disabled={disabled}
+				className={cn(
+					dmSans125ClassName(),
+					PLAN_CARD_ACTION_CLASS,
+					"bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]",
+				)}
+			>
+				{disabled ? <LoaderIcon className="size-4 animate-spin" /> : null}
+				Upgrade to {plan.name}
+			</button>
+		)
 	}
 
 	return (
@@ -671,30 +943,89 @@ export default function Billing() {
 									: "Usage resets with your billing cycle"}
 							</p>
 						</div>
-
-						{!hasPaidPlan ? (
-							<button
-								type="button"
-								onClick={handleUpgrade}
-								disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
-								title={
-									autumn.isLoading && !isUpgrading && !isCheckingStatus
-										? "Loading billing details…"
-										: undefined
-								}
-								className={cn(
-									dmSans125ClassName(),
-									"inline-flex h-10 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0054AD] text-[14px] font-semibold text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-60",
-								)}
-							>
-								{isUpgrading || isCheckingStatus || autumn.isLoading ? (
-									<LoaderIcon className="size-4 animate-spin" />
-								) : null}
-								Upgrade to Pro - $19/month
-							</button>
-						) : null}
 					</div>
 				</SettingsCard>
+			</section>
+
+			<section id="billing-plans" className="flex flex-col gap-4">
+				<SectionTitle
+					aside={
+						isPlanCarouselActive ? (
+							<div className="flex items-center gap-1.5">
+								<button
+									type="button"
+									onClick={() => setPlanPage(0)}
+									disabled={planPage === 0}
+									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+									aria-label="Show Free and Pro plans"
+								>
+									<ChevronLeft className="size-4" />
+								</button>
+								<button
+									type="button"
+									onClick={() => setPlanPage(1)}
+									disabled={planPage === 1}
+									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+									aria-label="Show Scale and Enterprise plans"
+								>
+									<ChevronRight className="size-4" />
+								</button>
+							</div>
+						) : undefined
+					}
+				>
+					Plans
+				</SectionTitle>
+				<div className="overflow-hidden">
+					<div
+						className="flex gap-4 transition-transform duration-300 ease-out"
+						style={{
+							transform:
+								planPage === 1 ? "translateX(calc(-100% - 1rem))" : "none",
+						}}
+					>
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+							{PLAN_CARDS.map((plan) => (
+								<PlanCard
+									action={getPlanCardAction(plan)}
+									key={plan.id}
+									plan={plan}
+								/>
+							))}
+						</div>
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+							{ADVANCED_PLAN_CARDS.map((plan) => (
+								<PlanCard
+									action={getPlanCardAction(plan)}
+									key={plan.id}
+									plan={plan}
+								/>
+							))}
+						</div>
+					</div>
+				</div>
+				{isPlanCarouselActive ? null : (
+					<div className="flex justify-end px-2 pt-1">
+						<button
+							type="button"
+							onClick={() => {
+								setIsPlanCarouselActive(true)
+								setPlanPage(1)
+							}}
+							className={cn(
+								dmSans125ClassName(),
+								"inline-flex items-center justify-center gap-2 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
+							)}
+						>
+							<span className="relative after:absolute after:right-0 after:-bottom-0.5 after:left-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100">
+								Other plans
+							</span>
+							<span className="translate-x-1 text-[15px]" aria-hidden="true">
+								&rarr;
+							</span>
+						</button>
+					</div>
+				)}
 			</section>
 
 			<Dialog open={isCreditsDialogOpen} onOpenChange={setIsCreditsDialogOpen}>
