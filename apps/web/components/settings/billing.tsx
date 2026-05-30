@@ -1014,7 +1014,9 @@ export default function Billing() {
 								"inline-flex items-center justify-center gap-2 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
 							)}
 						>
-							<span className="underline underline-offset-4">Other plans</span>
+							<span className="relative after:absolute after:right-0 after:-bottom-0.5 after:left-0 after:h-px after:origin-left after:scale-x-0 after:bg-current after:transition-transform after:duration-200 hover:after:scale-x-100">
+								Other plans
+							</span>
 							<span className="translate-x-1 text-[15px]" aria-hidden="true">
 								&rarr;
 							</span>
