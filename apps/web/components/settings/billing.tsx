@@ -75,7 +75,6 @@ type PlanCardDefinition = {
 	description: string
 	includesFrom?: string
 	features: string[]
-	highlight?: boolean
 	isContactSales?: boolean
 }
 
@@ -125,7 +124,6 @@ const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
 			"Gmail, S3 & Web Crawler connectors",
 			"Dedicated support",
 		],
-		highlight: true,
 	},
 	{
 		id: "enterprise",
@@ -206,24 +204,10 @@ function PlanCard({
 			className={cn(
 				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-				plan.highlight
-					? "border-[#0B65C9] bg-[#14161A] shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7),0_0_0_1px_rgba(11,101,201,0.72)]"
-					: "border-white/[0.08] bg-[#14161A]",
+				"border-white/[0.08] bg-[#14161A]",
 			)}
 		>
-			{plan.highlight ? (
-				<div className="-translate-x-1/2 absolute top-[-1px] left-1/2 whitespace-nowrap">
-					<span className="rounded-full bg-[#1688FF] px-3 py-1 text-[10px] font-bold uppercase leading-none tracking-[0.32px] text-white">
-						Most popular
-					</span>
-				</div>
-			) : null}
-			<p
-				className={cn(
-					"font-mono text-[10px] font-medium uppercase tracking-[0.18em]",
-					plan.highlight ? "text-[#4BA0FA]" : "text-[#737373]",
-				)}
-			>
+			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
 				{plan.name}
 			</p>
 
@@ -251,33 +235,13 @@ function PlanCard({
 			</p>
 
 			{plan.isContactSales ? null : (
-				<div
-					className={cn(
-						"mt-5 flex items-center gap-2 rounded-[8px] px-3 py-2.5 text-[#A3A3A3]",
-						plan.highlight ? "bg-[#061B38]" : "bg-white/[0.04]",
-					)}
-				>
-					<Coins
-						className={cn(
-							"size-3.5 shrink-0",
-							plan.highlight ? "text-[#4BA0FA]" : "text-[#737373]",
-						)}
-					/>
+				<div className="mt-5 flex items-center gap-2 rounded-[8px] bg-white/[0.04] px-3 py-2.5 text-[#A3A3A3]">
+					<Coins className="size-3.5 shrink-0 text-[#737373]" />
 					<div className="min-w-0">
-						<p
-							className={cn(
-								"text-[12px] font-semibold leading-none tabular-nums",
-								plan.highlight ? "text-[#4BA0FA]" : "text-[#C8D0DA]",
-							)}
-						>
+						<p className="text-[12px] font-semibold leading-none text-[#C8D0DA] tabular-nums">
 							{plan.credits}
 						</p>
-						<p
-							className={cn(
-								"mt-0.5 text-[10px] leading-none",
-								plan.highlight ? "text-[#4BA0FA]/75" : "text-[#737373]",
-							)}
-						>
+						<p className="mt-0.5 text-[10px] leading-none text-[#737373]">
 							of usage included
 						</p>
 					</div>
@@ -306,12 +270,7 @@ function PlanCard({
 						className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
 						key={feature}
 					>
-						<Check
-							className={cn(
-								"mt-0.5 size-3.5 shrink-0",
-								plan.highlight ? "text-[#4BA0FA]" : "text-[#737373]",
-							)}
-						/>
+						<Check className="mt-0.5 size-3.5 shrink-0 text-[#737373]" />
 						<span>{feature}</span>
 					</li>
 				))}
