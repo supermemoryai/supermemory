@@ -1011,11 +1011,13 @@ export default function Billing() {
 							}}
 							className={cn(
 								dmSans125ClassName(),
-								"inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[#A3A3A3] underline underline-offset-4 transition-colors hover:text-[#FAFAFA]",
+								"inline-flex items-center justify-center gap-2 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:text-[#FAFAFA]",
 							)}
 						>
-							Other plans
-							<span aria-hidden="true">-&gt;</span>
+							<span className="underline underline-offset-4">Other plans</span>
+							<span className="translate-x-1 text-[15px]" aria-hidden="true">
+								&rarr;
+							</span>
 						</button>
 					</div>
 				)}
