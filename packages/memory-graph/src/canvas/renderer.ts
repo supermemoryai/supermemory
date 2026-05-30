@@ -1,5 +1,4 @@
 import type {
-	ClusterNodeData,
 	DocumentNodeData,
 	GraphEdge,
 	GraphNode,
@@ -22,6 +21,10 @@ const edgeBatches = new Map<string, PreparedEdge[]>()
 const RELATION_LOD_ZOOM = 0.5
 const RELATION_LOD_MAX_BACKGROUND_EDGES = 260
 const RELATION_LOD_DENSE_COUNT = 180
+const DERIVES_LOD_ZOOM = 0.38
+const DERIVES_LOD_MAX_BACKGROUND_EDGES = 3200
+const DENSE_POINT_THRESHOLD = 25000
+const DENSE_POINT_ZOOM = 0.42
 
 function nodeMatchesDocumentHighlights(
 	node: GraphNode,
@@ -29,11 +32,6 @@ function nodeMatchesDocumentHighlights(
 ): boolean {
 	if (highlightIds.size === 0) return false
 	if (node.type === "document") return highlightIds.has(node.id)
-	if (node.type === "cluster") {
-		return (node.data as ClusterNodeData).sampleDocumentIds.some((id) =>
-			highlightIds.has(id),
-		)
-	}
 	return highlightIds.has((node.data as MemoryNodeData).documentId)
 }
 
@@ -106,6 +104,16 @@ export function getRelationEdgeStride(
 	return Math.ceil(relationEdgeCount / RELATION_LOD_MAX_BACKGROUND_EDGES)
 }
 
+function getDerivesEdgeStride(derivesEdgeCount: number, zoom: number): number {
+	if (
+		zoom >= DERIVES_LOD_ZOOM ||
+		derivesEdgeCount <= DERIVES_LOD_MAX_BACKGROUND_EDGES
+	) {
+		return 1
+	}
+	return Math.ceil(derivesEdgeCount / DERIVES_LOD_MAX_BACKGROUND_EDGES)
+}
+
 export function shouldDrawRelationEdge(
 	edgeId: string,
 	edgeType: string,
@@ -113,6 +121,10 @@ export function shouldDrawRelationEdge(
 ): boolean {
 	if (edgeType === "derives" || stride <= 1) return true
 	return hashString(edgeId) % stride === 0
+}
+
+function shouldDrawSampledEdge(edgeId: string, stride: number): boolean {
+	return stride <= 1 || hashString(edgeId) % stride === 0
 }
 
 function applyRelationLevelOfDetail(
@@ -204,7 +216,9 @@ function drawEdges(
 		(count, edge) => count + (edge.edgeType === "derives" ? 0 : 1),
 		0,
 	)
+	const derivesEdgeCount = edges.length - relationEdgeCount
 	const relationStride = getRelationEdgeStride(relationEdgeCount, viewport.zoom)
+	const derivesStride = getDerivesEdgeStride(derivesEdgeCount, viewport.zoom)
 
 	const prepared: PreparedEdge[] = []
 
@@ -221,10 +235,11 @@ function drawEdges(
 		const activeConnected = hoverConnected || selectedConnected
 		const shouldAlwaysDrawActiveUpdate =
 			edgeType === "updates" && activeConnected
+		const edgeStride = edgeType === "derives" ? derivesStride : relationStride
 		if (
 			!shouldAlwaysDrawActiveUpdate &&
 			!hasDim &&
-			!shouldDrawRelationEdge(edge.id, edgeType, relationStride)
+			!shouldDrawSampledEdge(edge.id, edgeStride)
 		) {
 			continue
 		}
@@ -269,12 +284,12 @@ function drawEdges(
 			!shouldAlwaysDrawActiveUpdate &&
 			hasDim &&
 			!connected &&
-			!shouldDrawRelationEdge(edge.id, edgeType, relationStride)
+			!shouldDrawSampledEdge(edge.id, edgeStride)
 		) {
 			continue
 		}
 
-		const { style, glow } = applyRelationLevelOfDetail(
+		const edgeDetail = applyRelationLevelOfDetail(
 			edgeStyle(edge, colors),
 			edgeType,
 			relationEdgeCount,
@@ -282,6 +297,21 @@ function drawEdges(
 			hasDim && connected,
 			edgeType === "updates" && hoverConnected,
 		)
+		let style = edgeDetail.style
+		let glow = edgeDetail.glow
+		if (edgeType === "derives" && derivesStride > 1 && !activeConnected) {
+			const zoomFactor = clampNumber(
+				viewport.zoom / DERIVES_LOD_ZOOM,
+				0.08,
+				0.32,
+			)
+			style = {
+				...style,
+				width: Math.max(0.35, style.width * 0.45),
+				opacity: style.opacity * zoomFactor,
+			}
+			glow = false
+		}
 
 		prepared.push({
 			startX: s.x + ux * sr,
@@ -408,6 +438,17 @@ function drawNodes(
 	colors: GraphThemeColors,
 ): void {
 	const margin = 60
+	const densePointMode =
+		nodes.length > DENSE_POINT_THRESHOLD &&
+		viewport.zoom < DENSE_POINT_ZOOM &&
+		!state.selectedNodeId &&
+		state.highlightIds.size === 0
+	const pointDots: {
+		x: number
+		y: number
+		r: number
+		color: string
+	}[] = []
 	const memDots: {
 		x: number
 		y: number
@@ -444,8 +485,16 @@ function drawNodes(
 			highlightFocus && !isSelected && !isHovered && !isHighlighted
 
 		if (screenSize < 8 && !isSelected && !isHovered && !isHighlighted) {
-			if (node.type === "document" || node.type === "cluster") {
+			if (node.type === "document") {
 				docDots.push({ x: screen.x, y: screen.y, s: Math.max(3, screenSize) })
+			} else if (densePointMode) {
+				pointDots.push({
+					x: screen.x,
+					y: screen.y,
+					r: Math.max(1.1, screenSize * 0.42),
+					color:
+						node.clusterColor || node.borderColor || colors.memStrokeDefault,
+				})
 			} else {
 				const md = node.data as MemoryNodeData
 				memDots.push({
@@ -471,19 +520,7 @@ function drawNodes(
 		}
 		ctx.globalAlpha = alpha
 
-		if (node.type === "cluster") {
-			drawClusterNode(
-				ctx,
-				screen.x,
-				screen.y,
-				screenSize,
-				node,
-				isSelected,
-				isHovered,
-				isHighlighted,
-				colors,
-			)
-		} else if (node.type === "document") {
+		if (node.type === "document") {
 			drawDocumentNode(
 				ctx,
 				screen.x,
@@ -527,6 +564,19 @@ function drawNodes(
 			? 1 - state.dimProgress * 0.7
 			: 1
 	const hlBatchMult = state.highlightIds.size > 0 ? 0.4 : 1
+
+	if (pointDots.length > 0) {
+		ctx.globalAlpha = dimAlpha * 0.78
+		for (const [color, batch] of groupByColor(pointDots)) {
+			ctx.fillStyle = color
+			ctx.beginPath()
+			for (const d of batch) {
+				ctx.moveTo(d.x + d.r, d.y)
+				ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+			}
+			ctx.fill()
+		}
+	}
 
 	if (docDots.length > 0) {
 		ctx.fillStyle = colors.docFill
@@ -647,82 +697,6 @@ function drawNodes(
 	}
 
 	ctx.globalAlpha = 1
-}
-
-function drawClusterNode(
-	ctx: CanvasRenderingContext2D,
-	sx: number,
-	sy: number,
-	size: number,
-	node: GraphNode,
-	isSelected: boolean,
-	isHovered: boolean,
-	isHighlighted: boolean,
-	colors: GraphThemeColors,
-): void {
-	const data = node.data as ClusterNodeData
-	const radius = size * 0.5
-	const clusterColor = node.clusterColor ?? colors.accent
-
-	if (isSelected || isHovered) {
-		ctx.save()
-		ctx.shadowColor = isSelected ? colors.accent : clusterColor
-		ctx.shadowBlur = isSelected ? 24 : 16
-		ctx.shadowOffsetX = 0
-		ctx.shadowOffsetY = 0
-	}
-
-	const gradient = ctx.createRadialGradient(
-		sx - radius * 0.25,
-		sy - radius * 0.3,
-		radius * 0.1,
-		sx,
-		sy,
-		radius,
-	)
-	gradient.addColorStop(
-		0,
-		mixHexColors(colors.memFillHover, clusterColor, 0.36),
-	)
-	gradient.addColorStop(0.62, mixHexColors(colors.docFill, clusterColor, 0.24))
-	gradient.addColorStop(1, mixHexColors(colors.bg, clusterColor, 0.58))
-	ctx.fillStyle = gradient
-	ctx.beginPath()
-	ctx.arc(sx, sy, radius, 0, Math.PI * 2)
-	ctx.fill()
-
-	ctx.strokeStyle = isSelected || isHighlighted ? colors.accent : clusterColor
-	ctx.lineWidth = isSelected || isHighlighted ? 3 : isHovered ? 2.5 : 1.8
-	ctx.stroke()
-
-	ctx.globalAlpha *= 0.45
-	ctx.strokeStyle = clusterColor
-	ctx.lineWidth = Math.max(1, size * 0.018)
-	for (const scale of [0.68, 0.44]) {
-		ctx.beginPath()
-		ctx.arc(sx, sy, radius * scale, 0, Math.PI * 2)
-		ctx.stroke()
-	}
-	ctx.globalAlpha /= 0.45
-
-	if (isSelected || isHovered) {
-		ctx.restore()
-	}
-
-	if (size >= 58) {
-		const count = data.documentCount.toLocaleString()
-		const label = data.memoryCount.toLocaleString()
-		ctx.save()
-		ctx.textAlign = "center"
-		ctx.textBaseline = "middle"
-		ctx.fillStyle = colors.textPrimary
-		ctx.font = `600 ${Math.max(12, Math.min(18, size * 0.18))}px system-ui, sans-serif`
-		ctx.fillText(count, sx, sy - Math.max(5, size * 0.07))
-		ctx.fillStyle = colors.textSecondary
-		ctx.font = `500 ${Math.max(9, Math.min(12, size * 0.11))}px system-ui, sans-serif`
-		ctx.fillText(`${label} mem`, sx, sy + Math.max(9, size * 0.1))
-		ctx.restore()
-	}
 }
 
 function drawDocumentNode(
@@ -944,7 +918,7 @@ function drawGlow(
 	sx: number,
 	sy: number,
 	size: number,
-	nodeType: "document" | "memory" | "cluster",
+	nodeType: "document" | "memory",
 	colors: GraphThemeColors,
 	isHoverOnly = false,
 ): void {
@@ -960,9 +934,6 @@ function drawGlow(
 		const half = glowSize * 0.5
 		const r = 8 * (glowSize / 50)
 		roundRect(ctx, sx - half, sy - half, glowSize, glowSize, r)
-	} else if (nodeType === "cluster") {
-		ctx.beginPath()
-		ctx.arc(sx, sy, size * 0.5 * scale, 0, Math.PI * 2)
 	} else {
 		drawHexagon(ctx, sx, sy, size * 0.5 * scale)
 	}

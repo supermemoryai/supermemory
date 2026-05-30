@@ -2,7 +2,7 @@ import * as d3 from "d3-force"
 import type { DocumentNodeData, GraphEdge, GraphNode } from "../types"
 import { FORCE_CONFIG } from "../constants"
 
-const DENSE_GRAPH_STATIC_THRESHOLD = 6000
+export const DENSE_GRAPH_STATIC_THRESHOLD = 6000
 
 export class ForceSimulation {
 	private sim: d3.Simulation<GraphNode, GraphEdge> | null = null
@@ -50,12 +50,11 @@ export class ForceSimulation {
 				"collide",
 				d3
 					.forceCollide<GraphNode>()
-					.radius((d) => {
-						if (d.type === "document")
-							return FORCE_CONFIG.collisionRadius.document
-						if (d.type === "cluster") return d.size * 0.62
-						return FORCE_CONFIG.collisionRadius.memory
-					})
+					.radius((d) =>
+						d.type === "document"
+							? FORCE_CONFIG.collisionRadius.document
+							: FORCE_CONFIG.collisionRadius.memory,
+					)
 					.strength(FORCE_CONFIG.collisionStrength),
 			)
 

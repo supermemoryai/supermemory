@@ -9,7 +9,7 @@ import type {
 	MemoryRelation,
 } from "@supermemory/memory-graph"
 
-const PAGE_SIZE = 100
+const PAGE_SIZE = 500
 
 interface UseGraphApiOptions {
 	containerTags?: string[]
@@ -190,9 +190,9 @@ export function useGraphApi(options: UseGraphApiOptions = {}) {
 	}, [data])
 
 	useEffect(() => {
-		if (!enabled || hasDocumentIds || maxNodes == null) return
-		if (!hasNextPage || isFetchingNextPage || loadedNodeCount >= maxNodes)
-			return
+		if (!enabled || hasDocumentIds) return
+		if (!hasNextPage || isFetchingNextPage) return
+		if (maxNodes != null && loadedNodeCount >= maxNodes) return
 		fetchNextPage()
 	}, [
 		enabled,

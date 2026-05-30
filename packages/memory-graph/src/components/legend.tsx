@@ -1,10 +1,5 @@
 import { memo, useState } from "react"
-import type {
-	ClusterNodeData,
-	GraphEdge,
-	GraphNode,
-	GraphThemeColors,
-} from "../types"
+import type { GraphEdge, GraphNode, GraphThemeColors } from "../types"
 
 interface LegendProps {
 	nodes?: GraphNode[]
@@ -299,32 +294,19 @@ export const Legend = memo(function Legend({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [connectionsExpanded, setConnectionsExpanded] = useState(true)
 
-	const clusterNodes = nodes.filter((n) => n.type === "cluster")
-	const clusterMemoryCount = clusterNodes.reduce(
-		(total, node) => total + (node.data as ClusterNodeData).memoryCount,
-		0,
-	)
-	const clusterDocumentCount = clusterNodes.reduce(
-		(total, node) => total + (node.data as ClusterNodeData).documentCount,
-		0,
-	)
-	const memoryCount =
-		nodes.filter((n) => n.type === "memory").length + clusterMemoryCount
-	const documentCount =
-		nodes.filter((n) => n.type === "document").length + clusterDocumentCount
+	const memoryCount = nodes.filter((n) => n.type === "memory").length
+	const documentCount = nodes.filter((n) => n.type === "document").length
 	const connectionCount = edges.length
 	const derivesCount = countEdgesByType(edges, "derives")
 	const updatesCount = countEdgesByType(edges, "updates")
 	const extendsCount = countEdgesByType(edges, "extends")
 	const activeUpdateCount = getActiveUpdateCount(edges, hoveredNode)
-	const clusterCount =
-		clusterNodes.length ||
-		new Set(
-			nodes
-				.filter((node) => node.type === "memory")
-				.map((node) => node.clusterKey)
-				.filter(Boolean),
-		).size
+	const clusterCount = new Set(
+		nodes
+			.filter((node) => node.type === "memory")
+			.map((node) => node.clusterKey)
+			.filter(Boolean),
+	).size
 	const updateNodeCount = nodes.filter(isUpdateMemoryNode).length
 
 	const outerStyle: React.CSSProperties = {

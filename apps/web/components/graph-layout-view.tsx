@@ -13,8 +13,6 @@ import { dmSansClassName } from "@/lib/fonts"
 import { ShareModal } from "./share-modal"
 import { shareParam } from "@/lib/search-params"
 
-const GRAPH_MAX_NODES = 15000
-
 export const GraphLayoutView = memo(function GraphLayoutView({
 	onOpenDocument,
 }: {
@@ -45,7 +43,6 @@ export const GraphLayoutView = memo(function GraphLayoutView({
 					variant="consumer"
 					highlightDocumentIds={allHighlightDocumentIds}
 					highlightsVisible
-					maxNodes={GRAPH_MAX_NODES}
 					canvasRef={canvasRef}
 					onOpenDocument={onOpenDocument}
 				/>

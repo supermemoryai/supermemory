@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ForceSimulation } from "../canvas/simulation"
+import {
+	DENSE_GRAPH_STATIC_THRESHOLD,
+	ForceSimulation,
+} from "../canvas/simulation"
 import { VersionChainIndex } from "../canvas/version-chain"
 import type { ViewportState } from "../canvas/viewport"
-import { buildClusterLevelGraph } from "../hooks/cluster-level-graph"
 import { useGraphData } from "../hooks/use-graph-data"
 import { useGraphTheme } from "../hooks/use-graph-theme"
 import type {
@@ -15,9 +17,6 @@ import { Legend } from "./legend"
 import { LoadingIndicator } from "./loading-indicator"
 import { NavigationControls } from "./navigation-controls"
 import { NodeHoverPopover } from "./node-hover-popover"
-
-const CLUSTER_MODE_NODE_THRESHOLD = 3000
-const RAW_GRAPH_REVEAL_ZOOM = 0.62
 
 export function MemoryGraph({
 	documents = [],
@@ -59,9 +58,6 @@ export function MemoryGraph({
 	// React state only for things that affect DOM
 	const [hoveredNode, setHoveredNode] = useState<string | null>(null)
 	const [selectedNode, setSelectedNode] = useState<string | null>(null)
-	const [expandedClusterId, setExpandedClusterId] = useState<string | null>(
-		null,
-	)
 	const [zoomDisplay, setZoomDisplay] = useState(50)
 	// Monotonic counter that increments on any viewport change (pan or zoom)
 	// Used as a dependency proxy to recalculate popover positions
@@ -104,38 +100,13 @@ export function MemoryGraph({
 
 	const hasContainerSize = containerSize.width > 0 && containerSize.height > 0
 
-	const { nodes: rawNodes, edges: rawEdges } = useGraphData(
+	const { nodes, edges } = useGraphData(
 		hasContainerSize ? limitedDocuments : [],
 		null,
 		containerSize.width,
 		containerSize.height,
 		colors,
 	)
-	const revealRawGraph =
-		rawNodes.length <= CLUSTER_MODE_NODE_THRESHOLD ||
-		zoomDisplay / 100 >= RAW_GRAPH_REVEAL_ZOOM
-	const clusterGraph = useMemo(
-		() =>
-			buildClusterLevelGraph({
-				nodes: rawNodes,
-				edges: rawEdges,
-				enabled: rawNodes.length > CLUSTER_MODE_NODE_THRESHOLD,
-				expandedClusterId,
-				revealRawGraph,
-				canvasWidth: containerSize.width,
-				canvasHeight: containerSize.height,
-			}),
-		[
-			rawNodes,
-			rawEdges,
-			expandedClusterId,
-			revealRawGraph,
-			containerSize.width,
-			containerSize.height,
-		],
-	)
-	const nodes = clusterGraph.nodes
-	const edges = clusterGraph.edges
 	const isCompactViewport = containerSize.width > 0 && containerSize.width < 640
 	const graphFitHeight = isCompactViewport
 		? Math.max(containerSize.height - 170, 240)
@@ -160,6 +131,14 @@ export function MemoryGraph({
 		}
 
 		const currentIds = new Set(nodes.map((n) => n.id))
+		if (nodes.length > DENSE_GRAPH_STATIC_THRESHOLD) {
+			simulationRef.current?.destroy()
+			simulationRef.current = null
+			setSimulation(null)
+			prevSimIdsRef.current = currentIds
+			return
+		}
+
 		const previousIds = prevSimIdsRef.current
 		const hasPreviousIds = previousIds.size > 0
 		const idsChanged =
@@ -264,10 +243,6 @@ export function MemoryGraph({
 	}, [nodes.length])
 
 	useEffect(() => {
-		if (!clusterGraph.isClustered) setExpandedClusterId(null)
-	}, [clusterGraph.isClustered])
-
-	useEffect(() => {
 		if (isCompactViewport) {
 			hasAutoFittedRef.current = false
 		}
@@ -314,32 +289,9 @@ export function MemoryGraph({
 		[],
 	)
 
-	const handleNodeClick = useCallback(
-		(id: string | null) => {
-			if (id === null) {
-				setSelectedNode(null)
-				setExpandedClusterId(null)
-				return
-			}
-
-			const node = nodes.find((n) => n.id === id)
-			if (node?.type === "cluster") {
-				setSelectedNode(null)
-				setHoveredNode(null)
-				setExpandedClusterId((prev) => (prev === id ? null : id))
-				viewportRef.current?.centerOn(
-					node.x,
-					node.y,
-					containerSize.width,
-					graphFitHeight,
-				)
-				return
-			}
-
-			setSelectedNode((prev) => (prev === id ? null : id))
-		},
-		[nodes, containerSize.width, graphFitHeight],
-	)
+	const handleNodeClick = useCallback((id: string | null) => {
+		setSelectedNode((prev) => (id === null ? null : prev === id ? null : id))
+	}, [])
 
 	const handleNodeDragStart = useCallback((_id: string) => {
 		// Drag is handled imperatively by InputHandler
@@ -556,12 +508,7 @@ export function MemoryGraph({
 		const node = nodes.find((n) => n.id === selectedNode)
 		if (!node) return
 
-		if (node.type === "cluster") {
-			const clusters = nodes.filter((n) => n.type === "cluster")
-			const idx = clusters.findIndex((n) => n.id === selectedNode)
-			const next = clusters[(idx + 1) % clusters.length]
-			if (next) selectAndCenter(next.id)
-		} else if (node.type === "document") {
+		if (node.type === "document") {
 			const docs = nodes.filter((n) => n.type === "document")
 			const idx = docs.findIndex((n) => n.id === selectedNode)
 			const next = docs[(idx + 1) % docs.length]
@@ -586,12 +533,7 @@ export function MemoryGraph({
 		const node = nodes.find((n) => n.id === selectedNode)
 		if (!node) return
 
-		if (node.type === "cluster") {
-			const clusters = nodes.filter((n) => n.type === "cluster")
-			const idx = clusters.findIndex((n) => n.id === selectedNode)
-			const prev = clusters[(idx - 1 + clusters.length) % clusters.length]
-			if (prev) selectAndCenter(prev.id)
-		} else if (node.type === "document") {
+		if (node.type === "document") {
 			const docs = nodes.filter((n) => n.type === "document")
 			const idx = docs.findIndex((n) => n.id === selectedNode)
 			const prev = docs[(idx - 1 + docs.length) % docs.length]
