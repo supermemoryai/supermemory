@@ -169,9 +169,11 @@ function VersionStatus({
 export function GraphListMemories({
 	memoryEntries,
 	documentId,
+	className,
 }: {
 	memoryEntries: MemoryEntry[]
 	documentId?: string
+	className?: string
 }) {
 	const { effectiveContainerTags } = useProject()
 	const [expandedMemories, setExpandedMemories] = useState<Set<string>>(
@@ -193,7 +195,10 @@ export function GraphListMemories({
 	return (
 		<div
 			id="document-memories"
-			className="relative flex-1 px-3 pt-3 rounded-[14px] flex flex-col overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+			className={cn(
+				"relative h-[360px] shrink-0 px-3 pt-3 rounded-[14px] flex flex-col overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] md:h-auto md:min-h-0 md:flex-1 md:shrink",
+				className,
+			)}
 			style={{
 				backgroundImage: "url('/dot-pattern.svg')",
 				backgroundRepeat: "repeat",

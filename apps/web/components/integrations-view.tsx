@@ -1135,7 +1135,10 @@ export function IntegrationsView() {
 			}
 			throw new Error(response.error?.message || "Failed to connect")
 		},
-		onMutate: (provider) => setConnectingProvider(provider),
+		onMutate: (provider) => {
+			setConnectingProvider(provider)
+			analytics.connectionAuthStarted({ provider })
+		},
 		onError: (err) => {
 			setConnectingProvider(null)
 			toast.error("Failed to connect", {
@@ -1349,6 +1352,13 @@ export function IntegrationsView() {
 		return true
 	})
 
+	const trackCard = (item: Item) =>
+		analytics.integrationCardClicked({
+			kind: item.kind,
+			id: item.id,
+			name: item.name,
+		})
+
 	const renderRight = (item: Item): ReactNode => {
 		switch (item.kind) {
 			case "plugin": {
@@ -1370,7 +1380,10 @@ export function IntegrationsView() {
 				const busy = connectingPlugin === item.pluginId
 				return (
 					<PillButton
-						onClick={() => createPluginKeyMutation.mutate(item.pluginId)}
+						onClick={() => {
+							trackCard(item)
+							createPluginKeyMutation.mutate(item.pluginId)
+						}}
 						disabled={!!connectingPlugin}
 					>
 						{busy ? (
@@ -1397,7 +1410,10 @@ export function IntegrationsView() {
 				const busy = connectingProvider === item.provider
 				return (
 					<PillButton
-						onClick={() => addConnectionMutation.mutate(item.provider)}
+						onClick={() => {
+							trackCard(item)
+							addConnectionMutation.mutate(item.provider)
+						}}
 						disabled={!!connectingProvider}
 					>
 						{busy ? (
@@ -1415,6 +1431,7 @@ export function IntegrationsView() {
 					return (
 						<PillButton
 							onClick={() => {
+								trackCard(item)
 								window.open(
 									(item.action as { type: "external"; href: string }).href,
 									"_blank",
@@ -1431,12 +1448,13 @@ export function IntegrationsView() {
 				}
 				return (
 					<PillButton
-						onClick={() =>
+						onClick={() => {
+							trackCard(item)
 							setViewMode(
 								(item.action as { type: "view"; viewMode: ViewParamValue })
 									.viewMode,
 							)
-						}
+						}}
 					>
 						Connect
 					</PillButton>
@@ -1444,13 +1462,23 @@ export function IntegrationsView() {
 			}
 			case "mcp-client":
 				return (
-					<PillButton onClick={() => openMcpClient(item.clientKey)}>
+					<PillButton
+						onClick={() => {
+							trackCard(item)
+							openMcpClient(item.clientKey)
+						}}
+					>
 						Connect
 					</PillButton>
 				)
 			case "import":
 				return (
-					<PillButton onClick={() => setViewMode(item.viewMode)}>
+					<PillButton
+						onClick={() => {
+							trackCard(item)
+							setViewMode(item.viewMode)
+						}}
+					>
 						Connect
 					</PillButton>
 				)
