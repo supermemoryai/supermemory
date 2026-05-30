@@ -15,7 +15,6 @@ import {
 	LifeBuoy,
 	LayoutGrid,
 	ChevronRight,
-	Zap,
 } from "lucide-react"
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
@@ -360,7 +359,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
 									<a href={billingSettingsUrl}>
-										<Zap className="size-4 text-[#4BA0FA]" />
+										<Logo className="h-4 w-5 shrink-0" />
 										Upgrade
 									</a>
 								</DropdownMenuItem>
@@ -445,7 +444,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 									)}
 								>
 									<a href={billingSettingsUrl} aria-label="Upgrade">
-										<Zap className="size-3.5 shrink-0 lg:size-4" />
+										<Logo className="h-3.5 w-[17px] shrink-0 lg:h-4 lg:w-5" />
 										<span className="max-lg:sr-only">Upgrade</span>
 									</a>
 								</Button>

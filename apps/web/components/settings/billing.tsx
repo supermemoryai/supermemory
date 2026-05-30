@@ -15,6 +15,7 @@ import { useCustomer } from "autumn-js/react"
 import {
 	Check,
 	Coins,
+	ArrowRight,
 	ExternalLink,
 	LoaderIcon,
 	Plus,
@@ -65,13 +66,17 @@ type AutoTopupsResponse =
 	| { ok: false; reason: string; message?: string }
 
 type PlanCardDefinition = {
-	id: "free" | "pro"
+	id: "free" | "pro" | "scale" | "enterprise"
 	name: string
 	price: string
 	period: string
 	credits: string
+	productId: "api_free" | "api_pro" | "api_scale" | "api_enterprise"
 	description: string
+	includesFrom?: string
 	features: string[]
+	highlight?: boolean
+	isContactSales?: boolean
 }
 
 const PLAN_CARDS: PlanCardDefinition[] = [
@@ -81,6 +86,7 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		price: "$0",
 		period: "",
 		credits: "$5",
+		productId: "api_free",
 		description: "Try supermemory with no commitment",
 		features: [
 			"Pay-as-you-go after $5 runs out",
@@ -94,6 +100,7 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		price: "$19",
 		period: "/mo",
 		credits: "$20",
+		productId: "api_pro",
 		description: "For people building with AI memory",
 		features: [
 			"Auto top-up when balance runs low",
@@ -102,6 +109,48 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 		],
 	},
 ]
+
+const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
+	{
+		id: "scale",
+		name: "Scale",
+		price: "$399",
+		period: "/mo",
+		credits: "$600",
+		productId: "api_scale",
+		description: "For teams and production workloads",
+		includesFrom: "Pro",
+		features: [
+			"Auto top-up & spend caps",
+			"Gmail, S3 & Web Crawler connectors",
+			"Dedicated support",
+		],
+		highlight: true,
+	},
+	{
+		id: "enterprise",
+		name: "Enterprise",
+		price: "Custom",
+		period: "",
+		credits: "Unlimited",
+		productId: "api_enterprise",
+		description: "Custom deployments with dedicated engineering",
+		includesFrom: "Scale",
+		features: [
+			"Custom metering & billing",
+			"Custom integrations & SSO",
+			"Forward-deployed engineer",
+		],
+		isContactSales: true,
+	},
+]
+
+const PLAN_RANK: Record<PlanCardDefinition["id"], number> = {
+	free: 0,
+	pro: 1,
+	scale: 2,
+	enterprise: 3,
+}
 
 function SectionTitle({
 	children,
@@ -157,10 +206,24 @@ function PlanCard({
 			className={cn(
 				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-				"border-white/[0.08] bg-[#14161A]",
+				plan.highlight
+					? "border-[#0B65C9] bg-[#14161A] shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7),0_0_0_1px_rgba(11,101,201,0.72)]"
+					: "border-white/[0.08] bg-[#14161A]",
 			)}
 		>
-			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+			{plan.highlight ? (
+				<div className="-translate-x-1/2 absolute top-[-1px] left-1/2 whitespace-nowrap">
+					<span className="rounded-full bg-[#1688FF] px-3 py-1 text-[10px] font-bold uppercase leading-none tracking-[0.32px] text-white">
+						Most popular
+					</span>
+				</div>
+			) : null}
+			<p
+				className={cn(
+					"font-mono text-[10px] font-medium uppercase tracking-[0.18em]",
+					plan.highlight ? "text-[#4BA0FA]" : "text-[#737373]",
+				)}
+			>
 				{plan.name}
 			</p>
 
@@ -187,25 +250,68 @@ function PlanCard({
 				{plan.description}
 			</p>
 
-			<div className="mt-5 flex items-center gap-2 rounded-[8px] bg-white/[0.04] px-3 py-2.5 text-[#A3A3A3]">
-				<Coins className="size-3.5 shrink-0 text-[#737373]" />
-				<div className="min-w-0">
-					<p className="text-[12px] font-semibold leading-none text-[#C8D0DA] tabular-nums">
-						{plan.credits}
-					</p>
-					<p className="mt-0.5 text-[10px] leading-none text-[#737373]">
-						of usage included
-					</p>
+			{plan.isContactSales ? null : (
+				<div
+					className={cn(
+						"mt-5 flex items-center gap-2 rounded-[8px] px-3 py-2.5 text-[#A3A3A3]",
+						plan.highlight ? "bg-[#061B38]" : "bg-white/[0.04]",
+					)}
+				>
+					<Coins
+						className={cn(
+							"size-3.5 shrink-0",
+							plan.highlight ? "text-[#4BA0FA]" : "text-[#737373]",
+						)}
+					/>
+					<div className="min-w-0">
+						<p
+							className={cn(
+								"text-[12px] font-semibold leading-none tabular-nums",
+								plan.highlight ? "text-[#4BA0FA]" : "text-[#C8D0DA]",
+							)}
+						>
+							{plan.credits}
+						</p>
+						<p
+							className={cn(
+								"mt-0.5 text-[10px] leading-none",
+								plan.highlight ? "text-[#4BA0FA]/75" : "text-[#737373]",
+							)}
+						>
+							of usage included
+						</p>
+					</div>
 				</div>
-			</div>
+			)}
 
-			<ul className="mt-5 mb-6 flex flex-1 flex-col gap-3">
+			{plan.includesFrom ? (
+				<div className="mt-5 flex items-center gap-3">
+					<div className="h-px flex-1 bg-white/[0.08]" />
+					<span className="whitespace-nowrap text-[10px] text-[#737373]">
+						Everything in {plan.includesFrom}, plus
+					</span>
+					<div className="h-px flex-1 bg-white/[0.08]" />
+				</div>
+			) : null}
+
+			<ul
+				className={cn(
+					"mb-6 flex flex-1 flex-col gap-3",
+					plan.includesFrom ? "mt-5" : "mt-5",
+					plan.isContactSales && !plan.includesFrom && "mt-7",
+				)}
+			>
 				{plan.features.map((feature) => (
 					<li
 						className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
 						key={feature}
 					>
-						<Check className="mt-0.5 size-3.5 shrink-0 text-[#737373]" />
+						<Check
+							className={cn(
+								"mt-0.5 size-3.5 shrink-0",
+								plan.highlight ? "text-[#4BA0FA]" : "text-[#737373]",
+							)}
+						/>
 						<span>{feature}</span>
 					</li>
 				))}
@@ -349,6 +455,7 @@ export default function Billing() {
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
+	const [showOtherPlans, setShowOtherPlans] = useState(false)
 	const [topUpAmount, setTopUpAmount] = useState<number>(25)
 	const [customTopUpAmount, setCustomTopUpAmount] = useState("")
 	const [topUpPendingAmount, setTopUpPendingAmount] = useState<number | null>(
@@ -446,11 +553,11 @@ export default function Billing() {
 
 	const planDisplayNames = PLAN_DISPLAY_NAMES
 
-	const handleUpgrade = async () => {
+	const handleUpgrade = async (planId: "api_pro" | "api_scale") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
-				planId: "api_pro",
+				planId,
 				successUrl: `${window.location.origin}/settings#billing`,
 			})
 			if ((result as { paymentUrl?: string })?.paymentUrl) {
@@ -604,6 +711,10 @@ export default function Billing() {
 	}
 
 	const getPlanCardAction = (plan: PlanCardDefinition) => {
+		const disabled = isUpgrading || isCheckingStatus || autumn.isLoading
+		const isCurrentPlan = plan.id === currentPlan
+		const isIncludedPlan = PLAN_RANK[currentPlan] > PLAN_RANK[plan.id]
+
 		if (plan.id === "free") {
 			return (
 				<button
@@ -620,7 +731,7 @@ export default function Billing() {
 			)
 		}
 
-		if (currentPlan === "pro") {
+		if (isCurrentPlan) {
 			return (
 				<button
 					type="button"
@@ -636,7 +747,7 @@ export default function Billing() {
 			)
 		}
 
-		if (currentPlan === "scale" || currentPlan === "enterprise") {
+		if (isIncludedPlan) {
 			return (
 				<button
 					type="button"
@@ -652,21 +763,40 @@ export default function Billing() {
 			)
 		}
 
+		if (plan.isContactSales) {
+			return (
+				<a
+					href="mailto:support@supermemory.com?subject=Enterprise%20plan"
+					className={cn(
+						dmSans125ClassName(),
+						PLAN_CARD_ACTION_CLASS,
+						"border border-white/[0.08] bg-transparent text-[#FAFAFA] hover:bg-white/[0.04]",
+					)}
+				>
+					Contact sales
+				</a>
+			)
+		}
+
+		const checkoutPlanId =
+			plan.productId === "api_pro" || plan.productId === "api_scale"
+				? plan.productId
+				: null
+		if (!checkoutPlanId) return null
+
 		return (
 			<button
 				type="button"
-				onClick={handleUpgrade}
-				disabled={isUpgrading || isCheckingStatus || autumn.isLoading}
+				onClick={() => handleUpgrade(checkoutPlanId)}
+				disabled={disabled}
 				className={cn(
 					dmSans125ClassName(),
 					PLAN_CARD_ACTION_CLASS,
 					"bg-[#0054AD] text-[#FAFAFA] hover:bg-[#0B65C9]",
 				)}
 			>
-				{isUpgrading || isCheckingStatus || autumn.isLoading ? (
-					<LoaderIcon className="size-4 animate-spin" />
-				) : null}
-				Upgrade to Pro
+				{disabled ? <LoaderIcon className="size-4 animate-spin" /> : null}
+				Upgrade to {plan.name}
 			</button>
 		)
 	}
@@ -864,6 +994,31 @@ export default function Billing() {
 						/>
 					))}
 				</div>
+				{showOtherPlans ? (
+					<div className="grid gap-4 md:grid-cols-2">
+						{ADVANCED_PLAN_CARDS.map((plan) => (
+							<PlanCard
+								action={getPlanCardAction(plan)}
+								key={plan.id}
+								plan={plan}
+							/>
+						))}
+					</div>
+				) : (
+					<div className="flex justify-center pt-1">
+						<button
+							type="button"
+							onClick={() => setShowOtherPlans(true)}
+							className={cn(
+								dmSans125ClassName(),
+								"inline-flex h-9 items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] px-4 text-[13px] font-semibold text-[#A3A3A3] transition-colors hover:border-[#0B65C9]/60 hover:bg-[#061B38] hover:text-[#FAFAFA]",
+							)}
+						>
+							See other plans
+							<ArrowRight className="size-3.5" />
+						</button>
+					</div>
+				)}
 			</section>
 
 			<section className="flex flex-col gap-4">
