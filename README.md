@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong>State-of-the-art memory and context engine for AI.</strong>
+  <strong>State-of-the-art memory and context engine for AI. And yes - you can use it as a company/personal brain.</strong>
 </p>
 
 <p align="center">
