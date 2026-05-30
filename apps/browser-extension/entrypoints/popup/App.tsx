@@ -175,10 +175,21 @@ function App() {
 		setShowProjectSelector(true)
 	}
 
+	// Reconcile stored default against live list: reset if deleted, refresh if renamed.
 	useEffect(() => {
-		if (!defaultProject && projects.length > 0) {
-			const firstProject = projects[0]
-			setDefaultProjectMutation.mutate(firstProject)
+		if (projects.length === 0) return
+		if (!defaultProject) {
+			setDefaultProjectMutation.mutate(projects[0])
+			return
+		}
+		const live = projects.find((p) => p.id === defaultProject.id)
+		if (!live) {
+			setDefaultProjectMutation.mutate(projects[0])
+		} else if (
+			live.name !== defaultProject.name ||
+			live.containerTag !== defaultProject.containerTag
+		) {
+			setDefaultProjectMutation.mutate(live)
 		}
 	}, [defaultProject, projects, setDefaultProjectMutation])
 

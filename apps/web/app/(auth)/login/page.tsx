@@ -140,14 +140,11 @@ export default function LoginPage() {
 			)
 			return
 		}
-		router.replace("/")
-	}, [
-		sessionPending,
-		sessionData?.session,
-		oauthQueryForResume,
-		params,
-		router,
-	])
+		// Carry the flag so the dashboard posts the session token to the extension (else: sign-in loop).
+		const dest = new URL("/", window.location.origin)
+		dest.searchParams.set("extension-auth-success", "true")
+		window.location.assign(dest.toString())
+	}, [sessionPending, sessionData?.session, oauthQueryForResume, params])
 
 	// Get redirect URL from query params
 	const redirectUrl = params.get("redirect")
