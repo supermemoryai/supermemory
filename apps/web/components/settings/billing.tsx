@@ -14,6 +14,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useCustomer } from "autumn-js/react"
 import {
 	Check,
+	ChevronLeft,
+	ChevronRight,
 	Coins,
 	ExternalLink,
 	LoaderIcon,
@@ -413,7 +415,8 @@ export default function Billing() {
 	const [isCancelling, setIsCancelling] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
 	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
-	const [showOtherPlans, setShowOtherPlans] = useState(false)
+	const [isPlanCarouselActive, setIsPlanCarouselActive] = useState(false)
+	const [planPage, setPlanPage] = useState<0 | 1>(0)
 	const [topUpAmount, setTopUpAmount] = useState<number>(25)
 	const [customTopUpAmount, setCustomTopUpAmount] = useState("")
 	const [topUpPendingAmount, setTopUpPendingAmount] = useState<number | null>(
@@ -942,31 +945,70 @@ export default function Billing() {
 			</section>
 
 			<section id="billing-plans" className="flex flex-col gap-4">
-				<SectionTitle>Plans</SectionTitle>
-				<div className="grid gap-4 md:grid-cols-2">
-					{PLAN_CARDS.map((plan) => (
-						<PlanCard
-							action={getPlanCardAction(plan)}
-							key={plan.id}
-							plan={plan}
-						/>
-					))}
-				</div>
-				{showOtherPlans ? (
-					<div className="grid gap-4 md:grid-cols-2">
-						{ADVANCED_PLAN_CARDS.map((plan) => (
-							<PlanCard
-								action={getPlanCardAction(plan)}
-								key={plan.id}
-								plan={plan}
-							/>
-						))}
+				<SectionTitle
+					aside={
+						isPlanCarouselActive ? (
+							<div className="flex items-center gap-1.5">
+								<button
+									type="button"
+									onClick={() => setPlanPage(0)}
+									disabled={planPage === 0}
+									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+									aria-label="Show Free and Pro plans"
+								>
+									<ChevronLeft className="size-4" />
+								</button>
+								<button
+									type="button"
+									onClick={() => setPlanPage(1)}
+									disabled={planPage === 1}
+									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
+									aria-label="Show Scale and Enterprise plans"
+								>
+									<ChevronRight className="size-4" />
+								</button>
+							</div>
+						) : undefined
+					}
+				>
+					Plans
+				</SectionTitle>
+				<div className="overflow-hidden">
+					<div
+						className="flex gap-4 transition-transform duration-300 ease-out"
+						style={{
+							transform:
+								planPage === 1 ? "translateX(calc(-100% - 1rem))" : "none",
+						}}
+					>
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+							{PLAN_CARDS.map((plan) => (
+								<PlanCard
+									action={getPlanCardAction(plan)}
+									key={plan.id}
+									plan={plan}
+								/>
+							))}
+						</div>
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+							{ADVANCED_PLAN_CARDS.map((plan) => (
+								<PlanCard
+									action={getPlanCardAction(plan)}
+									key={plan.id}
+									plan={plan}
+								/>
+							))}
+						</div>
 					</div>
-				) : (
+				</div>
+				{isPlanCarouselActive ? null : (
 					<div className="flex justify-end px-2 pt-1">
 						<button
 							type="button"
-							onClick={() => setShowOtherPlans(true)}
+							onClick={() => {
+								setIsPlanCarouselActive(true)
+								setPlanPage(1)
+							}}
 							className={cn(
 								dmSans125ClassName(),
 								"inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-[#A3A3A3] underline underline-offset-4 transition-colors hover:text-[#FAFAFA]",
