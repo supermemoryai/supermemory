@@ -111,6 +111,9 @@ export function MemoryGraph({
 	const graphFitHeight = isCompactViewport
 		? Math.max(containerSize.height - 170, 240)
 		: containerSize.height
+	const compactLegendMaxHeight = isCompactViewport
+		? Math.max(containerSize.height - 104, 160)
+		: undefined
 
 	// Rebuild version chain index during render (not in an effect) so that
 	// the chain data is up-to-date when getChain() is called in useMemo below.
@@ -730,13 +733,14 @@ export function MemoryGraph({
 
 	const bottomLeftStackStyle: React.CSSProperties = {
 		position: "absolute",
-		bottom: 16,
-		left: 16,
+		bottom: isCompactViewport ? 12 : 16,
+		left: isCompactViewport ? 12 : 16,
 		zIndex: 20,
 		display: "flex",
 		flexDirection: "column",
 		alignItems: "flex-start",
 		gap: 8,
+		maxWidth: isCompactViewport ? "calc(100% - 24px)" : undefined,
 	}
 
 	return (
@@ -809,7 +813,9 @@ export function MemoryGraph({
 							colors={colors}
 							edges={edges}
 							hoveredNode={hoveredNode}
+							compact={isCompactViewport}
 							isLoading={isLoading}
+							maxHeight={compactLegendMaxHeight}
 							nodes={nodes}
 						/>
 					</div>

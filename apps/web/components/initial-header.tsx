@@ -4,7 +4,6 @@ import { Logo } from "@ui/assets/Logo"
 import { Button } from "@ui/components/button"
 import { useRouter } from "next/navigation"
 import { useOrgOnboarding } from "@hooks/use-org-onboarding"
-import { analytics } from "@/lib/analytics"
 import { consumePendingConnectUrl } from "@/lib/constants"
 import { cn } from "@lib/utils"
 
@@ -23,7 +22,6 @@ export function InitialHeader({
 
 	const handleSkip = () => {
 		markOrgOnboarded()
-		analytics.onboardingCompleted()
 		const pendingPath = consumePendingConnectUrl()
 		router.push(pendingPath ?? "/")
 	}

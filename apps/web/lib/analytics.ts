@@ -1,5 +1,8 @@
 import posthog from "posthog-js"
 
+export type OnboardingStep = "profile_input" | "processing" | "done" | "error"
+export type OnboardingSource = "x" | "linkedin" | "resume"
+
 // Helper function to safely capture events
 const safeCapture = (
 	eventName: string,
@@ -40,12 +43,13 @@ export const analytics = {
 	upgradeCompleted: () => safeCapture("upgrade_completed"),
 	billingPortalOpened: () => safeCapture("billing_portal_opened"),
 
-	connectionAdded: (provider: string) =>
-		safeCapture("connection_added", { provider }),
 	connectionDeleted: () => safeCapture("connection_deleted"),
-	connectionAuthStarted: () => safeCapture("connection_auth_started"),
-	connectionAuthCompleted: () => safeCapture("connection_auth_completed"),
-	connectionAuthFailed: () => safeCapture("connection_auth_failed"),
+	connectionAuthStarted: (props: { provider: string }) =>
+		safeCapture("connection_auth_started", props),
+
+	// integrations surface (main Nova page)
+	integrationCardClicked: (props: { kind: string; id: string; name: string }) =>
+		safeCapture("integration_card_clicked", props),
 
 	nextAppResearchCtaDismissed: () =>
 		safeCapture("next_app_research_cta_dismissed"),
@@ -72,21 +76,13 @@ export const analytics = {
 	addDocumentModalOpened: () => safeCapture("add_document_modal_opened"),
 
 	// onboarding analytics
-	onboardingStepViewed: (props: { step: string; trigger: "user" | "auto" }) =>
-		safeCapture("onboarding_step_viewed", props),
+	onboardingStepViewed: (props: {
+		step: OnboardingStep
+		trigger: "user" | "auto"
+	}) => safeCapture("onboarding_step_viewed", props),
 
-	onboardingNameSubmitted: (props: { name_length: number }) =>
-		safeCapture("onboarding_name_submitted", props),
-
-	onboardingProfileSubmitted: (props: {
-		has_twitter: boolean
-		has_linkedin: boolean
-		other_links_count: number
-		description_length: number
-	}) => safeCapture("onboarding_profile_submitted", props),
-
-	onboardingRelatableSelected: (props: { options: string[] }) =>
-		safeCapture("onboarding_relatable_selected", props),
+	onboardingProfileSubmitted: (props: { source: OnboardingSource }) =>
+		safeCapture("onboarding_profile_submitted", props),
 
 	onboardingIntegrationClicked: (props: { integration: string }) =>
 		safeCapture("onboarding_integration_clicked", props),
@@ -100,7 +96,13 @@ export const analytics = {
 	onboardingXBookmarksDetailOpened: () =>
 		safeCapture("onboarding_x_bookmarks_detail_opened"),
 
-	onboardingCompleted: () => safeCapture("onboarding_completed"),
+	onboardingSkipped: (props: { from_step: OnboardingStep }) =>
+		safeCapture("onboarding_skipped", props),
+
+	onboardingCompleted: (props?: {
+		source?: OnboardingSource
+		memories_count?: number
+	}) => safeCapture("onboarding_completed", props),
 
 	// main app analytics
 	searchOpened: (props: {

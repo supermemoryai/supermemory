@@ -1,7 +1,9 @@
 "use client"
 
 import { Dialog, DialogContent, DialogTitle } from "@repo/ui/components/dialog"
+import { Drawer, DrawerContent, DrawerTitle } from "@repo/ui/components/drawer"
 import type { DocumentsWithMemoriesResponseSchema } from "@repo/validation/api"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@ui/components/tabs"
 import {
 	ArrowUpRightIcon,
 	XIcon,
@@ -268,60 +270,114 @@ export function DocumentModal({
 		],
 	)
 
-	return (
-		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-			<DialogContent
-				className={cn(
-					"p-0 border-none bg-[#1B1F24] flex flex-col px-3 md:px-4 pt-3 pb-4 gap-3",
-					isMobile
-						? "w-[calc(100vw-1rem)]! h-[calc(100dvh-1rem)]! max-w-none! max-h-none! rounded-xl"
-						: "w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! rounded-[22px]",
-					dmSansClassName(),
-				)}
-				style={{
-					boxShadow:
-						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
-				}}
-				showCloseButton={false}
-			>
+	const hasPluginInsights =
+		pluginDocument &&
+		pluginDocument.kind !== "claude-code-doc" &&
+		pluginDocument.kind !== "openclaw-session"
+	const hasDocumentInsights = Boolean(
+		hasPluginInsights ||
+			_document?.summary ||
+			pluginDocument?.summary ||
+			(_document?.memoryEntries && _document.memoryEntries.length > 0),
+	)
+
+	const documentPreview = (
+		<div
+			id="document-preview"
+			className="bg-[#14161A] rounded-[14px] overflow-hidden flex min-h-0 flex-1 flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative"
+		>
+			<DocumentContent
+				document={_document}
+				textEditorProps={textEditorProps}
+				pluginDocument={pluginDocument}
+			/>
+		</div>
+	)
+
+	const documentInsights = (
+		<div
+			id="document-memories-summary"
+			className={cn(
+				"gap-3 flex flex-col overflow-hidden",
+				isMobile && "min-h-0 flex-1",
+				dmSansClassName(),
+			)}
+		>
+			{hasPluginInsights && <PluginDetails parsed={pluginDocument} />}
+			{_document && (_document.summary || pluginDocument?.summary) && (
+				<DocumentSummary
+					memoryEntries={_document.memoryEntries}
+					summary={(pluginDocument?.summary ?? _document.summary) as string}
+					createdAt={_document.createdAt}
+				/>
+			)}
+			{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
+				<GraphListMemories
+					memoryEntries={_document.memoryEntries as MemoryEntry[]}
+					documentId={_document.id}
+					className={
+						isMobile ? "h-auto min-h-[420px] flex-1 shrink" : undefined
+					}
+				/>
+			)}
+		</div>
+	)
+
+	const modalContent = (
+		<>
+			{isMobile ? (
+				<DrawerTitle className="sr-only">
+					{_document?.title} - Document
+				</DrawerTitle>
+			) : (
 				<DialogTitle className="sr-only">
 					{_document?.title} - Document
 				</DialogTitle>
-				<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
-					<div className="flex-1 min-w-0">
-						<Title
-							title={_document?.title}
-							documentType={_document?.type ?? "text"}
-							url={_document?.url}
-							pluginIconSrc={pluginDocument?.pluginIconSrc}
-						/>
-					</div>
-					<div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-						{pluginDocument?.kind === "claude-code-doc" &&
-							_document?.customId && (
-								<CopySessionIdButton sessionId={_document.customId} />
-							)}
-						<DeleteButton
-							documentId={_document?.id}
-							customId={_document?.customId}
-							deleteMutation={deleteMutation}
-						/>
-						{_document?.url && (
-							<a
-								href={getDocumentSourceUrl(_document)}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={cn(
-									"flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
-									isMobile ? "size-7 justify-center" : "px-3 py-2",
-								)}
-							>
-								{!isMobile && (
-									<span className="line-clamp-1">Visit source</span>
-								)}
-								<ArrowUpRightIcon className="size-4 text-[#737373]" />
-							</a>
+			)}
+			<div className="flex items-center justify-between h-fit gap-2 md:gap-4">
+				<div className="flex-1 min-w-0">
+					<Title
+						title={_document?.title}
+						documentType={_document?.type ?? "text"}
+						url={_document?.url}
+						pluginIconSrc={pluginDocument?.pluginIconSrc}
+					/>
+				</div>
+				<div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+					{pluginDocument?.kind === "claude-code-doc" &&
+						_document?.customId && (
+							<CopySessionIdButton sessionId={_document.customId} />
 						)}
+					<DeleteButton
+						documentId={_document?.id}
+						customId={_document?.customId}
+						deleteMutation={deleteMutation}
+					/>
+					{_document?.url && (
+						<a
+							href={getDocumentSourceUrl(_document)}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={cn(
+								"flex items-center gap-1 bg-[#0D121A] rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]",
+								isMobile ? "size-7 justify-center" : "px-3 py-2",
+							)}
+						>
+							{!isMobile && <span className="line-clamp-1">Visit source</span>}
+							<ArrowUpRightIcon className="size-4 text-[#737373]" />
+						</a>
+					)}
+					{isMobile ? (
+						<button
+							className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
+							type="button"
+							tabIndex={-1}
+							onClick={onClose}
+						>
+							<XIcon stroke="#737373" />
+							<span className="sr-only">Close</span>
+						</button>
+					) : (
 						<DialogPrimitive.Close
 							className="bg-[#0D121A] size-7 flex items-center justify-center rounded-full transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:outline-none disabled:pointer-events-none cursor-pointer [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)]"
 							data-slot="dialog-close"
@@ -331,50 +387,91 @@ export function DocumentModal({
 							<XIcon stroke="#737373" />
 							<span className="sr-only">Close</span>
 						</DialogPrimitive.Close>
-					</div>
+					)}
 				</div>
-				<div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 overflow-hidden min-h-0">
-					<div
-						id="document-preview"
-						className={cn(
-							"bg-[#14161A] rounded-[14px] overflow-hidden flex flex-col shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),inset_0_1px_2px_rgba(0,0,0,0.1)] relative",
-						)}
+			</div>
+			{isMobile && hasDocumentInsights ? (
+				<Tabs
+					defaultValue="content"
+					className="flex min-h-0 flex-1 flex-col pt-1.5"
+				>
+					<TabsList className="grid h-11 w-full grid-cols-2 rounded-full border border-[#263142] bg-[#0A1019] p-1 shadow-[inset_0_1px_2px_rgba(255,255,255,0.04),0_1px_3px_rgba(0,0,0,0.35)]">
+						<TabsTrigger
+							value="content"
+							className="rounded-full text-[15px] font-medium text-[#8E99AA] transition-colors data-[state=active]:bg-[#0B2B60]! data-[state=active]:text-[#F8FAFC] data-[state=active]:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_1px_4px_rgba(54,155,253,0.18)]"
+						>
+							Content
+						</TabsTrigger>
+						<TabsTrigger
+							value="insights"
+							className="rounded-full text-[15px] font-medium text-[#8E99AA] transition-colors data-[state=active]:bg-[#0B2B60]! data-[state=active]:text-[#F8FAFC] data-[state=active]:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08),0_1px_4px_rgba(54,155,253,0.18)]"
+						>
+							Insights
+						</TabsTrigger>
+					</TabsList>
+					<TabsContent value="content" className="mt-4 flex min-h-0 flex-1">
+						{documentPreview}
+					</TabsContent>
+					<TabsContent
+						value="insights"
+						className="mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto pb-1 scrollbar-thin"
 					>
-						<DocumentContent
-							document={_document}
-							textEditorProps={textEditorProps}
-							pluginDocument={pluginDocument}
-						/>
-					</div>
-					<div
-						id="document-memories-summary"
-						className={cn(
-							"gap-3 flex flex-col overflow-hidden",
-							dmSansClassName(),
-						)}
-					>
-						{pluginDocument &&
-							pluginDocument.kind !== "claude-code-doc" &&
-							pluginDocument.kind !== "openclaw-session" && (
-								<PluginDetails parsed={pluginDocument} />
-							)}
-						{_document && (_document.summary || pluginDocument?.summary) && (
-							<DocumentSummary
-								memoryEntries={_document.memoryEntries}
-								summary={
-									(pluginDocument?.summary ?? _document.summary) as string
-								}
-								createdAt={_document.createdAt}
-							/>
-						)}
-						{_document?.memoryEntries && _document.memoryEntries.length > 0 && (
-							<GraphListMemories
-								memoryEntries={_document.memoryEntries as MemoryEntry[]}
-								documentId={_document.id}
-							/>
-						)}
-					</div>
+						{documentInsights}
+					</TabsContent>
+				</Tabs>
+			) : isMobile ? (
+				<div className="flex min-h-0 flex-1 pt-1.5">{documentPreview}</div>
+			) : (
+				<div className="flex-1 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3 min-h-0 overflow-hidden">
+					{documentPreview}
+					{documentInsights}
 				</div>
+			)}
+		</>
+	)
+
+	if (isMobile) {
+		return (
+			<Drawer
+				open={isOpen}
+				onOpenChange={(open: boolean) => !open && onClose()}
+				shouldScaleBackground
+			>
+				<DrawerContent
+					className={cn(
+						"flex flex-col gap-0 border-none bg-[#1B1F24] p-0",
+						"h-[88svh] max-h-[88svh] overflow-hidden rounded-t-[22px]",
+						"[&>div:first-child]:bg-[#3A4252] [&>div:first-child]:h-1 [&>div:first-child]:w-9 [&>div:first-child]:mt-2.5 [&>div:first-child]:mb-1",
+						dmSansClassName(),
+					)}
+					style={{
+						boxShadow:
+							"0 -12px 40px rgba(0, 0, 0, 0.45), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+					}}
+				>
+					<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-3 pt-2 pb-4">
+						{modalContent}
+					</div>
+				</DrawerContent>
+			</Drawer>
+		)
+	}
+
+	return (
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+			<DialogContent
+				className={cn(
+					"p-0 border-none bg-[#1B1F24] flex flex-col px-3 md:px-4 pt-3 pb-4 gap-3",
+					"w-[80%]! max-w-[1158px]! h-[86%]! max-h-[684px]! rounded-[22px]",
+					dmSansClassName(),
+				)}
+				style={{
+					boxShadow:
+						"0 2.842px 14.211px 0 rgba(0, 0, 0, 0.25), 0.711px 0.711px 0.711px 0 rgba(255, 255, 255, 0.10) inset",
+				}}
+				showCloseButton={false}
+			>
+				{modalContent}
 			</DialogContent>
 		</Dialog>
 	)
