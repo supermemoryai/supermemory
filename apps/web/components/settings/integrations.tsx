@@ -84,7 +84,7 @@ function PillButton({
 			className={cn(
 				"relative flex items-center justify-center gap-2",
 				"bg-[#0D121A]",
-				"rounded-full h-11 px-4 flex-1",
+				"rounded-full h-11 min-w-0 px-3 flex-1 sm:px-4",
 				"cursor-pointer transition-opacity hover:opacity-80",
 				"shadow-[inset_1.5px_1.5px_4.5px_rgba(0,0,0,0.7)]",
 				"disabled:opacity-50 disabled:cursor-not-allowed",
@@ -244,6 +244,15 @@ export default function Integrations() {
 		analytics.extensionInstallClicked()
 	}
 
+	const addShortcutLabel =
+		createApiKeyMutation.isPending && selectedShortcutType === "add"
+			? "Creating..."
+			: "Add shortcut"
+	const searchShortcutLabel =
+		createApiKeyMutation.isPending && selectedShortcutType === "search"
+			? "Creating..."
+			: "Search shortcut"
+
 	const handleDialogClose = (open: boolean) => {
 		setShowApiKeyModal(open)
 		if (!open) {
@@ -331,7 +340,7 @@ export default function Integrations() {
 						</div>
 					</div>
 
-					<div id="apple-shortcuts-cta" className="flex gap-4">
+					<div id="apple-shortcuts-cta" className="flex gap-2 sm:gap-4">
 						<PillButton
 							onClick={() => handleShortcutClick("add")}
 							disabled={createApiKeyMutation.isPending}
@@ -342,11 +351,14 @@ export default function Integrations() {
 							) : (
 								<Plus className="size-4 text-[#FAFAFA]" />
 							)}
-							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
-								{createApiKeyMutation.isPending &&
-								selectedShortcutType === "add"
-									? "Creating..."
-									: "Add memory shortcut"}
+							<span className="whitespace-nowrap text-[12px] font-medium tracking-[-0.12px] text-[#FAFAFA] sm:text-[14px] sm:tracking-[-0.14px]">
+								<span className="sm:hidden">{addShortcutLabel}</span>
+								<span className="hidden sm:inline">
+									{createApiKeyMutation.isPending &&
+									selectedShortcutType === "add"
+										? "Creating..."
+										: "Add memory shortcut"}
+								</span>
 							</span>
 						</PillButton>
 						<PillButton
@@ -359,11 +371,14 @@ export default function Integrations() {
 							) : (
 								<Search className="size-4 text-[#FAFAFA]" />
 							)}
-							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
-								{createApiKeyMutation.isPending &&
-								selectedShortcutType === "search"
-									? "Creating..."
-									: "Search memory shortcut"}
+							<span className="whitespace-nowrap text-[12px] font-medium tracking-[-0.12px] text-[#FAFAFA] sm:text-[14px] sm:tracking-[-0.14px]">
+								<span className="sm:hidden">{searchShortcutLabel}</span>
+								<span className="hidden sm:inline">
+									{createApiKeyMutation.isPending &&
+									selectedShortcutType === "search"
+										? "Creating..."
+										: "Search memory shortcut"}
+								</span>
 							</span>
 						</PillButton>
 					</div>
@@ -397,7 +412,7 @@ export default function Integrations() {
 						</div>
 					</div>
 
-					<div id="raycast-extension-cta" className="flex gap-4">
+					<div id="raycast-extension-cta" className="flex gap-2 sm:gap-4">
 						<PillButton
 							onClick={handleRaycastClick}
 							disabled={createRaycastApiKeyMutation.isPending}
@@ -407,7 +422,7 @@ export default function Integrations() {
 							) : (
 								<Key className="size-4 text-[#FAFAFA]" />
 							)}
-							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
+							<span className="whitespace-nowrap text-[12px] font-medium tracking-[-0.12px] text-[#FAFAFA] sm:text-[14px] sm:tracking-[-0.14px]">
 								{createRaycastApiKeyMutation.isPending
 									? "Generating..."
 									: "Get API key"}
@@ -415,7 +430,7 @@ export default function Integrations() {
 						</PillButton>
 						<PillButton onClick={handleRaycastInstall}>
 							<Download className="size-4 text-[#FAFAFA]" />
-							<span className="text-[14px] tracking-[-0.14px] text-[#FAFAFA] font-medium">
+							<span className="whitespace-nowrap text-[12px] font-medium tracking-[-0.12px] text-[#FAFAFA] sm:text-[14px] sm:tracking-[-0.14px]">
 								Install extension
 							</span>
 						</PillButton>
