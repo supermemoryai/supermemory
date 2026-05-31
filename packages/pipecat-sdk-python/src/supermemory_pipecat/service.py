@@ -150,10 +150,13 @@ class SupermemoryPipecatService(FrameProcessor):
             if response.search_results and response.search_results.results:
                 search_results = response.search_results.results
 
+            profile_static = response.profile.static if response.profile is not None else []
+            profile_dynamic = response.profile.dynamic if response.profile is not None else []
+
             return {
                 "profile": {
-                    "static": response.profile.static,
-                    "dynamic": response.profile.dynamic,
+                    "static": profile_static,
+                    "dynamic": profile_dynamic,
                 },
                 "search_results": search_results,
             }
