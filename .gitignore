@@ -43,3 +43,5 @@ yarn-error.log*
 .venv
 .arch
 __pycache__
+# CocoIndex Code (ccc)
+/.cocoindex_code/
