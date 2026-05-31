@@ -572,7 +572,7 @@ export default function NewPage() {
 	const isDashboardShell =
 		viewMode === "dashboard" || (viewMode === "graph" && isMobile)
 	const isGraphMode = viewMode === "graph"
-	const showBottomNav = isMobile && !isChatView && !!session
+	const showBottomNav = isMobile && !!session
 
 	return (
 		<HotkeysProvider>

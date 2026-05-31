@@ -19,6 +19,7 @@ import {
 import { Button } from "@ui/components/button"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
+import { getBillingSettingsUrl } from "@/lib/url-helpers"
 import { GraphIcon, IntegrationsIcon } from "@/components/integration-icons"
 import {
 	DropdownMenu,
@@ -80,6 +81,7 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 		feedbackParam,
 	)
 	const { viewMode, setViewMode } = useViewMode()
+	const billingSettingsUrl = getBillingSettingsUrl()
 
 	const handleFeedback = () => setFeedbackOpen(true)
 
@@ -353,6 +355,15 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 								}}
 							>
 								<DropdownMenuItem
+									asChild
+									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
+								>
+									<a href={billingSettingsUrl}>
+										<Logo className="h-4 w-5 shrink-0" />
+										Upgrade
+									</a>
+								</DropdownMenuItem>
+								<DropdownMenuItem
 									onClick={onAddMemory}
 									className="gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-white/85 hover:bg-white/[0.06] focus:bg-white/[0.06] focus:text-white cursor-pointer"
 								>
@@ -421,6 +432,27 @@ export function Header({ onAddMemory, onOpenSearch }: HeaderProps) {
 					</>
 				) : (
 					<>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									asChild
+									className={cn(
+										"rounded-full! h-9! min-h-9 shrink-0 border border-[#2261CA33] bg-[#00173C] !text-white hover:bg-[#001F50]",
+										"max-lg:w-9 max-lg:min-w-9 max-lg:justify-center max-lg:gap-0 max-lg:px-0",
+										"lg:min-w-0 lg:gap-1.5 lg:px-3 lg:font-semibold",
+										dmSansClassName(),
+									)}
+								>
+									<a href={billingSettingsUrl} aria-label="Upgrade">
+										<Logo className="h-3.5 w-[17px] shrink-0 lg:h-4 lg:w-5" />
+										<span className="max-lg:sr-only">Upgrade</span>
+									</a>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" className={dmSansClassName()}>
+								Upgrade
+							</TooltipContent>
+						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button

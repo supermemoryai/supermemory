@@ -6,6 +6,8 @@ interface LegendProps {
 	edges?: GraphEdge[]
 	isLoading?: boolean
 	colors: GraphThemeColors
+	compact?: boolean
+	maxHeight?: number
 }
 
 function HexagonIcon({
@@ -191,6 +193,8 @@ export const Legend = memo(function Legend({
 	edges = [],
 	isLoading: _isLoading = false,
 	colors,
+	compact = false,
+	maxHeight,
 }: LegendProps) {
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [connectionsExpanded, setConnectionsExpanded] = useState(true)
@@ -201,7 +205,8 @@ export const Legend = memo(function Legend({
 
 	const outerStyle: React.CSSProperties = {
 		overflow: "hidden",
-		width: 214,
+		width: compact ? "min(214px, calc(100vw - 32px))" : 214,
+		maxWidth: "100%",
 	}
 
 	const cardStyle: React.CSSProperties = {
@@ -209,6 +214,7 @@ export const Legend = memo(function Legend({
 		backgroundColor: colors.controlBg,
 		border: `1px solid ${colors.controlBorder}`,
 		boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
+		maxHeight,
 	}
 
 	const headerBtnStyle: React.CSSProperties = {
@@ -217,6 +223,7 @@ export const Legend = memo(function Legend({
 		alignItems: "center",
 		gap: 6,
 		width: "100%",
+		justifyContent: "flex-start",
 		cursor: "pointer",
 		outline: "none",
 		background: "none",
@@ -263,6 +270,21 @@ export const Legend = memo(function Legend({
 		gap: 8,
 	}
 
+	const expandedContentStyle: React.CSSProperties = {
+		marginTop: 16,
+		display: "flex",
+		flexDirection: "column",
+		gap: 16,
+		...(compact
+			? {
+					maxHeight: maxHeight ? Math.max(maxHeight - 56, 112) : 220,
+					overflowY: "auto",
+					overscrollBehavior: "contain",
+					paddingRight: 2,
+				}
+			: {}),
+	}
+
 	return (
 		<div style={outerStyle}>
 			<div style={cardStyle}>
@@ -281,14 +303,7 @@ export const Legend = memo(function Legend({
 					</button>
 
 					{isExpanded && (
-						<div
-							style={{
-								marginTop: 16,
-								display: "flex",
-								flexDirection: "column",
-								gap: 16,
-							}}
-						>
+						<div style={expandedContentStyle}>
 							{/* Statistics section */}
 							<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 								<span style={sectionLabelStyle}>Statistics</span>

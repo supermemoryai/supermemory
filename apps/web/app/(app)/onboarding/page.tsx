@@ -41,7 +41,7 @@ import {
 	CheckCircle2,
 	Loader2,
 } from "lucide-react"
-import { analytics } from "@/lib/analytics"
+import { analytics, type OnboardingStep } from "@/lib/analytics"
 import { consumePendingConnectUrl } from "@/lib/constants"
 
 type DetectedSource = "x" | "linkedin" | "resume" | null
@@ -378,6 +378,13 @@ function isAccountSource(source: DetectedSource): source is "x" | "linkedin" {
 	return source === "x" || source === "linkedin"
 }
 
+const STATUS_TO_STEP: Record<Status, OnboardingStep> = {
+	idle: "profile_input",
+	processing: "processing",
+	done: "done",
+	error: "error",
+}
+
 function useSpotlightAutoRotation(
 	status: Status,
 	pauseSpotlight: boolean,
@@ -555,6 +562,7 @@ export default function OnboardingPage() {
 	const fileRef = useRef<HTMLInputElement>(null)
 	const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 	const skippingRef = useRef(false)
+	const completedTrackedRef = useRef(false)
 	const [isSkipping, setIsSkipping] = useState(false)
 	const [spotlightCategory, setSpotlightCategory] =
 		useState<SpotlightCategoryId>("productivity")
@@ -591,6 +599,21 @@ export default function OnboardingPage() {
 	usePollingCleanup(pollingRef)
 	useDoneAnimation(status, setStampLanded, setVisibleSnippets)
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fire per status transition only
+	useEffect(() => {
+		analytics.onboardingStepViewed({
+			step: STATUS_TO_STEP[status],
+			trigger: "auto",
+		})
+		if (status === "done" && !completedTrackedRef.current) {
+			completedTrackedRef.current = true
+			analytics.onboardingCompleted({
+				source: isAccountSource(detected) ? detected : undefined,
+				memories_count: memoriesCount,
+			})
+		}
+	}, [status])
+
 	const handleChange = (v: string) => {
 		setValue(v)
 		setDetected(detectSource(v))
@@ -619,6 +642,7 @@ export default function OnboardingPage() {
 		if (skippingRef.current) return
 		skippingRef.current = true
 		setIsSkipping(true)
+		analytics.onboardingSkipped({ from_step: STATUS_TO_STEP[status] })
 		try {
 			await ensureOrg()
 			const pendingPath = consumePendingConnectUrl()
@@ -628,7 +652,7 @@ export default function OnboardingPage() {
 			skippingRef.current = false
 			setIsSkipping(false)
 		}
-	}, [ensureOrg, router])
+	}, [ensureOrg, router, status])
 
 	const pollDocument = useCallback((docId: string) => {
 		const maxAttempts = 60
@@ -688,6 +712,7 @@ export default function OnboardingPage() {
 
 	const handleSubmit = useCallback(
 		async (source: "x" | "linkedin" | "resume", resumeFileOverride?: File) => {
+			analytics.onboardingProfileSubmitted({ source })
 			setStatus("processing")
 			setSpotlightCategory("productivity")
 			setPauseSpotlight(false)

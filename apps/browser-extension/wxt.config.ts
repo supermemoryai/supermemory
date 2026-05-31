@@ -29,7 +29,7 @@ export default defineConfig({
 	manifest: {
 		name: "supermemory",
 		homepage_url: "https://supermemory.ai",
-		version: "6.1.3",
+		version: "6.1.4",
 		permissions: ["storage", "activeTab", "webRequest", "tabs"],
 		host_permissions: [
 			"*://x.com/*",
