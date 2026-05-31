@@ -32,6 +32,8 @@ export function ReasoningSelector({
 	const selected = reasoningOptions.find((option) => option.id === value)
 	const SelectedIcon = value === "thinking" ? BrainIcon : ZapIcon
 	const selectedLabel = selected?.label ?? "Reasoning"
+	const selectedItemClass =
+		"border border-[#267BF1]/35 bg-[#0A1A3A] text-white shadow-[inset_0_0_0_1px_rgba(75,160,250,0.08)]"
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -105,30 +107,30 @@ export function ReasoningSelector({
 									type="button"
 									onClick={() => handleSelect(option.id)}
 									className={cn(
-										"flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors",
+										"flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors",
 										isSelected
-											? "bg-[#E6E6E6] text-[#101010]"
+											? selectedItemClass
 											: "text-white hover:bg-white/10",
 									)}
 								>
 									<Icon
 										className={cn(
 											"size-4 shrink-0",
-											isSelected ? "text-[#101010]/70" : "text-white/65",
+											isSelected ? "text-[#8DBDFF]" : "text-white/65",
 										)}
 									/>
 									<div className="min-w-0 flex-1">
 										<div
 											className={cn(
 												"text-[15px] font-medium",
-												isSelected ? "text-[#101010]" : "text-white",
+												isSelected ? "text-white" : "text-white",
 											)}
 										>
 											{option.label}
 										</div>
 									</div>
 									{isSelected && (
-										<CheckIcon className="size-4 shrink-0 text-[#101010]/70" />
+										<CheckIcon className="size-4 shrink-0 text-[#8DBDFF]" />
 									)}
 								</button>
 							)

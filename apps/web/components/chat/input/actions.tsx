@@ -5,9 +5,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@ui/components/tooltip"
 export function SendButton({
 	onClick,
 	disabled,
+	disabledTooltip = "Type a message to send",
 }: {
 	onClick: () => void
 	disabled: boolean
+	disabledTooltip?: string
 }) {
 	const button = (
 		<button
@@ -43,7 +45,7 @@ export function SendButton({
 				<TooltipTrigger asChild>
 					<span className="inline-flex">{button}</span>
 				</TooltipTrigger>
-				<TooltipContent side="top">Type a message to send</TooltipContent>
+				<TooltipContent side="top">{disabledTooltip}</TooltipContent>
 			</Tooltip>
 		)
 	}

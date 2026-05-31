@@ -101,6 +101,15 @@ export function ChatLaunchFab({
 	)
 }
 
+type QueuedChatMessage = {
+	id: string
+	text: string
+	model: ModelId
+	reasoningEffort: ReasoningEffort
+}
+
+const CHAT_QUEUE_LIMIT = 5
+
 export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen,
@@ -140,6 +149,9 @@ export function ChatSidebar({
 	selectedModelRef.current = selectedModel
 	const reasoningEffortRef = useRef(reasoningEffort)
 	reasoningEffortRef.current = reasoningEffort
+	const [messageQueue, setMessageQueue] = useState<QueuedChatMessage[]>([])
+	const queuedDispatchInFlightRef = useRef(false)
+	const queuedDispatchSawResponseRef = useRef(false)
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -368,12 +380,35 @@ export function ChatSidebar({
 	}, [])
 
 	const handleSend = () => {
-		if (!input.trim() || status === "submitted" || status === "streaming")
+		const text = input.trim()
+		if (!text) return
+
+		if (status === "submitted" || status === "streaming") {
+			if (messageQueue.length >= CHAT_QUEUE_LIMIT) return
+
+			setMessageQueue((prev) => {
+				if (prev.length >= CHAT_QUEUE_LIMIT) return prev
+				return [
+					...prev,
+					{
+						id: generateId(),
+						text,
+						model: selectedModel,
+						reasoningEffort,
+					},
+				]
+			})
+			setInput("")
+			analytics.chatMessageSent({ source: "typed" })
+			userJustSentRef.current = true
+			scrollToBottom()
 			return
+		}
+
 		truncateFromMessageIdRef.current = null
 		if (!threadId) setThreadId(fallbackChatId)
 		analytics.chatMessageSent({ source: "typed" })
-		sendMessage({ text: input })
+		sendMessage({ text })
 		setInput("")
 		userJustSentRef.current = true
 		scrollToBottom()
@@ -445,6 +480,8 @@ export function ChatSidebar({
 		pendingRegenerationRef.current = null
 		setRegenerationBaseLength(null)
 		analytics.chatMessageSent({ source: "typed" })
+		queuedDispatchInFlightRef.current = true
+		queuedDispatchSawResponseRef.current = false
 		sendMessage({ text: pending.text })
 		window.setTimeout(() => {
 			truncateFromMessageIdRef.current = null
@@ -513,6 +550,9 @@ export function ChatSidebar({
 		setThreadId(null)
 		setFallbackChatId(newChatId)
 		setInput("")
+		setMessageQueue([])
+		queuedDispatchInFlightRef.current = false
+		queuedDispatchSawResponseRef.current = false
 	}, [setThreadId, setMessages])
 
 	const fetchThreads = useCallback(async () => {
@@ -568,6 +608,9 @@ export function ChatSidebar({
 					)
 					setThreadId(id)
 					setPendingThreadLoad({ id, messages: uiMessages })
+					setMessageQueue([])
+					queuedDispatchInFlightRef.current = false
+					queuedDispatchSawResponseRef.current = false
 					analytics.chatThreadLoaded({ thread_id: id })
 					setIsHistoryOpen(false)
 					setConfirmingDeleteId(null)
@@ -700,6 +743,8 @@ export function ChatSidebar({
 			} else {
 				truncateFromMessageIdRef.current = null
 				if (!threadId) setThreadId(fallbackChatId)
+				queuedDispatchInFlightRef.current = true
+				queuedDispatchSawResponseRef.current = false
 				sendMessage({ text: queuedMessage })
 			}
 			onConsumeQueuedMessage?.()
@@ -753,6 +798,8 @@ export function ChatSidebar({
 			const reply = pendingHighlightReplyRef.current
 			pendingHighlightReplyRef.current = null
 			truncateFromMessageIdRef.current = null
+			queuedDispatchInFlightRef.current = true
+			queuedDispatchSawResponseRef.current = false
 			sendMessage({ text: reply })
 		}
 	}, [messages, sendMessage, status])
@@ -763,6 +810,56 @@ export function ChatSidebar({
 			sentQueuedMessageRef.current = null
 		}
 	}, [queuedMessage])
+
+	useEffect(() => {
+		const isRespondingNow = status === "submitted" || status === "streaming"
+		if (isRespondingNow) {
+			if (queuedDispatchInFlightRef.current) {
+				queuedDispatchSawResponseRef.current = true
+			}
+			return
+		}
+
+		if (status !== "ready") {
+			queuedDispatchInFlightRef.current = false
+			queuedDispatchSawResponseRef.current = false
+			return
+		}
+
+		if (queuedDispatchInFlightRef.current) {
+			if (!queuedDispatchSawResponseRef.current) return
+			queuedDispatchInFlightRef.current = false
+			queuedDispatchSawResponseRef.current = false
+		}
+
+		const nextMessage = messageQueue[0]
+		if (!nextMessage) return
+
+		queuedDispatchInFlightRef.current = true
+		queuedDispatchSawResponseRef.current = false
+		truncateFromMessageIdRef.current = null
+		pendingSendSettingsRef.current = {
+			model: nextMessage.model,
+			reasoningEffort: nextMessage.reasoningEffort,
+		}
+		if (!threadId) setThreadId(fallbackChatId)
+		setMessageQueue((prev) =>
+			prev[0]?.id === nextMessage.id
+				? prev.slice(1)
+				: prev.filter((item) => item.id !== nextMessage.id),
+		)
+		sendMessage({ text: nextMessage.text })
+		userJustSentRef.current = true
+		scrollToBottom()
+	}, [
+		fallbackChatId,
+		messageQueue,
+		scrollToBottom,
+		sendMessage,
+		setThreadId,
+		status,
+		threadId,
+	])
 
 	// Scroll to bottom when a new user message is added or a thread is loaded
 	useEffect(() => {
@@ -882,6 +979,7 @@ export function ChatSidebar({
 	const isResponding = status === "submitted" || status === "streaming"
 	const showInputStatusStrip =
 		!isStackedInput || isResponding || messages.length > 0
+	const isQueueFull = messageQueue.length >= CHAT_QUEUE_LIMIT
 
 	const chatHistorySheet = (
 		<Sheet
@@ -1244,6 +1342,66 @@ export function ChatSidebar({
 				</div>
 			)}
 
+			{messageQueue.length > 0 && (
+				<div
+					className={cn(
+						"mb-2 rounded-xl border border-[#263348]/80 bg-[#0B1119]/95 p-2 shadow-[0_14px_36px_rgba(0,0,0,0.34)]",
+						isPageDesktop ? "mx-0" : "mx-4",
+					)}
+				>
+					<div className="mb-1.5 flex items-center justify-between gap-3 px-1">
+						<div className="flex min-w-0 items-center gap-2">
+							<div className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#267BF1]/15 px-1.5 text-[11px] font-medium text-[#8DBDFF]">
+								{messageQueue.length}
+							</div>
+							<p className="truncate text-xs font-medium text-white/75">
+								Queued messages
+							</p>
+						</div>
+						<p className="shrink-0 text-[11px] text-white/38">
+							{messageQueue.length}/{CHAT_QUEUE_LIMIT}
+						</p>
+					</div>
+					<div className="flex max-h-36 flex-col gap-1 overflow-y-auto pr-1">
+						{messageQueue.map((queued, index) => {
+							const model = modelNames[queued.model]
+							const reasoningLabel =
+								queued.reasoningEffort === "thinking" ? "Thinking" : "Instant"
+							return (
+								<div
+									key={queued.id}
+									className="group flex min-h-10 items-center gap-2 rounded-lg border border-transparent bg-white/[0.035] px-2 py-1.5 transition-colors hover:border-[#263348]/90 hover:bg-white/[0.055]"
+								>
+									<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#101822] text-[11px] text-white/45">
+										{index + 1}
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-sm leading-5 text-white/88">
+											{queued.text}
+										</p>
+										<p className="truncate text-[11px] leading-4 text-white/38">
+											{model.name} {model.version} - {reasoningLabel}
+										</p>
+									</div>
+									<button
+										type="button"
+										onClick={() =>
+											setMessageQueue((prev) =>
+												prev.filter((item) => item.id !== queued.id),
+											)
+										}
+										className="flex size-7 shrink-0 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-white/10 hover:text-white/80"
+										aria-label="Remove queued message"
+									>
+										<XIcon className="size-3.5" />
+									</button>
+								</div>
+							)
+						})}
+					</div>
+				</div>
+			)}
+
 			<div
 				className={cn(
 					"shrink-0",
@@ -1258,12 +1416,16 @@ export function ChatSidebar({
 					onStop={stop}
 					onKeyDown={handleKeyDown}
 					isResponding={isResponding}
+					sendDisabled={isResponding && isQueueFull}
+					sendDisabledTooltip={`Queue is full (${CHAT_QUEUE_LIMIT} max)`}
 					activeStatus={
-						status === "submitted"
-							? "Thinking…"
-							: status === "streaming"
-								? "Structuring response…"
-								: "Waiting for input…"
+						isResponding && isQueueFull
+							? `Queue full (${CHAT_QUEUE_LIMIT} max)`
+							: status === "submitted"
+								? "Thinking…"
+								: status === "streaming"
+									? "Structuring response…"
+									: "Waiting for input…"
 					}
 					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}

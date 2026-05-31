@@ -15,6 +15,8 @@ interface ChatInputProps {
 	onStop: () => void
 	onKeyDown?: (e: React.KeyboardEvent) => void
 	isResponding?: boolean
+	sendDisabled?: boolean
+	sendDisabledTooltip?: string
 	activeStatus?: string
 	chainOfThoughtComponent?: React.ReactNode
 	onExpandedChange?: (expanded: boolean) => void
@@ -31,6 +33,8 @@ export default function ChatInput({
 	onStop,
 	onKeyDown,
 	isResponding = false,
+	sendDisabled = false,
+	sendDisabledTooltip,
 	activeStatus,
 	chainOfThoughtComponent,
 	onExpandedChange,
@@ -40,6 +44,11 @@ export default function ChatInput({
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
+	const isSendDisabled = !value.trim() || sendDisabled
+	const resolvedSendDisabledTooltip =
+		sendDisabled && value.trim()
+			? sendDisabledTooltip
+			: "Type a message to send"
 
 	useEffect(() => {
 		if (!showStatusStrip && isExpanded) {
@@ -139,17 +148,19 @@ export default function ChatInput({
 						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
 						style={{ minHeight: "36px" }}
 						rows={1}
-						disabled={isResponding}
 					/>
 					<div className="flex items-center gap-2">
 						<div className="flex min-w-0 flex-1 items-center gap-2">
 							{stackedToolbar}
 						</div>
-						<div className="shrink-0">
-							{isResponding ? (
-								<StopButton onClick={onStop} />
-							) : (
-								<SendButton onClick={onSend} disabled={!value.trim()} />
+						<div className="flex shrink-0 items-center gap-1.5">
+							{isResponding && <StopButton onClick={onStop} />}
+							{(!isResponding || value.trim()) && (
+								<SendButton
+									onClick={onSend}
+									disabled={isSendDisabled}
+									disabledTooltip={resolvedSendDisabledTooltip}
+								/>
 							)}
 						</div>
 					</div>
@@ -170,13 +181,15 @@ export default function ChatInput({
 						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
 						style={{ minHeight: "36px" }}
 						rows={1}
-						disabled={isResponding}
 					/>
-					<div className="transition-all duration-200">
-						{isResponding ? (
-							<StopButton onClick={onStop} />
-						) : (
-							<SendButton onClick={onSend} disabled={!value.trim()} />
+					<div className="flex items-center gap-1.5 transition-all duration-200">
+						{isResponding && <StopButton onClick={onStop} />}
+						{(!isResponding || value.trim()) && (
+							<SendButton
+								onClick={onSend}
+								disabled={isSendDisabled}
+								disabledTooltip={resolvedSendDisabledTooltip}
+							/>
 						)}
 					</div>
 				</div>

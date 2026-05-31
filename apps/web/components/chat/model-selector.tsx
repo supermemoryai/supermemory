@@ -44,6 +44,8 @@ export default function ChatModelSelector({
 	const selectedModel = selectedModelProp ?? internalModel
 	const currentModelData = modelNames[selectedModel]
 	const selectedModelLabel = `${currentModelData.name} ${currentModelData.version}`
+	const selectedItemClass =
+		"border border-[#267BF1]/35 bg-[#0A1A3A] text-white shadow-[inset_0_0_0_1px_rgba(75,160,250,0.08)]"
 
 	const handleModelSelect = (modelId: ModelId) => {
 		if (onModelChange) {
@@ -117,9 +119,9 @@ export default function ChatModelSelector({
 									key={model.id}
 									type="button"
 									className={cn(
-										"flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+										"flex w-full cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors",
 										isSelected
-											? "bg-[#E6E6E6] text-[#101010]"
+											? selectedItemClass
 											: "text-white hover:bg-white/10",
 									)}
 									onClick={() => handleModelSelect(model.id)}
@@ -131,13 +133,13 @@ export default function ChatModelSelector({
 										<div
 											className={cn(
 												"truncate text-[15px] font-medium",
-												isSelected ? "text-[#101010]" : "text-white",
+												isSelected ? "text-white" : "text-white",
 											)}
 										>
 											{modelData.name}{" "}
 											<span
 												className={cn(
-													isSelected ? "text-[#101010]/60" : "text-white/55",
+													isSelected ? "text-[#8DBDFF]" : "text-white/55",
 												)}
 											>
 												{modelData.version}
@@ -146,14 +148,14 @@ export default function ChatModelSelector({
 										<div
 											className={cn(
 												"mt-0.5 truncate text-xs",
-												isSelected ? "text-[#101010]/60" : "text-white/45",
+												isSelected ? "text-white/60" : "text-white/45",
 											)}
 										>
 											{model.description}
 										</div>
 									</div>
 									{isSelected && (
-										<CheckIcon className="size-4 shrink-0 text-[#101010]/70" />
+										<CheckIcon className="size-4 shrink-0 text-[#8DBDFF]" />
 									)}
 								</button>
 							)
