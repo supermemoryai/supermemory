@@ -1,6 +1,12 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect, useLayoutEffect } from "react"
+import {
+	useState,
+	useCallback,
+	useRef,
+	useEffect,
+	useLayoutEffect,
+} from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import {
@@ -93,6 +99,7 @@ export function HighlightsCard({
 		setIsExpanded(false)
 	}, [items])
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: re-run when item or expansion changes to detect clamping
 	useLayoutEffect(() => {
 		const el = contentRef.current
 		if (!el) return
