@@ -34,7 +34,13 @@ export function UserProfileMenu({
 	const { currentPlan, isLoading: planLoading } = useTokenUsage(autumn)
 
 	const planBadgeLabel =
-		currentPlan === "pro" ? "PRO" : currentPlan === "scale" ? "SCALE" : null
+		currentPlan === "pro"
+			? "PRO"
+			: currentPlan === "max"
+				? "MAX"
+				: currentPlan === "scale"
+					? "SCALE"
+					: null
 
 	const handleTryOnboarding = () => {
 		resetOrgOnboarded()

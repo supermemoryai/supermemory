@@ -10,6 +10,7 @@ const orgPlanBadgeBase = cn(
 const ORG_PLAN_BADGE_STYLES: Record<PlanType, string> = {
 	free: "bg-[#2E353D] font-mono font-medium tracking-[0.12em] text-[#A3A3A3]",
 	pro: "bg-[#4BA0FA] font-bold tracking-[0.36px] text-[#00171A]",
+	max: "bg-[#1E7FE0] font-bold tracking-[0.36px] text-[#00171A]",
 	scale: "bg-[#0054AD] font-bold tracking-[0.36px] text-[#FAFAFA]",
 	enterprise: "bg-[#FAFAFA] font-bold tracking-[0.36px] text-[#0D121A]",
 }

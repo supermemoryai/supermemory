@@ -2,11 +2,12 @@ import { getSubscriptionStatus, isAllowedFrom } from "@lib/queries"
 import type { useCustomer } from "autumn-js/react"
 import { calculateUsagePercent, getDaysRemaining } from "@/lib/billing-utils"
 
-export type PlanType = "free" | "pro" | "scale" | "enterprise"
+export type PlanType = "free" | "pro" | "max" | "scale" | "enterprise"
 
 export const PLAN_DISPLAY_NAMES: Record<PlanType, string> = {
 	free: "Free",
 	pro: "Pro",
+	max: "Max",
 	scale: "Scale",
 	enterprise: "Enterprise",
 }
@@ -15,8 +16,9 @@ export const PLAN_DISPLAY_NAMES: Record<PlanType, string> = {
 export const PLAN_RANK: Record<PlanType, number> = {
 	free: 0,
 	pro: 1,
-	scale: 2,
-	enterprise: 3,
+	max: 2,
+	scale: 3,
+	enterprise: 4,
 }
 
 export function normalizePlanType(raw: unknown): PlanType {
@@ -24,6 +26,7 @@ export function normalizePlanType(raw: unknown): PlanType {
 	const normalized = raw.toLowerCase().replace(/^api_/, "")
 	if (normalized === "enterprise") return "enterprise"
 	if (normalized === "scale") return "scale"
+	if (normalized === "max") return "max"
 	if (normalized === "pro") return "pro"
 	return "free"
 }
@@ -43,6 +46,8 @@ export function useTokenUsage(autumn: ReturnType<typeof useCustomer>) {
 		currentPlan = "enterprise"
 	} else if (isAllowedFrom(status, "api_scale")) {
 		currentPlan = "scale"
+	} else if (isAllowedFrom(status, "api_max")) {
+		currentPlan = "max"
 	} else if (isAllowedFrom(status, "api_pro")) {
 		currentPlan = "pro"
 	}

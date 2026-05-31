@@ -4,6 +4,7 @@ import { dmSans125ClassName } from "@/lib/fonts"
 import { PLAN_DISPLAY_NAMES, useTokenUsage } from "@/hooks/use-token-usage"
 import { cn } from "@lib/utils"
 import { useAuth } from "@lib/auth-context"
+import { getCanceledSubscription } from "@lib/queries"
 import {
 	Dialog,
 	DialogClose,
@@ -24,7 +25,7 @@ import {
 	Settings,
 	X,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 const API_BASE =
@@ -70,16 +71,17 @@ type AutoTopupsResponse =
 	| { ok: false; reason: string; message?: string }
 
 type PlanCardDefinition = {
-	id: "free" | "pro" | "scale" | "enterprise"
+	id: "free" | "pro" | "max" | "scale" | "enterprise"
 	name: string
 	price: string
 	period: string
 	credits: string
-	productId: "api_free" | "api_pro" | "api_scale" | "api_enterprise"
+	productId: "api_free" | "api_pro" | "api_max" | "api_scale" | "api_enterprise"
 	description: string
 	includesFrom?: string
 	features: string[]
 	isContactSales?: boolean
+	mostPopular?: boolean
 }
 
 const PLAN_CARDS: PlanCardDefinition[] = [
@@ -115,6 +117,18 @@ const PLAN_CARDS: PlanCardDefinition[] = [
 
 const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
 	{
+		id: "max",
+		name: "Max",
+		price: "$100",
+		period: "/mo",
+		credits: "$130",
+		productId: "api_max",
+		description: "For power users who outgrow Pro",
+		includesFrom: "Pro",
+		mostPopular: true,
+		features: ["6× the credits of Pro", "Gmail connector", "Priority support"],
+	},
+	{
 		id: "scale",
 		name: "Scale",
 		price: "$399",
@@ -122,10 +136,10 @@ const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
 		credits: "$600",
 		productId: "api_scale",
 		description: "For teams and production workloads",
-		includesFrom: "Pro",
+		includesFrom: "Max",
 		features: [
 			"Auto top-up & spend caps",
-			"Gmail, S3 & Web Crawler connectors",
+			"S3 & Web Crawler connectors",
 			"Dedicated support",
 		],
 	},
@@ -150,8 +164,9 @@ const ADVANCED_PLAN_CARDS: PlanCardDefinition[] = [
 const PLAN_RANK: Record<PlanCardDefinition["id"], number> = {
 	free: 0,
 	pro: 1,
-	scale: 2,
-	enterprise: 3,
+	max: 2,
+	scale: 3,
+	enterprise: 4,
 }
 
 function SectionTitle({
@@ -208,9 +223,16 @@ function PlanCard({
 			className={cn(
 				"relative flex min-h-[416px] flex-col overflow-hidden rounded-[14px] border p-5",
 				"shadow-[inset_2.42px_2.42px_4.263px_rgba(11,15,21,0.7)]",
-				"border-white/[0.08] bg-[#14161A]",
+				plan.mostPopular
+					? "border-[#4BA0FA]/40 bg-[#14161A]"
+					: "border-white/[0.08] bg-[#14161A]",
 			)}
 		>
+			{plan.mostPopular ? (
+				<span className="absolute right-5 top-5 inline-flex h-[18px] items-center rounded-[3px] bg-[#4BA0FA] px-1.5 text-[10px] font-bold uppercase tracking-[0.36px] text-[#00171A]">
+					Most popular
+				</span>
+			) : null}
 			<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
 				{plan.name}
 			</p>
@@ -396,6 +418,7 @@ function getInvoiceProductLabel(productId: string | undefined): string {
 	const planMap: Record<string, string> = {
 		api_free: "Free",
 		api_pro: "Pro",
+		api_max: "Max",
 		api_scale: "Scale",
 		api_enterprise: "Enterprise",
 		memory_free: "Free",
@@ -416,7 +439,9 @@ export default function Billing() {
 	const autumn = useCustomer({ expand: ["payment_method"] })
 	const [isUpgrading, setIsUpgrading] = useState(false)
 	const [isCancelling, setIsCancelling] = useState(false)
+	const [isResuming, setIsResuming] = useState(false)
 	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+	const [cancelConfirmText, setCancelConfirmText] = useState("")
 	const [isCreditsDialogOpen, setIsCreditsDialogOpen] = useState(false)
 	const [isPlanCarouselActive, setIsPlanCarouselActive] = useState(false)
 	const [planPage, setPlanPage] = useState<0 | 1>(0)
@@ -445,6 +470,17 @@ export default function Billing() {
 		isLoading: isCheckingStatus,
 		daysRemaining,
 	} = useTokenUsage(autumn)
+
+	// Open the carousel to the page holding the current plan (Max/Scale/Enterprise live on page 2).
+	const didAutoOpenPlanPage = useRef(false)
+	useEffect(() => {
+		if (didAutoOpenPlanPage.current || isCheckingStatus) return
+		didAutoOpenPlanPage.current = true
+		if (ADVANCED_PLAN_CARDS.some((p) => p.id === currentPlan)) {
+			setIsPlanCarouselActive(true)
+			setPlanPage(1)
+		}
+	}, [isCheckingStatus, currentPlan])
 
 	const balance = autumn.data?.balances?.[CREDIT_FEATURE_ID]
 	const creditRemaining =
@@ -517,7 +553,7 @@ export default function Billing() {
 
 	const planDisplayNames = PLAN_DISPLAY_NAMES
 
-	const handleUpgrade = async (planId: "api_pro" | "api_scale") => {
+	const handleUpgrade = async (planId: "api_pro" | "api_max" | "api_scale") => {
 		setIsUpgrading(true)
 		try {
 			const result = await autumn.attach({
@@ -538,9 +574,58 @@ export default function Billing() {
 	}
 
 	const cancellablePlanId =
-		currentPlan === "pro" || currentPlan === "scale"
+		currentPlan === "pro" || currentPlan === "max" || currentPlan === "scale"
 			? (`api_${currentPlan}` as const)
 			: null
+
+	const currentPlanCard = [...PLAN_CARDS, ...ADVANCED_PLAN_CARDS].find(
+		(p) => p.id === currentPlan,
+	)
+	const cancelLossItems = currentPlanCard
+		? [
+				`${currentPlanCard.credits}/mo included credits`,
+				...currentPlanCard.features.filter((f) => !/credit/i.test(f)),
+			]
+		: []
+	const canConfirmCancel = cancelConfirmText.trim().toUpperCase() === "CANCEL"
+
+	const canceledSub = getCanceledSubscription(autumn.data?.subscriptions)
+	const isPlanCanceling = canceledSub != null
+	const cancelEndsAt =
+		canceledSub?.endsAt != null ? normalizeTimestamp(canceledSub.endsAt) : null
+	const cancelEndsLabel =
+		cancelEndsAt != null
+			? new Date(cancelEndsAt).toLocaleDateString("en-US", {
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				})
+			: "the end of your billing period"
+	const cancelEndsDays =
+		cancelEndsAt != null
+			? Math.max(
+					0,
+					Math.ceil((cancelEndsAt - Date.now()) / (1000 * 60 * 60 * 24)),
+				)
+			: null
+
+	const handleResumeSubscription = async () => {
+		if (!canceledSub || isResuming) return
+		setIsResuming(true)
+		try {
+			await autumn.updateSubscription({
+				planId: canceledSub.planId,
+				cancelAction: "uncancel",
+			})
+			autumn.refetch?.()
+			toast.success(`${planDisplayNames[currentPlan]} subscription resumed.`)
+		} catch (error) {
+			console.error(error)
+			toast.error("Failed to resume subscription. Please try again.")
+		} finally {
+			setIsResuming(false)
+		}
+	}
 
 	const handleCancelSubscription = async () => {
 		if (!cancellablePlanId) return
@@ -552,6 +637,7 @@ export default function Billing() {
 			})
 			autumn.refetch?.()
 			setIsCancelDialogOpen(false)
+			setCancelConfirmText("")
 			toast.success(
 				`Subscription cancelled. ${planDisplayNames[currentPlan]} features remain active until the end of your billing period.`,
 			)
@@ -743,7 +829,9 @@ export default function Billing() {
 		}
 
 		const checkoutPlanId =
-			plan.productId === "api_pro" || plan.productId === "api_scale"
+			plan.productId === "api_pro" ||
+			plan.productId === "api_max" ||
+			plan.productId === "api_scale"
 				? plan.productId
 				: null
 		if (!checkoutPlanId) return null
@@ -784,8 +872,20 @@ export default function Billing() {
 											? `${planDisplayNames[currentPlan]} plan`
 											: "Free plan"}
 									</p>
-									<Pill tone={hasPaidPlan ? "active" : "muted"}>
-										{hasPaidPlan ? "Active" : "Free"}
+									<Pill
+										tone={
+											isPlanCanceling
+												? "warning"
+												: hasPaidPlan
+													? "active"
+													: "muted"
+										}
+									>
+										{isPlanCanceling
+											? "Cancelling"
+											: hasPaidPlan
+												? "Active"
+												: "Free"}
 									</Pill>
 								</div>
 								<p
@@ -794,9 +894,11 @@ export default function Billing() {
 										"mt-1 text-[13px] leading-relaxed text-[#A3A3A3]",
 									)}
 								>
-									{hasPaidPlan
-										? "Expanded memory, connections, and usage for this workspace."
-										: "Upgrade when you need more workspace usage and integrations."}
+									{isPlanCanceling
+										? `Cancels on ${cancelEndsLabel}${cancelEndsDays !== null ? ` · ${cancelEndsDays} day${cancelEndsDays !== 1 ? "s" : ""} left` : ""}. You'll move to Free after that.`
+										: hasPaidPlan
+											? "Expanded memory, connections, and usage for this workspace."
+											: "Upgrade when you need more workspace usage and integrations."}
 								</p>
 							</div>
 
@@ -812,10 +914,28 @@ export default function Billing() {
 									<Settings className="size-3.5 text-[#737373]" />
 									Manage
 								</button>
-								{cancellablePlanId ? (
+								{isPlanCanceling ? (
+									<button
+										type="button"
+										onClick={() => void handleResumeSubscription()}
+										disabled={isResuming}
+										className={cn(
+											dmSans125ClassName(),
+											"inline-flex h-9 items-center gap-2 rounded-[9px] bg-[#0054AD] px-3 text-[13px] font-medium text-[#FAFAFA] transition-colors hover:bg-[#0B65C9] disabled:cursor-not-allowed disabled:opacity-50",
+										)}
+									>
+										{isResuming ? (
+											<LoaderIcon className="size-3.5 animate-spin" />
+										) : null}
+										Resume plan
+									</button>
+								) : cancellablePlanId ? (
 									<Dialog
 										open={isCancelDialogOpen}
-										onOpenChange={setIsCancelDialogOpen}
+										onOpenChange={(open) => {
+											setIsCancelDialogOpen(open)
+											if (!open) setCancelConfirmText("")
+										}}
 									>
 										<DialogTrigger asChild>
 											<button
@@ -865,6 +985,48 @@ export default function Billing() {
 													</button>
 												</DialogClose>
 											</div>
+											{cancelLossItems.length > 0 ? (
+												<div className="mt-4 rounded-[10px] border border-white/[0.06] bg-[#0D121A] p-3.5">
+													<p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-[#737373]">
+														You'll lose
+													</p>
+													<ul className="mt-2.5 flex flex-col gap-1.5">
+														{cancelLossItems.map((item) => (
+															<li
+																className="flex items-start gap-2 text-[13px] leading-snug text-[#C8D0DA]"
+																key={item}
+															>
+																<X className="mt-0.5 size-3.5 shrink-0 text-[#C73B1B]" />
+																<span>{item}</span>
+															</li>
+														))}
+													</ul>
+												</div>
+											) : null}
+											<div className="mt-4">
+												<label
+													className={cn(
+														dmSans125ClassName(),
+														"text-[13px] text-[#A3A3A3]",
+													)}
+													htmlFor="cancel-confirm"
+												>
+													Type{" "}
+													<span className="font-semibold text-[#FAFAFA]">
+														CANCEL
+													</span>{" "}
+													to confirm
+												</label>
+												<input
+													autoComplete="off"
+													className="mt-2 h-9 w-full rounded-[9px] border border-white/10 bg-[#0D121A] px-3 text-[13px] text-[#FAFAFA] outline-none placeholder:text-[#3F4651] focus:border-white/25"
+													id="cancel-confirm"
+													onChange={(e) => setCancelConfirmText(e.target.value)}
+													placeholder="CANCEL"
+													type="text"
+													value={cancelConfirmText}
+												/>
+											</div>
 											<div className="mt-5 flex items-center justify-end gap-3">
 												<DialogClose asChild>
 													<button
@@ -880,7 +1042,7 @@ export default function Billing() {
 												<button
 													type="button"
 													onClick={() => void handleCancelSubscription()}
-													disabled={isCancelling}
+													disabled={isCancelling || !canConfirmCancel}
 													className={cn(
 														dmSans125ClassName(),
 														"inline-flex h-9 items-center gap-2 rounded-[9px] bg-[#290F0A] px-3 text-[13px] font-medium text-[#C73B1B] transition-opacity disabled:cursor-not-allowed disabled:opacity-50",
@@ -966,7 +1128,7 @@ export default function Billing() {
 									onClick={() => setPlanPage(1)}
 									disabled={planPage === 1}
 									className="flex size-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.02] text-[#A3A3A3] transition-colors hover:bg-white/[0.05] hover:text-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-35"
-									aria-label="Show Scale and Enterprise plans"
+									aria-label="Show Max, Scale and Enterprise plans"
 								>
 									<ChevronRight className="size-4" />
 								</button>
@@ -993,7 +1155,7 @@ export default function Billing() {
 								/>
 							))}
 						</div>
-						<div className="grid w-full shrink-0 gap-4 md:grid-cols-2">
+						<div className="grid w-full shrink-0 gap-4 md:grid-cols-3">
 							{ADVANCED_PLAN_CARDS.map((plan) => (
 								<PlanCard
 									action={getPlanCardAction(plan)}
