@@ -333,7 +333,11 @@ export function ChatSidebar({
 	}, [])
 
 	const handleSend = (attachments?: import("ai").FileUIPart[]) => {
-		if ((!input.trim() && (!attachments || attachments.length === 0)) || status === "submitted" || status === "streaming")
+		if (
+			(!input.trim() && (!attachments || attachments.length === 0)) ||
+			status === "submitted" ||
+			status === "streaming"
+		)
 			return
 		if (!threadId) setThreadId(fallbackChatId)
 		analytics.chatMessageSent({ source: "typed" })

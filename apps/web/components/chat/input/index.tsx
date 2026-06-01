@@ -9,7 +9,8 @@ import { motion } from "motion/react"
 import type { FileUIPart } from "ai"
 import { SendButton, StopButton } from "./actions"
 
-const ACCEPTED_FILE_TYPES = "image/jpeg,image/png,image/gif,image/webp,application/pdf"
+const ACCEPTED_FILE_TYPES =
+	"image/jpeg,image/png,image/gif,image/webp,application/pdf"
 const MAX_FILE_SIZE_MB = 10
 const MAX_TOTAL_SIZE_MB = 20
 const MAX_FILE_COUNT = 5
@@ -147,8 +148,11 @@ export default function ChatInput({
 	const attachmentChips = attachments.length > 0 && (
 		<div className="flex flex-wrap gap-1.5 px-1 pt-1">
 			{attachments.map((att, i) => (
-				// biome-ignore lint/suspicious/noArrayIndexKey: stable list
-				<AttachmentChip key={i} attachment={att} onRemove={() => removeAttachment(i)} />
+				<AttachmentChip
+					key={i}
+					attachment={att}
+					onRemove={() => removeAttachment(i)}
+				/>
 			))}
 		</div>
 	)
@@ -263,7 +267,10 @@ export default function ChatInput({
 							{isResponding ? (
 								<StopButton onClick={onStop} />
 							) : (
-								<SendButton onClick={handleSend} disabled={!value.trim() && attachments.length === 0} />
+								<SendButton
+									onClick={handleSend}
+									disabled={!value.trim() && attachments.length === 0}
+								/>
 							)}
 						</div>
 					</div>
@@ -287,12 +294,20 @@ export default function ChatInput({
 						rows={1}
 						disabled={isResponding}
 					/>
-					<div className={cn("flex items-center gap-1 transition-all duration-200", isMultiline && "w-full justify-end")}>
+					<div
+						className={cn(
+							"flex items-center gap-1 transition-all duration-200",
+							isMultiline && "w-full justify-end",
+						)}
+					>
 						{paperclipButton}
 						{isResponding ? (
 							<StopButton onClick={onStop} />
 						) : (
-							<SendButton onClick={handleSend} disabled={!value.trim() && attachments.length === 0} />
+							<SendButton
+								onClick={handleSend}
+								disabled={!value.trim() && attachments.length === 0}
+							/>
 						)}
 					</div>
 				</div>

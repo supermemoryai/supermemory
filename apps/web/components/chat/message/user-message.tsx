@@ -21,7 +21,8 @@ export const UserMessage = memo(function UserMessage({
 		.join(" ")
 
 	const files = message.parts.filter(
-		(part): part is Extract<typeof part, { type: "file" }> => part.type === "file",
+		(part): part is Extract<typeof part, { type: "file" }> =>
+			part.type === "file",
 	)
 
 	return (
@@ -33,7 +34,6 @@ export const UserMessage = memo(function UserMessage({
 						return isImage ? (
 							// eslint-disable-next-line @next/next/no-img-element
 							<img
-								// biome-ignore lint/suspicious/noArrayIndexKey: stable list
 								key={i}
 								src={f.url}
 								alt={f.filename ?? "attachment"}
@@ -41,12 +41,13 @@ export const UserMessage = memo(function UserMessage({
 							/>
 						) : (
 							<div
-								// biome-ignore lint/suspicious/noArrayIndexKey: stable list
 								key={i}
 								className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#1B1F24] px-3 py-2 text-xs text-white/60"
 							>
 								<FileText className="size-3.5 shrink-0" />
-								<span className="truncate max-w-[120px]">{f.filename ?? "file"}</span>
+								<span className="truncate max-w-[120px]">
+									{f.filename ?? "file"}
+								</span>
 							</div>
 						)
 					})}
@@ -57,18 +58,20 @@ export const UserMessage = memo(function UserMessage({
 					<p className="text-sm text-white">{text}</p>
 				</div>
 			)}
-			{text && <button
-				type="button"
-				onClick={() => onCopy(message.id, text)}
-				className="p-1.5 hover:bg-[#293952]/40 rounded transition-colors mt-1"
-				title="Copy message"
-			>
-				{copiedMessageId === message.id ? (
-					<Check className="size-3.5 text-green-400" />
-				) : (
-					<Copy className="size-3.5 text-white/50" />
-				)}
-			</button>}
+			{text && (
+				<button
+					type="button"
+					onClick={() => onCopy(message.id, text)}
+					className="p-1.5 hover:bg-[#293952]/40 rounded transition-colors mt-1"
+					title="Copy message"
+				>
+					{copiedMessageId === message.id ? (
+						<Check className="size-3.5 text-green-400" />
+					) : (
+						<Copy className="size-3.5 text-white/50" />
+					)}
+				</button>
+			)}
 		</div>
 	)
 })
