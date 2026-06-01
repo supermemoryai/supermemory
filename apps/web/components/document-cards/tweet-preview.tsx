@@ -144,18 +144,46 @@ function isTweetLike(value: unknown): value is Tweet {
 	return true
 }
 
+function ensureArray<T>(value: unknown): T[] {
+	return Array.isArray(value) ? (value as T[]) : []
+}
+
+// enrichTweet iterates entities.hashtags, .user_mentions, .urls and .symbols
+// with `for...of`, so any of them being absent throws "not iterable". A real
+// syndication payload always carries the four arrays (often empty), so default
+// them before the tweet reaches enrichTweet. `media` is intentionally left
+// untouched: enrichTweet only reads it when truthy and indexes media[0], so an
+// empty array would crash — the enrich-time guard below covers that case.
+function normalizeTweet(tweet: Tweet): Tweet {
+	const entities = tweet.entities as unknown as Record<string, unknown>
+	return {
+		...tweet,
+		entities: {
+			...tweet.entities,
+			hashtags: ensureArray(entities.hashtags),
+			user_mentions: ensureArray(entities.user_mentions),
+			urls: ensureArray(entities.urls),
+			symbols: ensureArray(entities.symbols),
+		},
+	}
+}
+
 function parseTweetData(data: Tweet | string): Tweet | null {
 	if (!data) return null
-	if (typeof data !== "string") return isTweetLike(data) ? data : null
-	try {
-		const parsed: unknown = JSON.parse(data)
-		if (isTweetLike(parsed)) return parsed
+	let value: unknown = data
+	if (typeof data === "string") {
+		try {
+			value = JSON.parse(data)
+		} catch (error) {
+			console.warn("TweetPreview: failed to parse tweet data", error)
+			return null
+		}
+	}
+	if (!isTweetLike(value)) {
 		console.warn("TweetPreview: parsed value did not match Tweet shape")
 		return null
-	} catch (error) {
-		console.warn("TweetPreview: failed to parse tweet data", error)
-		return null
 	}
+	return normalizeTweet(value)
 }
 
 function TweetPreviewFallback({ noBgColor }: { noBgColor?: boolean }) {
@@ -179,9 +207,21 @@ export function TweetPreview({
 	data: Tweet | string
 	noBgColor?: boolean
 }) {
-	const parsedTweet = useMemo(() => parseTweetData(data), [data])
-	if (!parsedTweet) return <TweetPreviewFallback noBgColor={noBgColor} />
-	const tweet = enrichTweet(parsedTweet)
+	const tweet = useMemo(() => {
+		const parsed = parseTweetData(data)
+		if (!parsed) return null
+		try {
+			return enrichTweet(parsed)
+		} catch (error) {
+			// enrichTweet still walks quoted tweets, media entities and per-entity
+			// indices, so a partially-malformed payload can throw here even after
+			// the shape check. Degrade to the fallback instead of crashing render.
+			console.warn("TweetPreview: failed to enrich tweet data", error)
+			return null
+		}
+	}, [data])
+
+	if (!tweet) return <TweetPreviewFallback noBgColor={noBgColor} />
 
 	return (
 		<div
