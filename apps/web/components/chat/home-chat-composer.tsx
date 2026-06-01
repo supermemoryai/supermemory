@@ -48,6 +48,7 @@ export function HomeChatComposer({
 					onKeyDown={handleKeyDown}
 					isResponding={false}
 					showStatusStrip={false}
+					disableAttachments
 					stackedToolbar={
 						<>
 							<ChatModelSelector

@@ -57,7 +57,7 @@ export const UserMessage = memo(function UserMessage({
 					<p className="text-sm text-white">{text}</p>
 				</div>
 			)}
-			<button
+			{text && <button
 				type="button"
 				onClick={() => onCopy(message.id, text)}
 				className="p-1.5 hover:bg-[#293952]/40 rounded transition-colors mt-1"
@@ -68,7 +68,7 @@ export const UserMessage = memo(function UserMessage({
 				) : (
 					<Copy className="size-3.5 text-white/50" />
 				)}
-			</button>
+			</button>}
 		</div>
 	)
 })

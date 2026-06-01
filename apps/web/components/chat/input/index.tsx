@@ -11,6 +11,8 @@ import { SendButton, StopButton } from "./actions"
 
 const ACCEPTED_FILE_TYPES = "image/jpeg,image/png,image/gif,image/webp,application/pdf"
 const MAX_FILE_SIZE_MB = 10
+const MAX_TOTAL_SIZE_MB = 20
+const MAX_FILE_COUNT = 5
 
 interface ChatInputProps {
 	value: string
@@ -26,6 +28,8 @@ interface ChatInputProps {
 	stackedToolbar?: ReactNode
 	/** Nova status row + chain-of-thought toggle (off for e.g. home composer) */
 	showStatusStrip?: boolean
+	/** Hide attachment button (for consumers that don't support file upload) */
+	disableAttachments?: boolean
 }
 
 export default function ChatInput({
@@ -33,13 +37,14 @@ export default function ChatInput({
 	onChange,
 	onSend,
 	onStop,
-	onKeyDown,
+	onKeyDown: externalOnKeyDown,
 	isResponding = false,
 	activeStatus,
 	chainOfThoughtComponent,
 	onExpandedChange,
 	stackedToolbar,
 	showStatusStrip = true,
+	disableAttachments = false,
 }: ChatInputProps) {
 	const [isMultiline, setIsMultiline] = useState(false)
 	const [isExpanded, setIsExpanded] = useState(false)
@@ -47,30 +52,56 @@ export default function ChatInput({
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
+	const attachmentsRef = useRef(attachments)
+	attachmentsRef.current = attachments
+
 	const handleFileChange = useCallback(
 		async (e: React.ChangeEvent<HTMLInputElement>) => {
-			const files = Array.from(e.target.files ?? [])
+			const incoming = Array.from(e.target.files ?? [])
 			e.target.value = ""
+			const current = attachmentsRef.current
+			const slots = MAX_FILE_COUNT - current.length
+			if (slots <= 0) return
+			const candidates = incoming
+				.slice(0, slots)
+				.filter((f) => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024)
+			// Enforce total budget (rough estimate; data URL is ~1.37x raw size)
+			const budgetBytes = MAX_TOTAL_SIZE_MB * 1024 * 1024
+			let consumed = current.reduce((sum, att) => {
+				// Estimate original size from data URL length
+				return sum + Math.round(att.url.length * 0.75)
+			}, 0)
+			const accepted: File[] = []
+			for (const f of candidates) {
+				if (consumed + f.size <= budgetBytes) {
+					accepted.push(f)
+					consumed += f.size
+				}
+			}
+			if (accepted.length === 0) return
 			const parts = await Promise.all(
-				files
-					.filter((f) => f.size <= MAX_FILE_SIZE_MB * 1024 * 1024)
-					.map(
-						(file) =>
-							new Promise<FileUIPart>((resolve) => {
-								const reader = new FileReader()
-								reader.onload = () =>
-									resolve({
-										type: "file" as const,
-										mediaType: file.type,
-										filename: file.name,
-										url: reader.result as string,
-									})
-								reader.readAsDataURL(file)
-							}),
-					),
+				accepted.map(
+					(file) =>
+						new Promise<FileUIPart>((resolve) => {
+							const reader = new FileReader()
+							reader.onload = () =>
+								resolve({
+									type: "file",
+									mediaType: file.type,
+									filename: file.name,
+									url: reader.result as string,
+								})
+							reader.readAsDataURL(file)
+						}),
+				),
 			)
 			setAttachments((prev) => [...prev, ...parts])
 		},
+		[],
+	)
+
+	const removeAttachment = useCallback(
+		(i: number) => setAttachments((prev) => prev.filter((_, idx) => idx !== i)),
 		[],
 	)
 
@@ -78,6 +109,20 @@ export default function ChatInput({
 		onSend(attachments.length > 0 ? attachments : undefined)
 		setAttachments([])
 	}, [onSend, attachments])
+
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === "Enter" && !e.shiftKey) {
+				e.preventDefault()
+				if (!isResponding && (value.trim() || attachments.length > 0)) {
+					handleSend()
+				}
+				return
+			}
+			externalOnKeyDown?.(e)
+		},
+		[externalOnKeyDown, handleSend, isResponding, value, attachments.length],
+	)
 
 	useEffect(() => {
 		if (!showStatusStrip && isExpanded) {
@@ -99,16 +144,28 @@ export default function ChatInput({
 		setIsMultiline(textarea.scrollHeight > 52)
 	}
 
+	const attachmentChips = attachments.length > 0 && (
+		<div className="flex flex-wrap gap-1.5 px-1 pt-1">
+			{attachments.map((att, i) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: stable list
+				<AttachmentChip key={i} attachment={att} onRemove={() => removeAttachment(i)} />
+			))}
+		</div>
+	)
+
+	const paperclipButton = !disableAttachments && (
+		<button
+			type="button"
+			aria-label="Attach file"
+			onClick={() => fileInputRef.current?.click()}
+			disabled={isResponding}
+			className="shrink-0 rounded-lg p-1.5 text-fg-faint hover:text-fg-primary hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+		>
+			<Paperclip className="size-4" />
+		</button>
+	)
+
 	return (
-		<>
-		<input
-			accept={ACCEPTED_FILE_TYPES}
-			className="hidden"
-			multiple
-			onChange={handleFileChange}
-			ref={fileInputRef}
-			type="file"
-		/>
 		<motion.div
 			className={cn("relative z-20!")}
 			animate={{
@@ -130,6 +187,14 @@ export default function ChatInput({
 				ease: "easeOut",
 			}}
 		>
+			<input
+				accept={ACCEPTED_FILE_TYPES}
+				className="hidden"
+				multiple
+				onChange={handleFileChange}
+				ref={fileInputRef}
+				type="file"
+			/>
 			{showStatusStrip ? (
 				<>
 					<div
@@ -177,23 +242,12 @@ export default function ChatInput({
 			) : null}
 			{stackedToolbar ? (
 				<div className="flex flex-col gap-2 rounded-xl bg-surface-card/60 backdrop-blur-md p-2 shadow-[0_16px_48px_rgba(0,0,0,0.34)] transition-all duration-200 focus-within:ring-1 focus-within:ring-fg-primary/10">
-					{attachments.length > 0 && (
-						<div className="flex flex-wrap gap-1.5 px-1 pt-1">
-							{attachments.map((att, i) => (
-								<AttachmentChip
-									// biome-ignore lint/suspicious/noArrayIndexKey: stable list
-									key={i}
-									attachment={att}
-									onRemove={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
-								/>
-							))}
-						</div>
-					)}
+					{attachmentChips}
 					<textarea
 						ref={textareaRef}
 						value={value}
 						onChange={handleChange}
-						onKeyDown={onKeyDown}
+						onKeyDown={handleKeyDown}
 						placeholder="Ask your supermemory..."
 						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
 						style={{ minHeight: "36px" }}
@@ -204,15 +258,7 @@ export default function ChatInput({
 						<div className="flex min-w-0 flex-1 items-center gap-2">
 							{stackedToolbar}
 						</div>
-						<button
-							type="button"
-							aria-label="Attach file"
-							onClick={() => fileInputRef.current?.click()}
-							disabled={isResponding}
-							className="shrink-0 rounded-lg p-1.5 text-fg-faint hover:text-fg-primary hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-						>
-							<Paperclip className="size-4" />
-						</button>
+						{paperclipButton}
 						<div className="shrink-0">
 							{isResponding ? (
 								<StopButton onClick={onStop} />
@@ -229,23 +275,12 @@ export default function ChatInput({
 						isMultiline && "flex-col",
 					)}
 				>
-					{attachments.length > 0 && (
-						<div className="flex flex-wrap gap-1.5 w-full px-1 pt-1">
-							{attachments.map((att, i) => (
-								<AttachmentChip
-									// biome-ignore lint/suspicious/noArrayIndexKey: stable list
-									key={i}
-									attachment={att}
-									onRemove={() => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
-								/>
-							))}
-						</div>
-					)}
+					{attachmentChips}
 					<textarea
 						ref={textareaRef}
 						value={value}
 						onChange={handleChange}
-						onKeyDown={onKeyDown}
+						onKeyDown={handleKeyDown}
 						placeholder="Ask your supermemory..."
 						className="w-full resize-none overflow-y-auto bg-transparent p-2 text-fg-primary transition-all duration-200 placeholder:text-fg-faint focus:outline-none"
 						style={{ minHeight: "36px" }}
@@ -253,15 +288,7 @@ export default function ChatInput({
 						disabled={isResponding}
 					/>
 					<div className={cn("flex items-center gap-1 transition-all duration-200", isMultiline && "w-full justify-end")}>
-						<button
-							type="button"
-							aria-label="Attach file"
-							onClick={() => fileInputRef.current?.click()}
-							disabled={isResponding}
-							className="rounded-lg p-1.5 text-fg-faint hover:text-fg-primary hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-						>
-							<Paperclip className="size-4" />
-						</button>
+						{paperclipButton}
 						{isResponding ? (
 							<StopButton onClick={onStop} />
 						) : (
@@ -271,7 +298,6 @@ export default function ChatInput({
 				</div>
 			)}
 		</motion.div>
-		</>
 	)
 }
 
