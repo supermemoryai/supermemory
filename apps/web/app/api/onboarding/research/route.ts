@@ -7,16 +7,44 @@ interface ResearchRequest {
 	email?: string
 }
 
-function extractHandle(url: string): string {
-	const cleaned = url
-		.toLowerCase()
-		.replace("https://x.com/", "")
-		.replace("https://twitter.com/", "")
-		.replace("http://x.com/", "")
-		.replace("http://twitter.com/", "")
-		.replace("@", "")
+const ALLOWED_X_HOSTS: ReadonlySet<string> = new Set([
+	"x.com",
+	"www.x.com",
+	"twitter.com",
+	"www.twitter.com",
+	"mobile.twitter.com",
+])
 
-	return (cleaned.split("/")[0] ?? cleaned).split("?")[0] ?? cleaned
+const X_URL_FALLBACK_REGEX =
+	/^(?:https?:\/\/)?(?:x\.com|www\.x\.com|twitter\.com|www\.twitter\.com|mobile\.twitter\.com)\/([^/\s?#]+)/i
+
+function isXHost(hostname: string): boolean {
+	return ALLOWED_X_HOSTS.has(hostname.toLowerCase())
+}
+
+function extractHandle(input: string): string {
+	const trimmed = input.trim()
+	if (!trimmed) return ""
+
+	let handle = trimmed.replace(/^@+/, "")
+	const lower = handle.toLowerCase()
+
+	if (lower.includes("x.com") || lower.includes("twitter.com")) {
+		try {
+			const parsed = new URL(
+				handle.startsWith("http://") || handle.startsWith("https://")
+					? handle
+					: `https://${handle}`,
+			)
+			handle = isXHost(parsed.hostname)
+				? (parsed.pathname.split("/").filter(Boolean)[0] ?? "")
+				: ""
+		} catch {
+			handle = handle.match(X_URL_FALLBACK_REGEX)?.[1] ?? ""
+		}
+	}
+
+	return handle.replace(/^@+/, "").split(/[/?#]/)[0]?.toLowerCase() ?? ""
 }
 
 function finalPrompt(handle: string, userContext: string) {
@@ -46,6 +74,13 @@ export async function POST(req: Request) {
 		}
 
 		const handle = extractHandle(xUrl)
+
+		if (!/^[A-Za-z0-9_]{1,15}$/.test(handle)) {
+			return Response.json(
+				{ error: "Could not parse a valid X/Twitter handle from the input" },
+				{ status: 400 },
+			)
+		}
 
 		const contextParts: string[] = []
 		if (name) contextParts.push(`Name: ${name}`)
