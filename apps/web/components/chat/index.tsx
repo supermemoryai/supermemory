@@ -370,6 +370,17 @@ export function ChatSidebar({
 		}
 	}
 
+	// When the user stops generation before any assistant response arrives,
+	// remove the dangling user message so it isn't duplicated on the next send.
+	const handleStop = useCallback(() => {
+		stop()
+		setMessages((prev) => {
+			const last = prev[prev.length - 1]
+			if (last?.role === "user") return prev.slice(0, -1)
+			return prev
+		})
+	}, [stop, setMessages])
+
 	const handleCopyMessage = useCallback((messageId: string, text: string) => {
 		analytics.chatMessageCopied({ message_id: messageId })
 		navigator.clipboard.writeText(text)
@@ -1137,7 +1148,7 @@ export function ChatSidebar({
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
 					onSend={handleSend}
-					onStop={stop}
+					onStop={handleStop}
 					onKeyDown={handleKeyDown}
 					isResponding={isResponding}
 					activeStatus={
