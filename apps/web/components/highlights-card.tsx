@@ -1,6 +1,12 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import {
+	useState,
+	useCallback,
+	useRef,
+	useEffect,
+	useLayoutEffect,
+} from "react"
 import { cn } from "@lib/utils"
 import { dmSansClassName } from "@/lib/fonts"
 import {
@@ -75,6 +81,9 @@ export function HighlightsCard({
 	const [activeIndex, setActiveIndex] = useState(0)
 	const [isReplyOpen, setIsReplyOpen] = useState(false)
 	const [replyText, setReplyText] = useState("")
+	const [isExpanded, setIsExpanded] = useState(false)
+	const [isClamped, setIsClamped] = useState(false)
+	const contentRef = useRef<HTMLDivElement>(null)
 	const replyInputRef = useRef<HTMLInputElement>(null)
 
 	const currentItem = items[activeIndex]
@@ -87,18 +96,28 @@ export function HighlightsCard({
 	useEffect(() => {
 		setIsReplyOpen(false)
 		setReplyText("")
+		setIsExpanded(false)
 	}, [items])
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: re-run when item or expansion changes to detect clamping
+	useLayoutEffect(() => {
+		const el = contentRef.current
+		if (!el) return
+		setIsClamped(el.scrollHeight > el.clientHeight)
+	}, [currentItem, isExpanded])
 
 	const handlePrev = useCallback(() => {
 		setActiveIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1))
 		setIsReplyOpen(false)
 		setReplyText("")
+		setIsExpanded(false)
 	}, [items.length])
 
 	const handleNext = useCallback(() => {
 		setActiveIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0))
 		setIsReplyOpen(false)
 		setReplyText("")
+		setIsExpanded(false)
 	}, [items.length])
 
 	const handleChatClick = useCallback(() => {
@@ -259,12 +278,27 @@ export function HighlightsCard({
 			</div>
 
 			<div id="highlights-body" className="flex flex-col gap-1.5">
-				<p className="text-[12px] font-semibold text-fg-primary leading-tight truncate">
+				<p className="text-[12px] font-semibold text-fg-primary leading-tight">
 					{currentItem.title}
 				</p>
-				<div className="text-[12px] text-fg-primary leading-normal line-clamp-5">
+				<div
+					ref={contentRef}
+					className={cn(
+						"text-[12px] text-fg-primary leading-normal",
+						!isExpanded && "line-clamp-5",
+					)}
+				>
 					{renderContent(currentItem.content, currentItem.format)}
 				</div>
+				{(isClamped || isExpanded) && (
+					<button
+						type="button"
+						onClick={() => setIsExpanded((v) => !v)}
+						className="self-start text-[11px] text-fg-subtle hover:text-fg-primary transition-colors cursor-pointer"
+					>
+						{isExpanded ? "Show less" : "Show more"}
+					</button>
+				)}
 			</div>
 
 			{isReplyOpen && (
