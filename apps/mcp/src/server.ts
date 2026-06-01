@@ -6,6 +6,7 @@ import {
 	RESOURCE_MIME_TYPE,
 } from "@modelcontextprotocol/ext-apps/server"
 import { SupermemoryClient, getMemoryText } from "./client"
+import { createRetrievalReceipt } from "./retrieval-receipt"
 import { initPosthog, posthog } from "./posthog"
 import { z } from "zod"
 import mcpAppHtml from "../dist/mcp-app.html"
@@ -86,6 +87,13 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				.max(1000, "Query exceeds maximum length of 1,000 characters")
 				.describe("The search query to find relevant memories"),
 			includeProfile: z.boolean().optional().default(true),
+			includeReceipt: z
+				.boolean()
+				.optional()
+				.default(false)
+				.describe(
+					"Include a privacy-safe retrieval receipt with hashed query, result IDs, and content hashes for debugging",
+				),
 			...(hasRootContainerTag ? {} : containerTagField),
 		})
 
@@ -619,9 +627,15 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 	private async handleRecall(args: {
 		query: string
 		includeProfile?: boolean
+		includeReceipt?: boolean
 		containerTag?: string
 	}) {
-		const { query, includeProfile = true, containerTag } = args
+		const {
+			query,
+			includeProfile = true,
+			includeReceipt = false,
+			containerTag,
+		} = args
 
 		try {
 			const client = this.getClient(containerTag)
@@ -666,12 +680,14 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				}
 
 				const endTime = Date.now()
+				const searchResults = profileResult.searchResults?.results || []
+				const effectiveContainerTag = containerTag || this.props?.containerTag
 
 				// Track search event
 				posthog
 					.memorySearch({
 						query_length: query.length,
-						results_count: profileResult.searchResults?.results.length || 0,
+						results_count: searchResults.length,
 						search_duration_ms: endTime - startTime,
 						container_tags_count: 1,
 						source: "mcp",
@@ -679,25 +695,50 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 						mcp_client_name: clientInfo?.name,
 						mcp_client_version: clientInfo?.version,
 						sessionId: this.getMcpSessionId(),
-						containerTag: containerTag || this.props?.containerTag,
+						containerTag: effectiveContainerTag,
 					})
 					.catch((error) => console.error("PostHog tracking error:", error))
 
+				const content = [
+					{
+						type: "text" as const,
+						text:
+							parts.length > 0
+								? parts.join("\n")
+								: "No memories or profile found.",
+					},
+				]
+
 				return {
-					content: [
-						{
-							type: "text" as const,
-							text:
-								parts.length > 0
-									? parts.join("\n")
-									: "No memories or profile found.",
-						},
-					],
+					content,
+					...(includeReceipt
+						? {
+								structuredContent: {
+									receipt: await createRetrievalReceipt({
+										query,
+										containerTag: effectiveContainerTag,
+										clientInfo,
+										results: searchResults.map((result) => ({
+											id: result.id,
+											similarity: result.similarity,
+											text: getMemoryText(result),
+										})),
+										total: profileResult.searchResults?.total,
+										latencyMs: endTime - startTime,
+										profile: {
+											staticCount: profileResult.profile.static.length,
+											dynamicCount: profileResult.profile.dynamic.length,
+										},
+									}),
+								},
+							}
+						: {}),
 				}
 			}
 
 			const searchResult = await client.search(query, 10)
 			const endTime = Date.now()
+			const effectiveContainerTag = containerTag || this.props?.containerTag
 
 			// Track search event
 			posthog
@@ -711,13 +752,27 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 					mcp_client_name: clientInfo?.name,
 					mcp_client_version: clientInfo?.version,
 					sessionId: this.getMcpSessionId(),
-					containerTag: containerTag || this.props?.containerTag,
+					containerTag: effectiveContainerTag,
 				})
 				.catch((error) => console.error("PostHog tracking error:", error))
 
 			if (searchResult.results.length === 0) {
 				return {
 					content: [{ type: "text" as const, text: "No memories found." }],
+					...(includeReceipt
+						? {
+								structuredContent: {
+									receipt: await createRetrievalReceipt({
+										query,
+										containerTag: effectiveContainerTag,
+										clientInfo,
+										results: [],
+										total: searchResult.total,
+										latencyMs: endTime - startTime,
+									}),
+								},
+							}
+						: {}),
 				}
 			}
 
@@ -730,7 +785,27 @@ export class SupermemoryMCP extends McpAgent<Env, unknown, Props> {
 				parts.push(getMemoryText(memory))
 			}
 
-			return { content: [{ type: "text" as const, text: parts.join("\n") }] }
+			return {
+				content: [{ type: "text" as const, text: parts.join("\n") }],
+				...(includeReceipt
+					? {
+							structuredContent: {
+								receipt: await createRetrievalReceipt({
+									query,
+									containerTag: effectiveContainerTag,
+									clientInfo,
+									results: searchResult.results.map((result) => ({
+										id: result.id,
+										similarity: result.similarity,
+										text: getMemoryText(result),
+									})),
+									total: searchResult.total,
+									latencyMs: endTime - startTime,
+								}),
+							},
+						}
+					: {}),
+			}
 		} catch (error) {
 			const message =
 				error instanceof Error ? error.message : "An unexpected error occurred"
