@@ -55,6 +55,13 @@ interface ToolResultData {
 	containerTag?: string
 	documents: GraphApiDocument[]
 	totalCount: number
+	loadedCount?: number
+	pagination?: {
+		currentPage: number
+		limit: number
+		totalItems: number
+		totalPages: number
+	}
 }
 
 interface MemoryNode extends NodeObject {
@@ -129,6 +136,8 @@ const CLUSTER_SPREAD = 120
 let isDark = true
 let selectedNode: GraphNode | null = null
 let hoveredNode: GraphNode | null = null
+let activeToolData: ToolResultData | null = null
+let isLoadingMore = false
 
 // =============================================================================
 // DOM References (elements are guaranteed to exist in mcp-app.html)
@@ -155,6 +164,9 @@ const zoomInBtn = document.getElementById("zoom-in")!
 const zoomOutBtn = document.getElementById("zoom-out")!
 // biome-ignore lint/style/noNonNullAssertion: DOM element guaranteed to exist in HTML
 const fitBtn = document.getElementById("fit-btn")!
+const loadMoreBtn = document.getElementById(
+	"load-more-btn",
+) as HTMLButtonElement
 
 // =============================================================================
 // Helpers
@@ -857,6 +869,99 @@ prefersDark.addEventListener("change", (e) =>
 	applyTheme(e.matches ? "dark" : "light"),
 )
 
+function updateLoadMore(data: ToolResultData) {
+	const pagination = data.pagination
+	const loadedCount = data.loadedCount ?? data.documents.length
+	const hasMore = pagination
+		? pagination.currentPage < pagination.totalPages
+		: loadedCount < data.totalCount
+
+	loadMoreBtn.hidden = !hasMore
+	loadMoreBtn.disabled = isLoadingMore
+	if (hasMore) {
+		loadMoreBtn.textContent = isLoadingMore
+			? "Loading..."
+			: `Load more (${loadedCount}/${data.totalCount})`
+	}
+}
+
+function renderGraphData(data: ToolResultData) {
+	const { nodes, links } = transformData(data)
+	const memCount = nodes.filter((n) => n.nodeType === "memory").length
+	const docCount = nodes.filter((n) => n.nodeType === "document").length
+	const loadedCount = data.loadedCount ?? data.documents.length
+	const totalCount = data.totalCount
+	const countLabel =
+		totalCount > loadedCount
+			? `${docCount}/${totalCount} docs`
+			: `${docCount} docs`
+
+	statsEl.textContent = `${countLabel} · ${memCount} memories · ${links.length} connections`
+
+	// Update legend counts
+	const docCountEl = document.getElementById("legend-doc-count")
+	const memCountEl = document.getElementById("legend-mem-count")
+	if (docCountEl) docCountEl.textContent = String(docCount)
+	if (memCountEl) memCountEl.textContent = String(memCount)
+
+	graph.graphData({ nodes, links })
+	updateLoadMore(data)
+
+	// Fit to view after layout stabilizes
+	setTimeout(() => graph.zoomToFit(400, 40), 600)
+}
+
+async function loadNextPage() {
+	const data = activeToolData
+	const pagination = data?.pagination
+	if (!data || !pagination || pagination.currentPage >= pagination.totalPages) {
+		return
+	}
+
+	isLoadingMore = true
+	updateLoadMore(data)
+	try {
+		const result = await app.callServerTool({
+			name: "fetch-graph-data",
+			arguments: {
+				containerTag: data.containerTag,
+				page: pagination.currentPage + 1,
+				limit: pagination.limit,
+			},
+		})
+		if (result.isError) {
+			statsEl.textContent = "Error loading more graph data"
+			return
+		}
+		const nextData = result.structuredContent as unknown as {
+			documents?: GraphApiDocument[]
+			pagination?: ToolResultData["pagination"]
+		}
+		if (!nextData?.documents || !nextData.pagination) {
+			statsEl.textContent = "No additional graph data available"
+			return
+		}
+		activeToolData = {
+			...data,
+			documents: [...data.documents, ...nextData.documents],
+			loadedCount: data.documents.length + nextData.documents.length,
+			pagination: nextData.pagination,
+			totalCount: nextData.pagination.totalItems,
+		}
+		renderGraphData(activeToolData)
+	} catch (error) {
+		statsEl.textContent = "Error loading more graph data"
+		console.error(error)
+	} finally {
+		isLoadingMore = false
+		if (activeToolData) updateLoadMore(activeToolData)
+	}
+}
+
+loadMoreBtn.addEventListener("click", () => {
+	void loadNextPage()
+})
+
 // =============================================================================
 // MCP App SDK
 // =============================================================================
@@ -881,22 +986,8 @@ app.ontoolresult = (result: CallToolResult) => {
 		return
 	}
 
-	const { nodes, links } = transformData(data)
-	const memCount = nodes.filter((n) => n.nodeType === "memory").length
-	const docCount = nodes.filter((n) => n.nodeType === "document").length
-
-	statsEl.textContent = `${docCount} docs \u00b7 ${memCount} memories \u00b7 ${links.length} connections`
-
-	// Update legend counts
-	const docCountEl = document.getElementById("legend-doc-count")
-	const memCountEl = document.getElementById("legend-mem-count")
-	if (docCountEl) docCountEl.textContent = String(docCount)
-	if (memCountEl) memCountEl.textContent = String(memCount)
-
-	graph.graphData({ nodes, links })
-
-	// Fit to view after layout stabilizes
-	setTimeout(() => graph.zoomToFit(400, 40), 600)
+	activeToolData = data
+	renderGraphData(data)
 }
 
 app.ontoolcancelled = () => {
