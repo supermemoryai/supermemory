@@ -332,12 +332,12 @@ export function ChatSidebar({
 		}
 	}, [])
 
-	const handleSend = () => {
-		if (!input.trim() || status === "submitted" || status === "streaming")
+	const handleSend = (attachments?: import("ai").FileUIPart[]) => {
+		if ((!input.trim() && (!attachments || attachments.length === 0)) || status === "submitted" || status === "streaming")
 			return
 		if (!threadId) setThreadId(fallbackChatId)
 		analytics.chatMessageSent({ source: "typed" })
-		sendMessage({ text: input })
+		sendMessage({ text: input, files: attachments })
 		setInput("")
 		userJustSentRef.current = true
 		scrollToBottom()
