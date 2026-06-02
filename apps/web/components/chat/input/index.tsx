@@ -7,11 +7,7 @@ import { dmSansClassName } from "@/lib/fonts"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
 import { SendButton, StopButton } from "./actions"
-import {
-	type ModelId,
-	modelNames,
-	type ReasoningEffort,
-} from "@/lib/models"
+import { type ModelId, modelNames, type ReasoningEffort } from "@/lib/models"
 
 export interface QueuedChatMessagePreview {
 	id: string
@@ -157,9 +153,7 @@ export default function ChatInput({
 								{queuedMessages.map((queued) => {
 									const model = modelNames[queued.model]
 									const ReasoningIcon =
-										queued.reasoningEffort === "thinking"
-											? BrainIcon
-											: ZapIcon
+										queued.reasoningEffort === "thinking" ? BrainIcon : ZapIcon
 									const reasoningLabel =
 										queued.reasoningEffort === "thinking"
 											? "Thinking"

@@ -132,8 +132,8 @@ export default function ChatModelSelector({
 									<div className="min-w-0 flex-1">
 										<div
 											className={cn(
-										"truncate text-sm font-medium",
-											isSelected ? "text-white" : "text-white",
+												"truncate text-sm font-medium",
+												isSelected ? "text-white" : "text-white",
 											)}
 										>
 											{modelData.name}{" "}

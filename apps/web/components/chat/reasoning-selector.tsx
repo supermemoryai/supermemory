@@ -122,8 +122,8 @@ export function ReasoningSelector({
 									<div className="min-w-0 flex-1">
 										<div
 											className={cn(
-										"text-sm font-medium",
-											isSelected ? "text-white" : "text-white",
+												"text-sm font-medium",
+												isSelected ? "text-white" : "text-white",
 											)}
 										>
 											{option.label}
