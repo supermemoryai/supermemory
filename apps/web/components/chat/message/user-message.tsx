@@ -1,10 +1,12 @@
 "use client"
 
 import { memo, useEffect, useRef, useState } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import { Copy, Check, PencilIcon, PencilOffIcon } from "lucide-react"
 import type { UIMessage } from "@ai-sdk/react"
 import ChatModelSelector from "../model-selector"
 import { ReasoningSelector } from "../reasoning-selector"
+import { SendButton } from "../input/actions"
 import {
 	getDefaultReasoningEffort,
 	type ModelId,
@@ -70,64 +72,66 @@ export const UserMessage = memo(function UserMessage({
 
 	return (
 		<div className="flex flex-col items-end w-full">
-			{isEditing ? (
-				<div className="w-full max-w-[88%] rounded-[14px] border border-[#293952]/70 bg-[#0D121A] p-2 shadow-[0_16px_36px_rgba(0,0,0,0.28)]">
-					<textarea
-						ref={textareaRef}
-						value={draft}
-						onChange={(event) => setDraft(event.target.value)}
-						onKeyDown={(event) => {
-							if (event.key === "Enter" && !event.shiftKey) {
-								event.preventDefault()
-								submitEdit()
-							}
-						}}
-						className="min-h-20 w-full resize-none bg-transparent p-2 text-sm text-white outline-none placeholder:text-white/30"
-					/>
-					<div className="mt-2 flex items-center justify-between gap-2">
-						<div className="flex min-w-0 items-center gap-2">
-							<ChatModelSelector
-								selectedModel={editModel}
-								onModelChange={handleEditModelChange}
-								minimal
-								dropdownDirection="down"
-							/>
-							<ReasoningSelector
-								value={editReasoningEffort}
-								onChange={setEditReasoningEffort}
-								dropdownDirection="down"
-							/>
+			<AnimatePresence mode="wait" initial={false}>
+				{isEditing ? (
+					<motion.div
+						key="edit"
+						layout
+						initial={{ height: 44, opacity: 0, scale: 0.98 }}
+						animate={{ height: "auto", opacity: 1, scale: 1 }}
+						exit={{ opacity: 0, scale: 0.98 }}
+						transition={{ duration: 0.22, ease: "easeOut" }}
+						className="w-full max-w-[88%] origin-top-right overflow-hidden rounded-[14px] border border-[#293952]/70 bg-[#0D121A] p-2 shadow-[0_16px_36px_rgba(0,0,0,0.28)]"
+					>
+						<textarea
+							ref={textareaRef}
+							value={draft}
+							onChange={(event) => setDraft(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === "Enter" && !event.shiftKey) {
+									event.preventDefault()
+									submitEdit()
+								}
+							}}
+							className="min-h-20 w-full resize-none bg-transparent p-2 text-sm text-white outline-none placeholder:text-white/30"
+						/>
+						<div className="mt-2 flex items-center justify-between gap-2">
+							<div className="flex min-w-0 items-center gap-2">
+								<ChatModelSelector
+									selectedModel={editModel}
+									onModelChange={handleEditModelChange}
+									minimal
+									dropdownDirection="down"
+								/>
+								<ReasoningSelector
+									value={editReasoningEffort}
+									onChange={setEditReasoningEffort}
+									dropdownDirection="down"
+								/>
+							</div>
+							<div className="flex shrink-0 items-center gap-1">
+								<SendButton
+									onClick={submitEdit}
+									disabled={!draft.trim()}
+									disabledTooltip="Type a message to send"
+								/>
+							</div>
 						</div>
-						<div className="flex shrink-0 items-center gap-1">
-							<button
-								type="button"
-								onClick={submitEdit}
-								disabled={!draft.trim()}
-								className="rounded-md bg-[#E052A0] p-2 transition-colors hover:bg-[#EF6FB4] disabled:cursor-not-allowed disabled:opacity-50"
-								title="Send edited message"
-							>
-								<svg
-									width="14"
-									height="14"
-									viewBox="0 0 12 16"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
-								>
-									<title>Send</title>
-									<path
-										d="M12 6L10.55 7.4L7 3.85L7 16L5 16L5 3.85L1.45 7.4L-4.37e-07 6L6 -2.62e-07L12 6Z"
-										fill="#FAFAFA"
-									/>
-								</svg>
-							</button>
-						</div>
-					</div>
-				</div>
-			) : (
-				<div className="bg-[#1B1F24] rounded-[12px] p-3 px-[14px] max-w-[80%]">
-					<p className="text-sm text-white">{text}</p>
-				</div>
-			)}
+					</motion.div>
+				) : (
+					<motion.div
+						key="message"
+						layout
+						initial={{ opacity: 0, scale: 0.98 }}
+						animate={{ opacity: 1, scale: 1 }}
+						exit={{ opacity: 0, scale: 0.98 }}
+						transition={{ duration: 0.18, ease: "easeOut" }}
+						className="bg-[#1B1F24] rounded-[12px] p-3 px-[14px] max-w-[80%]"
+					>
+						<p className="text-sm text-white">{text}</p>
+					</motion.div>
+				)}
+			</AnimatePresence>
 			<div className="mt-1 flex max-w-full items-center justify-end gap-1">
 				<button
 					type="button"

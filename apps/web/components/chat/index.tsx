@@ -1255,8 +1255,13 @@ export function ChatSidebar({
 							</div>
 						))}
 						{(status === "submitted" || status === "streaming") && (
-							<div className="flex gap-2">
+							<div className="flex items-center gap-2">
 								<SuperLoader label="Thinking…" />
+								{messageQueue.length > 0 && (
+									<span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] text-white/32">
+										QUEUED
+									</span>
+								)}
 							</div>
 						)}
 					</div>
@@ -1325,66 +1330,6 @@ export function ChatSidebar({
 						>
 							<XIcon className="size-4" />
 						</button>
-					</div>
-				</div>
-			)}
-
-			{messageQueue.length > 0 && (
-				<div
-					className={cn(
-						"mb-2 rounded-xl border border-[#263348]/80 bg-[#0B1119]/95 p-2 shadow-[0_14px_36px_rgba(0,0,0,0.34)]",
-						isPageDesktop ? "mx-0" : "mx-4",
-					)}
-				>
-					<div className="mb-1.5 flex items-center justify-between gap-3 px-1">
-						<div className="flex min-w-0 items-center gap-2">
-							<div className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#267BF1]/15 px-1.5 text-[11px] font-medium text-[#8DBDFF]">
-								{messageQueue.length}
-							</div>
-							<p className="truncate text-xs font-medium text-white/75">
-								Queued messages
-							</p>
-						</div>
-						<p className="shrink-0 text-[11px] text-white/38">
-							{messageQueue.length}/{CHAT_QUEUE_LIMIT}
-						</p>
-					</div>
-					<div className="flex max-h-36 flex-col gap-1 overflow-y-auto pr-1">
-						{messageQueue.map((queued, index) => {
-							const model = modelNames[queued.model]
-							const reasoningLabel =
-								queued.reasoningEffort === "thinking" ? "Thinking" : "Instant"
-							return (
-								<div
-									key={queued.id}
-									className="group flex min-h-10 items-center gap-2 rounded-lg border border-transparent bg-white/[0.035] px-2 py-1.5 transition-colors hover:border-[#263348]/90 hover:bg-white/[0.055]"
-								>
-									<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#101822] text-[11px] text-white/45">
-										{index + 1}
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="truncate text-sm leading-5 text-white/88">
-											{queued.text}
-										</p>
-										<p className="truncate text-[11px] leading-4 text-white/38">
-											{model.name} {model.version} - {reasoningLabel}
-										</p>
-									</div>
-									<button
-										type="button"
-										onClick={() =>
-											setMessageQueue((prev) =>
-												prev.filter((item) => item.id !== queued.id),
-											)
-										}
-										className="flex size-7 shrink-0 items-center justify-center rounded-md text-white/35 transition-colors hover:bg-white/10 hover:text-white/80"
-										aria-label="Remove queued message"
-									>
-										<XIcon className="size-3.5" />
-									</button>
-								</div>
-							)
-						})}
 					</div>
 				</div>
 			)}
