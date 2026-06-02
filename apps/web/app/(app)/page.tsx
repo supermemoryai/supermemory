@@ -41,7 +41,7 @@ import {
 	useQuickNoteDraft,
 } from "@/stores/quick-note-draft"
 import { analytics } from "@/lib/analytics"
-import type { ModelId } from "@/lib/models"
+import type { ModelId, ReasoningEffort } from "@/lib/models"
 import { useDocumentMutations } from "@/hooks/use-document-mutations"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -161,6 +161,8 @@ export default function NewPage() {
 	const [fullscreenInitialContent, setFullscreenInitialContent] = useState("")
 	const [queuedChatSeed, setQueuedChatSeed] = useState<string | null>(null)
 	const [queuedChatModel, setQueuedChatModel] = useState<ModelId | null>(null)
+	const [queuedChatReasoningEffort, setQueuedChatReasoningEffort] =
+		useState<ReasoningEffort | null>(null)
 	const [queuedChatProject, setQueuedChatProject] = useState<string | null>(
 		null,
 	)
@@ -490,6 +492,7 @@ export default function NewPage() {
 			setQueuedHighlightContent(highlightContent)
 			setQueuedChatSeed(userReply)
 			setQueuedChatModel(null)
+			setQueuedChatReasoningEffort(null)
 			setQueuedChatProject(null)
 			setQueuedMessageSource("highlight")
 			void setViewMode("chat")
@@ -498,10 +501,16 @@ export default function NewPage() {
 	)
 
 	const handleHomeChatStart = useCallback(
-		(message: string, model: ModelId, projectId: string) => {
+		(
+			message: string,
+			model: ModelId,
+			projectId: string,
+			reasoningEffort: ReasoningEffort,
+		) => {
 			setQueuedHighlightContent(null)
 			setQueuedChatSeed(message)
 			setQueuedChatModel(model)
+			setQueuedChatReasoningEffort(reasoningEffort)
 			setQueuedChatProject(projectId)
 			setQueuedMessageSource("home")
 			void setViewMode("chat")
@@ -512,6 +521,7 @@ export default function NewPage() {
 	const consumeQueuedChat = useCallback(() => {
 		setQueuedChatSeed(null)
 		setQueuedChatModel(null)
+		setQueuedChatReasoningEffort(null)
 		setQueuedChatProject(null)
 		setQueuedHighlightContent(null)
 		setQueuedMessageSource("highlight")
@@ -633,6 +643,7 @@ export default function NewPage() {
 											onConsumeQueuedMessage={consumeQueuedChat}
 											queuedMessageSource={queuedMessageSource}
 											initialSelectedModel={queuedChatModel}
+											initialReasoningEffort={queuedChatReasoningEffort}
 											initialChatProject={queuedChatProject}
 										/>
 									</div>

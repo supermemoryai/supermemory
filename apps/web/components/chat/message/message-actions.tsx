@@ -1,4 +1,4 @@
-import { Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react"
+import { Check, Copy, ThumbsDown, ThumbsUp } from "lucide-react"
 import { cn } from "@lib/utils"
 
 interface MessageActionsProps {

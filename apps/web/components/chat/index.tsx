@@ -36,7 +36,12 @@ import { getNovaChatErrorCopy } from "@/lib/chat-stream-error"
 import { useProject } from "@/stores"
 import { useContainerTags } from "@/hooks/use-container-tags"
 import { getChatSpaceDisplayLabel } from "@/lib/chat-space-label"
-import { modelNames, type ModelId } from "@/lib/models"
+import {
+	getDefaultReasoningEffort,
+	modelNames,
+	type ModelId,
+	type ReasoningEffort,
+} from "@/lib/models"
 import { SpaceSelector } from "@/components/space-selector"
 import { SuperLoader } from "../superloader"
 import { UserMessage } from "./message/user-message"
@@ -51,6 +56,7 @@ import { useViewMode } from "@/lib/view-mode-context"
 import { threadParam } from "@/lib/search-params"
 import { AUTO_CHAT_SPACE_ID } from "@/lib/chat-auto-space"
 import { ChatEmptyStatePlaceholder } from "./chat-empty-state"
+import { ReasoningSelector } from "./reasoning-selector"
 
 export function ChatLaunchFab({
 	onOpen,
@@ -94,6 +100,31 @@ export function ChatLaunchFab({
 	)
 }
 
+type QueuedChatMessage = {
+	id: string
+	text: string
+	model: ModelId
+	reasoningEffort: ReasoningEffort
+}
+
+const CHAT_QUEUE_LIMIT = 3
+
+function normalizeModelId(value: unknown): ModelId | null {
+	if (typeof value !== "string") return null
+	return value in modelNames ? (value as ModelId) : null
+}
+
+function getMessageResponseModel(message: UIMessage): ModelId | null {
+	const metadata = (
+		message as UIMessage & { metadata?: Record<string, unknown> }
+	).metadata
+	return (
+		normalizeModelId(metadata?.model) ??
+		normalizeModelId(metadata?.responseModel) ??
+		null
+	)
+}
+
 export function ChatSidebar({
 	isChatOpen,
 	setIsChatOpen: _setIsChatOpen,
@@ -102,6 +133,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage,
 	queuedMessageSource = "highlight",
 	initialSelectedModel = null,
+	initialReasoningEffort = null,
 	initialChatProject = null,
 	emptyStateSuggestions,
 	layout = "sidebar",
@@ -113,6 +145,7 @@ export function ChatSidebar({
 	onConsumeQueuedMessage?: () => void
 	queuedMessageSource?: "highlight" | "home"
 	initialSelectedModel?: ModelId | null
+	initialReasoningEffort?: ReasoningEffort | null
 	initialChatProject?: string | null
 	emptyStateSuggestions?: string[]
 	layout?: "sidebar" | "page"
@@ -123,8 +156,17 @@ export function ChatSidebar({
 	const [selectedModel, setSelectedModel] = useState<ModelId>(
 		initialSelectedModel ?? "claude-sonnet-4.6",
 	)
+	const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>(
+		initialReasoningEffort ??
+			getDefaultReasoningEffort(initialSelectedModel ?? "claude-sonnet-4.6"),
+	)
 	const selectedModelRef = useRef(selectedModel)
 	selectedModelRef.current = selectedModel
+	const reasoningEffortRef = useRef(reasoningEffort)
+	reasoningEffortRef.current = reasoningEffort
+	const [messageQueue, setMessageQueue] = useState<QueuedChatMessage[]>([])
+	const queuedDispatchInFlightRef = useRef(false)
+	const queuedDispatchSawResponseRef = useRef(false)
 	const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
 	const [messageFeedback, setMessageFeedback] = useState<
@@ -146,6 +188,22 @@ export function ChatSidebar({
 	const isScrolledToBottomRef = useRef(true)
 	const userJustSentRef = useRef(false)
 	const sentQueuedMessageRef = useRef<string | null>(null)
+	const truncateFromMessageIdRef = useRef<string | null>(null)
+	const pendingRegenerationRef = useRef<{
+		text: string
+	} | null>(null)
+	const pendingSendSettingsRef = useRef<{
+		model: ModelId
+		reasoningEffort: ReasoningEffort
+	} | null>(null)
+	const pendingResponseModelsRef = useRef<ModelId[]>([])
+	const seenAssistantMessageIdsRef = useRef<Set<string>>(new Set())
+	const [responseModelByMessageId, setResponseModelByMessageId] = useState<
+		Record<string, ModelId>
+	>({})
+	const [regenerationBaseLength, setRegenerationBaseLength] = useState<
+		number | null
+	>(null)
 	const pendingHighlightReplyRef = useRef<string | null>(null)
 	const awaitingHighlightInjectionRef = useRef(false)
 	const pendingHighlightMessageRef = useRef<UIMessage[] | null>(null)
@@ -224,22 +282,30 @@ export function ChatSidebar({
 			new DefaultChatTransport({
 				api: `${chatApiBase}/chat`,
 				credentials: "include",
-				prepareSendMessagesRequest: ({ messages }) => ({
-					body: {
-						messages,
-						metadata: {
-							chatId: chatIdRef.current,
-							projectId: selectedProjectRef.current,
-							spaceMode:
-								selectedProjectRef.current === AUTO_CHAT_SPACE_ID
-									? "auto"
-									: "manual",
-							enableSpaceDiscovery:
-								selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
-							model: selectedModelRef.current,
+				prepareSendMessagesRequest: ({ messages }) => {
+					const sendSettings = pendingSendSettingsRef.current
+					pendingSendSettingsRef.current = null
+
+					return {
+						body: {
+							messages,
+							metadata: {
+								chatId: chatIdRef.current,
+								projectId: selectedProjectRef.current,
+								spaceMode:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID
+										? "auto"
+										: "manual",
+								enableSpaceDiscovery:
+									selectedProjectRef.current === AUTO_CHAT_SPACE_ID,
+								model: sendSettings?.model ?? selectedModelRef.current,
+								reasoningEffort:
+									sendSettings?.reasoningEffort ?? reasoningEffortRef.current,
+								truncateFromMessageId: truncateFromMessageIdRef.current,
+							},
 						},
-					},
-				}),
+					}
+				},
 			}),
 		[chatApiBase],
 	)
@@ -291,9 +357,38 @@ export function ChatSidebar({
 		[error, selectedModel],
 	)
 
+	useEffect(() => {
+		if (error) {
+			pendingResponseModelsRef.current = []
+		}
+	}, [error])
+
+	useEffect(() => {
+		const updates: Record<string, ModelId> = {}
+
+		for (const message of messages) {
+			if (message.role !== "assistant") continue
+			if (seenAssistantMessageIdsRef.current.has(message.id)) continue
+
+			seenAssistantMessageIdsRef.current.add(message.id)
+			const responseModel =
+				getMessageResponseModel(message) ??
+				pendingResponseModelsRef.current.shift() ??
+				null
+
+			if (responseModel) {
+				updates[message.id] = responseModel
+			}
+		}
+
+		if (Object.keys(updates).length === 0) return
+		setResponseModelByMessageId((prev) => ({ ...prev, ...updates }))
+	}, [messages])
+
 	const handleModelChange = useCallback(
 		(modelId: ModelId) => {
 			setSelectedModel(modelId)
+			setReasoningEffort(getDefaultReasoningEffort(modelId))
 			clearError()
 		},
 		[clearError],
@@ -333,11 +428,36 @@ export function ChatSidebar({
 	}, [])
 
 	const handleSend = () => {
-		if (!input.trim() || status === "submitted" || status === "streaming")
+		const text = input.trim()
+		if (!text) return
+
+		if (status === "submitted" || status === "streaming") {
+			if (messageQueue.length >= CHAT_QUEUE_LIMIT) return
+
+			setMessageQueue((prev) => {
+				if (prev.length >= CHAT_QUEUE_LIMIT) return prev
+				return [
+					...prev,
+					{
+						id: generateId(),
+						text,
+						model: selectedModel,
+						reasoningEffort,
+					},
+				]
+			})
+			setInput("")
+			analytics.chatMessageSent({ source: "typed" })
+			userJustSentRef.current = true
+			scrollToBottom()
 			return
+		}
+
+		truncateFromMessageIdRef.current = null
 		if (!threadId) setThreadId(fallbackChatId)
 		analytics.chatMessageSent({ source: "typed" })
-		sendMessage({ text: input })
+		pendingResponseModelsRef.current.push(selectedModel)
+		sendMessage({ text })
 		setInput("")
 		userJustSentRef.current = true
 		scrollToBottom()
@@ -346,9 +466,11 @@ export function ChatSidebar({
 	const handleSuggestedQuestion = useCallback(
 		(suggestion: string) => {
 			if (status === "submitted" || status === "streaming") return
+			truncateFromMessageIdRef.current = null
 			if (!threadId) setThreadId(fallbackChatId)
 			analytics.chatSuggestedQuestionClicked()
 			analytics.chatMessageSent({ source: "suggested" })
+			pendingResponseModelsRef.current.push(selectedModel)
 			sendMessage({ text: suggestion })
 			userJustSentRef.current = true
 			scrollToBottom()
@@ -360,8 +482,65 @@ export function ChatSidebar({
 			status,
 			threadId,
 			scrollToBottom,
+			selectedModel,
 		],
 	)
+
+	const handleRegenerateFromUserMessage = useCallback(
+		(
+			messageId: string,
+			text: string,
+			model: ModelId,
+			nextReasoningEffort: ReasoningEffort,
+		) => {
+			const trimmed = text.trim()
+			if (!trimmed || status === "submitted" || status === "streaming") return
+			const messageIndex = messages.findIndex(
+				(message) => message.id === messageId,
+			)
+			if (messageIndex === -1) return
+
+			truncateFromMessageIdRef.current = messageId
+			pendingSendSettingsRef.current = {
+				model,
+				reasoningEffort: nextReasoningEffort,
+			}
+			clearError()
+			pendingRegenerationRef.current = {
+				text: trimmed,
+			}
+			setRegenerationBaseLength(messageIndex)
+			setMessages(messages.slice(0, messageIndex))
+			userJustSentRef.current = true
+			scrollToBottom()
+		},
+		[clearError, messages, scrollToBottom, setMessages, status],
+	)
+
+	useEffect(() => {
+		const pending = pendingRegenerationRef.current
+		if (
+			!pending ||
+			regenerationBaseLength === null ||
+			messages.length !== regenerationBaseLength ||
+			status !== "ready"
+		) {
+			return
+		}
+
+		pendingRegenerationRef.current = null
+		setRegenerationBaseLength(null)
+		analytics.chatMessageSent({ source: "typed" })
+		queuedDispatchInFlightRef.current = true
+		queuedDispatchSawResponseRef.current = false
+		pendingResponseModelsRef.current.push(
+			pendingSendSettingsRef.current?.model ?? selectedModelRef.current,
+		)
+		sendMessage({ text: pending.text })
+		window.setTimeout(() => {
+			truncateFromMessageIdRef.current = null
+		}, 0)
+	}, [messages.length, regenerationBaseLength, sendMessage, status])
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter" && !e.shiftKey && !isMobile) {
@@ -436,6 +615,12 @@ export function ChatSidebar({
 		setThreadId(null)
 		setFallbackChatId(newChatId)
 		setInput("")
+		setMessageQueue([])
+		pendingResponseModelsRef.current = []
+		seenAssistantMessageIdsRef.current = new Set()
+		setResponseModelByMessageId({})
+		queuedDispatchInFlightRef.current = false
+		queuedDispatchSawResponseRef.current = false
 	}, [setThreadId, setMessages])
 
 	const fetchThreads = useCallback(async () => {
@@ -477,6 +662,7 @@ export function ChatSidebar({
 							role: string
 							parts: Array<{ type: string }>
 							createdAt: string
+							metadata?: Record<string, unknown>
 						}) => ({
 							id: m.id,
 							role: m.role,
@@ -486,11 +672,18 @@ export function ChatSidebar({
 							parts: (m.parts || []).filter(
 								(p) => p.type === "text" || p.type === "reasoning",
 							),
+							metadata: m.metadata,
 							createdAt: new Date(m.createdAt),
 						}),
 					)
+					pendingResponseModelsRef.current = []
+					seenAssistantMessageIdsRef.current = new Set()
+					setResponseModelByMessageId({})
 					setThreadId(id)
 					setPendingThreadLoad({ id, messages: uiMessages })
+					setMessageQueue([])
+					queuedDispatchInFlightRef.current = false
+					queuedDispatchSawResponseRef.current = false
 					analytics.chatThreadLoaded({ thread_id: id })
 					setIsHistoryOpen(false)
 					setConfirmingDeleteId(null)
@@ -579,10 +772,18 @@ export function ChatSidebar({
 				setSelectedModel(initialSelectedModel)
 				return
 			}
+			if (
+				initialReasoningEffort &&
+				reasoningEffort !== initialReasoningEffort
+			) {
+				setReasoningEffort(initialReasoningEffort)
+				return
+			}
 			sentQueuedMessageRef.current = queuedMessage
 			analytics.chatMessageSent({ source: queuedMessageSource })
 
 			if (queuedHighlightContent) {
+				truncateFromMessageIdRef.current = null
 				// Start a fresh thread for highlight-based chats to avoid overwriting existing conversations
 				const newChatId = generateId()
 				chatIdRef.current = newChatId
@@ -613,7 +814,11 @@ export function ChatSidebar({
 					},
 				]
 			} else {
+				truncateFromMessageIdRef.current = null
 				if (!threadId) setThreadId(fallbackChatId)
+				queuedDispatchInFlightRef.current = true
+				queuedDispatchSawResponseRef.current = false
+				pendingResponseModelsRef.current.push(selectedModel)
 				sendMessage({ text: queuedMessage })
 			}
 			onConsumeQueuedMessage?.()
@@ -624,7 +829,9 @@ export function ChatSidebar({
 		queuedHighlightContent,
 		queuedMessageSource,
 		initialSelectedModel,
+		initialReasoningEffort,
 		selectedModel,
+		reasoningEffort,
 		status,
 		sendMessage,
 		onConsumeQueuedMessage,
@@ -664,6 +871,10 @@ export function ChatSidebar({
 			awaitingHighlightInjectionRef.current = false
 			const reply = pendingHighlightReplyRef.current
 			pendingHighlightReplyRef.current = null
+			truncateFromMessageIdRef.current = null
+			queuedDispatchInFlightRef.current = true
+			queuedDispatchSawResponseRef.current = false
+			pendingResponseModelsRef.current.push(selectedModelRef.current)
 			sendMessage({ text: reply })
 		}
 	}, [messages, sendMessage, status])
@@ -674,6 +885,57 @@ export function ChatSidebar({
 			sentQueuedMessageRef.current = null
 		}
 	}, [queuedMessage])
+
+	useEffect(() => {
+		const isRespondingNow = status === "submitted" || status === "streaming"
+		if (isRespondingNow) {
+			if (queuedDispatchInFlightRef.current) {
+				queuedDispatchSawResponseRef.current = true
+			}
+			return
+		}
+
+		if (status !== "ready") {
+			queuedDispatchInFlightRef.current = false
+			queuedDispatchSawResponseRef.current = false
+			return
+		}
+
+		if (queuedDispatchInFlightRef.current) {
+			if (!queuedDispatchSawResponseRef.current) return
+			queuedDispatchInFlightRef.current = false
+			queuedDispatchSawResponseRef.current = false
+		}
+
+		const nextMessage = messageQueue[0]
+		if (!nextMessage) return
+
+		queuedDispatchInFlightRef.current = true
+		queuedDispatchSawResponseRef.current = false
+		truncateFromMessageIdRef.current = null
+		pendingSendSettingsRef.current = {
+			model: nextMessage.model,
+			reasoningEffort: nextMessage.reasoningEffort,
+		}
+		pendingResponseModelsRef.current.push(nextMessage.model)
+		if (!threadId) setThreadId(fallbackChatId)
+		setMessageQueue((prev) =>
+			prev[0]?.id === nextMessage.id
+				? prev.slice(1)
+				: prev.filter((item) => item.id !== nextMessage.id),
+		)
+		sendMessage({ text: nextMessage.text })
+		userJustSentRef.current = true
+		scrollToBottom()
+	}, [
+		fallbackChatId,
+		messageQueue,
+		scrollToBottom,
+		sendMessage,
+		setThreadId,
+		status,
+		threadId,
+	])
 
 	// Scroll to bottom when a new user message is added or a thread is loaded
 	useEffect(() => {
@@ -791,7 +1053,9 @@ export function ChatSidebar({
 	const isStackedInput = layout === "page"
 	const showHeaderRow = !isPageDesktop || isMobile || !isStackedInput
 	const isResponding = status === "submitted" || status === "streaming"
-	const showInputStatusStrip = !isStackedInput
+	const showInputStatusStrip =
+		!isStackedInput || isResponding || messages.length > 0
+	const isQueueFull = messageQueue.length >= CHAT_QUEUE_LIMIT
 
 	const chatHistorySheet = (
 		<Sheet
@@ -972,6 +1236,10 @@ export function ChatSidebar({
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
 								/>
+								<ReasoningSelector
+									value={reasoningEffort}
+									onChange={setReasoningEffort}
+								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
 									onValueChange={setChatSpaceProjects}
@@ -1017,6 +1285,7 @@ export function ChatSidebar({
 								? cn(
 										"flex flex-col space-y-3 min-h-full justify-end",
 										isPageDesktop || isMobile ? "pt-2" : "pt-14",
+										isStackedInput && "px-4",
 									)
 								: ""
 						}
@@ -1041,7 +1310,10 @@ export function ChatSidebar({
 									<UserMessage
 										message={message}
 										copiedMessageId={copiedMessageId}
+										selectedModel={selectedModel}
+										reasoningEffort={reasoningEffort}
 										onCopy={handleCopyMessage}
+										onRegenerate={handleRegenerateFromUserMessage}
 									/>
 								) : (
 									<AgentMessage
@@ -1052,6 +1324,7 @@ export function ChatSidebar({
 										copiedMessageId={copiedMessageId}
 										messageFeedback={messageFeedback}
 										expandedMemories={expandedMemories}
+										responseModel={responseModelByMessageId[message.id] ?? null}
 										onCopy={handleCopyMessage}
 										onLike={handleLikeMessage}
 										onDislike={handleDislikeMessage}
@@ -1151,13 +1424,18 @@ export function ChatSidebar({
 					onStop={handleStop}
 					onKeyDown={handleKeyDown}
 					isResponding={isResponding}
+					sendDisabled={isResponding && isQueueFull}
+					sendDisabledTooltip={`Queue is full (${CHAT_QUEUE_LIMIT} max)`}
 					activeStatus={
-						status === "submitted"
-							? "Thinking…"
-							: status === "streaming"
-								? "Structuring response…"
-								: "Waiting for input…"
+						isResponding && isQueueFull
+							? `Queue full (${CHAT_QUEUE_LIMIT} max)`
+							: status === "submitted"
+								? "Thinking…"
+								: status === "streaming"
+									? "Structuring response…"
+									: "Waiting for input…"
 					}
+					queuedMessages={messageQueue}
 					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
@@ -1170,6 +1448,10 @@ export function ChatSidebar({
 									selectedModel={selectedModel}
 									onModelChange={handleModelChange}
 									minimal
+								/>
+								<ReasoningSelector
+									value={reasoningEffort}
+									onChange={setReasoningEffort}
 								/>
 								<SpaceSelector
 									selectedProjects={chatSpaceProjects}
