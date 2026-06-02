@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { cn } from "@lib/utils"
 import { isWebSearchToolName } from "@/lib/chat-web-search-tools"
+import { modelNames, type ModelId } from "@/lib/models"
 import { RelatedMemories } from "./related-memories"
 import { MessageActions } from "./message-actions"
 
@@ -313,6 +314,7 @@ interface AgentMessageProps {
 	copiedMessageId: string | null
 	messageFeedback: Record<string, "like" | "dislike" | null>
 	expandedMemories: string | null
+	responseModel: ModelId | null
 	onCopy: (messageId: string, text: string) => void
 	onLike: (messageId: string) => void
 	onDislike: (messageId: string) => void
@@ -327,6 +329,7 @@ export function AgentMessage({
 	copiedMessageId,
 	messageFeedback,
 	expandedMemories,
+	responseModel,
 	onCopy,
 	onLike,
 	onDislike,
@@ -339,6 +342,9 @@ export function AgentMessage({
 		.filter((part) => part.type === "text")
 		.map((part) => part.text)
 		.join(" ")
+	const responseModelLabel = responseModel
+		? `${modelNames[responseModel].name} ${modelNames[responseModel].version}`
+		: null
 
 	return (
 		<div className="flex flex-col gap-1 w-full">
@@ -442,17 +448,29 @@ export function AgentMessage({
 					})}
 				</div>
 			</div>
-			<MessageActions
-				messageId={message.id}
-				messageText={messageText}
-				isLastMessage={isLastAgentMessage}
-				isHovered={isHovered}
-				copiedMessageId={copiedMessageId}
-				messageFeedback={messageFeedback}
-				onCopy={onCopy}
-				onLike={onLike}
-				onDislike={onDislike}
-			/>
+			<div className="flex min-h-7 items-center gap-2">
+				<MessageActions
+					messageId={message.id}
+					messageText={messageText}
+					isLastMessage={isLastAgentMessage}
+					isHovered={isHovered}
+					copiedMessageId={copiedMessageId}
+					messageFeedback={messageFeedback}
+					onCopy={onCopy}
+					onLike={onLike}
+					onDislike={onDislike}
+				/>
+				{responseModelLabel && (
+					<span
+						className={cn(
+							"text-[10px] leading-none text-white/25 transition-opacity duration-200",
+							isHovered ? "opacity-100" : "opacity-0",
+						)}
+					>
+						{responseModelLabel}
+					</span>
+				)}
+			</div>
 		</div>
 	)
 }
