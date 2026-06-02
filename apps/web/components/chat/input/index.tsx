@@ -18,6 +18,8 @@ interface ChatInputProps {
 	sendDisabled?: boolean
 	sendDisabledTooltip?: string
 	activeStatus?: string
+	queuedMessagePreview?: string | null
+	queuedMessageCount?: number
 	chainOfThoughtComponent?: React.ReactNode
 	onExpandedChange?: (expanded: boolean) => void
 	/** Model + space controls on one row with send; textarea full-width above */
@@ -36,6 +38,8 @@ export default function ChatInput({
 	sendDisabled = false,
 	sendDisabledTooltip,
 	activeStatus,
+	queuedMessagePreview,
+	queuedMessageCount = 0,
 	chainOfThoughtComponent,
 	onExpandedChange,
 	stackedToolbar,
@@ -45,6 +49,7 @@ export default function ChatInput({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 	const isSendDisabled = !value.trim() || sendDisabled
+	const hasQueuedPreview = !!queuedMessagePreview && queuedMessageCount > 0
 	const resolvedSendDisabledTooltip =
 		sendDisabled && value.trim()
 			? sendDisabledTooltip
@@ -110,7 +115,8 @@ export default function ChatInput({
 					<button
 						type="button"
 						className={cn(
-							"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left",
+							"w-full p-3 pr-4 flex items-center justify-between cursor-pointer bg-transparent border-0 text-left transition-[padding] duration-200",
+							hasQueuedPreview && "pb-1.5",
 							!chainOfThoughtComponent && "disabled:cursor-not-allowed",
 						)}
 						onClick={() => {
@@ -135,6 +141,33 @@ export default function ChatInput({
 							/>
 						)}
 					</button>
+					{hasQueuedPreview && (
+						<motion.div
+							initial={{ height: 0, opacity: 0 }}
+							animate={{ height: "auto", opacity: 1 }}
+							transition={{ duration: 0.18, ease: "easeOut" }}
+							className="overflow-hidden px-12 pr-4 pb-3"
+						>
+							<div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/[0.06] bg-black/[0.16] px-2.5 py-1.5">
+								<span className="shrink-0 text-[10px] font-medium tracking-[0.12em] text-white/32">
+									QUEUED
+								</span>
+								<span
+									className={cn(
+										"min-w-0 flex-1 truncate text-xs text-[#6A7484]",
+										dmSansClassName(),
+									)}
+								>
+									{queuedMessagePreview}
+								</span>
+								{queuedMessageCount > 1 && (
+									<span className="shrink-0 text-[10px] text-white/28">
+										+{queuedMessageCount - 1}
+									</span>
+								)}
+							</div>
+						</motion.div>
+					)}
 				</>
 			) : null}
 			{stackedToolbar ? (

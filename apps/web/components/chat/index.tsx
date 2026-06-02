@@ -1322,13 +1322,8 @@ export function ChatSidebar({
 							</div>
 						))}
 						{(status === "submitted" || status === "streaming") && (
-							<div className="flex items-center gap-2">
+							<div className="flex gap-2">
 								<SuperLoader label="Thinking…" />
-								{messageQueue.length > 0 && (
-									<span className="rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium tracking-[0.12em] text-white/32">
-										QUEUED
-									</span>
-								)}
 							</div>
 						)}
 					</div>
@@ -1428,6 +1423,8 @@ export function ChatSidebar({
 									? "Structuring response…"
 									: "Waiting for input…"
 					}
+					queuedMessagePreview={messageQueue[0]?.text ?? null}
+					queuedMessageCount={messageQueue.length}
 					showStatusStrip={showInputStatusStrip}
 					onExpandedChange={setIsInputExpanded}
 					chainOfThoughtComponent={
